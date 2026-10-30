@@ -1,7 +1,7 @@
 """Phase B only: native saved-request relaunch, diagnosis, Stop and Quit.
 
-Never signal supplier numbers or inherit A's emergency App termination. Any
-post-launch uncertainty retains the original App reservation, slot and observer.
+Never signal supplier numbers or inherit A's emergency App termination.
+Unresolved process settlement retains the original App reservation, slot and observer.
 A held observer is an overrun/unknown result, not a bounded settlement claim.
 """
 import argparse
@@ -64,12 +64,13 @@ def policy(value):
 def saved_input(a_root):
     setup.plain(a_root, directory=True)
     require(a_root.is_relative_to(T3 / 'scratch'), 'A attempt outside task scratch')
-    paths = [a_root / name for name in ('admission.json', 'result.json', 'saved-bindings.json')]
+    paths = [a_root / name for name in ('admission.json', 'result.json', 'saved-bindings.json', 'namespace-after.json')]
     for path in paths:
         setup.plain(path)
-    admitted, result, bindings = [json.loads(path.read_text()) for path in paths]
+    admitted, result, bindings, after = [json.loads(path.read_text()) for path in paths]
     context = setup.Context.restore(admitted['context'])
     value = context.inputs()
+    require(context.namespaces(require_absent=False) == after, 'namespace differs from preserved A settlement')
     require(result['candidate'] == value['candidate_key'] and result['normal_setup_save_quit'] is True
             and result['saved'] is True and result['phase'] == 'A only'
             and result['exit_code'] == 0 and result['forced'] is False and not result['guard_reason']
@@ -122,7 +123,7 @@ def generation(value):
     return value
 
 
-def decode_diagnostics(strings):
+def decode_diagnostics(strings, protocol=True):
     """Parse only observed rendered text and the actual two JSON sections.
 
     AX may split inline text across nodes. Adjacent duplicate AX values are
@@ -151,15 +152,16 @@ def decode_diagnostics(strings):
     require(len(matches) == 1, 'rendered state/generation header unavailable or ambiguous')
     match = matches[0]
     gen = generation(json.loads(match.group(2)))
-    require(len(lifecycle) == 1 and len(envelopes) == 1, 'owned lifecycle/envelope sections unavailable or ambiguous')
-    require(isinstance(lifecycle[0]['lifecycle'], list) and isinstance(lifecycle[0]['clientRequests'], list),
-            'diagnostic arrays unavailable')
+    require(len(lifecycle) == 1, 'owned lifecycle section unavailable or ambiguous')
+    require(not protocol or len(envelopes) == 1, 'owned envelope section unavailable or ambiguous')
+    require(isinstance(lifecycle[0]['lifecycle'], list), 'lifecycle array unavailable')
     return {'rendered_state': match.group(1), 'generation': gen, 'rendered_version': match.group(3).strip(),
-            **lifecycle[0], 'envelopes': envelopes[0]}
+            **lifecycle[0], 'envelopes': envelopes[0] if len(envelopes) == 1 else None}
 
 
 def check_requests(observed, gen):
     requests = observed['clientRequests']
+    require(isinstance(requests, list) and isinstance(observed['envelopes'], list), 'protocol observations unavailable')
     require(requests and all(isinstance(r, dict) and r.get('method') == 'initialize'
                             and r.get('generation') == gen for r in requests),
             'unexpected/prohibited or foreign-generation request')
@@ -169,7 +171,8 @@ def check_requests(observed, gen):
     require(request.get('writeResult') == 'written' and request.get('outcome') == 'response-observed-result',
             'initialize write/result not observed')
     replies = [r for r in observed['envelopes'] if r.get('generation') == gen
-               and isinstance(r.get('frame'), dict) and r['frame'].get('id') == request.get('requestIdentity')
+               and isinstance(r.get('frame'), dict) and type(r['frame'].get('id')) is type(request.get('requestIdentity'))
+               and r['frame'].get('id') == request.get('requestIdentity')
                and 'result' in r['frame'] and 'error' not in r['frame']
                and r.get('position') == request.get('responseReceiptPosition')
                and type(r.get('position')) is int]
@@ -177,8 +180,32 @@ def check_requests(observed, gen):
     return replies[0]['frame']['result']
 
 
-def ready_gate(observed, value):
+def source_gate(observed, value, expected=None):
+    """Cleanup authority comes from the held App's actual native source, not a pass.
+
+    LT-06 is emitted only after the checked App spawns its admitted bundled
+    executable and binds the generation. Before LT-09 that construction, the
+    exact two-executable sandbox and saved account binding identify the source.
+    If LT-09 exposes a launcher, it must corroborate that same path.
+    """
     gen = generation(observed['generation'])
+    require(gen['home'] == value['expected_generation_home'], 'generation does not bind saved A account')
+    require(expected is None or gen == expected, 'cleanup source generation changed')
+    spawned = [r for r in observed['lifecycle'] if r.get('transitionId') == 'LT-06'
+               and r.get('generation') == gen and r.get('toState') == 'handshaking']
+    require(len(spawned) == 1, 'actual same-generation spawn observation unavailable')
+    supplier = str(Path(value['bundle']) / 'Contents/Resources/codex/bin/codex')
+    for row in observed['lifecycle']:
+        if row.get('transitionId') == 'LT-09' and row.get('generation') == gen:
+            require(row.get('versionIdentity', {}).get('configurationIdentity', {}).get('launcher') == supplier,
+                    'cleanup executable source differs')
+    require(observed['rendered_state'] in ('ready', 'handshaking', 'halted-after-repeated-failure',
+            'exited-unexpectedly', 'stopping', 'stopped'), 'cleanup source state is unavailable')
+    return gen
+
+
+def ready_gate(observed, value):
+    gen = source_gate(observed, value)
     require(gen['home'] == value['expected_generation_home'], 'generation does not bind saved A account')
     require(observed['rendered_state'] == 'ready' and observed['rendered_version'] == 'codex-cli 0.160.0',
             'native ready/version not observed')
@@ -193,13 +220,14 @@ def ready_gate(observed, value):
     require(any(r.get('path') == 'bin/codex' and r.get('identity') == {'algorithm': 'sha-256', 'value': setup.digest(supplier)}
                 for r in vi.get('distributionContentIdentity', [])), 'supplier content identity differs')
     reply = check_requests(observed, gen)
+    require(isinstance(reply, dict) and isinstance(reply.get('userAgent'), str) and reply['userAgent'],
+            'initialize identity result unavailable')
     require(reply == vi.get('handshakeReportedIdentity'), 'initialize/LT-09 identity differs')
     return gen
 
 
 def settlement_gate(observed, gen):
     require(observed['generation'] == gen and observed['rendered_state'] == 'stopped', 'Stop generation/state differs')
-    check_requests(observed, gen)
     rows = [r for r in observed['lifecycle'] if r.get('transitionId') == 'LT-23' and r.get('generation') == gen]
     require(len(rows) == 1 and rows[0].get('toState') == 'stopped', 'same-generation LT-23 unavailable')
     row = rows[0]
@@ -264,6 +292,7 @@ class Run:
         self.quit_requested = False
         self.observed_processes = []
         self.last_diagnostics = None
+        self.stop_observation = None
         self.log_lock = threading.Lock()
 
     def note_log_error(self, error):
@@ -373,9 +402,9 @@ class Run:
         strings = [p['AXValue'] if isinstance(p.get('AXValue'), str) else p.get('AXTitle') for _, p, _ in rows
                    if p['AXRole'] in ('AXStaticText', 'AXTextArea', 'AXTextField')]
         self.last_diagnostics = {'at': now(), 'strings': strings}
-        return decode_diagnostics(strings)
+        return decode_diagnostics(strings, protocol=False)
 
-    def observe_ready(self):
+    def observe_ready(self, qualification=True):
         self.wait_for(lambda: self.ax.windows(), 10, 'main window unavailable')
         self.wait_for(lambda: any(p['AXRole'] == 'AXDisclosureTriangle' and str(p['AXTitle']).startswith('Host diagnostics')
                                  for _, p, _ in self.ax.walk(self.ax.main())), 20, 'diagnostics control unavailable')
@@ -388,9 +417,9 @@ class Run:
             self.alive()
             try:
                 observed = self.diagnostics()
-                gen = ready_gate(observed, self.value)
+                gen = ready_gate(observed, self.value) if qualification else source_gate(observed, self.value)
                 self.generation = gen
-                self.record('ready-observation.json', observed)
+                self.record('ready-observation.json' if qualification else 'cleanup-source-observation.json', observed)
                 if not self.cleanup:
                     self.ax.snapshot(self.root / 'ready-AX.json')
                 return gen
@@ -402,14 +431,16 @@ class Run:
     def stop_and_quit(self, gen):
         self.cleanup = True
         observed = self.diagnostics()
-        require(observed['generation'] == gen, 'source changed before cleanup')
+        source_gate(observed, self.value, gen)
+        require(self.generation is None or self.generation == gen, 'captured cleanup generation changed')
+        self.generation = gen
         if observed['rendered_state'] == 'stopped':
             row = settlement_gate(observed, gen)
             self.supplier_settled = True
+            self.stop_observation = observed
             self.record('stop-observation.json', observed)
             self.safe_log('owned_group_settled', generation=gen, actual=row, limits=LIMIT)
-        elif not self.stop_confirmed:
-            require(ready_gate(observed, self.value) == gen, 'source changed before Stop')
+        elif not self.stop_confirmed and observed['rendered_state'] != 'stopping':
             if not self.stop_requested:
                 self.open_disclosure('Connection and access', prefix=True)
                 self.stop_requested = True  # An ambiguous AX delivery is never silently repeated.
@@ -428,7 +459,9 @@ class Run:
             self.alive()
             try:
                 observed = self.diagnostics()
+                source_gate(observed, self.value, gen)
                 row = settlement_gate(observed, gen)
+                self.stop_observation = observed
                 self.record('stop-observation.json', observed)
                 self.safe_log('owned_group_settled', generation=gen, actual=row, limits=LIMIT)
                 self.supplier_settled = True
@@ -441,29 +474,48 @@ class Run:
             self.quit_requested = True
             self.ax.quit_ui()
             self.safe_log('native_quit_requested', actor=ACTOR)
+        return self.wait_for_quit_exit()
+
+    def wait_for_quit_exit(self):
+        require(self.supplier_settled and self.quit_requested, 'Quit exit lacks settlement gates')
         while time.monotonic() < self.cleanup_end:
-            observed_exit = self.reservation.observe()
-            if observed_exit is not None:
-                return self.reservation.reap(self.supplier_settled, self.quit_requested)
-            self.alive()
-            question = self.dialog('Quit Chirality', 'Quit')
-            if question:
-                require(not self.quit_confirmed, 'changed/repeated Quit question; no automatic second confirmation')
-                rows, button = question
-                self.record('quit-confirmation.json', {'statement': self.ax.text(rows), 'actor': ACTOR})
-                self.quit_confirmed = True
-                self.ax.press(button)
+            if self.reservation.observe() is not None:
+                return self.reservation.reap(True, True)
+            if not self.quit_confirmed:
+                try:
+                    self.alive()
+                    question = self.dialog('Quit Chirality', 'Quit')
+                    if question:
+                        rows, button = question
+                        self.record('quit-confirmation.json', {'statement': self.ax.text(rows), 'actor': ACTOR})
+                        self.quit_confirmed = True
+                        self.ax.press(button)
+                except BaseException:
+                    # The App may exit during any AX read after native Quit.
+                    # Only this already-settled, Quit-requested path accepts it.
+                    if self.reservation.observe() is not None:
+                        return self.reservation.reap(True, True)
+                    raise
             time.sleep(0.1)
         raise RuntimeError('native Quit did not settle by deadline')
+
+    def settlement_facts(self):
+        if self.stop_observation is None:
+            return {'supplier_exit_facts': None, 'supplier_cleanup_limits': None}
+        row = settlement_gate(self.stop_observation, self.generation)
+        envelopes = self.stop_observation.get('envelopes')
+        return {'supplier_exit_facts': row['exitFacts'], 'supplier_descendants': row['descendants'],
+                'supplier_cleanup_limits': [r for r in envelopes if r.get('class') == 'process-cleanup-unavailable'
+                    and r.get('generation') == self.generation] if isinstance(envelopes, list) else None}
 
     def cleanup_attempt(self):
         self.cleanup = True
         require(time.monotonic() < self.cleanup_end, 'reserved native cleanup deadline expired')
-        if self.supplier_settled and self.quit_requested and self.reservation.observe() is not None:
-            return self.reservation.reap(True, True)
+        if self.supplier_settled and self.quit_requested:
+            return self.wait_for_quit_exit()
         require(self.reservation.observe() is None, 'App exited before required cleanup proof')
         if self.generation is None:
-            self.generation = self.observe_ready()
+            self.generation = self.observe_ready(qualification=False)
         return self.stop_and_quit(self.generation)
 
     def report(self, value):
@@ -511,7 +563,7 @@ class Run:
                     if self.thread is not None:
                         self.thread.join(timeout=8)
                     result = {'state': 'settled-after-held-failure', 'success': False, 'original_app_reaped': True,
-                              'exit_code': code, 'original_error': error, 'limits': LIMIT}
+                              'exit_code': code, 'original_error': error, **self.settlement_facts(), 'limits': LIMIT}
                     self.record('recovery-result.json', result)
                     self.report(result)
                     return 1
@@ -562,7 +614,7 @@ def execute(root, window_end):
     run.thread.start()
     def interrupted(number, _frame):
         run.reason = run.reason or 'controller interruption signal ' + str(number)
-    for number in (signal.SIGINT, signal.SIGTERM):
+    for number in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
         signal.signal(number, interrupted)
     try:
         with (root / 'stdout.log').open('xb') as out, (root / 'stderr.log').open('xb') as err:
@@ -574,16 +626,23 @@ def execute(root, window_end):
         run.ax = base.load_ax()(child.pid, run.alive, run.log)
         run.ax.output = root
         gen = run.observe_ready()
+        require(ready_gate(run.diagnostics(), value) == gen, 'qualification changed before Stop')
         code = run.stop_and_quit(gen)
+        qualification_error = None
+        try:
+            check_requests(run.stop_observation, gen)
+        except (RuntimeError, ValueError, TypeError) as error:
+            qualification_error = str(error)
         run.stop.set()
         run.thread.join(timeout=8)
         result = {'candidate': value['candidate_key'], 'phase': 'B', 'generation': gen,
                   'initialize_reply_and_ready_observed': True, 'owned_group_settlement_observed': True,
-                  'native_quit_exit_code': code, 'success': code == 0 and not run.reason and not run.log_errors,
+                  'native_quit_exit_code': code, 'success': code == 0 and not qualification_error and not run.reason and not run.log_errors,
+                  'qualification_error': qualification_error, **run.settlement_facts(),
                   'actor': ACTOR, 'guard_reason': run.reason, 'logging_errors': run.log_errors,
                   'limits': LIMIT + ' LT-09 does not prove initialized notification delivery; no model/auth/workflow qualification.'}
         write_once(root / 'result.json', result)
-        print(json.dumps(result), flush=True)
+        run.report(result)
         return 0 if result['success'] else 1
     except BaseException as error:
         if run.reservation is None:
@@ -593,8 +652,8 @@ def execute(root, window_end):
         if run.reservation.reaped:
             run.stop.set()
             run.thread.join(timeout=8)
-            print(json.dumps({'candidate': value['candidate_key'], 'state': 'settled-with-evidence-failure',
-                              'success': False, 'original_app_reaped': True, 'error': str(error), 'limits': LIMIT}), flush=True)
+            run.report({'candidate': value['candidate_key'], 'state': 'settled-with-evidence-failure',
+                        'success': False, 'original_app_reaped': True, 'error': str(error), 'limits': LIMIT})
             return 1
         original_error = str(error)
         run.safe_log('work_failed', error=original_error)
@@ -605,7 +664,7 @@ def execute(root, window_end):
             result = {'candidate': value['candidate_key'], 'phase': 'B', 'success': False,
                       'state': 'settled-after-work-failure', 'original_error': original_error,
                       'native_quit_exit_code': code, 'original_app_reaped': True,
-                      'guard_reason': run.reason, 'logging_errors': run.log_errors, 'limits': LIMIT}
+                      'guard_reason': run.reason, 'logging_errors': run.log_errors, **run.settlement_facts(), 'limits': LIMIT}
             run.record('result.json', result)
             run.report(result)
             return 1

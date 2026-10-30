@@ -245,3 +245,51 @@ guard-expiry cleanup, safe lost stdout and bounded log-error retention. A
 read-only check of the actual successor A input passed. These tests neither
 launch the App nor exercise its native B diagnostic shape. Independent
 pre-execution scrutiny remains required; B has not been prepared or launched.
+
+### B review disposition and selected failure behavior
+
+Independent Claude Opus 5.5/high review at `37c985b6` found two high controller
+defects: normal App exit could race an AX traversal after Quit, and witness-pass
+checks incorrectly blocked safe same-source cleanup. It found no issue with
+the actual successor A evidence: all 24 digests and retained-root copies matched.
+That A evidence does not need another review merely because B is repaired.
+
+The repaired Quit wait accepts exit during AX search only after supplier
+settlement and native Quit request. It stops searching once the Quit question
+is confirmed, and a cleanup retry after Quit only waits for exit. Early exit
+without those gates remains unknown. Cleanup now has a separate source gate:
+the held, inventoried App, saved account hash, actual same-generation LT-06
+spawn event and matching native Stop question bind the target. LT-06 is emitted
+by the checked Host only after actual spawn of the admitted bundled executable;
+the exact two-executable policy and saved startup choice constrain that route.
+Any available LT-09 launcher must corroborate the same executable. A mismatched
+or unbound source is never targeted. Expected requests, successful handshake
+identity/version and qualification are not cleanup prerequisites; their failures
+remain failed witness results after successful cleanup.
+
+App Agent 0 explicitly selected native Stop for captured, bound generations in
+handshaking, halted and unexpected-exit states as permitted by the existing
+contract. This B version has **no pre-generation Quit-only route**. Absent or
+missing generation remains supervised-held with the original App reservation,
+guard and slot, requiring immediate root reporting of resident/overrun state.
+No retry spawn, cold numeric signal, discarded reservation or fabricated LT-23
+is authorized. This is bounded selected failure behavior, not an exhaustive
+cleanup guarantee.
+
+Result records now carry supplier exit/force facts, descendant observations and
+observed cleanup-limit journal entries (or unavailable standing), rather than
+leaving force implicit in a success boolean. Admission compares current
+namespaces to A's write-once post-settlement record. Reporting after reap uses
+the safe reporting path. SIGINT, SIGTERM and SIGHUP request failure/cleanup;
+OS-forced death or an external harness kill cannot be prevented by this observer.
+
+**Remaining native observation risk:** the inherited AX traversals still cover
+the main window, with limits of 900 nodes and depth 20. A had 386–416 nodes with
+diagnostics closed; B's expanded tree and traversal time have not been measured
+or observed. Exceeding those limits can prevent source observation/cleanup and
+leave a supervised-held result. These limits are not raised or passed off as
+native evidence. Fifteen focused tests now pass, including exit during Quit
+search, no repeated confirmed question, failed-request cleanup, pre-ready
+source binding and force/limit result preservation. Actual A namespace/request
+read-only validation still passes. B remains unrun pending focused scrutiny of
+the materially changed cleanup gates and exact-head checks.

@@ -20,7 +20,8 @@ G = {'appSession': 'invented-session', 'home': 'invented-home', 'spawnCounter': 
 def observation(bundle, state='ready'):
     supplier = bundle / 'Contents/Resources/codex/bin/codex'
     reply = {'userAgent': 'codex/0.160.0'}
-    rows = [{'transitionId': 'LT-09', 'generation': G, 'toState': 'ready', 'supplierStanding': 'unverified-development',
+    rows = [{'transitionId': 'LT-06', 'generation': G, 'toState': 'handshaking'},
+            {'transitionId': 'LT-09', 'generation': G, 'toState': 'ready', 'supplierStanding': 'unverified-development',
              'versionIdentity': {'observedVersionLabel': 'codex-cli 0.160.0',
                 'configurationIdentity': {'launcher': str(supplier)}, 'handshakeReportedIdentity': reply,
                 'distributionContentIdentity': [{'path': 'bin/codex', 'identity': {'algorithm': 'sha-256', 'value': b.setup.digest(supplier)}}]}}]
@@ -58,7 +59,7 @@ class BChecks(unittest.TestCase):
     def test_same_generation_supplier_content_and_correlated_response_required(self):
         observed = observation(self.bundle)
         for mutate in [lambda v: v.update(generation={**G, 'home': 'wrong-account'}),
-                       lambda v: v['lifecycle'][0]['versionIdentity']['configurationIdentity'].update(launcher='/wrong'),
+                       lambda v: v['lifecycle'][1]['versionIdentity']['configurationIdentity'].update(launcher='/wrong'),
                        lambda v: v['envelopes'][0].update(generation={**G, 'spawnCounter': 2}),
                        lambda v: v['clientRequests'][0].update(responseReceiptPosition=2),
                        lambda v: v.update(rendered_state='handshaking')]:
@@ -70,9 +71,14 @@ class BChecks(unittest.TestCase):
     def test_prohibited_requests_and_unknown_or_foreign_settlement_refuse(self):
         observed = observation(self.bundle, 'stopped')
         self.assertEqual(b.settlement_gate(observed, G)['exitFacts']['exitCode'], 0)
-        for mutate in [lambda v: v['clientRequests'][0].update(method='account/read'),
-                       lambda v: v['clientRequests'][0].update(method='thread/start'),
-                       lambda v: v['lifecycle'][-1]['exitFacts'].update(exitCode=None, signal=None),
+        for method in ('account/read', 'thread/start'):
+            changed = copy.deepcopy(observed)
+            changed['clientRequests'][0]['method'] = method
+            with self.assertRaises(RuntimeError):
+                b.check_requests(changed, G)
+            self.assertEqual(b.settlement_gate(changed, G)['exitFacts']['exitCode'], 0,
+                             'failed witness requests do not erase actual cleanup facts')
+        for mutate in [lambda v: v['lifecycle'][-1]['exitFacts'].update(exitCode=None, signal=None),
                        lambda v: v['lifecycle'][-1]['exitFacts'].update(exitCode=None, signal=True),
                        lambda v: v['lifecycle'][-1]['descendants'].update(checked=False, surviving=None),
                        lambda v: v['lifecycle'][-1]['descendants'].update(surviving=1),
@@ -123,7 +129,7 @@ class BChecks(unittest.TestCase):
         self.assertFalse(run.stop.is_set())
         self.assertTrue((self.root / 'held-heartbeat.jsonl').exists())
 
-    def test_native_stop_settlement_precedes_quit_and_reap(self):
+    def test_failed_request_witness_still_stops_before_quit_and_reap(self):
         run = b.Run(self.root, self.value, time.monotonic() + 60)
         actions = []
         state = {'stopped': False, 'quit': False}
@@ -153,8 +159,15 @@ class BChecks(unittest.TestCase):
         run.alive = lambda: None
         run.open_disclosure = lambda *_args, **_kwargs: None
         run.dialog = lambda *_args: ([], 'confirm-stop')
-        run.diagnostics = lambda: observation(self.bundle, 'stopped' if state['stopped'] else 'ready')
-        self.assertEqual(run.stop_and_quit(G), 0)
+        def diagnostics():
+            value = observation(self.bundle, 'stopped' if state['stopped'] else 'ready')
+            value['clientRequests'].append({'method': 'thread/start', 'generation': G})
+            return value
+        run.diagnostics = diagnostics
+        run.generation = G
+        with self.assertRaises(RuntimeError):
+            b.ready_gate(diagnostics(), self.value)
+        self.assertEqual(run.cleanup_attempt(), 0)
         self.assertEqual(actions, ['Stop Codex…', 'confirm-stop', 'quit', 'reap'])
 
     def test_cleanup_liveness_preserves_reserved_deadline_despite_work_guard_failure(self):
@@ -226,6 +239,107 @@ class BChecks(unittest.TestCase):
         self.assertIn('(deny process-exec)', text)
         self.assertIn(str(Path.home() / '.codex'), text)
         self.assertEqual(text.count('(literal '), 2)
+
+    def test_quit_exit_during_ax_search_is_expected_only_after_settlement(self):
+        run = b.Run(self.root, self.value, time.monotonic() + 60)
+        run.cleanup = run.supplier_settled = run.quit_requested = True
+        state = {'exited': False, 'reaped': False}
+        class Reservation:
+            def observe(self):
+                return {'status': 0} if state['exited'] else None
+            def reap(self, settled, requested):
+                self_outer.assertTrue(settled and requested)
+                state['reaped'] = True
+                return 0
+        self_outer = self
+        run.reservation = Reservation()
+        def search(*_):
+            state['exited'] = True
+            run.alive()  # Exit landed during an AX read.
+        run.dialog = search
+        self.assertEqual(run.wait_for_quit_exit(), 0)
+        self.assertTrue(state['reaped'])
+        run.supplier_settled = False
+        with self.assertRaisesRegex(RuntimeError, 'lacks settlement'):
+            run.wait_for_quit_exit()
+
+    def test_confirmed_quit_does_not_search_again_or_reread_diagnostics(self):
+        run = b.Run(self.root, self.value, time.monotonic() + 60)
+        run.cleanup = run.supplier_settled = run.quit_requested = True
+        count = {'observations': 0, 'questions': 0, 'presses': 0}
+        class Reservation:
+            def observe(self):
+                count['observations'] += 1
+                return {'status': 0} if count['observations'] > 3 else None
+            def reap(self, *_):
+                return 0
+        class AX:
+            def text(self, _):
+                return 'Quit Chirality'
+            def press(self, _):
+                count['presses'] += 1
+        run.reservation, run.ax = Reservation(), AX()
+        def question(*_):
+            count['questions'] += 1
+            return [], 'Quit'
+        run.dialog = question
+        run.diagnostics = lambda: self.fail('no post-Quit diagnostics read')
+        with patch.object(b.time, 'sleep'):
+            self.assertEqual(run.cleanup_attempt(), 0)
+        self.assertEqual(count['questions'], 1)
+        self.assertEqual(count['presses'], 1)
+
+    def test_failed_or_pre_ready_witness_keeps_bound_source_cleanup_available(self):
+        for state in ('ready', 'handshaking', 'halted-after-repeated-failure', 'exited-unexpectedly'):
+            observed = observation(self.bundle)
+            observed['rendered_state'] = state
+            observed['clientRequests'].append({'method': 'thread/start', 'generation': G})
+            if state != 'ready':
+                observed['lifecycle'] = observed['lifecycle'][:1]  # LT-06, no LT-09 yet.
+                observed['envelopes'] = None
+            with self.subTest(state=state):
+                with self.assertRaises(RuntimeError):
+                    b.ready_gate(observed, self.value)
+                self.assertEqual(b.source_gate(observed, self.value), G)
+        invalid_reply = observation(self.bundle)
+        invalid_reply['envelopes'][0]['frame']['result'] = None
+        invalid_reply['lifecycle'][1]['versionIdentity']['handshakeReportedIdentity'] = None
+        with self.assertRaisesRegex(RuntimeError, 'identity result unavailable'):
+            b.ready_gate(invalid_reply, self.value)
+        self.assertEqual(b.source_gate(invalid_reply, self.value), G)
+        changed = observation(self.bundle)
+        changed['lifecycle'][1]['versionIdentity']['configurationIdentity']['launcher'] = '/foreign'
+        with self.assertRaisesRegex(RuntimeError, 'executable source differs'):
+            b.source_gate(changed, self.value)
+        with self.assertRaises(RuntimeError):
+            b.source_gate(observation(self.bundle), self.value, {**G, 'spawnCounter': 2})
+
+    def test_source_bound_cleanup_ignores_extra_requests_but_result_retains_force(self):
+        run = b.Run(self.root, self.value, time.monotonic() + 60)
+        run.generation = G
+        observed = observation(self.bundle, 'stopped')
+        observed['clientRequests'].append({'method': 'thread/start', 'generation': G})
+        observed['lifecycle'][-1]['exitFacts'] = {'exitCode': None, 'signal': '9', 'forcedAfterGrace': True}
+        observed['envelopes'].append({'class': 'process-cleanup-unavailable', 'generation': G, 'reason': 'invented prior limit'})
+        run.diagnostics = lambda: observed
+        actions = []
+        class AX:
+            def quit_ui(self):
+                actions.append('quit')
+        class Reservation:
+            def observe(self):
+                return {'status': 0} if actions else None
+            def reap(self, *_):
+                actions.append('reap')
+                return 0
+        run.ax, run.reservation = AX(), Reservation()
+        self.assertEqual(run.cleanup_attempt(), 0)
+        self.assertEqual(actions, ['quit', 'reap'])
+        facts = run.settlement_facts()
+        self.assertTrue(facts['supplier_exit_facts']['forcedAfterGrace'])
+        self.assertEqual(len(facts['supplier_cleanup_limits']), 1)
+        with self.assertRaises(RuntimeError):
+            b.check_requests(run.stop_observation, G)
 
 
 if __name__ == '__main__':
