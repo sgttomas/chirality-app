@@ -31,6 +31,13 @@ write_once = setup.write_once
 T3 = setup.T3
 ACTOR = base.ACTOR
 LIMIT = 'Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody.'
+SUCCESS_SCOPE = ('Observed initialize reply/ready, known owned-group settlement and normal App Quit. '
+                 'App-owned force after grace or earlier reported cleanup limits do not erase observed settlement; '
+                 'success is not a graceful/error-free supplier claim or full candidate qualification.')
+
+
+class PermanentWitnessFailure(RuntimeError):
+    pass
 
 
 def now():
@@ -226,6 +233,17 @@ def ready_gate(observed, value):
     return gen
 
 
+def reject_permanent_witness_failure(observed, gen):
+    require(observed['generation'] == gen, 'source changed during witness reading')
+    if observed['rendered_state'] in ('halted-after-repeated-failure', 'exited-unexpectedly', 'stopping', 'stopped'):
+        raise PermanentWitnessFailure('source ended or stopped before required ready observation')
+    requests = observed.get('clientRequests')
+    if isinstance(requests, list) and (len(requests) > 1 or any(
+            not isinstance(r, dict) or r.get('method') != 'initialize' or r.get('generation') != gen
+            for r in requests)):
+        raise PermanentWitnessFailure('unexpected request observed; witness failed, proceed to bound-source cleanup')
+
+
 def settlement_gate(observed, gen):
     require(observed['generation'] == gen and observed['rendered_state'] == 'stopped', 'Stop generation/state differs')
     rows = [r for r in observed['lifecycle'] if r.get('transitionId') == 'LT-23' and r.get('generation') == gen]
@@ -417,12 +435,17 @@ class Run:
             self.alive()
             try:
                 observed = self.diagnostics()
-                gen = ready_gate(observed, self.value) if qualification else source_gate(observed, self.value)
+                gen = source_gate(observed, self.value)
                 self.generation = gen
+                if qualification:
+                    reject_permanent_witness_failure(observed, gen)
+                    ready_gate(observed, self.value)
                 self.record('ready-observation.json' if qualification else 'cleanup-source-observation.json', observed)
                 if not self.cleanup:
                     self.ax.snapshot(self.root / 'ready-AX.json')
                 return gen
+            except PermanentWitnessFailure:
+                raise
             except (RuntimeError, ValueError) as error:
                 last_error = str(error)
             time.sleep(0.1)
@@ -501,7 +524,7 @@ class Run:
 
     def settlement_facts(self):
         if self.stop_observation is None:
-            return {'supplier_exit_facts': None, 'supplier_cleanup_limits': None}
+            return {'supplier_exit_facts': None, 'supplier_descendants': None, 'supplier_cleanup_limits': None}
         row = settlement_gate(self.stop_observation, self.generation)
         envelopes = self.stop_observation.get('envelopes')
         return {'supplier_exit_facts': row['exitFacts'], 'supplier_descendants': row['descendants'],
@@ -636,6 +659,7 @@ def execute(root, window_end):
         run.stop.set()
         run.thread.join(timeout=8)
         result = {'candidate': value['candidate_key'], 'phase': 'B', 'generation': gen,
+                  'success_scope': SUCCESS_SCOPE,
                   'initialize_reply_and_ready_observed': True, 'owned_group_settlement_observed': True,
                   'native_quit_exit_code': code, 'success': code == 0 and not qualification_error and not run.reason and not run.log_errors,
                   'qualification_error': qualification_error, **run.settlement_facts(),

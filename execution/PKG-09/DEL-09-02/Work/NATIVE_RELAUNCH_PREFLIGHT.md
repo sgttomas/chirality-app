@@ -293,3 +293,28 @@ search, no repeated confirmed question, failed-request cleanup, pre-ready
 source binding and force/limit result preservation. Actual A namespace/request
 read-only validation still passes. B remains unrun pending focused scrutiny of
 the materially changed cleanup gates and exact-head checks.
+
+Focused independent review at `aa6e011a` confirmed both high findings fixed and
+the bound-source cleanup route sufficient, including before LT-09. It found
+one medium interpretation issue and two low test/latency observations. The
+manager's disposition uses the existing HOSTING/RECOVERY Q-6 Stop contract:
+App-owned force after grace can still count as **observed owned-group
+settlement** when the leader exit is known and the original-group census is
+complete and empty. Earlier reported cleanup limits likewise do not erase
+those later observed facts; all limits remain in the result. B's `success`
+means its bounded initialize/ready, settlement and normal App Quit observations
+were obtained without witness/guard/log failure. It is explicitly **not** a
+graceful or error-free supplier claim, a full candidate qualification or a
+changed acceptance criterion. `success_scope` states this in the result itself.
+A's `forced == false` requirement concerned emergency controller termination
+of the App, a different operation that B never performs.
+
+Eighteen tests now pass. Added negatives cover missing, duplicate and foreign
+LT-06 events, disallowed states and missing generation leading to held evidence
+without Quit/reap. A clearly permanent failure on a bound source (unexpected
+request or halted/ended state) exits the ready wait immediately and proceeds
+to the same cleanup path; incomplete observations remain bounded waits.
+Unavailable settlement results now retain the same nullable field names.
+These are bounded review dispositions, not a new design or another native
+result. A evidence remains unchanged; B is still UNRUN. Exact-head CI remains
+the outstanding integration check.

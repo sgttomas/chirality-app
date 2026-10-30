@@ -341,6 +341,65 @@ class BChecks(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             b.check_requests(run.stop_observation, G)
 
+    def test_cleanup_source_rejects_missing_duplicate_foreign_spawn_and_unbound_states(self):
+        original = observation(self.bundle)
+        for mutate in (lambda v: v['lifecycle'].pop(0),
+                       lambda v: v['lifecycle'].append(copy.deepcopy(v['lifecycle'][0])),
+                       lambda v: v['lifecycle'][0].update(generation={**G, 'spawnCounter': 2}),
+                       lambda v: v.update(generation=None)):
+            value = copy.deepcopy(original)
+            mutate(value)
+            with self.assertRaises(RuntimeError):
+                b.source_gate(value, self.value)
+        for state in ('spawning', 'restart-waiting', 'verifying', 'absent'):
+            value = copy.deepcopy(original)
+            value['rendered_state'] = state
+            with self.subTest(state=state), self.assertRaises(RuntimeError):
+                b.source_gate(value, self.value)
+
+    def test_missing_generation_cleanup_requests_no_quit_and_preserves_hold(self):
+        run = b.Run(self.root, self.value, time.monotonic() + 60)
+        class Reservation:
+            def observe(self):
+                return None
+            def reap(self, *_):
+                raise AssertionError('no reap without source settlement')
+        class AX:
+            def quit_ui(self):
+                raise AssertionError('no pre-generation Quit route')
+        run.reservation, run.ax = Reservation(), AX()
+        def unavailable(qualification=True):
+            self.assertFalse(qualification)
+            return b.source_gate({'generation': None}, self.value)
+        run.observe_ready = unavailable
+        with self.assertRaisesRegex(RuntimeError, 'full generation unavailable'):
+            run.cleanup_attempt()
+        class EndTest(Exception):
+            pass
+        with patch.object(b.time, 'sleep', side_effect=EndTest), patch('builtins.print'):
+            with self.assertRaises(EndTest):
+                run.hold('full generation unavailable')
+        held = json.loads((self.root / 'held-result.json').read_text())
+        self.assertEqual(held['state'], 'held-unknown')
+        self.assertFalse(held['quit_requested'])
+        self.assertFalse(held['original_app_reaped'])
+        self.assertFalse(run.stop.is_set())
+
+    def test_permanent_bound_failure_leaves_ready_wait_immediately(self):
+        run = b.Run(self.root, self.value, time.monotonic() + 60)
+        observed = observation(self.bundle)
+        observed['clientRequests'].append({'method': 'thread/start', 'generation': G})
+        run.wait_for = lambda *_: True
+        run.open_disclosure = lambda *_args, **_kwargs: None
+        run.alive = lambda: None
+        run.diagnostics = lambda: observed
+        with patch.object(b.time, 'sleep', side_effect=AssertionError('must not wait 45 seconds')):
+            with self.assertRaises(b.PermanentWitnessFailure):
+                run.observe_ready()
+        self.assertEqual(run.generation, G, 'cleanup retains the bound source')
+        self.assertEqual(run.settlement_facts(), {'supplier_exit_facts': None,
+                         'supplier_descendants': None, 'supplier_cleanup_limits': None})
+
 
 if __name__ == '__main__':
     unittest.main()
