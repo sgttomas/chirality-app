@@ -105,6 +105,16 @@ controller's conditional Quit-question handler is not qualified by this run.
 No supplier startup/relaunch occurred. OS network denial and fork/unlisted-exec
 denial were in force; this is not an exhaustive network-service audit.
 
+Coordination limitation: the full SWBPIPE message observed at 20:50:52Z approved
+the third attempt and offered to confirm a standing window after receiving a
+retry count. Agent 0 misread its shorter thread summary as standing clearance
+and used that interpretation for later START notices without obtaining the
+requested count confirmation. Those notices and END messages, successful guard
+admissions and normal process exits do not retroactively establish the missing
+coordination agreement. The native observations retain their actual scope;
+full resource-coordination compliance is not claimed for those later attempts.
+All intervals are closed. Further runtime work needs its actual fresh agreement.
+
 Nine preceding attempts stopped at their actual observation gates and normally
 reaped their original App, code 0, without save, supplier startup, guard abort
 or forced termination. Each directory below is under the same
