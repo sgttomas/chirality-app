@@ -6,6 +6,18 @@ uncovered helper creation. This is a controller-design result, not a failed
 native supplier handshake or an App qualification result. Candidate
 `795362874d-a391547a5c5d` and the successful A state remain unchanged.
 
+The next live B input is now the repaired successor
+`fdcf608fb5-23c6c3f22f5e`, whose A succeeded at 22:28:05–22:28:16 UTC on
+2026-10-30. Its saved request digest is
+`ef606ee5cf6dfe3bcd9b6c2b150a89e7a2710c6289c56d180c8e6ea5dd7705de`;
+the exact bindings and private-metadata checks are in
+`../Evidence/EXP/fdcf608fb5-23c6c3f22f5e/native-A-20261030T222805Z/`.
+The retained native root is
+`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-A-irf2swd9/`.
+B must consume that state without rerunning A, rewriting the request or
+resetting any namespace. The original candidate's A tuple below is historical
+and remains preserved, not substituted for the successor's input.
+
 After this preflight, App Agent 0 selected a focused startup/shutdown custody
 repair and a successor development candidate before live B. The original
 candidate and A state stay retained; successor results will have their own
@@ -182,3 +194,54 @@ pytest group passed 106 tests and 382 subtests after the byte-exact restoration;
 62 CI-selection tests and deliverable validation also passed. These checks
 use the retained repair scratch, offline caches and serial Rust test execution.
 Hosted CI on the new head remains separate from these local results.
+
+## Successor B controller prepared, not executed
+
+`native_successor_relaunch.py` is a standalone B controller; it does not inherit
+A's emergency termination/reaping. It validates the successful successor A
+result, exact saved request/private metadata/shared links and unchanged invented
+inputs. Admission refuses unexpected account files, additional homes or prior
+runtime/recovery data without reading credential contents. It rechecks the
+complete bundle inventory, fixed launch environment, explicit two-executable
+sandbox and namespace metadata before launch, with noninteractive AX-trust and
+WNOWAIT availability checks. The sandbox admits forks and only the exact App
+and stock Codex executable; network and personal Codex-home denials remain.
+Path-scoped process observations corroborate activity and conservatively refuse
+overlapping launch; they never supply signalling authority or exhaustive
+descendant absence.
+
+The original App remains a strongly held, unreaped child. Ready observation
+requires rendered state/version/full generation, same-source LT-09, actual
+launcher/content identity and a correlated native initialize response. The
+generation's home must equal the source implementation's hash of the validated
+saved account path. Any observed request other than this initialize makes the
+witness fail; the controller initiates none. The actual UI header and lifecycle/envelope JSON are read
+separately; no full snapshot or injected ready value is invented. LT-09 alone
+does not establish delivery of the `initialized` notification.
+
+Native Stop's exact question binds the observed source. LT-23 must retain
+known leader exit and complete empty original-group census before native Quit
+and original App reap. App-owned forced supplier termination, if observed,
+remains explicit. Work/guard/log failures permit a bounded normal cleanup
+attempt using those same gates; they never become a passing result. Unknown
+cleanup keeps the supervisor, guard, slot and original reservation alive and
+reports `held-unknown`, including any resource overrun. It never signals cached
+App/supplier numbers or kills App to abandon supplier work.
+
+A held observer accepts at most one validated operator request file in its own
+attempt directory, `retry-native-cleanup.json`, containing only
+`{"action":"retry-native-cleanup","candidate":"fdcf608fb5-23c6c3f22f5e"}`.
+It reobserves the same source and gives native cleanup 45 seconds; it accepts no
+PID, command or code input and does not silently repeat attempted UI presses.
+The original failure remains failed even if this cleanup succeeds. Permanent
+AX/parser loss cannot be repaired inside the frozen controller; it remains an
+explicit held limitation requiring a concrete recovery disposition, not a
+manufactured clean result. OS-forced observer/App death remains outside this
+supervision claim.
+
+Eleven invented-fixture tests passed, including actual nonreaping observation
+of a tiny owned child, source/response/settlement rejection, Stop–Quit–reap order,
+guard-expiry cleanup, safe lost stdout and bounded log-error retention. A
+read-only check of the actual successor A input passed. These tests neither
+launch the App nor exercise its native B diagnostic shape. Independent
+pre-execution scrutiny remains required; B has not been prepared or launched.
