@@ -68,3 +68,50 @@ FP-1(a/b) and FP-3 must pass before reliance, and OI-011's SWB part remains open
 The maintained code does not execute that prototype or depend on a dated run.
 Source drift requires reviewed adoption. Reports include source/tool hashes;
 run evidence separately binds the actual source candidate and observations.
+
+## Read-only checks on a received development candidate
+
+Receive the exact candidate record, adjacent inventory/acquisition records,
+bundle, source export and selected vendor directory from its build owner. Keep
+the recorded source revision even when a merge commit has the same tree. Do
+not re-record the candidate or inspect its account state to refresh it.
+
+From the repository root, the existing candidate reader checks retained record
+bindings and the live bundle without launching it or checking current App-data
+absence (the record's absence observation stays historical):
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 app/examination/candidate_identity/identify.py check \
+  --record /absolute/identified/candidate-identification.json \
+  --app '/absolute/received.app'
+```
+
+For each received resource pair, use the maintained packaging inventory and
+comparison functions. Substitute the exact agreed paths. This example checks
+P1; repeat for bundled `workflows` against the exact source export's
+`app/src-tauri/resources/production_workflows`, and `instructions` against
+`app/src-tauri/resources/instructions`:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'
+import json, sys
+sys.path.insert(0, 'app/packaging')
+from inventory import scan, compare
+actual = scan('/absolute/received.app/Contents/Resources/codex')
+expected = scan('/absolute/selected/vendor')
+result = compare(actual, expected)
+print(json.dumps(result, indent=2))
+raise SystemExit(0 if result['equal'] else 1)
+PY
+```
+
+Retain the exact subject/tool identities, input paths, comparison output and
+date with the owning Work/evidence. This comparison covers bytes, modes, types,
+links and missing/extra entries; it does not prove signature validity, acquisition
+authority or installed custody. Do not add `--signature-display` when signing
+identity disclosure is outside the authorized scope. A later signed App/DMG is
+a separately identified package: these commands neither create its package
+record nor satisfy FP-1(b), FP-2/W-4, FP-3/4/5 or native examination.
+
+The current candidate findings and concrete remaining decisions are in
+[DEL-01-06 packaging Work](../../execution/PKG-01/DEL-01-06/Work/PACKAGING_AND_DISTRIBUTION.md#macos-publication-preparation-2026-10-30).

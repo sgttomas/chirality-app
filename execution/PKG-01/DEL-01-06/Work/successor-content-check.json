@@ -1,0 +1,76 @@
+{
+  "candidate": "fdcf608fb5-23c6c3f22f5e",
+  "record_sha256": "52afd5d96c2203804410af62a79daf453fb67eec139338ca006adaaacd8b8266",
+  "check": {
+    "equal": true,
+    "root_equal": true,
+    "missing": [],
+    "extra": [],
+    "changed": [],
+    "build_identity": "chirality.app.bundle-tree.sha256/v2:23c6c3f22f5e240440449eaa573737ef556cdac88370633e5b7886a741b6a2a3",
+    "recorded_build_identity": "chirality.app.bundle-tree.sha256/v2:23c6c3f22f5e240440449eaa573737ef556cdac88370633e5b7886a741b6a2a3",
+    "record_fields_mismatched": []
+  },
+  "comparisons": {
+    "P1": {
+      "comparison": {
+        "equal": true,
+        "differing": [],
+        "missing": [],
+        "extra": [],
+        "root_mode_equal": true
+      },
+      "files": 42,
+      "macho_files": 30,
+      "manifest_sha256": "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12"
+    },
+    "P2": {
+      "comparison": {
+        "equal": true,
+        "differing": [],
+        "missing": [],
+        "extra": [],
+        "root_mode_equal": true
+      },
+      "files": 3,
+      "macho_files": 0,
+      "manifest_sha256": "cd34f3262ece093f782cf1594063e2fc7681708ef8624899360187367fc73e29"
+    },
+    "P3": {
+      "comparison": {
+        "equal": true,
+        "differing": [],
+        "missing": [],
+        "extra": [],
+        "root_mode_equal": true
+      },
+      "files": 8,
+      "macho_files": 0,
+      "manifest_sha256": "50c82a3c663773b327d7ed84bb27a7d639514062e0d1335f7c47b6f3b0194d18"
+    }
+  },
+  "resource_names": [
+    "Chirality App v4 (development 20261030 eqxsxv4n).icns",
+    "codex",
+    "instructions",
+    "workflows"
+  ],
+  "minimum_macos": "15.0",
+  "microphone_usage_string_present": false,
+  "notice_overlay_present": false,
+  "attested_reference_present": false,
+  "scope": "Read-only byte/mode/content correspondence only; no signatures, installed custody, supplier execution or native state inspection",
+  "observed_date": "2026-10-30",
+  "recorder": "App macOS packaging Type 1; read-only preparation",
+  "tool_source_revision": "93ccd285a63312c861a7da47e3ab002b13c29a50",
+  "tools": {
+    "app/examination/candidate_identity/identify.py": "983ad088945b9f0a05fbf374630d83d596b743ad7af4b8ffc13ae4c2ed3981ae",
+    "app/packaging/inventory.py": "aed3b7da0376f29e79fd712fd3a5a3a36213add0302e619009df999782ef3b27"
+  },
+  "source_revision": "fdcf608fb57c4f8299c7440ffc56519314046cff",
+  "input_root": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n",
+  "supplier_tree": "/private/tmp/chirality-desktop-current-ukt5ir80/supplier/package/vendor/aarch64-apple-darwin",
+  "source_export": "source/app/src-tauri/resources",
+  "record": "identified/candidate-identification.json",
+  "bundle": "target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app"
+}

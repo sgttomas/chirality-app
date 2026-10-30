@@ -590,3 +590,147 @@ and a physical unsigned bundle remain distinct from the package/native witness.
 Installed custody and the actual H3B runtime witness remain open under
 DEL-01-01's `Design/distribution-s1/README.md`. This overlay supplies no custody
 issuer, signing evidence or qualification result.
+
+## macOS publication preparation, 2026-10-30
+
+This is current preparation under OUT-001/002 and REQ-001/002/003, not a
+replacement of the historical observations above. macOS is the first publication
+target; later Windows delivery does not gate it. ScopeOfWork commitments and
+`deliverable.yaml` conditions remain unchanged: packaging must still receive
+the actual hosting/custody basis and OI-011 definition, supply candidate-specific
+package/install evidence to PKG-09, and retain the owner's terms/distribution
+acts separately. The source/record checks below establish no acceptance or
+replacement of v3.0.1.
+
+### Received development subject and actual content check
+
+Native qualification supplied candidate `fdcf608fb5-23c6c3f22f5e`, built from
+`fdcf608fb57c4f8299c7440ffc56519314046cff`. Its tree
+`2353ab5a06096d1cffbf17cdf2ddd90354cc05c7` equals merged main
+`93ccd285a63312c861a7da47e3ab002b13c29a50`; the source identity is **not** relabelled
+to that merge. The bundle is retained under
+`/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app`.
+Its adjacent build-root `identified/` records are owned by native qualification;
+the intended repository location is
+`execution/PKG-09/DEL-09-02/Evidence/EXP/fdcf608fb5-23c6c3f22f5e/`
+(supplied in that manager's worktree, not yet integrated at this observation).
+
+The packaging lane read those records and checked the live bundle on 2026-10-30:
+
+- `candidate-identification.json` SHA-256
+  `52afd5d96c2203804410af62a79daf453fb67eec139338ca006adaaacd8b8266`;
+  retained inventory SHA-256
+  `7192ea8ced3b2c764e44bcf4f2c563926af182d25ed156b4369f76cbc08f7580`.
+- Existing `identify.py check` returned equal, no changed/missing/extra entries,
+  no derived-record mismatches; bundle-tree v2
+  `23c6c3f22f5e240440449eaa573737ef556cdac88370633e5b7886a741b6a2a3`.
+- `inventory.scan` / `compare` found P1 equal to the selected retained complete
+  vendor tree, and P2/P3 equal to the native manager's exact source export,
+  including root/directory/file modes and absence of missing/extra entries.
+  P1: 42 files, 30 Mach-O, manifest
+  `327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12`.
+  P2: 3 files, manifest
+  `cd34f3262ece093f782cf1594063e2fc7681708ef8624899360187367fc73e29`.
+  P3: 8 files, manifest
+  `50c82a3c663773b327d7ed84bb27a7d639514062e0d1335f7c47b6f3b0194d18`.
+- Actual Info.plist has minimum macOS `15.0`, development version `0.0.0`,
+  identifier `dev.chirality.app-v4.candidate.20261030-eqxsxv4n`, and no microphone
+  usage string. These are observed development values, not release decisions.
+- Resources contain the icon, `codex`, `instructions`, and `workflows` only.
+  Neither `third-party-notices` nor `distribution-reference` is present. The
+  actual command selects `custom-protocol`, ordinary development and supplier
+  overlays, `--debug --no-sign`; it selects neither optional resource overlay
+  nor the `distribution-successor` feature.
+
+The bounded output is retained in this Work directory as
+[`successor-content-check.json`](successor-content-check.json). Commands are in
+[`app/packaging/README.md`](../../../../app/packaging/README.md).
+No supplier execution, signature display, native launch, account-state read,
+installation or mutation of the retained inputs occurred in this lane. The
+candidate remains `native_development`, `packaged: false`, stock `0.160.0`
+`unqualified-development`. Native A/B and other workflow/access results belong
+to the native qualification manager; none is asserted here. The historical
+three-namespace absence observation is not renewed by these checks.
+
+### Concrete remaining inputs and order of work
+
+1. **Production hosting/custody, owned through App Agent 0 and DEL-01-01.**
+   The S1 compiled anchor/reference path does not supply an installed issuer.
+   `distribution_s1.rs` rejects installed-custody and verified outcomes;
+   `distribution_preflight.rs` keeps verified unavailable. Installing the twelve
+   attested-reference resources cannot remove this limit. Receive a reviewed
+   implementation/assurance basis for actual trusted installed custody and its
+   exact candidate before claiming FP-2/W-4. Do not fabricate an attestation or
+   weaken that refusal to make packaging pass. This requires shared hosting
+   ownership, outside this packaging lane's allowed runtime edits.
+2. **Release configuration choices.** The owner/implementation owner selects
+   the production bundle identifier (and continuity implications under I-4),
+   release version and minimum supported macOS. `15.0` is currently proposed;
+   the debug identifier/version is not a default answer. Receive the eligible
+   supplier pin under R23-22 and selected P2/P3 content rather than adopting
+   cached `0.160.0` by availability. SIGN-1 B is already the App-side design
+   choice; candidate App entitlements/SIGN-3 and applicable code-mode behavior
+   still need the OI-011 owners' evidence. No identity/team-ID disclosure or
+   keychain enumeration is needed to prepare these choices.
+3. **Actual redistribution inputs.** The optional notice overlay contains 30
+   exact texts for the App plus 16 direct runtime dependencies. Local checks
+   pass, but this candidate omits them. A separately coordinated later build
+   must deliberately select the overlay and verify actual inclusion. Preserve
+   stock P1 unchanged. The four exact supplier source/notice associations in
+   `CACHED_SHIPPED_NOTICE_INPUTS.md` (main, code-mode-host, rg, zsh), bundled
+   SQLite and transitive coverage are still unverified. Obtain exact matching
+   local source evidence first; any missing download needs its own file/source/
+   size permission. This is a bounded evidence gap, not a legal conclusion or
+   an auth-terms substitute. No broad acquisition is proposed here.
+4. **Separate distribution candidate and owner signing acts.** Keep this native
+   candidate immutable. On the selected production basis, prepare a new bundle
+   and CF-1…8 configuration digest, inventory every supplier Mach-O and retain
+   candidate FP-0/FP-1(a). The existing §6 sequence then calls for the owner's
+   P0/outer signing without `--deep`, P1 comparison FP-1(b), deep strict
+   verification, signed DMG and notarisation log FP-3, followed by stapling.
+   Those commands are reviewable in §4.3; none is authorized or run by this
+   preparation. Preserve pre-notarisation and post-stapling installer digests,
+   actual actors and logs in OUT-002. A content pass here does not satisfy those
+   later checks or permit reliance on B before FP-1(a/b) and FP-3 pass.
+5. **Quarantined install and package consumers.** Once an exact signed/stapled
+   package and custody basis exist and execution is authorized, follow W-0…W-6:
+   recorded quarantine transfer (or explicitly recorded attribute setup), mount,
+   Gatekeeper assessment, install, first launch, verified supplier and ready
+   handshake, installed entitlements/cdhash. Use a separately coordinated fresh
+   test home; never the native manager's account state. No conversation is
+   needed. No quarantine means blocked; Gatekeeper refusal means fail. Supply
+   DEL-09-01 with package identity and this install witness; its M3 smoke and
+   joined examination remain separate. Neither old native A nor new debug A/B
+   substitutes for this signed-package witness.
+
+### Smallest pending terms/owner disposition
+
+Use the existing
+[`OPENAI_SIGNIN_OWNER_ACTION_DRAFT.md`](OPENAI_SIGNIN_OWNER_ACTION_DRAFT.md),
+not a duplicate supplier inquiry. Its 2026-10-29 official-source findings are
+retained as dated findings; no new documentation retrieval is claimed here.
+The actual implementation still invokes local stock-Codex-managed
+`account/login/start` (`chatgpt` / `chatgptDeviceCode`); no SIWC migration is
+selected. Repository MIT licensing does not establish the business offering.
+
+The concrete decision for the owner is: confirm the first offering and unchanged
+managed-login scope; if within the draft's published local/OSS continuation,
+disposition the exact proposed OLD→NEW clauses allowing an applicable identified
+official publication or direct response. Record actual obtaining/retention,
+scope/conditions and applicability separately from public distribution. If the
+selected offering is outside that continuation, identify only its actual
+unanswered condition before considering separately instructed contact. Do not
+demand a product-specific reply solely because contact is possible.
+
+The proposal is not accepted by this preparation. No governing terms clauses,
+closed schemas or `OpenAI.json` state change: `unresolved`, distribution decision
+`not_made`. A versioned successor is prepared only following disposition, as
+the draft specifies. Public distribution and replacement of v3.0.1 are distinct
+owner decisions, still unclaimed.
+
+Focused preparation verification: 16 packaging tests and 9 notice-resource
+tests pass; the notice verifier reports 17 components including App, 30 texts,
+zero source archives checked and no Tauri SDK mapper execution. Deliverable
+structure check reports no errors. These results validate the tools/inputs used
+here; full transitive notices, actual optional-overlay SDK/bundle inclusion,
+signing/notary and install tests remain unrun.
