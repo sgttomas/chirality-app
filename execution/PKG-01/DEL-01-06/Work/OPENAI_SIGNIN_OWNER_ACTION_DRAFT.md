@@ -1,5 +1,17 @@
 # OpenAI distributed sign-in: current source finding and owner draft
 
+**Disposition recorded, 2026-10-30.** The owner approved this document's exact
+reviewed revision `6421c323408b010cfba575ecd8fa24865f403c00` with “Approve the
+reviewed disposition and exact proposed clauses”. The actual answer and approved
+bytes are retained in [terms-position-v1](terms-position-v1/README.md). The
+approved OLD→NEW changes are now applied to the governing clauses. The body
+below preserves the reviewed proposal's wording and its then-pending labels;
+those labels are historical, superseded by this disposition note. The agent
+captured the official bytes; the owner received/adopted/retained that evidence
+and decided applicability, not an owner HTTP retrieval or direct supplier reply.
+The historical PKG-v0.2 `OpenAI.json` remains unchanged. The new versioned account
+records applicability with public distribution still `not_made`.
+
 Read-only supplier-documentation findings, 2026-10-29, with a bounded app-server
 source refresh and owner offering selection recorded 2026-10-30. Draft for the owner; not
 sent, not a registration, legal conclusion, changed commitment or supplier

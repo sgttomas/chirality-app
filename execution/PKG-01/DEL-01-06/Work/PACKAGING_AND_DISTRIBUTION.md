@@ -73,7 +73,7 @@
 
 **What it is.** How the App and its stock Codex are put in one macOS Apple
 Silicon package, signed, notarised and identified; how a package is shown to
-install and start; and how the written distribution-terms response is kept.
+install and start; and how the applicable written distribution-terms position (identified official publication or direct response) is kept.
 
 **What it is not.** No package, signature or notarisation is made here (those
 use the owner's Apple account when a package is made, R23-13.2). No supplier
@@ -94,7 +94,7 @@ access or a local check; each is tied to a first-package check (§7).
 | Signing and notarising with the owner's Apple account | The owner, when a package is made (R23-13.2) | Records the act and its actor; never performs it or holds a credential |
 | Signing arrangement (technical choice) | O-B, recorded here (R23-13.1) | §3 |
 | OI-011's SWB co-owner part | Waits with the host joins (R23-13.2) | Not exercised |
-| Written supplier position | The supplier supplies; the owner obtains | §9 records it |
+| Written supplier position | The supplier publishes or responds; the owner obtains/retains and establishes applicability | §9 records it |
 | Public-distribution decision | The owner | §9 cites it; never inferred |
 | Joined examination of the packaged candidate | DEL-09-01 support; DEL-09-02 and other journeys | §8 hands the package and witness over (SCC-003 M2) |
 
@@ -346,8 +346,9 @@ witness) go under `Evidence/EXP/<candidate key>/` per EXP §8.4.
   Developer ID Application authority, hardened runtime, timestamp and
   **exactly** the supplier's entitlements for that file.
 - **PK-R3** The recorder is not the actor of signing or notarising.
-- **PK-R4** (terms) The recorder is neither the obtainer of a response nor
-  the decider of distribution.
+- **PK-R4** (terms) The recorder does not acquire the owner's applicability or distribution authority by capturing a publication or response.
+  Attribute supplier authorship, owner obtaining/retention and applicability,
+  and the separate owner distribution decision to their actual actors.
 - **PK-R5** A "Notarized" Gatekeeper verdict needs an accepted notarisation.
 - **PK-R6** Every Mach-O file of the packaged tree is listed once
   (`len(executables) == packaged.macho_files`), under either option.
@@ -469,13 +470,24 @@ smoke (M3) are separate results on the same package.
 
 ## 9. Distribution-terms record (OUT-004; REQ-004) — `pkg.terms-record.schema.json`
 
-One record per supplier: OpenAI now; Anthropic only if a Claude sign-in is
-ever offered. State `unresolved` until a written response exists; then
-`response_received` with the response by reference, its custody, who
-obtained it (the owner), what it applies to in its own words, and the date.
-The owner's distribution decision is a separate reference or `not_made`; a
-response never stands for it (PK-R4; AC-005). Owner use and development are
-not gated by an `unresolved` record (TBD-002).
+One terms account per supplier whose sign-in is actually offered. Retain either
+an applicable identified official supplier publication or direct response,
+including exact source/supplier, publication/response date if supplied,
+retrieval/receipt date, preserved content reference and custody, actual selected
+release/authentication scope, conditions/exclusions and the owner's applicability
+disposition. Until applicable evidence is retained and applicability established,
+keep the position unresolved. A direct reply is not additionally required merely
+because an official contact could answer. The owner's separate public distribution
+decision remains its own reference or not_made; evidence/currentness observations
+and applicability do not decide release. Owner use/development remain ungated.
+
+Preserve every historical PKG-v0.2 record and its closed schema/state meaning.
+Its response_received/response representation cannot truthfully label an official
+publication as a direct reply. On approval, supply a small versioned terms-record
+successor that distinguishes official_publication from direct_response and carries
+the evidence/applicability fields above; do not silently reinterpret old records.
+The historical unresolved OpenAI.json remains unchanged until a separately
+recorded owner disposition and applicable new evidence record exist.
 
 ## 10. What option A would change (for the escalation, if FP fails)
 
@@ -498,7 +510,7 @@ not gated by an `unresolved` record (TBD-002).
 | PKG-VC-01 Configuration and identities | VER-001, AC-001 | CF-1…CF-8; layout P-0…P-4; launcher; Codex identity equals HOSTING §7.1 at the pin | package | Not run |
 | PKG-VC-02 Identity record against the package | VER-002, AC-002 | PK-R1 (or PK-R2/PK-R7 under A), PK-R6, PK-R8; no inherited v3 or SWBPIPE claim | model; package | Rules run on examples (below) |
 | PKG-VC-03 Install/launch witness | VER-003, AC-003 | §8 W-0…W-6 from a quarantined installer, as an EXP record | package; person (signing) | Not run |
-| PKG-VC-04 Terms record | VER-004, AC-004, AC-005 | `unresolved` before a response; actors kept apart | model; then the owner's act | Examples valid; PK-R4 detected |
+| PKG-VC-04 Terms record | VER-004, AC-004, AC-005 | `unresolved` before applicable evidence and applicability are established; actors kept apart | model; then the owner's act | Examples valid; PK-R4 detected |
 | PKG-VC-05 Boundaries and substitutions | VER-005, AC-006 | Browser evidence, SWBPIPE success or a package's existence never claimed as the witness, terms or release | Review | Not run |
 | PKG-VC-06 FP-0 at the pin | §7 | Supplier precondition for B, incl. Developer ID authority | model on the published tree | **Pass at 0.160.0** |
 | PKG-VC-07 Tree comparison | FP-1 | Link targets, directory links and modes are compared, not only content | model on synthetic trees | Pass (TREE P6–P8) |
@@ -724,7 +736,7 @@ then requires recovery by the native input owner, not an inferred new pass.
    joined examination remain separate. Neither old native A nor new debug A/B
    substitutes for this signed-package witness.
 
-### Smallest pending terms/owner disposition
+### Recorded terms/owner disposition
 
 Use the existing
 [`OPENAI_SIGNIN_OWNER_ACTION_DRAFT.md`](OPENAI_SIGNIN_OWNER_ACTION_DRAFT.md),
@@ -737,19 +749,44 @@ selected. Repository MIT licensing does not establish the business offering.
 
 The owner selected the initial macOS offering on 2026-10-30: “Free, locally run,
 open-source App using the current sign-in flow”. This resolves classification
-only, not applicability or terms/release approval. The remaining concrete
-decision is the draft's proposed acceptance of the retained official continuation
-as applicable to that exact offering and unchanged local stock-Codex-managed
-login, together with the exact proposed OLD→NEW clauses. Record the owner's
-actual obtaining/retention and applicability act separately from the agent's
-capture and from public distribution. Do not demand a product-specific reply
-solely because contact is possible.
+only. In a separate actual answer at `2026-10-30T22:36:59.004Z`, the owner
+approved the reviewed disposition and exact OLD→NEW clauses at `6421c323`.
+The owner thereby received/adopted/retained the agent-captured official
+continuation and accepted applicability to that exact offering and unchanged
+local stock-Codex-managed login, including first public distribution, subject
+to the stated commercial/hosted exclusion. No additional product-specific reply
+is required for that approved disposition. Supplier authorship, agent capture,
+owner receipt/adoption/applicability and public distribution remain separate.
 
-The proposal is not accepted by this preparation. No governing terms clauses,
-closed schemas or `OpenAI.json` state change: `unresolved`, distribution decision
-`not_made`. A versioned successor is prepared only following disposition, as
-the draft specifies. Public distribution and replacement of v3.0.1 are distinct
-owner decisions, still unclaimed.
+The exact approved governing changes are applied; the new explicit
+[terms-position-v1 account and reader](terms-position-v1/README.md) retain the
+actual owner answer, approved draft and capture with exact-byte bindings.
+`applicable_position_retained` describes that new account. The historical
+PKG-v0.2 schema, prototype and `Evidence/PKG/terms/OpenAI.json` bytes/identities
+are unchanged (`unresolved`, distribution decision `not_made`). Frozen legacy
+consumers are not activated or repinned. Public distribution and replacement
+of v3.0.1 remain separate owner decisions, still unclaimed; no authentication
+change, component-notice disposition or supplier/package qualification follows.
+
+### S4 package consumer preparation
+
+The runtime owner supplied the planned `installed-custody-observation.s4`
+evidence shape: full generation/inventory/selection, process-local observer
+standing, independent requirement digest, static/dynamic validation flags and
+App signing facts, location/translocation observations and explicit residual
+limits. Its exact bytes join `checks.custody.evidence` in new S4 readers.
+Packaging must independently bind actual App revision/build and signing facts
+to the compiled selection, pkg-identity.s1 package record ID and pre-notary
+installer digest. None of those package identities may be invented from the
+running process. Static packaging keeps `verification_artifact: null` until a
+separately reviewed consumer selection; a disk record never grants live authority.
+
+The S4 dynamic no-network API requires macOS 11.3 or later; unsupported API
+refusal must remain. The base Tauri configuration has no explicit minimum;
+the ordinary unsigned development overlay sets 15.0, observed on this candidate.
+Neither chooses the qualified production minimum. Retain this capability
+requirement for the owner's future minimum-OS and publisher decisions. No
+publisher identity is selected or inspected by this preparation.
 
 Focused preparation verification: 16 packaging tests and 9 notice-resource
 tests pass; the notice verifier reports 17 components including App, 30 texts,

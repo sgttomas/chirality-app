@@ -1,0 +1,44 @@
+{
+  "format": "chirality.terms-applicability-disposition/v1",
+  "purpose": "terms_applicability_only",
+  "actor": "App owner",
+  "actor_role": "owner",
+  "act": "received_adopted_retained_evidence",
+  "decided_at": "2026-10-30T22:36:59.004Z",
+  "source_kind": "official_publication",
+  "supplier": "OpenAI",
+  "content": {
+    "path": "execution/PKG-01/DEL-01-06/Work/openai-app-server-publication-20261030.json",
+    "sha256": "f923ceaad53476af7beecd3c1b03b06c72f4ca372742dfd4d833a0d7e3b070e2"
+  },
+  "full_content_sha256": "45066e6ad75795ef8ff658c9a40540efbfcc843e38bcee9d0e2cf5ea6259e343",
+  "scope": {
+    "offering": "Free, locally run, open-source App using the current sign-in flow",
+    "platform": "initial macOS release",
+    "sign_in_flow": "local stock-Codex-managed account/login/start: chatgpt or chatgptDeviceCode; no SIWC migration",
+    "implementation_revision": "fdcf608fb57c4f8299c7440ffc56519314046cff",
+    "includes_first_public_distribution": true
+  },
+  "conditions": [
+    "Continuation for an existing local or open-source application using Codex app-server authentication; owner accepts applicability to this App first public distribution.",
+    "Sign in with ChatGPT migration recommendation noted, not adopted."
+  ],
+  "exclusions": [
+    "Commercial or hosted services are excluded by the notice.",
+    "No public release approval, v3.0.1 replacement, authentication change, bundled-component licensing disposition or supplier/package qualification."
+  ],
+  "approved_proposal": {
+    "revision": "6421c323408b010cfba575ecd8fa24865f403c00",
+    "artifact": {
+      "path": "execution/PKG-01/DEL-01-06/Work/terms-position-v1/approved-proposal.md",
+      "sha256": "e52205da28a7c50dfd00e1c848fe7bd5c317013c84f847f9fc8527639cdf9eac"
+    }
+  },
+  "owner_answer": {
+    "path": "execution/PKG-01/DEL-01-06/Work/terms-position-v1/owner-answer.json",
+    "sha256": "fd28cb0aaa17361989818f0658e26a87d843ad129def3c607cf0be447c3e68b9"
+  },
+  "answer": "Approve the reviewed disposition and exact proposed clauses",
+  "applicability": "accepted",
+  "release_authorized": false
+}

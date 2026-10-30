@@ -126,3 +126,14 @@ record nor satisfy FP-1(b), FP-2/W-4, FP-3/4/5 or native examination.
 
 The current candidate findings and concrete remaining decisions are in
 [DEL-01-06 packaging Work](../../execution/PKG-01/DEL-01-06/Work/PACKAGING_AND_DISTRIBUTION.md#macos-publication-preparation-2026-10-30).
+
+## Explicit versioned terms account
+
+The owner-approved official-publication disposition has a separate
+[terms-position/v1 record and reader](../../execution/PKG-01/DEL-01-06/Work/terms-position-v1/README.md).
+Run `python3 app/packaging/terms/check.py --evidence-root "$PWD" --record
+execution/PKG-01/DEL-01-06/Work/terms-position-v1/OpenAI.json` from the repository
+root. It checks retained bytes, actor/scope joins and recorded applicability;
+it never authorizes release. The historical PKG-v0.2 terms record/schema and
+legacy static-distribution consumer remain unchanged. Do not put a v1 terms
+record into a legacy request or interpret consistency as package qualification.

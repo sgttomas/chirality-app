@@ -39,8 +39,7 @@ needs:
     chirality-app-v4:DEP-005; TargetLocation: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv#DEP-005'
   evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
 - from: external:chirality-app-v4:DEP-004
-  condition: 'Obtain and retain the actual written supplier position through the owner before public release
-    beyond owner use; future Anthropic/Claude terms apply only if that sign-in need arises.
+  condition: 'Obtain and retain through the owner either an applicable identified official supplier publication or direct response before public release beyond owner use, with source/date/custody, selected release/sign-in scope and owner applicability disposition; future Anthropic/Claude terms apply only if that sign-in need arises.
 
 
     Notes: FACT: OI-007 OPEN; DEP-004 UNCONFIRMED. Relevant supplier supplies the position; owner obtains
@@ -93,8 +92,7 @@ needs:
   gating: false
   evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
 - from: external:chirality-app-v4:DEP-004
-  condition: 'The owner public distribution decision consumes the written supplier position retained with
-    source, actual custody and applicability.
+  condition: 'The owner public distribution decision consumes the applicable written supplier position, evidenced by an identified official publication or direct response retained with source/date/custody, selected release/sign-in scope and owner applicability disposition; the distribution decision remains separate.
 
 
     Notes: FACT: Records the explicit consumer of the terms contribution, not a prerequisite between human
@@ -121,10 +119,12 @@ needs:
   gating: false
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 code_paths:
+- app/packaging/terms/**
 - app/src-tauri/src/desktop_startup.rs
 - app/packaging/notices/**
 - app/packaging/unsigned/tauri.notices.conf.json
 checks:
+- app/tests/terms_position_test.py
 - app/src-tauri/src/desktop_startup.rs
 - app/tests/desktop-setup.test.mjs
 - execution/PKG-01/DEL-01-06/Work/prototype/check_pkg.py
