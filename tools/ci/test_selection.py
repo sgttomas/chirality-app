@@ -285,3 +285,26 @@ def test_product_workflow_gates_every_job_and_assigns_each_lib_cohort_once():
     for name in ("rust-integration", "rust-lib-node"):
         run = next(step["run"] for step in jobs[name]["steps"] if "$LIB_COHORTS" in step.get("run", ""))
         assert run.startswith("set -f\n") and "--lib -- --test-threads=1 $LIB_COHORTS" in run
+
+
+@pytest.mark.parametrize("dispatch, focused, full, passes", [
+    ("false", "success success success", "skipped", True),
+    ("false", "success failure success", "skipped", False),
+    ("false", "success skipped success", "skipped", False),
+    ("false", "success success cancelled", "skipped", False),
+    ("false", "success success success", "success", False),
+    ("false", "", "", False),
+    ("true", "skipped skipped skipped", "success", True),
+    ("true", "skipped skipped skipped", "failure", False),
+    ("true", "success skipped skipped", "success", False),
+])
+def test_product_result_job_accepts_only_the_event_route(dispatch, focused, full, passes):
+    root = Path(subject.__file__).resolve().parents[2]
+    gate = yaml.safe_load((root / ".github/workflows/app-v4.yml").read_text())["jobs"]["result"]
+    env = gate["steps"][-1]["env"]
+    assert env["FOCUSED"] == ("${{ needs.rust-integration.result }} ${{ needs.rust-lib-node.result }}"
+                              " ${{ needs.sources-packaging.result }}")
+    assert env["FULL"] == "${{ needs.product.result }}"
+    result = subprocess.run(["bash", "-e", "-c", gate["steps"][-1]["run"]], capture_output=True,
+                            env={**os.environ, "DISPATCH": dispatch, "FOCUSED": focused, "FULL": full})
+    assert (result.returncode == 0) is passes
