@@ -17,8 +17,9 @@ reliance are distinct acts. Domains follows a later increment; PEC adds no
 delivery prerequisite. The owner confirmed on 2026-10-30 that Windows will be released after the
 initial macOS release. Windows work adds no gate to that initial Mac release.
 
-The owner directed a project handoff on 2026-10-30: after SWBPIPE's repository
-cutover, each project starts a fresh Agent 0 through its standard init entry.
+The owner directed a project handoff on 2026-10-30. SWBPIPE's repository
+cutover is complete; each project starts its own Agent 0 through its standard
+init entry and coordinates as `AGENTS.md` describes.
 macOS is the App release baseline. App Agent 0 owns shared code and design;
 Windows continues as Type 1 work within that project loop, implementing native
 boundaries while preserving macOS checks. The separate Windows Agent 0 session
@@ -78,15 +79,12 @@ direction; a component pass does not silently satisfy or replace them.
   for the host fixture. The three proposed acceptance-staging changes remain
   owner decisions. Preserve historical preparation and frozen catalog origin;
   repin only when current canonical bytes or meaning require it.
-- **SWBPIPE implementation counterpart at the cutover:**
-  [SWBPIPE Type 1](t3-thread://v1/thread:delegated-task:command%3Amcp%3A430b7a29-d695-474c-bb92-8f42bc864914%3Adelegate-task%3Aa0-appv4-coord-mgr-20261028).
-  Host catalog adoption, adapter/dispatcher, session bridge, queue and functional
-  panel remain host-owned. Implementation is paused for the owner-directed move
-  to `sgttomas/SWBPIPE`; this route has supplied separate App resource windows,
-  not authority to resume host implementation. The incoming App Agent 0 must
-  bind the actual post-cutover source and active counterpart before relying on
-  the new route. Historical source pins are not automatically repinned. Do not
-  duplicate supplier acquisition or EOF/app-death fixtures.
+- **SWBPIPE counterpart:** SWBPIPE lives in `sgttomas/SWBPIPE` with its own
+  Agent 0; coordinate as `AGENTS.md` describes. Host catalog adoption,
+  adapter/dispatcher, session bridge, queue and functional panel remain
+  host-owned. The cutover-era [SWBPIPE Type 1](t3-thread://v1/thread:delegated-task:command%3Amcp%3A430b7a29-d695-474c-bb92-8f42bc864914%3Adelegate-task%3Aa0-appv4-coord-mgr-20261028)
+  route is historical. Historical source pins are not automatically repinned.
+  Do not duplicate supplier acquisition or EOF/app-death fixtures.
 - **Windows Type 1 continuation:** assigned within the incoming App Agent 0's
   project loop. The [retired Windows Agent 0 session](t3-thread://v1/7821dcff-74fd-4895-8c77-56074ddcb84a)
   retains its historical PR and evidence provenance; it is not the next work
@@ -132,23 +130,13 @@ come only from session steering.
 
 ### Working controls
 
-The owner's current instruction is to merge and clean up existing work for a
-fresh-session handoff, without new threads, tangents or runtime undertakings.
-Keep unfinished work reviewable in PRs; retain exact evidence and named recovery
-inputs before removing owned integrated worktrees, refs and disposable scratch.
-
 Use isolated branches/PRs and exact checked heads. Before a ready return,
 reconcile affected ScopeOfWork, Work and dependency meaning; obtain focused
 checks and independent scrutiny for persistence/permission/destructive changes.
-Agent 0 inspects the actual return and consumer fit. Merge main into later lanes,
-preserve ancestry and rederive affected generated artifacts. Verify merge
-parents/tree and keep needed evidence before cleaning owned integrated
-branches/worktrees/scratch. Specific ownership/merge/resource agreements live
-in affected PR descriptions; there is no blanket reservation of common files.
+Agent 0 inspects the actual return and consumer fit. `main` requires up-to-date
+branches: merge main into a PR before merging it and rederive affected generated
+artifacts.
 
-PRs #9, #10 and #11 merged in order. Main at that earlier transition was
-`c5b33e37832364eaa04360540ea5e31bc08a9168`; #10 supplied the tested
-steering/interrupt supersession repair and #11 the catalog/receiving specimens.
 The frozen App catalog origin remains `e1e3f461` / `64aad707…`; current
 receiving pin/evidence is in DEL-09-06 Work/SWBPIPE_RECEIVING_BINDING.md.
 
@@ -159,8 +147,8 @@ after independent payload scrutiny; selector/enforcement/existing bypass actors
 were preserved. This is a scoped past permission change, not standing authority
 to bypass protection, edit permissions or publish a release.
 
-Build offline by default. Coordinate heavy App builds/model runs through the
-SWBPIPE counterpart before using the shared Mac. Official stock Codex binary
+Build offline by default. Before heavy App builds or model runs on the shared
+Mac, message the SWBPIPE Agent 0 in T3 Code. Official stock Codex binary
 downloads are approved with actual file/source/size/digest recorded; existing
 oMLX is selected for the local witness. Hosted use is allowed with owner-supplied
 credentials/sign-in, labelled separately from local evidence. Other downloads
@@ -176,9 +164,10 @@ provisioning or local VM prerequisite is part of the current pathway.
 The owner requested re-authoring the manuals and updating App v4's pointers,
 and on 2026-10-23 retired the Field Book and the Agent User Manual. Forward
 development uses the method reasoning in Consolidated v9 and the current
-repository practice carried by Root `AGENTS.md`, the role files in `agents/`,
+repository practice carried by this repository's `AGENTS.md`, the shared
+library's role files in `agents/`,
 the selected workflow and the project loop entry, subject to current steering
-and product commitments. The stable [manual index](../../../../docs/alignment-manual/README.md)
+and product commitments. The stable [manual index](https://github.com/sgttomas/chirality/blob/main/docs/alignment-manual/README.md)
 is the discovery entry for the management manual; its moving targets are not
 automatic adoption authority. The applicable sections and instruction files are
 also named in DEL-10-01 through DEL-10-04. Consolidated v9 resolves at

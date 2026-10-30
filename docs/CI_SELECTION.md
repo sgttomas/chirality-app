@@ -48,8 +48,8 @@ valid selection outputs. It accepts `app-v4: skipped` only for the explicit
 cancellations, unexpected skips and missing/inconsistent outputs block merging.
 No branch-rule change or product-check removal is needed.
 
-The App workflow retains the former monorepo's focused build, Rust, Node and
-Python checks, plus frozen-source regression checks. On PRs they run as three
+The App workflow runs the focused build, Rust, Node and Python checks, plus
+frozen-source regression checks. On PRs they run as three
 parallel macOS jobs sharing `.github/actions/app-v4-setup`. Each job builds
 its own artifacts. The first compiles every default-feature test target in one
 pass, replacing the separate check pass; the second rebuilds the lib test
@@ -72,4 +72,3 @@ dependencies, not a sibling Chirality checkout.
 
 Credential/conflict checks are retained. Same-repository PRs require the
 `PRIVATE_TERMS` repository secret; its value is private and never committed.
-Preserve merge commits for the migration PR so imported history remains reachable.
