@@ -129,6 +129,7 @@ needs:
   gating: false
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 code_paths:
+- app/examination/support_identity/provision_ci_objects.py
 - app/examination/support_identity/canonical.py
 - app/examination/support_identity/terms_condition.py
 - app/examination/support_identity/generate_terms_adoption.py

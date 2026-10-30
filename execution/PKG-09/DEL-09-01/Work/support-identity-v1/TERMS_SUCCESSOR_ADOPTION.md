@@ -71,3 +71,11 @@ Focused checks cover source/authority tamper, absent/unapproved/wrong-version
 inputs, purpose/version separation, preserved historical subject, current
 preparation and canonical/SQ joins. Existing admission-protocol and S4/terminal
 baseline stale pins are outside this adoption; they remain explicit limitations.
+
+The shared CI provisioner selects the same successor canonical/SQ pin files as
+those readers and verifies the unchanged 30 original source objects (2,128,671
+bytes). This setup gate runs before product jobs and is covered by the
+publication-source regression suite. Exact adopted hashes are authoritative for
+this bounded receiving selection; the descriptive manifest scope and remaining
+record-internal correspondences do not authorize a later repin. A future terms
+adoption requires its own reviewed source and reader selection.

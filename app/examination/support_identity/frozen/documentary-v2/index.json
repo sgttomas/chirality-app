@@ -12,6 +12,7 @@
     "sq_receiving/worker.py": "67421a4b42d78bb79921b9f7620a473e6ee0662d66848e8c0abf1ca379fbe806",
     "standalone/pre_run_inputs.py": "439b73d1cfe3b9f39bb2e85cdb67d07bcf9ca91bf5d3a9aadb87cf13435a48e8",
     "standalone/prepare.py": "3c367ef82508489272ee07d632346fd3ac8ef9cf9359faed09744e0faa4e7455",
-    "support_identity/canonical.py": "0cf7cfe084d1b551db7c6333ce8c64f2939e75415e6136f935c683fe498f5801"
+    "support_identity/canonical.py": "0cf7cfe084d1b551db7c6333ce8c64f2939e75415e6136f935c683fe498f5801",
+    "support_identity/provision_ci_objects.py": "35e51041cff03622812caf89a3ecd669359d80631614df8ceae4efff9e5ec41e"
   }
 }

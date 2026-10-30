@@ -87,14 +87,20 @@ class TermsSuccessorTests(unittest.TestCase):
         (self.root/name).write_bytes(raw)
         # Even an artificial test-only rehash does not waive the actor/scope rules.
         approval_name=json.loads(raw)['owner_disposition']['approval']['path']
-        approval=json.loads((self.root/approval_name).read_bytes());approval['actor_role']='agent'
-        altered=encoded(approval);(self.root/approval_name).write_bytes(altered)
-        record=json.loads(raw);record['owner_disposition']['approval']['sha256']=canonical.sha(altered)
-        altered_record=encoded(record);(self.root/name).write_bytes(altered_record)
-        manifest=copy.deepcopy(self.manifest)
-        manifest['terms_adoption']['artifacts'][name]=canonical.sha(altered_record)
-        manifest['terms_adoption']['artifacts'][approval_name]=canonical.sha(altered)
-        with self.assertRaisesRegex(ValueError,'actor, scope or applicability'):self.capture(manifest)
+        original_approval=json.loads((self.root/approval_name).read_bytes())
+        for mutate in (lambda a:a.update(actor_role='agent'),
+                       lambda a:a['scope'].update(offering='hosted commercial fixture'),
+                       lambda a:a.update(release_authorized=True),
+                       lambda a:a['approved_proposal'].update(revision='0'*40)):
+            approval=copy.deepcopy(original_approval);mutate(approval)
+            altered=encoded(approval);(self.root/approval_name).write_bytes(altered)
+            record=json.loads(raw);record['owner_disposition']['approval']['sha256']=canonical.sha(altered)
+            altered_record=encoded(record);(self.root/name).write_bytes(altered_record)
+            manifest=copy.deepcopy(self.manifest)
+            manifest['terms_adoption']['artifacts'][name]=canonical.sha(altered_record)
+            manifest['terms_adoption']['artifacts'][approval_name]=canonical.sha(altered)
+            with self.subTest(approval=approval):
+                with self.assertRaisesRegex(ValueError,'actor, scope or applicability'):self.capture(manifest)
 
     def test_unknown_missing_or_old_manifest_refuses(self):
         for key,value in [('method','selected-documentary-source-condition/v99'),('format','documentary-source-condition/2')]:
