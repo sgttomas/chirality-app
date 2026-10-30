@@ -1,0 +1,152 @@
+{
+  "kind": "focused_headless_setup_run",
+  "started_at": "2026-10-30T05:56:03.428783+00:00",
+  "deadline": "2026-10-30T06:04:46+00:00",
+  "source_revision": "d908cbec5b3425f0ad37e9a0337a16d427d61cea",
+  "environment": {
+    "HOME": "/Users/ryan",
+    "PATH": "/Users/ryan/.local/share/mise/installs/node/24.18.0/bin:/Users/ryan/.rustup/toolchains/stable-aarch64-apple-darwin/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "LANG": "en_US.UTF-8",
+    "CARGO_HOME": "/private/tmp/chirality-headless-setup-rr4kghso/cargo-home",
+    "CARGO_TARGET_DIR": "/private/tmp/chirality-headless-setup-rr4kghso/target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_NET_OFFLINE": "true",
+    "CODEX_HOME": "/private/tmp/chirality-headless-setup-rr4kghso/codex-home",
+    "TMPDIR": "/private/tmp/chirality-headless-setup-rr4kghso/tmp",
+    "CHIRALITY_SKIP_CODEX": "1",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "steps": [
+    {
+      "name": "clone-target",
+      "command": [
+        "/bin/cp",
+        "-cR",
+        "/private/tmp/chirality-desktop-current-ukt5ir80/target",
+        "/private/tmp/chirality-headless-setup-rr4kghso/target"
+      ],
+      "cwd": "/private/tmp/chirality-headless-setup-rr4kghso",
+      "started_at": "2026-10-30T05:56:03.434078+00:00",
+      "finished_at": "2026-10-30T05:56:04.169810+00:00",
+      "seconds": 0.735732,
+      "exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "clone-cargo",
+      "command": [
+        "/bin/cp",
+        "-cR",
+        "/private/tmp/chirality-desktop-current-ukt5ir80/cargo-home",
+        "/private/tmp/chirality-headless-setup-rr4kghso/cargo-home"
+      ],
+      "cwd": "/private/tmp/chirality-headless-setup-rr4kghso",
+      "started_at": "2026-10-30T05:56:04.170245+00:00",
+      "finished_at": "2026-10-30T05:56:08.755953+00:00",
+      "seconds": 4.585708,
+      "exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "qualify-test-runner",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "cwd": "/Users/ryan/.t3/worktrees/chirality-app/t3-app-v4-desktop-release-delivery/app/src-tauri",
+      "started_at": "2026-10-30T05:56:08.756187+00:00",
+      "finished_at": "2026-10-30T05:57:35.810884+00:00",
+      "seconds": 87.054697,
+      "exit_code": 0,
+      "stdout_sha256": "e3c8e640a9757176b8e9e4d50153ca8577ea9f872279ba2865442d17c82beca6",
+      "stderr_sha256": "68fae3b2bfb00108bb497c2cda4886eed6daab6cdce4a042bf1d6accf30a2793"
+    },
+    {
+      "name": "joined-native-consumers",
+      "command": [
+        "/private/tmp/chirality-headless-setup-rr4kghso/target/debug/deps/chirality_app_v4_lib-849a2caba3ae822e",
+        "desktop_startup::tests::joined_empty_setup_prepare_protected_request_fresh_root_and_native_consumers",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "cwd": "/Users/ryan/.t3/worktrees/chirality-app/t3-app-v4-desktop-release-delivery/app/src-tauri",
+      "started_at": "2026-10-30T05:57:35.869951+00:00",
+      "finished_at": "2026-10-30T05:57:37.122460+00:00",
+      "seconds": 1.252509,
+      "exit_code": 0,
+      "stdout_sha256": "b45beecb8728f5a9b8ddcff36162bbeb831b67a06a4af1737a4a8961182fda55",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "desktop-react-mounted",
+      "command": [
+        "node",
+        "--test",
+        "tests/desktop-setup.test.mjs"
+      ],
+      "cwd": "/Users/ryan/.t3/worktrees/chirality-app/t3-app-v4-desktop-release-delivery/app",
+      "started_at": "2026-10-30T05:57:37.123015+00:00",
+      "finished_at": "2026-10-30T05:57:37.962864+00:00",
+      "seconds": 0.839849,
+      "exit_code": 0,
+      "stdout_sha256": "9d26ca7a389e2aa924ffa1883769fec25b843e8b3671125ca598bc0487d9e9b1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "peak_shared_rss_kib": 3669488,
+  "minimum_free_percent": 91,
+  "abort_reason": null,
+  "GUI_or_supplier": false,
+  "runner": {
+    "path": "/private/tmp/chirality-headless-setup-rr4kghso/target/debug/deps/chirality_app_v4_lib-849a2caba3ae822e",
+    "size_bytes": 122057288,
+    "sha256": "a211316352dfdbae6587d321d84e71a8650b71f837ce037c9e9e89889177eb62",
+    "cargo_artifact": {
+      "reason": "compiler-artifact",
+      "package_id": "path+file:///Users/ryan/.t3/worktrees/chirality-app/t3-app-v4-desktop-release-delivery/app/src-tauri#chirality-app-v4@0.0.0-skeleton",
+      "manifest_path": "/Users/ryan/.t3/worktrees/chirality-app/t3-app-v4-desktop-release-delivery/app/src-tauri/Cargo.toml",
+      "target": {
+        "kind": [
+          "rlib",
+          "staticlib",
+          "cdylib"
+        ],
+        "crate_types": [
+          "rlib",
+          "staticlib",
+          "cdylib"
+        ],
+        "name": "chirality_app_v4_lib",
+        "src_path": "/Users/ryan/.t3/worktrees/chirality-app/t3-app-v4-desktop-release-delivery/app/src-tauri/src/lib.rs",
+        "edition": "2021",
+        "doc": true,
+        "doctest": true,
+        "test": true
+      },
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 2,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "features": [],
+      "filenames": [
+        "/private/tmp/chirality-headless-setup-rr4kghso/target/debug/deps/chirality_app_v4_lib-849a2caba3ae822e"
+      ],
+      "executable": "/private/tmp/chirality-headless-setup-rr4kghso/target/debug/deps/chirality_app_v4_lib-849a2caba3ae822e",
+      "fresh": false
+    }
+  },
+  "finished_at": "2026-10-30T05:57:37.963228+00:00",
+  "success": true,
+  "error": null
+}

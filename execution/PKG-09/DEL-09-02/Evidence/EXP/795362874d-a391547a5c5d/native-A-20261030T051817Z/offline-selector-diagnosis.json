@@ -1,0 +1,58 @@
+{
+  "kind": "offline_native_selector_diagnosis",
+  "candidate_key": "795362874d-a391547a5c5d",
+  "product_source_sha256": "a0537ad78832720a8410cf42ee0076d5242e1e9a6e5a59dcfbad11894f97ce5c",
+  "source_matches_built_revision": true,
+  "component": "app/src/DesktopSetupPanel.tsx",
+  "desired_option": {
+    "label": "Prepare a new account home",
+    "value": "new"
+  },
+  "observed_selector": "Choose explicitly",
+  "actual_source_handler": "changed(); setMode(event.target.value)",
+  "finding": "automation protocol: shell failure fall-through and missing stable commit read-back; no demonstrated product handler defect",
+  "new_product_repair": false,
+  "next_method": "single fail-closed AX-derived menu click; bind actual owning popup/menu, require stable readback across host update before proceeding",
+  "next_method_executed": false,
+  "current_partial_state": "AppData/request/account-homes absent; unique WebKit and Caches state present; not fresh and not deleted",
+  "owner_attribution": "agent under explicit owner direction; no personal owner click/human-act qualification",
+  "App_exit": {
+    "code": 0,
+    "reaped": true,
+    "at": "2026-10-30T05:27:15.115511+00:00"
+  },
+  "supplier": "never admitted/observed inA; no supplier exit facts fabricated",
+  "phase_B_launched": false,
+  "source_evidence": {
+    "state.json": {
+      "sha256": "7560e902495b3ca156e25e52aeb279191e1baab84cc29425edc59bcdef7910f0",
+      "size_bytes": 1340
+    },
+    "result.json": {
+      "sha256": "c3f3f2384419bd4a7b2bd5a580d3949f8730f601d1e3dd495b3e41bab989f961",
+      "size_bytes": 3393
+    },
+    "partial-namespace.json": {
+      "sha256": "ef8610424a9138e39083b2360bf2c54b63d7a4a4210977772415e366d0e6a8e4",
+      "size_bytes": 605
+    },
+    "scoped-action-transcript.json": {
+      "sha256": "3ebf6ece4d486f7250e615cdbb62d03e79ffe390578deae2c74224331605692e",
+      "size_bytes": 32804
+    },
+    "ax-filled-tree.json": {
+      "sha256": "d664220d784be4b444aa022ae2be1d463238540c61f22fcf87e40b2ed38b4bcd",
+      "size_bytes": 66995
+    },
+    "ax-typed-tree.json": {
+      "sha256": "f45da72cdfd671bb5f099857a0ba7318f631124bfd263bbdad66d97e6e84c1be",
+      "size_bytes": 67301
+    },
+    "ax-before-review.json": {
+      "sha256": "f132adaf5e962df18b3847d2c584c54a16958356865487edeeb4cf83ed159700",
+      "size_bytes": 67341
+    }
+  },
+  "owning_design": "execution/PKG-09/DEL-09-02/Design/NATIVE_SETUP_SELECTOR_DIAGNOSIS.md",
+  "owning_design_sha256": "87981158149207d2d50b829e057b0a2741586341572472aec920d28fd9f3a0e5"
+}

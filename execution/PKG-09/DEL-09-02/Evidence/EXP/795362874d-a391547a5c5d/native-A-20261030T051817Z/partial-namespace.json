@@ -1,0 +1,24 @@
+{
+  "AppData": {
+    "path": "/Users/ryan/Library/Application Support/dev.chirality.app-v4.candidate.20261029-ukt5ir80",
+    "present": false
+  },
+  "WebKit": {
+    "path": "/Users/ryan/Library/WebKit/dev.chirality.app-v4.candidate.20261029-ukt5ir80",
+    "kind": "directory",
+    "inode": 283908060,
+    "mode": "0o755",
+    "immediate_names": [
+      "WebsiteData"
+    ]
+  },
+  "Caches": {
+    "path": "/Users/ryan/Library/Caches/dev.chirality.app-v4.candidate.20261029-ukt5ir80",
+    "kind": "directory",
+    "inode": 283908052,
+    "mode": "0o755",
+    "immediate_names": [
+      "WebKit"
+    ]
+  }
+}
