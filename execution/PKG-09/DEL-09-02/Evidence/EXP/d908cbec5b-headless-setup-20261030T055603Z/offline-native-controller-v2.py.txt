@@ -1,0 +1,397 @@
+"""One bounded unattended A/B continuation. Preparation is offline; live use requires --execute and fresh resource bounds."""
+from pathlib import Path
+from datetime import datetime, timezone
+import argparse, ctypes as C, hashlib, json, os, signal, stat, subprocess, sys, threading, time
+
+ROOT = Path(__file__).resolve().parent
+INPUTS = ROOT / 'witness-inputs/input-manifest.json'
+OLD_PARTIAL = ROOT / 'native-phase-A/partial-namespace.json'
+BASIS = ROOT / 'continuation-partial-basis.json'
+EXCLUSIVE = Path('/Users/ryan/dev/chirality-t3/guard/exclusive.pending')
+TITLE = 'Chirality App v4 — walking skeleton'
+NEW = 'Prepare a new account home'
+AUTHORITY = 'Owner: Test away. Run the computer. Unattended agent UI/setup/confirmation/quit authorized; no personal-owner click/human-act qualification.'
+
+
+def now(): return datetime.now(timezone.utc)
+def sha(raw): return hashlib.sha256(raw).hexdigest()
+def require(ok, reason):
+    if not ok: raise RuntimeError(reason)
+
+
+def namespace_tree(path):
+    """Metadata only, no contents, no following links, only the exact known unique namespace."""
+    path = Path(path)
+    if not os.path.lexists(path): return None
+    result = []
+    for current, dirs, files in os.walk(path, followlinks=False):
+        for p in [Path(current), *[Path(current) / n for n in sorted(files)]]:
+            s = p.lstat()
+            require(not stat.S_ISLNK(s.st_mode), 'linked partial namespace: ' + str(p))
+            result.append({'path': str(p.relative_to(path)), 'dev': s.st_dev, 'ino': s.st_ino,
+                           'mode': stat.S_IMODE(s.st_mode), 'size': s.st_size,
+                           'mtime_ns': s.st_mtime_ns, 'ctime_ns': s.st_ctime_ns})
+        require(len(result) < 2000, 'unexpected partial namespace expansion')
+        for name in dirs: require(not (Path(current) / name).is_symlink(), 'linked partial directory')
+    return result
+
+
+def admission():
+    inputs = json.loads(INPUTS.read_bytes())
+    require(inputs['candidate_key'] == '795362874d-a391547a5c5d', 'wrong retained candidate')
+    require(not any(k.startswith('CHIRALITY_') for k in inputs['environment']), 'startup selector environment present')
+    for p, digest in inputs['files'].items():
+        require(sha((ROOT / 'witness-inputs' / p).read_bytes()) == digest, 'changed input: ' + p)
+    data = Path(inputs['expected_app_data'])
+    for p in [data, data / 'desktop-startup/request.json', data / 'account-homes']:
+        require(not os.path.lexists(p), 'unexpected AppData/request/account home: ' + str(p))
+    baseline = json.loads(BASIS.read_bytes())
+    for item in baseline['retained_namespaces']:
+        require(namespace_tree(item['path']) == item['metadata'], 'changed/unexplained partial namespace: ' + item['path'])
+    require(not EXCLUSIVE.exists(), 'exclusive.pending; no launch')
+    require(sha(Path(inputs['executable']).read_bytes()) == inputs['executable_sha256'], 'changed App executable')
+    return inputs
+
+
+class AX:
+    """Only a fresh owned application's windows/descendants; never system-wide AX menus."""
+    def __init__(self, pid, alive, log):
+        self.pid, self.alive, self.log = pid, alive, log
+        self.a = C.CDLL('/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices')
+        self.c = C.CDLL('/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation')
+        defs = [
+            (self.a,'AXIsProcessTrusted',C.c_bool,[]),
+            (self.a,'AXUIElementCreateApplication',C.c_void_p,[C.c_int]),
+            (self.a,'AXUIElementCopyAttributeValue',C.c_int,[C.c_void_p,C.c_void_p,C.POINTER(C.c_void_p)]),
+            (self.a,'AXUIElementSetAttributeValue',C.c_int,[C.c_void_p,C.c_void_p,C.c_void_p]),
+            (self.a,'AXUIElementPerformAction',C.c_int,[C.c_void_p,C.c_void_p]),
+            (self.a,'AXUIElementGetPid',C.c_int,[C.c_void_p,C.POINTER(C.c_int)]),
+            (self.a,'AXUIElementSetMessagingTimeout',C.c_int,[C.c_void_p,C.c_float]),
+            (self.a,'AXValueGetValue',C.c_bool,[C.c_void_p,C.c_int,C.c_void_p]),
+            (self.a,'CGEventCreateKeyboardEvent',C.c_void_p,[C.c_void_p,C.c_ushort,C.c_bool]),
+            (self.a,'CGEventSetFlags',None,[C.c_void_p,C.c_ulonglong]),
+            (self.a,'CGEventKeyboardSetUnicodeString',None,[C.c_void_p,C.c_ulong,C.POINTER(C.c_ushort)]),
+            (self.a,'CGEventPostToPid',None,[C.c_int,C.c_void_p]),
+            (self.c,'CFStringCreateWithCString',C.c_void_p,[C.c_void_p,C.c_char_p,C.c_uint]),
+            (self.c,'CFGetTypeID',C.c_ulong,[C.c_void_p]),
+            (self.c,'CFStringGetTypeID',C.c_ulong,[]),(self.c,'CFArrayGetTypeID',C.c_ulong,[]),
+            (self.c,'CFBooleanGetTypeID',C.c_ulong,[]),(self.c,'CFNumberGetTypeID',C.c_ulong,[]),
+            (self.c,'CFStringGetLength',C.c_long,[C.c_void_p]),
+            (self.c,'CFStringGetCString',C.c_bool,[C.c_void_p,C.c_char_p,C.c_long,C.c_uint]),
+            (self.c,'CFArrayGetCount',C.c_long,[C.c_void_p]),
+            (self.c,'CFArrayGetValueAtIndex',C.c_void_p,[C.c_void_p,C.c_long]),
+            (self.c,'CFBooleanGetValue',C.c_bool,[C.c_void_p]),
+            (self.c,'CFNumberGetValue',C.c_bool,[C.c_void_p,C.c_int,C.c_void_p]),
+            (self.c,'CFEqual',C.c_bool,[C.c_void_p,C.c_void_p])]
+        for lib,name,result,args in defs:
+            f=getattr(lib,name); f.restype=result; f.argtypes=args
+        require(self.a.AXIsProcessTrusted(), 'Accessibility unavailable; no permission prompt/fallback')
+        self.app=self.a.AXUIElementCreateApplication(pid)
+        self.a.AXUIElementSetMessagingTimeout(self.app,0.5)
+        self.attempts={}
+
+    def string(self,s): return self.c.CFStringCreateWithCString(None,s.encode(),0x08000100)
+    def value(self,p):
+        if not p: return None
+        t=self.c.CFGetTypeID(p)
+        if t==self.c.CFStringGetTypeID():
+            b=C.create_string_buffer(self.c.CFStringGetLength(p)*4+1)
+            require(self.c.CFStringGetCString(p,b,len(b),0x08000100),'unreadable AX string')
+            return b.value.decode()
+        if t==self.c.CFBooleanGetTypeID(): return bool(self.c.CFBooleanGetValue(p))
+        if t==self.c.CFNumberGetTypeID():
+            n=C.c_longlong(); self.c.CFNumberGetValue(p,4,C.byref(n)); return n.value
+        if t==self.c.CFArrayGetTypeID():
+            return [self.c.CFArrayGetValueAtIndex(p,i) for i in range(self.c.CFArrayGetCount(p))]
+        return p
+    def attr(self,e,name):
+        self.alive(); out=C.c_void_p()
+        rc=self.a.AXUIElementCopyAttributeValue(e,self.string(name),C.byref(out))
+        return self.value(out.value) if rc==0 else None
+    def own(self,e):
+        self.alive(); pid=C.c_int()
+        require(self.a.AXUIElementGetPid(e,C.byref(pid))==0 and pid.value==self.pid,'AX ownership differs')
+    def walk(self,e,depth=0,web=False):
+        self.own(e); require(depth<=20,'unexpected AX depth')
+        props={k:self.attr(e,k) for k in ['AXRole','AXTitle','AXDescription','AXValue','AXEnabled']}
+        web=web or props['AXRole']=='AXWebArea'
+        rows=[(e,props,web)]
+        for child in self.attr(e,'AXChildren') or []:
+            rows.extend(self.walk(child,depth+1,web)); require(len(rows)<900,'unexpected AX expansion')
+        return rows
+    def windows(self): return self.attr(self.app,'AXWindows') or []
+    def main(self):
+        windows=[w for w in self.windows() if self.attr(w,'AXTitle')==TITLE]
+        require(len(windows)==1,'own main window missing/ambiguous')
+        return windows[0]
+    def find(self,role,title,rows=None):
+        matches=[e for e,p,web in (rows if rows is not None else self.walk(self.main())) if p['AXRole']==role and p['AXTitle']==title]
+        require(len(matches)==1,'AX target missing/ambiguous: '+title); return matches[0]
+    def press(self,e):
+        self.own(e); require(self.attr(e,'AXEnabled') is not False,'disabled AX action')
+        require(self.a.AXUIElementPerformAction(e,self.string('AXPress'))==0,'AXPress refused')
+    def focus(self,e):
+        self.own(e); true=C.c_void_p.in_dll(self.c,'kCFBooleanTrue').value
+        require(self.a.AXUIElementSetAttributeValue(self.app,self.string('AXFrontmost'),true)==0,'App focus refused')
+        require(self.a.AXUIElementSetAttributeValue(e,self.string('AXFocused'),true)==0,'control focus refused')
+    def key(self,code,flags=0,text=None):
+        self.alive()
+        for down in (True,False):
+            event=self.a.CGEventCreateKeyboardEvent(None,code,down); self.a.CGEventSetFlags(event,flags)
+            if text is not None:
+                raw=text.encode('utf-16-le'); units=(C.c_ushort*(len(raw)//2)).from_buffer_copy(raw)
+                self.a.CGEventKeyboardSetUnicodeString(event,len(units),units)
+            self.a.CGEventPostToPid(self.pid,event); time.sleep(0.03)
+    def stable(self,label,expected):
+        # Read fresh AX references on both sides of a full one-second host poll.
+        for delay in (0.15,1.25):
+            until=time.monotonic()+delay
+            while time.monotonic()<until: self.alive(); time.sleep(0.05)
+            actual=self.attr(self.find('AXPopUpButton',label),'AXValue')
+            self.log('selection_readback',label=label,value=actual)
+            require(actual==expected,'selection did not commit stably: '+label)
+    def menu_once(self,label,option):
+        require(self.attempts.get(label,0)==0,'second selector attempt refused: '+label)
+        self.attempts[label]=1
+        popup=self.find('AXPopUpButton',label); self.focus(popup)
+        before=self.windows()
+        direct=self.walk(popup)
+        menus=[e for e,p,web in direct if p['AXRole']=='AXMenu']
+        if not menus:
+            # Exactly one opening action; never blindly toggle an observed menu.
+            require(not any(any(p['AXRole']=='AXMenu' for e,p,web in self.walk(w)) for w in before if not self.c.CFEqual(w,self.main())), 'unassociated existing menu; stop')
+            self.log('popup_open',label=label); self.press(popup)
+            end=time.monotonic()+1.0
+            while time.monotonic()<end:
+                direct=self.walk(self.find('AXPopUpButton',label))
+                menus=[e for e,p,web in direct if p['AXRole']=='AXMenu']
+                if not menus:
+                    new=[w for w in self.windows() if not any(self.c.CFEqual(w,old) for old in before)]
+                    menus=[e for w in new for e,p,web in self.walk(w) if p['AXRole']=='AXMenu']
+                if menus: break
+                time.sleep(0.05)
+        require(len(menus)==1,'popup-associated menu unexposed/ambiguous: '+label)
+        target=self.find('AXMenuItem',option,self.walk(menus[0])); self.own(target)
+        require(self.attr(target,'AXEnabled') is not False,'menu option disabled')
+        class Point(C.Structure): _fields_=[('x',C.c_double),('y',C.c_double)]
+        class Size(C.Structure): _fields_=[('width',C.c_double),('height',C.c_double)]
+        point,size=Point(),Size()
+        require(self.a.AXValueGetValue(self.attr(target,'AXPosition'),1,C.byref(point)) and self.a.AXValueGetValue(self.attr(target,'AXSize'),2,C.byref(size)),'menu geometry unavailable')
+        require(size.width>0 and size.height>0,'invalid target geometry')
+        center=Point(point.x+size.width/2,point.y+size.height/2)
+        self.a.CGEventCreateMouseEvent.restype=C.c_void_p
+        self.a.CGEventCreateMouseEvent.argtypes=[C.c_void_p,C.c_uint,Point,C.c_uint]
+        self.log('one_exact_menu_click',label=label,option=option,point=[center.x,center.y])
+        for event in (5,1,2):
+            self.alive(); self.a.CGEventPostToPid(self.pid,self.a.CGEventCreateMouseEvent(None,event,center,0)); time.sleep(0.05)
+        self.stable(label,option)
+    def type_path(self,label,value):
+        e=self.find('AXTextField',label); self.focus(e)
+        self.key(0,1<<20); self.key(0,text=value); self.key(48)
+        require(self.attr(self.find('AXTextField',label),'AXValue')==value,'typed path did not persist: '+label)
+        self.log('typed_path_readback',label=label,value=value)
+    def text(self,rows):
+        return '\n'.join(str(p[k]) for e,p,web in rows for k in ('AXTitle','AXDescription','AXValue') if isinstance(p[k],str) and p[k])
+    def snapshot(self,path):
+        rows=[(e,p,web) for w in self.windows() for e,p,web in self.walk(w)]
+        path.write_text(json.dumps([dict(p,in_web_area=web) for e,p,web in rows],indent=2)+'\n')
+        return rows
+    def quit_ui(self):
+        true=C.c_void_p.in_dll(self.c,'kCFBooleanTrue').value
+        self.a.AXUIElementSetAttributeValue(self.app,self.string('AXFrontmost'),true)
+        self.key(53); self.key(12,1<<20); self.log('normal_quit_requested',actor='agent under owner direction')
+
+
+class Run:
+    def __init__(self,out,end):
+        self.out,self.end=out,end; self.child=None; self.phase=None
+        self.lock=threading.RLock(); self.stop=threading.Event(); self.abort=None
+        self.peak=0; self.minimum=100; self.supplier_seen=[]; self.ax=None
+    def log(self,event,**facts):
+        row={'at':now().isoformat(),'phase':self.phase,'event':event,**facts}
+        with (self.out/'actions.jsonl').open('a') as f: f.write(json.dumps(row)+'\n')
+        print(json.dumps(row),flush=True)
+    def alive(self):
+        require(self.abort is None,'guard stopped: '+str(self.abort))
+        require(now()<self.end,'resource interval ended')
+        with self.lock: require(self.child is not None and self.child.poll() is None,'original process ended')
+    def monitor(self):
+        while not self.stop.wait(0.2):
+            rows=[]
+            for line in subprocess.check_output(['/bin/ps','-axo','pid=,ppid=,rss=,command='],text=True).splitlines():
+                fields=line.strip().split(None,3)
+                if len(fields)==4: rows.append((int(fields[0]),int(fields[1]),int(fields[2]),fields[3]))
+            own={os.getpid()};
+            if self.child: own.add(self.child.pid)
+            while True:
+                before=len(own); own.update(pid for pid,ppid,rss,cmd in rows if ppid in own)
+                if len(own)==before: break
+            total=sum(rss for pid,ppid,rss,cmd in rows if pid in own or '/Users/ryan/dev/chirality-t3/' in cmd)
+            free=int(subprocess.check_output(['/usr/sbin/sysctl','-n','kern.memorystatus_level'],text=True))
+            self.peak=max(self.peak,total); self.minimum=min(self.minimum,free)
+            source=[{'pid':pid,'parent':ppid,'command':cmd} for pid,ppid,rss,cmd in rows if pid in own and '/Contents/Resources/codex/' in cmd]
+            self.supplier_seen.extend(x for x in source if x not in self.supplier_seen)
+            reason=('unexpected supplier in A' if self.phase=='A' and source else 'exclusive.pending' if EXCLUSIVE.exists() else 'shared64GiB' if total>=64*1024*1024 else 'free below22%' if free<22 else 'resource interval ended' if now()>=self.end else None)
+            if reason:
+                self.abort=reason; self.log('guard_stop',reason=reason); return
+    def launch(self,phase,inputs):
+        require(self.child is None,'competing original child refused'); self.phase=phase
+        require(not EXCLUSIVE.exists() and now()<self.end,'resource admission refused')
+        stderr=(self.out/(phase+'-stderr.log')).open('wb'); stdout=(self.out/(phase+'-stdout.log')).open('wb')
+        command=['/usr/bin/sandbox-exec','-f',str(ROOT/'witness-inputs/network-denied.sb'),inputs['executable']]
+        self.child=subprocess.Popen(command,env=inputs['environment'],cwd=ROOT/'witness-inputs/project',stdout=stdout,stderr=stderr,start_new_session=True)
+        require(self.child.pid!=55072,'old process identity refused')
+        self.log('original_process_started',pid=self.child.pid,command=command,environment=inputs['environment'])
+        self.ax=AX(self.child.pid,self.alive,self.log)
+        end=time.monotonic()+5
+        while time.monotonic()<end:
+            self.alive()
+            try: self.ax.main(); break
+            except RuntimeError: time.sleep(0.1)
+        self.ax.main(); self.ax.snapshot(self.out/(phase+'-initial-AX.json'))
+    def settle(self):
+        if not self.child: return
+        # Cleanup uses only the still-owned unreaped child, never a stored PID/PGID.
+        with self.lock: running=self.child.poll() is None
+        if running:
+            try:
+                saved_abort=self.abort; self.abort=None
+                # A selector failure still follows the real Quit menu route first.
+                self.ax.quit_ui()
+                self.abort=saved_abort
+            except Exception as e: self.log('quit_UI_unavailable',error=str(e))
+            until=min(time.monotonic()+5,time.monotonic()+max(0,(self.end-now()).total_seconds()))
+            while time.monotonic()<until:
+                with self.lock:
+                    if self.child.poll() is not None: break
+                time.sleep(0.1)
+            with self.lock:
+                if self.child.poll() is None:
+                    require(not any(x for x in self.supplier_seen),'original App retained: supplier cleanup not proven; do not kill observer')
+                    os.killpg(self.child.pid,signal.SIGTERM)
+                    self.log('owned_group_signal',signal='TERM',limit='not a normal-quit pass')
+                    try: self.child.wait(timeout=2)
+                    except subprocess.TimeoutExpired: os.killpg(self.child.pid,signal.SIGKILL); self.child.wait()
+        with self.lock: code=self.child.wait()
+        self.log('original_process_reaped',pid=self.child.pid,exit_code=code)
+        self.child=None; self.ax=None
+        return code
+
+
+def wait_for(run,predicate,seconds,message):
+    end=time.monotonic()+seconds
+    while time.monotonic()<end:
+        run.alive()
+        value=predicate()
+        if value: return value
+        time.sleep(0.1)
+    raise RuntimeError(message)
+
+
+def form_A(run,inputs):
+    ax=run.ax
+    ax.menu_once('Desktop setup action',NEW)
+    run.log('new_account_gate_passed',limit='stable AX readback, not source event proof or human act')
+    for label,key in [('Shared config.toml','shared_config'),('Shared AGENTS.md','shared_agents'),('Shared skills directory','shared_skills')]: ax.type_path(label,inputs['native_input_paths'][key])
+    ax.menu_once('Project on next launch','Choose a project directory')
+    ax.type_path('Next project directory',inputs['native_input_paths']['project'])
+    ax.menu_once('Supplier for next launch','Bundled supplier — unqualified owner-use development')
+    review=ax.find('AXButton','Review setup effects'); require(ax.attr(review,'AXEnabled') is True,'Review not enabled; stop without fallback')
+    ax.press(review)
+    def preview_rows():
+        rows=ax.walk(ax.main())
+        groups=[e for e,p,web in rows if p['AXRole']=='AXGroup' and p['AXTitle']=='Desktop setup effects']
+        return ax.walk(groups[0]) if len(groups)==1 else None
+    preview=wait_for(run,preview_rows,5,'actual setup preview unavailable')
+    text=ax.text(preview); (run.out/'A-preview.txt').write_text(text)
+    prefix=inputs['expected_app_data']+'/account-homes/account-'
+    accounts=[line[len('Create new account directory '):] for line in text.splitlines() if line.startswith('Create new account directory ')]
+    accounts=list(dict.fromkeys(accounts)); require(len(accounts)==1 and accounts[0].startswith(prefix),'unexpected account effect')
+    for path in inputs['native_input_paths'].values(): require(path in text,'missing/changed preview source: '+path)
+    require(inputs['expected_app_data']+'/desktop-startup/request.json' in text,'unexpected request effect')
+    affirmative='Prepare home and save for next launch'
+    ax.press(ax.find('AXButton',affirmative,preview))
+    def confirmation():
+        rows=ax.snapshot(run.out/'A-native-confirmation-AX.json')
+        buttons=[e for e,p,web in rows if not web and p['AXRole']=='AXButton' and p['AXTitle']==affirmative and p['AXEnabled'] is not False]
+        return (rows,buttons[0]) if len(buttons)==1 else None
+    native,button=wait_for(run,confirmation,5,'exact native setup confirmation unavailable')
+    native_text=ax.text([(e,p,w) for e,p,w in native if not w])
+    require(accounts[0] in native_text and all(path in native_text for path in inputs['native_input_paths'].values()),'native statement not fully scope-checkable; stop without confirmation')
+    run.log('native_setup_confirmation',actor='agent under owner direction',account=accounts[0],limit='not personal owner click/human-act qualification')
+    ax.press(button)
+    def pending():
+        rows=ax.walk(ax.main()); return rows if any(p['AXTitle']=='Pending desktop setup' for e,p,w in rows) else None
+    wait_for(run,pending,5,'pending saved outcome unavailable')
+    data=Path(inputs['expected_app_data']); profile=data/'desktop-startup/request.json'
+    require(profile.is_file() and not profile.is_symlink() and profile.stat().st_size<=65536,'unexpected saved request representation')
+    raw=profile.read_bytes(); account=Path(accounts[0]); require(account.is_dir() and not account.is_symlink(),'new account source unavailable')
+    for name,key in [('config.toml','shared_config'),('AGENTS.md','shared_agents'),('skills','shared_skills')]: require((account/name).is_symlink() and (account/name).resolve()==Path(inputs['native_input_paths'][key]),'prepared source link differs')
+    bindings={'account':str(account),'request_path':str(profile),'request_sha256':sha(raw),'request':json.loads(raw),'shared':inputs['native_input_paths'],'actor':'agent under owner direction'}
+    (run.out/'A-saved-bindings.json').write_text(json.dumps(bindings,indent=2)+'\n')
+    ax.snapshot(run.out/'A-saved-AX.json'); run.log('A_saved_bindings_captured',account=str(account),request_sha256=sha(raw))
+    return bindings
+
+
+def phase_B(run,inputs,bindings):
+    require((run.end-now()).total_seconds()>45,'insufficient interval for B and settlement')
+    require(sha(Path(bindings['request_path']).read_bytes())==bindings['request_sha256'],'saved A request changed')
+    for name,key in [('config.toml','shared_config'),('AGENTS.md','shared_agents'),('skills','shared_skills')]: require((Path(bindings['account'])/name).is_symlink() and (Path(bindings['account'])/name).resolve()==Path(inputs['native_input_paths'][key]),'A source binding changed')
+    run.launch('B',inputs)
+    # Read the actual diagnostics already offered by this App; initiate no conversation/account call.
+    rows=run.ax.walk(run.ax.main()); details=[e for e,p,w in rows if p['AXRole']=='AXDisclosureTriangle' and isinstance(p['AXTitle'],str) and p['AXTitle'].startswith('Host diagnostics')]
+    if len(details)==1 and run.ax.attr(details[0],'AXValue') is not True: run.ax.press(details[0])
+    def ready():
+        rows=run.ax.snapshot(run.out/'B-observed-AX.json')
+        for e,p,w in rows:
+            value=p['AXValue']
+            if isinstance(value,str) and value.lstrip().startswith('{'):
+                try: record=json.loads(value)
+                except ValueError: continue
+                if record.get('state')=='ready' and isinstance(record.get('generation'),dict): return record
+        return None
+    record=wait_for(run,ready,15,'no explicit source/generation-bound ready observation; no handshake pass')
+    (run.out/'B-ready-observation.json').write_text(json.dumps(record,indent=2)+'\n')
+    run.log('B_ready_observed',generation=record['generation'],limit='handshake only; no login/thread/turn/model or full qualification')
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--execute',action='store_true')
+    parser.add_argument('--window-start'); parser.add_argument('--window-end')
+    args=parser.parse_args()
+    if not args.execute:
+        print(json.dumps({'execution':'not requested','method':'one exact new-account menu click + stable readback before other fields','authority':AUTHORITY,'limits':'prepared offline; no live AX/App/supplier operation'})); return 0
+    require(args.window_start and args.window_end,'fresh explicit resource interval required')
+    start=datetime.fromisoformat(args.window_start); end=datetime.fromisoformat(args.window_end)
+    require(start.tzinfo and end.tzinfo and 0<(end-start).total_seconds()<=600 and start<=now()<end,'invalid/expired resource bounds')
+    require((end-now()).total_seconds()>90,'insufficient interval; no launch')
+    parent=subprocess.check_output(['/bin/ps','-p',str(os.getppid()),'-o','command='],text=True)
+    require('/Users/ryan/dev/chirality-t3/tools/t3_slot_run.sh' in parent,'required slot wrapper not established')
+    inputs=admission()
+    # Reuse the established read-only complete-bundle identifier before a new launch.
+    env=dict(os.environ,PYTHONPATH=str(ROOT/'python-libs'),PYTHONDONTWRITEBYTECODE='1',CODEX_HOME=inputs['environment']['CODEX_HOME'])
+    check=subprocess.run([sys.executable,str(Path.cwd()/'app/examination/candidate_identity/identify.py'),'check','--record',str(ROOT/'identified/candidate-identification.json'),'--app',inputs['bundle']],capture_output=True,text=True,env=env)
+    require(check.returncode==0,'retained artifact correspondence refused: '+check.stderr)
+    out=ROOT/('native-continuation-'+now().strftime('%Y%m%dT%H%M%S%fZ')); out.mkdir()
+    (out/'artifact-check.json').write_text(check.stdout)
+    run=Run(out,end); thread=threading.Thread(target=run.monitor,daemon=True);thread.start()
+    run.log('admitted',authority=AUTHORITY,resource_start=start.isoformat(),resource_end=end.isoformat(),basis_sha256=sha(BASIS.read_bytes()))
+    success=False;error=None
+    try:
+        run.launch('A',inputs); bindings=form_A(run,inputs); require(run.settle()==0,'A did not normally exit')
+        phase_B(run,inputs,bindings); require(run.settle()==0,'B did not normally exit'); success=True
+    except Exception as e:
+        error=str(e); run.log('stopped',error=error)
+    finally:
+        try: run.settle()
+        except Exception as e: run.log('settlement_blocker',error=str(e)); error=(error or '')+'; '+str(e)
+        run.stop.set(); thread.join(timeout=1)
+        result={'success':success,'error':error,'guard_abort':run.abort,'peak_sampled_shared_rss_kib':run.peak,'minimum_free_percent':run.minimum,'supplier_observations':run.supplier_seen,'authority':AUTHORITY,'candidate':inputs['candidate_key'],'evidence':str(out)}
+        (out/'result.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
+    return 0 if success else 1
+
+
+if __name__=='__main__':
+    try: sys.exit(main())
+    except Exception as e: print(json.dumps({'launched':False,'error':str(e)}),flush=True);sys.exit(1)

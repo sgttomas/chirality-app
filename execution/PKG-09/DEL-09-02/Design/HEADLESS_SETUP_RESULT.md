@@ -141,9 +141,25 @@ cache/target, fresh test home, commands/raw output). The offline live-controller
 draft is AST-parsed only, SHA-256
 `91c9ca98d7bf8d784e2cea5cbd42d237230b9018d58f5e04e369a755d5b7720c`;
 it was never launched, is not a qualified supported tool, and closure does not
-authorize running it. Raw repository evidence carries `SHA256SUMS`; cache and
+authorize running it. Its exact unused source is also retained as
+[raw `.py.txt` evidence](../Evidence/EXP/d908cbec5b-headless-setup-20261030T055603Z/offline-native-controller-v2.py.txt),
+so it is not stranded only in scratch. It was used by neither native A nor the
+headless run, and remains an unsupported draft, not a reusable invocation or
+product implementation. Raw repository evidence carries `SHA256SUMS`; cache and
 large runner remain local at the exact paths/hashes above. No deletion until
 Agent0/named consumers confirm recovery and retention needs are satisfied.
+
+Cleanup disposition for that confirmation: preserve the original candidate/
+archive/build/witness and qualified headless runner plus raw result/provenance.
+The separate headless Cargo-cache clone, duplicate bundle/build objects and
+temporary test files are disposable after integration unless Agent0 identifies
+an actual warm-target replay need. Removing those inputs would end the warmed
+Cargo/Node invocation basis; later reuse would require the retained prepared
+source cache and a separately authorized compile, not an automatic fetch.
+Do not retain this worktree solely as the storage location for drafts: they are
+included in this closure PR. Retire only integrated owned refs/worktree after
+the receiving owner clears handoff/recovery. No such deletion is performed by
+this collection change.
 
 The existing [terms owner-action proposal](../../../PKG-01/DEL-01-06/Design/OPENAI_SIGNIN_OWNER_ACTION_DRAFT.md)
 is included solely as **PENDING OWNER DISPOSITION**, exact SHA-256
