@@ -72,3 +72,10 @@ dependencies, not a sibling Chirality checkout.
 
 Credential/conflict checks are retained. Same-repository PRs require the
 `PRIVATE_TERMS` repository secret; its value is private and never committed.
+
+The PR `sources-packaging` job explicitly runs `installed_custody::tests` and
+`hosting::successor::tests::installed_s4` with `distribution-successor` enabled.
+These source fixtures cover the None/debug/platform gates, synthetic signing
+facts, exact S4 reader/Store joins, historical refusal, non-Codex resource
+mutation and successor-only standing compatibility. They supply no signed-App
+or packaged native witness. Existing `s2_` coverage remains selected separately.
