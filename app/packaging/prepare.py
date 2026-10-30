@@ -15,8 +15,11 @@ from inventory import anchored, compare, inspect_signatures, scan, sha256
 
 def deliverable_path(root, relative):
     """A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md)."""
-    work = re.sub(r'^(execution/PKG-\d+/DEL-\d+-\d+/)Design/', r'\1Work/', relative)
-    return work if work != relative and not os.path.lexists(os.path.join(root, relative)) else relative
+    # Only when the deliverable has no Design entry at all, so link refusal still applies.
+    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
+    if match is None or os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
+        return relative
+    return match.group(1) + 'Work/' + relative[match.end():]
 
 
 HERE=Path(__file__).resolve().parent

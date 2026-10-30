@@ -38,10 +38,10 @@ from record_store import Reader, Writer, NonConformant, RS_ID  # noqa: E402
 
 RS_DIR = os.path.dirname(HERE)
 EXECUTION = os.path.dirname(os.path.dirname(os.path.dirname(RS_DIR)))
-EXEC_DIR = glob.glob(os.path.join(EXECUTION, "PKG-02", "DEL-02-03", "Design"))[0]
+EXEC_DIR = glob.glob(os.path.join(EXECUTION, "PKG-02", "DEL-02-03", "Work"))[0]
 WORKING = os.path.dirname(os.path.dirname(RS_DIR))
-ACT_DIR = glob.glob(os.path.join(WORKING, "DEL-04-01", "Design"))[0]
-AS_DIR = glob.glob(os.path.join(WORKING, "DEL-04-02", "Design"))[0]
+ACT_DIR = glob.glob(os.path.join(WORKING, "DEL-04-01", "Work"))[0]
+AS_DIR = glob.glob(os.path.join(WORKING, "DEL-04-02", "Work"))[0]
 
 # The fixture run of EXEC's valid example (EXEC run_all.py ch8(): run-12a, E1 rev-A2, App Codex via X).
 RUN_ID = "run:12a"

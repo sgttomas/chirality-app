@@ -2191,7 +2191,7 @@
     {
       "role": "sq_rules",
       "path": "execution/PKG-09/DEL-09-02/Design/prototype/check_sq.py",
-      "sha256": "sha256:65b7aae15e00b9d3d28160127f60427f78db8f9861f2f718098049b85e97e2ac"
+      "sha256": "sha256:6067c5ec2ef1215c7650bfb51f6fc6aaff79c41bb4b1c3940a5acefb397915ef"
     },
     {
       "role": "sq_scope",

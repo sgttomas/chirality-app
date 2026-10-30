@@ -40,9 +40,9 @@ from pathlib import Path  # noqa: E402
 HERE = Path(__file__).resolve().parent
 DESIGN = HERE.parent
 EXEC_ROOT = DESIGN.parents[2]          # projects/chirality-app-v4/execution
-C_PROTO = next(EXEC_ROOT.glob("PKG-03/DEL-03-01/Design/prototype"))
-A_PROTO = next(EXEC_ROOT.glob("PKG-03/DEL-03-03/Design/prototype"))
-E_PROTO = next(EXEC_ROOT.glob("PKG-02/DEL-02-03/Design/prototype"))
+C_PROTO = next(EXEC_ROOT.glob("PKG-03/DEL-03-01/Work/prototype"))
+A_PROTO = next(EXEC_ROOT.glob("PKG-03/DEL-03-03/Work/prototype"))
+E_PROTO = next(EXEC_ROOT.glob("PKG-02/DEL-02-03/Work/prototype"))
 for p in (C_PROTO, A_PROTO, E_PROTO):
     sys.path.insert(0, str(p))
 
@@ -61,7 +61,7 @@ FAILS = []
 # RS R11 evidence-limit labels in RS's own spelling (V18-4 m-2; RP-4). The mapper's
 # tokens (ADAPTER-v0.6 `external_dispatch_record.schema.json`) are mapped once, here,
 # and every label a W14 record carries is checked against RS's list.
-RS_SCHEMA = next(EXEC_ROOT.glob("PKG-04/DEL-04-03/Design/RS_RECORD.schema.json"))
+RS_SCHEMA = next(EXEC_ROOT.glob("PKG-04/DEL-04-03/Work/RS_RECORD.schema.json"))
 ADAPTER_TO_RS = {"lost_acknowledgement": "lost acknowledgement",
                  "unverified_caller_identity": "unverified caller identity",
                  "resubmission_without_prior_observation": "resubmission without prior observation",
@@ -571,8 +571,10 @@ def main():
         EX_INVALID.write_text(json.dumps(invalid_from(valid), indent=2, ensure_ascii=False) + "\n")
     on_disk = json.loads(EX_VALID.read_text())
     strip = lambda d: {k: v for k, v in d.items() if k not in ("date", "record_id")}  # noqa: E731
+    # Recorded examples predate the Work/ rename; read their Design/ paths as Work/ (loop/LOOP_INIT.md).
+    work = lambda d: json.loads(json.dumps(d).replace('/Design/', '/Work/'))  # noqa: E731
     check("w14-result-record.example.valid.json validates and equals the regenerated W14-05 record (date aside)",
-          not ss.validate(on_disk, schema, reg) and strip(on_disk) == strip(valid))
+          not ss.validate(on_disk, schema, reg) and strip(work(on_disk)) == strip(valid))
     bad = json.loads(EX_INVALID.read_text())
     errs = ss.validate(bad, schema, reg)
     check(f"w14-result-record.example.invalid.json is rejected ({len(errs)} errors)", bool(errs))

@@ -20,7 +20,7 @@ import scenarios as S
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DESIGN = os.path.dirname(HERE)
-BUNDLE = os.path.join(DESIGN, "..", "..", "DEL-01-01", "Design",
+BUNDLE = os.path.join(DESIGN, "..", "..", "DEL-01-01", "Work",
                       "generated", "0.158.0", "json-schema", "experimental",
                       "codex_app_server_protocol.v2.schemas.json")
 MDFILE = os.path.join(DESIGN, "NATIVE_PLANS_TOOLS_DELEGATION.md")
@@ -627,7 +627,7 @@ def pc22_history_home_receiving_and_current_bundle():
         M.Model().apply(reads[-1])
     except M.TransitionRefused:
         refused += 1
-    current = os.path.join(DESIGN, "..", "..", "DEL-01-01", "Design",
+    current = os.path.join(DESIGN, "..", "..", "DEL-01-01", "Work",
                            "generated", "0.160.0", "json-schema", "experimental",
                            "codex_app_server_protocol.v2.schemas.json")
     root = json.load(open(current, encoding="utf-8"))

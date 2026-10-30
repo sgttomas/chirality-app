@@ -166,7 +166,7 @@ jobs:
           python -m pytest -q tests/group_b_standalone_test.py tests/group_b_pre_run_inputs_test.py
           tests/group_b_native_forms_test.py tests/group_b_sq_receiving_test.py
           tests/group_b_publication_sources_test.py tests/group_b_support_identity_test.py
-          tests/group_b_support_identity_canonical_test.py
+          tests/group_b_support_identity_canonical_test.py tests/deliverable_path_test.py
           && python3 -B tests/candidate_identity_test.py
       - name: Staged distribution successor
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib s2_ -- --test-threads=1

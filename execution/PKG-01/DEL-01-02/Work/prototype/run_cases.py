@@ -23,7 +23,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 DESIGN = os.path.dirname(HERE)
 PKG = os.path.dirname(os.path.dirname(DESIGN))
-HOSTING_PROTO = os.path.join(PKG, "DEL-01-01", "Design", "prototype")
+HOSTING_PROTO = os.path.join(PKG, "DEL-01-01", "Work", "prototype")
 sys.path.insert(0, HERE)
 sys.path.insert(1, HOSTING_PROTO)
 

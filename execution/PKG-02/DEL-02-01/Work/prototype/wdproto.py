@@ -642,7 +642,7 @@ def hosting_groups():
     """HOSTING §8.4 capability account: {group id: set of supplier names}, Parts A and B."""
     import glob
     execution = os.path.abspath(os.path.join(DESIGN, "..", "..", ".."))
-    paths = glob.glob(os.path.join(execution, "PKG-01", "DEL-01-01", "Design", "HOSTING_BOUNDARY.md"))
+    paths = glob.glob(os.path.join(execution, "PKG-01", "DEL-01-01", "Work", "HOSTING_BOUNDARY.md"))
     if len(paths) != 1:
         raise RuntimeError("HOSTING_BOUNDARY.md not found once under %s" % execution)
     text = open(paths[0], encoding="utf-8").read()

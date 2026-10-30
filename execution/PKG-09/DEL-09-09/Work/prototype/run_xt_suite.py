@@ -40,8 +40,8 @@ from pathlib import Path  # noqa: E402
 HERE = Path(__file__).resolve().parent
 DESIGN = HERE.parent
 EXEC_ROOT = DESIGN.parents[2]
-C_PROTO = next(EXEC_ROOT.glob("PKG-03/DEL-03-01/Design/prototype"))
-A_PROTO = next(EXEC_ROOT.glob("PKG-03/DEL-03-03/Design/prototype"))
+C_PROTO = next(EXEC_ROOT.glob("PKG-03/DEL-03-01/Work/prototype"))
+A_PROTO = next(EXEC_ROOT.glob("PKG-03/DEL-03-03/Work/prototype"))
 for p in (C_PROTO, A_PROTO):
     sys.path.insert(0, str(p))
 
@@ -63,7 +63,7 @@ FAILS = []
 # RS R11 evidence-limit labels in RS's own spelling (V18-4 m-2; RP-4). The mapper's
 # tokens (ADAPTER-v0.6 `external_dispatch_record.schema.json`) are mapped once, here,
 # and every label an XT record carries is checked against RS's list.
-RS_SCHEMA = next(EXEC_ROOT.glob("PKG-04/DEL-04-03/Design/RS_RECORD.schema.json"))
+RS_SCHEMA = next(EXEC_ROOT.glob("PKG-04/DEL-04-03/Work/RS_RECORD.schema.json"))
 ADAPTER_TO_RS = {"lost_acknowledgement": "lost acknowledgement",
                  "unverified_caller_identity": "unverified caller identity",
                  "resubmission_without_prior_observation": "resubmission without prior observation",
@@ -709,12 +709,14 @@ def main():
                           ("xt-work-account.example.valid.json", acct), ("xt-work-account.example.invalid.json", invalid_account(acct))):
             (DESIGN / name).write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
     strip = lambda d: {k: v for k, v in d.items() if k not in ("date", "record_id")}  # noqa: E731
+    # Recorded examples predate the Work/ rename; read their Design/ paths as Work/ (loop/LOOP_INIT.md).
+    work = lambda d: json.loads(json.dumps(d).replace('/Design/', '/Work/'))  # noqa: E731
     for name, schema in EXAMPLES.items():
         doc = json.loads((DESIGN / name).read_text())
         errs = ss.validate(doc, json.loads(schema.read_text()), reg)
         if ".valid." in name:
             regen = valid_r if name.startswith("xt-result") else acct
-            check(f"{name} validates and equals the regenerated instance (date aside)", not errs and strip(doc) == strip(regen),
+            check(f"{name} validates and equals the regenerated instance (date aside)", not errs and strip(work(doc)) == strip(regen),
                   "; ".join(errs[:4]))
         else:
             check(f"{name} is rejected ({len(errs)} errors)", bool(errs))

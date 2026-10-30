@@ -12,7 +12,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 DESIGN = os.path.dirname(HERE)
 DEL_06_01_PROTO = os.path.join(DESIGN, "..", "..", "DEL-06-01",
-                               "Design", "prototype")
+                               "Work", "prototype")
 sys.path.insert(0, os.path.normpath(DEL_06_01_PROTO))
 from fleet_store import Reader  # noqa: E402
 

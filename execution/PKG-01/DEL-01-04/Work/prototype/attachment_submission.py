@@ -303,7 +303,7 @@ def main():
     # Actual co-owner successor schema, not a copied/reworded acceptance oracle.
     import importlib.util
     from pathlib import Path
-    host_design = next(Path(__file__).resolve().parents[3].glob("DEL-01-01*/Design"))
+    host_design = next(Path(__file__).resolve().parents[3].glob("DEL-01-01*/Work"))
     spec = importlib.util.spec_from_file_location("attachment_host_schema_validator", host_design / "prototype/jsonschema_subset.py")
     validator = importlib.util.module_from_spec(spec); spec.loader.exec_module(validator)
     schema = json.loads((host_design / "hosting.client-request-record.schema.json").read_text())

@@ -17,7 +17,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 DESIGN = os.path.dirname(HERE)
 WORKING = os.path.dirname(os.path.dirname(DESIGN))
-sys.path.insert(0, glob.glob(os.path.join(WORKING, "DEL-04-03", "Design", "prototype"))[0])
+sys.path.insert(0, glob.glob(os.path.join(WORKING, "DEL-04-03", "Work", "prototype"))[0])
 from minischema import Registry, validate  # noqa: E402
 
 reg = Registry()

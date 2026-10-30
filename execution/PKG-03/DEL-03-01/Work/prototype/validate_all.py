@@ -28,7 +28,7 @@ sys.path.insert(0, str(HERE))
 from schema_subset import check_subset, load_registry, validate  # noqa: E402
 
 WORKING = HERE.parents[2]
-DESIGNS = sorted(p / "Design" for p in WORKING.glob("DEL-03-0[123]"))
+DESIGNS = sorted(p / "Work" for p in WORKING.glob("DEL-03-0[123]"))
 
 
 def schema_files():

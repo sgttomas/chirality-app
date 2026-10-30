@@ -39,7 +39,9 @@ def load(n):
 
 
 def supplier_file(deliverable, name):
-    hits = glob.glob(os.path.join(EXEC, "PKG-*", f"{deliverable}", "Design", name))
+    # Work/ in today's checkout; Design/ in a layout staged from original sources.
+    hits = (glob.glob(os.path.join(EXEC, "PKG-*", f"{deliverable}", "Work", name))
+            or glob.glob(os.path.join(EXEC, "PKG-*", f"{deliverable}", "Design", name)))
     return hits[0] if len(hits) == 1 else None
 
 

@@ -15,13 +15,16 @@ import tempfile
 
 def deliverable_path(root, relative):
     """A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md)."""
-    work = re.sub(r'^(execution/PKG-\d+/DEL-\d+-\d+/)Design/', r'\1Work/', relative)
-    return work if work != relative and not os.path.lexists(os.path.join(root, relative)) else relative
+    # Only when the deliverable has no Design entry at all, so link refusal still applies.
+    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
+    if match is None or os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
+        return relative
+    return match.group(1) + 'Work/' + relative[match.end():]
 
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
-PINS_SHA256 = 'b325497c6ecfadcd43bacb0efb2d82bc6cbef7a288b1010299e62859194307af'
+PINS_SHA256 = 'b9fd95e2c9dd688fb6640ba99b4cef6fbee05b6b4366357d9d6b2fc44350eb0d'
 LIMITS = [
     'Technical preparation and exact selected-source correspondence only; no examination opened or result recorded.',
     'Fixture files are invented unregistered inputs; no workflow authoring, execution, registration or origin installation performed.',

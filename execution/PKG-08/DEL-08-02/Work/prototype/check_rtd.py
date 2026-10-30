@@ -40,11 +40,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DESIGN = os.path.dirname(HERE)
 EXEC = os.path.abspath(os.path.join(DESIGN, "..", "..", ".."))
 STANDING = os.path.join(EXEC, "PKG-07",
-                        "DEL-07-02", "Design", "connector.standing.schema.json")
+                        "DEL-07-02", "Work", "connector.standing.schema.json")
 EVID = os.path.join(HERE, "fixtures", "EU-D1")
 RESULTS = []
 DRC = os.path.join(EXEC, "PKG-08",
-                   "DEL-08-01", "Design", "DOMAINS_RECEIVING.md")
+                   "DEL-08-01", "Work", "DOMAINS_RECEIVING.md")
 CFB = os.path.join(EVID, "CONNECTOR_FALLBACK.md")
 # RTD1-R1 (R23-52 item 4): the bytes this check and RTD-v0.2 rely on
 PINS = {

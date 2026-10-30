@@ -15,13 +15,16 @@ import tempfile
 
 def deliverable_path(root, relative):
     """A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md)."""
-    work = re.sub(r'^(execution/PKG-\d+/DEL-\d+-\d+/)Design/', r'\1Work/', relative)
-    return work if work != relative and not os.path.lexists(os.path.join(root, relative)) else relative
+    # Only when the deliverable has no Design entry at all, so link refusal still applies.
+    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
+    if match is None or os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
+        return relative
+    return match.group(1) + 'Work/' + relative[match.end():]
 
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = '73f5bb2ff1142177dd94b6b24b70a587a8332abc8cee99782ef56fc84bed078f'
+PINS_SHA256 = '9c94f201edfa4bbaebf94dca78af3ba10099abff1e81a2fdfc955ce75d60dae5'
 
 
 def sha(data):

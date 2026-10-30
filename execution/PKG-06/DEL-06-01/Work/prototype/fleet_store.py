@@ -21,7 +21,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DESIGN = os.path.dirname(HERE)
 EXECUTION = os.path.normpath(os.path.join(DESIGN, "..", "..", ".."))
 RS_PROTO = os.path.join(EXECUTION, "PKG-04",
-                        "DEL-04-03", "Design", "prototype")
+                        "DEL-04-03", "Work", "prototype")
 sys.path.insert(0, RS_PROTO)
 from minischema import Registry, validate  # noqa: E402
 

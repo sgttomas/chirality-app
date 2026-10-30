@@ -152,7 +152,7 @@ def main():
     reg = Registry(); rs_schema = reg.by_id[reg.load(os.path.join(a.rs_design, 'RS_RECORD.schema.json'))]
     reg.load(os.path.join(a.as_design, 'AS_SETTINGS_IN.schema.json'))
     exec_design = a.exec_design or os.path.normpath(os.path.join(
-        a.rs_design, '..', '..', '..', 'PKG-02', 'DEL-02-03', 'Design'))
+        a.rs_design, '..', '..', '..', 'PKG-02', 'DEL-02-03', 'Work'))
     reg.load(os.path.join(exec_design, 'checkpoint-record-entries.schema.json'))
     def rs_errors(rec):
         return ms_validate(rec, rs_schema, reg)

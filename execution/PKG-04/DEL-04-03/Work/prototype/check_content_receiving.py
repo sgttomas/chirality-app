@@ -3,8 +3,8 @@ import copy, importlib.util, json, os, sys, tempfile
 from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
-WD = next(ROOT.glob("PKG-02*/DEL-02-01*/Design/prototype/wdproto.py"))
-ROLE = next(ROOT.glob("PKG-02*/DEL-02-04*/Design/prototype/role_supply.py"))
+WD = next(ROOT.glob("PKG-02*/DEL-02-01*/Work/prototype/wdproto.py"))
+ROLE = next(ROOT.glob("PKG-02*/DEL-02-04*/Work/prototype/role_supply.py"))
 def module(name, path):
     spec = importlib.util.spec_from_file_location(name, path)
     out = importlib.util.module_from_spec(spec); spec.loader.exec_module(out); return out

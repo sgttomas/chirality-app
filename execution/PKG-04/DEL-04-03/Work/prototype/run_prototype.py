@@ -31,8 +31,8 @@ from record_store import Reader, Writer, WriteFailed, NonConformant, RS_ID   # n
 
 RS_DIR = os.path.dirname(HERE)
 WORKING = os.path.dirname(os.path.dirname(RS_DIR))
-ACT_DIR = glob.glob(os.path.join(WORKING, "DEL-04-01", "Design"))[0]
-AS_DIR = glob.glob(os.path.join(WORKING, "DEL-04-02", "Design"))[0]
+ACT_DIR = glob.glob(os.path.join(WORKING, "DEL-04-01", "Work"))[0]
+AS_DIR = glob.glob(os.path.join(WORKING, "DEL-04-02", "Work"))[0]
 
 FAILURES = []
 
@@ -57,7 +57,7 @@ def main():
     scratch = sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(prefix="b4-proto-")
     os.makedirs(scratch, exist_ok=True)
     reg = Registry()
-    exec_dir = glob.glob(os.path.join(os.path.dirname(WORKING), "PKG-02", "DEL-02-03", "Design"))[0]
+    exec_dir = glob.glob(os.path.join(os.path.dirname(WORKING), "PKG-02", "DEL-02-03", "Work"))[0]
     reg.load(os.path.join(exec_dir, "checkpoint-record-entries.schema.json"))
     ids = {}
     for name, d, f in (("ACT", ACT_DIR, "ACT_POLICY_CLASS_RECORD.schema.json"),

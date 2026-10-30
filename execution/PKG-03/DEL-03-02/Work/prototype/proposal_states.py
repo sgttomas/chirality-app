@@ -325,10 +325,10 @@ def check_run(run):
 def repeat_scope_selftest():
     """A first-receipt answer must not erase a stated scope's item history."""
     pkg = Path(__file__).resolve().parents[3]
-    sys.path.insert(0, str(pkg / "DEL-03-01/Design/prototype"))
+    sys.path.insert(0, str(pkg / "DEL-03-01/Work/prototype"))
     from schema_subset import load_registry, validate
-    registry, schemas = load_registry(sorted(pkg.glob("DEL-03-0[123]/Design/*.schema.json")))
-    schema = schemas[str(pkg / "DEL-03-02/Design/proposal_state.schema.json")]
+    registry, schemas = load_registry(sorted(pkg.glob("DEL-03-0[123]/Work/*.schema.json")))
+    schema = schemas[str(pkg / "DEL-03-02/Work/proposal_state.schema.json")]
     ok = True
     def record(step_name, kind, state, scope="not_stated", content="unchanged", handle=None):
         item = {"item_identity": "1", "change_item_content_identity": content,

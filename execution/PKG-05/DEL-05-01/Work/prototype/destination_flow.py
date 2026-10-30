@@ -38,9 +38,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DESIGN = os.path.dirname(HERE)
 EXEC_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(DESIGN)))
 PKG04 = glob.glob(os.path.join(EXEC_ROOT, "PKG-04"))[0]
-RS_DIR = glob.glob(os.path.join(PKG04, "DEL-04-03", "Design"))[0]
-AS_DIR = glob.glob(os.path.join(PKG04, "DEL-04-02", "Design"))[0]
-ACT_DIR = glob.glob(os.path.join(PKG04, "DEL-04-01", "Design"))[0]
+RS_DIR = glob.glob(os.path.join(PKG04, "DEL-04-03", "Work"))[0]
+AS_DIR = glob.glob(os.path.join(PKG04, "DEL-04-02", "Work"))[0]
+ACT_DIR = glob.glob(os.path.join(PKG04, "DEL-04-01", "Work"))[0]
 
 sys.path.insert(0, HERE)
 import schema_subset  # noqa: E402  (LOOP's subset validator)
@@ -484,7 +484,7 @@ CASES = [
 def main(argv):
     emit = argv[argv.index("--emit") + 1] if "--emit" in argv else None
     reg = Registry()
-    reg.load(os.path.join(EXEC_ROOT, "PKG-02", "DEL-02-03", "Design", "checkpoint-record-entries.schema.json"))
+    reg.load(os.path.join(EXEC_ROOT, "PKG-02", "DEL-02-03", "Work", "checkpoint-record-entries.schema.json"))
     ids = {}
     for name, d, f in (("ACT", ACT_DIR, "ACT_POLICY_CLASS_RECORD.schema.json"),
                        ("AS", AS_DIR, "AS_SETTINGS_IN.schema.json"),

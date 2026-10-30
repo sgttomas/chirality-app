@@ -103,7 +103,7 @@ def load(e: pathlib.Path):
         fo = folder(e, d)
         sows[d] = sha(fo / "ScopeOfWork.md")
         sow_text[d] = (fo / "ScopeOfWork.md").read_text()
-        designs[d] = sha(fo / "Design" / dname)
+        designs[d] = sha(fo / "Work" / dname)
     return sows, designs
 
 

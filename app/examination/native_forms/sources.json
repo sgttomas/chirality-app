@@ -3,11 +3,11 @@
   "sources": [
     {
       "path": "app/examination/standalone/prepare.py",
-      "sha256": "a2002916472a97fcdbcf6f5da1367c476668c96436a3a7b6b6f62e4147f2aec3"
+      "sha256": "3c367ef82508489272ee07d632346fd3ac8ef9cf9359faed09744e0faa4e7455"
     },
     {
       "path": "app/examination/standalone/sources.json",
-      "sha256": "1fa253d542d121e02591c420e1ea2f5727eadec5890f79e7e723b7baf6ad0561"
+      "sha256": "a8dd8729503b68d0fa9e7ce085ceeb03d2c60d23091d895577376c937edff06a"
     },
     {
       "path": "app/examination/standalone/missing-inputs.json",

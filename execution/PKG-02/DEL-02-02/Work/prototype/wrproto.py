@@ -34,9 +34,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DESIGN = os.path.dirname(HERE)
 E = os.path.abspath(os.path.join(DESIGN, "..", "..", ".."))
 WD_DIR = os.path.join(E, "PKG-02",
-                      "DEL-02-01", "Design")
+                      "DEL-02-01", "Work")
 RS_DIR = os.path.join(E, "PKG-04",
-                      "DEL-04-03", "Design")
+                      "DEL-04-03", "Work")
 SCHEMA = os.path.join(DESIGN, "workspace-registration.schema.json")
 VALID = os.path.join(DESIGN, "workspace-registration.valid.examples.jsonl")
 INVALID = os.path.join(DESIGN, "workspace-registration.invalid.examples.json")
@@ -57,7 +57,7 @@ RS_ID = "urn:chirality:app-v4:del-04-03:rs-record:0.1"
 RS_PROJ_ID = "urn:local:wrproto:rs-record-projected-C-01"
 CODEX_ID = "urn:local:wrproto:codex-0.158.0-v2"
 GEN = os.path.join(E, "PKG-01",
-                   "DEL-01-01", "Design", "generated", "0.158.0",
+                   "DEL-01-01", "Work", "generated", "0.158.0",
                    "json-schema", "experimental", "codex_app_server_protocol.v2.schemas.json")
 FRAME = "WR-FRAME-1"
 ORIGINS = ("project", "user", "bundled", "host")
@@ -1108,16 +1108,16 @@ def main():
     print("python %s" % sys.version.split()[0])
     for p in (os.path.join(WD_DIR, "prototype", "wdproto.py"), os.path.join(RS_DIR, "prototype", "minischema.py"),
               os.path.join(WD_DIR, "workflow-declaration.schema.json"), os.path.join(RS_DIR, "RS_RECORD.schema.json"),
-              os.path.join(E, "PKG-04", "DEL-04-02", "Design", "AS_SETTINGS_IN.schema.json"),
-              os.path.join(E, "PKG-02", "DEL-02-03", "Design", "checkpoint-record-entries.schema.json"),
+              os.path.join(E, "PKG-04", "DEL-04-02", "Work", "AS_SETTINGS_IN.schema.json"),
+              os.path.join(E, "PKG-02", "DEL-02-03", "Work", "checkpoint-record-entries.schema.json"),
               SCHEMA, VALID, INVALID, os.path.abspath(__file__)):
         print("  input %s sha256 %s" % (os.path.relpath(p, E), sha(p)))
 
     wd_schema = wdproto.load(wdproto.SCHEMA_PATH)
     reg = minischema.Registry()
     reg.add(wd_schema)                       # WD uses keywords outside minischema's subset; tuples are
-    reg.load(os.path.join(E, "PKG-04", "DEL-04-02", "Design", "AS_SETTINGS_IN.schema.json"))
-    reg.load(os.path.join(E, "PKG-02", "DEL-02-03", "Design", "checkpoint-record-entries.schema.json"))
+    reg.load(os.path.join(E, "PKG-04", "DEL-04-02", "Work", "AS_SETTINGS_IN.schema.json"))
+    reg.load(os.path.join(E, "PKG-02", "DEL-02-03", "Work", "checkpoint-record-entries.schema.json"))
     reg.load(SCHEMA)                         # cross-checked with wdproto's own validator below
     reg.load(os.path.join(RS_DIR, "RS_RECORD.schema.json"))
     wr = reg.by_id[WR_ID]

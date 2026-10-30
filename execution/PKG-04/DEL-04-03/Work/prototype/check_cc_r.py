@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 from referencing import Registry,Resource
 from jsonschema import Draft202012Validator
-b=Path(__file__).resolve().parents[4];r=next(b.glob('PKG-04*/DEL-04-03*'))/'Design';e=next(b.glob('PKG-02*/DEL-02-03*'))/'Design'
-paths=[r/'RS_RECORD.schema.json',e/'checkpoint-record-entries.schema.json',next(b.glob('PKG-04*/DEL-04-01*/Design/ACT_POLICY_CLASS_RECORD.schema.json')),next(b.glob('PKG-04*/DEL-04-02*/Design/AS_SETTINGS_IN.schema.json'))]
+b=Path(__file__).resolve().parents[4];r=next(b.glob('PKG-04*/DEL-04-03*'))/'Work';e=next(b.glob('PKG-02*/DEL-02-03*'))/'Work'
+paths=[r/'RS_RECORD.schema.json',e/'checkpoint-record-entries.schema.json',next(b.glob('PKG-04*/DEL-04-01*/Work/ACT_POLICY_CLASS_RECORD.schema.json')),next(b.glob('PKG-04*/DEL-04-02*/Work/AS_SETTINGS_IN.schema.json'))]
 reg=Registry();schemas={}
 for p in paths:
  s=json.loads(p.read_text());Draft202012Validator.check_schema(s);schemas[p.name]=s;reg=reg.with_resource(s['$id'],Resource.from_contents(s))

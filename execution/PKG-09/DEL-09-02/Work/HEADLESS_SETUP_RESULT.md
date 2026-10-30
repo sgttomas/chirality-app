@@ -161,7 +161,7 @@ included in this closure PR. Retire only integrated owned refs/worktree after
 the receiving owner clears handoff/recovery. No such deletion is performed by
 this collection change.
 
-The existing [terms owner-action proposal](../../../PKG-01/DEL-01-06/Work/OPENAI_SIGNIN_OWNER_ACTION_DRAFT.md)
+The existing [terms owner-action proposal](../../../PKG-01/DEL-01-06/Design/OPENAI_SIGNIN_OWNER_ACTION_DRAFT.md)
 is included solely as **PENDING OWNER DISPOSITION**, exact SHA-256
 `6e75343511784b3effb3fe20158bd725c6980a978735cb9145821a6cf034c4ce`.
 Its retained consumer is Agent0/owner for actual first-offering/evidence

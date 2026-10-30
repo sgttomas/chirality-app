@@ -27,13 +27,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DESIGN = os.path.dirname(HERE)
 WORKING = os.path.dirname(os.path.dirname(DESIGN))           # package directory
 EXEC_ROOT = os.path.dirname(WORKING)        # .../execution
-RS_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-04", "DEL-04-03", "Design"))[0]
-ACT_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-04", "DEL-04-01", "Design"))[0]
-AS_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-04", "DEL-04-02", "Design"))[0]
-HOSTING_DESIGN = glob.glob(os.path.join(WORKING, "DEL-01-01", "Design"))[0]
-WR_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-02", "DEL-02-02", "Design"))[0]
-EXEC_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-02", "DEL-02-03", "Design"))[0]
-WD_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-02", "DEL-02-01", "Design"))[0]
+RS_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-04", "DEL-04-03", "Work"))[0]
+ACT_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-04", "DEL-04-01", "Work"))[0]
+AS_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-04", "DEL-04-02", "Work"))[0]
+HOSTING_DESIGN = glob.glob(os.path.join(WORKING, "DEL-01-01", "Work"))[0]
+WR_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-02", "DEL-02-02", "Work"))[0]
+EXEC_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-02", "DEL-02-03", "Work"))[0]
+WD_DESIGN = glob.glob(os.path.join(EXEC_ROOT, "PKG-02", "DEL-02-01", "Work"))[0]
 
 sys.path.insert(0, HERE)
 sys.path.insert(1, os.path.join(RS_DESIGN, "prototype"))
