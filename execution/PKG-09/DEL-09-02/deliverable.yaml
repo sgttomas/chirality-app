@@ -435,6 +435,7 @@ needs:
   gating: true
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 code_paths:
+- execution/PKG-09/DEL-09-02/Work/native_setup_continuation.py
 - app/examination/standalone/prepare.py
 - app/examination/standalone/pre_run_inputs.py
 - app/examination/native_forms/native_form.py
@@ -442,6 +443,7 @@ code_paths:
 - app/examination/sq_receiving/receive.py
 - app/examination/sq_receiving/worker.py
 checks:
+- execution/PKG-09/DEL-09-02/Work/test_native_setup_continuation.py
 - execution/PKG-09/DEL-09-02/Work/prototype/check_sq.py
 - app/tests/group_b_standalone_test.py
 - app/tests/group_b_pre_run_inputs_test.py

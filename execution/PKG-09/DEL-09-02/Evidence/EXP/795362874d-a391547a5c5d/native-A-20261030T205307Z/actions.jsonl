@@ -1,0 +1,9 @@
+{"at": "2026-10-30T20:53:07.375749+00:00", "event": "phase_A_started", "pid": 31003, "actor": "agent under owner direction; not a personal human act", "policy_sha256": "d160c07f0951f9424ca9616e2144307ac79e050362d85f37ac27e3bf0fcd9482"}
+{"at": "2026-10-30T20:53:08.001572+00:00", "event": "popup_open", "label": "Desktop setup action"}
+{"at": "2026-10-30T20:53:08.062993+00:00", "event": "owned_menu_bound", "label": "Desktop setup action", "items": [["Choose explicitly", true], ["Prepare a new account home", true], ["Keep the admitted account; change next project", false]]}
+{"at": "2026-10-30T20:53:08.063583+00:00", "event": "one_exact_menu_click", "label": "Desktop setup action", "option": "Prepare a new account home", "point": [499.5, 404.0], "transport": "HID event after owned foreground point hit test"}
+{"at": "2026-10-30T20:53:08.391460+00:00", "event": "selection_readback", "label": "Desktop setup action", "value": "Choose explicitly"}
+{"at": "2026-10-30T20:53:08.391593+00:00", "event": "work_stopped", "error": "selection did not commit stably: Desktop setup action"}
+{"at": "2026-10-30T20:53:08.572204+00:00", "event": "normal_quit_requested", "actor": "agent under owner direction"}
+{"at": "2026-10-30T20:53:08.572266+00:00", "event": "normal_quit_requested", "actor": "agent under owner direction; not a personal human act"}
+{"at": "2026-10-30T20:53:08.572308+00:00", "event": "original_app_reaped", "exit_code": 0, "forced": false}

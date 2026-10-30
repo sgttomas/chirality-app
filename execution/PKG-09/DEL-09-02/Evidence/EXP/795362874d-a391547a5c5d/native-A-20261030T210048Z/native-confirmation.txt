@@ -1,0 +1,16 @@
+Chirality App v4 — walking skeleton
+Chirality App v4 — walking skeleton
+alert
+Desktop setup — next launch only
+Create NEW App-owned account directory: /Users/ryan/Library/Application Support/dev.chirality.app-v4.candidate.20261029-ukt5ir80/account-homes/account-c7537e99-84e1-4be3-a102-026e748396c0
+Create links (no content copy or credential import):
+config.toml → /private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/shared/config.toml
+AGENTS.md → /private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/shared/AGENTS.md
+skills → /private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/shared/skills
+Project for next launch: /private/tmp/chirality-desktop-current-ukt5ir80/witness-inputs/project
+Save a private pending request in /Users/ryan/Library/Application Support/dev.chirality.app-v4.candidate.20261029-ukt5ir80/desktop-startup/request.json.
+Supplier: /private/tmp/chirality-desktop-current-ukt5ir80/target/debug/bundle/macos/Chirality App v4 (development 20261029).app/Contents/Resources/codex/bin/codex (bundled-owner-use-development); unqualified owner-use development.
+The current workspace, homes, account/model choices, records and prepared messages stay unchanged. No automatic quit/restart/login/conversation.
+Leave setup unchanged
+Cancel
+Prepare home and save for next launch

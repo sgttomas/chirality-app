@@ -1,0 +1,9 @@
+(version 1)
+(allow default)
+(deny network*)
+(deny file-read* (subpath "/Users/ryan/.codex"))
+(deny file-write* (subpath "/Users/ryan/.codex"))
+
+(deny process-fork)
+(deny process-exec)
+(allow process-exec (literal "/private/tmp/chirality-desktop-current-ukt5ir80/target/debug/bundle/macos/Chirality App v4 (development 20261029).app/Contents/MacOS/chirality-app-v4"))

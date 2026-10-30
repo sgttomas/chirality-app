@@ -53,8 +53,14 @@ direction; a component pass does not silently satisfy or replace them.
   preserves two Rust cases and seven React/miniDOM checks at source `d908cbec5b`,
   plus the failed native-selector attempt. This is test-profile evidence, not
   qualification of the retained desktop bundle. Remaining work in the outgoing
-  session is integration cleanup and named-input retention only; the fresh
-  Agent 0 selects the next actual native/workflow result.
+  session was integration cleanup and named-input retention only and is closed.
+  The incoming Agent 0 is now carrying release evidence item 1 under the owner's
+  separate steering. The [current native continuation](../PKG-09/DEL-09-02/Work/DESKTOP_CANDIDATE_CONTINUATION.md)
+  records actual setup/save/normal quit on retained candidate
+  `795362874d-a391547a5c5d` at 21:00:48–21:00:57 UTC on 2026-10-30,
+  including agent-attributed native confirmation, validated saved bindings and
+  preserved failed attempts. Supplier execution was denied; saved-request
+  relaunch, workflow/recovery and concurrent access-mode qualification remain.
   The owner authorized unattended agent operation of the bounded setup/relaunch
   check, including actual UI confirmation and quit; attendance and manual entry
   of synthetic test paths are no longer gates. Automated actions must retain
