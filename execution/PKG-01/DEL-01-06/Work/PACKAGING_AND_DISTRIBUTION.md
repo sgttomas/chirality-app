@@ -611,9 +611,10 @@ Native qualification supplied candidate `fdcf608fb5-23c6c3f22f5e`, built from
 to that merge. The bundle is retained under
 `/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app`.
 Its adjacent build-root `identified/` records are owned by native qualification;
-the intended repository location is
+the repository location is
 `execution/PKG-09/DEL-09-02/Evidence/EXP/fdcf608fb5-23c6c3f22f5e/`
-(supplied in that manager's worktree, not yet integrated at this observation).
+(committed in native qualification PR #35 at `306262af`, not yet integrated at
+this observation). Its committed record and inventory bytes match the hashes below.
 
 The packaging lane read those records and checked the live bundle on 2026-10-30:
 
@@ -656,6 +657,11 @@ three-namespace absence observation is not renewed by these checks.
 
 1. **Production hosting/custody, owned through App Agent 0 and DEL-01-01.**
    The S1 compiled anchor/reference path does not supply an installed issuer.
+   The standalone `DISTRIBUTION_IDENTITY.md` remains PROPOSED STAGING ONLY;
+   the selected `distribution-s1/README.md` defines its specific source selection
+   and open production/receiving conditions. Neither establishes adopted
+   production issuer authority. Parent is obtaining independent architecture
+   scrutiny before allocating implementation; packaging does not activate it.
    `distribution_s1.rs` rejects installed-custody and verified outcomes;
    `distribution_preflight.rs` keeps verified unavailable. Installing the twelve
    attested-reference resources cannot remove this limit. Receive a reviewed
