@@ -4216,7 +4216,7 @@ mod tests {
     }
     #[test]
     fn retained_project_receiving_entry_drift_during_confirmation_refuses_without_rebinding() {
-        let previous_store = records_store::current();
+        let previous_store = records_store::configured_for_test();
         let mut incorrectly_accepted = Vec::new();
         for name in ["config.toml", "AGENTS.md", "skills"] {
             for replacement in [
@@ -4395,7 +4395,7 @@ mod tests {
                 );
             }
         }
-        records_store::configure(previous_store);
+        records_store::restore_configured_for_test(previous_store);
         assert!(
             incorrectly_accepted.is_empty(),
             "receiving replacements incorrectly saved: {incorrectly_accepted:?}"
@@ -4527,7 +4527,7 @@ mod tests {
 
     #[test]
     fn retained_project_joined_real_consumers_keep_h_and_change_only_next_project() {
-        let previous_store = records_store::current();
+        let previous_store = records_store::configured_for_test();
         for with_project in [true, false] {
             let f = Fixture::new();
             let q = f.root.join("explicit-next-project");
@@ -4761,7 +4761,7 @@ mod tests {
             assert_eq!(home_count(), 1);
             assert!(!h.join("auth.json").exists());
         }
-        records_store::configure(previous_store);
+        records_store::restore_configured_for_test(previous_store);
     }
 
     #[test]
@@ -4962,7 +4962,7 @@ mod tests {
         // The very initializer called by run receives the admitted Root data.
         // Its actual records/install/capture/attachment/REC/instruction joins
         // execute on invented data only, and never call Host::start.
-        let previous_store = records_store::current();
+        let previous_store = records_store::configured_for_test();
         crate::initialize_startup_consumers(
             &state,
             &home,
@@ -4991,7 +4991,7 @@ mod tests {
             f.data
         );
         assert!(state.instructions_root.lock().unwrap().is_ok());
-        records_store::configure(previous_store);
+        records_store::restore_configured_for_test(previous_store);
         assert_eq!(home.host.snapshot()["state"], "absent");
         assert!(home.host.snapshot()["generation"].is_null());
         assert!(home.host.snapshot()["threads"]
@@ -5193,7 +5193,7 @@ mod tests {
 
     #[test]
     fn refused_admission_cannot_reach_actual_root_data_consumers_even_with_records_override() {
-        let previous_store = records_store::current();
+        let previous_store = records_store::configured_for_test();
         for case in [
             "empty",
             "profile-owner",
@@ -5326,7 +5326,7 @@ mod tests {
                 .is_ok());
             drop((profile_owner, home_owner));
         }
-        records_store::configure(previous_store);
+        records_store::restore_configured_for_test(previous_store);
     }
 
     #[test]

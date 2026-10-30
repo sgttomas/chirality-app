@@ -121,6 +121,21 @@ pub fn configure(store: Result<Store, String>) {
     DIRS.lock().unwrap_or_else(|p| p.into_inner()).clear();
 }
 
+/// The process store exactly as configured (possibly none), without this
+/// thread's test store or the environment default; for tests that restore it.
+#[cfg(test)]
+pub(crate) fn configured_for_test() -> Option<Result<Store, String>> {
+    STORE.read().unwrap_or_else(|p| p.into_inner()).clone()
+}
+/// Puts back a store read by `configured_for_test`, clearing what `configure` clears.
+#[cfg(test)]
+pub(crate) fn restore_configured_for_test(store: Option<Result<Store, String>>) {
+    *STORE.write().unwrap_or_else(|p| p.into_inner()) = store;
+    *OPENED.lock().unwrap_or_else(|p| p.into_inner()) = None;
+    *ROOTS.lock().unwrap_or_else(|p| p.into_inner()) = None;
+    DIRS.lock().unwrap_or_else(|p| p.into_inner()).clear();
+}
+
 /// The configured store; without configuration, the override variable (and in
 /// a test build its own temporary store). Never the App data folder.
 pub fn current() -> Result<Store, String> {
