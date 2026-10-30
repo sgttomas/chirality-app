@@ -14,8 +14,8 @@ The owner resumed development on 2026-10-28 and selected the full public v4
 release including the live SWBPIPE journey. v3.0.1 remains the fallback until
 the owner's replacement decision. Replacement, public release and professional
 reliance are distinct acts. Domains follows a later increment; PEC adds no
-delivery prerequisite. Windows development is authorized separately; Windows
-shipping is unselected and adds no Mac release gate.
+delivery prerequisite. The owner confirmed on 2026-10-30 that Windows will be released after the
+initial macOS release. Windows work adds no gate to that initial Mac release.
 
 The owner directed a project handoff on 2026-10-30: after SWBPIPE's repository
 cutover, each project starts a fresh Agent 0 through its standard init entry.
