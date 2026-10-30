@@ -109,6 +109,15 @@ impl OwnedProcess {
     pub(crate) fn belongs_to(&self, generation: &Value) -> bool {
         self.state.lock().unwrap().generation.as_ref() == Some(generation)
     }
+    pub(crate) fn bound_generation(&self) -> Option<Value> {
+        self.state.lock().unwrap().generation.clone()
+    }
+    /// Released authority can also mean a lost reservation; only known-empty
+    /// retirement with observed exit is a settlement fact.
+    pub(crate) fn settled(&self) -> bool {
+        let s = self.state.lock().unwrap();
+        s.known_empty && s.exit.is_some()
+    }
     pub(crate) fn take_stdin(&self) -> Option<ChildStdin> {
         self.state
             .lock()
@@ -471,6 +480,18 @@ impl OwnedProcess {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn released_reservation_is_not_a_settlement_fact() {
+        let process = OwnedProcess::spawn(&mut Command::new("/usr/bin/true")).unwrap();
+        process.wait_exit().unwrap();
+        // Model a competing reaper using this actual original Child, not a
+        // sampled PID. Its lost reservation must never become a clean result.
+        process.state.lock().unwrap().child.as_mut().unwrap().wait().unwrap();
+        assert!(process.observe_exit().is_err());
+        assert!(process.released());
+        assert!(!process.settled());
+        assert!(!process.release_if_empty().empty());
+    }
     #[test]
     fn process_group_custody_reaped_cached_child_cannot_mint_authority() {
         // Raw Child exists only to exercise the rejected ingress; no group

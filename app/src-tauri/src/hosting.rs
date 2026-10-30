@@ -48,6 +48,8 @@ pub(crate) mod call_custody;
 pub(crate) mod successor;
 #[path = "process_group_custody.rs"]
 pub(crate) mod process_group_custody;
+#[path = "hosting_probe.rs"]
+mod probe;
 #[path = "attachment_custody.rs"]
 pub mod attachment_custody;
 use attachment_custody::AttachmentCustody;
@@ -649,6 +651,8 @@ pub struct Host {
     stdin: Mutex<Option<ChildStdin>>,
     child: Mutex<Option<Arc<process_group_custody::OwnedProcess>>>,
     retired_processes: Mutex<Vec<Arc<process_group_custody::OwnedProcess>>>,
+    probe_processes: Mutex<Vec<(u64, Arc<process_group_custody::OwnedProcess>)>>,
+    quit_fence: std::sync::atomic::AtomicBool,
     records_activity: Mutex<Option<(Value,crate::storage::Ownership)>>,
     #[cfg(test)]
     aa_before_write: Mutex<Option<Box<dyn FnOnce(&Host, &SourceRequest) + Send>>>,
@@ -736,6 +740,8 @@ impl Host {
             stdin: Mutex::new(None),
             child: Mutex::new(None),
             retired_processes: Mutex::new(Vec::new()),
+            probe_processes: Mutex::new(Vec::new()),
+            quit_fence: std::sync::atomic::AtomicBool::new(false),
             records_activity: Mutex::new(None),
             #[cfg(test)]
             aa_before_write: Mutex::new(None),
@@ -1304,33 +1310,103 @@ impl Host {
         Err(reason)
     }
 
+    #[cfg(test)]
+    pub(crate) fn model_quit_census(&self, census: Option<process_group_custody::Census>) {
+        let process = self.child.lock().unwrap().clone().expect("actual current process required");
+        *process.census_override.lock().unwrap() = census;
+    }
+
+    fn check_quit_fence(&self) -> Result<(), String> {
+        if self.quit_fence.load(std::sync::atomic::Ordering::SeqCst) {
+            Err("App quit settlement is in progress; no supplier start".into())
+        } else { Ok(()) }
+    }
+
+    /// Shares the source gate with actual probe and app-server installation.
+    pub(crate) fn begin_quit(&self) {
+        let _gate = self.attachment_gate.lock().unwrap();
+        self.quit_fence.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+    pub(crate) fn cancel_quit(&self) {
+        let _gate = self.attachment_gate.lock().unwrap();
+        self.quit_fence.store(false, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    fn run_label_probe(&self, attempt: u64, command: &mut Command, wait: Duration) -> Result<String, String> {
+        let process = {
+            let _gate = self.attachment_gate.lock().unwrap();
+            self.check_quit_fence()?;
+            Self::check_start_admission(&self.inner.0.lock().unwrap(), attempt)?;
+            let process = process_group_custody::OwnedProcess::spawn(command)?;
+            self.probe_processes.lock().unwrap().push((attempt, Arc::clone(&process)));
+            process
+        };
+        let result = probe::read_label(&process, wait, || {
+            self.check_quit_fence()?;
+            Self::check_start_admission(&self.inner.0.lock().unwrap(), attempt)
+        });
+        if let Err(error) = &result {
+            let mut inner = self.inner.0.lock().unwrap();
+            if inner.start_attempt == attempt || !process.settled() {
+                let session = inner.app_session.clone();
+                inner.journal.push(json!({"class":"label-probe-ended-with-limit","appSession":session,
+                "startAttempt":attempt,"reason":error,"custodyReleased":process.released(),
+                "standing":"actual probe custody retained until observed original group settlement; detached descendants unobserved"}));
+            }
+        }
+        self.probe_processes.lock().unwrap().retain(|(_, p)| !p.settled());
+        result
+    }
+
+    /// Deliberate Quit needs actual process settlement, including probes and
+    /// retired groups. A state string (even `stopped`) is never that proof.
+    pub(crate) fn settle_for_quit(&self, actor: &str, reason: &str) -> Result<Value, String> {
+        if !self.quit_fence.load(std::sync::atomic::Ordering::SeqCst) {
+            return Err("Quit start fence is not held".into());
+        }
+        let (state, generation) = { let i = self.inner.0.lock().unwrap(); (i.state.clone(), i.generation.clone()) };
+        let mut limits = Vec::new();
+        if !generation.is_null() && self.child.lock().unwrap().is_none() {
+            limits.push("source generation has no actual retained process settlement; state text is not custody".into());
+        }
+        if !matches!(state.as_str(), "absent" | "stopped" | "refused") {
+            if let Err(error) = self.stop(actor, reason) { limits.push(error); }
+        }
+        let mut processes: Vec<_> = self.probe_processes.lock().unwrap().iter()
+            .map(|(attempt, p)| (json!({"kind":"label-probe","startAttempt":attempt}), Arc::clone(p))).collect();
+        let generation = self.inner.0.lock().unwrap().generation.clone();
+        if let Some(process) = self.child.lock().unwrap().clone() {
+            processes.push((json!({"kind":"app-server","generation":process.bound_generation()}), process));
+        }
+        processes.extend(self.retired_processes.lock().unwrap().iter()
+            .map(|p| (json!({"kind":"retired-owned-process","generation":p.bound_generation()}), Arc::clone(p))));
+        let mut observations = Vec::new();
+        for (source, process) in processes {
+            match probe::settle(&process, Duration::ZERO) {
+                Ok(observed) => observations.push(json!({"source":source,"settlement":observed})),
+                Err(error) => limits.push(format!("{source}: {error}")),
+            }
+        }
+        self.probe_processes.lock().unwrap().retain(|(_, p)| !p.settled());
+        self.retired_processes.lock().unwrap().retain(|p| !p.settled());
+        let observation = json!({"generation":generation,"ownedProcesses":observations,"limits":limits,
+            "standing":"original owned groups only; detached or escaped descendants unobserved"});
+        self.inner.0.lock().unwrap().journal.push(json!({"class":"quit-process-settlement","observation":observation}));
+        if limits.is_empty() { Ok(observation) }
+        else { Err(format!("Quit withheld; owned process settlement is unavailable: {observation}")) }
+    }
+
     /// HOSTING §7.1/§7.2: label probe in the probe home, content identity of the binary,
     /// generated-output identity naming the pin.
-    fn verify(cfg: &HostConfig) -> (Value, Option<String>, Vec<Value>) {
+    fn verify(&self, attempt: u64, cfg: &HostConfig) -> (Value, Option<String>, Vec<Value>) {
         let mut probe = Command::new(&cfg.codex_bin);
         for name in CREDENTIAL_VARS { probe.env_remove(name); }
-        let label = probe
-            .arg("--version")
-            .env("CODEX_HOME", &cfg.probe_home)
-
-            .stdin(Stdio::null())
-            .output();
-        let label = match label {
-            Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_string(),
-            Ok(o) => {
-                return (
-                    json!({"result": "unverifiable", "reason": format!("version probe exited with {:?}", o.status.code())}),
-                    None,
-                    vec![],
-                )
-            }
-            Err(e) => {
-                return (
-                    json!({"result": "unverifiable", "reason": format!("distribution not found or not runnable: {e}")}),
-                    None,
-                    vec![],
-                )
-            }
+        probe.arg("--version").env("CODEX_HOME", &cfg.probe_home)
+            .current_dir(&cfg.probe_home).stdin(Stdio::null())
+            .stdout(Stdio::piped()).stderr(Stdio::piped());
+        let label = match self.run_label_probe(attempt, &mut probe, cfg.wait_limit) {
+            Ok(label) => label.trim().to_owned(),
+            Err(error) => return (json!({"result":"unverifiable","reason":error}), None, vec![]),
         };
         // An observed contradiction cannot be downgraded by a later content-read failure.
         if label != format!("codex-cli {DECLARED_PIN}") {
@@ -1369,6 +1445,10 @@ impl Host {
         *self.this.lock().unwrap() = Arc::downgrade(self);
         let attempt = {
             let _gate=self.attachment_gate.lock().unwrap();
+            self.check_quit_fence()?;
+            if self.probe_processes.lock().unwrap().iter().any(|(_, p)| !p.settled()) {
+                return Err("prior label probe settlement unavailable; new start refused".into());
+            }
             let mut i = self.inner.0.lock().unwrap();
             if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
                 return Err(format!("start not accepted in state {}", i.state));
@@ -1415,7 +1495,7 @@ impl Host {
             _ => successor::Reference::None,
         };
         let prepared = if let Some(distribution) = &cfg.distribution {
-            match successor::prepare(distribution, cfg, prospective.as_ref().unwrap(), reference) {
+            match successor::prepare_with_probe(distribution, cfg, prospective.as_ref().unwrap(), reference, |command, wait| self.run_label_probe(attempt, command, wait)) {
                 Ok(p) => Some(p), Err(e) => return self.refuse_successor(attempt, e),
             }
         } else { None };
@@ -1432,7 +1512,7 @@ impl Host {
         } else { None };
         let (result, label, dist) = match &prepared {
             Some(p) => (p.verification.clone(), Some(p.label.clone()), p.legacy_inventory()),
-            None => Self::verify(cfg),
+            None => self.verify(attempt, cfg),
         };
         if let Some(p) = &prepared {
             if let Err(e) = p.revalidate() { return self.refuse_successor(attempt, e); }
@@ -1458,6 +1538,7 @@ impl Host {
             }
         } else { Some(self.attachment_gate.lock().unwrap()) };
         {
+            self.check_quit_fence()?;
             let i=self.inner.0.lock().unwrap();
             Self::check_start_admission(&i,attempt)?;
         }
@@ -1546,7 +1627,7 @@ impl Host {
             };
             if let Err(e) = allocation {
                 let cleanup=child.abort_spawn();
-                if !child.released(){self.retired_processes.lock().unwrap().push(Arc::clone(&child));}
+                if !child.settled(){self.retired_processes.lock().unwrap().push(Arc::clone(&child));}
                 let mut i = self.inner.0.lock().unwrap();
                 self.lt(&mut i,"LT-08","spawn-failed","halted-after-repeated-failure",json!({"failure":format!("{e}; actual spawn cleanup: {}",cleanup.report()),"failureCount":1}));
                 return Err(e);
@@ -1558,8 +1639,8 @@ impl Host {
         *self.stdin.lock().unwrap() = child.take_stdin();
         let pid = child.id() as i32;
         let old=self.child.lock().unwrap().replace(Arc::clone(&child));
-        if let Some(old)=old {if !old.released(){old.maintain();self.retired_processes.lock().unwrap().push(old);}}
-        self.retired_processes.lock().unwrap().retain(|p|!p.released());
+        if let Some(old)=old {if !old.settled(){old.maintain();self.retired_processes.lock().unwrap().push(old);}}
+        self.retired_processes.lock().unwrap().retain(|p|!p.settled());
         {
             let mut i = self.inner.0.lock().unwrap();
             // Allocate only after actual spawn, preserving home counter across
@@ -3992,6 +4073,19 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 // Event-local Stop record: do not overwrite a historical source's
                 // REC cause or touch its child/PID/pipe/closure.
                 self.lt(&mut i,"LT-20","stop-requested","stopped",json!({"actor":actor,"stopRecord":record}));
+                let probes: Vec<_> = self.probe_processes.lock().unwrap().iter()
+                    .filter(|(attempt, _)| *attempt < revoked).map(|(_, p)| Arc::clone(p)).collect();
+                drop(i);
+                drop(source_gate);
+                let mut limits = Vec::new();
+                for probe in probes {
+                    if let Err(error) = probe::settle(&probe, Duration::ZERO) { limits.push(error); }
+                }
+                self.probe_processes.lock().unwrap().retain(|(_, p)| !p.settled());
+                if !limits.is_empty() {
+                    self.inner.0.lock().unwrap().journal.push(json!({"class":"cancelled-probe-cleanup-unavailable","cancelledBeforeAttempt":revoked,"limits":limits}));
+                    return Err(format!("start cancelled; probe settlement unavailable: {}", limits.join("; ")));
+                }
                 return Ok(json!({"state":"stopped"}));
             }
             target_generation=i.generation.clone();

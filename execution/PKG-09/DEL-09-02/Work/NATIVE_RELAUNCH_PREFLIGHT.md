@@ -6,6 +6,17 @@ uncovered helper creation. This is a controller-design result, not a failed
 native supplier handshake or an App qualification result. Candidate
 `795362874d-a391547a5c5d` and the successful A state remain unchanged.
 
+After this preflight, App Agent 0 selected a focused startup/shutdown custody
+repair and a successor development candidate before live B. The original
+candidate and A state stay retained; successor results will have their own
+identity and namespace. B's explicitly admitted forks and exact-executable,
+network-denied profile are a bounded execution arrangement, not proof of
+exhaustive descendant containment. The repair must settle owned probes and
+app-server groups, retain supervision on unavailable settlement and report
+detached-helper observation limits. No universal adversarial fork/setsid
+cleanup requirement is added. This supersedes treating that exhaustive proof
+as a prerequisite to B, without changing the isolated policy observations below.
+
 ## Examined route and actual checks
 
 The proposed route was exact saved-request relaunch, native diagnostics,
@@ -99,3 +110,37 @@ processes must be reported; resource coordination does not resolve containment.
 ScopeOfWork and dependency conditions are unchanged. This preflight supplies
 no V4-EXM-10/11/12 pass, personal human act, supplier qualification-pin decision,
 acceptance or release. Preserve all candidate, A-state and named recovery inputs.
+
+## Repair verification before a successor build
+
+The prepared Rust repair reuses actual `OwnedProcess` custody for both label
+probe routes, retains unknown reservations, cancels by start attempt, and gates
+ordinary Quit on actual owned-process settlement before its session-end record.
+DEL-01-01's `HOSTING_BOUNDARY.md`, DEL-01-02's
+`EXECUTION_AND_RECOVERY.md`, and DEL-01-04's native-interaction receiving account
+carry the changed implementation meaning. Their ScopeOfWork commitments and
+dependency conditions are unchanged. The preflight evidence review at
+`e4a16bdbb89895b4324ef51dfa06643260d0c9b9` found no issues and independently
+reproduced all three policy checks using the previously selected reviewer;
+subsequent repair scrutiny uses the owner's updated reviewer selection.
+
+Focused offline Rust 1.97.1 checks use a fresh scratch Codex home and cloned
+prepared cache under
+`/Users/ryan/dev/chirality-t3/scratch/app-native-custody-xwl7wbmc/`, slot admission,
+memguard and two build jobs. Five probe tests, 36 Quit-filter tests and the
+system-termination test passed; 12 process-group custody tests also passed.
+The successor suite passed 97 tests with four
+explicit exporter/stock-supplier cases ignored. Its first run exposed an
+existing test polling past the transient `stopping` state; synchronization at
+the existing cleanup hook repairs the test without removing its invalidation
+assertions. Logs retain the initial failure and successful recheck. The first
+probe run also retained an expected-diagnostic assertion failure at a 200 ms
+fixture budget; that assertion omitted the actual error, so its precise cause
+was not established. With failure diagnostics improved and a 500 ms fixture
+budget, the bounded hang/noisy-output cases passed with the same
+under-three-second upper bound. These are source/fixture results only;
+no successor bundle or native A/B result is claimed here.
+
+Retain this repair scratch and its check logs through review/integration in
+addition to the original candidate/A inputs. Do not reuse the original bundle
+identifier or namespace for the successor, or relabel historical A evidence.

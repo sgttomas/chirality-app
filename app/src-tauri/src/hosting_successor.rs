@@ -5,12 +5,11 @@
 use super::{HostConfig, CREDENTIAL_VARS, DECLARED_PIN, GENERATED_MANIFEST_SHA256};
 use crate::distribution_preflight::{self as tree, selection::Selected, Inventory, LaunchPlan};
 use serde_json::{json, Value};
-use std::io::Read;
-use std::os::fd::AsRawFd;
-use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
-use std::time::{Duration, Instant};
+use std::process::{Command, Stdio};
+use std::time::Duration;
+#[cfg(test)]
+use std::time::Instant;
 
 #[derive(Clone, Debug)]
 pub(crate) enum Distribution {
@@ -184,11 +183,25 @@ fn isolated(root: &Path, cfg: &HostConfig) -> Result<(), String> {
     }
     Ok(())
 }
+#[cfg(test)]
 pub(crate) fn prepare(
     distribution: &Distribution,
     cfg: &HostConfig,
     generation: &Value,
     reference: Reference<'_>,
+) -> Result<Prepared, String> {
+    prepare_with_probe(distribution, cfg, generation, reference, |command, wait| {
+        let process = super::process_group_custody::OwnedProcess::spawn(command)?;
+        super::probe::read_label(&process, wait, || Ok(()))
+    })
+}
+
+pub(crate) fn prepare_with_probe(
+    distribution: &Distribution,
+    cfg: &HostConfig,
+    generation: &Value,
+    reference: Reference<'_>,
+    run: impl FnOnce(&mut Command, Duration) -> Result<String, String>,
 ) -> Result<Prepared, String> {
     let root = match distribution {
         Distribution::Production { resources } => {
@@ -238,7 +251,7 @@ pub(crate) fn prepare(
     if !super::generated_outputs_match() {
         return Err("mismatch: maintained generated outputs".into());
     }
-    let label = probe(&plan, cfg)?;
+    let label = probe(&plan, cfg, run)?;
     if label.strip_suffix('\n').unwrap_or(&label) != format!("codex-cli {DECLARED_PIN}") {
         return Err("mismatch: observed version label".into());
     }
@@ -277,110 +290,14 @@ pub(crate) fn prepare(
 fn short(sha: &Value) -> String {
     sha.as_str().map(|s| format!("{}…", &s[..s.len().min(8)])).unwrap_or_else(|| "?".into())
 }
-pub(crate) fn terminate(child: &mut Child) {
-    // Spawned by this module/Host in its own process group; never a user process.
-    unsafe {
-        libc::kill(-(child.id() as i32), libc::SIGKILL);
-    }
-    let _ = child.kill();
-    let _ = child.wait();
-}
-fn probe(plan: &LaunchPlan, cfg: &HostConfig) -> Result<String, String> {
+fn probe(plan: &LaunchPlan, cfg: &HostConfig, run: impl FnOnce(&mut Command, Duration) -> Result<String, String>) -> Result<String, String> {
     let mut command = Command::new(&plan.executable);
     configure(&mut command, plan);
-    for flag in &cfg.session_flags {
-        command.args(["-c", flag]);
-    }
-    command
-        .arg("--version")
-        .env("CODEX_HOME", &cfg.probe_home)
-        .current_dir(&cfg.probe_home)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .process_group(0);
-    let mut child = command
-        .spawn()
-        .map_err(|e| format!("label probe unavailable: {e}"))?;
-    let mut out = child.stdout.take().unwrap();
-    let mut err = child.stderr.take().unwrap();
-    for fd in [out.as_raw_fd(), err.as_raw_fd()] {
-        if unsafe { libc::fcntl(fd, libc::F_SETFL, libc::O_NONBLOCK) } < 0 {
-            terminate(&mut child);
-            return Err("cannot bound label probe pipes".into());
-        }
-    }
-    let deadline = Instant::now() + cfg.wait_limit.min(Duration::from_secs(20));
-    let mut bytes = Vec::new();
-    let mut count = 0usize;
-    let result = (|| {
-        loop {
-            for (pipe, retain) in [
-                (&mut out as &mut dyn Read, true),
-                (&mut err as &mut dyn Read, false),
-            ] {
-                let mut chunk = [0u8; 4096];
-                // Bound each drain too: a continuously writing child must not
-                // prevent timeout/status observation.
-                for _ in 0..17 {
-                    match pipe.read(&mut chunk) {
-                        Ok(0) => break,
-                        Ok(n) => {
-                            count += n;
-                            if count > 65536 {
-                                return Err("label probe output limit exceeded".into());
-                            }
-                            if retain {
-                                bytes.extend_from_slice(&chunk[..n]);
-                            }
-                        }
-                        Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => break,
-                        Err(e) => return Err(format!("label probe read failed: {e}")),
-                    }
-                }
-            }
-            // Observe exit without reaping: the owned leader reserves PID/PGID
-            // until group cleanup, so no recycled unrelated group is signalled.
-            let mut info: libc::siginfo_t = unsafe { std::mem::zeroed() };
-            if unsafe {
-                libc::waitid(
-                    libc::P_PID,
-                    child.id(),
-                    &mut info,
-                    libc::WEXITED | libc::WNOHANG | libc::WNOWAIT,
-                )
-            } < 0
-            {
-                return Err(std::io::Error::last_os_error().to_string());
-            }
-            if unsafe { info.si_pid() } != 0 {
-                if info.si_code != libc::CLD_EXITED || unsafe { info.si_status() } != 0 {
-                    return Err("label probe unsuccessful".into());
-                }
-                // Pipes were drained before status; perform one final bounded
-                // read after exit for bytes written between drain and exit observation.
-                let mut tail = [0u8; 65537];
-                match out.read(&mut tail) {
-                    Ok(n) => {
-                        count += n;
-                        bytes.extend_from_slice(&tail[..n]);
-                    }
-                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => (),
-                    Err(e) => return Err(e.to_string()),
-                }
-                if count > 65536 {
-                    return Err("label probe output limit exceeded".into());
-                }
-                return String::from_utf8(bytes).map_err(|_| "non UTF-8 label probe output".into());
-            }
-            if Instant::now() >= deadline {
-                return Err("label probe timed out".into());
-            }
-            std::thread::sleep(Duration::from_millis(5));
-        }
-    })();
-    terminate(&mut child); // also closes descendants retaining probe pipes
-    result
+    for flag in &cfg.session_flags { command.args(["-c", flag]); }
+    command.arg("--version").env("CODEX_HOME", &cfg.probe_home)
+        .current_dir(&cfg.probe_home).stdin(Stdio::null())
+        .stdout(Stdio::piped()).stderr(Stdio::piped());
+    run(&mut command, cfg.wait_limit)
 }
 
 #[cfg(test)]

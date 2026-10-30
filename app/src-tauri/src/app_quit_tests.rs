@@ -1,6 +1,23 @@
 //! K-4 / SQ-Q quit sequence and the DEF-1 window rules, against doubles;
 //! the real-Host cases are in `codex_stop_tests.rs` (`real_host_quit_*`).
 use super::*;
+
+#[test]
+fn native_exit_permission_requires_settlement_and_failure_is_retryable() {
+    let app = AppQuit::default();
+    let decision = Decision::Quit(json!({"stopRequests":["stop:pending"]}));
+    let failure = app.allow(&decision, |ids| {
+        assert_eq!(ids, &["stop:pending"]);
+        assert!(app.proceeding().is_none(), "no native exit permission during settlement");
+        Err("original reserved group census unavailable".into())
+    }).unwrap_err();
+    assert!(failure.contains("census unavailable"));
+    assert!(app.proceeding().is_none());
+    assert_eq!(on_exit_requested(false, Some(0)), ExitAction::AskQuit);
+    assert!(app.allow(&decision, |_| Ok(json!({"write":"unknown","limit":"ledger unavailable"}))).unwrap(),
+        "Q-7 recording failure does not block an actually settled exit");
+    assert_eq!(app.proceeding(), Some(vec!["stop:pending".into()]));
+}
 use serde_json::json;
 
 fn material(turns: &[&str], requests: usize, children: usize) -> Value {
@@ -115,7 +132,7 @@ fn codex_stop_is_refused_after_a_decided_quit_releases_its_guards() {
     // before `RunEvent::Exit`; Stop/Restart must stay refused meanwhile.
     let (quit, stop_gate) = (AppQuit::default(), Mutex::new(()));
     let held = admit_quit(&quit, &stop_gate).unwrap();
-    assert!(quit.allow(&Decision::Quit(json!({"stopRequests":["stop:a"]}))));
+    assert!(quit.allow(&Decision::Quit(json!({"stopRequests":["stop:a"]})), |_| Ok(Value::Null)).unwrap());
     drop(held);
     assert!(!quit.busy(), "the guards are released");
     let refused = admit_codex_stop(&quit).unwrap_err();
@@ -168,7 +185,7 @@ fn keep_running_or_cancel_records_cancelled_and_changes_nothing() {
     assert_eq!(d.shown[0]["observedActiveChildren"].as_array().unwrap().len(), 1, "and delegated agents");
     assert_eq!(out["state"], "cancelled");
     let mut app = AppQuit::default();
-    assert!(!app.allow(&Decision::Cancelled(out)));
+    assert!(!app.allow(&Decision::Cancelled(out), |_| panic!("cancel cannot settle")).unwrap());
     assert!(app.proceeding().is_none(), "a cancel never lets the App exit");
     let _ = &mut app;
 }
@@ -179,7 +196,7 @@ fn a_question_that_cannot_be_shown_records_no_answer_and_keeps_running() {
     let decision = d.run();
     assert!(matches!(decision, Decision::NotAsked(_)), "{decision:?}");
     assert!(!d.log.iter().any(|l| l.starts_with("quit_answered") || l.starts_with("interrupt")), "{:?}", d.log);
-    assert!(!AppQuit::default().allow(&decision));
+    assert!(!AppQuit::default().allow(&decision, |_| Ok(Value::Null)).unwrap());
 }
 
 #[test]
@@ -190,7 +207,7 @@ fn confirm_records_the_answer_before_each_quit_interrupt_and_names_the_stop_requ
     assert_eq!(d.log, ["assess", "quit_requested 2", "ask", "close", "assess", "quit_answered confirmed", "interrupt turn-1", "interrupt turn-2", "ack turn-1", "ack turn-2"],
         "SR-01 for every turn after the recorded answer and before any wait");
     let app = AppQuit::default();
-    assert!(app.allow(&decision));
+    assert!(app.allow(&decision, |_| Ok(Value::Null)).unwrap());
     assert_eq!(app.proceeding(), Some(vec!["stop:turn-1".to_owned(), "stop:turn-2".to_owned()]));
     let Decision::Quit(out) = decision else { unreachable!() };
     assert_eq!(out["turns"][0]["codexReported"], "interrupted");

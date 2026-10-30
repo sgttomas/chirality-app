@@ -1128,6 +1128,7 @@ fn oauth_cancel(app:tauri::AppHandle,state:State<'_,AppState>,generation:Value)-
 #[tauri::command(async)]
 fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,String>{
     let _operation=state.key_setup.try_lock().map_err(|_|"Another explicit key operation is pending; no duplicate/retry")?;
+    if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err("The App is quitting; no key home was created or started".into()); }
     let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
     bootstrap.key_plan()?;
     if !app.dialog().message("Add or replace an API key through the separate App key home? Its explicit resource links may be prepared and its Codex child started. Existing account conversations are not transferred.").title("Separate API-key home").buttons(MessageDialogButtons::OkCancel).blocking_show(){return Ok(json!({"state":"cancelled; no key setup/login"}));}
@@ -1193,6 +1194,7 @@ fn host_start(state: State<'_, AppState>, mode_home_class:String) -> Result<Valu
 }
 /// Start Codex for one home (Start Codex, and Restart Codex after its stop).
 fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str) -> Result<Value, String> {
+    if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err("The App quit is under way; Codex was not started".into()); }
     invalidate_endpoint_edits(state)?;
     let cfg = home.host_config.clone()?;
     state.validate_home_source(home)?;
@@ -1315,11 +1317,21 @@ fn request_quit(app: tauri::AppHandle) {
                 return;
             }
         };
+        // Keep the set of homes stable through settlement. Key setup is the
+        // only runtime path adding a home; never let it race the quit snapshot.
+        let _key_setup = match state.key_setup.try_lock() {
+            Ok(held) => held,
+            Err(_) => {
+                show_main_window(&app);
+                let _ = app.dialog().message("API-key home setup is under way. The App is still running; choose Quit again when that operation has finished.").title("Quit Chirality").kind(MessageDialogKind::Info).buttons(MessageDialogButtons::Ok).blocking_show();
+                return;
+            }
+        };
         let homes = state.homes.lock().unwrap().entries();
         let active = state.homes.lock().unwrap().active();
         let person = stop_person(&state, &active);
         let shown = app.clone();
-        let mut ops = app_quit::HostQuit::new(homes, &state.workflows, &person, move |view: &Value| {
+        let mut ops = app_quit::HostQuit::new(homes.clone(), &state.workflows, &person, move |view: &Value| {
             use act_control::native_statement as ns;
             show_main_window(&shown);
             let mut refused = None;
@@ -1327,12 +1339,18 @@ fn request_quit(app: tauri::AppHandle) {
             match refused { Some(cause) => Err(cause), None => Ok(chosen) }
         });
         let decision = app_quit::quit_sequence(&mut ops, app_quit::QUIT_WAIT_LIMIT);
-        drop(ops);
         if let app_quit::Decision::NotAsked(outcome) = &decision {
             eprintln!("chirality: {}", outcome["reading"].as_str().unwrap_or("quit question not shown"));
         }
-        if state.app_quit.allow(&decision) {
-            app.exit(0);
+        match state.app_quit.allow(&decision, |ids| app_quit::finish_exit(&homes, Some(ids.to_vec()))) {
+            Ok(true) => app.exit(0),
+            Ok(false) => {},
+            Err(error) => {
+                app_quit::QuitOps::reopen_to_new_turns(&mut ops);
+                eprintln!("chirality: {error}");
+                show_main_window(&app);
+                let _ = app.dialog().message(error).title("Quit Chirality — still running").kind(MessageDialogKind::Info).buttons(MessageDialogButtons::Ok).blocking_show();
+            }
         }
     });
 }
@@ -2804,7 +2822,14 @@ pub fn run() {
             tauri::RunEvent::Exit => {
                 let st: State<'_, AppState> = app.state();
                 let homes = st.homes.lock().unwrap().entries();
-                let _ = app_quit::finish_exit(&homes, st.app_quit.proceeding());
+                // Ordinary Quit already settled processes and recorded its end
+                // before permission to exit. Only an unapproved/system exit
+                // takes the limited AS-10 best-effort path here.
+                if st.app_quit.proceeding().is_none() {
+                    if let Err(error) = app_quit::finish_exit(&homes, None) {
+                        eprintln!("chirality: system termination observation unavailable: {error}");
+                    }
+                }
                 records_index::close_all();
             }
             _ => {}
