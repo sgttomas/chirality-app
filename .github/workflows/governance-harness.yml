@@ -11,11 +11,24 @@ jobs:
   repository-checks:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      selection_mode: ${{ steps.selection.outputs.selection_mode }}
+      run_product: ${{ steps.selection.outputs.run_product }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
+      - name: Select checks from the complete PR change
+        id: selection
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: >-
+          python3 tools/ci/select_checks.py select --event "$EVENT"
+          --base "$BASE" --head "$HEAD"
+          --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -25,6 +38,7 @@ jobs:
         run: |
           python -m tools.deliverables --project . check > deliverable-check.json
           python -m pytest -q tools/deliverables/test_cli.py
+          python -m pytest -q tools/ci/test_selection.py
       - name: Conflict, credential and private-term checks
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -38,6 +52,8 @@ jobs:
           if [ "$TERMS_REQUIRED" = true ]; then REQUIRE=(--require-terms); fi
           python tools/validation/validate_private_terms.py --base "$BASE" --head HEAD "${REQUIRE[@]}"
   app-v4:
+    needs: repository-checks
+    if: needs.repository-checks.outputs.run_product == 'true'
     uses: ./.github/workflows/app-v4.yml
   harness:
     name: harness
@@ -45,14 +61,10 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Require every job to succeed
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Require every selected job to succeed
         env:
           RESULTS: ${{ toJSON(needs) }}
-        run: |
-          python3 - <<'PY'
-          import json, os
-          failed = {name: job['result'] for name, job in json.loads(os.environ['RESULTS']).items()
-                    if job['result'] != 'success'}
-          if failed:
-              raise SystemExit(f'Verification did not succeed: {failed}')
-          PY
+        run: python3 tools/ci/select_checks.py gate
