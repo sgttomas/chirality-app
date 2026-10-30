@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": "app/examination/standalone/prepare.py",
-      "sha256": "0098def1c69af37277dcb2841ac1cac94cc5258defc285a1ce6abbab25f82f61"
+      "sha256": "a2002916472a97fcdbcf6f5da1367c476668c96436a3a7b6b6f62e4147f2aec3"
     },
     {
       "path": "app/examination/standalone/sources.json",

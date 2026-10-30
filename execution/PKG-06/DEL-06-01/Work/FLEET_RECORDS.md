@@ -268,7 +268,7 @@ per VC):
 - **Observed on the stock pairing.** Stock LM Studio 0.4.16 drops the
   delegation namespace, so no child exists there (OBS-2 §6.1).
 - **Observed natively at 0.160.0, with limits** ([native witness
-  2026-10-10](../../../PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md) items 11–12). The route was stock Codex through the App
+  2026-10-10](../../../PKG-01/DEL-01-02/Work/NATIVE_WITNESS_2026-10-10.md) items 11–12). The route was stock Codex through the App
   Server, with a ChatGPT account and `gpt-6-luna`, in one run.
   - Spawn, wait, follow-up and close worked.
   - Only `wait` appeared as a `collabAgentToolCall` item. No spawn item was
@@ -278,7 +278,7 @@ per VC):
   - An agent reached only its own spawn tree: `send_message` to another
     conversation's ID returned "not found".
   - The child's input is not readable either ([trial witness
-    2026-10-10](../../../PKG-02/DEL-02-02/Design/TRIAL_WITNESS_2026-10-10.md);
+    2026-10-10](../../../PKG-02/DEL-02-02/Work/TRIAL_WITNESS_2026-10-10.md);
     WR U-WR-25). The spawn task reaches the child as an inter-agent
     `agent_message` (author `/root`, recipient the child's path) whose payload,
     after a readable header, is `encrypted_content`; no user message carries

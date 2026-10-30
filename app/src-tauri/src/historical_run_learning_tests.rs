@@ -44,7 +44,7 @@ impl Fixture {
         f
     }
     fn example(kind: &str, purpose: Option<&str>) -> Value {
-        include_str!("../../../execution/PKG-02/DEL-02-02/Design/workspace-registration.valid.examples.jsonl").lines().map(|l|serde_json::from_str::<Value>(l).unwrap()).find(|v|v["record_kind"]==kind && purpose.is_none_or(|p|v["purpose"]==p)).unwrap()
+        include_str!("../../../execution/PKG-02/DEL-02-02/Work/workspace-registration.valid.examples.jsonl").lines().map(|l|serde_json::from_str::<Value>(l).unwrap()).find(|v|v["record_kind"]==kind && purpose.is_none_or(|p|v["purpose"]==p)).unwrap()
     }
     fn wr(&self, body: Value, basis: &[String]) -> String {
         let reference = crate::util::opaque_id("wr-record:v1:").unwrap();

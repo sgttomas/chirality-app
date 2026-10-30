@@ -539,7 +539,7 @@ their authority. App v4's frozen foundation is unchanged.
 [R2]: ../../../../docs/thesis/CHIRALITY_FRAMEWORK.md
 [D1]: appendix_d_framework_s.md
 [A1]: ../PRD.md
-[A2]: ../../execution/PKG-02/DEL-02-02/Design/WORKSPACE_AND_REGISTRATION.md
+[A2]: ../../execution/PKG-02/DEL-02-02/Work/WORKSPACE_AND_REGISTRATION.md
 [A3]: ../HOST_INTEGRATION.md
 [A4]: ../../app/README.md
 [A5]: ../ARCHITECTURE.md
@@ -553,7 +553,7 @@ their authority. App v4's frozen foundation is unchanged.
 [I4T]: ../../app/src-tauri/src/stop_records_host_tests.rs
 [I5]: ../../app/src/exactText.ts
 [I5B]: ../../app/src/App.tsx
-[O1]: ../../execution/PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md
+[O1]: ../../execution/PKG-01/DEL-01-02/Work/NATIVE_WITNESS_2026-10-10.md
 
 [S1]: ../../../../docs/thesis/INTRODUCTION.md
 [S2]: ../../../../docs/thesis/WORKED_EXAMPLE.md

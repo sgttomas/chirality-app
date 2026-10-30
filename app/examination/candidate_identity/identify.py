@@ -663,7 +663,7 @@ def validate_record(record):
     version = {FORMAT: 'v2', BUNDLED_FORMAT: 'v3'}.get(record.get('format'))
     if version is None:
         raise ValueError('unknown candidate identification format')
-    schema_path = Path(__file__).resolve().parents[3] / f'execution/PKG-09/DEL-09-01/Design/candidate-identity-{version}/candidate-identification.schema.json'
+    schema_path = Path(__file__).resolve().parents[3] / f'execution/PKG-09/DEL-09-01/Work/candidate-identity-{version}/candidate-identification.schema.json'
     from jsonschema import Draft202012Validator
     errors = sorted(Draft202012Validator(json.loads(schema_path.read_text())).iter_errors(record), key=lambda e: str(list(e.path)))
     if errors:

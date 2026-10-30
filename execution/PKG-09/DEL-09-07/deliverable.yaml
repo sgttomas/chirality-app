@@ -235,6 +235,6 @@ needs:
   gating: true
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 checks:
-- execution/PKG-09/DEL-09-07/Design/prototype/cir_check.py
-- execution/PKG-09/DEL-09-07/Design/prototype/dos_check.py
-- execution/PKG-09/DEL-09-07/Design/prototype/top_check.py
+- execution/PKG-09/DEL-09-07/Work/prototype/cir_check.py
+- execution/PKG-09/DEL-09-07/Work/prototype/dos_check.py
+- execution/PKG-09/DEL-09-07/Work/prototype/top_check.py

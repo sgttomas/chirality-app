@@ -30,10 +30,11 @@ the generated YAML. Update needs only when their conditions change. An interface
 change identifies affected consumers and coordinates adoption across repositories.
 
 Each implementation return must reconcile its affected `ScopeOfWork.md`,
-`Design/` and dependency conditions in `deliverable.yaml` against the implemented
+`Work/` and dependency conditions in `deliverable.yaml` against the implemented
 behaviour and verification evidence before integration. Update changed meaning
 in the same change; leave unchanged declarations alone. The return identifies
 the reconciliation and any remaining conditions or reserved choices.
+References written before 2026-10-30 to a deliverable's `Design/` mean its `Work/`.
 
 Build/test entry points and scratch Codex configuration are in `app/README.md`.
 Choose checks for the changed behaviour under this repository's verification rule; CI

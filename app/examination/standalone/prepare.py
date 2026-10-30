@@ -5,8 +5,16 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import os
 import re
 import sys
+
+
+def deliverable_path(root, relative):
+    """A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md)."""
+    work = re.sub(r'^(execution/PKG-\d+/DEL-\d+-\d+/)Design/', r'\1Work/', relative)
+    return work if work != relative and not os.path.lexists(os.path.join(root, relative)) else relative
+
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -53,7 +61,7 @@ def source_input(source, raw):
 def verified_sources(root=ROOT, captured=None):
     lock = read_json(HERE / 'sources.json')
     for source in lock['sources']:
-        path = root / source['path']
+        path = root / deliverable_path(root, source['path'])
         if not path.is_file():
             raise ValueError(f"source changed or missing; review preparation basis: {source['path']}")
         raw = path.read_bytes()

@@ -39,7 +39,7 @@ the existing v2 pin. The earlier Python witness does not qualify the restrictive
 Rust launch profile, production desktop integration or full reference-system
 capability. SWBPIPE owns native fixture discrimination and activation; no App
 implementation prerequisite is identified for that fixture. The
-[DEL-09-07 receiving map](../../DEL-09-07/Design/SWBPIPE_RECEIVING.md) names the
+[DEL-09-07 receiving map](../../DEL-09-07/Work/SWBPIPE_RECEIVING.md) names the
 remaining joined evidence and exact acceptance reconciliation still owed.
 
 The owner directed in the SWBPIPE session:

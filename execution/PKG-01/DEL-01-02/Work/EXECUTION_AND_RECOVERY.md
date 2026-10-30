@@ -739,7 +739,7 @@ private ordered ready/frame/close handoff is incorporated by the one Rust
 receiving owner, then acknowledged; it is not a durable-write receipt. The
 record tick can retry original closed source projections without turning
 supplier-history rows into new arrivals. See
-[Observer replay and operational custody](../../DEL-01-01/Design/OBSERVER_JOURNAL.md)
+[Observer replay and operational custody](../../DEL-01-01/Work/OBSERVER_JOURNAL.md)
 for the mechanism, source qualification and enforced 4,096-envelope / 16 MiB
 serialized public-replay limits. Window gaps queue separate memory-only
 metadata/latest-turn-summary reads on the background tick. Their partial

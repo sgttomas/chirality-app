@@ -54,6 +54,12 @@ def ref(value):
     return value
 
 
+def deliverable_path(root, relative):
+    """A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md)."""
+    work = re.sub(r'^(execution/PKG-\d+/DEL-\d+-\d+/)Design/', r'\1Work/', relative)
+    return work if work != relative and not os.path.lexists(os.path.join(root, relative)) else relative
+
+
 def transfer(path, destination=None, retain=False):
     """Stream a bounded no-follow regular file, checking descriptor stability."""
     path = Path(path)
@@ -145,7 +151,7 @@ def source_model(frozen, scratch):
     logical_root = scratch / 'source/projects/chirality-app-v4'
     for name, digest in pins['sources'].items():
         relative(name)
-        actual = frozen.file(ROOT / name, logical_root / name)
+        actual = frozen.file(ROOT / deliverable_path(ROOT, name), logical_root / name)
         require(sha(actual) == digest, 'canonical static source changed: ' + name)
     (scratch / 'source/AGENTS.md').write_text('Frozen value-model source root marker.\n')
     spec = importlib.util.spec_from_file_location('static_s1_value_model', logical_root / pins['model'])

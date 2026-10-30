@@ -5,14 +5,23 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path, PurePosixPath
+import os
+import re
 import stat
 import subprocess
 import sys
 import tempfile
 
+
+def deliverable_path(root, relative):
+    """A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md)."""
+    work = re.sub(r'^(execution/PKG-\d+/DEL-\d+-\d+/)Design/', r'\1Work/', relative)
+    return work if work != relative and not os.path.lexists(os.path.join(root, relative)) else relative
+
+
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = 'bf1724ad892fa5767ff2610c6e4c09d7d71274a48dea9a9c3c9cef520b91580a'
+PINS_SHA256 = '73f5bb2ff1142177dd94b6b24b70a587a8332abc8cee99782ef56fc84bed078f'
 
 
 def sha(data):
@@ -22,6 +31,7 @@ def sha(data):
 def read_relative(root, name):
     if not isinstance(name, str) or not name or PurePosixPath(name).is_absolute() or '\\' in name or any(p in ('', '.', '..') for p in name.split('/')):
         raise ValueError('non-canonical relative path')
+    name = deliverable_path(root, name)
     path = Path(root)
     for part in name.split('/'):
         path = path / part

@@ -433,7 +433,7 @@ evidence; implement one platform service at a time behind the unchanged semantic
 boundary, port the named regressions, independently scrutinize persistence and
 process effects, and only then attempt N-01. The producer/consumer gaps for a
 later App↔SWB journey are traced separately in
-[`WINDOWS_APP_SWB_TRACE.md`](../../../PKG-03/DEL-03-03/Design/WINDOWS_APP_SWB_TRACE.md).
+[`WINDOWS_APP_SWB_TRACE.md`](../../../PKG-03/DEL-03-03/Work/WINDOWS_APP_SWB_TRACE.md).
 
 ## Official API basis and evidence limits
 

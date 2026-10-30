@@ -184,7 +184,7 @@ S01/sidecars/durability, App native controls and supplier evidence remain deferr
 The installed managed runtime's actual machine/native machine and pointer width
 are logged; ARM64/AnyCPU evidence does not establish Windows-x64 App execution.
 
-The separate [P-03 source candidate](../../../execution/PKG-01/DEL-01-02/Design/HOSTED_WINDOWS_P03_STOP_CANDIDATE.md)
+The separate [P-03 source candidate](../../../execution/PKG-01/DEL-01-02/Work/HOSTED_WINDOWS_P03_STOP_CANDIDATE.md)
 adds `P03Fixture.cs`, `run_hosted_p03.py`, `verify_p03.py` and the supplemental
 `windows-stop-fixtures.yml`. Hosted native-AMD64 P-03 run `40922543448` at
 `0aec700d` completed the positive case, wrong-slot negative and missing-observation

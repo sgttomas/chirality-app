@@ -270,4 +270,4 @@ needs:
   gating: false
   evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
 checks:
-- execution/PKG-10/DEL-10-03/Design/prototype/ra_check.py
+- execution/PKG-10/DEL-10-03/Work/prototype/ra_check.py

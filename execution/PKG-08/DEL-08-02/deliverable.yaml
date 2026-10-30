@@ -135,4 +135,4 @@ needs:
   gating: false
   evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
 checks:
-- execution/PKG-08/DEL-08-02/Design/prototype/check_rtd.py
+- execution/PKG-08/DEL-08-02/Work/prototype/check_rtd.py

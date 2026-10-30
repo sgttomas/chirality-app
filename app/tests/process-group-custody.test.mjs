@@ -7,7 +7,7 @@ import {execFileSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import Ajv2020 from 'ajv/dist/2020.js';
 const app=new URL('../',import.meta.url);
-const design=new URL('../execution/PKG-01/DEL-01-01/Design/',app);
+const design=new URL('../execution/PKG-01/DEL-01-01/Work/',app);
 const load=p=>JSON.parse(readFileSync(p,'utf8'));
 const current=load(new URL('hosting.lifecycle-event.v0.10.schema.json',design));
 const legacy=load(new URL('hosting.lifecycle-event.schema.json',design));

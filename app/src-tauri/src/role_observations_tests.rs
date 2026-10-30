@@ -76,7 +76,7 @@ fn schema_bytes_match_and_fresh_reader_keeps_exact_app_sources_without_role_auth
     assert_eq!(
         SCHEMA.as_bytes(),
         include_bytes!(
-            "../../../execution/PKG-02/DEL-02-04/Design/role-supply-observation.schema.json"
+            "../../../execution/PKG-02/DEL-02-04/Work/role-supply-observation.schema.json"
         )
     );
     let f = Fixture::new();
@@ -606,8 +606,8 @@ fn contradictory_h5_and_carrier_and_duplicate_observation_ids_are_refused() {
 }
 #[test]
 fn mixed_observation_01_02_log_heads_and_export_keep_declared_schemas(){
-    assert_eq!(OLD_SCHEMA.as_bytes(),include_bytes!("../../../execution/PKG-02/DEL-02-04/Design/role-supply-observation-0.1.schema.json"));
-    assert_eq!(include_bytes!("../resources/workflow_role/role-limit-observation.schema.json"),include_bytes!("../../../execution/PKG-02/DEL-02-04/Design/role-limit-observation.schema.json"));
+    assert_eq!(OLD_SCHEMA.as_bytes(),include_bytes!("../../../execution/PKG-02/DEL-02-04/Work/role-supply-observation-0.1.schema.json"));
+    assert_eq!(include_bytes!("../resources/workflow_role/role-limit-observation.schema.json"),include_bytes!("../../../execution/PKG-02/DEL-02-04/Work/role-limit-observation.schema.json"));
     let f=Fixture::new();let log=f.log();let c=composition();let mut old=observation("sup:old","supplied");old["formatVersion"]=json!("0.1");log.append(old,Some(&c)).unwrap();
     let prefix=std::fs::read(f.directory().join(LOG)).unwrap();f.append(&log,"sup:current","supplied");
     assert!(std::fs::read(f.directory().join(LOG)).unwrap().starts_with(&prefix));
@@ -725,7 +725,7 @@ fn native_children_mixed_01_02_03_preserves_previous_schema_bytes_and_rows() {
     assert_eq!(
         PREVIOUS_SCHEMA.as_bytes(),
         include_bytes!(
-            "../../../execution/PKG-02/DEL-02-04/Design/role-supply-observation-0.2.schema.json"
+            "../../../execution/PKG-02/DEL-02-04/Work/role-supply-observation-0.2.schema.json"
         )
     );
     let f = Fixture::new();

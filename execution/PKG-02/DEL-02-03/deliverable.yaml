@@ -452,6 +452,6 @@ checks:
 - app/src-tauri/src/after_run_end_tests.rs
 - app/tests/run-panel.test.mjs
 - app/tests/validate-records.test.mjs
-- execution/PKG-02/DEL-02-03/Design/checkpoint-record-entries.schema.json
-- execution/PKG-02/DEL-02-03/Design/prototype/checkpoint_recorder.py
-- execution/PKG-02/DEL-02-03/Design/prototype/required_tool_check.py
+- execution/PKG-02/DEL-02-03/Work/checkpoint-record-entries.schema.json
+- execution/PKG-02/DEL-02-03/Work/prototype/checkpoint_recorder.py
+- execution/PKG-02/DEL-02-03/Work/prototype/required_tool_check.py

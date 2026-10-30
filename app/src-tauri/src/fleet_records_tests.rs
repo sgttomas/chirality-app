@@ -1,7 +1,7 @@
 //! Invented local file records, never native/person act or supplier witnesses.
 use super::*;
 
-const PACKET: &str = include_str!("../../../execution/PKG-06/DEL-06-01/Design/prototype/fixtures/FX-FL1/coordination.fleet.jsonl");
+const PACKET: &str = include_str!("../../../execution/PKG-06/DEL-06-01/Work/prototype/fixtures/FX-FL1/coordination.fleet.jsonl");
 struct Fixture { root: PathBuf, project: PathBuf, store: records_store::Store }
 impl Fixture {
     fn new() -> Self {
@@ -62,8 +62,8 @@ fn fleet_reader_native_adapter_full_response() {
         let v:Value=serde_json::from_str(line).unwrap(); OBSERVED.contains(&v["kind"].as_str().unwrap())
     }).flat_map(str::as_bytes).copied().collect();
     f.put(&dir.join("fleet").join(LOG),&protected);
-    f.put(&f.project.join(FOLDER).join("briefs/W1.json"),include_bytes!("../../../execution/PKG-06/DEL-06-01/Design/prototype/fixtures/FX-FL1/briefs/W1.json"));
-    f.put(&f.project.join(FOLDER).join("graphs/FX-U1/r1.json"),include_bytes!("../../../execution/PKG-06/DEL-06-01/Design/prototype/fixtures/FX-FL1/graphs/FX-U1/r1.json"));
+    f.put(&f.project.join(FOLDER).join("briefs/W1.json"),include_bytes!("../../../execution/PKG-06/DEL-06-01/Work/prototype/fixtures/FX-FL1/briefs/W1.json"));
+    f.put(&f.project.join(FOLDER).join("graphs/FX-U1/r1.json"),include_bytes!("../../../execution/PKG-06/DEL-06-01/Work/prototype/fixtures/FX-FL1/graphs/FX-U1/r1.json"));
     let before=inventory(&f.root);let view=f.read();
     assert_eq!(inventory(&f.root),before,"actual native adapter read creates/changes no file or lock");
     assert_eq!(view["briefs"].as_array().unwrap().len(),1);assert_eq!(view["graphs"].as_array().unwrap().len(),1);

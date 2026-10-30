@@ -324,7 +324,7 @@ maximum relative path **130** units and maximum component **62**; no
 case-fold collisions, Windows reserved basenames, forbidden component
 characters or trailing dot/space were found in this lexical census. It is not
 a Windows checkout witness. Counts, longest paths and source digests are in
-[`windows-platform-evidence.json`](../../DEL-01-02/Design/windows-platform-evidence.json).
+[`windows-platform-evidence.json`](../../DEL-01-02/Work/windows-platform-evidence.json).
 
 Recommend a **full App checkout at `C:\a`**: longest tracked absolute name
 is **135** UTF-16 units (139 at `C:\s\app`), below ordinary MAX_PATH.
@@ -387,7 +387,7 @@ offline build/schema/resource entry points, and exercise invented names at
 Report each tool/API's actual success/refusal. Git checkout success is not a
 broader App path-support promise. Windows Python-dependent checks remain
 deferred as recorded above. Process/file/SQLite probe gates are owned by
-[`WINDOWS_PLATFORM_SERVICES.md`](../../DEL-01-02/Design/WINDOWS_PLATFORM_SERVICES.md).
+[`WINDOWS_PLATFORM_SERVICES.md`](../../DEL-01-02/Work/WINDOWS_PLATFORM_SERVICES.md).
 VS integrity and acquisition authorization remain separate holds; Agent 0's
 independent metadata follow-up does not authorize a retry or provisioning.
 

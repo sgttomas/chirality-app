@@ -136,7 +136,7 @@ fn confirm_closes_to_new_turns_writes_every_interrupt_then_waits_then_stops() {
 fn every_label_is_one_of_the_four_schema_values() {
     let four = ["interrupted by Stop Codex", "completed (Stop Codex requested)", "failed (Stop Codex requested)", "interrupted by Stop Codex (final status not observed)"];
     // DEL-01-02 recovery.stop-request.schema.json, `outcomeLabel` enum.
-    let schema = include_str!("../../../execution/PKG-01/DEL-01-02/Design/recovery.stop-request.schema.json");
+    let schema = include_str!("../../../execution/PKG-01/DEL-01-02/Work/recovery.stop-request.schema.json");
     let enumerated = &schema[schema.find("\"outcomeLabel\"").unwrap()..];
     let enumerated = &enumerated[..enumerated.find(']').unwrap()];
     for status in [Some("interrupted"), Some("completed"), Some("failed"), Some("inProgress"), Some("other"), None] {

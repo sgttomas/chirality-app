@@ -48,7 +48,7 @@ direction; a component pass does not silently satisfy or replace them.
   then distribution readiness. One coordinated offline unsigned build is now
   retained as candidate `795362874d-a391547a5c5d`; PR #15 carries its additive
   identity support and input/bundle correspondence, not native qualification.
-  PR #20 is merged: [the bounded headless result](../PKG-09/DEL-09-02/Design/HEADLESS_SETUP_RESULT.md)
+  PR #20 is merged: [the bounded headless result](../PKG-09/DEL-09-02/Work/HEADLESS_SETUP_RESULT.md)
   preserves two Rust cases and seven React/miniDOM checks at source `d908cbec5b`,
   plus the failed native-selector attempt. This is test-profile evidence, not
   qualification of the retained desktop bundle. Remaining work in the outgoing

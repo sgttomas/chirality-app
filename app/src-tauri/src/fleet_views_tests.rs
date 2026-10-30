@@ -109,7 +109,7 @@ fn work<'a>(v: &'a Value, id: &str) -> &'a Value {
 }
 fn brief(id: &str, preparer: &str) -> Value {
     let mut value: Value = serde_json::from_str(include_str!(
-        "../../../execution/PKG-06/DEL-06-01/Design/prototype/fixtures/FX-FL1/briefs/W1.json"
+        "../../../execution/PKG-06/DEL-06-01/Work/prototype/fixtures/FX-FL1/briefs/W1.json"
     ))
     .unwrap();
     value["recordId"] = json!(format!("fl:{id}"));
@@ -320,7 +320,7 @@ fn fleet_views_return_survives_item_removal_from_current_graph() {
 fn fleet_views_brief_owner_is_bound_to_the_same_item_and_undertaking() {
     let mut f = Fixture::new();
     let mut brief: Value = serde_json::from_str(include_str!(
-        "../../../execution/PKG-06/DEL-06-01/Design/prototype/fixtures/FX-FL1/briefs/W1.json"
+        "../../../execution/PKG-06/DEL-06-01/Work/prototype/fixtures/FX-FL1/briefs/W1.json"
     ))
     .unwrap();
     brief["undertaking"] = json!("U");
@@ -375,7 +375,7 @@ fn fleet_views_orphan_review_or_integration_never_restores_ready_or_done() {
 fn fleet_views_same_id_changed_project_observation_has_no_exact_counterpart() {
     let mut f = Fixture::new();
     f.put("inputs/style.txt", b"style");
-    let raw=include_str!("../../../execution/PKG-06/DEL-06-01/Design/prototype/fixtures/FX-FL1/coordination.fleet.jsonl");
+    let raw=include_str!("../../../execution/PKG-06/DEL-06-01/Work/prototype/fixtures/FX-FL1/coordination.fleet.jsonl");
     let mut dispatch: Value = raw
         .lines()
         .filter_map(|l| serde_json::from_str::<Value>(l).ok())
@@ -571,7 +571,7 @@ fn fleet_views_forged_project_dispatch_does_not_promote_execution() {
     let mut f = Fixture::new();
     f.graph["body"]["items"][0]["brief"] = json!("brief:W1");
     f.select();
-    let raw=include_str!("../../../execution/PKG-06/DEL-06-01/Design/prototype/fixtures/FX-FL1/coordination.fleet.jsonl");
+    let raw=include_str!("../../../execution/PKG-06/DEL-06-01/Work/prototype/fixtures/FX-FL1/coordination.fleet.jsonl");
     let mut dispatch: Value = raw
         .lines()
         .filter_map(|l| serde_json::from_str::<Value>(l).ok())

@@ -153,7 +153,7 @@ jobs:
           npm run build
           python src-tauri/schemas/sync.py
       - name: Design schema conditional regressions
-        run: python3 -m unittest discover -s ../execution/PKG-04/DEL-04-03/Design/prototype -p 'test_minischema.py'
+        run: python3 -m unittest discover -s ../execution/PKG-04/DEL-04-03/Work/prototype -p 'test_minischema.py'
       - name: Supplier carriage detector regressions (no supplier required)
         run: |
           python3 supplier_checks/test_records_delivery.py
@@ -227,7 +227,7 @@ jobs:
           npm run build
           python src-tauri/schemas/sync.py
       - name: Design schema conditional regressions
-        run: python3 -m unittest discover -s ../execution/PKG-04/DEL-04-03/Design/prototype -p 'test_minischema.py'
+        run: python3 -m unittest discover -s ../execution/PKG-04/DEL-04-03/Work/prototype -p 'test_minischema.py'
       - name: Supplier carriage detector regressions (no supplier required)
         run: |
           python3 supplier_checks/test_records_delivery.py

@@ -22,7 +22,7 @@ their owned branches, worktrees and scratch. Keep named recovery inputs and
 evidence still needed by consumers.
 
 Enter through `loop/LOOP_INIT.md`. Requirements and interfaces live in `docs/`;
-deliverables retain their `execution/PKG-nn/DEL-nn-nn/ScopeOfWork.md`, `Design/`
+deliverables retain their `execution/PKG-nn/DEL-nn-nn/ScopeOfWork.md`, `Work/`
 and `deliverable.yaml` conventions. Reconcile changed implementation meaning
 with those documents; leave unchanged commitments and historical evidence alone.
 Do not modify `foundation/thesis/`.

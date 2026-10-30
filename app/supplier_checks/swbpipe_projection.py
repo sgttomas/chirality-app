@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-CATALOG_PATH = ROOT / "execution/PKG-09/DEL-09-06/Design/SWBPIPE_CATALOG_PROPOSAL.json"
+CATALOG_PATH = ROOT / "execution/PKG-09/DEL-09-06/Work/SWBPIPE_CATALOG_PROPOSAL.json"
 
 
 def expand(catalog, schema):

@@ -16,7 +16,7 @@
 - **Account and model:** a ChatGPT account. The App showed "ChatGPT account
   (no email reported)", identity not verified. Model `gpt-6-luna`, provider
   `openai`, typed in lowercase and kept as typed (D-2 of the
-  [first native witness](../../../PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md)
+  [first native witness](../../../PKG-01/DEL-01-02/Work/NATIVE_WITNESS_2026-10-10.md)
   holds natively).
 - **Workspace:** a scratch project, recorded here as `<scratch project>`;
   paths below are relative to it. The draft tried was `summarize-decisions`

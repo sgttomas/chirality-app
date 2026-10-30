@@ -15,7 +15,7 @@ its companions and the deliverable Scopes of Work and Designs.
 
 Development enters through the [App v4 loop](loop/LOOP_INIT.md). Deliverables live
 in `execution/PKG-nn/DEL-nn-nn/`: `ScopeOfWork.md` holds commitments and acceptance
-criteria, `Design/` holds contracts and open implementation conditions, and
+criteria, `Work/` holds contracts and open implementation conditions, and
 `deliverable.yaml` states needs and code/check pointers. Query their inputs and
 consumers with the [deliverables tools](tools/deliverables/README.md).
 For the toolchain, build and launch instructions, start with the

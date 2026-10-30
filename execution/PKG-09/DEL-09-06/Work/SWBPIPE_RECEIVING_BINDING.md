@@ -35,7 +35,7 @@ Canonical Design/runtime catalog objects still equal the existing receiving
 pin; no repin or catalog/schema test rerun is required.
 
 The next App receiving check is the
-[first actual desktop trace](../../DEL-09-07/Design/SWBPIPE_RECEIVING.md#first-desktop-trace-receiving-checks),
+[first actual desktop trace](../../DEL-09-07/Work/SWBPIPE_RECEIVING.md#first-desktop-trace-receiving-checks),
 after the host establishes the native route. The exact proposed acceptance
 staging in App PR #14 remains unadopted; this update changes no requirement.
 
@@ -97,7 +97,7 @@ credential diagnostics and activation decisions. No fallback is selected here.
 **Receiving gap addressed here:** a current, source-bound receiving and
 applicability account joining these sources to DEL-09-07 and the release packet.
 This Design repair supplies that account and
-[the qualification receiving map](../../DEL-09-07/Design/SWBPIPE_RECEIVING.md).
+[the qualification receiving map](../../DEL-09-07/Work/SWBPIPE_RECEIVING.md).
 No App runtime adapter defect or missing standalone external controller is
 established by these sources. No App implementation prerequisite is needed for
 the current host fixture. Existing v2 specimen coverage remains applicable
@@ -342,6 +342,6 @@ route, actual proposal review/application and truthful stale/interruption/outcom
 evidence, native cleanup/isolation and full reference-system capability.
 DEL-09-07 still needs candidate-bound local journey, durable evidence joins and
 complete same-run traffic/native-enforcement observations. The
-[receiving map](../../DEL-09-07/Design/SWBPIPE_RECEIVING.md) assigns these inputs
+[receiving map](../../DEL-09-07/Work/SWBPIPE_RECEIVING.md) assigns these inputs
 and identifies acceptance reconciliation reserved to the owner. W9-A remains
 development evidence only. Source receipt does not qualify either product.

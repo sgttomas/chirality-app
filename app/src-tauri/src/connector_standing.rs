@@ -383,7 +383,7 @@ mod tests {
     #[test]
     fn exhaustive_reliance_and_schema_vocabulary() {
         let mut schema: serde_json::Value = serde_json::from_str(include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
-            "/../../execution/PKG-07/DEL-07-02/Design/connector.standing.schema.json"))).unwrap();
+            "/../../execution/PKG-07/DEL-07-02/Work/connector.standing.schema.json"))).unwrap();
         schema["$ref"] = serde_json::json!("#/$defs/standing");
         let validator = jsonschema::validator_for(&schema).unwrap();
         for connector in [Connector::Pec, Connector::Domains] {

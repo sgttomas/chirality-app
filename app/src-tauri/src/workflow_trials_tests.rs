@@ -486,7 +486,7 @@ fn trial_link_origins_reopen_without_rewriting_legacy_claims_or_creating_acts() 
 
 #[test]
 fn trial_schema_resource_is_byte_equal_to_its_source_and_source_map_hash() {
-    let source = include_str!("../../../execution/PKG-02/DEL-02-02/Design/workspace-registration.schema.json");
+    let source = include_str!("../../../execution/PKG-02/DEL-02-02/Work/workspace-registration.schema.json");
     let resource = include_str!("../resources/workflow_role/workspace-registration.schema.json");
     assert_eq!(source, resource);
     let map: Value = serde_json::from_str(include_str!("../resources/workflow_role/SOURCE_MAP.json")).unwrap();
@@ -577,7 +577,7 @@ fn fidelity_readings_follow_tt9() {
 // every invalid one is refused, against the App's resource copy of the schema.
 #[test]
 fn design_conformance_instances_hold_against_the_resource_schema() {
-    let valid = include_str!("../../../execution/PKG-02/DEL-02-02/Design/workspace-registration.valid.examples.jsonl");
+    let valid = include_str!("../../../execution/PKG-02/DEL-02-02/Work/workspace-registration.valid.examples.jsonl");
     let mut kinds = std::collections::BTreeSet::new();
     for line in valid.lines().filter(|l| !l.trim().is_empty()) {
         let v: Value = serde_json::from_str(line).unwrap();
@@ -587,7 +587,7 @@ fn design_conformance_instances_hold_against_the_resource_schema() {
     }
     assert!(kinds.contains("trial_pointer") && kinds.contains("trial_observation"));
     let invalid: Vec<Value> =
-        serde_json::from_str(include_str!("../../../execution/PKG-02/DEL-02-02/Design/workspace-registration.invalid.examples.json")).unwrap();
+        serde_json::from_str(include_str!("../../../execution/PKG-02/DEL-02-02/Work/workspace-registration.invalid.examples.json")).unwrap();
     for case in invalid {
         let kind = case["kind"].as_str().unwrap();
         assert!(crate::workflow_workspace::wr_validate(kind, &case["instance"]).is_err(), "{} accepted", case["case"]);

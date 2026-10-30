@@ -12,6 +12,13 @@ import sys
 
 from inventory import anchored, compare, inspect_signatures, scan, sha256
 
+
+def deliverable_path(root, relative):
+    """A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md)."""
+    work = re.sub(r'^(execution/PKG-\d+/DEL-\d+-\d+/)Design/', r'\1Work/', relative)
+    return work if work != relative and not os.path.lexists(os.path.join(root, relative)) else relative
+
+
 HERE=Path(__file__).resolve().parent
 PROJECT=HERE.parent.parent
 LIMITS=[
@@ -39,7 +46,7 @@ def read_json(path):
 def check_basis():
     pins=read_json(HERE/'sources.json')
     for name,digest in pins['sources'].items():
-        if sha256((PROJECT/name).read_bytes())!=digest:
+        if sha256((PROJECT/deliverable_path(PROJECT,name)).read_bytes())!=digest:
             raise ValueError(f'canonical packaging source changed: {name}')
     return sha256((HERE/'sources.json').read_bytes())
 

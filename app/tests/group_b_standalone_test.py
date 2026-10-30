@@ -27,7 +27,7 @@ class StandalonePreparationTest(unittest.TestCase):
     def test_exact_source_map_and_counts(self):
         lock = prep.verified_sources()
         path = next(x['path'] for x in lock['sources'] if x['role'] == 'step_map')
-        source = json.loads((prep.ROOT / path).read_text())
+        source = json.loads((prep.ROOT / prep.deliverable_path(prep.ROOT, path)).read_text())
         self.assertEqual(self.plan['stimuli'], source['stimuli'])
         for scenario in self.plan['scenarios']:
             steps = source['scenarios'][scenario['scenario']]
@@ -94,7 +94,7 @@ class StandalonePreparationTest(unittest.TestCase):
             for item in prep.verified_sources()['sources']:
                 target = root / item['path']
                 target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes((prep.ROOT / item['path']).read_bytes())
+                target.write_bytes((prep.ROOT / prep.deliverable_path(prep.ROOT, item['path'])).read_bytes())
             self.assertEqual(prep.prepare(root), self.plan)
             target.write_text('changed source')
             with self.assertRaisesRegex(ValueError, 'source changed'):
@@ -106,7 +106,7 @@ class StandalonePreparationTest(unittest.TestCase):
             for item in prep.verified_sources()['sources']:
                 target = root / item['path']
                 target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes((prep.ROOT / item['path']).read_bytes())
+                target.write_bytes((prep.ROOT / prep.deliverable_path(prep.ROOT, item['path'])).read_bytes())
                 if 'selectors' in item:
                     with target.open('a') as stream:
                         stream.write('\n## Unrelated implementation observation\nChanged internal code; same case.\n')
@@ -116,7 +116,7 @@ class StandalonePreparationTest(unittest.TestCase):
         for source in prep.verified_sources()['sources']:
             if 'selectors' not in source:
                 continue
-            original = (prep.ROOT / source['path']).read_bytes()
+            original = (prep.ROOT / prep.deliverable_path(prep.ROOT, source['path'])).read_bytes()
             for selector in source['selectors']:
                 key = selector.get('heading', selector.get('case', selector.get('paragraphPrefix')))
                 with self.subTest(source=source['role'], clause=key):

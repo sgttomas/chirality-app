@@ -7,7 +7,7 @@ with independent review and integration of the complete patch. No production
 consumer or package is adopted by this document.
 
 DEL-01-06 selects `pkg-identity.s1` in the shared single physical cohort at
-[DEL-01-01 Design/distribution-s1](../../DEL-01-01/Design/distribution-s1/README.md).
+[DEL-01-01 Design/distribution-s1](../../DEL-01-01/Work/distribution-s1/README.md).
 The PKG owner retains ownership of package rules despite the shared file home.
 The exact schema, semantic model and source dependency identities are in that
 cohort's PUBLICATION.json. There is no alternative local copy or fallback.

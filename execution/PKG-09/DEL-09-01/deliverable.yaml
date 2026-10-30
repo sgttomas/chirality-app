@@ -133,5 +133,5 @@ code_paths:
 - app/examination/candidate_identity/bundled_supplier.py
 checks:
 - app/tests/group_b_sq_receiving_test.py
-- execution/PKG-09/DEL-09-01/Design/prototype/check_exp.py
+- execution/PKG-09/DEL-09-01/Work/prototype/check_exp.py
 - app/tests/candidate_identity_test.py

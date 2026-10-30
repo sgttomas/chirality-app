@@ -3,7 +3,7 @@
 Current coordination uses the owner-authorized direct T3 routes and delivery
 owners in [CURRENT_EXECUTION_BASIS.md](CURRENT_EXECUTION_BASIS.md#current-release-pathway).
 Current source-bound host receiving/evidence is maintained in
-[DEL-09-06's receiving account](../PKG-09/DEL-09-06/Design/SWBPIPE_RECEIVING_BINDING.md).
+[DEL-09-06's receiving account](../PKG-09/DEL-09-06/Work/SWBPIPE_RECEIVING_BINDING.md).
 The September relay and readiness statements below retain their dated meaning;
 they are not current host status. PEC delivery is retired and adds no prerequisite.
 
@@ -52,10 +52,10 @@ Basis: [accepted composite](https://github.com/sgttomas/chirality/blob/archive%2
 
 The interface questions above are superseded in detail by a consolidated,
 deduplicated set of 32 questions developed against the App/shared definitions:
-[`RELAY_QUESTIONS_SWBPIPE.md`](../PKG-09/DEL-09-06/Design/RELAY_QUESTIONS_SWBPIPE.md)
+[`RELAY_QUESTIONS_SWBPIPE.md`](../PKG-09/DEL-09-06/Work/RELAY_QUESTIONS_SWBPIPE.md)
 (DEL-09-06/RELAY-v0.3). The owner relayed it to the SWBPIPE session on
 2026-09-28 (owner's statement). SWBPIPE's answers were received the same day:
-[`RELAY_ANSWERS_SWBPIPE.md`](../PKG-09/DEL-09-06/Design/RELAY_ANSWERS_SWBPIPE.md).
+[`RELAY_ANSWERS_SWBPIPE.md`](../PKG-09/DEL-09-06/Work/RELAY_ANSWERS_SWBPIPE.md).
 The owner deferred the host joins (DECISION-3, run APP-V4-SWBPIPE-INTAKE-20260928).
 
 **Note for SWBPIPE (owner direction, DECISION-4 D4-2).**

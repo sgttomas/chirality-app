@@ -17,7 +17,7 @@ from unittest.mock import patch
 import recorded_replay as peer
 
 HERE = Path(__file__).resolve().parent
-RECORDINGS = HERE.parents[1] / "execution/PKG-01/DEL-01-01/Design/prototype/st5/recordings"
+RECORDINGS = HERE.parents[1] / "execution/PKG-01/DEL-01-01/Work/prototype/st5/recordings"
 
 
 def capture(scenario="st5"):
