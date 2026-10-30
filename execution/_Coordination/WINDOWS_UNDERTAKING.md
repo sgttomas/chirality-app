@@ -1,6 +1,30 @@
 # Windows feasibility and cross-platform development
 
-## Authority and purpose
+## Current ownership after session retirement
+
+The owner has retired the independent App and SWBPIPE Windows Agent 0
+sessions. Windows work in this repository continues as a WORKING_ITEMS /
+Type 1 manager inside the App v4 Agent 0 loop, entered through the standard
+repository init prompt. App Agent 0 owns shared code, design, sequencing and
+integration. macOS leads as the release baseline; Windows adds platform
+implementations at native boundaries and must preserve the macOS checks.
+Windows shipping, changed commitments, acceptance and releases remain owner
+decisions. No Windows gate is added to the macOS release.
+
+SWBPIPE is moving to its own repository, `sgttomas/SWBPIPE`; coordinate future
+cross-project interfaces through each project's Agent 0. Historical source
+pins and findings below retain their original repositories and revisions;
+this ownership change does not repin evidence or adopt a shared runtime.
+Retired session links below are historical contacts, not continuing owners.
+
+Hosted Windows CI remains the development route. Preserve the dormant build
+VM and its private binding without alteration or deletion; the second-local-VM
+route remains on hold. The CAEPIPE VM remains permanently excluded. No image
+acquisition, setup, boot, provisioning or cloud spend is authorized by the
+ownership change. Existing native-evidence limits and owner-reserved choices
+remain in force.
+
+## Original authority and purpose
 
 The owner resumed App v4 development on 2026-10-28 and directed Agent 0 to
 proceed with the proposed Windows undertaking: bounded feasibility first,
@@ -47,8 +71,9 @@ still contain identifiers from before the private-identity direction.
 
 ## Ownership and execution
 
-- HELP_HUMAN / Agent 0: purpose, scope, cross-project alignment, inspection of
-  integrated returns and escalation of reserved choices.
+- App HELP_HUMAN / Agent 0: purpose, scope, shared code/design ownership,
+  cross-project alignment, inspection of integrated returns and escalation
+  of reserved choices. This is the project loop, not a separate Windows loop.
 - One WORKING_ITEMS / Type 1 owner per bounded tranche: implementation,
   ordinary repairs, checks and affected-deliverable reconciliation. The
   provisioning route is held, with no active guest writer. Hosted-fixture
