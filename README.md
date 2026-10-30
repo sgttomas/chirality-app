@@ -1,4 +1,46 @@
-# Chirality App v4
+# Chirality App
+
+Start a conversation with Help Human, the assistant in Chirality App. Work out
+what you need, make a plan when it helps, and carry out the work together. Turn
+a useful plan into a workflow for next time.
+
+[Download Chirality App](https://github.com/sgttomas/chirality-app/releases/latest) · [Website](https://chirality.ai) · [Release announcement](https://chirality.ai/announcements)
+
+## Use the App
+
+Bring a task such as a monthly update, a proposal, an investigation, or a review.
+Help Human can organize references, prepare work, and help you check it. You can
+select a workflow from the library or ask it to turn your plan into one. Return
+to the conversation to reuse and refine the method as your work changes.
+
+You direct the work and decide what is ready to rely on. Use review appropriate
+to its consequences.
+
+## Get the App
+
+- **Current release:** [v3.0.1](https://github.com/sgttomas/chirality-app/releases/tag/v3.0.1),
+  published 2026-09-20 as `Chirality-3.0.1-arm64.dmg` with its SHA-256 checksum.
+  App v4 is [in development](#develop-the-app) and does not replace v3.0.1
+  until a separate release decision.
+- **Requirements:** an Apple Silicon Mac with macOS 15 or newer, and a ChatGPT
+  account. The App uses Codex through your account. Local-model support is
+  planned for a later release.
+- **Your data:** saved plans, workflows, references, and outputs are ordinary
+  files in your folders. Plans stay in conversation history unless you choose
+  to save them to a file. You can keep and use them outside the App. Task
+  content needed by the model is sent to OpenAI using your account; Chirality
+  AI Ltd does not proxy or retain that content. See
+  [installation and data handling](https://chirality.ai/deployment).
+- **Issues:** [report an App issue](https://github.com/sgttomas/chirality-app/issues/new).
+
+App v3 is frozen and no longer developed or verified;
+[Frozen products](https://github.com/sgttomas/chirality/blob/main/projects/FROZEN.md)
+explains source recovery.
+
+Built on [Chirality](https://github.com/sgttomas/chirality)'s principles, roles
+and workflows.
+
+## Develop the App
 
 **Development resumed by owner direction on 2026-10-28.** App v4 has moved here
 from Chirality. The migration does not publish or qualify a v4 release; the
@@ -27,7 +69,7 @@ applies to forward development. The [SWB/Domain interface basis](execution/_Coor
 retains its undelivered and unadopted standing. New contract gaps belong in their
 owning Design; PR descriptions carry the history of their fixes.
 
-## Basis and history
+### Basis and history
 
 The owner accepted the revised composite basis on 2026-09-26, including its open
 matters and external dependencies, and accepted the 60% gate on 2026-10-04. The
@@ -47,7 +89,7 @@ Earlier AgentRuns are in
 [`archive/pre-efficiency-cleanup-2026-10-09`](https://github.com/sgttomas/chirality/tree/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns).
 These are historical sources, not a standing development backlog.
 
-## Layout
+### Layout
 
 | Path | Contents |
 |---|---|
