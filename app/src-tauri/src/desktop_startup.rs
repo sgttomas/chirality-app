@@ -1594,6 +1594,8 @@ mod tests {
         resources: PathBuf,
         shared: [PathBuf; 3],
         project: PathBuf,
+        /// The process store before this fixture; its startup joins may configure another.
+        previous_store: Option<Result<records_store::Store, String>>,
     }
     impl Fixture {
         fn new() -> Self {
@@ -1617,6 +1619,7 @@ mod tests {
             std::fs::create_dir(&shared[2]).unwrap();
             let project = root.join("explicit-project");
             std::fs::create_dir(&project).unwrap();
+            let previous_store = records_store::configured_for_test();
             records_store::use_store_for_test(Some(Ok(records_store::Store {
                 root: data.join("records"),
                 placement: records_store::Placement::Test,
@@ -1628,6 +1631,7 @@ mod tests {
                 resources,
                 shared,
                 project,
+                previous_store,
             }
         }
         fn setup(&self) -> DesktopSetup {
@@ -1745,6 +1749,7 @@ mod tests {
     impl Drop for Fixture {
         fn drop(&mut self) {
             records_store::use_store_for_test(None);
+            records_store::restore_configured_for_test(self.previous_store.take());
             let _ = std::fs::remove_dir_all(&self.root);
         }
     }
