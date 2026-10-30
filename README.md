@@ -9,7 +9,7 @@ targets the full public v4 release with the live embedded SWBPIPE journey.
 It identifies delivery owners, next results and the evidence still needed.
 
 Chirality makes a general agent act within and for a host application. Its
-workflow-authoring App is the exemplar. [App v4 thesis](https://github.com/sgttomas/chirality/blob/main/docs/thesis/app/README.md)
+workflow-authoring App is the exemplar. [Chirality thesis](https://github.com/sgttomas/chirality/blob/main/docs/thesis/README.md)
 develops the reasons for its form; product commitments are in the [PRD](docs/PRD.md),
 its companions and the deliverable Scopes of Work and Designs.
 
