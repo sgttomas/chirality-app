@@ -36,6 +36,15 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def write_once(path, value):
+    with path.open('x') as stream:
+        stream.write(json.dumps(value, indent=2) + '\n')
+
+
+def walk_error(error):
+    raise error
+
+
 def plain(path, directory=False):
     metadata = path.lstat()
     require((stat.S_ISDIR if directory else stat.S_ISREG)(metadata.st_mode),
@@ -162,7 +171,7 @@ class Context:
                 info = path.lstat()
                 entry['root'] = [info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns]
                 rows = []
-                for parent, dirs, files in (os.walk(path, followlinks=False) if stat.S_ISDIR(info.st_mode) else []):
+                for parent, dirs, files in (os.walk(path, followlinks=False, onerror=walk_error) if stat.S_ISDIR(info.st_mode) else []):
                     for item in [Path(parent), *[Path(parent) / n for n in sorted(files + dirs)]]:
                         info = item.lstat()
                         rows.append([str(item.relative_to(path)), info.st_dev, info.st_ino,
@@ -224,6 +233,10 @@ def prepare(context):
 def execute(root, window_end):
     plain(root, directory=True)
     require(root.is_relative_to(T3 / 'scratch'), 'attempt outside task scratch')
+    require(not any(os.path.lexists(root / name) for name in
+                    ('actions.jsonl', 'result.json', 'execution-started.json'))
+            and not list(root.glob('namespace-after*.json')),
+            'attempt already used; preserve original observations')
     record = json.loads((root / 'admission.json').read_text())
     require(record['dependency_sha256'] == dependency_digests(), 'controller dependency changed')
     context = Context.restore(record['context'])
@@ -235,13 +248,16 @@ def execute(root, window_end):
     require(90 < window_end - time.time() <= 300, 'invalid successor resource interval')
     # The exact generated policy is checked in addition to its saved digest.
     require((root / 'phase-A.sb').read_text() == policy(context.inputs()['executable']), 'phase-A policy differs')
+    # Exclusive reservation also refuses concurrent re-execution before the
+    # base has written actions. It contains no product startup request.
+    write_once(root / 'execution-started.json', {'started_at': module.now()})
     try:
         return module.execute(root, window_end)
     finally:
         try:
-            module.write(root / 'namespace-after.json', context.namespaces(require_absent=False))
+            write_once(root / 'namespace-after.json', context.namespaces(require_absent=False))
         except BaseException as error:
-            module.write(root / 'namespace-after-error.json', {'error': str(error),
+            write_once(root / 'namespace-after-error.json', {'error': str(error),
                          'standing': 'namespace metadata incomplete; no retry or cleanup authorized'})
 
 

@@ -142,6 +142,25 @@ class Admission(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'admission source changed'):
             controller.execute(attempt, time.time() + 120)
 
+    def test_bound_execute_refusal_and_retry_preserve_first_namespace_record(self):
+        attempt = self.prepared_attempt()
+        # Exercise the actual rebound base execute up to its slot admission;
+        # no App, subprocess probe or native action can be launched here.
+        with patch('subprocess.check_output', return_value='not the slot wrapper'), \
+             patch('subprocess.Popen', side_effect=AssertionError('no launch')):
+            with self.assertRaisesRegex(RuntimeError, 'slot wrapper missing'):
+                controller.execute(attempt, time.time() + 120)
+        first = (attempt / 'namespace-after.json').read_bytes()
+        namespace = self.home / 'Library/Caches' / self.identifier
+        namespace.mkdir(parents=True)
+        (attempt / 'actions.jsonl').write_text('invented prior actions\n')
+        with self.assertRaisesRegex(RuntimeError, 'attempt already used'):
+            controller.execute(attempt, time.time() + 120)
+        self.assertEqual((attempt / 'namespace-after.json').read_bytes(), first)
+        with self.assertRaises(FileExistsError):
+            controller.write_once(attempt / 'namespace-after.json', {'changed': True})
+        self.assertEqual((attempt / 'namespace-after.json').read_bytes(), first)
+
 
 if __name__ == '__main__':
     unittest.main()

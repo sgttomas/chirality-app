@@ -38,6 +38,12 @@ record/input bytes. It retains fork/exec/network/home containment and actual
 native setup confirmation; no injected startup request is made. First launch
 requires all three new namespace locations absent. Failure preserves observed
 namespace metadata; automatic partial-state retries are refused without deletion.
+Independent prelaunch review by Claude Opus 5.5/high at `306262af` found no
+admission/containment defect and one evidence overwrite on repeated execution.
+The manager repaired that finding with a pre-execution used-attempt refusal,
+exclusive attempt reservation and write-once post-run records. Metadata-walk
+errors are explicit. Seven admission tests pass, including the actual rebound
+base admission path and a second execution preserving the first snapshot.
 B remains a separately reviewed fork-admitting route with actual
 owned-process settlement and explicit detached-helper limits. No workflow,
 recovery, access-mode or personal-human-act outcome follows from the build.
