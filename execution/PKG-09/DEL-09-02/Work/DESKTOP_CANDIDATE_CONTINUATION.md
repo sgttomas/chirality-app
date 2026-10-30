@@ -105,15 +105,20 @@ controller's conditional Quit-question handler is not qualified by this run.
 No supplier startup/relaunch occurred. OS network denial and fork/unlisted-exec
 denial were in force; this is not an exhaustive network-service audit.
 
-Coordination limitation: the full SWBPIPE message observed at 20:50:52Z approved
-the third attempt and offered to confirm a standing window after receiving a
-retry count. Agent 0 misread its shorter thread summary as standing clearance
-and used that interpretation for later START notices without obtaining the
-requested count confirmation. Those notices and END messages, successful guard
-admissions and normal process exits do not retroactively establish the missing
-coordination agreement. The native observations retain their actual scope;
-full resource-coordination compliance is not claimed for those later attempts.
-All intervals are closed. Further runtime work needs its actual fresh agreement.
+Coordination chronology: the 20:50:52Z offer approved the third attempt and
+asked for a retry count before confirming a standing window. At
+20:52:33.956Z, before the fourth attempt, SWBPIPE Agent 0 sent an owner-prompted
+change: phase-A runs need no clearance, START/END handshake or SWBPIPE hold;
+the slot wrapper, fresh guards and shared caps govern concurrent work. This
+is verified in the source thread's actual send event, message
+`440cf786-26a1-41ff-9a3a-de814a61ea6d`, rather than inferred from a summary.
+Later phase-A attempts ran under those controls. Their START/END notices still
+used the older standing-window wording, but did not establish or require a hold.
+Queued cross-thread delivery initially led App Agent 0 to record a missing
+retry-count agreement; the verified chronology supersedes that mistaken
+limitation, not the native evidence. All attempts are settled. RSS/timing work
+uses `t3_exclusive.sh`; overruns or resident processes must still be reported.
+The phase-A arrangement does not establish phase-B supplier containment.
 
 Nine preceding attempts stopped at their actual observation gates and normally
 reaped their original App, code 0, without save, supplier startup, guard abort
