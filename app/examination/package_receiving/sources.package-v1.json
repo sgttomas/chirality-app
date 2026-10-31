@@ -59,7 +59,7 @@
     "app/src-tauri/schemas/publisher-build-binding.s1.schema.json": "9187f7260d0e4258a3776e65319ff0205a241b9eb129eee85766b5247590333f",
     "app/src-tauri/schemas/publisher-build-public-projection.s1.schema.json": "206732ec81d599ca9888212dcce96b30e2a28cb4a054784c3b74183256865088",
     "app/src-tauri/schemas/publisher-build-selection.s1.schema.json": "637c7aab73dc4b32dc971089aa4feb223d2eef8c051ba7cf623fcb15c57bac93",
-    "app/src-tauri/src/installed_custody.rs": "faae63ccc5fecd022b5d329cf73cc45027e009776e27d167d7f4e4062db9f9b6",
+    "app/src-tauri/src/installed_custody.rs": "c604b669c924ca61dad7cdd9ec3d38105b77d2e7f49bc7ab2af455c12e57ce4c",
     "execution/PKG-01/DEL-01-01/Work/distribution-s1/PUBLICATION.json": "f60fee7d14fde037d3e45115ad9a890a8d35cfeee8de5e1722074cafb1e492b3",
     "execution/PKG-01/DEL-01-01/Work/distribution-s1/adoption-attestation.s1.schema.json": "503d549bc69ed802f930711457d1494bbccad8aa431e14170ed2901c9c1ba8fb",
     "execution/PKG-01/DEL-01-01/Work/distribution-s1/basis.json": "5e67a605119fda833cefda9ae3fa9369fd3b4bbf3a1dc051084c55604f3fecce",

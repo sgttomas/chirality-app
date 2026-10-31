@@ -63,7 +63,7 @@
     "app/src-tauri/schemas/publisher-build-binding.s1.schema.json": "9187f7260d0e4258a3776e65319ff0205a241b9eb129eee85766b5247590333f",
     "app/src-tauri/schemas/publisher-build-public-projection.s1.schema.json": "206732ec81d599ca9888212dcce96b30e2a28cb4a054784c3b74183256865088",
     "app/src-tauri/schemas/publisher-build-selection.s1.schema.json": "637c7aab73dc4b32dc971089aa4feb223d2eef8c051ba7cf623fcb15c57bac93",
-    "app/src-tauri/src/installed_custody.rs": "faae63ccc5fecd022b5d329cf73cc45027e009776e27d167d7f4e4062db9f9b6",
+    "app/src-tauri/src/installed_custody.rs": "c604b669c924ca61dad7cdd9ec3d38105b77d2e7f49bc7ab2af455c12e57ce4c",
     "execution/PKG-01/DEL-01-01/Work/distribution-s1/PUBLICATION.json": "f60fee7d14fde037d3e45115ad9a890a8d35cfeee8de5e1722074cafb1e492b3",
     "execution/PKG-01/DEL-01-01/Work/distribution-s1/adoption-attestation.s1.schema.json": "503d549bc69ed802f930711457d1494bbccad8aa431e14170ed2901c9c1ba8fb",
     "execution/PKG-01/DEL-01-01/Work/distribution-s1/basis.json": "5e67a605119fda833cefda9ae3fa9369fd3b4bbf3a1dc051084c55604f3fecce",
@@ -83,8 +83,8 @@
     "execution/PKG-01/DEL-01-06/Work/prototype/check_pkg.py": "1b6f1232fe0b200ffbb0eb56dfbbdfe4a4f29dab3c83e8e1d42b195d752f8d23",
     "execution/PKG-01/DEL-01-06/Work/prototype/read_tree.py": "6dacea788f0a0690ca04bc95f4d50332f4d3ddafb5bb0339147460e64b2debdb",
     "execution/PKG-01/DEL-01-06/Work/terms-position-v1/schema.json": "7a47f1e75453e8df3778e7c59628932f96791906dbe378b8aa2d8db72eecbb08",
-    "app/examination/package_receiving/sources.package-v1.json": "577b6342445dba0ce4815b9f6930a36aa65b814e6b0c535fb8f0e44dd73b0583",
-    "app/examination/package_receiving/adapter.py": "a4988c2cfeb1891027ff494d6fbdb55e0de97732f5e3b85986dfade79d5a9505",
+    "app/examination/package_receiving/sources.package-v1.json": "5e5badb8a90b86f02719f9480aa2f4ee9b79a9930f0c469a95af97133466ed63",
+    "app/examination/package_receiving/adapter.py": "5d88aaf5bdf00f32e37077d51afd1390e1ccf0deaa61ad26cb58312ce72a390e",
     "app/examination/sq_receiving/worker_packages.py": "a0c634ec46dd4b6770d2cd12c83f27962ef284d9d561a5b5ef0acacd0f641025"
   },
   "format": "sq-package-s4-reader-pins/1",
@@ -99,6 +99,6 @@
   },
   "package_source_profile": {
     "path": "app/examination/package_receiving/sources.package-v1.json",
-    "sha256": "577b6342445dba0ce4815b9f6930a36aa65b814e6b0c535fb8f0e44dd73b0583"
+    "sha256": "5e5badb8a90b86f02719f9480aa2f4ee9b79a9930f0c469a95af97133466ed63"
   }
 }
