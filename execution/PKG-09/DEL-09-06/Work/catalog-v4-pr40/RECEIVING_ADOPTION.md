@@ -51,7 +51,10 @@ the catalog side and compares it to converted workspace evidence. Proposal
 `snap.hash` in engine form. Applied proposal outcomes and solve receipt/output
 hashes cross through `agentHash`. Retained result pages use the captured
 `run.basis.modelHash`, already catalog form; they are not relabelled to the
-current edited model. Null/unavailable outcomes are not manufactured hashes.
+current edited model. The receiving join requires exactly one hash role:
+`evaluatedModelHash` must equal the captured basis hash and correspond to the
+engine receipt; `outcomeModelHash` may differ after application. Mixed or absent
+hash roles refuse explicitly. Null/unavailable outcomes are not manufactured hashes.
 
 The workspace records `modelRevision.current` when computing a hash. Publication
 requires the existing generation/UI-revision ownership checks AND that recorded

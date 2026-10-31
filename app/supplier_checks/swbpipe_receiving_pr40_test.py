@@ -76,6 +76,8 @@ class PR40Receiving(unittest.TestCase):
                   'owner_ui_revision':1,'computed_model_revision':3,'model_revision':3,'engine_hash':ENGINE}
         publication={'generation':2,'revision':3,'hash':ENGINE}
         check_snapshot(publication,evidence) # UI counter1 need not equal model counter3.
+        missing=dict(publication);missing.pop('hash')
+        with self.assertRaisesRegex(ValueError,'hash evidence missing'):check_snapshot(missing,evidence)
         for field in ('owner_generation','generation','owner_ui_revision','computed_model_revision'):
             stale=copy.deepcopy(evidence);stale[field]+=1
             with self.subTest(field=field),self.assertRaisesRegex(ValueError,'stale'):check_snapshot(publication,stale)
@@ -114,6 +116,21 @@ class PR40Receiving(unittest.TestCase):
         self.assertTrue(pending.complete(binding,result,later,retained_record=proof)['result']['success'])
         bad=copy.deepcopy(args);bad['basis']['modelHash']=ENGINE
         with self.assertRaises(ValueError):Pending(CAT,binding,json.dumps(bad).encode(),later,retained_record=retained)
+
+    def test_evaluated_hash_cannot_follow_a_changed_model_or_hide_in_mixed_roles(self):
+        changed_engine=dict(ENGINE,value='sha256:'+'b'*64)
+        changed_catalog=dict(HASH,value='b'*64)
+        for data,engine in [({'evaluatedModelHash':changed_catalog},changed_engine),
+                            ({'outcomeModelHash':HASH,'evaluatedModelHash':changed_catalog},ENGINE),
+                            ({},ENGINE), (None,ENGINE)]:
+            with self.subTest(data=data),self.assertRaises(ValueError):
+                check_retained_result(BASIS,dict(RESULT,data=data),engine)
+        evaluated=dict(RESULT,data={'evaluatedModelHash':HASH})
+        check_retained_result(BASIS,evaluated,ENGINE)
+        with self.assertRaisesRegex(ValueError,'correspondence'):
+            check_retained_result(BASIS,evaluated,changed_engine)
+        # A newly applied model remains a legitimate different outcome.
+        check_retained_result(BASIS,dict(RESULT,data={'outcomeModelHash':changed_catalog}),changed_engine)
 
     def test_inspected_callsites_preserve_actual_boundary_relationships(self):
         pins=selected.selection()

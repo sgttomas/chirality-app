@@ -48,6 +48,8 @@ def check_snapshot(publication, evidence):
             or publication['generation'] != evidence['live_generation']):
         raise ValueError('snapshot revision or generation rebound')
     expected = evidence['engine_hash'] if ready else None
+    if 'hash' not in publication:
+        raise ValueError('snapshot hash evidence missing')
     if publication['hash'] != expected:
         raise ValueError('snapshot publishes stale or unrelated hash')
     # Missing/pending hash never becomes ready just because counters match.
@@ -59,10 +61,16 @@ def check_retained_result(captured_basis, result, engine_outcome):
     if result['basis'] != captured_basis:
         raise ValueError('retained basis rebound')
     data = result['data']
-    if 'outcomeModelHash' in data:
-        actual = data['outcomeModelHash']
-    else:
+    if not isinstance(data, dict) or sum(key in data for key in ('outcomeModelHash', 'evaluatedModelHash')) != 1:
+        raise ValueError('exactly one retained hash role required')
+    if 'evaluatedModelHash' in data:
         actual = data['evaluatedModelHash']
+        catalog_hash(captured_basis['modelHash'])
+        if actual != captured_basis['modelHash']:
+            raise ValueError('evaluated hash rebound from captured basis')
+    else:
+        # Application may create a new model; its outcome is not the solve basis.
+        actual = data['outcomeModelHash']
     if engine_outcome is None:
         if actual is not None:
             raise ValueError('unavailable engine outcome fabricated')
