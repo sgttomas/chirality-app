@@ -1,5 +1,16 @@
 # SWBPIPE receiving source and admission correspondence
 
+## Current catalog receiving selection: v3
+
+The [integrated catalog-v3 receiving account](SWBPIPE_CATALOG_V3_RECEIVING.md)
+selects `sgttomas/SWBPIPE@4d8cb7b0c8f101d5102813e634e23ecba29b310e`,
+canonical and packaged 61,618-byte catalogs at SHA256 `652ccc0c…`. This explicitly
+supersedes the selected catalog-v2 basis below for current receiving tests.
+It preserves original/v2 identities and records; it does not reinterpret earlier
+fixture/native observations as current host capability or qualification.
+The sections below retain their historical checkpoint subjects, including
+then-current activation gaps. The v3 account names the remaining live inputs.
+
 ## Current fixture admission and remaining activation boundary
 
 This subsequent receiving update preserves the merged host basis below. It
