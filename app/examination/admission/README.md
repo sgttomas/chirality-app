@@ -2,16 +2,17 @@
 
 This maintained file tool checks EXP-v0.2 review/change-impact records and
 selected relationships to result records. It performs no review, rerun, route
-admission, human act or qualification. CI26's complete support-identity issue
-remains pending. This directory's name is not an admission claim.
+admission, human act or qualification. The direct current-source route is an
+explicit receiving profile, separate from the frozen support publication.
+This directory's name is not an admission claim.
 
 Use Python 3.10+ with the already prepared `jsonschema` environment. From `app/`:
 
 ```sh
-PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/admission_check.py validate review tests/group_b_admission_fixtures/review.json
-PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/admission_check.py validate change tests/group_b_admission_fixtures/change.json --result tests/group_b_admission_fixtures/after.json
-PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/admission_check.py review-join --review tests/group_b_admission_fixtures/review.json --result tests/group_b_admission_fixtures/rerun.json --selection tests/group_b_admission_fixtures/review-selection.json
-PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/admission_check.py change-join --change tests/group_b_admission_fixtures/change.json --before tests/group_b_admission_fixtures/before.json --after tests/group_b_admission_fixtures/after.json --rerun tests/group_b_admission_fixtures/rerun.json --selection tests/group_b_admission_fixtures/change-selection.json
+PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/current_admission.py --profile current-v1 validate review tests/group_b_admission_fixtures/review.json
+PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/current_admission.py --profile current-v1 validate change tests/group_b_admission_fixtures/change.json --result tests/group_b_admission_fixtures/after.json
+PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/current_admission.py --profile current-v1 review-join --review tests/group_b_admission_fixtures/review.json --result tests/group_b_admission_fixtures/rerun.json --selection tests/group_b_admission_fixtures/review-selection.json
+PYTHONDONTWRITEBYTECODE=1 python3 examination/admission/current_admission.py --profile current-v1 change-join --change tests/group_b_admission_fixtures/change.json --before tests/group_b_admission_fixtures/before.json --after tests/group_b_admission_fixtures/after.json --rerun tests/group_b_admission_fixtures/rerun.json --selection tests/group_b_admission_fixtures/change-selection.json
 PYTHONDONTWRITEBYTECODE=1 python3 tests/group_b_admission_test.py
 ```
 
@@ -20,7 +21,11 @@ means schema/rule/join errors; exit 2 means unreadable/ambiguous input, an inval
 selection, or source drift. JSON inputs are read without rewriting them; duplicate
 keys and non-JSON numeric constants are refused. Every input is hashed in the
 report. The canonical sources, schemas and original rule prototype are pinned by
-`sources.json`; maintained rules execute independently of the prototype. No
+`sources.current-v1.json`; maintained rules execute unchanged through the legacy
+reader, independently of the prototype. The original `sources.json` and
+`admission_check.py` remain preserved for frozen consumers. See
+[full-document adoption](../../../execution/PKG-09/DEL-09-01/Work/CURRENT_ADMISSION_ADOPTION.md)
+for exact source/authority identity, historical use and no-fallback limits. No
 network schema retrieval or dated-run dependency is used.
 
 `validate review` applies the unchanged canonical schema and EXP-R6/R7.
