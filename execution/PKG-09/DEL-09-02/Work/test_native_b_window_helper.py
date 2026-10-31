@@ -127,21 +127,39 @@ class HelperTests(unittest.TestCase):
   activate.assert_not_called()
  def test_activation_exact_selectors_receiver_and_pool_lifetime_without_native_load(self):
   objc=SimpleNamespace(objc_getClass=Mock(side_effect=lambda x:x),sel_registerName=Mock(side_effect=lambda x:x))
-  calls=[];actual=123;policy=0
+  calls=[];signatures={};actual=123;policy=0;target='target';sent=True
   def send(receiver,selector,*args):
    calls.append((receiver,selector,args))
    if selector==b'new':return 'pool'
-   if selector==b'runningApplicationWithProcessIdentifier:':return 'target'
+   if selector==b'runningApplicationWithProcessIdentifier:':return target
    if selector==b'processIdentifier':return actual
    if selector==b'activationPolicy':return policy
-   if selector==b'activateWithOptions:':return True
-  with patch.object(h.C,'CDLL',return_value=objc) as load,patch.object(h.C,'CFUNCTYPE',side_effect=lambda *signature:lambda symbol:send):
+   if selector==b'activateWithOptions:':return sent
+  def prototype(*signature):
+   def bind(symbol):
+    self.assertEqual(symbol,('objc_msgSend',objc))
+    def invoke(receiver,selector,*args):
+     signatures[selector]=signature
+     return send(receiver,selector,*args)
+    return invoke
+   return bind
+  with patch.object(h.C,'CDLL',return_value=objc) as load,patch.object(h.C,'CFUNCTYPE',side_effect=prototype):
    result=h.activate_original_app(123)
    self.assertTrue(result['request_sent'])
    self.assertIn(('target',b'activateWithOptions:',(0,)),calls)
    self.assertEqual(calls[-1],('pool',b'drain',()))
    self.assertEqual([c.args[0] for c in load.call_args_list],['/System/Library/Frameworks/AppKit.framework/AppKit','/usr/lib/libobjc.A.dylib'])
-   calls.clear();actual=999
+   c=h.C
+   self.assertEqual(signatures,{b'new':(c.c_void_p,c.c_void_p,c.c_void_p),
+    b'runningApplicationWithProcessIdentifier:':(c.c_void_p,c.c_void_p,c.c_void_p,c.c_int),
+    b'processIdentifier':(c.c_int,c.c_void_p,c.c_void_p),b'activationPolicy':(c.c_long,c.c_void_p,c.c_void_p),
+    b'activateWithOptions:':(c.c_bool,c.c_void_p,c.c_void_p,c.c_ulong),b'drain':(None,c.c_void_p,c.c_void_p)})
+   calls.clear();target=None
+   with self.assertRaisesRegex(RuntimeError,'not registered'):h.activate_original_app(123)
+   self.assertFalse(any(c[1]==b'activateWithOptions:' for c in calls));self.assertEqual(calls[-1][1],b'drain')
+   calls.clear();target='target';sent=False
+   self.assertFalse(h.activate_original_app(123)['request_sent']);self.assertEqual(calls[-1][1],b'drain')
+   calls.clear();sent=True;actual=999
    with self.assertRaisesRegex(RuntimeError,'receiver differs'):h.activate_original_app(123)
    self.assertFalse(any(c[1]==b'activateWithOptions:' for c in calls));self.assertEqual(calls[-1][1],b'drain')
    calls.clear();actual=123;policy=2

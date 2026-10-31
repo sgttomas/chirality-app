@@ -62,7 +62,7 @@ not live ABI correctness or activation success. Narrow independent scrutiny is
 required before live use of this changed focus boundary.
 
 The helper records activation dispatch and timestamped AXFrontmost samples,
-including refusal, in a private write-once focus record. Capture/effect readback
+including Python-level refusal, in a private write-once focus record. Capture/effect readback
 still follows an accepted focus operation. Return values never replace actual
 frontmost or image evidence. All click routing, strict geometry/image/source/
 request/Stop/LT23 gates and no-effect refusal remain unchanged.295s, existing phase
@@ -98,7 +98,33 @@ Unrun root `/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p
 admission SHAc01af4142e01c14a7d6b0705af654924ef5eb88641cb7f5045dfeeecc3173f38.
 Basis `/Users/ryan/dev/chirality-t3/scratch/app-owned-activation-prep-tdpmtnw5/retained-v6-inputs.json`,
 SHAe3744063e575220b0c989b4566e7fc3b5cc61df14ed2010be730574e5eda541a.
-All20 dependency/helper/policy hashes match; no execution records. Required review
-and CI are pending. Standing bounded authority covers progression after reviewed
+All20 dependency/helper/policy hashes match; no execution records. The completed
+narrow review is recorded below; exact-head CI remains pending. Standing bounded authority covers progression after reviewed
 integration, not skipping these checks or changing host permissions. Usable capture
 is established; actual focus/navigation/source/Stop/LT23 qualification remains open.
+
+## Narrow review and operational stop condition
+
+Claude Opus5.5/high reviewed d5a4a7b9 with no blocking defects. The reviewer checked
+SDK ABI prototypes and autorelease lifetime, exact PID/policy binding, helper
+crash custody, dispatch-versus-effect semantics, v6 and prepared identities;35
+focused mocked tests passed. No live native library was loaded. Follow-up tests
+now assert each selector's prototype and cover nil target and false activation
+return with pool drainage. These improve source checks, not live ABI proof.
+The helper's appkit local exists to load/retain the system framework so the class
+is registered; its pinned source was left unchanged rather than regenerated for
+a comment. This is the completed review plus documentation/test corrections, not
+a fabricated repeat review.
+
+On macOS14+ cooperative activation, a background non-active helper may have its
+request ignored even when dispatch returns YES. This may reproduce the prior
+refusal; effectiveness remains unproven. A second refusal is an expected stop
+condition: preserve the trace, refuse input and use known-safe cleanup. Do not
+automatically yield activation, call activateFromApplication:, change flags,
+extend timing or switch mechanisms. Any such change needs a concrete reviewed
+decision and scope, not a live fallback or permission bypass.
+
+The focus record exists for Python-level refusals only. Native Objective-C aborts,
+FFI crashes or keeper timeout kills may skip finally/drain/trace writes; helper
+stderr/nonzero exit and the keeper's refusal are then the available receipt.
+A missing focus record must never be turned into activation or settlement proof.
