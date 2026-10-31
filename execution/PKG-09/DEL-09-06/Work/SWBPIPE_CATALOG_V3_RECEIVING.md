@@ -58,7 +58,7 @@ edits. Descriptive guidance is never parsed into a unit policy or operation
 permission. Native applier validation of payload JSON strings, dimension/unit
 consistency, object existence, batch order and semantic feasibility remains
 SWBPIPE-owned. SWBPIPE Agent 0 confirmed no counterpart mismatch for this
-boundary on 2026-10-31: applier checks are authoritative; unit descriptions are
+boundary on 2026-10-31 UTC: applier checks are authoritative; unit descriptions are
 guidance, and a future binding catalog-level unit rule requires a new version/hash.
 These receiving tests do not mint full native intents, queue a
 batch or simulate a person's Apply. A schema-valid `after` string is not a

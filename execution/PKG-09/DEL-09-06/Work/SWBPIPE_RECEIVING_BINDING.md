@@ -140,6 +140,10 @@ accepted all 12 expanded input/output schemas in each catalog (24 total).
 Whitespace checks passed. No dependency installation, supplier/model/GUI run,
 heavy build or broad suite was performed.
 
+The command below preserves the historical v2 invocation. To execute that
+subject today, use the retained runner instead of the current v3-only script:
+`PYTHONPATH=app/supplier_checks python3 execution/PKG-09/DEL-09-06/Work/catalog-v2/receiving-test.py.txt --catalog <v2 export>`.
+
 To reproduce the optional receiving input, export it from any explicitly chosen
 Chirality checkout containing the pinned commit, without changing that checkout:
 
@@ -223,6 +227,8 @@ wrong generation/workspace/handles, rebasing/forgery/detachment/duplicates,
 assumption bounds/references and the resolved proposal status enum.
 Whitespace checks passed. No supplier, server, model, build or network run.
 
+For execution today, use the retained v2 runner identified above; the following
+command records its original invocation, not the current v3-only entry point.
 Reproduce the optional receiving check by exporting that exact committed JSON
 to a fresh scratch directory, then running:
 

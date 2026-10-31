@@ -140,7 +140,8 @@ def intent(row):
 
 
 class CatalogV3Receiving(unittest.TestCase):
-    def propose(self, operations, catalog=V3, units=None, **extra):
+    def propose(self, operations, catalog=None, units=None, **extra):
+        catalog = V3 if catalog is None else catalog
         args = dict(workspaceHandle=BASIS['workspaceHandle'], basis=BASIS,
                     claimedModelHash=HASH, operations=operations, assumptions=[], **extra)
         return Pending(catalog, dict(BINDING, tool='swbpipe_propose_operations'),
@@ -148,6 +149,11 @@ class CatalogV3Receiving(unittest.TestCase):
 
     def input_schema(self):
         return expand(V3, V3['definitions']['proposeInput'])
+
+    def test_proposal_helper_uses_current_explicit_catalog_selection(self):
+        with patch(__name__ + '.V3', dict(V3, catalogVersion='swbpipe-catalog/99')):
+            with self.assertRaisesRegex(ValueError, 'unsupported catalog version'):
+                self.propose([intent(INTENTS[0])])
 
     def test_exact_integrated_selection_and_frozen_origin_remain_distinct(self):
         pins = selection()
