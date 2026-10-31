@@ -200,13 +200,21 @@ Pinned-source conditions found 2026-10-30, with current dispositions:
   Current direct use explicitly selects that profile, reports its own identity,
   and refuses substitution/fallback. The unchanged EXP-v0.2 schemas and rules
   gain no qualification or new acceptance meaning from this adoption.
-- The distribution and terminal receiving cohorts (`app/examination/distribution_receiving/`
-  pins and `PINS_SHA256` constants) record older sources, including `hosting.rs`
-  and `canonical.py`; `app-v4.yml` already excludes them as known-stale. The choice
-  is a reviewed re-binding to current sources or retirement as historical.
+- Agent 0 retired the old synthetic distribution/terminal LT09/LT23 cohorts from
+  current release reliance, preserving original bytes, guards, tests and producer
+  subjects `127d48f61d91b70d00d0670d2150c79b8ac26d1f` and
+  `b5dbfbbdf300b993f34fc87924146073bb017877`.
+  [The owning disposition](../PKG-09/DEL-09-01/Work/HISTORICAL_DISTRIBUTION_TERMINAL_DISPOSITION.md)
+  records the two active canonical-reader guard drifts; no historical hosting
+  pin is blindly renewed. The package/terms/S4 -> EXP/SQ route does not consume
+  those historical exchanges. Test behavior and CI selection remain unchanged.
 
-The full manual Python run is not claimed clean; the remaining distribution/
-terminal conditions need their own reviewed disposition before reliance.
+The full manual Python run is not claimed clean. Actual candidate lifecycle and
+cleanup obligations remain: native issuer/source-bound stopped/tree-ended and
+descendant facts, with unknowns preserved. Pre-spawn package/S4 consistency is
+not terminal proof. Allocate a current terminal adapter only when the actual
+record and consumer need are identified; this source/reliance disposition removes
+no product acceptance criterion.
 
 ### Working controls
 
