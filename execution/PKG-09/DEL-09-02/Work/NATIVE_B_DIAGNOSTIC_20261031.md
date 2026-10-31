@@ -11,8 +11,8 @@ The [archive](../Evidence/EXP/fdcf608fb5-23c6c3f22f5e/native-B-20261031T120630Z/
 maps 46 original files and hashes, including both invocation stages, the
 source-bound inputs, diagnostic, cleanup and an offline CF fixture. All
 originals remain retained. Archived Python/C sources are inert `.txt` evidence.
-The index declares lossless gzip where used; decoded originals and archive
-representations were independently hashed by the manager. `SHA256SUMS` covers
+All46 entries are plain byte-preserved copies; original and archive
+representations were hashed by the manager and verified by independent review. `SHA256SUMS` covers
 all archive files except itself. No opaque supplier-file content was archived.
 
 ## Identity and admission
@@ -60,7 +60,8 @@ permission request, screenshot or foreign-window content was retained.
 
 The owned main-window row had layer0, bounds1100×800 at(106,32), on-screen true,
 and title `Chirality App v4 — walking skeleton`. A second owned500×500 row
-had empty title and absent on-screen value; its purpose is unestablished.
+had empty title and absent on-screen value (SDK default false); its purpose
+is unestablished.
 The main-window fact is sufficient to rule out “no native window existed” at
 this instant; it does not establish rendered content or functional readiness.
 

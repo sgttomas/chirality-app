@@ -17,8 +17,12 @@ the header says a timeout applies only to that object, not other equal objects.
 CFEqual is explicitly supported for AXUIElementRefs. Boolean and pointer widths
 match the actual arm64 API; no concrete truncation/out-pointer mismatch was found.
 
-Both readers use dynamically queried CF type IDs rather than assuming that
-75 always means AXUIElement. The raw diagnostic observed array19, AXUIElement75
+The diagnostic dynamically queries the AX type ID rather than assuming that
+75 always means AXUIElement. The base reader dynamically identifies common CF
+types and passes unrecognised types through unchanged; it does not explicitly
+identify AXUIElement by type ID. Its CFNumberGetValue type argument is c_int
+instead of the SDK CFIndex, a harmless arm64 width mismatch unrelated to pointer
+references; the diagnostic uses the correct c_long. The raw diagnostic observed array19, AXUIElement75
 and string7, with success0 from the relevant calls. It retained raw type/result
 information, then read role from the owned returned reference. The self-reference
 is therefore not merely a title heuristic or a traversal-cycle side effect.
@@ -43,18 +47,23 @@ label/window-label/menu-label CFString objects through a CFTypeRef output
 pointer and a retained CFArray, including a duplicate window reference. The
 Python test used the diagnostic's actual `attribute`, `array`, `scalar`, `equal`
 and `close` methods, while bypassing NativeBackend construction and AX-element
-checks because these were CFString objects, not real AX objects. Only
-CoreFoundation and that fixture library were loaded; no ApplicationServices,
+checks because these were CFString objects, not real AX objects. Source inspection shows loading only
+CoreFoundation and that fixture library (no loaded-image census was recorded); no ApplicationServices,
 WindowServer, permission query, actual App or supplier was involved.
 
 All six checks passed: retained out-pointer/array decoding, distinct/duplicate
 references, UTF8 scalar conversion, raw failure/null output, borrowed children
 remaining valid after the C creator released its own store while the copied
-array stayed retained, and release of the five owned copies. Pointer, CFIndex
+array stayed retained, and release calls for the five tracked owned copies. Those checks use Python
+bookkeeping and successful reads, not measured retain counts; only the menu
+item tests the array as the sole remaining owner, since a separate MainWindow
+copy also retains the window item. Pointer, CFIndex
 and CFTypeID widths were8 bytes. Sources, result and build record are in the
 archive's `offline-abi/`; original fixture root is
 `/Users/ryan/dev/chirality-t3/scratch/app-ax-cf-abi-nz19_vld`.
-This tests the concrete general libffi/CF conversion/lifetime hypothesis, not
+The build record was written after the result and records the command/observed
+return rather than a build-start timestamp. This tests the concrete general
+libffi/CF conversion/lifetime hypothesis, not
 AX remote-object identity or the real application's accessibility implementation.
 
 ## Attribution and minimal remaining route
@@ -62,14 +71,24 @@ AX remote-object identity or the real application's accessibility implementation
 The retained Tauri configuration and overlays request the expected main window;
 WindowServer observed it on-screen. A passed native A used the same candidate
 and network-denied profile. The retained Tao0.35.2 macOS window construction
-uses native NSWindow, while the bounded search of its macOS implementation and
+uses a TaoWindow subclass of NSWindow, overriding canBecomeMainWindow,
+canBecomeKeyWindow and sendEvent:, while the bounded search of its macOS implementation and
 Wry0.55.1 wkwebview source found no explicit override explaining this exact
 Application-as-window result. That search is not proof of framework correctness,
 and neither the source audit nor the fixture establishes a WebKit/Tauri bug,
 sandbox cause or permission failure. No speculative App repair is justified.
 
-The remaining client-specific hypothesis is whether the Python/libffi path and
-a directly SDK-typed AX call disagree for the **same live owned reference**.
+The successful A run used the same hash-pinned base AX source (`91c9ca98`)
+and decoded a distinct titled AXWindow. In B, the same decoder returned a
+distinct AXMenuBar, and the base wrapper, diagnostic and cleanup reader agreed
+on self-reference. These controls already make a general ctypes conversion
+defect unlikely; A/B startup/state/accessibility-condition differences deserve
+more weight than another generic ABI test.
+
+The narrower, lower-priority client-specific hypothesis is a condition-dependent
+disagreement between Python/libffi and a directly SDK-typed AX call for the
+**same live owned application reference**. A comparison can test that residual
+possibility, not establish a suspected defect merely by existing.
 A minimal discriminating route would be a tiny independently implemented C
 function loaded into the existing keeper, with PID supplied only from its live
 original-Child binding. It would call only AXUIElementCreateApplication,
@@ -85,9 +104,17 @@ ctypes conversion explanation becomes substantially less plausible; the result
 still would not identify which upstream native accessibility layer is responsible.
 If it returns distinct Window references while Python does not, compare those
 exact call signatures/reference handling before changing the App. This proposed
-observation boundary has **not** been implemented or run. It needs bounded
+observation boundary was **not** implemented or run in this evidence/audit
+contribution. Parent subsequently authorized separate bounded preparation;
+that source work is outside PR48 and does not amend the captured evidence. It needs bounded
 fixture tests and independent Claude Opus5.5/high scrutiny before inclusion in
 any separately authorized future live profile. Existing window-existence facts
 need not be re-probed. Current retained state would require its own freshly
 reviewed admission; no reset, rebuild, supplier/model/auth/network activity or
 new launch follows from this audit.
+
+Independent Claude Opus5.5/high scrutiny at `22ed2474` verified the archive
+and these live-result distinctions without blocking findings. Its advisory
+about the existing A/menu controls and its ABI/subclass/fixture-limit wording
+corrections are incorporated here. It did not review the separately prepared
+typed reader and provides no new live execution authority.
