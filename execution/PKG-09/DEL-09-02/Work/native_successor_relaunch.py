@@ -47,6 +47,11 @@ V2_SOURCE = HERE.with_name('native_b_retained_v2.py')
 v2_spec = importlib.util.spec_from_file_location('native_B_retained_v2', V2_SOURCE)
 v2_support = importlib.util.module_from_spec(v2_spec)
 v2_spec.loader.exec_module(v2_support)
+V3_SOURCE = HERE.with_name('native_b_retained_v3.py')
+v3_spec = importlib.util.spec_from_file_location('native_B_retained_v3', V3_SOURCE)
+v3_support = importlib.util.module_from_spec(v3_spec)
+v3_spec.loader.exec_module(v3_support)
+SCREEN_VERSIONS = (v2_support.VERSION, v3_support.VERSION)
 SLOT_SOURCE = HERE.with_name('native_b_slot_entry.py')
 SCREEN_SOURCE = HERE.with_name('native_b_screen_route.py')
 screen_spec = importlib.util.spec_from_file_location('native_B_screen', SCREEN_SOURCE)
@@ -82,7 +87,7 @@ def check_observation_capabilities():
 
 
 def dependencies():
-    return {**setup.dependency_digests(), str(setup.HERE): setup.digest(setup.HERE), str(HERE): setup.digest(HERE), str(AX_SOURCE): setup.digest(AX_SOURCE), str(RELEASE_SOURCE): setup.digest(RELEASE_SOURCE), str(RETAINED_SOURCE): setup.digest(RETAINED_SOURCE), str(DIAGNOSTIC_SOURCE): setup.digest(DIAGNOSTIC_SOURCE), str(V2_SOURCE): setup.digest(V2_SOURCE),
+    return {**setup.dependency_digests(), str(setup.HERE): setup.digest(setup.HERE), str(HERE): setup.digest(HERE), str(AX_SOURCE): setup.digest(AX_SOURCE), str(RELEASE_SOURCE): setup.digest(RELEASE_SOURCE), str(RETAINED_SOURCE): setup.digest(RETAINED_SOURCE), str(DIAGNOSTIC_SOURCE): setup.digest(DIAGNOSTIC_SOURCE), str(V2_SOURCE): setup.digest(V2_SOURCE), str(V3_SOURCE): setup.digest(V3_SOURCE),
             str(SLOT_SOURCE): setup.digest(SLOT_SOURCE), str(SCREEN_SOURCE): setup.digest(SCREEN_SOURCE), str(screen_support.w.HERE): setup.digest(screen_support.w.HERE), str(screen_support.w.HELPER): setup.digest(screen_support.w.HELPER)}
 
 
@@ -183,8 +188,8 @@ def prepare(a_root, namespace_basis=None, retained_state=None):
     require(not (namespace_basis and retained_state), 'select one admission version')
     if retained_state:
         version=json.loads(Path(retained_state).read_text())['version']
-        require(version in (retained_support.VERSION,v2_support.VERSION),'unknown retained admission version')
-        selected=v2_support if version==v2_support.VERSION else retained_support
+        require(version in (retained_support.VERSION,*SCREEN_VERSIONS),'unknown retained admission version')
+        selected={retained_support.VERSION:retained_support,v2_support.VERSION:v2_support,v3_support.VERSION:v3_support}[version]
         context, value, bindings, a_files = selected.admit(sys.modules[__name__], retained_state)
         require(json.loads(Path(retained_state).read_text())['a_root'] == str(a_root), 'retained A root differs')
     else:
@@ -195,7 +200,7 @@ def prepare(a_root, namespace_basis=None, retained_state=None):
         (root / name).mkdir(mode=0o700)
     value['environment']['CODEX_HOME'] = str(root / 'codex-home')
     value['environment']['TMPDIR'] = str(root / 'tmp')
-    is_screen=bool(retained_state and version==v2_support.VERSION)
+    is_screen=bool(retained_state and version in SCREEN_VERSIONS)
     if is_screen:
         (root/'helper-tmp').mkdir(mode=0o700)
         value['window_route']=screen_support.w.configuration()
@@ -204,7 +209,7 @@ def prepare(a_root, namespace_basis=None, retained_state=None):
         with os.fdopen(fd,'wb') as f:f.write(SLOT_SOURCE.read_bytes())
     (root / 'phase-B.sb').write_text(policy(value, root))
     (root / 'controller.py.txt').write_bytes(HERE.read_bytes())
-    for source in (AX_SOURCE, RELEASE_SOURCE, RETAINED_SOURCE, DIAGNOSTIC_SOURCE, V2_SOURCE, SCREEN_SOURCE):
+    for source in (AX_SOURCE, RELEASE_SOURCE, RETAINED_SOURCE, DIAGNOSTIC_SOURCE, V2_SOURCE, V3_SOURCE, SCREEN_SOURCE):
         (root / (source.name + '.txt')).write_bytes(source.read_bytes())
     write_once(root / 'admission.json', {'a_root': str(a_root), 'a_files': a_files,
         'controller_path':str(HERE), 'slot_entry_sha256':setup.digest(SLOT_SOURCE) if is_screen else None,
@@ -812,8 +817,8 @@ def execute(root, window_end):
     version=retained_state['version'] if retained_state else 'chirality.native-B.A-only/v1'
     require(admitted.get('admission_version') == version, 'prepared admission version differs')
     if retained_state:
-        require(version in (retained_support.VERSION,v2_support.VERSION), 'retained admission version differs')
-        selected=v2_support if version==v2_support.VERSION else retained_support
+        require(version in (retained_support.VERSION,*SCREEN_VERSIONS), 'retained admission version differs')
+        selected={retained_support.VERSION:retained_support,v2_support.VERSION:v2_support,v3_support.VERSION:v3_support}[version]
         context, value, bindings, a_files = selected.admit(sys.modules[__name__], Path(retained_state['path']))
     else:
         context, value, bindings, a_files = saved_input(Path(admitted['a_root']),
@@ -823,7 +828,7 @@ def execute(root, window_end):
     require(context.namespaces(require_absent=False) == admitted['namespaces'], 'saved namespace changed since B preparation')
     value['environment']['CODEX_HOME'] = str(root / 'codex-home')
     value['environment']['TMPDIR'] = str(root / 'tmp')
-    if version==v2_support.VERSION:
+    if version in SCREEN_VERSIONS:
         value['window_route']=screen_support.w.configuration()
         for filename,digest in value['window_route']['helper_sources'].items():
             require(setup.digest(screen_support.w.private_path(root,filename))==digest,'window helper copy changed')
@@ -831,11 +836,11 @@ def execute(root, window_end):
             and setup.digest(root / 'phase-B.sb') == admitted['policy_sha256'], 'B launch inputs/policy changed')
     require(admitted['allocator'] == allocator_identity(value), 'App allocator changed since admission')
     require(root.stat().st_uid == os.getuid() and stat.S_IMODE(root.stat().st_mode) == 0o700, 'controller root is not private')
-    for name in (('codex-home','tmp','helper-tmp') if version==v2_support.VERSION else ('codex-home','tmp')):
+    for name in (('codex-home','tmp','helper-tmp') if version in SCREEN_VERSIONS else ('codex-home','tmp')):
         setup.plain(root / name, directory=True)
         require(not list((root / name).iterdir()), 'fallback/tmp not fresh')
-    require(90 < window_end - time.time() <= (295 if version==v2_support.VERSION else 300), 'invalid B interval')
-    if version==v2_support.VERSION:
+    require(90 < window_end - time.time() <= (295 if version in SCREEN_VERSIONS else 300), 'invalid B interval')
+    if version in SCREEN_VERSIONS:
         validate_v2_slot_entry(root,admitted,window_end)
     parent = subprocess.check_output(['/bin/ps', '-p', str(os.getppid()), '-o', 'command='], text=True, timeout=2)
     require(str(T3 / 'tools/t3_slot_run.sh') in parent, 'slot wrapper missing')
@@ -845,7 +850,7 @@ def execute(root, window_end):
                                   'PYTHONDONTWRITEBYTECODE': '1'}, capture_output=True, text=True, timeout=45)
     write_once(root / 'artifact-check.json', {'exit_code': checked.returncode, 'stdout': checked.stdout, 'stderr': checked.stderr})
     require(checked.returncode == 0, 'complete candidate inventory refused')
-    run_type=screen_support.make_run(sys.modules[__name__]) if version==v2_support.VERSION else Run
+    run_type=screen_support.make_run(sys.modules[__name__]) if version in SCREEN_VERSIONS else Run
     run = run_type(root, value, time.monotonic() + window_end - time.time(), setup.digest(root / 'admission.json'))
     check_observation_capabilities()
     run.sample(admission=True)
@@ -858,7 +863,7 @@ def execute(root, window_end):
         signal.signal(number, interrupted)
     try:
         with (root / 'stdout.log').open('xb') as out, (root / 'stderr.log').open('xb') as err:
-            require(run.resource_end - time.monotonic() > (280 if version==v2_support.VERSION else 90) and run.reason is None, 'work/cleanup allowance unavailable after admission')
+            require(run.resource_end - time.monotonic() > (280 if version in SCREEN_VERSIONS else 90) and run.reason is None, 'work/cleanup allowance unavailable after admission')
             child = subprocess.Popen(['/usr/bin/sandbox-exec', '-f', str(root / 'phase-B.sb'), value['executable']],
                 cwd=value['native_input_paths']['project'], env=value['environment'], stdin=subprocess.DEVNULL, stdout=out, stderr=err, start_new_session=True)
             run.reservation = AppReservation(child)  # Before any later IO can fail.
@@ -932,9 +937,14 @@ if __name__ == '__main__':
     parser.add_argument('--from-A', dest='from_a', type=Path)
     parser.add_argument('--projection', type=Path)
     parser.add_argument('--capture-retained-v2', type=Path)
+    parser.add_argument('--capture-retained-v3', type=Path)
     parser.add_argument('--assessment', type=Path)
     args = parser.parse_args()
-    if args.capture_retained_v2 and args.from_a and args.assessment and not any((args.capture_retained_basis,args.projection,args.prepare,args.execute,args.window_end,args.retained_state,args.namespace_basis)):
+    if args.capture_retained_v3 and args.from_a and args.assessment and not any((args.capture_retained_v2,args.capture_retained_basis,args.projection,args.prepare,args.execute,args.window_end,args.retained_state,args.namespace_basis)):
+        v3_support.capture(sys.modules[__name__],args.from_a.absolute(),args.assessment.absolute(),args.capture_retained_v3.absolute())
+    elif args.capture_retained_v3:
+        parser.error('v3 capture requires --capture-retained-v3 OUTPUT --from-A A --assessment ASSESSMENT only')
+    elif args.capture_retained_v2 and args.from_a and args.assessment and not any((args.capture_retained_basis,args.projection,args.prepare,args.execute,args.window_end,args.retained_state,args.namespace_basis)):
         v2_support.capture(sys.modules[__name__],args.from_a.absolute(),args.assessment.absolute(),args.capture_retained_v2.absolute())
     elif args.capture_retained_v2 or args.assessment:
         parser.error('v2 capture requires --capture-retained-v2 OUTPUT --from-A A --assessment ASSESSMENT only')
