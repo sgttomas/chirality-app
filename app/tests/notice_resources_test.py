@@ -16,6 +16,15 @@ spec.loader.exec_module(check)
 
 
 class NoticeResources(unittest.TestCase):
+    def test_sqlite_supplement_matches_lock_and_exact_saved_assets(self):
+        spec = importlib.util.spec_from_file_location('sqlite_notice_check', APP / 'packaging/sqlite_notice/check.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        result = module.check()
+        self.assertTrue(result['assets_match'])
+        self.assertFalse(result['archive_checked'])
+        self.assertEqual(result['sqlite_version'], '3.46.0')
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

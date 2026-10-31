@@ -129,6 +129,8 @@ needs:
   gating: false
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 code_paths:
+- app/examination/package_receiving/adapter.py
+- app/examination/package_receiving/generate.py
 - app/examination/admission/current_admission.py
 - app/examination/support_identity/provision_ci_objects.py
 - app/examination/support_identity/canonical.py
@@ -137,6 +139,7 @@ code_paths:
 - app/examination/candidate_identity/identify.py
 - app/examination/candidate_identity/bundled_supplier.py
 checks:
+- app/tests/group_b_package_successor_test.py
 - app/tests/group_b_admission_test.py
 - app/tests/group_b_current_admission_test.py
 - app/tests/group_b_terms_successor_test.py
