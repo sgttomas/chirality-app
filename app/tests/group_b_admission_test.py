@@ -10,12 +10,12 @@ import unittest
 
 APP=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(APP/'examination/admission'))
-import admission_check as check
+import current_admission as check
 
 
 class AdmissionFiles(unittest.TestCase):
     @classmethod
-    def setUpClass(cls): cls.support=check.Support()
+    def setUpClass(cls): cls.support=check.Support(profile=check.PROFILE)
 
     def setUp(self):
         fixtures=APP/'tests/group_b_admission_fixtures'
@@ -26,8 +26,9 @@ class AdmissionFiles(unittest.TestCase):
     def change_join(self): return self.support.change_join(self.change,self.before,self.after,self.change_selection,self.rerun)
 
     def test_canonical_review_and_change_examples(self):
-        sources=check.parse((APP/'examination/admission/sources.json').read_bytes())['sources']
-        design=check.PROJECT/Path(next(p for p in sources if p.endswith('/exam.review-record.schema.json'))).parent
+        sources=check.parse((check.MANIFEST).read_bytes())['sources']
+        locator=next(p for p in sources if p.endswith('/exam.review-record.schema.json'))
+        design=(check.PROJECT/check.deliverable_path(check.PROJECT,locator)).parent
         results=json.loads((design/'exam.result-record.valid.examples.json').read_text())
         errors,index=self.support.index_results(results); self.assertEqual(errors,[])
         for kind,prefix in [('review','exam.review-record'),('change','exam.change-impact')]:
@@ -122,11 +123,11 @@ class AdmissionFiles(unittest.TestCase):
         with self.assertRaises(ValueError): self.review_join()
 
     def test_changed_source_lock_and_ambiguous_json_fail_closed(self):
-        manifest=check.parse((APP/'examination/admission/sources.json').read_bytes())
+        manifest=check.parse((check.MANIFEST).read_bytes())
         first=next(iter(manifest['sources'])); manifest['sources'][first]='0'*64
         with tempfile.TemporaryDirectory() as temp:
             path=Path(temp)/'pins.json'; path.write_text(json.dumps(manifest))
-            with self.assertRaisesRegex(ValueError,'source drift'): check.Support(manifest=path)
+            with self.assertRaisesRegex(ValueError,'source drift'): check.Support(manifest=path,profile=check.PROFILE)
         for value in ('{"x":1,"x":2}','{"x":NaN}'):
             with self.assertRaises(ValueError): check.parse(value)
 
@@ -139,13 +140,13 @@ class AdmissionFiles(unittest.TestCase):
             code="import sys; sys.path.insert(0,"+repr(str(tests))+"); "
             code+="import importlib; mods=[importlib.import_module(n) for n in "+repr(order)+"]; "
             code+="import group_b_support_test as b1, group_b_admission_test as b3; "
-            code+="assert b1.Support is not b3.check.Support; assert b1.Support().prototype_digest; assert b3.check.Support().validators['review']"
+            code+="assert b1.Support is not b3.check.Support; assert b1.Support().prototype_digest; assert b3.check.Support(profile=b3.check.PROFILE).validators['review']"
             result=subprocess.run([sys.executable,'-c',code],capture_output=True,text=True)
             self.assertEqual(result.returncode,0,result.stderr)
 
     def test_cli_real_file_join_reports_no_verification_or_admission(self):
         fixtures=APP/'tests/group_b_admission_fixtures'
-        cmd=[sys.executable,str(APP/'examination/admission/admission_check.py'),'change-join']
+        cmd=[sys.executable,str(APP/'examination/admission/current_admission.py'),'--profile',check.PROFILE,'change-join']
         for field in ('change','before','after','rerun'): cmd+=['--'+field,str(fixtures/(field+'.json'))]
         cmd+=['--selection',str(fixtures/'change-selection.json')]
         output=subprocess.run(cmd,capture_output=True,text=True)

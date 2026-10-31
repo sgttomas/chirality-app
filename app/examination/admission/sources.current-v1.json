@@ -1,0 +1,32 @@
+{
+  "format": "exp-admission-source-profile/1",
+  "profile": "current-v1",
+  "basis_revision": "7658f1bea245cb7068b681644aae86f47061ac3f",
+  "standing": "explicit full-document receiving selection; file checks only, no qualification or authority authentication",
+  "read_extent": "complete bytes of each source; historical Design locators resolve to Work operationally",
+  "sources": {
+    "execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md": "c7aa2fcfcc43558cbcf9244aae576b6ad0911ab17aa1a8f52112053969e4cb83",
+    "execution/PKG-09/DEL-09-01/ScopeOfWork.md": "a60b02a8cfa40abf1819d08420a94e2539c6b1c83fa3e22f045c079dbaaa65fd",
+    "execution/PKG-09/DEL-09-01/Design/prototype/check_exp.py": "f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce",
+    "execution/PKG-09/DEL-09-01/Design/exam.change-impact.schema.json": "b8fcb4586aa8d844fd9700d660f8eb66ccd66893724215b0a5d9cd468500f82f",
+    "execution/PKG-09/DEL-09-01/Design/exam.review-record.schema.json": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",
+    "execution/PKG-09/DEL-09-01/Design/exam.result-record.schema.json": "f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081"
+  },
+  "legacy_source_lock": {
+    "path": "app/examination/admission/sources.json",
+    "sha256": "c1acc36b327f4b0ad066768854dfc655d500bb47630cb6425a4bbd6da3c9a458"
+  },
+  "reader_dependencies": {
+    "app/examination/admission/admission_check.py": "bd9a8ef07bdf0c848f8ba09e14b8c3ef977a7a52140c26e5a58f1cf83e7167cf",
+    "app/examination/admission/admission_rules.py": "b6cb783561cade47855431f0be33190d8fe287a9f5ff05a2da5bbc7953e694a5"
+  },
+  "support_revision": {
+    "exp_version": "EXP-v0.2",
+    "schema_ids": {
+      "result": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2",
+      "review": "urn:chirality:app-v4:del-09-01:exam-review-record:0.2",
+      "change": "urn:chirality:app-v4:del-09-01:exam-change-impact:0.2"
+    },
+    "prototype_sha256": "f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce"
+  }
+}
