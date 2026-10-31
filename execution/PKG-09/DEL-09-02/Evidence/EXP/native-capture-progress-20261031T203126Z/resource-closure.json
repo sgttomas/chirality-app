@@ -1,0 +1,41 @@
+{
+  "at": "2026-10-31T20:33:11.113233+00:00",
+  "queried_known_pids": [
+    38241,
+    38468,
+    37687,
+    37681
+  ],
+  "ps_observations": [
+    {
+      "pid": 38241,
+      "ps_returncode": 1,
+      "rows": ""
+    },
+    {
+      "pid": 38468,
+      "ps_returncode": 1,
+      "rows": ""
+    },
+    {
+      "pid": 37687,
+      "ps_returncode": 1,
+      "rows": ""
+    },
+    {
+      "pid": 37681,
+      "ps_returncode": 1,
+      "rows": ""
+    }
+  ],
+  "slot_records": [
+    "2026-10-31T20:31:26Z START pid=37681 slot=cargo_job.slot4.lock cwd=/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification args: python3.13 -B /Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-5kpzvvr3/native_b_slot_entry.py",
+    "2026-10-31T20:33:02Z END rc=1 pid=37681 slot=cargo_job.slot4.lock cwd=/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification"
+  ],
+  "run_marker": "/Users/ryan/dev/chirality-t3/guard/run.37628",
+  "run_marker_exists": false,
+  "shared_memguard_pids": [
+    "78827"
+  ],
+  "limits": "Known process absence only, no exhaustive supplier/detached settlement."
+}
