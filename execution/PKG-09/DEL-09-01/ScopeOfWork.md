@@ -126,3 +126,11 @@ OI-015 is already resolved by source reconciliation and creates no new owner pro
 | OUT-003 | OBJ-008; OBJ-010 | REQ-006; CLM-004 | AC-007 | VER-007 | Independent candidate review and actual model/separation limits |
 | OUT-004 | OBJ-008 | REQ-007; CLM-003 | AC-008 | VER-008 | Distinct WebKit/Chromium and in-scope native witnesses |
 | OUT-003 | OBJ-008; OBJ-010 | REQ-008; CLM-001; CLM-005; CLM-006 | AC-009 | VER-009 | Excluded-act owner mapping, open-choice custody and support/journey boundary |
+
+## Implemented documentary receiving — 2026-10-30
+
+The approved DEL-01-06 terms documentary successor is explicitly selected by
+[Work/support-identity-v1/TERMS_SUCCESSOR_ADOPTION.md](Work/support-identity-v1/TERMS_SUCCESSOR_ADOPTION.md).
+Historical publication identities and obligations retain their original subjects;
+current applicability is distinguished from public release, replacement and
+package/supplier qualification. No acceptance or executed witness is implied.

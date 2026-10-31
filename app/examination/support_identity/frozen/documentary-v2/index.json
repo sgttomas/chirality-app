@@ -1,0 +1,18 @@
+{
+  "format": "documentary-v2-retained-inputs/1",
+  "reader_basis_revision": "d628cadc5e4a4d2e3130cabbbe9e0e409813a992",
+  "packaging_basis_revision": "6421c323408b010cfba575ecd8fa24865f403c00",
+  "packaging_original_path": "execution/PKG-01/DEL-01-06/Work/PACKAGING_AND_DISTRIBUTION.md",
+  "standing": "retained historical bytes; not current terms applicability",
+  "sources": {
+    "native_forms/native_form.py": "3a702b6a74c1661ed762a933cee77dcce817b3b4f86cdc23e9985c07bee6855a",
+    "native_forms/pre_run_form.py": "f540bdfafdb4e1d625a061960eb14841bb074054ff347d20a3c5cd288411272d",
+    "packaging-before-terms.md": "f11df44294a585f61fd226d7183281d6e281c844ef1effb04ecd2c540f82b819",
+    "sq_receiving/receive.py": "dcb6a87752237ca3f3fdbb4dafd4b01b139a8e5669e418c91666fd9d1a862c26",
+    "sq_receiving/worker.py": "67421a4b42d78bb79921b9f7620a473e6ee0662d66848e8c0abf1ca379fbe806",
+    "standalone/pre_run_inputs.py": "439b73d1cfe3b9f39bb2e85cdb67d07bcf9ca91bf5d3a9aadb87cf13435a48e8",
+    "standalone/prepare.py": "3c367ef82508489272ee07d632346fd3ac8ef9cf9359faed09744e0faa4e7455",
+    "support_identity/canonical.py": "0cf7cfe084d1b551db7c6333ce8c64f2939e75415e6136f935c683fe498f5801",
+    "support_identity/provision_ci_objects.py": "35e51041cff03622812caf89a3ecd669359d80631614df8ceae4efff9e5ec41e"
+  }
+}

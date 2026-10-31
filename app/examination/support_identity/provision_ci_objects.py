@@ -30,8 +30,8 @@ def main():
     revision = constant(source, 'DOCUMENTARY_SOURCE_COMMIT')
     declaration = checked_json(HERE / 'declaration.v1.json', constant(source, 'DECLARATION_SHA256'))
     objects = dict(declaration['sources'])
-    for lock, consumer in [(HERE / 'canonical-pins.v1.json', HERE / 'canonical.py'),
-                           (HERE.parent / 'sq_receiving/pins.json', HERE.parent / 'sq_receiving/receive.py')]:
+    for lock, consumer in [(HERE / 'canonical-pins.terms-v1.json', HERE / 'canonical.py'),
+                           (HERE.parent / 'sq_receiving/pins.terms-v1.json', HERE.parent / 'sq_receiving/receive.py')]:
         pins = checked_json(lock, constant(consumer, 'PINS_SHA256'))
         for path, digest in pins['sources'].items():
             if path.endswith('.md'):

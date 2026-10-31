@@ -1,5 +1,8 @@
 """Frozen publication bytes are distinct from today's documentary checkout."""
 import importlib.util
+import json
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -12,6 +15,14 @@ spec.loader.exec_module(subject)
 
 
 class PublicationSourceTests(unittest.TestCase):
+    def test_shared_ci_setup_verifies_original_objects_with_active_reader_pins(self):
+        result = subprocess.run(
+            [sys.executable, '-B', str(APP / 'examination/support_identity/provision_ci_objects.py')],
+            cwd=APP, capture_output=True, text=True, check=True)
+        report = json.loads(result.stdout)
+        self.assertEqual(report['verified_objects'], 30)
+        self.assertEqual(report['source_bytes'], 2128671)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

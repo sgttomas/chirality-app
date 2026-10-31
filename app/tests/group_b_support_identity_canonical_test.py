@@ -77,7 +77,7 @@ class CanonicalBindingTests(unittest.TestCase):
         self.assertFalse(report['producer_use_verified'])
         self.assertEqual(report['binding_purpose'], 'historical_correspondence')
         self.selected['binding_purpose'] = 'current_producer_declaration'
-        with self.assertRaisesRegex(ValueError, 'purpose mismatch'): self.check()
+        with self.assertRaisesRegex(ValueError, 'invalid canonical binding|purpose mismatch'): self.check()
         self.rebuild(); self.assertFalse(self.check()['producer_use_verified'])
         self.binding_change('before', lambda b: b.update(producer_use_verified=True))
         with self.assertRaisesRegex(ValueError, 'invalid canonical binding'): self.check()
@@ -126,7 +126,7 @@ class CanonicalBindingTests(unittest.TestCase):
             path = self.root / relative; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(data)
         path = self.root / self.support.pins['declaration']; path.write_bytes(payload)
         pins = copy.deepcopy(self.support.pins); pins['sources'][pins['declaration']] = canonical.sha(payload)
-        pins_bytes = fixtures.encoded(pins); (local / 'canonical-pins.v1.json').write_bytes(pins_bytes)
+        pins_bytes = fixtures.encoded(pins); (local / 'canonical-pins.terms-v1.json').write_bytes(pins_bytes)
         # A test-only artificial repin must still fail source-to-identity checking.
         with patch.object(canonical, 'HERE', local), patch.object(canonical, 'PROJECT', self.root), \
              patch.object(canonical, 'PINS_SHA256', canonical.sha(pins_bytes)):

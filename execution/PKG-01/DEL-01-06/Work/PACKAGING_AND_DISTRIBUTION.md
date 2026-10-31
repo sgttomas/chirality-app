@@ -73,7 +73,7 @@
 
 **What it is.** How the App and its stock Codex are put in one macOS Apple
 Silicon package, signed, notarised and identified; how a package is shown to
-install and start; and how the written distribution-terms response is kept.
+install and start; and how the applicable written distribution-terms position (identified official publication or direct response) is kept.
 
 **What it is not.** No package, signature or notarisation is made here (those
 use the owner's Apple account when a package is made, R23-13.2). No supplier
@@ -94,7 +94,7 @@ access or a local check; each is tied to a first-package check (§7).
 | Signing and notarising with the owner's Apple account | The owner, when a package is made (R23-13.2) | Records the act and its actor; never performs it or holds a credential |
 | Signing arrangement (technical choice) | O-B, recorded here (R23-13.1) | §3 |
 | OI-011's SWB co-owner part | Waits with the host joins (R23-13.2) | Not exercised |
-| Written supplier position | The supplier supplies; the owner obtains | §9 records it |
+| Written supplier position | The supplier publishes or responds; the owner obtains/retains and establishes applicability | §9 records it |
 | Public-distribution decision | The owner | §9 cites it; never inferred |
 | Joined examination of the packaged candidate | DEL-09-01 support; DEL-09-02 and other journeys | §8 hands the package and witness over (SCC-003 M2) |
 
@@ -346,8 +346,9 @@ witness) go under `Evidence/EXP/<candidate key>/` per EXP §8.4.
   Developer ID Application authority, hardened runtime, timestamp and
   **exactly** the supplier's entitlements for that file.
 - **PK-R3** The recorder is not the actor of signing or notarising.
-- **PK-R4** (terms) The recorder is neither the obtainer of a response nor
-  the decider of distribution.
+- **PK-R4** (terms) The recorder does not acquire the owner's applicability or distribution authority by capturing a publication or response.
+  Attribute supplier authorship, owner obtaining/retention and applicability,
+  and the separate owner distribution decision to their actual actors.
 - **PK-R5** A "Notarized" Gatekeeper verdict needs an accepted notarisation.
 - **PK-R6** Every Mach-O file of the packaged tree is listed once
   (`len(executables) == packaged.macho_files`), under either option.
@@ -469,13 +470,24 @@ smoke (M3) are separate results on the same package.
 
 ## 9. Distribution-terms record (OUT-004; REQ-004) — `pkg.terms-record.schema.json`
 
-One record per supplier: OpenAI now; Anthropic only if a Claude sign-in is
-ever offered. State `unresolved` until a written response exists; then
-`response_received` with the response by reference, its custody, who
-obtained it (the owner), what it applies to in its own words, and the date.
-The owner's distribution decision is a separate reference or `not_made`; a
-response never stands for it (PK-R4; AC-005). Owner use and development are
-not gated by an `unresolved` record (TBD-002).
+One terms account per supplier whose sign-in is actually offered. Retain either
+an applicable identified official supplier publication or direct response,
+including exact source/supplier, publication/response date if supplied,
+retrieval/receipt date, preserved content reference and custody, actual selected
+release/authentication scope, conditions/exclusions and the owner's applicability
+disposition. Until applicable evidence is retained and applicability established,
+keep the position unresolved. A direct reply is not additionally required merely
+because an official contact could answer. The owner's separate public distribution
+decision remains its own reference or not_made; evidence/currentness observations
+and applicability do not decide release. Owner use/development remain ungated.
+
+Preserve every historical PKG-v0.2 record and its closed schema/state meaning.
+Its response_received/response representation cannot truthfully label an official
+publication as a direct reply. On approval, supply a small versioned terms-record
+successor that distinguishes official_publication from direct_response and carries
+the evidence/applicability fields above; do not silently reinterpret old records.
+The historical unresolved OpenAI.json remains unchanged until a separately
+recorded owner disposition and applicable new evidence record exist.
 
 ## 10. What option A would change (for the escalation, if FP fails)
 
@@ -498,7 +510,7 @@ not gated by an `unresolved` record (TBD-002).
 | PKG-VC-01 Configuration and identities | VER-001, AC-001 | CF-1…CF-8; layout P-0…P-4; launcher; Codex identity equals HOSTING §7.1 at the pin | package | Not run |
 | PKG-VC-02 Identity record against the package | VER-002, AC-002 | PK-R1 (or PK-R2/PK-R7 under A), PK-R6, PK-R8; no inherited v3 or SWBPIPE claim | model; package | Rules run on examples (below) |
 | PKG-VC-03 Install/launch witness | VER-003, AC-003 | §8 W-0…W-6 from a quarantined installer, as an EXP record | package; person (signing) | Not run |
-| PKG-VC-04 Terms record | VER-004, AC-004, AC-005 | `unresolved` before a response; actors kept apart | model; then the owner's act | Examples valid; PK-R4 detected |
+| PKG-VC-04 Terms record | VER-004, AC-004, AC-005 | `unresolved` before applicable evidence and applicability are established; actors kept apart | model; then the owner's act | Examples valid; PK-R4 detected |
 | PKG-VC-05 Boundaries and substitutions | VER-005, AC-006 | Browser evidence, SWBPIPE success or a package's existence never claimed as the witness, terms or release | Review | Not run |
 | PKG-VC-06 FP-0 at the pin | §7 | Supplier precondition for B, incl. Developer ID authority | model on the published tree | **Pass at 0.160.0** |
 | PKG-VC-07 Tree comparison | FP-1 | Link targets, directory links and modes are compared, not only content | model on synthetic trees | Pass (TREE P6–P8) |
@@ -590,3 +602,264 @@ and a physical unsigned bundle remain distinct from the package/native witness.
 Installed custody and the actual H3B runtime witness remain open under
 DEL-01-01's `Design/distribution-s1/README.md`. This overlay supplies no custody
 issuer, signing evidence or qualification result.
+
+## macOS publication preparation, 2026-10-30
+
+This is current preparation under OUT-001/002/004 and REQ-001/002/003/004, not a
+replacement of the historical observations above. macOS is the first publication
+target; later Windows delivery does not gate it. ScopeOfWork commitments and
+`deliverable.yaml` conditions remain unchanged: packaging must still receive
+the actual hosting/custody basis and OI-011 definition, supply candidate-specific
+package/install evidence to PKG-09, and retain the owner's terms/distribution
+acts separately. The source/record checks below establish no acceptance or
+replacement of v3.0.1.
+
+### Received development subject and actual content check
+
+Native qualification supplied candidate `fdcf608fb5-23c6c3f22f5e`, built from
+`fdcf608fb57c4f8299c7440ffc56519314046cff`. Its tree
+`2353ab5a06096d1cffbf17cdf2ddd90354cc05c7` equals merged main
+`93ccd285a63312c861a7da47e3ab002b13c29a50`; the source identity is **not** relabelled
+to that merge. The bundle is retained under
+`/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app`.
+Its three build-root `identified/` records are owned by native qualification;
+build, preparation and npm records are retained separately in that build root;
+the repository location is
+`execution/PKG-09/DEL-09-02/Evidence/EXP/fdcf608fb5-23c6c3f22f5e/`
+(committed in native qualification PR #35 at `306262af`, not yet integrated at
+this observation). Its committed record and inventory bytes match the hashes below.
+
+The packaging lane read those records and checked the live bundle on 2026-10-30:
+
+- `candidate-identification.json` SHA-256
+  `52afd5d96c2203804410af62a79daf453fb67eec139338ca006adaaacd8b8266`;
+  retained inventory SHA-256
+  `7192ea8ced3b2c764e44bcf4f2c563926af182d25ed156b4369f76cbc08f7580`.
+- Existing `identify.py check` returned equal, no changed/missing/extra entries,
+  no derived-record mismatches; bundle-tree v2
+  `23c6c3f22f5e240440449eaa573737ef556cdac88370633e5b7886a741b6a2a3`.
+- `inventory.scan` / `compare` found P1 equal to the selected retained complete
+  vendor tree, and P2/P3 equal to the native manager's exact source export,
+  including root/directory/file modes and absence of missing/extra entries.
+  P1: 42 files, 30 Mach-O, manifest
+  `327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12`.
+  P2: 3 files, manifest
+  `cd34f3262ece093f782cf1594063e2fc7681708ef8624899360187367fc73e29`.
+  P3: 8 files, manifest
+  `50c82a3c663773b327d7ed84bb27a7d639514062e0d1335f7c47b6f3b0194d18`.
+- Actual Info.plist has minimum macOS `15.0`, development version `0.0.0`,
+  identifier `dev.chirality.app-v4.candidate.20261030-eqxsxv4n`, and no microphone
+  usage string. These are observed development values, not release decisions.
+- Resources contain the icon, `codex`, `instructions`, and `workflows` only.
+  Neither `third-party-notices` nor `distribution-reference` is present. The
+  actual command selects `custom-protocol`, ordinary development and supplier
+  overlays, `--debug --no-sign`; it selects neither optional resource overlay
+  nor the `distribution-successor` feature.
+
+The bounded output is retained in this Work directory as
+[`successor-content-check.json`](successor-content-check.json). Commands are in
+[`app/packaging/README.md`](../../../../app/packaging/README.md).
+No supplier execution, signature display, native launch, account-state read,
+installation or mutation of the retained inputs occurred in this lane. The
+candidate remains `native_development`, `packaged: false`, stock `0.160.0`
+`unqualified-development`. Native A/B and other workflow/access results belong
+to the native qualification manager; none is asserted here. The historical
+three-namespace absence observation is not renewed by these checks.
+
+The P1 input under `/private/tmp` is non-durable and must use that resolved path,
+not symlink `/tmp`. Its archive correspondence remains recorded against archive
+SHA-256 `fc789bcd655d903f92e1a23c8dc5315ba38f43b3586eafb7bd3b195970b57466`
+and manifest `327effb9…8d12` if the tree disappears. A fresh live comparison
+then requires recovery by the native input owner, not an inferred new pass.
+
+### Concrete remaining inputs and order of work
+
+1. **Production hosting/custody, owned through App Agent 0 and DEL-01-01.**
+   The S1 compiled anchor/reference path does not supply an installed issuer.
+   The standalone `DISTRIBUTION_IDENTITY.md` remains PROPOSED STAGING ONLY;
+   the selected `distribution-s1/README.md` defines its specific source selection
+   and open production/receiving conditions. Neither establishes adopted
+   production issuer authority. App Agent 0 has allocated ordinary S4 work to
+   the installed-supplier-integrity manager: a narrow typed, process-local macOS
+   installed-integrity observation under the selected README and original
+   `d51c1130f5a1356fcc2a6100f1486e8ee3a0728de59f4fe69d4ac6a1580e5290`
+   clauses. An external issuer is not required. The independently compiled
+   publisher requirement stays `None` until the owner selects the publisher
+   Developer ID team and production bundle identifier; serialized evidence
+   cannot grant live runtime authority.
+   At this preparation's source, `distribution_s1.rs` rejects installed-custody
+   and verified outcomes, and `distribution_preflight.rs` keeps verified
+   unavailable. The allocated implementation is not a delivered witness.
+   Installing the twelve attested-reference resources cannot remove this limit.
+   Receive the reviewed implementation and precise signing-fact/package joins
+   before claiming FP-2/W-4. Do not fabricate an attestation or weaken the
+   refusal to make packaging pass. Runtime/reader/store implementation belongs
+   to that manager, technical adoption to App Agent 0, and packaging records,
+   signing configuration, P1/FP checks and install witness remain here.
+2. **Release configuration choices.** The owner/implementation owner selects
+   the identity route through the reviewed
+   [publisher decision preparation](PUBLISHER_SELECTION_OWNER_ACTION_DRAFT.md):
+   the production bundle identifier (and continuity implications under I-4),
+   release version and minimum supported macOS. `15.0` is currently proposed;
+   the debug identifier/version is not a default answer. Receive the eligible
+   supplier pin under R23-22 and selected P2/P3 content rather than adopting
+   cached `0.160.0` by availability. SIGN-1 B is already the App-side design
+   choice; candidate App entitlements/SIGN-3 and applicable code-mode behavior
+   still need the OI-011 owners' evidence. No identity/team-ID disclosure or
+   keychain enumeration is needed to prepare these choices.
+3. **Actual redistribution inputs.** The optional notice overlay contains 30
+   exact texts for the App plus 16 direct runtime dependencies. Local checks
+   pass, but this candidate omits them. A separately coordinated later build
+   must deliberately select the overlay and verify actual inclusion. Preserve
+   stock P1 unchanged. The four exact supplier source/notice associations in
+   `CACHED_SHIPPED_NOTICE_INPUTS.md` (main, code-mode-host, rg, zsh), bundled
+   SQLite and transitive coverage are still unverified. Obtain exact matching
+   local source evidence first; any missing download needs its own file/source/
+   size permission. This is a bounded evidence gap, not a legal conclusion or
+   an auth-terms substitute. No broad acquisition is proposed here.
+4. **Separate distribution candidate and owner signing acts.** Keep this native
+   candidate immutable. On the selected production basis, prepare a new bundle
+   and CF-1…8 configuration digest, inventory every supplier Mach-O and retain
+   candidate FP-0/FP-1(a). The existing §6 sequence then calls for the owner's
+   P-0/outer signing without `--deep`, P1 comparison FP-1(b), deep strict
+   verification, signed DMG and notarisation log FP-3, followed by stapling.
+   Those commands are reviewable in §4.3; none is authorized or run by this
+   preparation. Preserve pre-notarisation and post-stapling installer digests,
+   actual actors and logs in OUT-002. A content pass here does not satisfy those
+   later checks or permit reliance on B before FP-1(a/b) and FP-3 pass.
+5. **Quarantined install and package consumers.** Once an exact signed/stapled
+   package and custody basis exist and execution is authorized, follow W-0…W-6:
+   recorded quarantine transfer (or explicitly recorded attribute setup), mount,
+   Gatekeeper assessment, install, first launch, verified supplier and ready
+   handshake, installed entitlements/cdhash. Use a separately coordinated fresh
+   test home; never the native manager's account state. No conversation is
+   needed. No quarantine means blocked; Gatekeeper refusal means fail. Supply
+   DEL-09-01 with package identity and this install witness; its M3 smoke and
+   joined examination remain separate. Neither old native A nor new debug A/B
+   substitutes for this signed-package witness.
+
+### Recorded terms/owner disposition
+
+Use the existing
+[`OPENAI_SIGNIN_OWNER_ACTION_DRAFT.md`](OPENAI_SIGNIN_OWNER_ACTION_DRAFT.md),
+not a duplicate supplier inquiry. Its 2026-10-29 findings remain dated; the
+2026-10-30 app-server continuation/managed-login capture and selected offering
+are now bound there with the exact source, content, retrieval date and custody.
+The actual implementation still invokes local stock-Codex-managed
+`account/login/start` (`chatgpt` / `chatgptDeviceCode`); no SIWC migration is
+selected. Repository MIT licensing does not establish the business offering.
+
+The owner selected the initial macOS offering on 2026-10-30: “Free, locally run,
+open-source App using the current sign-in flow”. This resolves classification
+only. In a separate actual answer at `2026-10-30T22:36:59.004Z`, the owner
+approved the reviewed disposition and exact OLD→NEW clauses at `6421c323`.
+The owner thereby received/adopted/retained the agent-captured official
+continuation and accepted applicability to that exact offering and unchanged
+local stock-Codex-managed login, including first public distribution, subject
+to the stated commercial/hosted exclusion. No additional product-specific reply
+is required for that approved disposition. Supplier authorship, agent capture,
+owner receipt/adoption/applicability and public distribution remain separate.
+
+The exact approved governing changes are applied; the new explicit
+[terms-position-v1 account and reader](terms-position-v1/README.md) retain the
+actual owner answer, approved draft and capture with exact-byte bindings.
+`applicable_position_retained` describes that new account. The historical
+PKG-v0.2 schema, prototype and `Evidence/PKG/terms/OpenAI.json` bytes/identities
+are unchanged (`unresolved`, distribution decision `not_made`). Frozen legacy
+consumers are not activated or repinned. Public distribution and replacement
+of v3.0.1 remain separate owner decisions, still unclaimed; no authentication
+change, component-notice disposition or supplier/package qualification follows.
+
+### S4 package consumer preparation
+
+The runtime owner supplied the planned `installed-custody-observation.s4`
+evidence shape: full generation/inventory/selection, process-local observer
+standing, independent requirement digest, static/dynamic validation flags and
+App signing facts, location/translocation observations and explicit residual
+limits. Its exact bytes join `checks.custody.evidence` in new S4 readers.
+Packaging must independently bind actual App revision/build and signing facts
+to the compiled selection, pkg-identity.s1 package record ID and pre-notary
+installer digest. None of those package identities may be invented from the
+running process. Static packaging keeps `verification_artifact: null` until a
+separately reviewed consumer selection; a disk record never grants live authority.
+
+The S4 dynamic no-network API requires macOS 11.3 or later; unsupported API
+refusal must remain. The base Tauri configuration has no explicit minimum;
+the ordinary unsigned development overlay sets 15.0, observed on this candidate.
+Neither chooses the qualified production minimum. Retain this capability
+requirement for the owner's future minimum-OS and publisher decisions. No
+publisher identity is selected or inspected by this preparation.
+
+### Concrete producer/consumer migration scope for App Agent 0 allocation
+
+Read-only interface basis: PR #36 `7b9f8cd6`, including
+`INSTALLED_INTEGRITY_S4_SIGNING_JOIN.md` and the new S4 schemas; runtime scrutiny
+and adoption remain with its owner. This is a proposed division of the next
+results, not activation of those consumers or a signed-package witness.
+
+1. **Immediate documentary receiving repair — parent to allocate DEL-09-01
+   examination/support ownership, coordinated with DEL-09-02 SQ.** PR #34's
+   approved PK-R4 and §9 amendments change the two selected passages used by
+   standalone preparation, pre-run inputs and current canonical/SQ declarations.
+   The selected projection changes from
+   `5312e36e02749cd3397dc8aa71385a1f6705833528afcd7bb76039e5bdd951f1`
+   to `151f43890c48b986bec5382a675e054f7d05821a65aeab2e216c22d149f1a7c4`.
+   Hosted job `124352901206` at `a9291e44` correctly refuses it (65 failures,
+   12 errors); new terms tests pass. The next result is a named reviewed source-
+   condition successor/compatibility selection for these exact amended terms
+   passages, with unchanged historical publication/reader identities and
+   passing standalone/native-form/pre-run/canonical/SQ source-drift regressions.
+   Relevant current selections are `app/examination/standalone/sources.json`,
+   `pre_run_inputs.pins.json`, `support_identity/canonical-pins.v1.json` and
+   DEL-09-01 `support-identity-v1/documentary-condition.v2.json`; the latter's
+   groups are `canonical` and `sq`. No frozen file, selector or pin is changed
+   here. This reconciliation is required before PR #34 integration, not deferred
+   until signing or excused by the new terms approval.
+2. **Packaging producer and static terms consumption — proposed delivery here,
+   after parent confirms the consumer boundary.** Deliver an explicit successor
+   request/report for `app/packaging/static_distribution` that selects the new
+   terms-position reader, plus a package-record producer with actual CF-1…8,
+   every-Mach-O/FP-0/1/3 and exact inventory/installer inputs. Keep the existing
+   input/1 and `pkg-identity.s1` semantics unchanged; its static
+   `verification_artifact` remains null. Missing signing/installer inputs remain
+   missing, not fabricated from the development candidate. The next reviewable
+   result can use invented positive/negative fixtures before owner signing.
+3. **Package-to-S4 binding — proposed packaging ownership, S4 owner supplying
+   the exact observed-verification/lifecycle reader revision.** A distinct
+   versioned witness binding should reference the exact static package envelope,
+   S4 observation and custody artifact. It must independently join App source/
+   build/version/identifier, actual static and dynamic signing facts, compiled
+   selection/reference/attestation, full supplier inventory/generation,
+   package-record ID and pre-notary installer digest, retaining post-staple
+   digest and actual installed subject. The frozen S1 model resolves its
+   `verification_artifact` specifically as `observed-verification.s1`; do not
+   put S4 bytes there or re-label them. Negative fixtures must reject different
+   App, package, installer, generation, inventory, publisher or reference,
+   missing evidence and disk-payload authority. Success means consistent
+   evidence joins only; actual FP-2/W-4 and S5 still require the qualified
+   candidate and authorized quarantined installation.
+4. **EXP/SQ receiving — parent to allocate DEL-09-01 and DEL-09-02 separately
+   from packaging/runtime implementation.** `app/examination/check.py` selects
+   the legacy package schema; `package_link` checks legacy EXP-v0.2 candidate,
+   pin, package reference and FP prerequisites. `sq_receiving/worker.py` calls
+   that join conditionally for current native-packaged results using canonical
+   support bindings. The next result is explicit versioned selection and reader
+   support for the new package/S4 witness and terms account, preserving old
+   result/review/change/package interpretation and historical-correspondence
+   routes. It must retain missing external/native/owner evidence as gaps,
+   not convert static or fixture passes into qualification. Delivery requires
+   joined package→EXP→SQ fixtures with mismatched/missing cases and exact
+   independent review, followed by a separately recorded actual package witness.
+
+App Agent 0 owns allocation and technical adoption of these interfaces. No
+publisher, production minimum/version, qualification pin, release or replacement
+act is selected by this migration proposal. Packaging retains its authorized
+terms implementation and preparation while the immediate documentary receiving
+allocation is resolved.
+
+Focused preparation verification: 16 packaging tests and 9 notice-resource
+tests pass; the notice verifier reports 17 components including App, 30 texts,
+zero source archives checked and no Tauri SDK mapper execution. Deliverable
+structure check reports no errors. These results validate the tools/inputs used
+here; full transitive notices, actual optional-overlay SDK/bundle inclusion,
+signing/notary and install tests remain unrun.
