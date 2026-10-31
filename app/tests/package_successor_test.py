@@ -43,6 +43,30 @@ class PackageSuccessor(unittest.TestCase):
         replace(self.f.request)
         return ref
 
+    def replace_artifact_and_rebind(self, filename, raw):
+        """Follow the fixture DAG upward so probes reach semantics, not stale hashes."""
+        pending = [(filename, self.f.put_raw(filename, raw))]
+        while pending:
+            changed_name, reference = pending.pop()
+            for name, value in list(self.f.values.items()):
+                if name == filename:
+                    continue
+                changed = False
+                def visit(item):
+                    nonlocal changed
+                    if isinstance(item, dict):
+                        if set(item) == {'path', 'sha256'} and item['path'] == changed_name:
+                            if item != reference:
+                                item.update(reference); changed = True
+                        else:
+                            for child in item.values(): visit(child)
+                    elif isinstance(item, list):
+                        for child in item: visit(child)
+                visit(value)
+                if changed:
+                    pending.append((name, self.f.put(name, value)))
+        self.f.request = copy.deepcopy(self.f.values['binding.json'])
+
     def test_positive_static_and_binding_never_grant_authority(self):
         r = self.f.check()
         self.assertEqual((r['errors'], r['missing']), ([], []))
@@ -53,6 +77,71 @@ class PackageSuccessor(unittest.TestCase):
         s = checker.check(self.root / 'static.json')
         self.assertEqual((s['errors'], s['missing']), ([], []))
         self.assertEqual(s['source_dependencies'], r['source_dependencies'])
+
+    def test_json_null_is_never_a_missing_typed_artifact(self):
+        for filename in ('static.json', 'observation.json', 'custody.json', 'legacy.json', 'package.json',
+                         'selection.json', 'publisher.json', 'public.json', 'publisher-input.json',
+                         'tauri.json', 'terms.json', 'terms-capture.json', 'terms-approval.json',
+                         'terms-answer.json', 'facts.json', 'expected.json', 'attestation.json', 'inventory.json'):
+            with self.subTest(artifact=filename):
+                self.f = Fixture(self.root)
+                self.replace_artifact_and_rebind(filename, b'null\n')
+                with self.assertRaisesRegex(ValueError, 'typed artifact must be an object'):
+                    self.f.check()
+
+    def test_honestly_declared_s1_mismatch_is_not_success(self):
+        for kind in ('packaged-directory-mode', 'supplier-pin', 'executable-digest'):
+            with self.subTest(kind=kind):
+                self.f = Fixture(self.root)
+                package = copy.deepcopy(self.f.values['package.json'])
+                if kind == 'packaged-directory-mode':
+                    inv = copy.deepcopy(self.f.values['inventory.json'])
+                    inv['inventory']['entries'][0]['mode'] = 448
+                    package['packaged_inventory'] = self.f.put('different-inventory.json', inv)
+                else:
+                    old = copy.deepcopy(self.f.values['legacy.json'])
+                    if kind == 'supplier-pin':
+                        old['codex']['pin'] = '8.8.8'
+                    else:
+                        for key in ('sha256_published', 'sha256_packaged'):
+                            old['codex']['executables'][0][key] = 'e' * 64
+                    package['legacy_package'] = old
+                    self.replace_artifact_and_rebind('legacy.json', (json.dumps(old) + '\n').encode())
+                package['distribution_status'] = 'mismatch'
+                self.replace_artifact_and_rebind('package.json', (json.dumps(package) + '\n').encode())
+                result = self.f.check()
+                self.assertIn('static package distribution mismatch', result['errors'])
+
+    def test_honestly_declared_s1_unverifiable_keeps_gap(self):
+        package = copy.deepcopy(self.f.values['package.json'])
+        package.update(packaged_inventory=None, distribution_status='unverifiable')
+        self.replace_artifact_and_rebind('package.json', (json.dumps(package) + '\n').encode())
+        result = self.f.check()
+        self.assertEqual(result['errors'], [])
+        self.assertIn('static package distribution reference equality', result['missing'])
+
+    def test_reference_gap_does_not_mask_known_package_mismatch(self):
+        package = copy.deepcopy(self.f.values['package.json'])
+        inv = copy.deepcopy(self.f.values['inventory.json'])
+        inv['inventory']['entries'][0]['mode'] = 448
+        package['packaged_inventory'] = self.f.put('different-inventory.json', inv)
+        package['distribution_status'] = 'mismatch'
+        self.replace_artifact_and_rebind('package.json', (json.dumps(package) + '\n').encode())
+        (self.root / 'evidence.json').unlink()
+        result = self.f.check()
+        self.assertIn('static package distribution mismatch', result['errors'])
+        self.assertIn('static supplier closure', result['missing'])
+
+    def test_schema_permitted_null_observed_inventory_preserves_gap_and_other_errors(self):
+        obs = copy.deepcopy(self.f.values['observation.json'])
+        obs['inventory'] = None
+        obs['outcome'] = 'unverifiable'
+        obs['checks']['tree'].update(outcome='unverifiable', evidence=None)
+        self.replace_artifact_and_rebind('observation.json', (json.dumps(obs) + '\n').encode())
+        self.f.request['app']['identifier'] = 'invalid.other.app'
+        result = self.f.check()
+        self.assertIn('S4 inventory', result['missing'])
+        self.assertIn('App/identifier', result['errors'])
 
     def test_trust_missing_is_gap_wrong_trust_is_error(self):
         r = self.f.check(False)
@@ -131,8 +220,10 @@ class PackageSuccessor(unittest.TestCase):
     def test_legacy_request_refused_without_downcast(self):
         self.f.request['format'] = 'static-distribution-input/1'
         self.rejected()
-        self.assertEqual((ROOT / 'app/packaging/static_distribution/check.py').read_bytes(),
-                         subprocess.check_output(['git', 'show', 'c26fb825:app/packaging/static_distribution/check.py'], cwd=ROOT))
+        # Exact original input/1 reader bytes at c26fb825; no Git-history fetch
+        # or ambient object database is needed in a shallow CI/source export.
+        self.assertEqual(checker.sha((ROOT / 'app/packaging/static_distribution/check.py').read_bytes()),
+                         '4e8f5589890f0098f44d6ef7fde247d0ff1c2dc00b1e46db00a8895a9b8d7584')
 
     def test_static_legacy_terms_and_runtime_slot_not_coerced(self):
         static = copy.deepcopy(self.f.values['static.json'])

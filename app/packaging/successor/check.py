@@ -78,7 +78,9 @@ class Context:
         if not typed:
             return reference['sha256']
         require(path.stat().st_size <= 2 * 1024 * 1024, 'typed artifact exceeds 2 MiB')
-        return parse(path.read_bytes())
+        value = parse(path.read_bytes())
+        require(isinstance(value, dict), 'typed artifact must be an object')
+        return value
 
     def raw(self, reference):
         if self.get(reference, typed=False) is None:
@@ -102,13 +104,13 @@ class Context:
         if owner:
             approval = self.get(owner['approval'])
             if approval:
-                terms.validate(approval, parse(terms.SCHEMA.read_bytes()), 'approval')
+                terms.validate(approval, parse(self.source(str(terms.SCHEMA.relative_to(ROOT)))), 'approval')
                 self.get(approval['approved_proposal']['artifact'], typed=False)
                 self.get(approval['owner_answer'])
         if record['distribution_decision'] != 'not_made':
             release = self.get(record['distribution_decision']['evidence'])
             if release:
-                terms.validate(release, parse(terms.SCHEMA.read_bytes()), 'release')
+                terms.validate(release, parse(self.source(str(terms.SCHEMA.relative_to(ROOT)))), 'release')
                 self.get(release['owner_answer'])
         try:
             result = terms.check(reference['path'], self.frozen.destination)
@@ -157,13 +159,25 @@ class Context:
         violations = self.model.legacy_pkg.identity_violations(old)
         if violations:
             self.errors.append('legacy package rules: ' + ','.join(violations))
-        try:
-            self.model.reference(selection['expected'], selection['attestation'], self.frozen.destination, selection['attestation']['sha256'])
-            self.model.package(package, self.frozen.destination, selection['attestation']['sha256'])
-        except FileNotFoundError:
-            self.missing.append('static supplier closure')
-        except ValueError as error:
-            self.errors.append('static supplier values: ' + str(error))
+        # Reference gaps must not prevent the package model from finding an
+        # independently known published/packaged-tree contradiction.
+        for name, evaluate in (
+            ('reference', lambda: self.model.reference(selection['expected'], selection['attestation'], self.frozen.destination, selection['attestation']['sha256'])),
+            ('package', lambda: self.model.package(package, self.frozen.destination, selection['attestation']['sha256'])),
+        ):
+            try:
+                status = evaluate()
+                if name == 'package':
+                    if status == 'mismatch':
+                        self.errors.append('static package distribution mismatch')
+                    elif status == 'unverifiable':
+                        self.missing.append('static package distribution reference equality')
+                    else:
+                        require(status == 'reference-equal', 'unsupported static package distribution status')
+            except FileNotFoundError:
+                self.missing.append('static supplier closure')
+            except ValueError as error:
+                self.errors.append('static supplier values: ' + str(error))
         return old, package, selection, expected
 
     def publisher(self, request, trust):
@@ -172,7 +186,7 @@ class Context:
         if trust is None:
             self.missing.append('independently selected publisher binding digest')
         else:
-            require(isinstance(trust, str) and __import__('re').fullmatch('[0-9a-f]{64}', trust), 'invalid trusted publisher digest')
+            require(isinstance(trust, str) and re.fullmatch('[0-9a-f]{64}', trust), 'invalid trusted publisher digest')
             self.same('trusted publisher digest', trust, request['publisher_binding']['sha256'])
         if any(v is None for v in values.values()) or requirement is None:
             return None
@@ -273,10 +287,16 @@ class Context:
             self.same('optional runtime candidate', observation['candidate_subject'],
                       {'app_revision': old['app']['revision'], 'build_identity': old['app']['build_identity'],
                        'package_record_id': old['record_id'], 'installer_sha256_before_notarisation': old['app']['installer']['sha256_before_notarisation']})
-        require(not self.model.inventory.validate(observation['inventory']), 'invalid S4 inventory')
+        if observation['inventory'] is None:
+            self.missing.append('S4 inventory')
+        else:
+            require(not self.model.inventory.validate(observation['inventory']), 'invalid S4 inventory')
         if expected:
             for key in ('pin', 'platform', 'generated', 'launcher', 'inventory'):
-                self.same('S4 expected ' + key, observation[key], expected[key])
+                if observation[key] is not None:
+                    self.same('S4 expected ' + key, observation[key], expected[key])
+                else:
+                    self.missing.append('S4 ' + key)
         for name, check in observation['checks'].items():
             if check['outcome'] == 'mismatch':
                 self.errors.append('S4 ' + name + ' mismatch')
@@ -290,8 +310,15 @@ class Context:
                     self.shape(facts, 'app/src-tauri/resources/distribution-successor/distribution-preflight-facts.s3.schema.json')
                     for key in ('generation', 'inventory', 'raw_version_label', 'configuration'):
                         self.same('preflight ' + key, facts[key], observation[key])
-        self.same('S4 recorded outcome', observation['outcome'], 'verified')
-        if any(c['outcome'] != 'pass' or c['evidence'] is None for c in observation['checks'].values()):
+        if observation['outcome'] == 'mismatch':
+            self.errors.append('S4 recorded mismatch outcome')
+        elif observation['outcome'] != 'verified':
+            self.missing.append('verified S4 observation')
+        if observation['outcome'] == 'verified' and (
+            observation['inventory'] is None or observation['generated'] is None
+            or observation['observed_label'] is None or observation['raw_version_label'] is None
+            or any(c['outcome'] != 'pass' or c['evidence'] is None for c in observation['checks'].values())
+        ):
             self.errors.append('verified S4 claim lacks all passing checks/evidence')
         self.same('S4 pre-spawn phase', observation['phase'], 'pre-spawn')
         self.same('S4 observed label', observation['observed_label'], observation['pin'])
