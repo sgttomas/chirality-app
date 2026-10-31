@@ -82,3 +82,9 @@ or packaged native witness. Existing `s2_` coverage remains selected separately.
 The existing `production_cannot_be_overridden_by_development_fields` regression
 also runs explicitly in that step, preserving its closure-resolution refusal
 point as well as the new S4 checks.
+
+The publisher-build follow-on also selects `publisher_recipe::` and
+`publisher_selection::tests` in `sources-packaging`, with the successor feature.
+These exercise the real recipe using isolated synthetic process environments,
+generated compiler guards and runtime default-None behavior; no real publisher
+input, signing or native/package qualification is part of these cohorts.

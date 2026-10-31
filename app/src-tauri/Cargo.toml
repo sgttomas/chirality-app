@@ -11,6 +11,13 @@ crate-type = ["rlib", "staticlib", "cdylib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+# Already locked dependencies; publisher inputs are handled only at build time.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+libc = "0.2"
+tauri-utils = "=2.9.1"
+json-patch = "3"
 
 [dependencies]
 pulldown-cmark = { version = "=0.13.4", default-features = false }
@@ -39,3 +46,9 @@ distribution-successor = []
 
 # Explicit synthetic startup observation only; never supplier qualification.
 synthetic-distribution-anchor = []
+
+[dev-dependencies]
+# Exercise the actual build recipe with isolated synthetic process environments.
+tauri-build = { version = "2", features = [] }
+tauri-utils = "=2.9.1"
+json-patch = "3"

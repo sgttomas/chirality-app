@@ -141,3 +141,15 @@ completed normally in about 102 seconds; no actual stock supplier, model or
 retained native candidate was run. The reviewer found no further blocker within
 the None-gated source scope; the manager implemented and checked the bounded
 repairs rather than claiming a signed-runtime success.
+
+## Forward implementation note: publisher build selection
+
+The PR #36 descriptions above retain their historical subject (literal None and
+`observed-lifecycle-reader.s4.v1`). The separate
+[PUBLISHER-BUILD-SELECTION-01](PUBLISHER_BUILD_SELECTION.md) follow-on replaces the
+literal with a checked compiler-included selector that remains None by default.
+Its reader is explicitly `observed-lifecycle-reader.s4.publisher-v1` even when
+unselected. PR #36-era transport reader identities do not match this new reader
+and are intentionally refused by its Store; no frozen transport is re-pinned or
+quietly reinterpreted. Historical evidence remains associated with its original
+reader/build. Offline/package migration requires an explicit later consumer join.

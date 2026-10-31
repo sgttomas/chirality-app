@@ -83,6 +83,24 @@
       "source": "execution/PKG-01/DEL-01-01/Work/distribution-s1/installed-custody-observation.s4.schema.json",
       "sha256": "16470617d9b46620f955cdb550ca47f987dde35ef84d1ad0a86b75a58a0d21f1",
       "id": "urn:chirality:distribution-successor:installed-custody-observation.s4"
+    },
+    {
+      "file": "publisher-build-selection.s1.schema.json",
+      "source": "execution/PKG-01/DEL-01-01/Work/publisher-build-selection/publisher-build-selection.s1.schema.json",
+      "sha256": "637c7aab73dc4b32dc971089aa4feb223d2eef8c051ba7cf623fcb15c57bac93",
+      "id": "urn:chirality:publisher-build-selection.s1"
+    },
+    {
+      "file": "publisher-build-binding.s1.schema.json",
+      "source": "execution/PKG-01/DEL-01-01/Work/publisher-build-selection/publisher-build-binding.s1.schema.json",
+      "sha256": "9187f7260d0e4258a3776e65319ff0205a241b9eb129eee85766b5247590333f",
+      "id": "urn:chirality:publisher-build-binding.s1"
+    },
+    {
+      "file": "publisher-build-public-projection.s1.schema.json",
+      "source": "execution/PKG-01/DEL-01-01/Work/publisher-build-selection/publisher-build-public-projection.s1.schema.json",
+      "sha256": "206732ec81d599ca9888212dcce96b30e2a28cb4a054784c3b74183256865088",
+      "id": "urn:chirality:publisher-build-public-projection.s1"
     }
   ],
   "fixture": {

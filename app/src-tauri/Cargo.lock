@@ -337,6 +337,7 @@ name = "chirality-app-v4"
 version = "0.0.0-skeleton"
 dependencies = [
  "getrandom 0.4.2",
+ "json-patch",
  "jsonschema",
  "libc",
  "pulldown-cmark",
@@ -348,6 +349,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
+ "tauri-utils",
  "toml 1.1.2+spec-1.1.0",
  "uuid",
 ]

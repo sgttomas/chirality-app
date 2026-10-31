@@ -43,6 +43,10 @@ pub mod distribution_semantics;
 mod distribution_store;
 mod distribution_s1;
 mod installed_custody;
+mod publisher_selection;
+#[cfg(test)]
+#[path = "../build.rs"]
+mod publisher_recipe;
 pub mod home_resources;
 mod desktop_startup;
 mod desktop_setup_confirmation;
