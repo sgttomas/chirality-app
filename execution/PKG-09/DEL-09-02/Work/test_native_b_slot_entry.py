@@ -27,6 +27,8 @@ class SlotTests(unittest.TestCase):
   self.test_fixed_after_acquisition_exec_preserves_identity_and_refuses_reuse('chirality.native-B.retained-state/v4')
  def test_v5_uses_same_fixed_once_only_slot_contract(self):
   self.test_fixed_after_acquisition_exec_preserves_identity_and_refuses_reuse('chirality.native-B.retained-state/v5')
+ def test_v6_uses_same_fixed_once_only_slot_contract(self):
+  self.test_fixed_after_acquisition_exec_preserves_identity_and_refuses_reuse('chirality.native-B.retained-state/v6')
  def test_wrong_parent_never_executes(self):
   with tempfile.TemporaryDirectory(dir=m.T3/'scratch',prefix='slot-fixture-') as name:
    with patch.object(m,'__file__',str(Path(name)/'entry.py')),patch.object(m.subprocess,'check_output',return_value='not-slot'),patch.object(m.os,'execve') as execute:

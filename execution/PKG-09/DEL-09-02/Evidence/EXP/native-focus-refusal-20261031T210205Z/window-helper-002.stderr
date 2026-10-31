@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-uef3r3p2/native_b_window_helper.py", line 130, in <module>
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--request',type=Path,required=True);p.add_argument('--sha256',required=True);a=p.parse_args();main(a.request,a.sha256)
+                                                                                                                                                                 ~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-uef3r3p2/native_b_window_helper.py", line 85, in main
+    w.require(w.frontmost(backend,app),'owned App did not become frontmost')
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-uef3r3p2/native_b_diagnostic.py", line 28, in require
+    raise RuntimeError(reason)
+RuntimeError: owned App did not become frontmost
