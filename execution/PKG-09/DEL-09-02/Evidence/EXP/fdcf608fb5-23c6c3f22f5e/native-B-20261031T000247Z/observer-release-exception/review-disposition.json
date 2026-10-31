@@ -1,0 +1,18 @@
+{
+  "at": "2026-10-31T01:16:13.998662+00:00",
+  "source": "Exact heredoc body extracted from the original functions.exec / exec_command transcript that returned unified-exec session47350; not reconstructed from a live process dump",
+  "outer_source_sha256": "cf130bdabb57f78a2f655ae0b2c66986db72ccaa19e3d028e4fc293234876d2b",
+  "invocation_sha256": "e4ff95d63d2e587509cc327ae63125e8f93716a741627fb2a903f57e3892673b",
+  "inspection": "One subprocess.run call, no retry loop. On nonzero return, writes exit-code JSON to tool stdout and raises SystemExit with that same return code; no new launch or signal. Wrapper actual completion must still be observed.",
+  "helper_unchanged_sha256": "a17d31c1deb983ea5af3a6053353055b5b02db6344c0abb964a23d5634d67fd8",
+  "residual_orphan": "Observer guard may start pgrep/ps/sysctl after the scoped child census and before SIGKILL. Such a bounded read-only utility could be orphaned; no atomic exclusion or zero-residual claim. Do not signal it or any wrapper/global guard. Verify and report post-action observations with limits.",
+  "receipt_example": {
+    "session_id": 47350,
+    "state": "running",
+    "invocation_sha256": "e4ff95d63d2e587509cc327ae63125e8f93716a741627fb2a903f57e3892673b",
+    "observed_at": "REPLACE_WITH_FRESH_ISO8601_UTC_WITH_OFFSET_AFTER_ACTUAL_HANDLE_POLL"
+  },
+  "receipt_rules": "Create original-handle-running.json only after a fresh successful read-only poll of original session47350, using datetime.now(timezone.utc).isoformat(); plain owned single-link file; execute within15seconds. Preparation receipt is NOT a live receipt.",
+  "retry_semantics": "No automatic retry. bind() refusal before signal-intent writes sends no signal; parent must explicitly select whether a new fresh poll/receipt may retry. Any existing signal-intent forbids another execution, including final-check/syscall failure.",
+  "live_signal_sent": false
+}

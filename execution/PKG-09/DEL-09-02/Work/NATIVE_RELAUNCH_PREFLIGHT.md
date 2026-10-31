@@ -1,6 +1,11 @@
 # Phase B relaunch preflight
 
-Phase B has **not run**. The 2026-10-30 preflight found that the proposed
+The first successor B attempt has now **FAILED** before source/generation
+observation. [Its failed-run and cleanup account](FAILED_B_20261031.md) is the
+current outcome; preparation/review stages below retain their historical heads
+and limits. No B pass or supplier settlement follows from administrative cleanup.
+
+At the 2026-10-30 preflight below, phase B had not run. It found that the proposed
 extension of the A sandbox cannot both admit supplier startup and prevent
 uncovered helper creation. This is a controller-design result, not a failed
 native supplier handshake or an App qualification result. Candidate

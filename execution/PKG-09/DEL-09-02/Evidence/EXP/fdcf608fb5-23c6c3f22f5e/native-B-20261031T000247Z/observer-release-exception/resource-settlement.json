@@ -1,0 +1,49 @@
+{
+  "at": "2026-10-31T01:25:10.707761+00:00",
+  "original_execution_handle": 47350,
+  "original_execution_completion_sha256": "b4bcba9b17bd833402cc141944dd58fee2c6a95e3a81e610a484972579cebd19",
+  "former_process_query": {
+    "pids": [
+      60769,
+      60767,
+      60766,
+      60753,
+      60743,
+      60780
+    ],
+    "return_code": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "original_slot_marker_exists": false,
+  "shared_memguard_observations": [
+    "78827     1   501 SN   /bin/bash /Users/ryan/dev/chirality-t3/guard/memguard.sh"
+  ],
+  "candidate_path_observations": [],
+  "last_frozen_heartbeat": {
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "phase": "B",
+    "state": "held-unknown",
+    "error": "own main window missing/ambiguous",
+    "app_exit_observation": {
+      "code": 1,
+      "status": 0
+    },
+    "original_app_reaped": false,
+    "supplier_settled_observed": false,
+    "quit_requested": false,
+    "generation": null,
+    "recovery_limit": "Permanent AX/parser loss cannot be repaired inside this frozen controller; retain supervision and report the exact missing observation. No numeric escalation or automatic duplicate UI action.",
+    "recovery_control": "write retry-native-cleanup.json with {action:retry-native-cleanup,candidate:<this candidate>}; same source is reobserved, no numeric inputs or repeated UI actions",
+    "guard_reason": null,
+    "logging_errors": [],
+    "observed_executable_processes": [],
+    "overrun": true,
+    "at": "2026-10-31T01:22:27.514318+00:00",
+    "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+  },
+  "standing": "Observer-only administrative cleanup after native App exit; no controller LT23 reap or supplier settlement inferred.",
+  "slot_release_basis": "Original execution completed137; original observer/wrappers absent and original marker removed. Slot may now be owned by other work; no lock acquisition or global cleanup performed.",
+  "app_zombie_disposition": "Original App entry absent after observer/wrapper exit; consistent with OS parentage/reaping, not a controller wait. Historical unreaped observation retained.",
+  "residual_limits": "No known residual utility identified. A diagnostic utility could have been orphaned after the final census; no utility was signalled. Scoped path absence is not exhaustive supplier/detached-helper absence."
+}

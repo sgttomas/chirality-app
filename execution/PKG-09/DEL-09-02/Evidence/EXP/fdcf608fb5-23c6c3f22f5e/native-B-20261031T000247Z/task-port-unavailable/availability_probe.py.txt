@@ -1,0 +1,42 @@
+"""Availability probe only; targets exclusively its own fresh Python Child.
+No live observer target, alternate API, privilege change or numeric signal.
+"""
+import ctypes as C
+import datetime, hashlib, json, os, subprocess, sys
+from pathlib import Path
+root=Path(__file__).parent
+lib=C.CDLL('/usr/lib/libSystem.B.dylib')
+lib.task_for_pid.argtypes=[C.c_uint,C.c_int,C.POINTER(C.c_uint)];lib.task_for_pid.restype=C.c_int
+lib.pid_for_task.argtypes=[C.c_uint,C.POINTER(C.c_int)];lib.pid_for_task.restype=C.c_int
+lib.mach_port_deallocate.argtypes=[C.c_uint,C.c_uint];lib.mach_port_deallocate.restype=C.c_int
+lib.mach_error_string.argtypes=[C.c_int];lib.mach_error_string.restype=C.c_char_p
+self_port=C.c_uint.in_dll(lib,'mach_task_self_').value
+now=lambda:datetime.datetime.now(datetime.timezone.utc).isoformat()
+python=str(Path(sys.executable).resolve())
+command=[python,'-c','import time; time.sleep(2)']
+env={'PATH':'/usr/bin:/bin','HOME':str(root),'CODEX_HOME':str(root/'codex-home')}
+facts={'scope':'fresh harmless owned fixture only; no original observer access','started_at':now(),
+       'command':command,'caller_executable':python,'caller_executable_sha256':hashlib.sha256(Path(python).read_bytes()).hexdigest(),
+       'uid':os.getuid(),'euid':os.geteuid(),'environment':env,'task_terminate_called':False}
+child=subprocess.Popen(command,env=env,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+port=C.c_uint(0)
+try:
+ facts['fixture_pid']=child.pid
+ peek=os.waitid(os.P_PID,child.pid,os.WEXITED|os.WNOHANG|os.WNOWAIT)
+ assert peek is None or peek.si_pid==0,'fixture already exited; no control request'
+ rc=lib.task_for_pid(self_port,child.pid,C.byref(port))
+ facts['task_for_pid']={'return_code':rc,'message':lib.mach_error_string(rc).decode(),'port_nonnull':bool(port.value)}
+ if rc==0 and port.value:
+  observed=C.c_int(-1);identity_rc=lib.pid_for_task(port.value,C.byref(observed))
+  facts['pid_for_task']={'return_code':identity_rc,'matches_original_unreaped_child':identity_rc==0 and observed.value==child.pid}
+  facts['standing']='control port obtained for owned fixture; further lifetime/mismatch tests and independent review needed'
+ else:
+  facts['standing']='control port unavailable under unchanged current identity; no fallback or escalation'
+  facts['not_run']=['task-port target-exit behavior','mismatched acquired task identity','termination via task port','live observer acquisition or release']
+finally:
+ if port.value:
+  facts['port_deallocate_return_code']=lib.mach_port_deallocate(self_port,port.value)
+ facts['fixture_wait_exit_code']=child.wait() # exact created Child, natural exit; no signal
+ facts['finished_at']=now()
+ with (root/'availability-result.json').open('x') as f:json.dump(facts,f,indent=2)
+print(json.dumps(facts,indent=2))

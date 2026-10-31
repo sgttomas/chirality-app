@@ -1,0 +1,19 @@
+{
+  "candidate": "fdcf608fb5-23c6c3f22f5e",
+  "phase": "B",
+  "state": "held-unknown",
+  "error": "own main window missing/ambiguous",
+  "app_exit_observation": null,
+  "original_app_reaped": false,
+  "supplier_settled_observed": false,
+  "quit_requested": false,
+  "generation": null,
+  "recovery_limit": "Permanent AX/parser loss cannot be repaired inside this frozen controller; retain supervision and report the exact missing observation. No numeric escalation or automatic duplicate UI action.",
+  "recovery_control": "write retry-native-cleanup.json with {action:retry-native-cleanup,candidate:<this candidate>}; same source is reobserved, no numeric inputs or repeated UI actions",
+  "guard_reason": null,
+  "logging_errors": [],
+  "observed_executable_processes": [],
+  "overrun": false,
+  "at": "2026-10-31T00:02:47.839392+00:00",
+  "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+}

@@ -1,0 +1,46 @@
+{
+  "at": "2026-10-31T00:24:06.365391+00:00",
+  "rows": [
+    {
+      "AXRole": "AXMenuBarItem",
+      "AXTitle": "Apple",
+      "AXEnabled": true
+    },
+    {
+      "AXRole": "AXMenuBarItem",
+      "AXTitle": "Chirality App v4 (development 20261030 eqxsxv4n)",
+      "AXEnabled": true
+    },
+    {
+      "AXRole": "AXMenuBarItem",
+      "AXTitle": "File",
+      "AXEnabled": true
+    },
+    {
+      "AXRole": "AXMenuBarItem",
+      "AXTitle": "Edit",
+      "AXEnabled": true
+    },
+    {
+      "AXRole": "AXMenuBarItem",
+      "AXTitle": "View",
+      "AXEnabled": true
+    },
+    {
+      "AXRole": "AXMenuBarItem",
+      "AXTitle": "Window",
+      "AXEnabled": true
+    },
+    {
+      "AXRole": "AXMenuBarItem",
+      "AXTitle": "Help",
+      "AXEnabled": true
+    },
+    {
+      "AXRole": "AXMenuBarItem",
+      "AXTitle": "Waiting requests (0)",
+      "AXEnabled": true
+    }
+  ],
+  "native_actions_sent": 0
+}

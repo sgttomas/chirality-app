@@ -1,0 +1,48 @@
+{
+  "at": "2026-10-31T00:25:32.496218+00:00",
+  "actor": "agent under owner direction; not a personal human act",
+  "scope": "one separately authorized cleanup-only native App-menu Quit; not a B success route",
+  "original_creation_fact": {
+    "at": "2026-10-31T00:02:47.602298+00:00",
+    "event": "native_B_started",
+    "pid": 60780,
+    "actor": "agent under owner direction; not a personal human act",
+    "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+  },
+  "fresh_held_observation": {
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "phase": "B",
+    "state": "held-unknown",
+    "error": "own main window missing/ambiguous",
+    "app_exit_observation": null,
+    "original_app_reaped": false,
+    "supplier_settled_observed": false,
+    "quit_requested": false,
+    "generation": null,
+    "recovery_limit": "Permanent AX/parser loss cannot be repaired inside this frozen controller; retain supervision and report the exact missing observation. No numeric escalation or automatic duplicate UI action.",
+    "recovery_control": "write retry-native-cleanup.json with {action:retry-native-cleanup,candidate:<this candidate>}; same source is reobserved, no numeric inputs or repeated UI actions",
+    "guard_reason": null,
+    "logging_errors": [],
+    "observed_executable_processes": [
+      {
+        "pid": 60780,
+        "parent": 60769,
+        "under_controller_ancestry": true
+      }
+    ],
+    "overrun": true,
+    "at": "2026-10-31T00:25:30.935342+00:00",
+    "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+  },
+  "actual_executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/MacOS/chirality-app-v4",
+  "executable_sha256": "58962e7b8c20f8bd249dfa016158f139843ef1ab0f747c3af2def8b15c8ad82d",
+  "menu_item": {
+    "AXRole": "AXMenuItem",
+    "AXTitle": "Quit Chirality App v4 (development 20261030 eqxsxv4n)",
+    "AXEnabled": true,
+    "AXMenuItemCmdChar": "Q",
+    "AXMenuItemCmdModifiers": 0,
+    "AXIdentifier": "fireMenuItemAction:"
+  },
+  "no_reap_permission": true
+}

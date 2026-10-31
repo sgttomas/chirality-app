@@ -1,0 +1,134 @@
+{
+  "at": "2026-10-31T00:24:15.409606+00:00",
+  "application_title": "Chirality App v4 (development 20261030 eqxsxv4n)",
+  "rows": [
+    {
+      "path": [
+        "Chirality App v4 (development 20261030 eqxsxv4n)"
+      ],
+      "AXRole": "AXMenuBarItem",
+      "AXTitle": "Chirality App v4 (development 20261030 eqxsxv4n)",
+      "AXEnabled": true,
+      "AXMenuItemCmdChar": null,
+      "AXMenuItemCmdModifiers": 0,
+      "AXIdentifier": null
+    },
+    {
+      "path": [
+        "Chirality App v4 (development 20261030 eqxsxv4n)",
+        "AXMenu"
+      ],
+      "AXRole": "AXMenu",
+      "AXTitle": null,
+      "AXEnabled": true,
+      "AXMenuItemCmdChar": null,
+      "AXMenuItemCmdModifiers": null,
+      "AXIdentifier": null
+    },
+    {
+      "path": [
+        "Chirality App v4 (development 20261030 eqxsxv4n)",
+        "AXMenu",
+        "About Chirality App v4 (development 20261030 eqxsxv4n)"
+      ],
+      "AXRole": "AXMenuItem",
+      "AXTitle": "About Chirality App v4 (development 20261030 eqxsxv4n)",
+      "AXEnabled": true,
+      "AXMenuItemCmdChar": null,
+      "AXMenuItemCmdModifiers": 8,
+      "AXIdentifier": "fireMenuItemAction:"
+    },
+    {
+      "path": [
+        "Chirality App v4 (development 20261030 eqxsxv4n)",
+        "AXMenu",
+        "AXMenuItem"
+      ],
+      "AXRole": "AXMenuItem",
+      "AXTitle": "",
+      "AXEnabled": false,
+      "AXMenuItemCmdChar": null,
+      "AXMenuItemCmdModifiers": 0,
+      "AXIdentifier": null
+    },
+    {
+      "path": [
+        "Chirality App v4 (development 20261030 eqxsxv4n)",
+        "AXMenu",
+        "Services"
+      ],
+      "AXRole": "AXMenuItem",
+      "AXTitle": "Services",
+      "AXEnabled": true,
+      "AXMenuItemCmdChar": null,
+      "AXMenuItemCmdModifiers": 8,
+      "AXIdentifier": null
+    },
+    {
+      "path": [
+        "Chirality App v4 (development 20261030 eqxsxv4n)",
+        "AXMenu",
+        "AXMenuItem"
+      ],
+      "AXRole": "AXMenuItem",
+      "AXTitle": "",
+      "AXEnabled": false,
+      "AXMenuItemCmdChar": null,
+      "AXMenuItemCmdModifiers": 0,
+      "AXIdentifier": null
+    },
+    {
+      "path": [
+        "Chirality App v4 (development 20261030 eqxsxv4n)",
+        "AXMenu",
+        "Hide Chirality App v4 (development 20261030 eqxsxv4n)"
+      ],
+      "AXRole": "AXMenuItem",
+      "AXTitle": "Hide Chirality App v4 (development 20261030 eqxsxv4n)",
+      "AXEnabled": true,
+      "AXMenuItemCmdChar": "H",
+      "AXMenuItemCmdModifiers": 0,
+      "AXIdentifier": "hide:"
+    },
+    {
+      "path": [
+        "Chirality App v4 (development 20261030 eqxsxv4n)",
+        "AXMenu",
+        "Hide Others"
+      ],
+      "AXRole": "AXMenuItem",
+      "AXTitle": "Hide Others",
+      "AXEnabled": true,
+      "AXMenuItemCmdChar": "H",
+      "AXMenuItemCmdModifiers": 2,
+      "AXIdentifier": "hideOtherApplications:"
+    },
+    {
+      "path": [
+        "Chirality App v4 (development 20261030 eqxsxv4n)",
+        "AXMenu",
+        "AXMenuItem"
+      ],
+      "AXRole": "AXMenuItem",
+      "AXTitle": "",
+      "AXEnabled": false,
+      "AXMenuItemCmdChar": null,
+      "AXMenuItemCmdModifiers": 0,
+      "AXIdentifier": null
+    },
+    {
+      "path": [
+        "Chirality App v4 (development 20261030 eqxsxv4n)",
+        "AXMenu",
+        "Quit Chirality App v4 (development 20261030 eqxsxv4n)"
+      ],
+      "AXRole": "AXMenuItem",
+      "AXTitle": "Quit Chirality App v4 (development 20261030 eqxsxv4n)",
+      "AXEnabled": true,
+      "AXMenuItemCmdChar": "Q",
+      "AXMenuItemCmdModifiers": 0,
+      "AXIdentifier": "fireMenuItemAction:"
+    }
+  ],
+  "native_actions_sent": 0
+}

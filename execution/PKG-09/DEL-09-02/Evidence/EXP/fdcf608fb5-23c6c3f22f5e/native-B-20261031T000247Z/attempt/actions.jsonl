@@ -1,0 +1,6 @@
+{"at": "2026-10-31T00:02:47.602298+00:00", "event": "native_B_started", "pid": 60780, "actor": "agent under owner direction; not a personal human act", "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."}
+{"at": "2026-10-31T00:02:47.826528+00:00", "event": "work_failed", "error": "own main window missing/ambiguous"}
+{"at": "2026-10-31T00:02:47.827849+00:00", "event": "normal_cleanup_unavailable", "error": "own main window missing/ambiguous"}
+{"at": "2026-10-31T00:02:47.828092+00:00", "event": "held_unknown", "error": "own main window missing/ambiguous"}
+{"at": "2026-10-31T00:04:52.308370+00:00", "event": "explicit_cleanup_retry", "request": {"action": "retry-native-cleanup", "candidate": "fdcf608fb5-23c6c3f22f5e"}, "overrun": false}
+{"at": "2026-10-31T00:04:52.311505+00:00", "event": "explicit_cleanup_unavailable", "error": "own main window missing/ambiguous"}

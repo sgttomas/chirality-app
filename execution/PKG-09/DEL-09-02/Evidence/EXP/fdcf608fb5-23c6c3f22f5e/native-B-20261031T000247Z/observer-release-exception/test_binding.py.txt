@@ -1,0 +1,73 @@
+"""Harmless owned fixture checks only. No signal or real observer execution."""
+import copy
+import importlib.util
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+spec = importlib.util.spec_from_file_location('proposal', Path(__file__).with_name('observer_signal_once.py'))
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+
+
+class Binding(unittest.TestCase):
+    def test_actual_owned_fixture_argv_birth_refusals_and_exit(self):
+        with tempfile.TemporaryDirectory(prefix='observer-binding-fixture-', dir=m.OUT) as temp:
+            command = [str(Path(sys.executable).resolve()), '-c', 'import time; time.sleep(1)']
+            child = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL, env={'PATH': '/usr/bin:/bin', 'HOME': temp, 'CODEX_HOME': temp})
+            try:
+                with patch.object(m.os, 'kill', side_effect=AssertionError('no signal in preparation')):
+                    info = m.kernel(child.pid)
+                    args = m.argv(child.pid)
+                    self.assertEqual(info['ppid'], os.getpid())
+                    self.assertEqual(info['uid'], os.getuid())
+                    self.assertEqual(args, command, 'spaces remain inside one argv entry')
+                    born = info['start_sec'] + info['start_usec'] / 1e6
+                    m.validate_observer(info, command, args, born - 1, born + 1)
+                    for changed, actual, lower, upper in (
+                        ({**info, 'executable': '/invented/foreign'}, args, born - 1, born + 1),
+                        (info, args + ['foreign'], born - 1, born + 1),
+                        (info, [*args[:-1], 'different program'], born - 1, born + 1),
+                        (info, args, born + 1, born + 2),
+                        (info, args, born - 2, born - 1),
+                    ):
+                        with self.assertRaises(RuntimeError):
+                            m.validate_observer(changed, command, actual, lower, upper)
+                    status = os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOWAIT)
+                    self.assertEqual(status.si_status, 0)
+                    self.assertIsNone(child.returncode, 'original PID reservation not reaped')
+                    with self.assertRaises(RuntimeError):
+                        m.kernel(child.pid)  # Exited incarnation cannot become a live signal target.
+            finally:
+                self.assertEqual(child.wait(), 0)
+
+    def test_identity_comparison_ignores_only_transient_observation_time(self):
+        baseline = m.read(m.OUT / 'binding.json')
+        changed = copy.deepcopy(baseline)
+        changed['observed_at'] = 'later observation'
+        self.assertEqual(m.identity(changed), m.identity(baseline))
+        for key, value in [('pid', baseline['observer']['pid'] + 1),
+                           ('ppid', baseline['observer']['ppid'] + 1),
+                           ('start_usec', baseline['observer']['start_usec'] + 1),
+                           ('uid', baseline['observer']['uid'] + 1)]:
+            changed = copy.deepcopy(baseline)
+            changed['observer'][key] = value
+            self.assertNotEqual(m.identity(changed), m.identity(baseline))
+
+    def test_intent_is_write_once(self):
+        with tempfile.TemporaryDirectory(dir=m.OUT) as temp:
+            path = Path(temp) / 'intent.json'
+            m.write_once(path, {'subject': 'invented'})
+            before = path.read_bytes()
+            with self.assertRaises(FileExistsError):
+                m.write_once(path, {'subject': 'changed'})
+            self.assertEqual(path.read_bytes(), before)
+
+
+if __name__ == '__main__':
+    unittest.main()

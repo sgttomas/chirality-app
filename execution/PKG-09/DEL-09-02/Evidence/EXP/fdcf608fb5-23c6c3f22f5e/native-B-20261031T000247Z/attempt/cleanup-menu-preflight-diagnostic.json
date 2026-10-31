@@ -1,0 +1,29 @@
+{
+  "at": "2026-10-31T00:23:47.711406+00:00",
+  "executable_and_hash_match": true,
+  "controller_dependencies_unchanged": true,
+  "menu_references": [
+    {
+      "attribute": "AXMenuBar",
+      "same_as_application": false,
+      "AXRole": "AXMenuBar",
+      "AXTitle": null,
+      "AXSubrole": null
+    },
+    {
+      "attribute": "AXChildren",
+      "same_as_application": true,
+      "AXRole": "AXApplication",
+      "AXTitle": "Chirality App v4 (development 20261030 eqxsxv4n)",
+      "AXSubrole": null
+    },
+    {
+      "attribute": "AXChildren",
+      "same_as_application": false,
+      "AXRole": "AXMenuBar",
+      "AXTitle": null,
+      "AXSubrole": null
+    }
+  ],
+  "native_actions_sent": 0
+}

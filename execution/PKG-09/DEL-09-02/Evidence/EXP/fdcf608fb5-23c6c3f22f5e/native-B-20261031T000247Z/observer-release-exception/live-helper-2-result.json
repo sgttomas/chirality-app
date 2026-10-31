@@ -1,0 +1,7 @@
+{
+  "finished_at": "2026-10-31T01:22:28.805586+00:00",
+  "helper_exit_code": 0,
+  "signal_intent_exists": true,
+  "signal_result_exists": true,
+  "retry_budget_exhausted": true
+}

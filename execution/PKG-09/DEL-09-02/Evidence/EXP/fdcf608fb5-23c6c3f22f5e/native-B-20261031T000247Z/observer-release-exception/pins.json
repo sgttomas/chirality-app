@@ -1,0 +1,18 @@
+{
+  "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/admission.json": "194e75a49d23045daa42bba5a6603c21400697e770e8043cfbce4c9bf111e012",
+  "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/invocation.json": "e4ff95d63d2e587509cc327ae63125e8f93716a741627fb2a903f57e3892673b",
+  "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/execution-started.json": "0c894d136d1d627fba88b3eef20b8f96300d9a43ac36b00510ce142f4c5324cb",
+  "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/actions.jsonl": "be72ffaac51e35c622523bb1b7d5f1c9a32486fb4ab02931cd5f787c1f965a5d",
+  "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/stack-sample.txt": "68b59d634b569b2ea8eae78ca432551c74ac6d7b4f4a8145d4adbaf09a5a1654",
+  "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/cleanup-only-menu-request.json": "83d653fc062e5cff53a5788bedfac407715c930f76f5c93fa7eb63936406c837",
+  "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/cleanup-only-menu-outcome.json": "76b791a13970fad9c8e21e897df3a52156aa0cb6fa0cb6936f4471c6adc0d3fa",
+  "/Users/ryan/dev/chirality-t3/tools/t3_slot.sh": "02cc3e42fdb342463c148fb8f9505e201e2db52ee09d70dd0057eb35f9acd689",
+  "/Users/ryan/dev/chirality-t3/tools/t3_slot_run.sh": "1156f5a58574fcf513dd4c681c0d12b0e22302f47ff837b1de1b9bb6361e9835",
+  "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_setup_continuation.py": "c7907e185df14aa51a5ad908c1d55f18e9e4679edb57f7da417b47252eae0acc",
+  "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Evidence/EXP/d908cbec5b-headless-setup-20261030T055603Z/offline-native-controller-v2.py.txt": "91c9ca98d7bf8d784e2cea5cbd42d237230b9018d58f5e04e369a755d5b7720c",
+  "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/app/examination/candidate_identity/identify.py": "983ad088945b9f0a05fbf374630d83d596b743ad7af4b8ffc13ae4c2ed3981ae",
+  "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/app/examination/candidate_identity/bundled_supplier.py": "6604fbe6efb7aa291b915a27d5a07270b5d96191090780ad88d2c195c5d4239f",
+  "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-01/Work/candidate-identity-v3/candidate-identification.schema.json": "8b0f84322e801123f0c333bf4f50d4729aec2d60ab1bf72535fa7c05c0385a0e",
+  "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_setup.py": "5ece0059c9d5ecb170b53dcae3f921eaf99dff585662e1a0cc8cb17a9b08a641",
+  "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py": "9cc8a871674c61e9603d6139bedda3a64fb940a40a8e0482cf7a351a17218476"
+}

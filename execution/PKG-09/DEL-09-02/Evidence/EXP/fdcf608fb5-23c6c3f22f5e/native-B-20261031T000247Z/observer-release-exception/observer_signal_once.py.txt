@@ -1,0 +1,252 @@
+"""One fixed failed-attempt observer proposal. Default is READ ONLY.
+
+--execute-reviewed requires separate live authorization and a fresh original
+exec-handle poll receipt. No caller PID/PGID, task-port API or fallback exists.
+PID-based SIGKILL has a residual validation-to-signal race; it is not atomic
+lifetime-bound control. It targets only the observer, never App or supplier.
+"""
+import argparse
+import ctypes as C
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import signal
+import stat
+import subprocess
+import sys
+
+HERE = Path(__file__).resolve()
+OUT = HERE.parent
+ATTEMPT = Path('/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb')
+CANDIDATE = 'fdcf608fb5-23c6c3f22f5e'
+SESSION = 47350
+T3 = Path('/Users/ryan/dev/chirality-t3')
+RACE = 'Non-atomic PID control: exit/reuse or identity/work change after final checks remains possible; no lifetime-bound guarantee.'
+
+
+def require(ok, reason):
+    if not ok:
+        raise RuntimeError(reason)
+
+
+def now():
+    return datetime.now(timezone.utc)
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read(path):
+    s = path.lstat()
+    require(stat.S_ISREG(s.st_mode) and s.st_uid == os.getuid() and s.st_nlink == 1,
+            'nonplain, foreign-owned or linked input: ' + str(path))
+    return json.loads(path.read_text())
+
+
+def write_once(path, value):
+    with path.open('x') as stream:
+        stream.write(json.dumps(value, indent=2) + '\n')
+
+
+def heartbeat():
+    with (ATTEMPT / 'held-heartbeat.jsonl').open('rb') as stream:
+        stream.seek(0, 2)
+        stream.seek(max(0, stream.tell() - 32768))
+        raw = stream.read()
+    lines = raw.splitlines()
+    value = json.loads(lines[-1] if raw.endswith(b'\n') else lines[-2])
+    age = (now() - datetime.fromisoformat(value['at'])).total_seconds()
+    require(0 <= age < 8 and value['candidate'] == CANDIDATE, 'keeper stale or foreign')
+    require(value['original_app_reaped'] is False
+            and value['app_exit_observation'] == {'code': os.CLD_EXITED, 'status': 0},
+            'original App normal exit/unreaped fact unavailable')
+    require(value['state'] == 'held-unknown' and value['generation'] is None
+            and value['supplier_settled_observed'] is False, 'failed-run standing changed')
+    require(value['guard_reason'] is None and not value['logging_errors'], 'keeper guard/evidence degraded')
+    return value
+
+
+class Bsd(C.Structure):
+    # macOS SDK sys/proc_info.h proc_bsdinfo, arm64: 136 bytes.
+    _fields_ = [(k, C.c_uint32) for k in ('flags', 'status', 'xstatus', 'pid', 'ppid', 'uid',
+        'gid', 'ruid', 'rgid', 'svuid', 'svgid', 'reserved')] + [('comm', C.c_char * 16),
+        ('name', C.c_char * 32)] + [(k, C.c_uint32) for k in ('nfiles', 'pgid', 'pjobc', 'tdev', 'tpgid')] + [
+        ('nice', C.c_int32), ('start_sec', C.c_uint64), ('start_usec', C.c_uint64)]
+
+
+lib = C.CDLL('/usr/lib/libproc.dylib', use_errno=True)
+lib.proc_pidinfo.argtypes = [C.c_int, C.c_int, C.c_uint64, C.c_void_p, C.c_int]
+lib.proc_pidinfo.restype = C.c_int
+lib.proc_pidpath.argtypes = [C.c_int, C.c_void_p, C.c_uint32]
+lib.proc_pidpath.restype = C.c_int
+lib.proc_listpids.argtypes = [C.c_uint32, C.c_uint32, C.c_void_p, C.c_int]
+lib.proc_listpids.restype = C.c_int
+system = C.CDLL('/usr/lib/libSystem.B.dylib', use_errno=True)
+system.sysctl.argtypes = [C.POINTER(C.c_int), C.c_uint, C.c_void_p, C.POINTER(C.c_size_t), C.c_void_p, C.c_size_t]
+system.sysctl.restype = C.c_int
+
+
+def kernel(pid):
+    path = C.create_string_buffer(4096)
+    require(lib.proc_pidpath(pid, path, len(path)) > 0, 'executable path unavailable')
+    info = Bsd()
+    require(C.sizeof(info) == 136 and lib.proc_pidinfo(pid, 3, 0, C.byref(info), 136) == 136,
+            'complete BSD identity unavailable')
+    require(info.pid == pid and info.uid == info.ruid == os.getuid() and info.status in (2, 3)
+            and not info.flags & 7, 'foreign, traced, exiting or nonlive process')
+    return {k: int(getattr(info, k)) for k in ('pid', 'ppid', 'uid', 'ruid', 'start_sec', 'start_usec')} | {
+        'executable': path.value.decode('utf-8')}
+
+
+def argv(pid):
+    # Used ONLY after the observer's UID/path/birth/parent binding. The kernel
+    # buffer may include its fixed uncredentialed environment; parse/persist
+    # only argc argv entries, never environment values or the raw buffer.
+    mib = (C.c_int * 3)(1, 49, pid)  # CTL_KERN / KERN_PROCARGS2
+    size = C.c_size_t()
+    require(system.sysctl(mib, 3, None, C.byref(size), None, 0) == 0
+            and 4 < size.value < 1048576, 'bounded argv size unavailable')
+    buf = C.create_string_buffer(size.value)
+    require(system.sysctl(mib, 3, buf, C.byref(size), None, 0) == 0, 'argv unavailable')
+    raw = buf.raw[:size.value]
+    argc = int.from_bytes(raw[:4], sys.byteorder, signed=True)
+    require(0 < argc < 32, 'unexpected argument count')
+    offset = raw.index(b'\0', 4) + 1
+    while raw[offset] == 0:
+        offset += 1
+    values = []
+    for _ in range(argc):
+        end = raw.index(b'\0', offset)
+        values.append(raw[offset:end].decode('utf-8'))
+        offset = end + 1
+    return values
+
+
+def children(pid):
+    values = (C.c_int * 64)()
+    C.set_errno(0)
+    length = lib.proc_listpids(6, pid, values, C.sizeof(values))  # PROC_PPID_ONLY, bytes
+    require(length >= 0 and length < C.sizeof(values) and length % 4 == 0
+            and not (length == 0 and C.get_errno()), 'child census incomplete/unavailable')
+    result = list(values)[:length // 4]
+    require(all(p > 0 for p in result) and len(set(result)) == len(result), 'invalid child census')
+    return sorted(result)
+
+
+def zombie(pid, launch):
+    output = subprocess.check_output(['/bin/ps', '-p', str(pid), '-o', 'pid=,ppid=,uid=,stat=,lstart='],
+        env={'PATH': '/usr/bin:/bin', 'LC_ALL': 'C', 'TZ': 'UTC'}, text=True, timeout=2)
+    fields = output.strip().split(None, 4)
+    require(len(fields) == 5 and int(fields[0]) == pid and int(fields[2]) == os.getuid()
+            and fields[3].startswith('Z'), 'original App zombie/UID unavailable')
+    born = datetime.strptime(fields[4], '%a %b %d %H:%M:%S %Y').replace(tzinfo=timezone.utc)
+    require(int(born.timestamp()) == int(launch.timestamp()), 'App incarnation birth differs')
+    return {'pid': pid, 'ppid': int(fields[1]), 'uid': int(fields[2]), 'state': fields[3],
+            'kernel_birth_second': born.isoformat(), 'original_sample_birth': launch.isoformat()}
+
+
+def validate_observer(info, expected_argv, actual_argv, lower, upper):
+    born = info['start_sec'] + info['start_usec'] / 1e6
+    require(lower <= born <= upper, 'observer birth outside original execution interval')
+    require(info['executable'] == str(Path(expected_argv[0]).resolve()), 'observer executable differs')
+    require(actual_argv == expected_argv, 'complete observer argv differs')
+
+
+def bind():
+    pins = read(OUT / 'pins.json')
+    for path, digest in pins.items():
+        require(sha(Path(path)) == digest, 'source/evidence dependency changed: ' + path)
+    admitted, invocation = read(ATTEMPT / 'admission.json'), read(ATTEMPT / 'invocation.json')
+    started = read(ATTEMPT / 'execution-started.json')
+    created = json.loads((ATTEMPT / 'actions.jsonl').read_text().splitlines()[0])
+    require(created['event'] == 'native_B_started' and started['candidate'] == CANDIDATE, 'creation source differs')
+    sample = (ATTEMPT / 'stack-sample.txt').read_text()
+    launch = datetime.strptime(re.search(r'^Launch Time:\s+(.+)$', sample, re.M)[1], '%Y-%m-%d %H:%M:%S.%f %z')
+    sample_parent = int(re.search(r'^Parent Process:\s+python3\.13 \[(\d+)\]', sample, re.M)[1])
+    first = heartbeat()
+    app = zombie(created['pid'], launch)
+    target = app['ppid']  # derived from the original child's CURRENT kernel relationship
+    require(target == sample_parent and target not in (0, 1, os.getpid(), app['pid']), 'observer parent relationship differs')
+    expected = ['/Users/ryan/.local/share/mise/installs/python/3.13.14/bin/python3.13', '-B',
+        '/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py',
+        '--execute', str(ATTEMPT), '--window-end', '2026-10-31T00:06:47.015569+00:00']
+    require(invocation['command'] == [str(T3 / 'tools/t3_slot.sh'), *expected], 'fixed invocation differs')
+    lower = datetime.fromisoformat(admitted['prepared_at']).timestamp()
+    upper = datetime.fromisoformat(started['at']).timestamp()
+    require(upper < launch.timestamp(), 'execution marker not before original App birth')
+    observer = kernel(target)
+    require(lower <= observer['start_sec'] + observer['start_usec']/1e6 <= upper
+            and observer['executable'] == str(Path(expected[0]).resolve()), 'observer preliminary identity differs')
+    args = argv(target)
+    validate_observer(observer, expected, args, lower, upper)
+    chain = [observer]
+    expected_paths = ['/bin/bash', '/usr/bin/lockf', '/bin/bash', observer['executable']]
+    for path in expected_paths:
+        entry = kernel(chain[-1]['ppid'])
+        require(entry['executable'] == path and lower <= entry['start_sec'] + entry['start_usec']/1e6 <= upper,
+                'parent/wrapper path or birth differs')
+        chain.append(entry)
+    slot_run, lockf, slot, outer = chain[1:]
+    # Wrapper argv is corroborated via complete ps command lines; no parent
+    # environment is read, particularly the outer Python's inherited context.
+    line = lambda pid: subprocess.check_output(['/bin/ps', '-ww', '-p', str(pid), '-o', 'command='], text=True, timeout=2).strip()
+    mark = str(T3 / 'guard' / ('run.' + str(slot['pid'])))
+    slot_name = 'cargo_job.slot3.lock'
+    run_args = [str(T3 / 'tools/t3_slot_run.sh'), mark, slot_name, *expected]
+    require(line(slot_run['pid']) == ' '.join(['/bin/bash', *run_args]), 'slot-run wrapper differs')
+    require(line(lockf['pid']) == ' '.join(['/usr/bin/lockf', '-s', '-k', '-t', '0', str(T3/'guard'/slot_name), *run_args]), 'lock owner wrapper differs')
+    require(line(slot['pid']) == ' '.join(['/bin/bash', *invocation['command']]), 'slot admission wrapper differs')
+    marker = Path(mark).lstat()
+    require(stat.S_ISREG(marker.st_mode) and marker.st_uid == os.getuid() and marker.st_size == 0, 'original slot marker unavailable')
+    scope = children(target)
+    require(scope == [app['pid']], 'additional live/unknown child work; no observer signal')
+    require(zombie(app['pid'], launch) == app and children(target) == scope and kernel(target) == observer,
+            'binding changed during inspection')
+    last = heartbeat()
+    return {'observed_at': now().isoformat(), 'session_id': SESSION, 'candidate': CANDIDATE,
+        'observer': observer, 'observer_argv': args, 'observer_executable_sha256': sha(Path(observer['executable'])),
+        'original_app': app, 'wrapper_chain': chain, 'children': scope, 'slot_marker': mark,
+        'slot_lock': str(T3/'guard'/slot_name), 'heartbeat_before': first, 'heartbeat_after': last,
+        'helper_sha256': sha(HERE), 'pins_sha256': sha(OUT/'pins.json'), 'residual_race': RACE,
+        'standing': 'identity-checked observer-only proposal; not yet signalled, no supplier settlement claim'}
+
+
+def identity(value):
+    return {k: value[k] for k in ('observer', 'observer_argv', 'observer_executable_sha256',
+        'original_app', 'wrapper_chain', 'children', 'slot_marker', 'slot_lock', 'helper_sha256', 'pins_sha256')}
+
+
+def execute_reviewed():
+    baseline = read(OUT / 'binding.json')
+    receipt = read(OUT / 'original-handle-running.json')
+    require(receipt['session_id'] == SESSION and receipt['state'] == 'running'
+            and receipt['invocation_sha256'] == sha(ATTEMPT/'invocation.json')
+            and 0 <= (now()-datetime.fromisoformat(receipt['observed_at'])).total_seconds() < 15,
+            'fresh original unified-exec poll receipt absent')
+    current = bind()
+    require(identity(current) == identity(baseline), 'reviewed binding differs')
+    write_once(OUT / 'signal-intent.json', {'at': now().isoformat(), 'binding': current,
+        'operator_receipt': receipt, 'signal': 'SIGKILL', 'subject': 'frozen observer only', 'residual_race': RACE})
+    # No IO, discovery, retry or fallback after the final identity read.
+    require(kernel(current['observer']['pid']) == current['observer'], 'last identity read differs')
+    os.kill(current['observer']['pid'], signal.SIGKILL)
+    write_once(OUT / 'signal-result.json', {'at': now().isoformat(), 'signal_syscall_returned': True,
+        'target': current['observer'], 'limit': 'Delivery/teardown/slot release require separate observation; not App or supplier settlement.'})
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--inspect', action='store_true')
+    parser.add_argument('--execute-reviewed', action='store_true')
+    args = parser.parse_args()
+    require(args.inspect != args.execute_reviewed, 'choose inspect or separately authorized execute-reviewed')
+    if args.inspect:
+        value = bind()
+        write_once(OUT / 'binding.json', value)
+        print(json.dumps(value, indent=2))
+    else:
+        execute_reviewed()

@@ -30,7 +30,10 @@ The new identifier is `dev.chirality.app-v4.candidate.20261030-eqxsxv4n`.
 Its three declared App-data/WebKit/cache locations were absent at identification.
 
 Successor native A **passed** on its first attempt at
-2026-10-30 22:28:05.925–22:28:16.912 UTC. B has **not run**.
+2026-10-30 22:28:05.925–22:28:16.912 UTC. The first B attempt **FAILED** before
+source/generation observation; its separately authorized cleanup and actual
+resource closure are recorded in [the failed B account](FAILED_B_20261031.md).
+No handshake, LT-23 or supplier settlement was established by that attempt.
 The [successor A-only adapter](native_successor_setup.py) uses fresh invented
 inputs. Seven invented-file admission tests and a complete bundle inventory
 recheck passed. The adapter reuses the maintained A execution, supervision,
