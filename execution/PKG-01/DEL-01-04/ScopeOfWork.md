@@ -114,3 +114,12 @@ These unresolved matters qualify dependent choices, not the existence of the acc
 | OUT-004 | OBJ-001, OBJ-002 | REQ-006, REQ-007, CLM-002, CLM-003, CLM-004, CLM-005, CLM-006 | AC-006 | VER-006 | Owner-resolved receiving/reuse document with exact open owner and point-of-need pairs. |
 | OUT-003 | OBJ-001, OBJ-002 | CLM-001, REQ-001, REQ-002, REQ-003, REQ-004, REQ-005 | AC-007 | VER-007 | Delivered and executed interaction fixtures with candidate/basis identity, coverage and truthful limits. |
 | OUT-005 | OBJ-001, OBJ-002 | REQ-008, CLM-004, CLM-005 | AC-008 | VER-008 | Person-only capture on the candidate: served kinds, A15 single and multi-entry acts, automation and stale-content refusals, decline, records in the evidence-record format, identity not verified, pending requests untouched. |
+
+## SEAL-C signing-stage implementation reconciliation
+
+[The SEAL-C signing supplement](Work/SEAL_C_KEYCHAIN_TRANSITION.md) carries AAC §6.3/U-AAC-3's
+adopted OS-keychain-at-signing obligation as a separately gated source provider
+and explicit continuity interface. It does not adopt deferred SEAL-2, change
+acceptance criteria, activate a real keychain or establish exclusive-agent or
+personal-act guarantees. Actual signed identity, entitlement/profile compatibility
+and continuity witness remain at their signing-stage points of need.

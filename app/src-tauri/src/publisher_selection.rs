@@ -12,6 +12,11 @@ pub(crate) struct CompiledPublisherSelection {
     public_projection_digest: &'static str,
 }
 impl CompiledPublisherSelection {
+    /// Exact subject match only after selected() validated the compiled binding.
+    pub(crate) fn matches_subject(&self, identifier: &str, team: &str) -> bool {
+        COMPILED_PUBLISHER_BINDING_JSON.and_then(|raw|serde_json::from_str::<Value>(raw).ok())
+            .is_some_and(|binding|binding["production_bundle_identifier"]==identifier && binding["developer_id_team_identifier"]==team)
+    }
     pub(crate) fn requirement(&self) -> &'static str {
         self.requirement
     }

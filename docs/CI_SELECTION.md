@@ -88,3 +88,8 @@ The publisher-build follow-on also selects `publisher_recipe::` and
 These exercise the real recipe using isolated synthetic process environments,
 generated compiler guards and runtime default-None behavior; no real publisher
 input, signing or native/package qualification is part of these cohorts.
+
+The SEAL-C signing transition explicitly selects `capture_seal` in the PR
+`sources-packaging` job. It covers existing file-key behavior and the new mock
+keychain enrollment/continuity/capture-cache cases. All real SecItem calls are
+disabled in test builds; this cohort does not qualify a signed keychain provider.

@@ -299,7 +299,7 @@ mod native {
             max: isize,
         ) -> u8;
         fn CFDictionaryGetValue(dictionary: Ref, key: Ref) -> Ref;
-        fn CFNumberGetValue(number: Ref, kind: i32, out: *mut c_void) -> u8;
+        fn CFNumberGetValue(number: Ref, kind: isize, out: *mut c_void) -> u8;
         fn CFDataGetLength(data: Ref) -> isize;
         fn CFDataGetBytePtr(data: Ref) -> *const u8;
     }

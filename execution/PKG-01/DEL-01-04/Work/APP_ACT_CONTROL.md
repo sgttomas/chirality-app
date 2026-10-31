@@ -641,6 +641,17 @@ the App data folder, and the key moves to the OS keychain at signing (OI-011):
   are sealed. A15 and A16 captures are not sealed; neither is counted through
   this rule.
 
+**Signing-stage implementation preparation (SEAL-C-KEYCHAIN-01, 2026-10-31).**
+[The separate technical clause](SEAL_C_KEYCHAIN_TRANSITION.md) supplies a
+compiled-None-gated Data Protection keychain provider and mock continuity tests
+for the selected keychain-at-signing obligation above. It preserves historical
+file-key behavior for unselected unsigned/development builds, refuses file
+fallback for a selected production publisher, and requires explicit host-only
+first enrollment. No real keychain or signing-stage activation is established.
+SEAL-2 remains deferred; no entry seal, exclusive-agent or native-origin claim is
+adopted. Actual entitlement/profile membership and signed continuity witness
+remain at packaging/signing's point of need.
+
 ### 6.4 Limits that no placement removes (stated, not hidden)
 
 - The person's tool-permission and sandbox settings are their own (D3). With

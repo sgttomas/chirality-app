@@ -113,3 +113,12 @@ an explicit reviewed production recipe can compile owner-selected values. This
 changes no acceptance criteria and selects no real identity, version, minimum OS
 or signing act. Actual publisher input, package/consumer joins and qualification
 remain at their named points of need.
+
+## SEAL-C signing-stage implementation reconciliation
+
+[The SEAL-C signing supplement](Work/SEAL_C_KEYCHAIN_SIGNING_JOIN.md) carries AAC §6.3/U-AAC-3's
+adopted OS-keychain-at-signing obligation as a separately gated source provider
+and explicit continuity interface. It does not adopt deferred SEAL-2, change
+acceptance criteria, activate a real keychain or establish exclusive-agent or
+personal-act guarantees. Actual signed identity, entitlement/profile compatibility
+and continuity witness remain at their signing-stage points of need.
