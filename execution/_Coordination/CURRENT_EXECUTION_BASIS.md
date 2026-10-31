@@ -64,8 +64,9 @@ Current Type 1 assignments are:
 - **Installed supplier integrity:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:72b0bb46c6645f2fd7155deab7d5ff1fa5b3b56a4e77151178a0e322c1e906ae>.
   PR #36 integrated the selected S4 process-local macOS observation and explicit
   reader semantics. The compiled publisher requirement remains `None`; there is
-  no real installed verification or signing claim. The separate publisher-build
-  selector is implementation work, not a selected identity. Serialized evidence
+  no real installed verification or signing claim. PR #38 integrated the
+  separately bound publisher-build selector; ordinary builds remain unselected
+  and no real publisher input is supplied. Serialized evidence
   cannot grant live-start authority; package/EXP/SQ adoption remains explicit work.
 - **Examination consumer adoption:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:dfd5f3387f3d829609ad20116fc248c584aecf045d0fd2268b5674b536a95b92>.
   Own the terms documentary successor and its standalone/canonical/SQ joins.
@@ -209,8 +210,11 @@ after independent payload scrutiny; selector/enforcement/existing bypass actors
 were preserved. This is a scoped past permission change, not standing authority
 to bypass protection, edit permissions or publish a release.
 
-Build offline by default. Before heavy App builds or model runs on the shared
-Mac, message the SWBPIPE Agent 0 in T3 Code. Official stock Codex binary
+Build offline by default. Routine builds and bounded non-model/non-measurement
+native work share the slot wrapper and memguard caps; no START/END clearance
+is required. Agree shared oMLX model loads or RSS/timing measurements with
+SWBPIPE Agent 0 in advance, and use `t3_exclusive.sh` for measurements. Report
+overruns or resident workloads that affect resource release. Official stock Codex binary
 downloads are approved with actual file/source/size/digest recorded; existing
 oMLX is selected for the local witness. Hosted use is allowed with owner-supplied
 credentials/sign-in, labelled separately from local evidence. Other downloads
