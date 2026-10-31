@@ -122,3 +122,13 @@ start (OWNER K/L; METHOD §6). Lifecycle acts remain separate under COORD.
 | OUT-001 | OBJ-004, OBJ-008 | REQ-006 | AC-006 | VER-006 | All-host traffic observation on same live journey, destination record and actual native destination-enforcement evidence |
 | OUT-002 | OBJ-004, OBJ-005, OBJ-008, OBJ-009 | REQ-007, REQ-008, CLM-001, CLM-003, CLM-005 | AC-007 | VER-007 | One independently examined candidate dossier, linked receipts, native/interface coverage, limits and receiving handoff |
 | OUT-002 | OBJ-004, OBJ-005, OBJ-008, OBJ-009 | REQ-009, CLM-001, CLM-002, CLM-003, CLM-004 | AC-008 | VER-008 | Act/owner resolution, actual external custody and open-choice/dependency account |
+
+## Catalog-v3 receiving implementation
+
+Current offline receiving explicitly adopts SWBPIPE PR15's integrated catalog
+at `4d8cb7b0c8f101d5102813e634e23ecba29b310e`, with source/actor/version limits
+in [DEL-09-06's receiving account](../DEL-09-06/Work/SWBPIPE_CATALOG_V3_RECEIVING.md).
+Original/v2 subjects remain historical. Same six tools and nine fixed proposal
+intent branches supply schema/correspondence evidence, not actual live/human
+acts or criterion 17 qualification. Existing commitments, acceptance criteria
+and host-owned native/application/custody responsibilities remain unchanged.

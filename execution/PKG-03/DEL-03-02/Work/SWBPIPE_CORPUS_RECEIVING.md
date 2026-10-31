@@ -1,5 +1,13 @@
 # SWBPIPE operation corpus received in App terms
 
+Current catalog-v3 intake is separately pinned in
+[swbpipe-catalog-v3-pins.json](swbpipe-catalog-v3-pins.json) and reconciled by
+[DEL-09-06](../../../PKG-09/DEL-09-06/Work/SWBPIPE_CATALOG_V3_RECEIVING.md).
+That selection binds the integrated `sgttomas/SWBPIPE` repository-root catalog;
+it does not refresh this older 84-case corpus, mappings or their original
+`sgttomas/chirality` source identity. The historical account below retains its
+actual source subject and no human-act/application standing is upgraded.
+
 - Contribution: DEL-03-02/SWB-CORPUS-v0.1, with DEL-03-01's SH-1 profile `swbpipe`
   (C-v0.8 §10.8). Status: PROPOSED mapping and test double. Evidence labels:
   *illustrative* (the corpus mapping) and *test-double* (the profile). No SWBPIPE

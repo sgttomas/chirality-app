@@ -33,14 +33,23 @@ def declarations(catalog):
 
 def validate(value, schema):
     """Small fixture-only evaluator for the keywords used in this proposal."""
+    keywords = {"type", "anyOf", "const", "enum", "maxProperties", "required",
+                "properties", "additionalProperties", "uniqueItems", "minItems",
+                "maxItems", "items", "minLength", "maxLength", "pattern",
+                "minimum", "maximum", "description"}
+    if not set(schema) <= keywords:
+        raise ValueError("unsupported schema keyword")
+    if "description" in schema and not isinstance(schema["description"], str):
+        raise ValueError("schema description must be guidance text")
     if "anyOf" in schema:
         for branch in schema["anyOf"]:
             try:
                 validate(value, branch)
-                return
+                break
             except ValueError:
                 pass
-        raise ValueError("anyOf")
+        else:
+            raise ValueError("anyOf")
     if "const" in schema and (type(value) is not type(schema["const"]) or value != schema["const"]):
         raise ValueError("const")
     if "enum" in schema and value not in schema["enum"]:
@@ -49,7 +58,7 @@ def validate(value, schema):
     valid_type = {"object": isinstance(value, dict), "array": isinstance(value, list),
                   "string": isinstance(value, str), "integer": type(value) is int,
                   "number": type(value) in (int, float) and math.isfinite(value) if type(value) in (int, float) else False,
-                  "null": value is None}
+                  "null": value is None, "boolean": type(value) is bool}
     if kind and not valid_type[kind]:
         raise ValueError("type")
     if kind == "object":
@@ -85,7 +94,14 @@ def decode(raw, cap):
         raise ValueError("byte admission")
     def bad_constant(_):
         raise ValueError("nonfinite")
-    return json.loads(raw, parse_constant=bad_constant)
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate JSON field")
+            result[key] = value
+        return result
+    return json.loads(raw, parse_constant=bad_constant, object_pairs_hook=unique)
 
 
 def response(catalog, tool, result):
@@ -123,9 +139,9 @@ class Pending:
     """One invented pending call. Production must also own queues, cursors and budgets."""
     def __init__(self, catalog, binding, args_raw, current_basis, current_units=None, retained_record=None):
         self.catalog = catalog
-        if catalog["catalogVersion"] not in ("swbpipe-catalog-proposal/1", "swbpipe-catalog/1", "swbpipe-catalog/2"):
+        if catalog["catalogVersion"] not in ("swbpipe-catalog-proposal/1", "swbpipe-catalog/1", "swbpipe-catalog/2", "swbpipe-catalog/3"):
             raise ValueError("unsupported catalog version")
-        self.retained_policy = catalog["catalogVersion"] == "swbpipe-catalog/2"
+        self.retained_policy = catalog["catalogVersion"] in ("swbpipe-catalog/2", "swbpipe-catalog/3")
         historical = self.retained_policy and binding.get("tool") in (
             "swbpipe_observe_proposal", "swbpipe_read_results")
         captured_basis = current_basis
@@ -168,11 +184,18 @@ class Pending:
         if self.retained_policy and "operations" in self.args:
             validate_assumptions(self.args["operations"], self.args["assumptions"])
         if "operations" in self.args:
-            if not current_units or not current_units.get("length"):
-                raise ValueError("units unavailable")
             for intent in self.args["operations"]:
-                if intent["change"]["unit"] != current_units["length"]:
-                    raise ValueError("document unit mismatch")
+                # Preserve the original coordinate-unit guard. V3's new intent
+                # subschemas admit other dimensions; their native payload/unit
+                # semantics stay with SWBPIPE's applier. Description text is not
+                # executable validation or a source of new permissions.
+                coordinate = (intent["target"]["object_type"] == "Node"
+                              and intent["change"]["change_kind"] == "set_field")
+                if catalog["catalogVersion"] != "swbpipe-catalog/3" or coordinate:
+                    if not current_units or not current_units.get("length"):
+                        raise ValueError("units unavailable")
+                    if intent["change"]["unit"] != current_units["length"]:
+                        raise ValueError("document unit mismatch")
         self.completed = False
 
     def complete(self, binding, result, current_basis, retained_record=None, session_attached=True):
