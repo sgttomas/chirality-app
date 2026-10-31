@@ -215,8 +215,27 @@ class Context:
         observation, custody = self.get(request['observation']), self.get(request['custody'])
         self.get(request['app']['executable'], typed=False)
         self.get(request['installer_after_stapling'], typed=False)
+        app = request['app']
+        for key in ('revision', 'build_identity'):
+            self.same('App/candidate ' + key, app[key], request['candidate'][key])
+        self.same('App publisher binding', app['publisher_binding_sha256'], request['publisher_binding']['sha256'])
+        self.same('App publisher projection', app['public_projection_sha256'], request['publisher_projection']['sha256'])
         if static_request:
             self.same('binding/static candidate', request['candidate'], static_request['candidate'])
+        for value, name in ((observation, 'observed-verification.s4'), (custody, 'installed-custody-observation.s4')):
+            if value is not None:
+                self.shape(value, 'app/src-tauri/resources/distribution-successor/' + name + '.schema.json')
+        if custody is not None:
+            self.same('S4 installed standing', custody['app']['standing'], 'installed-observation')
+            self.same('S4 static/dynamic facts', custody['app']['static'], custody['app']['dynamic'])
+            self.same('S4 signing cdhash', custody['app']['static']['cdhash'], app['cdhash'])
+        if observation is not None and custody is not None:
+            self.same('S4 generation', custody['generation'], observation['generation'])
+            self.same('S4 full inventory', custody['inventory'], observation['inventory'])
+        if static is not None:
+            old = static[0]
+            for a, b in [('revision', 'revision'), ('build_identity', 'build_identity'), ('version', 'version'), ('identifier', 'bundle_id'), ('cdhash', 'cdhash')]:
+                self.same('App/' + a, app[a], old['app'].get(b))
         if static is None or publisher is None or observation is None or custody is None:
             return
         old, package, selection, expected = static
@@ -229,11 +248,6 @@ class Context:
                 self.missing.append('reported package ' + key + ' pass')
         if old['notarisation']['state'] != 'accepted' or not old['notarisation'].get('stapled'):
             self.missing.append('reported accepted/stapled notarisation')
-        app = request['app']
-        for a, b in [('revision', 'revision'), ('build_identity', 'build_identity'), ('version', 'version'), ('identifier', 'bundle_id'), ('cdhash', 'cdhash')]:
-            self.same('App/' + a, app[a], old['app'].get(b))
-        self.same('App publisher binding', app['publisher_binding_sha256'], request['publisher_binding']['sha256'])
-        self.same('App publisher projection', app['public_projection_sha256'], request['publisher_projection']['sha256'])
         self.same('App supplier selection', app['supplier_selection_sha256'], static_request['build_selection']['sha256'])
         self.same('App publisher identifier', app['identifier'], publisher['production_bundle_identifier'])
         self.same('App publisher version', app['version'], publisher['build_context']['application_version'])
@@ -350,6 +364,8 @@ def check(request_path, *, evidence_root=None, trusted_publisher_sha256=None):
                                'Private publisher selection is an independent caller trust input, not authority from the packet.']}
     except ValidationError as error:
         raise ValueError('schema refusal: ' + str(error.validator)) from error
+    except (OSError, KeyError, TypeError, RecursionError) as error:
+        raise ValueError('package input/source refused: ' + type(error).__name__) from error
 
 
 def main():

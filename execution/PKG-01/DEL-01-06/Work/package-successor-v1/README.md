@@ -71,3 +71,18 @@ InstalledCustody or selects the App's compiled publisher. Actual publisher input
 signed/notarised package, native installation, OS qualification and publication
 remain separate. Minimum macOS 15, planned version 4.0.0 and separate v4 identity
 choices do not supply the missing exact identifier/team or qualify a fixture.
+
+Notice preparation in this contribution also rebinds the bounded direct-runtime
+notice index to current manifests after the publisher build-dependency additions.
+Direct Cargo/npm runtime dependency declarations were compared with the former
+basis and are unchanged; no license texts or runtime coverage were added to that
+index. The index verifier and nine notice-resource tests pass. This is current
+source correspondence, not a new shipped-candidate claim.
+
+`app/packaging/sqlite_notice/` separately retains the wrapper LICENSE and exact
+SQLite 3.46.0 source-header excerpt from cached locked libsqlite3-sys 0.30.1.
+Archive/member/asset comparisons pass with the actual local archive. It closes
+that bounded source-availability gap, not transitive completeness, legal approval
+or compiled/shipped inclusion. The four supplier component source associations
+remain missing as described in `CACHED_SHIPPED_NOTICE_INPUTS.md`; no replacement
+version, system-installed license, download or supplier execution is used.

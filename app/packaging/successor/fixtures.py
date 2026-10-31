@@ -1,11 +1,13 @@
 """Generate invented, non-executable package evidence. No build/signing/network."""
 import copy
+import importlib.util
 import json
 from pathlib import Path
 import sys
 
-sys.path.insert(0, str(Path(__file__).parent))
-import check as checker
+_spec = importlib.util.spec_from_file_location('package_successor_fixture_reader', Path(__file__).with_name('check.py'))
+checker = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(checker)
 
 
 class Fixture:

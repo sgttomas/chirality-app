@@ -125,6 +125,7 @@ needs:
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 code_paths:
 - app/packaging/successor/**
+- app/packaging/sqlite_notice/**
 - app/packaging/terms/**
 - app/src-tauri/src/desktop_startup.rs
 - app/packaging/notices/**
