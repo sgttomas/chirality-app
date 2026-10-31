@@ -24,13 +24,14 @@ class WindowTests(unittest.TestCase):
   with self.assertRaisesRegex(RuntimeError,'window ID'):w.select_main(backend,7)
  def test_png_geometry_fingerprint_and_current_coordinates(self):
   path=self.root/'image.png';path.write_bytes(png());image=w.png_geometry(path,self.window)
-  self.assertEqual(w.point(self.window,image,20,40),[20,40])
+  self.assertEqual(w.point(self.window,image,40,120),[30,80])
+  with self.assertRaisesRegex(RuntimeError,'title/resize'):w.point(self.window,image,20,20)
   old=image;path.write_bytes(png(metadata=b'creation timestamp differs'));self.assertEqual(w.png_geometry(path,self.window),old)
   path.write_bytes(png(width=201))
   with self.assertRaisesRegex(RuntimeError,'mapping'):w.png_geometry(path,self.window)
   with self.assertRaisesRegex(RuntimeError,'outside'):w.point(self.window,image,-1,20)
  def run_fixture(self):
-  return SimpleNamespace(root=self.root,value={'window_route':{'helper_sources':{},'tools':{}}},admission_sha='a'*64,
+  return SimpleNamespace(root=self.root,value={'window_route':{'helper_sources':{},'tools':{},'python_prefixes':w.python_prefixes()}},admission_sha='a'*64,
        cleanup=False,cleanup_end=time.monotonic()+100,work_end=time.monotonic()+90,safe_log=Mock(),alive=Mock(),record=Mock(),report=Mock())
  def test_helper_timeout_targets_only_retained_helper_and_unknown_remains_held(self):
   run=self.run_fixture();route=w.WindowRoute(run);child=Mock(pid=123);child.wait.side_effect=[subprocess.TimeoutExpired('helper',4),subprocess.TimeoutExpired('helper',1)]
@@ -83,4 +84,16 @@ class WindowTests(unittest.TestCase):
    os.waitid(os.P_PID,original.pid,os.WEXITED|os.WNOHANG|os.WNOWAIT)
    self.assertIsNone(original.returncode,'helper completion did not reap original Child')
   finally:original.wait(timeout=3)
+ def test_stop_context_requires_actual_post_result_and_is_one_shot(self):
+  run=self.run_fixture();g={'appSession':'s','home':'h','spawnCounter':1};run.generation=g;run.last_diagnostics={'generation':g};run.value['expected_generation_home']='h'
+  route=w.WindowRoute(run);identity={'pid':123};frame={'at':w.d.now(),'identity':identity,'window':self.window,'image':{'width':200,'height':200,'scale':2},'sha256':'image'};route.last=frame
+  backend=SimpleNamespace(app=lambda pid:'app',owner=lambda app:(0,123),close=Mock())
+  def posted(request):
+   self.assertTrue((self.root/'stop-click-intent.json').exists())
+   p=self.root/f"window-helper-{request['sequence']:03d}.result.json";p.write_text(json.dumps({'action':'click','sequence':request['sequence'],'posted_or_focus_observed':True}));p.chmod(0o600)
+  with patch.object(route,'capture',return_value=frame),patch.object(w.d,'NativeBackend',return_value=backend),patch.object(route,'bound_window',return_value=(identity,self.window)),patch.object(w,'owned_inventory',return_value=[self.window]),patch.object(w,'frontmost',return_value=True),patch.object(route,'invoke',side_effect=posted) as invoke:
+   self.assertIsNone(route.input('click',frame,[40,120],stop_generation=g))
+   self.assertTrue(route.modal_active);self.assertTrue(route.stop_context['posted'])
+   with self.assertRaisesRegex(RuntimeError,'already used/unbound'):route.input('click',frame,[40,120],stop_generation=g)
+   invoke.assert_called_once()
 if __name__=='__main__':unittest.main()

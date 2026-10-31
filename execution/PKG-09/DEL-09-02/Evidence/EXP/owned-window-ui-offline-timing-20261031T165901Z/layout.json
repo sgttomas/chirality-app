@@ -1,0 +1,13 @@
+{
+  "pages": [
+    "/Users/ryan/dev/chirality-t3/scratch/app-ui-timing-fixture-2d85db6u/page-1.png",
+    "/Users/ryan/dev/chirality-t3/scratch/app-ui-timing-fixture-2d85db6u/page-2.png",
+    "/Users/ryan/dev/chirality-t3/scratch/app-ui-timing-fixture-2d85db6u/page-3.png"
+  ],
+  "lines": 82,
+  "width": 2200,
+  "height": 1600,
+  "row_height": 40,
+  "rows_per_page": 34,
+  "fixture_limit": "Idealized diagnostic text only; no navigation/render/capture latency. Agent transcription timing lower-bound example, not actual GUI guarantee."
+}

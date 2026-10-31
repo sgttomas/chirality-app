@@ -69,6 +69,28 @@ print(json.dumps(facts))
         self.assertEqual(self.run_fixture(True)['allocator'],
                          {'parent_matches': True, 'mode': 0o700, 'owned': True})
 
+    def test_python_runtime_write_and_helper_temp_are_denied_to_app(self):
+        with tempfile.TemporaryDirectory(prefix='B-runtime-policy-',dir=b.T3/'scratch') as temp:
+            fixture=Path(temp).resolve();root=fixture/'control';root.mkdir(mode=0o700)
+            (root/'tmp').mkdir();(root/'helper-tmp').mkdir(mode=0o700)
+            runtime=fixture/'invented-python-prefix';runtime.mkdir();module=runtime/'module.py';module.write_text('trusted invented module')
+            python=str(Path(sys.executable).resolve())
+            value={'executable':python,'bundle':str(fixture/'never-run.app'),'window_route':{'python_prefixes':[str(runtime)]}}
+            program="""import json,os
+from pathlib import Path
+root=Path(os.environ['CONTROL']);runtime=Path(os.environ['RUNTIME']);result={}
+for name,path in [('runtime',runtime/'module.py'),('helper_tmp',root/'helper-tmp/plant.py')]:
+ try:path.write_text('untrusted');result[name]='allowed'
+ except PermissionError:result[name]='denied'
+(root/'tmp/allowed').write_text('ordinary App temp remains allowed')
+print(json.dumps(result))
+"""
+            result=subprocess.run(['/usr/bin/sandbox-exec','-p',b.policy(value,root),python,'-I','-S','-c',program],
+                env={'PATH':'/usr/bin:/bin','CONTROL':str(root),'RUNTIME':str(runtime),'CODEX_HOME':str(fixture/'unused-home')},capture_output=True,text=True,timeout=5)
+            self.assertEqual(result.returncode,0,result.stderr)
+            self.assertEqual(json.loads(result.stdout),{'runtime':'denied','helper_tmp':'denied'})
+            self.assertEqual(module.read_text(),'trusted invented module')
+
 
 if __name__ == '__main__':
     unittest.main()

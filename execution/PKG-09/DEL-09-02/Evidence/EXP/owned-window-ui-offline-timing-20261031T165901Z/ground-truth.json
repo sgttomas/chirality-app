@@ -1,0 +1,75 @@
+{
+  "header": "State: ready \u00b7 generation {\"appSession\": \"app-session:3ccbf1ce-5c84-488e-bd20-2f5b57d22403\", \"home\": \"app-home:f4b70d5831ae5e447dac6edea3d037299b655b4423f3e392d2c67f2a8ae04f13\", \"spawnCounter\": 3} \u00b7 version codex-cli 0.160.0 \u00b7 verification {}",
+  "lifecycle_section": {
+    "lifecycle": [
+      {
+        "transitionId": "LT-06",
+        "generation": {
+          "appSession": "app-session:3ccbf1ce-5c84-488e-bd20-2f5b57d22403",
+          "home": "app-home:f4b70d5831ae5e447dac6edea3d037299b655b4423f3e392d2c67f2a8ae04f13",
+          "spawnCounter": 3
+        },
+        "toState": "handshaking"
+      },
+      {
+        "transitionId": "LT-09",
+        "generation": {
+          "appSession": "app-session:3ccbf1ce-5c84-488e-bd20-2f5b57d22403",
+          "home": "app-home:f4b70d5831ae5e447dac6edea3d037299b655b4423f3e392d2c67f2a8ae04f13",
+          "spawnCounter": 3
+        },
+        "toState": "ready",
+        "supplierStanding": "unverified-development",
+        "versionIdentity": {
+          "observedVersionLabel": "codex-cli 0.160.0",
+          "configurationIdentity": {
+            "launcher": "/Users/ryan/dev/chirality-t3/scratch/app-ui-timing-fixture-2d85db6u/invented.app/Contents/Resources/codex/bin/codex"
+          },
+          "handshakeReportedIdentity": {
+            "userAgent": "codex/0.160.0"
+          },
+          "distributionContentIdentity": [
+            {
+              "path": "bin/codex",
+              "identity": {
+                "algorithm": "sha-256",
+                "value": "3adaf2f65f3ff705cf2695fa68c94ebfd7fcccfa91f4af3782c33bbace295e06"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "clientRequests": [
+      {
+        "method": "initialize",
+        "generation": {
+          "appSession": "app-session:3ccbf1ce-5c84-488e-bd20-2f5b57d22403",
+          "home": "app-home:f4b70d5831ae5e447dac6edea3d037299b655b4423f3e392d2c67f2a8ae04f13",
+          "spawnCounter": 3
+        },
+        "requestIdentity": 1,
+        "writeResult": "written",
+        "outcome": "response-observed-result",
+        "responseReceiptPosition": 1
+      }
+    ]
+  },
+  "envelopes": [
+    {
+      "generation": {
+        "appSession": "app-session:3ccbf1ce-5c84-488e-bd20-2f5b57d22403",
+        "home": "app-home:f4b70d5831ae5e447dac6edea3d037299b655b4423f3e392d2c67f2a8ae04f13",
+        "spawnCounter": 3
+      },
+      "position": 1,
+      "class": "response",
+      "frame": {
+        "id": 1,
+        "result": {
+          "userAgent": "codex/0.160.0"
+        }
+      }
+    }
+  ]
+}

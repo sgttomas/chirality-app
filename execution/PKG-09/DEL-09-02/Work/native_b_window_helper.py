@@ -4,6 +4,10 @@ import argparse,ctypes as C,hashlib,json,os,stat,sys,time
 sys.path.insert(0,str(Path(__file__).resolve().parent)) # protected sibling copies under -I -S
 import native_b_window as w
 
+def write_result(path,value):
+    fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+    with os.fdopen(fd,'w') as f:json.dump(value,f,indent=2)
+
 def main(request_path,expected_sha):
     root=Path(__file__).resolve().parent;info=root.lstat()
     w.require(root.resolve()==root and info.st_uid==os.getuid() and stat.S_IMODE(info.st_mode)==0o700,'helper root not private')
@@ -13,21 +17,32 @@ def main(request_path,expected_sha):
     w.require(w.sha(admission)==request['admission_sha256'],'helper admission changed')
     value=json.loads(admission.read_text())['inputs']
     for name,digest in value['window_route']['helper_sources'].items():w.require(w.sha(w.private_path(root,name))==digest,'helper source changed')
-    w.require(w.tools_identity()==value['window_route']['tools'],'helper tool changed')
+    w.require(w.tools_identity()==value['window_route']['tools'] and set(w.python_prefixes())<=set(value['window_route']['python_prefixes']),'helper tool/runtime prefix changed')
+    helper_tmp=root/'helper-tmp'
+    w.require(os.environ.get('TMPDIR')==str(helper_tmp) and helper_tmp.is_dir() and not helper_tmp.is_symlink(),'private helper temp binding unavailable')
     age=time.time()-__import__('datetime').datetime.fromisoformat(request['recorded_at']).timestamp()
     w.require(0<=age<5,'helper request stale')
     expected=request['identity'];pid=expected['pid'];w.require(expected['executable']==value['executable'],'helper target is not candidate')
+    target=request.get('target','main');w.require(target in ('main','stop-modal'),'unsupported helper target')
+    context=None
+    if target=='stop-modal':
+        context=w.private_json(root/'stop-modal-context.json',256*1024,request['stop_context_sha256'])
+        w.require(context['identity']==expected and context['posted'] is True
+                  and context['generation']['home']==value['expected_generation_home'],'modal Stop context/account binding differs')
     backend=w.d.NativeBackend()
     def bound():
         w.require(backend.identity(pid)==expected and w.sha(value['executable'])==value['executable_sha256'],'helper original App identity changed')
-        window=w.select_main(backend,pid)
+        window=w.select_modal(backend,pid,context) if context else w.select_main(backend,pid)
         w.require(window==request['window'],'helper owned window changed')
         return window
     try:
         action=request['action'];w.require(action in ('capture','focus','click','scroll'),'unsupported helper action')
-        w.require(type(request['sequence']) is int and 0<request['sequence']<=64,'helper sequence outside bound')
+        w.require(type(request['sequence']) is int and 0<request['sequence']<=w.MAX_OPERATIONS,'helper sequence outside bound')
         if action=='capture':w.require(backend.screen_access(),'capture helper preflight denied; no request or fallback')
         window=bound()
+        if context:
+            relation=w.modal_relation(backend,pid,window['window_id'],context['main']['window_id'])
+            write_result(root/f"window-helper-{request['sequence']:03d}.modal.json",relation)
         if action=='capture':
             name=f"capture-{request['sequence']:03d}.unverified.png"
             w.require(request['image_name']==name and not os.path.lexists(root/name),'capture destination differs/used')
@@ -45,9 +60,10 @@ def main(request_path,expected_sha):
                 while time.monotonic()<end and not w.frontmost(backend,app):time.sleep(0.05)
             w.require(w.frontmost(backend,app),'owned App did not become frontmost')
         else:
-            w.require(w.frontmost(backend,app) and window['own_visible_layer0_count']==1,'own main-window focus unavailable')
+            if context:w.require(action=='click','modal admits confirmation click only')
+            w.require(w.frontmost(backend,app) and (context is not None or window['own_visible_layer0_count']==1),'own main-window focus unavailable')
             x,y=request['point'];b=window['bounds']
-            w.require(all(type(v) in (int,float) for v in (x,y)) and b['X']<x<b['X']+b['Width'] and b['Y']<y<b['Y']+b['Height'],'helper point not inside owned window')
+            w.require(all(type(v) in (int,float) for v in (x,y)) and b['X']+8<x<b['X']+b['Width']-8 and b['Y']+40<y<b['Y']+b['Height']-8,'helper point outside owned content band')
             class Point(C.Structure):_fields_=[('x',C.c_double),('y',C.c_double)]
             create=backend.a.CGEventCreateMouseEvent;create.restype=C.c_void_p;create.argtypes=[C.c_void_p,C.c_uint32,Point,C.c_uint32]
             post=backend.a.CGEventPostToPid;post.restype=None;post.argtypes=[C.c_int,C.c_void_p]
@@ -59,7 +75,7 @@ def main(request_path,expected_sha):
                     for kind in (1,2): # left down/up, no arbitrary keyboard/text command
                         e=create(None,kind,Point(x,y),0);w.require(e,'mouse event unavailable');events.append(e)
                 else:
-                    delta=request['delta'];w.require(type(delta) is int and 0<abs(delta)<=400,'helper scroll exceeds bound')
+                    delta=request['delta'];w.require(type(delta) is int and 0<abs(delta)<=min(600,int(window['bounds']['Height'])-200),'helper scroll exceeds bound')
                     # Fixed one-axis wheel, no variadic arguments beyond wheel1.
                     scroll=backend.a.CGEventCreateScrollWheelEvent;scroll.restype=C.c_void_p;scroll.argtypes=[C.c_void_p,C.c_uint32,C.c_uint32,C.c_int32]
                     location=backend.a.CGEventSetLocation;location.restype=None;location.argtypes=[C.c_void_p,Point]
@@ -75,7 +91,7 @@ def main(request_path,expected_sha):
         # Posting/AX return codes are not effect proof. Keeper captures and agent
         # must read the actual effect before accepting a subsequent action.
         result={'at':w.d.now(),'action':action,'sequence':request['sequence'],'posted_or_focus_observed':True,'effect_requires_fresh_capture_read':True}
-        with (root/f"window-helper-{request['sequence']:03d}.result.json").open('x') as f:json.dump(result,f,indent=2)
+        write_result(root/f"window-helper-{request['sequence']:03d}.result.json",result)
     finally:backend.close()
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--request',type=Path,required=True);p.add_argument('--sha256',required=True);a=p.parse_args();main(a.request,a.sha256)

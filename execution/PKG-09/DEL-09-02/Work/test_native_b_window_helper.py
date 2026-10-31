@@ -8,15 +8,15 @@ class Executed(BaseException):pass
 class HelperTests(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory(dir='/Users/ryan/dev/chirality-t3/scratch',prefix='window-helper-fixture-');self.addCleanup(self.tmp.cleanup)
-  self.root=Path(self.tmp.name).resolve();self.exe=self.root/'invented';self.exe.write_bytes(b'not executed')
+  self.root=Path(self.tmp.name).resolve();(self.root/'helper-tmp').mkdir(mode=0o700);self.exe=self.root/'invented';self.exe.write_bytes(b'not executed')
   self.identity={'pid':123,'ppid':456,'uid':os.getuid(),'ruid':os.getuid(),'start_sec':1,'start_usec':2,'executable':str(self.exe)}
   self.window={'window_id':42,'title':h.w.TITLE,'bounds':{'X':0,'Y':0,'Width':100,'Height':100},'own_visible_layer0_count':1}
-  self.admission=self.root/'admission.json';self.admission.write_text(json.dumps({'inputs':{'executable':str(self.exe),'executable_sha256':h.w.sha(self.exe),'window_route':{'helper_sources':{},'tools':{}}}}))
+  self.admission=self.root/'admission.json';self.admission.write_text(json.dumps({'inputs':{'executable':str(self.exe),'executable_sha256':h.w.sha(self.exe),'window_route':{'helper_sources':{},'tools':{},'python_prefixes':h.w.python_prefixes()}}}))
   self.path=self.root/'window-helper-001.json';self.request={'action':'capture','sequence':1,'identity':self.identity,'window':self.window,'image_name':'capture-001.unverified.png','recorded_at':h.w.d.now(),'admission_sha256':h.w.sha(self.admission)}
   self.backend=SimpleNamespace(identity=lambda pid:self.identity,screen_access=lambda:True,close=Mock())
  def run_request(self,**changes):
   self.request.update(changes);self.path.write_text(json.dumps(self.request));self.path.chmod(0o600)
-  return h.main(self.path,h.w.sha(self.path))
+  with patch.dict(os.environ,{'TMPDIR':str(self.root/'helper-tmp')}):return h.main(self.path,h.w.sha(self.path))
  def patches(self):
   return patch.multiple(h,__file__=str(self.root/'native_b_window_helper.py'))
  def test_exact_window_capture_never_uses_desktop_clipboard_or_interactive_flags(self):
@@ -47,8 +47,8 @@ class HelperTests(unittest.TestCase):
        CGEventPostToPid=Mock(),CGEventSetFlags=Mock(),CGEventSetIntegerValueField=Mock())
   self.backend.c=SimpleNamespace(CFRelease=Mock())
   with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main',return_value=self.window):
-   self.run_request(action='click',point=[20,40])
-  self.assertEqual(events,[(1,20,40),(2,20,40)])
+   self.run_request(action='click',point=[20,60])
+  self.assertEqual(events,[(1,20,60),(2,20,60)])
   self.assertEqual([call.args[0] for call in self.backend.a.CGEventPostToPid.call_args_list],[123,123])
   self.assertEqual(self.backend.c.CFRelease.call_count,2)
   result=json.loads((self.root/'window-helper-001.result.json').read_text())
@@ -56,6 +56,6 @@ class HelperTests(unittest.TestCase):
  def test_unfocused_or_foreign_app_never_posts(self):
   self.backend.app=lambda pid:'app';self.backend.owner=lambda app:(0,999)
   with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main',return_value=self.window):
-   with self.assertRaisesRegex(RuntimeError,'AX App ownership'):self.run_request(action='click',point=[20,40])
+   with self.assertRaisesRegex(RuntimeError,'AX App ownership'):self.run_request(action='click',point=[20,60])
   self.assertFalse((self.root/'window-helper-001.result.json').exists())
 if __name__=='__main__':unittest.main()

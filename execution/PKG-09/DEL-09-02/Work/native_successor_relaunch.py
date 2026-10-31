@@ -104,7 +104,8 @@ def allocator_identity(value):
 def policy(value, control_root):
     supplier = str(Path(value['bundle']) / 'Contents/Resources/codex/bin/codex')
     literal = lambda p: '(literal ' + json.dumps(str(p)) + ')'
-    return ('(version 1)\n(allow default)\n(deny network*)\n'
+    protected_python=''.join('(deny file-write* (subpath '+json.dumps(p)+'))\n' for p in value.get('window_route',{}).get('python_prefixes',[]))
+    return ('(version 1)\n(allow default)\n(deny network*)\n'+protected_python+
             '(deny file-read* (subpath ' + json.dumps(str(Path.home() / '.codex')) + '))\n'
             '(deny file-write* (subpath ' + json.dumps(str(Path.home() / '.codex')) + '))\n'
             '(allow process-fork)\n(deny process-exec)\n'
@@ -196,6 +197,7 @@ def prepare(a_root, namespace_basis=None, retained_state=None):
     value['environment']['TMPDIR'] = str(root / 'tmp')
     is_screen=bool(retained_state and version==v2_support.VERSION)
     if is_screen:
+        (root/'helper-tmp').mkdir(mode=0o700)
         value['window_route']=screen_support.w.configuration()
         screen_support.w.stage(root,value['window_route'])
         fd=os.open(root/SLOT_SOURCE.name,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
@@ -620,6 +622,16 @@ class Run:
     def request_quit_ui(self):
         self.ax.quit_ui()
 
+    def confirm_stop_ui(self, gen):
+        rows, button = self.wait_for(lambda: self.dialog('Stop Codex', 'Stop Codex'), 8, 'Stop confirmation unavailable')
+        statement = self.ax.text([(e, p, w) for e, p, w in rows if not w])
+        require('Home: account' in statement and 'App session ' + gen['appSession'] in statement
+                and re.search(r'Codex process start ' + re.escape(str(gen['spawnCounter'])) + r'(?=\s*·|\s*$)', statement), 'Stop confirmation source differs')
+        self.record('stop-confirmation.json', {'generation': gen, 'statement': statement, 'actor': ACTOR})
+        self.stop_confirmed = True
+        self.ax.press(button)
+        self.safe_log('native_stop_confirmed', generation=gen, actor=ACTOR)
+
     def stop_and_quit(self, gen):
         self.cleanup = True
         observed = self.diagnostics()
@@ -635,14 +647,7 @@ class Run:
         elif not self.stop_confirmed and observed['rendered_state'] != 'stopping':
             if not self.stop_requested:
                 self.request_stop_ui()
-            rows, button = self.wait_for(lambda: self.dialog('Stop Codex', 'Stop Codex'), 8, 'Stop confirmation unavailable')
-            statement = self.ax.text([(e, p, w) for e, p, w in rows if not w])
-            require('Home: account' in statement and 'App session ' + gen['appSession'] in statement
-                    and re.search(r'Codex process start ' + re.escape(str(gen['spawnCounter'])) + r'(?=\s*·|\s*$)', statement), 'Stop confirmation source differs')
-            self.record('stop-confirmation.json', {'generation': gen, 'statement': statement, 'actor': ACTOR})
-            self.stop_confirmed = True
-            self.ax.press(button)
-            self.safe_log('native_stop_confirmed', generation=gen, actor=ACTOR)
+            self.confirm_stop_ui(gen)
         end = min(time.monotonic() + 25, self.cleanup_end)
         last_error = None
         while not self.supplier_settled and time.monotonic() < end:
@@ -784,6 +789,15 @@ class Run:
             time.sleep(2)
 
 
+def validate_v2_slot_entry(root,admitted,window_end):
+    slot=screen_support.w.private_json(root/'slot-entry.json',16384)
+    require(slot['controller_pid']==os.getpid() and slot['slot_parent_pid']==os.getppid()
+            and slot['admission_sha256']==setup.digest(root/'admission.json')
+            and slot['slot_entry_sha256']==admitted['slot_entry_sha256']==setup.digest(root/SLOT_SOURCE.name)
+            and datetime.fromisoformat(slot['fixed_window_end']).timestamp()==window_end
+            and datetime.fromisoformat(slot['fixed_window_end']).timestamp()-datetime.fromisoformat(slot['at']).timestamp()==295, 'v2 acquired-slot invocation differs')
+
+
 def execute(root, window_end):
     setup.plain(root, directory=True)
     require(root.is_relative_to(T3 / 'scratch'), 'B attempt outside task scratch')
@@ -814,17 +828,12 @@ def execute(root, window_end):
             and setup.digest(root / 'phase-B.sb') == admitted['policy_sha256'], 'B launch inputs/policy changed')
     require(admitted['allocator'] == allocator_identity(value), 'App allocator changed since admission')
     require(root.stat().st_uid == os.getuid() and stat.S_IMODE(root.stat().st_mode) == 0o700, 'controller root is not private')
-    for name in ('codex-home', 'tmp'):
+    for name in (('codex-home','tmp','helper-tmp') if version==v2_support.VERSION else ('codex-home','tmp')):
         setup.plain(root / name, directory=True)
         require(not list((root / name).iterdir()), 'fallback/tmp not fresh')
     require(90 < window_end - time.time() <= (295 if version==v2_support.VERSION else 300), 'invalid B interval')
     if version==v2_support.VERSION:
-        slot=screen_support.w.private_json(root/'slot-entry.json',16384)
-        require(slot['controller_pid']==os.getpid() and slot['slot_parent_pid']==os.getppid()
-                and slot['admission_sha256']==setup.digest(root/'admission.json')
-                and slot['slot_entry_sha256']==admitted['slot_entry_sha256']==setup.digest(root/SLOT_SOURCE.name)
-                and datetime.fromisoformat(slot['fixed_window_end']).timestamp()==window_end
-                and datetime.fromisoformat(slot['fixed_window_end']).timestamp()-datetime.fromisoformat(slot['at']).timestamp()==295, 'v2 acquired-slot invocation differs')
+        validate_v2_slot_entry(root,admitted,window_end)
     parent = subprocess.check_output(['/bin/ps', '-p', str(os.getppid()), '-o', 'command='], text=True, timeout=2)
     require(str(T3 / 'tools/t3_slot_run.sh') in parent, 'slot wrapper missing')
     checked = subprocess.run([sys.executable, '-B', str(setup.REPO / 'app/examination/candidate_identity/identify.py'), 'check',
@@ -846,7 +855,7 @@ def execute(root, window_end):
         signal.signal(number, interrupted)
     try:
         with (root / 'stdout.log').open('xb') as out, (root / 'stderr.log').open('xb') as err:
-            require(run.resource_end - time.monotonic() > 90 and run.reason is None, 'work/cleanup allowance unavailable after admission')
+            require(run.resource_end - time.monotonic() > (280 if version==v2_support.VERSION else 90) and run.reason is None, 'work/cleanup allowance unavailable after admission')
             child = subprocess.Popen(['/usr/bin/sandbox-exec', '-f', str(root / 'phase-B.sb'), value['executable']],
                 cwd=value['native_input_paths']['project'], env=value['environment'], stdin=subprocess.DEVNULL, stdout=out, stderr=err, start_new_session=True)
             run.reservation = AppReservation(child)  # Before any later IO can fail.

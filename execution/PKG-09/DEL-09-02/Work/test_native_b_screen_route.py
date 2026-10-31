@@ -7,7 +7,7 @@ s=importlib.util.spec_from_file_location('screen_route_test',Path(__file__).with
 class ScreenTests(unittest.TestCase):
  def setUp(self):
   self.tmp=tempfile.TemporaryDirectory(dir='/Users/ryan/dev/chirality-t3/scratch',prefix='screen-route-fixture-');self.addCleanup(self.tmp.cleanup)
-  self.root=Path(self.tmp.name).resolve();self.run=SimpleNamespace(root=self.root,value={'candidate_key':'invented'},admission_sha='a'*64,alive=Mock(),record=Mock(),report=Mock(),safe_log=Mock(),generation=None,stop_requested=False)
+  self.root=Path(self.tmp.name).resolve();self.run=SimpleNamespace(root=self.root,value={'candidate_key':'invented'},admission_sha='a'*64,cleanup_end=time.monotonic()+295,alive=Mock(),record=Mock(),report=Mock(),safe_log=Mock(),generation=None,stop_requested=False)
   self.b=SimpleNamespace(now=m.w.d.now,decode_diagnostics=Mock(side_effect=RuntimeError('missing native diagnostic strings')),ACTOR='agent')
   self.screen=m.ScreenSession(self.run,self.b)
   self.frame={'at':m.w.d.now(),'sequence':1,'sha256':'f'*64}
@@ -25,7 +25,7 @@ class ScreenTests(unittest.TestCase):
  def test_existing_decoder_still_refuses_incomplete_displayed_json(self):
   self.control(action='observe',frames=[1],strings=['ready'],complete_sections=['state-generation','lifecycle-clientRequests','raw-envelopes'],unreadable=False)
   with self.assertRaisesRegex(RuntimeError,'missing native'):self.screen.observe()
-  self.b.decode_diagnostics.assert_called_once_with(['ready'])
+  self.b.decode_diagnostics.assert_called_once_with(['ready'],protocol=True)
  def test_next_action_requires_actual_expected_effect_readback(self):
   self.screen.pending_effect=True;self.control(action='click-disclosure',target='host-diagnostics',point=[10,20])
   with self.assertRaisesRegex(RuntimeError,'actual expected effect'):self.screen.observe()
@@ -51,4 +51,18 @@ class ScreenTests(unittest.TestCase):
   p=self.root/'screen-control-001.json';p.write_text('{}');p.chmod(0o600)
   with self.assertRaisesRegex(RuntimeError,'prequeued'):self.screen.observe()
   self.screen.window.input.assert_not_called()
+ def test_pending_effect_can_recapture_without_claiming_success(self):
+  self.screen.pending_effect=True;responses=iter([{'action':'capture'},{'action':'refuse','reason':'still unclear'}])
+  def deliver(event):
+   if event.get('event')=='native_screen_operator_step':
+    p=Path(event['prompt']['control_file']);p.write_text(json.dumps({'candidate':'invented','admission_sha256':'a'*64,'capture_sha256':'f'*64,**next(responses)}));p.chmod(0o600)
+  self.run.report.side_effect=deliver
+  with self.assertRaisesRegex(RuntimeError,'still unclear'):self.screen.observe()
+  self.assertTrue(self.screen.pending_effect);self.assertEqual(self.screen.window.capture.call_count,2)
+  self.screen.window.input.assert_not_called()
+ def test_cleanup_observation_does_not_require_raw_envelopes(self):
+  self.b.decode_diagnostics.side_effect=None;self.b.decode_diagnostics.return_value={'generation':'invented'}
+  self.control(action='observe',frames=[1],strings=['source and lifecycle only'],complete_sections=['state-generation','lifecycle-clientRequests'],unreadable=False)
+  self.screen.observe(protocol=False)
+  self.b.decode_diagnostics.assert_called_once_with(['source and lifecycle only'],protocol=False)
 if __name__=='__main__':unittest.main()

@@ -1,0 +1,23 @@
+from pathlib import Path
+import datetime,hashlib,importlib.util,json,time
+root=Path(__file__).parent
+start=time.monotonic();at=datetime.datetime.now(datetime.timezone.utc).isoformat()
+with (root/'timing-start.json').open('x') as f:json.dump({'at':at,'limit_seconds':90,'scope':'invented image/transcription fixture only, no App/native capture/input'},f)
+print(json.dumps({'event':'TIMING_STARTED','at':at,'root':str(root),'deadline_seconds':90}),flush=True)
+control=root/'transcription.json';result={'scope':'offline invented UI transcription, not GUI qualification','started_at':at,'passed':False}
+while not control.exists() and time.monotonic()-start<90:time.sleep(0.05)
+try:
+ if not control.exists():raise RuntimeError('90second fixture limit; no complete transcription')
+ actual=json.loads(control.read_text());expected=json.loads((root/'ground-truth.json').read_text())
+ result['exact_match']=actual==expected
+ if actual!=expected:raise RuntimeError('transcription differs from invented ground truth')
+ source=Path('/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py')
+ spec=importlib.util.spec_from_file_location('fixture_decoder',source);b=importlib.util.module_from_spec(spec);spec.loader.exec_module(b)
+ strings=[actual['header'],json.dumps(actual['lifecycle_section']),json.dumps(actual['envelopes'])]
+ parsed=b.decode_diagnostics(strings);b.ready_gate(parsed,json.loads((root/'value.json').read_text()))
+ result['passed']=True
+except BaseException as error:result['error']=str(error)
+result.update(elapsed_seconds=time.monotonic()-start,finished_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),limits='Idealized three text pages only. Includes agent/tool transcription latency; excludes native screenshot/render/navigation. One sample, not a live-time guarantee.')
+with (root/'timing-result.json').open('x') as f:json.dump(result,f,indent=2)
+print(json.dumps(result),flush=True)
+raise SystemExit(0 if result['passed'] else 1)
