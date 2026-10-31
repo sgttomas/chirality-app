@@ -55,11 +55,31 @@ class Integration(unittest.TestCase):
   backend=SimpleNamespace(close=Mock())
   with patch.object(m.w.d,'NativeBackend',return_value=backend),patch.object(m.w.d,'bound_identity',return_value={'pid':1}):self.run.request_quit_ui()
   self.run.ax.press.assert_called_once_with('quit')
- def test_initial_window_wait_has_15second_limit(self):
-  self.run.screen.window.capture=Mock(side_effect=m.w.WindowUnavailable('not yet'))
-  with patch.object(m.time,'monotonic',side_effect=[0,16]),patch.object(m.time,'sleep'):
-   with self.assertRaises(m.w.WindowUnavailable):self.run.observe_ready()
-  self.assertEqual(self.run.screen.window.failure,'not yet')
+ def test_initial_stability_runs_once_inside_15second_limit(self):
+  self.run.screen.window.acquire_initial_window=Mock(side_effect=RuntimeError('not stable'))
+  self.run.screen.window.capture=Mock()
+  with patch.object(m.time,'monotonic',return_value=100):
+   with self.assertRaisesRegex(RuntimeError,'not stable'):self.run.observe_ready()
+  self.assertEqual(self.run.ui_deadline,115)
+  self.run.screen.window.acquire_initial_window.assert_called_once()
+  self.run.screen.window.capture.assert_not_called()
+ def test_initial_capture_disappearance_blocks_cleanup_capture_retry(self):
+  self.run.screen.window.acquire_initial_window=Mock()
+  self.run.screen.window.capture=Mock(side_effect=m.w.WindowUnavailable('selected window disappeared'))
+  with self.assertRaisesRegex(m.w.WindowUnavailable,'disappeared'):self.run.observe_ready()
+  self.assertEqual(self.run.screen.window.failure,'selected window disappeared')
+  with patch.object(b.Run,'cleanup_attempt') as inherited:
+   with self.assertRaisesRegex(RuntimeError,'no capture retry'):self.run.cleanup_attempt()
+  inherited.assert_not_called();self.run.screen.window.capture.assert_called_once()
+ def test_initial_acquisition_capture_then_observation_order(self):
+  events=[];frame={'fixture':'verified'};observed={'fixture':'source'};gen={'home':'home','appSession':'s','spawnCounter':1}
+  self.run.screen.window.acquire_initial_window=Mock(side_effect=lambda:events.append('acquire'))
+  self.run.screen.window.capture=Mock(side_effect=lambda:events.append('capture') or frame)
+  self.run.screen.observe=Mock(side_effect=lambda *a,**k:events.append('observe') or observed)
+  with patch.object(b,'source_gate',return_value=gen),patch.object(b,'ready_gate'),patch.object(b,'reject_permanent_witness_failure'):
+   self.assertEqual(self.run.observe_ready(),gen)
+  self.assertEqual(events,['acquire','capture','observe'])
+  self.run.screen.observe.assert_called_once_with('ready',protocol=True,initial_frame=frame)
  def test_phase_caps_preserve_downstream_reserve(self):
   expected={'ready':(60,205),'recheck':(35,170),'cleanup-source':(35,135),'stop':(20,115),'stop-confirmation':(30,85),'settlement':(45,40)}
   self.assertEqual(m.PHASE_BUDGETS,expected)
