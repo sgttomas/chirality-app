@@ -277,3 +277,10 @@ Actual human acts, commitment changes, qualification-pin decisions, acceptance
 and release remain reserved. Later concrete owner steps will name the exact
 candidate, content and effect; automation cannot satisfy a personal-human-act
 criterion. No acceptance staging or relaxed check is adopted here.
+
+## Post-retry retained-state preparation
+
+[Versioned retained B admission and owned-window diagnostics](RETAINED_B_ADMISSION_V1.md)
+account for the actual saved request, App ledger and opaque supplier metadata
+without relaxing A-only admission. This is preparation only; the previous B
+failures and cleanup evidence remain unchanged, and no further launch is authorized.
