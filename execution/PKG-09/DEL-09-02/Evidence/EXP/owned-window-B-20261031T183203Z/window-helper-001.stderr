@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-8w83gq78/native_b_window_helper.py", line 97, in <module>
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--request',type=Path,required=True);p.add_argument('--sha256',required=True);a=p.parse_args();main(a.request,a.sha256)
+                                                                                                                                                                 ~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-8w83gq78/native_b_window_helper.py", line 42, in main
+    window=bound()
+  File "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-8w83gq78/native_b_window_helper.py", line 36, in bound
+    w.require(window==request['window'],'helper owned window changed')
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-8w83gq78/native_b_diagnostic.py", line 28, in require
+    raise RuntimeError(reason)
+RuntimeError: helper owned window changed

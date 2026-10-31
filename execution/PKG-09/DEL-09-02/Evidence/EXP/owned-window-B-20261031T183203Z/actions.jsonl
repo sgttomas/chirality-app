@@ -1,0 +1,4 @@
+{"at": "2026-10-31T18:32:04.475988+00:00", "event": "native_B_started", "pid": 90924, "actor": "agent under owner direction; not a personal human act", "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."}
+{"at": "2026-10-31T18:32:05.035470+00:00", "event": "work_failed", "error": "window helper refused: inspect its scoped stderr/result"}
+{"at": "2026-10-31T18:32:05.035569+00:00", "event": "normal_cleanup_unavailable", "error": "owned-window observation unavailable with no source binding; no capture retry: window helper refused: inspect its scoped stderr/result"}
+{"at": "2026-10-31T18:32:05.035609+00:00", "event": "held_unknown", "error": "window helper refused: inspect its scoped stderr/result"}

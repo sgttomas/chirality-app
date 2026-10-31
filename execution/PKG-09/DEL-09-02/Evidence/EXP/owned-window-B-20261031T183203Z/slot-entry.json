@@ -1,0 +1,23 @@
+{
+  "at": "2026-10-31T18:32:03.443145+00:00",
+  "fixed_window_end": "2026-10-31T18:36:58.443145+00:00",
+  "allowance_seconds": 295,
+  "controller_pid": 90874,
+  "slot_parent_pid": 90872,
+  "slot_parent_command": "/bin/bash /Users/ryan/dev/chirality-t3/tools/t3_slot_run.sh /Users/ryan/dev/chirality-t3/guard/run.88150 cargo_job.slot3.lock python3.13 -B /Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-8w83gq78/native_b_slot_entry.py",
+  "admission_sha256": "0e467feb15bc22b5f3d60880e35e6f6a9ab592b2d81117064dec3b570665c553",
+  "slot_entry_sha256": "cd4ad32e63c5e07d69ba23aad5a4f713803fcd005119a14babb31cb408ef8e41",
+  "command": [
+    "/Users/ryan/.local/share/mise/installs/python/3.13/bin/python3.13",
+    "-B",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py",
+    "--execute",
+    "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-8w83gq78",
+    "--window-end",
+    "2026-10-31T18:36:58.443145+00:00"
+  ],
+  "environment_overrides": {
+    "CODEX_HOME": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-8w83gq78/codex-home",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  }
+}

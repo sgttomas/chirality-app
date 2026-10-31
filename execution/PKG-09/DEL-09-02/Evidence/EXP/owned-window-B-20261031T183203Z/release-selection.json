@@ -1,0 +1,88 @@
+{
+  "at": "2026-10-31T18:32:38.777529+00:00",
+  "heartbeat": {
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "phase": "B",
+    "state": "held-unknown",
+    "administrative_release_request": {
+      "action": "release-observer-after-app-exit",
+      "candidate": "fdcf608fb5-23c6c3f22f5e",
+      "admission_sha256": "0e467feb15bc22b5f3d60880e35e6f6a9ab592b2d81117064dec3b570665c553",
+      "expected_app_exit": {
+        "code": 1,
+        "status": 0
+      }
+    },
+    "administrative_release_consumed": false,
+    "administrative_release_control": {
+      "file": "release-observer-after-app-exit.json",
+      "mode": "0600",
+      "requirements": "plain owned single-link file, exact offered JSON body; create privately then atomically rename into place; one occurrence including refusal, no replacement/retry"
+    },
+    "error": "window helper refused: inspect its scoped stderr/result",
+    "app_exit_observation": {
+      "code": 1,
+      "status": 0
+    },
+    "original_app_reaped": false,
+    "supplier_settled_observed": false,
+    "quit_requested": false,
+    "generation": null,
+    "recovery_limit": "Screen observation retry unavailable: the 45s held retry cannot admit these phase budgets. Retain supervision; separately selected owned-menu cleanup/normal-exit administrative release is not qualification.",
+    "recovery_control": null,
+    "guard_reason": null,
+    "logging_errors": [],
+    "sampling_observations": {
+      "exclusive": {
+        "at": "2026-10-31T18:32:36.678762+00:00",
+        "source": "exclusive.pending existence",
+        "ok": true,
+        "value": false
+      },
+      "shared_memguard_pgrep": {
+        "at": "2026-10-31T18:32:36.703282+00:00",
+        "source": "shared_memguard_pgrep",
+        "ok": true,
+        "value": [
+          78827
+        ]
+      },
+      "ps_census_and_rss": {
+        "at": "2026-10-31T18:32:36.748848+00:00",
+        "source": "ps_census_and_rss",
+        "ok": true,
+        "value": {
+          "processes": [],
+          "shared_and_owned_rss_kib": 2178352,
+          "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+        }
+      },
+      "sysctl_free_percent": {
+        "at": "2026-10-31T18:32:36.753498+00:00",
+        "source": "sysctl_free_percent",
+        "ok": true,
+        "value": 71
+      }
+    },
+    "census_freshness": "Use ps_census_and_rss timestamp/ok; heartbeat is original-Child observation, not census freshness",
+    "observed_executable_processes": [],
+    "overrun": false,
+    "at": "2026-10-31T18:32:37.222512+00:00",
+    "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody.",
+    "window_helper": {
+      "settlement": "no live held helper"
+    },
+    "screen_step": 0,
+    "last_verified_capture": null
+  },
+  "selected_body": {
+    "action": "release-observer-after-app-exit",
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "admission_sha256": "0e467feb15bc22b5f3d60880e35e6f6a9ab592b2d81117064dec3b570665c553",
+    "expected_app_exit": {
+      "code": 1,
+      "status": 0
+    }
+  },
+  "authority": "current attempt parent preauthorization; cleanup only, qualification false"
+}
