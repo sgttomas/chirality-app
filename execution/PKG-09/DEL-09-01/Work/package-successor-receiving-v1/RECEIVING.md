@@ -18,7 +18,9 @@ is pinned in `sources.package-v1.json`, not taken from caller evidence.
 EXP `subject.app_candidate.package_record` and SQ `candidate.package_record`
 cite the OUTER wrapper `record_id`. The producer report independently joins
 `candidate.package_record_id` to the INNER static legacy record. These identities
-remain distinct; the receiver neither derives one from the other nor translates
+must differ as well as remain semantically distinct; equal strings refuse so
+inner-record citations cannot masquerade as wrapper citations. The receiver
+neither derives one from the other nor translates
 S4 bytes into the S1 `verification_artifact` slot or into PKG-v0.2.
 
 The separate `exp-package-witness-binding/1` sidecar binds exact wrapper bytes,
@@ -82,7 +84,9 @@ python3 examination/sq_receiving/receive_packages.py PACKET/sq-selection.json \
 The original SQ result, review, evidence-set, scenario, candidate, change-impact,
 reopening/history and completeness joins remain in the successor worker. Legacy
 package artifacts retain the original validator and conditional package-link.
-New witness artifacts invoke packaging's validator and preserve errors/missing
+The report names each package's selected route and whether S4 witness evidence
+was selected. Legacy completeness never claims an S4 check. New witness
+artifacts invoke packaging's validator and preserve errors/missing
 through the final SQ report. Missing cited packages, unreferenced artifacts,
 duplicate identities, mismatched candidates/configuration/profiles and mixed
 sidecars refuse. The successor is explicitly current-purpose; historical

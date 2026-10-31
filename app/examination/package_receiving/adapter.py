@@ -137,6 +137,8 @@ class Receiver:
         require(report['record_id'] == request['record_id'] and report['request_sha256'] == sha(raw),
                 'package wrapper/report identity mismatch')
         require(report['candidate'] == request['candidate'], 'package candidate/report mismatch')
+        require(report['record_id'] != report['candidate']['package_record_id'],
+                'outer witness and inner static package IDs must differ')
         require(isinstance(report['errors'], list) and isinstance(report['missing'], list), 'invalid package findings')
         require(report['release_authorized'] is False and report['live_authority'] is False,
                 'package report cannot grant authority')

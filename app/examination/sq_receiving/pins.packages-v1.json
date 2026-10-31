@@ -84,8 +84,8 @@
     "execution/PKG-01/DEL-01-06/Work/prototype/read_tree.py": "6dacea788f0a0690ca04bc95f4d50332f4d3ddafb5bb0339147460e64b2debdb",
     "execution/PKG-01/DEL-01-06/Work/terms-position-v1/schema.json": "7a47f1e75453e8df3778e7c59628932f96791906dbe378b8aa2d8db72eecbb08",
     "app/examination/package_receiving/sources.package-v1.json": "577b6342445dba0ce4815b9f6930a36aa65b814e6b0c535fb8f0e44dd73b0583",
-    "app/examination/package_receiving/adapter.py": "7f582920f46e3503f739866d43124f0529a262a7c9639e50438f841288df445e",
-    "app/examination/sq_receiving/worker_packages.py": "0d2cf1562b3b8f265bc36dd7faedb0a3b8f82af4ea29b303db80bb06f36c052c"
+    "app/examination/package_receiving/adapter.py": "a4988c2cfeb1891027ff494d6fbdb55e0de97732f5e3b85986dfade79d5a9505",
+    "app/examination/sq_receiving/worker_packages.py": "a0c634ec46dd4b6770d2cd12c83f27962ef284d9d561a5b5ef0acacd0f641025"
   },
   "format": "sq-package-s4-reader-pins/1",
   "documentary_selection": {

@@ -35,6 +35,7 @@ def check(selection_path, expected, configuration, configuration_sha256):
     receiving = importlib.util.module_from_spec(spec); spec.loader.exec_module(receiving)
     package_successor = receiving.Receiver(canonical=canonical)
     package_reports = {}
+    package_routes = {}
     schema = parse((PROJECT / pins['sq_schema']).read_bytes())
     sq_validator = Draft202012Validator(schema, registry=Registry())
     step_map = parse((PROJECT / pins['sq_step_map']).read_bytes())
@@ -69,7 +70,7 @@ def check(selection_path, expected, configuration, configuration_sha256):
                 'fixed_support': selected['support'],
                 'package_source_profile_sha256': receiving.PINS_SHA256,
                 'configuration_sha256': configuration_sha256,
-                'package_reports': package_reports,
+                'package_reports': package_reports, 'package_routes': package_routes,
                 'reported_outcomes': {slot: v['outcome'] for slot, v in records.items() if 'outcome' in v},
                 'reported_currency': {'dossier': dossier.get('currency') if dossier else None,
                                       **{slot: v['currency'] for slot, v in records.items() if 'currency' in v}},
@@ -134,6 +135,10 @@ def check(selection_path, expected, configuration, configuration_sha256):
                                                      configuration, configuration_sha256)
             package_successor.verify_binding(raw, binding, report_value, configuration_sha256)
             package_reports[slot] = report_value
+            package_routes[slot] = {'input_format': 'packaged-s4-binding/1',
+                                    's4_witness_selected': True,
+                                    'evidence_consistency': ('mismatch' if report_value['errors'] else
+                                                             'incomplete' if report_value['missing'] else 'consistent')}
             records[slot] = value
             identities.setdefault(value['record_id'], []).append(slot)
             existing(slot, [{'code': 'PACKAGE-S4', 'detail': item} for item in report_value['errors']])
@@ -149,6 +154,8 @@ def check(selection_path, expected, configuration, configuration_sha256):
         records[slot] = value
         identities.setdefault(value['record_id'], []).append(slot)
         if kind == 'package':
+            package_routes[slot] = {'input_format': 'PKG-v0.2', 's4_witness_selected': False,
+                                    'evidence_consistency': 'legacy_checks_only'}
             existing(slot, package.validate(kind, value))
         elif kind != 'change':
             existing(slot, admission.validate(kind, value))

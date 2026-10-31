@@ -40,6 +40,9 @@ class PackageSuccessorReceivingTests(unittest.TestCase):
         self.assertEqual(package['missing'], [])
         self.assertEqual(package['record_id'], self.f.package.request['record_id'])
         self.assertNotEqual(package['record_id'], package['candidate']['package_record_id'])
+        self.assertEqual(report['package_routes']['package-witness'], {
+            'input_format': 'packaged-s4-binding/1', 's4_witness_selected': True,
+            'evidence_consistency': 'consistent'})
         self.assertTrue(any(c['scope'] == 'package/' + self.f.linked_slot for c in report['existing_checks']))
         self.assertEqual(len([c for c in report['existing_checks'] if c['scope'].startswith('review/')]), 23)
         self.assertFalse(package['release_authorized'])
@@ -84,6 +87,43 @@ class PackageSuccessorReceivingTests(unittest.TestCase):
         self.f.package.request['candidate']['package_record_id'] = 'INVENTED-WRONG-INNER'
         self.f.save()
         self.assertFalse(self.check()['selection_consistent'])
+
+    def test_equal_outer_and_inner_ids_are_refused_even_with_rebound_citations(self):
+        same = self.f.package.request['candidate']['package_record_id']
+        self.f.package.request['record_id'] = same
+        self.f.dossier['candidate']['package_record'] = same
+        self.f.records[self.f.linked_slot]['subject']['app_candidate']['package_record'] = same
+        self.f.selection['packages'][0]['ref'] = same
+        self.f.save(rebind_package=False)
+        report = self.check()
+        self.assertFalse(report['selection_consistent'])
+        self.assertIn('outer witness and inner static package IDs must differ', report.get('input_error', ''))
+
+    def test_legacy_package_route_is_explicit_and_does_not_claim_s4(self):
+        artifact = self.f.selection['artifacts'][-1]
+        legacy = self.f.package.values['legacy.json']
+        raw = encoded(legacy)
+        sidecar = encoded(self.f.canonical.binding('package', raw, 'current_producer_declaration'))
+        (self.f.packet / 'legacy-receiving.json').write_bytes(raw)
+        (self.f.packet / 'legacy-receiving.binding.json').write_bytes(sidecar)
+        artifact.update(kind='package', record={'path': 'legacy-receiving.json', 'sha256': adapter.sha(raw)},
+                        binding={'path': 'legacy-receiving.binding.json', 'sha256': adapter.sha(sidecar)})
+        ref = legacy['record_id']
+        self.f.dossier['candidate']['package_record'] = ref
+        self.f.records[self.f.linked_slot]['subject']['app_candidate']['package_record'] = ref
+        self.f.selection['packages'][0]['ref'] = ref
+        # Rebind only EXP inputs; the separately selected legacy package stays legacy.
+        saved = self.f.selection['artifacts'].pop()
+        self.f.save()
+        self.f.selection['artifacts'].append(saved)
+        report = self.check()
+        self.assertTrue(report['selection_consistent'], report.get('errors', report.get('input_error')))
+        self.assertEqual(report['coverage'], 'complete')
+        self.assertEqual(report['package_routes']['package-witness'], {
+            'input_format': 'PKG-v0.2', 's4_witness_selected': False,
+            'evidence_consistency': 'legacy_checks_only'})
+        self.assertEqual(report['package_reports'], {})
+        self.assertFalse(report['qualification_established'])
 
     def test_exact_exp_candidate_pin_support_currency_and_route_guards(self):
         report = self.receive(); original = self.f.records[self.f.linked_slot]
