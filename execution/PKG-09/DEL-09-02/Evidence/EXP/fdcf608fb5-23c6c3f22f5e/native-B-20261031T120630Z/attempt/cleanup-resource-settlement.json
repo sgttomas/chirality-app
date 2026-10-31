@@ -1,0 +1,27 @@
+{
+  "at": "2026-10-31T12:08:24.235829+00:00",
+  "original_exec_handle": 4133,
+  "exec_return_code": 1,
+  "original_invocation_files_unchanged": true,
+  "slot_end_records": [
+    "2026-10-31T12:07:56Z END rc=1 pid=94860 slot=cargo_job.lock cwd=/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification"
+  ],
+  "marker_absent": "/Users/ryan/dev/chirality-t3/guard/run.59449",
+  "queried_known_pids": [
+    59449,
+    94860,
+    94868,
+    94961,
+    95098
+  ],
+  "ps_result": {
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "shared_memguard_pids": [
+    "78827"
+  ],
+  "within_fixed_window": true,
+  "limits": "Known process absence is corroboration, not exhaustive supplier/detached scope settlement. No generation/LT23 or Bpass."
+}

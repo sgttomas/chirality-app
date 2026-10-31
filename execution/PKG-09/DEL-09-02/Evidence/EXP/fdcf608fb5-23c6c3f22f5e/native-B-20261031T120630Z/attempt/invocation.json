@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-31T11:56:44.748846+00:00",
+  "command": [
+    "/Users/ryan/dev/chirality-t3/tools/t3_slot.sh",
+    "/Users/ryan/.local/share/mise/installs/python/3.13/bin/python",
+    "-B",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py",
+    "--execute",
+    "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma",
+    "--window-end",
+    "2026-10-31T12:01:39.748340+00:00"
+  ],
+  "controller_source": "684e046aeac1c7c1ebc17922c96c28320e428ea1",
+  "environment_overrides": {
+    "CODEX_HOME": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/codex-home",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "no_timeout": true,
+  "output": "controller-output.jsonl"
+}

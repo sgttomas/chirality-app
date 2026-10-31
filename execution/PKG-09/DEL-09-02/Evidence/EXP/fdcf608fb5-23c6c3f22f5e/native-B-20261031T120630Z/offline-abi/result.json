@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-31T12:11:44.907395+00:00",
+  "tests": [
+    "out-pointer CFArray and distinct borrowed references",
+    "direct CFString UTF8 conversion",
+    "raw error and null value",
+    "CFEqual distinct/duplicate values",
+    "borrowed children valid after creator releases store while copied array retained",
+    "balanced release of owned copies"
+  ],
+  "passed": 6,
+  "pointer_bytes": 8,
+  "CFIndex_bytes": 8,
+  "CFTypeID_bytes": 8,
+  "owned_copy_count_released": 5,
+  "source_sha256": "e82e889450b10e67e216f850d21939a9fb6df7b2c3cdf35f27e678422c870b83",
+  "fixture_sha256": "9f1a8e8599859531f1186e27aae59ca7d0feae9de85e70fcf9bee91d04680b52",
+  "limits": "CoreFoundation-only C fixture; no ApplicationServices loaded, no actual AX object/remote service/permission/window query. Does not establish AX remote equality or GUI qualification."
+}

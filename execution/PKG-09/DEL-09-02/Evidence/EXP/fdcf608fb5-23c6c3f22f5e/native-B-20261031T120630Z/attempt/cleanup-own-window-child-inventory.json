@@ -1,0 +1,140 @@
+{
+  "at": "2026-10-31T12:07:17.122659+00:00",
+  "creation": {
+    "at": "2026-10-31T12:06:30.300212+00:00",
+    "event": "native_B_started",
+    "pid": 94961,
+    "actor": "agent under owner direction; not a personal human act",
+    "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+  },
+  "heartbeat": {
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "phase": "B",
+    "state": "held-unknown",
+    "administrative_release_request": null,
+    "administrative_release_consumed": false,
+    "administrative_release_control": {
+      "file": "release-observer-after-app-exit.json",
+      "mode": "0600",
+      "requirements": "plain owned single-link file, exact offered JSON body; create privately then atomically rename into place; one occurrence including refusal, no replacement/retry"
+    },
+    "error": "distinct owned main AXWindow unavailable",
+    "app_exit_observation": null,
+    "original_app_reaped": false,
+    "supplier_settled_observed": false,
+    "quit_requested": false,
+    "generation": null,
+    "recovery_limit": "Permanent AX/parser loss cannot be repaired inside this frozen controller; retain supervision and report the exact missing observation. No numeric escalation or automatic duplicate UI action.",
+    "recovery_control": "write retry-native-cleanup.json with {action:retry-native-cleanup,candidate:<this candidate>}; same source is reobserved, no numeric inputs or repeated UI actions",
+    "guard_reason": null,
+    "logging_errors": [],
+    "sampling_observations": {
+      "exclusive": {
+        "at": "2026-10-31T12:07:16.601271+00:00",
+        "source": "exclusive.pending existence",
+        "ok": true,
+        "value": false
+      },
+      "shared_memguard_pgrep": {
+        "at": "2026-10-31T12:07:16.025766+00:00",
+        "source": "shared_memguard_pgrep",
+        "ok": true,
+        "value": [
+          78827
+        ]
+      },
+      "ps_census_and_rss": {
+        "at": "2026-10-31T12:07:16.085589+00:00",
+        "source": "ps_census_and_rss",
+        "ok": true,
+        "value": {
+          "processes": [
+            {
+              "pid": 94961,
+              "parent": 94868,
+              "under_controller_ancestry": true
+            },
+            {
+              "pid": 95098,
+              "parent": 94961,
+              "under_controller_ancestry": true
+            }
+          ],
+          "shared_and_owned_rss_kib": 12261264,
+          "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+        }
+      },
+      "sysctl_free_percent": {
+        "at": "2026-10-31T12:07:16.091017+00:00",
+        "source": "sysctl_free_percent",
+        "ok": true,
+        "value": 75
+      }
+    },
+    "census_freshness": "Use ps_census_and_rss timestamp/ok; heartbeat is original-Child observation, not census freshness",
+    "observed_executable_processes": [
+      {
+        "pid": 94961,
+        "parent": 94868,
+        "under_controller_ancestry": true
+      },
+      {
+        "pid": 95098,
+        "parent": 94961,
+        "under_controller_ancestry": true
+      }
+    ],
+    "overrun": false,
+    "at": "2026-10-31T12:07:16.607641+00:00",
+    "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+  },
+  "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/MacOS/chirality-app-v4",
+  "birth": "Sat Oct 31 06:06:30 2026",
+  "AX_window_inventory": [
+    {
+      "attribute": "AXWindows",
+      "references": [
+        {
+          "AXRole": "AXApplication",
+          "AXSubrole": null,
+          "AXTitle": "Chirality App v4 (development 20261030 eqxsxv4n)",
+          "AXEnabled": null,
+          "application_self_reference": true
+        }
+      ]
+    },
+    {
+      "attribute": "AXMainWindow",
+      "references": [
+        {
+          "AXRole": "AXApplication",
+          "AXSubrole": null,
+          "AXTitle": "Chirality App v4 (development 20261030 eqxsxv4n)",
+          "AXEnabled": null,
+          "application_self_reference": true
+        }
+      ]
+    },
+    {
+      "attribute": "AXFocusedWindow",
+      "references": [
+        {
+          "AXRole": "AXApplication",
+          "AXSubrole": null,
+          "AXTitle": "Chirality App v4 (development 20261030 eqxsxv4n)",
+          "AXEnabled": null,
+          "application_self_reference": true
+        }
+      ]
+    }
+  ],
+  "direct_children": [
+    {
+      "pid": 95098,
+      "parent": 94961,
+      "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/Resources/codex/bin/codex",
+      "role": "bundled stock Codex supplier"
+    }
+  ],
+  "limits": "AX only; no desktop capture. Child identity/census corroboration, not custody."
+}

@@ -1,0 +1,28 @@
+"""One fixed slot-entry invocation; no process control or retry."""
+from pathlib import Path
+from datetime import datetime, timedelta, timezone
+import hashlib,json,os,subprocess
+ROOT=Path('/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma')
+PYTHON='/Users/ryan/.local/share/mise/installs/python/3.13/bin/python'
+CONTROLLER='/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py'
+SLOT_RUN='/Users/ryan/dev/chirality-t3/tools/t3_slot_run.sh'
+
+def enter():
+    parent=subprocess.check_output(['/bin/ps','-p',str(os.getppid()),'-o','command='],text=True,timeout=2)
+    if SLOT_RUN not in parent: raise RuntimeError('actual slot-run parent unavailable')
+    if any((ROOT/name).exists() for name in ('execution-started.json','actions.jsonl','artifact-check.json')):
+        raise RuntimeError('attempt already entered execution; no rearm')
+    acquired=datetime.now(timezone.utc);end=acquired+timedelta(seconds=295)
+    command=[PYTHON,'-B',CONTROLLER,'--execute',str(ROOT),'--window-end',end.isoformat()]
+    overrides={'CODEX_HOME':str(ROOT/'codex-home'),'PYTHONDONTWRITEBYTECODE':'1'}
+    env=dict(os.environ,**overrides)
+    record={'slot_entry_at':acquired.isoformat(),'fixed_window_end':end.isoformat(),'allowance_seconds':295,
+            'slot_parent_command':parent.strip(),'slot_parent_pid':os.getppid(),'shim_pid':os.getpid(),
+            'exec_preserves_pid_and_parent':True,'command':command,'environment_overrides':overrides,
+            'App_environment_reference':'unchanged admission.json inputs.environment; controller replaces App environment',
+            'admission_sha256':hashlib.sha256((ROOT/'admission.json').read_bytes()).hexdigest(),
+            'shim_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
+    with (ROOT/'rearm-slot-entry.json').open('x') as stream:json.dump(record,stream,indent=2)
+    os.execve(PYTHON,command,env)
+
+if __name__=='__main__':enter()

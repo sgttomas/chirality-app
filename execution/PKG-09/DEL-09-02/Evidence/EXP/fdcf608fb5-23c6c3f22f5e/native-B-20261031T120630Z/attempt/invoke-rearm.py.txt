@@ -1,0 +1,22 @@
+from pathlib import Path
+import datetime,hashlib,json,os,subprocess,sys
+root=Path('/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+a=json.loads((root/'admission.json').read_text())
+assert sha(root/'admission.json')=='2ab2e22b856fb4f43c5a347baa5481f8e005ac7a5c229da2553d42370715d1c1'
+assert sha(Path(a['inputs']['retained_state_admission']['path']))=='e67384fd18cb311c9da01912cd68c08e83edb4af39ff5a2ccf41e105c56a04bb'
+assert all(sha(Path(p))==h for p,h in a['dependencies'].items())
+assert not any((root/n).exists() for n in ('execution-started.json','actions.jsonl','artifact-check.json','rearm-slot-entry.json'))
+assert json.loads((root/'wrapper-result.json').read_text())['exit_code']==1
+assert json.loads((root/'prelaunch-refusal-result.json').read_text())['original_exec_handle']==35510
+assert not Path('/Users/ryan/dev/chirality-t3/guard/run.75552').exists()
+prior=subprocess.run(['/bin/ps','-p','75552,27310','-o','pid=,ppid=,stat=,comm='],capture_output=True,text=True)
+assert prior.returncode==1 and not prior.stdout.strip()
+originals={n:sha(root/n) for n in ('invocation.json','controller-output.jsonl','wrapper-result.json','prelaunch-refusal-result.json')}
+command=['/Users/ryan/dev/chirality-t3/tools/t3_slot.sh','/Users/ryan/.local/share/mise/installs/python/3.13/bin/python','-B',str(root/'slot-entry-rearm.py')]
+env=dict(os.environ,CODEX_HOME=str(root/'codex-home'),PYTHONDONTWRITEBYTECODE='1')
+with (root/'rearm-invocation.json').open('x') as f:json.dump({'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'command':command,'source':'684e046aeac1c7c1ebc17922c96c28320e428ea1','shim_sha256':sha(root/'slot-entry-rearm.py'),'fixture_tests':'2 passed; mocked exact exec/time/write-once and refusal','originals':originals,'prior_original_job_ps':{'returncode':prior.returncode,'stdout':prior.stdout},'interval':'fixed295seconds at actual slot entry; no deadline extension','environment_overrides':{'CODEX_HOME':str(root/'codex-home'),'PYTHONDONTWRITEBYTECODE':'1'}},f,indent=2)
+with (root/'rearm-controller-output.jsonl').open('xb') as f:result=subprocess.run(command,env=env,stdout=f,stderr=subprocess.STDOUT)
+record={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'exit_code':result.returncode,'root':str(root),'originals_unchanged':all(sha(root/n)==h for n,h in originals.items())}
+with (root/'rearm-wrapper-result.json').open('x') as f:json.dump(record,f,indent=2)
+print(json.dumps(record),flush=True);sys.exit(result.returncode)

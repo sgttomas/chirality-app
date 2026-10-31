@@ -1,0 +1,75 @@
+{
+  "at": "2026-10-31T12:07:54.897258+00:00",
+  "keeper": {
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "phase": "B",
+    "state": "held-unknown",
+    "administrative_release_request": {
+      "action": "release-observer-after-app-exit",
+      "candidate": "fdcf608fb5-23c6c3f22f5e",
+      "admission_sha256": "2ab2e22b856fb4f43c5a347baa5481f8e005ac7a5c229da2553d42370715d1c1",
+      "expected_app_exit": {
+        "code": 1,
+        "status": 0
+      }
+    },
+    "administrative_release_consumed": false,
+    "administrative_release_control": {
+      "file": "release-observer-after-app-exit.json",
+      "mode": "0600",
+      "requirements": "plain owned single-link file, exact offered JSON body; create privately then atomically rename into place; one occurrence including refusal, no replacement/retry"
+    },
+    "error": "distinct owned main AXWindow unavailable",
+    "app_exit_observation": {
+      "code": 1,
+      "status": 0
+    },
+    "original_app_reaped": false,
+    "supplier_settled_observed": false,
+    "quit_requested": false,
+    "generation": null,
+    "recovery_limit": "Permanent AX/parser loss cannot be repaired inside this frozen controller; retain supervision and report the exact missing observation. No numeric escalation or automatic duplicate UI action.",
+    "recovery_control": "write retry-native-cleanup.json with {action:retry-native-cleanup,candidate:<this candidate>}; same source is reobserved, no numeric inputs or repeated UI actions",
+    "guard_reason": null,
+    "logging_errors": [],
+    "sampling_observations": {
+      "exclusive": {
+        "at": "2026-10-31T12:07:54.770324+00:00",
+        "source": "exclusive.pending existence",
+        "ok": true,
+        "value": false
+      },
+      "shared_memguard_pgrep": {
+        "at": "2026-10-31T12:07:54.197058+00:00",
+        "source": "shared_memguard_pgrep",
+        "ok": true,
+        "value": [
+          78827
+        ]
+      },
+      "ps_census_and_rss": {
+        "at": "2026-10-31T12:07:54.252668+00:00",
+        "source": "ps_census_and_rss",
+        "ok": true,
+        "value": {
+          "processes": [],
+          "shared_and_owned_rss_kib": 13327584,
+          "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+        }
+      },
+      "sysctl_free_percent": {
+        "at": "2026-10-31T12:07:54.260376+00:00",
+        "source": "sysctl_free_percent",
+        "ok": true,
+        "value": 75
+      }
+    },
+    "census_freshness": "Use ps_census_and_rss timestamp/ok; heartbeat is original-Child observation, not census freshness",
+    "observed_executable_processes": [],
+    "overrun": false,
+    "at": "2026-10-31T12:07:54.773964+00:00",
+    "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+  },
+  "actor": "agent under parent-delivered authorization; not personal human act",
+  "scope": "one administrative release after actual normal App exit; B remains failed"
+}
