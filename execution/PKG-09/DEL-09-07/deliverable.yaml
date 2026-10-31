@@ -235,6 +235,7 @@ needs:
   gating: true
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 checks:
+- app/supplier_checks/swbpipe_receiving_v4_pr30_test.py
 - app/supplier_checks/swbpipe_receiving_v4_test.py
 - app/supplier_checks/swbpipe_receiving_test.py
 - app/supplier_checks/swbpipe_projection_test.py

@@ -519,10 +519,12 @@ needs:
   evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
 
 checks:
+- app/supplier_checks/swbpipe_receiving_v4_pr30_test.py
 - app/supplier_checks/swbpipe_receiving_v4_test.py
 - app/supplier_checks/swbpipe_receiving_test.py
 - app/supplier_checks/swbpipe_projection_test.py
 code_paths:
+- app/supplier_checks/swbpipe_catalog_v4_pr30_receiving.py
 - app/supplier_checks/swbpipe_catalog_v4_receiving.py
 - app/supplier_checks/swbpipe_projection_v4.py
 - app/supplier_checks/swbpipe_catalog_receiving.py
