@@ -648,7 +648,7 @@ class Run:
             if not self.stop_requested:
                 self.request_stop_ui()
             self.confirm_stop_ui(gen)
-        end = min(time.monotonic() + 25, self.cleanup_end)
+        end = self.settlement_deadline()
         last_error = None
         while not self.supplier_settled and time.monotonic() < end:
             self.alive()
@@ -670,6 +670,9 @@ class Run:
             self.request_quit_ui()
             self.safe_log('native_quit_requested', actor=ACTOR)
         return self.wait_for_quit_exit()
+
+    def settlement_deadline(self):
+        return min(time.monotonic() + 25, self.cleanup_end)
 
     def wait_for_quit_exit(self):
         require(self.supplier_settled and self.quit_requested, 'Quit exit lacks settlement gates')

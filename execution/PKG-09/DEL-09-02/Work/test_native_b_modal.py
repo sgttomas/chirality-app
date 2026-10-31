@@ -21,6 +21,12 @@ class ModalTests(unittest.TestCase):
  def test_unique_new_owned_modal_is_derived_not_arbitrary_window(self):
   result=w.select_modal(self.backend,123,self.context)
   self.assertEqual(result['window_id'],20);self.assertEqual(result['title'],'Stop Codex')
+ def test_missing_window_title_still_requires_unique_derived_modal(self):
+  self.modal['title']=None
+  result=w.select_modal(self.backend,123,self.context)
+  self.assertIsNone(result['title']);self.assertEqual(result['window_id'],20)
+  self.rows=[self.modal,self.modal,self.main]
+  with self.assertRaisesRegex(RuntimeError,'ambiguous'):w.select_modal(self.backend,123,self.context)
  def test_main_substitution_missing_ambiguous_and_wrong_title_refuse(self):
   for rows in ([self.main],[self.modal,self.modal,self.main],[{**self.modal,'title':'Unrelated'},self.main],[self.modal,{**self.main,'number':11}]):
    self.rows=rows
@@ -36,7 +42,7 @@ class ModalTests(unittest.TestCase):
   self.context['posted']=False
   with self.assertRaisesRegex(RuntimeError,'posted Stop'):w.select_modal(self.backend,123,self.context)
  def test_full_observed_question_must_match_account_generation_and_all_effects(self):
-  for state in ('ready','handshaking','halted','unexpected-exit'):
+  for state in ('starting','handshaking','ready','halted-after-repeated-failure','exited-unexpectedly'):
    self.assertEqual(m.validate_stop_question('Stop Codex',question(state),G,'invented-home'),question(state))
   for text in (question().replace('account','key',1),question().replace('start 3','start 4'),question()+' Also delete another project.',question().replace('no live turns','2 live turns'),question().replace('stops this Codex process.','restarts this Codex process.')):
    with self.assertRaises(RuntimeError):m.validate_stop_question('Stop Codex',text,G,'invented-home')

@@ -174,7 +174,9 @@ one-shot modal context. The keeper records the original identity, main-window
 identity and pre-click owned inventory before posting, then requires the protected
 helper's posting result before admitting a modal observation. The candidate must
 be the unique newly visible owned window, distinct from the original main window,
-with expected title/normal-or-modal layer and foremost owned ordering. No missing
+with a missing, empty or Stop Codex title, normal-or-modal layer and foremost
+owned ordering. A missing WindowServer title is not invented as observed text;
+the actual captured question must still establish the exact presentation. No missing
 main window is replaced. Before/after original-Child and window binding remains.
 Where AX exposes a matching modal/sheet and parent relationship, the isolated
 helper records it and refuses contradictions, foreign parents or an unsupported
@@ -201,9 +203,12 @@ temp writes are denied while ordinary App tmp remains allowed. Click/scroll
 points exclude the top40-point title band and8-point resize edges. Controls must
 be privately completed then atomically renamed. A pending effect permits a
 read-only recapture without claiming success; it still forbids another input
-until actual expected effect is read. Cleanup uses protocol=False, so it may omit
-raw envelopes; full source/account/generation and LT23 leader/descendant gates
-remain, and ready qualification still requires the complete protocol witness.
+until actual expected effect is read. All diagnostics, including cleanup-source
+and final settlement, require raw envelopes: even an already-stopped observation
+can become the final qualification witness checked by check_requests. Only the
+initial failure-recovery source observation may omit them; the next diagnostics
+call requires them. Prompts state required sections explicitly. Full source/
+account/generation and LT23 leader/descendant gates remain unchanged.
 The known source's existing sticky More tools/Connection & access links are
 allowed navigation targets; they only reveal/scroll existing sections.
 
@@ -241,7 +246,7 @@ return the exact limitation. No deadline extension is automatic. No known
 minimum from the representative fixture exceeds295s; native page count and
 capture/focus/delivery remain unobserved and are material live-disposition limits.
 
-## Updated unrun modal preparation and validation
+## Historical modal preparation and validation (superseded after review)
 
 Fresh read-only admission succeeded against the unchanged exact six-row ledger,
 saved A request and post-am98 metadata. The basis is
@@ -263,4 +268,55 @@ pruning, slot binding, phase reserves and non-extending deadlines. Invented
 sandbox fixtures cover Python-runtime and helper-temp write protection.
 Deliverables validation and whitespace checks pass. Actual native capture,
 modal presentation, focus, input delivery and image-fingerprint stability remain
-unobserved. Narrow independent scrutiny of this delta is pending.
+unobserved. The narrow review and subsequent fixes are recorded below; w8wyelot
+is now superseded and must not be executed.
+
+## Narrow review disposition and current preparation
+
+Claude Opus 5.5/high reviewed 72bf33f3..6c5908ce, running 44 focused tests.
+The reviewer found no false-success or main-window-substitution path but did not
+recommend readiness until three practical defects were fixed. This records that
+review and the manager's bounded fixes, not a new clean repeat review:
+
+- Final settlement now always requires raw envelopes, including the already-
+  stopped cleanup case, so final request checks cannot fail solely because the
+  prompt allowed their omission. Required sections are explicit in each prompt.
+- Held screen recovery is advertised only when supplier settlement and Quit are
+  already recorded. The inherited 45-second retry cannot fit the observation
+  phases; it is not offered as a way to resume those phases. Otherwise supervision
+  remains; separately selected owned-menu cleanup and normal-exit administrative
+  release remain cleanup only, with no qualification or settlement inference.
+- A missing WindowServer modal title is admitted alongside empty/Stop Codex,
+  still requiring unique owned derivation and the exact actual question before
+  input. No foreign, ambiguous or substituted window is admitted.
+- Question grammar uses the exact source states starting, handshaking, ready,
+  halted-after-repeated-failure and exited-unexpectedly.
+- The screen settlement loop uses the existing non-extending 45-second phase
+  deadline instead of the legacy 25-second loop. A phase selected for observed
+  stopping remains settlement even without an agent confirmation record. The
+  legacy controller retains its 25-second loop; no overall deadline is extended.
+
+Timing limits remain material: helper starts require more than six seconds left,
+so the initial 15-second window phase has about nine seconds for starting a new
+helper. Full phase reserves leave no guaranteed transition slack if every cap is
+used. The 20-second Stop and 30-second modal caps include agent round trips.
+The invented timing sample measures none of the native costs. No live fit or
+modal/click/fingerprint behavior is claimed; a refusal may retain the App/slot.
+
+After fixes, 130 boundary tests ran: 126 passed, four deferred C fixtures skipped.
+All 21 legacy B regressions passed. New regressions cover final envelope prompts,
+already-stopped diagnostics, retry-offer truthfulness, missing modal titles and
+the actual source state names, plus settlement deadline reuse. Deliverables and
+whitespace validation pass.
+
+Fresh read-only v2 preparation succeeded against the same exact six-row state.
+Current basis:
+`/Users/ryan/dev/chirality-t3/scratch/app-owned-modal-reviewed-prep-gy6xn5lu/retained-v2-modal-inputs.json`
+SHA256 `536fab0747c5f16dc4c2433f8b9d3d789d7adb23f056f0dd2f6270dd11a3d9f6`.
+Current unrun attempt:
+`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-8w83gq78`
+admission SHA256 `0e467feb15bc22b5f3d60880e35e6f6a9ab592b2d81117064dec3b570665c553`.
+All 16 dependency hashes, copied helpers and policy match current sources;
+no execution-start/actions/artifact-check/slot-entry exists. All earlier bases,
+preparations, candidate and recovery inputs remain retained. This profile awaits
+exact-head CI and Agent0's separate live disposition; no launch is authorized.

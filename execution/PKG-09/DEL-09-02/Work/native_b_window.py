@@ -127,7 +127,7 @@ def select_modal(backend,pid,context):
         raise WindowUnavailable('no distinct newly visible owned Stop modal; sheets without a separate row are unsupported')
     require(len(new)==1,'new owned modal candidates ambiguous')
     candidate=new[0]
-    require(candidate['title'] in ('','Stop Codex') and candidate['layer'] in (0,8),'unexpected modal title/layer')
+    require(candidate['title'] in (None,'','Stop Codex') and candidate['layer'] in (0,8),'unexpected modal title/layer')
     require(80<=candidate['bounds']['Width']<=10000 and 80<=candidate['bounds']['Height']<=10000,'modal bounds unsupported')
     visible=[r for r in rows if r['on_screen'] is True]
     require(visible and visible[0]['window_id']==candidate['window_id'],'derived modal is not foremost owned window')

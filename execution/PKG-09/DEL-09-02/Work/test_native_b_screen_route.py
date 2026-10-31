@@ -26,6 +26,12 @@ class ScreenTests(unittest.TestCase):
   self.control(action='observe',frames=[1],strings=['ready'],complete_sections=['state-generation','lifecycle-clientRequests','raw-envelopes'],unreadable=False)
   with self.assertRaisesRegex(RuntimeError,'missing native'):self.screen.observe()
   self.b.decode_diagnostics.assert_called_once_with(['ready'],protocol=True)
+ def test_settlement_prompt_requires_envelopes_and_refuses_omission(self):
+  self.control(action='observe',frames=[1],strings=['source only'],complete_sections=['state-generation','lifecycle-clientRequests'],unreadable=False)
+  with self.assertRaisesRegex(RuntimeError,'missing/unclear'):self.screen.observe('settlement',protocol=True)
+  prompt=self.run.report.call_args.args[0]['prompt']
+  self.assertEqual(prompt['required_sections'],['state-generation','lifecycle-clientRequests','raw-envelopes'])
+  self.b.decode_diagnostics.assert_not_called()
  def test_next_action_requires_actual_expected_effect_readback(self):
   self.screen.pending_effect=True;self.control(action='click-disclosure',target='host-diagnostics',point=[10,20])
   with self.assertRaisesRegex(RuntimeError,'actual expected effect'):self.screen.observe()

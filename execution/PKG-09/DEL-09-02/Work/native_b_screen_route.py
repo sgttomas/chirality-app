@@ -17,7 +17,7 @@ def validate_stop_question(title,text,generation,expected_home):
     w.require(generation['home']==expected_home,'full generation account source differs')
     normalized=' '.join(text.split())
     prefix='Stop Codex for this home? Home: account · App session '+generation['appSession']+' · Codex process start '+str(generation['spawnCounter'])+' · state '
-    match=re.match(re.escape(prefix)+r'(ready|handshaking|halted|unexpected-exit)\b',normalized)
+    match=re.match(re.escape(prefix)+r'(starting|handshaking|ready|halted-after-repeated-failure|exited-unexpectedly)(?= )',normalized)
     w.require(match is not None,'Stop question source/generation differs')
     state=match.group(1)
     before_time=[prefix+state]
@@ -80,7 +80,7 @@ class ScreenSession:
             w.require(self.window.last is initial_frame,'initial verified frame no longer current')
             minimum_frame=initial_frame['sequence']
         while True:
-            c,frame=self.next_control(phase);action=c.get('action')
+            c,frame=self.next_control(phase,{'required_sections':['state-generation','lifecycle-clientRequests']+(['raw-envelopes'] if protocol else [])});action=c.get('action')
             if action=='refuse':raise RuntimeError('operator cannot establish native observation/effect: '+str(c.get('reason','unspecified'))[:2048])
             if action=='capture':self.window.capture();continue
             if action=='observe':
@@ -168,12 +168,17 @@ def make_run(b):
             status=super().held_status(error)
             helper=self.screen.window.helper
             status['window_helper']={'pid':helper.pid,'settlement':'unknown; retained Child'} if helper is not None else {'settlement':'no live held helper'}
+            if not (self.supplier_settled and self.quit_requested):
+                status['recovery_control']=None
+                status['recovery_limit']='Screen observation retry unavailable: the 45s held retry cannot admit these phase budgets. Retain supervision; separately selected owned-menu cleanup/normal-exit administrative release is not qualification.'
             status['screen_step']=self.screen.step
             status['last_verified_capture']=self.screen.window.last
             return status
         def diagnostics(self):
-            phase='settlement' if self.stop_confirmed else ('cleanup-source' if self.cleanup else 'recheck')
-            observed=self.screen.observe(phase,protocol=not self.cleanup)
+            phase='settlement' if self.stop_confirmed or self.screen.active_phase=='settlement' else ('cleanup-source' if self.cleanup else 'recheck')
+            # Even an already-stopped cleanup observation can become the final
+            # qualification witness; preserve request-envelope checks in all diagnostics.
+            observed=self.screen.observe(phase,protocol=True)
             self.last_diagnostics=observed;return observed
         def observe_ready(self,qualification=True):
             initial=None
@@ -195,6 +200,10 @@ def make_run(b):
             if self.screen.window.failure and self.generation is None:
                 raise RuntimeError('owned-window observation unavailable with no source binding; no capture retry: '+self.screen.window.failure)
             return super().cleanup_attempt()
+        def settlement_deadline(self):
+            if self.supplier_settled:return time.monotonic()
+            self.screen.begin_phase('settlement')
+            return min(self.screen.phase_deadline,self.cleanup_end)
         def request_stop_ui(self):
             self.screen.observe('stop',stop=True)
         def confirm_stop_ui(self,gen):

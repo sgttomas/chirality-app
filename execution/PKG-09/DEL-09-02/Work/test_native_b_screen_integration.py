@@ -17,6 +17,31 @@ class Integration(unittest.TestCase):
   self.run.reservation.reap.assert_not_called()
   status=self.run.held_status('fixture');self.assertEqual(status['window_helper']['pid'],123)
   self.assertIsNone(status['administrative_release_request'])
+ def test_retry_offer_only_after_settlement_and_quit(self):
+  self.run.reservation=SimpleNamespace(observe=lambda:None)
+  for settled,quit_requested in ((False,False),(True,False),(False,True),(True,True)):
+   self.run.supplier_settled=settled;self.run.quit_requested=quit_requested
+   status=self.run.held_status('fixture')
+   self.assertEqual(status['recovery_control'] is not None,settled and quit_requested)
+ def test_settlement_and_already_stopped_cleanup_require_protocol(self):
+  self.run.screen.observe=Mock(return_value={'envelopes':[]})
+  self.run.cleanup=True
+  for confirmed,phase in ((False,'cleanup-source'),(True,'settlement')):
+   self.run.stop_confirmed=confirmed
+   self.run.diagnostics()
+   self.run.screen.observe.assert_called_with(phase,protocol=True)
+ def test_settlement_uses_nonextending_45second_phase(self):
+  self.run.cleanup_end=200
+  with patch.object(m.time,'monotonic',return_value=100):
+   self.assertEqual(self.run.settlement_deadline(),145)
+  with patch.object(m.time,'monotonic',return_value=130):
+   self.assertEqual(self.run.settlement_deadline(),145)
+  self.run.cleanup=True;self.run.stop_confirmed=False
+  self.run.screen.observe=Mock(return_value={})
+  self.run.diagnostics();self.run.screen.observe.assert_called_once_with('settlement',protocol=True)
+  self.run.supplier_settled=True
+  with patch.object(m.time,'monotonic',return_value=146):
+   self.assertEqual(self.run.settlement_deadline(),146)
  def test_unexpected_quit_question_never_confirms(self):
   self.run.supplier_settled=self.run.quit_requested=True
   self.run.reservation=SimpleNamespace(observe=lambda:None,reap=Mock())
