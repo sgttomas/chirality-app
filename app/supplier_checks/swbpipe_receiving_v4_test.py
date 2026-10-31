@@ -175,6 +175,22 @@ class V4Receiving(unittest.TestCase):
         check_records_observation(args,stale,retained)
         with self.assertRaisesRegex(ValueError,'stale record'):check_records_observation(args,success,retained)
 
+    def test_drift_with_invalid_record_preserves_both_producer_check_points(self):
+        args=copy.deepcopy(dict(ARGS,family='nodes'))
+        bad={'id':'x'*161,'recordText':'{}','before':{}}
+        retained={'context':page_context('swbpipe_read_records',args),'entries':[bad],
+                  'offset':0,'serialized_result':b'', 'current_basis':dict(BASIS,modelRevision=3)}
+        for status in ('stale_basis','unavailable'):
+            check_records_observation(args,dict(RESULT,status=status,data=None),retained)
+        for result in (dict(RESULT,status='ok',data={'family':'nodes','records':[],'nextCursor':None}),
+                       dict(RESULT,status='stale_basis',data={}),
+                       dict(RESULT,status='stale_basis',data=None,basis=retained['current_basis'])):
+            with self.assertRaises(ValueError):check_records_observation(args,result,retained)
+        retained['current_basis']=BASIS
+        with self.assertRaisesRegex(ValueError,'outcome mismatch'):
+            check_records_observation(args,dict(RESULT,status='stale_basis',data=None),retained)
+        check_records_observation(args,dict(RESULT,status='unavailable',data=None),retained)
+
     def test_javascript_entry_serialization_and_utf16_id_boundary(self):
         texts = ['é', '😀', '\"\\\n\t', '\u2028\u2029', '\x00', '\ud800', '123e+10', '-0', 'a/b']
         rows = [{'id':'fixture', 'recordText':text, 'before':{'delete':text}} for text in texts]

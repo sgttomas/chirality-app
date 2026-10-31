@@ -107,7 +107,10 @@ completion tests cover accented/astral/escaped text. Numeric representation
 remains the fixture's, not a general host transport reproduction. Observation
 joins compare complete serialized successful result content (including message
 and nextCursor), distinguish an explicit stale-basis refusal, and preserve
-whole-call unavailable before the producer's final live-basis recheck. The
+both producer check points: with drift and an invalid record, entry drift may
+yield stale_basis, while invalid-record detection before the final live check
+may yield unavailable. Neither is a partial success. Summary/node completion
+retains the older fail-closed drift behavior; this repair does not broaden it. The
 whitespace-padded envelope overflow case tests the receiving distinction only;
 it is not evidence that this bounded producer naturally emits such a page.
 

@@ -140,7 +140,10 @@ def check_records_observation(args, result, retained_page, retained_cursor=None)
         raise ValueError('retained record page context mismatch')
     status, rows, next_offset = expected_record_page(retained_page['entries'], retained_page['offset'], args['page']['limit'])
     current = retained_page.get('current_basis', args['basis'])
-    if status == 'ok' and current != args['basis']:
+    # Entry drift precedes record validation; drift during reading follows it.
+    # Without timing evidence, an invalid encountered record may legitimately
+    # yield unavailable or the entry check's stale_basis, never a partial pass.
+    if current != args['basis'] and (status == 'ok' or result['status'] == 'stale_basis'):
         if result['status'] != 'stale_basis' or result['data'] is not None or result['basis'] != args['basis']:
             raise ValueError('stale record page outcome mismatch')
         return
