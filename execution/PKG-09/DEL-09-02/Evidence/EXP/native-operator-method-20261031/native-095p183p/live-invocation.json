@@ -1,0 +1,11 @@
+{
+  "at": "2026-10-31T21:42:49.333435+00:00",
+  "command": [
+    "/Users/ryan/dev/chirality-t3/tools/t3_slot.sh",
+    "python3.13",
+    "-B",
+    "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_slot_entry.py"
+  ],
+  "admission_sha256": "c01af4142e01c14a7d6b0705af654924ef5eb88641cb7f5045dfeeecc3173f38",
+  "authorization": "single standing bounded invocation295s afterslot; no rearm"
+}

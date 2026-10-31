@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-31T22:02:25.322480+00:00",
+  "limit_seconds": 295,
+  "scope": "ONE full offline operator journey, no live App/native APIs",
+  "allowances": {
+    "admission": 5,
+    "initial_stability_capture": 5,
+    "phase_initial_capture": 1,
+    "focus_native_render_capture": 3,
+    "other_input_precapture_post_render": 4,
+    "quit_and_resource_settlement": 10
+  }
+}

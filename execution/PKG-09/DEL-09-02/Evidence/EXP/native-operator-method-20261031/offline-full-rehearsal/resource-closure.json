@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-31T22:05:20.077534+00:00",
+  "exclusive_records": [
+    "2026-10-31T22:02:25Z START-EXCLUSIVE pid=9472 cwd=/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification args: python3.13 -B /Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/trial.py",
+    "2026-10-31T22:02:59Z END-EXCLUSIVE rc=1 pid=9472 cwd=/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification"
+  ],
+  "shared_memguard_pids": [
+    "78827"
+  ],
+  "excerpt_started": false,
+  "scope": "Offline fixtures only; no App/native APIs; exact exclusive wrapper exited."
+}

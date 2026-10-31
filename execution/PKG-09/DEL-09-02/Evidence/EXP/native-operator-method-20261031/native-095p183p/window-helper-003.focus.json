@@ -1,0 +1,23 @@
+{
+  "activation": {
+    "receiver_pid": 28898,
+    "activation_policy": 0,
+    "options": 0,
+    "request_sent": true,
+    "limits": "Request dispatch only, not actual frontmost/effect proof."
+  },
+  "observations": [
+    {
+      "at": "2026-10-31T21:43:32.192522+00:00",
+      "frontmost": false
+    },
+    {
+      "at": "2026-10-31T21:43:32.243198+00:00",
+      "frontmost": false
+    },
+    {
+      "at": "2026-10-31T21:43:32.302510+00:00",
+      "frontmost": true
+    }
+  ]
+}
