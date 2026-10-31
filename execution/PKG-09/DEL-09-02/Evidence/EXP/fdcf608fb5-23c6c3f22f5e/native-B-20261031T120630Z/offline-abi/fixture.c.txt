@@ -1,0 +1,18 @@
+#include <CoreFoundation/CoreFoundation.h>
+static CFStringRef app, window, menu;
+static CFArrayRef windows;
+void fixture_init(void) {
+ app=CFStringCreateWithCString(NULL,"invented-application",kCFStringEncodingUTF8);
+ window=CFStringCreateWithCString(NULL,"invented-window \xE2\x80\x94 \xCE\xBB",kCFStringEncodingUTF8);
+ menu=CFStringCreateWithCString(NULL,"invented-menu",kCFStringEncodingUTF8);
+ const void *values[]={window,menu,window};
+ windows=CFArrayCreate(NULL,values,3,&kCFTypeArrayCallBacks);
+}
+const void *fixture_app(void) {return app;}
+const void *fixture_window(void) {return window;}
+int fixture_copy(const void *element,CFStringRef attribute,CFTypeRef *out) {
+ if (CFEqual(attribute,CFSTR("AXWindows"))) {*out=CFRetain(windows);return 0;}
+ if (CFEqual(attribute,CFSTR("AXMainWindow"))) {*out=CFRetain(window);return 0;}
+ *out=NULL;return -25205;
+}
+void fixture_drop_store(void) {CFRelease(windows);CFRelease(app);CFRelease(window);CFRelease(menu);}

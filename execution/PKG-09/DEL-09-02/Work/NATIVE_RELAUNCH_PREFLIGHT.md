@@ -1,11 +1,13 @@
 # Phase B relaunch preflight
 
-Both successor B attempts **FAILED** before source/generation observation.
+The first two successor B attempts **FAILED** before source/generation observation.
 The [first account](FAILED_B_20261031.md) preserves exceptional observer cleanup;
 the [second account](FAILED_B_RETRY_20261031.md) records actual supplier presence,
 repeated AX self-reference, dispatch delay and reviewed administrative release.
 Preparation/review stages below retain their historical heads and limits.
-No B pass or supplier settlement follows from either cleanup.
+The later [retained-state attempt](NATIVE_B_DIAGNOSTIC_20261031.md) also FAILED
+readiness, while observing an owned on-screen main window versus AX self-reference.
+No B pass or supplier settlement follows from any cleanup.
 
 At the 2026-10-30 preflight below, phase B had not run. It found that the proposed
 extension of the A sandbox cannot both admit supplier startup and prevent

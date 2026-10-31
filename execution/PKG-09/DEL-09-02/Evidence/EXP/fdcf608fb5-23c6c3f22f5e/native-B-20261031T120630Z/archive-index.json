@@ -1,0 +1,380 @@
+{
+  "archived_at": "2026-10-31T12:12:40.986172+00:00",
+  "candidate": "fdcf608fb5-23c6c3f22f5e",
+  "App_source": "fdcf608fb57c4f8299c7440ffc56519314046cff",
+  "controller_source": "684e046aeac1c7c1ebc17922c96c28320e428ea1",
+  "outcome": "B FAILED readiness; own on-screen WindowServer main window exists, AX rc0 returns Application self-reference",
+  "prelaunch": "original fixed-before-queue invocation refused interval; no App launch. Separate single authorized rearm computes295s after slot acquisition. Original records unchanged.",
+  "cleanup": "one native menuQuit normalApp exit0; originalChild administrative wait0; execution4133rc1; slot1 released within fixedinterval. No generation/LT23/supplier settlement inferred.",
+  "preservation": "All originals/candidate/A/priorB/recovery/opaque files retained. Source files archived as text; no reusable cleanup tool adopted. OfflineCF fixture is not GUI qualification.",
+  "files": [
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/actions.jsonl",
+      "archive_path": "attempt/actions.jsonl",
+      "encoding": "identity",
+      "original_sha256": "7712bc0aee721f286d3e66f3682f051cf59083aa989dcd350c7457f4117b6842",
+      "archive_sha256": "7712bc0aee721f286d3e66f3682f051cf59083aa989dcd350c7457f4117b6842",
+      "original_bytes": 1000
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/administrative-release-intent.json",
+      "archive_path": "attempt/administrative-release-intent.json",
+      "encoding": "identity",
+      "original_sha256": "2c2840cbfd02403426177fdb51b488e00b0bfb6b75f8d4242b1163562796bf95",
+      "archive_sha256": "2c2840cbfd02403426177fdb51b488e00b0bfb6b75f8d4242b1163562796bf95",
+      "original_bytes": 715
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/administrative-release-request.json",
+      "archive_path": "attempt/administrative-release-request.json",
+      "encoding": "identity",
+      "original_sha256": "2dca09b1b609497f5b4d1a431cb469322613a4c42c3e87ae6d99f11a0c6f0e3d",
+      "archive_sha256": "2dca09b1b609497f5b4d1a431cb469322613a4c42c3e87ae6d99f11a0c6f0e3d",
+      "original_bytes": 221
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/administrative-release-result.json",
+      "archive_path": "attempt/administrative-release-result.json",
+      "encoding": "identity",
+      "original_sha256": "2d1cdba8082683e89688bf5e441a891cacacbdb740816e4de38fdd0d896a6e40",
+      "archive_sha256": "2d1cdba8082683e89688bf5e441a891cacacbdb740816e4de38fdd0d896a6e40",
+      "original_bytes": 1659
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/admission.json",
+      "archive_path": "attempt/admission.json",
+      "encoding": "identity",
+      "original_sha256": "2ab2e22b856fb4f43c5a347baa5481f8e005ac7a5c229da2553d42370715d1c1",
+      "archive_sha256": "2ab2e22b856fb4f43c5a347baa5481f8e005ac7a5c229da2553d42370715d1c1",
+      "original_bytes": 52856
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/artifact-check.json",
+      "archive_path": "attempt/artifact-check.json",
+      "encoding": "identity",
+      "original_sha256": "491be4b11c6c1c51cf9ba5fc6b2556f45d1b368d10ed66bb4cd25a8fb39b899d",
+      "archive_sha256": "491be4b11c6c1c51cf9ba5fc6b2556f45d1b368d10ed66bb4cd25a8fb39b899d",
+      "original_bytes": 465
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/cleanup-menu-action-result.json",
+      "archive_path": "attempt/cleanup-menu-action-result.json",
+      "encoding": "identity",
+      "original_sha256": "32cdcd65481c243fdc93bdb455a9fd723f202ddb2d04c01adca00b47f3c2c28c",
+      "archive_sha256": "32cdcd65481c243fdc93bdb455a9fd723f202ddb2d04c01adca00b47f3c2c28c",
+      "original_bytes": 106
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/cleanup-menu-request.json",
+      "archive_path": "attempt/cleanup-menu-request.json",
+      "encoding": "identity",
+      "original_sha256": "56f8db43f09a3f524b10ec649c910943749577bc8f7336f62f22d0814e3b5c7f",
+      "archive_sha256": "56f8db43f09a3f524b10ec649c910943749577bc8f7336f62f22d0814e3b5c7f",
+      "original_bytes": 5827
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/cleanup-menu.py",
+      "archive_path": "attempt/cleanup-menu.py.txt",
+      "encoding": "identity",
+      "original_sha256": "4b8347d581792cf5c61c7ca4800d5f6fe1ebcb693074385a11da1de8cc2933ce",
+      "archive_sha256": "4b8347d581792cf5c61c7ca4800d5f6fe1ebcb693074385a11da1de8cc2933ce",
+      "original_bytes": 5136
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/cleanup-normal-exit-release-selection.json",
+      "archive_path": "attempt/cleanup-normal-exit-release-selection.json",
+      "encoding": "identity",
+      "original_sha256": "d66b39e8fec17ed34eda7d7a7c8c3ceac549fb3133e87bb594b745a11060bcca",
+      "archive_sha256": "d66b39e8fec17ed34eda7d7a7c8c3ceac549fb3133e87bb594b745a11060bcca",
+      "original_bytes": 3038
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/cleanup-own-window-child-inventory.json",
+      "archive_path": "attempt/cleanup-own-window-child-inventory.json",
+      "encoding": "identity",
+      "original_sha256": "67c481de552ebfd35dbae33eeb0c847706163bfef4c738aa15f528373b7e9d3b",
+      "archive_sha256": "67c481de552ebfd35dbae33eeb0c847706163bfef4c738aa15f528373b7e9d3b",
+      "original_bytes": 5008
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/cleanup-owned-app-menu-inventory.json",
+      "archive_path": "attempt/cleanup-owned-app-menu-inventory.json",
+      "encoding": "identity",
+      "original_sha256": "0021c8a424d58ec6d89abc3e831cdfc48613c9b1642c21773903a87f33574237",
+      "archive_sha256": "0021c8a424d58ec6d89abc3e831cdfc48613c9b1642c21773903a87f33574237",
+      "original_bytes": 1439
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/cleanup-resource-settlement.json",
+      "archive_path": "attempt/cleanup-resource-settlement.json",
+      "encoding": "identity",
+      "original_sha256": "4caf285d5762d084ec3042b1c1baab78ad516cde0bd2c894a157381452500135",
+      "archive_sha256": "4caf285d5762d084ec3042b1c1baab78ad516cde0bd2c894a157381452500135",
+      "original_bytes": 763
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/controller-output.jsonl",
+      "archive_path": "attempt/controller-output.jsonl",
+      "encoding": "identity",
+      "original_sha256": "ef3c4ab054a1b909a93d686660b04d374af1893d0e7beadb5ce2c357924574e4",
+      "archive_sha256": "ef3c4ab054a1b909a93d686660b04d374af1893d0e7beadb5ce2c357924574e4",
+      "original_bytes": 935
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/controller.py.txt",
+      "archive_path": "attempt/controller.py.txt",
+      "encoding": "identity",
+      "original_sha256": "a12004bba2798aeb7c7d82fca3f3663a33bd57c58f6e7741e164ae5adab3b90a",
+      "archive_sha256": "a12004bba2798aeb7c7d82fca3f3663a33bd57c58f6e7741e164ae5adab3b90a",
+      "original_bytes": 52025
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/execution-started.json",
+      "archive_path": "attempt/execution-started.json",
+      "encoding": "identity",
+      "original_sha256": "d0f27b5039bb3dd87fb0e8903668d2311d5c06ee580670ca09653ed3b5fe143f",
+      "archive_sha256": "d0f27b5039bb3dd87fb0e8903668d2311d5c06ee580670ca09653ed3b5fe143f",
+      "original_bytes": 89
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/held-AX.json",
+      "archive_path": "attempt/held-AX.json",
+      "encoding": "identity",
+      "original_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "archive_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "original_bytes": 3
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/held-heartbeat.jsonl",
+      "archive_path": "attempt/held-heartbeat.jsonl",
+      "encoding": "identity",
+      "original_sha256": "ff5f32a12dbe527e4a30697da4383fc789a54201ed2286e3f2d82d9bd2e32b49",
+      "archive_sha256": "ff5f32a12dbe527e4a30697da4383fc789a54201ed2286e3f2d82d9bd2e32b49",
+      "original_bytes": 66768
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/held-result.json",
+      "archive_path": "attempt/held-result.json",
+      "encoding": "identity",
+      "original_sha256": "bf543a75c0f3c4de89f183d97c707784464e6c74edb4479c59e04780f0fc09d6",
+      "archive_sha256": "bf543a75c0f3c4de89f183d97c707784464e6c74edb4479c59e04780f0fc09d6",
+      "original_bytes": 2840
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/invocation.json",
+      "archive_path": "attempt/invocation.json",
+      "encoding": "identity",
+      "original_sha256": "5ee54517ebba0bb5cf64679b357d2d465b625f02b5808fa86546ec89b09ddf22",
+      "archive_sha256": "5ee54517ebba0bb5cf64679b357d2d465b625f02b5808fa86546ec89b09ddf22",
+      "original_bytes": 789
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/invoke-rearm.py",
+      "archive_path": "attempt/invoke-rearm.py.txt",
+      "encoding": "identity",
+      "original_sha256": "6cacade643c26ed71e67d6d3a83337f41426681afbe9849f97738fc4858796fd",
+      "archive_sha256": "6cacade643c26ed71e67d6d3a83337f41426681afbe9849f97738fc4858796fd",
+      "original_bytes": 2552
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/invoke.py",
+      "archive_path": "attempt/invoke.py.txt",
+      "encoding": "identity",
+      "original_sha256": "e82160e798f24cc08972c81309ae6062d1d163f53b1ced796a5944d168043763",
+      "archive_sha256": "e82160e798f24cc08972c81309ae6062d1d163f53b1ced796a5944d168043763",
+      "original_bytes": 1424
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/last-diagnostics.json",
+      "archive_path": "attempt/last-diagnostics.json",
+      "encoding": "identity",
+      "original_sha256": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+      "archive_sha256": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+      "original_bytes": 5
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/native_b_ax.py.txt",
+      "archive_path": "attempt/native_b_ax.py.txt",
+      "encoding": "identity",
+      "original_sha256": "4a5a26d43063f271188a90c290e3bae56cc7794014149ca5ae7504b005737cef",
+      "archive_sha256": "4a5a26d43063f271188a90c290e3bae56cc7794014149ca5ae7504b005737cef",
+      "original_bytes": 5711
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/native_b_diagnostic.py.txt",
+      "archive_path": "attempt/native_b_diagnostic.py.txt",
+      "encoding": "identity",
+      "original_sha256": "e82e889450b10e67e216f850d21939a9fb6df7b2c3cdf35f27e678422c870b83",
+      "archive_sha256": "e82e889450b10e67e216f850d21939a9fb6df7b2c3cdf35f27e678422c870b83",
+      "original_bytes": 15568
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/native_b_release.py.txt",
+      "archive_path": "attempt/native_b_release.py.txt",
+      "encoding": "identity",
+      "original_sha256": "39d79a0c910090ca333195cf4d521f18999b70fbdd51f1fbd54b8cbe3614ba95",
+      "archive_sha256": "39d79a0c910090ca333195cf4d521f18999b70fbdd51f1fbd54b8cbe3614ba95",
+      "original_bytes": 6971
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/native_b_retained.py.txt",
+      "archive_path": "attempt/native_b_retained.py.txt",
+      "encoding": "identity",
+      "original_sha256": "82d08f4c7e5f2ec74ea8533877b76f032142f1e18e1fe757a092d2c8032685de",
+      "archive_sha256": "82d08f4c7e5f2ec74ea8533877b76f032142f1e18e1fe757a092d2c8032685de",
+      "original_bytes": 14509
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/owned-window-diagnostic.json",
+      "archive_path": "attempt/owned-window-diagnostic.json",
+      "encoding": "identity",
+      "original_sha256": "0538ac2ab8c958382156afe70bf82bc5445215e8fa6d8d358891640a38fa633d",
+      "archive_sha256": "0538ac2ab8c958382156afe70bf82bc5445215e8fa6d8d358891640a38fa633d",
+      "original_bytes": 5734
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/phase-B.sb",
+      "archive_path": "attempt/phase-B.sb",
+      "encoding": "identity",
+      "original_sha256": "492132ffbd3c24f6849a17dd4c963e6a7985374c47c739ab6fcd3586ccf815fd",
+      "archive_sha256": "492132ffbd3c24f6849a17dd4c963e6a7985374c47c739ab6fcd3586ccf815fd",
+      "original_bytes": 1195
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/prelaunch-refusal-result.json",
+      "archive_path": "attempt/prelaunch-refusal-result.json",
+      "encoding": "identity",
+      "original_sha256": "9a2049d5490bc25347fecea0c679995a14d9daea9782d9e3f2d50458aff903a9",
+      "archive_sha256": "9a2049d5490bc25347fecea0c679995a14d9daea9782d9e3f2d50458aff903a9",
+      "original_bytes": 910
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/rearm-controller-output.jsonl",
+      "archive_path": "attempt/rearm-controller-output.jsonl",
+      "encoding": "identity",
+      "original_sha256": "93d9bab884448c367bb16db987ab658fb8cab7b8d7e4947a67691b9e54b3804c",
+      "archive_sha256": "93d9bab884448c367bb16db987ab658fb8cab7b8d7e4947a67691b9e54b3804c",
+      "original_bytes": 70595
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/rearm-invocation.json",
+      "archive_path": "attempt/rearm-invocation.json",
+      "encoding": "identity",
+      "original_sha256": "17a88ec26d4aa5dd9ff631f866a25bf1aee009fcdbc25bb7de527cb1e320e9bd",
+      "archive_sha256": "17a88ec26d4aa5dd9ff631f866a25bf1aee009fcdbc25bb7de527cb1e320e9bd",
+      "original_bytes": 1242
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/rearm-slot-entry.json",
+      "archive_path": "attempt/rearm-slot-entry.json",
+      "encoding": "identity",
+      "original_sha256": "1eaa57618bddc55b6befe72aaa60dab68d51b9e838c421904e31bcc3f525de89",
+      "archive_sha256": "1eaa57618bddc55b6befe72aaa60dab68d51b9e838c421904e31bcc3f525de89",
+      "original_bytes": 1387
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/rearm-wrapper-result.json",
+      "archive_path": "attempt/rearm-wrapper-result.json",
+      "encoding": "identity",
+      "original_sha256": "ab8b82461b65f6550680d172588b1bd1ed250f922883f79efd58a127580a3940",
+      "archive_sha256": "ab8b82461b65f6550680d172588b1bd1ed250f922883f79efd58a127580a3940",
+      "original_bytes": 177
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/release-observer-after-app-exit.json",
+      "archive_path": "attempt/release-observer-after-app-exit.json",
+      "encoding": "identity",
+      "original_sha256": "2dca09b1b609497f5b4d1a431cb469322613a4c42c3e87ae6d99f11a0c6f0e3d",
+      "archive_sha256": "2dca09b1b609497f5b4d1a431cb469322613a4c42c3e87ae6d99f11a0c6f0e3d",
+      "original_bytes": 221
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/slot-entry-rearm.py",
+      "archive_path": "attempt/slot-entry-rearm.py.txt",
+      "encoding": "identity",
+      "original_sha256": "e82a66fab43e6dbc0f317ff573ef7c5839fe84720e368dc5f563ba01a200fd3a",
+      "archive_sha256": "e82a66fab43e6dbc0f317ff573ef7c5839fe84720e368dc5f563ba01a200fd3a",
+      "original_bytes": 1998
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/stderr.log",
+      "archive_path": "attempt/stderr.log",
+      "encoding": "identity",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archive_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/stdout.log",
+      "archive_path": "attempt/stdout.log",
+      "encoding": "identity",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archive_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/test-slot-entry-rearm.py",
+      "archive_path": "attempt/test-slot-entry-rearm.py.txt",
+      "encoding": "identity",
+      "original_sha256": "905c79d92f5703855d61fb237098261ea40bc45bf0dec78d9bd76713daee3697",
+      "archive_sha256": "905c79d92f5703855d61fb237098261ea40bc45bf0dec78d9bd76713daee3697",
+      "original_bytes": 2330
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/wrapper-result.json",
+      "archive_path": "attempt/wrapper-result.json",
+      "encoding": "identity",
+      "original_sha256": "f9c1bfd78e866134a3d7516fcd6ee9214b49aac74afaaa536cefe225ad61062b",
+      "archive_sha256": "f9c1bfd78e866134a3d7516fcd6ee9214b49aac74afaaa536cefe225ad61062b",
+      "original_bytes": 146
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-native-next-admission-35viga7p/retained-runtime-projection.json",
+      "archive_path": "inputs/retained-runtime-projection.json",
+      "encoding": "identity",
+      "original_sha256": "60f1b54d3242f66a7ebe9b4d658bd150c127aca800f1481e0cd7d7577e0584e2",
+      "archive_sha256": "60f1b54d3242f66a7ebe9b4d658bd150c127aca800f1481e0cd7d7577e0584e2",
+      "original_bytes": 3297
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-native-next-admission-35viga7p/retained-state-v1-post-review.json",
+      "archive_path": "inputs/retained-state-v1-post-review.json",
+      "encoding": "identity",
+      "original_sha256": "e67384fd18cb311c9da01912cd68c08e83edb4af39ff5a2ccf41e105c56a04bb",
+      "archive_sha256": "e67384fd18cb311c9da01912cd68c08e83edb4af39ff5a2ccf41e105c56a04bb",
+      "original_bytes": 41557
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-ax-cf-abi-nz19_vld/fixture.c",
+      "archive_path": "offline-abi/fixture.c.txt",
+      "encoding": "identity",
+      "original_sha256": "9f1a8e8599859531f1186e27aae59ca7d0feae9de85e70fcf9bee91d04680b52",
+      "archive_sha256": "9f1a8e8599859531f1186e27aae59ca7d0feae9de85e70fcf9bee91d04680b52",
+      "original_bytes": 965
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-ax-cf-abi-nz19_vld/check.py",
+      "archive_path": "offline-abi/check.py.txt",
+      "encoding": "identity",
+      "original_sha256": "e5451b4e80b40ee108768a5e415af46dacca232121469215ec41015c347a7112",
+      "archive_sha256": "e5451b4e80b40ee108768a5e415af46dacca232121469215ec41015c347a7112",
+      "original_bytes": 3468
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-ax-cf-abi-nz19_vld/result.json",
+      "archive_path": "offline-abi/result.json",
+      "encoding": "identity",
+      "original_sha256": "336d85c14d4070e0d12e90cb875e6cff92ae7bdac63d401073d731d515a1612e",
+      "archive_sha256": "336d85c14d4070e0d12e90cb875e6cff92ae7bdac63d401073d731d515a1612e",
+      "original_bytes": 851
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-ax-cf-abi-nz19_vld/build-record.json",
+      "archive_path": "offline-abi/build-record.json",
+      "encoding": "identity",
+      "original_sha256": "115238eebe7ef4c1c8a14bdfb4d3e31ef144e4321dbd6b23cb99e922856e3932",
+      "archive_sha256": "115238eebe7ef4c1c8a14bdfb4d3e31ef144e4321dbd6b23cb99e922856e3932",
+      "original_bytes": 550
+    }
+  ]
+}

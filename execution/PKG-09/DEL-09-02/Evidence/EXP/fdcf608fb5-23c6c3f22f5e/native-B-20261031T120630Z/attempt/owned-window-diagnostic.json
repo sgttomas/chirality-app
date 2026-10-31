@@ -1,0 +1,197 @@
+{
+  "format": "chirality.native-B.owned-window-diagnostic/v1",
+  "diagnostic_source_sha256": "e82e889450b10e67e216f850d21939a9fb6df7b2c3cdf35f27e678422c870b83",
+  "admission_sha256": "2ab2e22b856fb4f43c5a347baa5481f8e005ac7a5c229da2553d42370715d1c1",
+  "started_at": "2026-10-31T12:06:45.320292+00:00",
+  "finished_at": "2026-10-31T12:06:45.551314+00:00",
+  "candidate": "fdcf608fb5-23c6c3f22f5e",
+  "binding_source": "original retained Child + proc_bsdinfo/proc_pidpath + inventoried executable SHA256",
+  "identity_before": {
+    "pid": 94961,
+    "ppid": 94868,
+    "uid": 501,
+    "ruid": 501,
+    "start_sec": 1793448390,
+    "start_usec": 295902,
+    "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/MacOS/chirality-app-v4"
+  },
+  "identity_after": {
+    "pid": 94961,
+    "ppid": 94868,
+    "uid": 501,
+    "ruid": 501,
+    "start_sec": 1793448390,
+    "start_usec": 295902,
+    "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/MacOS/chirality-app-v4"
+  },
+  "executable_sha256": "58962e7b8c20f8bd249dfa016158f139843ef1ab0f747c3af2def8b15c8ad82d",
+  "window_server": {
+    "at": "2026-10-31T12:06:45.440257+00:00",
+    "source": "CGWindowListCopyWindowInfo(kCGWindowListOptionAll)",
+    "screen_capture_preflight_access": true,
+    "rows": [
+      {
+        "number": 56620.0,
+        "layer": 0.0,
+        "bounds": {
+          "X": 0.0,
+          "Y": 348.0,
+          "Width": 500.0,
+          "Height": 500.0
+        },
+        "on_screen": null,
+        "title_key_present": true,
+        "title": ""
+      },
+      {
+        "number": 56619.0,
+        "layer": 0.0,
+        "bounds": {
+          "X": 106.0,
+          "Y": 32.0,
+          "Width": 1100.0,
+          "Height": 800.0
+        },
+        "on_screen": true,
+        "title_key_present": true,
+        "title": "Chirality App v4 \u2014 walking skeleton"
+      }
+    ]
+  },
+  "accessibility": {
+    "at": "2026-10-31T12:06:45.492195+00:00",
+    "source": "owned AX attribute calls; nonrecursive children",
+    "attributes": [
+      {
+        "attribute": "AXWindows",
+        "return_code": 0,
+        "type": {
+          "id": 19,
+          "name": "CFArray"
+        },
+        "value": null,
+        "references": [
+          {
+            "type": {
+              "id": 75,
+              "name": "AXUIElement"
+            },
+            "owner_return_code": 0,
+            "application_self_reference": true,
+            "duplicate_reference": false,
+            "role": {
+              "return_code": 0,
+              "type": {
+                "id": 7,
+                "name": "CFString"
+              },
+              "value": "AXApplication"
+            }
+          }
+        ]
+      },
+      {
+        "attribute": "AXMainWindow",
+        "return_code": 0,
+        "type": {
+          "id": 75,
+          "name": "AXUIElement"
+        },
+        "value": null,
+        "references": [
+          {
+            "type": {
+              "id": 75,
+              "name": "AXUIElement"
+            },
+            "owner_return_code": 0,
+            "application_self_reference": true,
+            "duplicate_reference": false,
+            "role": {
+              "return_code": 0,
+              "type": {
+                "id": 7,
+                "name": "CFString"
+              },
+              "value": "AXApplication"
+            }
+          }
+        ]
+      },
+      {
+        "attribute": "AXFocusedWindow",
+        "return_code": 0,
+        "type": {
+          "id": 75,
+          "name": "AXUIElement"
+        },
+        "value": null,
+        "references": [
+          {
+            "type": {
+              "id": 75,
+              "name": "AXUIElement"
+            },
+            "owner_return_code": 0,
+            "application_self_reference": true,
+            "duplicate_reference": false,
+            "role": {
+              "return_code": 0,
+              "type": {
+                "id": 7,
+                "name": "CFString"
+              },
+              "value": "AXApplication"
+            }
+          }
+        ]
+      },
+      {
+        "attribute": "AXChildren",
+        "return_code": 0,
+        "type": {
+          "id": 19,
+          "name": "CFArray"
+        },
+        "value": null,
+        "references": [
+          {
+            "type": {
+              "id": 75,
+              "name": "AXUIElement"
+            },
+            "owner_return_code": 0,
+            "application_self_reference": true,
+            "duplicate_reference": false,
+            "role": {
+              "return_code": 0,
+              "type": {
+                "id": 7,
+                "name": "CFString"
+              },
+              "value": "AXApplication"
+            }
+          },
+          {
+            "type": {
+              "id": 75,
+              "name": "AXUIElement"
+            },
+            "owner_return_code": 0,
+            "application_self_reference": false,
+            "duplicate_reference": false,
+            "role": {
+              "return_code": 0,
+              "type": {
+                "id": 7,
+                "name": "CFString"
+              },
+              "value": "AXMenuBar"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "limits": "Read-only representations, not window-construction proof or supplier custody. No listed WindowServer row can also mean a window never ordered in. Before/after identity checks do not establish an atomic observation snapshot. Eight-second deadline is checked between native calls; WindowServer calls have no cancellation guarantee."
+}

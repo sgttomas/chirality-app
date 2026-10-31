@@ -1,0 +1,30 @@
+from pathlib import Path
+import ctypes as C,importlib.util,json,hashlib,datetime
+root=Path(__file__).parent
+source=Path('/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_diagnostic.py')
+s=importlib.util.spec_from_file_location('diagnostic_cf_only',source);d=importlib.util.module_from_spec(s);s.loader.exec_module(d)
+# Bypass NativeBackend constructor: only CoreFoundation and the harmless C fixture.
+b=d.NativeBackend.__new__(d.NativeBackend);b.c=C.CDLL('/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation');b.held=[]
+for name,result,args in [('CFRelease',None,[C.c_void_p]),('CFGetTypeID',C.c_ulong,[C.c_void_p]),('CFStringCreateWithCString',C.c_void_p,[C.c_void_p,C.c_char_p,C.c_uint32]),('CFStringGetLength',C.c_long,[C.c_void_p]),('CFStringGetCString',C.c_bool,[C.c_void_p,C.c_void_p,C.c_long,C.c_uint32]),('CFArrayGetCount',C.c_long,[C.c_void_p]),('CFArrayGetValueAtIndex',C.c_void_p,[C.c_void_p,C.c_long]),('CFEqual',C.c_bool,[C.c_void_p,C.c_void_p])]:
+ f=getattr(b.c,name);f.restype=result;f.argtypes=args
+b.types={}
+for name in ('String','Array'):
+ f=getattr(b.c,'CF'+name+'GetTypeID');f.restype=C.c_ulong;f.argtypes=[];b.types[f()]='CF'+name
+fixture=C.CDLL(str(root/'fixture.dylib'))
+for name,result,args in [('fixture_init',None,[]),('fixture_app',C.c_void_p,[]),('fixture_window',C.c_void_p,[]),('fixture_copy',C.c_int,[C.c_void_p,C.c_void_p,C.POINTER(C.c_void_p)]),('fixture_drop_store',None,[])]:
+ f=getattr(fixture,name);f.restype=result;f.argtypes=args
+fixture.fixture_init();app=fixture.fixture_app();window=fixture.fixture_window()
+class CopyAPI:
+ AXUIElementCopyAttributeValue=fixture.fixture_copy
+b.a=CopyAPI();b.bounded_element=lambda element:None # no AX messaging/object exists in this fixture
+attribute,refs=b.attribute(app,'AXWindows')
+assert attribute['return_code']==0 and attribute['type']['name']=='CFArray' and len(refs)==3
+assert refs[0]==window==refs[2] and not b.equal(refs[0],app) and b.equal(refs[0],refs[2])
+main,empty=b.attribute(app,'AXMainWindow');assert main['type']['name']=='CFString' and not empty and main['value']=='invented-window — λ'
+error,empty=b.attribute(app,'unsupported');assert error['return_code']==-25205 and error['type']['name']=='null' and not empty
+fixture.fixture_drop_store() # only copied array/value retains keep borrowed child refs alive
+assert b.scalar(refs[0])=='invented-window — λ' and b.scalar(refs[1])=='invented-menu'
+held_count=len(b.held);b.close();assert b.held==[]
+result={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'tests':['out-pointer CFArray and distinct borrowed references','direct CFString UTF8 conversion','raw error and null value','CFEqual distinct/duplicate values','borrowed children valid after creator releases store while copied array retained','balanced release of owned copies'],'passed':6,'pointer_bytes':C.sizeof(C.c_void_p),'CFIndex_bytes':C.sizeof(C.c_long),'CFTypeID_bytes':C.sizeof(C.c_ulong),'owned_copy_count_released':held_count,'source_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'fixture_sha256':hashlib.sha256((root/'fixture.c').read_bytes()).hexdigest(),'limits':'CoreFoundation-only C fixture; no ApplicationServices loaded, no actual AX object/remote service/permission/window query. Does not establish AX remote equality or GUI qualification.'}
+with (root/'result.json').open('x') as f:json.dump(result,f,indent=2)
+print(json.dumps(result))

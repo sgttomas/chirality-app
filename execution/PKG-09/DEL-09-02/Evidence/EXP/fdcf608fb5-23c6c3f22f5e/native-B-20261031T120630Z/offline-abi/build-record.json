@@ -1,0 +1,15 @@
+{
+  "recorded_at": "2026-10-31T12:12:40.970947+00:00",
+  "command": [
+    "/usr/bin/clang",
+    "-dynamiclib",
+    "-framework",
+    "CoreFoundation",
+    "/Users/ryan/dev/chirality-t3/scratch/app-ax-cf-abi-nz19_vld/fixture.c",
+    "-o",
+    "/Users/ryan/dev/chirality-t3/scratch/app-ax-cf-abi-nz19_vld/fixture.dylib"
+  ],
+  "observed_return_code": 0,
+  "library_sha256": "3ccaf4075c98018a691d6ff1d10e66bc5c3bb9ca1bfd2c088827ee66ea8532a2",
+  "limits": "Harmless CF-only fixture, no App build or native AX query. No network/download/manual signing."
+}

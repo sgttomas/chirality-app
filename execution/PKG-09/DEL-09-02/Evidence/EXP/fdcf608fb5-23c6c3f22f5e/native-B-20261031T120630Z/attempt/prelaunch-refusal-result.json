@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-31T12:01:19.706190+00:00",
+  "original_exec_handle": 35510,
+  "execution_return_code": 1,
+  "state": "prelaunch-interval-refusal",
+  "reason": "Slot acquired12:00:32Z; fixed end12:01:39.748340Z leaves <=90seconds; no rearm or retry",
+  "execution_started": false,
+  "artifact_check_reached": false,
+  "native_app_launched": false,
+  "retained_readmission": "passed preceding dependency/state/ledger/policy checks; interval gate refused before full inventory or native launch",
+  "slot_end": [
+    "2026-10-31T12:00:33Z END rc=1 pid=27310 slot=cargo_job.slot2.lock cwd=/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification"
+  ],
+  "marker_absent": "/Users/ryan/dev/chirality-t3/guard/run.75552",
+  "shared_memguard_pids": [
+    "78827"
+  ],
+  "limits": "No native diagnostic, Stop, Quit, administrative reap or B qualification outcome; prior FAILED B evidence unchanged."
+}

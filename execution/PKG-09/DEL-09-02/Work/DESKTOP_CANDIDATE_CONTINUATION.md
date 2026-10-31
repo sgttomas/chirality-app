@@ -284,3 +284,9 @@ criterion. No acceptance staging or relaxed check is adopted here.
 account for the actual saved request, App ledger and opaque supplier metadata
 without relaxing A-only admission. This is preparation only; the previous B
 failures and cleanup evidence remain unchanged, and no further launch is authorized.
+
+The [retained-state diagnostic attempt](NATIVE_B_DIAGNOSTIC_20261031.md) also
+FAILED AX readiness, but established the owned main window existed on-screen.
+Its reviewed administrative cleanup completed within the fixed window. The
+[offline ABI audit](AX_REPRESENTATION_AUDIT.md) found no demonstrated general
+CF conversion/lifetime defect; a narrower AX comparison is proposed, not run.
