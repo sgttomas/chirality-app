@@ -2,7 +2,7 @@
 
 ## Current release pathway
 
-Updated 2026-10-30. HELP_HUMAN/Agent 0 owns purpose, cross-front sequencing,
+Updated 2026-10-31 UTC. HELP_HUMAN/Agent 0 owns purpose, cross-front sequencing,
 review of returns, final App integration and continuity with the owner.
 This is the current execution account; requirements and acceptance remain in
 the PRD and owning deliverables. Historical selections below retain their
@@ -43,8 +43,40 @@ direction; a component pass does not silently satisfy or replace them.
 
 ### Delivery ownership and next results
 
-- **Desktop release delivery:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:7d4423ab96eb63909c64ead28201edafa921eec9683ce62de4849edb4ab0466a>.
-  Own the standalone create/trial/review/register/reuse/refine experience,
+The owner clarified that Agent 0 carries the work through publication, with
+acceptance, signing/account acts, replacement and public release still reserved.
+Current Type 1 assignments are:
+
+- **Native desktop qualification:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:22359dd2b3895ab8526f6413ce3500b18c9dfe3ce3973194a3a0e3f66f724f66>.
+  Own the identified candidate and native workflow/recovery/access-mode journeys.
+  PR #33 integrated bounded probe custody and Quit settlement. PR #35 integrated
+  successor `fdcf608fb5-23c6c3f22f5e`, actual source `fdcf608f`, and its successful
+  agent-operated setup/save/normal quit at 22:28:05–22:28:16 UTC on 2026-10-30.
+  The recorded source is not relabelled to a later merge. B was unrun in that
+  integration; its first subsequent attempt failed before a generation was
+  captured. Recovery observations do not turn that failure into a B pass.
+  Preserve its candidate, saved A state and original attempt evidence.
+- **macOS distribution readiness:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:29a4e14ac4c1423f4ccd20d7605000caf9a5b6d9030c967d51875cd09021e07f>.
+  Own package/signing/install preparation and the approved terms representation.
+  SIGN-1 Option B remains selected. Exact publisher identity, production bundle
+  identifier, declared minimum OS and release version remain owner choices;
+  preparation and metadata observations do not supply signing or OS qualification.
+- **Installed supplier integrity:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:72b0bb46c6645f2fd7155deab7d5ff1fa5b3b56a4e77151178a0e322c1e906ae>.
+  PR #36 integrated the selected S4 process-local macOS observation and explicit
+  reader semantics. The compiled publisher requirement remains `None`; there is
+  no real installed verification or signing claim. The separate publisher-build
+  selector is implementation work, not a selected identity. Serialized evidence
+  cannot grant live-start authority; package/EXP/SQ adoption remains explicit work.
+- **Examination consumer adoption:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:dfd5f3387f3d829609ad20116fc248c584aecf045d0fd2268b5674b536a95b92>.
+  Own the terms documentary successor and its standalone/canonical/SQ joins.
+  The explicit v3 terms condition selects the approved PK-R4/§9 meaning and
+  retained owner/publication evidence; original v2 artifacts, pins and reader
+  bytes retain their historical subjects. This is not package/S4 activation.
+
+Earlier delivered contributions and continuing external boundaries:
+
+- **Earlier desktop contribution (closed):** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:7d4423ab96eb63909c64ead28201edafa921eec9683ce62de4849edb4ab0466a>.
+  Owned the standalone create/trial/review/register/reuse/refine experience,
   interruption/restart and access-mode evidence through an identified candidate,
   then distribution readiness. One coordinated offline unsigned build is now
   retained as candidate `795362874d-a391547a5c5d`; PR #15 carries its additive
@@ -67,13 +99,14 @@ direction; a component pass does not silently satisfy or replace them.
   their agent attribution and do not establish personal human acts. Routine
   headless tests may exercise production setup/storage joins with injected
   presentation and IPC; they do not qualify AppKit/WebKit, native dialogs or
-  supplier startup. Live continuation still requires an actual coordinated
-  resource interval, current artifact/input/state checks and the agreed
-  containment. Preserve failed attempts and partial cache state; do not delete
-  state to manufacture freshness. The supplier-terms action remains a proposal,
-  with no external message authorized. Attested resource placement does not
-  supply installed custody; production successor startup still requires its
-  actual issuer/evidence.
+  supplier startup. Live continuation requires current artifact/input/state checks,
+  the applicable slot/guard controls and reviewed containment. Bounded no-model,
+  non-measurement native work may run concurrently without a START/END handshake;
+  shared model loads and measurement intervals retain advance coordination.
+  Preserve failed attempts and partial state; never delete it to manufacture
+  freshness. The owner has now approved the scoped terms disposition below;
+  no external supplier message was authorized or sent. Attested resource placement
+  alone still does not supply the S4 observation or actual installed qualification.
 - **App-side joined delivery:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:e263974c69d95c07f824f21aba5371b4bdd0a58c8653fb3a8457cecd1441adf4>.
   Own App receiving interfaces, source-bound host evidence and reconciliation
   with DEL-09-06/09-07. PRs #14 and #16 merged the source applicability repair
@@ -104,10 +137,10 @@ direction; a component pass does not silently satisfy or replace them.
   fixture passes do not establish product App, guest namespace, SQLite or
   durability qualification.
 
-The named App Type 1 sessions identify delivered contributions and any remaining
-integration/cleanup already in progress. They do not create continuing runtime
-assignments after closure; the incoming Agent 0 reconciles actual PRs and named
-retained inputs before issuing new work.
+The earlier closed sessions identify historical contributions, not active dispatch
+routes. Current assignments above retain delivery ownership through repairs,
+reconciliation and integration. Agent 0 inspects actual returns and named retained
+inputs; a closed assignment does not continue merely because its link remains.
 [The outgoing App Agent 0 session](t3-thread://v1/dcd88874-e45b-4faf-ad20-7541072dc619)
 remains the return route for those existing assignments during closure, not a
 permanent identity for future project ownership. No new Agent 0 session ID or
@@ -122,15 +155,24 @@ come only from session steering.
    walkthrough and current CI establish only their actual observed subjects.
 2. Joined SWBPIPE candidate evidence: effective reference-system operation,
    controlled application and truthful outcomes, plus applicable isolation,
-   process lifecycle and recovery evidence. Current exact host evidence is
-   being reconciled by the joined-delivery manager.
+   process lifecycle and recovery evidence. Coordinate actual host results with
+   SWBPIPE's Agent 0; the earlier App receiving preparation is not this witness.
 3. Supplier distribution identity and installed custody; signed/notarised
    package; quarantined install/launch and applicable packaged native checks.
-4. Written supplier position for distributed sign-in:
-   `DEL-01-06/Evidence/PKG/terms/OpenAI.json` remains `unresolved`, with
-   `distribution_decision: not_made`. The owner obtains the response under
-   OI-007/DEP-004/SOW-117 and decides public distribution. Independent candidate
-   work does not wait on this response.
+4. Retain the approved supplier position and obtain the separate public-release
+   decision. The owner selected a free, locally run, open-source first macOS
+   offering with unchanged stock-Codex-managed sign-in, then explicitly approved
+   the exact `6421c323` disposition/clauses at 2026-10-30 22:36:59.004 UTC,
+   including applicability to first public distribution and the commercial/hosted
+   exclusion. The [current versioned account](../PKG-01/DEL-01-06/Work/terms-position-v1/OpenAI.json)
+   records `applicable_position_retained`; its distribution decision remains
+   `not_made`. Supplier authorship, agent capture and owner receipt/adoption/
+   applicability are separate. The historical
+   `DEL-01-06/Evidence/PKG/terms/OpenAI.json` remains byte-identical and unresolved
+   for its historical subject; it is not the current applicability account.
+   No product-specific reply is required for the approved disposition. This
+   neither changes authentication nor settles component notices, package/supplier
+   qualification, replacement or publication.
 5. Evidence packet for the owner's replacement/release decisions, preserving
    unrun, failed, blocked and limited standing and continuing obligations.
 
