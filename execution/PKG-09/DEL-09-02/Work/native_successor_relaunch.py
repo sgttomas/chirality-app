@@ -544,7 +544,12 @@ class Run:
         if self.window_diagnostic_attempted: return
         self.window_diagnostic_attempted = True
         try:
-            result = diagnostic_support.capture(self)
+            if self.reason or self.log_errors:
+                result = {'at': now(), 'available': False, 'skipped': self.reason or 'evidence logging failure'}
+            elif self.cleanup_end - time.monotonic() < diagnostic_support.MAX_SECONDS + 45:
+                result = {'at': now(), 'available': False, 'skipped': 'insufficient cleanup headroom'}
+            else:
+                result = diagnostic_support.capture(self)
         except BaseException as error:
             result = {'at': now(), 'available': False, 'error': str(error),
                       'limits': 'Diagnostic refusal is not absence, settlement or release permission.'}
@@ -554,7 +559,10 @@ class Run:
         try:
             self.wait_for(self.distinct_main, 15, 'distinct owned main AXWindow unavailable')
         except RuntimeError:
-            self.record_window_diagnostic()
+            try:
+                self.record_window_diagnostic()
+            except BaseException as diagnostic_error:
+                self.safe_log('window_diagnostic_record_failed', error=str(diagnostic_error))
             raise
         self.record_window_diagnostic()
         self.wait_for(lambda: any(p['AXRole'] == 'AXDisclosureTriangle' and str(p['AXTitle']).startswith('Host diagnostics')

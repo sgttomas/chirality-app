@@ -32,6 +32,9 @@ corroboration, not an atomic exclusion of an unobservable concurrent writer.
 Supplier SQLite WAL/SHM files remain opaque metadata and are not opened as
 SQLite or interpreted as an App recovery ledger.
 
+The seeded App `instructions/` and App records-store metadata (`store.json`,
+`roots.jsonl`, project registration and lock files) are also retained in the
+AppData snapshot. Their presence is not a new supplier-work or workflow claim.
 The exact current supplier-account names and tmp/arg0 directory are admitted
 only in this version. Additional auth or other files, missing names, unexplained
 metadata drift, ownership changes, unexpected links/hardlinks, object types or
@@ -54,14 +57,22 @@ title/access is explicit. Raw own-App AX attributes preserve return codes and
 CF types for Windows/MainWindow/FocusedWindow/Children, with nonrecursive owned
 role/type references and CFEqual duplicate/self-reference observations. Foreign
 rows are never retained. A window never ordered in may have no WindowServer row.
-The inter-call budget is eight seconds, with AX messaging timeout0.5 seconds;
+The inter-call budget is eight seconds, with timeout0.5 seconds explicitly set
+on every AX element before owner/attribute reads;
 WindowServer calls themselves have no cancellation guarantee. Refusal is an
 unavailable diagnostic, never absence, process settlement or release authority.
 
 The controller attempts this inventory once after distinct-window readiness or
-its bounded failure, before ordinary same-source cleanup. A refusal is recorded;
-no arbitrary activation/reopen variant or second launch follows. Native APIs
-have not been invoked in this preparation; tests inject fake backends.
+its bounded failure, before ordinary same-source cleanup, unless a guard/logging
+stop reason or less than 53 seconds of cleanup headroom requires a recorded skip.
+An AX refusal is retained separately from an already bound WindowServer section.
+Diagnostic recording failure cannot replace the original readiness error.
+A refusal is recorded;
+no arbitrary activation/reopen variant or second launch follows. No WindowServer or permission observation has run in preparation. Review found
+that one earlier legacy B test initialized CF/AX type IDs before rejecting its
+missing reservation; that was contrary to the initial no-native-API test claim.
+The reservation/stop check now precedes backend creation and a regression forbids
+calling the factory there. Diagnostic tests inject fake backends.
 
 Exclusive pending now sets the stop reason without skipping census/RSS,
 memguard or free-memory observations during a hold. Each observation has its
@@ -77,9 +88,10 @@ retained-Child-only; its result now also retains guard reason and sampling facts
 Read-only projection and versioned basis:
 `/Users/ryan/dev/chirality-t3/scratch/app-native-next-admission-35viga7p/`.
 `retained-state-v1.json` is the earlier source-bound capture, retained unchanged;
-`retained-state-v1-review.json` binds the integrated preparation sources.
-Prepared but **UNRUN** attempt:
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-5vvrt2fy`.
+`retained-state-v1-review.json` and unrun attempt
+`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-5vvrt2fy` bind the
+pre-review source. Both remain retained and are superseded for execution by the
+post-review source-bound basis/preparation recorded below.
 Preparation revalidated the retained ledger and metadata and copied runtime
 module sources. It did not launch App/supplier or run native diagnostic APIs.
 Actual execution must again pass all source/state/inventory/slot/guard gates.
@@ -89,6 +101,21 @@ sidecars/open-descriptor/unavailable observation, changed database/work facts,
 metadata symlink/ownership drift, source/basis mismatch, foreign-window filtering,
 AX errors/cycles/bounds, changed original identity/early exit, and continued held
 sampling under exclusivity/failing probes. No tests read opaque supplier state.
-Independent Claude Opus5.5/high scrutiny is required before returning this
-profile for the parent's separate next-launch disposition. No build, signing,
+Independent Claude Opus5.5/high scrutiny at `c356d1ce` found no blocking safety
+defect and identified diagnostic timeout/stop/partial-evidence issues plus link,
+test and documentation gaps. The bounded fixes add per-element timeout,
+stop/headroom skips, separate AX refusal, explicit required symlinks and
+pre-backend reservation checks. Targeted tests cover those fixes plus hardlinks,
+lsof timeout, fixed paths/projection provenance, retained fixture inputs,
+admission version mismatch and one-shot/error-preserving integration. The parent
+still owns the separate next-launch disposition; no clean repeat review is claimed. No build, signing,
 credentials, model/network activity or new product commitment is inferred.
+
+Post-review read-only capture/prepare passed against unchanged retained state:
+`retained-state-v1-post-review.json` basis SHA256
+`e67384fd18cb311c9da01912cd68c08e83edb4af39ff5a2ccf41e105c56a04bb`; **UNRUN** attempt
+`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma`, admission SHA256
+`2ab2e22b856fb4f43c5a347baa5481f8e005ac7a5c229da2553d42370715d1c1`.
+All copied dependency bytes match. Twelve admission, twelve mocked diagnostic
+and six guard/integration tests pass. The queued combined slot-wrapped fixture
+run remains pending the shared exclusive lane; it does not hold an App or slot.

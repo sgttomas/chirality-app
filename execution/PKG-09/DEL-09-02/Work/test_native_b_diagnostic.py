@@ -118,16 +118,20 @@ class DiagnosticTests(unittest.TestCase):
         self.run.reservation.exit = {'code': 1, 'status': 0}
         with self.assertRaisesRegex(RuntimeError, 'exited during diagnostic'): self.capture()
         self.assertEqual(self.backend.decoded, [])
-        self.assertTrue(self.backend.closed)
+        self.assertFalse(self.backend.closed, 'factory is not invoked for an exited child')
 
     def test_foreign_ax_reference_refuses_before_role_read(self):
         self.backend.foreign_references = True
-        with self.assertRaisesRegex(RuntimeError, 'ownership unavailable or foreign'): self.capture()
+        observed = self.capture()
+        self.assertIn('ownership unavailable or foreign', observed['accessibility']['error'])
+        self.assertEqual(len(observed['window_server']['rows']), 1)
         self.assertNotIn('window', self.backend.roles)
 
     def test_reference_and_owned_window_limits(self):
         self.backend.references = ['window'] * (d.MAX_AX_REFERENCES + 1)
-        with self.assertRaisesRegex(RuntimeError, 'references exceed bound'): self.capture()
+        observed = self.capture()
+        self.assertIn('references exceed bound', observed['accessibility']['error'])
+        self.assertEqual(len(observed['window_server']['rows']), 1)
         self.backend = Backend(self.identity)
         self.backend.window_rows = lambda: ['own'] * (d.MAX_OWN_WINDOWS + 1)
         with self.assertRaisesRegex(RuntimeError, 'rows exceed bound'): self.capture()
@@ -146,6 +150,28 @@ class DiagnosticTests(unittest.TestCase):
         self.backend.window_rows = lambda: ['foreign-sensitive'] * (d.MAX_WINDOWS + 1)
         with self.assertRaisesRegex(RuntimeError, 'list exceeds bound'): self.capture()
         self.assertEqual(self.backend.decoded, [])
+
+    def test_no_native_factory_when_reservation_missing_or_stop_reason(self):
+        from unittest.mock import Mock
+        factory=Mock(side_effect=AssertionError('must not load native frameworks'))
+        self.run.reservation=None
+        with self.assertRaises(RuntimeError):d.capture(self.run,factory)
+        factory.assert_not_called()
+        self.run.reservation=Reservation();self.run.reason='exclusive pending'
+        with self.assertRaisesRegex(RuntimeError,'skipped'):d.capture(self.run,factory)
+        factory.assert_not_called()
+
+    def test_timeout_is_set_on_each_child_before_remote_reads(self):
+        events=[]
+        backend=d.NativeBackend.__new__(d.NativeBackend)
+        backend.kind=lambda value: {'name':'AXUIElement','id':9}
+        backend.string=lambda value: value
+        backend.a=SimpleNamespace(
+            AXUIElementSetMessagingTimeout=lambda element,seconds: events.append(('timeout',element,seconds)) or 0,
+            AXUIElementGetPid=lambda element,out: events.append(('owner',element)) or -25202,
+            AXUIElementCopyAttributeValue=lambda element,name,out: events.append(('attribute',element,name)) or -25212)
+        backend.owner(123);backend.attribute(123,'AXRole')
+        self.assertEqual(events,[('timeout',123,0.5),('owner',123),('timeout',123,0.5),('attribute',123,'AXRole')])
 
 
 if __name__ == '__main__':

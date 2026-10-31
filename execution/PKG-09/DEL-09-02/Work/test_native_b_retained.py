@@ -83,4 +83,50 @@ class Retained(unittest.TestCase):
         extra.unlink();(account/'installation_id').unlink()
         with self.assertRaisesRegex(RuntimeError,'supplier/auth'):r.account_layout(account)
 
+    def test_required_links_reject_regular_file_and_wrong_target(self):
+        account=self.root/'links';account.mkdir();paths={}
+        for name,key in r.LINKS.items():
+            target=self.root/('target-'+key);target.touch();paths[key]=str(target)
+            (account/name).symlink_to(target)
+        r.required_links(account,paths)
+        (account/'AGENTS.md').unlink();(account/'AGENTS.md').write_text('regular replacement')
+        with self.assertRaisesRegex(RuntimeError,'required account link'):r.required_links(account,paths)
+        (account/'AGENTS.md').unlink();(account/'AGENTS.md').symlink_to(self.schema)
+        with self.assertRaisesRegex(RuntimeError,'required account link'):r.required_links(account,paths)
+    def test_hardlink_and_descriptor_timeout_refuse(self):
+        linked=self.root/'db-link';os.link(self.db,linked)
+        with self.assertRaisesRegex(RuntimeError,'additional links'):r.owned_plain(self.db)
+        linked.unlink()
+        self.lsof.side_effect=r.subprocess.TimeoutExpired('lsof',3)
+        with self.assertRaises(r.subprocess.TimeoutExpired):r.ledger_projection(self.db,self.schema)
+    def test_observation_rejects_wrong_original_source_and_projection_provenance(self):
+        b=SimpleNamespace(setup=SimpleNamespace(T3=self.root))
+        a=self.root/'scratch/app-successor-native-A-irf2swd9'
+        projection=self.root/'scratch/app-native-next-admission-35viga7p/retained-runtime-projection.json'
+        with self.assertRaisesRegex(RuntimeError,'A source'):r.observation(b,self.root,projection)
+        with self.assertRaisesRegex(RuntimeError,'projection source'):r.observation(b,a,self.schema)
+        projection.parent.mkdir(parents=True);projection.write_text('{}')
+        with self.assertRaisesRegex(RuntimeError,'projection changed'):r.observation(b,a,projection)
+    def test_retained_inputs_bind_original_files_paths_and_exact_new_directory_names(self):
+        fixture=self.root/'witness-inputs';(fixture/'shared/skills/.system').mkdir(parents=True)
+        (fixture/'project/.chirality').mkdir(parents=True);(fixture/'project/.chirality/project.json').write_text('opaque generated metadata')
+        (fixture/'shared/config.toml').write_text('invented');(fixture/'shared/AGENTS.md').write_text('invented')
+        identity='invented.namespace';bundle=self.root/'target/debug/bundle/macos/invented.app'
+        executable=bundle/'Contents/MacOS/invented'
+        paths={'shared_config':str(fixture/'shared/config.toml'),'shared_agents':str(fixture/'shared/AGENTS.md'),'shared_skills':str(fixture/'shared/skills'),'project':str(fixture/'project')}
+        value={'candidate_key':r.CANDIDATE,'bundle_identifier':identity,'bundle':str(bundle),'executable':str(executable),'executable_sha256':'invented-sha',
+               'expected_app_data':str(Path.home()/'Library/Application Support'/identity),'native_input_paths':paths,
+               'files':{n:r.digest(fixture/n) for n in ('shared/config.toml','shared/AGENTS.md')},
+               'environment':{'HOME':str(Path.home()),'PATH':str(bundle/'Contents/Resources/codex/codex-path')+':/usr/bin:/bin:/usr/sbin:/sbin','LANG':'en_US.UTF-8','CODEX_HOME':str(fixture/'fallback-codex-home'),'TMPDIR':str(fixture/'tmp')}}
+        manifest=fixture/'input-manifest.json';manifest.write_text(json.dumps(value))
+        context=SimpleNamespace(inputs_path=manifest,build_root=self.root,identifier=identity,file_digests={str(manifest):r.digest(manifest)},
+                                identified={'candidate_key':r.CANDIDATE,'bundle':{'name':'invented.app','executable':{'path':'Contents/MacOS/invented','sha256':'invented-sha'}}})
+        self.assertEqual(r.retained_inputs(context),value)
+        extra=fixture/'shared/skills/foreign';extra.touch()
+        with self.assertRaisesRegex(RuntimeError,'shared-skills'):r.retained_inputs(context)
+        extra.unlink();(fixture/'project/foreign').touch()
+        with self.assertRaisesRegex(RuntimeError,'project entries'):r.retained_inputs(context)
+        (fixture/'project/foreign').unlink();(fixture/'shared/config.toml').write_text('changed')
+        with self.assertRaisesRegex(RuntimeError,'fixture file'):r.retained_inputs(context)
+
 if __name__=='__main__':unittest.main()

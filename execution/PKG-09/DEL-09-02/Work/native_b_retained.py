@@ -153,6 +153,15 @@ def account_layout(account):
     require({str(p.relative_to(account/'tmp')) for p in (account/'tmp').rglob('*')}=={'arg0'}, 'supplier tmp metadata changed')
 
 
+def required_links(account, paths):
+    links={str(account/name):str(Path(paths[key])) for name,key in LINKS.items()}
+    for path,target in links.items():
+        info=Path(path).lstat()
+        require(stat.S_ISLNK(info.st_mode) and info.st_uid==os.getuid()
+                and str(Path(path).resolve(strict=True))==target, 'required account link changed')
+    return links
+
+
 def observation(b, a_root, projection_path):
     """Versioned alternative; unchanged A-only saved_input() is not called/relaxed."""
     require(a_root == b.setup.T3/'scratch/app-successor-native-A-irf2swd9', 'unreviewed A source')
@@ -176,7 +185,7 @@ def observation(b, a_root, projection_path):
     require({p.name for p in data.iterdir()}=={'account-homes','desktop-startup','instructions','records','runtime'}, 'unexpected App namespace')
     require({p.name for p in request.parent.iterdir()}=={'request.json'}, 'unexpected startup state')
     account_layout(account)  # Exact observed names only; contents stay opaque.
-    links={str(account/name):str(Path(value['native_input_paths'][key])) for name,key in LINKS.items()}
+    links=required_links(account,value['native_input_paths'])
     namespaces=context.namespaces(require_absent=False)
     for name, entry in namespaces.items():
         require(entry['present'] and after[name]['present'] and entry['root'][:3]==after[name]['root'][:3], 'original namespace root changed')

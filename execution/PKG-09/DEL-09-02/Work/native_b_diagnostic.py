@@ -55,7 +55,7 @@ class NativeBackend:
             (self.c, 'CFStringCreateWithCString', C.c_void_p, [C.c_void_p, C.c_char_p, C.c_uint32]),
             (self.c, 'CFStringGetLength', C.c_long, [C.c_void_p]),
             (self.c, 'CFStringGetCString', C.c_bool, [C.c_void_p, C.c_void_p, C.c_long, C.c_uint32]),
-            (self.c, 'CFNumberGetValue', C.c_bool, [C.c_void_p, C.c_int, C.c_void_p]),
+            (self.c, 'CFNumberGetValue', C.c_bool, [C.c_void_p, C.c_long, C.c_void_p]),
             (self.c, 'CFBooleanGetValue', C.c_bool, [C.c_void_p]),
             (self.c, 'CFArrayGetCount', C.c_long, [C.c_void_p]),
             (self.c, 'CFArrayGetValueAtIndex', C.c_void_p, [C.c_void_p, C.c_long]),
@@ -173,13 +173,19 @@ class NativeBackend:
     def element_type(self, element):
         return self.kind(element)
 
+    def bounded_element(self, element):
+        require(self.kind(element)['name'] == 'AXUIElement', 'AX reference is not an AX element')
+        require(self.a.AXUIElementSetMessagingTimeout(element, 0.5) == 0, 'AX element timeout unavailable')
+
     def owner(self, element):
+        self.bounded_element(element)
         require(self.kind(element)['name'] == 'AXUIElement', 'AX reference is not an AX element')
         pid = C.c_int()
         rc = self.a.AXUIElementGetPid(element, C.byref(pid))
         return rc, pid.value
 
     def attribute(self, element, name):
+        self.bounded_element(element)
         value = C.c_void_p()
         rc = self.a.AXUIElementCopyAttributeValue(element, self.string(name), C.byref(value))
         if value.value:
@@ -266,11 +272,15 @@ def capture(run, backend_factory=NativeBackend):
     The caller must preserve any refusal as unavailable; never infer absence or
     release custody from failure here. No UI action or settlement permission.
     """
+    require(run.reservation is not None and not run.reservation.reaped
+            and run.reservation.observe() is None, 'original App exited during diagnostic or reservation unavailable')
+    require(not getattr(run, 'reason', None), 'diagnostic skipped: ' + str(getattr(run, 'reason', None)))
     backend = backend_factory()
     try:
         started = now()
         deadline = time.monotonic() + MAX_SECONDS
         def check():
+            require(not getattr(run, 'reason', None), 'diagnostic stopped: ' + str(getattr(run, 'reason', None)))
             require(time.monotonic() < deadline, 'owned-window diagnostic deadline')
             require(run.reservation is not None and run.reservation.observe() is None,
                     'original App exited during diagnostic')
@@ -278,8 +288,11 @@ def capture(run, backend_factory=NativeBackend):
         before = bound_identity(run, backend)
         windows = window_inventory(backend, before['pid'], check)
         require(bound_identity(run, backend) == before, 'original App changed across WindowServer observation')
-        accessibility = ax_inventory(backend, before['pid'], check)
-        check()
+        try:
+            accessibility = ax_inventory(backend, before['pid'], check)
+        except RuntimeError as error:
+            accessibility = {'at': now(), 'source': 'owned AX attribute calls', 'available': False,
+                             'error': str(error), 'limits': 'AX refusal does not erase separately bound WindowServer observation.'}
         after = bound_identity(run, backend)
         require(after == before, 'original App changed across AX observation')
         return {'format': 'chirality.native-B.owned-window-diagnostic/v1',
