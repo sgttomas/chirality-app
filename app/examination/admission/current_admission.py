@@ -173,7 +173,7 @@ def main(argv=None):
                   'unresolved_other_references': unresolved, 'rerun_not_supplied': pending,
                   'review_or_repair_verified': False, 'route_admission': 'not_established', 'limits': LIMITS}
         print(json.dumps(report, indent=2)); return 1 if errors else 0
-    except (ValueError, OSError, TypeError, KeyError) as error:
+    except (ValueError, OSError) as error:
         print(json.dumps({'format': 'exp-current-admission-check/1', 'file_checks_passed': False,
                           'input_error': str(error), 'requested_profile': args.profile,
                           'inputs': inputs, 'review_or_repair_verified': False,

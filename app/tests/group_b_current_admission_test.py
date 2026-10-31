@@ -1,5 +1,7 @@
 """Explicit current/full-document adoption and preserved historical EXP joins."""
 import copy
+import contextlib
+import io
 import importlib.util
 import json
 from pathlib import Path
@@ -150,6 +152,16 @@ class CurrentAdmissionTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'dependency drift'):
                     current.Support(profile=current.PROFILE)
             path.write_bytes(raw)
+
+    def test_internal_errors_are_not_relabelled_as_bad_input(self):
+        args = ['--profile', current.PROFILE, 'validate', 'review',
+                str(APP / 'tests/group_b_admission_fixtures/review.json')]
+        for error in (TypeError('invented internal type failure'), KeyError('invented internal lookup')):
+            output = io.StringIO()
+            with self.subTest(error=type(error)), patch.object(current, 'Support', side_effect=error):
+                with contextlib.redirect_stdout(output), self.assertRaises(type(error)):
+                    current.main(args)
+                self.assertEqual(output.getvalue(), '')
 
     def test_cli_requires_profile_and_reports_current_selection_without_new_acts(self):
         cli = [sys.executable, '-B', str(HERE / 'current_admission.py')]

@@ -3,7 +3,8 @@
 This maintained file tool checks EXP-v0.2 review/change-impact records and
 selected relationships to result records. It performs no review, rerun, route
 admission, human act or qualification. The direct current-source route is an
-explicit receiving profile, separate from the frozen support publication. This directory's name is not an admission claim.
+explicit receiving profile, separate from the frozen support publication.
+This directory's name is not an admission claim.
 
 Use Python 3.10+ with the already prepared `jsonschema` environment. From `app/`:
 
