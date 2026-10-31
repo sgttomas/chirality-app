@@ -1,0 +1,58 @@
+[
+  {
+    "AXRole": "AXWindow",
+    "AXTitle": "Chirality App v4 \u2014 walking skeleton",
+    "AXDescription": null,
+    "AXValue": null,
+    "AXEnabled": null,
+    "in_web_area": false
+  },
+  {
+    "AXRole": "AXGroup",
+    "AXTitle": null,
+    "AXDescription": null,
+    "AXValue": null,
+    "AXEnabled": true,
+    "in_web_area": false
+  },
+  {
+    "AXRole": "AXButton",
+    "AXTitle": null,
+    "AXDescription": null,
+    "AXValue": null,
+    "AXEnabled": true,
+    "in_web_area": false
+  },
+  {
+    "AXRole": "AXButton",
+    "AXTitle": null,
+    "AXDescription": null,
+    "AXValue": null,
+    "AXEnabled": true,
+    "in_web_area": false
+  },
+  {
+    "AXRole": "AXGroup",
+    "AXTitle": null,
+    "AXDescription": null,
+    "AXValue": null,
+    "AXEnabled": null,
+    "in_web_area": false
+  },
+  {
+    "AXRole": "AXButton",
+    "AXTitle": null,
+    "AXDescription": null,
+    "AXValue": null,
+    "AXEnabled": true,
+    "in_web_area": false
+  },
+  {
+    "AXRole": "AXStaticText",
+    "AXTitle": null,
+    "AXDescription": null,
+    "AXValue": "Chirality App v4 \u2014 walking skeleton",
+    "AXEnabled": true,
+    "in_web_area": false
+  }
+]

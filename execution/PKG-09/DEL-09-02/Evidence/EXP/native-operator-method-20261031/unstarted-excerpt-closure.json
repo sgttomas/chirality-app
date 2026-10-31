@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-31T22:06:35.166853+00:00",
+  "start_records": [
+    "2026-10-31T21:49:24Z WAIT-EXCLUSIVE pid=59080 cwd=/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification args: python3.13 -B /Users/ryan/dev/chirality-t3/scratch/app-short-operator-timing-esuekrmb/trial.py",
+    "2026-10-31T21:55:18Z START-EXCLUSIVE pid=80794 cwd=/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification args: python3.13 -B /Users/ryan/dev/chirality-t3/scratch/app-short-operator-timing-esuekrmb/trial.py"
+  ],
+  "end_records": [
+    "2026-10-31T21:55:18Z END-EXCLUSIVE rc=0 pid=80794 cwd=/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification"
+  ],
+  "timing_started": false,
+  "limits": "Unstarted excerpt replaced with no-op; no operator images/controls or measured rehearsal."
+}
