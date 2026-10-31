@@ -41,7 +41,9 @@ producer_fixtures = load('package_receiving_producer_fixtures', APP / 'packaging
 
 class JoinedFixture:
     def __init__(self, root):
-        self.root = Path(root)
+        # This generator owns the synthetic root; publish physical paths so
+        # macOS /var or /tmp aliases do not defeat the reader no-follow policy.
+        self.root = Path(root).resolve()
         self.packet = self.root / 'packet'
         self.package = producer_fixtures.Fixture(self.packet)
         self.canonical = canonical.CanonicalSupport()

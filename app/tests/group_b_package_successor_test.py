@@ -31,6 +31,21 @@ class PackageSuccessorReceivingTests(unittest.TestCase):
         self.f.write_selection()
         return self.sq.check(self.f.path, self.f.sha, self.f.config, self.f.config_sha)
 
+    def test_owned_fixture_root_is_physical_but_receiver_still_refuses_aliases(self):
+        physical = self.root / 'physical'
+        physical.mkdir()
+        alias = self.root / 'owned-alias'
+        alias.symlink_to(physical, target_is_directory=True)
+        generated = JoinedFixture(alias / 'fixture')
+        self.assertEqual(generated.root, (physical / 'fixture').resolve())
+        report = generated.receiver.receive(generated.packet / 'binding.json', generated.packet,
+                                             generated.config, generated.config_sha)
+        self.assertEqual((report['errors'], report['missing']), ([], []))
+        aliased_packet = alias / 'fixture' / 'packet'
+        with self.assertRaises((ValueError, OSError)):
+            generated.receiver.receive(aliased_packet / 'binding.json', aliased_packet,
+                                       generated.config, generated.config_sha)
+
     def test_complete_selected_package_exp_sq_join_is_not_qualification(self):
         report = self.check()
         self.assertTrue(report['selection_consistent'], report)
