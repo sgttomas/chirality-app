@@ -1,0 +1,31 @@
+{"at": "2026-10-30T22:28:05.925404+00:00", "event": "phase_A_started", "pid": 67270, "actor": "agent under owner direction; not a personal human act", "policy_sha256": "be566d845173516cdfb9b98a85d4aa1f557fdf1c88f5f60858ea309f3fd3499e"}
+{"at": "2026-10-30T22:28:08.527470+00:00", "event": "popup_open", "label": "Desktop setup action"}
+{"at": "2026-10-30T22:28:08.586021+00:00", "event": "owned_menu_bound", "label": "Desktop setup action", "items": [["Choose explicitly", true], ["Prepare a new account home", true], ["Keep the admitted account; change next project", false]]}
+{"at": "2026-10-30T22:28:08.711980+00:00", "event": "owned_window_capture", "name": "Desktop-setup-action-main", "window": 56282}
+{"at": "2026-10-30T22:28:08.712094+00:00", "event": "one_exact_menu_action", "label": "Desktop setup action", "option": "Prepare a new account home", "action": "AXPress"}
+{"at": "2026-10-30T22:28:08.750331+00:00", "event": "selection_readback", "label": "Desktop setup action", "value": "Choose explicitly"}
+{"at": "2026-10-30T22:28:09.197311+00:00", "event": "selection_readback", "label": "Desktop setup action", "value": "Prepare a new account home"}
+{"at": "2026-10-30T22:28:10.510077+00:00", "event": "selection_stable_readback", "label": "Desktop setup action", "value": "Prepare a new account home"}
+{"at": "2026-10-30T22:28:10.812705+00:00", "event": "typed_path_readback", "label": "Shared config.toml", "value": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/witness-inputs/shared/config.toml"}
+{"at": "2026-10-30T22:28:11.090153+00:00", "event": "typed_path_readback", "label": "Shared AGENTS.md", "value": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/witness-inputs/shared/AGENTS.md"}
+{"at": "2026-10-30T22:28:11.368525+00:00", "event": "typed_path_readback", "label": "Shared skills directory", "value": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/witness-inputs/shared/skills"}
+{"at": "2026-10-30T22:28:11.436176+00:00", "event": "popup_open", "label": "Project on next launch"}
+{"at": "2026-10-30T22:28:11.487274+00:00", "event": "owned_menu_bound", "label": "Project on next launch", "items": [["Choose explicitly", true], ["No project", true], ["Choose a project directory", true]]}
+{"at": "2026-10-30T22:28:11.618146+00:00", "event": "owned_window_capture", "name": "Project-on-next-launch-main", "window": 56282}
+{"at": "2026-10-30T22:28:11.618265+00:00", "event": "one_exact_menu_action", "label": "Project on next launch", "option": "Choose a project directory", "action": "AXPress"}
+{"at": "2026-10-30T22:28:11.653697+00:00", "event": "selection_readback", "label": "Project on next launch", "value": "Choose explicitly"}
+{"at": "2026-10-30T22:28:12.094314+00:00", "event": "selection_readback", "label": "Project on next launch", "value": "Choose a project directory"}
+{"at": "2026-10-30T22:28:13.420480+00:00", "event": "selection_stable_readback", "label": "Project on next launch", "value": "Choose a project directory"}
+{"at": "2026-10-30T22:28:13.703039+00:00", "event": "typed_path_readback", "label": "Next project directory", "value": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/witness-inputs/project"}
+{"at": "2026-10-30T22:28:13.774521+00:00", "event": "popup_open", "label": "Supplier for next launch"}
+{"at": "2026-10-30T22:28:13.828001+00:00", "event": "owned_menu_bound", "label": "Supplier for next launch", "items": [["Choose explicitly", true], ["Bundled supplier \u2014 unqualified owner-use development", true]]}
+{"at": "2026-10-30T22:28:13.960928+00:00", "event": "owned_window_capture", "name": "Supplier-for-next-launch-main", "window": 56282}
+{"at": "2026-10-30T22:28:13.961048+00:00", "event": "one_exact_menu_action", "label": "Supplier for next launch", "option": "Bundled supplier \u2014 unqualified owner-use development", "action": "AXPress"}
+{"at": "2026-10-30T22:28:13.999674+00:00", "event": "selection_readback", "label": "Supplier for next launch", "value": "Choose explicitly"}
+{"at": "2026-10-30T22:28:14.445492+00:00", "event": "selection_readback", "label": "Supplier for next launch", "value": "Bundled supplier \u2014 unqualified owner-use development"}
+{"at": "2026-10-30T22:28:15.794200+00:00", "event": "selection_stable_readback", "label": "Supplier for next launch", "value": "Bundled supplier \u2014 unqualified owner-use development"}
+{"at": "2026-10-30T22:28:16.227659+00:00", "event": "native_setup_confirmed", "actor": "agent under owner direction; not a personal human act", "account": "/Users/ryan/Library/Application Support/dev.chirality.app-v4.candidate.20261030-eqxsxv4n/account-homes/account-313b4af2-8f7b-4c27-9a8a-5348cbb34cf4"}
+{"at": "2026-10-30T22:28:16.773846+00:00", "event": "setup_saved", "actor": "agent under owner direction; not a personal human act", "request_sha256": "ef606ee5cf6dfe3bcd9b6c2b150a89e7a2710c6289c56d180c8e6ea5dd7705de"}
+{"at": "2026-10-30T22:28:16.911840+00:00", "event": "normal_quit_requested", "actor": "agent under owner direction"}
+{"at": "2026-10-30T22:28:16.911857+00:00", "event": "normal_quit_requested", "actor": "agent under owner direction; not a personal human act"}
+{"at": "2026-10-30T22:28:16.911872+00:00", "event": "original_app_reaped", "exit_code": 0, "forced": false}

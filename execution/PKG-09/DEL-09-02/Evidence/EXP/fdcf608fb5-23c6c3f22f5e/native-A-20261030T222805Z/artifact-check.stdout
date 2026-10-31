@@ -1,0 +1,10 @@
+{
+  "equal": true,
+  "root_equal": true,
+  "missing": [],
+  "extra": [],
+  "changed": [],
+  "build_identity": "chirality.app.bundle-tree.sha256/v2:23c6c3f22f5e240440449eaa573737ef556cdac88370633e5b7886a741b6a2a3",
+  "recorded_build_identity": "chirality.app.bundle-tree.sha256/v2:23c6c3f22f5e240440449eaa573737ef556cdac88370633e5b7886a741b6a2a3",
+  "record_fields_mismatched": []
+}

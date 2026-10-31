@@ -1,0 +1,37 @@
+Desktop setup effects
+Desktop setup effects
+Create new account directory /Users/ryan/Library/Application Support/dev.chirality.app-v4.candidate.20261030-eqxsxv4n/account-homes/account-313b4af2-8f7b-4c27-9a8a-5348cbb34cf4
+•
+Create new account directory /Users/ryan/Library/Application Support/dev.chirality.app-v4.candidate.20261030-eqxsxv4n/account-homes/account-313b4af2-8f7b-4c27-9a8a-5348cbb34cf4
+Create config.toml link → /Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/witness-inputs/shared/config.toml
+•
+Create config.toml link → /Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/witness-inputs/shared/config.toml
+Create AGENTS.md link → /Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/witness-inputs/shared/AGENTS.md
+•
+Create AGENTS.md link → /Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/witness-inputs/shared/AGENTS.md
+Create skills link → /Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/witness-inputs/shared/skills
+•
+Create skills link → /Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/witness-inputs/shared/skills
+Save private pending request /Users/ryan/Library/Application Support/dev.chirality.app-v4.candidate.20261030-eqxsxv4n/desktop-startup/request.json
+•
+Save private pending request /Users/ryan/Library/Application Support/dev.chirality.app-v4.candidate.20261030-eqxsxv4n/desktop-startup/request.json
+No credential import or existing-home adoption. Only the explicit prepare/save action creates these paths. Missing targets remain visible source limits.
+config.toml: expected source type available — expected link not present
+•
+config.toml
+: 
+expected source type available
+ — expected link not present
+AGENTS.md: expected source type available — expected link not present
+•
+AGENTS.md
+: 
+expected source type available
+ — expected link not present
+skills: expected source type available — expected link not present
+•
+skills
+: 
+expected source type available
+ — expected link not present
+Prepare home and save for next launch

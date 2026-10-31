@@ -1,0 +1,93 @@
+{
+  "source_revision": "fdcf608fb57c4f8299c7440ffc56519314046cff",
+  "command": [
+    "/Users/ryan/.local/share/mise/installs/node/24.18.0/bin/node",
+    "node_modules/@tauri-apps/cli/tauri.js",
+    "build",
+    "--debug",
+    "--no-sign",
+    "--bundles",
+    "app",
+    "--features",
+    "custom-protocol",
+    "--config",
+    "packaging/unsigned/tauri.development.conf.json",
+    "--config",
+    "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/supplier.development.conf.json",
+    "--",
+    "--offline",
+    "--locked"
+  ],
+  "environment": {
+    "HOME": "/Users/ryan",
+    "PATH": "/Users/ryan/.local/share/mise/installs/node/24.18.0/bin:/Users/ryan/.rustup/toolchains/stable-aarch64-apple-darwin/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "LANG": "en_US.UTF-8",
+    "CARGO_HOME": "/Users/ryan/dev/chirality-t3/scratch/app-native-custody-xwl7wbmc/cargo-home",
+    "CARGO_TARGET_DIR": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_NET_OFFLINE": "true",
+    "CODEX_HOME": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/codex-home",
+    "TMPDIR": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/tmp",
+    "NPM_CONFIG_OFFLINE": "true",
+    "NPM_CONFIG_USERCONFIG": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/npm-user.conf",
+    "NPM_CONFIG_GLOBALCONFIG": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/npm-global.conf"
+  },
+  "started_at": "2026-10-30T22:16:23.194123+00:00",
+  "procedure": "Slot-wrapped offline debug Tauri build, memguard admission, jobs2; no resource benchmark",
+  "profile": "debug",
+  "signing": "none",
+  "features": [
+    "custom-protocol"
+  ],
+  "offline": true,
+  "wrapper": "/Users/ryan/dev/chirality-t3/tools/t3_slot.sh",
+  "config_overlays": [
+    {
+      "path": "app/packaging/unsigned/tauri.development.conf.json",
+      "sha256": "c0a947f0e5db49e74d9a9a7559ba0d9656551c982ba37decd38fdb541d7288b8",
+      "content": {
+        "productName": "Chirality App v4 (development candidate)",
+        "version": "0.0.0",
+        "identifier": "dev.chirality.app-v4.skeleton",
+        "bundle": {
+          "active": true,
+          "targets": [
+            "app"
+          ],
+          "resources": {
+            "resources/instructions/": "instructions/",
+            "resources/production_workflows/": "workflows/"
+          },
+          "macOS": {
+            "minimumSystemVersion": "15.0",
+            "signingIdentity": null
+          }
+        }
+      }
+    },
+    {
+      "path": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/supplier.development.conf.json",
+      "sha256": "dd0f72da20f7f079ab76a79468e63cca5ede2c53393e18b315b107d52a37115a",
+      "content": {
+        "identifier": "dev.chirality.app-v4.candidate.20261030-eqxsxv4n",
+        "productName": "Chirality App v4 (development 20261030 eqxsxv4n)",
+        "bundle": {
+          "resources": {
+            "/private/tmp/chirality-desktop-current-ukt5ir80/supplier/package/vendor/aarch64-apple-darwin/": "codex/"
+          }
+        }
+      }
+    }
+  ],
+  "lockfiles": {
+    "app/package-lock.json": "1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa",
+    "app/src-tauri/Cargo.lock": "502f8e7c355f3ad5300bdc70661a59921f35e4ce30c9d38b75a9220e7f864af7"
+  },
+  "toolchain": {
+    "node": "v24.18.0",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)"
+  },
+  "finished_at": "2026-10-30T22:17:00.590233+00:00",
+  "exit_code": 0
+}
