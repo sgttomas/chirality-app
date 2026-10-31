@@ -34,6 +34,10 @@ Successor native A **passed** on its first attempt at
 source/generation observation; its separately authorized cleanup and actual
 resource closure are recorded in [the failed B account](FAILED_B_20261031.md).
 No handshake, LT-23 or supplier settlement was established by that attempt.
+The [second B retry](FAILED_B_RETRY_20261031.md) also FAILED readiness despite
+actual bundled-supplier presence; its native exit0 and reviewed administrative
+release are cleanup only. Current retained runtime state needs fresh admission
+analysis before any further launch; no state reset or new candidate is inferred.
 The [successor A-only adapter](native_successor_setup.py) uses fresh invented
 inputs. Seven invented-file admission tests and a complete bundle inventory
 recheck passed. The adapter reuses the maintained A execution, supervision,

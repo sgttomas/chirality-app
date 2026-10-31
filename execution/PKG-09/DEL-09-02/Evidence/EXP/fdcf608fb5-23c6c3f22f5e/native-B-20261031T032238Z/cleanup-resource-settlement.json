@@ -1,0 +1,24 @@
+{
+  "at": "2026-10-31T09:58:57.897641+00:00",
+  "original_exec_session": 11867,
+  "actual_exec_return_code": 1,
+  "wrapper_result": {
+    "at": "2026-10-31T09:58:26.321554+00:00",
+    "exit_code": 1,
+    "root": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o"
+  },
+  "slot_end_records": [
+    "2026-10-31T09:58:26Z END rc=1 pid=30601 slot=cargo_job.slot2.lock cwd=/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification"
+  ],
+  "slot_marker": "/Users/ryan/dev/chirality-t3/guard/run.30589",
+  "marker_absent": true,
+  "original_observer_app_direct_supplier_and_wrapper_ps": {
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "shared_memguard_pids": [
+    "78827"
+  ],
+  "limits": "Known original process IDs absent; detached/escaped helper scope unknown. Census never proves supplier settlement; B remains failed; no LT23."
+}

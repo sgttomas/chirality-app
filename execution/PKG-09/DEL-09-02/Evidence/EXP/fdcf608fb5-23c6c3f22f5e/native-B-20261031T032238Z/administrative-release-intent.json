@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-31T09:58:26.304877+00:00",
+  "request": {
+    "action": "release-observer-after-app-exit",
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "admission_sha256": "1540161e6fd128a81f0b11796e5a6cd8aace0052591d50e539f156121a58c1a0",
+    "expected_app_exit": {
+      "code": 1,
+      "status": 0
+    }
+  },
+  "request_sha256": "cad57c80e8f47666defc8a42f69fc70e01b98da304cab66bea6a6e97e14dd949",
+  "actor": "controller under explicit task-operator disposition; not personal human act",
+  "original_error": "distinct owned main AXWindow unavailable",
+  "limits": "Administrative observer release only. No generation, LT-23, supplier settlement or B success is manufactured by waiting the original App."
+}

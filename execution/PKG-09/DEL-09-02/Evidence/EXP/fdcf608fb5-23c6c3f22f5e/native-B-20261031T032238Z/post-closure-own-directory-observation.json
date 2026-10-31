@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-31T10:02:03.247712+00:00",
+  "scope": "names/metadata only in this invented attempt namespace; no credential/key contents",
+  "app_data_path": "/Users/ryan/Library/Application Support/dev.chirality.app-v4.candidate.20261030-eqxsxv4n",
+  "app_data_entries": [
+    "account-homes",
+    "desktop-startup",
+    "instructions",
+    "records",
+    "runtime"
+  ],
+  "tmp_entries": [
+    {
+      "name": "chirality-codex-probe.zSpFE6",
+      "directory": true,
+      "mode": "0o700"
+    }
+  ],
+  "stdout_bytes": 0,
+  "stderr_bytes": 0
+}
