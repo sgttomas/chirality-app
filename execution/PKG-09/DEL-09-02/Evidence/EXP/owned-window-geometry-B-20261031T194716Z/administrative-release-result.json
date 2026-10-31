@@ -1,0 +1,53 @@
+{
+  "at": "2026-10-31T19:47:54.286953+00:00",
+  "candidate": "fdcf608fb5-23c6c3f22f5e",
+  "phase": "B",
+  "state": "observer-released-after-external-app-exit",
+  "success": false,
+  "original_error": "window helper refused: inspect its scoped stderr/result",
+  "actual_app_wait_code": 0,
+  "administrative_app_reap": true,
+  "original_app_reaped": true,
+  "app_exit_observation": {
+    "code": 1,
+    "status": 0
+  },
+  "supplier_settled_observed": false,
+  "generation": null,
+  "actor": "controller under explicit task-operator disposition; not personal human act",
+  "post_reap_errors": [],
+  "limits": "Administrative observer release only. No generation, LT-23, supplier settlement or B success is manufactured by waiting the original App.",
+  "guard_reason": null,
+  "sampling_observations": {
+    "exclusive": {
+      "at": "2026-10-31T19:47:53.957132+00:00",
+      "source": "exclusive.pending existence",
+      "ok": true,
+      "value": false
+    },
+    "shared_memguard_pgrep": {
+      "at": "2026-10-31T19:47:53.991913+00:00",
+      "source": "shared_memguard_pgrep",
+      "ok": true,
+      "value": [
+        78827
+      ]
+    },
+    "ps_census_and_rss": {
+      "at": "2026-10-31T19:47:54.030462+00:00",
+      "source": "ps_census_and_rss",
+      "ok": true,
+      "value": {
+        "processes": [],
+        "shared_and_owned_rss_kib": 55904,
+        "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+      }
+    },
+    "sysctl_free_percent": {
+      "at": "2026-10-31T19:47:54.033628+00:00",
+      "source": "sysctl_free_percent",
+      "ok": true,
+      "value": 73
+    }
+  }
+}

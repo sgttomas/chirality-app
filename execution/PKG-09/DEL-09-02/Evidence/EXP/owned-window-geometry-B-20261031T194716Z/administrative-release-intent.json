@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-31T19:47:54.286574+00:00",
+  "request": {
+    "action": "release-observer-after-app-exit",
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "admission_sha256": "322645af00f1ce330be9187811a477d8791a3694005863b2df6bdf5437b41893",
+    "expected_app_exit": {
+      "code": 1,
+      "status": 0
+    }
+  },
+  "request_sha256": "654e469fa95df66b078c7f769c0c11272091e975df16bd05fa1c36fe3dfd3d8d",
+  "actor": "controller under explicit task-operator disposition; not personal human act",
+  "original_error": "window helper refused: inspect its scoped stderr/result",
+  "limits": "Administrative observer release only. No generation, LT-23, supplier settlement or B success is manufactured by waiting the original App."
+}

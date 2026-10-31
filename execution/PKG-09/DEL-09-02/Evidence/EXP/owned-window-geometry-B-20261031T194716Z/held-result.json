@@ -1,0 +1,76 @@
+{
+  "candidate": "fdcf608fb5-23c6c3f22f5e",
+  "phase": "B",
+  "state": "held-unknown",
+  "administrative_release_request": null,
+  "administrative_release_consumed": false,
+  "administrative_release_control": {
+    "file": "release-observer-after-app-exit.json",
+    "mode": "0600",
+    "requirements": "plain owned single-link file, exact offered JSON body; create privately then atomically rename into place; one occurrence including refusal, no replacement/retry"
+  },
+  "error": "window helper refused: inspect its scoped stderr/result",
+  "app_exit_observation": null,
+  "original_app_reaped": false,
+  "supplier_settled_observed": false,
+  "quit_requested": false,
+  "generation": null,
+  "recovery_limit": "Screen observation retry unavailable: the 45s held retry cannot admit these phase budgets. Retain supervision; separately selected owned-menu cleanup/normal-exit administrative release is not qualification.",
+  "recovery_control": null,
+  "guard_reason": null,
+  "logging_errors": [],
+  "sampling_observations": {
+    "exclusive": {
+      "at": "2026-10-31T19:47:18.098661+00:00",
+      "source": "exclusive.pending existence",
+      "ok": true,
+      "value": false
+    },
+    "shared_memguard_pgrep": {
+      "at": "2026-10-31T19:47:18.117593+00:00",
+      "source": "shared_memguard_pgrep",
+      "ok": true,
+      "value": [
+        78827
+      ]
+    },
+    "ps_census_and_rss": {
+      "at": "2026-10-31T19:47:18.148227+00:00",
+      "source": "ps_census_and_rss",
+      "ok": true,
+      "value": {
+        "processes": [
+          {
+            "pid": 69498,
+            "parent": 69484,
+            "under_controller_ancestry": true
+          }
+        ],
+        "shared_and_owned_rss_kib": 536112,
+        "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+      }
+    },
+    "sysctl_free_percent": {
+      "at": "2026-10-31T19:47:18.151331+00:00",
+      "source": "sysctl_free_percent",
+      "ok": true,
+      "value": 73
+    }
+  },
+  "census_freshness": "Use ps_census_and_rss timestamp/ok; heartbeat is original-Child observation, not census freshness",
+  "observed_executable_processes": [
+    {
+      "pid": 69498,
+      "parent": 69484,
+      "under_controller_ancestry": true
+    }
+  ],
+  "overrun": false,
+  "at": "2026-10-31T19:47:18.160598+00:00",
+  "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody.",
+  "window_helper": {
+    "settlement": "no live held helper"
+  },
+  "screen_step": 0,
+  "last_verified_capture": null
+}
