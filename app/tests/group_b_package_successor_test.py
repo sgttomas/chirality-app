@@ -182,6 +182,40 @@ class PackageSuccessorReceivingTests(unittest.TestCase):
         self.assertEqual(report['coverage'], 'incomplete')
         self.assertIn('linked native result reported fail', str(report))
 
+    def test_rehashed_typed_null_closure_is_refused_through_sq(self):
+        for name in ('static.json', 'custody.json', 'terms.json'):
+            self.f = JoinedFixture(self.root / name.replace('.', '-'))
+            self.f.replace_package_artifact(name, b'null\n')
+            self.f.save(rebind_package=False)
+            report = self.check()
+            with self.subTest(artifact=name):
+                self.assertFalse(report['selection_consistent'])
+                self.assertIn('typed artifact must be an object', report.get('input_error', ''))
+
+    def test_derived_unverifiable_is_missing_in_joined_receiving(self):
+        package = copy.deepcopy(self.f.package.values['package.json'])
+        package.update(packaged_inventory=None, distribution_status='unverifiable')
+        self.f.replace_package_artifact('package.json', encoded(package))
+        self.f.save()
+        report = self.check()
+        self.assertTrue(report['selection_consistent'], report.get('errors'))
+        self.assertEqual(report['coverage'], 'incomplete')
+        self.assertIn('static package distribution reference equality', str(report['missing_selected_inputs']))
+
+    def test_derived_mismatch_survives_missing_reference_evidence(self):
+        package = copy.deepcopy(self.f.package.values['package.json'])
+        inventory = copy.deepcopy(self.f.package.values['inventory.json'])
+        inventory['inventory']['entries'][0]['mode'] = 448
+        package['packaged_inventory'] = self.f.package.put('different-inventory.json', inventory)
+        package['distribution_status'] = 'mismatch'
+        self.f.replace_package_artifact('package.json', encoded(package))
+        (self.f.packet / 'evidence.json').unlink()
+        self.f.save()
+        report = self.check()
+        self.assertFalse(report['selection_consistent'])
+        self.assertIn('static package distribution mismatch', str(report['errors']))
+        self.assertIn('static supplier closure', str(report['missing_selected_inputs']))
+
     def test_staged_producer_never_falls_back_to_ambient_repository(self):
         source = 'execution/PKG-01/DEL-01-06/Work/package-successor-v1/packaged-s4-binding.v1.schema.json'
         self.assertTrue((APP.parent / source).is_file())

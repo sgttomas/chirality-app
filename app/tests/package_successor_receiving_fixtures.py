@@ -97,6 +97,30 @@ class JoinedFixture:
                                        'result_slots': [self.linked_slot]}]
         self.save()
 
+    def replace_package_artifact(self, filename, raw):
+        """Re-derive fixture reference hashes upward to exercise semantic joins."""
+        pending = [(filename, self.package.put_raw(filename, raw))]
+        while pending:
+            changed_name, reference = pending.pop()
+            for name, value in list(self.package.values.items()):
+                if name == filename:
+                    continue
+                changed = False
+                def visit(item):
+                    nonlocal changed
+                    if isinstance(item, dict):
+                        if set(item) == {'path', 'sha256'} and item['path'] == changed_name:
+                            if item != reference:
+                                item.update(reference); changed = True
+                        else:
+                            for child in item.values(): visit(child)
+                    elif isinstance(item, list):
+                        for child in item: visit(child)
+                visit(value)
+                if changed:
+                    pending.append((name, self.package.put(name, value)))
+        self.package.request = copy.deepcopy(self.package.values['binding.json'])
+
     def set_trust(self, trust):
         raw = encoded({'format': 'exp-package-receiving-config/1', 'trusted_publisher_sha256': trust})
         self.config.write_bytes(raw)

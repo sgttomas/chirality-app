@@ -50,7 +50,7 @@
     "AGENTS.md": "0f3b2054d2f81046bf60e5d8811959851c0b865d0c34484329b28f5e911034d9",
     "app/packaging/static_distribution/check.py": "4e8f5589890f0098f44d6ef7fde247d0ff1c2dc00b1e46db00a8895a9b8d7584",
     "app/packaging/static_distribution/sources.json": "ae41f2c248e81998aca92577786ce3bbb8e2b5a008b5d89ea36b4037412d577e",
-    "app/packaging/successor/check.py": "355270e09be9042b059cb8a536cda763074c389858a442b7ee1186f399ed38be",
+    "app/packaging/successor/check.py": "332e3ea79cece9d1872bfb5b2ffea65ad007a8841941bf5af71f3f8b369997e7",
     "app/packaging/terms/check.py": "0a35adf5f8218b9abe3f968e244cc799ec8bb95776fbf2961e1fe488b4f04e4f",
     "app/src-tauri/Cargo.lock": "8d478b4d5edcd13edd3deb266feadcac47276bf866c5dfcb8805090449e87df8",
     "app/src-tauri/Cargo.toml": "82e1347af748e322b7699c39577598dbf7dbbaeee9cae5eb9abfc90c2a6ecf2d",
@@ -83,8 +83,8 @@
     "execution/PKG-01/DEL-01-06/Work/prototype/check_pkg.py": "1b6f1232fe0b200ffbb0eb56dfbbdfe4a4f29dab3c83e8e1d42b195d752f8d23",
     "execution/PKG-01/DEL-01-06/Work/prototype/read_tree.py": "6dacea788f0a0690ca04bc95f4d50332f4d3ddafb5bb0339147460e64b2debdb",
     "execution/PKG-01/DEL-01-06/Work/terms-position-v1/schema.json": "7a47f1e75453e8df3778e7c59628932f96791906dbe378b8aa2d8db72eecbb08",
-    "app/examination/package_receiving/sources.package-v1.json": "5f3d57638e22d426d7d1533d86e0cad88c409f1a7137c9b4214410c17d845be8",
-    "app/examination/package_receiving/adapter.py": "405965c3c011a21d1d444c25e2c0d07e653eccdda5c18b0e8ef76bbae056b898",
+    "app/examination/package_receiving/sources.package-v1.json": "577b6342445dba0ce4815b9f6930a36aa65b814e6b0c535fb8f0e44dd73b0583",
+    "app/examination/package_receiving/adapter.py": "7f582920f46e3503f739866d43124f0529a262a7c9639e50438f841288df445e",
     "app/examination/sq_receiving/worker_packages.py": "0d2cf1562b3b8f265bc36dd7faedb0a3b8f82af4ea29b303db80bb06f36c052c"
   },
   "format": "sq-package-s4-reader-pins/1",
@@ -99,6 +99,6 @@
   },
   "package_source_profile": {
     "path": "app/examination/package_receiving/sources.package-v1.json",
-    "sha256": "5f3d57638e22d426d7d1533d86e0cad88c409f1a7137c9b4214410c17d845be8"
+    "sha256": "577b6342445dba0ce4815b9f6930a36aa65b814e6b0c535fb8f0e44dd73b0583"
   }
 }

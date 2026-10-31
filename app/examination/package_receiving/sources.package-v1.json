@@ -46,7 +46,7 @@
     "app/examination/support_identity/canonical.py": "f1eb9a692d70a13c7b91d7d5d3c38cc3699bf3c4b1158528ce5a731ad04123dd",
     "app/packaging/static_distribution/check.py": "4e8f5589890f0098f44d6ef7fde247d0ff1c2dc00b1e46db00a8895a9b8d7584",
     "app/packaging/static_distribution/sources.json": "ae41f2c248e81998aca92577786ce3bbb8e2b5a008b5d89ea36b4037412d577e",
-    "app/packaging/successor/check.py": "355270e09be9042b059cb8a536cda763074c389858a442b7ee1186f399ed38be",
+    "app/packaging/successor/check.py": "332e3ea79cece9d1872bfb5b2ffea65ad007a8841941bf5af71f3f8b369997e7",
     "app/packaging/terms/check.py": "0a35adf5f8218b9abe3f968e244cc799ec8bb95776fbf2961e1fe488b4f04e4f",
     "app/src-tauri/Cargo.lock": "8d478b4d5edcd13edd3deb266feadcac47276bf866c5dfcb8805090449e87df8",
     "app/src-tauri/Cargo.toml": "82e1347af748e322b7699c39577598dbf7dbbaeee9cae5eb9abfc90c2a6ecf2d",
