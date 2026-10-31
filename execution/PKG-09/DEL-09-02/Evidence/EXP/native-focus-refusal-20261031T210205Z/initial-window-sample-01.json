@@ -1,0 +1,25 @@
+{
+  "at": "2026-10-31T21:02:06.951614+00:00",
+  "monotonic": 2874002.452279041,
+  "identity_before": {
+    "pid": 96956,
+    "ppid": 96942,
+    "uid": 501,
+    "ruid": 501,
+    "start_sec": 1793480526,
+    "start_usec": 831572,
+    "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/MacOS/chirality-app-v4"
+  },
+  "identity_after": {
+    "pid": 96956,
+    "ppid": 96942,
+    "uid": 501,
+    "ruid": 501,
+    "start_sec": 1793480526,
+    "start_usec": 831572,
+    "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/MacOS/chirality-app-v4"
+  },
+  "window": null,
+  "elapsed_seconds": 0.11423083301633596,
+  "minimum_spacing_seconds": 0.25
+}

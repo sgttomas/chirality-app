@@ -1,0 +1,37 @@
+{
+  "at": "2026-10-31T21:02:07.634028+00:00",
+  "monotonic": 2874003.134683958,
+  "identity_before": {
+    "pid": 96956,
+    "ppid": 96942,
+    "uid": 501,
+    "ruid": 501,
+    "start_sec": 1793480526,
+    "start_usec": 831572,
+    "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/MacOS/chirality-app-v4"
+  },
+  "identity_after": {
+    "pid": 96956,
+    "ppid": 96942,
+    "uid": 501,
+    "ruid": 501,
+    "start_sec": 1793480526,
+    "start_usec": 831572,
+    "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/MacOS/chirality-app-v4"
+  },
+  "window": {
+    "window_id": 56858,
+    "title": "Chirality App v4 \u2014 walking skeleton",
+    "bounds": {
+      "X": 1722.0,
+      "Y": 93.0,
+      "Width": 1100.0,
+      "Height": 800.0
+    },
+    "on_screen": true,
+    "layer": 0.0,
+    "own_visible_layer0_count": 1
+  },
+  "elapsed_seconds": 0.7966357497498393,
+  "minimum_spacing_seconds": 0.25
+}
