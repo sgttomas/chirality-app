@@ -1,0 +1,59 @@
+{
+  "at": "2026-10-31T21:02:30.205034+00:00",
+  "phase": "cleanup-source",
+  "control_file": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-uef3r3p2/screen-control-002.json",
+  "candidate": "fdcf608fb5-23c6c3f22f5e",
+  "admission_sha256": "3d05cfd09735d1a6ca8ee086aec0bf7e5c84fc4a08e0263fe6413c32ba906e14",
+  "frame": {
+    "at": "2026-10-31T21:02:30.204545+00:00",
+    "sequence": 3,
+    "path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-uef3r3p2/window-003.png",
+    "sha256": "b983b770c4227cca9fc0537c0d6bb3e681e1d04774b6b71e9dc87a7096a7e61a",
+    "identity": {
+      "pid": 96956,
+      "ppid": 96942,
+      "uid": 501,
+      "ruid": 501,
+      "start_sec": 1793480526,
+      "start_usec": 831572,
+      "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/MacOS/chirality-app-v4"
+    },
+    "window": {
+      "window_id": 56858,
+      "title": "Chirality App v4 \u2014 walking skeleton",
+      "bounds": {
+        "X": 1722.0,
+        "Y": 93.0,
+        "Width": 1100.0,
+        "Height": 800.0
+      },
+      "on_screen": true,
+      "layer": 0.0,
+      "own_visible_layer0_count": 1
+    },
+    "image": {
+      "width": 2200,
+      "height": 1600,
+      "scale": 2.0,
+      "image_data_sha256": "b41bf85d64be0cd7e80ca5b60ceab7f8263a09fe9ed7cb1dc7a77511abb13310"
+    },
+    "limits": "Exact owned window only, -a excludes attached windows, -o excludes shadow. Before/after checks are not atomic. Pixels are observations, not native source records.",
+    "target": "main"
+  },
+  "effect_readback_required": true,
+  "phase_seconds_remaining": 34.58783449977636,
+  "control_publication": "Write a private owned single-link0600 temporary file, then atomically rename to the named control path. Never write the final path in place.",
+  "allowed_actions": [
+    "observe",
+    "capture",
+    "focus",
+    "click-disclosure",
+    "scroll",
+    "refuse"
+  ],
+  "limits": "Read ONLY verified owned-window image. Transcribe actual complete displayed strings/JSON; never fill missing source/generation/requests from expected values. Agent act, not personal human act.",
+  "required_sections": [
+    "state-generation",
+    "lifecycle-clientRequests"
+  ]
+}

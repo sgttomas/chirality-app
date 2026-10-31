@@ -59,7 +59,11 @@ V5_SOURCE = HERE.with_name('native_b_retained_v5.py')
 v5_spec = importlib.util.spec_from_file_location('native_B_retained_v5', V5_SOURCE)
 v5_support = importlib.util.module_from_spec(v5_spec)
 v5_spec.loader.exec_module(v5_support)
-SCREEN_VERSIONS = (v2_support.VERSION, v3_support.VERSION, v4_support.VERSION, v5_support.VERSION)
+V6_SOURCE = HERE.with_name('native_b_retained_v6.py')
+v6_spec = importlib.util.spec_from_file_location('native_B_retained_v6', V6_SOURCE)
+v6_support = importlib.util.module_from_spec(v6_spec)
+v6_spec.loader.exec_module(v6_support)
+SCREEN_VERSIONS = (v2_support.VERSION, v3_support.VERSION, v4_support.VERSION, v5_support.VERSION, v6_support.VERSION)
 SLOT_SOURCE = HERE.with_name('native_b_slot_entry.py')
 SCREEN_SOURCE = HERE.with_name('native_b_screen_route.py')
 screen_spec = importlib.util.spec_from_file_location('native_B_screen', SCREEN_SOURCE)
@@ -95,7 +99,7 @@ def check_observation_capabilities():
 
 
 def dependencies():
-    return {**setup.dependency_digests(), str(setup.HERE): setup.digest(setup.HERE), str(HERE): setup.digest(HERE), str(AX_SOURCE): setup.digest(AX_SOURCE), str(RELEASE_SOURCE): setup.digest(RELEASE_SOURCE), str(RETAINED_SOURCE): setup.digest(RETAINED_SOURCE), str(DIAGNOSTIC_SOURCE): setup.digest(DIAGNOSTIC_SOURCE), str(V2_SOURCE): setup.digest(V2_SOURCE), str(V3_SOURCE): setup.digest(V3_SOURCE), str(V4_SOURCE): setup.digest(V4_SOURCE), str(V5_SOURCE): setup.digest(V5_SOURCE),
+    return {**setup.dependency_digests(), str(setup.HERE): setup.digest(setup.HERE), str(HERE): setup.digest(HERE), str(AX_SOURCE): setup.digest(AX_SOURCE), str(RELEASE_SOURCE): setup.digest(RELEASE_SOURCE), str(RETAINED_SOURCE): setup.digest(RETAINED_SOURCE), str(DIAGNOSTIC_SOURCE): setup.digest(DIAGNOSTIC_SOURCE), str(V2_SOURCE): setup.digest(V2_SOURCE), str(V3_SOURCE): setup.digest(V3_SOURCE), str(V4_SOURCE): setup.digest(V4_SOURCE), str(V5_SOURCE): setup.digest(V5_SOURCE), str(V6_SOURCE): setup.digest(V6_SOURCE),
             str(SLOT_SOURCE): setup.digest(SLOT_SOURCE), str(SCREEN_SOURCE): setup.digest(SCREEN_SOURCE), str(screen_support.w.HERE): setup.digest(screen_support.w.HERE), str(screen_support.w.HELPER): setup.digest(screen_support.w.HELPER)}
 
 
@@ -197,7 +201,7 @@ def prepare(a_root, namespace_basis=None, retained_state=None):
     if retained_state:
         version=json.loads(Path(retained_state).read_text())['version']
         require(version in (retained_support.VERSION,*SCREEN_VERSIONS),'unknown retained admission version')
-        selected={retained_support.VERSION:retained_support,v2_support.VERSION:v2_support,v3_support.VERSION:v3_support,v4_support.VERSION:v4_support,v5_support.VERSION:v5_support}[version]
+        selected={retained_support.VERSION:retained_support,v2_support.VERSION:v2_support,v3_support.VERSION:v3_support,v4_support.VERSION:v4_support,v5_support.VERSION:v5_support,v6_support.VERSION:v6_support}[version]
         context, value, bindings, a_files = selected.admit(sys.modules[__name__], retained_state)
         require(json.loads(Path(retained_state).read_text())['a_root'] == str(a_root), 'retained A root differs')
     else:
@@ -217,7 +221,7 @@ def prepare(a_root, namespace_basis=None, retained_state=None):
         with os.fdopen(fd,'wb') as f:f.write(SLOT_SOURCE.read_bytes())
     (root / 'phase-B.sb').write_text(policy(value, root))
     (root / 'controller.py.txt').write_bytes(HERE.read_bytes())
-    for source in (AX_SOURCE, RELEASE_SOURCE, RETAINED_SOURCE, DIAGNOSTIC_SOURCE, V2_SOURCE, V3_SOURCE, V4_SOURCE, V5_SOURCE, SCREEN_SOURCE):
+    for source in (AX_SOURCE, RELEASE_SOURCE, RETAINED_SOURCE, DIAGNOSTIC_SOURCE, V2_SOURCE, V3_SOURCE, V4_SOURCE, V5_SOURCE, V6_SOURCE, SCREEN_SOURCE):
         (root / (source.name + '.txt')).write_bytes(source.read_bytes())
     write_once(root / 'admission.json', {'a_root': str(a_root), 'a_files': a_files,
         'controller_path':str(HERE), 'slot_entry_sha256':setup.digest(SLOT_SOURCE) if is_screen else None,
@@ -826,7 +830,7 @@ def execute(root, window_end):
     require(admitted.get('admission_version') == version, 'prepared admission version differs')
     if retained_state:
         require(version in (retained_support.VERSION,*SCREEN_VERSIONS), 'retained admission version differs')
-        selected={retained_support.VERSION:retained_support,v2_support.VERSION:v2_support,v3_support.VERSION:v3_support,v4_support.VERSION:v4_support,v5_support.VERSION:v5_support}[version]
+        selected={retained_support.VERSION:retained_support,v2_support.VERSION:v2_support,v3_support.VERSION:v3_support,v4_support.VERSION:v4_support,v5_support.VERSION:v5_support,v6_support.VERSION:v6_support}[version]
         context, value, bindings, a_files = selected.admit(sys.modules[__name__], Path(retained_state['path']))
     else:
         context, value, bindings, a_files = saved_input(Path(admitted['a_root']),
@@ -948,9 +952,14 @@ if __name__ == '__main__':
     parser.add_argument('--capture-retained-v3', type=Path)
     parser.add_argument('--capture-retained-v4', type=Path)
     parser.add_argument('--capture-retained-v5', type=Path)
+    parser.add_argument('--capture-retained-v6', type=Path)
     parser.add_argument('--assessment', type=Path)
     args = parser.parse_args()
-    if args.capture_retained_v5 and args.from_a and args.assessment and not any((args.capture_retained_v4,args.capture_retained_v3,args.capture_retained_v2,args.capture_retained_basis,args.projection,args.prepare,args.execute,args.window_end,args.retained_state,args.namespace_basis)):
+    if args.capture_retained_v6 and args.from_a and args.assessment and not any((args.capture_retained_v5,args.capture_retained_v4,args.capture_retained_v3,args.capture_retained_v2,args.capture_retained_basis,args.projection,args.prepare,args.execute,args.window_end,args.retained_state,args.namespace_basis)):
+        v6_support.capture(sys.modules[__name__],args.from_a.absolute(),args.assessment.absolute(),args.capture_retained_v6.absolute())
+    elif args.capture_retained_v6:
+        parser.error('v6 capture requires --capture-retained-v6 OUTPUT --from-A A --assessment ASSESSMENT only')
+    elif args.capture_retained_v5 and args.from_a and args.assessment and not any((args.capture_retained_v4,args.capture_retained_v3,args.capture_retained_v2,args.capture_retained_basis,args.projection,args.prepare,args.execute,args.window_end,args.retained_state,args.namespace_basis)):
         v5_support.capture(sys.modules[__name__],args.from_a.absolute(),args.assessment.absolute(),args.capture_retained_v5.absolute())
     elif args.capture_retained_v5:
         parser.error('v5 capture requires --capture-retained-v5 OUTPUT --from-A A --assessment ASSESSMENT only')

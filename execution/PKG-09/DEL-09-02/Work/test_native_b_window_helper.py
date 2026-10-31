@@ -96,6 +96,75 @@ class HelperTests(unittest.TestCase):
    with self.assertRaisesRegex(RuntimeError,'owned window changed'):self.run_request(action='click',point=[20,60])
   self.backend.a.CGEventPostToPid.assert_not_called();self.backend.a.CGEventSetIntegerValueField.assert_not_called()
   self.assertEqual(self.backend.c.CFRelease.call_count,2)
+ def test_focus_uses_one_owned_activation_then_actual_frontmost_readback(self):
+  self.backend.app=lambda pid:'app';self.backend.owner=lambda app:(0,123)
+  with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main',return_value=self.window),patch.object(h.w,'frontmost',side_effect=[False,False,True]),patch.object(h,'activate_original_app',return_value={'request_sent':True,'receiver_pid':123,'options':0}) as activate,patch.object(h.time,'sleep'):
+   self.run_request(action='focus')
+  activate.assert_called_once_with(123)
+  trace=json.loads((self.root/'window-helper-001.focus.json').read_text())
+  self.assertEqual([x['frontmost'] for x in trace['observations']],[False,False,True])
+  self.assertTrue((self.root/'window-helper-001.result.json').exists())
+ def test_focus_dispatch_refusal_retains_trace_and_never_claims_effect(self):
+  self.backend.app=lambda pid:'app';self.backend.owner=lambda app:(0,123)
+  with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main',return_value=self.window),patch.object(h.w,'frontmost',return_value=False),patch.object(h,'activate_original_app',return_value={'request_sent':False}) as activate:
+   with self.assertRaisesRegex(RuntimeError,'activation request refused'):self.run_request(action='focus')
+  activate.assert_called_once_with(123);self.assertFalse((self.root/'window-helper-001.result.json').exists())
+  self.assertIn('error',json.loads((self.root/'window-helper-001.focus.json').read_text()))
+ def test_focus_sent_but_not_frontmost_refuses_without_second_activation(self):
+  self.backend.app=lambda pid:'app';self.backend.owner=lambda app:(0,123)
+  with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main',return_value=self.window),patch.object(h.w,'frontmost',return_value=False),patch.object(h,'activate_original_app',return_value={'request_sent':True}) as activate,patch.object(h.time,'monotonic',side_effect=[0,1]):
+   with self.assertRaisesRegex(RuntimeError,'did not become frontmost'):self.run_request(action='focus')
+  activate.assert_called_once_with(123);self.assertFalse((self.root/'window-helper-001.result.json').exists())
+ def test_window_change_prevents_focus_activation(self):
+  self.backend.app=lambda pid:'app';self.backend.owner=lambda app:(0,123)
+  with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main',side_effect=[self.window,{**self.window,'window_id':99}]),patch.object(h.w,'frontmost',return_value=False),patch.object(h,'activate_original_app') as activate:
+   with self.assertRaisesRegex(RuntimeError,'owned window changed'):self.run_request(action='focus')
+  activate.assert_not_called()
+ def test_already_frontmost_does_not_activate(self):
+  self.backend.app=lambda pid:'app';self.backend.owner=lambda app:(0,123)
+  with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main',return_value=self.window),patch.object(h.w,'frontmost',return_value=True),patch.object(h,'activate_original_app') as activate:
+   self.run_request(action='focus')
+  activate.assert_not_called()
+ def test_activation_exact_selectors_receiver_and_pool_lifetime_without_native_load(self):
+  objc=SimpleNamespace(objc_getClass=Mock(side_effect=lambda x:x),sel_registerName=Mock(side_effect=lambda x:x))
+  calls=[];signatures={};actual=123;policy=0;target='target';sent=True
+  def send(receiver,selector,*args):
+   calls.append((receiver,selector,args))
+   if selector==b'new':return 'pool'
+   if selector==b'runningApplicationWithProcessIdentifier:':return target
+   if selector==b'processIdentifier':return actual
+   if selector==b'activationPolicy':return policy
+   if selector==b'activateWithOptions:':return sent
+  def prototype(*signature):
+   def bind(symbol):
+    self.assertEqual(symbol,('objc_msgSend',objc))
+    def invoke(receiver,selector,*args):
+     signatures[selector]=signature
+     return send(receiver,selector,*args)
+    return invoke
+   return bind
+  with patch.object(h.C,'CDLL',return_value=objc) as load,patch.object(h.C,'CFUNCTYPE',side_effect=prototype):
+   result=h.activate_original_app(123)
+   self.assertTrue(result['request_sent'])
+   self.assertIn(('target',b'activateWithOptions:',(0,)),calls)
+   self.assertEqual(calls[-1],('pool',b'drain',()))
+   self.assertEqual([c.args[0] for c in load.call_args_list],['/System/Library/Frameworks/AppKit.framework/AppKit','/usr/lib/libobjc.A.dylib'])
+   c=h.C
+   self.assertEqual(signatures,{b'new':(c.c_void_p,c.c_void_p,c.c_void_p),
+    b'runningApplicationWithProcessIdentifier:':(c.c_void_p,c.c_void_p,c.c_void_p,c.c_int),
+    b'processIdentifier':(c.c_int,c.c_void_p,c.c_void_p),b'activationPolicy':(c.c_long,c.c_void_p,c.c_void_p),
+    b'activateWithOptions:':(c.c_bool,c.c_void_p,c.c_void_p,c.c_ulong),b'drain':(None,c.c_void_p,c.c_void_p)})
+   calls.clear();target=None
+   with self.assertRaisesRegex(RuntimeError,'not registered'):h.activate_original_app(123)
+   self.assertFalse(any(c[1]==b'activateWithOptions:' for c in calls));self.assertEqual(calls[-1][1],b'drain')
+   calls.clear();target='target';sent=False
+   self.assertFalse(h.activate_original_app(123)['request_sent']);self.assertEqual(calls[-1][1],b'drain')
+   calls.clear();sent=True;actual=999
+   with self.assertRaisesRegex(RuntimeError,'receiver differs'):h.activate_original_app(123)
+   self.assertFalse(any(c[1]==b'activateWithOptions:' for c in calls));self.assertEqual(calls[-1][1],b'drain')
+   calls.clear();actual=123;policy=2
+   with self.assertRaisesRegex(RuntimeError,'policy prohibits'):h.activate_original_app(123)
+   self.assertFalse(any(c[1]==b'activateWithOptions:' for c in calls))
  def test_unfocused_or_foreign_app_never_posts(self):
   self.backend.app=lambda pid:'app';self.backend.owner=lambda app:(0,999)
   with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main',return_value=self.window):
