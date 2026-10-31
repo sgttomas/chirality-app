@@ -117,5 +117,6 @@ Post-review read-only capture/prepare passed against unchanged retained state:
 `/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma`, admission SHA256
 `2ab2e22b856fb4f43c5a347baa5481f8e005ac7a5c229da2553d42370715d1c1`.
 All copied dependency bytes match. Twelve admission, twelve mocked diagnostic
-and six guard/integration tests pass. The queued combined slot-wrapped fixture
-run remains pending the shared exclusive lane; it does not hold an App or slot.
+and six guard/integration tests pass. The combined slot-wrapped fixture run subsequently completed with all 47 tests
+passing (retained admission, mocked diagnostics, guard/integration, AX, release
+and harmless sandbox profiles). Its execution returned0; no App was launched.
