@@ -295,3 +295,7 @@ The [owned-window B attempt 8w83gq78](FAILED_B_OWNED_WINDOW_20261031.md) failed
 before capture on an unrecorded helper-window mismatch. Normal menu Quit and
 administrative reap closed resources without qualification; all inputs remain
 retained, and no further launch is authorized.
+
+The [7sinkdji geometry refusal](FAILED_B_GEOMETRY_20261031.md) retained an
+actual same-window X/width mismatch before capture. Its normal Quit and
+administrative reap closed resources, with B still FAILED and no image or LT23.

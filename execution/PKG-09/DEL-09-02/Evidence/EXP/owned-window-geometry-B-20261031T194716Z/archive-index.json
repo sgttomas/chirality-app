@@ -1,0 +1,269 @@
+{
+  "at": "2026-10-31T19:49:37.971125+00:00",
+  "scope": "FAILED7sinkdji exact geometry mismatch and cleanup only",
+  "excluded_directories": [
+    "codex-home",
+    "helper-tmp",
+    "tmp"
+  ],
+  "files": [
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/actions.jsonl",
+      "archive": "actions.jsonl",
+      "bytes": 778,
+      "sha256": "20ad987cc5aaf4a9b5a93c7f57fc1157547368335add457d232955bfe0fd876f"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/administrative-release-intent.json",
+      "archive": "administrative-release-intent.json",
+      "bytes": 730,
+      "sha256": "c15004ef2f0ec3777fdb490cfab8de8a296cb367325d29fbe2bc4ae645515472"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/administrative-release-request.json",
+      "archive": "administrative-release-request.json",
+      "bytes": 220,
+      "sha256": "654e469fa95df66b078c7f769c0c11272091e975df16bd05fa1c36fe3dfd3d8d"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/administrative-release-result.json",
+      "archive": "administrative-release-result.json",
+      "bytes": 1671,
+      "sha256": "6d4b20f747ba42b690d93196bc368f877299053fecac9d7c073f9d1396a5cefb"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/admission.json",
+      "archive": "admission.json",
+      "bytes": 55870,
+      "sha256": "322645af00f1ce330be9187811a477d8791a3694005863b2df6bdf5437b41893"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/artifact-check.json",
+      "archive": "artifact-check.json",
+      "bytes": 465,
+      "sha256": "491be4b11c6c1c51cf9ba5fc6b2556f45d1b368d10ed66bb4cd25a8fb39b899d"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/cleanup-helper-provenance.json",
+      "archive": "cleanup-helper-provenance.json",
+      "bytes": 446,
+      "sha256": "65c27a2f311bd316860473d223decad5d41559ff43796ba4f0edbe503620ce68"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/cleanup-menu-action-result.json",
+      "archive": "cleanup-menu-action-result.json",
+      "bytes": 106,
+      "sha256": "be0491cc6efeed90dade404f9a7b0afad2427b92eb7a20e89e0978dd42d48c4c"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/cleanup-menu-request.json",
+      "archive": "cleanup-menu-request.json",
+      "bytes": 7045,
+      "sha256": "ac133fdae2244d17403d0521412ec23804532a503c34ae03762b80db253ae599"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/cleanup-menu.py",
+      "archive": "cleanup-menu.py.source.txt",
+      "bytes": 5136,
+      "sha256": "4d9b7a63c4c8d76046112d778ce4f11adc8d8978501e193a76dddd586990385a"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/cleanup-own-window-child-inventory.json",
+      "archive": "cleanup-own-window-child-inventory.json",
+      "bytes": 5005,
+      "sha256": "f0a33a36127c44fdb53a5153acbd681d6cf6dcc01303e0af97fd3c9b7aedea07"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/cleanup-owned-app-menu-inventory.json",
+      "archive": "cleanup-owned-app-menu-inventory.json",
+      "bytes": 1439,
+      "sha256": "de2c81f19aca6379360b7e73f28b5a85f06304fc3f443f47c2149255ea1533bb"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/controller.py.txt",
+      "archive": "controller.py.txt",
+      "bytes": 57005,
+      "sha256": "7c3bd31ec28283df6eefd136b87ebe2513c60bbca3b13bd5f39413624380b3f4"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/execution-started.json",
+      "archive": "execution-started.json",
+      "bytes": 89,
+      "sha256": "16ee013181558566e2ac03c40d796e5625516d674d664472ed4dbe7602072af2"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/held-AX.json",
+      "archive": "held-AX.json",
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/held-heartbeat.jsonl",
+      "archive": "held-heartbeat.jsonl",
+      "bytes": 42518,
+      "sha256": "c25629489c2894379b2a3cd9dcef3ed52fdea98f10b3d89f539aaab33766a7ed"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/held-result.json",
+      "archive": "held-result.json",
+      "bytes": 2605,
+      "sha256": "b65e3a0262c868f15ea502450d7fcb5e43e4d2e69ca8b3918781591a95fe88d7"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/last-diagnostics.json",
+      "archive": "last-diagnostics.json",
+      "bytes": 5,
+      "sha256": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/live-invocation-output.log",
+      "archive": "live-invocation-output.log",
+      "bytes": 46194,
+      "sha256": "7ce6cd4eb7e04e13cc7f686556882a443f4f0df78c5bc02966f5889c8d77471c"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/live-invocation-result.json",
+      "archive": "live-invocation-result.json",
+      "bytes": 60,
+      "sha256": "bd1d2166c6346b4a417cf7a61f40c19ec5d943390bbec657f96f0c3f2ba734a9"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/live-invocation.json",
+      "archive": "live-invocation.json",
+      "bytes": 409,
+      "sha256": "a710f46b22c247ed170e5c13a7b069f3ec8b507f1dbbf5c646852ecb25f5ee8e"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/native_b_ax.py.txt",
+      "archive": "native_b_ax.py.txt",
+      "bytes": 5711,
+      "sha256": "4a5a26d43063f271188a90c290e3bae56cc7794014149ca5ae7504b005737cef"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/native_b_diagnostic.py",
+      "archive": "native_b_diagnostic.py.source.txt",
+      "bytes": 15847,
+      "sha256": "fd37834b301f138963cdfe76f8bf3a146aea373b99ab2c994546ff73c939af19"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/native_b_diagnostic.py.txt",
+      "archive": "native_b_diagnostic.py.txt",
+      "bytes": 15847,
+      "sha256": "fd37834b301f138963cdfe76f8bf3a146aea373b99ab2c994546ff73c939af19"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/native_b_release.py.txt",
+      "archive": "native_b_release.py.txt",
+      "bytes": 7183,
+      "sha256": "9db06d8066ba86e78d58ea9b0719e6c7c445fdb46feb3e3f03b3a89ed51b5ec5"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/native_b_retained.py.txt",
+      "archive": "native_b_retained.py.txt",
+      "bytes": 14509,
+      "sha256": "82d08f4c7e5f2ec74ea8533877b76f032142f1e18e1fe757a092d2c8032685de"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/native_b_retained_v2.py.txt",
+      "archive": "native_b_retained_v2.py.txt",
+      "bytes": 11769,
+      "sha256": "0b6373d9281e01831902fe43213ecb7c51eaa44e769737413cafb6d666a7a42b"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/native_b_retained_v3.py.txt",
+      "archive": "native_b_retained_v3.py.txt",
+      "bytes": 11869,
+      "sha256": "ebafb3a456091c662762b1333293e2f17b198afb2fc19bb81441b5410955a598"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/native_b_screen_route.py.txt",
+      "archive": "native_b_screen_route.py.txt",
+      "bytes": 19695,
+      "sha256": "7c683d81d2d74d1295e8a3cf496426d54b03787baad96a5cb0c1348b84e37a17"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/native_b_slot_entry.py",
+      "archive": "native_b_slot_entry.py.source.txt",
+      "bytes": 2435,
+      "sha256": "8191fdcfb865533ce13f341ef3294a87d50259f0a26cab2b4c0e77df23463868"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/native_b_window.py",
+      "archive": "native_b_window.py.source.txt",
+      "bytes": 22663,
+      "sha256": "d9973c71b2496446c8a493008b18d325836b780c4309001a1e2f7e6fb19e914a"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/native_b_window_helper.py",
+      "archive": "native_b_window_helper.py.source.txt",
+      "bytes": 9132,
+      "sha256": "fc3a801c1b98b5554e75a632931ccf85fe9439cf56086851ade23fa3481722ea"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/phase-B.sb",
+      "archive": "phase-B.sb",
+      "bytes": 1280,
+      "sha256": "4f9acad752d8246082e2e604009ccc00ca94de03461875bfeda9f4a0710d1811"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/release-observer-after-app-exit.json",
+      "archive": "release-observer-after-app-exit.json",
+      "bytes": 220,
+      "sha256": "654e469fa95df66b078c7f769c0c11272091e975df16bd05fa1c36fe3dfd3d8d"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/release-selection.json",
+      "archive": "release-selection.json",
+      "bytes": 3223,
+      "sha256": "def8249468fadeecd1a2dcdee1eb6b19c91587fa93be2a0ee9d913ce65d94664"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/resource-closure.json",
+      "archive": "resource-closure.json",
+      "bytes": 1070,
+      "sha256": "f195e807146d007280a946de561a0b9acbc926ed0dbc85bdaacab769b37e15d2"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/slot-entry.json",
+      "archive": "slot-entry.json",
+      "bytes": 1194,
+      "sha256": "46f533b62bbd008397f9df5b48da8a38a282aff324f4440cbfac843d7d07b022"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/stderr.log",
+      "archive": "stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/stdout.log",
+      "archive": "stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/window-helper-001.json",
+      "archive": "window-helper-001.json",
+      "bytes": 875,
+      "sha256": "d809e918583c66fca24894de4347b3df7175bba4f9129b4a2793c38f298afd67"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/window-helper-001.stderr",
+      "archive": "window-helper-001.stderr",
+      "bytes": 1152,
+      "sha256": "bf4365b918284b9b566f1392f76cb11ca57c10482dfc281cf4cd9fea953cb801"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/window-helper-001.stdout",
+      "archive": "window-helper-001.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji/window-helper-001.window-mismatch.json",
+      "archive": "window-helper-001.window-mismatch.json",
+      "bytes": 930,
+      "sha256": "286aafb63cf4de9cc3362482a22318e9b86d917dd25c7053c498adc1607d5f64"
+    }
+  ]
+}
