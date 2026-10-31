@@ -236,13 +236,15 @@ def window_inventory(backend, pid, check=lambda: None):
             'screen_capture_preflight_access': access, 'rows': result}
 
 
-def ax_inventory(backend, pid, check=lambda: None):
+def ax_inventory(backend, pid, check=lambda: None, application=None, attributes=AX_ATTRIBUTES):
     check()
-    app = backend.app(pid)
+    app = backend.app(pid) if application is None else application
     rc, owner = backend.owner(app)
     require(rc == 0 and owner == pid, 'owned AX application unavailable')
+    require(0 < len(attributes) <= len(AX_ATTRIBUTES) and len(set(attributes))==len(attributes)
+            and all(name in AX_ATTRIBUTES for name in attributes), 'AX attribute subset unavailable')
     result = []
-    for name in AX_ATTRIBUTES:
+    for name in attributes:
         check()
         attribute, references = backend.attribute(app, name)
         require(len(references) <= MAX_AX_REFERENCES, 'AX references exceed bound')
