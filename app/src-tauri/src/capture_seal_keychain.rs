@@ -96,9 +96,10 @@ pub(crate) struct Material {
     pub current: String,
     pub keys: BTreeMap<String, [u8; 32]>,
 }
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(crate) enum Operation {
     Verify,
+    VerifyKey(String),
     Seal,
     Rotate,
     Enroll,
@@ -120,17 +121,18 @@ pub(crate) fn dispatch(
         provider
             .borrow()
             .as_ref()
-            .map(|p| p(legacy_folder, operation))
+            .map(|p| p(legacy_folder, operation.clone()))
     }) {
         return Some(result);
     }
-    match crate::publisher_selection::selected() {
-        Ok(None) => None,
+    match publisher_route() {
+        Ok(false) => None,
         Err(_) => Some(Err(
             "SEAL-C publisher validation unavailable; file fallback prohibited".into(),
         )),
-        Ok(Some(_)) => Some((|| {
-            let authority = KeychainAuthority::current()?;
+        Ok(true) => Some((|| {
+            let authority =
+                process_authority(matches!(operation, Operation::Enroll | Operation::Rotate))?;
             let backend = macos::NativeBackend::new(&authority);
             let directory = legacy_folder.with_file_name("capture-seal-keychain");
             let mut entropy = || {
@@ -166,7 +168,44 @@ pub(crate) fn selected_route() -> bool {
     if test_selected() {
         return true;
     }
-    !matches!(crate::publisher_selection::selected(), Ok(None))
+    !matches!(publisher_route(), Ok(false))
+}
+// The publisher selection is immutable compiler input. Cache its decision, not
+// key availability. A denied/locked item is still observed on every verification.
+fn publisher_route() -> Result<bool, ()> {
+    static ROUTE: std::sync::OnceLock<Result<bool, ()>> = std::sync::OnceLock::new();
+    *ROUTE.get_or_init(|| {
+        crate::publisher_selection::selected()
+            .map(|p| p.is_some())
+            .map_err(|_| ())
+    })
+}
+fn process_authority(recheck: bool) -> Result<std::sync::Arc<KeychainAuthority>, String> {
+    static AUTHORITY: std::sync::Mutex<Option<std::sync::Arc<KeychainAuthority>>> =
+        std::sync::Mutex::new(None);
+    cached_authority(&AUTHORITY, recheck, KeychainAuthority::current)
+}
+fn cached_authority(
+    state: &std::sync::Mutex<Option<std::sync::Arc<KeychainAuthority>>>,
+    recheck: bool,
+    create: impl FnOnce() -> Result<KeychainAuthority, String>,
+) -> Result<std::sync::Arc<KeychainAuthority>, String> {
+    let mut held = state
+        .lock()
+        .map_err(|_| "SEAL-C authority initialization unavailable")?;
+    if recheck {
+        *held = None;
+    }
+    if held.is_none() {
+        // Refresh failure revokes the cached capability; it cannot resurrect on
+        // the next normal capture. Item bytes/availability are never cached here.
+        *held = Some(std::sync::Arc::new(create()?));
+    }
+    Ok(held.as_ref().unwrap().clone())
+}
+
+fn verifying(operation: &Operation) -> bool {
+    matches!(operation, Operation::Verify | Operation::VerifyKey(_))
 }
 fn validate_identity(i: &ItemIdentity) -> Result<(), String> {
     if [&i.service, &i.account, &i.access_group].iter().any(|s| {
@@ -209,7 +248,13 @@ struct Marker {
     format: String,
     scope_sha256: String,
     keys: Vec<KeyRef>,
+    #[serde(deserialize_with = "required_pending")]
     pending: Option<KeyRef>,
+}
+fn required_pending<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<KeyRef>, D::Error> {
+    Option::<KeyRef>::deserialize(deserializer)
 }
 const MARKER: &str = "continuity.s1.json";
 fn keyref(key: &[u8; 32]) -> KeyRef {
@@ -260,7 +305,16 @@ impl Drop for Guard {
         }
     }
 }
+#[cfg(test)]
 fn guard(directory: &Path, create: bool) -> Result<Option<Guard>, String> {
+    guard_mode(directory, create, false, false)
+}
+fn guard_mode(
+    directory: &Path,
+    create: bool,
+    shared: bool,
+    wait: bool,
+) -> Result<Option<Guard>, String> {
     crate::storage::check_path(directory)?;
     let mut created = false;
     match fs::symlink_metadata(directory) {
@@ -305,7 +359,9 @@ fn guard(directory: &Path, create: bool) -> Result<Option<Guard>, String> {
     ) {
         return Err("SEAL-C continuity lock unsafe".into());
     }
-    if unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+    let flags =
+        (if shared { libc::LOCK_SH } else { libc::LOCK_EX }) | if wait { 0 } else { libc::LOCK_NB };
+    if unsafe { libc::flock(lock.as_raw_fd(), flags) } != 0 {
         return Err("SEAL-C continuity busy; retry without key mutation".into());
     }
     Ok(Some(Guard(lock, created)))
@@ -389,6 +445,50 @@ fn material(backend: &impl Backend, i: &ItemIdentity, m: &Marker) -> Result<Mate
         keys,
     })
 }
+fn fresh_namespace(
+    legacy_folder: &Path,
+    i: &ItemIdentity,
+    backend: &impl Backend,
+) -> Result<(), String> {
+    match fs::symlink_metadata(legacy_folder) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
+        Err(_) => {
+            return Err("SEAL-C legacy namespace presence unavailable; enrollment refused".into())
+        }
+        Ok(_) => {
+            return Err(
+                "SEAL-C existing file-key namespace retained; implicit migration prohibited".into(),
+            )
+        }
+    }
+    match backend.read(i) {
+        Err(BackendError::Missing) => Ok(()),
+        _ => Err("SEAL-C namespace not demonstrably new; enrollment refused".into()),
+    }
+}
+fn verification_material(
+    backend: &impl Backend,
+    i: &ItemIdentity,
+    m: &Marker,
+    operation: &Operation,
+) -> Result<Material, String> {
+    let mut keys = BTreeMap::new();
+    let current = m
+        .keys
+        .last()
+        .ok_or("SEAL-C no committed key; enrollment pending")?
+        .id
+        .clone();
+    for (index, k) in m.keys.iter().enumerate() {
+        if let Operation::VerifyKey(wanted) = operation {
+            if wanted != &k.id {
+                continue;
+            }
+        }
+        keys.insert(k.id.clone(), read_key(backend, i, index, k)?);
+    }
+    Ok(Material { current, keys })
+}
 /// Marker is continuity evidence within a compiled namespace, never namespace
 /// authority. No read failure causes creation. Pending+missing stays blocked.
 fn operate(
@@ -401,9 +501,53 @@ fn operate(
     entropy: &mut impl FnMut() -> Result<[u8; 32], String>,
 ) -> Result<Material, String> {
     validate_identity(i)?;
-    let _lock = guard(
+    // First-enrollment admission is serialized outside the not-yet-created
+    // continuity directory. A transient keychain refusal leaves no empty
+    // enrollment directory that could masquerade as a crashed reservation.
+    let _enrollment = if matches!(operation, Operation::Enroll) {
+        let parent = directory
+            .parent()
+            .ok_or("SEAL-C continuity parent absent")?;
+        crate::storage::check_path(parent)?;
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .mode(0o600)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+            .open(parent.join(".seal-c-enrollment.lock"))
+            .map_err(|_| "SEAL-C enrollment lock unavailable")?;
+        if !private_metadata(
+            &file
+                .metadata()
+                .map_err(|_| "SEAL-C enrollment lock unavailable")?,
+            false,
+        ) {
+            return Err("SEAL-C enrollment lock unsafe".into());
+        }
+        if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } != 0 {
+            return Err("SEAL-C enrollment lock unavailable".into());
+        }
+        Some(Guard(file, false))
+    } else {
+        None
+    };
+    if matches!(operation, Operation::Enroll)
+        && !directory
+            .try_exists()
+            .map_err(|_| "SEAL-C continuity presence unavailable")?
+    {
+        if !allow_first {
+            return Err("SEAL-C explicit first enrollment not admitted".into());
+        }
+        fresh_namespace(legacy_folder, i, backend)?;
+    }
+    let _lock = guard_mode(
         directory,
         matches!(operation, Operation::Enroll) && allow_first,
+        verifying(&operation),
+        !verifying(&operation),
     )?
     .ok_or("SEAL-C keychain continuity not enrolled; not verified here")?;
     let mut m = match load(directory, i)? {
@@ -417,23 +561,8 @@ fn operate(
             if !matches!(operation, Operation::Enroll) || !allow_first {
                 return Err("SEAL-C explicit first enrollment not admitted".into());
             }
-            match fs::symlink_metadata(legacy_folder) {
-                Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
-                Err(_) => {
-                    return Err(
-                        "SEAL-C legacy namespace presence unavailable; enrollment refused".into(),
-                    )
-                }
-                Ok(_) => return Err(
-                    "SEAL-C existing file-key namespace retained; implicit migration prohibited"
-                        .into(),
-                ),
-            }
-            // Fixed primary account survives marker loss and blocks regeneration.
-            match backend.read(i) {
-                Err(BackendError::Missing) => (),
-                _ => return Err("SEAL-C namespace not demonstrably new; enrollment refused".into()),
-            }
+            // Fresh admission was checked while holding the enrollment lock;
+            // all participating initial enrollments share that same lock.
             Marker {
                 format: "capture-seal-keychain-continuity.s1".into(),
                 scope_sha256: scope(i),
@@ -442,6 +571,11 @@ fn operate(
             }
         }
     };
+    if verifying(&operation) {
+        // A pending item has never sealed a capture. Historical committed keys
+        // remain verifiable without reading or committing that pending item.
+        return verification_material(backend, i, &m, &operation);
+    }
     if let Some(pending) = m.pending.clone() {
         // Preserve an incomplete rotation if any earlier retained item is lost;
         // do not advance the committed current-key marker on partial continuity.
@@ -451,9 +585,6 @@ fn operate(
         // Readback proves actual bytes after a crash/unknown add outcome. A
         // missing item NEVER retries add or silently creates replacement bytes.
         read_key(backend, i, m.keys.len(), &pending)?;
-        if matches!(operation, Operation::Verify) {
-            return Err("SEAL-C enrollment/rotation pending explicit write-path recovery; not verified here".into());
-        }
         m.keys.push(pending);
         m.pending = None;
         publish(directory, &m)?;

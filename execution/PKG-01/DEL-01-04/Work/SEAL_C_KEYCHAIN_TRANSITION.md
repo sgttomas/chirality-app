@@ -35,17 +35,31 @@ three-field publisher input is unchanged. Private `KeychainAuthority` constructi
 requires that exact compiled selection, checked publisher subject match and the
 running App's S4 installed-integrity observation. It is not deserializable.
 The native backend borrows it and rejects service/group or account outside its
-admitted primary/rotation namespace.
+admitted primary/rotation namespace. Successful authority is held only in process
+memory and reused for ordinary seal/verify operations. Enrollment and rotation
+revalidate the own-App authority; failed refresh revokes the held authority.
+Revocation here clears the held capability for subsequent acquisitions; an
+already in-flight operation holding its prior Arc may finish. There is no
+asynchronous cancellation or continuous kernel-signature monitoring claim.
+No key bytes or provider availability are cached by this authority cache. The
+stable installed-bundle/parent assumption and S4 residual limits remain explicit;
+this is not continuous signature monitoring or an immutable installation claim.
 
 ## Platform policy and signing dependency
 
 The backend uses Security.framework's Data Protection keychain generic-password
 class, `kSecUseDataProtectionKeychain=true`, explicit service/account/access-group,
 `kSecAttrSynchronizable=false`, `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`,
-and `kSecUseAuthenticationUIFail`. Reads request one matching item's attributes
+and `kSecUseAuthenticationUIFail`. These no-UI query constants are deprecated
+on current SDKs (replacement: authentication context with interactionNotAllowed);
+source use is retained as an explicit compatibility policy, not an observed no-UI
+guarantee. Actual no-UI behavior must be qualified on the signed candidate before
+activation; unsupported or unavailable results refuse. Reads request one matching item's attributes
 and data; returned namespace, accessibility, non-sync and bounded data must match.
-The queried class is fixed; any returned class must agree. Missing expected
-attributes refuse. The API is read/add only: no update, delete, enumeration,
+The queried class is fixed; any returned class must agree. Standard CFType
+dictionary callbacks retain values and compare keys by value. Returned non-sync
+accepts CFBoolean false or exact CFNumber zero; missing expected attributes
+still refuse. Actual returned attribute shape remains native qualification. The API is read/add only: no update, delete, enumeration,
 legacy keychain fallback or authentication prompt. A duplicate add is a failure,
 not permission to overwrite. Native errors are categorical and omit key bytes,
 identity values and paths.
@@ -78,9 +92,17 @@ retain SEAL-C's existing domain/key-id derivation; the full digest checks
 readback. Neither keys nor HMAC values are stored in this marker. It is a
 continuity guard, not namespace authority, a platform receipt or origin proof.
 
-- Private owned folder/file checks, no-follow opens and an exclusive nonblocking
-  lock serialize participating-App writers. Busy means retry with no add.
-- Fresh explicit enrollment refuses if any legacy capture-seal directory exists;
+- Private owned folder/file checks and no-follow opens guard participating-App
+  coordination. Verify holds a shared nonblocking lock and reads only the requested
+  committed key. Seal/enrollment/rotation wait for the exclusive lock, so an
+  ordinary concurrent verification cannot cause a newly captured act to be
+  permanently unsealed just because the reader held the lock. An unavailable
+  provider still produces its truthful failure limit; no timeout means success.
+- Fresh admission takes a separate parent enrollment lock and checks legacy
+  namespace absence and primary-item absence BEFORE creating the continuity
+  directory. Transient first-use denial/lock failure leaves no poisoned empty
+  namespace and can retry under the same lock. The lock file is not evidence of
+  successful enrollment. Fresh explicit enrollment refuses if any legacy capture-seal directory exists;
   only presence is checked, with no legacy key read/import/reseal. A new v4
   production namespace gets its own key, not implicit development continuity.
 - A fixed primary keychain account is checked before enrollment. Existing or
@@ -94,8 +116,10 @@ continuity guard, not namespace authority, a platform receipt or origin proof.
   error, duplicate, timeout/unknown outcome or readback failure leaves reservation
   intact; none proves success. No add is retried while pending.
 - A later seal/enrollment/rotation write path may commit pending only after
-  matching actual key ID/full digest readback. Missing/malformed/denied/locked
-  pending items remain blocked. Verify alone never commits enrollment/recovery.
+  matching actual key ID/full digest readback and retained prior items.
+  Missing/malformed/denied/locked pending items block new sealing/rotation.
+  Verify never reads or commits pending: it may still verify a capture using its
+  committed historical key. Pending-only first enrollment has no usable key.
 - Rotation first validates all retained keys, reserves one new key, adds an
   immutable item with account `<primary>.rotation.<16-lowerhex-keyId>`, and
   commits after readback. Prior items/IDs remain held. Duplicate IDs and the
@@ -114,8 +138,9 @@ HMAC method/domain/canonical capture facts are unchanged; `recordId` remains
 outside the seal as before. Retained keys verify prior captures without reseal.
 Keychain selection changes the verification-cache basis to a new per-call
 reobservation token. File timestamps cannot cache a keychain success: every
-consumer read must reverify the provider, including lock/denial/missing/rotation
-changes. This deliberately trades caching for truthful availability. It does
+consumer read must reverify its required key's provider availability, including
+lock/denial/missing/rotation changes. It does not repeat a full bundle validation
+per capture or read every historical key for a single verification. This deliberately trades caching for truthful availability. It does
 not make reads atomic with later user actions or with external keychain changes.
 
 The key bytes are delivered to process memory for HMAC. A process/agent that
@@ -155,3 +180,20 @@ ignored. CI-selection tests passed 62 and deliverable validation reported no
 errors. These checks include synthetic protocol fixtures only and do not inspect
 or operate the retained native candidate/AppData or any real keychain. Later
 review repairs and exact-head check results remain in the reviewed PR.
+
+Independent review of 5d42f4dd found no merge blocker behind None, but identified
+activation-relevant concurrency, refused-enrollment retry, pending historical
+verification and repeated full-bundle-validation defects. They were repaired in
+this PR rather than left as activation debt. Source regressions cover concurrent
+shared verification/Seal, transient initial denial then successful enrollment,
+requested-key-only historical verification during failed rotation, and cached
+authority refresh failure revocation. A bounded independent repair recheck and
+exact-head checks are recorded in the PR. Real no-UI/returned-attribute/access-group
+qualification remains separate; no SecItem call was made by source tests.
+
+The repaired provider cohort passed 25 tests before the final concurrent initial
+enrollment assertion; the broader seal filter passed 23 and installed-observer
+ABI regression cohort passed four. The added SDK comparison corrected the existing
+CFNumberGetValue parameter from i32 to CFIndex/isize in installed_custody.rs,
+without changing its policy. Final concurrency and exact-head hosted results
+are recorded in the PR; no native keychain behavior is inferred.

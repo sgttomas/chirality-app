@@ -51,7 +51,12 @@ not a keychain namespace authorization or signed platform receipt. Durable
 reservation precedes add; exact key readback precedes commit. Unknown outcome,
 missing/locked/denied item and duplicate add never imply success or permit
 replacement. Rotation retains earlier items/IDs; no delete/reset/migration path
-is provided. Cache users reverify provider availability on each read.
+is provided. Cache users reverify the requested committed key on each read, even while a
+pending rotation remains blocked. Authority is process-local, initially validated
+and rechecked for enrollment/rotation; failed recheck revokes it. Seal waits for
+concurrent verification readers instead of recording an unsealed act due only
+to ordinary lock contention. First-use denial is checked before namespace
+creation so enrollment can retry without deletion/reset.
 
 A future signed-candidate witness must establish admitted membership/no-UI item
 access, explicit fresh enrollment/restart/readback, retained-key rotation and
@@ -68,3 +73,13 @@ actors. Same-user marker tampering/rollback and external deletion remain stated
 limits. Packaging owns the runbook/configuration/profile/witness inputs; runtime
 owns the provider and failure semantics; parent owns integration and reserved
 owner choices remain reserved.
+
+Native qualification notes from SDK review: dictionaries now use CFType equality/
+retain callbacks; returned non-sync accepts boolean false or exact numeric zero,
+never absent/unknown values. The no-UI query flags are deprecated on current SDKs;
+actual suppression/support must be observed before signing-stage activation.
+This source preparation does not establish successful no-UI operation. A modern
+authentication-context implementation, if required by the actual candidate,
+needs reviewed source behavior before reliance. PACKAGING I-4/G-8/SIGN-3's
+historical SEAL-2 wording must be read with this adopted SEAL-C signing obligation;
+SEAL-2 remains deferred and no broader guarantee is inferred.

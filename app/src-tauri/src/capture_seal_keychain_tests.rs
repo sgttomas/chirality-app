@@ -236,7 +236,7 @@ fn seal_keychain_busy_and_legacy_namespace_refuse_without_key_mutation() {
     let b = Mock::default();
     let lock = guard(&f.dir, true).unwrap();
     assert!(f
-        .run(&b, Operation::Enroll, 1)
+        .run(&b, Operation::Verify, 1)
         .err()
         .unwrap()
         .contains("busy"));
@@ -334,6 +334,12 @@ fn seal_keychain_real_capture_dispatch_cache_refresh_and_rotation_keep_old_seals
     *backend.read_error.lock().unwrap() = None;
     crate::capture_seal::rotate().unwrap();
     crate::capture_seal::verify(&project, &original).unwrap();
+    *backend.add_mode.lock().unwrap() = 1;
+    assert!(crate::capture_seal::rotate().is_err());
+    let pending_bytes = fs::read(fixture.dir.join(MARKER)).unwrap();
+    crate::capture_seal::verify(&project, &original).unwrap();
+    assert_eq!(fs::read(fixture.dir.join(MARKER)).unwrap(), pending_bytes);
+
     assert_eq!(capture, original);
 }
 #[test]
@@ -431,4 +437,118 @@ fn seal_keychain_pending_rotation_with_lost_prior_key_does_not_commit() {
     assert!(f.run(&b, Operation::Seal, 3).is_err());
     assert_eq!(fs::read(f.dir.join(MARKER)).unwrap(), before);
     assert_eq!(*b.adds.lock().unwrap(), 2);
+}
+
+#[test]
+fn seal_keychain_temporary_initial_denial_does_not_poison_enrollment() {
+    let f = Fixture::new();
+    let b = Mock::default();
+    *b.read_error.lock().unwrap() = Some(BackendError::Unavailable(-34018));
+    assert!(f.run(&b, Operation::Enroll, 1).is_err());
+    assert!(!f.dir.exists());
+    *b.read_error.lock().unwrap() = None;
+    assert!(f.run(&b, Operation::Enroll, 1).is_ok());
+    assert_eq!(*b.adds.lock().unwrap(), 1);
+}
+#[test]
+fn seal_keychain_pending_rotation_preserves_historical_verification_and_single_key_read() {
+    let f = Fixture::new();
+    let b = Mock::default();
+    let first = f.run(&b, Operation::Enroll, 1).unwrap();
+    *b.add_mode.lock().unwrap() = 1;
+    assert!(f.run(&b, Operation::Rotate, 2).is_err());
+    let marker = fs::read(f.dir.join(MARKER)).unwrap();
+    b.reads.lock().unwrap().clear();
+    let held = f
+        .run(&b, Operation::VerifyKey(first.current.clone()), 9)
+        .unwrap();
+    assert_eq!(held.keys[&first.current], [1; 32]);
+    assert_eq!(b.reads.lock().unwrap().len(), 1);
+    assert_eq!(fs::read(f.dir.join(MARKER)).unwrap(), marker);
+    assert_eq!(*b.adds.lock().unwrap(), 2);
+    assert!(f.run(&b, Operation::Seal, 9).is_err());
+    assert_eq!(*b.adds.lock().unwrap(), 2);
+}
+#[test]
+fn seal_keychain_seal_waits_for_shared_verification_without_losing_capture() {
+    let f = std::sync::Arc::new(Fixture::new());
+    let b = std::sync::Arc::new(Mock::default());
+    f.run(&b, Operation::Enroll, 1).unwrap();
+    let held = guard_mode(&f.dir, false, true, false).unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let f2 = f.clone();
+    let b2 = b.clone();
+    let worker = std::thread::spawn(move || {
+        let material = f2.run(&b2, Operation::Seal, 9).unwrap();
+        tx.send(material.current).unwrap();
+    });
+    assert!(matches!(
+        rx.recv_timeout(std::time::Duration::from_millis(30)),
+        Err(std::sync::mpsc::RecvTimeoutError::Timeout)
+    ));
+    drop(held);
+    assert_eq!(
+        rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap(),
+        key_id(&[1; 32])
+    );
+    worker.join().unwrap();
+    assert_eq!(*b.adds.lock().unwrap(), 1);
+}
+
+#[test]
+fn seal_keychain_authority_is_process_local_reused_and_failed_refresh_revokes() {
+    let f = Fixture::new();
+    let resources = f.root.join("Synthetic.app/Contents/Resources");
+    fs::create_dir_all(&resources).unwrap();
+    let state = Mutex::new(None);
+    let calls = std::cell::Cell::new(0);
+    let make = || {
+        calls.set(calls.get() + 1);
+        Ok(KeychainAuthority {
+            identity: f.identity.clone(),
+            allow_first: true,
+            _installed: crate::installed_custody::synthetic_for_tests(&resources).unwrap(),
+        })
+    };
+    let first = cached_authority(&state, false, make).unwrap();
+    let next = cached_authority(&state, false, make).unwrap();
+    assert!(std::sync::Arc::ptr_eq(&first, &next));
+    assert_eq!(calls.get(), 1);
+    cached_authority(&state, true, make).unwrap();
+    assert_eq!(calls.get(), 2);
+    assert!(cached_authority(&state, true, || Err("synthetic changed bundle".into())).is_err());
+    assert!(state.lock().unwrap().is_none());
+    assert!(cached_authority(&state, false, || Err("still unavailable".into())).is_err());
+}
+#[test]
+fn seal_keychain_closed_marker_requires_explicit_pending() {
+    let f = Fixture::new();
+    let b = Mock::default();
+    f.run(&b, Operation::Enroll, 1).unwrap();
+    let mut raw: serde_json::Value =
+        serde_json::from_slice(&fs::read(f.dir.join(MARKER)).unwrap()).unwrap();
+    raw.as_object_mut().unwrap().remove("pending");
+    fs::write(f.dir.join(MARKER), serde_json::to_vec(&raw).unwrap()).unwrap();
+    assert!(f.run(&b, Operation::Verify, 1).is_err());
+}
+
+#[test]
+fn seal_keychain_two_initial_enrollments_serialize_one_add() {
+    let f = std::sync::Arc::new(Fixture::new());
+    let b = std::sync::Arc::new(Mock::default());
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+    let mut threads = vec![];
+    for key in [1, 2] {
+        let f = f.clone();
+        let b = b.clone();
+        let barrier = barrier.clone();
+        threads.push(std::thread::spawn(move || {
+            barrier.wait();
+            f.run(&b, Operation::Enroll, key).unwrap().current
+        }));
+    }
+    let a = threads.remove(0).join().unwrap();
+    let other = threads.remove(0).join().unwrap();
+    assert_eq!(a, other);
+    assert_eq!(*b.adds.lock().unwrap(), 1);
 }

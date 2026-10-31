@@ -290,7 +290,7 @@ pub fn verify(root: &Path, capture: &Value) -> Result<(), String> {
     let value = seal["value"].as_str().unwrap_or("");
     let (id, mac) = value.split_once(':').unwrap_or(("", ""));
     let folder = folder_for(root).map_err(|e| format!("capture seal not checked: {e}; not verified here"))?;
-    let ring=match crate::capture_seal_keychain::dispatch(&folder,crate::capture_seal_keychain::Operation::Verify){
+    let ring=match crate::capture_seal_keychain::dispatch(&folder,crate::capture_seal_keychain::Operation::VerifyKey(id.to_owned())){
         Some(result)=>result.map(|material|Some(Keyring{current:material.current,keys:material.keys,raw:Value::Null})),
         None=>load(&folder),
     }.map_err(|e|format!("capture seal not checked: {e}; not verified here"))?;

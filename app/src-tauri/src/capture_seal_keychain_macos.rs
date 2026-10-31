@@ -95,6 +95,23 @@ mod native {
         static kSecReturnData: Ref;
         static kSecValueData: Ref;
     }
+    #[repr(C)]
+    struct KeyCallbacks {
+        version: isize,
+        retain: Ref,
+        release: Ref,
+        copy_description: Ref,
+        equal: Ref,
+        hash: Ref,
+    }
+    #[repr(C)]
+    struct ValueCallbacks {
+        version: isize,
+        retain: Ref,
+        release: Ref,
+        copy_description: Ref,
+        equal: Ref,
+    }
     #[link(name = "CoreFoundation", kind = "framework")]
     extern "C" {
         fn CFRelease(value: Ref);
@@ -112,12 +129,18 @@ mod native {
             value_callbacks: Ref,
         ) -> Ref;
         fn CFDictionaryGetValue(dictionary: Ref, key: Ref) -> Ref;
+        fn CFNumberGetTypeID() -> usize;
+        fn CFNumberGetValue(number: Ref, kind: isize, value: *mut c_void) -> u8;
+        #[cfg(test)]
+        fn CFNumberCreate(allocator: Ref, kind: isize, value: *const c_void) -> Ref;
         fn CFBooleanGetTypeID() -> usize;
         fn CFBooleanGetValue(boolean: Ref) -> u8;
         fn CFDataGetTypeID() -> usize;
         fn CFDataCreate(allocator: Ref, bytes: *const u8, length: isize) -> Ref;
         fn CFDataGetLength(data: Ref) -> isize;
         fn CFDataGetBytePtr(data: Ref) -> *const u8;
+        static kCFTypeDictionaryKeyCallBacks: KeyCallbacks;
+        static kCFTypeDictionaryValueCallBacks: ValueCallbacks;
         static kCFBooleanTrue: Ref;
         static kCFBooleanFalse: Ref;
     }
@@ -141,16 +164,16 @@ mod native {
     fn dictionary(entries: &[(Ref, Ref)]) -> Result<Owned, BackendError> {
         let keys: Vec<_> = entries.iter().map(|entry| entry.0).collect();
         let values: Vec<_> = entries.iter().map(|entry| entry.1).collect();
-        // Null callbacks mean borrowed identity/value pointers. The Owned strings
-        // and data below outlive the dictionary and the synchronous Security call.
+        // Standard CFType callbacks retain values and compare keys by value,
+        // matching the documented CFDictionary/SecItem contract.
         owned(unsafe {
             CFDictionaryCreate(
                 ptr::null(),
                 keys.as_ptr(),
                 values.as_ptr(),
                 entries.len() as isize,
-                ptr::null(),
-                ptr::null(),
+                std::ptr::addr_of!(kCFTypeDictionaryKeyCallBacks).cast(),
+                std::ptr::addr_of!(kCFTypeDictionaryValueCallBacks).cast(),
             )
         })
     }
@@ -214,8 +237,19 @@ mod native {
             get(kSecAttrAccessible),
             kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         )?;
-        let sync = typed(get(kSecAttrSynchronizable), CFBooleanGetTypeID())?;
-        if CFBooleanGetValue(sync) != 0 {
+        let sync = get(kSecAttrSynchronizable);
+        if sync.is_null() {
+            return Err(BackendError::Invalid);
+        }
+        let non_sync = if CFGetTypeID(sync) == CFBooleanGetTypeID() {
+            CFBooleanGetValue(sync) == 0
+        } else if CFGetTypeID(sync) == CFNumberGetTypeID() {
+            let mut value = 1i64;
+            CFNumberGetValue(sync, 4, (&mut value as *mut i64).cast()) != 0 && value == 0
+        } else {
+            false
+        };
+        if !non_sync {
             return Err(BackendError::Invalid);
         }
         let data = typed(get(kSecValueData), CFDataGetTypeID())?;
@@ -286,6 +320,24 @@ mod native {
                     checked_result(result.0, &identity).unwrap(),
                     b"invented-keyring"
                 );
+                for value in [0i64, 1i64] {
+                    let number = owned(CFNumberCreate(
+                        ptr::null(),
+                        4,
+                        (&value as *const i64).cast(),
+                    ))
+                    .unwrap();
+                    let mut numeric = valid.clone();
+                    numeric
+                        .iter_mut()
+                        .find(|entry| entry.0 == kSecAttrSynchronizable)
+                        .unwrap()
+                        .1 = number.0;
+                    assert_eq!(
+                        checked_result(dictionary(&numeric).unwrap().0, &identity).is_ok(),
+                        value == 0
+                    );
+                }
                 for key in [
                     kSecAttrService,
                     kSecAttrAccount,
