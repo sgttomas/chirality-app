@@ -100,3 +100,23 @@ review and CI are pending. After parent integration, the standing bounded task
 permits one justified invocation through fresh gates; no blind loop, broader
 permission or second ceremonial approval is implied.295s and all phase reserves
 remain unchanged. The usable-capture result does not complete native B or release.
+
+## Narrow review disposition
+
+Claude Opus5.5/high reviewed65e2edb5 and found no blocking findings. The reviewer
+verified click-only annotations after the exact late binding check, unchanged
+scroll/focus/custody/effect gates, the on-link pixel mapping, fixed v5 delta,
+19 dependency/copy identities and87 archive checksums;28 focused tests passed.
+This is source-level scrutiny, not event-delivery or execution qualification.
+The public SDK lists fields91/92 by name without describing their semantics;
+setting92 equal to91 remains an explicit hypothesis. Helper source hashes and
+recorded event_routes distinguish this revision despite the unchanged UI profile
+label. No optional profile bump or source regeneration was made.
+
+If the next bounded attempt again shows no effect, preserve that observation,
+refuse further input and perform the known safe cleanup. Return to diagnosis;
+do not append speculative event fields, add hover/delays/clicks or switch input
+transport inside the live attempt. Such a result would show this annotation was
+insufficient in that run, not uniquely identify or conclusively exclude a cause.
+Target selection and effect readback should be prompt, but always use the current
+verified image after its receipt; no precomputed point or moved phase clock.
