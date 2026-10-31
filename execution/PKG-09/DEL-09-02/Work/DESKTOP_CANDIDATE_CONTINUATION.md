@@ -1,9 +1,101 @@
 # Current desktop candidate continuation
 
-Native setup/save/normal quit passed at 2026-10-30 21:00:48–21:00:57 UTC on
+Original-candidate native setup/save/normal quit passed at 2026-10-30 21:00:48–21:00:57 UTC on
 the retained candidate. The actual native confirmation was an agent action.
 Supplier startup, saved-request relaunch and the complete joined qualification
 remain unobserved by this contribution.
+
+## Successor after the startup/quit custody repair
+
+PR #33 integrated the focused repair as `93ccd285a63312c861a7da47e3ab002b13c29a50`.
+Its tree is identical to checked build source
+`fdcf608fb57c4f8299c7440ffc56519314046cff`; that actual source identity is
+preserved for successor **`fdcf608fb5-23c6c3f22f5e`**, rather than relabelled to
+the merge commit. The offline debug/custom-protocol `--no-sign` build completed
+successfully on 2026-10-30. It includes the retained stock 0.160.0 package,
+whose bundled files/modes matched the measured authorized archive. This remains
+an unsigned, unqualified development candidate, not a supplier qualification
+pin or installed-custody issuer.
+
+The [identity record](../Evidence/EXP/fdcf608fb5-23c6c3f22f5e/candidate-identification.json)
+binds bundle-tree v2
+`23c6c3f22f5e240440449eaa573737ef556cdac88370633e5b7886a741b6a2a3`,
+75 inventory entries including root, and source tree
+`2353ab5a06096d1cffbf17cdf2ddd90354cc05c7` (2,788 tracked files verified).
+Build invocation/configuration, source preparation, supplier acquisition and
+inventory records are retained alongside it. The build root is
+`/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/`; its bundle
+is `target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app`.
+The new identifier is `dev.chirality.app-v4.candidate.20261030-eqxsxv4n`.
+Its three declared App-data/WebKit/cache locations were absent at identification.
+
+Successor native A **passed** on its first attempt at
+2026-10-30 22:28:05.925–22:28:16.912 UTC. B has **not run**.
+The [successor A-only adapter](native_successor_setup.py) uses fresh invented
+inputs. Seven invented-file admission tests and a complete bundle inventory
+recheck passed. The adapter reuses the maintained A execution, supervision,
+settlement, form and AX code, binding its dependencies and explicit successor
+record/input bytes. It retains fork/exec/network/home containment and actual
+native setup confirmation; no injected startup request is made. First launch
+requires all three new namespace locations absent. Failure preserves observed
+namespace metadata; automatic partial-state retries are refused without deletion.
+Independent prelaunch review by Claude Opus 5.5/high at `306262af` found no
+admission/containment defect and one evidence overwrite on repeated execution.
+The manager repaired that finding with a pre-execution used-attempt refusal,
+exclusive attempt reservation and write-once post-run records. Metadata-walk
+errors are explicit. Seven admission tests pass, including the actual rebound
+base admission path and a second execution preserving the first snapshot.
+B remains a separately reviewed fork-admitting route with actual
+owned-process settlement and explicit detached-helper limits. No workflow,
+recovery, access-mode or personal-human-act outcome follows from the build.
+
+The [native A result](../Evidence/EXP/fdcf608fb5-23c6c3f22f5e/native-A-20261030T222805Z/result.json)
+retains full prelaunch inventory, native snapshots, owned-window captures,
+confirmation, saved bindings, controller sources and SHA256SUMS. The agent
+confirmed the actual native setup question at 22:28:16.227 UTC. The saved
+version-1 request's SHA-256 is
+`ef606ee5cf6dfe3bcd9b6c2b150a89e7a2710c6289c56d180c8e6ea5dd7705de`;
+its full native references, private metadata and three shared links were
+validated. Normal native Quit reaped the original App with code 0, without
+forced termination, guard abort or logging failure. No separate Quit question
+was observed in this idle setup state. No supplier ran under A's deny-fork
+and exact-App-exec policy; the repaired supplier-settlement path is not
+qualified by this idle quit.
+
+Retain successful root
+`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-A-irf2swd9/` and the
+new saved App-data/account state as B input. Never rerun A or remove that state
+to manufacture absence. Setup and Quit were agent actions under owner
+direction, not personally performed human acts. The raw `preview.txt` retains
+rendered trailing spaces; its bytes and digests are not trimmed.
+
+The packaging/distribution manager may inspect this exact bundle and its
+records read-only for inclusion/readiness work; that lane does not mutate the
+qualification artifact, state or scratch and does not supply installed custody.
+Preserve this successor root, the original candidate/A state below, and repair
+and review scratch until consumers and integration release them. The original
+candidate's applicability comparison below is historical to its named main;
+the changed startup/quit runtime requires affected A/B checks on this successor.
+
+PR #36's production S4 change was subsequently integrated from actual main
+`3cb060164ec8544bdd7ef700d9e095314d63a7e1` without rebuilding or relabelling
+this retained debug candidate. Integration comparison against reviewed native
+head `bc6929e1` found the native controllers/evidence, probe custody, Quit,
+process-group custody, desktop startup, frontend, instruction/workflow resources,
+locks and debug packaging configuration byte-identical. The two hosting edits
+pass a typed installed observer only for a prepared successor publication and
+use a standing helper whose legacy/development values are unchanged. The new
+observer's compiled publisher requirement remains `None`; production S4/FP2
+execution is not established by this comparison or by debug A.
+
+Focused post-merge checks passed: four installed-custody fixtures, six S4
+successor fixtures (including legacy/development standing compatibility), the
+production-override refusal case, seven probe fixtures, all 25 native-controller
+tests and 62 CI-selection tests. These support integration of the reviewed
+source changes; they do not convert the retained `fdcf608f` build into a
+current-main or verified-production artifact. B and later joined journeys
+remain bound to its exact recorded source/configuration. Exact-head CI is
+rerun for the integration return. Original and successor saved state stay intact.
 
 The owner's 2026-10-30 steering selects release evidence item 1 through
 reviewed, merged results. App HELP_HUMAN owns integration. This continuation

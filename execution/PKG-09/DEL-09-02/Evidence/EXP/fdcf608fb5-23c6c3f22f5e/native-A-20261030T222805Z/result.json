@@ -1,0 +1,14 @@
+{
+  "candidate": "fdcf608fb5-23c6c3f22f5e",
+  "phase": "A only",
+  "saved": true,
+  "error": null,
+  "guard_reason": null,
+  "exit_code": 0,
+  "forced": false,
+  "logging_errors": [],
+  "normal_setup_save_quit": true,
+  "supplier": "execution denied by phase-A policy; no relaunch attempted",
+  "actor": "agent under owner direction; not a personal human act",
+  "limits": "Native setup only; no workflow/recovery/access-mode qualification or human-act pass."
+}
