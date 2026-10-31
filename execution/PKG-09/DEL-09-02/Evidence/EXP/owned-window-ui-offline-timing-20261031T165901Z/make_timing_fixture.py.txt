@@ -1,0 +1,27 @@
+from pathlib import Path
+import hashlib,importlib.util,json,tempfile,textwrap,uuid
+from PIL import Image,ImageDraw,ImageFont
+repo=Path('/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification')
+s=importlib.util.spec_from_file_location('invented_observation',repo/'execution/PKG-09/DEL-09-02/Work/test_native_successor_relaunch.py');t=importlib.util.module_from_spec(s);s.loader.exec_module(t)
+r=Path(tempfile.mkdtemp(prefix='app-ui-timing-fixture-',dir='/Users/ryan/dev/chirality-t3/scratch'));(r/'codex-home').mkdir(mode=0o700)
+bundle=r/'invented.app';binary=bundle/'Contents/Resources/codex/bin/codex';binary.parent.mkdir(parents=True);binary.write_text('never execute '+str(uuid.uuid4()))
+t.G={'appSession':'app-session:'+str(uuid.uuid4()),'home':'app-home:'+hashlib.sha256(uuid.uuid4().bytes).hexdigest(),'spawnCounter':3}
+observed=t.observation(bundle)
+header='State: ready · generation '+json.dumps(t.G)+' · version codex-cli 0.160.0 · verification {}'
+life={k:observed[k] for k in ('lifecycle','clientRequests')};envelopes=observed['envelopes']
+expected={'header':header,'lifecycle_section':life,'envelopes':envelopes}
+(r/'ground-truth.json').write_text(json.dumps(expected,indent=2));(r/'value.json').write_text(json.dumps({'bundle':str(bundle),'expected_generation_home':t.G['home']}))
+lines=[]
+for label,text in [('HEADER',header),('LIFECYCLE + CLIENT REQUESTS',json.dumps(life,indent=2)),('RAW ENVELOPES',json.dumps(envelopes,indent=2))]:
+ lines.extend(['',label])
+ for line in text.splitlines():lines.extend(textwrap.wrap(line,width=122,replace_whitespace=False,drop_whitespace=False) or [''])
+font=ImageFont.truetype('/System/Library/Fonts/Menlo.ttc',25)
+pages=[]
+for start in range(0,len(lines),34):
+ im=Image.new('RGB',(2200,1600),'white');draw=ImageDraw.Draw(im)
+ draw.text((40,20),'INVENTED OFFLINE FIXTURE — NOT APP/GUI QUALIFICATION',font=font,fill='darkred')
+ draw.text((40,65),f'Page {len(pages)+1} | Transcribe exactly; no ground-truth read before submission',font=font,fill='black')
+ for i,line in enumerate(lines[start:start+34]):draw.text((40,130+i*40),line,font=font,fill='black')
+ path=r/f'page-{len(pages)+1}.png';im.save(path);pages.append(str(path))
+(r/'layout.json').write_text(json.dumps({'pages':pages,'lines':len(lines),'width':2200,'height':1600,'row_height':40,'rows_per_page':34,'fixture_limit':'Idealized diagnostic text only; no navigation/render/capture latency. Agent transcription timing lower-bound example, not actual GUI guarantee.'},indent=2))
+print(json.dumps({'root':str(r),'pages':pages,'lines':len(lines)}))

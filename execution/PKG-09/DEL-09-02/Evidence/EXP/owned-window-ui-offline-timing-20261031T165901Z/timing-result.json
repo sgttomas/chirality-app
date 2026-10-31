@@ -1,0 +1,9 @@
+{
+  "scope": "offline invented UI transcription, not GUI qualification",
+  "started_at": "2026-10-31T16:59:01.080285+00:00",
+  "passed": true,
+  "exact_match": true,
+  "elapsed_seconds": 17.99359600013122,
+  "finished_at": "2026-10-31T16:59:19.073962+00:00",
+  "limits": "Idealized three text pages only. Includes agent/tool transcription latency; excludes native screenshot/render/navigation. One sample, not a live-time guarantee."
+}

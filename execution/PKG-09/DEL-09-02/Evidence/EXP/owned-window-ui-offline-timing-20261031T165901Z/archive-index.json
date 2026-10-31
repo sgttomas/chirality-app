@@ -1,0 +1,65 @@
+{
+  "at": "2026-10-31T17:22:47.280787+00:00",
+  "scope": "Invented three-page visual-transcription/control fixture; not App/native capture/GUI qualification",
+  "actor": "bounded Type2 coding-agent transcription, not personal human act",
+  "resource_window": "Agreed t3_exclusive under memguard; start16:59:01Z end16:59:19Z rc0; no modelserver/oMLX/App/auth/network/guest activity",
+  "result": "exact match and existing ready gate passed;17.993596s; one atomic0600 submission",
+  "limits": "Single idealized82-line sample excludes native capture, rendering and navigation; no live-time guarantee",
+  "files": [
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-ui-timing-fixture-2d85db6u/page-1.png",
+      "archive": "page-1.png",
+      "sha256": "44697dfc3a463d0d44abdfda6f7192d2c12226c6df5f01ce1167083873bf7d7f"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-ui-timing-fixture-2d85db6u/page-2.png",
+      "archive": "page-2.png",
+      "sha256": "8e84148a5d9066c296439b00ca2aec0ab27351db053edd0092ea05504cde7aea"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-ui-timing-fixture-2d85db6u/page-3.png",
+      "archive": "page-3.png",
+      "sha256": "e51a8fa6d3e0d74dad133f9f110f398fe9d6b54d6df39838aeb9a80113ff8fa0"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-ui-timing-fixture-2d85db6u/layout.json",
+      "archive": "layout.json",
+      "sha256": "ace738a4de9e511573abed5473b93c79c4b77c406ea92a2d738e67ddc52770fe"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-ui-timing-fixture-2d85db6u/ground-truth.json",
+      "archive": "ground-truth.json",
+      "sha256": "1a8780922a77046c92b5ffcd6f135c49cfdfab92842ee4cbfe120c75613b7634"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-ui-timing-fixture-2d85db6u/transcription.json",
+      "archive": "transcription.json",
+      "sha256": "0fa166d28e5abfc5f1a904ffd6770ca44712d1aeebab94bf285ca39b438d71bc"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-ui-timing-fixture-2d85db6u/timing-start.json",
+      "archive": "timing-start.json",
+      "sha256": "ac1065fdb79f698ba8dd759e66edfc590aa07b7fcc1e5fc8c3d5b93208024968"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-ui-timing-fixture-2d85db6u/timing-result.json",
+      "archive": "timing-result.json",
+      "sha256": "44b8b4a558a4b72acc140a3fb428fa36b1245067d724a3e9a1aee3f59188fc6d"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-ui-timing-fixture-2d85db6u/trial.py",
+      "archive": "trial.py.txt",
+      "sha256": "3118e1b9c7a19ba783d7e5e0c47c9602f7c87486b9dd95c8ca265a9646dd99bb"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-ui-timing-fixture-2d85db6u/value.json",
+      "archive": "value.json",
+      "sha256": "c876363c82f6f3bca932510d5cf2fba3de34f31c0e711c7f8a9cc7ee2c6a9ad9"
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-owned-window-prep-aqsif0fz/make_timing_fixture.py",
+      "archive": "make_timing_fixture.py.txt",
+      "sha256": "6a8fded47fc6f95e8101b1aebae262480c32318cbe782f2f3db16c88fca4eac4"
+    }
+  ]
+}
