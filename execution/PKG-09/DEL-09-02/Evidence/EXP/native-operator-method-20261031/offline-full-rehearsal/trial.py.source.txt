@@ -1,0 +1,72 @@
+from pathlib import Path
+import datetime,hashlib,importlib.util,json,os,time
+r=Path(__file__).resolve().parent
+source=Path('/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py')
+s=importlib.util.spec_from_file_location('offline_journey_gates',source);b=importlib.util.module_from_spec(s);s.loader.exec_module(b);m=b.screen_support
+stages=json.loads((r/'stages.json').read_text());expected=json.loads((r/'expected.json').read_text());gen=expected['ready']['lifecycle_section']['lifecycle'][0]['generation']
+def now():return datetime.datetime.now(datetime.timezone.utc).isoformat()
+def write(name,value):
+ fd=os.open(r/name,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+ with os.fdopen(fd,'w') as f:json.dump(value,f,indent=2)
+def require(value,message):
+ if not value:raise RuntimeError(message)
+start=time.monotonic();end=start+295;phase=None;phase_end=None;phase_frames=[];results=[];phase_results=[];error=None;pending=False
+write('timing-start.json',{'at':now(),'limit_seconds':295,'scope':'ONE full offline operator journey, no live App/native APIs','allowances':json.loads((r/'fixture-scope.json').read_text())['allowances']})
+print(json.dumps({'event':'TIMING_STARTED','at':now(),'root':str(r)}),flush=True)
+goals={'ready':'Reveal More tools, Host diagnostics, Lifecycle and Raw envelopes; read all3 diagnostic pages then submit complete observed strings.','recheck':'Fresh complete recheck: begin at bottom page3, scroll up through2 to1, then observe all sections from THIS phase.','cleanup-source':'Fresh complete cleanup-source: begin at page1, scroll down through2 to3, then observe all sections from THIS phase.','stop':'After the source gates passed, use Connection & access, then click the observed Stop Codex button once.','stop-confirmation':'Transcribe the complete actual question/title/button and confirm only the matching zero-work Stop effects.','settlement':'Return using More tools; diagnostics is already open so scroll down, read all3 stopped pages and submit the complete LT23/source/protocol witness.'}
+try:
+ # Explicit simulated allowances, not native measurements or deadline extensions.
+ time.sleep(10) #5s admission +5s initial acquisition/capture; prior live work was faster
+ for index,stage in enumerate(stages,1):
+  if stage['phase']!=phase:
+   if phase is not None:phase_results.append({'phase':phase,'elapsed_seconds':time.monotonic()-phase_start})
+   phase=stage['phase'];duration,reserve=m.PHASE_BUDGETS[phase]
+   require(end-time.monotonic()>=duration+reserve,'insufficient downstream phase reserve at '+phase)
+   phase_start=time.monotonic();phase_end=phase_start+duration;phase_frames=[]
+   time.sleep(1) # fresh phase capture allowance
+  require(time.monotonic()<min(phase_end,end),'phase deadline before prompt: '+phase)
+  frame=r/f'frame-{index:03d}.png';frame.write_bytes((r/stage['image']).read_bytes());digest=hashlib.sha256(frame.read_bytes()).hexdigest();phase_frames.append(index)
+  prompt={'at':now(),'step':index,'phase':phase,'goal':goals[phase],'candidate':'invented-full-journey-only','admission_sha256':'0'*64,'frame':{'path':str(frame),'sha256':digest,'sequence':index,'image':{'width':2200,'height':1600,'scale':2}},'control_file':str(r/f'control-{index:03d}.json'),'phase_seconds_remaining':phase_end-time.monotonic(),'effect_readback_required':pending,'phase_capture_references':phase_frames.copy(),'required_sections':['state-generation','lifecycle-clientRequests','raw-envelopes'],'limits':'OFFLINE fixture only. Read actual current image; no expected-file reads, no cached earlier-phase source. Private0600 temp+atomic rename. Native costs are simulated allowances.'}
+  write(f'prompt-{index:03d}.json',prompt);shown=time.monotonic();print(json.dumps({'event':'PROMPT','step':index,'phase':phase,'path':str(r/f'prompt-{index:03d}.json')}),flush=True)
+  path=Path(prompt['control_file'])
+  while not path.exists():
+   require(time.monotonic()<min(phase_end,end),'phase deadline awaiting control: '+phase)
+   time.sleep(.02)
+  require(time.monotonic()<min(phase_end,end),'control arrived after phase deadline: '+phase)
+  c=m.read_control(path,r)
+  require(c.get('candidate')==prompt['candidate'] and c.get('admission_sha256')==prompt['admission_sha256'] and c.get('capture_sha256')==digest,'control identity differs')
+  if c.get('action')=='refuse':raise RuntimeError('operator refusal: '+str(c.get('reason')))
+  require(c.get('action')==stage['expected_action'],'unexpected action for displayed fixture stage '+str(index))
+  if pending and c['action'] not in ('capture','refuse'):
+   e=c.get('previous_effect',{});require(e.get('expected') is True and isinstance(e.get('observed'),str) and bool(e['observed']),'actual effect readback missing')
+  if c['action'] in ('click-disclosure','click-stop','confirm-stop','scroll'):
+   x,y=c['point'];require(16<x<2184 and 80<y<1584,'point outside owned content band')
+   if c['action']=='scroll':require(type(c['delta']) is int and 0<abs(c['delta'])<=600 and c['delta']*stage['expected_delta_sign']>0,'scroll direction/bound differs')
+   elif stage['image']=='active.png':require(1125<x<1290 and 300<y<355,'More tools point misses link')
+   elif stage['phase']=='stop' and c['action']=='click-disclosure':require(35<x<510 and 1430<y<1480,'Connection link point misses')
+   else:require(150<x<850 and 1350<y<1450,'point misses observed button/disclosure')
+  if c['action']=='click-disclosure':require(c.get('target')==stage['expected_target'],'target differs')
+  if c['action']=='observe':
+   require(c.get('complete_sections')==prompt['required_sections'] and c.get('unreadable') is False,'incomplete source')
+   require(index in c.get('frames',[]) and all(n in phase_frames for n in c['frames']),'wrong phase image references')
+   parsed=b.decode_diagnostics(c['strings'],protocol=True);state='stopped' if phase=='settlement' else 'ready';truth=expected[state]
+   require(parsed['lifecycle']==truth['lifecycle_section']['lifecycle'] and parsed['clientRequests']==truth['lifecycle_section']['clientRequests'] and parsed['envelopes']==truth['envelopes'],'transcription differs')
+   b.source_gate(parsed,expected['value'],gen);b.check_requests(parsed,gen)
+   if phase=='settlement':b.settlement_gate(parsed,gen)
+   else:b.ready_gate(parsed,expected['value'])
+  if c['action']=='confirm-stop':
+   require(c.get('complete_question') is True and c.get('unreadable') is False and c.get('button_label')=='Stop Codex','question incomplete')
+   m.validate_stop_question(c['question_title'],c['question_text'],gen,gen['home'])
+  seconds=time.monotonic()-shown;cost=0 if c['action']=='observe' else (3 if c['action']=='focus' else 4)
+  if cost:require(phase_end-time.monotonic()>6,'helper allowance unavailable before simulated input')
+  results.append({'step':index,'phase':phase,'operator_seconds':seconds,'simulated_native_seconds':cost,'action':c['action'],'control':c})
+  pending=c['action']!='observe';time.sleep(cost)
+  require(time.monotonic()<min(phase_end,end),'phase deadline after native allowance: '+phase)
+ phase_results.append({'phase':phase,'elapsed_seconds':time.monotonic()-phase_start})
+ require(end-time.monotonic()>=10,'Quit/closure allowance unavailable')
+ time.sleep(10)
+ write('simulated-quit-closure.json',{'at':now(),'scope':'invented normalQuit/originalChildwait/slot-unwind allowance only, no actual App','seconds':10})
+except BaseException as e:error=str(e)
+result={'at':now(),'passed':error is None,'error':error,'elapsed_seconds':time.monotonic()-start,'current_phase':phase,'current_phase_elapsed_seconds':None if phase is None else time.monotonic()-phase_start,'completed_steps':len(results),'planned_steps':len(stages),'phase_results':phase_results,'steps':results,'limits':'ONE offline full journey. Actual agent/tool/image/control delays; explicit simulated native allowances. Actual page complexity, native rendering/capture/navigation/modal/settlement latency remain unmeasured. No GUI/B qualification.'}
+write('timing-result.json',result);print(json.dumps(result),flush=True)
+raise SystemExit(0 if error is None else 1)

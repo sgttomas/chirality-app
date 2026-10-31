@@ -1,0 +1,9 @@
+{
+  "at": "2026-10-31T21:43:32.302867+00:00",
+  "action": "focus",
+  "sequence": 3,
+  "posted_or_focus_observed": true,
+  "effect_requires_fresh_capture_read": true,
+  "event_routes": [],
+  "routing_limits": "Explicit owned-window annotation is delivery intent, not proof the target received or acted on the event."
+}

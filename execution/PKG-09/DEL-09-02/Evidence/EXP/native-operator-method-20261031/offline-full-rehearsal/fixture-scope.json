@@ -1,0 +1,15 @@
+{
+  "ready_pages": 3,
+  "settlement_pages": 3,
+  "stages": 22,
+  "allowances": {
+    "admission": 5,
+    "initial_stability_capture": 5,
+    "phase_initial_capture": 1,
+    "focus_native_render_capture": 3,
+    "other_input_precapture_post_render": 4,
+    "quit_and_resource_settlement": 10
+  },
+  "limits": "Actual agent/tool/image/control delays measured; native costs represented by explicit conservative allowances, not observed this run. Invented three/four-page data is complete minimal source fixture, actual native layout/page count and complexity remain unmeasured.",
+  "total_cap_seconds": 295
+}

@@ -1,0 +1,798 @@
+{
+  "at": "2026-10-31T22:07:57.433952+00:00",
+  "scope": "Actual activation/capture progress and failed one full offline operator rehearsal; no further native launch",
+  "files": [
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/actions.jsonl",
+      "archive": "native-095p183p/actions.jsonl",
+      "bytes": 922,
+      "sha256": "a0a02b1ce483c61feaa31798e4daab8f4acb251f095323a2b9c1184fdaf9cf15",
+      "original_mtime_ns": 1793483067529056273
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/administrative-release-intent.json",
+      "archive": "native-095p183p/administrative-release-intent.json",
+      "bytes": 707,
+      "sha256": "5a69a8afedf007536feeafaee656c9208c901023ea8bd99d24bef015e9e5da4d",
+      "original_mtime_ns": 1793483123687756823
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/administrative-release-request.json",
+      "archive": "native-095p183p/administrative-release-request.json",
+      "bytes": 220,
+      "sha256": "9af8b5d69e91169fd7ff745b4f4176bebfcf3efd5625b5af24b5d4564d7552f0",
+      "original_mtime_ns": 1793483123687610573
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/administrative-release-result.json",
+      "archive": "native-095p183p/administrative-release-result.json",
+      "bytes": 1648,
+      "sha256": "d3129badd2177542b397a43a99808f3693e29ad5f0f474a14d376a34a2facaa5",
+      "original_mtime_ns": 1793483123688019908
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/admission.json",
+      "archive": "native-095p183p/admission.json",
+      "bytes": 56623,
+      "sha256": "c01af4142e01c14a7d6b0705af654924ef5eb88641cb7f5045dfeeecc3173f38",
+      "original_mtime_ns": 1793480866562573088
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/artifact-check.json",
+      "archive": "native-095p183p/artifact-check.json",
+      "bytes": 465,
+      "sha256": "491be4b11c6c1c51cf9ba5fc6b2556f45d1b368d10ed66bb4cd25a8fb39b899d",
+      "original_mtime_ns": 1793482970418624747
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/cleanup-helper-provenance.json",
+      "archive": "native-095p183p/cleanup-helper-provenance.json",
+      "bytes": 399,
+      "sha256": "7c37b39de270bf06e5cee3759fa52560f294674cbb10a346e66ca7b041f4d3d9",
+      "original_mtime_ns": 1793482969333387230
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/cleanup-menu-action-result.json",
+      "archive": "native-095p183p/cleanup-menu-action-result.json",
+      "bytes": 106,
+      "sha256": "c0ecdc03fa6a2bd1fe5c153aa5fa7544b1675de797f9260774eca25a9dd27f67",
+      "original_mtime_ns": 1793483112979217779
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/cleanup-menu-request.json",
+      "archive": "native-095p183p/cleanup-menu-request.json",
+      "bytes": 8999,
+      "sha256": "7b8907ce73ac21ef720ea84f7ff7f1c03a1a9f55b952797a530c3ade90714784",
+      "original_mtime_ns": 1793483112978933820
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/cleanup-menu.py",
+      "archive": "native-095p183p/cleanup-menu.py.source.txt",
+      "bytes": 5136,
+      "sha256": "df9b253f69e949bfb6e4035d2bc5b05c0ddd69de161abd05dd680183228d2521",
+      "original_mtime_ns": 1793482969333316730
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/cleanup-own-window-child-inventory.json",
+      "archive": "native-095p183p/cleanup-own-window-child-inventory.json",
+      "bytes": 6353,
+      "sha256": "9fe2e75e02cc4e9ca9bca0ca35fae4471b19310729f13a6de12a9d2147e36f3b",
+      "original_mtime_ns": 1793483112480554007
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/cleanup-owned-app-menu-inventory.json",
+      "archive": "native-095p183p/cleanup-owned-app-menu-inventory.json",
+      "bytes": 1439,
+      "sha256": "d38cb8dd7b9db7d4f117f564bfffbdaa18d3f341fe5ce19aa57d956177cd82ac",
+      "original_mtime_ns": 1793483112971586503
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/controller.py.txt",
+      "archive": "native-095p183p/controller.py.txt",
+      "bytes": 59990,
+      "sha256": "34996606c97c919b9ac52aa5efb41638bb1c9800034384a878303926dde7870a",
+      "original_mtime_ns": 1793480866556971995
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/execution-started.json",
+      "archive": "native-095p183p/execution-started.json",
+      "bytes": 89,
+      "sha256": "1c81ae0365b970c0538b8fb8cea27a2e5e8c4c20e5caf2d014e49776ab907ed0",
+      "original_mtime_ns": 1793482970490420579
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/held-AX.json",
+      "archive": "native-095p183p/held-AX.json",
+      "bytes": 1145,
+      "sha256": "27760bb6f297cd4f565bff06373453ee27ac92d57dbf181af8d17d5aff9683a3",
+      "original_mtime_ns": 1793483067552900856
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/held-heartbeat.jsonl",
+      "archive": "native-095p183p/held-heartbeat.jsonl",
+      "bytes": 96426,
+      "sha256": "b2318fe68f03e9bd2985242c00141e8f422e3038c8178b305792c18bce02f679",
+      "original_mtime_ns": 1793483121682027403
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/held-result.json",
+      "archive": "native-095p183p/held-result.json",
+      "bytes": 4099,
+      "sha256": "610ad8490c611c15fd7c13eec02198ad0adc050ddab4b17d16994419835cb1ed",
+      "original_mtime_ns": 1793483067553329816
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/initial-window-sample-01.json",
+      "archive": "native-095p183p/initial-window-sample-01.json",
+      "bytes": 878,
+      "sha256": "5faf50e03e7d7dce47ca1e6e7ae7b5a1766088d383598d19a65952caf8ddedd3",
+      "original_mtime_ns": 1793482970617660271
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/initial-window-sample-02.json",
+      "archive": "native-095p183p/initial-window-sample-02.json",
+      "bytes": 1139,
+      "sha256": "cfab737170a4f80551db876ad174bb4775d8bddd4e80690d959af76ec3d744cc",
+      "original_mtime_ns": 1793482970959889834
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/initial-window-sample-03.json",
+      "archive": "native-095p183p/initial-window-sample-03.json",
+      "bytes": 1138,
+      "sha256": "4ca070941bd0291e2741de286c37f40b701c2bf5ab46665e88b7e51cc84d7d4e",
+      "original_mtime_ns": 1793482971301914771
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/initial-window-sample-04.json",
+      "archive": "native-095p183p/initial-window-sample-04.json",
+      "bytes": 1139,
+      "sha256": "4f8786d3ea5dcff449c4b35f8c1627ce9ce293d3334798f616d849a2626a0314",
+      "original_mtime_ns": 1793482971645849590
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/initial-window-sample-05.json",
+      "archive": "native-095p183p/initial-window-sample-05.json",
+      "bytes": 1138,
+      "sha256": "a57f3a67e615f6956f5a9078ee345c92a1bc0220b03ed12620e3031acd19978d",
+      "original_mtime_ns": 1793482971990053159
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/initial-window-stable.json",
+      "archive": "native-095p183p/initial-window-stable.json",
+      "bytes": 877,
+      "sha256": "50bc2b34ce6170c24933b930ddf4a5a63049ec313658b2a00d779571b76bd321",
+      "original_mtime_ns": 1793482971990286868
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/last-diagnostics.json",
+      "archive": "native-095p183p/last-diagnostics.json",
+      "bytes": 5,
+      "sha256": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+      "original_mtime_ns": 1793483067529244732
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/live-invocation-output.log",
+      "archive": "native-095p183p/live-invocation-output.log",
+      "bytes": 114302,
+      "sha256": "ff209740f412203b52497cf0cbc6d7ba7e7b5d48161ea623f223567c28d768e4",
+      "original_mtime_ns": 1793483123688086116
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/live-invocation-result.json",
+      "archive": "native-095p183p/live-invocation-result.json",
+      "bytes": 60,
+      "sha256": "638058eb5bc0c6a949e94a8afa7df4281a544ffe31223094539cce87a63a18ce",
+      "original_mtime_ns": 1793483123703430503
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/live-invocation.json",
+      "archive": "native-095p183p/live-invocation.json",
+      "bytes": 416,
+      "sha256": "46a9c2fa3804fc43b33f5da0ebd4b472fdd2d84d560ac00c3adfab07b3a57926",
+      "original_mtime_ns": 1793482969333639231
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_ax.py.txt",
+      "archive": "native-095p183p/native_b_ax.py.txt",
+      "bytes": 5711,
+      "sha256": "4a5a26d43063f271188a90c290e3bae56cc7794014149ca5ae7504b005737cef",
+      "original_mtime_ns": 1793480866557046203
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_diagnostic.py",
+      "archive": "native-095p183p/native_b_diagnostic.py.source.txt",
+      "bytes": 15847,
+      "sha256": "fd37834b301f138963cdfe76f8bf3a146aea373b99ab2c994546ff73c939af19",
+      "original_mtime_ns": 1793480866556702161
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_diagnostic.py.txt",
+      "archive": "native-095p183p/native_b_diagnostic.py.txt",
+      "bytes": 15847,
+      "sha256": "fd37834b301f138963cdfe76f8bf3a146aea373b99ab2c994546ff73c939af19",
+      "original_mtime_ns": 1793480866557223120
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_release.py.txt",
+      "archive": "native-095p183p/native_b_release.py.txt",
+      "bytes": 7183,
+      "sha256": "9db06d8066ba86e78d58ea9b0719e6c7c445fdb46feb3e3f03b3a89ed51b5ec5",
+      "original_mtime_ns": 1793480866557107828
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_retained.py.txt",
+      "archive": "native-095p183p/native_b_retained.py.txt",
+      "bytes": 14509,
+      "sha256": "82d08f4c7e5f2ec74ea8533877b76f032142f1e18e1fe757a092d2c8032685de",
+      "original_mtime_ns": 1793480866557166703
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_retained_v2.py.txt",
+      "archive": "native-095p183p/native_b_retained_v2.py.txt",
+      "bytes": 11769,
+      "sha256": "0b6373d9281e01831902fe43213ecb7c51eaa44e769737413cafb6d666a7a42b",
+      "original_mtime_ns": 1793480866557289662
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_retained_v3.py.txt",
+      "archive": "native-095p183p/native_b_retained_v3.py.txt",
+      "bytes": 11869,
+      "sha256": "ebafb3a456091c662762b1333293e2f17b198afb2fc19bb81441b5410955a598",
+      "original_mtime_ns": 1793480866557351245
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_retained_v4.py.txt",
+      "archive": "native-095p183p/native_b_retained_v4.py.txt",
+      "bytes": 12033,
+      "sha256": "db3d690925821e07f1d8d55a9ad9bf477b14179f29719bd202e24acb20aa789c",
+      "original_mtime_ns": 1793480866557409537
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_retained_v5.py.txt",
+      "archive": "native-095p183p/native_b_retained_v5.py.txt",
+      "bytes": 12170,
+      "sha256": "586d5f55906333eb686a2d6bfb7fdb1a85ab7bc9569f80961454b03d2dc209c3",
+      "original_mtime_ns": 1793480866557465496
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_retained_v6.py.txt",
+      "archive": "native-095p183p/native_b_retained_v6.py.txt",
+      "bytes": 12286,
+      "sha256": "25c944b13eaab77e7394e5a7c300f85863bf13dc93431387edd8b1b57764269f",
+      "original_mtime_ns": 1793480866557523787
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_screen_route.py.txt",
+      "archive": "native-095p183p/native_b_screen_route.py.txt",
+      "bytes": 19651,
+      "sha256": "6f23c2e58d20bffec1a38c9e638827304be36f08f6917211636aed229de9c363",
+      "original_mtime_ns": 1793480866557603787
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_slot_entry.py",
+      "archive": "native-095p183p/native_b_slot_entry.py.source.txt",
+      "bytes": 2561,
+      "sha256": "4dde6ad23f74d205fb509633a151546aa91fc25f7e8df7f1f275c4d5fb2538aa",
+      "original_mtime_ns": 1793480866556775411
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_window.py",
+      "archive": "native-095p183p/native_b_window.py.source.txt",
+      "bytes": 27387,
+      "sha256": "8f90274f4f1b3aa43864bd18777ae705ca1a33276f24d67b8ed306fea8d80963",
+      "original_mtime_ns": 1793480866556494494
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/native_b_window_helper.py",
+      "archive": "native-095p183p/native_b_window_helper.py.source.txt",
+      "bytes": 12287,
+      "sha256": "d7fc67796c7697f188c1051a0d7c5adce9ac8646c2435a232b0b8aab1f59b659",
+      "original_mtime_ns": 1793480866556613327
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/operator-timing.json",
+      "archive": "native-095p183p/operator-timing.json",
+      "bytes": 1632,
+      "sha256": "e9971032b38ce0274ac54c291a9ae3d4edfb4f4aebaa846c335ab6633e6f56d6",
+      "original_mtime_ns": 1793483203863252070
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/phase-B.sb",
+      "archive": "native-095p183p/phase-B.sb",
+      "bytes": 1280,
+      "sha256": "0468b0bafacd4bb829699694a423642f240b3ae71e13a184b9382f7de36fa709",
+      "original_mtime_ns": 1793480866556880536
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/release-observer-after-app-exit.json",
+      "archive": "native-095p183p/release-observer-after-app-exit.json",
+      "bytes": 220,
+      "sha256": "9af8b5d69e91169fd7ff745b4f4176bebfcf3efd5625b5af24b5d4564d7552f0",
+      "original_mtime_ns": 1793483121799142560
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/release-selection.json",
+      "archive": "native-095p183p/release-selection.json",
+      "bytes": 4572,
+      "sha256": "1dbbf3eccee8eb0e48f8cb13d5c2b92c593b8e7937edaeb976d6dbc1496d5ebf",
+      "original_mtime_ns": 1793483121799041976
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/resource-closure.json",
+      "archive": "native-095p183p/resource-closure.json",
+      "bytes": 1110,
+      "sha256": "191be18e40542353c1c75aef5cc943a991cde87527981e96a4a4236798d4a8e9",
+      "original_mtime_ns": 1793483134244751216
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/screen-control-001.json",
+      "archive": "native-095p183p/screen-control-001.json",
+      "bytes": 295,
+      "sha256": "8e7acc237a99f807703d95e78a504692ced218be77275d7b1378a16d078b05f1",
+      "original_mtime_ns": 1793482998440440968
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/screen-control-002.json",
+      "archive": "native-095p183p/screen-control-002.json",
+      "bytes": 233,
+      "sha256": "347cfd7407d2fadf5c1933ec730c123510698e6b08bdaa5a67ff716b385ff819",
+      "original_mtime_ns": 1793483011924732105
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/screen-control-003.json",
+      "archive": "native-095p183p/screen-control-003.json",
+      "bytes": 480,
+      "sha256": "476f3dcc116ee3bc90b1b43ceb89b66a2a381ae993332df572ac3dffd2f65686",
+      "original_mtime_ns": 1793483046602986014
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/screen-control-004.json",
+      "archive": "native-095p183p/screen-control-004.json",
+      "bytes": 469,
+      "sha256": "e75e31af1f007c7908a37a95d026958ec0a9a97ef939f92bf79c8093aea61d41",
+      "original_mtime_ns": 1793483090901117147
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/screen-prompt-001.json",
+      "archive": "native-095p183p/screen-prompt-001.json",
+      "bytes": 2315,
+      "sha256": "a7f7992de542ca123fd1949a6e9f52b04d88966193726e42dcc84960524272ce",
+      "original_mtime_ns": 1793482972392423556
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/screen-prompt-002.json",
+      "archive": "native-095p183p/screen-prompt-002.json",
+      "bytes": 2315,
+      "sha256": "693589ab498b62a0d428d0c837cad0ae23434a9ecd5b71e4f4b9a08c8a747b86",
+      "original_mtime_ns": 1793482998942552919
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/screen-prompt-003.json",
+      "archive": "native-095p183p/screen-prompt-003.json",
+      "bytes": 2314,
+      "sha256": "a48965dcebdbef12f1c8e4e12893f9ea8236c105113a1a45cb664704ded05f88",
+      "original_mtime_ns": 1793483012808164630
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/screen-prompt-004.json",
+      "archive": "native-095p183p/screen-prompt-004.json",
+      "bytes": 2303,
+      "sha256": "6629e4c72972d31e8faf90b1e521e3371df7121d12d5c839fbd070bcd013f01b",
+      "original_mtime_ns": 1793483032896496272
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/slot-entry.json",
+      "archive": "native-095p183p/slot-entry.json",
+      "bytes": 1194,
+      "sha256": "bb3199c010c90b587e9fa033dc91992d38286ac2f9842fd89429980ef2506ee0",
+      "original_mtime_ns": 1793482969425363216
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/stderr.log",
+      "archive": "native-095p183p/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_mtime_ns": 1793482970490684289
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/stdout.log",
+      "archive": "native-095p183p/stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_mtime_ns": 1793482970490634830
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-001.json",
+      "archive": "native-095p183p/window-001.json",
+      "bytes": 1230,
+      "sha256": "1eb9cd7d59516a9778116a519312afccd0a29f9444cba80f5c0b0b96482e83b1",
+      "original_mtime_ns": 1793482972392029305
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-001.png",
+      "archive": "native-095p183p/window-001.png",
+      "bytes": 397733,
+      "sha256": "09b80a3d8000534bbba574b78b73202492b0786f3efaa58dd50a2948f7537f7e",
+      "original_mtime_ns": 1793482972313568157
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-002.json",
+      "archive": "native-095p183p/window-002.json",
+      "bytes": 1230,
+      "sha256": "5cab80d9696f3c9adbc01ffffbf6d055ecb6ff4609fdfa3bf0123ad57d19f7c9",
+      "original_mtime_ns": 1793482998941903583
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-002.png",
+      "archive": "native-095p183p/window-002.png",
+      "bytes": 395360,
+      "sha256": "7cbca49c6c0f32c71ef6515e72afa0b79fc32bc736e17ba6c20156bbe22b4f85",
+      "original_mtime_ns": 1793482998864615107
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-004.json",
+      "archive": "native-095p183p/window-004.json",
+      "bytes": 1230,
+      "sha256": "baeb598d95189644f0f2f699d3ab1f2cf68822aa6bccd292d6371a4e32d289d0",
+      "original_mtime_ns": 1793483012807697128
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-004.png",
+      "archive": "native-095p183p/window-004.png",
+      "bytes": 397715,
+      "sha256": "8518ced67a02e36b60b4244918c71eff5d8108791a712b72e43197406e436368",
+      "original_mtime_ns": 1793483012711565669
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-005.json",
+      "archive": "native-095p183p/window-005.json",
+      "bytes": 1230,
+      "sha256": "1a57b072ada4686305876da2803443e0f329dde226580967ce3096c422a833c1",
+      "original_mtime_ns": 1793483032895993021
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-005.png",
+      "archive": "native-095p183p/window-005.png",
+      "bytes": 397733,
+      "sha256": "09b80a3d8000534bbba574b78b73202492b0786f3efaa58dd50a2948f7537f7e",
+      "original_mtime_ns": 1793483032812996566
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-001.json",
+      "archive": "native-095p183p/window-helper-001.json",
+      "bytes": 875,
+      "sha256": "18b917b64fa6a008c331d9e1c18dc1b2dc6501fbf6fbb99f3a5bd87d45ffeddd",
+      "original_mtime_ns": 1793482972042255716
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-001.stderr",
+      "archive": "native-095p183p/window-helper-001.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_mtime_ns": 1793482972051249122
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-001.stdout",
+      "archive": "native-095p183p/window-helper-001.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_mtime_ns": 1793482972051183372
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-002.json",
+      "archive": "native-095p183p/window-helper-002.json",
+      "bytes": 875,
+      "sha256": "5d17454a9516fa3cf2fcccf8e2c9a6a66cf46d55cde9488b386f921569b1f6c7",
+      "original_mtime_ns": 1793482998584633468
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-002.stderr",
+      "archive": "native-095p183p/window-helper-002.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_mtime_ns": 1793482998594624628
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-002.stdout",
+      "archive": "native-095p183p/window-helper-002.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_mtime_ns": 1793482998594544211
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-003.focus.json",
+      "archive": "native-095p183p/window-helper-003.focus.json",
+      "bytes": 479,
+      "sha256": "fbf30720a768e639f5d19dd10c129397ceb4defa6bea19f2adbc04e6e5c34800",
+      "original_mtime_ns": 1793483012302789542
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-003.json",
+      "archive": "native-095p183p/window-helper-003.json",
+      "bytes": 915,
+      "sha256": "ff47ba231923c73d3e4f02bed82c2c092a4278d5e85b00d2d95252fcf192d051",
+      "original_mtime_ns": 1793483012058743987
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-003.result.json",
+      "archive": "native-095p183p/window-helper-003.result.json",
+      "bytes": 317,
+      "sha256": "68317e8d44313d99e7d1ebda8e4aa51735e975636cb9846b4dca54df33d9ce32",
+      "original_mtime_ns": 1793483012303205752
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-003.stderr",
+      "archive": "native-095p183p/window-helper-003.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_mtime_ns": 1793483012067214641
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-003.stdout",
+      "archive": "native-095p183p/window-helper-003.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_mtime_ns": 1793483012067161724
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-004.json",
+      "archive": "native-095p183p/window-helper-004.json",
+      "bytes": 875,
+      "sha256": "7080d674e0e7c6a71743f52546244b2bf6d9f464d1adbfccd87ff4a91bb75e49",
+      "original_mtime_ns": 1793483012457833372
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-004.stderr",
+      "archive": "native-095p183p/window-helper-004.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_mtime_ns": 1793483012466583819
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-004.stdout",
+      "archive": "native-095p183p/window-helper-004.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_mtime_ns": 1793483012466522194
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-005.json",
+      "archive": "native-095p183p/window-helper-005.json",
+      "bytes": 875,
+      "sha256": "146db6ec6f3832190fdf3c3d4ca121927aded5199f40ab42b4ac836c03499303",
+      "original_mtime_ns": 1793483032491646242
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-005.stderr",
+      "archive": "native-095p183p/window-helper-005.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_mtime_ns": 1793483032501966195
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-helper-005.stdout",
+      "archive": "native-095p183p/window-helper-005.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_mtime_ns": 1793483032501869069
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/active.png",
+      "archive": "offline-full-rehearsal/active.png",
+      "bytes": 397715,
+      "sha256": "8518ced67a02e36b60b4244918c71eff5d8108791a712b72e43197406e436368",
+      "original_mtime_ns": 1793483853551292999
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/after-modal.png",
+      "archive": "offline-full-rehearsal/after-modal.png",
+      "bytes": 30300,
+      "sha256": "a333256132d3b8e94ebf417f31b67c50c860664f0c091e6a233610ee17ba6e55",
+      "original_mtime_ns": 1793483853616994406
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/connection.png",
+      "archive": "offline-full-rehearsal/connection.png",
+      "bytes": 48630,
+      "sha256": "89ce11c83c125eb36188862c276f49c08465685c1acb54d21fab0677a5174683",
+      "original_mtime_ns": 1793483853605062264
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/control-001.json",
+      "archive": "offline-full-rehearsal/control-001.json",
+      "bytes": 236,
+      "sha256": "cc0877c0c67485a87d5988a61b1e6e58bfcc655a34cd6a4dac0c29ad8a95b93d",
+      "original_mtime_ns": 1793484166007283058
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/control-002.json",
+      "archive": "offline-full-rehearsal/control-002.json",
+      "bytes": 443,
+      "sha256": "442234713acdee2413a8fdea3c6c96a1dfd5bbe2a2126316f9d2d63b784440ab",
+      "original_mtime_ns": 1793484179054072489
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/expected.json",
+      "archive": "offline-full-rehearsal/expected.json",
+      "bytes": 6400,
+      "sha256": "9cafa93064b1450a79edfb0883c4f9a03fc3b8717dc001188c99750c2a636244",
+      "original_mtime_ns": 1793483853373235290
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/fixture-scope.json",
+      "archive": "offline-full-rehearsal/fixture-scope.json",
+      "bytes": 605,
+      "sha256": "85b458e799cb543397cdf5860636a29dc6333c2427633c33a1a02f99ef64a6a9",
+      "original_mtime_ns": 1793484066420054159
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/frame-001.png",
+      "archive": "offline-full-rehearsal/frame-001.png",
+      "bytes": 395360,
+      "sha256": "7cbca49c6c0f32c71ef6515e72afa0b79fc32bc736e17ba6c20156bbe22b4f85",
+      "original_mtime_ns": 1793484156334540017
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/frame-002.png",
+      "archive": "offline-full-rehearsal/frame-002.png",
+      "bytes": 397715,
+      "sha256": "8518ced67a02e36b60b4244918c71eff5d8108791a712b72e43197406e436368",
+      "original_mtime_ns": 1793484169036176000
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/handoff-timing.json",
+      "archive": "offline-full-rehearsal/handoff-timing.json",
+      "bytes": 419,
+      "sha256": "c726e4b0919d4c32c016a670cc15b03d11eaa411fbb286e8df2b7d9e91fc249e",
+      "original_mtime_ns": 1793484320078602232
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/host.png",
+      "archive": "offline-full-rehearsal/host.png",
+      "bytes": 48855,
+      "sha256": "25dc11dd4503b0ae2b0511718aab617e4a7a0f4e0204cfdd7e864ed70f60d03a",
+      "original_mtime_ns": 1793483853577874963
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/inactive.png",
+      "archive": "offline-full-rehearsal/inactive.png",
+      "bytes": 395360,
+      "sha256": "7cbca49c6c0f32c71ef6515e72afa0b79fc32bc736e17ba6c20156bbe22b4f85",
+      "original_mtime_ns": 1793483853551137998
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/life-open.png",
+      "archive": "offline-full-rehearsal/life-open.png",
+      "bytes": 32352,
+      "sha256": "18ac78374a0a950d55f3f37d108ceada205be5fc2beb7d0ee90de985494ef684",
+      "original_mtime_ns": 1793483853590245941
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/modal.png",
+      "archive": "offline-full-rehearsal/modal.png",
+      "bytes": 71720,
+      "sha256": "ba63f85da55277775ea8b669384bb2568eaf17ac4e6a663e220314deb854b43a",
+      "original_mtime_ns": 1793483853648864021
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/prompt-001.json",
+      "archive": "offline-full-rehearsal/prompt-001.json",
+      "bytes": 1199,
+      "sha256": "a9ef2a0e1fb89d7cac5301ae56ea84efdf99d201d010c4cbb0f8dc955db88ddc",
+      "original_mtime_ns": 1793484156335478938
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/prompt-002.json",
+      "archive": "offline-full-rehearsal/prompt-002.json",
+      "bytes": 1205,
+      "sha256": "ce69afd0248c131c74c3125456d45f8c130ac108f23116ae26f4569ef4caf9f6",
+      "original_mtime_ns": 1793484169036845336
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/question-expected.json",
+      "archive": "offline-full-rehearsal/question-expected.json",
+      "bytes": 658,
+      "sha256": "0d72c0a46767d2ef309502a740a4b79bc5b90c09c009224d23d150b83fa24acf",
+      "original_mtime_ns": 1793483853649148689
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/ready-page-1.png",
+      "archive": "offline-full-rehearsal/ready-page-1.png",
+      "bytes": 154465,
+      "sha256": "7e4787faae2f062c8db7e5a440730c67803e7047ee4bfbbcee36204f416b4314",
+      "original_mtime_ns": 1793483918835261191
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/ready-page-2.png",
+      "archive": "offline-full-rehearsal/ready-page-2.png",
+      "bytes": 106593,
+      "sha256": "d493afe68e8ec9ab514817e846f1b58d77e5d8f9ccba9e1ef11b83dc1b0efc6b",
+      "original_mtime_ns": 1793483918881509418
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/ready-page-3.png",
+      "archive": "offline-full-rehearsal/ready-page-3.png",
+      "bytes": 64344,
+      "sha256": "0ceb42cfe61e0d5eb2f1d3da657d78c8fce79a266bbb50cca6aff35d08f36686",
+      "original_mtime_ns": 1793483918856130376
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/resource-closure.json",
+      "archive": "offline-full-rehearsal/resource-closure.json",
+      "bytes": 603,
+      "sha256": "f8dc470266712c7ff0daf93197cb9564795e99d2ffb310d2e4c6b9c96a501287",
+      "original_mtime_ns": 1793484320078084062
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/stages.json",
+      "archive": "offline-full-rehearsal/stages.json",
+      "bytes": 3634,
+      "sha256": "7dc550b240d44c8072cc49a3b30b8030f6b8c3c437a1ebc3ec92e74670ee5dd4",
+      "original_mtime_ns": 1793483918960607724
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/stopped-page-1.png",
+      "archive": "offline-full-rehearsal/stopped-page-1.png",
+      "bytes": 154444,
+      "sha256": "74957f34e7fd7948a812bed62eb20446fb07f62c7e47c2442714ed49c6e727d9",
+      "original_mtime_ns": 1793483918908901594
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/stopped-page-2.png",
+      "archive": "offline-full-rehearsal/stopped-page-2.png",
+      "bytes": 117731,
+      "sha256": "ed1291da6e4d291ff137ad51ec3f15cb0c14953e276b59804eaf2ce3c155d5c7",
+      "original_mtime_ns": 1793483918935094848
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/stopped-page-3.png",
+      "archive": "offline-full-rehearsal/stopped-page-3.png",
+      "bytes": 112837,
+      "sha256": "877f12c09006d8494591fadb57c5e27e82c27e921b1dcfe76e0738b52113dc95",
+      "original_mtime_ns": 1793483918960339098
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/timing-result.json",
+      "archive": "offline-full-rehearsal/timing-result.json",
+      "bytes": 1047,
+      "sha256": "a9e682d464097b67e85b6eae1902f511c970d1288bb72dcb4cdaaa2331fbcb4a",
+      "original_mtime_ns": 1793484179057795757
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/timing-start.json",
+      "archive": "offline-full-rehearsal/timing-start.json",
+      "bytes": 376,
+      "sha256": "da44da196089b0ef7beeb8872c0a90f0384378eeffbc24cace4b7d3073703e36",
+      "original_mtime_ns": 1793484145322822305
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/tools-open.png",
+      "archive": "offline-full-rehearsal/tools-open.png",
+      "bytes": 29350,
+      "sha256": "b8e379a850b70fedaf82fb557a447287ce948d33cf8ef9a52c81a032473af155",
+      "original_mtime_ns": 1793483853628653630
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/tools.png",
+      "archive": "offline-full-rehearsal/tools.png",
+      "bytes": 28733,
+      "sha256": "fc6dd58e328829412d2061767969a892ef3c36cb3be95e4f1c4b380faf120449",
+      "original_mtime_ns": 1793483853563038432
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/trial.py",
+      "archive": "offline-full-rehearsal/trial.py.source.txt",
+      "bytes": 8126,
+      "sha256": "27fa187e17d48c303fabd6758eda8a8013088536cfc72ff0bf96b63a1737745a",
+      "original_mtime_ns": 1793484066420179577
+    },
+    {
+      "original": "/Users/ryan/dev/chirality-t3/scratch/app-short-operator-timing-esuekrmb/resource-closure.json",
+      "archive": "unstarted-excerpt-closure.json",
+      "bytes": 823,
+      "sha256": "2503498c43ef4593a078788a0fc2a09c4ee2dfb53ed0b4f0d2acd963618fc27c",
+      "original_mtime_ns": 1793484395167476825
+    }
+  ],
+  "excluded": "All runtime/private/temp directory contents; no opaque supplier content"
+}

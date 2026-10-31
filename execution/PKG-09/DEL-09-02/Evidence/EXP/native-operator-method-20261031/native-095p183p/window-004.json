@@ -1,0 +1,36 @@
+{
+  "at": "2026-10-31T21:43:32.807363+00:00",
+  "sequence": 4,
+  "path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p/window-004.png",
+  "sha256": "8518ced67a02e36b60b4244918c71eff5d8108791a712b72e43197406e436368",
+  "identity": {
+    "pid": 28898,
+    "ppid": 28880,
+    "uid": 501,
+    "ruid": 501,
+    "start_sec": 1793482970,
+    "start_usec": 490822,
+    "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/MacOS/chirality-app-v4"
+  },
+  "window": {
+    "window_id": 56861,
+    "title": "Chirality App v4 \u2014 walking skeleton",
+    "bounds": {
+      "X": 1722.0,
+      "Y": 93.0,
+      "Width": 1100.0,
+      "Height": 800.0
+    },
+    "on_screen": true,
+    "layer": 0.0,
+    "own_visible_layer0_count": 1
+  },
+  "image": {
+    "width": 2200,
+    "height": 1600,
+    "scale": 2.0,
+    "image_data_sha256": "727e1dd8b4df3160cfaf6f71e87b67898efcb2fff226c55116742dbfb450561d"
+  },
+  "limits": "Exact owned window only, -a excludes attached windows, -o excludes shadow. Before/after checks are not atomic. Pixels are observations, not native source records.",
+  "target": "main"
+}

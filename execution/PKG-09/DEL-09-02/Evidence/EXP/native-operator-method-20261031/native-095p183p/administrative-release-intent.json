@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-31T21:45:23.687653+00:00",
+  "request": {
+    "action": "release-observer-after-app-exit",
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "admission_sha256": "c01af4142e01c14a7d6b0705af654924ef5eb88641cb7f5045dfeeecc3173f38",
+    "expected_app_exit": {
+      "code": 1,
+      "status": 0
+    }
+  },
+  "request_sha256": "9af8b5d69e91169fd7ff745b4f4176bebfcf3efd5625b5af24b5d4564d7552f0",
+  "actor": "controller under explicit task-operator disposition; not personal human act",
+  "original_error": "native UI phase budget exhausted",
+  "limits": "Administrative observer release only. No generation, LT-23, supplier settlement or B success is manufactured by waiting the original App."
+}
