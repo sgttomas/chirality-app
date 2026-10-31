@@ -290,3 +290,8 @@ FAILED AX readiness, but established the owned main window existed on-screen.
 Its reviewed administrative cleanup completed within the fixed window. The
 [offline ABI audit](AX_REPRESENTATION_AUDIT.md) found no demonstrated general
 CF conversion/lifetime defect; a narrower AX comparison is proposed, not run.
+
+The [owned-window B attempt 8w83gq78](FAILED_B_OWNED_WINDOW_20261031.md) failed
+before capture on an unrecorded helper-window mismatch. Normal menu Quit and
+administrative reap closed resources without qualification; all inputs remain
+retained, and no further launch is authorized.

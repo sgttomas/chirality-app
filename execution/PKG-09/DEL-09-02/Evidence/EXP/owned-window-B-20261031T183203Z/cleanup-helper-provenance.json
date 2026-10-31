@@ -1,0 +1,7 @@
+{
+  "source": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/cleanup-menu.py",
+  "source_sha256": "4b8347d581792cf5c61c7ca4800d5f6fe1ebcb693074385a11da1de8cc2933ce",
+  "current_sha256": "edcf5e9c20fec22992a2ac0996991d1485dd141d2f800b59b33c24acc42ecc36",
+  "change": "current attempt root only; no execution; prior authority not reused",
+  "authorization": "parent current-attempt one cleanup-only menu Quit; do not invoke with an unresolved Stop modal"
+}
