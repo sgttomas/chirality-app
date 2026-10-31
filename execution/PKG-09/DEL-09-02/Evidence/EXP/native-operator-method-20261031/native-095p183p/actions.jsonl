@@ -1,0 +1,6 @@
+{"at": "2026-10-31T21:42:50.492651+00:00", "event": "native_B_started", "pid": 28898, "actor": "agent under owner direction; not a personal human act", "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."}
+{"at": "2026-10-31T21:43:18.942339+00:00", "event": "screen_reobserve_before_input", "action": "click-disclosure"}
+{"at": "2026-10-31T21:43:32.808011+00:00", "event": "screen_input_attempt", "action": "focus", "target": null, "actor": "agent under owner direction; not a personal human act"}
+{"at": "2026-10-31T21:43:52.425563+00:00", "event": "work_failed", "error": "native UI phase budget exhausted"}
+{"at": "2026-10-31T21:44:27.528721+00:00", "event": "normal_cleanup_unavailable", "error": "native UI phase budget exhausted"}
+{"at": "2026-10-31T21:44:27.528894+00:00", "event": "held_unknown", "error": "native UI phase budget exhausted"}

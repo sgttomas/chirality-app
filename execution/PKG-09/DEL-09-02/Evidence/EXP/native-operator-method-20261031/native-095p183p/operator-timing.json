@@ -1,0 +1,42 @@
+[
+  {
+    "prompt": "screen-prompt-001.json",
+    "phase": "ready",
+    "prompt_at": "2026-10-31T21:42:52.392321+00:00",
+    "remaining_seconds": 59.99996808404103,
+    "control_mtime_utc": "2026-10-31T21:43:18.440441+00:00",
+    "prompt_to_control_seconds": 26.04812,
+    "action": "click-disclosure",
+    "limits": "Control filesystem mtime, not proof controller consumed it; correlate actions.jsonl."
+  },
+  {
+    "prompt": "screen-prompt-002.json",
+    "phase": "ready",
+    "prompt_at": "2026-10-31T21:43:18.942408+00:00",
+    "remaining_seconds": 33.44997225003317,
+    "control_mtime_utc": "2026-10-31T21:43:31.924732+00:00",
+    "prompt_to_control_seconds": 12.982324,
+    "action": "focus",
+    "limits": "Control filesystem mtime, not proof controller consumed it; correlate actions.jsonl."
+  },
+  {
+    "prompt": "screen-prompt-003.json",
+    "phase": "ready",
+    "prompt_at": "2026-10-31T21:43:32.808064+00:00",
+    "remaining_seconds": 19.58436887478456,
+    "control_mtime_utc": "2026-10-31T21:44:06.602986+00:00",
+    "prompt_to_control_seconds": 33.794922,
+    "action": "click-disclosure",
+    "limits": "Control filesystem mtime, not proof controller consumed it; correlate actions.jsonl."
+  },
+  {
+    "prompt": "screen-prompt-004.json",
+    "phase": "cleanup-source",
+    "prompt_at": "2026-10-31T21:43:52.896336+00:00",
+    "remaining_seconds": 34.529341749846935,
+    "control_mtime_utc": "2026-10-31T21:44:50.901117+00:00",
+    "prompt_to_control_seconds": 58.004781,
+    "action": "click-disclosure",
+    "limits": "Control filesystem mtime, not proof controller consumed it; correlate actions.jsonl."
+  }
+]

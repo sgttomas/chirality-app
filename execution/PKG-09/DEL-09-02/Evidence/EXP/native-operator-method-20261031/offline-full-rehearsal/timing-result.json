@@ -1,0 +1,27 @@
+{
+  "at": "2026-10-31T22:02:59.057467+00:00",
+  "passed": false,
+  "error": "'<' not supported between instances of 'int' and 'str'",
+  "elapsed_seconds": 33.734831584151834,
+  "current_phase": "ready",
+  "current_phase_elapsed_seconds": 23.731057249940932,
+  "completed_steps": 1,
+  "planned_steps": 22,
+  "phase_results": [],
+  "steps": [
+    {
+      "step": 1,
+      "phase": "ready",
+      "operator_seconds": 9.695498374756426,
+      "simulated_native_seconds": 3,
+      "action": "focus",
+      "control": {
+        "candidate": "invented-full-journey-only",
+        "admission_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "capture_sha256": "7cbca49c6c0f32c71ef6515e72afa0b79fc32bc736e17ba6c20156bbe22b4f85",
+        "action": "focus"
+      }
+    }
+  ],
+  "limits": "ONE offline full journey. Actual agent/tool/image/control delays; explicit simulated native allowances. Actual page complexity, native rendering/capture/navigation/modal/settlement latency remain unmeasured. No GUI/B qualification."
+}

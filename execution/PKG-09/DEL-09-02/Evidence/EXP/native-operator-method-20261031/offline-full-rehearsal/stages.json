@@ -1,0 +1,156 @@
+[
+  {
+    "phase": "ready",
+    "image": "inactive.png",
+    "expected_action": "focus",
+    "expected_target": null,
+    "expected_delta_sign": null
+  },
+  {
+    "phase": "ready",
+    "image": "active.png",
+    "expected_action": "click-disclosure",
+    "expected_target": "more-tools-link",
+    "expected_delta_sign": null
+  },
+  {
+    "phase": "ready",
+    "image": "tools.png",
+    "expected_action": "click-disclosure",
+    "expected_target": "host-diagnostics",
+    "expected_delta_sign": null
+  },
+  {
+    "phase": "ready",
+    "image": "host.png",
+    "expected_action": "click-disclosure",
+    "expected_target": "lifecycle",
+    "expected_delta_sign": null
+  },
+  {
+    "phase": "ready",
+    "image": "life-open.png",
+    "expected_action": "click-disclosure",
+    "expected_target": "raw-envelopes",
+    "expected_delta_sign": null
+  },
+  {
+    "phase": "ready",
+    "image": "ready-page-1.png",
+    "expected_action": "scroll",
+    "expected_target": null,
+    "expected_delta_sign": -1
+  },
+  {
+    "phase": "ready",
+    "image": "ready-page-2.png",
+    "expected_action": "scroll",
+    "expected_target": null,
+    "expected_delta_sign": -1
+  },
+  {
+    "phase": "ready",
+    "image": "ready-page-3.png",
+    "expected_action": "observe",
+    "expected_target": null,
+    "expected_delta_sign": -1
+  },
+  {
+    "phase": "recheck",
+    "image": "ready-page-3.png",
+    "expected_action": "scroll",
+    "expected_target": null,
+    "expected_delta_sign": 1
+  },
+  {
+    "phase": "recheck",
+    "image": "ready-page-2.png",
+    "expected_action": "scroll",
+    "expected_target": null,
+    "expected_delta_sign": 1
+  },
+  {
+    "phase": "recheck",
+    "image": "ready-page-1.png",
+    "expected_action": "observe",
+    "expected_target": null,
+    "expected_delta_sign": 1
+  },
+  {
+    "phase": "cleanup-source",
+    "image": "ready-page-1.png",
+    "expected_action": "scroll",
+    "expected_target": null,
+    "expected_delta_sign": -1
+  },
+  {
+    "phase": "cleanup-source",
+    "image": "ready-page-2.png",
+    "expected_action": "scroll",
+    "expected_target": null,
+    "expected_delta_sign": -1
+  },
+  {
+    "phase": "cleanup-source",
+    "image": "ready-page-3.png",
+    "expected_action": "observe",
+    "expected_target": null,
+    "expected_delta_sign": -1
+  },
+  {
+    "phase": "stop",
+    "image": "ready-page-3.png",
+    "expected_action": "click-disclosure",
+    "expected_target": "connection-access-link",
+    "expected_delta_sign": null
+  },
+  {
+    "phase": "stop",
+    "image": "connection.png",
+    "expected_action": "click-stop",
+    "expected_target": null,
+    "expected_delta_sign": null
+  },
+  {
+    "phase": "stop-confirmation",
+    "image": "modal.png",
+    "expected_action": "confirm-stop",
+    "expected_target": null,
+    "expected_delta_sign": null
+  },
+  {
+    "phase": "settlement",
+    "image": "after-modal.png",
+    "expected_action": "click-disclosure",
+    "expected_target": "more-tools-link",
+    "expected_delta_sign": null
+  },
+  {
+    "phase": "settlement",
+    "image": "tools-open.png",
+    "expected_action": "scroll",
+    "expected_target": null,
+    "expected_delta_sign": -1
+  },
+  {
+    "phase": "settlement",
+    "image": "stopped-page-1.png",
+    "expected_action": "scroll",
+    "expected_target": null,
+    "expected_delta_sign": -1
+  },
+  {
+    "phase": "settlement",
+    "image": "stopped-page-2.png",
+    "expected_action": "scroll",
+    "expected_target": null,
+    "expected_delta_sign": -1
+  },
+  {
+    "phase": "settlement",
+    "image": "stopped-page-3.png",
+    "expected_action": "observe",
+    "expected_target": null,
+    "expected_delta_sign": -1
+  }
+]

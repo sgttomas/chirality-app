@@ -1,0 +1,30 @@
+{
+  "at": "2026-10-31T22:02:36.335108+00:00",
+  "step": 1,
+  "phase": "ready",
+  "goal": "Reveal More tools, Host diagnostics, Lifecycle and Raw envelopes; read all3 diagnostic pages then submit complete observed strings.",
+  "candidate": "invented-full-journey-only",
+  "admission_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "frame": {
+    "path": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/frame-001.png",
+    "sha256": "7cbca49c6c0f32c71ef6515e72afa0b79fc32bc736e17ba6c20156bbe22b4f85",
+    "sequence": 1,
+    "image": {
+      "width": 2200,
+      "height": 1600,
+      "scale": 2
+    }
+  },
+  "control_file": "/Users/ryan/dev/chirality-t3/scratch/app-full-operator-rehearsal-dd3eovud/control-001.json",
+  "phase_seconds_remaining": 58.99113183375448,
+  "effect_readback_required": false,
+  "phase_capture_references": [
+    1
+  ],
+  "required_sections": [
+    "state-generation",
+    "lifecycle-clientRequests",
+    "raw-envelopes"
+  ],
+  "limits": "OFFLINE fixture only. Read actual current image; no expected-file reads, no cached earlier-phase source. Private0600 temp+atomic rename. Native costs are simulated allowances."
+}
