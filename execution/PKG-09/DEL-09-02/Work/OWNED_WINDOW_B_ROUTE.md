@@ -349,3 +349,7 @@ independent scrutiny; no such change is proposed here.
 The [explicit post-8w83 v3 admission](RETAINED_B_ADMISSION_V3.md) binds the
 subsequent nine-row assessment in a separate unrun preparation. The window
 acceptance and mismatch-diagnostic policy remain unchanged; no live authority.
+
+The [initial stability proposal](INITIAL_WINDOW_STABILITY.md) adds one bounded
+pre-capture acquisition and an explicit twelve-row v4 basis. It remains pending
+narrow review and live disposition; historical attempts are unchanged.
