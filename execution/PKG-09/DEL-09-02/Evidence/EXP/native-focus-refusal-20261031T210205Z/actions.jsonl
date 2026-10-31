@@ -1,0 +1,4 @@
+{"at": "2026-10-31T21:02:06.833202+00:00", "event": "native_B_started", "pid": 96956, "actor": "agent under owner direction; not a personal human act", "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."}
+{"at": "2026-10-31T21:02:29.790753+00:00", "event": "work_failed", "error": "window helper refused: inspect its scoped stderr/result"}
+{"at": "2026-10-31T21:03:00.286244+00:00", "event": "normal_cleanup_unavailable", "error": "operator cannot establish native observation/effect: Focus helper refused owned App did not become frontmost; verified image has blank dark content, no source or expected effect observable. No further input."}
+{"at": "2026-10-31T21:03:00.286339+00:00", "event": "held_unknown", "error": "window helper refused: inspect its scoped stderr/result"}

@@ -1,0 +1,1 @@
+{"action": "release-observer-after-app-exit", "candidate": "fdcf608fb5-23c6c3f22f5e", "admission_sha256": "3d05cfd09735d1a6ca8ee086aec0bf7e5c84fc4a08e0263fe6413c32ba906e14", "expected_app_exit": {"code": 1, "status": 0}}

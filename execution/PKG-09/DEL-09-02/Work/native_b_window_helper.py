@@ -32,6 +32,35 @@ def require_same_window(root,request,actual,comparison):
     raise RuntimeError('helper owned window changed')
 
 
+def activate_original_app(pid):
+    # System AppKit only, inside this separately supervised helper. No list of
+    # applications, bundle lookup, ignore-other-apps flag or new executable.
+    appkit=C.CDLL('/System/Library/Frameworks/AppKit.framework/AppKit')
+    objc=C.CDLL('/usr/lib/libobjc.A.dylib')
+    objc.objc_getClass.restype=C.c_void_p;objc.objc_getClass.argtypes=[C.c_char_p]
+    objc.sel_registerName.restype=C.c_void_p;objc.sel_registerName.argtypes=[C.c_char_p]
+    sel=objc.sel_registerName
+    object_call=C.CFUNCTYPE(C.c_void_p,C.c_void_p,C.c_void_p)(('objc_msgSend',objc))
+    object_pid_call=C.CFUNCTYPE(C.c_void_p,C.c_void_p,C.c_void_p,C.c_int)(('objc_msgSend',objc))
+    pid_call=C.CFUNCTYPE(C.c_int,C.c_void_p,C.c_void_p)(('objc_msgSend',objc))
+    policy_call=C.CFUNCTYPE(C.c_long,C.c_void_p,C.c_void_p)(('objc_msgSend',objc))
+    activate_call=C.CFUNCTYPE(C.c_bool,C.c_void_p,C.c_void_p,C.c_ulong)(('objc_msgSend',objc))
+    void_call=C.CFUNCTYPE(None,C.c_void_p,C.c_void_p)(('objc_msgSend',objc))
+    pool=object_call(objc.objc_getClass(b'NSAutoreleasePool'),sel(b'new'))
+    w.require(pool,'activation autorelease pool unavailable')
+    try:
+        target=object_pid_call(objc.objc_getClass(b'NSRunningApplication'),sel(b'runningApplicationWithProcessIdentifier:'),pid)
+        w.require(target,'original App not registered for activation')
+        actual=pid_call(target,sel(b'processIdentifier'))
+        w.require(actual==pid,'activation receiver differs from original App')
+        policy=policy_call(target,sel(b'activationPolicy'))
+        w.require(policy in (0,1),'original App activation policy prohibits activation')
+        sent=bool(activate_call(target,sel(b'activateWithOptions:'),0))
+        return {'receiver_pid':actual,'activation_policy':policy,'options':0,'request_sent':sent,
+                'limits':'Request dispatch only, not actual frontmost/effect proof.'}
+    finally:void_call(pool,sel(b'drain'))
+
+
 def main(request_path,expected_sha):
     root=Path(__file__).resolve().parent;info=root.lstat()
     w.require(root.resolve()==root and info.st_uid==os.getuid() and stat.S_IMODE(info.st_mode)==0o700,'helper root not private')
@@ -76,13 +105,25 @@ def main(request_path,expected_sha):
         app=backend.app(pid)
         owner_rc,owner=backend.owner(app);w.require(owner_rc==0 and owner==pid,'helper AX App ownership unavailable')
         if action=='focus':
-            if not w.frontmost(backend,app):
-                setter=backend.a.AXUIElementSetAttributeValue;setter.restype=C.c_int;setter.argtypes=[C.c_void_p,C.c_void_p,C.c_void_p]
-                true=C.c_void_p.in_dll(backend.c,'kCFBooleanTrue').value
-                rc=setter(app,backend.string('AXFrontmost'),true);w.require(rc==0,'owned App focus request refused')
-                end=time.monotonic()+0.6
-                while time.monotonic()<end and not w.frontmost(backend,app):time.sleep(0.05)
-            w.require(w.frontmost(backend,app),'owned App did not become frontmost')
+            trace={'activation':None,'observations':[]}
+            def focused():
+                value=w.frontmost(backend,app)
+                trace['observations'].append({'at':w.d.now(),'frontmost':value})
+                return value
+            try:
+                if not focused():
+                    bound('before-focus-activation')
+                    trace['activation']=activate_original_app(pid)
+                    w.require(trace['activation']['request_sent'],'owned App activation request refused')
+                    end=time.monotonic()+0.6
+                    while True:
+                        if focused():break
+                        w.require(time.monotonic()<end,'owned App did not become frontmost')
+                        time.sleep(0.05)
+            except BaseException as error:
+                trace['error']=str(error);raise
+            finally:
+                write_result(root/f"window-helper-{request['sequence']:03d}.focus.json",trace)
         else:
             if context:w.require(action=='click','modal admits confirmation click only')
             w.require(w.frontmost(backend,app) and (context is not None or window['own_visible_layer0_count']==1),'own main-window focus unavailable')

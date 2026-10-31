@@ -304,3 +304,8 @@ administrative reap closed resources, with B still FAILED and no image or LT23.
 images in5kpzvvr3, a posted navigation click with no observed effect, failed B
 and normal cleanup. The bounded click-routing hypothesis and exact v5 state
 are kept distinct from those actual facts.
+
+[Owned activation work](OWNED_APP_ACTIVATION.md) follows an actual focus refusal
+in uef3r3p2, before any annotated click. It retains failedqualification/cleanup
+facts and proposes one documented same-PID activation request with unchanged
+actual-frontmost/effect gates; live review/CI remains outstanding.

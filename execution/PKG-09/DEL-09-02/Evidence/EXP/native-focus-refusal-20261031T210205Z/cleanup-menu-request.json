@@ -1,0 +1,154 @@
+{
+  "at": "2026-10-31T21:03:00.839121+00:00",
+  "actor": "agent under owner direction; not a personal human act",
+  "scope": "one parent-authorized cleanup-only owned menu Quit; B stays failed",
+  "menu_item": {
+    "AXRole": "AXMenuItem",
+    "AXSubrole": null,
+    "AXTitle": "Quit Chirality App v4 (development 20261030 eqxsxv4n)",
+    "AXEnabled": true
+  },
+  "heartbeat": {
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "phase": "B",
+    "state": "held-unknown",
+    "administrative_release_request": null,
+    "administrative_release_consumed": false,
+    "administrative_release_control": {
+      "file": "release-observer-after-app-exit.json",
+      "mode": "0600",
+      "requirements": "plain owned single-link file, exact offered JSON body; create privately then atomically rename into place; one occurrence including refusal, no replacement/retry"
+    },
+    "error": "window helper refused: inspect its scoped stderr/result",
+    "app_exit_observation": null,
+    "original_app_reaped": false,
+    "supplier_settled_observed": false,
+    "quit_requested": false,
+    "generation": null,
+    "recovery_limit": "Screen observation retry unavailable: the 45s held retry cannot admit these phase budgets. Retain supervision; separately selected owned-menu cleanup/normal-exit administrative release is not qualification.",
+    "recovery_control": null,
+    "guard_reason": null,
+    "logging_errors": [],
+    "sampling_observations": {
+      "exclusive": {
+        "at": "2026-10-31T21:02:59.917802+00:00",
+        "source": "exclusive.pending existence",
+        "ok": true,
+        "value": false
+      },
+      "shared_memguard_pgrep": {
+        "at": "2026-10-31T21:02:59.952772+00:00",
+        "source": "shared_memguard_pgrep",
+        "ok": true,
+        "value": [
+          78827
+        ]
+      },
+      "ps_census_and_rss": {
+        "at": "2026-10-31T21:02:59.997813+00:00",
+        "source": "ps_census_and_rss",
+        "ok": true,
+        "value": {
+          "processes": [
+            {
+              "pid": 96956,
+              "parent": 96942,
+              "under_controller_ancestry": true
+            },
+            {
+              "pid": 97029,
+              "parent": 96956,
+              "under_controller_ancestry": true
+            }
+          ],
+          "shared_and_owned_rss_kib": 475728,
+          "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+        }
+      },
+      "sysctl_free_percent": {
+        "at": "2026-10-31T21:03:00.000988+00:00",
+        "source": "sysctl_free_percent",
+        "ok": true,
+        "value": 72
+      }
+    },
+    "census_freshness": "Use ps_census_and_rss timestamp/ok; heartbeat is original-Child observation, not census freshness",
+    "observed_executable_processes": [
+      {
+        "pid": 96956,
+        "parent": 96942,
+        "under_controller_ancestry": true
+      },
+      {
+        "pid": 97029,
+        "parent": 96956,
+        "under_controller_ancestry": true
+      }
+    ],
+    "overrun": false,
+    "at": "2026-10-31T21:03:00.302530+00:00",
+    "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody.",
+    "window_helper": {
+      "settlement": "no live held helper"
+    },
+    "screen_step": 2,
+    "last_verified_capture": {
+      "at": "2026-10-31T21:02:30.204545+00:00",
+      "sequence": 3,
+      "path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-uef3r3p2/window-003.png",
+      "sha256": "b983b770c4227cca9fc0537c0d6bb3e681e1d04774b6b71e9dc87a7096a7e61a",
+      "identity": {
+        "pid": 96956,
+        "ppid": 96942,
+        "uid": 501,
+        "ruid": 501,
+        "start_sec": 1793480526,
+        "start_usec": 831572,
+        "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/MacOS/chirality-app-v4"
+      },
+      "window": {
+        "window_id": 56858,
+        "title": "Chirality App v4 \u2014 walking skeleton",
+        "bounds": {
+          "X": 1722.0,
+          "Y": 93.0,
+          "Width": 1100.0,
+          "Height": 800.0
+        },
+        "on_screen": true,
+        "layer": 0.0,
+        "own_visible_layer0_count": 1
+      },
+      "image": {
+        "width": 2200,
+        "height": 1600,
+        "scale": 2.0,
+        "image_data_sha256": "b41bf85d64be0cd7e80ca5b60ceab7f8263a09fe9ed7cb1dc7a77511abb13310"
+      },
+      "limits": "Exact owned window only, -a excludes attached windows, -o excludes shadow. Before/after checks are not atomic. Pixels are observations, not native source records.",
+      "target": "main"
+    }
+  },
+  "admission_sha256": "3d05cfd09735d1a6ca8ee086aec0bf7e5c84fc4a08e0263fe6413c32ba906e14",
+  "source_dependencies": {
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_setup_continuation.py": "c7907e185df14aa51a5ad908c1d55f18e9e4679edb57f7da417b47252eae0acc",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Evidence/EXP/d908cbec5b-headless-setup-20261030T055603Z/offline-native-controller-v2.py.txt": "91c9ca98d7bf8d784e2cea5cbd42d237230b9018d58f5e04e369a755d5b7720c",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/app/examination/candidate_identity/identify.py": "983ad088945b9f0a05fbf374630d83d596b743ad7af4b8ffc13ae4c2ed3981ae",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/app/examination/candidate_identity/bundled_supplier.py": "6604fbe6efb7aa291b915a27d5a07270b5d96191090780ad88d2c195c5d4239f",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-01/Work/candidate-identity-v3/candidate-identification.schema.json": "8b0f84322e801123f0c333bf4f50d4729aec2d60ab1bf72535fa7c05c0385a0e",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_setup.py": "5ece0059c9d5ecb170b53dcae3f921eaf99dff585662e1a0cc8cb17a9b08a641",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py": "8d20b5b0c2ab6721f723e638a789355c15290adad1e0bbf815640dbefa3ec3c8",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_ax.py": "4a5a26d43063f271188a90c290e3bae56cc7794014149ca5ae7504b005737cef",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_release.py": "9db06d8066ba86e78d58ea9b0719e6c7c445fdb46feb3e3f03b3a89ed51b5ec5",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_retained.py": "82d08f4c7e5f2ec74ea8533877b76f032142f1e18e1fe757a092d2c8032685de",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_diagnostic.py": "fd37834b301f138963cdfe76f8bf3a146aea373b99ab2c994546ff73c939af19",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_retained_v2.py": "0b6373d9281e01831902fe43213ecb7c51eaa44e769737413cafb6d666a7a42b",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_retained_v3.py": "ebafb3a456091c662762b1333293e2f17b198afb2fc19bb81441b5410955a598",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_retained_v4.py": "db3d690925821e07f1d8d55a9ad9bf477b14179f29719bd202e24acb20aa789c",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_retained_v5.py": "586d5f55906333eb686a2d6bfb7fdb1a85ab7bc9569f80961454b03d2dc209c3",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_slot_entry.py": "b559b6f1c3ff0cec9e791059123adf6848a989f059cf693463b0bdd11de467e8",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_screen_route.py": "6f23c2e58d20bffec1a38c9e638827304be36f08f6917211636aed229de9c363",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_window.py": "8f90274f4f1b3aa43864bd18777ae705ca1a33276f24d67b8ed306fea8d80963",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_window_helper.py": "8ddddfc0b564ef38868ebc91aea00de73b655348e128cc973984501d06256579"
+  }
+}
