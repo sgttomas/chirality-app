@@ -8,7 +8,7 @@ use std::path::Path;
 /// Owner selection must bind the production bundle identifier AND publisher to an
 /// independent certificate anchor. Never use the running App's designated requirement,
 /// an environment value, resource, configuration, or caller-supplied requirement.
-pub(crate) const COMPILED_PUBLISHER_REQUIREMENT: Option<&str> = None;
+pub(crate) const COMPILED_PUBLISHER_REQUIREMENT: Option<&str> = crate::publisher_selection::COMPILED_PUBLISHER_REQUIREMENT;
 pub(crate) const STATIC_VALIDATION_FLAGS: u32 = (1 << 29) | 1 | (1 << 3) | (1 << 4);
 pub(crate) const DYNAMIC_VALIDATION_FLAGS: u32 = 1 << 29;
 const OBSERVER: &str = "macos-security-framework.s4.v1";
@@ -56,8 +56,9 @@ impl InstalledCustody {
 /// `resources` is a placement assertion, compared to the independently resolved
 /// running App. It never selects the bundle or publisher checked by Security.
 pub(crate) fn observe(resources: &Path) -> Result<InstalledCustody, String> {
+    let selected = crate::publisher_selection::selected()?;
     let requirement = build_gate(
-        COMPILED_PUBLISHER_REQUIREMENT,
+        selected.as_ref().map(|selection|selection.requirement()),
         cfg!(debug_assertions),
         cfg!(target_os = "macos"),
     )?;
@@ -160,8 +161,8 @@ pub(crate) fn validate_evidence(value: &Value) -> Result<(), String> {
         return Err("installed observation semantic revision, flags or limits differ".into());
     }
     let requirement = match value["standing"].as_str() {
-        Some("installed-observation") => COMPILED_PUBLISHER_REQUIREMENT
-            .ok_or("installed evidence has no independently compiled publisher selection")?,
+        Some("installed-observation") => crate::publisher_selection::selected()?
+            .map(|selection|selection.requirement()).ok_or("installed evidence has no independently compiled publisher selection")?,
         #[cfg(test)]
         Some("synthetic-source-fixture") => SYNTHETIC_REQUIREMENT,
         _ => return Err("installed observation standing unsupported".into()),

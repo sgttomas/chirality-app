@@ -120,3 +120,12 @@ This supplies technical means under the existing outputs and requirements; it
 does not select a publisher, qualify a pin/candidate, change acceptance criteria
 or complete native/package witnesses. The compiled publisher requirement remains
 None, so production continues to refuse before supplier execution.
+
+## Publisher build-selection reconciliation
+
+[The publisher build supplement](Work/PUBLISHER_BUILD_SELECTION.md) defines the bounded technical
+input/binding interface following S4. Ordinary builds remain unselected; only
+an explicit reviewed production recipe can compile owner-selected values. This
+changes no acceptance criteria and selects no real identity, version, minimum OS
+or signing act. Actual publisher input, package/consumer joins and qualification
+remain at their named points of need.

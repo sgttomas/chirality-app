@@ -1,0 +1,86 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "publisher-build-public-projection.s1"
+    },
+    "original_binding_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "requirement_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "template_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "generator_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "recipe_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "input_schema_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "cargo_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "cargo_lock_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "build_context_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "redacted_fields": {
+      "const": [
+        "production_bundle_identifier",
+        "developer_id_team_identifier",
+        "build_context.application_identifier"
+      ]
+    },
+    "standing": {
+      "const": "redacted-derivative-not-selection-authority"
+    },
+    "binding_schema_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "public_projection_schema_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "required": [
+    "format",
+    "original_binding_sha256",
+    "input_sha256",
+    "requirement_sha256",
+    "template_sha256",
+    "generator_sha256",
+    "recipe_sha256",
+    "input_schema_sha256",
+    "cargo_manifest_sha256",
+    "cargo_lock_sha256",
+    "build_context_sha256",
+    "redacted_fields",
+    "standing",
+    "binding_schema_sha256",
+    "public_projection_schema_sha256"
+  ],
+  "$id": "urn:chirality:publisher-build-public-projection.s1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
