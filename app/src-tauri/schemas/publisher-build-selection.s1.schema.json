@@ -1,0 +1,29 @@
+{
+  "$id": "urn:chirality:publisher-build-selection.s1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "publisher-build-selection.s1"
+    },
+    "production_bundle_identifier": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 253,
+      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$",
+      "not": {
+        "const": "dev.chirality.app-v4.skeleton"
+      }
+    },
+    "developer_id_team_identifier": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]{10}$"
+    }
+  },
+  "required": [
+    "format",
+    "production_bundle_identifier",
+    "developer_id_team_identifier"
+  ]
+}
