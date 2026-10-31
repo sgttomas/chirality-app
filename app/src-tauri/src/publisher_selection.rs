@@ -101,22 +101,17 @@ fn validate_artifacts(
     {
         return Err("compiled publisher requirement/context join differs".into());
     }
+    // Use the same serde_json string encoder as the build generator; no divergent
+    // quoting rule when reconstructing the independently specified template.
+    let identifier =
+        serde_json::to_string(binding["production_bundle_identifier"].as_str().unwrap())
+            .map_err(|_| "compiled publisher identifier encoding invalid")?;
+    let team = serde_json::to_string(binding["developer_id_team_identifier"].as_str().unwrap())
+        .map_err(|_| "compiled publisher team encoding invalid")?;
     let expected_requirement =
         include_str!("../build_support/developer-id-application.s1.requirement-template.txt")
-            .replace(
-                "{{production_bundle_identifier}}",
-                &format!(
-                    "\"{}\"",
-                    binding["production_bundle_identifier"].as_str().unwrap()
-                ),
-            )
-            .replace(
-                "{{developer_id_team_identifier}}",
-                &format!(
-                    "\"{}\"",
-                    binding["developer_id_team_identifier"].as_str().unwrap()
-                ),
-            );
+            .replace("{{production_bundle_identifier}}", &identifier)
+            .replace("{{developer_id_team_identifier}}", &team);
     if requirement != expected_requirement {
         return Err("compiled publisher requirement differs from independent template".into());
     }

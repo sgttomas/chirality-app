@@ -25,6 +25,9 @@ fn invoke(root: &std::path::Path, stage: &str, digest: &str) -> std::process::Ou
     if stage == "dev" {
         cmd.env("DEP_TAURI_DEV", "true");
     }
+    if stage == "config-mismatch" {
+        cmd.env_remove("TAURI_CONFIG");
+    }
     cmd.output().unwrap()
 }
 #[test]
@@ -56,6 +59,9 @@ fn publisher_actual_recipe_selected_none_changed_and_debug() {
     assert!(
         String::from_utf8_lossy(&output.stdout).contains("publisher-selection-recheck-required")
     );
+    assert!(String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .any(|line| line == "cargo:rustc-cfg=chirality_publisher_selected"));
     let private = fs::read_to_string(root.join("out/publisher-build-binding.s1.json")).unwrap();
     let public =
         fs::read_to_string(root.join("out/publisher-build-public-projection.s1.json")).unwrap();
@@ -104,9 +110,22 @@ fn publisher_actual_recipe_selected_none_changed_and_debug() {
     );
     assert!(!public.contains("SYNTHETIC0"));
     assert!(!public.contains("invalid.example.synthetic"));
-    for stage in ["none", "debug", "dev", "changed", "missing"] {
+    for stage in [
+        "none",
+        "debug",
+        "dev",
+        "changed",
+        "missing",
+        "config-mismatch",
+    ] {
         fs::write(root.join("input.json"), input).unwrap();
-        assert!(invoke(&root, "selected", &digest).status.success());
+        fs::set_permissions(root.join("input.json"), fs::Permissions::from_mode(0o600)).unwrap();
+        let selected = invoke(&root, "selected", &digest);
+        assert!(
+            selected.status.success(),
+            "{stage}: {}",
+            String::from_utf8_lossy(&selected.stderr)
+        );
         if stage == "changed" {
             fs::write(root.join("input.json"), b"changed").unwrap();
         }
@@ -118,6 +137,12 @@ fn publisher_actual_recipe_selected_none_changed_and_debug() {
             output.status.success(),
             "{stage}: {}",
             String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(
+            !String::from_utf8_lossy(&output.stdout)
+                .lines()
+                .any(|line| line == "cargo:rustc-cfg=chirality_publisher_selected"),
+            "{stage}"
         );
         let generated = fs::read_to_string(root.join("out/publisher_selection.rs")).unwrap();
         assert!(!generated.contains("= Some("), "{stage}");
@@ -229,6 +254,9 @@ fn publisher_generated_source_compiler_refuses_debug_dev_and_missing_features() 
         if kind != "unselected-build" {
             command.args(["--cfg", "chirality_publisher_selected"]);
         }
+        if kind == "synthetic-anchor" {
+            command.args(["--cfg", "feature=\"synthetic-distribution-anchor\""]);
+        }
         command.output().unwrap()
     };
     let production = compile("production");
@@ -243,6 +271,7 @@ fn publisher_generated_source_compiler_refuses_debug_dev_and_missing_features() 
         "test",
         "missing-feature",
         "unselected-build",
+        "synthetic-anchor",
     ] {
         let result = compile(kind);
         assert!(!result.status.success(), "{kind}");

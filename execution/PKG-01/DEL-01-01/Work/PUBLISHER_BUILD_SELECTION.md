@@ -28,7 +28,9 @@ is exactly ten uppercase ASCII alphanumeric characters. Duplicate or unknown
 fields, arbitrary requirement logic, quote/backslash/control/Unicode injection
 and malformed values refuse. The separately mapped
 [publisher-build-selection.s1 schema](publisher-build-selection/publisher-build-selection.s1.schema.json)
-and the typed parser both apply; schema conformance alone is not authorization.
+documents the closed shape and is identity-bound by `input_schema_sha256`;
+the typed parser enforces it at build time. The build does not run a JSON Schema
+validator over the input. Schema conformance alone is not authorization.
 
 The build-only controls are:
 
@@ -164,3 +166,21 @@ without code signing or any certificate/installed-code inspection. These checks
 establish source behavior and representation, not a selected publisher or signed
 App capability. Independent review and exact-head hosted CI are recorded in the
 follow-on PR before integration.
+
+## Independent review disposition
+
+Claude Opus 5.5/high reviewed `51f61394` against `3cb06016` and found no blockers
+within the synthetic/default-None scope. The manager corrected the schema
+enforcement claim, removed the unused raw requirement alias, aligned generator
+and runtime quoting through the same serde_json string encoder, and added
+recipe-level compiler-stamp/configuration-mismatch and synthetic-anchor checks.
+No real selection, signing or qualification follows from this review.
+
+Cargo fingerprints retain the build input locator and digest under target/, and
+compiled outputs contain the full binding. Treat selected build caches/outputs
+according to the original-private evidence policy. The unsalted input/requirement
+digests in the public derivative can confirm guessed identifier/team values;
+redaction is not secrecy or a publication decision. No selected Cargo freshness
+end-to-end run was made: force-rerun behavior relies on Cargo's documented missing
+dependency rule and the recipe's checked sentinel/stamp output. The real selected
+App execution path remains a later signed-candidate witness.

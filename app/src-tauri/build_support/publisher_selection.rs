@@ -16,7 +16,7 @@ pub const BINDING_FORMAT: &str = "publisher-build-binding.s1";
 pub const MODE: &str = "production-v1";
 pub const INPUT_LIMIT: u64 = 16 * 1024;
 pub const TEMPLATE: &str = include_str!("developer-id-application.s1.requirement-template.txt");
-const NONE_SOURCE: &str = "// Generated publisher selection: unselected.\npub(crate) const COMPILED_PUBLISHER_REQUIREMENT: Option<&str> = None;\npub(crate) const COMPILED_PUBLISHER_BINDING_JSON: Option<&str> = None;\npub(crate) const COMPILED_PUBLISHER_BINDING_SHA256: Option<&str> = None;\npub(crate) const COMPILED_PUBLISHER_PUBLIC_PROJECTION_JSON: Option<&str> = None;\npub(crate) const COMPILED_PUBLISHER_PUBLIC_PROJECTION_SHA256: Option<&str> = None;\n";
+const NONE_SOURCE: &str = "// Generated publisher selection: unselected.\nconst COMPILED_PUBLISHER_REQUIREMENT: Option<&str> = None;\nconst COMPILED_PUBLISHER_BINDING_JSON: Option<&str> = None;\nconst COMPILED_PUBLISHER_BINDING_SHA256: Option<&str> = None;\nconst COMPILED_PUBLISHER_PUBLIC_PROJECTION_JSON: Option<&str> = None;\nconst COMPILED_PUBLISHER_PUBLIC_PROJECTION_SHA256: Option<&str> = None;\n";
 
 #[derive(Clone, Debug, Serialize)]
 pub struct BuildContext {
@@ -107,11 +107,11 @@ fn validate_input(bytes: &[u8]) -> Result<Input, String> {
     Ok(input)
 }
 fn quoted_requirement_literal(s: &str) -> String {
-    // Inputs have already been limited to ASCII identifier characters. Keep
-    // explicit escaping here so any future alphabet revision cannot inject logic.
-    let escaped = s.replace('\\', "\\\\").replace('"', "\\\"");
-    format!("\"{escaped}\"")
+    // Both generator and runtime checker use this existing JSON string encoder.
+    // The contract still restricts values to the validated ASCII alphabet.
+    serde_json::to_string(s).expect("serializing a requirement string cannot fail")
 }
+
 fn requirement(input: &Input) -> String {
     TEMPLATE
         .replace(
@@ -368,7 +368,7 @@ pub fn generate(out_dir: &Path, request: &Request, context: &BuildContext) -> Re
 compile_error!("publisher selection requires a production macOS arm64 successor build");
 "#;
     let source = format!(
-        "// Generated publisher selection: compile-time only; no runtime input reader.\n{compiler_guard}pub(crate) const COMPILED_PUBLISHER_REQUIREMENT: Option<&str> = Some({requirement:?});\npub(crate) const COMPILED_PUBLISHER_BINDING_JSON: Option<&str> = Some({binding_text:?});\npub(crate) const COMPILED_PUBLISHER_BINDING_SHA256: Option<&str> = Some({binding_digest:?});\npub(crate) const COMPILED_PUBLISHER_PUBLIC_PROJECTION_JSON: Option<&str> = Some({projection_text:?});\npub(crate) const COMPILED_PUBLISHER_PUBLIC_PROJECTION_SHA256: Option<&str> = Some({projection_digest:?});\n",
+        "// Generated publisher selection: compile-time only; no runtime input reader.\n{compiler_guard}const COMPILED_PUBLISHER_REQUIREMENT: Option<&str> = Some({requirement:?});\nconst COMPILED_PUBLISHER_BINDING_JSON: Option<&str> = Some({binding_text:?});\nconst COMPILED_PUBLISHER_BINDING_SHA256: Option<&str> = Some({binding_digest:?});\nconst COMPILED_PUBLISHER_PUBLIC_PROJECTION_JSON: Option<&str> = Some({projection_text:?});\nconst COMPILED_PUBLISHER_PUBLIC_PROJECTION_SHA256: Option<&str> = Some({projection_digest:?});\n",
     );
     write_output(out_dir, "publisher-requirement.txt", requirement.as_bytes())?;
     write_output(out_dir, "publisher-build-binding.s1.json", &binding_bytes)?;
