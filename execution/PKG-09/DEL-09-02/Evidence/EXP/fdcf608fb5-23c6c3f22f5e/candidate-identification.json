@@ -1,0 +1,196 @@
+{
+  "format": "chirality.app-v4.candidate-identification/v3",
+  "candidate_key": "fdcf608fb5-23c6c3f22f5e",
+  "app_candidate": {
+    "revision": "fdcf608fb57c4f8299c7440ffc56519314046cff",
+    "build_identity": "chirality.app.bundle-tree.sha256/v2:23c6c3f22f5e240440449eaa573737ef556cdac88370633e5b7886a741b6a2a3",
+    "packaged": false
+  },
+  "route": "native_development",
+  "source": {
+    "repository": "sgttomas/chirality-app",
+    "revision": "fdcf608fb57c4f8299c7440ffc56519314046cff",
+    "commit_tree": "2353ab5a06096d1cffbf17cdf2ddd90354cc05c7",
+    "exported_prefix": ".",
+    "tree": "2353ab5a06096d1cffbf17cdf2ddd90354cc05c7",
+    "tracked_files_verified": 2788
+  },
+  "build": {
+    "command": [
+      "/Users/ryan/.local/share/mise/installs/node/24.18.0/bin/node",
+      "node_modules/@tauri-apps/cli/tauri.js",
+      "build",
+      "--debug",
+      "--no-sign",
+      "--bundles",
+      "app",
+      "--features",
+      "custom-protocol",
+      "--config",
+      "packaging/unsigned/tauri.development.conf.json",
+      "--config",
+      "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/supplier.development.conf.json",
+      "--",
+      "--offline",
+      "--locked"
+    ],
+    "environment": {
+      "HOME": "/Users/ryan",
+      "PATH": "/Users/ryan/.local/share/mise/installs/node/24.18.0/bin:/Users/ryan/.rustup/toolchains/stable-aarch64-apple-darwin/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+      "LANG": "en_US.UTF-8",
+      "CARGO_HOME": "/Users/ryan/dev/chirality-t3/scratch/app-native-custody-xwl7wbmc/cargo-home",
+      "CARGO_TARGET_DIR": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target",
+      "CARGO_BUILD_JOBS": "2",
+      "CARGO_NET_OFFLINE": "true",
+      "CODEX_HOME": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/codex-home",
+      "TMPDIR": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/tmp",
+      "NPM_CONFIG_OFFLINE": "true",
+      "NPM_CONFIG_USERCONFIG": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/npm-user.conf",
+      "NPM_CONFIG_GLOBALCONFIG": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/npm-global.conf"
+    },
+    "started_at": "2026-10-30T22:16:23.194123+00:00",
+    "procedure": "Slot-wrapped offline debug Tauri build, memguard admission, jobs2; no resource benchmark",
+    "profile": "debug",
+    "signing": "none",
+    "features": [
+      "custom-protocol"
+    ],
+    "offline": true,
+    "config_overlays": [
+      {
+        "path": "app/packaging/unsigned/tauri.development.conf.json",
+        "sha256": "c0a947f0e5db49e74d9a9a7559ba0d9656551c982ba37decd38fdb541d7288b8",
+        "content": {
+          "productName": "Chirality App v4 (development candidate)",
+          "version": "0.0.0",
+          "identifier": "dev.chirality.app-v4.skeleton",
+          "bundle": {
+            "active": true,
+            "targets": [
+              "app"
+            ],
+            "resources": {
+              "resources/instructions/": "instructions/",
+              "resources/production_workflows/": "workflows/"
+            },
+            "macOS": {
+              "minimumSystemVersion": "15.0",
+              "signingIdentity": null
+            }
+          }
+        }
+      },
+      {
+        "path": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/supplier.development.conf.json",
+        "sha256": "dd0f72da20f7f079ab76a79468e63cca5ede2c53393e18b315b107d52a37115a",
+        "content": {
+          "identifier": "dev.chirality.app-v4.candidate.20261030-eqxsxv4n",
+          "productName": "Chirality App v4 (development 20261030 eqxsxv4n)",
+          "bundle": {
+            "resources": {
+              "/private/tmp/chirality-desktop-current-ukt5ir80/supplier/package/vendor/aarch64-apple-darwin/": "codex/"
+            }
+          }
+        }
+      }
+    ],
+    "lockfiles": {
+      "app/package-lock.json": "1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa",
+      "app/src-tauri/Cargo.lock": "502f8e7c355f3ad5300bdc70661a59921f35e4ce30c9d38b75a9220e7f864af7"
+    },
+    "toolchain": {
+      "node": "v24.18.0",
+      "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+      "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)"
+    },
+    "finished_at": "2026-10-30T22:17:00.590233+00:00"
+  },
+  "bundle": {
+    "name": "Chirality App v4 (development 20261030 eqxsxv4n).app",
+    "identifier": "dev.chirality.app-v4.candidate.20261030-eqxsxv4n",
+    "version": "0.0.0",
+    "executable": {
+      "path": "Contents/MacOS/chirality-app-v4",
+      "sha256": "58962e7b8c20f8bd249dfa016158f139843ef1ab0f747c3af2def8b15c8ad82d"
+    },
+    "info_plist_sha256": "0729ad036fcc6039f95594b46ddd7579cb3336eba9017b3a31ca98382fe48597",
+    "file_manifest_sha256": "233d239e2a8afe803cf91f42809419581615653c4ef3e367779abb8ad54387dd",
+    "counts": {
+      "dir": 18,
+      "file": 56,
+      "symlink": 0
+    },
+    "metadata_state": {
+      "entries_including_root": 75,
+      "acl_entries": 0,
+      "nonzero_flags": 0,
+      "set_id_bits": 0,
+      "extended_attributes": {
+        "com.apple.provenance": 75
+      },
+      "xattr_allowlist": [
+        "com.apple.provenance"
+      ],
+      "owners": [
+        {
+          "uid": 501,
+          "gid": 20
+        }
+      ],
+      "symlinks": 0
+    },
+    "inventory": {
+      "path": "bundle-inventory.json",
+      "sha256": "7192ea8ced3b2c764e44bcf4f2c563926af182d25ed156b4369f76cbc08f7580"
+    }
+  },
+  "app_data": {
+    "directory": "~/Library/Application Support/dev.chirality.app-v4.candidate.20261030-eqxsxv4n",
+    "checked": [
+      "~/Library/Application Support/dev.chirality.app-v4.candidate.20261030-eqxsxv4n",
+      "~/Library/WebKit/dev.chirality.app-v4.candidate.20261030-eqxsxv4n",
+      "~/Library/Caches/dev.chirality.app-v4.candidate.20261030-eqxsxv4n"
+    ],
+    "present_at_identification": []
+  },
+  "supplier": {
+    "pin": "0.160.0",
+    "archive": {
+      "file": "codex-0.160.0-darwin-arm64.tgz",
+      "source": "https://registry.npmjs.org/@openai/codex/-/codex-0.160.0-darwin-arm64.tgz",
+      "size_bytes": 134311083,
+      "sha256": "fc789bcd655d903f92e1a23c8dc5315ba38f43b3586eafb7bd3b195970b57466"
+    },
+    "bundled": true,
+    "root": "Contents/Resources/codex",
+    "standing": "unqualified-development",
+    "acquisition": {
+      "path": "supplier-acquisition.json",
+      "sha256": "0711daae91a41f97b85f60cfd6f2d7ae520fc47b52ff09387b0ba465188291f8"
+    },
+    "correspondence": {
+      "method": "codex-platform-tar-files/v1",
+      "files": 42,
+      "file_manifest_sha256": "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12"
+    },
+    "binding": "Archive correspondence only; each examination binds actual supplier configuration and runtime standing."
+  },
+  "identified_by": {
+    "tool": "app/examination/candidate_identity/identify.py",
+    "tool_sha256": "983ad088945b9f0a05fbf374630d83d596b743ad7af4b8ffc13ae4c2ed3981ae",
+    "method": "chirality.app.bundle-tree.sha256/v2",
+    "supplier_tool_sha256": "6604fbe6efb7aa291b915a27d5a07270b5d96191090780ad88d2c195c5d4239f"
+  },
+  "identified_at": "2026-10-30T22:18:21.370344+00:00",
+  "limits": [
+    "Identifies the exact bundle bytes, structure, modes, ownership and allowlisted extended attributes read at identification; reproducible rebuilding is not claimed.",
+    "Unpackaged development build (route native_development): no signing, notarisation, package record or packaged witness.",
+    "File times and location are outside the identity: examine this copy in a controlled location without relying on timestamps, launch-registration caches or timestamp-based resource selection; record the actual examination environment separately.",
+    "ACLs, non-zero file flags, set-id bits, extended attributes outside the allowlist, absolute or escaping links and special files are refused, not omitted.",
+    "Descriptor-relative no-follow reads with two equal passes detect ordinary change during reading; they do not establish custody against a concurrent hostile writer.",
+    "No examination is opened, no App is launched and no candidate qualification, replacement or acceptance follows from this record.",
+    "App-data absence is historical at identification, limited to the three declared identifier-selected locations; it is not a freshness promise after launch or a census of external state.",
+    "Bundled supplier files and modes match the measured official-source archive; acquisition authorization/custody remains the supplied record, not authenticated by this tool.",
+    "Unsigned development candidate only: no installed-custody issuer, supplier qualification, signing, notarisation, native launch or release follows from identification."
+  ]
+}

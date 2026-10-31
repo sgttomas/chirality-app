@@ -1,0 +1,24 @@
+{
+  "command": [
+    "/Users/ryan/dev/chirality-t3/tools/t3_slot.sh",
+    "/Users/ryan/.local/share/mise/installs/node/24.18.0/bin/npm",
+    "ci",
+    "--offline",
+    "--ignore-scripts",
+    "--no-audit",
+    "--no-fund",
+    "--cache",
+    "/Users/ryan/.npm",
+    "--logs-dir",
+    "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/npm-logs"
+  ],
+  "environment": {
+    "HOME": "/Users/ryan",
+    "PATH": "/Users/ryan/.local/share/mise/installs/node/24.18.0/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "CODEX_HOME": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/codex-home",
+    "TMPDIR": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/tmp",
+    "NPM_CONFIG_USERCONFIG": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/npm-user.conf",
+    "NPM_CONFIG_GLOBALCONFIG": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/npm-global.conf"
+  },
+  "exit_code": 0
+}

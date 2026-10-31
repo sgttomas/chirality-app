@@ -1,0 +1,509 @@
+"""Bounded phase A only. No relaunch, supplier, model or personal-human-act claim.
+
+The earlier controller remains raw evidence. Reuse only its AX primitives;
+this controller owns admission, monitoring, confirmation and process settlement.
+"""
+import argparse
+import hashlib
+import importlib.machinery
+import importlib.util
+import json
+import os
+from pathlib import Path
+import signal
+import stat
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+from datetime import datetime, timezone
+
+sys.dont_write_bytecode = True
+
+REPO = Path(__file__).resolve().parents[4]
+RETAINED = Path('/private/tmp/chirality-desktop-current-ukt5ir80')
+T3 = Path('/Users/ryan/dev/chirality-t3')
+RAW = REPO / 'execution/PKG-09/DEL-09-02/Evidence/EXP/d908cbec5b-headless-setup-20261030T055603Z/offline-native-controller-v2.py.txt'
+RAW_SHA = '91c9ca98d7bf8d784e2cea5cbd42d237230b9018d58f5e04e369a755d5b7720c'
+IDENTIFIER = 'dev.chirality.app-v4.candidate.20261029-ukt5ir80'
+ACTOR = 'agent under owner direction; not a personal human act'
+
+
+def require(ok, message):
+    if not ok:
+        raise RuntimeError(message)
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def now():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def write(path, value):
+    path.write_text(json.dumps(value, indent=2) + '\n')
+
+
+def load_ax():
+    require(sha(RAW.read_bytes()) == RAW_SHA, 'retained AX source changed')
+    loader = importlib.machinery.SourceFileLoader('retained_ax', str(RAW))
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    class ScopedAX(module.AX):
+        def capture_window(self, element, name):
+            self.own(element)
+            C = module.C
+            self.a._AXUIElementGetWindow.restype = C.c_int
+            self.a._AXUIElementGetWindow.argtypes = [C.c_void_p, C.POINTER(C.c_uint)]
+            window = C.c_uint()
+            require(self.a._AXUIElementGetWindow(element, C.byref(window)) == 0 and window.value,
+                    'owned window capture identity unavailable')
+            # Only the AX-derived own window, never the desktop or another app.
+            subprocess.run(['/usr/sbin/screencapture', '-x', '-l', str(window.value), str(self.output / (name + '.png'))],
+                           check=True, timeout=3)
+            self.log('owned_window_capture', name=name, window=window.value)
+
+        def stable(self, label, expected):
+            # Native menu delivery and WebKit change propagation are asynchronous.
+            # Observe one posted action; do not send another while awaiting it.
+            end = time.monotonic() + 3
+            previous = None
+            while time.monotonic() < end:
+                self.alive()
+                actual = self.attr(self.find('AXPopUpButton', label), 'AXValue')
+                if actual != previous:
+                    self.log('selection_readback', label=label, value=actual)
+                    previous = actual
+                if actual == expected:
+                    break
+                time.sleep(0.1)
+            require(actual == expected, 'selection did not commit: ' + label)
+            until = time.monotonic() + 1.25
+            while time.monotonic() < until:
+                self.alive()
+                time.sleep(0.05)
+            actual = self.attr(self.find('AXPopUpButton', label), 'AXValue')
+            self.log('selection_stable_readback', label=label, value=actual)
+            require(actual == expected, 'selection did not persist: ' + label)
+
+        def menu_once(self, label, option):
+            # Actual WebKit/AppKit observation: menu is a descendant of the
+            # existing owned main window, not a child of the popup/new window.
+            inventories = {
+                'Desktop setup action': [('Choose explicitly', True), ('Prepare a new account home', True),
+                                         ('Keep the admitted account; change next project', False)],
+                'Project on next launch': [('Choose explicitly', True), ('No project', True), ('Choose a project directory', True)],
+                'Supplier for next launch': [('Choose explicitly', True), ('Bundled supplier — unqualified owner-use development', True)],
+            }
+            require(label in inventories and self.attempts.get(label, 0) == 0, 'unknown/repeated selector')
+            self.attempts[label] = 1
+            require(not any(p['AXRole'] == 'AXMenu' for e, p, w in self.walk(self.main())), 'existing menu prevents association')
+            popup = self.find('AXPopUpButton', label)
+            self.focus(popup)
+            self.log('popup_open', label=label)
+            self.press(popup)
+            end = time.monotonic() + 2
+            menus = []
+            while time.monotonic() < end:
+                menus = [e for e, p, w in self.walk(self.main()) if p['AXRole'] == 'AXMenu' and not w]
+                if menus:
+                    break
+                time.sleep(0.05)
+            require(len(menus) == 1, 'new owned-main-window menu missing/ambiguous')
+            rows = self.walk(menus[0])
+            observed = [(p['AXTitle'], p['AXEnabled']) for e, p, w in rows if p['AXRole'] == 'AXMenuItem']
+            require(observed == inventories[label], 'new menu contents do not match exact selected popup')
+            self.log('owned_menu_bound', label=label, items=observed)
+            target = self.find('AXMenuItem', option, rows)
+            self.own(target)
+            require(self.attr(target, 'AXEnabled') is True, 'disabled menu choice')
+            capture_name = label.replace(' ', '-')
+            self.capture_window(self.main(), capture_name + '-main')
+            self.log('one_exact_menu_action', label=label, option=option, action='AXPress')
+            self.press(target)
+            self.stable(label, option)
+    return ScopedAX
+
+
+def namespaces():
+    old = json.loads((RETAINED / 'native-phase-A/partial-namespace.json').read_text())
+    expected = {
+        'AppData': Path.home() / 'Library/Application Support' / IDENTIFIER,
+        'WebKit': Path.home() / 'Library/WebKit' / IDENTIFIER,
+        'Caches': Path.home() / 'Library/Caches' / IDENTIFIER,
+    }
+    require(set(old) == set(expected), 'historical namespace list differs')
+    result = {}
+    for name, path in expected.items():
+        require(old[name]['path'] == str(path), 'historical namespace path differs')
+        if name == 'AppData':
+            require(not os.path.lexists(path), 'App data already exists; do not rerun A')
+            result[name] = {'path': str(path), 'present': False}
+            continue
+        s = path.lstat()
+        require(stat.S_ISDIR(s.st_mode) and s.st_ino == old[name]['inode'], 'retained namespace replaced')
+        require(oct(stat.S_IMODE(s.st_mode)) == old[name]['mode'], 'retained namespace mode changed')
+        require(sorted(p.name for p in path.iterdir()) == old[name]['immediate_names'], 'unexplained namespace children')
+        rows = []
+        for parent, dirs, files in os.walk(path, followlinks=False):
+            for p in [Path(parent), *[Path(parent) / n for n in sorted(files)]]:
+                s = p.lstat()
+                require(stat.S_ISDIR(s.st_mode) or stat.S_ISREG(s.st_mode), 'unexpected namespace object')
+                rows.append([str(p.relative_to(path)), s.st_dev, s.st_ino, s.st_mode, s.st_size, s.st_mtime_ns])
+            require(not any((Path(parent) / d).is_symlink() for d in dirs), 'linked namespace directory')
+            require(len(rows) < 2000, 'namespace expansion exceeds bound')
+        result[name] = {'path': str(path), 'metadata': sorted(rows)}
+    return result
+
+
+def inputs():
+    value = json.loads((RETAINED / 'witness-inputs/input-manifest.json').read_text())
+    require(value['candidate_key'] == '795362874d-a391547a5c5d', 'candidate differs')
+    for name, digest in value['files'].items():
+        p = RETAINED / 'witness-inputs' / name
+        require(stat.S_ISREG(p.lstat().st_mode) and sha(p.read_bytes()) == digest, 'fixture changed: ' + name)
+    for key in ('shared_skills', 'project'):
+        p = Path(value['native_input_paths'][key])
+        require(stat.S_ISDIR(p.lstat().st_mode) and not list(p.iterdir()), 'fixture directory not empty: ' + key)
+    require(value['expected_app_data'] == str(Path.home() / 'Library/Application Support' / IDENTIFIER), 'App data differs')
+    return value
+
+
+def prepare():
+    value = inputs()
+    basis = namespaces()
+    root = Path(tempfile.mkdtemp(prefix='app-native-setup-', dir=T3 / 'scratch')).resolve()
+    for child in ('codex-home', 'tmp'):
+        (root / child).mkdir(mode=0o700)
+    # Phase A cannot execute any supplier/helper. No weakening of original network/home denial.
+    policy = (RETAINED / 'witness-inputs/network-denied.sb').read_text()
+    policy += '\n(deny process-fork)\n(deny process-exec)\n'
+    policy += '(allow process-exec (literal ' + json.dumps(value['executable']) + '))\n'
+    (root / 'phase-A.sb').write_text(policy)
+    value['environment']['CODEX_HOME'] = str(root / 'codex-home')
+    value['environment']['TMPDIR'] = str(root / 'tmp')
+    (root / 'controller.py.txt').write_bytes(Path(__file__).read_bytes())
+    write(root / 'admission.json', {'inputs': value, 'namespaces': basis, 'policy_sha256': sha(policy.encode()),
+                                  'controller_sha256': sha(Path(__file__).read_bytes()), 'prepared_at': now()})
+    print(root)
+
+
+class Supervisor:
+    def __init__(self, root, work_end, resource_end=None):
+        self.root, self.work_end = root, work_end
+        self.resource_end = resource_end if resource_end is not None else work_end + 40
+        self.child = None
+        self.ax = None
+        self.reason = None
+        self.stop = threading.Event()
+        self.guard_thread = None
+        self.last_sample = 0.0
+        self.cleanup = False
+        self.forced = False
+        self.log_lock = threading.Lock()
+        self.cleanup_end = None
+        self.cleanup_events = []
+        self.log_errors = []
+
+    def log(self, event, **facts):
+        if self.cleanup:
+            self.cleanup_events.append({'at': now(), 'event': event, **facts})
+            return
+        with self.log_lock:
+            with (self.root / 'actions.jsonl').open('a') as f:
+                f.write(json.dumps({'at': now(), 'event': event, **facts}) + '\n')
+
+    def safe_log(self, event, **facts):
+        try:
+            self.log(event, **facts)
+        except BaseException as error:
+            self.log_errors.append(str(error))
+
+    def sample(self, admission=False):
+        require(not (T3 / 'guard/exclusive.pending').exists(), 'exclusive pending')
+        subprocess.run(['/usr/bin/pgrep', '-f', str(T3 / 'guard/memguard.sh')],
+                       stdout=subprocess.DEVNULL, check=True, timeout=2)
+        output = subprocess.check_output(['/bin/ps', '-axo', 'pid=,ppid=,rss=,command='], text=True, timeout=2)
+        rows = []
+        for line in output.splitlines():
+            fields = line.strip().split(None, 3)
+            if len(fields) == 4:
+                rows.append((int(fields[0]), int(fields[1]), int(fields[2]), fields[3]))
+        own = {os.getpid()}
+        if self.child is not None:
+            own.add(self.child.pid)
+        while True:
+            before = len(own)
+            own.update(pid for pid, parent, rss, cmd in rows if parent in own)
+            if len(own) == before:
+                break
+        total = sum(rss for pid, parent, rss, cmd in rows if pid in own or str(T3) + '/' in cmd)
+        free = int(subprocess.check_output(['/usr/sbin/sysctl', '-n', 'kern.memorystatus_level'], text=True, timeout=2))
+        require(total < (52 if admission else 64) * 1024 * 1024, 'shared RSS cap')
+        require(free >= (30 if admission else 22), 'system free floor')
+        require(not any(pid in own and '/Contents/Resources/codex/' in cmd for pid, parent, rss, cmd in rows), 'unexpected supplier observation')
+        self.last_sample = time.monotonic()
+
+    def monitor(self):
+        while not self.stop.wait(0.5):
+            try:
+                self.sample()
+                require(time.monotonic() < self.work_end, 'work deadline')
+            except BaseException as error:
+                self.reason = str(error)
+                self.safe_log('guard_stop', reason=self.reason)
+                return
+
+    def alive(self):
+        # Only the controller thread polls/reaps. The guard never reaps or signals.
+        require(self.child is not None and self.child.poll() is None, 'original App ended')
+        if self.cleanup:
+            require(time.monotonic() < self.cleanup_end, 'native cleanup deadline')
+        else:
+            require(self.reason is None, 'guard stopped: ' + str(self.reason))
+            require(time.monotonic() < self.work_end, 'work deadline')
+            require(time.monotonic() - self.last_sample < 8, 'guard heartbeat missing')
+            require(self.guard_thread is not None and self.guard_thread.is_alive(), 'guard thread ended')
+
+    def dialog(self, title, button):
+        # Find one native dialog/sheet subtree containing its own title and button.
+        found = []
+        for window in self.ax.windows():
+            for element, props, web in self.ax.walk(window):
+                if web or props['AXRole'] not in ('AXWindow', 'AXDialog', 'AXSheet'):
+                    continue
+                rows = self.ax.walk(element)
+                if not any(not w and title in (p['AXTitle'], p['AXValue'], p['AXDescription']) for e, p, w in rows):
+                    continue
+                buttons = [e for e, p, w in rows if not w and p['AXRole'] == 'AXButton' and p['AXTitle'] == button and p['AXEnabled'] is not False]
+                if len(buttons) == 1:
+                    if not any(self.ax.c.CFEqual(buttons[0], b) for r, b in found):
+                        found.append((rows, buttons[0]))
+        require(len(found) <= 1, 'ambiguous native dialog')
+        return found[0] if found else None
+
+    def settle(self):
+        self.cleanup = True  # Deadline/guard failures must not prohibit normal Quit.
+        # Set before any AX call. Every traversal's liveness callback enforces it;
+        # reserve 12 seconds for direct-child escalation and guard shutdown.
+        self.cleanup_end = min(time.monotonic() + 25, self.resource_end - 12)
+        if self.child is None:
+            self.stop.set()
+            if self.guard_thread is not None:
+                self.guard_thread.join(timeout=8)
+            return None
+        try:
+            if self.child.poll() is None and self.ax is not None:
+                self.alive()
+                self.ax.quit_ui()
+                self.safe_log('normal_quit_requested', actor=ACTOR)
+                confirmed = False
+                while self.child.poll() is None and time.monotonic() < self.cleanup_end:
+                    if not confirmed:
+                        question = self.dialog('Quit Chirality', 'Quit')
+                        if question:
+                            rows, button = question
+                            self.safe_log('native_quit_confirmed', actor=ACTOR, text=self.ax.text(rows))
+                            self.ax.press(button)
+                            confirmed = True
+                    time.sleep(0.1)
+        except BaseException as error:
+            self.safe_log('quit_ui_unavailable', error=str(error))
+        finally:
+            # Neither native errors nor failed logging may bypass settlement.
+            # Original direct child only, unreaped; no sampled PID/group signals.
+            if self.child.poll() is None:
+                self.forced = True
+                self.safe_log('forced_original_child_stop', limit='not a normal-quit pass')
+                self.child.terminate()
+                try:
+                    self.child.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    self.child.kill()
+                    self.child.wait()  # Keep custody even if kernel settlement overruns.
+        code = self.child.wait()
+        self.safe_log('original_app_reaped', exit_code=code, forced=self.forced)
+        self.stop.set()
+        if self.guard_thread is not None:
+            self.guard_thread.join(timeout=8)
+        # Do not perform cleanup filesystem IO until the App is gone.
+        try:
+            with (self.root / 'actions.jsonl').open('a') as f:
+                for row in self.cleanup_events:
+                    f.write(json.dumps(row) + '\n')
+        except BaseException as error:
+            self.log_errors.append(str(error))
+        return code
+
+
+def validate_request(request, account, value):
+    metadata = request.lstat()
+    require(stat.S_ISREG(metadata.st_mode) and metadata.st_uid == os.getuid()
+            and stat.S_IMODE(metadata.st_mode) == 0o600 and metadata.st_nlink == 1
+            and metadata.st_size <= 65536, 'saved request is not private owned regular file')
+    parent = request.parent.lstat()
+    require(stat.S_ISDIR(parent.st_mode) and parent.st_uid == os.getuid()
+            and stat.S_IMODE(parent.st_mode) == 0o700, 'request parent is not private owned directory')
+    raw = request.read_bytes()
+    record = json.loads(raw)
+    require(set(record) == {'version', 'supplier', 'app_data', 'account', 'shared', 'project'}, 'request fields differ')
+    require(type(record['version']) is int and record['version'] == 1
+            and record['supplier'] == 'bundled-owner-use-development', 'request version/supplier differs')
+    def reference(actual, path):
+        path = Path(path)
+        s = path.stat()
+        native = lambda p: {'encoding': 'unix_bytes', 'bytes': list(os.fsencode(p))}
+        expected = {'location': native(path), 'resolved': native(path.resolve()),
+                    'object': {'device': s.st_dev, 'inode': s.st_ino}}
+        require(actual == expected, 'request source binding differs: ' + str(path))
+    reference(record['app_data'], value['expected_app_data'])
+    reference(record['account'], account)
+    require(isinstance(record['shared'], list) and len(record['shared']) == 3, 'shared tuple differs')
+    for actual, key in zip(record['shared'], ('shared_config', 'shared_agents', 'shared_skills')):
+        reference(actual, value['native_input_paths'][key])
+    reference(record['project'], value['native_input_paths']['project'])
+    return raw, record
+
+
+def wait_for(run, predicate, seconds, message):
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        run.alive()
+        value = predicate()
+        if value:
+            return value
+        time.sleep(0.1)
+    raise RuntimeError(message)
+
+
+def form(run, value):
+    ax = run.ax
+    ax.menu_once('Desktop setup action', 'Prepare a new account home')
+    for label, key in [('Shared config.toml', 'shared_config'), ('Shared AGENTS.md', 'shared_agents'), ('Shared skills directory', 'shared_skills')]:
+        ax.type_path(label, value['native_input_paths'][key])
+    ax.menu_once('Project on next launch', 'Choose a project directory')
+    ax.type_path('Next project directory', value['native_input_paths']['project'])
+    ax.menu_once('Supplier for next launch', 'Bundled supplier — unqualified owner-use development')
+    review = ax.find('AXButton', 'Review setup effects')
+    require(ax.attr(review, 'AXEnabled') is True, 'Review is not enabled')
+    ax.press(review)
+    def preview():
+        rows = ax.walk(ax.main())
+        groups = [e for e, p, w in rows if p['AXRole'] == 'AXGroup' and p['AXTitle'] == 'Desktop setup effects']
+        return ax.walk(groups[0]) if len(groups) == 1 else None
+    rows = wait_for(run, preview, 8, 'setup preview unavailable')
+    text = ax.text(rows)
+    (run.root / 'preview.txt').write_text(text)
+    accounts = list(dict.fromkeys(line[len('Create new account directory '):] for line in text.splitlines() if line.startswith('Create new account directory ')))
+    require(len(accounts) == 1, 'account effect missing or ambiguous')
+    account = Path(accounts[0])
+    require(account.parent == Path(value['expected_app_data']) / 'account-homes' and account.name.startswith('account-'), 'unexpected account effect')
+    require(not os.path.lexists(account), 'account already exists')
+    for key in ('shared_config', 'shared_agents', 'shared_skills'):
+        require(value['native_input_paths'][key] in text, 'shared source missing from preview')
+    request = Path(value['expected_app_data']) / 'desktop-startup/request.json'
+    require(str(request) in text, 'request effect missing')
+    affirmative = 'Prepare home and save for next launch'
+    ax.press(ax.find('AXButton', affirmative, rows))
+    native, button = wait_for(run, lambda: run.dialog('Desktop setup — next launch only', affirmative), 8, 'native setup question unavailable')
+    native_text = ax.text([(e, p, w) for e, p, w in native if not w])
+    for path in [str(account), str(request), *value['native_input_paths'].values(), str(Path(value['bundle']) / 'Contents/Resources/codex/bin/codex')]:
+        require(path in native_text, 'native question does not bind expected effect')
+    (run.root / 'native-confirmation.txt').write_text(native_text)
+    inputs()  # Recheck immutable fixture and empty project before confirmation.
+    run.log('native_setup_confirmed', actor=ACTOR, account=str(account))
+    ax.press(button)
+    wait_for(run, lambda: any(p['AXTitle'] == 'Pending desktop setup' for e, p, w in ax.walk(ax.main())), 8, 'pending setup not observed')
+    raw, saved_request = validate_request(request, account, value)
+    require(stat.S_ISDIR(account.lstat().st_mode), 'account is not physical directory')
+    for name, key in [('config.toml', 'shared_config'), ('AGENTS.md', 'shared_agents'), ('skills', 'shared_skills')]:
+        require((account / name).is_symlink() and (account / name).resolve() == Path(value['native_input_paths'][key]), 'account link mismatch')
+    write(run.root / 'saved-bindings.json', {'account': str(account), 'request_path': str(request), 'request_sha256': sha(raw),
+                                          'request': saved_request, 'expected_inputs': value['native_input_paths'], 'actor': ACTOR})
+    ax.snapshot(run.root / 'saved-AX.json')
+    run.log('setup_saved', actor=ACTOR, request_sha256=sha(raw))
+
+
+def execute(root, window_end):
+    record = json.loads((root / 'admission.json').read_text())
+    value = record['inputs']
+    require(record['controller_sha256'] == sha(Path(__file__).read_bytes()), 'controller changed since preparation')
+    require(namespaces() == record['namespaces'], 'partial state changed since preparation')
+    current = inputs()
+    require(current['native_input_paths'] == value['native_input_paths'], 'input bindings differ')
+    require(not list((root / 'codex-home').iterdir()) and not (root / 'codex-home').is_symlink(), 'fallback home not fresh')
+    require(sha((root / 'phase-A.sb').read_bytes()) == record['policy_sha256'], 'policy changed')
+    remaining = window_end - time.time()
+    require(90 < remaining <= 600, 'invalid resource interval')
+    require(not (root / 'actions.jsonl').exists(), 'this prepared attempt already ran')
+    parent = subprocess.check_output(['/bin/ps', '-p', str(os.getppid()), '-o', 'command='], text=True, timeout=2)
+    require(str(T3 / 'tools/t3_slot_run.sh') in parent, 'slot wrapper missing')
+    env = {'PATH': '/usr/bin:/bin', 'HOME': str(Path.home()), 'PYTHONPATH': str(RETAINED / 'python-libs'),
+           'PYTHONDONTWRITEBYTECODE': '1', 'CODEX_HOME': str(root / 'codex-home')}
+    checked = subprocess.run([sys.executable, str(REPO / 'app/examination/candidate_identity/identify.py'), 'check',
+                              '--record', str(RETAINED / 'identified/candidate-identification.json'), '--app', value['bundle']],
+                             env=env, capture_output=True, text=True, timeout=45)
+    (root / 'artifact-check.stdout').write_text(checked.stdout)
+    (root / 'artifact-check.stderr').write_text(checked.stderr)
+    require(checked.returncode == 0, 'complete bundle inventory refused')
+    require(window_end - time.time() > 60, 'no work/cleanup allowance after inventory')
+    AX = load_ax()
+    resource_end = time.monotonic() + window_end - time.time()
+    run = Supervisor(root, min(time.monotonic() + 180, resource_end - 40), resource_end)
+    run.sample(admission=True)
+    run.guard_thread = threading.Thread(target=run.monitor, daemon=True)
+    run.guard_thread.start()
+    error = None
+    saved = False
+    try:
+        command = ['/usr/bin/sandbox-exec', '-f', str(root / 'phase-A.sb'), value['executable']]
+        with (root / 'stdout.log').open('wb') as stdout, (root / 'stderr.log').open('wb') as stderr:
+            run.child = subprocess.Popen(command, env=value['environment'], cwd=value['native_input_paths']['project'],
+                                         stdout=stdout, stderr=stderr, start_new_session=True)
+        run.log('phase_A_started', pid=run.child.pid, actor=ACTOR, policy_sha256=record['policy_sha256'])
+        run.ax = AX(run.child.pid, run.alive, run.log)
+        run.ax.output = root
+        wait_for(run, lambda: run.ax.windows(), 8, 'App window unavailable')
+        run.ax.snapshot(root / 'initial-AX.json')
+        wait_for(run, lambda: any(p['AXRole'] == 'AXPopUpButton' and p['AXTitle'] == 'Desktop setup action'
+                                 for e, p, w in run.ax.walk(run.ax.main())), 15, 'WebKit setup control unavailable')
+        run.ax.snapshot(root / 'ready-AX.json')
+        form(run, value)
+        saved = True
+    except BaseException as caught:
+        error = str(caught)
+        run.log('work_stopped', error=error)
+        if run.ax is not None:
+            try:
+                run.ax.snapshot(root / 'stopped-AX.json')
+            except BaseException as observation_error:
+                run.safe_log('stopped_snapshot_unavailable', error=str(observation_error))
+    finally:
+        code = run.settle()
+        result = {'candidate': value['candidate_key'], 'phase': 'A only', 'saved': saved, 'error': error,
+                  'guard_reason': run.reason, 'exit_code': code, 'forced': run.forced,
+                  'logging_errors': run.log_errors,
+                  'normal_setup_save_quit': saved and not error and not run.reason and code == 0 and not run.forced and not run.log_errors,
+                  'supplier': 'execution denied by phase-A policy; no relaunch attempted', 'actor': ACTOR,
+                  'limits': 'Native setup only; no workflow/recovery/access-mode qualification or human-act pass.'}
+        write(root / 'result.json', result)
+        print(json.dumps(result), flush=True)
+    return 0 if result['normal_setup_save_quit'] else 1
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--prepare', action='store_true')
+    parser.add_argument('--execute', type=Path)
+    parser.add_argument('--window-end', help='UTC ISO timestamp, at most ten minutes ahead')
+    args = parser.parse_args()
+    if args.prepare and not args.execute:
+        prepare()
+    elif args.execute and args.window_end and not args.prepare:
+        sys.exit(execute(args.execute.resolve(), datetime.fromisoformat(args.window_end).timestamp()))
+    else:
+        parser.error('choose --prepare or --execute ROOT --window-end UTC')
