@@ -88,7 +88,7 @@ needs:
   gating: true
   evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
 - from: external:DEP-001
-  condition: 'Receive actual SWBPIPE construction/interface contributions before the corresponding connected
+  condition: 'Catalog-v3 source/schema receiving explicitly selects integrated SWBPIPE 4d8cb7b0c8f101d5102813e634e23ecba29b310e; original and v2 records retain their historical subjects, with live host/person evidence separately owed. Receive actual SWBPIPE construction/interface contributions before the corresponding connected
     integration or examination; external supplied interfaces are needed before dependent implementation
     or live examination.
 
@@ -517,3 +517,10 @@ needs:
   direction: downstream
   gating: false
   evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
+
+checks:
+- app/supplier_checks/swbpipe_receiving_test.py
+- app/supplier_checks/swbpipe_projection_test.py
+code_paths:
+- app/supplier_checks/swbpipe_catalog_receiving.py
+- app/supplier_checks/swbpipe_projection.py

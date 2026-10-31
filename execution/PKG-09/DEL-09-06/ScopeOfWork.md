@@ -108,3 +108,13 @@ Produce the increment definition and questions from the accepted basis first. Ob
 | OUT-001 | OBJ-001; OBJ-004; OBJ-008 | CLM-006; REQ-006 | AC-006 | VER-006 | Staged complete contribution account preserving independent App work and connector-free initial path |
 | OUT-003 | OBJ-004; OBJ-008 | REQ-007 | AC-007 | VER-007 | Candidate/configuration/date-bound observation and outcome account, actual completion distinguished from retained gaps |
 | OUT-001 | OBJ-001; OBJ-004; OBJ-008 | CLM-002; CLM-003; CLM-004; CLM-005; CLM-006; REQ-008 | AC-008 | VER-008 | One-for-one excluded-act owner check and preserved complete integration responsibility |
+
+## Catalog-v3 receiving implementation
+
+Current offline receiving explicitly adopts SWBPIPE PR15's integrated catalog
+at `4d8cb7b0c8f101d5102813e634e23ecba29b310e`, with source/actor/version limits
+in [DEL-09-06's receiving account](../DEL-09-06/Work/SWBPIPE_CATALOG_V3_RECEIVING.md).
+Original/v2 subjects remain historical. Same six tools and nine fixed proposal
+intent branches supply schema/correspondence evidence, not actual live/human
+acts or criterion 17 qualification. Existing commitments, acceptance criteria
+and host-owned native/application/custody responsibilities remain unchanged.

@@ -1,5 +1,26 @@
 # Current SWBPIPE qualification receiving basis
 
+## Current catalog-v3 adoption
+
+DEL-09-07 receives the [catalog-v3 source/schema adoption](../../DEL-09-06/Work/SWBPIPE_CATALOG_V3_RECEIVING.md)
+from DEL-09-06: actual SWBPIPE merge `4d8cb7b0c8f101d5102813e634e23ecba29b310e`,
+canonical/packaged SHA256 `652ccc0c25263a01ce103a8a7a3e64a7c01833b0588dcbc054ad461301b810ec`.
+The same six tools now describe nine fixed proposal intent branches, required
+summary context and optional result filtering. App's strict offline receiving
+checks bind these exact bytes; schema guidance cannot grant authority.
+The coordinate-only catalog limitation in the historical table below is
+superseded by this explicit source selection, not by a qualification pass.
+
+No actual model build, Apply, solve or report is performed by this adoption.
+SWBPIPE supplies the separately planned live W9-A witness and its exact resource
+profile; App Agent 0 coordinates the model interval and person's act. The v3
+account lists required candidate/configuration/basis/proposal/Apply/run/result
+and report joins. W9-A does not replace criterion 17 on criterion 1's full
+reference system, and no reserved acceptance criterion changes here.
+The remaining sections preserve the 2026-10-29 receiving checkpoint and its
+then-current source/activation observations, not assertions that newer host
+implementation is absent. Their evidence obligations remain where unfulfilled.
+
 Standing: source and evidence applicability repair, 2026-10-29; no qualification
 case executed or acceptance changed. The [DEL-09-06 receiving account](../../DEL-09-06/Work/SWBPIPE_RECEIVING_BINDING.md#current-joined-receiving-basis-2026-10-29)
 binds exact host merges, catalog hashes, witness/pin artifacts and their limits.
