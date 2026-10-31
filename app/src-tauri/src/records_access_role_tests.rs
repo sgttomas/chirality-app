@@ -422,11 +422,13 @@ fn records_access_role_actual_rpc_reply_has_enriched_read_log_before_supplier_ob
         .unwrap();
     let script = peer.fixture.root.join("owned-peer.py");
     let source = std::fs::read_to_string(&script).unwrap();
+    // Existence must mean complete fixture JSON, not an in-progress json.dump.
     let hook = r#" elif method is None and f.get('id')=='role-records-call':
-  import hashlib
+  import hashlib,os,tempfile
   text=f['result']['contentItems'][0]['text']
   with open(mode('records-log')) as log:last=json.loads(log.readlines()[-1])
-  with open('role-capability-observed.json','w') as out:json.dump({'reply':f,'read':last,'digest':hashlib.sha256(text.encode()).hexdigest(),'bytes':len(text.encode())},out)
+  with tempfile.NamedTemporaryFile(mode='w',dir='.',prefix='role-capability-observed-',suffix='.tmp',delete=False) as out:json.dump({'reply':f,'read':last,'digest':hashlib.sha256(text.encode()).hexdigest(),'bytes':len(text.encode())},out)
+  os.replace(out.name,'role-capability-observed.json')
   continue
  elif method=='turn/start' and mode('records-run'):
   emit({'id':f['id'],'result':{'turn':turn()}})
