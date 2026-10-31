@@ -85,15 +85,7 @@ Current Type 1 assignments are:
   The explicit v3 terms condition selects the approved PK-R4/§9 meaning and
   retained owner/publication evidence; original v2 artifacts, pins and reader
   bytes retain their historical subjects. This is not package/S4 activation.
-  PR #39 also integrated current SWBPIPE catalog-v3 receiving from
-  `sgttomas/SWBPIPE@4d8cb7b0c8f101d5102813e634e23ecba29b310e`, exact 61,618-byte
-  canonical and packaged catalog SHA-256
-  `652ccc0c25263a01ce103a8a7a3e64a7c01833b0588dcbc054ad461301b810ec`.
-  Its nine fixed proposal branches replace coordinate-only current receiving;
-  host-only fields remain refused and descriptions supply guidance, not authority.
-  [The receiving account](../PKG-09/DEL-09-06/Work/SWBPIPE_CATALOG_V3_RECEIVING.md)
-  preserves old origins/v2 subjects and the remaining actual live/Apply/result
-  evidence. No native ingress, W9-A or criterion-17 qualification follows.
+  PR #44 integrated explicit SWBPIPE catalog-v4 receiving behavior and source selection at `sgttomas/SWBPIPE@9b6281e7eaca924e6166336b87b6d25937c1ca04`. The [PR30 source-binding contribution](../PKG-09/DEL-09-06/Work/catalog-v4-pr30/RECEIVING_ADOPTION.md) separately selects actual integrated host `a659523a75dbbf2cdfcccdf8a667b6fb482e10ea` for reviewed App receiving; it is not described here as an already merged App change. The 50,864-byte catalog remains SHA256 `8e9a4b4e3eec027d092033ea5d95f1648030520e797c5a660ab387531f23be17`; the successor binds the updated host account/session and the actual shared `removalIntents.ts` formatter import/dependency. PR27, v3, v2 and original App source subjects remain preserved at their actual identities. Source correspondence supplies no live/native execution, person's Apply, W9-A or criterion-17 qualification.
 
 Earlier delivered contributions and continuing external boundaries:
 

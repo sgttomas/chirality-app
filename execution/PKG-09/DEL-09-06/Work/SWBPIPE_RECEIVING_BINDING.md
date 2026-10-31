@@ -1,5 +1,14 @@
 # SWBPIPE receiving source and admission correspondence
 
+## Current integrated catalog-v4 receiving
+
+The [explicit v4 selection](catalog-v4/RECEIVING_ADOPTION.md) receives SWBPIPE PR27 actual merge
+`9b6281e7eaca924e6166336b87b6d25937c1ca04`, including bounded host-contract
+and producer read extents. V3 remains separately inspectable and tested; its
+historical source records below are not rewritten. Seven tools and the separate
+16-row operation table supply offline receiving evidence only. No live Apply,
+native operation, model run or criterion17 qualification is inferred.
+
 ## Current catalog receiving selection: v3
 
 The [integrated catalog-v3 receiving account](SWBPIPE_CATALOG_V3_RECEIVING.md)

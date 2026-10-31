@@ -164,6 +164,8 @@ jobs:
           python3 supplier_checks/test_recorded_replay.py
           python3 supplier_checks/swbpipe_projection_test.py
           python3 supplier_checks/swbpipe_receiving_test.py
+          python3 supplier_checks/swbpipe_receiving_v4_test.py
+          python3 supplier_checks/swbpipe_receiving_v4_pr30_test.py
           python3 -m unittest discover -s tests -p 'child_role_carrier_test.py'
       - name: Examination preparation and receiving against pinned sources
         # Fail closed when a pinned Design source changes meaning. Dispatch runs these in the full Python set.
@@ -252,6 +254,8 @@ jobs:
           python3 supplier_checks/test_recorded_replay.py
           python3 supplier_checks/swbpipe_projection_test.py
           python3 supplier_checks/swbpipe_receiving_test.py
+          python3 supplier_checks/swbpipe_receiving_v4_test.py
+          python3 supplier_checks/swbpipe_receiving_v4_pr30_test.py
           python3 -m unittest discover -s tests -p 'child_role_carrier_test.py'
       - name: Full Rust suite
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml -- --test-threads=1
