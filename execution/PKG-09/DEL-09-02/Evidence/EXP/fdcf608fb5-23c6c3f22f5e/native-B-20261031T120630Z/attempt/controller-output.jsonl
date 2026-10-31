@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py", line 890, in <module>
+    sys.exit(execute(args.execute.absolute(), datetime.fromisoformat(args.window_end).timestamp()))
+             ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py", line 788, in execute
+    require(90 < window_end - time.time() <= 300, 'invalid B interval')
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_setup.py", line 32, in require
+    raise RuntimeError(message)
+RuntimeError: invalid B interval

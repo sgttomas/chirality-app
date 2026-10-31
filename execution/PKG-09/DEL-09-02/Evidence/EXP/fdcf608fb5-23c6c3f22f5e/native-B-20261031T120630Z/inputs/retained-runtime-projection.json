@@ -1,0 +1,122 @@
+{
+  "at": "2026-10-31T10:41:03.524880+00:00",
+  "candidate": "fdcf608fb5-23c6c3f22f5e",
+  "basis_attempt": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o",
+  "database": "/Users/ryan/Library/Application Support/dev.chirality.app-v4.candidate.20261030-eqxsxv4n/runtime/recovery.ledger.sqlite",
+  "database_sha256": "ff9576caf48a302d4e3b5a2a993842bee13e8ce365a51a7817365fdb522c9417",
+  "read_mode": "SQLite mode=ro immutable=1 query_only; no WAL present; hash unchanged before/after",
+  "schema": "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-01/DEL-01-02/Work/recovery.app-ledger-entry.v0.3.schema.json",
+  "schema_sha256": "8a400991244e6dc389f4159bafb65f6486d4b2609ba0a92d030469c434e0a81b",
+  "rows_schema_valid": true,
+  "kinds": [
+    "session_started",
+    "quit_requested",
+    "session_ended"
+  ],
+  "session": "app-session:35ccd147-b0ed-4ce2-98c9-5d11a872dd9b",
+  "session_started_at": "2026-10-31T03:22:39.104Z",
+  "quit_requested_at": "2026-10-31T09:58:03.384Z",
+  "session_ended_at": "2026-10-31T09:58:03.464Z",
+  "recorded_end_how": "quit",
+  "listed_work_counts": {
+    "liveTurns": 0,
+    "outstandingEntries": 0,
+    "activeDescendants": 0
+  },
+  "stop_requests_count": 0,
+  "saved_request_sha256": "ef606ee5cf6dfe3bcd9b6c2b150a89e7a2710c6289c56d180c8e6ea5dd7705de",
+  "saved_request_matches_A": true,
+  "account_entries_metadata_only": [
+    {
+      "name": ".sqlite-maintenance.lock",
+      "mode": "0o644",
+      "symlink": false,
+      "bytes": 0
+    },
+    {
+      "name": "AGENTS.md",
+      "mode": "0o755",
+      "symlink": true,
+      "bytes": 99
+    },
+    {
+      "name": "config.toml",
+      "mode": "0o755",
+      "symlink": true,
+      "bytes": 101
+    },
+    {
+      "name": "goals_1.sqlite",
+      "mode": "0o644",
+      "symlink": false,
+      "bytes": 32768
+    },
+    {
+      "name": "installation_id",
+      "mode": "0o644",
+      "symlink": false,
+      "bytes": 36
+    },
+    {
+      "name": "logs_2.sqlite",
+      "mode": "0o644",
+      "symlink": false,
+      "bytes": 540672
+    },
+    {
+      "name": "logs_2.sqlite-shm",
+      "mode": "0o644",
+      "symlink": false,
+      "bytes": 32768
+    },
+    {
+      "name": "logs_2.sqlite-wal",
+      "mode": "0o644",
+      "symlink": false,
+      "bytes": 2785152
+    },
+    {
+      "name": "memories_1.sqlite",
+      "mode": "0o644",
+      "symlink": false,
+      "bytes": 45056
+    },
+    {
+      "name": "queue_1.sqlite",
+      "mode": "0o644",
+      "symlink": false,
+      "bytes": 8192
+    },
+    {
+      "name": "queue_1.sqlite-shm",
+      "mode": "0o644",
+      "symlink": false,
+      "bytes": 32768
+    },
+    {
+      "name": "queue_1.sqlite-wal",
+      "mode": "0o644",
+      "symlink": false,
+      "bytes": 82432
+    },
+    {
+      "name": "skills",
+      "mode": "0o755",
+      "symlink": true,
+      "bytes": 96
+    },
+    {
+      "name": "state_5.sqlite",
+      "mode": "0o644",
+      "symlink": false,
+      "bytes": 253952
+    },
+    {
+      "name": "tmp",
+      "mode": "0o755",
+      "symlink": false,
+      "bytes": 96
+    }
+  ],
+  "limits": "Typed historical ledger observation only; not live generation, LT23, process custody or exhaustive supplier settlement. No auth/key file contents read. Not launch admission by itself."
+}

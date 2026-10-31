@@ -1,0 +1,16 @@
+from pathlib import Path
+import datetime,json,os,subprocess,sys
+root=Path('/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma')
+python='/Users/ryan/.local/share/mise/installs/python/3.13/bin/python'
+controller='/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py'
+end=(datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(seconds=295)).isoformat()
+command=['/Users/ryan/dev/chirality-t3/tools/t3_slot.sh',python,'-B',controller,'--execute',str(root),'--window-end',end]
+env=dict(os.environ,CODEX_HOME=str(root/'codex-home'),PYTHONDONTWRITEBYTECODE='1')
+with (root/'invocation.json').open('x') as f:
+ json.dump({'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'command':command,'controller_source':'684e046aeac1c7c1ebc17922c96c28320e428ea1','environment_overrides':{'CODEX_HOME':str(root/'codex-home'),'PYTHONDONTWRITEBYTECODE':'1'},'no_timeout':True,'output':'controller-output.jsonl'},f,indent=2)
+with (root/'controller-output.jsonl').open('xb') as output:
+ result=subprocess.run(command,env=env,stdout=output,stderr=subprocess.STDOUT)
+record={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'exit_code':result.returncode,'root':str(root)}
+with (root/'wrapper-result.json').open('x') as f: json.dump(record,f,indent=2)
+print(json.dumps(record),flush=True)
+sys.exit(result.returncode)

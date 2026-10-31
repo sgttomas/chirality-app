@@ -1,0 +1,32 @@
+from pathlib import Path
+import importlib.util,tempfile,json,unittest
+from unittest.mock import patch
+from datetime import datetime,timezone
+s=importlib.util.spec_from_file_location('shim',Path(__file__).with_name('slot-entry-rearm.py'));m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+class Fixture(unittest.TestCase):
+ def test_acquired_time_exact_exec_and_write_once(self):
+  with tempfile.TemporaryDirectory(dir='/Users/ryan/dev/chirality-t3/scratch',prefix='slot-entry-fixture-') as name:
+   root=Path(name);(root/'admission.json').write_text('{}')
+   class Clock:
+    @staticmethod
+    def now(zone):return datetime(2026,10,31,13,0,0,tzinfo=timezone.utc)
+   with patch.object(m,'ROOT',root),patch.object(m,'datetime',Clock),patch.object(m.subprocess,'check_output',return_value=m.SLOT_RUN+' marker slot2'),patch.object(m.os,'execve') as execute:
+    m.enter();record=json.loads((root/'rearm-slot-entry.json').read_text())
+    self.assertEqual(record['slot_entry_at'],'2026-10-31T13:00:00+00:00')
+    self.assertEqual(record['fixed_window_end'],'2026-10-31T13:04:55+00:00')
+    self.assertEqual((datetime.fromisoformat(record['fixed_window_end'])-datetime.fromisoformat(record['slot_entry_at'])).total_seconds(),295)
+    execute.assert_called_once();self.assertEqual(execute.call_args.args[0],m.PYTHON);self.assertEqual(execute.call_args.args[1],record['command'])
+    self.assertEqual(execute.call_args.args[2]['CODEX_HOME'],str(root/'codex-home'))
+    with self.assertRaises(FileExistsError):m.enter()
+    execute.assert_called_once()
+ def test_wrong_parent_or_used_attempt_refuses_without_exec(self):
+  with tempfile.TemporaryDirectory(dir='/Users/ryan/dev/chirality-t3/scratch',prefix='slot-entry-fixture-') as name:
+   root=Path(name)
+   with patch.object(m,'ROOT',root),patch.object(m.subprocess,'check_output',return_value='not-slot'),patch.object(m.os,'execve') as execute:
+    with self.assertRaisesRegex(RuntimeError,'slot-run'):m.enter()
+    execute.assert_not_called()
+   (root/'execution-started.json').touch()
+   with patch.object(m,'ROOT',root),patch.object(m.subprocess,'check_output',return_value=m.SLOT_RUN),patch.object(m.os,'execve') as execute:
+    with self.assertRaisesRegex(RuntimeError,'already entered'):m.enter()
+    execute.assert_not_called()
+if __name__=='__main__':unittest.main()

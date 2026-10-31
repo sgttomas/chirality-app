@@ -1,0 +1,66 @@
+{
+  "at": "2026-10-31T12:07:21.729025+00:00",
+  "rows": [
+    {
+      "AXRole": "AXMenuBarItem",
+      "AXSubrole": null,
+      "AXTitle": "Chirality App v4 (development 20261030 eqxsxv4n)",
+      "AXEnabled": true
+    },
+    {
+      "AXRole": "AXMenu",
+      "AXSubrole": null,
+      "AXTitle": null,
+      "AXEnabled": true
+    },
+    {
+      "AXRole": "AXMenuItem",
+      "AXSubrole": null,
+      "AXTitle": "About Chirality App v4 (development 20261030 eqxsxv4n)",
+      "AXEnabled": true
+    },
+    {
+      "AXRole": "AXMenuItem",
+      "AXSubrole": null,
+      "AXTitle": "",
+      "AXEnabled": false
+    },
+    {
+      "AXRole": "AXMenuItem",
+      "AXSubrole": null,
+      "AXTitle": "Services",
+      "AXEnabled": true
+    },
+    {
+      "AXRole": "AXMenuItem",
+      "AXSubrole": null,
+      "AXTitle": "",
+      "AXEnabled": false
+    },
+    {
+      "AXRole": "AXMenuItem",
+      "AXSubrole": null,
+      "AXTitle": "Hide Chirality App v4 (development 20261030 eqxsxv4n)",
+      "AXEnabled": true
+    },
+    {
+      "AXRole": "AXMenuItem",
+      "AXSubrole": null,
+      "AXTitle": "Hide Others",
+      "AXEnabled": true
+    },
+    {
+      "AXRole": "AXMenuItem",
+      "AXSubrole": null,
+      "AXTitle": "",
+      "AXEnabled": false
+    },
+    {
+      "AXRole": "AXMenuItem",
+      "AXSubrole": null,
+      "AXTitle": "Quit Chirality App v4 (development 20261030 eqxsxv4n)",
+      "AXEnabled": true
+    }
+  ],
+  "edges": 10
+}

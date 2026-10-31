@@ -1,0 +1,27 @@
+{
+  "at": "2026-10-31T12:02:54.260179+00:00",
+  "command": [
+    "/Users/ryan/dev/chirality-t3/tools/t3_slot.sh",
+    "/Users/ryan/.local/share/mise/installs/python/3.13/bin/python",
+    "-B",
+    "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/slot-entry-rearm.py"
+  ],
+  "source": "684e046aeac1c7c1ebc17922c96c28320e428ea1",
+  "shim_sha256": "e82a66fab43e6dbc0f317ff573ef7c5839fe84720e368dc5f563ba01a200fd3a",
+  "fixture_tests": "2 passed; mocked exact exec/time/write-once and refusal",
+  "originals": {
+    "invocation.json": "5ee54517ebba0bb5cf64679b357d2d465b625f02b5808fa86546ec89b09ddf22",
+    "controller-output.jsonl": "ef3c4ab054a1b909a93d686660b04d374af1893d0e7beadb5ce2c357924574e4",
+    "wrapper-result.json": "f9c1bfd78e866134a3d7516fcd6ee9214b49aac74afaaa536cefe225ad61062b",
+    "prelaunch-refusal-result.json": "9a2049d5490bc25347fecea0c679995a14d9daea9782d9e3f2d50458aff903a9"
+  },
+  "prior_original_job_ps": {
+    "returncode": 1,
+    "stdout": ""
+  },
+  "interval": "fixed295seconds at actual slot entry; no deadline extension",
+  "environment_overrides": {
+    "CODEX_HOME": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma/codex-home",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  }
+}
