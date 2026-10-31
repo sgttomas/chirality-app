@@ -17,6 +17,16 @@ reliance are distinct acts. Domains follows a later increment; PEC adds no
 delivery prerequisite. The owner confirmed on 2026-10-30 that Windows will be released after the
 initial macOS release. Windows work adds no gate to that initial Mac release.
 
+Subsequent owner steering selected a **separate v4 production identity**,
+**macOS 15** as the declared minimum and **v4.0.0** as the planned publication
+version (package version `4.0.0`). Exact owner-controlled bundle identifier and
+Developer ID team values remain unsupplied. These choices do not establish
+OS qualification, signing, data migration or replacement of v3.0.1.
+The owner selected v3's overall visual form as the UI reference and gave
+Agent 0 discretion over functional and interactive components. T3 Code may
+inform interactions; its implementation is not presumed transferable. This
+does not import frozen v3 product tools or decisions into v4.
+
 The owner directed a project handoff on 2026-10-30. SWBPIPE's repository
 cutover is complete; each project starts its own Agent 0 through its standard
 init entry and coordinates as `AGENTS.md` describes.
@@ -58,9 +68,11 @@ Current Type 1 assignments are:
   Preserve its candidate, saved A state and original attempt evidence.
 - **macOS distribution readiness:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:29a4e14ac4c1423f4ccd20d7605000caf9a5b6d9030c967d51875cd09021e07f>.
   Own package/signing/install preparation and the approved terms representation.
-  SIGN-1 Option B remains selected. Exact publisher identity, production bundle
-  identifier, declared minimum OS and release version remain owner choices;
-  preparation and metadata observations do not supply signing or OS qualification.
+  SIGN-1 Option B remains selected. The separate identity route, minimum OS and
+  version are selected above; exact publisher/team and production identifier
+  values remain pending secure input. Preparation and metadata observations do
+  not supply signing or OS qualification. Secure handling does not make the
+  eventual shipped identity or compiled requirement secret.
 - **Installed supplier integrity:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:72b0bb46c6645f2fd7155deab7d5ff1fa5b3b56a4e77151178a0e322c1e906ae>.
   PR #36 integrated the selected S4 process-local macOS observation and explicit
   reader semantics. The compiled publisher requirement remains `None`; there is
@@ -73,6 +85,15 @@ Current Type 1 assignments are:
   The explicit v3 terms condition selects the approved PK-R4/§9 meaning and
   retained owner/publication evidence; original v2 artifacts, pins and reader
   bytes retain their historical subjects. This is not package/S4 activation.
+  PR #39 also integrated current SWBPIPE catalog-v3 receiving from
+  `sgttomas/SWBPIPE@4d8cb7b0c8f101d5102813e634e23ecba29b310e`, exact 61,618-byte
+  canonical and packaged catalog SHA-256
+  `652ccc0c25263a01ce103a8a7a3e64a7c01833b0588dcbc054ad461301b810ec`.
+  Its nine fixed proposal branches replace coordinate-only current receiving;
+  host-only fields remain refused and descriptions supply guidance, not authority.
+  [The receiving account](../PKG-09/DEL-09-06/Work/SWBPIPE_CATALOG_V3_RECEIVING.md)
+  preserves old origins/v2 subjects and the remaining actual live/Apply/result
+  evidence. No native ingress, W9-A or criterion-17 qualification follows.
 
 Earlier delivered contributions and continuing external boundaries:
 
@@ -218,7 +239,8 @@ overruns or resident workloads that affect resource release. Official stock Code
 downloads are approved with actual file/source/size/digest recorded; existing
 oMLX is selected for the local witness. Hosted use is allowed with owner-supplied
 credentials/sign-in, labelled separately from local evidence. Other downloads
-need explicit permission. Substantial UI choices and signing/release acts remain
+need explicit permission. UI work follows the owner's v3-form direction and
+functional/interactive design discretion above; signing/release acts remain
 with the owner. The CAEPIPE guest remains permanently protected. Preserve the
 dormant Windows hardware/private binding under AGENTS.md's corrected hold;
 these App fronts perform no guest operations. Any exact unmet hosted capability
