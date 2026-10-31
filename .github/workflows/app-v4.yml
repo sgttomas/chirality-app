@@ -175,7 +175,7 @@ jobs:
           tests/group_b_native_forms_test.py tests/group_b_sq_receiving_test.py
           tests/group_b_publication_sources_test.py tests/group_b_support_identity_test.py
           tests/group_b_support_identity_canonical_test.py tests/deliverable_path_test.py
-          tests/terms_position_test.py tests/group_b_documentary_condition_test.py
+          tests/terms_position_test.py tests/package_successor_test.py tests/group_b_documentary_condition_test.py
           tests/group_b_terms_successor_test.py
           tests/group_b_admission_test.py tests/group_b_current_admission_test.py
           && python3 -B tests/candidate_identity_test.py
