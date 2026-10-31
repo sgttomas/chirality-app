@@ -2,12 +2,12 @@
   "format": "chirality.app.direct-runtime-notices/v1",
   "scope": "App MIT and direct runtime dependencies only; not a license election, complete dependency coverage or release/compliance finding",
   "source_basis": {
-    "app_revision": "795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98",
+    "app_revision": "0a1fc9becb14a5d77ff85586e458d56d6773e457",
     "manifest_sha256": {
       "app/package.json": "c2d6936e8f9c829165d1eedc0e2e81481dd481c99dbe4de278ecf333853497ac",
       "app/package-lock.json": "1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa",
-      "app/src-tauri/Cargo.toml": "873ca7efd1f175e263bf082c6da08758359173b142f88ae365f95a311e9fee84",
-      "app/src-tauri/Cargo.lock": "502f8e7c355f3ad5300bdc70661a59921f35e4ce30c9d38b75a9220e7f864af7"
+      "app/src-tauri/Cargo.toml": "82e1347af748e322b7699c39577598dbf7dbbaeee9cae5eb9abfc90c2a6ecf2d",
+      "app/src-tauri/Cargo.lock": "8d478b4d5edcd13edd3deb266feadcac47276bf866c5dfcb8805090449e87df8"
     }
   },
   "components": [
@@ -19,7 +19,7 @@
       "source": {
         "kind": "git",
         "repository": "https://github.com/sgttomas/chirality-app",
-        "revision": "795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98",
+        "revision": "0a1fc9becb14a5d77ff85586e458d56d6773e457",
         "blob": "6975876e98b3dc9a457ef04bdf31b4f021de2b05"
       },
       "notices": [
