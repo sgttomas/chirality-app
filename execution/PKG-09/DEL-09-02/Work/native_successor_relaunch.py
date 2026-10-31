@@ -13,6 +13,8 @@ import os
 from pathlib import Path
 import re
 import signal
+import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -25,6 +27,14 @@ HERE = Path(__file__).resolve()
 spec = importlib.util.spec_from_file_location('successor_A_admission', HERE.with_name('native_successor_setup.py'))
 setup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(setup)
+AX_SOURCE = HERE.with_name('native_b_ax.py')
+ax_spec = importlib.util.spec_from_file_location('native_B_AX', AX_SOURCE)
+ax_support = importlib.util.module_from_spec(ax_spec)
+ax_spec.loader.exec_module(ax_support)
+RELEASE_SOURCE = HERE.with_name('native_b_release.py')
+release_spec = importlib.util.spec_from_file_location('native_B_release', RELEASE_SOURCE)
+release_support = importlib.util.module_from_spec(release_spec)
+release_spec.loader.exec_module(release_support)
 base = setup.load_base()
 require = setup.require
 write_once = setup.write_once
@@ -55,20 +65,61 @@ def check_observation_capabilities():
 
 
 def dependencies():
-    return {**setup.dependency_digests(), str(setup.HERE): setup.digest(setup.HERE), str(HERE): setup.digest(HERE)}
+    return {**setup.dependency_digests(), str(setup.HERE): setup.digest(setup.HERE), str(HERE): setup.digest(HERE), str(AX_SOURCE): setup.digest(AX_SOURCE), str(RELEASE_SOURCE): setup.digest(RELEASE_SOURCE)}
 
 
-def policy(value):
+ALLOCATOR = Path('/usr/bin/mktemp')
+
+
+def allocator_identity(value):
+    require(shutil.which('mktemp', path=value['environment']['PATH']) == str(ALLOCATOR),
+            'App allocator resolution is not exact /usr/bin/mktemp')
+    setup.plain(ALLOCATOR)
+    metadata = ALLOCATOR.stat()
+    require(metadata.st_uid == 0 and not metadata.st_mode & (stat.S_ISUID | stat.S_ISGID)
+            and os.access(ALLOCATOR, os.X_OK), 'unexpected allocator ownership/mode')
+    return {'path': str(ALLOCATOR), 'sha256': setup.digest(ALLOCATOR), 'device': metadata.st_dev,
+            'inode': metadata.st_ino, 'mode': stat.S_IMODE(metadata.st_mode),
+            'use': 'App-owned mktemp -d $TMPDIR/chirality-codex-probe.XXXXXX before Root admission; not a supplier helper'}
+
+
+def policy(value, control_root):
     supplier = str(Path(value['bundle']) / 'Contents/Resources/codex/bin/codex')
+    literal = lambda p: '(literal ' + json.dumps(str(p)) + ')'
     return ('(version 1)\n(allow default)\n(deny network*)\n'
             '(deny file-read* (subpath ' + json.dumps(str(Path.home() / '.codex')) + '))\n'
             '(deny file-write* (subpath ' + json.dumps(str(Path.home() / '.codex')) + '))\n'
             '(allow process-fork)\n(deny process-exec)\n'
-            '(allow process-exec (literal ' + json.dumps(value['executable']) + ') '
-            '(literal ' + json.dumps(supplier) + '))\n')
+            '(allow process-exec ' + ' '.join(literal(p) for p in (value['executable'], supplier, ALLOCATOR)) + ')\n'
+            # Keep operator control input outside the App/supplier writable plane.
+            '(deny file-read* file-write* (subpath ' + json.dumps(str(control_root)) + '))\n'
+            '(allow file-read-metadata file-read-data ' + literal(control_root) + ')\n'
+            '(allow file-read* file-write* (subpath ' + json.dumps(str(control_root / 'tmp')) + '))\n'
+            '(allow file-read-metadata file-write* ' + literal(control_root / 'stdout.log') + ' ' + literal(control_root / 'stderr.log') + ')\n')
 
 
-def saved_input(a_root):
+def retained_namespaces(context, after_a, basis_path):
+    current = context.namespaces(require_absent=False)
+    if basis_path is None:
+        require(current == after_a, 'namespace differs from preserved A settlement; explicit retained-state basis required')
+        return None
+    basis_path = Path(basis_path).absolute()
+    require(basis_path.is_relative_to(T3 / 'scratch'), 'namespace basis outside task scratch')
+    setup.plain(basis_path)
+    require(basis_path.stat().st_size <= 2 * 1024 * 1024, 'namespace basis too large')
+    raw = basis_path.read_bytes()
+    basis = json.loads(raw)
+    require(basis == current and set(basis) == set(after_a), 'current namespace differs from explicit retained basis')
+    require(basis['AppData'] == after_a['AppData'], 'operational App data changed since saved A')
+    for name in ('WebKit', 'Caches'):
+        require(basis[name]['path'] == after_a[name]['path'] and basis[name]['present'] is True
+                and basis[name]['root'][:3] == after_a[name]['root'][:3], 'retained browser namespace root replaced')
+        require(all(stat.S_ISDIR(row[3]) or stat.S_ISREG(row[3]) for row in basis[name]['metadata']),
+                'unexpected browser namespace object')
+    return {'path': str(basis_path), 'sha256': base.sha(raw)}
+
+
+def saved_input(a_root, namespace_basis=None):
     setup.plain(a_root, directory=True)
     require(a_root.is_relative_to(T3 / 'scratch'), 'A attempt outside task scratch')
     paths = [a_root / name for name in ('admission.json', 'result.json', 'saved-bindings.json', 'namespace-after.json')]
@@ -77,7 +128,7 @@ def saved_input(a_root):
     admitted, result, bindings, after = [json.loads(path.read_text()) for path in paths]
     context = setup.Context.restore(admitted['context'])
     value = context.inputs()
-    require(context.namespaces(require_absent=False) == after, 'namespace differs from preserved A settlement')
+    retained_basis = retained_namespaces(context, after, namespace_basis)
     require(result['candidate'] == value['candidate_key'] and result['normal_setup_save_quit'] is True
             and result['saved'] is True and result['phase'] == 'A only'
             and result['exit_code'] == 0 and result['forced'] is False and not result['guard_reason']
@@ -102,21 +153,22 @@ def saved_input(a_root):
     for name, key in [('config.toml', 'shared_config'), ('AGENTS.md', 'shared_agents'), ('skills', 'shared_skills')]:
         link = account / name
         require(link.is_symlink() and link.resolve() == Path(value['native_input_paths'][key]), 'shared link changed')
+    value['retained_namespace_basis'] = retained_basis
     value['expected_generation_home'] = 'app-home:' + hashlib.sha256(os.fsencode(account)).hexdigest()
     return context, value, bindings, {str(path): setup.digest(path) for path in paths}
 
 
-def prepare(a_root):
-    context, value, bindings, a_files = saved_input(a_root)
+def prepare(a_root, namespace_basis=None):
+    context, value, bindings, a_files = saved_input(a_root, namespace_basis)
     root = Path(tempfile.mkdtemp(prefix='app-successor-native-B-', dir=T3 / 'scratch')).resolve()
     for name in ('codex-home', 'tmp'):
         (root / name).mkdir(mode=0o700)
     value['environment']['CODEX_HOME'] = str(root / 'codex-home')
     value['environment']['TMPDIR'] = str(root / 'tmp')
-    (root / 'phase-B.sb').write_text(policy(value))
+    (root / 'phase-B.sb').write_text(policy(value, root))
     (root / 'controller.py.txt').write_bytes(HERE.read_bytes())
     write_once(root / 'admission.json', {'a_root': str(a_root), 'a_files': a_files,
-        'context': context.descriptor(), 'inputs': value, 'bindings': bindings,
+        'context': context.descriptor(), 'inputs': value, 'bindings': bindings, 'allocator': allocator_identity(value),
         'namespaces': context.namespaces(require_absent=False), 'dependencies': dependencies(),
         'policy_sha256': setup.digest(root / 'phase-B.sb'), 'prepared_at': now(), 'limits': LIMIT})
     print(root)
@@ -287,11 +339,21 @@ class AppReservation:
         return code
 
 
+    def administrative_reap(self, expected_exit):
+        # Separate operator-directed release: never manufactures LT-23/qualification.
+        require(release_support.normal_exit(expected_exit), 'administrative release requires normal exit0')
+        require(self.observe() == expected_exit, 'original App exit changed/unavailable')
+        code = self.child.wait()
+        self.reaped = True
+        return code
+
+
 class Run:
     dialog = base.Supervisor.dialog  # This method only traverses own AX; no poll/kill.
 
-    def __init__(self, root, value, resource_end):
+    def __init__(self, root, value, resource_end, admission_sha=None):
         self.root, self.value, self.resource_end = root, value, resource_end
+        self.admission_sha = admission_sha
         self.work_end = min(time.monotonic() + 180, resource_end - 45)
         self.cleanup_end = resource_end
         self.cleanup = False
@@ -395,7 +457,10 @@ class Run:
         end = min(time.monotonic() + seconds, self.cleanup_end if self.cleanup else self.work_end)
         while time.monotonic() < end:
             self.alive()
-            value = predicate()
+            try:
+                value = predicate()
+            except ax_support.MainWindowUnavailable:
+                value = None
             if value:
                 return value
             time.sleep(0.1)
@@ -422,8 +487,16 @@ class Run:
         self.last_diagnostics = {'at': now(), 'strings': strings}
         return decode_diagnostics(strings, protocol=False)
 
+    def distinct_main(self):
+        element = self.ax.main_if_available()
+        observation = self.ax.last_window_observation
+        if observation != getattr(self, 'last_window_observation', None):
+            self.last_window_observation = observation
+            self.safe_log('native_window_observation', windows=observation)
+        return element
+
     def observe_ready(self, qualification=True):
-        self.wait_for(lambda: self.ax.windows(), 10, 'main window unavailable')
+        self.wait_for(self.distinct_main, 15, 'distinct owned main AXWindow unavailable')
         self.wait_for(lambda: any(p['AXRole'] == 'AXDisclosureTriangle' and str(p['AXTitle']).startswith('Host diagnostics')
                                  for _, p, _ in self.ax.walk(self.ax.main())), 20, 'diagnostics control unavailable')
         self.open_disclosure('Host diagnostics', prefix=True)
@@ -555,6 +628,7 @@ class Run:
         except BaseException as observed_error:
             app = {'unknown': str(observed_error)}
         return {'candidate': self.value['candidate_key'], 'phase': 'B', 'state': 'held-unknown',
+                'administrative_release_request': release_support.request_for(self),
                 'error': error, 'app_exit_observation': app, 'original_app_reaped': False,
                 'supplier_settled_observed': self.supplier_settled, 'quit_requested': self.quit_requested,
                 'generation': self.generation, 'recovery_limit': 'Permanent AX/parser loss cannot be repaired inside this frozen controller; retain supervision and report the exact missing observation. No numeric escalation or automatic duplicate UI action.', 'recovery_control': 'write retry-native-cleanup.json with {action:retry-native-cleanup,candidate:<this candidate>}; same source is reobserved, no numeric inputs or repeated UI actions',
@@ -570,7 +644,14 @@ class Run:
             self.note_log_error(problem)
         self.report(status)
         handled_retry = False
+        handled_release = False
         while True:
+            if not handled_release and os.path.lexists(self.root / release_support.CONTROL):
+                handled_release = True  # One occurrence, including refusal; no replacement/retry.
+                try:
+                    return release_support.release_if_requested(self, error)
+                except BaseException as release_error:
+                    self.safe_log('administrative_release_refused', error=str(release_error))
             retry = self.root / 'retry-native-cleanup.json'
             if not handled_retry and os.path.lexists(retry):
                 try:
@@ -609,14 +690,17 @@ def execute(root, window_end):
             'B attempt already used; preserve evidence')
     admitted = json.loads((root / 'admission.json').read_text())
     require(admitted['dependencies'] == dependencies(), 'controller dependency changed')
-    context, value, bindings, a_files = saved_input(Path(admitted['a_root']))
+    context, value, bindings, a_files = saved_input(Path(admitted['a_root']),
+        (admitted['inputs'].get('retained_namespace_basis') or {}).get('path'))
     require(context.descriptor() == admitted['context'] and bindings == admitted['bindings']
             and a_files == admitted['a_files'], 'A admission/bindings changed')
     require(context.namespaces(require_absent=False) == admitted['namespaces'], 'saved namespace changed since B preparation')
     value['environment']['CODEX_HOME'] = str(root / 'codex-home')
     value['environment']['TMPDIR'] = str(root / 'tmp')
-    require(value == admitted['inputs'] and (root / 'phase-B.sb').read_text() == policy(value)
+    require(value == admitted['inputs'] and (root / 'phase-B.sb').read_text() == policy(value, root)
             and setup.digest(root / 'phase-B.sb') == admitted['policy_sha256'], 'B launch inputs/policy changed')
+    require(admitted['allocator'] == allocator_identity(value), 'App allocator changed since admission')
+    require(root.stat().st_uid == os.getuid() and stat.S_IMODE(root.stat().st_mode) == 0o700, 'controller root is not private')
     for name in ('codex-home', 'tmp'):
         setup.plain(root / name, directory=True)
         require(not list((root / name).iterdir()), 'fallback/tmp not fresh')
@@ -629,7 +713,7 @@ def execute(root, window_end):
                                   'PYTHONDONTWRITEBYTECODE': '1'}, capture_output=True, text=True, timeout=45)
     write_once(root / 'artifact-check.json', {'exit_code': checked.returncode, 'stdout': checked.stdout, 'stderr': checked.stderr})
     require(checked.returncode == 0, 'complete candidate inventory refused')
-    run = Run(root, value, time.monotonic() + window_end - time.time())
+    run = Run(root, value, time.monotonic() + window_end - time.time(), setup.digest(root / 'admission.json'))
     check_observation_capabilities()
     run.sample(admission=True)
     write_once(root / 'execution-started.json', {'at': now(), 'candidate': value['candidate_key']})
@@ -643,10 +727,10 @@ def execute(root, window_end):
         with (root / 'stdout.log').open('xb') as out, (root / 'stderr.log').open('xb') as err:
             require(run.resource_end - time.monotonic() > 90 and run.reason is None, 'work/cleanup allowance unavailable after admission')
             child = subprocess.Popen(['/usr/bin/sandbox-exec', '-f', str(root / 'phase-B.sb'), value['executable']],
-                cwd=value['native_input_paths']['project'], env=value['environment'], stdout=out, stderr=err, start_new_session=True)
+                cwd=value['native_input_paths']['project'], env=value['environment'], stdin=subprocess.DEVNULL, stdout=out, stderr=err, start_new_session=True)
             run.reservation = AppReservation(child)  # Before any later IO can fail.
         run.log('native_B_started', pid=child.pid, actor=ACTOR, limits=LIMIT)
-        run.ax = base.load_ax()(child.pid, run.alive, run.log)
+        run.ax = ax_support.wrap_ax(base.load_ax())(child.pid, run.alive, run.log)
         run.ax.output = root
         gen = run.observe_ready()
         require(ready_gate(run.diagnostics(), value) == gen, 'qualification changed before Stop')
@@ -708,11 +792,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--prepare', type=Path, metavar='SUCCESSFUL_A_ATTEMPT')
     parser.add_argument('--execute', type=Path)
+    parser.add_argument('--namespace-basis', type=Path, help='Explicit retained post-failure metadata; never resets state')
     parser.add_argument('--window-end')
     args = parser.parse_args()
     if args.prepare and not args.execute and not args.window_end:
-        prepare(args.prepare.absolute())
-    elif args.execute and args.window_end and not args.prepare:
+        prepare(args.prepare.absolute(), args.namespace_basis)
+    elif args.execute and args.window_end and not args.prepare and not args.namespace_basis:
         sys.exit(execute(args.execute.absolute(), datetime.fromisoformat(args.window_end).timestamp()))
     else:
         parser.error('choose --prepare SUCCESSFUL_A_ATTEMPT or --execute ATTEMPT --window-end UTC')

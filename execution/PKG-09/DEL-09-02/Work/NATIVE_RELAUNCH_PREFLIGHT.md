@@ -323,3 +323,52 @@ Unavailable settlement results now retain the same nullable field names.
 These are bounded review dispositions, not a new design or another native
 result. A evidence remains unchanged; B is still UNRUN. Exact-head CI remains
 the outstanding integration check.
+
+## Post-failure controller repair preparation (2026-10-31; not executed B)
+
+The failed run and exceptional observer release remain in `FAILED_B_20261031.md`
+and its archive. They are not replaced by this preparation. Retained source
+`fdcf608f` calls `runtime_session::allocate_fresh_probe` from the startup
+`probe_home` callback before Root admission; that function runs
+`mktemp -d $TMPDIR/chirality-codex-probe.XXXXXX`. The old B policy omitted this
+App-owned executable. Source inspection establishes that admission obstacle;
+the run did not capture the actual refusal string. Setup-only fallback still
+creates a window, so this does not establish the cause of the AX self-reference.
+
+The revised profile identifies/hashes `/usr/bin/mktemp`, checks fixed PATH
+resolution, and admits it alongside the exact App and stock supplier. Two
+harmless sandbox fixtures demonstrate denied allocation without that admission
+and private-directory allocation with it. This is not evidence that no helper
+can escape a group. Network and personal Codex-home denials remain. The private
+controller directory is denied to App/supplier reads/writes except the temporary
+subtree and output files; operator control is not authenticated by UID alone.
+
+`native_b_ax.py` waits for a distinct owned main AXWindow, records application
+self-references, and bounds traversal with CFEqual cycle/duplicate detection,
+node/reference/depth limits and ownership checks. It sends no activation or
+reopen event. UI availability is separate from actual generation, LT-06 and
+initialize evidence; none of the qualification or same-source cleanup gates
+are weakened. The AX cause remains unresolved until actual observations.
+
+A later attempt must retain the candidate and saved AppData exactly. An explicit
+`--namespace-basis` can bind the current post-closure WebKit/Caches metadata;
+it must match current observations and preserve original directory identities
+and plain object types. This accommodates retained browser metadata, not a
+reset or replacement of A. Preparation and execution recheck their exact inputs.
+
+`native_b_release.py` proposes a separate administrative release for a future
+held attempt. Only after the original retained Child is freshly observed
+CLD_EXITED/status0 does held status offer an admission-digest-bound request.
+The task operator must explicitly create the fixed private control file; no
+automatic Quit, signal or PID ingress is added. One occurrence is consumed,
+including refusal. Exclusive request/intent evidence precedes a fresh exit
+check and `wait()` on that original Child. The observer then stops its own
+monitor and returns failure. Administrative reap, earlier exit observation,
+generation/settlement unknowns and original B failure remain separate. No LT-23
+is fabricated, and live/unknown App state remains held. This proposed path does
+not change or rerun the historical frozen controller or exceptional helper.
+
+Targeted checks: 20 B controller tests, 7 AX tests, 8 release tests and 2 real
+sandbox profile fixtures pass under Python3.13, slot-wrapped. No App/supplier
+launch, model, authentication, rebuild or candidate qualification was performed.
+Independent scrutiny of these integrated changes is pending.
