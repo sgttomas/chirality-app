@@ -1,6 +1,7 @@
 #ifndef CHIRALITY_TYPED_AX_FIXTURE_API
 #define CHIRALITY_TYPED_AX_FIXTURE_API
 /* Test build only: no real AX calls. Production reader uses SDK functions. */
+double fixture_seconds(void);
 CFTypeID fixture_AXUIElementGetTypeID(void);
 AXError fixture_AXUIElementGetPid(AXUIElementRef, pid_t *);
 AXError fixture_AXUIElementSetMessagingTimeout(AXUIElementRef, float);

@@ -39,7 +39,17 @@ def private_root(root):
             and info.st_uid==os.getuid() and stat.S_IMODE(info.st_mode)==0o700,'typed AX control root not private/owned')
 
 
-def stage_build(root, manifest_path):
+def production_sources():
+    return {str(p) for p in (HERE, HERE.with_name('native_b_diagnostic.py'),
+            HERE.parent/'typed_ax/reader.c', HERE.parent/'typed_ax/reader.h', HERE.parent/'typed_ax/build.py')}
+
+
+def source_binding(manifest):
+    require(set(manifest['sources'])==production_sources(), 'exact production source set required')
+    for path,digest in manifest['sources'].items():require(sha(plain(path))==digest,'typed AX source changed')
+
+
+def stage_build(root, manifest_path, reviewed_manifest_sha):
     """Copy checked code into the existing B sandbox-denied control root prelaunch.
 
     Returns the binding for a NEW admission; never edits an existing admission.
@@ -47,9 +57,11 @@ def stage_build(root, manifest_path):
     """
     root=Path(root);private_root(root)
     require(not any((root/n).exists() for n in ('admission.json','execution-started.json','actions.jsonl')), 'typed reader staging requires new pre-admission root')
-    source=plain(manifest_path);manifest=json.loads(source.read_text())
+    source=plain(manifest_path)
+    require(sha(source)==reviewed_manifest_sha,'reviewed build manifest changed')
+    manifest=json.loads(source.read_text())
     require(manifest['format']=='chirality.typed-ax-build/v1' and manifest['fixture_build'] is False, 'production typed AX build required')
-    for path,digest in manifest['sources'].items():require(sha(plain(path))==digest,'typed AX source changed')
+    source_binding(manifest)
     original=plain(manifest['library']['path']);require(original.parent==source.parent,'typed library outside build root')
     raw=original.read_bytes();require(hashlib.sha256(raw).hexdigest()==manifest['library']['sha256'],'typed AX library changed')
     copied=root/'typed-ax-reader.dylib'
@@ -66,14 +78,15 @@ def stage_build(root, manifest_path):
 def load(manifest_path, expected_sha):
     """Manifest digest comes from a reviewed admission, never caller PID input."""
     manifest_path=plain(manifest_path)
+    require(manifest_path.name=='typed-ax-build.json', 'protected typed AX manifest filename required')
     require(sha(manifest_path)==expected_sha,'typed AX build manifest changed')
     manifest=json.loads(manifest_path.read_text())
     require(manifest['format']=='chirality.typed-ax-build/v1','typed AX build format differs')
     require(manifest['fixture_build'] is False,'test library cannot observe native App')
-    for path,digest in manifest['sources'].items():
-        require(sha(plain(path))==digest,'typed AX source changed')
+    source_binding(manifest)
     library=plain(manifest['library']['path'])
-    require(library.parent==manifest_path.parent and sha(library)==manifest['library']['sha256'],'typed AX library changed')
+    require(library.name=='typed-ax-reader.dylib' and library.parent==manifest_path.parent
+            and sha(library)==manifest['library']['sha256'],'protected typed AX library changed')
     loaded=C.CDLL(str(library),mode=os.RTLD_LOCAL)
     loaded.chirality_ax_compare_size_v1.argtypes=[];loaded.chirality_ax_compare_size_v1.restype=C.c_uint32
     require(loaded.chirality_ax_compare_size_v1()==C.sizeof(Result),'typed C output ABI differs')
@@ -91,7 +104,8 @@ def decode(result):
             refs.append({'type_id':r.type_id,'role_type_id':r.role_type_id,'owner_return_code':r.owner_rc,
                          'role_return_code':r.role_rc,'timeout_return_code':r.timeout_rc,'status':r.status,
                          'application_self_reference':bool(r.self_equal),'duplicate_reference':bool(r.duplicate),
-                         'role':bytes(r.role).decode('utf-8')})
+                         'role':bytes(r.role).decode('utf-8',errors='replace'),
+                         'role_text_complete':r.status not in (1,5,6) and r.role_rc==0})
         attrs.append({'attribute':reference.AX_ATTRIBUTES[index],'type_id':row.type_id,'return_code':row.value_rc,
                       'status':row.status,'references':refs})
     return {'abi_version':result.abi_version,'status':result.status,'completed':bool(result.completed),
@@ -114,7 +128,7 @@ def capture(run, backend_factory=reference.NativeBackend, loader=load):
     admission_path=plain(Path(run.root)/'admission.json')
     require(sha(admission_path)==run.admission_sha and json.loads(admission_path.read_text())['inputs']['typed_ax_comparison']==binding, 'typed AX admission changed')
     manifest_path=Path(binding['manifest']);manifest_sha=binding['sha256']
-    require(manifest_path.parent==Path(run.root), 'typed AX manifest must be in protected control root')
+    require(manifest_path.parent==Path(run.root) and manifest_path.name=='typed-ax-build.json', 'typed AX manifest must use protected control name/root')
     policy=plain(Path(run.root)/'phase-B.sb');admitted=json.loads(admission_path.read_text())
     require(sha(policy)==admitted['policy_sha256'] and '(deny file-read* file-write* (subpath '+json.dumps(str(run.root))+'))' in policy.read_text(), 'typed AX control sandbox binding unavailable')
     backend=backend_factory()
@@ -125,22 +139,35 @@ def capture(run, backend_factory=reference.NativeBackend, loader=load):
         app=backend.app(before['pid'])
         root_rc,owner=backend.owner(app);require(root_rc==0 and owner==before['pid'],'owned AX application unavailable')
         started=reference.now();out=Result()
-        rc=library.chirality_ax_compare_v1(app,C.byref(out));typed=decode(out)
-        require(typed['application_owner_return_code']==0 and typed['application_pid']==before['pid'],'typed AX original owner differs/unavailable')
+        rc=library.chirality_ax_compare_v1(app,C.byref(out))
+        require(out.application_owner_rc==0 and out.application_pid==before['pid'],'typed AX original owner differs/unavailable')
+        try:
+            typed=decode(out)
+        except Exception as error:
+            typed={'available':False,'decode_error':str(error),'raw_result_sha256':hashlib.sha256(bytes(out)).hexdigest(),
+                   'abi_version':out.abi_version,'byte_size':out.byte_size,'application_pid':out.application_pid,'status':out.status}
         require(reference.bound_identity(run,backend)==before,'original Child changed across C reader')
         deadline=time.monotonic()+4.0
         def check():
             require(not run.reason and run.reservation.observe() is None,'stop/exit during Python comparison')
             require(time.monotonic()<deadline,'Python AX comparison deadline')
         # Same retained local app object; Python conversion is not used by C.
+        python={'at':reference.now(),'source':'per-attribute Python comparison','attributes':[]}
         try:
-            python=reference.ax_inventory(backend,before['pid'],check,application=app)
-        except RuntimeError as error:
-            python={'available':False,'error':str(error),'at':reference.now()}
+            for name in reference.AX_ATTRIBUTES:
+                check()
+                try:
+                    part=reference.ax_inventory(backend,before['pid'],check,application=app,attributes=(name,))
+                    python['attributes'].extend(part['attributes'])
+                except Exception as error:
+                    python['attributes'].append({'attribute':name,'available':False,'error':str(error)})
+                    check()
+        except Exception as error:
+            python.update(available=False,error=str(error),finished_at=reference.now())
         after=reference.bound_identity(run,backend);require(after==before,'original Child changed across comparison')
         return {'format':'chirality.owned-typed-ax-comparison/v1','started_at':started,'finished_at':reference.now(),
                 'candidate':run.value['candidate_key'],'admission_sha256':run.admission_sha,'identity_before':before,'identity_after':after,
                 'build_manifest_sha256':manifest_sha,'library_sha256':manifest['library']['sha256'],
                 'typed_call_return':rc,'typed_c':typed,'python':python,
-                'limits':'Same owned App reference, sequential reads not atomic. C has3s intercall budget/0.5s element timeouts; Python4s intercall budget. No hard cancellation guarantee. No actions/WindowServer/permission requests. No automatic cause or qualification inference.'}
+                'limits':'Same owned App reference, sequential reads not atomic. C has3s intercall budget/0.5s element timeouts; Python4s intercall budget. No hard cancellation guarantee; an in-process native/FFI fault can kill the keeper and lose its supervision. completed means traversal completed, not success. No actions/WindowServer/permission requests. No automatic cause or qualification inference.'}
     finally:backend.close()

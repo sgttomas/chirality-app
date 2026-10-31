@@ -18,7 +18,7 @@ def build(root):
     sdk=Path(run(['/usr/bin/xcrun','--show-sdk-path'],env).strip()).resolve()
     compiler=Path(run(['/usr/bin/xcrun','--find','clang'],env).strip()).resolve()
     version=run([str(compiler),'--version'],env)
-    headers=[sdk/'System/Library/Frameworks/ApplicationServices.framework/Frameworks/HIServices.framework/Headers'/n for n in ('AXUIElement.h','AXError.h')]
+    headers=[sdk/'System/Library/Frameworks/ApplicationServices.framework/Frameworks/HIServices.framework/Headers'/n for n in ('AXUIElement.h','AXError.h','AXAttributeConstants.h')]
     headers += [sdk/'System/Library/Frameworks/CoreFoundation.framework/Headers'/n for n in ('CFBase.h','CFArray.h','CFString.h','CFNumber.h')]
     sources=[HERE/'reader.c',HERE/'reader.h',HERE/'build.py',HERE.parent/'native_b_typed_ax.py',HERE.parent/'native_b_diagnostic.py']
     for fixture in (False,True):
@@ -27,12 +27,15 @@ def build(root):
         command=[str(compiler),'-isysroot',str(sdk),'-dynamiclib','-std=c11','-O2','-Wall','-Wextra','-Werror']
         if fixture:command+=['-DAX_COMPARE_TEST',str(HERE/'fixture.c')]
         command += [str(HERE/'reader.c'),'-framework','ApplicationServices','-framework','CoreFoundation','-o',str(library)]
+        before={str(p):sha(p) for p in selected};headers_before={str(p):sha(p) for p in headers}
         started=datetime.datetime.now(datetime.timezone.utc).isoformat();stdout=run(command,env)
+        if before!={str(p):sha(p) for p in selected} or headers_before!={str(p):sha(p) for p in headers}:
+            raise RuntimeError('source/header changed during build; artifact not admitted')
         record={'format':'chirality.typed-ax-build/v1','fixture_build':fixture,'started_at':started,
                 'finished_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'command':command,'environment':env,
                 'compiler':{'path':str(compiler),'sha256':sha(compiler),'version':version},
-                'sdk':{'path':str(sdk),'settings_sha256':sha(sdk/'SDKSettings.json'),'headers':{str(p):sha(p) for p in headers}},
-                'sources':{str(p):sha(p) for p in selected},'library':{'path':str(library),'sha256':sha(library)},
+                'sdk':{'path':str(sdk),'settings_sha256':sha(sdk/'SDKSettings.json'),'headers':headers_before,'header_scope':'selected direct API/type/attribute headers, not complete SDK closure'},
+                'sources':before,'source_header_hashes_stable_before_after':True,'library':{'path':str(library),'sha256':sha(library)},
                 'stdout':stdout,'exit_code':0,'limits':'Local offline observation-library build only. Production reader not invoked; fixture uses no real AX service. No App build/launch, download or manual signing.'}
         with (root/(name+'-build.json')).open('x') as f:json.dump(record,f,indent=2)
     print(root)

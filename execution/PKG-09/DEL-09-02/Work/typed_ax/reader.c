@@ -9,9 +9,13 @@
 enum { OBS_OK=0, OBS_TYPE=1, OBS_OWNER=2, OBS_BOUND=3, OBS_TIMEOUT=4,
        OBS_TEXT=5, OBS_RAW_ERROR=6, OBS_ARGUMENT=7 };
 static double seconds(void) {
+#ifdef AX_COMPARE_TEST
+    return fixture_seconds();
+#else
     struct timespec t;
     if (clock_gettime(CLOCK_MONOTONIC, &t)) return -1;
     return (double)t.tv_sec + (double)t.tv_nsec / 1000000000.0;
+#endif
 }
 static int expired(double deadline) { double t=seconds();return t<0 || t>=deadline; }
 static int bounded(AXUIElementRef element, int32_t *rc) {
@@ -39,7 +43,7 @@ static void reference(CFTypeRef element, AXUIElementRef application, pid_t owner
     out->role_rc=AXUIElementCopyAttributeValue(ax,kAXRoleAttribute,&role);
     if (out->role_rc!=kAXErrorSuccess) out->status=OBS_RAW_ERROR;
     else if (!role || (out->role_type_id=CFGetTypeID(role))!=CFStringGetTypeID()) out->status=OBS_TYPE;
-    else if (!CFStringGetCString((CFStringRef)role,out->role,sizeof(out->role),kCFStringEncodingUTF8)) out->status=OBS_TEXT;
+    else if (!CFStringGetCString((CFStringRef)role,out->role,sizeof(out->role),kCFStringEncodingUTF8)) {out->role[0]=0;out->status=OBS_TEXT;}
     if (role) CFRelease(role);
 }
 uint32_t chirality_ax_compare_size_v1(void) {return (uint32_t)sizeof(AXCompareResult);}

@@ -173,6 +173,15 @@ class DiagnosticTests(unittest.TestCase):
         backend.owner(123);backend.attribute(123,'AXRole')
         self.assertEqual(events,[('timeout',123,0.5),('owner',123),('timeout',123,0.5),('attribute',123,'AXRole')])
 
+    def test_precreated_application_and_single_attribute_use_real_inventory_path(self):
+        self.backend.app=lambda pid: (_ for _ in ()).throw(AssertionError('must reuse supplied reference'))
+        result=d.ax_inventory(self.backend,123,application='app',attributes=('AXWindows',))
+        self.assertEqual(len(result['attributes']),1)
+        self.assertEqual(result['attributes'][0]['attribute'],'AXWindows')
+        self.assertTrue(result['attributes'][0]['references'][0]['application_self_reference'])
+        with self.assertRaisesRegex(RuntimeError,'subset'):
+            d.ax_inventory(self.backend,123,application='app',attributes=('foreign-attribute',))
+
 
 if __name__ == '__main__':
     unittest.main()

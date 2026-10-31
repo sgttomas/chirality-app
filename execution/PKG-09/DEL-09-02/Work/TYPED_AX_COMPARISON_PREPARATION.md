@@ -75,8 +75,10 @@ not introduced here merely to obtain another window-existence result.
 ## Prepared C boundary
 
 `typed_ax/reader.c` directly calls SDK-typed AX functions and CF conversion APIs.
-Its only observation entrypoint receives the keeper's already-bound retained
-AX application reference. It accepts no PID, creates no application/global AX
+Its only observation entrypoint receives an AX application reference retained
+by the keeper wrapper. The wrapper creates that reference from the original
+retained Child's PID after its identity/reservation checks; C creates no AX
+object and accepts no PID. It accepts no PID, creates no application/global AX
 object, and performs no action, WindowServer read, image capture or permission
 request. It derives the root PID with GetPid, checks every reference's owner
 before role content, suppresses foreign PID/role data, tracks duplicate/self
@@ -92,27 +94,50 @@ admission, then invokes the local library only after retained-Child WNOWAIT and
 kernel birth/path/parent/UID/executable-hash checks. It compares Python against
 the same local app reference used by C, with identity rechecks between and after
 the readers. The Python reference reader accepts an optional precreated app
-reference; its default behavior is unchanged. The C decoder does not call Python
+reference and fixed-attribute subset; its default behavior is unchanged. The C decoder does not call Python
 conversion code. A stop/evidence reason or less than57s headroom refuses entry;
-Python gets a4s inter-call budget. A later Python refusal retains the C result.
+Python gets a4s inter-call budget. Python attributes are captured separately, so one attribute refusal does not
+erase earlier pairs or the C section. C reports per-reference errors; Python
+can still refuse an entire attribute, so anomalous references may lack a paired
+value. Other Python/decode exceptions are recorded with the C result/header
+rather than silently replacing it. Failed C role conversion clears its text;
+UTF8 replacement is not claimed as complete role text.
 Sequential observations are not atomic; neither agreement nor disagreement
-alone establishes a product/OS cause or qualification.
+alone establishes a product/OS cause or qualification. An in-process C/FFI
+fault can kill the keeper holding the original Child reservation and cleanup
+authority. Headroom/timeouts do not cover a crash; no safe observer-release
+claim follows from it. That residual risk must be included in any live disposition.
+`completed` means traversal completed, even when attributes report errors; it
+does not mean observation success or qualification.
 
-Before a future admission, the checked library and a source-bound manifest must
+Staging requires an externally supplied reviewed build-manifest SHA256 and the
+exact production source set (no empty/self-selected source list or fixture
+files). The builder hashes sources and selected headers before and after
+compilation, refusing observed drift. Before a future admission, the checked
+library and a source-bound manifest must
 be copied write-once into its private controller root. Capture requires that
-manifest be inside the root and that the admitted sandbox policy retain the
-control-root read/write denial. The supplier-writable build tree is not a valid
+manifest use `typed-ax-build.json` and its library `typed-ax-reader.dylib` inside
+the root, and that the admitted sandbox policy retain the control-root denial.
+It cannot load from App-writable output filenames. The component checks the
+policy hash and required denial; live integration must retain the launch
+controller's exact `policy(value, root)` comparison, not treat a substring check
+as a general SBPL policy validator. The supplier-writable build tree is not a valid
 live-load location. Staging loads no library and refuses an existing admission.
-The source/build manifest records compiler binary/hash/version, exact SDK/header
-hashes, source hashes, command/environment, times and dylib hash. Offline builds
+The source/build manifest records compiler binary/hash/version, SDK identity and selected direct API/type/attribute header
+hashes (including AXAttributeConstants.h, not the entire transitive SDK), source
+hashes, command/environment, times and dylib hash. Offline builds
 run through the existing slot/memguard wrapper, with fresh scratch Codex home;
 no download, App rebuild or manual signing occurs. Production exports only the
 reference-based comparison and its output-size query. Harmless test builds
 replace AX functions at compile time with SDK-typed fake functions on owned CF
 dictionaries/arrays. Symbol inspection confirms the fixture imports no real
-AXUIElement functions; production has the direct SDK imports. Tests verify raw
-errors, wrong types, bounds, ownership exclusion, cycles/duplicates, timeouts,
-retain-count stability, fixed POD ABI and keeper/admission refusal paths.
+AXUIElement functions; production has the direct SDK imports. Tests cover raw
+errors, wrong types, bounds, ownership exclusion, cycles/duplicates, per-object
+timeout-setting refusal, retain-count stability, fixed POD ABI and keeper/admission
+refusals. Added fixtures exercise the inter-call deadline, null/wrong/oversize
+roles and foreign-PID exclusion; their compiled run remains a separate result.
+Absolute source hashes fail safe if the worktree changes or disappears; they
+check disk bytes, not already-imported Python module memory.
 
 Retained earlier build (superseded for live use after protected-staging changes):
 `/Users/ryan/dev/chirality-t3/scratch/app-typed-ax-prep-hz419ka_/build-2`.
@@ -146,3 +171,10 @@ Claude Opus5.5/high scrutiny of this new observation boundary is required before
 returning it for a parent's separate live disposition. No current launch, reset,
 permission change, supplier/model/auth/network action or candidate rebuild is
 implied by this prepared component or its ordinary tests.
+
+Independent Claude Opus5.5/high review of `3200f17d` found no blocking C
+observation defect, with the boundary unwired. Its staging-trust, fixed-name,
+partial-result, role-text, provenance, test and documentation findings are
+addressed in the subsequent bounded delta. Existing build1/2 records are
+historical; the final fixed-source build and compiled-fixture checks must be
+verified before a live-ready return. No clean repeat review is claimed.
