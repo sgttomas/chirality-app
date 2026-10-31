@@ -53,6 +53,17 @@ class Stability(unittest.TestCase):
   self.run.ui_deadline=106.5
   with self.assertRaisesRegex(RuntimeError,'helper reserve'):self.route.acquire_initial_window()
   self.native.assert_not_called()
+ def test_exact_minimum_budget_refuses_before_native_backend(self):
+  self.run.ui_deadline=106.75
+  with self.assertRaisesRegex(RuntimeError,'helper reserve'):self.route.acquire_initial_window()
+  self.native.assert_not_called()
+ def test_matching_admitted_binding_reaches_first_helper(self):
+  self.route.acquire_initial_window()
+  with patch.object(self.route,'bound_window',return_value=(self.identity,self.window)),patch.object(self.route,'invoke',side_effect=RuntimeError('fixture reached helper')) as invoke:
+   with self.assertRaisesRegex(RuntimeError,'fixture reached helper'):self.route.capture()
+  request=invoke.call_args.args[0]
+  self.assertEqual(request['identity'],self.identity);self.assertEqual(request['window'],self.window)
+  self.assertEqual(request['sequence'],1)
  def test_slow_native_sample_cannot_admit_after_deadline(self):
   def slow(*a):self.clock+=3.1;return self.window
   self.selection.side_effect=slow

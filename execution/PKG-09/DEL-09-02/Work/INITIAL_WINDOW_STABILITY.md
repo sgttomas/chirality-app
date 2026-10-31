@@ -7,11 +7,12 @@ No App, native capture/input or native API was run in this preparation.
 ## One acquisition before the first screenshot
 
 The existing original-Child keeper performs one initial acquisition inside the
-unchanged15-second initial phase. Its cap is3 seconds and at most13 samples,
+unchanged15-second initial phase. Its cap is3 seconds with a defensive13-sample bound (real sample latency and
+spacing make the time cap binding first),
 shortened further to retain6.25 seconds before the initial/work/cleanup deadline.
 Three consecutive complete window dictionaries must match, with at least250ms
-between sample completions: at least500ms of matching observations. An unready
-budget refuses before backend creation. Every selected sample retains UTC and
+between sample completions: at least500ms of matching observations. A budget of0.55 seconds or less refuses before backend creation; this adds a
+small strict margin above the minimum500ms matching interval. Every selected sample retains UTC and
 monotonic timing, complete window facts, before/after original-Child identity and
 elapsed time. A successful acquisition retains its exact admitted identity and
 window dictionary; it does not create a source/generation witness.
@@ -83,7 +84,7 @@ The v4 fixtures cover exact twelve rows, linkage/ends/work, hashes, sidecars,
 opaque metadata/auth names and one-use fixed slot invocation. These are mocked/
 harmless fixtures, not GUI qualification. Deliverables/whitespace pass.
 
-Fresh unrun preparation:
+Historical review-input preparation (superseded, still unrun):
 `/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-xuin2amx`, admission
 SHA256 `dff37a45512cf027f7d0dba2cf3aa525e9290d80f1711c87de00e7cd537bf9fc`.
 Basis `/Users/ryan/dev/chirality-t3/scratch/app-initial-stability-prep-srtdm8o6/retained-v4-inputs.json`,
@@ -91,5 +92,37 @@ SHA256 `397d7f2c3a807e5d3812acbb78a4f8d82a2432d44afa55f2dec2d4c8d8d956a0`.
 All18 dependencies, copied helpers and policy match; no execution records.
 An earlier read-only capture refused a mistyped fixed assessment path before
 state reads; its log is retained, the constant corrected and v4 tests rerun.
-No earlier basis or attempt was overwritten. Narrow Claude Opus5.5/high scrutiny
-and exact-head CI are pending; no live use is authorized.
+No earlier basis or attempt was overwritten. The narrow review below supersedes the pending-review status for this source;
+no live use is authorized.
+
+## Narrow review and bounded fixes
+
+Claude Opus5.5/high reviewed31a48951 after the first task failed at the API rate
+limit. The completed review ran37 focused tests and found one medium defect:
+first-capture disappearance after successful acquisition did not set failure,
+allowing an unintended cleanup capture retry. The manager fixed this by marking
+the WindowUnavailable failure in observe_ready and re-raising. An integration
+regression proves cleanup holds without any second capture. Additional tests
+cover acquisition-before-capture-before-observation order, a matching admitted
+binding reaching the helper and the exact-minimum budget refusing before backend
+creation. This is the completed review plus bounded manager fixes, not a new
+clean repeat review or execution approval. No v4 defect was found.
+
+Practical limits retained from review: absence can wait only about2.4 seconds
+within the3-second cap while reserving matching time; a slower startup refuses.
+A tiny initial window, multiple matching windows, or a changed visible layer-0
+count refuses conservatively. The defensive sample limit is normally unreachable
+before the time cap. The6.25-second helper reserve is tight near deadlines;
+later drift still refuses. No tolerance, replacement or later rebinding was added.
+
+Updated validation:174 boundary tests ran,170 passed and4 deferred C fixtures
+skipped; all21 legacy B tests passed. Deliverables and whitespace pass. New
+read-only capture/admission succeeded against the unchanged exact12-row state.
+Current unrun attempt:
+`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-5kpzvvr3`, admission
+SHA256 `014c684aefb9929d963f26b028eca60fd794fa0bc8c2d6f99000c8bcf744ae34`.
+Basis `/Users/ryan/dev/chirality-t3/scratch/app-stability-reviewed-prep-_3u7anxc/retained-v4-inputs.json`,
+SHA256 `9c54b6bd0d16b13e9204fd8ce582d163adf274849785d2ba8fe36182130f3d05`.
+All18 dependency/helper/policy identities match. xuin2amx is preserved but
+superseded by these source fixes and must not execute. No live calls or launch
+occurred; exact-head CI and separate parent disposition remain outstanding.

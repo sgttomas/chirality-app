@@ -235,7 +235,7 @@ class WindowRoute:
             started=time.monotonic()
             end=min(started+INITIAL_SETTLE_SECONDS,self.run.work_end-6.25,self.run.cleanup_end-6.25,
                     getattr(self.run,'ui_deadline',self.run.work_end)-6.25)
-            require(end-started>=INITIAL_SETTLE_SPACING*(INITIAL_SETTLE_MATCHES-1),
+            require(end-started>INITIAL_SETTLE_SPACING*(INITIAL_SETTLE_MATCHES-1)+0.05,
                     'initial stability lacks settle spacing and helper reserve')
             backend=d.NativeBackend()
             require(backend.screen_access(),'screen capture unavailable: preflight false; no prompt/fallback')

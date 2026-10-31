@@ -185,7 +185,10 @@ def make_run(b):
             if qualification:
                 end=min(time.monotonic()+15,self.work_end);self.ui_deadline=end
                 self.screen.window.acquire_initial_window()
-                initial=self.screen.window.capture()
+                try:initial=self.screen.window.capture()
+                except w.WindowUnavailable as error:
+                    self.screen.window.failure=str(error)
+                    raise
             observed=self.screen.observe('ready' if qualification else 'cleanup-source',protocol=qualification,initial_frame=initial)
             self.last_diagnostics=observed
             gen=b.source_gate(observed,self.value);self.generation=gen
