@@ -1,0 +1,97 @@
+{
+  "format": "swbpipe-catalog-receiving/4",
+  "repository": "sgttomas/SWBPIPE",
+  "commit": "9b6281e7eaca924e6166336b87b6d25937c1ca04",
+  "checked_head": "2cd052e6746aa4404f852a39d8630b70fabf696c",
+  "pull_request": "https://github.com/sgttomas/SWBPIPE/pull/27",
+  "catalog_version": "swbpipe-catalog/4",
+  "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4/agent-capability-catalog.json",
+  "standing": "integrated source selection for offline receiving checks only; not live execution or qualification",
+  "sources": [
+    {
+      "path": "execution/PKG-16/DEL-16-06/Work/agent-capability-catalog.json",
+      "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4/agent-capability-catalog.json",
+      "bytes": 50864,
+      "sha256": "8e9a4b4e3eec027d092033ea5d95f1648030520e797c5a660ab387531f23be17",
+      "read_extent": "complete catalog",
+      "lines": "all"
+    },
+    {
+      "path": "apps/desktop/src-tauri/resources/agent-capability-catalog.json",
+      "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4/agent-capability-catalog.json",
+      "bytes": 50864,
+      "sha256": "8e9a4b4e3eec027d092033ea5d95f1648030520e797c5a660ab387531f23be17",
+      "read_extent": "complete catalog; separately fetched and byte-identical",
+      "lines": "all"
+    },
+    {
+      "path": "execution/PKG-16/DEL-16-06/Work/embedded-agent-host.md",
+      "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4/embedded-agent-host.source.md",
+      "bytes": 53735,
+      "sha256": "6342146e130b67e8ecd2b9ebee311dde6a665370d7771f2ce4e862d0cbb7003c",
+      "read_extent": "summary/filter; identifier limits and record contract; cursor and unit boundary",
+      "lines": [
+        [
+          124,
+          131
+        ],
+        [
+          212,
+          260
+        ],
+        [
+          351,
+          360
+        ]
+      ]
+    },
+    {
+      "path": "apps/desktop/src/services/embeddedAgentSession.ts",
+      "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4/embeddedAgentSession.source.ts.txt",
+      "bytes": 33432,
+      "sha256": "d766442debf2e49bff3b2e45da9013828e324e4b97824639b9224006b0230492",
+      "read_extent": "configuration/constants; actual local formatter copy; before/stamp/serialization; exception classification; cursor/live record producer",
+      "lines": [
+        [
+          28,
+          38
+        ],
+        [
+          57,
+          74
+        ],
+        [
+          94,
+          138
+        ],
+        [
+          195,
+          205
+        ],
+        [
+          229,
+          286
+        ]
+      ]
+    },
+    {
+      "path": "apps/desktop/src/services/embeddedAgentM2.test.ts",
+      "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4/embeddedAgentM2.test.source.ts.txt",
+      "bytes": 8878,
+      "sha256": "f4a78e9a634fc0fd177f63d360d82e4f4f8c548e3735f2054695d1524c22b478",
+      "read_extent": "imports and invented formatter/inspector/applier correspondence assertions; source inspection only, not executed by App",
+      "lines": [
+        [
+          12,
+          15
+        ],
+        [
+          58,
+          90
+        ]
+      ]
+    }
+  ],
+  "preparation_head": "15e40a07dd0bb76d6b6939c7ff9a5177703218f9",
+  "predecessor_selection": "execution/PKG-03/DEL-03-02/Work/swbpipe-catalog-v3-pins.json"
+}

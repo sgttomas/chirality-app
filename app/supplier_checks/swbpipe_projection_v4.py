@@ -84,6 +84,60 @@ def check_records(args, result):
             raise ValueError('serialized record page byte bound')
 
 
+def expected_record_page(entries, offset, limit):
+    """Fixture-only receiving expectation over already canonical host entries.
+
+    No raw model parsing or applier formatting. A bad encountered record fails
+    the entire call, including records that preceded it. A fitting next entry
+    beyond the aggregate budget belongs to the next page.
+    """
+    selected = []; total = 0; end = offset
+    while end < len(entries) and len(selected) < limit:
+        row = entries[end]
+        if (not isinstance(row.get('id'), str) or not row['id']
+                or len(row['id'].encode('utf-16-le', 'surrogatepass')) // 2 > 160
+                or any(len(js_text_bytes(t)) > 16384 for t in [row['recordText'], *row['before'].values()])):
+            return 'unavailable', [], None
+        size = len(entry_bytes(row))
+        if size > 49152:
+            return 'unavailable', [], None
+        if total + size > 49152:
+            break
+        selected.append(copy.deepcopy(row)); total += size; end += 1
+    return 'ok', selected, end if end < len(entries) else None
+
+
+def check_records_observation(args, result, retained_page, retained_cursor=None):
+    """Join a result to independently supplied invented host page evidence."""
+    check_cursor('swbpipe_read_records', args, retained_cursor)
+    expected_offset = 0 if args['page']['cursor'] is None else retained_cursor['nextOffset']
+    if retained_page['offset'] != expected_offset:
+        raise ValueError('retained page offset mismatch')
+    if retained_page['context'] != page_context('swbpipe_read_records', args):
+        raise ValueError('retained record page context mismatch')
+    status, rows, next_offset = expected_record_page(retained_page['entries'], retained_page['offset'], args['page']['limit'])
+    # The actual serialized result is supplied separately, never synthesized by
+    # Python number formatting. Producer small() limits its complete UTF8 bytes.
+    if status == 'ok':
+        candidate = decode(retained_page['serialized_result'], 131072)
+        if (candidate.get('status') != 'ok' or candidate.get('basis') != args['basis']
+                or candidate.get('data', {}).get('family') != args['family']
+                or candidate.get('data', {}).get('records') != rows):
+            raise ValueError('serialized page evidence mismatch')
+        if len(retained_page['serialized_result']) > 65536:
+            status = 'execution_error'
+    if result['status'] != status:
+        raise ValueError('record page outcome mismatch')
+    if status != 'ok':
+        if result['data'] is not None:
+            raise ValueError('failed record call cannot return a partial page')
+        return
+    if result['data']['records'] != rows:
+        raise ValueError('record page truncated, skipped or substituted')
+    if (result['data']['nextCursor'] is None) != (next_offset is None):
+        raise ValueError('record page continuation mismatch')
+
+
 def check_before(operation, basis, retained):
     """Compare opaque host-supplied before text; never derive applier semantics."""
     if retained is None or retained.get('basis') != basis or retained.get('target') != operation['target']:
@@ -99,7 +153,8 @@ def check_before(operation, basis, retained):
 class Pending:
     """One invented pending call. Production must also own queues, cursors and budgets."""
     def __init__(self, catalog, binding, args_raw, current_basis, current_units=None, retained_record=None, retained_cursor=None, retained_before=None):
-        self.catalog = copy.deepcopy(catalog)
+        catalog = copy.deepcopy(catalog)
+        self.catalog = catalog
         if catalog["catalogVersion"] != "swbpipe-catalog/4":
             raise ValueError("unsupported catalog version")
         self.retained_policy = catalog["catalogVersion"] in ("swbpipe-catalog/4",)

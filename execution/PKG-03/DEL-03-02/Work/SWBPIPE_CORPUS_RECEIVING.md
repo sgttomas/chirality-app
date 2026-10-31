@@ -1,5 +1,10 @@
 # SWBPIPE operation corpus received in App terms
 
+The later [catalog-v4 selection](swbpipe-catalog-v4-pins.json) separately receives
+integrated SWBPIPE PR27 catalog/host-contract/producer identities. It does not
+repin this historical corpus or overwrite the v3 selection. See
+[the v4 receiving account](../../../PKG-09/DEL-09-06/Work/catalog-v4/RECEIVING_ADOPTION.md).
+
 Current catalog-v3 intake is separately pinned in
 [swbpipe-catalog-v3-pins.json](swbpipe-catalog-v3-pins.json) and reconciled by
 [DEL-09-06](../../../PKG-09/DEL-09-06/Work/SWBPIPE_CATALOG_V3_RECEIVING.md).

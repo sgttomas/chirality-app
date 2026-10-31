@@ -1,4 +1,4 @@
-"""Candidate v4 offline checks. Explicit PR-head export, not current adoption."""
+"""Integrated v4 offline source/receiving checks; no host execution or qualification."""
 import argparse
 import copy
 import hashlib
@@ -7,13 +7,16 @@ import json
 from pathlib import Path
 import unittest
 import subprocess
+import tempfile
+from unittest.mock import patch
 from jsonschema import Draft202012Validator
 from swbpipe_projection import declarations, expand, validate
-from swbpipe_projection_v4 import Pending, admit_operations, check_records, page_context, entry_bytes, js_text_bytes
+from swbpipe_projection_v4 import Pending, admit_operations, check_records, page_context, entry_bytes, js_text_bytes, expected_record_page, check_records_observation
 from swbpipe_projection_test import BASIS, BINDING, HASH, ARGS, RESULT
 
-CANDIDATE_SHA = '8e9a4b4e3eec027d092033ea5d95f1648030520e797c5a660ab387531f23be17'
-CAT = None
+INTEGRATED_SHA = '8e9a4b4e3eec027d092033ea5d95f1648030520e797c5a660ab387531f23be17'
+from swbpipe_catalog_v4_receiving import load_catalog, selection, ROOT
+CAT = load_catalog()
 TUPLES = [
  ('modify','Node','set_field','position.x'),('modify','Node','set_field','position.y'),('modify','Node','set_field','position.z'),
  ('create','Material','create_material','materials'),('create','Node','create_node','nodes'),
@@ -174,6 +177,93 @@ class V4Receiving(unittest.TestCase):
         result['data']['records']=[row]
         with self.assertRaisesRegex(ValueError,'page byte'):check_records(args,result)
 
+    def test_integrated_sources_and_missing_tampered_cross_version_refusal(self):
+        pins=selection()
+        self.assertEqual(pins['commit'],'9b6281e7eaca924e6166336b87b6d25937c1ca04')
+        self.assertEqual(pins['checked_head'],'2cd052e6746aa4404f852a39d8630b70fabf696c')
+        self.assertEqual(len(pins['sources']),5)
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for source in pins['sources']:
+                target=root/source['snapshot'];target.parent.mkdir(parents=True,exist_ok=True)
+                target.write_bytes((ROOT/source['snapshot']).read_bytes())
+            with patch('swbpipe_catalog_v4_receiving.ROOT',root):
+                selection()
+                for source in pins['sources']:
+                    path=root/source['snapshot'];raw=path.read_bytes();path.write_bytes(raw+b' ')
+                    with self.assertRaisesRegex(ValueError,'selected source changed'):selection()
+                    path.unlink()
+                    with self.assertRaises(FileNotFoundError):selection()
+                    path.write_bytes(raw)
+            from swbpipe_catalog_receiving import selection as v3_selection
+            with self.assertRaisesRegex(ValueError,'integrated v4'):load_catalog(ROOT/v3_selection()['snapshot'])
+        with patch('swbpipe_catalog_v4_receiving.PINS_SHA256','0'*64):
+            with self.assertRaisesRegex(ValueError,'selection changed'):selection()
+
+    def test_whole_call_unavailable_and_envelope_overflow_are_distinct(self):
+        args=copy.deepcopy(dict(ARGS,family='nodes'));args['page']['limit']=50
+        row={'id':'one','recordText':'{}','before':{}}
+        oversized={'id':'bad','recordText':'"'*16384,'before':{'delete':'"'*16384}}
+        for bad in (oversized,dict(row,id='😀'*81),dict(row,recordText='é'*8193)):
+            status,rows,offset=expected_record_page([row,bad],0,50)
+            self.assertEqual((status,rows,offset),('unavailable',[],None))
+            retained={'context':page_context('swbpipe_read_records',args),'entries':[row,bad],
+                      'offset':0,'serialized_result':b''}
+            failure=dict(RESULT,status='unavailable',data=None)
+            check_records_observation(args,failure,retained)
+            with self.assertRaisesRegex(ValueError,'outcome mismatch'):
+                check_records_observation(args,dict(RESULT,data={'records':[row],'nextCursor':None}),retained)
+        success=dict(RESULT,data={'family':'nodes','records':[row],'nextCursor':None})
+        wire=json.dumps(success).encode()
+        retained={'context':page_context('swbpipe_read_records',args),'entries':[row],
+                  'offset':0,'serialized_result':wire+b' '*(65537-len(wire))}
+        check_records_observation(args,dict(RESULT,status='execution_error',data=None),retained)
+        with self.assertRaisesRegex(ValueError,'outcome mismatch'):
+            check_records_observation(args,dict(RESULT,status='unavailable',data=None),retained)
+        retained['serialized_result']=wire+b' '*(65536-len(wire))
+        success=dict(RESULT,data={'family':'nodes','records':[row],'nextCursor':None})
+        check_records_observation(args,success,retained)
+        altered=copy.deepcopy(success);altered['data']['records'][0]['recordText']='cut'
+        with self.assertRaisesRegex(ValueError,'truncated'):check_records_observation(args,altered,retained)
+
+    def test_original_binding_hash_and_live_historical_joins_remain_strict(self):
+        op=intent(TUPLES[0]);args={'workspaceHandle':BASIS['workspaceHandle'],'basis':BASIS,
+            'claimedModelHash':HASH,'operations':[op],'assumptions':[]}
+        binding=dict(BINDING,tool='swbpipe_propose_operations')
+        for mutate in (lambda a:a.update(claimedModelHash=dict(HASH,value='b'*64)),
+                       lambda a:a['basis'].update(modelRevision=99),
+                       lambda a:a.update(workspaceHandle='wrong')):
+            bad=copy.deepcopy(args);mutate(bad)
+            with self.assertRaises(ValueError):Pending(CAT,binding,json.dumps(bad).encode(),BASIS,{'length':'m'})
+        later=dict(BASIS,modelRevision=3,modelHash=dict(HASH,value='b'*64))
+        args=dict(ARGS,runHandle='invented:run');binding=dict(BINDING,tool='swbpipe_read_results')
+        record={'basis':BASIS,'handle':'invented:run'}
+        result=dict(RESULT,data={'runHandle':'invented:run','runId':'invented:run-id','evaluatedModelHash':HASH,
+            'values':[],'nextCursor':None,'standing':{'route':'invented','health':'not_assessed','checks':['not_run']}})
+        retained={'binding':binding,'basis':BASIS,'result':copy.deepcopy(result)}
+        def pending():return Pending(CAT,binding,json.dumps(args).encode(),later,retained_record=record)
+        self.assertTrue(pending().complete(binding,result,later,retained_record=retained)['result']['success'])
+        forged=copy.deepcopy(result);forged['data']['runId']='wrong'
+        with self.assertRaisesRegex(ValueError,'forged'):pending().complete(binding,forged,later,retained_record=retained)
+        with self.assertRaisesRegex(ValueError,'detached'):pending().complete(binding,result,later,retained_record=retained,session_attached=False)
+        changed=dict(result,basis=later)
+        with self.assertRaisesRegex(ValueError,'rebased'):pending().complete(binding,changed,later,retained_record=retained)
+        item=pending();item.complete(binding,result,later,retained_record=retained)
+        with self.assertRaisesRegex(ValueError,'duplicate'):item.complete(binding,result,later,retained_record=retained)
+
+    def test_reported_batch_limits_are_configurable_not_fixed_sixteen(self):
+        cat=copy.deepcopy(CAT);cat['limits'].update(proposalOperations=20,argumentBytes=65536)
+        operations=[]
+        for i in range(17):
+            op=intent(TUPLES[0]);op['operation_id']=str(i);operations.append(op)
+        args={'workspaceHandle':BASIS['workspaceHandle'],'basis':BASIS,'claimedModelHash':HASH,
+              'operations':operations,'assumptions':[]}
+        binding=dict(BINDING,tool='swbpipe_propose_operations')
+        raw=json.dumps(args).encode()
+        Pending(cat,binding,raw,BASIS,{'length':'m'})
+        cat['limits']['proposalOperations']=16
+        with self.assertRaisesRegex(ValueError,'batch limit'):Pending(cat,binding,raw,BASIS,{'length':'m'})
+
     def test_v3_and_unknown_versions_are_not_v4(self):
         from swbpipe_catalog_receiving import load_catalog
         for cat in (load_catalog(),dict(CAT,catalogVersion='swbpipe-catalog/99')):
@@ -195,8 +285,7 @@ class V4Receiving(unittest.TestCase):
 
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--catalog',required=True);args=parser.parse_args()
-    raw=Path(args.catalog).read_bytes()
-    if len(raw)!=50864 or hashlib.sha256(raw).hexdigest()!=CANDIDATE_SHA:parser.error('not checked PR27 candidate catalog')
-    CAT=json.loads(raw)
+    parser=argparse.ArgumentParser();parser.add_argument('--catalog');args=parser.parse_args()
+    try:CAT=load_catalog(args.catalog)
+    except (ValueError,OSError) as error:parser.error(str(error))
     unittest.main(argv=[__file__])
