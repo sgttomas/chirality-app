@@ -22,6 +22,7 @@ class Profile(unittest.TestCase):
             (root / 'tmp').mkdir(mode=0o700)
             for name in ('home', 'codex-home'):
                 (root / 'tmp' / name).mkdir(mode=0o700)
+            (root / 'stdout.log').touch(mode=0o600)
             control = root / 'release-observer-after-app-exit.json'
             control.write_text('invented operator-only input')
             control.chmod(0o600)
@@ -39,7 +40,7 @@ try:
  path=Path(result.stdout.strip()); info=path.stat()
  facts['allocator']={'parent_matches':path.parent==root/'tmp','mode':stat.S_IMODE(info.st_mode),'owned':info.st_uid==os.getuid()}
 except PermissionError as error: facts['allocator']={'denied_errno':error.errno}
-for name,operation in [('control_read',lambda:(root/'release-observer-after-app-exit.json').read_text()),('control_write',lambda:(root/'release-observer-after-app-exit.json').write_text('bad'))]:
+for name,operation in [('control_read',lambda:(root/'release-observer-after-app-exit.json').read_text()),('control_write',lambda:(root/'release-observer-after-app-exit.json').write_text('bad')),('output_unlink',lambda:(root/'stdout.log').unlink()),('output_rename',lambda:(root/'stdout.log').rename(root/'tmp/moved-log'))]:
  try: operation(); facts[name]='unexpectedly allowed'
  except PermissionError: facts[name]='denied'
 (root/'tmp/allowed-output').write_text('invented')
@@ -57,6 +58,8 @@ print(json.dumps(facts))
             facts = json.loads(result.stdout)
             self.assertEqual(facts['control_read'], 'denied')
             self.assertEqual(facts['control_write'], 'denied')
+            self.assertEqual(facts['output_unlink'], 'denied')
+            self.assertEqual(facts['output_rename'], 'denied')
             return facts
 
     def test_missing_allocator_exec_is_denied_without_freshening_any_app_state(self):

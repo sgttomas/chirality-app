@@ -372,3 +372,23 @@ Targeted checks: 20 B controller tests, 7 AX tests, 8 release tests and 2 real
 sandbox profile fixtures pass under Python3.13, slot-wrapped. No App/supplier
 launch, model, authentication, rebuild or candidate qualification was performed.
 Independent scrutiny of these integrated changes is pending.
+
+Independent Claude Opus5.5/high review of `ac7ede96` found no blocking
+integration defect or unsafe new authority, but identified a disappearing-control
+race and missing operator requirements. Both are repaired: an absent result
+continues holding, and held status now states the fixed filename, exact JSON,
+plain owned single-link 0600 requirement and one-occurrence rule. Prepare the
+file privately and atomically rename it into place; a refused occurrence remains
+consumed and no longer offers a request. A regression covers absent/refused
+release retaining supervision without waiting the Child or stopping its guard.
+
+Output exceptions now permit file-write-data only; real sandbox fixtures verify
+unlink and rename are denied. The App can still write/truncate its output and
+list control-root names (literal directory read-data); it cannot read or alter
+the operator request. These logs are observations, not tamper-proof attestations.
+Prepare preserves both new runtime modules alongside controller.py.txt and
+checks allocator identity before making an attempt directory. An absent original
+browser root refuses explicitly. The 38 targeted tests pass after these repairs;
+no live AX/App/supplier check has been performed. Remaining limits include real
+AX traversal cost/representation, unobserved supplier helper behavior and a live
+App with no usable window still requiring explicit out-of-band disposition.

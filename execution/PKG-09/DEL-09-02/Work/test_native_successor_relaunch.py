@@ -436,6 +436,26 @@ class BChecks(unittest.TestCase):
         self.assertTrue(run.stop.is_set())
 
 
+    def test_disappearing_or_invalid_release_keeps_holding_and_stops_offering(self):
+        from unittest.mock import Mock
+        for outcome in (None, RuntimeError('invalid mode')):
+            with self.subTest(outcome=outcome):
+                run = b.Run(self.root, self.value, time.monotonic() + 30, 'a' * 64)
+                run.reservation = Mock()
+                run.reservation.observe.return_value = {'code': os.CLD_EXITED, 'status': 0}
+                control = self.root / b.release_support.CONTROL
+                control.write_text('{}')
+                effect = {'side_effect': outcome} if isinstance(outcome, Exception) else {'return_value': outcome}
+                with patch.object(b.release_support, 'release_if_requested', **effect), patch.object(run, 'report'), patch.object(b.time, 'sleep', side_effect=InterruptedError('test stops held loop')):
+                    with self.assertRaises(InterruptedError):
+                        run.hold('original failure')
+                run.reservation.administrative_reap.assert_not_called()
+                self.assertFalse(run.stop.is_set())
+                status = run.held_status('original failure')
+                self.assertIsNone(status['administrative_release_request'])
+                self.assertTrue(status['administrative_release_consumed'])
+                self.assertEqual(status['administrative_release_control']['mode'], '0600')
+
 
 if __name__ == '__main__':
     unittest.main()

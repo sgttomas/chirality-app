@@ -95,7 +95,7 @@ def policy(value, control_root):
             '(deny file-read* file-write* (subpath ' + json.dumps(str(control_root)) + '))\n'
             '(allow file-read-metadata file-read-data ' + literal(control_root) + ')\n'
             '(allow file-read* file-write* (subpath ' + json.dumps(str(control_root / 'tmp')) + '))\n'
-            '(allow file-read-metadata file-write* ' + literal(control_root / 'stdout.log') + ' ' + literal(control_root / 'stderr.log') + ')\n')
+            '(allow file-read-metadata file-write-data ' + literal(control_root / 'stdout.log') + ' ' + literal(control_root / 'stderr.log') + ')\n')
 
 
 def retained_namespaces(context, after_a, basis_path):
@@ -113,6 +113,8 @@ def retained_namespaces(context, after_a, basis_path):
     require(basis['AppData'] == after_a['AppData'], 'operational App data changed since saved A')
     for name in ('WebKit', 'Caches'):
         require(basis[name]['path'] == after_a[name]['path'] and basis[name]['present'] is True
+                and after_a[name].get('present') is True
+                and basis[name].get('root') is not None and after_a[name].get('root') is not None
                 and basis[name]['root'][:3] == after_a[name]['root'][:3], 'retained browser namespace root replaced')
         require(all(stat.S_ISDIR(row[3]) or stat.S_ISREG(row[3]) for row in basis[name]['metadata']),
                 'unexpected browser namespace object')
@@ -160,6 +162,7 @@ def saved_input(a_root, namespace_basis=None):
 
 def prepare(a_root, namespace_basis=None):
     context, value, bindings, a_files = saved_input(a_root, namespace_basis)
+    allocator = allocator_identity(value)
     root = Path(tempfile.mkdtemp(prefix='app-successor-native-B-', dir=T3 / 'scratch')).resolve()
     for name in ('codex-home', 'tmp'):
         (root / name).mkdir(mode=0o700)
@@ -167,8 +170,10 @@ def prepare(a_root, namespace_basis=None):
     value['environment']['TMPDIR'] = str(root / 'tmp')
     (root / 'phase-B.sb').write_text(policy(value, root))
     (root / 'controller.py.txt').write_bytes(HERE.read_bytes())
+    for source in (AX_SOURCE, RELEASE_SOURCE):
+        (root / (source.name + '.txt')).write_bytes(source.read_bytes())
     write_once(root / 'admission.json', {'a_root': str(a_root), 'a_files': a_files,
-        'context': context.descriptor(), 'inputs': value, 'bindings': bindings, 'allocator': allocator_identity(value),
+        'context': context.descriptor(), 'inputs': value, 'bindings': bindings, 'allocator': allocator,
         'namespaces': context.namespaces(require_absent=False), 'dependencies': dependencies(),
         'policy_sha256': setup.digest(root / 'phase-B.sb'), 'prepared_at': now(), 'limits': LIMIT})
     print(root)
@@ -354,6 +359,7 @@ class Run:
     def __init__(self, root, value, resource_end, admission_sha=None):
         self.root, self.value, self.resource_end = root, value, resource_end
         self.admission_sha = admission_sha
+        self.handled_release = False
         self.work_end = min(time.monotonic() + 180, resource_end - 45)
         self.cleanup_end = resource_end
         self.cleanup = False
@@ -628,7 +634,10 @@ class Run:
         except BaseException as observed_error:
             app = {'unknown': str(observed_error)}
         return {'candidate': self.value['candidate_key'], 'phase': 'B', 'state': 'held-unknown',
-                'administrative_release_request': release_support.request_for(self),
+                'administrative_release_request': None if self.handled_release else release_support.request_for(self),
+                'administrative_release_consumed': self.handled_release,
+                'administrative_release_control': {'file': release_support.CONTROL, 'mode': '0600',
+                    'requirements': 'plain owned single-link file, exact offered JSON body; create privately then atomically rename into place; one occurrence including refusal, no replacement/retry'},
                 'error': error, 'app_exit_observation': app, 'original_app_reaped': False,
                 'supplier_settled_observed': self.supplier_settled, 'quit_requested': self.quit_requested,
                 'generation': self.generation, 'recovery_limit': 'Permanent AX/parser loss cannot be repaired inside this frozen controller; retain supervision and report the exact missing observation. No numeric escalation or automatic duplicate UI action.', 'recovery_control': 'write retry-native-cleanup.json with {action:retry-native-cleanup,candidate:<this candidate>}; same source is reobserved, no numeric inputs or repeated UI actions',
@@ -644,12 +653,14 @@ class Run:
             self.note_log_error(problem)
         self.report(status)
         handled_retry = False
-        handled_release = False
         while True:
-            if not handled_release and os.path.lexists(self.root / release_support.CONTROL):
-                handled_release = True  # One occurrence, including refusal; no replacement/retry.
+            if not self.handled_release and os.path.lexists(self.root / release_support.CONTROL):
+                self.handled_release = True  # One occurrence, including refusal; no replacement/retry.
                 try:
-                    return release_support.release_if_requested(self, error)
+                    released = release_support.release_if_requested(self, error)
+                    if released is not None:
+                        return released
+                    self.safe_log('administrative_release_refused', error='request disappeared; supervision retained')
                 except BaseException as release_error:
                     self.safe_log('administrative_release_refused', error=str(release_error))
             retry = self.root / 'retry-native-cleanup.json'
