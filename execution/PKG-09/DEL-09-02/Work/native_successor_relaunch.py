@@ -35,6 +35,14 @@ RELEASE_SOURCE = HERE.with_name('native_b_release.py')
 release_spec = importlib.util.spec_from_file_location('native_B_release', RELEASE_SOURCE)
 release_support = importlib.util.module_from_spec(release_spec)
 release_spec.loader.exec_module(release_support)
+RETAINED_SOURCE = HERE.with_name('native_b_retained.py')
+retained_spec = importlib.util.spec_from_file_location('native_B_retained', RETAINED_SOURCE)
+retained_support = importlib.util.module_from_spec(retained_spec)
+retained_spec.loader.exec_module(retained_support)
+DIAGNOSTIC_SOURCE = HERE.with_name('native_b_diagnostic.py')
+diagnostic_spec = importlib.util.spec_from_file_location('native_B_diagnostic', DIAGNOSTIC_SOURCE)
+diagnostic_support = importlib.util.module_from_spec(diagnostic_spec)
+diagnostic_spec.loader.exec_module(diagnostic_support)
 base = setup.load_base()
 require = setup.require
 write_once = setup.write_once
@@ -65,7 +73,7 @@ def check_observation_capabilities():
 
 
 def dependencies():
-    return {**setup.dependency_digests(), str(setup.HERE): setup.digest(setup.HERE), str(HERE): setup.digest(HERE), str(AX_SOURCE): setup.digest(AX_SOURCE), str(RELEASE_SOURCE): setup.digest(RELEASE_SOURCE)}
+    return {**setup.dependency_digests(), str(setup.HERE): setup.digest(setup.HERE), str(HERE): setup.digest(HERE), str(AX_SOURCE): setup.digest(AX_SOURCE), str(RELEASE_SOURCE): setup.digest(RELEASE_SOURCE), str(RETAINED_SOURCE): setup.digest(RETAINED_SOURCE), str(DIAGNOSTIC_SOURCE): setup.digest(DIAGNOSTIC_SOURCE)}
 
 
 ALLOCATOR = Path('/usr/bin/mktemp')
@@ -160,8 +168,13 @@ def saved_input(a_root, namespace_basis=None):
     return context, value, bindings, {str(path): setup.digest(path) for path in paths}
 
 
-def prepare(a_root, namespace_basis=None):
-    context, value, bindings, a_files = saved_input(a_root, namespace_basis)
+def prepare(a_root, namespace_basis=None, retained_state=None):
+    require(not (namespace_basis and retained_state), 'select one admission version')
+    if retained_state:
+        context, value, bindings, a_files = retained_support.admit(sys.modules[__name__], retained_state)
+        require(json.loads(Path(retained_state).read_text())['a_root'] == str(a_root), 'retained A root differs')
+    else:
+        context, value, bindings, a_files = saved_input(a_root, namespace_basis)
     allocator = allocator_identity(value)
     root = Path(tempfile.mkdtemp(prefix='app-successor-native-B-', dir=T3 / 'scratch')).resolve()
     for name in ('codex-home', 'tmp'):
@@ -170,9 +183,10 @@ def prepare(a_root, namespace_basis=None):
     value['environment']['TMPDIR'] = str(root / 'tmp')
     (root / 'phase-B.sb').write_text(policy(value, root))
     (root / 'controller.py.txt').write_bytes(HERE.read_bytes())
-    for source in (AX_SOURCE, RELEASE_SOURCE):
+    for source in (AX_SOURCE, RELEASE_SOURCE, RETAINED_SOURCE, DIAGNOSTIC_SOURCE):
         (root / (source.name + '.txt')).write_bytes(source.read_bytes())
     write_once(root / 'admission.json', {'a_root': str(a_root), 'a_files': a_files,
+        'admission_version': retained_support.VERSION if retained_state else 'chirality.native-B.A-only/v1',
         'context': context.descriptor(), 'inputs': value, 'bindings': bindings, 'allocator': allocator,
         'namespaces': context.namespaces(require_absent=False), 'dependencies': dependencies(),
         'policy_sha256': setup.digest(root / 'phase-B.sb'), 'prepared_at': now(), 'limits': LIMIT})
@@ -360,6 +374,7 @@ class Run:
         self.root, self.value, self.resource_end = root, value, resource_end
         self.admission_sha = admission_sha
         self.handled_release = False
+        self.window_diagnostic_attempted = False
         self.work_end = min(time.monotonic() + 180, resource_end - 45)
         self.cleanup_end = resource_end
         self.cleanup = False
@@ -370,6 +385,7 @@ class Run:
         self.stop = threading.Event()
         self.thread = None
         self.last_sample = 0.0
+        self.sampling = {}
         self.generation = None
         self.stop_requested = False
         self.stop_confirmed = False
@@ -414,33 +430,56 @@ class Run:
             self.reason = self.reason or 'evidence logging failed'
 
     def sample(self, admission=False):
-        require(not (T3 / 'guard/exclusive.pending').exists(), 'exclusive pending')
-        subprocess.run(['/usr/bin/pgrep', '-f', str(T3 / 'guard/memguard.sh')], stdout=subprocess.DEVNULL, check=True, timeout=2)
-        output = subprocess.check_output(['/bin/ps', '-axo', 'pid=,ppid=,rss=,command='], text=True, timeout=2)
-        rows = []
-        for line in output.splitlines():
-            fields = line.strip().split(None, 3)
-            if len(fields) == 4:
-                rows.append((int(fields[0]), int(fields[1]), int(fields[2]), fields[3]))
-        own = {os.getpid()}
-        if self.reservation is not None:
-            own.add(self.reservation.child.pid)
-        while True:
-            before = len(own)
-            own.update(pid for pid, parent, _, _ in rows if parent in own)
-            if len(own) == before:
-                break
-        supplier_root = str(Path(self.value['bundle']) / 'Contents/Resources/codex/')
-        found = [{'pid': pid, 'parent': parent, 'under_controller_ancestry': pid in own}
-                 for pid, parent, _, command in rows if command.startswith(supplier_root)
-                 or command == self.value['executable'] or command.startswith(self.value['executable'] + ' ')]
-        self.observed_processes = found
-        if admission:
-            require(not found, 'existing successor App/supplier observation; no overlapping launch')
-        total = sum(rss for pid, _, rss, command in rows if pid in own or str(T3) + '/' in command)
-        free = int(subprocess.check_output(['/usr/sbin/sysctl', '-n', 'kern.memorystatus_level'], text=True, timeout=2))
-        require(total < (52 if admission else 64) * 1024 * 1024 and free >= (30 if admission else 22), 'resource cap/floor')
-        self.last_sample = time.monotonic()
+        # Exclusive admission stops work, never the independent held observations.
+        failures = []
+        def observe(name, operation):
+            try:
+                value = operation()
+                self.sampling[name] = {'at': now(), 'source': name, 'ok': True, 'value': value}
+                return value
+            except BaseException as error:
+                self.sampling[name] = {'at': now(), 'source': name, 'ok': False, 'error': str(error)}
+                failures.append(str(error))
+                return None
+        exclusive = (T3 / 'guard/exclusive.pending').exists()
+        self.sampling['exclusive'] = {'at': now(), 'source': 'exclusive.pending existence', 'ok': True, 'value': exclusive}
+        if exclusive:
+            self.reason = self.reason or 'exclusive pending'
+        def memguard():
+            result = subprocess.run(['/usr/bin/pgrep', '-f', str(T3 / 'guard/memguard.sh')], capture_output=True, text=True, timeout=2)
+            require(result.returncode == 0 and bool(result.stdout.strip()), 'shared memguard unavailable')
+            return [int(pid) for pid in result.stdout.split()]
+        observe('shared_memguard_pgrep', memguard)
+        def census():
+            output = subprocess.check_output(['/bin/ps', '-axo', 'pid=,ppid=,rss=,command='], text=True, timeout=2)
+            rows = []
+            for line in output.splitlines():
+                fields = line.strip().split(None, 3)
+                if len(fields) == 4:
+                    rows.append((int(fields[0]), int(fields[1]), int(fields[2]), fields[3]))
+            require(bool(rows), 'empty process observation')
+            own = {os.getpid()}
+            if self.reservation is not None: own.add(self.reservation.child.pid)
+            while True:
+                before = len(own)
+                own.update(pid for pid, parent, _, _ in rows if parent in own)
+                if len(own) == before: break
+            supplier_root = str(Path(self.value['bundle']) / 'Contents/Resources/codex/')
+            found = [{'pid': pid, 'parent': parent, 'under_controller_ancestry': pid in own}
+                     for pid, parent, _, command in rows if command.startswith(supplier_root)
+                     or command == self.value['executable'] or command.startswith(self.value['executable'] + ' ')]
+            total = sum(rss for pid, _, rss, command in rows if pid in own or str(T3) + '/' in command)
+            self.observed_processes = found
+            return {'processes': found, 'shared_and_owned_rss_kib': total, 'limits': LIMIT}
+        observed = observe('ps_census_and_rss', census)
+        free = observe('sysctl_free_percent', lambda: int(subprocess.check_output(['/usr/sbin/sysctl', '-n', 'kern.memorystatus_level'], text=True, timeout=2)))
+        if observed is not None:
+            if admission and observed['processes']: failures.append('existing successor App/supplier observation; no overlapping launch')
+            if observed['shared_and_owned_rss_kib'] >= (52 if admission else 64)*1024*1024: failures.append('resource cap')
+        if free is not None and free < (30 if admission else 22): failures.append('resource floor')
+        if not failures: self.last_sample = time.monotonic()
+        if admission and exclusive: failures.append('exclusive pending')
+        require(not failures, '; '.join(failures))
 
     def monitor(self):
         while not self.stop.wait(0.5):
@@ -501,8 +540,23 @@ class Run:
             self.safe_log('native_window_observation', windows=observation)
         return element
 
+    def record_window_diagnostic(self):
+        if self.window_diagnostic_attempted: return
+        self.window_diagnostic_attempted = True
+        try:
+            result = diagnostic_support.capture(self)
+        except BaseException as error:
+            result = {'at': now(), 'available': False, 'error': str(error),
+                      'limits': 'Diagnostic refusal is not absence, settlement or release permission.'}
+        self.record('owned-window-diagnostic.json', result)
+
     def observe_ready(self, qualification=True):
-        self.wait_for(self.distinct_main, 15, 'distinct owned main AXWindow unavailable')
+        try:
+            self.wait_for(self.distinct_main, 15, 'distinct owned main AXWindow unavailable')
+        except RuntimeError:
+            self.record_window_diagnostic()
+            raise
+        self.record_window_diagnostic()
         self.wait_for(lambda: any(p['AXRole'] == 'AXDisclosureTriangle' and str(p['AXTitle']).startswith('Host diagnostics')
                                  for _, p, _ in self.ax.walk(self.ax.main())), 20, 'diagnostics control unavailable')
         self.open_disclosure('Host diagnostics', prefix=True)
@@ -642,6 +696,8 @@ class Run:
                 'supplier_settled_observed': self.supplier_settled, 'quit_requested': self.quit_requested,
                 'generation': self.generation, 'recovery_limit': 'Permanent AX/parser loss cannot be repaired inside this frozen controller; retain supervision and report the exact missing observation. No numeric escalation or automatic duplicate UI action.', 'recovery_control': 'write retry-native-cleanup.json with {action:retry-native-cleanup,candidate:<this candidate>}; same source is reobserved, no numeric inputs or repeated UI actions',
                 'guard_reason': self.reason, 'logging_errors': self.log_errors,
+                'sampling_observations': self.sampling,
+                'census_freshness': 'Use ps_census_and_rss timestamp/ok; heartbeat is original-Child observation, not census freshness',
                 'observed_executable_processes': self.observed_processes,
                 'overrun': time.monotonic() >= self.resource_end, 'at': now(), 'limits': LIMIT}
 
@@ -701,8 +757,14 @@ def execute(root, window_end):
             'B attempt already used; preserve evidence')
     admitted = json.loads((root / 'admission.json').read_text())
     require(admitted['dependencies'] == dependencies(), 'controller dependency changed')
-    context, value, bindings, a_files = saved_input(Path(admitted['a_root']),
-        (admitted['inputs'].get('retained_namespace_basis') or {}).get('path'))
+    retained_state = admitted['inputs'].get('retained_state_admission')
+    require(admitted.get('admission_version') == (retained_support.VERSION if retained_state else 'chirality.native-B.A-only/v1'), 'prepared admission version differs')
+    if retained_state:
+        require(retained_state['version'] == retained_support.VERSION, 'retained admission version differs')
+        context, value, bindings, a_files = retained_support.admit(sys.modules[__name__], Path(retained_state['path']))
+    else:
+        context, value, bindings, a_files = saved_input(Path(admitted['a_root']),
+            (admitted['inputs'].get('retained_namespace_basis') or {}).get('path'))
     require(context.descriptor() == admitted['context'] and bindings == admitted['bindings']
             and a_files == admitted['a_files'], 'A admission/bindings changed')
     require(context.namespaces(require_absent=False) == admitted['namespaces'], 'saved namespace changed since B preparation')
@@ -805,10 +867,18 @@ if __name__ == '__main__':
     parser.add_argument('--execute', type=Path)
     parser.add_argument('--namespace-basis', type=Path, help='Explicit retained post-failure metadata; never resets state')
     parser.add_argument('--window-end')
+    parser.add_argument('--retained-state', type=Path, help='Explicit versioned post-B basis; never A-only substitution')
+    parser.add_argument('--capture-retained-basis', type=Path)
+    parser.add_argument('--from-A', dest='from_a', type=Path)
+    parser.add_argument('--projection', type=Path)
     args = parser.parse_args()
-    if args.prepare and not args.execute and not args.window_end:
-        prepare(args.prepare.absolute(), args.namespace_basis)
-    elif args.execute and args.window_end and not args.prepare and not args.namespace_basis:
+    if args.capture_retained_basis and args.from_a and args.projection and not any((args.prepare,args.execute,args.window_end,args.retained_state,args.namespace_basis)):
+        retained_support.capture(sys.modules[__name__], args.from_a.absolute(), args.projection.absolute(), args.capture_retained_basis.absolute())
+    elif any((args.capture_retained_basis,args.from_a,args.projection)):
+        parser.error('capture requires --capture-retained-basis OUTPUT --from-A A --projection PROJECTION only')
+    elif args.prepare and not args.execute and not args.window_end:
+        prepare(args.prepare.absolute(), args.namespace_basis, args.retained_state)
+    elif args.execute and args.window_end and not args.prepare and not args.namespace_basis and not args.retained_state:
         sys.exit(execute(args.execute.absolute(), datetime.fromisoformat(args.window_end).timestamp()))
     else:
         parser.error('choose --prepare SUCCESSFUL_A_ATTEMPT or --execute ATTEMPT --window-end UTC')

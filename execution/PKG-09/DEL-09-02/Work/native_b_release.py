@@ -142,7 +142,9 @@ def release_if_requested(run, original_error):
               'administrative_app_reap': True, 'original_app_reaped': True,
               'app_exit_observation': request['expected_app_exit'],
               'supplier_settled_observed': run.supplier_settled, 'generation': run.generation,
-              'actor': ACTOR, 'post_reap_errors': errors, 'limits': LIMIT}
+              'actor': ACTOR, 'post_reap_errors': errors, 'limits': LIMIT,
+              'guard_reason': getattr(run, 'reason', None),
+              'sampling_observations': getattr(run, 'sampling', {})}
     for operation in (lambda: run.record('administrative-release-result.json', result),
                       lambda: run.report(result)):
         try:
