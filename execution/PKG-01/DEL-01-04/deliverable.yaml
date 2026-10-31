@@ -4,6 +4,9 @@ needs:
 - from: DEL-01-01
   condition: 'Native views require the actual stock Codex hosting boundary, selected supplier identity,
     generated native protocol types and protocol qualification supplied by App DEL-01-01.
+    SEAL-C signing-stage use additionally consumes the checked compiled publisher subject and
+    own-App installed-integrity boundary described in Work/SEAL_C_KEYCHAIN_TRANSITION.md;
+    these typed source interfaces do not activate the separate None-gated keychain selection.
 
 
     Notes: FACT: RequiredMaturity INITIALIZED denotes the checked local target contract only; actual technical

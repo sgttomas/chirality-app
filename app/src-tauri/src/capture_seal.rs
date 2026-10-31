@@ -13,7 +13,11 @@
 //! `seal` itself and the add-once `recordId` backlink (AAC §5.2a), so adding
 //! the backlink needs no reseal and recovery's comparisons are unchanged.
 //!
-//! What it does not do (stated, not hidden): anything that can read the key
+//! The separately gated signing-stage keychain provider preserves this seal
+//! format. It never imports or falls back to file keys for a selected publisher.
+//! Default unsigned/development installations retain the file provider below.
+//!
+//! What the file provider does not do (stated, not hidden): anything that can read the key
 //! file can seal. That includes any process running as the same OS user, and a
 //! Codex agent whose sandbox lets it read the App data folder (Codex's default
 //! read policy does). It shows that a capture was sealed by a holder of this
@@ -61,7 +65,7 @@ fn unhex(text: &str) -> Option<Vec<u8>> {
 fn equal(a: &[u8], b: &[u8]) -> bool {
     a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
 }
-fn key_id(key: &[u8; 32]) -> String {
+pub(crate) fn key_id(key: &[u8; 32]) -> String {
     hex(&Sha256::new().chain_update(KEY_ID_DOMAIN).chain_update(key).finalize()[..8])
 }
 /// The sealed bytes: the domain, then the capture without `seal` and `recordId`
@@ -123,6 +127,12 @@ fn folder_for(root: &Path) -> Result<PathBuf, String> {
             .unwrap_or_else(|| p.to_path_buf())
     };
     let (f, r) = (real(&folder), real(root));
+    if crate::capture_seal_keychain::selected_route() {
+        let continuity=real(&folder.with_file_name("capture-seal-keychain"));
+        if continuity.starts_with(&r)||r.starts_with(&continuity){
+            return Err("the capture-seal keychain continuity folder overlaps this project; provider not used there".into());
+        }
+    }
     if f.starts_with(&r) || r.starts_with(&f) {
         return Err("the capture-seal key folder is inside this project (or contains it); keys are not used there".into());
     }
@@ -133,6 +143,13 @@ fn folder_for(root: &Path) -> Result<PathBuf, String> {
 /// folder and its key file. An act read kept across calls is read again when
 /// this changes (a key added, a folder moved, permissions changed).
 pub(crate) fn verification_basis(root: &Path) -> String {
+    if crate::capture_seal_keychain::selected_route() {
+        // File metadata cannot establish keychain freshness. Force the consuming
+        // cache to re-run verification; locked/missing/rotated items must revoke
+        // prior positive observations. No SecItem call is made by this token.
+        static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        return format!("SEAL-C keychain reobserve:{}", NEXT.fetch_add(1,std::sync::atomic::Ordering::Relaxed));
+    }
     let describe = |p: &Path| match std::fs::symlink_metadata(p) {
         Ok(m) => format!("{}:{}:{}:{}:{}:{}:{}:{}:{:o}", m.dev(), m.ino(), m.len(), m.mtime(), m.mtime_nsec(), m.ctime(), m.ctime_nsec(), m.uid(), m.mode()),
         Err(e) => e.to_string(),
@@ -231,6 +248,7 @@ fn load_or_create(folder: &Path) -> Result<Keyring, String> {
 /// under them still verify here. Returns the new key identity.
 pub fn rotate() -> Result<String, String> {
     let folder = folder()?;
+    if let Some(result)=crate::capture_seal_keychain::dispatch(&folder,crate::capture_seal_keychain::Operation::Rotate){return result.map(|ring|ring.current);}
     load_or_create(&folder)?; // takes and releases the lock itself
     let _lock = crate::storage::lock(&folder.join(".keys.lock"))?;
     // Read the keyring under the lock, so a concurrent rotation is not lost.
@@ -245,7 +263,11 @@ pub fn rotate() -> Result<String, String> {
 
 /// Seal a capture for the project at `root` before its first publication.
 pub fn seal(root: &Path, capture: &mut Value) -> Result<(), String> {
-    let ring = load_or_create(&folder_for(root)?)?;
+    let folder=folder_for(root)?;
+    let ring=match crate::capture_seal_keychain::dispatch(&folder,crate::capture_seal_keychain::Operation::Seal){
+        Some(result)=>{let material=result?;Keyring{current:material.current,keys:material.keys,raw:Value::Null}},
+        None=>load_or_create(&folder)?,
+    };
     let key = ring.keys[&ring.current];
     let mac = hmac(&key, &message(capture)?);
     capture["seal"] = json!({"method":SEAL_METHOD,"value":format!("{}:{}",ring.current,hex(&mac))});
@@ -268,7 +290,10 @@ pub fn verify(root: &Path, capture: &Value) -> Result<(), String> {
     let value = seal["value"].as_str().unwrap_or("");
     let (id, mac) = value.split_once(':').unwrap_or(("", ""));
     let folder = folder_for(root).map_err(|e| format!("capture seal not checked: {e}; not verified here"))?;
-    let ring = load(&folder).map_err(|e| format!("capture seal not checked: {e}; not verified here"))?;
+    let ring=match crate::capture_seal_keychain::dispatch(&folder,crate::capture_seal_keychain::Operation::VerifyKey(id.to_owned())){
+        Some(result)=>result.map(|material|Some(Keyring{current:material.current,keys:material.keys,raw:Value::Null})),
+        None=>load(&folder),
+    }.map_err(|e|format!("capture seal not checked: {e}; not verified here"))?;
     let Some(key) = ring.as_ref().and_then(|r| r.keys.get(id)) else {
         return Err(format!("capture sealed under key {id:?}, which this App installation does not hold (another installation, or a key lost here); not verified here"));
     };
