@@ -173,6 +173,15 @@ class AdministrativeRelease(unittest.TestCase):
         self.assertTrue(self.run.stop.is_set())
         self.assertTrue((self.root / 'administrative-release-intent.json').exists())
 
+    def test_unknown_capture_helper_blocks_release_even_after_app_exit(self):
+        self.run.extra_cleanup_ready = lambda: False
+        self.assertIsNone(release.request_for(self.run))
+        self.assert_not_reaped()
+        def unavailable():raise OSError('helper observation unavailable')
+        self.run.extra_cleanup_ready=unavailable
+        self.assertIsNone(release.request_for(self.run))
+        self.assert_not_reaped()
+
 
 if __name__ == '__main__':
     unittest.main()

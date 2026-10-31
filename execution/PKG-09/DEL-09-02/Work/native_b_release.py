@@ -41,6 +41,11 @@ def request_for(run):
     if not isinstance(candidate, str) or not candidate or run.reservation is None:
         return None
     try:
+        if not getattr(run, 'extra_cleanup_ready', lambda: True)():
+            return None
+    except BaseException:
+        return None # unknown extra-helper custody never releases the original Child
+    try:
         observed = run.reservation.observe()
     except (OSError, RuntimeError):
         return None
