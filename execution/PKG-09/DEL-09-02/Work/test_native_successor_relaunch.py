@@ -232,13 +232,15 @@ class BChecks(unittest.TestCase):
         self.assertTrue((self.root / 'held-heartbeat.jsonl').exists())
 
     def test_policy_admits_fork_but_only_exact_app_and_stock_executable(self):
-        text = b.policy(self.value)
+        text = b.policy(self.value, self.root)
         self.assertIn('(allow process-fork)', text)
         self.assertNotIn('(deny process-fork)', text)
         self.assertIn('(deny network*)', text)
         self.assertIn('(deny process-exec)', text)
         self.assertIn(str(Path.home() / '.codex'), text)
-        self.assertEqual(text.count('(literal '), 2)
+        exec_rule = next(line for line in text.splitlines() if line.startswith('(allow process-exec '))
+        self.assertEqual(exec_rule.count('(literal '), 3)
+        self.assertIn('/usr/bin/mktemp', exec_rule)
 
     def test_quit_exit_during_ax_search_is_expected_only_after_settlement(self):
         run = b.Run(self.root, self.value, time.monotonic() + 60)
@@ -399,6 +401,60 @@ class BChecks(unittest.TestCase):
         self.assertEqual(run.generation, G, 'cleanup retains the bound source')
         self.assertEqual(run.settlement_facts(), {'supplier_exit_facts': None,
                          'supplier_descendants': None, 'supplier_cleanup_limits': None})
+
+    def test_administrative_release_uses_original_child_without_settlement_claim(self):
+        from unittest.mock import Mock
+        child = Mock(pid=123)
+        child.wait.return_value = 0
+        reservation = b.AppReservation(child)
+        normal = {'code': os.CLD_EXITED, 'status': 0}
+        with patch.object(reservation, 'observe', return_value=None):
+            with self.assertRaises(RuntimeError):
+                reservation.administrative_reap(normal)
+        child.wait.assert_not_called()
+        with patch.object(reservation, 'observe', return_value=normal):
+            self.assertEqual(reservation.administrative_reap(normal), 0)
+        child.wait.assert_called_once_with()
+        self.assertTrue(reservation.reaped)
+
+    def test_held_release_is_explicit_bound_and_stays_failed(self):
+        from unittest.mock import Mock
+        run = b.Run(self.root, self.value, time.monotonic() + 30, 'a' * 64)
+        run.reservation = Mock()
+        run.reservation.observe.return_value = {'code': os.CLD_EXITED, 'status': 0}
+        run.reservation.administrative_reap.return_value = 0
+        request = b.release_support.request_for(run)
+        control = self.root / b.release_support.CONTROL
+        control.write_text(json.dumps(request))
+        control.chmod(0o600)
+        with patch.object(run, 'report'):
+            self.assertEqual(run.hold('original readiness failure'), 1)
+        result = json.loads((self.root / 'administrative-release-result.json').read_text())
+        self.assertFalse(result['success'])
+        self.assertFalse(result['supplier_settled_observed'])
+        self.assertIsNone(result['generation'])
+        self.assertTrue(run.stop.is_set())
+
+
+    def test_disappearing_or_invalid_release_keeps_holding_and_stops_offering(self):
+        from unittest.mock import Mock
+        for outcome in (None, RuntimeError('invalid mode')):
+            with self.subTest(outcome=outcome):
+                run = b.Run(self.root, self.value, time.monotonic() + 30, 'a' * 64)
+                run.reservation = Mock()
+                run.reservation.observe.return_value = {'code': os.CLD_EXITED, 'status': 0}
+                control = self.root / b.release_support.CONTROL
+                control.write_text('{}')
+                effect = {'side_effect': outcome} if isinstance(outcome, Exception) else {'return_value': outcome}
+                with patch.object(b.release_support, 'release_if_requested', **effect), patch.object(run, 'report'), patch.object(b.time, 'sleep', side_effect=InterruptedError('test stops held loop')):
+                    with self.assertRaises(InterruptedError):
+                        run.hold('original failure')
+                run.reservation.administrative_reap.assert_not_called()
+                self.assertFalse(run.stop.is_set())
+                status = run.held_status('original failure')
+                self.assertIsNone(status['administrative_release_request'])
+                self.assertTrue(status['administrative_release_consumed'])
+                self.assertEqual(status['administrative_release_control']['mode'], '0600')
 
 
 if __name__ == '__main__':
