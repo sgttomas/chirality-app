@@ -75,3 +75,8 @@ result/form/stimulus/supplier/criterion references remain reported obligations;
 this is not a general evidence resolver or native-form checker. No run-evidence
 folder is a runtime dependency. Source drift requires a named reviewed successor,
 not a caller pin or fallback.
+
+The additive package/S4 route is documented in
+[the combined receiving interface](../../../execution/PKG-09/DEL-09-01/Work/package-successor-receiving-v1/RECEIVING.md).
+Use `receive_packages.py` with its explicit successor selection and independent
+configuration; the original entry above remains its own source/record subject.
