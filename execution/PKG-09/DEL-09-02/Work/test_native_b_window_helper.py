@@ -33,6 +33,37 @@ class HelperTests(unittest.TestCase):
   with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main',return_value={**self.window,'window_id':99}),patch.object(h.os,'execve') as execute:
    with self.assertRaisesRegex(RuntimeError,'owned window changed'):self.run_request()
   execute.assert_not_called()
+ def test_mismatch_records_exact_owned_facts_and_field_without_capture(self):
+  for field,actual in [('window_id',{**self.window,'window_id':99}),('bounds.X',{**self.window,'bounds':{**self.window['bounds'],'X':5}}),('own_visible_layer0_count',{**self.window,'own_visible_layer0_count':2})]:
+   path=self.root/'window-helper-001.window-mismatch.json'
+   if path.exists():path.unlink() # independent invented test case only
+   with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main',return_value=actual),patch.object(h.os,'execve') as execute:
+    with self.assertRaisesRegex(RuntimeError,'owned window changed'):self.run_request()
+   execute.assert_not_called();record=json.loads(path.read_text())
+   self.assertEqual(record['actual_owned_window'],actual);self.assertEqual(record['expected_window'],self.window)
+   self.assertEqual(record['different_fields'],[field]);self.assertEqual(record['comparison'],'initial')
+   self.assertEqual(path.stat().st_mode&0o777,0o600);self.assertEqual(path.stat().st_nlink,1)
+ def test_second_comparison_failure_is_recorded_before_exec(self):
+  actual={**self.window,'window_id':99}
+  with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main',side_effect=[self.window,actual]),patch.object(h.os,'execve') as execute:
+   with self.assertRaisesRegex(RuntimeError,'owned window changed'):self.run_request()
+  execute.assert_not_called()
+  self.assertEqual(json.loads((self.root/'window-helper-001.window-mismatch.json').read_text())['comparison'],'before-capture-exec')
+ def test_identity_change_never_selects_or_records_window(self):
+  self.backend.identity=lambda pid:{**self.identity,'start_usec':3}
+  with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main') as select,patch.object(h.os,'execve') as execute:
+   with self.assertRaisesRegex(RuntimeError,'App identity changed'):self.run_request()
+  select.assert_not_called();execute.assert_not_called()
+  self.assertFalse((self.root/'window-helper-001.window-mismatch.json').exists())
+ def test_equal_json_numeric_serialization_does_not_create_mismatch(self):
+  actual=json.loads(json.dumps({**self.window,'window_id':42.0}))
+  h.require_same_window(self.root,self.request,actual,'initial')
+  self.assertFalse((self.root/'window-helper-001.window-mismatch.json').exists())
+ def test_existing_diagnostic_is_not_overwritten_and_failure_still_refuses(self):
+  path=self.root/'window-helper-001.window-mismatch.json';path.write_text('preserve')
+  with self.assertRaisesRegex(RuntimeError,'mismatch diagnostic unavailable'):
+   h.require_same_window(self.root,self.request,{**self.window,'window_id':99},'initial')
+  self.assertEqual(path.read_text(),'preserve')
  def test_unsafe_destination_and_nonprivate_control_refuse(self):
   with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main',return_value=self.window),patch.object(h.os,'execve') as execute:
    with self.assertRaisesRegex(RuntimeError,'destination'):self.run_request(image_name='../foreign.png')

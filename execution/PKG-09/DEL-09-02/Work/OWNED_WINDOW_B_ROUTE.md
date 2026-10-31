@@ -320,3 +320,28 @@ All 16 dependency hashes, copied helpers and policy match current sources;
 no execution-start/actions/artifact-check/slot-entry exists. All earlier bases,
 preparations, candidate and recovery inputs remain retained. This profile awaits
 exact-head CI and Agent0's separate live disposition; no launch is authorized.
+
+## Post-8w83gq78 failure diagnostics only
+
+The authorized 8w83gq78 attempt is consumed and closed, FAILED before capture;
+see [its evidence account](FAILED_B_OWNED_WINDOW_20261031.md). Its six-row basis
+is historical prelaunch state and is not a newly assessed current-state basis.
+No preparation or launch is authorized by this follow-up.
+
+The separate helper repair replaces only the equality assertion's reporting:
+when the already owner-filtered actual selection differs, it writes a private
+0600, exclusive `window-helper-NNN.window-mismatch.json` with both dictionaries,
+field-level differences (including individual bounds fields), admission/sequence
+binding and initial/before-capture-exec/before-input-post comparison point. It
+then raises the same refusal. If diagnostic output fails, it still refuses and
+reports the write-error class. No additional native query, window reselection,
+image, input, permission or retry is introduced; identity/hash checks remain
+before selection and strict equality remains the acceptance rule.
+
+Twenty-two focused helper/window tests pass, including ID/geometry/count drift,
+second-comparison refusal before exec, unchanged numeric JSON serialization,
+identity change before selection and write-once diagnostic failure. These are
+mocked/source tests plus the existing harmless helper fixture, not GUI evidence.
+The repair cannot recover the missing actual dictionary from 8w83gq78. Any later
+policy that accepts changed presentation facts needs its own explicit scope and
+independent scrutiny; no such change is proposed here.

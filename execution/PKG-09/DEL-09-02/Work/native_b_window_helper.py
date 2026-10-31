@@ -8,6 +8,30 @@ def write_result(path,value):
     fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
     with os.fdopen(fd,'w') as f:json.dump(value,f,indent=2)
 
+def require_same_window(root,request,actual,comparison):
+    expected=request['window']
+    if actual==expected:return
+    differences=[]
+    for key in sorted(set(expected)|set(actual)):
+        left,right=expected.get(key),actual.get(key)
+        if left==right and (key in expected)==(key in actual):continue
+        if key=='bounds' and isinstance(left,dict) and isinstance(right,dict):
+            for field in sorted(set(left)|set(right)):
+                if left.get(field)!=right.get(field) or (field in left)!=(field in right):
+                    differences.append('bounds.'+field)
+        else:differences.append(key)
+    # These are the already selected, owner-filtered facts. No fresh native call,
+    # selection, screenshot or retry is added by failure reporting.
+    record={'at':w.d.now(),'comparison':comparison,'sequence':request['sequence'],
+            'target':request.get('target','main'),'admission_sha256':request['admission_sha256'],
+            'expected_window':expected,'actual_owned_window':actual,'different_fields':differences,
+            'limits':'Nonatomic samples; mismatch still refuses. No image or input accepted.'}
+    try:write_result(root/f"window-helper-{request['sequence']:03d}.window-mismatch.json",record)
+    except Exception as error:
+        raise RuntimeError('helper owned window changed; mismatch diagnostic unavailable: '+type(error).__name__) from error
+    raise RuntimeError('helper owned window changed')
+
+
 def main(request_path,expected_sha):
     root=Path(__file__).resolve().parent;info=root.lstat()
     w.require(root.resolve()==root and info.st_uid==os.getuid() and stat.S_IMODE(info.st_mode)==0o700,'helper root not private')
@@ -30,23 +54,23 @@ def main(request_path,expected_sha):
         w.require(context['identity']==expected and context['posted'] is True
                   and context['generation']['home']==value['expected_generation_home'],'modal Stop context/account binding differs')
     backend=w.d.NativeBackend()
-    def bound():
+    def bound(comparison):
         w.require(backend.identity(pid)==expected and w.sha(value['executable'])==value['executable_sha256'],'helper original App identity changed')
         window=w.select_modal(backend,pid,context) if context else w.select_main(backend,pid)
-        w.require(window==request['window'],'helper owned window changed')
+        require_same_window(root,request,window,comparison)
         return window
     try:
         action=request['action'];w.require(action in ('capture','focus','click','scroll'),'unsupported helper action')
         w.require(type(request['sequence']) is int and 0<request['sequence']<=w.MAX_OPERATIONS,'helper sequence outside bound')
         if action=='capture':w.require(backend.screen_access(),'capture helper preflight denied; no request or fallback')
-        window=bound()
+        window=bound('initial')
         if context:
             relation=w.modal_relation(backend,pid,window['window_id'],context['main']['window_id'])
             write_result(root/f"window-helper-{request['sequence']:03d}.modal.json",relation)
         if action=='capture':
             name=f"capture-{request['sequence']:03d}.unverified.png"
             w.require(request['image_name']==name and not os.path.lexists(root/name),'capture destination differs/used')
-            bound();backend.close()
+            bound('before-capture-exec');backend.close()
             command=[str(w.CAPTURE),'-x','-a','-o','-t','png','-l',str(window['window_id']),str(root/name)]
             os.execve(str(w.CAPTURE),command,dict(os.environ))
         app=backend.app(pid)
@@ -80,7 +104,7 @@ def main(request_path,expected_sha):
                     scroll=backend.a.CGEventCreateScrollWheelEvent;scroll.restype=C.c_void_p;scroll.argtypes=[C.c_void_p,C.c_uint32,C.c_uint32,C.c_int32]
                     location=backend.a.CGEventSetLocation;location.restype=None;location.argtypes=[C.c_void_p,Point]
                     e=scroll(None,0,1,delta);w.require(e,'scroll event unavailable');location(e,Point(x,y));events.append(e)
-                bound();w.require(w.frontmost(backend,app),'focus changed before input')
+                bound('before-input-post');w.require(w.frontmost(backend,app),'focus changed before input')
                 for e in events:
                     flags(e,0)
                     if action=='click':field(e,1,1) # kCGMouseEventClickState: one click
