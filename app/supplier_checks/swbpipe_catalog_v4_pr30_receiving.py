@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PINS = ROOT / 'execution/PKG-03/DEL-03-02/Work/swbpipe-catalog-v4-pr30-pins.json'
-PINS_SHA256 = '74f2b33ba5e35494704bea24f1ab1752ff2d6198a955b4ec8e4b75d80c297ca3'
+PINS_SHA256 = 'fca3c20b73bdea814d04b3a4350f079f4bdffb18c463d7e0863deeb59e5a1fa5'
 CATALOG_SHA256 = '8e9a4b4e3eec027d092033ea5d95f1648030520e797c5a660ab387531f23be17'
 CATALOG_BYTES = 50864
 
