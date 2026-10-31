@@ -132,3 +132,11 @@ Original/v2 subjects remain historical. Same six tools and nine fixed proposal
 intent branches supply schema/correspondence evidence, not actual live/human
 acts or criterion 17 qualification. Existing commitments, acceptance criteria
 and host-owned native/application/custody responsibilities remain unchanged.
+
+## Catalog-v4 receiving implementation
+
+The versioned [v4 receiving account](../DEL-09-06/Work/catalog-v4/RECEIVING_ADOPTION.md)
+binds integrated SWBPIPE catalog, bounded host-contract and producer meaning.
+Original/v2/v3 identities remain historical/separate; source and invented
+receiving tests do not discharge actual host/person/qualification obligations.
+No requirement or acceptance criterion changes.
