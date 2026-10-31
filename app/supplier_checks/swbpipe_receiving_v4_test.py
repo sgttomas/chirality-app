@@ -142,6 +142,39 @@ class V4Receiving(unittest.TestCase):
         unavailable=dict(RESULT,status='unavailable',data=None)
         self.assertTrue(pending().complete(binding,unavailable,BASIS)['result']['success'])
 
+    def test_unicode_record_pages_complete_without_ascii_escape_inflation(self):
+        args=copy.deepcopy(dict(ARGS,family='nodes'));args['page']['limit']=50
+        binding=dict(BINDING,tool='swbpipe_read_records')
+        for text in ('é'*8000, '😀'*4000, 'é'*7900+'"\\\n'*20, '\ud800'):
+            rows=[{'id':str(i),'recordText':text,'before':{}} for i in range(3)]
+            result=dict(RESULT,data={'family':'nodes','records':rows,'nextCursor':None})
+            pending=Pending(CAT,binding,json.dumps(args).encode(),BASIS)
+            wire=pending.complete(binding,result,BASIS)['result']
+            self.assertTrue(wire['success'])
+            emitted=wire['contentItems'][0]['text']
+            self.assertEqual(json.loads(emitted),result)
+            self.assertLessEqual(len(emitted.encode('utf-8')),65536)
+        # Same generation, changed live basis admits an explicit stale refusal only.
+        later=dict(BASIS,modelRevision=3)
+        result=dict(RESULT,status='stale_basis',data=None)
+        pending=Pending(CAT,binding,json.dumps(args).encode(),BASIS)
+        self.assertTrue(pending.complete(binding,result,later)['result']['success'])
+
+    def test_observation_message_cursor_and_stale_outcome_joins(self):
+        args=copy.deepcopy(dict(ARGS,family='nodes'))
+        row={'id':'one','recordText':'{}','before':{}}
+        success=dict(RESULT,data={'family':'nodes','records':[row],'nextCursor':None})
+        retained={'context':page_context('swbpipe_read_records',args),'entries':[row],
+                  'offset':0,'serialized_result':json.dumps(success).encode()}
+        for mutate in (lambda r:r.update(message='substituted'),
+                       lambda r:r['data'].update(nextCursor='wrong')):
+            altered=copy.deepcopy(success);mutate(altered)
+            with self.assertRaisesRegex(ValueError,'serialized page'):check_records_observation(args,altered,retained)
+        retained['current_basis']=dict(BASIS,modelRevision=3)
+        stale=dict(RESULT,status='stale_basis',data=None)
+        check_records_observation(args,stale,retained)
+        with self.assertRaisesRegex(ValueError,'stale record'):check_records_observation(args,success,retained)
+
     def test_javascript_entry_serialization_and_utf16_id_boundary(self):
         texts = ['é', '😀', '\"\\\n\t', '\u2028\u2029', '\x00', '\ud800', '123e+10', '-0', 'a/b']
         rows = [{'id':'fixture', 'recordText':text, 'before':{'delete':text}} for text in texts]

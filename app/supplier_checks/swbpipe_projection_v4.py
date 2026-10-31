@@ -1,7 +1,30 @@
 """V4 offline receiving specimen. No host IO, native applier or publication authority."""
 import copy
 import json
-from swbpipe_projection import decode, expand, validate, validate_assumptions, response
+from swbpipe_projection import decode, expand, validate, validate_assumptions
+
+
+def response(catalog, tool, result):
+    """V4 fixture wire: preserve Unicode text and escape lone surrogates.
+
+    Numeric serialization remains Python's fixture representation; this is not
+    an implementation of the host's negative-zero/numeric canonicalizer.
+    """
+    validate(result, expand(catalog, tool['outputSchema']))
+    if result['status'] in ('ok', 'completed', 'pending_review', 'applied') and result['data'] is None:
+        raise ValueError('missing outcome data')
+    data = result['data']
+    if data and 'values' in data:
+        for row in data['values']:
+            if row['availability'] != 'available' and (row['value'] is not None or row['exactDecimal'] is not None or not row['reason']):
+                raise ValueError('withheld value')
+    text = json.dumps(result, ensure_ascii=False, allow_nan=False, separators=(',', ':'))
+    text = text.encode('utf-16-le', 'surrogatepass').decode('utf-16-le', 'surrogatepass')
+    text = ''.join('\\u%04x' % ord(c) if 0xD800 <= ord(c) <= 0xDFFF else c for c in text)
+    if len(text.encode('utf-8')) > catalog['limits']['resultBytes']:
+        raise ValueError('result byte admission')
+    return {'contentItems': [{'type': 'inputText', 'text': text}],
+            'success': result['status'] != 'execution_error'}
 
 
 def admit_operations(catalog, operations):
@@ -116,6 +139,11 @@ def check_records_observation(args, result, retained_page, retained_cursor=None)
     if retained_page['context'] != page_context('swbpipe_read_records', args):
         raise ValueError('retained record page context mismatch')
     status, rows, next_offset = expected_record_page(retained_page['entries'], retained_page['offset'], args['page']['limit'])
+    current = retained_page.get('current_basis', args['basis'])
+    if status == 'ok' and current != args['basis']:
+        if result['status'] != 'stale_basis' or result['data'] is not None or result['basis'] != args['basis']:
+            raise ValueError('stale record page outcome mismatch')
+        return
     # The actual serialized result is supplied separately, never synthesized by
     # Python number formatting. Producer small() limits its complete UTF8 bytes.
     if status == 'ok':
@@ -134,6 +162,8 @@ def check_records_observation(args, result, retained_page, retained_cursor=None)
         return
     if result['data']['records'] != rows:
         raise ValueError('record page truncated, skipped or substituted')
+    if candidate != result:
+        raise ValueError('serialized page evidence mismatch')
     if (result['data']['nextCursor'] is None) != (next_offset is None):
         raise ValueError('record page continuation mismatch')
 
@@ -237,7 +267,9 @@ class Pending:
         for key in ("modelRevision", "modelHash"):
             if result["basis"][key] != self.basis[key]:
                 raise ValueError("result rebased")
-            if not historical_completion and current_basis[key] != self.basis[key]:
+            stale_records = (self.binding["tool"] == "swbpipe_read_records"
+                             and result["status"] == "stale_basis" and result["data"] is None)
+            if not historical_completion and current_basis[key] != self.basis[key] and not stale_records:
                 raise ValueError("basis changed")
         if historical_completion and result["data"] is not None:
             # Fixture-only host-owned record, supplied separately from the untrusted completion.

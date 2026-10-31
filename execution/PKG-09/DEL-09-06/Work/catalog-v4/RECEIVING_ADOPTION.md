@@ -100,8 +100,16 @@ It is not a general JS number serializer or native canonicalizer. Complete-resul
 size is checked against separately supplied serialized evidence bytes, not an
 invented Python reserialization. Tests distinguish equality/one-byte overflow,
 escaped entries, ID UTF-16 length, whole-call failure and aggregate pagination.
-The specimen's own emitted wire also keeps its existing output-cap check; that
-is a separate fixture wire, not a byte-for-byte host transport reproduction.
+The v4 completion wire retains non-ASCII text unescaped and escapes lone
+surrogates before applying its configured output-byte cap, so valid Unicode
+record pages are not rejected by Python ASCII-escape inflation. End-to-end
+completion tests cover accented/astral/escaped text. Numeric representation
+remains the fixture's, not a general host transport reproduction. Observation
+joins compare complete serialized successful result content (including message
+and nextCursor), distinguish an explicit stale-basis refusal, and preserve
+whole-call unavailable before the producer's final live-basis recheck. The
+whitespace-padded envelope overflow case tests the receiving distinction only;
+it is not evidence that this bounded producer naturally emits such a page.
 
 Catalog/summary argument/result/page/pending/operation values are reported
 fixture/default configuration, not universal qualification requirements. The
