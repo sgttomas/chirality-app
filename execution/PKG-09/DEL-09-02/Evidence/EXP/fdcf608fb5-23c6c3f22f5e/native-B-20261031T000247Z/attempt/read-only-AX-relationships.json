@@ -1,0 +1,44 @@
+{
+  "at": "2026-10-31T00:09:29.932467+00:00",
+  "basis": "read-only original App AX relationships under retained live reservation",
+  "attributes": {
+    "AXWindows": [
+      {
+        "same_as_application": true,
+        "AXRole": "AXApplication",
+        "AXSubrole": null,
+        "AXTitle": "Chirality App v4 (development 20261030 eqxsxv4n)"
+      }
+    ],
+    "AXChildren": [
+      {
+        "same_as_application": true,
+        "AXRole": "AXApplication",
+        "AXSubrole": null,
+        "AXTitle": "Chirality App v4 (development 20261030 eqxsxv4n)"
+      },
+      {
+        "same_as_application": false,
+        "AXRole": "AXMenuBar",
+        "AXSubrole": null,
+        "AXTitle": null
+      }
+    ],
+    "AXMainWindow": [
+      {
+        "same_as_application": true,
+        "AXRole": "AXApplication",
+        "AXSubrole": null,
+        "AXTitle": "Chirality App v4 (development 20261030 eqxsxv4n)"
+      }
+    ],
+    "AXFocusedWindow": [
+      {
+        "same_as_application": true,
+        "AXRole": "AXApplication",
+        "AXSubrole": null,
+        "AXTitle": "Chirality App v4 (development 20261030 eqxsxv4n)"
+      }
+    ]
+  }
+}

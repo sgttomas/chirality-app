@@ -1,0 +1,34 @@
+{
+  "scope": "fresh harmless owned fixture only; no original observer access",
+  "started_at": "2026-10-31T00:40:05.811525+00:00",
+  "command": [
+    "/Users/ryan/.local/share/mise/installs/python/3.13.14/bin/python3.13",
+    "-c",
+    "import time; time.sleep(2)"
+  ],
+  "caller_executable": "/Users/ryan/.local/share/mise/installs/python/3.13.14/bin/python3.13",
+  "caller_executable_sha256": "1a2e543a5426f665b9f321d391995b46e985fbea8df2a5bea86d7210c603460a",
+  "uid": 501,
+  "euid": 501,
+  "environment": {
+    "PATH": "/usr/bin:/bin",
+    "HOME": "/Users/ryan/dev/chirality-t3/scratch/app-observer-task-port-k_z0yyhi",
+    "CODEX_HOME": "/Users/ryan/dev/chirality-t3/scratch/app-observer-task-port-k_z0yyhi/codex-home"
+  },
+  "task_terminate_called": false,
+  "fixture_pid": 98542,
+  "task_for_pid": {
+    "return_code": 5,
+    "message": "(os/kern) failure",
+    "port_nonnull": false
+  },
+  "standing": "control port unavailable under unchanged current identity; no fallback or escalation",
+  "not_run": [
+    "task-port target-exit behavior",
+    "mismatched acquired task identity",
+    "termination via task port",
+    "live observer acquisition or release"
+  ],
+  "fixture_wait_exit_code": 0,
+  "finished_at": "2026-10-31T00:40:07.841799+00:00"
+}

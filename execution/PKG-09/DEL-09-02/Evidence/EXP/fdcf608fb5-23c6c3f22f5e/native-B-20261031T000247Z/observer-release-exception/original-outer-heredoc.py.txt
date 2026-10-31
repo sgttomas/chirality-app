@@ -1,0 +1,10 @@
+from pathlib import Path
+import subprocess,datetime,json
+root=Path('/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb')
+controller='/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py'
+end=(datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(seconds=240)).isoformat()
+env={'HOME':'/Users/ryan','PATH':'/Users/ryan/.local/share/mise/installs/python/3.13.14/bin:/usr/bin:/bin:/usr/sbin:/sbin','CODEX_HOME':str(root/'codex-home'),'TMPDIR':str(root/'tmp'),'PYTHONDONTWRITEBYTECODE':'1'}
+cmd=['/Users/ryan/dev/chirality-t3/tools/t3_slot.sh','/Users/ryan/.local/share/mise/installs/python/3.13.14/bin/python3.13','-B',controller,'--execute',str(root),'--window-end',end]
+(root/'invocation.json').write_text(json.dumps({'command':cmd,'environment':env},indent=2)+'\n')
+with (root/'controller.stdout').open('w') as out,(root/'controller.stderr').open('w') as err:r=subprocess.run(cmd,cwd=root,env=env,stdout=out,stderr=err)
+print(json.dumps({'exit_code':r.returncode,'root':str(root)}));raise SystemExit(r.returncode)

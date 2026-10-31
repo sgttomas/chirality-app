@@ -1,0 +1,12 @@
+{
+  "observed_at": "2026-10-31 01:22:39 UTC",
+  "session_id": 47350,
+  "tool_result": {
+    "chunk_id": "957ee7",
+    "wall_time_seconds": 0.000006,
+    "exit_code": 137,
+    "original_token_count": 25,
+    "output": "{\"exit_code\": 137, \"root\": \"/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb\"}\n"
+  },
+  "standing": "Actual original execution-handle completion; not a controller LT23-gated reap or supplier settlement."
+}

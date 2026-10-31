@@ -1,0 +1,22 @@
+{
+  "at": "2026-10-31T01:07:35.954832+00:00",
+  "files": {
+    "binding.json": "da0fc556072d817ffd6686e14ebb4849885062229b53cbe813ea02d23789ca1d",
+    "fixture-tests.log": "d3e64ca53b56fc51e9860804e49cdf0b7241fc3275480c32f3db67a924f1c36b",
+    "inspect.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "inspect.stdout": "da0fc556072d817ffd6686e14ebb4849885062229b53cbe813ea02d23789ca1d",
+    "observer_signal_once.py": "a17d31c1deb983ea5af3a6053353055b5b02db6344c0abb964a23d5634d67fd8",
+    "pins.json": "e1879cf2c7c0aee8c900d74f926bfa0b1bf778da0fa1ac4e7c50d927e687176c",
+    "preparation-handle-check.json": "fbc35eb6093819620c59a477f66fc1351140858c18e3409c97deceb11a8cbc01",
+    "test_binding.py": "793837181d23ec56faa3469b69c148f97b775890c97c71f4bc7e8c5447f2fae9"
+  },
+  "live_signal_sent": false,
+  "effect_if_later_authorized": "ONE SIGKILL to freshly rebound original frozen observer only. No App, supplier, wrapper or global guard signal. Original wrapper expected to unwind with failure status and release its slot; verify afterward, do not assume. App zombie may be handled by OS parentage; retain historical unreaped/native-exit facts and absent LT23.",
+  "limitations": [
+    "PID validation and signal are not atomic; exit/reuse, exec or work changes between them remain possible.",
+    "Complete argv is decoded only for the preliminarily bound observer; kernel procargs buffer may contain its fixed uncredentialed environment, which is neither parsed nor persisted.",
+    "Wrapper command lines are ps corroboration, not independent authority; target selection additionally requires current App zombie parent/birth, full observer argv/birth/UID/executable, fresh keeper and original exec handle.",
+    "Child census must contain only the original App zombie. A transient guard-query child causes refusal; nothing else is signalled.",
+    "No live action now; separate parent disposition required after independent scrutiny."
+  ]
+}

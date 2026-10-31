@@ -1,0 +1,301 @@
+{
+  "archived_at": "2026-10-31T01:36:52.694849+00:00",
+  "candidate": "fdcf608fb5-23c6c3f22f5e",
+  "B_outcome": "FAILED before captured generation/main-window observation",
+  "original_App_cleanup": "Separately authorized native menu Quit; WNOWAIT CLD_EXITED/status0 at00:25:32Z; not reaped by frozen controller",
+  "observer_cleanup": "One authorized observer-only SIGKILL after pre-intent refusal and the single permitted retry; original exec47350 returned137, wrappers/marker absent, shared memguard running",
+  "qualification_limits": "No LT23 or supplier settlement established; detached-helper scope remains unknown. Resource closure is not B success.",
+  "preservation": "All source scratch, original candidate/A state and successor candidate/state remain retained. Raw bytes unchanged; Python recovery sources archived as .py.txt, not adopted as reusable control tools.",
+  "files": [
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/actions.jsonl",
+      "archive_path": "attempt/actions.jsonl",
+      "sha256": "be72ffaac51e35c622523bb1b7d5f1c9a32486fb4ab02931cd5f787c1f965a5d"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/admission.json",
+      "archive_path": "attempt/admission.json",
+      "sha256": "194e75a49d23045daa42bba5a6603c21400697e770e8043cfbce4c9bf111e012"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/artifact-check.json",
+      "archive_path": "attempt/artifact-check.json",
+      "sha256": "491be4b11c6c1c51cf9ba5fc6b2556f45d1b368d10ed66bb4cd25a8fb39b899d"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/cleanup-app-menu-inventory.json",
+      "archive_path": "attempt/cleanup-app-menu-inventory.json",
+      "sha256": "14737d1efecea9e28f3a1a181f44c0a072960beeef7ae4545a68f43a59667d4a"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/cleanup-menu-preflight-diagnostic.json",
+      "archive_path": "attempt/cleanup-menu-preflight-diagnostic.json",
+      "sha256": "d503a69aa11c9dadee7f5ecb3a5e13c9bed68bcc7ebc7acc71654dc910fdbe1b"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/cleanup-menu-top-level.json",
+      "archive_path": "attempt/cleanup-menu-top-level.json",
+      "sha256": "204cd0384f9f1721b664ba2fddc15c5500876cd125db859ffb0d8529be28f04d"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/cleanup-only-menu-outcome.json",
+      "archive_path": "attempt/cleanup-only-menu-outcome.json",
+      "sha256": "76b791a13970fad9c8e21e897df3a52156aa0cb6fa0cb6936f4471c6adc0d3fa"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/cleanup-only-menu-request.json",
+      "archive_path": "attempt/cleanup-only-menu-request.json",
+      "sha256": "83d653fc062e5cff53a5788bedfac407715c930f76f5c93fa7eb63936406c837"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/cleanup-only-post-exit-metadata.json",
+      "archive_path": "attempt/cleanup-only-post-exit-metadata.json",
+      "sha256": "ccc08cb562e474f13638aea5aa180670971ca9bb09b2dabd51e4fdd3d1232080"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/controller.py.txt",
+      "archive_path": "attempt/controller.py.txt",
+      "sha256": "9cc8a871674c61e9603d6139bedda3a64fb940a40a8e0482cf7a351a17218476"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/controller.stderr",
+      "archive_path": "attempt/controller.stderr",
+      "sha256": "e2d8f44265b1317fa1030cc3528e7b89f9954a67d1cab70b7f417e7ac5a8da8c"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/controller.stdout",
+      "archive_path": "attempt/controller.stdout",
+      "sha256": "77d1ede96a11c433c5db48088844e2623cf109443ea115398ca5cee18b1f23c6"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/execution-started.json",
+      "archive_path": "attempt/execution-started.json",
+      "sha256": "0c894d136d1d627fba88b3eef20b8f96300d9a43ac36b00510ce142f4c5324cb"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/held-heartbeat.jsonl",
+      "archive_path": "attempt/held-heartbeat.jsonl",
+      "sha256": "97811fcd90dd493470559a07e29471dc01c20522a007e997c2b2b1e970024a7b"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/held-result.json",
+      "archive_path": "attempt/held-result.json",
+      "sha256": "677ea23b38732d83fbe81639ed6bf04084fbc65efed8a2b9bae68845d4cc675e"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/invocation.json",
+      "archive_path": "attempt/invocation.json",
+      "sha256": "e4ff95d63d2e587509cc327ae63125e8f93716a741627fb2a903f57e3892673b"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/last-diagnostics.json",
+      "archive_path": "attempt/last-diagnostics.json",
+      "sha256": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/phase-B.sb",
+      "archive_path": "attempt/phase-B.sb",
+      "sha256": "0da7da012927ff65376781c85190c9ae7bd3bb7dbcef27347bb91798509b7ebf"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/read-only-AX-relationships.json",
+      "archive_path": "attempt/read-only-AX-relationships.json",
+      "sha256": "ea783a8c2922a2676df5ad83a34907caf457232ca1620b735a5074fa708e1653"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/read-only-startup-metadata.json",
+      "archive_path": "attempt/read-only-startup-metadata.json",
+      "sha256": "11b8913d483928908019e84debc4d552801b70a36fbb4d96a4201513e488175f"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/read-only-window-inventory.json",
+      "archive_path": "attempt/read-only-window-inventory.json",
+      "sha256": "79bf0f352bf5bd746a743d15e9e8adbe45318ba9b1f0d21cd78142e67782237c"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/retry-native-cleanup.json",
+      "archive_path": "attempt/retry-native-cleanup.json",
+      "sha256": "f8adecd628c350c3d981fce2464a11701a7b18f08752b688c3abd6a36c9080ac"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/stack-sample-command.json",
+      "archive_path": "attempt/stack-sample-command.json",
+      "sha256": "c6ae6d04d90c7af09987b82df79331dbad1d0a06f52a6fd810482fad3189c8cd"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/stack-sample-result.json",
+      "archive_path": "attempt/stack-sample-result.json",
+      "sha256": "b9f67ff0773400fa09c940d68b37e3574b944b560cdc7680f052f85616928514"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/stack-sample.stderr",
+      "archive_path": "attempt/stack-sample.stderr",
+      "sha256": "3441d24b0dd6b2af90ee741272f176406476cc95e68058d108158e81947a6f2a"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/stack-sample.stdout",
+      "archive_path": "attempt/stack-sample.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/stack-sample.txt",
+      "archive_path": "attempt/stack-sample.txt",
+      "sha256": "68b59d634b569b2ea8eae78ca432551c74ac6d7b4f4a8145d4adbaf09a5a1654"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/stderr.log",
+      "archive_path": "attempt/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb/stdout.log",
+      "archive_path": "attempt/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/binding.json",
+      "archive_path": "observer-release-exception/binding.json",
+      "sha256": "da0fc556072d817ffd6686e14ebb4849885062229b53cbe813ea02d23789ca1d"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/fixture-tests.log",
+      "archive_path": "observer-release-exception/fixture-tests.log",
+      "sha256": "d3e64ca53b56fc51e9860804e49cdf0b7241fc3275480c32f3db67a924f1c36b"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/inspect.stderr",
+      "archive_path": "observer-release-exception/inspect.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/inspect.stdout",
+      "archive_path": "observer-release-exception/inspect.stdout",
+      "sha256": "da0fc556072d817ffd6686e14ebb4849885062229b53cbe813ea02d23789ca1d"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/live-helper-1-result.json",
+      "archive_path": "observer-release-exception/live-helper-1-result.json",
+      "sha256": "fc0d3479c780f164c40e47b006f4b4536d05622d8eb135e105d9dbc3afb831e1"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/live-helper-1.stderr",
+      "archive_path": "observer-release-exception/live-helper-1.stderr",
+      "sha256": "0163f706cab36e3a7c09fbb9bed18b2729c0bd7e91110c9ef8de62c832758f7c"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/live-helper-1.stdout",
+      "archive_path": "observer-release-exception/live-helper-1.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/live-helper-2-result.json",
+      "archive_path": "observer-release-exception/live-helper-2-result.json",
+      "sha256": "2316052d7214bf69ba3cba96da77fe4de23fe8a651eff2427900302134d3c9f7"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/live-helper-2.stderr",
+      "archive_path": "observer-release-exception/live-helper-2.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/live-helper-2.stdout",
+      "archive_path": "observer-release-exception/live-helper-2.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/live-poll-1.json",
+      "archive_path": "observer-release-exception/live-poll-1.json",
+      "sha256": "b4ce2a872bfe6decfb6ee4244fd0a2227f9c292a538f5fcc6545602f6570d91f"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/live-poll-2.json",
+      "archive_path": "observer-release-exception/live-poll-2.json",
+      "sha256": "6f16e80a4e876d7fbd73d4f5f2ce93ec7f8fe196a49ed7c83bc8cf84a0e1b721"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/observer_signal_once.py",
+      "archive_path": "observer-release-exception/observer_signal_once.py.txt",
+      "sha256": "a17d31c1deb983ea5af3a6053353055b5b02db6344c0abb964a23d5634d67fd8"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/original-execution-completion.json",
+      "archive_path": "observer-release-exception/original-execution-completion.json",
+      "sha256": "b4bcba9b17bd833402cc141944dd58fee2c6a95e3a81e610a484972579cebd19"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/original-handle-running.attempt-1.json",
+      "archive_path": "observer-release-exception/original-handle-running.attempt-1.json",
+      "sha256": "ade82fe4cc850c9902d12211f0a9651b37cae2a6163f771333f1de2598b35797"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/original-handle-running.json",
+      "archive_path": "observer-release-exception/original-handle-running.json",
+      "sha256": "bd68986087046657e0ae06b5d9f50d121874c2a8dcdfad50ce1803e2c6769844"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/original-outer-heredoc.py.txt",
+      "archive_path": "observer-release-exception/original-outer-heredoc.py.txt",
+      "sha256": "cf130bdabb57f78a2f655ae0b2c66986db72ccaa19e3d028e4fc293234876d2b"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/pins.json",
+      "archive_path": "observer-release-exception/pins.json",
+      "sha256": "e1879cf2c7c0aee8c900d74f926bfa0b1bf778da0fa1ac4e7c50d927e687176c"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/pre-intent-refusal-child-classification.json",
+      "archive_path": "observer-release-exception/pre-intent-refusal-child-classification.json",
+      "sha256": "8ad421b2e5efcf929b1fcfbe9e018624265646ff5086c3a48ac0ca712cf50aee"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/preparation-handle-check.json",
+      "archive_path": "observer-release-exception/preparation-handle-check.json",
+      "sha256": "fbc35eb6093819620c59a477f66fc1351140858c18e3409c97deceb11a8cbc01"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/proposal-summary.json",
+      "archive_path": "observer-release-exception/proposal-summary.json",
+      "sha256": "7b3600780992260862f15d1278f1c3ab0111c2311935dad301210d9b446a54d4"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/resource-settlement.json",
+      "archive_path": "observer-release-exception/resource-settlement.json",
+      "sha256": "c78e65739f32885c15f3c32d5c4b266e80e632c216214e7161c16c9ba63bbb85"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/review-disposition.json",
+      "archive_path": "observer-release-exception/review-disposition.json",
+      "sha256": "259f45d016da5564c5a75976b25b0a1b7a030801037549f243b609668e35cbca"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/signal-intent.json",
+      "archive_path": "observer-release-exception/signal-intent.json",
+      "sha256": "feb90ca5322e3e61ce3a4ca788644f86448af1b9e166a3d0a50321712501a0d8"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/signal-result.json",
+      "archive_path": "observer-release-exception/signal-result.json",
+      "sha256": "48fdc69165bf5505242e0f5aafc33ee45eb2ae0a26f0ebb7d33f66e664561ef3"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/test_binding.py",
+      "archive_path": "observer-release-exception/test_binding.py.txt",
+      "sha256": "793837181d23ec56faa3469b69c148f97b775890c97c71f4bc7e8c5447f2fae9"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-task-port-k_z0yyhi/assessment.json",
+      "archive_path": "task-port-unavailable/assessment.json",
+      "sha256": "5faf3ecd5c81cfdfea9a8fceaae247ffbdb12dcb8c2b4789d658c54582d1f7d5"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-task-port-k_z0yyhi/availability-result.json",
+      "archive_path": "task-port-unavailable/availability-result.json",
+      "sha256": "898ce772d8c5f461e538b3c5b49fd33a0d130f4f6bbd37db25e2f6f6e5a5466f"
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-observer-task-port-k_z0yyhi/availability_probe.py",
+      "archive_path": "task-port-unavailable/availability_probe.py.txt",
+      "sha256": "2aade414c9047c4b7f34a3abd9f8d6a686605b29d3f37d18f442acd953cf9843"
+    }
+  ]
+}

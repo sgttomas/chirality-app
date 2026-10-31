@@ -1,0 +1,14 @@
+{
+  "observed_at": "2026-10-31 01:07:35 UTC",
+  "session_id": 47350,
+  "state": "running",
+  "tool": "write_stdin with empty chars (read-only poll)",
+  "tool_result": {
+    "chunk_id": "4b246d",
+    "wall_time_seconds": 5.003145125,
+    "session_id": 47350,
+    "original_token_count": 0,
+    "output": ""
+  },
+  "limit": "Preparation observation only. Live execution requires a fresh poll and separately authorized action."
+}

@@ -1,0 +1,132 @@
+{
+  "observed_at": "2026-10-31T01:02:21.289637+00:00",
+  "session_id": 47350,
+  "candidate": "fdcf608fb5-23c6c3f22f5e",
+  "observer": {
+    "pid": 60769,
+    "ppid": 60767,
+    "uid": 501,
+    "ruid": 501,
+    "start_sec": 1793404967,
+    "start_usec": 80197,
+    "executable": "/Users/ryan/.local/share/mise/installs/python/3.13.14/bin/python3.13"
+  },
+  "observer_argv": [
+    "/Users/ryan/.local/share/mise/installs/python/3.13.14/bin/python3.13",
+    "-B",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py",
+    "--execute",
+    "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-oj9u_opb",
+    "--window-end",
+    "2026-10-31T00:06:47.015569+00:00"
+  ],
+  "observer_executable_sha256": "1a2e543a5426f665b9f321d391995b46e985fbea8df2a5bea86d7210c603460a",
+  "original_app": {
+    "pid": 60780,
+    "ppid": 60769,
+    "uid": 501,
+    "state": "Z",
+    "kernel_birth_second": "2026-10-31T00:02:47+00:00",
+    "original_sample_birth": "2026-10-30T18:02:47.599000-06:00"
+  },
+  "wrapper_chain": [
+    {
+      "pid": 60769,
+      "ppid": 60767,
+      "uid": 501,
+      "ruid": 501,
+      "start_sec": 1793404967,
+      "start_usec": 80197,
+      "executable": "/Users/ryan/.local/share/mise/installs/python/3.13.14/bin/python3.13"
+    },
+    {
+      "pid": 60767,
+      "ppid": 60766,
+      "uid": 501,
+      "ruid": 501,
+      "start_sec": 1793404967,
+      "start_usec": 75639,
+      "executable": "/bin/bash"
+    },
+    {
+      "pid": 60766,
+      "ppid": 60753,
+      "uid": 501,
+      "ruid": 501,
+      "start_sec": 1793404967,
+      "start_usec": 74451,
+      "executable": "/usr/bin/lockf"
+    },
+    {
+      "pid": 60753,
+      "ppid": 60743,
+      "uid": 501,
+      "ruid": 501,
+      "start_sec": 1793404967,
+      "start_usec": 15960,
+      "executable": "/bin/bash"
+    },
+    {
+      "pid": 60743,
+      "ppid": 43677,
+      "uid": 501,
+      "ruid": 501,
+      "start_sec": 1793404966,
+      "start_usec": 978176,
+      "executable": "/Users/ryan/.local/share/mise/installs/python/3.13.14/bin/python3.13"
+    }
+  ],
+  "children": [
+    60780
+  ],
+  "slot_marker": "/Users/ryan/dev/chirality-t3/guard/run.60753",
+  "slot_lock": "/Users/ryan/dev/chirality-t3/guard/cargo_job.slot3.lock",
+  "heartbeat_before": {
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "phase": "B",
+    "state": "held-unknown",
+    "error": "own main window missing/ambiguous",
+    "app_exit_observation": {
+      "code": 1,
+      "status": 0
+    },
+    "original_app_reaped": false,
+    "supplier_settled_observed": false,
+    "quit_requested": false,
+    "generation": null,
+    "recovery_limit": "Permanent AX/parser loss cannot be repaired inside this frozen controller; retain supervision and report the exact missing observation. No numeric escalation or automatic duplicate UI action.",
+    "recovery_control": "write retry-native-cleanup.json with {action:retry-native-cleanup,candidate:<this candidate>}; same source is reobserved, no numeric inputs or repeated UI actions",
+    "guard_reason": null,
+    "logging_errors": [],
+    "observed_executable_processes": [],
+    "overrun": true,
+    "at": "2026-10-31T01:02:19.264795+00:00",
+    "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+  },
+  "heartbeat_after": {
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "phase": "B",
+    "state": "held-unknown",
+    "error": "own main window missing/ambiguous",
+    "app_exit_observation": {
+      "code": 1,
+      "status": 0
+    },
+    "original_app_reaped": false,
+    "supplier_settled_observed": false,
+    "quit_requested": false,
+    "generation": null,
+    "recovery_limit": "Permanent AX/parser loss cannot be repaired inside this frozen controller; retain supervision and report the exact missing observation. No numeric escalation or automatic duplicate UI action.",
+    "recovery_control": "write retry-native-cleanup.json with {action:retry-native-cleanup,candidate:<this candidate>}; same source is reobserved, no numeric inputs or repeated UI actions",
+    "guard_reason": null,
+    "logging_errors": [],
+    "observed_executable_processes": [],
+    "overrun": true,
+    "at": "2026-10-31T01:02:21.278425+00:00",
+    "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+  },
+  "helper_sha256": "a17d31c1deb983ea5af3a6053353055b5b02db6344c0abb964a23d5634d67fd8",
+  "pins_sha256": "e1879cf2c7c0aee8c900d74f926bfa0b1bf778da0fa1ac4e7c50d927e687176c",
+  "residual_race": "Non-atomic PID control: exit/reuse or identity/work change after final checks remains possible; no lifetime-bound guarantee.",
+  "standing": "identity-checked observer-only proposal; not yet signalled, no supplier settlement claim"
+}

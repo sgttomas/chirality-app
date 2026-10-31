@@ -1,0 +1,42 @@
+{
+  "at": "2026-10-31T00:26:37.092489+00:00",
+  "basis": "post-native-Quit owned App-data entry metadata only; no file contents",
+  "entries": [
+    {
+      "relative_path": "account-homes",
+      "mode": 16384,
+      "size": 96
+    },
+    {
+      "relative_path": "desktop-startup",
+      "mode": 16384,
+      "size": 96
+    },
+    {
+      "relative_path": "desktop-startup/request.json",
+      "mode": 32768,
+      "size": 18541
+    },
+    {
+      "relative_path": "account-homes/account-313b4af2-8f7b-4c27-9a8a-5348cbb34cf4",
+      "mode": 16384,
+      "size": 160
+    },
+    {
+      "relative_path": "account-homes/account-313b4af2-8f7b-4c27-9a8a-5348cbb34cf4/AGENTS.md",
+      "mode": 40960,
+      "size": 99
+    },
+    {
+      "relative_path": "account-homes/account-313b4af2-8f7b-4c27-9a8a-5348cbb34cf4/config.toml",
+      "mode": 40960,
+      "size": 101
+    },
+    {
+      "relative_path": "account-homes/account-313b4af2-8f7b-4c27-9a8a-5348cbb34cf4/skills",
+      "mode": 40960,
+      "size": 96
+    }
+  ],
+  "runtime_directory_present": false
+}

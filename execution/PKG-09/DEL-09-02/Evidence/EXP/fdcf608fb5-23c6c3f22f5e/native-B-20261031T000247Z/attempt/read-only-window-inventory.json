@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-31T00:06:56.937768+00:00",
+  "basis": "read-only AX of original created App while frozen controller retains reservation and live heartbeat",
+  "windows": [
+    {
+      "AXRole": "AXApplication",
+      "AXSubrole": null,
+      "AXTitle": "Chirality App v4 (development 20261030 eqxsxv4n)",
+      "AXDescription": null
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-31T00:43:12.209654+00:00",
+  "files": {
+    "availability_probe.py": "2aade414c9047c4b7f34a3abd9f8d6a686605b29d3f37d18f442acd953cf9843",
+    "availability-result.json": "898ce772d8c5f461e538b3c5b49fd33a0d130f4f6bbd37db25e2f6f6e5a5466f"
+  },
+  "conclusion": "Required Mach control port not obtained on a fresh harmless owned Python3.13 fixture under unchanged uid/euid501. Error5 does not identify a more specific cause. No alternate attachment or escalation attempted.",
+  "identity_scope": "Fixture target came only from actual subprocess.Popen creation and remained unreaped during task_for_pid. No live observer identity/control-port acquisition was attempted.",
+  "not_established": [
+    "live observer incarnation binding",
+    "task-port lifetime after target exit",
+    "mismatched-handle rejection",
+    "task-port termination and observer/slot release"
+  ],
+  "teardown": "Fixture original Child waited to natural exit0; null output port, no right to deallocate. Existing observer remains untouched."
+}

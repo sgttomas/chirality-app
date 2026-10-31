@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-31T01:22:28.801959+00:00",
+  "signal_syscall_returned": true,
+  "target": {
+    "pid": 60769,
+    "ppid": 60767,
+    "uid": 501,
+    "ruid": 501,
+    "start_sec": 1793404967,
+    "start_usec": 80197,
+    "executable": "/Users/ryan/.local/share/mise/installs/python/3.13.14/bin/python3.13"
+  },
+  "limit": "Delivery/teardown/slot release require separate observation; not App or supplier settlement."
+}

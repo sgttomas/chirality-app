@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/observer_signal_once.py", line 252, in <module>
+    execute_reviewed()
+    ~~~~~~~~~~~~~~~~^^
+  File "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/observer_signal_once.py", line 230, in execute_reviewed
+    current = bind()
+  File "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/observer_signal_once.py", line 206, in bind
+    require(scope == [app['pid']], 'additional live/unknown child work; no observer signal')
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ryan/dev/chirality-t3/scratch/app-observer-signal-proposal-fkifh4nw/observer_signal_once.py", line 32, in require
+    raise RuntimeError(reason)
+RuntimeError: additional live/unknown child work; no observer signal

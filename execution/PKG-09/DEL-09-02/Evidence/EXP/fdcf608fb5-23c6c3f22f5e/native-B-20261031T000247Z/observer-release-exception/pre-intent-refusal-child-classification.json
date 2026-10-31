@@ -1,0 +1,42 @@
+{
+  "at": "2026-10-31T01:21:49.689790+00:00",
+  "purpose": "read-only classification of recurring child-census condition after pre-intent refusal",
+  "original_refusal_child_pid_was_not_recorded": true,
+  "observations": [
+    {
+      "identity": {
+        "pid": 61018,
+        "ppid": 60769,
+        "uid": 501,
+        "ruid": 501,
+        "start_sec": 1793409709,
+        "start_usec": 680440,
+        "executable": "/usr/bin/pgrep"
+      },
+      "argv": [
+        "/usr/bin/pgrep",
+        "-f",
+        "/Users/ryan/dev/chirality-t3/guard/memguard.sh"
+      ],
+      "recognized_guard_utility": true
+    }
+  ],
+  "recognized_current_guard_child": {
+    "identity": {
+      "pid": 61018,
+      "ppid": 60769,
+      "uid": 501,
+      "ruid": 501,
+      "start_sec": 1793409709,
+      "start_usec": 680440,
+      "executable": "/usr/bin/pgrep"
+    },
+    "argv": [
+      "/usr/bin/pgrep",
+      "-f",
+      "/Users/ryan/dev/chirality-t3/guard/memguard.sh"
+    ],
+    "recognized_guard_utility": true
+  },
+  "signal_sent": false
+}

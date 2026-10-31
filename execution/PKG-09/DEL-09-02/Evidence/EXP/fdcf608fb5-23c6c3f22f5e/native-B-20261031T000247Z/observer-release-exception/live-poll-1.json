@@ -1,0 +1,12 @@
+{
+  "observed_at": "2026-10-31 01:18:57 UTC",
+  "session_id": 47350,
+  "tool_result": {
+    "chunk_id": "3c29a8",
+    "wall_time_seconds": 5.002238625,
+    "session_id": 47350,
+    "original_token_count": 0,
+    "output": ""
+  },
+  "action": "read-only original-handle poll before authorized one-shot helper"
+}
