@@ -82,8 +82,20 @@ class HelperTests(unittest.TestCase):
   self.assertEqual(events,[(1,20,60),(2,20,60)])
   self.assertEqual([call.args[0] for call in self.backend.a.CGEventPostToPid.call_args_list],[123,123])
   self.assertEqual(self.backend.c.CFRelease.call_count,2)
+  routes=[call.args for call in self.backend.a.CGEventSetIntegerValueField.call_args_list if call.args[1] in (91,92)]
+  self.assertEqual(routes,[(101,91,42),(101,92,42),(102,91,42),(102,92,42)])
   result=json.loads((self.root/'window-helper-001.result.json').read_text())
   self.assertTrue(result['effect_requires_fresh_capture_read'])
+  self.assertEqual(result['event_routes'],[{'pid':123,'window_under_pointer':42,'window_that_can_handle_event':42}]*2)
+ def test_late_window_change_prevents_annotation_and_post(self):
+  self.backend.app=lambda pid:'app';self.backend.owner=lambda app:(0,123)
+  self.backend.attribute=lambda app,name:({'return_code':0,'type':{'name':'CFBoolean'},'value':True},[])
+  self.backend.a=SimpleNamespace(CGEventCreateMouseEvent=Mock(side_effect=[101,102]),CGEventPostToPid=Mock(),CGEventSetFlags=Mock(),CGEventSetIntegerValueField=Mock())
+  self.backend.c=SimpleNamespace(CFRelease=Mock())
+  with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main',side_effect=[self.window,{**self.window,'window_id':99}]):
+   with self.assertRaisesRegex(RuntimeError,'owned window changed'):self.run_request(action='click',point=[20,60])
+  self.backend.a.CGEventPostToPid.assert_not_called();self.backend.a.CGEventSetIntegerValueField.assert_not_called()
+  self.assertEqual(self.backend.c.CFRelease.call_count,2)
  def test_unfocused_or_foreign_app_never_posts(self):
   self.backend.app=lambda pid:'app';self.backend.owner=lambda app:(0,999)
   with self.patches(),patch.object(h.w,'tools_identity',return_value={}),patch.object(h.w.d,'NativeBackend',return_value=self.backend),patch.object(h.w,'select_main',return_value=self.window):

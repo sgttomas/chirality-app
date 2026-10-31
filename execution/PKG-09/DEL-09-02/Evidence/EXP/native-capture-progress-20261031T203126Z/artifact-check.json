@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "stdout": "{\n  \"equal\": true,\n  \"root_equal\": true,\n  \"missing\": [],\n  \"extra\": [],\n  \"changed\": [],\n  \"build_identity\": \"chirality.app.bundle-tree.sha256/v2:23c6c3f22f5e240440449eaa573737ef556cdac88370633e5b7886a741b6a2a3\",\n  \"recorded_build_identity\": \"chirality.app.bundle-tree.sha256/v2:23c6c3f22f5e240440449eaa573737ef556cdac88370633e5b7886a741b6a2a3\",\n  \"record_fields_mismatched\": []\n}\n",
+  "stderr": ""
+}

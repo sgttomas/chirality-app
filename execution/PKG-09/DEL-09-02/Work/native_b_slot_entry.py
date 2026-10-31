@@ -14,7 +14,7 @@ def main():
     require(str(T3/'tools/t3_slot_run.sh') in parent,'actual slot parent unavailable')
     require(not any((root/name).exists() for name in ('execution-started.json','actions.jsonl','artifact-check.json','slot-entry.json')),'attempt already used')
     admission=root/'admission.json';a=json.loads(admission.read_text())
-    require(a['admission_version'] in ('chirality.native-B.retained-state/v2','chirality.native-B.retained-state/v3','chirality.native-B.retained-state/v4'),'explicit v2/v3/v4 required')
+    require(a['admission_version'] in ('chirality.native-B.retained-state/v2','chirality.native-B.retained-state/v3','chirality.native-B.retained-state/v4','chirality.native-B.retained-state/v5'),'explicit v2/v3/v4/v5 required')
     require(sha(__file__)==a['slot_entry_sha256'],'slot-entry copy differs')
     controller=Path(a['controller_path'])
     require(controller.is_absolute() and controller.name=='native_successor_relaunch.py'

@@ -93,7 +93,7 @@ def main(request_path,expected_sha):
             post=backend.a.CGEventPostToPid;post.restype=None;post.argtypes=[C.c_int,C.c_void_p]
             flags=backend.a.CGEventSetFlags;flags.restype=None;flags.argtypes=[C.c_void_p,C.c_uint64]
             field=backend.a.CGEventSetIntegerValueField;field.restype=None;field.argtypes=[C.c_void_p,C.c_uint32,C.c_int64]
-            events=[]
+            events=[];event_routes=[]
             try:
                 if action=='click':
                     for kind in (1,2): # left down/up, no arbitrary keyboard/text command
@@ -108,13 +108,22 @@ def main(request_path,expected_sha):
                 for e in events:
                     flags(e,0)
                     if action=='click':field(e,1,1) # kCGMouseEventClickState: one click
+                    if action=='click':
+                        # CGEventPostToPid routes to the process; carry only the
+                        # already verified window ID in both SDK mouse-window fields.
+                        field(e,91,window['window_id']) # kCGMouseEventWindowUnderMousePointer
+                        field(e,92,window['window_id']) # ...ThatCanHandleThisEvent
+                        event_routes.append({'pid':pid,'window_under_pointer':window['window_id'],
+                                             'window_that_can_handle_event':window['window_id']})
                     post(pid,e)
             finally:
                 for e in events:backend.c.CFRelease(e)
         w.require(backend.identity(pid)==expected,'App identity changed after input')
         # Posting/AX return codes are not effect proof. Keeper captures and agent
         # must read the actual effect before accepting a subsequent action.
-        result={'at':w.d.now(),'action':action,'sequence':request['sequence'],'posted_or_focus_observed':True,'effect_requires_fresh_capture_read':True}
+        result={'at':w.d.now(),'action':action,'sequence':request['sequence'],'posted_or_focus_observed':True,'effect_requires_fresh_capture_read':True,
+                'event_routes':event_routes if action!='focus' else [],
+                'routing_limits':'Explicit owned-window annotation is delivery intent, not proof the target received or acted on the event.'}
         write_result(root/f"window-helper-{request['sequence']:03d}.result.json",result)
     finally:backend.close()
 if __name__=='__main__':
