@@ -345,3 +345,7 @@ mocked/source tests plus the existing harmless helper fixture, not GUI evidence.
 The repair cannot recover the missing actual dictionary from 8w83gq78. Any later
 policy that accepts changed presentation facts needs its own explicit scope and
 independent scrutiny; no such change is proposed here.
+
+The [explicit post-8w83 v3 admission](RETAINED_B_ADMISSION_V3.md) binds the
+subsequent nine-row assessment in a separate unrun preparation. The window
+acceptance and mismatch-diagnostic policy remain unchanged; no live authority.
