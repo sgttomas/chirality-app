@@ -62,7 +62,7 @@ def source_input(source, raw):
 
 
 def verified_sources(root=ROOT, captured=None):
-    lock = read_json(HERE / 'sources.json')
+    lock = read_json(HERE / 'sources.terms-v1.json')
     for source in lock['sources']:
         path = root / deliverable_path(root, source['path'])
         if not path.is_file():
@@ -110,7 +110,8 @@ def prepare(root=ROOT):
                           'candidate_slot': 'one_same_candidate', 'steps': prepared})
     return {
         'artifact_kind': 'standalone_case_preparation',
-        'preparation_version': 1,
+        'preparation_version': 2,
+        'documentary_selection': copy.deepcopy(lock['documentary_selection']),
         'standing': 'test_definition_only',
         'source_basis_revision': lock['source_basis_revision'],
         'sources': lock['sources'],

@@ -12,7 +12,7 @@ ROOT = HERE.parents[2]
 
 
 def consumer(root=ROOT):
-    lock = json.loads((HERE / 'sources.json').read_text())
+    lock = json.loads((HERE / 'sources.terms-v1.json').read_text())
     captured = {}
     for item in lock['sources']:
         raw = (root / item['path']).read_bytes()

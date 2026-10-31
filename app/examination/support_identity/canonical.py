@@ -27,7 +27,7 @@ def deliverable_path(root, relative):
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = '0866799740ba54d572c1bf480d3a95bed546e3a914146b00ea1a3cab9a0e90f3'
+PINS_SHA256 = '0e33fb86969ff1a1b44512bab0f845f21764372beb5e09b265c6b9dd5efc30b9'
 METHOD = 'EXP-SUPPORT-BINDING-v1'
 PURPOSES = ('current_producer_declaration', 'historical_correspondence')
 LIMITS = [
@@ -48,7 +48,7 @@ class CanonicalSupport:
     def __init__(self, documentary_root=None, original_root=None):
         self.documentary_root = PROJECT if documentary_root is None else Path(documentary_root)
         original_root = PROJECT if original_root is None else Path(original_root)
-        pins_bytes = (HERE / 'canonical-pins.v1.json').read_bytes()
+        pins_bytes = (HERE / 'canonical-pins.terms-v1.json').read_bytes()
         if sha(pins_bytes) != PINS_SHA256:
             raise ValueError('canonical reader pins changed')
         self.pins = json.loads(pins_bytes)
@@ -99,21 +99,24 @@ class CanonicalSupport:
                         'standing': 'original full-byte correspondence; current documentary meaning not checked',
                         'authority_authenticated': False}
         self.legacy.require(purpose == 'current_producer_declaration', 'unknown binding purpose')
-        path = 'app/examination/documentary_condition.py'
+        path = 'app/examination/support_identity/terms_condition.py'
         spec = importlib.util.spec_from_file_location('_exp_documentary_condition', PROJECT / path)
         module = importlib.util.module_from_spec(spec)
         exec(compile(self.captured[path], str(PROJECT / path), 'exec'), module.__dict__)
-        manifest = self.captured['execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json']
+        manifest = self.captured['execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v3.json']
         read = lambda root, path: self.legacy.relative_file(root, deliverable_path(root, path))
         return module.Condition(self.documentary_root, manifest, read).capture(group)
 
     def binding(self, kind, data, purpose):
         self.legacy.require(purpose in PURPOSES, 'unknown binding purpose')
-        self.source_condition(purpose)
+        _, condition = self.source_condition(purpose)
         binding = self.support.binding(kind, data)
         binding.pop('standing')
         binding.update(format='exp-support-binding.canonical.v1', binding_method=METHOD,
                        binding_purpose=purpose, declaration_sha256=self.declaration_sha256)
+        if purpose == 'current_producer_declaration':
+            binding['format'] = 'exp-support-binding.canonical.terms-v1'
+            binding['documentary_selection'] = {key: condition[key] for key in ('method', 'manifest_sha256')}
         # A caller changing its returned dict must not mutate the reader's basis.
         return copy.deepcopy(binding)
 

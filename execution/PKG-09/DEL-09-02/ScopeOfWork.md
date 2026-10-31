@@ -112,3 +112,11 @@ Open-issue rows above preserve the accepted owners and timing, corroborated by t
 | OUT-001 | OBJ-002; OBJ-008 | REQ-006; CLM-001 | AC-006 | VER-006 | V4-EXM-12 concurrent configuration and one actual conversation per access mode |
 | OUT-002 | OBJ-001; OBJ-002; OBJ-003; OBJ-008 | REQ-001; REQ-007; CLM-003; CLM-004 | AC-007 | VER-007 | Single dossier with candidate/configuration/date, feature links, truthful case standing and affected rechecks |
 | OUT-002 | OBJ-001; OBJ-002; OBJ-003; OBJ-008 | REQ-008; REQ-009; CLM-001; CLM-002; CLM-003; CLM-004 | AC-008 | VER-008 | Owner-preserving standalone evidence handoff to DEL-11-03 with actual examiner custody and limits |
+
+## Implemented documentary receiving — 2026-10-30
+
+The approved DEL-01-06 terms documentary successor is explicitly selected by
+[Work/TERMS_SOURCE_RECEIVING.md](Work/TERMS_SOURCE_RECEIVING.md).
+Historical publication identities and obligations retain their original subjects;
+current applicability is distinguished from public release, replacement and
+package/supplier qualification. No acceptance or executed witness is implied.

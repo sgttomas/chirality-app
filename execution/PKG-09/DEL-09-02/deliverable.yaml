@@ -70,7 +70,7 @@ needs:
   gating: true
   evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: DEL-01-06
-  condition: 'Receive packaged candidate input and packaging evidence from DEL-01-06 before the corresponding
+  condition: 'Documentary terms receiving selects the explicit v3-terms successor for approved PK-R4/section 9; historical support remains unchanged and release is not inferred. Receive packaged candidate input and packaging evidence from DEL-01-06 before the corresponding
     native packaged witness; signing/notarisation/entitlement disposition remains OI-011 and OI-007 public-release
     terms are not an owner-use qualification gate.
 
@@ -445,6 +445,7 @@ code_paths:
 - app/examination/sq_receiving/receive.py
 - app/examination/sq_receiving/worker.py
 checks:
+- app/tests/group_b_terms_successor_test.py
 - execution/PKG-09/DEL-09-02/Work/test_native_successor_relaunch.py
 - execution/PKG-09/DEL-09-02/Work/test_native_successor_setup.py
 - execution/PKG-09/DEL-09-02/Work/test_native_relaunch_policy.py

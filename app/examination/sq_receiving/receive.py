@@ -24,7 +24,7 @@ def deliverable_path(root, relative):
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = '9c94f201edfa4bbaebf94dca78af3ba10099abff1e81a2fdfc955ce75d60dae5'
+PINS_SHA256 = 'd6efc9e40ecd2784d424dc7031ce27a38e68865e6c8f05279927878bc4c59d89'
 
 
 def sha(data):
@@ -48,7 +48,7 @@ def read_relative(root, name):
 
 class Receiver:
     def __init__(self):
-        raw = read_relative(HERE, 'pins.json')
+        raw = read_relative(HERE, 'pins.terms-v1.json')
         if sha(raw) != PINS_SHA256:
             raise ValueError('SQ reader pins changed')
         self.pins = json.loads(raw)
@@ -86,11 +86,11 @@ class Receiver:
                             'standing': 'original full-byte correspondence; current documentary meaning not checked',
                             'authority_authenticated': False}
         if purpose == 'current_producer_declaration':
-            path = 'app/examination/documentary_condition.py'
+            path = 'app/examination/support_identity/terms_condition.py'
             spec = importlib.util.spec_from_file_location('_sq_documentary_condition', PROJECT / path)
             module = importlib.util.module_from_spec(spec)
             exec(compile(self.sources[path], str(PROJECT / path), 'exec'), module.__dict__)
-            manifest = self.sources['execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v2.json']
+            manifest = self.sources['execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v3.json']
             current_documents, source_condition = module.Condition(PROJECT, manifest, read_relative).capture('sq')
         # Run only captured, pinned Python validators in a private source snapshot.
         # This is not native execution or hostile-filesystem custody.

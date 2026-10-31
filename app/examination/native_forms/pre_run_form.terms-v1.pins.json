@@ -1,0 +1,12 @@
+{
+  "format": "pre-run-form-pins.v1-terms-successor-1",
+  "sources": {
+    "app/examination/standalone/pre_run_inputs.py": "f2479cbe611171e697d5f2066218e8396d84ddcbb8e998de9dd30d7f391e9d08",
+    "app/examination/standalone/pre_run_inputs.terms-v1.pins.json": "66f535320d54de74ee0d31e96661996b7a3a6a3ee784e39b355fc952f74bd314"
+  },
+  "documentary_selection": {
+    "method": "selected-documentary-source-condition/v3-terms",
+    "manifest": "execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v3.json",
+    "sha256": "607f79712eadcbeed4bcc25d789fdbdeeb887c9facc3f6532301c6940c0b86e2"
+  }
+}
