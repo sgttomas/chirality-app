@@ -135,7 +135,7 @@ AXUIElement functions; production has the direct SDK imports. Tests cover raw
 errors, wrong types, bounds, ownership exclusion, cycles/duplicates, per-object
 timeout-setting refusal, retain-count stability, fixed POD ABI and keeper/admission
 refusals. Added fixtures exercise the inter-call deadline, null/wrong/oversize
-roles and foreign-PID exclusion; their compiled run remains a separate result.
+roles and foreign-PID exclusion; the final compiled run passed as recorded below.
 Absolute source hashes fail safe if the worktree changes or disappears; they
 check disk bytes, not already-imported Python module memory.
 
@@ -148,10 +148,8 @@ reader dylib SHA256:
 Apple clang21.0.0 compiled the production library; it has not been invoked.
 Build1 and build2 each completed ten passing tests. A correction record
 distinguishes an initially premature build2 test attribution from its later
-actual completion. Nine current mocked binding/staging tests pass; three compiled
-fixture tests passed on the unchanged C source. Build3 is queued through the
-guarded route to bind the final protected-staging wrapper sources; its manifest
-and final combined test result must be checked before any live-ready return.
+actual completion. Those runs preceded the review fixes; the final build3/checks below supersede
+them for source-binding and fixture coverage without deleting their records.
 
 ## Minimal future profile and remaining conditions
 
@@ -176,5 +174,31 @@ Independent Claude Opus5.5/high review of `3200f17d` found no blocking C
 observation defect, with the boundary unwired. Its staging-trust, fixed-name,
 partial-result, role-text, provenance, test and documentation findings are
 addressed in the subsequent bounded delta. Existing build1/2 records are
-historical; the final fixed-source build and compiled-fixture checks must be
-verified before a live-ready return. No clean repeat review is claimed.
+historical. Final build3 and the compiled-fixture checks were subsequently
+verified below. No clean repeat review or live-ready admission is claimed.
+
+## Final checked preparation after review fixes
+
+Guarded offline build3 completed with source and selected-header hashes stable
+before/after compilation. Its source digests match the final fixed files:
+`/Users/ryan/dev/chirality-t3/scratch/app-typed-ax-prep-hz419ka_/build-3`.
+Production manifest SHA256:
+`efde5fc5fdb1345db2fabef1180778013c5a5a27f4a5b25a1e0979ce44352bc0`;
+production library SHA256:
+`3d9e0587df7ee52aede244b8760e874ace66623e62124d16edc1c2a29150ad5d`.
+All18 tests passed against that build:14 mocked binding/staging/error cases and
+4 compiled harmless CF/fake-AX cases. The13 reference-reader tests also passed.
+Production symbol inspection finds only the comparison and size-query exports;
+fixture imports contain no actual AXUIElement functions. The production dylib
+has never been loaded or invoked.
+
+Using the explicitly selected manifest hash above, staging passed without native
+loading into `/Users/ryan/dev/chirality-t3/scratch/app-typed-ax-staging-patgfy2p`.
+The protected `typed-ax-build.json` digest is
+`a9067c5c9fe2bffc1f5da51bc56bfe902ade78fdd851fd0fb3d4acaabdc8118a`.
+The fixed-name library copy is plain owned0600. No admission.json or launch was
+created there. Exact commands, compiler/SDK/header/source identities and final
+verification remain in the retained build3 records. Live library-validation
+acceptance, load timing and real AX behavior remain unobserved. A future use
+still needs a new post-am98 admission identity, exact controller-policy check,
+once-only integration and the parent's separate live disposition.
