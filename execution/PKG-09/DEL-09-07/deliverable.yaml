@@ -2,7 +2,7 @@ id: DEL-09-07
 name: Local host candidate qualification
 needs:
 - from: DEL-09-06
-  condition: 'Consume the actual agreed activity and App/host workflow round-trip agreement from DEL-09-06
+  condition: 'Receive catalog-v3 source/schema evidence through DEL-09-06 at integrated SWBPIPE 4d8cb7b0c8f101d5102813e634e23ecba29b310e without inferring live or human acts or qualification. Consume the actual agreed activity and App/host workflow round-trip agreement from DEL-09-06
     before dependent qualification execution, including the selected useful operation, permitted autonomy
     and exact candidate environment.
 
@@ -235,6 +235,8 @@ needs:
   gating: true
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 checks:
+- app/supplier_checks/swbpipe_receiving_test.py
+- app/supplier_checks/swbpipe_projection_test.py
 - execution/PKG-09/DEL-09-07/Work/prototype/cir_check.py
 - execution/PKG-09/DEL-09-07/Work/prototype/dos_check.py
 - execution/PKG-09/DEL-09-07/Work/prototype/top_check.py
