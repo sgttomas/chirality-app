@@ -35,9 +35,11 @@ Reviewed normal cleanup also lacked that observation at 03:23:08.905487Z;
 the keeper retained its original Child, guard and slot2. No native Stop or
 controller Quit was sent, and no full generation was captured.
 
-Unlike the first attempt, this retry created a `chirality-codex-probe.*`
+The retained post-closure directory observation lists a `chirality-codex-probe.*`
 directory and App-data `instructions`, `records` and `runtime` directories.
-The later cleanup diagnostic freshly checked the observed direct child's path:
+That observation alone does not date their creation or separate startup writes
+from native Quit ledger writes. The later cleanup diagnostic selected a child
+from the keeper's earlier census and freshly checked its executable path:
 it was the exact bundled `Contents/Resources/codex/bin/codex`. This establishes
 actual supplier executable presence, not its handshake outcome or group
 settlement. It rules out treating the earlier omitted allocator as the complete
@@ -51,7 +53,11 @@ The first separate menu helper refused its finite traversal budget at about
 helper's original bytes are preserved. The parent wrote corrected-traversal
 authorization in its final response, but did **not** deliver it to this manager
 session until the urgent 09:57Z message. The manager was idle over that interval;
-the keeper heartbeat and guard continued running. The prolonged hold was a
+the keeper heartbeat and monitor loop continued running. From 09:10:08Z,
+`sample()` refused at its first `exclusive pending` check, before refreshing
+the census or checking memguard, memory cap and floor. Those observations were
+therefore stale for the final approximately 48 minutes, even though original-Child
+WNOWAIT and heartbeat timestamps remained fresh. The prolonged hold was a
 parent dispatch failure, not a required owner-approval interval or ongoing
 qualification execution. The `exclusive pending` guard reason, overrun, and
 resource contention are retained rather than erased by later cleanup.
@@ -61,7 +67,10 @@ It persisted bounded own-window/direct-child diagnostics before menu traversal,
 pruned application/non-menu boundaries before depth counting, detected cycles,
 and limited the search to the exact owned App menu. It did not traverse Services
 or issue arbitrary UI events. Fresh keeper reservation/heartbeat, executable
-hash/path, birth/parent, dependency and owned-menu checks preceded the action.
+hash/path, App birth/parent, dependency and owned-menu checks preceded the action.
+The heartbeat freshness check did not prove census freshness. The listed child's
+path was rechecked live, but its current parent relationship was not rechecked;
+its classification as a direct child came from the stale census.
 `AXWindows`, `AXMainWindow` and `AXFocusedWindow` still returned Application
 self-references. No WindowServer inventory or screenshot was captured.
 
@@ -71,7 +80,8 @@ possible transient question. The keeper subsequently observed its retained
 Child as `CLD_EXITED`, status0 and offered the exact admission-bound control.
 The parent had separately selected this cleanup route. The agent created a
 plain owned single-link0600 file privately and atomically placed the exact
-current body at 09:58:25.571341Z; admission digest:
+current body following the retained selection record at 09:58:25.571082Z.
+The archive does not retain a separate placement timestamp. Admission digest:
 `1540161e6fd128a81f0b11796e5a6cd8aace0052591d50e539f156121a58c1a0`.
 
 At 09:58:26.305210Z the reviewed keeper freshly checked and waited its own
@@ -80,8 +90,11 @@ null generation, `supplier_settled_observed:false` and no post-reap errors.
 No signal, cold PID action, repeat control or altered frozen dependency was used.
 Original execution11867 and the wrapper returned1. The slot wrapper recorded
 `END rc=1` for slot2 at 09:58:26Z; its marker was absent and known wrapper,
-observer, App and direct-supplier process IDs were absent by 09:58:57Z. Shared
-memguard78827 remained running. Parent and SWB received actual release notices.
+observer, App and previously observed supplier process IDs were reported absent
+by 09:58:57Z. The retained `ps` result has empty output but does not list its
+query IDs; the manager reports querying 30589, 30601, 30603, 30624 and 30636.
+Shared memguard78827 remained running. Parent/SWB release notices are manager
+communication statements, not independently evidenced by this archive.
 Known-process absence is corroboration, never exhaustive helper custody.
 
 ## Supported diagnosis and minimal next observation
@@ -110,8 +123,18 @@ live boundary: preserve raw AX return codes/types for only this owned App's
 window attributes, and WindowServer metadata filtered by the freshly verified
 original App PID **before retaining names/content** (window number, layer,
 bounds, on-screen status and owned title only; no images/foreign rows).
+Use `kCGWindowListOptionAll`, recheck original App birth/path before and after
+the call, and retain only matching-owner rows. Preflight Screen Recording access
+without requesting it; record whether the title key is present, not an inferred
+title when access or the key is absent. Include only role/type/return-code
+observations for the owned App element's `AXChildren` as another representation
+comparison, with bounded references and no recursive foreign traversal.
 That distinguishes an existing native window with missing AX representation
 from no listed native window; neither result alone identifies all causes.
+A constructed window never ordered in may have no WindowServer row, so absence
+does not establish that construction never occurred. A passed readiness on this
+same candidate also used network denial; relevant deltas include B's fork/exec
+allowances, supplier startup and the App state carried forward from A.
 If no native window is listed, source/typed startup diagnostics or a separately
 scoped construction observation is needed rather than arbitrary activation or
 reopen events. No permission change, general capability probe, policy relaxation
@@ -120,6 +143,14 @@ or date-only rebuild follows. No additional App launch is currently authorized.
 The retained AppData now contains runtime/record state. The earlier A-only
 admission predicate deliberately refuses that changed state. Any future retry
 must first account for its actual recovery/session contents under the existing
-contracts, with no credential reads and no reset/freshening. This evidence PR
+contracts, including Quit-path ledger writes, with no credential reads and no
+reset/freshening. This evidence PR
 neither weakens that predicate nor makes a future launch ready. DEL01-01/01-02
 commitments and DEL09-02 qualification/input conditions remain unchanged.
+
+Independent Claude Opus5.5/high scrutiny at `4ee6bbb9` verified all 31 original
+identities, the lossless heartbeat and all 32 archive sums, unchanged controller
+bytes and scoped chronology/source comparisons. No blocking defect was found.
+This account incorporates its documentation findings about stale sampling,
+directory timing, retained timestamps and externally reported cleanup facts.
+No new runtime or execution claim follows from that scrutiny.
