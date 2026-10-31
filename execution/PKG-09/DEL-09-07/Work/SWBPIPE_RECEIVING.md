@@ -1,5 +1,14 @@
 # Current SWBPIPE qualification receiving basis
 
+## Current catalog-v4 receiving
+
+The [explicit v4 selection](../../DEL-09-06/Work/catalog-v4/RECEIVING_ADOPTION.md) receives SWBPIPE PR27 actual merge
+`9b6281e7eaca924e6166336b87b6d25937c1ca04`, including bounded host-contract
+and producer read extents. V3 remains separately inspectable and tested; its
+historical source records below are not rewritten. Seven tools and the separate
+16-row operation table supply offline receiving evidence only. No live Apply,
+native operation, model run or criterion17 qualification is inferred.
+
 ## Current catalog-v3 adoption
 
 DEL-09-07 receives the [catalog-v3 source/schema adoption](../../DEL-09-06/Work/SWBPIPE_CATALOG_V3_RECEIVING.md)
