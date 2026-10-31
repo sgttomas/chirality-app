@@ -83,3 +83,17 @@ authentication-context implementation, if required by the actual candidate,
 needs reviewed source behavior before reliance. PACKAGING I-4/G-8/SIGN-3's
 historical SEAL-2 wording must be read with this adopted SEAL-C signing obligation;
 SEAL-2 remains deferred and no broader guarantee is inferred.
+
+Final bounded source disposition: normal Seal reads only the committed current
+key, so a lost historical item or unavailable pending rotation cannot by itself
+make every new act unsealed. Verify still reads its requested committed key and
+never mutates the marker. Explicit Enroll may resume markerless unreserved setup
+only after checking legacy/primary absence under both locks; normal paths never
+initialize, and directory recreation cannot follow an observed-present race.
+Pending-only first enrollment with a missing item remains unavailable with its
+reservation retained. Because the exact reserved secret cannot safely be
+regenerated, the later runbook must retain that failure and obtain a concrete
+continuity disposition/new independently admitted namespace if required. Do not
+silently reset/delete the marker or retry add with different bytes. This is a
+signing-stage recovery boundary, not a new generic approval prerequisite for
+ordinary source work.

@@ -297,7 +297,7 @@ fn private_metadata(m: &fs::Metadata, directory: bool) -> bool {
     }) && m.uid() == unsafe { libc::geteuid() }
         && m.mode() & 0o077 == 0
 }
-struct Guard(File, bool);
+struct Guard(File);
 impl Drop for Guard {
     fn drop(&mut self) {
         unsafe {
@@ -316,7 +316,6 @@ fn guard_mode(
     wait: bool,
 ) -> Result<Option<Guard>, String> {
     crate::storage::check_path(directory)?;
-    let mut created = false;
     match fs::symlink_metadata(directory) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
             if !create {
@@ -326,7 +325,6 @@ fn guard_mode(
                 .mode(0o700)
                 .create(directory)
                 .map_err(|_| "SEAL-C continuity directory creation unavailable")?;
-            created = true;
             crate::storage::sync_dir(
                 directory
                     .parent()
@@ -364,7 +362,7 @@ fn guard_mode(
     if unsafe { libc::flock(lock.as_raw_fd(), flags) } != 0 {
         return Err("SEAL-C continuity busy; retry without key mutation".into());
     }
-    Ok(Some(Guard(lock, created)))
+    Ok(Some(Guard(lock)))
 }
 fn load(directory: &Path, i: &ItemIdentity) -> Result<Option<Marker>, String> {
     let mut file = match OpenOptions::new()
@@ -489,6 +487,8 @@ fn verification_material(
     }
     Ok(Material { current, keys })
 }
+#[cfg(test)]
+thread_local! {static BEFORE_GUARD:std::cell::RefCell<Option<Box<dyn FnOnce()>>>=const{std::cell::RefCell::new(None)};}
 /// Marker is continuity evidence within a compiled namespace, never namespace
 /// authority. No read failure causes creation. Pending+missing stays blocked.
 fn operate(
@@ -529,23 +529,29 @@ fn operate(
         if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } != 0 {
             return Err("SEAL-C enrollment lock unavailable".into());
         }
-        Some(Guard(file, false))
+        Some(Guard(file))
     } else {
         None
     };
-    if matches!(operation, Operation::Enroll)
-        && !directory
-            .try_exists()
-            .map_err(|_| "SEAL-C continuity presence unavailable")?
-    {
+    let observed_absent = !directory
+        .try_exists()
+        .map_err(|_| "SEAL-C continuity presence unavailable")?;
+    let admitted_create = matches!(operation, Operation::Enroll) && allow_first && observed_absent;
+    if matches!(operation, Operation::Enroll) && observed_absent {
         if !allow_first {
             return Err("SEAL-C explicit first enrollment not admitted".into());
         }
         fresh_namespace(legacy_folder, i, backend)?;
     }
+    #[cfg(test)]
+    BEFORE_GUARD.with(|hook| {
+        if let Some(hook) = hook.borrow_mut().take() {
+            hook();
+        }
+    });
     let _lock = guard_mode(
         directory,
-        matches!(operation, Operation::Enroll) && allow_first,
+        admitted_create,
         verifying(&operation),
         !verifying(&operation),
     )?
@@ -553,16 +559,15 @@ fn operate(
     let mut m = match load(directory, i)? {
         Some(m) => m,
         None => {
-            if !_lock.1 {
+            if !matches!(operation, Operation::Enroll) || !allow_first {
                 return Err(
-                    "SEAL-C continuity marker absent in existing namespace; no regeneration".into(),
+                    "SEAL-C explicit first enrollment not admitted; no regeneration".into(),
                 );
             }
-            if !matches!(operation, Operation::Enroll) || !allow_first {
-                return Err("SEAL-C explicit first enrollment not admitted".into());
-            }
-            // Fresh admission was checked while holding the enrollment lock;
-            // all participating initial enrollments share that same lock.
+            // An explicit enrollment may resume an unreserved empty directory
+            // after entropy/disk failure, but must re-establish absence while
+            // holding BOTH locks. Normal seal/verify/rotate cannot take this path.
+            fresh_namespace(legacy_folder, i, backend)?;
             Marker {
                 format: "capture-seal-keychain-continuity.s1".into(),
                 scope_sha256: scope(i),
@@ -575,6 +580,18 @@ fn operate(
         // A pending item has never sealed a capture. Historical committed keys
         // remain verifiable without reading or committing that pending item.
         return verification_material(backend, i, &m, &operation);
+    }
+    if matches!(operation, Operation::Seal) {
+        // Pending rotation never sealed a capture. New captures continue under
+        // the committed current key, without reading/committing pending or old
+        // rotated items. Initial pending-only enrollment remains unavailable.
+        let current = m
+            .keys
+            .last()
+            .ok_or("SEAL-C no committed key; explicit enrollment recovery required")?
+            .id
+            .clone();
+        return verification_material(backend, i, &m, &Operation::VerifyKey(current));
     }
     if let Some(pending) = m.pending.clone() {
         // Preserve an incomplete rotation if any earlier retained item is lost;

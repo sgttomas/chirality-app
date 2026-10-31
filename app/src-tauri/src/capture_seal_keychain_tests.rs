@@ -126,11 +126,8 @@ fn seal_keychain_crash_before_reservation_and_enrollment_loss_never_regenerate()
     let b = Mock::default();
     // Crash after directory/lock creation but before durable reservation: no add.
     drop(guard(&f.dir, true).unwrap());
-    assert!(f
-        .run(&b, Operation::Enroll, 1)
-        .err()
-        .unwrap()
-        .contains("no regeneration"));
+    assert!(f.run(&b, Operation::Seal, 1).is_err());
+    assert!(f.run(&b, Operation::Rotate, 1).is_err());
     assert_eq!(*b.adds.lock().unwrap(), 0);
     let f = Fixture::new();
     f.run(&b, Operation::Enroll, 1).unwrap();
@@ -153,7 +150,7 @@ fn seal_keychain_pending_missing_duplicate_and_unknown_add_outcome() {
         assert!(m.pending.is_some());
         assert!(m.keys.is_empty());
         *b.add_mode.lock().unwrap() = 0;
-        let recovered = f.run(&b, Operation::Seal, 9);
+        let recovered = f.run(&b, Operation::Enroll, 9);
         if mode == 2 {
             assert_eq!(recovered.unwrap().keys[&key_id(&[1; 32])], [1; 32]);
         } else {
@@ -191,7 +188,10 @@ fn seal_keychain_crash_after_reservation_add_and_readback_recovery() {
         .unwrap()
         .pending
         .is_some());
-    assert_eq!(f.run(&b, Operation::Seal, 4).unwrap().current, key_id(&key));
+    assert_eq!(
+        f.run(&b, Operation::Enroll, 4).unwrap().current,
+        key_id(&key)
+    );
     assert_eq!(*b.adds.lock().unwrap(), 0);
 }
 #[test]
@@ -271,7 +271,7 @@ fn seal_keychain_rotation_unknown_preserves_old_commit_and_prior_key_ids() {
     assert_eq!(m.keys[0].id, first.current);
     assert!(m.pending.is_some());
     *b.add_mode.lock().unwrap() = 0;
-    let next = f.run(&b, Operation::Seal, 3).unwrap();
+    let next = f.run(&b, Operation::Rotate, 3).unwrap();
     assert_eq!(next.keys.len(), 2);
     assert!(next.keys.contains_key(&first.current));
     assert_eq!(*b.adds.lock().unwrap(), 2);
@@ -421,7 +421,10 @@ fn seal_keychain_readback_failure_retains_reservation_and_requires_observation()
         .is_some());
     assert_eq!(*b.adds.lock().unwrap(), 0);
     *b.read_error.lock().unwrap() = None;
-    assert_eq!(f.run(&b, Operation::Seal, 9).unwrap().current, key_id(&key));
+    assert_eq!(
+        f.run(&b, Operation::Enroll, 9).unwrap().current,
+        key_id(&key)
+    );
     assert_eq!(*b.adds.lock().unwrap(), 0);
 }
 
@@ -434,7 +437,7 @@ fn seal_keychain_pending_rotation_with_lost_prior_key_does_not_commit() {
     assert!(f.run(&b, Operation::Rotate, 2).is_err());
     b.items.lock().unwrap().remove(&name(&f.identity));
     let before = fs::read(f.dir.join(MARKER)).unwrap();
-    assert!(f.run(&b, Operation::Seal, 3).is_err());
+    assert!(f.run(&b, Operation::Rotate, 3).is_err());
     assert_eq!(fs::read(f.dir.join(MARKER)).unwrap(), before);
     assert_eq!(*b.adds.lock().unwrap(), 2);
 }
@@ -466,7 +469,11 @@ fn seal_keychain_pending_rotation_preserves_historical_verification_and_single_k
     assert_eq!(b.reads.lock().unwrap().len(), 1);
     assert_eq!(fs::read(f.dir.join(MARKER)).unwrap(), marker);
     assert_eq!(*b.adds.lock().unwrap(), 2);
-    assert!(f.run(&b, Operation::Seal, 9).is_err());
+    assert_eq!(
+        f.run(&b, Operation::Seal, 9).unwrap().current,
+        first.current
+    );
+    assert_eq!(fs::read(f.dir.join(MARKER)).unwrap(), marker);
     assert_eq!(*b.adds.lock().unwrap(), 2);
 }
 #[test]
@@ -550,5 +557,53 @@ fn seal_keychain_two_initial_enrollments_serialize_one_add() {
     let a = threads.remove(0).join().unwrap();
     let other = threads.remove(0).join().unwrap();
     assert_eq!(a, other);
+    assert_eq!(*b.adds.lock().unwrap(), 1);
+}
+
+#[test]
+fn seal_keychain_seal_reads_only_current_even_if_old_rotation_item_lost() {
+    let f = Fixture::new();
+    let b = Mock::default();
+    let first = f.run(&b, Operation::Enroll, 1).unwrap();
+    let rotated = f.run(&b, Operation::Rotate, 2).unwrap();
+    b.items.lock().unwrap().remove(&name(&f.identity));
+    b.reads.lock().unwrap().clear();
+    let held = f.run(&b, Operation::Seal, 9).unwrap();
+    assert_eq!(held.current, rotated.current);
+    assert_eq!(held.keys.len(), 1);
+    assert_eq!(b.reads.lock().unwrap().len(), 1);
+    assert!(f.run(&b, Operation::VerifyKey(first.current), 9).is_err());
+    assert!(f.run(&b, Operation::Rotate, 9).is_err());
+}
+#[test]
+fn seal_keychain_explicit_enrollment_retries_unreserved_entropy_failure() {
+    let f = Fixture::new();
+    let b = Mock::default();
+    assert!(operate(
+        &f.dir,
+        &f.legacy,
+        &f.identity,
+        true,
+        &b,
+        Operation::Enroll,
+        &mut || Err("synthetic entropy unavailable".into())
+    )
+    .is_err());
+    assert!(f.dir.exists());
+    assert!(!f.dir.join(MARKER).exists());
+    assert!(f.run(&b, Operation::Seal, 1).is_err());
+    assert!(f.run(&b, Operation::Enroll, 1).is_ok());
+    assert_eq!(*b.adds.lock().unwrap(), 1);
+}
+#[test]
+fn seal_keychain_disappearing_existing_directory_never_gets_recreated() {
+    let f = Fixture::new();
+    let b = Mock::default();
+    f.run(&b, Operation::Enroll, 1).unwrap();
+    let dir = f.dir.clone();
+    BEFORE_GUARD
+        .with(|hook| *hook.borrow_mut() = Some(Box::new(move || fs::remove_dir_all(dir).unwrap())));
+    assert!(f.run(&b, Operation::Enroll, 2).is_err());
+    assert!(!f.dir.exists());
     assert_eq!(*b.adds.lock().unwrap(), 1);
 }

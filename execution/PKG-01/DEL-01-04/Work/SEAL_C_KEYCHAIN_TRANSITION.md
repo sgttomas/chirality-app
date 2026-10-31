@@ -107,17 +107,28 @@ continuity guard, not namespace authority, a platform receipt or origin proof.
   production namespace gets its own key, not implicit development continuity.
 - A fixed primary keychain account is checked before enrollment. Existing or
   unavailable primary items refuse a purported fresh namespace. An existing
-  continuity directory without its marker also refuses; it is never reset.
+  continuity directory without its marker refuses normal operations. Explicit
+  host-only Enroll may resume an unreserved setup only after rechecking both
+  legacy and primary-item absence under both locks; no directory is deleted.
+  This explicit act is not triggered by capture/verify/rotation, including after
+  loss. If both old key and marker were externally deleted, their prior existence
+  cannot be inferred: invoking Enroll must be an independently admitted fresh
+  namespace act, not automated loss recovery.
 - A private temporary marker is written, synced, atomically renamed and its
   directory synced BEFORE add. An uncertain marker write stops before add.
-  A crash before reservation leaves no key operation and does not automatically
-  reset an existing incomplete namespace.
+  A crash before reservation leaves no key operation; ordinary paths never
+  reset it. Explicit Enroll can retry after fresh absence checks. Directory
+  creation is allowed only when the same admission observed absence; a directory
+  disappearing after an observed-present result causes refusal, not recreation.
 - Add is followed by exact data readback. Only then is pending committed. Add
   error, duplicate, timeout/unknown outcome or readback failure leaves reservation
   intact; none proves success. No add is retried while pending.
-- A later seal/enrollment/rotation write path may commit pending only after
+- A later explicit enrollment/rotation write path may commit pending only after
   matching actual key ID/full digest readback and retained prior items.
-  Missing/malformed/denied/locked pending items block new sealing/rotation.
+  Missing/malformed/denied/locked pending items block completing enrollment or
+  rotation. Ordinary Seal continues under the already committed current key,
+  reading that key only and never reading/committing pending or older rotated
+  items. If no key is committed, sealing remains unavailable.
   Verify never reads or commits pending: it may still verify a capture using its
   committed historical key. Pending-only first enrollment has no usable key.
 - Rotation first validates all retained keys, reserves one new key, adds an
@@ -197,3 +208,14 @@ ABI regression cohort passed four. The added SDK comparison corrected the existi
 CFNumberGetValue parameter from i32 to CFIndex/isize in installed_custody.rs,
 without changing its policy. Final concurrency and exact-head hosted results
 are recorded in the PR; no native keychain behavior is inferred.
+
+Bounded independent recheck of db587175 confirmed the original four repairs and
+found no merge blocker behind None. Follow-up source refinements make Seal use
+only the committed current key (including during pending rotation), let explicit
+Enroll resume unreserved markerless setup after fresh absence checks, and tie
+creation to observed directory absence. Missing pending-only first-key material
+is deliberately NOT regenerated: exact reserved bytes cannot be reconstructed
+safely. The record and items are retained for a later explicit signing-stage
+continuity disposition (for example, a separately admitted new namespace).
+This limitation remains visible, not converted to successful enrollment or
+silent key replacement. No destructive recovery action is implemented here.
