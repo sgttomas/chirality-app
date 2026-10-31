@@ -1,0 +1,45 @@
+from pathlib import Path
+import subprocess,os,json,hashlib,tarfile,importlib.util,datetime
+root=Path(__file__).parent;repo=Path('/Users/ryan/.t3/worktrees/chirality-app/app-macos-distribution-readiness')
+revision='12d26b8db5f251be97d83d4f574196697df40a70'
+def sha(path):
+ h=hashlib.sha256()
+ with Path(path).open('rb') as f:
+  while data:=f.read(1024*1024):h.update(data)
+ return h.hexdigest()
+def now():return datetime.datetime.now(datetime.timezone.utc).isoformat()
+archive=root/'source.tar'
+with archive.open('wb') as out:subprocess.run(['git','archive','--format=tar',revision],cwd=repo,stdout=out,check=True)
+source=root/'source';source.mkdir()
+with tarfile.open(archive) as t:t.extractall(source,filter='data')
+original=Path('/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/source/app')
+assert (original/'package-lock.json').read_bytes()==(source/'app/package-lock.json').read_bytes()
+assert sha(original/'package-lock.json')=='1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa'
+for origin,destination,internal_links in [(original/'node_modules',source/'app/node_modules',True),(Path('/Users/ryan/dev/chirality-t3/scratch/app-package-rpc-repair-656rmzxx/cargo-home/registry'),root/'cargo-home/registry',False)]:
+ assert origin.is_dir() and not origin.is_symlink()
+ subprocess.run(['/bin/cp','-cR',str(origin),str(destination)],check=True)
+ for base,dirs,files in os.walk(destination,followlinks=False):
+  for name in dirs+files:
+   p=Path(base)/name
+   if p.is_symlink():assert internal_links and p.exists() and p.resolve().is_relative_to(destination),str(p)
+   elif p.is_file():assert p.stat().st_nlink==1,str(p)
+ print(json.dumps({'copied_prepared_dependency_tree':destination.name}),flush=True)
+(root/'cargo-home/config.toml').write_text('[net]\noffline = true\n[build]\njobs = 2\n')
+for name in ('npm-user.conf','npm-global.conf'):(root/name).write_text('')
+s=importlib.util.spec_from_file_location('input_plan',source/'app/packaging/production_inputs/prepare.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+plan=m.prepare(source,Path('/Users/ryan/dev/chirality-t3/scratch/app-package-inputs-frozen-b42vohmf/vendor'),'327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12','0.160.0',revision,root/'plan',test_identifier='dev.chirality.app-v4.package-test.hmhzn4b2')
+m.check_plan(root/'plan')
+recipe=json.loads((root/'plan/build-recipe.json').read_text())
+env=dict(recipe['environment'])
+env.update(PATH='/Users/ryan/.local/share/mise/installs/node/24.18.0/bin:/Users/ryan/.rustup/toolchains/stable-aarch64-apple-darwin/bin:/usr/bin:/bin:/usr/sbin:/sbin',HOME='/Users/ryan',LANG='en_US.UTF-8',TMPDIR=str(root/'tmp'),CARGO_HOME=str(root/'cargo-home'),CARGO_TARGET_DIR=str(root/'target'),CODEX_HOME=str(root/'codex-home'),NPM_CONFIG_CACHE=str(root/'npm-cache'),NPM_CONFIG_USERCONFIG=str(root/'npm-user.conf'),NPM_CONFIG_GLOBALCONFIG=str(root/'npm-global.conf'))
+assert set(env)==set(recipe['environment_allowlist'])
+assert all(name not in env for name in recipe['unset_environment'])
+command=['/Users/ryan/dev/chirality-t3/tools/t3_slot.sh',*recipe['argv']]
+record={'source_revision':revision,'source_tree':subprocess.check_output(['git','rev-parse',revision+'^{tree}'],cwd=repo,text=True).strip(),'source_archive_sha256':sha(archive),'source_archive_bytes':archive.stat().st_size,'prepared_node_lock_sha256':sha(original/'package-lock.json'),'node_dependencies':'read-only COW copied from retained prepared installation, internal symlinks only; no install/download','npm_cache':'empty isolated runtime cache; no dependency acquisition','plan':plan,'command':command,'environment':env,'started_at':now(),'mode':'unqualified unsigned release-profile input test; publisher unselected; no App/supplier launch'}
+(root/'build-invocation.json').write_text(json.dumps(record,indent=2)+'\n')
+print(json.dumps({'stage':'offline slot build','source':revision,'root':str(root)}),flush=True)
+with (root/'build.log').open('wb') as log:result=subprocess.run(command,cwd=recipe['working_directory'],env=env,stdout=log,stderr=subprocess.STDOUT)
+record.update(finished_at=now(),exit_code=result.returncode)
+(root/'build-invocation.json').write_text(json.dumps(record,indent=2)+'\n')
+print(json.dumps({'build_exit_code':result.returncode}),flush=True)
+raise SystemExit(result.returncode)

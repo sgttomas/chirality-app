@@ -71,10 +71,12 @@ Preserve exact private originals and separately identified redacted derivatives.
 All old resource/source pins stay separate; mapping a closure does not adopt a
 new pin, grant runtime authority or prove actual Tauri SDK/bundle inclusion.
 
-## Next actual artifact
+## Actual input-test artifact and next production subject
 
-One coordinated new unsigned release-profile App is the next artifact, from a
-frozen source/export and this input plan, in a separate target/build directory.
+One coordinated unsigned release-profile input-test App has been built from
+exact `12d26b8db5f251be97d83d4f574196697df40a70` in a separate target/build directory;
+the owning Work's `unsigned-release-input-build/12d26b8db5-278899dad62e/` retains
+its actual source, command, inventory and complete resource comparison.
 Do not rebuild or mutate any retained native candidate or state. A default-None
 input-test bundle can establish actual P1/P2/P3/notice/attested-resource placement
 and release-profile build behavior before private publisher values arrive.
