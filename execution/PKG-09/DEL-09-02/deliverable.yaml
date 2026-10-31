@@ -437,6 +437,8 @@ needs:
 code_paths:
 - execution/PKG-09/DEL-09-02/Work/native_b_retained_v7.py
 - execution/PKG-09/DEL-09-02/Work/native_b_ax_route.py
+- app/examination/sq_receiving/receive_packages.py
+- app/examination/sq_receiving/worker_packages.py
 - execution/PKG-09/DEL-09-02/Work/native_b_retained_v6.py
 - execution/PKG-09/DEL-09-02/Work/native_b_retained_v5.py
 - execution/PKG-09/DEL-09-02/Work/native_b_retained_v4.py
@@ -466,6 +468,7 @@ code_paths:
 checks:
 - execution/PKG-09/DEL-09-02/Work/test_native_b_ax_route.py
 - execution/PKG-09/DEL-09-02/Work/test_native_b_retained_v7.py
+- app/tests/group_b_package_successor_test.py
 - execution/PKG-09/DEL-09-02/Work/test_native_b_retained_v6.py
 - execution/PKG-09/DEL-09-02/Work/test_native_b_retained_v5.py
 - execution/PKG-09/DEL-09-02/Work/test_native_b_initial_stability.py
