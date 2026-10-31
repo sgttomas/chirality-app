@@ -1,0 +1,155 @@
+{
+  "format": "swbpipe-catalog-receiving/4-pr40",
+  "repository": "sgttomas/SWBPIPE",
+  "commit": "cc91aadc9822c5c1d8ba3d883a3ee220dddc1b65",
+  "checked_head": "57f5028328bfa50b0a525b7186926a9da88979dc",
+  "pull_request": "https://github.com/sgttomas/SWBPIPE/pull/40",
+  "catalog_version": "swbpipe-catalog/4",
+  "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4/agent-capability-catalog.json",
+  "standing": "explicit source and hash-correspondence receiving; not actual Start/model/Apply or qualification",
+  "predecessor_selection": {
+    "path": "execution/PKG-03/DEL-03-02/Work/swbpipe-catalog-v4-pr30-pins.json",
+    "sha256": "fca3c20b73bdea814d04b3a4350f079f4bdffb18c463d7e0863deeb59e5a1fa5",
+    "commit": "a659523a75dbbf2cdfcccdf8a667b6fb482e10ea"
+  },
+  "sources": [
+    {
+      "path": "execution/PKG-16/DEL-16-06/Work/agent-capability-catalog.json",
+      "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4/agent-capability-catalog.json",
+      "bytes": 50864,
+      "sha256": "8e9a4b4e3eec027d092033ea5d95f1648030520e797c5a660ab387531f23be17",
+      "read_extent": "complete catalog",
+      "lines": "all"
+    },
+    {
+      "path": "apps/desktop/src-tauri/resources/agent-capability-catalog.json",
+      "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4/agent-capability-catalog.json",
+      "bytes": 50864,
+      "sha256": "8e9a4b4e3eec027d092033ea5d95f1648030520e797c5a660ab387531f23be17",
+      "read_extent": "complete catalog; separately fetched and byte-identical",
+      "lines": "all"
+    },
+    {
+      "path": "execution/PKG-16/DEL-16-06/Work/embedded-agent-host.md",
+      "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4-pr30/embedded-agent-host.source.md",
+      "bytes": 53811,
+      "sha256": "40b64f0544431c16b10645d0ad69adf0b7f81522be6e82e7dbc78eb190a2766c",
+      "lines": [
+        [
+          124,
+          131
+        ],
+        [
+          234,
+          261
+        ],
+        [
+          352,
+          361
+        ]
+      ],
+      "read_extent": "PR30 bounded contract extents remain unchanged and separately verified at PR40"
+    },
+    {
+      "path": "apps/desktop/src/features/model-tree/removalIntents.ts",
+      "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4-pr30/removalIntents.source.ts.txt",
+      "bytes": 7889,
+      "sha256": "d7b2f9927daa1a4701655be9185919cc1ea062567f9f0b1b90377f9f4b8f5c5f",
+      "lines": [
+        [
+          1,
+          115
+        ]
+      ],
+      "read_extent": "shared formatter dependency byte-identical at PR40; prior inspected extent1\u2013115 remains applicable"
+    },
+    {
+      "path": "apps/desktop/src/services/embeddedAgentSession.ts",
+      "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4-pr40/embeddedAgentSession.source.ts.txt",
+      "bytes": 33980,
+      "sha256": "732dba10c224b102e8da9ffb43476a2d0067d778edc7dc47f12305ad11227a1e",
+      "lines": [
+        [
+          29,
+          48
+        ],
+        [
+          192,
+          198
+        ],
+        [
+          221,
+          227
+        ],
+        [
+          240,
+          266
+        ],
+        [
+          297,
+          344
+        ]
+      ],
+      "read_extent": "strict engine-to-catalog conversion and catalog-only validation; register/update/current/observed/solve/result use sites and unchanged engine batch"
+    },
+    {
+      "path": "apps/desktop/src/features/workspace/workspaceSession.ts",
+      "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4-pr40/workspaceSession.source.ts.txt",
+      "bytes": 205070,
+      "sha256": "97dd3f1908ed733d99498a921b2be37d6513f048122db980eb8db5b95f90d009",
+      "lines": [
+        [
+          350,
+          374
+        ],
+        [
+          686,
+          711
+        ],
+        [
+          3998,
+          4035
+        ]
+      ],
+      "read_extent": "owned generation/UI revision; computed-for modelRevision capture and live snapshot gate; no whole workspace adoption"
+    },
+    {
+      "path": "execution/PKG-16/DEL-16-06/Work/agent-live-session.md",
+      "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4-pr40/agent-live-session.source.md",
+      "bytes": 16928,
+      "sha256": "334689dd04ebafececedadee45fc343258831c3f05f190976727070007523c1b",
+      "lines": [
+        [
+          133,
+          169
+        ]
+      ],
+      "read_extent": "reported Start/register defects and fix/test account; not independently observed execution"
+    },
+    {
+      "path": "apps/desktop/src/features/workspace/agentWorkspaceSnapshot.session.test.tsx",
+      "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4-pr40/agentWorkspaceSnapshot.session.test.source.tsx.txt",
+      "bytes": 5230,
+      "sha256": "271f5e9075581af815a1c28b3d6e42045466ffd31164f4364764770fdf834bd9",
+      "lines": "all",
+      "read_extent": "inspected regression source: load/edit/pendinghash/undo before render; not executed"
+    },
+    {
+      "path": "apps/desktop/src/services/embeddedAgentSession.test.ts",
+      "snapshot": "execution/PKG-09/DEL-09-06/Work/catalog-v4-pr40/embeddedAgentSession.test.source.ts.txt",
+      "bytes": 24930,
+      "sha256": "7b9ebc151459edb3915585443b4aea79b588780d53281c8e380621dd89a78601",
+      "lines": [
+        [
+          1,
+          72
+        ],
+        [
+          101,
+          108
+        ]
+      ],
+      "read_extent": "inspected strict hash conversion/register/update/batch/outcome/solve/retained basis assertions; not executed"
+    }
+  ]
+}
