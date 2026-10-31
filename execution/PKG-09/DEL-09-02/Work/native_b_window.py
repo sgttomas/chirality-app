@@ -10,6 +10,10 @@ CAPTURE=Path('/usr/sbin/screencapture')
 HELPER=HERE.with_name('native_b_window_helper.py')
 MAX_IMAGE=32*1024*1024
 MAX_OPERATIONS=96
+INITIAL_SETTLE_SECONDS=3.0
+INITIAL_SETTLE_SPACING=0.25
+INITIAL_SETTLE_MATCHES=3
+INITIAL_SETTLE_SAMPLES=13
 class Reobserve(RuntimeError):pass
 class WindowUnavailable(RuntimeError):pass
 
@@ -170,7 +174,7 @@ def point(window,image,x,y):
 
 class WindowRoute:
     def __init__(self,run):
-        self.run=run;self.sequence=0;self.frames={};self.helper=None;self.last=None;self.failure=None;self.stop_context=None;self.modal_active=False;self.modal_confirm_attempted=False;self.modal_window=None
+        self.run=run;self.sequence=0;self.frames={};self.helper=None;self.last=None;self.failure=None;self.stop_context=None;self.modal_active=False;self.modal_confirm_attempted=False;self.modal_window=None;self.initial_acquisition_started=False;self.initial_binding=None;self.input_started=False
     def helpers_settled(self):
         if self.helper is None:return True
         try:
@@ -220,12 +224,71 @@ class WindowRoute:
             if any(r['window_id']==self.modal_window['window_id'] and r['on_screen'] is True for r in owned_inventory(backend,identity['pid'])):
                 raise WindowUnavailable('Stop modal still visible after confirmation attempt; effect unavailable')
         return identity,window
+    def acquire_initial_window(self):
+        require(not self.initial_acquisition_started and not self.input_started and self.sequence==0
+                and self.last is None and not self.frames and self.helper is None and not self.modal_active
+                and self.stop_context is None,'initial stability unavailable after acquisition/capture/input transaction')
+        self.initial_acquisition_started=True # one acquisition, including refusal
+        backend=None
+        try:
+            self.run.alive()
+            started=time.monotonic()
+            end=min(started+INITIAL_SETTLE_SECONDS,self.run.work_end-6.25,self.run.cleanup_end-6.25,
+                    getattr(self.run,'ui_deadline',self.run.work_end)-6.25)
+            require(end-started>=INITIAL_SETTLE_SPACING*(INITIAL_SETTLE_MATCHES-1),
+                    'initial stability lacks settle spacing and helper reserve')
+            backend=d.NativeBackend()
+            require(backend.screen_access(),'screen capture unavailable: preflight false; no prompt/fallback')
+            anchor_identity=None;anchor_window=None;previous=None;previous_at=None;matches=0
+            for index in range(1,INITIAL_SETTLE_SAMPLES+1):
+                self.run.alive();require(time.monotonic()<end,'initial window did not stabilize within budget')
+                before=d.bound_identity(self.run,backend)
+                # Before the first selection, absence may wait inside this same
+                # budget. After selection, disappearance/replacement refuses.
+                try:window=select_main(backend,before['pid'])
+                except WindowUnavailable:window=None
+                after=d.bound_identity(self.run,backend)
+                sampled=time.monotonic()
+                self.run.record(f'initial-window-sample-{index:02d}.json',
+                    {'at':d.now(),'monotonic':sampled,'identity_before':before,'identity_after':after,
+                     'window':window,'elapsed_seconds':sampled-started,'minimum_spacing_seconds':INITIAL_SETTLE_SPACING})
+                require(before==after,'App identity changed across initial window sample')
+                require(sampled<end,'initial window sample exceeded budget')
+                if anchor_identity is None:anchor_identity=before
+                require(before==anchor_identity,'original App incarnation changed during initial stability')
+                if window is None:
+                    require(anchor_window is None,'selected initial window disappeared; no replacement')
+                    require(time.monotonic()+INITIAL_SETTLE_SPACING<end,'initial window unavailable within budget')
+                    time.sleep(INITIAL_SETTLE_SPACING);continue
+                invariant={k:v for k,v in window.items() if k!='bounds'}
+                if anchor_window is None:anchor_window=invariant
+                require(invariant==anchor_window,'initial window identity/title/layer/visibility/count changed; no replacement')
+                if previous is not None and window==previous and sampled-previous_at>=INITIAL_SETTLE_SPACING:
+                    matches+=1
+                else:matches=1
+                previous=window;previous_at=sampled
+                if matches==INITIAL_SETTLE_MATCHES:
+                    self.initial_binding=(before,window)
+                    self.run.record('initial-window-stable.json',{'at':d.now(),'identity':before,'window':window,
+                        'samples':index,'consecutive_matches':matches,'minimum_spacing_seconds':INITIAL_SETTLE_SPACING,
+                        'elapsed_seconds':sampled-started,'limits':'Pre-capture acquisition only; subsequent exact checks remain mandatory.'})
+                    return self.initial_binding
+                require(time.monotonic()+INITIAL_SETTLE_SPACING<end,'initial window did not stabilize within budget')
+                time.sleep(INITIAL_SETTLE_SPACING)
+            raise RuntimeError('initial window stability sample bound exhausted')
+        except BaseException as error:
+            self.failure=str(error);raise
+        finally:
+            if backend is not None:backend.close()
+
     def capture(self):
         self.run.alive();require(self.sequence<MAX_OPERATIONS,'window operation bound exhausted')
         backend=d.NativeBackend()
         try:
             require(backend.screen_access(),'screen capture unavailable: preflight false; no prompt/fallback')
             identity,window=self.bound_window(backend)
+            if self.initial_binding is not None and self.sequence==0:
+                require((identity,window)==self.initial_binding,'initial stable window changed before capture request; no reselection')
             self.sequence+=1;number=self.sequence
             path=self.run.root/f'capture-{number:03d}.unverified.png'
             require(not os.path.lexists(path),'capture destination used')
@@ -253,6 +316,7 @@ class WindowRoute:
             self.failure=str(error);raise
         finally:backend.close()
     def input(self,action,frame,position=None,delta=None,stop_generation=None):
+        self.input_started=True
         self.run.alive();require(self.last is frame,'input requires latest captured window')
         require(time.time()-__import__('datetime').datetime.fromisoformat(frame['at']).timestamp()<45,'capture too old for input; reobserve')
         if action!='focus':
@@ -313,7 +377,7 @@ def private_path(root,filename):
 
 def configuration():
     sources=(HERE,HELPER,HERE.with_name('native_b_diagnostic.py'))
-    return {'version':'chirality.owned-window-ui/v2','modal_scope':'one-derived-stop-confirmation','tools':tools_identity(),'python_prefixes':python_prefixes(),'helper_sources':{p.name:sha(p) for p in sources}}
+    return {'version':'chirality.owned-window-ui/v3','initial_stability':{'seconds':INITIAL_SETTLE_SECONDS,'spacing':INITIAL_SETTLE_SPACING,'matches':INITIAL_SETTLE_MATCHES,'sample_limit':INITIAL_SETTLE_SAMPLES},'modal_scope':'one-derived-stop-confirmation','tools':tools_identity(),'python_prefixes':python_prefixes(),'helper_sources':{p.name:sha(p) for p in sources}}
 
 def stage(root,config):
     for filename,digest in config['helper_sources'].items():

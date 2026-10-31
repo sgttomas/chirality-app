@@ -55,11 +55,14 @@ class Integration(unittest.TestCase):
   backend=SimpleNamespace(close=Mock())
   with patch.object(m.w.d,'NativeBackend',return_value=backend),patch.object(m.w.d,'bound_identity',return_value={'pid':1}):self.run.request_quit_ui()
   self.run.ax.press.assert_called_once_with('quit')
- def test_initial_window_wait_has_15second_limit(self):
-  self.run.screen.window.capture=Mock(side_effect=m.w.WindowUnavailable('not yet'))
-  with patch.object(m.time,'monotonic',side_effect=[0,16]),patch.object(m.time,'sleep'):
-   with self.assertRaises(m.w.WindowUnavailable):self.run.observe_ready()
-  self.assertEqual(self.run.screen.window.failure,'not yet')
+ def test_initial_stability_runs_once_inside_15second_limit(self):
+  self.run.screen.window.acquire_initial_window=Mock(side_effect=RuntimeError('not stable'))
+  self.run.screen.window.capture=Mock()
+  with patch.object(m.time,'monotonic',return_value=100):
+   with self.assertRaisesRegex(RuntimeError,'not stable'):self.run.observe_ready()
+  self.assertEqual(self.run.ui_deadline,115)
+  self.run.screen.window.acquire_initial_window.assert_called_once()
+  self.run.screen.window.capture.assert_not_called()
  def test_phase_caps_preserve_downstream_reserve(self):
   expected={'ready':(60,205),'recheck':(35,170),'cleanup-source':(35,135),'stop':(20,115),'stop-confirmation':(30,85),'settlement':(45,40)}
   self.assertEqual(m.PHASE_BUDGETS,expected)
