@@ -1,0 +1,259 @@
+{
+  "archived_at": "2026-10-31T10:00:36.617651+00:00",
+  "candidate": "fdcf608fb5-23c6c3f22f5e",
+  "attempt": "second B, FAILED; no generation/LT23",
+  "original_App_cleanup": "One separately selected native menu Quit, normal exit0 observed by original Child keeper; administrative wait0",
+  "observer_cleanup": "Reviewed admission-bound administrative release; original execution11867 returned1; slot2 released; shared memguard retained",
+  "dispatch_chronology": "Parent corrected-traversal authorization was written in its final response but not delivered to manager until09:57Z. Manager idle since03:27; prolonged hold was dispatch delay, not required owner approval or continuous execution. Heartbeats/guard continued.",
+  "limits": "No supplier settlement or detached-helper clearance inferred. No WindowServer inventory captured while alive. Raw originals and all candidate/A/recovery inputs retained.",
+  "files": [
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/actions.jsonl",
+      "archive_path": "actions.jsonl",
+      "encoding": "identity",
+      "original_sha256": "fd5450ce537aa8356d6fc991b73e66285e037a97ef6aedfc2cd5ceef46eabc41",
+      "archive_sha256": "fd5450ce537aa8356d6fc991b73e66285e037a97ef6aedfc2cd5ceef46eabc41",
+      "original_bytes": 1000
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/administrative-release-intent.json",
+      "archive_path": "administrative-release-intent.json",
+      "encoding": "identity",
+      "original_sha256": "59b6f377028a5c2b073a6b06c3f34821b0396ffe54d4c221bf50154935fd7345",
+      "archive_sha256": "59b6f377028a5c2b073a6b06c3f34821b0396ffe54d4c221bf50154935fd7345",
+      "original_bytes": 715
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/administrative-release-request.json",
+      "archive_path": "administrative-release-request.json",
+      "encoding": "identity",
+      "original_sha256": "cad57c80e8f47666defc8a42f69fc70e01b98da304cab66bea6a6e97e14dd949",
+      "archive_sha256": "cad57c80e8f47666defc8a42f69fc70e01b98da304cab66bea6a6e97e14dd949",
+      "original_bytes": 221
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/administrative-release-result.json",
+      "archive_path": "administrative-release-result.json",
+      "encoding": "identity",
+      "original_sha256": "face7bb4b31d29f9db62ec86cf4890364105f733e5483c0823830e568e6850d4",
+      "archive_sha256": "face7bb4b31d29f9db62ec86cf4890364105f733e5483c0823830e568e6850d4",
+      "original_bytes": 733
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/admission.json",
+      "archive_path": "admission.json",
+      "encoding": "identity",
+      "original_sha256": "1540161e6fd128a81f0b11796e5a6cd8aace0052591d50e539f156121a58c1a0",
+      "archive_sha256": "1540161e6fd128a81f0b11796e5a6cd8aace0052591d50e539f156121a58c1a0",
+      "original_bytes": 42899
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/artifact-check.json",
+      "archive_path": "artifact-check.json",
+      "encoding": "identity",
+      "original_sha256": "491be4b11c6c1c51cf9ba5fc6b2556f45d1b368d10ed66bb4cd25a8fb39b899d",
+      "archive_sha256": "491be4b11c6c1c51cf9ba5fc6b2556f45d1b368d10ed66bb4cd25a8fb39b899d",
+      "original_bytes": 465
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/cleanup-menu-action-result.json",
+      "archive_path": "cleanup-menu-action-result.json",
+      "encoding": "identity",
+      "original_sha256": "6de25606d116fc3dfe971b555a4e0147c0fa4ce60a58ffd6a668f3af068cf9bf",
+      "archive_sha256": "6de25606d116fc3dfe971b555a4e0147c0fa4ce60a58ffd6a668f3af068cf9bf",
+      "original_bytes": 106
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/cleanup-menu-before-correction.py.txt",
+      "archive_path": "cleanup-menu-before-correction.py.txt",
+      "encoding": "identity",
+      "original_sha256": "2d8c0833db85ad7cc63a6330cbab521af6578fbe4ea4229eb675ed25cefba12b",
+      "archive_sha256": "2d8c0833db85ad7cc63a6330cbab521af6578fbe4ea4229eb675ed25cefba12b",
+      "original_bytes": 4600
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/cleanup-menu-pre-action-refusal.json",
+      "archive_path": "cleanup-menu-pre-action-refusal.json",
+      "encoding": "identity",
+      "original_sha256": "b3ad5baf9e2da43615c1b396b37660cf7a3e60e2866e37ea9c12e3c7cd9a86fa",
+      "archive_sha256": "b3ad5baf9e2da43615c1b396b37660cf7a3e60e2866e37ea9c12e3c7cd9a86fa",
+      "original_bytes": 2225
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/cleanup-menu-request.json",
+      "archive_path": "cleanup-menu-request.json",
+      "encoding": "identity",
+      "original_sha256": "0cff5fcc021aa93de2fa5aed5a0e33356d649d7562168e38772970740276a788",
+      "archive_sha256": "0cff5fcc021aa93de2fa5aed5a0e33356d649d7562168e38772970740276a788",
+      "original_bytes": 4064
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/cleanup-menu.py",
+      "archive_path": "cleanup-menu.py.txt",
+      "encoding": "identity",
+      "original_sha256": "e63654a230f6a0af1be4102c0ab49f67fad07d4be0714cac0a9bd72884febc77",
+      "archive_sha256": "e63654a230f6a0af1be4102c0ab49f67fad07d4be0714cac0a9bd72884febc77",
+      "original_bytes": 5136
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/cleanup-normal-exit-release-selection.json",
+      "archive_path": "cleanup-normal-exit-release-selection.json",
+      "encoding": "identity",
+      "original_sha256": "790d5b43571d13799c61e4389b03d74151cf756ee1b1b82de4857e4706c16cc0",
+      "archive_sha256": "790d5b43571d13799c61e4389b03d74151cf756ee1b1b82de4857e4706c16cc0",
+      "original_bytes": 2180
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/cleanup-own-window-child-inventory.json",
+      "archive_path": "cleanup-own-window-child-inventory.json",
+      "encoding": "identity",
+      "original_sha256": "ac433724420ac84863d3a3f19798dcdb22e5c5044a039d9c489e84fa01cec276",
+      "archive_sha256": "ac433724420ac84863d3a3f19798dcdb22e5c5044a039d9c489e84fa01cec276",
+      "original_bytes": 3649
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/cleanup-owned-app-menu-inventory.json",
+      "archive_path": "cleanup-owned-app-menu-inventory.json",
+      "encoding": "identity",
+      "original_sha256": "d38fb2783c716a9f4f229ee791b774ac76bfc5195c38709003ce430944728799",
+      "archive_sha256": "d38fb2783c716a9f4f229ee791b774ac76bfc5195c38709003ce430944728799",
+      "original_bytes": 1439
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/cleanup-resource-settlement.json",
+      "archive_path": "cleanup-resource-settlement.json",
+      "encoding": "identity",
+      "original_sha256": "40e13d01d67bfd9d66754819324a32b06c69b0f1b91052a6fa5161171dc76636",
+      "archive_sha256": "40e13d01d67bfd9d66754819324a32b06c69b0f1b91052a6fa5161171dc76636",
+      "original_bytes": 879
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/controller.py.txt",
+      "archive_path": "controller.py.txt",
+      "encoding": "identity",
+      "original_sha256": "cc4bbeb276fcf130f532b6336245d7bd7c79ca22ce02757c2738c6c624e144a1",
+      "archive_sha256": "cc4bbeb276fcf130f532b6336245d7bd7c79ca22ce02757c2738c6c624e144a1",
+      "original_bytes": 46463
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/execution-started.json",
+      "archive_path": "execution-started.json",
+      "encoding": "identity",
+      "original_sha256": "812b83329f31b38c685ecb43aa79b8d8cdfa227b35a3d206d4cef3d26f1f19c6",
+      "archive_sha256": "812b83329f31b38c685ecb43aa79b8d8cdfa227b35a3d206d4cef3d26f1f19c6",
+      "original_bytes": 89
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/held-AX.json",
+      "archive_path": "held-AX.json",
+      "encoding": "identity",
+      "original_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "archive_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "original_bytes": 3
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/held-heartbeat.jsonl",
+      "archive_path": "held-heartbeat.jsonl.gz",
+      "encoding": "gzip",
+      "original_sha256": "ff4a0cf35ae4767cd3b8c315514830a33ea7c90315bf17b13726506f2399aabe",
+      "archive_sha256": "4df47db903cabcf3d75fd416ecd87fb83079d83b87d899e0af7e9455e3e8a8ef",
+      "original_bytes": 16982097
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/held-result.json",
+      "archive_path": "held-result.json",
+      "encoding": "identity",
+      "original_sha256": "3cfddc818c29cc8ac21ac0c7e2132b32480ebfe75e0ae7892ad61e575751fc33",
+      "archive_sha256": "3cfddc818c29cc8ac21ac0c7e2132b32480ebfe75e0ae7892ad61e575751fc33",
+      "original_bytes": 1555
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/invocation.json",
+      "archive_path": "invocation.json",
+      "encoding": "identity",
+      "original_sha256": "e155c61b38c35ed07f002a4755122312d4c2248ea30d355b99c41fb04346a369",
+      "archive_sha256": "e155c61b38c35ed07f002a4755122312d4c2248ea30d355b99c41fb04346a369",
+      "original_bytes": 750
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/invoke.py",
+      "archive_path": "invoke.py.txt",
+      "encoding": "identity",
+      "original_sha256": "2d2850c16040d988f778d203a73f67acf09b427f11798cbc16efd42aa74d4c7b",
+      "archive_sha256": "2d2850c16040d988f778d203a73f67acf09b427f11798cbc16efd42aa74d4c7b",
+      "original_bytes": 1289
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/last-diagnostics.json",
+      "archive_path": "last-diagnostics.json",
+      "encoding": "identity",
+      "original_sha256": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+      "archive_sha256": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+      "original_bytes": 5
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/native_b_ax.py.txt",
+      "archive_path": "native_b_ax.py.txt",
+      "encoding": "identity",
+      "original_sha256": "4a5a26d43063f271188a90c290e3bae56cc7794014149ca5ae7504b005737cef",
+      "archive_sha256": "4a5a26d43063f271188a90c290e3bae56cc7794014149ca5ae7504b005737cef",
+      "original_bytes": 5711
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/native_b_release.py.txt",
+      "archive_path": "native_b_release.py.txt",
+      "encoding": "identity",
+      "original_sha256": "a3ff5fbe1316125c29aa6674c0eb5816776b6ef4840034fb20bc9e45fcdba6c7",
+      "archive_sha256": "a3ff5fbe1316125c29aa6674c0eb5816776b6ef4840034fb20bc9e45fcdba6c7",
+      "original_bytes": 6842
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/phase-B.sb",
+      "archive_path": "phase-B.sb",
+      "encoding": "identity",
+      "original_sha256": "87ad98fb64bfcfaea902357c7daca31a1507e1ac7fc6df829d2a0019df714c12",
+      "archive_sha256": "87ad98fb64bfcfaea902357c7daca31a1507e1ac7fc6df829d2a0019df714c12",
+      "original_bytes": 1195
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/release-observer-after-app-exit.json",
+      "archive_path": "release-observer-after-app-exit.json",
+      "encoding": "identity",
+      "original_sha256": "cad57c80e8f47666defc8a42f69fc70e01b98da304cab66bea6a6e97e14dd949",
+      "archive_sha256": "cad57c80e8f47666defc8a42f69fc70e01b98da304cab66bea6a6e97e14dd949",
+      "original_bytes": 221
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/stderr.log",
+      "archive_path": "stderr.log",
+      "encoding": "identity",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archive_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/stdout.log",
+      "archive_path": "stdout.log",
+      "encoding": "identity",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archive_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/wrapper-result.json",
+      "archive_path": "wrapper-result.json",
+      "encoding": "identity",
+      "original_sha256": "8abbd27a2021309bb46a5c80fc0abbc24260abbfffbce63329ddd925007ee06a",
+      "archive_sha256": "8abbd27a2021309bb46a5c80fc0abbc24260abbfffbce63329ddd925007ee06a",
+      "original_bytes": 146
+    },
+    {
+      "original_path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/post-closure-own-directory-observation.json",
+      "archive_path": "post-closure-own-directory-observation.json",
+      "encoding": "identity",
+      "original_sha256": "a49fdc4799a315ffb816249e33f77357fd6331a2954732c37ad99bcc17e00616",
+      "archive_sha256": "a49fdc4799a315ffb816249e33f77357fd6331a2954732c37ad99bcc17e00616",
+      "original_bytes": 547
+    }
+  ]
+}

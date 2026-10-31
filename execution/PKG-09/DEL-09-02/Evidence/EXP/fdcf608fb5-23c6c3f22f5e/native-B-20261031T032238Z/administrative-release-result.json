@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-31T09:58:26.305210+00:00",
+  "candidate": "fdcf608fb5-23c6c3f22f5e",
+  "phase": "B",
+  "state": "observer-released-after-external-app-exit",
+  "success": false,
+  "original_error": "distinct owned main AXWindow unavailable",
+  "actual_app_wait_code": 0,
+  "administrative_app_reap": true,
+  "original_app_reaped": true,
+  "app_exit_observation": {
+    "code": 1,
+    "status": 0
+  },
+  "supplier_settled_observed": false,
+  "generation": null,
+  "actor": "controller under explicit task-operator disposition; not personal human act",
+  "post_reap_errors": [],
+  "limits": "Administrative observer release only. No generation, LT-23, supplier settlement or B success is manufactured by waiting the original App."
+}

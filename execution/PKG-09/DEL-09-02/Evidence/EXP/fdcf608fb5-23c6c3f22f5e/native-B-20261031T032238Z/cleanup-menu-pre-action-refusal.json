@@ -1,0 +1,51 @@
+{
+  "at": "2026-10-31T03:27:55.035174+00:00",
+  "command": [
+    "/Users/ryan/.local/share/mise/installs/python/3.13/bin/python",
+    "-B",
+    "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o/cleanup-menu.py"
+  ],
+  "helper_sha256": "2d8c0833db85ad7cc63a6330cbab521af6578fbe4ea4229eb675ed25cefba12b",
+  "exit_code": 1,
+  "failure": "AssertionError at cleanup-menu.py:44, depth<=6 and len(rows)<150; bounded traversal refused before Quit intent/action",
+  "quit_intent_exists": false,
+  "quit_action_result_exists": false,
+  "administrative_control_exists": false,
+  "keeper": {
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "phase": "B",
+    "state": "held-unknown",
+    "administrative_release_request": null,
+    "administrative_release_consumed": false,
+    "administrative_release_control": {
+      "file": "release-observer-after-app-exit.json",
+      "mode": "0600",
+      "requirements": "plain owned single-link file, exact offered JSON body; create privately then atomically rename into place; one occurrence including refusal, no replacement/retry"
+    },
+    "error": "distinct owned main AXWindow unavailable",
+    "app_exit_observation": null,
+    "original_app_reaped": false,
+    "supplier_settled_observed": false,
+    "quit_requested": false,
+    "generation": null,
+    "recovery_limit": "Permanent AX/parser loss cannot be repaired inside this frozen controller; retain supervision and report the exact missing observation. No numeric escalation or automatic duplicate UI action.",
+    "recovery_control": "write retry-native-cleanup.json with {action:retry-native-cleanup,candidate:<this candidate>}; same source is reobserved, no numeric inputs or repeated UI actions",
+    "guard_reason": null,
+    "logging_errors": [],
+    "observed_executable_processes": [
+      {
+        "pid": 30624,
+        "parent": 30603,
+        "under_controller_ancestry": true
+      },
+      {
+        "pid": 30636,
+        "parent": 30624,
+        "under_controller_ancestry": true
+      }
+    ],
+    "overrun": true,
+    "at": "2026-10-31T03:27:54.023309+00:00",
+    "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "at": "2026-10-31T09:58:03.365681+00:00",
+  "actor": "agent under owner direction; not a personal human act",
+  "scope": "one parent-authorized cleanup-only owned menu Quit; B stays failed",
+  "menu_item": {
+    "AXRole": "AXMenuItem",
+    "AXSubrole": null,
+    "AXTitle": "Quit Chirality App v4 (development 20261030 eqxsxv4n)",
+    "AXEnabled": true
+  },
+  "heartbeat": {
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "phase": "B",
+    "state": "held-unknown",
+    "administrative_release_request": null,
+    "administrative_release_consumed": false,
+    "administrative_release_control": {
+      "file": "release-observer-after-app-exit.json",
+      "mode": "0600",
+      "requirements": "plain owned single-link file, exact offered JSON body; create privately then atomically rename into place; one occurrence including refusal, no replacement/retry"
+    },
+    "error": "distinct owned main AXWindow unavailable",
+    "app_exit_observation": null,
+    "original_app_reaped": false,
+    "supplier_settled_observed": false,
+    "quit_requested": false,
+    "generation": null,
+    "recovery_limit": "Permanent AX/parser loss cannot be repaired inside this frozen controller; retain supervision and report the exact missing observation. No numeric escalation or automatic duplicate UI action.",
+    "recovery_control": "write retry-native-cleanup.json with {action:retry-native-cleanup,candidate:<this candidate>}; same source is reobserved, no numeric inputs or repeated UI actions",
+    "guard_reason": "exclusive pending",
+    "logging_errors": [],
+    "observed_executable_processes": [
+      {
+        "pid": 30624,
+        "parent": 30603,
+        "under_controller_ancestry": true
+      },
+      {
+        "pid": 30636,
+        "parent": 30624,
+        "under_controller_ancestry": true
+      }
+    ],
+    "overrun": true,
+    "at": "2026-10-31T09:58:02.193417+00:00",
+    "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+  },
+  "admission_sha256": "1540161e6fd128a81f0b11796e5a6cd8aace0052591d50e539f156121a58c1a0",
+  "source_dependencies": {
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_setup_continuation.py": "c7907e185df14aa51a5ad908c1d55f18e9e4679edb57f7da417b47252eae0acc",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Evidence/EXP/d908cbec5b-headless-setup-20261030T055603Z/offline-native-controller-v2.py.txt": "91c9ca98d7bf8d784e2cea5cbd42d237230b9018d58f5e04e369a755d5b7720c",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/app/examination/candidate_identity/identify.py": "983ad088945b9f0a05fbf374630d83d596b743ad7af4b8ffc13ae4c2ed3981ae",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/app/examination/candidate_identity/bundled_supplier.py": "6604fbe6efb7aa291b915a27d5a07270b5d96191090780ad88d2c195c5d4239f",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-01/Work/candidate-identity-v3/candidate-identification.schema.json": "8b0f84322e801123f0c333bf4f50d4729aec2d60ab1bf72535fa7c05c0385a0e",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_setup.py": "5ece0059c9d5ecb170b53dcae3f921eaf99dff585662e1a0cc8cb17a9b08a641",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py": "cc4bbeb276fcf130f532b6336245d7bd7c79ca22ce02757c2738c6c624e144a1",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_ax.py": "4a5a26d43063f271188a90c290e3bae56cc7794014149ca5ae7504b005737cef",
+    "/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_b_release.py": "a3ff5fbe1316125c29aa6674c0eb5816776b6ef4840034fb20bc9e45fcdba6c7"
+  }
+}

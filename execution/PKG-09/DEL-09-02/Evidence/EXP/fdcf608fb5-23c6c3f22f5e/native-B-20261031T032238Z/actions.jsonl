@@ -1,0 +1,6 @@
+{"at": "2026-10-31T03:22:38.823949+00:00", "event": "native_B_started", "pid": 30624, "actor": "agent under owner direction; not a personal human act", "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."}
+{"at": "2026-10-31T03:22:38.833839+00:00", "event": "native_window_observation", "windows": []}
+{"at": "2026-10-31T03:22:39.233421+00:00", "event": "native_window_observation", "windows": [{"AXRole": "AXApplication", "AXSubrole": null, "AXTitle": "Chirality App v4 (development 20261030 eqxsxv4n)", "disposition": "application-self-reference"}]}
+{"at": "2026-10-31T03:22:53.874580+00:00", "event": "work_failed", "error": "distinct owned main AXWindow unavailable"}
+{"at": "2026-10-31T03:23:08.905487+00:00", "event": "normal_cleanup_unavailable", "error": "distinct owned main AXWindow unavailable"}
+{"at": "2026-10-31T03:23:08.905983+00:00", "event": "held_unknown", "error": "distinct owned main AXWindow unavailable"}
