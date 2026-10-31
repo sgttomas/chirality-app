@@ -11,6 +11,7 @@ pub mod act_policy;
 pub mod attachments;
 pub mod canonical;
 pub mod capture_seal;
+mod capture_seal_keychain;
 mod installation;
 pub mod catalog;
 mod checkpoint_recorder;
@@ -2571,8 +2572,8 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
             if let Err(e) = records_store::attach(ws, true) { eprintln!("chirality: the project was not given its records identity at startup: {e}"); }
         }
     }
-    // AAC §6.3 SEAL-C: this installation's capture-seal keys live in the
-    // App data folder, outside every project.
+    // AAC §6.3 SEAL-C: install the App-owned location; the gated signed
+    // provider never falls back to development file keys. Ordering unchanged.
     if let Ok(data) = data.as_ref() { capture_seal::install(data); installation::install(data); }
     home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
     if state.home_bootstrap.lock().unwrap().is_err() { *state.home_bootstrap.lock().unwrap() = (|| {

@@ -190,6 +190,8 @@ jobs:
         run: |
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib publisher_recipe:: -- --test-threads=1
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib publisher_selection::tests -- --test-threads=1
+      - name: SEAL-C provider transition (mock keychain only)
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib capture_seal -- --test-threads=1
       - name: Connected static packaging
         run: |
           cargo build --locked --manifest-path src-tauri/Cargo.toml --example distribution-static
