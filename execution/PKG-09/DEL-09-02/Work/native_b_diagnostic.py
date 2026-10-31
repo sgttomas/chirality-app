@@ -236,9 +236,9 @@ def window_inventory(backend, pid, check=lambda: None):
             'screen_capture_preflight_access': access, 'rows': result}
 
 
-def ax_inventory(backend, pid, check=lambda: None):
+def ax_inventory(backend, pid, check=lambda: None, application=None):
     check()
-    app = backend.app(pid)
+    app = backend.app(pid) if application is None else application
     rc, owner = backend.owner(app)
     require(rc == 0 and owner == pid, 'owned AX application unavailable')
     result = []
