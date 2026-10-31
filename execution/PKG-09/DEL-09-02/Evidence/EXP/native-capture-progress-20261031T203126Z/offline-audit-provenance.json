@@ -1,0 +1,14 @@
+{
+  "source": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-5kpzvvr3/window-001.png",
+  "crop_box": [
+    1100,
+    270,
+    1340,
+    380
+  ],
+  "original_pixel_point": [
+    1200,
+    325
+  ],
+  "purpose": "offline retained-image coordinate audit, no new capture"
+}

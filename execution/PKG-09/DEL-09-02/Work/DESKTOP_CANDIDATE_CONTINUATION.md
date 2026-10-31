@@ -299,3 +299,8 @@ retained, and no further launch is authorized.
 The [7sinkdji geometry refusal](FAILED_B_GEOMETRY_20261031.md) retained an
 actual same-window X/width mismatch before capture. Its normal Quit and
 administrative reap closed resources, with B still FAILED and no image or LT23.
+
+[Native capture progress](NATIVE_CAPTURE_PROGRESS.md) records successful scoped
+images in5kpzvvr3, a posted navigation click with no observed effect, failed B
+and normal cleanup. The bounded click-routing hypothesis and exact v5 state
+are kept distinct from those actual facts.
