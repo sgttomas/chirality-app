@@ -172,3 +172,15 @@ The current index/asset correspondence is true, notice-text coverage remains
 incomplete, and no missing text/asset or legal/release claim was invented. See
 DEL-01-06 Work/PR69_MACOS_NOTICE_INPUTS.md. No retained build was modified.
 This reconciliation is separate from the four generated receiver-pin files.
+
+### Recorded-replay fixture synchronization
+
+Shard B at `ac910cc1` failed in the existing recorded-ST5 relaunch fixture:
+`stored_entries` reopened the disk ledger concurrently with its Host writer,
+and SQLite's transient journal failed the physical single-link guard. The
+fixture's `ledger()` now holds that same Host ledger mutex during its independent
+reopen. It still reads the persisted database and preserves the product guard;
+no production recovery or native lifecycle code changes. The full six-test
+recorded-replay cohort passed offline/locked, jobs2/serial under t3_slot after
+the repair. Original CI failure and `pr69-recorded-replay-fix.log` are retained
+in the private scratch above. No sleep/retry or weakened assertion was added.
