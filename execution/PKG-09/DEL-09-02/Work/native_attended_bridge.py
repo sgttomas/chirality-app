@@ -70,13 +70,15 @@ class ReceiptBridge:
                    parent_thread=PARENT,emitted_at=datetime.now(timezone.utc).isoformat(),delivery='not yet acknowledged',simulation=self.simulation)
         if isinstance(event.get('fixed_end'),(int,float)):
             value['fixed_end_utc']=datetime.fromtimestamp(self.wall()+event['fixed_end']-self.clock(),timezone.utc).isoformat()
-        if event.get('event')=='owner-cancel-needed-now':
+        if event.get('event') in ('owner-cancel-needed-now','owner-foreground-needed-now'):
             label=event['incarnation'];admission=self.admissions.receipts[label]
-            offer={'action':'owner-cancel-completed','run_id':self.run_id,'candidate':self.candidate,
+            foreground=event['event']=='owner-foreground-needed-now'
+            key=label+':foreground' if foreground else label
+            offer={'action':'owner-foreground-completed' if foreground else 'owner-cancel-completed','run_id':self.run_id,'candidate':self.candidate,
                 'incarnation':label,'event_id':event_id,'admission_sha256':admission['admission_sha256'],
-                'actual_owner_reply':'Cancelled'}
-            require(label not in self.offers,'owner fallback already offered')
-            self.offers[label]=offer;value['completion_offer']=offer
+                'actual_owner_reply':'Foreground' if foreground else 'Cancelled'}
+            require(key not in self.offers,'owner handoff already offered')
+            self.offers[key]=offer;value['completion_offer']=offer
         publish(self.events/(event_id+'.event.json'),value)
         try:print(json.dumps({'event':'attended-manager-forward','run_id':self.run_id,'event_id':event_id,
                           'event_path':str(self.events/(event_id+'.event.json')),'parent_thread':PARENT}),flush=True)
@@ -98,21 +100,25 @@ class ReceiptBridge:
                 return
             self.sleep(.05)
         raise RuntimeError('T3 delivery not acknowledged; retained custody, no input continuation')
-    def completion(self,label,end):
+    def completion(self,label,end,kind='cancel'):
+        require(label in ('A','B') and kind in ('cancel','foreground'),'unknown owner completion kind/incarnation')
+        label=label+':foreground' if kind=='foreground' else label
         require(label in self.offers and label not in self.consumed,'no unconsumed owner offer')
         offer=self.offers[label];path=self.events/(offer['event_id']+'.completion.json')
         while self.clock()<end:
             if path.exists():
                 value=read(path);require(value.get('offer')==offer and value.get('owner_message_id') and value.get('simulation',False)==self.simulation,
                     'actual owner completion binding unavailable')
-                self.consumed.add(label);return 'Cancelled'
+                self.consumed.add(label);return offer['actual_owner_reply']
             self.sleep(min(.1,max(0,end-self.clock())))
         raise RuntimeError('owner completion is not yet received; retain custody without deadline rearm')
-    def late_completion(self,label):
-        if label not in self.offers or label in self.consumed:return None
-        path=self.events/(self.offers[label]['event_id']+'.completion.json')
+    def late_completion(self,label,kind='cancel'):
+        require(label in ('A','B') and kind in ('cancel','foreground'),'unknown late completion')
+        key=label+':foreground' if kind=='foreground' else label
+        if key not in self.offers or key in self.consumed:return None
+        path=self.events/(self.offers[key]['event_id']+'.completion.json')
         if not path.exists():return None
-        return self.completion(label,self.clock()+.1)
+        return self.completion(label,self.clock()+.1,kind)
 
 def delivery_receipt(root,event_id,receipt):
     root=private_directory(root);require(event_id.isdigit() and len(event_id)==4,'invalid event id')
@@ -127,7 +133,8 @@ def owner_completion(root,event_id,actual_reply,owner_message_id):
     root=private_directory(root);require(event_id.isdigit() and len(event_id)==4,'invalid event id')
     event=read(root/'bridge'/(event_id+'.event.json'));delivery=read(root/'bridge'/(event_id+'.delivery.json'))
     require(delivery.get('accepted') is True and delivery.get('run_id')==event['run_id'],'owner offer not delivered')
-    require(event.get('completion_offer') and actual_reply=='Cancelled' and isinstance(owner_message_id,str)
+    require(event.get('completion_offer') and actual_reply==event['completion_offer'].get('actual_owner_reply')
+            and actual_reply in ('Cancelled','Foreground') and isinstance(owner_message_id,str)
             and owner_message_id,'actual new owner completion required')
     publish(root/'bridge'/(event_id+'.completion.json'),{'offer':event['completion_offer'],
         'owner_message_id':owner_message_id,'simulation':event.get('simulation',False),'recorded_at':datetime.now(timezone.utc).isoformat()})

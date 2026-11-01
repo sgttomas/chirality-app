@@ -3,11 +3,11 @@ const fs=require('node:fs');const assert=require('node:assert/strict');
 const source=fs.readFileSync(__dirname+'/native_attended_manager.js','utf8');
 const manager=eval(source);
 const managerHash=require('node:crypto').createHash('sha256').update(manager.toString()).digest('hex');
-async function scenario(failure=false) {
+async function scenario(failure=false,reply='Cancelled') {
  const root='/invented/root',entry='/invented/native_attended_entry.py',run_id='invented-run';
  const parent='0f35714c-46fb-45d8-9c97-c927c6587c1e';
  const manifest={controller_root:root,entry_source:entry,run_id,candidate:'invented',manager_function_sha256:managerHash};
- const body={run_id,candidate:'invented',event_id:'0001',completion_offer:{actual_owner_reply:'Cancelled'}};
+ const body={run_id,candidate:'invented',event_id:'0001',...(reply ? {completion_offer:{actual_owner_reply:reply}} : {})};
  const event={event:'attended-manager-forward',run_id,event_id:'0001',event_path:root+'/bridge/0001.event.json',parent_thread:parent};
  const calls=[],notifications=[];
  const tools={
@@ -24,6 +24,8 @@ async function scenario(failure=false) {
   write_stdin:async()=>({exit_code:1,output:JSON.stringify(event)+'\n'}),
   mcp__t3_code__t3_thread_send:async(args)=>{
    calls.push('T3-send');assert.equal(args.threadId,parent);assert(args.message.includes('invented-run'));
+   if(reply)assert(args.message.includes('--actual-reply '+reply));
+   else {assert(args.message.includes('No owner-completion offer'));assert(!args.message.includes('--actual-reply'));}
    if(failure)throw new Error('invented transport failed');
    return {structuredContent:{threadId:parent,messageId:'invented-message',delivery:'steered'}};
   }
@@ -62,4 +64,4 @@ async function errorsAndShapes() {
   if(mode==='unknown-launch')assert.equal(recovered,1);
  }
 }
-(async()=>{await assert.rejects(manager({startAuthorized:false}),/No coordinated start/);await scenario();await scenario(true);await errorsAndShapes();console.log('manager bridge: 8 offline cases passed');})().catch(e=>{console.error(e);process.exitCode=1});
+(async()=>{await assert.rejects(manager({startAuthorized:false}),/No coordinated start/);await scenario();await scenario(true);await scenario(false,'Foreground');await scenario(false,null);await errorsAndShapes();console.log('manager bridge: 10 offline cases passed');})().catch(e=>{console.error(e);process.exitCode=1});

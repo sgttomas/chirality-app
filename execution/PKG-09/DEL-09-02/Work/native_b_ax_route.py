@@ -219,8 +219,14 @@ def make_run(b):
         def observe_ready(self,qualification=True):
             try:
                 if qualification:
-                    self.ui_deadline=min(time.monotonic()+15,self.work_end)
-                    self.record('owned-AX-contract.json',CONTRACT)
+                    self.ui_deadline=min(time.monotonic()+(45 if getattr(self,'attended_owner_foreground',False) else 15),self.work_end)
+                    contract=CONTRACT
+                    if getattr(self,'attended_owner_foreground',False):
+                        contract={**CONTRACT,'version':'chirality.owned-AX-journey/attended-foreground-v1',
+                            'activation_request_limit':0,'first_press_focus':'read-only original foreground check; no automatic activation',
+                            'commands':['owner-foreground-handoff',*[name for name in CONTRACT['commands'] if name not in
+                                ('activate-original-app','confirm-exact-native-stop-once')],'cancel-exact-owned-stop-sheet-once']}
+                    self.record('owned-AX-contract.json',contract)
                     route=self.screen.window;route.acquire_initial_window();frame=route.capture()
                     frame=self.focus_receipt(frame) # Existing helper; actual frontmost and explicit receipt required.
                     require(frame is not None and frame['identity']==route.initial_binding[0]

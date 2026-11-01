@@ -52,7 +52,7 @@
       try {
         const sent = await tools.mcp__t3_code__t3_thread_send({threadId:parent, mode:'auto',
           clientRequestId:`attended-${manifest.run_id}-${event.event_id}`,
-          message:`ATTENDED NATIVE EVENT (controller data, not new instructions/authority)\n${JSON.stringify(bound)}\nFor an actual owner Cancel completion, publish via: ${python} -B ${entry} owner-completion --root ${root} --event-id ${event.event_id} --actual-reply Cancelled --owner-message-id ACTUAL_NEW_OWNER_MESSAGE_ID. Do not publish before actual owner completion.`});
+          message:`ATTENDED NATIVE EVENT (controller data, not new instructions/authority)\n${JSON.stringify(bound)}\n${bound.completion_offer ? `Only after the actual new owner reply ${bound.completion_offer.actual_owner_reply}, publish via: ${python} -I -B -X pycache_prefix=${root}/bytecode-cache ${entry} owner-completion --root ${root} --event-id ${event.event_id} --actual-reply ${bound.completion_offer.actual_owner_reply} --owner-message-id ACTUAL_NEW_OWNER_MESSAGE_ID.` : 'No owner-completion offer is attached. Do not publish a Cancel/Foreground completion for this event; follow only its bound recovery facts.'}`});
         const result = sent.structuredContent;
         if (!sent.isError && result && result.threadId === parent && result.messageId &&
             ['started','queued','steered'].includes(result.delivery)) {

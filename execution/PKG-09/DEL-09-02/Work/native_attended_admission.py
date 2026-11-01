@@ -155,7 +155,8 @@ class NativeAdmissions:
             'executable_sha256':self.plan['executable_sha256'],
             'expected_app_data':str(Path.home()/'Library/Application Support'/self.plan['identifier']),
             'native_input_paths':dict(self.plan['input_paths']),
-            'files':dict(self.plan['files']),'window_route':b.screen_support.w.configuration()}
+            'files':dict(self.plan['files']),'owner_foreground_route':{'version':'attended-owner-foreground/v1','per_incarnation_cap_seconds':45,'automatic_activation':False},
+            'window_route':b.screen_support.w.configuration()}
 
     def environment(self,label):
         phase=self.root/label

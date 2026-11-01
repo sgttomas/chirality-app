@@ -7,7 +7,7 @@ from native_attended_ports import NativePorts
 
 class Tests(unittest.TestCase):
     def ports(self,run):
-        value={};a=N(check_birth=lambda label,r:None,value=value)
+        value={'bundle':'/invented/App.app'};a=N(check_birth=lambda label,r:None,value=value)
         b=N(release_support=N(normal_exit=lambda x:x=={'code':1,'status':0},
               request_for=lambda r:{'expected_app_exit':{'code':1,'status':0},'admission':r.admission_sha}))
         p=NativePorts(b,'/invented',value,a,lambda event:None,lambda label,end:'Cancelled',clock=lambda:0)
@@ -17,7 +17,7 @@ class Tests(unittest.TestCase):
         return p
     def run_fixture(self):
         events=[]
-        run=N(sample=lambda:None,observed_processes=[],cleanup=False,ui_deadline=0,quit_requested=False,stop_requested=False,admission_sha='a'*64,root=Path('/invented/A'),
+        run=N(safe_log=lambda *a,**kw:None,resource_end=295,sample=lambda:None,observed_processes=[],cleanup=False,ui_deadline=0,quit_requested=False,stop_requested=False,admission_sha='a'*64,root=Path('/invented/A'),
             extra_cleanup_ready=lambda:True,bound_main=lambda:events.append('bound'),
             ax=N(quit_ui=lambda:events.append('quit')),act_record=lambda n,v:events.append(n),
             reservation=N(observe=lambda:{'code':1,'status':0},administrative_reap=lambda e:events.append('reap') or 0,reaped=False),
@@ -91,6 +91,10 @@ class PreJourneyCleanupTests(unittest.TestCase):
             select_main=lambda backend,pid:dict(window),owned_inventory=lambda backend,pid:list(inventory))
         ax=N(last_window_observation=[{'AXRole':'AXWindow','AXTitle':'original','disposition':'owned-window-root'}],a=N(),main=lambda:'main',own=lambda e:None,windows=lambda:list(roots),c=N(CFEqual=lambda a,b:a==b),
             attr=lambda e,k:list(children) if (e,k)==('main','AXChildren') else ('AXSheet' if e=='sheet' else 'AXGroup'))
+        def observed_windows():
+            ax.last_window_observation=[{'AXRole':'AXWindow','AXTitle':'original','disposition':'owned-window-root'}]
+            return list(roots)
+        ax.windows=observed_windows
         run=N(ax_binding=None,screen=N(window=N(initial_binding=(dict(identity),dict(window)))),
               ax=ax,extra_cleanup_ready=lambda:True,safe_log=lambda *a,**k:logged.append(k))
         value={};admissions=N(value=value)
@@ -114,7 +118,7 @@ class PreJourneyCleanupTests(unittest.TestCase):
                 if case=='extra-AX':roots.append('dialog')
                 if case=='helper':r.extra_cleanup_ready=lambda:False
                 with self.assertRaises(RuntimeError):p.cleanup_original_main(r,5)
-                self.assertFalse(logged)
+                self.assertFalse(any('qualification_binding_initialized' in record for record in logged))
 
 class PreJourneyQuitPathTests(unittest.TestCase):
     def test_full_quit_path_after_helper_refusal_uses_independent_binding(self):
@@ -160,7 +164,7 @@ class AcquiredChildFailureTests(unittest.TestCase):
                         if stage=='start-log':fail()
                 def ax_factory(*args):
                     if stage=='AX-init':fail()
-                    return N()
+                    return N(press=lambda e:None,key=lambda *a,**k:None)
                 def load_ax():
                     if stage=='AX-load':fail()
                     return ax_factory
@@ -220,7 +224,7 @@ class CleanupRootAndPressTests(unittest.TestCase):
                     old=r.ax.attr
                     r.ax.attr=lambda e,k,old=old,case=case: (None if case=='None' else case) if (e,k)==('group','AXRole') else old(e,k)
                 with self.assertRaises(RuntimeError):p.cleanup_original_main(r,5)
-                self.assertFalse(logged)
+                self.assertFalse(any('qualification_binding_initialized' in record for record in logged))
     def test_actual_menu_path_revalidates_before_intent_and_press(self):
         events=[]
         class Adapter:
@@ -246,3 +250,44 @@ class CleanupRootAndPressTests(unittest.TestCase):
         self.assertIn('read:quit:AXEnabled',events);self.assertIn('fresh cleanup',events)
         self.assertNotIn('owned-menu-quit-intent.json',events);self.assertNotIn('press',events)
         self.assertEqual(events[-1],'close')
+        # Exercise the same production traversal in read-only preflight mode.
+        events.clear();p.cleanup_original_main=lambda *args:events.append('fresh cleanup')
+        Adapter.actions=lambda self,e:['AXPress']
+        with patch('native_attended_ports.NativeAdapter',Adapter):p.owned_menu_quit(r,5,post=False)
+        self.assertIn('owned-menu-quit-preflight.json',events)
+        self.assertNotIn('owned-menu-quit-intent.json',events);self.assertNotIn('press',events)
+        self.assertLess(events.index('fresh cleanup'),events.index('owned-menu-quit-preflight.json'))
+        self.assertEqual(events[-1],'close')
+        events.clear();Adapter.actions=lambda self,e:[]
+        with patch('native_attended_ports.NativeAdapter',Adapter),self.assertRaisesRegex(RuntimeError,'action unavailable'):
+            p.owned_menu_quit(r,5,post=False)
+        self.assertNotIn('owned-menu-quit-preflight.json',events);self.assertNotIn('press',events)
+
+
+class CleanupObservationEvidenceTests(unittest.TestCase):
+    def test_failed_main_lookup_preserves_existing_root_and_attribute_facts(self):
+        p,r,identity,window,inventory,children,roots,closed,logged=PreJourneyCleanupTests().fixture()
+        def unavailable():
+            r.ax.last_window_observation=[{'AXRole':None,'disposition':'not-a-window-root'}]
+            r.ax.attribute_errors={'AXRole:-25204':1}
+            raise RuntimeError('distinct owned main AXWindow unavailable')
+        r.ax.main=unavailable
+        with self.assertRaisesRegex(RuntimeError,'distinct owned'):p.cleanup_original_main(r,5)
+        self.assertTrue(logged[-1]['AX_main_lookup_attempted'])
+        self.assertEqual(logged[-1]['AX_window_observation'],r.ax.last_window_observation)
+        self.assertEqual(logged[-1]['AX_attribute_errors'],{'AXRole:-25204':1})
+        self.assertIsNone(r.ax_binding);self.assertEqual(closed,[True])
+    def test_failure_before_lookup_does_not_present_stale_AX_as_current(self):
+        p,r,identity,window,inventory,children,roots,closed,logged=PreJourneyCleanupTests().fixture()
+        identity['birth']='changed'
+        with self.assertRaises(RuntimeError):p.cleanup_original_main(r,5)
+        self.assertFalse(logged[-1]['AX_main_lookup_attempted'])
+        self.assertIsNone(logged[-1]['AX_window_observation'])
+
+    def test_failure_during_lookup_does_not_reuse_previous_root_observation(self):
+        p,r,*_=PreJourneyCleanupTests().fixture()
+        r.ax.last_window_observation=[{'AXRole':'AXWindow','disposition':'old'}]
+        r.ax.main=lambda:(_ for _ in ()).throw(RuntimeError('read failed before roots'))
+        logged=[];r.safe_log=lambda *a,**k:logged.append(k)
+        with self.assertRaises(RuntimeError):p.cleanup_original_main(r,5)
+        self.assertIsNone(logged[-1]['AX_window_observation'])
