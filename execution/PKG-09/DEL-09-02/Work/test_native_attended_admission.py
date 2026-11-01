@@ -62,3 +62,5 @@ class PolicyTests(unittest.TestCase):
         self.assertNotIn('(subpath "/invented/controller/bridge")',text)
         self.assertNotIn('(subpath "/invented/controller/B/tmp")',text)
         self.assertLess(text.index(protect),text.index('(subpath "/invented/controller/A/tmp")'))
+        a.state_basis={'path':'/invented/retained/assessment.json','sha256':'a'*64}
+        self.assertIn('(deny file-read* file-write* (subpath "/invented/retained"))',a.policy('A',a.root/'A'))
