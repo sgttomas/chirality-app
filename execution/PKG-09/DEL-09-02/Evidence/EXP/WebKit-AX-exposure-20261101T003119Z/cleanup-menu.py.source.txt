@@ -1,0 +1,66 @@
+from pathlib import Path
+import ctypes as C,datetime,hashlib,importlib.util,json,os,subprocess,time
+root=Path('/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-xz8ogujz')
+controller=Path('/Users/ryan/.t3/worktrees/chirality-app/app-desktop-native-qualification/execution/PKG-09/DEL-09-02/Work/native_successor_relaunch.py')
+spec=importlib.util.spec_from_file_location('B_cleanup_primitives',controller); b=importlib.util.module_from_spec(spec);spec.loader.exec_module(b)
+a=json.loads((root/'admission.json').read_text()); value=a['inputs']
+assert a['dependencies']==b.dependencies()
+creation=[json.loads(l) for l in (root/'actions.jsonl').read_text().splitlines() if json.loads(l)['event']=='native_B_started'];assert len(creation)==1
+pid=creation[0]['pid']
+lib=C.CDLL('/usr/lib/libproc.dylib');lib.proc_pidpath.argtypes=[C.c_int,C.c_void_p,C.c_uint32];lib.proc_pidpath.restype=C.c_int
+
+def pathof(p):
+ buf=C.create_string_buffer(4096);assert lib.proc_pidpath(p,buf,len(buf))>0;return os.fsdecode(buf.value)
+def heartbeat():
+ h=json.loads((root/'held-heartbeat.jsonl').read_text().splitlines()[-1]);assert (datetime.datetime.now(datetime.timezone.utc)-datetime.datetime.fromisoformat(h['at'])).total_seconds()<8
+ assert h['candidate']==value['candidate_key'] and not h['original_app_reaped'];return h
+h=heartbeat();assert h['app_exit_observation'] is None
+own=[x for x in h['observed_executable_processes'] if x['pid']==pid];assert len(own)==1 and own[0]['under_controller_ancestry'];parent=own[0]['parent']
+assert int(subprocess.check_output(['/bin/ps','-p',str(pid),'-o','ppid='],text=True).strip())==parent
+assert pathof(pid)==value['executable']
+assert hashlib.sha256(Path(pathof(pid)).read_bytes()).hexdigest()=='58962e7b8c20f8bd249dfa016158f139843ef1ab0f747c3af2def8b15c8ad82d'
+birth=subprocess.check_output(['/bin/ps','-p',str(pid),'-o','lstart='],text=True).strip()
+def live():
+ h=heartbeat();assert h['app_exit_observation'] is None
+ assert pathof(pid)==value['executable']
+ assert subprocess.check_output(['/bin/ps','-p',str(pid),'-o','lstart='],text=True).strip()==birth
+ax=b.base.load_ax()(pid,live,lambda *args,**kwargs:None)
+def props(e):
+ ax.own(e);return {k:ax.attr(e,k) for k in ('AXRole','AXSubrole','AXTitle','AXEnabled')}
+windows=[]
+for key in ('AXWindows','AXMainWindow','AXFocusedWindow'):
+ raw=ax.attr(ax.app,key);refs=raw if isinstance(raw,list) else ([raw] if raw else [])
+ assert len(refs)<=32
+ windows.append({'attribute':key,'references':[{**props(e),'application_self_reference':bool(ax.c.CFEqual(e,ax.app))} for e in refs]})
+children=[]
+for row in h['observed_executable_processes']:
+ if row['parent']==pid:
+  actual=pathof(row['pid']);expected=str(Path(value['bundle'])/'Contents/Resources/codex/bin/codex')
+  children.append({'pid':row['pid'],'parent':pid,'executable':actual,'role':'bundled stock Codex supplier' if actual==expected else 'unexpected executable; no authority'})
+  assert actual==expected
+inventory={'at':b.now(),'creation':creation[0],'heartbeat':heartbeat(),'executable':value['executable'],'birth':birth,'AX_window_inventory':windows,'direct_children':children,'limits':'AX only; no desktop capture. Child identity/census corroboration, not custody.'}
+b.write_once(root/'cleanup-own-window-child-inventory.json',inventory)
+menu=ax.attr(ax.app,'AXMenuBar');assert menu and props(menu)['AXRole']=='AXMenuBar'
+app_title=ax.attr(ax.app,'AXTitle');expected_title='Quit '+app_title
+refs=ax.attr(menu,'AXChildren') or [];assert len(refs)<=32
+app_menus=[e for e in refs if props(e)['AXRole']=='AXMenuBarItem' and props(e)['AXTitle']==app_title]
+assert len(app_menus)==1
+seen=[];rows=[];stack=[(app_menus[0],0)];edges=0
+while stack:
+ e,depth=stack.pop();edges+=1;assert edges<=300
+ if any(ax.c.CFEqual(e,x) for x in seen):continue
+ seen.append(e);p=props(e)
+ if ax.c.CFEqual(e,ax.app) or p['AXRole'] not in ('AXMenuBarItem','AXMenu','AXMenuItem'):continue
+ assert depth<=6 and len(rows)<150
+ rows.append((e,p))
+ # App-menu commands are leaves for this cleanup. Do not enter Services or other submenus.
+ if p['AXRole']=='AXMenuItem':continue
+ children_refs=ax.attr(e,'AXChildren') or [];assert isinstance(children_refs,list) and len(children_refs)<100
+ stack.extend((x,depth+1) for x in reversed(children_refs))
+b.write_once(root/'cleanup-owned-app-menu-inventory.json',{'at':b.now(),'rows':[p for e,p in rows],'edges':edges})
+matches=[(e,p) for e,p in rows if p['AXRole']=='AXMenuItem' and p['AXTitle']==expected_title and p['AXEnabled'] is True];assert len(matches)==1
+e,p=matches[0];live();ax.own(e)
+b.write_once(root/'cleanup-menu-request.json',{'at':b.now(),'actor':b.ACTOR,'scope':'one parent-authorized cleanup-only owned menu Quit; B stays failed','menu_item':p,'heartbeat':heartbeat(),'admission_sha256':b.setup.digest(root/'admission.json'),'source_dependencies':a['dependencies']})
+rc=ax.a.AXUIElementPerformAction(e,ax.string('AXPress'))
+b.write_once(root/'cleanup-menu-action-result.json',{'at':b.now(),'AXPress_return':rc,'no_question_confirmation':True})
+print(json.dumps({'root':str(root),'AXPress_return':rc,'windows':windows,'direct_children':children}),flush=True)

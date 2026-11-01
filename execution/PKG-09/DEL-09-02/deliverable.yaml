@@ -435,6 +435,7 @@ needs:
   gating: true
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 code_paths:
+- execution/PKG-09/DEL-09-02/Work/native_b_retained_v8.py
 - execution/PKG-09/DEL-09-02/Work/native_b_retained_v7.py
 - execution/PKG-09/DEL-09-02/Work/native_b_ax_route.py
 - app/examination/sq_receiving/receive_packages.py
@@ -466,6 +467,7 @@ code_paths:
 - app/examination/sq_receiving/receive.py
 - app/examination/sq_receiving/worker.py
 checks:
+- execution/PKG-09/DEL-09-02/Work/test_native_b_retained_v8.py
 - execution/PKG-09/DEL-09-02/Work/test_native_b_ax_route.py
 - execution/PKG-09/DEL-09-02/Work/test_native_b_retained_v7.py
 - app/tests/group_b_package_successor_test.py

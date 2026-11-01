@@ -67,11 +67,16 @@ V7_SOURCE = HERE.with_name('native_b_retained_v7.py')
 v7_spec = importlib.util.spec_from_file_location('native_B_retained_v7', V7_SOURCE)
 v7_support = importlib.util.module_from_spec(v7_spec)
 v7_spec.loader.exec_module(v7_support)
+V8_SOURCE = HERE.with_name('native_b_retained_v8.py')
+v8_spec = importlib.util.spec_from_file_location('native_B_retained_v8', V8_SOURCE)
+v8_support = importlib.util.module_from_spec(v8_spec)
+v8_spec.loader.exec_module(v8_support)
+AX_VERSIONS = (v7_support.VERSION,v8_support.VERSION)
 AX_ROUTE_SOURCE = HERE.with_name('native_b_ax_route.py')
 ax_route_spec = importlib.util.spec_from_file_location('native_B_AX_route', AX_ROUTE_SOURCE)
 ax_route_support = importlib.util.module_from_spec(ax_route_spec)
 ax_route_spec.loader.exec_module(ax_route_support)
-SCREEN_VERSIONS = (v2_support.VERSION, v3_support.VERSION, v4_support.VERSION, v5_support.VERSION, v6_support.VERSION, v7_support.VERSION)
+SCREEN_VERSIONS = (v2_support.VERSION, v3_support.VERSION, v4_support.VERSION, v5_support.VERSION, v6_support.VERSION, v7_support.VERSION, v8_support.VERSION)
 SLOT_SOURCE = HERE.with_name('native_b_slot_entry.py')
 SCREEN_SOURCE = HERE.with_name('native_b_screen_route.py')
 screen_spec = importlib.util.spec_from_file_location('native_B_screen', SCREEN_SOURCE)
@@ -107,7 +112,7 @@ def check_observation_capabilities():
 
 
 def dependencies():
-    return {**setup.dependency_digests(), str(setup.HERE): setup.digest(setup.HERE), str(HERE): setup.digest(HERE), str(AX_SOURCE): setup.digest(AX_SOURCE), str(RELEASE_SOURCE): setup.digest(RELEASE_SOURCE), str(RETAINED_SOURCE): setup.digest(RETAINED_SOURCE), str(DIAGNOSTIC_SOURCE): setup.digest(DIAGNOSTIC_SOURCE), str(V2_SOURCE): setup.digest(V2_SOURCE), str(V3_SOURCE): setup.digest(V3_SOURCE), str(V4_SOURCE): setup.digest(V4_SOURCE), str(V5_SOURCE): setup.digest(V5_SOURCE), str(V6_SOURCE): setup.digest(V6_SOURCE), str(V7_SOURCE): setup.digest(V7_SOURCE), str(AX_ROUTE_SOURCE): setup.digest(AX_ROUTE_SOURCE),
+    return {**setup.dependency_digests(), str(setup.HERE): setup.digest(setup.HERE), str(HERE): setup.digest(HERE), str(AX_SOURCE): setup.digest(AX_SOURCE), str(RELEASE_SOURCE): setup.digest(RELEASE_SOURCE), str(RETAINED_SOURCE): setup.digest(RETAINED_SOURCE), str(DIAGNOSTIC_SOURCE): setup.digest(DIAGNOSTIC_SOURCE), str(V2_SOURCE): setup.digest(V2_SOURCE), str(V3_SOURCE): setup.digest(V3_SOURCE), str(V4_SOURCE): setup.digest(V4_SOURCE), str(V5_SOURCE): setup.digest(V5_SOURCE), str(V6_SOURCE): setup.digest(V6_SOURCE), str(V7_SOURCE): setup.digest(V7_SOURCE), str(V8_SOURCE): setup.digest(V8_SOURCE), str(AX_ROUTE_SOURCE): setup.digest(AX_ROUTE_SOURCE),
             str(SLOT_SOURCE): setup.digest(SLOT_SOURCE), str(SCREEN_SOURCE): setup.digest(SCREEN_SOURCE), str(screen_support.w.HERE): setup.digest(screen_support.w.HERE), str(screen_support.w.HELPER): setup.digest(screen_support.w.HELPER)}
 
 
@@ -209,7 +214,7 @@ def prepare(a_root, namespace_basis=None, retained_state=None):
     if retained_state:
         version=json.loads(Path(retained_state).read_text())['version']
         require(version in (retained_support.VERSION,*SCREEN_VERSIONS),'unknown retained admission version')
-        selected={retained_support.VERSION:retained_support,v2_support.VERSION:v2_support,v3_support.VERSION:v3_support,v4_support.VERSION:v4_support,v5_support.VERSION:v5_support,v6_support.VERSION:v6_support,v7_support.VERSION:v7_support}[version]
+        selected={retained_support.VERSION:retained_support,v2_support.VERSION:v2_support,v3_support.VERSION:v3_support,v4_support.VERSION:v4_support,v5_support.VERSION:v5_support,v6_support.VERSION:v6_support,v7_support.VERSION:v7_support,v8_support.VERSION:v8_support}[version]
         context, value, bindings, a_files = selected.admit(sys.modules[__name__], retained_state)
         require(json.loads(Path(retained_state).read_text())['a_root'] == str(a_root), 'retained A root differs')
     else:
@@ -224,13 +229,13 @@ def prepare(a_root, namespace_basis=None, retained_state=None):
     if is_screen:
         (root/'helper-tmp').mkdir(mode=0o700)
         value['window_route']=screen_support.w.configuration()
-        if version==v7_support.VERSION:value['ax_route']=json.loads(json.dumps(ax_route_support.CONTRACT))
+        if version in AX_VERSIONS:value['ax_route']=json.loads(json.dumps(ax_route_support.CONTRACT))
         screen_support.w.stage(root,value['window_route'])
         fd=os.open(root/SLOT_SOURCE.name,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
         with os.fdopen(fd,'wb') as f:f.write(SLOT_SOURCE.read_bytes())
     (root / 'phase-B.sb').write_text(policy(value, root))
     (root / 'controller.py.txt').write_bytes(HERE.read_bytes())
-    for source in (AX_SOURCE, RELEASE_SOURCE, RETAINED_SOURCE, DIAGNOSTIC_SOURCE, V2_SOURCE, V3_SOURCE, V4_SOURCE, V5_SOURCE, V6_SOURCE, V7_SOURCE, AX_ROUTE_SOURCE, SCREEN_SOURCE):
+    for source in (AX_SOURCE, RELEASE_SOURCE, RETAINED_SOURCE, DIAGNOSTIC_SOURCE, V2_SOURCE, V3_SOURCE, V4_SOURCE, V5_SOURCE, V6_SOURCE, V7_SOURCE, V8_SOURCE, AX_ROUTE_SOURCE, SCREEN_SOURCE):
         (root / (source.name + '.txt')).write_bytes(source.read_bytes())
     write_once(root / 'admission.json', {'a_root': str(a_root), 'a_files': a_files,
         'controller_path':str(HERE), 'slot_entry_sha256':setup.digest(SLOT_SOURCE) if is_screen else None,
@@ -839,7 +844,7 @@ def execute(root, window_end):
     require(admitted.get('admission_version') == version, 'prepared admission version differs')
     if retained_state:
         require(version in (retained_support.VERSION,*SCREEN_VERSIONS), 'retained admission version differs')
-        selected={retained_support.VERSION:retained_support,v2_support.VERSION:v2_support,v3_support.VERSION:v3_support,v4_support.VERSION:v4_support,v5_support.VERSION:v5_support,v6_support.VERSION:v6_support,v7_support.VERSION:v7_support}[version]
+        selected={retained_support.VERSION:retained_support,v2_support.VERSION:v2_support,v3_support.VERSION:v3_support,v4_support.VERSION:v4_support,v5_support.VERSION:v5_support,v6_support.VERSION:v6_support,v7_support.VERSION:v7_support,v8_support.VERSION:v8_support}[version]
         context, value, bindings, a_files = selected.admit(sys.modules[__name__], Path(retained_state['path']))
     else:
         context, value, bindings, a_files = saved_input(Path(admitted['a_root']),
@@ -851,7 +856,7 @@ def execute(root, window_end):
     value['environment']['TMPDIR'] = str(root / 'tmp')
     if version in SCREEN_VERSIONS:
         value['window_route']=screen_support.w.configuration()
-        if version==v7_support.VERSION:value['ax_route']=json.loads(json.dumps(ax_route_support.CONTRACT))
+        if version in AX_VERSIONS:value['ax_route']=json.loads(json.dumps(ax_route_support.CONTRACT))
         for filename,digest in value['window_route']['helper_sources'].items():
             require(setup.digest(screen_support.w.private_path(root,filename))==digest,'window helper copy changed')
     require(value == admitted['inputs'] and (root / 'phase-B.sb').read_text() == policy(value, root)
@@ -872,7 +877,7 @@ def execute(root, window_end):
                                   'PYTHONDONTWRITEBYTECODE': '1'}, capture_output=True, text=True, timeout=45)
     write_once(root / 'artifact-check.json', {'exit_code': checked.returncode, 'stdout': checked.stdout, 'stderr': checked.stderr})
     require(checked.returncode == 0, 'complete candidate inventory refused')
-    run_type=(ax_route_support.make_run(sys.modules[__name__]) if version==v7_support.VERSION else
+    run_type=(ax_route_support.make_run(sys.modules[__name__]) if version in AX_VERSIONS else
               screen_support.make_run(sys.modules[__name__]) if version in SCREEN_VERSIONS else Run)
     run = run_type(root, value, time.monotonic() + window_end - time.time(), setup.digest(root / 'admission.json'))
     check_observation_capabilities()
@@ -892,7 +897,7 @@ def execute(root, window_end):
             run.reservation = AppReservation(child)  # Before any later IO can fail.
         run.log('native_B_started', pid=child.pid, actor=ACTOR, limits=LIMIT)
         ax_type=ax_support.wrap_ax(base.load_ax())
-        if version==v7_support.VERSION:ax_type=ax_route_support.bounded_ax(ax_type)
+        if version in AX_VERSIONS:ax_type=ax_route_support.bounded_ax(ax_type)
         run.ax = ax_type(child.pid, run.alive, run.log)
         run.ax.output = root
         gen = run.observe_ready()
@@ -967,9 +972,14 @@ if __name__ == '__main__':
     parser.add_argument('--capture-retained-v5', type=Path)
     parser.add_argument('--capture-retained-v6', type=Path)
     parser.add_argument('--capture-retained-v7', type=Path)
+    parser.add_argument('--capture-retained-v8', type=Path)
     parser.add_argument('--assessment', type=Path)
     args = parser.parse_args()
-    if args.capture_retained_v7 and args.from_a and args.assessment and not any((args.capture_retained_v6,args.capture_retained_v5,args.capture_retained_v4,args.capture_retained_v3,args.capture_retained_v2,args.capture_retained_basis,args.projection,args.prepare,args.execute,args.window_end,args.retained_state,args.namespace_basis)):
+    if args.capture_retained_v8 and args.from_a and args.assessment and not any((args.capture_retained_v7,args.capture_retained_v6,args.capture_retained_v5,args.capture_retained_v4,args.capture_retained_v3,args.capture_retained_v2,args.capture_retained_basis,args.projection,args.prepare,args.execute,args.window_end,args.retained_state,args.namespace_basis)):
+        v8_support.capture(sys.modules[__name__],args.from_a.absolute(),args.assessment.absolute(),args.capture_retained_v8.absolute())
+    elif args.capture_retained_v8:
+        parser.error('v8 capture requires --capture-retained-v8 OUTPUT --from-A A --assessment ASSESSMENT only')
+    elif args.capture_retained_v7 and args.from_a and args.assessment and not any((args.capture_retained_v6,args.capture_retained_v5,args.capture_retained_v4,args.capture_retained_v3,args.capture_retained_v2,args.capture_retained_basis,args.projection,args.prepare,args.execute,args.window_end,args.retained_state,args.namespace_basis)):
         v7_support.capture(sys.modules[__name__],args.from_a.absolute(),args.assessment.absolute(),args.capture_retained_v7.absolute())
     elif args.capture_retained_v7:
         parser.error('v7 capture requires --capture-retained-v7 OUTPUT --from-A A --assessment ASSESSMENT only')

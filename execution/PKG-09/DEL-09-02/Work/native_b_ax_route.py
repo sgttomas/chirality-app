@@ -2,7 +2,8 @@
 import ctypes as C
 import hashlib,json,time
 
-CONTRACT={'version':'chirality.owned-AX-journey/v1','operator_control_files':False,
+CONTRACT={'version':'chirality.owned-AX-journey/v2','operator_control_files':False,'activation_request_limit':1,
+ 'first_press_focus':'only after explicit initial no-op and before any content press',
  'commands':['activate-original-app','open-host-diagnostics','open-lifecycle','open-raw-envelopes',
              'read-complete-diagnostics','open-connection','request-stop-once','confirm-exact-native-stop-once','owned-menu-quit'],
  'limits':'Only fixed role/title controls in the bound owned main/native Stop window. No caller PID, arbitrary selector, text injection or internal App command.'}
@@ -96,7 +97,7 @@ def make_run(b):
     class AXRun(screen.make_run(b)):
         def __init__(self,*args,**kwargs):
             super().__init__(*args,**kwargs)
-            self.ax_binding=None;self.ax_reads=0;self.ax_actions=set();self.ax_failed=False;self.stop_context=None;self.readiness_reads=0;self.settlement_reads=0;self.last_settlement_read=None;self.quit_posted=False;self.quit_attempted=False;self.last_node_count=0
+            self.ax_binding=None;self.ax_reads=0;self.ax_actions=set();self.ax_failed=False;self.stop_context=None;self.readiness_reads=0;self.settlement_reads=0;self.last_settlement_read=None;self.quit_posted=False;self.quit_attempted=False;self.last_node_count=0;self.activation_spent=True;self.first_press_focus_used=False
         def alive(self):
             try:super().alive()
             except RuntimeError as error:raise AXGateFailure(str(error)) from error
@@ -132,6 +133,50 @@ def make_run(b):
             self.last_node_count=len(rows)
             if not any(p['AXRole']=='AXWebArea' for _,p,_ in rows):raise AXNotReady('actual owned WebKit AXWebArea unavailable')
             return rows
+        def focus_receipt(self,frame):
+            # Unknown/failed helper outcomes consume the request budget. Only an
+            # explicit successful no-op receipt proves it was never requested.
+            self.activation_spent=True
+            sequence=self.screen.window.sequence+1
+            result=self.screen.window.input('focus',frame)
+            trace=w.private_json(self.root/f'window-helper-{sequence:03d}.focus.json',32768)
+            require(set(trace)=={'activation','observations'} and isinstance(trace['observations'],list)
+                    and 1<=len(trace['observations'])<=16 and trace['observations'][-1].get('frontmost') is True,
+                    'successful focus receipt unavailable')
+            outcome=w.private_json(self.root/f'window-helper-{sequence:03d}.result.json',16384)
+            require(outcome.get('action')=='focus' and type(outcome.get('sequence')) is int
+                    and outcome['sequence']==sequence and outcome.get('posted_or_focus_observed') is True,
+                    'focus result receipt binding differs')
+            activation=trace['activation']
+            if activation is None:
+                require(len(trace['observations'])==1,'focus no-op receipt has unexpected observations')
+                self.activation_spent=False
+            else:
+                require(isinstance(activation,dict) and activation.get('receiver_pid')==frame['identity']['pid']
+                        and activation.get('options')==0 and activation.get('activation_policy') in (0,1)
+                        and activation.get('request_sent') is True,'activation receipt binding differs')
+            return result
+        def first_press_focus(self):
+            if self.ax.attr(self.ax.app,'AXFrontmost') is True:return False
+            require(self.screen.active_phase=='ready' and not self.cleanup
+                    and not self.activation_spent and not self.first_press_focus_used and not self.ax_actions
+                    and not self.stop_requested,'frontmost lost; no unused first-press activation budget')
+            self.first_press_focus_used=True;self.activation_spent=True
+            self.bound_main() # read-only identity/window revalidation, no replacement
+            self.act_record('first-press-focus-intent.json',{'at':b.now(),'identity':self.ax_binding[0],
+                'window':self.ax_binding[1],'basis':'initial helper explicitly observed already frontmost and made no activation request'})
+            frame=self.screen.window.capture(expected_binding=self.ax_binding)
+            require((frame['identity'],frame['window'])==self.ax_binding,'first-press capture changed binding')
+            result=self.focus_receipt(frame)
+            # At most one boundary reacquisition even if focus changed back before
+            # the helper needed to send its native request. Never retry ambiguity.
+            self.activation_spent=True
+            require(result is not None and (result['identity'],result['window'])==self.ax_binding,
+                    'first-press focus changed binding')
+            self.bound_main(press=True)
+            self.act_record('first-press-focus-observed.json',{'at':b.now(),'window_id':self.ax_binding[1]['window_id'],
+                'frontmost':True,'actor':b.ACTOR})
+            return True
         def open_disclosure(self,title,prefix=False):
             deadline=min(time.monotonic()+20,self.ui_deadline)
             try:
@@ -151,6 +196,13 @@ def make_run(b):
                 require(state in (True,False,0,1),'owned disclosure state unavailable: '+title)
                 if state in (True,1):return
                 require(title not in self.ax_actions,'owned disclosure already pressed; no repeat: '+title)
+                if self.first_press_focus():
+                    # Activation can rebuild AX objects: never press the cached
+                    # pre-activation reference. Re-read the unique enabled control.
+                    rows=self.main_rows();element=web_control(rows,'AXDisclosureTriangle',title,prefix)
+                    state=self.ax.attr(element,'AXValue')
+                    require(state in (True,False,0,1),'disclosure state unavailable after activation')
+                    if state in (True,1):return
                 self.bound_main(press=True);self.ax_actions.add(title)
                 self.safe_log('owned_AX_disclosure_intent',title=title,actor=b.ACTOR)
                 self.ax.press(element)
@@ -170,7 +222,7 @@ def make_run(b):
                     self.ui_deadline=min(time.monotonic()+15,self.work_end)
                     self.record('owned-AX-contract.json',CONTRACT)
                     route=self.screen.window;route.acquire_initial_window();frame=route.capture()
-                    frame=route.input('focus',frame) # Existing isolated AppKit helper; actual AXFrontmost required.
+                    frame=self.focus_receipt(frame) # Existing helper; actual frontmost and explicit receipt required.
                     require(frame is not None and frame['identity']==route.initial_binding[0]
                             and frame['window']==route.initial_binding[1],'activation changed initial owned window')
                     self.ax_binding=(frame['identity'],frame['window'])
@@ -195,7 +247,7 @@ def make_run(b):
                     time.sleep(.75)
                 # Capture/record failures are terminal, never retried into a
                 # duplicate write-once observation. Bound source stays available.
-                self.screen.window.capture()
+                self.screen.window.capture(expected_binding=self.ax_binding)
                 self.record('ready-observation.json' if qualification else 'cleanup-source-observation.json',observed)
                 return gen
             except BaseException as error:
@@ -291,7 +343,7 @@ def make_run(b):
             self.quit_attempted=True;self.ui_deadline=self.cleanup_end
             require(self.extra_cleanup_ready(),'helper unsettled before Quit')
             self.bound_main()
-            self.screen.window.capture() # settled main-window corroboration
+            self.screen.window.capture(expected_binding=self.ax_binding) # settled main-window corroboration
             super().request_quit_ui()
             self.quit_posted=True
             self.safe_log('owned_AX_quit_posted',actor=b.ACTOR)
@@ -302,7 +354,7 @@ def make_run(b):
                 status['recovery_control']=None
                 status['recovery_limit']='No wait-only retry offered without an observed owned-menu Quit post; retain custody and report actual state.'
             status['owned_AX_journey']={'version':CONTRACT['version'],'boundary_failed':self.ax_failed,
-                'reads':self.ax_reads,'stop_requested':self.stop_requested,'stop_confirmed':self.stop_confirmed,
+                'reads':self.ax_reads,'activation_budget_consumed':self.activation_spent,'first_press_focus_used':self.first_press_focus_used,'stop_requested':self.stop_requested,'stop_confirmed':self.stop_confirmed,
                 'stop_posted_observed':bool(self.stop_context and self.stop_context['posted']),
                 'limits':'No screenshot-only fallback. If Stop was requested, flags do not prove modal dismissal; inspect actual question/state before any external cleanup action.'}
             return status

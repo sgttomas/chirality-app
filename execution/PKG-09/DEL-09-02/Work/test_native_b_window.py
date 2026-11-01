@@ -57,6 +57,12 @@ class WindowTests(unittest.TestCase):
   with patch.object(route,'capture',return_value={**frame,'image':{'image_data_sha256':'new'}}),patch.object(route,'invoke') as invoke:
    with self.assertRaises(w.Reobserve):route.input('click',frame,[1,2])
   invoke.assert_not_called()
+ def test_explicit_binding_rejects_different_window_before_helper_capture(self):
+  run=self.run_fixture();route=w.WindowRoute(run);route.sequence=4;identity={'pid':123}
+  backend=SimpleNamespace(screen_access=lambda:True,close=Mock())
+  with patch.object(w.d,'NativeBackend',return_value=backend),patch.object(route,'bound_window',return_value=(identity,{**self.window,'window_id':999})),patch.object(route,'invoke') as invoke:
+   with self.assertRaisesRegex(RuntimeError,'no reselection'):route.capture(expected_binding=(identity,self.window))
+  invoke.assert_not_called();self.assertEqual(route.sequence,4)
  def test_capture_post_binding_failure_quarantines_pixels_without_publishing(self):
   run=self.run_fixture();route=w.WindowRoute(run);identity={'pid':123}
   backend=SimpleNamespace(screen_access=lambda:True,close=Mock())

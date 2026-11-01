@@ -175,3 +175,7 @@ Exact-head CI remains pending. No new App/native calls occurred during fixes.
 The [native terminal receipt route](NATIVE_TERMINAL_RECEIPT_ROUTE.md) distinguishes
 actual source-bound Stop observations from unobserved installed issuer publication.
 Retiring synthetic release reliance does not retire native settlement obligations.
+
+The [first-press focus refinement](AX_FIRST_PRESS_FOCUS.md) follows actual
+xz8ogujz WebKit exposure and focus drift before any content act. Its v2 method
+keeps the single native activation-request budget and all later gates.
