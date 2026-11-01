@@ -266,3 +266,57 @@ still incomplete. Existing source tests and source-readback callback do not
 establish native timing or authorize running the draft. The next reviewable
 integration must connect these exact components without calling the old B
 Stop-confirmation/qualification path or old A forced-termination cleanup.
+
+## Native adapter integration draft
+
+`native_attended_ports.py` now connects the sequence methods to the retained
+B original-Child reservation, guard monitor, exact-window helper, maintained
+ordinary setup form and fresh AX route. Launch registers the Run before spawn,
+then reserves the actual Child before other IO. A and B have separate roots,
+admission hashes, helpers, birth bindings and administrative receipts. A's
+policy forbids process-fork; B uses the reviewed exact App/supplier/allocator
+policy, with build/source paths additionally write-protected. No signals or
+old A forced-termination cleanup are used. No native CLI execution entrypoint
+or launch-ready admission root is supplied yet.
+
+The setup native question is now derived from direct original-main AXSheet
+children, original parent/PID/window mapping, unique new owned row and actual
+native title/affirmative control. The maintained form still verifies the full
+actual invented effects before one setup confirmation. Original main capture
+uses the supervised exact helper. This requires scrutiny: it changes the
+setup observation boundary, not the product question or human reading time.
+
+The attended phase adapter keeps caps ready60/recheck35/Stop20/modal30/
+settlement45 and shortens them to the shared absolute cutoff. It does not
+reuse the earlier chained minimum reserves, which would make B readiness
+require265s left after A. All pre-Stop work ends by fixedEnd−135; no cap is
+extended, and insufficient setup time refuses before Stop. The full setup AX
+walk/calls are cumulatively deadline-counted; the expansion cap is not a
+worst-case timing-fit claim.
+
+The native question callback reads actual sheet AX text and runs the existing
+exact Stop question grammar without pressing its affirmative control. It does
+not fabricate a sheet screenshot; initial/ready owned-main images remain
+corroboration. Dismissal uses the actual counted source callback and closes the
+sheet adapter CF references before Quit. Quit is exactly one owned menu action,
+never a Quit-question confirmation; normal original Child exit0 and settled
+helpers are mandatory before the fresh admission-bound administrative intent
+and original wait. Guard thread closure is required before returning released.
+
+`native_attended_owner.py` defines the private manager handoff: an immediately
+flushed event requires the active tool-session manager to forward it to Agent0
+through T3. A candidate/incarnation/admission-bound0600 single-link completion
+file is accepted once and only after the actual new owner 'Cancelled' response.
+This is a manager control channel, not App IPC. Emission is **not proof of T3
+delivery**; the eventual supervising execution cell must implement/record that
+forwarding and remain engaged. No old owner response or screenshot substitutes.
+
+Five native-port mock tests cover normal Quit/reap ordering, unknown helper,
+nonzero exit, unsettled guard and pending B sheet refusal. Two owner-channel
+tests cover exact one-time completion and missing/wrong admission. Current
+focused tests:31 attended modules plus17 sheet =48. No native call was executed
+by these tests. Complete native entrypoint admission/policy staging, active
+manager tool-forwarding/held supervision and post-cutoff supported recovery
+remain explicit readiness prerequisites; this draft cannot be run unattended
+or presented as checked live readiness. Meaningful review of this newly
+connected custody/setup boundary precedes activation.
