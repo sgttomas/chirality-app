@@ -109,3 +109,23 @@ recovery implementation and its limitations. No ScopeOfWork, acceptance or
 needs change is claimed. Independent Claude Opus5.5/high scrutiny is required
 before activation; no earlier review of PR68 is relabelled as review of this
 new native boundary.
+
+## Current-source consumer repair after CI
+
+CI at `7fdb470b` compiled the new native source but the package→EXP→SQ cohort
+stopped in setup: its current source profile still pinned the earlier Cargo
+manifest/lock. The maintained
+`app/examination/package_receiving/generate.py` rederived only those two source
+digests and their dependent profile/reader hashes in four files. No receiver
+acceptance rule, historical profile or native backend changed. The focused
+joined cohort then passed 20 tests and 15 subtests offline under t3_slot;
+`pr69-package-cohort.log` and the original CI failure log remain in the private
+scratch above. Re-derivation does not establish package/native qualification.
+
+Before a new candidate build, the packaging owner must reconcile the direct
+runtime notices with the five already-locked macOS target-specific dependencies
+now directly named in Cargo.toml. The current notice index binds the old
+manifest/lock, and its checker enumerates top-level direct dependencies only.
+That concrete source/coverage gap was reported to Agent 0 for packaging
+ownership; no old notice input is claimed current and no retained build was
+modified. It is separate from this receiver-pin repair.
