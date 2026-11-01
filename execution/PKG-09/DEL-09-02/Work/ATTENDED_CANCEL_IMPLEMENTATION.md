@@ -368,3 +368,89 @@ Current focused mocks:35 attended modules +17 sheet =52. Added fixtures cover
 and birth replacement refusal. Native adapter use remains unexecuted. The entry
 supervisor must still stay active through late owner recovery/guard closure;
 these tests do not establish hard closure or native timing fit.
+
+## Prepared entrypoint and active bridge
+
+`native_attended_entry.py prepare` now performs the actual read-only candidate /
+invented-input/full-inventory check and creates a new0700 sibling controller
+root. It stages separate A/B helper copies, empty private scratch directories,
+exact sandbox policies and a write-once preparation manifest binding candidate,
+input plan, every controller/source dependency, helper/policy digests, two
+launches and295s/135s bounds. `check` revalidates those bytes; native `execute`
+requires the exact manifest SHA, actual shared-slot parent, a fresh execution
+marker and no simulation marker. Validation overhead is inside its fixed clock.
+No prepare/check/bridge/simulation command calls a native API or launches App.
+
+Native execution instantiates the actual admissions/ports/sequence and then
+**does not return while original Child, helper, guard or unknown-launch custody
+remains**. Held supervision continues even after the fixed end. It delivers
+changed held state, emits five-second custody heartbeats, retains late actual
+owner completion, and may administratively reap only an observed original
+normalexit0 after helpers settle. Alive/unknown/nonzero Child is never signaled
+or reaped. No UI act or new launch occurs after the fixed deadline. Broken
+stdout, observer/control/evidence errors do not become released custody.
+Final resource closure distinguishes initially held from currently closed and
+retains actual elapsed/overrun and failed witness standing.
+
+`native_attended_manager.js` is an executable async function for the active
+functions.exec manager cell, not an auto-run scheduler. It checks the exact
+preparation, invokes the normal slot wrapper only when a coordinated start is
+explicitly supplied, keeps reading the controller session, filters only bound
+`attended-manager-forward` events, and sends their exact data through
+`t3_thread_send` to the fixed Agent0 thread. It writes a delivery receipt only
+from the returned T3 message ID/accepted disposition. A receipt establishes
+transport acceptance, not owner reading or completion. Uncertain transport is
+not blindly resent; it records failure and retains supervision.
+
+The Python bridge gives transport eight seconds within the unchanged fixed
+interval (to include tool polling and round trips); no acknowledgement refuses
+continuation. This allowance belongs to fallback, not the Cancel action phase,
+and is not a native timing measurement. Events include monotonic end and UTC
+end. Flushed events are explicitly not acknowledged delivery. Simulation
+receipts are marked and cannot authorize native continuation.
+
+Agent0-side completion interface, after the actual new owner reply for the
+exact offered event:
+
+```
+python3.13 -B <exact entry source> owner-completion --root <prepared root> \
+  --event-id <offered four-digit ID> --actual-reply Cancelled \
+  --owner-message-id <actual new owner message ID>
+```
+
+This offline command requires the delivered candidate/run/incarnation/admission
+bound offer and publishes a0600 single-link atomic completion record once. No
+old response/screenshot/transport receipt counts. It is a private manager
+channel, not App IPC. The manager must retain the active execution cell through
+resource closure; completing a PR turn never substitutes for live custody.
+
+**Late-owner limit:** after the fixed end, completion alone supplies no new UI
+budget. If the original App remains alive, the bridge immediately reports the
+exact held condition and requires Agent0 to deliver an explicit recovery
+disposition or actual owner normal-exit completion. Current supervisor performs
+no automatic late Quit/timeout rearm/force exit. It continues holding the slot
+and keeper, recording overrun, until observed normal exit/helper closure permits
+the already-authorized administrative reap. This is conservative held behavior,
+not a deterministic295s release guarantee or a plan to rely on owner delay.
+
+## Full offline entry exercise
+
+`simulate` first checks a real frozen preparation, marks that root simulation-
+consumed (thereafter forbidden for native execution), then runs the exact
+sequence/resource-supervision functions with invented in-process ports and
+explicitly simulated T3/owner receipts. Four complete cases passed: normal
+A→B→Stop→Cancel→Quit; owner fallback; failed transport with custody retained until
+observed exit; late completion/exit with positive recorded overrun and no rearm.
+It writes simulation-result.json with native_calls=0 and App_launches=0.
+The original candidate and namespaces remain untouched. The simulated root
+app-attended-prepared-pnhu1q6d is retained as historical test evidence, not a live
+root. An earlier preparation d7feki3n is stale after source edits and preserved.
+
+The JS bridge's three offline fake-tool cases verify explicit start gating,
+exact event filtering, one T3 send, accepted versus failed receipt ordering and
+no claim of owner completion. Additional tests reject flushed-only delivery,
+completion before delivery, partial receipts and replacement of existing
+receipts. Current focused checks:42 attended Python +17 sheet Python +3 JS
+bridge cases. Existing52-fixture source evidence stays its original subject;
+new custody/execution entry boundaries require the selected independent Claude
+scrutiny before readyreturn. No live/native invocation or attendance occurred.

@@ -170,6 +170,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'child_role_carrier_test.py'
           python3 -B -m unittest discover -s ../execution/PKG-09/DEL-09-02/Work -p 'test_native_sheet_cancel.py'
           python3 -B -m unittest discover -s ../execution/PKG-09/DEL-09-02/Work -p 'test_native_attended*.py'
+          node ../execution/PKG-09/DEL-09-02/Work/test_native_attended_manager.cjs
       - name: Examination preparation and receiving against pinned sources
         # Fail closed when a pinned Design source changes meaning. Dispatch runs these in the full Python set.
         run: >-
@@ -266,6 +267,7 @@ jobs:
           python3 -m unittest discover -s tests -p 'child_role_carrier_test.py'
           python3 -B -m unittest discover -s ../execution/PKG-09/DEL-09-02/Work -p 'test_native_sheet_cancel.py'
           python3 -B -m unittest discover -s ../execution/PKG-09/DEL-09-02/Work -p 'test_native_attended*.py'
+          node ../execution/PKG-09/DEL-09-02/Work/test_native_attended_manager.cjs
       - name: Full Rust suite
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml -- --test-threads=1
       - name: Standalone terminal identity and connected static packaging
