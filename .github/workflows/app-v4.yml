@@ -105,7 +105,7 @@ jobs:
           act_control::a15::tests::listed_a15_
           runtime_session::workflow_root_tests::proposal_disclosure_tests
           handoff_send_tests
-          hosting::probe::tests app_quit::tests codex_stop::tests native_lifecycle_confirmation::tests
+          hosting::probe::tests app_quit::tests codex_stop::tests native_lifecycle_confirmation::
           hosting::successor::tests::lt12
           stalled_probe_does_not_hold_app_writer_and_is_bounded
           j3_end_writes_run_ended_and_the_next_ordinary_turn_carries_the_notice_once

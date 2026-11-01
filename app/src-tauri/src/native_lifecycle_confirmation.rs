@@ -140,3 +140,11 @@ pub(crate) fn notice(window: Option<&tauri::Window>, title: &str, message: Strin
 #[cfg(test)]
 #[path = "native_lifecycle_confirmation_tests.rs"]
 mod tests;
+
+// Staged backend: lifetime/presentation selection precedes production wiring.
+#[cfg(target_os = "macos")]
+#[path = "lifecycle_sheet_lease.rs"]
+mod lease;
+#[cfg(target_os = "macos")]
+#[path = "lifecycle_sheet_macos.rs"]
+mod macos;

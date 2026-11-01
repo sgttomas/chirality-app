@@ -52,8 +52,8 @@
     "app/packaging/static_distribution/sources.json": "ae41f2c248e81998aca92577786ce3bbb8e2b5a008b5d89ea36b4037412d577e",
     "app/packaging/successor/check.py": "332e3ea79cece9d1872bfb5b2ffea65ad007a8841941bf5af71f3f8b369997e7",
     "app/packaging/terms/check.py": "0a35adf5f8218b9abe3f968e244cc799ec8bb95776fbf2961e1fe488b4f04e4f",
-    "app/src-tauri/Cargo.lock": "8d478b4d5edcd13edd3deb266feadcac47276bf866c5dfcb8805090449e87df8",
-    "app/src-tauri/Cargo.toml": "82e1347af748e322b7699c39577598dbf7dbbaeee9cae5eb9abfc90c2a6ecf2d",
+    "app/src-tauri/Cargo.lock": "c21ce295ae7a31ff136501df5c6ba93b95c6b881b9e2d090c7bb36016ac85ca2",
+    "app/src-tauri/Cargo.toml": "cbf249697099c0999dade9ec3fbeeb76ab6515f9c838c1bcdc7a8f9bd2ef7183",
     "app/src-tauri/build.rs": "5c89aac6205db9e6e0df74165489ea62f6e12cfd8cd3f82e80f8b6a412a92b24",
     "app/src-tauri/build_support/developer-id-application.s1.requirement-template.txt": "00a16b523232eab6750957666e2d48a9c9f0ea4bf75d45bc40b18713611a9272",
     "app/src-tauri/build_support/publisher_selection.rs": "b9921087b53d28d30aab7e2f5a24c37fa5dfaf37829cc47188807ec2fa6e4c36",
@@ -83,8 +83,8 @@
     "execution/PKG-01/DEL-01-06/Work/prototype/check_pkg.py": "1b6f1232fe0b200ffbb0eb56dfbbdfe4a4f29dab3c83e8e1d42b195d752f8d23",
     "execution/PKG-01/DEL-01-06/Work/prototype/read_tree.py": "6dacea788f0a0690ca04bc95f4d50332f4d3ddafb5bb0339147460e64b2debdb",
     "execution/PKG-01/DEL-01-06/Work/terms-position-v1/schema.json": "7a47f1e75453e8df3778e7c59628932f96791906dbe378b8aa2d8db72eecbb08",
-    "app/examination/package_receiving/sources.package-v1.json": "5e5badb8a90b86f02719f9480aa2f4ee9b79a9930f0c469a95af97133466ed63",
-    "app/examination/package_receiving/adapter.py": "5d88aaf5bdf00f32e37077d51afd1390e1ccf0deaa61ad26cb58312ce72a390e",
+    "app/examination/package_receiving/sources.package-v1.json": "9ee18c539e92098a3d6bc17cf3f065ab83ccd06bed4b3fca8a0cb665554bd9d3",
+    "app/examination/package_receiving/adapter.py": "2de0e9bc793aeacffb98688f1c7316ac63d25833cd2a4fc87722d782f4c298e8",
     "app/examination/sq_receiving/worker_packages.py": "a0c634ec46dd4b6770d2cd12c83f27962ef284d9d561a5b5ef0acacd0f641025"
   },
   "format": "sq-package-s4-reader-pins/1",
@@ -99,6 +99,6 @@
   },
   "package_source_profile": {
     "path": "app/examination/package_receiving/sources.package-v1.json",
-    "sha256": "5e5badb8a90b86f02719f9480aa2f4ee9b79a9930f0c469a95af97133466ed63"
+    "sha256": "9ee18c539e92098a3d6bc17cf3f065ab83ccd06bed4b3fca8a0cb665554bd9d3"
   }
 }
