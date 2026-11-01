@@ -108,3 +108,33 @@ rejects inconsistent attempt/rc/call-count traces. Recovery messages now identif
 consumed focus and requested/posted Quit, without falsely claiming no input.
 The bounded10-read focus wait is retained; a slow animation still refuses and
 uses independently checked cleanup. No claim that native activation will work.
+
+## Frozen review-repaired preparation
+
+Repair source15d09ebc877b256c7622cbd49edc8f328239b81d;104 attended tests and
+18 helper tests pass, alongside38 AX-route tests on the unchanged route code.
+The native focus/early-Quit boundary was independently reviewed at5b670c7d;
+bounded findings are repaired above. Fresh exact-head CI remains required.
+
+UNRUN root:`app-attended-prepared-jag50nz3`; run:`2358c604b9b24b06b2b595754eb2670b`.
+Prepared SHA256:`848fbab719bc6c69d9d48dad573884a858c1118df4f16d7d0ef43e77b357ff9d`.
+All37 dependency hashes and8 staged artifacts bind the repaired source.
+Candidate inventory/executable and v3 retained metadata were rechecked by actual
+prepare. A remains prospective; B is not admitted and saved A is null.
+
+Separate simulation-consumed root:`app-attended-prepared-xoyr2v0h`, prepared
+SHA256:`63e7629434625975995e5ad00474f084f221759c7d2d78a51e9e57811a58518e`.
+Six entry scenarios passed, including autonomous A/B gates with no owner offer
+or completion file. Actual emitted A/B admission parsed through staged helper
+sources for A-main, B-main and B-modal with a native-backend sentinel. B's
+invented generation home validates format only, not actual B admission.
+No App or native backend was invoked. Old roots remain consumed/historical.
+
+Private report:app-post-el3-assessment-y2ps41jf/autonomous-preparation-result.json.
+Guarded invocation:app-post-el3-assessment-y2ps41jf/coordinated-manager-jag50nz3.js,
+SHA256:`e51c17a0fd5de3a9672093d4406e99a2b239cc805a8c4eeb6313c61881a7ef26`. Start/resource placeholders remain unfilled. No
+Foreground callback exists on this route. Routine owner attendance is not an
+admission requirement; parent integration/resource concurrence/start are.
+Parent must still handle exceptional unsupported cleanup or an actual Cancel
+fallback honestly; arbitrary native stalls cannot promise unattended closure.
+No implementation permission implies live start or renewal of an expired root.
