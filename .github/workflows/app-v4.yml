@@ -196,8 +196,10 @@ jobs:
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib publisher_selection::tests -- --test-threads=1
       - name: SEAL-C offline signing preparation (invented metadata only)
         run: python3 -B -m unittest discover -s ../execution/PKG-01/DEL-01-04/Work/seal-c-signing -p 'test_prepare.py' -v
-      - name: SEAL-C provider transition (mock keychain only)
-        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib capture_seal -- --test-threads=1
+      - name: SEAL-C provider transition and native caller gates (source fixtures)
+        run: |
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --lib capture_seal -- --test-threads=1
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --lib seal_c_enrollment -- --test-threads=1
       - name: Connected static packaging
         run: |
           cargo build --locked --manifest-path src-tauri/Cargo.toml --example distribution-static

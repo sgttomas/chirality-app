@@ -170,15 +170,17 @@ The sequence is data, not a shell script or automated runner. Existing packaging
 owns Option B, signing/notary/install/FP operations; native qualification remains
 its separate undertaking.
 
-A concrete source prerequisite remains: the integrated `enroll_initial` is
-host-only and has no product caller. The [concrete invocation design](ENROLLMENT_INVOCATION.md) defines a private
+The native source caller is now wired by
+[SEAL-C-NATIVE-CALLER-01](../SEAL_C_NATIVE_CALLER.md), with the menu absent and
+dispatch refused under None. Actual signing-stage policy admission and native
+witness remain outstanding. The [concrete invocation design](ENROLLMENT_INVOCATION.md) defines a private
 prepared subject, native-menu/original-window confirmation, inside-provider-lock
 revalidation and reuse of the existing key_setup/Quit exclusion. The minimal
 recommended invocation is a reviewed native host action for the admitted signing-stage fresh namespace,
 using the existing private authority—not a generic renderer/MCP/CLI override,
-and not silent enrollment at startup. Exact integration belongs to the runtime/
-native owners after the namespace and signing stage are admitted. This tool
-neither invents a working caller nor patches runtime code to bypass the None gate.
+and not silent enrollment at startup. The runtime/native owners implemented that source join under the unchanged
+None gate; this metadata tool does not bypass or activate it. A signed/native
+result still requires the exact admitted subject and actual witness.
 
 Normal Seal uses the committed current key and Verify its requested committed
 key; neither commits pending rotation. A locked/denied unreserved enrollment may

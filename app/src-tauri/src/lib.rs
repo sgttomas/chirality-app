@@ -12,6 +12,7 @@ pub mod attachments;
 pub mod canonical;
 pub mod capture_seal;
 mod capture_seal_keychain;
+mod seal_c_enrollment;
 mod installation;
 pub mod catalog;
 mod checkpoint_recorder;
@@ -1248,6 +1249,8 @@ fn app_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wr
     let menu = Menu::default(app)?;
     #[cfg(target_os = "macos")]
     native_waiting::append_menu(app, &menu)?;
+    let enrollment = seal_c_enrollment::menu_entry()
+        .map(|(id,label)|MenuItem::with_id(app,id,label,true,None::<&str>)).transpose()?;
     let quit = MenuItem::with_id(app, QUIT_MENU_ID, format!("Quit {}", app.package_info().name), true, Some("CmdOrCtrl+Q"))?;
     for top in menu.items()? {
         let MenuItemKind::Submenu(sub) = top else { continue };
@@ -1257,12 +1260,15 @@ fn app_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wr
             let text = text.trim_start_matches('&');
             if text.starts_with("Quit") || text.starts_with("Exit") {
                 sub.remove_at(at)?;
-                sub.insert(&quit, at)?;
+                if let Some(item)=enrollment.as_ref(){sub.insert(item,at)?;sub.insert(&quit,at+1)?;}
+                else{sub.insert(&quit, at)?;}
                 return Ok(menu);
             }
         }
     }
-    menu.append(&Submenu::with_items(app, "File", true, &[&quit])?)?;
+    let file=Submenu::with_items(app, "File", true, &[&quit])?;
+    if let Some(item)=enrollment.as_ref(){file.insert(item,0)?;}
+    menu.append(&file)?;
     Ok(menu)
 }
 // Menu dispatch only queues navigation; activation stays behind the App's guards.
@@ -1332,11 +1338,12 @@ fn request_quit(app: tauri::AppHandle) {
         };
         // Keep the set of homes stable through settlement. Key setup is the
         // only runtime path adding a home; never let it race the quit snapshot.
+        // The same gate also keeps explicit capture sealing out of Quit settlement.
         let _key_setup = match state.key_setup.try_lock() {
             Ok(held) => held,
             Err(_) => {
                 show_main_window(&app);
-                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", "API-key home setup is under way. The App is still running; choose Quit again when that operation has finished.".into());
+                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", "An explicit key operation is under way. The App is still running; choose Quit again when that operation has finished.".into());
                 return;
             }
         };
@@ -2667,6 +2674,7 @@ pub fn run() {
         .menu(app_menu)
         .on_menu_event(|app, event| {
             if event.id() == QUIT_MENU_ID { request_quit(app.clone()); }
+            else if event.id() == seal_c_enrollment::MENU_ID { seal_c_enrollment::request(app.clone()); }
             else if event.id().as_ref().starts_with(native_waiting::ITEM_PREFIX) { request_native_waiting(app, event.id().as_ref()); }
         })
         // DEF-1, SQ-W: closing the window is not quit and stops nothing. The

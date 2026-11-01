@@ -1,10 +1,10 @@
 # Minimal native-host enrollment invocation design
 
-Status: native caller design for the later admitted signing stage, **not
-registered or activated**. The provider-only prepared-intent/consume boundary
-is implemented by SEAL-C-PREPARED-01; the native caller obligations below remain
-unimplemented. KEYCHAIN_SELECTION remains None. This design adds
-no new enduring governance mechanism and does not change SEAL-C/SEAL-2 scope.
+Status: reviewed design basis, now implemented in source by
+[SEAL-C-NATIVE-CALLER-01](../SEAL_C_NATIVE_CALLER.md) and SEAL-C-PREPARED-01.
+It remains **None-gated and unactivated**, with actual signed/native qualification
+outstanding. The source duties below describe the joined implementation, not a
+new grant to sign or enroll.
 The offline preparation is usable now; executing SC-1/SC-3 requires this bounded
 source work and actual owner signing-stage authority first.
 
@@ -12,7 +12,7 @@ source work and actual owner signing-stage authority first.
 
 - `capture_seal_keychain.rs::prepare_enrollment()` now creates a private
   provider intent; `enroll_initial(prepared)` consumes it after authority refresh
-  and both in-lock joins. Neither is called by product code. It
+  and both in-lock joins. The native-menu worker now calls them only through the compiled availability gate. It
   returns `Result<(), String>` and does not distinguish newly created, already
   enrolled or completed-pending outcomes.
 - `lib.rs::app_menu` / `on_menu_event` already dispatch native menu actions to
@@ -177,3 +177,15 @@ additional policy-hash authority) and requires legacy absence. Existing path-
 based opens retain the declared same-user swap-and-restore race limit; retained
 descriptors do not make those opens descriptor-relative. The outer native duties
 remain future implementation and are not discharged by the inactive provider.
+
+## Source implementation of the native join
+
+[SEAL-C-NATIVE-CALLER-01](../SEAL_C_NATIVE_CALLER.md) now implements the native-menu
+worker and confirmation/key_setup/Quit join described here, reusing the existing
+confirmation/backend and adding only a read-only original-window recheck. The
+compiled None query keeps the menu absent and rejects dispatch without probing.
+The prior unimplemented-caller descriptions above retain the design's original
+subject; the source gap is now closed, not activated or natively qualified.
+Actual namespace/profile/entitlement/signing selection and signed witness remain
+required. The helper's check is bounded handle availability, not an atomic window
+lifetime guarantee, and external termination is not prevented by App Quit gates.

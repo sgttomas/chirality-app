@@ -24,6 +24,12 @@ struct Selection {
     allow_first_enrollment: bool,
 }
 const KEYCHAIN_SELECTION: Option<Selection> = None;
+/// Menu eligibility only: no namespace, signature, root or keychain observation.
+/// Actual preparation/consumption independently validate authority and policy.
+pub(crate) const fn enrollment_compiled_available() -> bool {
+    cfg!(target_os = "macos") && !cfg!(debug_assertions) && KEYCHAIN_SELECTION.is_some()
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct ItemIdentity {
     pub service: String,

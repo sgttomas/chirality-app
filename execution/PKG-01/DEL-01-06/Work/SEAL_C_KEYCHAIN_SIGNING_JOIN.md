@@ -179,3 +179,20 @@ installed root or a post-join presence/absence change refuses before backend
 effects. No installation/legacy behavior changes. Path-based open races against
 hostile same-user mutation remain explicitly bounded; this is not a claim of
 atomic namespace integrity or completed native-caller confirmation.
+
+## Native caller now wired in source, still None-gated
+
+[The native caller implementation](../../DEL-01-04/Work/SEAL_C_NATIVE_CALLER.md)
+closes the source invocation gap: one native-menu worker retains the original
+window and private prepared intent, uses the unchanged safe-cancel confirmation,
+then try-acquires key_setup, checks Quit, rechecks the original on the main thread
+and checks Quit again before consume. Key_setup remains held until the provider
+returns. No renderer/MCP/CLI/path/startup invocation is added. Availability is a
+pure compiled query; None hides the menu and rejects dispatch before preparation.
+
+Packaging should now distinguish implemented source custody from the still-unrun
+SC-0…SC-6 native/signed witness. No real namespace/profile/entitlement values are
+selected by this join; no SecItem/signing action was executed. Success reports
+only provider-returned success, not new-key creation or personal-act proof.
+The final window check is not a lifetime lease, blocking provider waits may delay
+App-initiated Quit, and external termination retains existing crash limits.
