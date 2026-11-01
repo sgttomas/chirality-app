@@ -223,7 +223,7 @@ silent key replacement. No destructive recovery action is implemented here.
 ## Inactive prepared enrollment boundary (SEAL-C-PREPARED-01)
 
 The path-only production enrollment entry is replaced by
-`prepare_enrollment(app_data) -> PreparedSealEnrollment` and
+`prepare_enrollment() -> PreparedSealEnrollment` and
 `enroll_initial(prepared) -> Result<(), String>`. The intent has private fields,
 no Clone/Deserialize implementation and no persisted reconstruction path. Direct
 `dispatch(..., Operation::Enroll)` refuses; production enrollment cannot enter
@@ -289,3 +289,28 @@ cases; native SecItem wrappers remain disabled in tests. Deliverable validation
 reported zero errors. Independent review and exact-head hosted checks are retained
 in the contribution PR; these source results are not native confirmation or
 signed enrollment qualification.
+
+Review repair disposition: independent Claude Opus 5.5/high reviewed 7b0420d8
+and found no inactive-scope blockers, with F1/F2 recommended before integration.
+The post-join observed absence must now still equal the frozen absence before
+any fresh backend query or directory creation. Tests inject both appearance and
+disappearance in that exact gap. Parent approved the narrow capture_seal.rs
+read-only installed-root accessor: prepare_enrollment() accepts no caller path
+and derives the same folder()/KEY_FOLDER root used by ordinary sealing. Consume
+also refuses a changed installed root. Unavailable/invalid root has no fallback.
+The installation and legacy behavior themselves are unchanged.
+
+The retained descriptors pin observed objects, but existing enrollment/continuity
+lock and marker opens remain path-based rather than openat-relative to those
+descriptors. Hostile same-user swap-and-restore between path checks remains a
+stated residual, not closed by this slice. No automatic clean rereview or native
+confirmation/Quit/activation result is claimed for the manager's bounded repairs.
+
+Post-review targeted checks passed all 43 capture-seal/provider tests, including
+both exact presence/absence gap cases and installed-root provenance/refusal.
+The maintained package producer source dependency map was compared read-only
+with the current receiving profile and had zero drift; no generated file or
+frozen pin was changed. Deliverable validation reported zero errors. The
+production-only internal no-intent guard remains source-inspected rather than
+directly executed by cfg(test); the public dispatch refusal is tested. Actual
+signed/native activation remains outside these results.

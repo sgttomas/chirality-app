@@ -10,7 +10,7 @@ source work and actual owner signing-stage authority first.
 
 ## Existing source and the exact gap
 
-- `capture_seal_keychain.rs::prepare_enrollment(app_data)` now creates a private
+- `capture_seal_keychain.rs::prepare_enrollment()` now creates a private
   provider intent; `enroll_initial(prepared)` consumes it after authority refresh
   and both in-lock joins. Neither is called by product code. It
   returns `Result<(), String>` and does not distinguish newly created, already
@@ -48,15 +48,16 @@ personal identity or agent-exclusion guarantee is inferred.
 ## Prepared subject and ownership
 
 The implemented private, non-Clone/non-Deserialize `PreparedSealEnrollment` in the provider module is
-created only from the running host's checked compiled selection and installed
-AppData root. It contains no secret material. Its frozen subject is:
+created only from the running host's checked compiled selection and the installed
+capture-seal root. prepare_enrollment() accepts no caller path; a read-only
+accessor derives the root through the existing folder()/KEY_FOLDER contract. It contains no secret material. Its frozen subject is:
 
-- exact publisher-binding digest, bundle/team and compiled provider policy hash;
+- exact publisher-binding digest, bundle/team and compiled provider policy values;
 - exact service/primary account/access-group and allow_first_enrollment;
 - physical AppData/continuity-directory identity, or checked nearest existing
   parent plus the expected absent child for an uncreated directory;
 - exact existing marker digest and committed/pending key IDs, or explicit marker
-  absence; the observed legacy-directory presence/absence;
+  absence; the required observed legacy-directory absence;
 - one in-process attempt identity. The original native-window handle/custody
   belongs to the future caller wrapper, not the provider intent.
 
@@ -168,3 +169,11 @@ profile/signature and fresh namespace/witness inputs. Parent: integration and
 reserved namespace/signing-stage choices. The provider-only boundary is now supplied in capture_seal_keychain.rs/tests.
 No native menu/confirmation/Quit edits are made by that slice; those overlaps
 must be disclosed again before the future caller implementation.
+
+Provider review refinements: consumption checks the still-installed root and
+compares observed absence to the frozen absence after the first in-lock join,
+before fresh_namespace/create. The provider freezes policy values (not an
+additional policy-hash authority) and requires legacy absence. Existing path-
+based opens retain the declared same-user swap-and-restore race limit; retained
+descriptors do not make those opens descriptor-relative. The outer native duties
+remain future implementation and are not discharged by the inactive provider.

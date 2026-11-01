@@ -97,7 +97,7 @@ fn seal_keychain_none_never_touches_platform_and_unsigned_file_route_stays() {
     assert!(KEYCHAIN_SELECTION.is_none());
     assert!(KeychainAuthority::current().is_err());
     assert!(!selected_route());
-    assert!(prepare_enrollment(Path::new("/must-not-read")).is_err());
+    assert!(prepare_enrollment().is_err());
     assert!(dispatch(Path::new("/must-not-read/legacy"), Operation::Seal).is_none());
 }
 #[test]
@@ -614,6 +614,7 @@ fn enrollment_fixture() -> (Fixture, KeychainAuthority) {
     let mut f = Fixture::new();
     f.dir = f.root.join("capture-seal-keychain");
     f.legacy = f.root.join(crate::capture_seal::KEY_FOLDER);
+    crate::capture_seal::set_folder_for_test(Some(Some(f.legacy.clone())));
     let resources = f.root.join("Synthetic.app/Contents/Resources");
     fs::create_dir_all(&resources).unwrap();
     let authority = KeychainAuthority {
@@ -645,7 +646,7 @@ fn seal_prepared_read_only_drop_and_none_gate_do_not_touch_backend_or_files() {
     assert_eq!(names(), before);
     assert!(b.reads.lock().unwrap().is_empty());
     assert_eq!(*b.adds.lock().unwrap(), 0);
-    assert!(prepare_enrollment(Path::new("/not-read-before-None-gate")).is_err());
+    assert!(prepare_enrollment().is_err());
     let p = prepare_subject(&f.root, &a).unwrap();
     assert!(enroll_initial(p).is_err());
     assert_eq!(names(), before);
@@ -820,4 +821,89 @@ fn seal_prepared_directory_permissions_and_replacement_refuse() {
         assert!(consume_prepared(p, &a, &b, &mut || panic!("changed physical source")).is_err());
         assert_eq!(b.reads.lock().unwrap().len(), reads);
     }
+}
+
+#[test]
+fn seal_prepared_exact_post_join_presence_gap_refuses_before_backend_effects() {
+    for was_present in [false, true] {
+        let (f, a) = enrollment_fixture();
+        let b = Mock::default();
+        if was_present {
+            f.run(&b, Operation::Enroll, 1).unwrap();
+        }
+        let intent = prepare_subject(&f.root, &a).unwrap();
+        let dir = f.dir.clone();
+        let moved = f.root.join("moved-continuity");
+        AFTER_ENROLLMENT_JOIN.with(|slot| {
+            *slot.borrow_mut() = Some(Box::new(move || {
+                if was_present {
+                    fs::rename(dir, moved).unwrap();
+                } else {
+                    fs::DirBuilder::new().mode(0o700).create(dir).unwrap();
+                }
+            }))
+        });
+        let reads = b.reads.lock().unwrap().len();
+        let adds = *b.adds.lock().unwrap();
+        assert!(
+            consume_prepared(intent, &a, &b, &mut || panic!("gap cannot generate"))
+                .err()
+                .unwrap()
+                .contains("changed after enrollment join")
+        );
+        assert_eq!(b.reads.lock().unwrap().len(), reads);
+        assert_eq!(*b.adds.lock().unwrap(), adds);
+        if was_present {
+            assert!(!f.dir.exists(), "must not recreate after disappearance");
+        }
+    }
+}
+#[test]
+fn seal_prepared_root_is_installed_source_with_no_caller_path_or_fallback() {
+    let (f, a) = enrollment_fixture();
+    let b = Mock::default();
+    let unrelated = f.root.join("unrelated");
+    fs::create_dir(&unrelated).unwrap();
+    struct Reset;
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            crate::capture_seal::set_folder_for_test(None);
+        }
+    }
+    let _reset = Reset;
+    crate::capture_seal::set_folder_for_test(Some(Some(f.legacy.clone())));
+    let intent = prepare_installed_subject(&a).unwrap();
+    assert_eq!(intent.app_data, f.root);
+    assert_ne!(intent.app_data, unrelated);
+    drop(intent);
+    for source in [
+        None,
+        Some(PathBuf::from("relative/capture-seal")),
+        Some(unrelated.clone()),
+    ] {
+        crate::capture_seal::set_folder_for_test(Some(source));
+        assert!(prepare_installed_subject(&a).is_err());
+    }
+    crate::capture_seal::set_folder_for_test(Some(Some(f.root.join("missing/capture-seal"))));
+    assert!(prepare_installed_subject(&a).is_err());
+    assert!(!f.root.join("missing").exists());
+    assert!(b.reads.lock().unwrap().is_empty());
+    assert_eq!(*b.adds.lock().unwrap(), 0);
+    assert!(!f.dir.exists());
+}
+
+#[test]
+fn seal_prepared_installed_root_change_revokes_original_intent() {
+    let (f, a) = enrollment_fixture();
+    let b = Mock::default();
+    let intent = prepare_installed_subject(&a).unwrap();
+    let other = f.root.join("other-installation");
+    fs::create_dir(&other).unwrap();
+    crate::capture_seal::set_folder_for_test(Some(Some(
+        other.join(crate::capture_seal::KEY_FOLDER),
+    )));
+    assert!(consume_prepared(intent, &a, &b, &mut || panic!("changed installed root")).is_err());
+    assert!(b.reads.lock().unwrap().is_empty());
+    assert!(!f.dir.exists());
+    crate::capture_seal::set_folder_for_test(None);
 }

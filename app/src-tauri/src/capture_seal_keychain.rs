@@ -163,9 +163,15 @@ pub(crate) fn dispatch(
 }
 /// Read-only provider preparation. No SecItem, marker write or advisory lock.
 /// A future native caller still owns original-window/confirmation/key_setup/Quit.
-pub(crate) fn prepare_enrollment(app_data: &Path) -> Result<PreparedSealEnrollment, String> {
+pub(crate) fn prepare_enrollment() -> Result<PreparedSealEnrollment, String> {
     let authority = process_authority(false)?;
-    prepare_subject(app_data, &authority)
+    prepare_installed_subject(&authority)
+}
+fn prepare_installed_subject(
+    authority: &KeychainAuthority,
+) -> Result<PreparedSealEnrollment, String> {
+    let root = crate::capture_seal::installed_root_for_enrollment()?;
+    prepare_subject(&root, authority)
 }
 /// Consumes the original intent once. No path-only production enrollment entry.
 /// No menu/IPC/startup caller is registered by this source slice.
@@ -535,6 +541,9 @@ fn consume_prepared(
 ) -> Result<Material, String> {
     // Refresh is performed by enroll_initial before this comparison and before
     // any provider locks. Never silently replace the original frozen policy.
+    if crate::capture_seal::installed_root_for_enrollment()? != prepared.app_data {
+        return Err("SEAL-C installed enrollment root changed after preparation".into());
+    }
     if prepared.policy != authority.enrollment_policy() {
         return Err("SEAL-C refreshed authority differs from prepared policy".into());
     }
@@ -788,6 +797,8 @@ fn verification_material(
 thread_local! {static BEFORE_GUARD:std::cell::RefCell<Option<Box<dyn FnOnce()>>>=const{std::cell::RefCell::new(None)};}
 #[cfg(test)]
 thread_local! {static BEFORE_ENROLLMENT_JOIN:std::cell::RefCell<Option<Box<dyn FnOnce()>>>=const{std::cell::RefCell::new(None)};}
+#[cfg(test)]
+thread_local! {static AFTER_ENROLLMENT_JOIN:std::cell::RefCell<Option<Box<dyn FnOnce()>>>=const{std::cell::RefCell::new(None)};}
 /// Marker is continuity evidence within a compiled namespace, never namespace
 /// authority. No read failure causes creation. Pending+missing stays blocked.
 fn operate(
@@ -869,9 +880,18 @@ fn operate_bound(
     if let Some(intent) = prepared {
         intent.before_namespace()?;
     }
+    #[cfg(test)]
+    AFTER_ENROLLMENT_JOIN.with(|hook| {
+        if let Some(hook) = hook.borrow_mut().take() {
+            hook();
+        }
+    });
     let observed_absent = !directory
         .try_exists()
         .map_err(|_| "SEAL-C continuity presence unavailable")?;
+    if prepared.is_some_and(|intent| observed_absent != intent.namespace.is_none()) {
+        return Err("SEAL-C prepared presence or absence changed after enrollment join".into());
+    }
     let admitted_create = matches!(operation, Operation::Enroll) && allow_first && observed_absent;
     if matches!(operation, Operation::Enroll) && observed_absent {
         if !allow_first {

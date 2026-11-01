@@ -155,7 +155,7 @@ not a claim that the caller or native witness already exists.
 ## Inactive provider confirmation-subject join
 
 SEAL-C-PREPARED-01 replaces the path-only entry with
-`prepare_enrollment(app_data)` and `enroll_initial(PreparedSealEnrollment)`. The
+`prepare_enrollment()` and `enroll_initial(PreparedSealEnrollment)`. The
 private non-Clone/non-Deserialize intent freezes checked publisher/provider
 policy, physical AppData/ancestor/directory identity, expected absence, exact
 marker bytes/identity and committed/pending key IDs. Read-only preparation makes
@@ -172,3 +172,10 @@ dropping an intent cancels without effects. The compiled None gate, exact signer
 inputs, original/private evidence and separate actual signed witness are unchanged.
 No profile/namespace choice, entitlement/signing change or real SecItem access
 is established by the source fixtures.
+
+The prepared provider now derives AppData from the installed capture-seal folder
+through a read-only accessor and accepts no enrollment path argument. A changed
+installed root or a post-join presence/absence change refuses before backend
+effects. No installation/legacy behavior changes. Path-based open races against
+hostile same-user mutation remain explicitly bounded; this is not a claim of
+atomic namespace integrity or completed native-caller confirmation.
