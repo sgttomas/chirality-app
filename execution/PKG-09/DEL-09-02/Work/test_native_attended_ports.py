@@ -16,7 +16,7 @@ class Tests(unittest.TestCase):
         return p
     def run_fixture(self):
         events=[]
-        run=N(cleanup=False,ui_deadline=0,quit_requested=False,stop_requested=False,admission_sha='a'*64,root=Path('/invented/A'),
+        run=N(sample=lambda:None,observed_processes=[],cleanup=False,ui_deadline=0,quit_requested=False,stop_requested=False,admission_sha='a'*64,root=Path('/invented/A'),
             extra_cleanup_ready=lambda:True,bound_main=lambda:events.append('bound'),
             ax=N(quit_ui=lambda:events.append('quit')),act_record=lambda n,v:events.append(n),
             reservation=N(observe=lambda:{'code':1,'status':0},administrative_reap=lambda e:events.append('reap') or 0,reaped=False),
@@ -44,3 +44,20 @@ class Tests(unittest.TestCase):
         run,events=self.run_fixture();run.stop_requested=True;p=self.ports(run);p.runs['B']=run
         with self.assertRaises(RuntimeError):p.quit_normal('B',20)
         self.assertFalse(events)
+
+class PreSpawnTests(unittest.TestCase):
+    def test_resource_refusal_never_sets_launch_unknown_or_spawns(self):
+        from types import SimpleNamespace as N
+        from unittest.mock import patch
+        stopped=[]
+        class Run:
+            def __init__(self,*args):
+                self.screen=N();self.reservation=None;self.thread=None
+                self.stop=N(set=lambda:stopped.append(True));self.safe_log=lambda *a,**k:None
+            def sample(self,admission=False):raise RuntimeError('exclusive pending')
+        value={};admissions=N(value=value,before_launch=lambda *args:None)
+        b=N(check_observation_capabilities=lambda:None,ax_route_support=N(make_run=lambda b:Run))
+        ports=NativePorts(b,'/invented',value,admissions,lambda event:None,lambda *args:None,clock=lambda:0)
+        with patch('native_attended_ports.subprocess.Popen',side_effect=AssertionError('must not spawn')):
+            with self.assertRaisesRegex(RuntimeError,'exclusive'):ports.launch('A',{'admission_sha256':'a'*64},295)
+        self.assertIsNone(ports.pending_launch);self.assertIsNone(ports.runs['A'].reservation);self.assertEqual(stopped,[True])

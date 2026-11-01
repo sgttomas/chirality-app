@@ -42,7 +42,7 @@ class NativePorts:
         require(label=='A' or ('A' in self.closures and self.saved is not None), 'B before complete A closure')
         self.b.check_observation_capabilities()
         self.admissions.before_launch(label,admission,end)
-        self.launches.add(label);self.pending_launch=label
+        self.launches.add(label)
         phase=self.root/label
         run_type=self.b.ax_route_support.make_run(self.b)
         run=run_type(phase,dict(self.value),end,admission['admission_sha256'])
@@ -59,15 +59,23 @@ class NativePorts:
             run.screen.active_phase=phase;run.screen.phase_deadline=limit;run.ui_deadline=limit
         run.screen.begin_phase=begin_phase
         self.runs[label]=run  # register before any launch-side failure
-        run.sample(admission=True)
-        run.thread=threading.Thread(target=run.monitor,daemon=True);run.thread.start()
-        policy=phase/'phase.sb'
-        require(policy.read_text()==self.admissions.policy(label,phase),'prepared native policy changed')
-        with (phase/'stdout.log').open('xb') as out,(phase/'stderr.log').open('xb') as err:
-            child=subprocess.Popen(['/usr/bin/sandbox-exec','-f',str(policy),self.value['executable']],
-                cwd=self.value['native_input_paths']['project'],env=self.admissions.environment(label),
-                stdin=subprocess.DEVNULL,stdout=out,stderr=err,start_new_session=True)
-            run.reservation=self.b.AppReservation(child)  # original Child, never cold PID
+        try:
+            run.sample(admission=True)
+            run.thread=threading.Thread(target=run.monitor,daemon=True);run.thread.start()
+            policy=phase/'phase.sb'
+            require(policy.read_text()==self.admissions.policy(label,phase),'prepared native policy changed')
+            with (phase/'stdout.log').open('xb') as out,(phase/'stderr.log').open('xb') as err:
+                self.pending_launch=label
+                child=subprocess.Popen(['/usr/bin/sandbox-exec','-f',str(policy),self.value['executable']],
+                    cwd=self.value['native_input_paths']['project'],env=self.admissions.environment(label),
+                    stdin=subprocess.DEVNULL,stdout=out,stderr=err,start_new_session=True)
+                run.reservation=self.b.AppReservation(child)  # original Child, never cold PID
+        except BaseException:
+            if self.pending_launch is None and run.reservation is None:
+                run.stop.set()
+                if run.thread is not None:run.thread.join(timeout=8)
+                run.safe_log('launch_not_started',phase=label,proof='failure before Popen invocation')
+            raise
         self.pending_launch=None
         run.log('attended_incarnation_started',phase=label,pid=child.pid)
         ax=self.b.ax_route_support.bounded_ax(self.b.ax_support.wrap_ax(self.b.base.load_ax()))
@@ -317,6 +325,8 @@ class NativePorts:
         run.act_record('attended-admin-release-intent.json',offered)
         code=run.reservation.administrative_reap(offered['expected_app_exit'])
         require(code==0,'original Child wait not0')
+        run.sample()
+        require(not run.observed_processes,'known candidate process remains after Child reap; retain guard')
         run.stop.set();run.thread.join(timeout=8)
         require(not run.thread.is_alive(),'guard did not settle')
         receipt={'incarnation':label,'normal_exit':code,'helpers_settled':True,'reaped':True,

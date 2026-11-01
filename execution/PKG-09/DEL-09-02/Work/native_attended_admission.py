@@ -159,6 +159,13 @@ class NativeAdmissions:
             result=result.replace('(allow process-fork)','(deny process-fork)')
         for path in (self.build_root,Path(__file__).resolve().parents[4]):
             result+='(deny file-write* (subpath '+json.dumps(str(path))+'))\n'
+        # Protect the ENTIRE private control tree: bridge, both incarnations,
+        # manifests and receipts. Only this incarnation's scratch/log outputs are
+        # opened again; the other phase and bridge never receive an exception.
+        result+='(deny file-read* file-write* (subpath '+json.dumps(str(self.root))+'))\n'
+        result+='(allow file-read-metadata file-read-data (literal '+json.dumps(str(phase))+'))\n'
+        result+='(allow file-read* file-write* (subpath '+json.dumps(str(phase/'tmp'))+'))\n'
+        result+='(allow file-read-metadata file-write-data (literal '+json.dumps(str(phase/'stdout.log'))+') (literal '+json.dumps(str(phase/'stderr.log'))+'))\n'
         return result
 
     def _receipt(self,label,facts):
@@ -232,6 +239,13 @@ class NativeAdmissions:
             require(self.saved is not None,'B has no actual A setup')
             validate_saved_setup(Path(self.value['expected_app_data'])/'desktop-startup/request.json',
                                  Path(self.saved['account']),self.value,self.saved['request_sha256'])
+            from native_b_retained import metadata
+            recorded=admission['actual_state']['opaque_metadata']
+            account=Path(self.saved['account'])
+            links={str(account/name):self.value['native_input_paths'][key]
+                for name,key in [('config.toml','shared_config'),('AGENTS.md','shared_agents'),('skills','shared_skills')]}
+            require(metadata({name:Path(value['path']) for name,value in recorded.items()},links)==recorded,
+                    'opaque namespace metadata changed after B admission')
 
     def bind_birth(self,label,run):
         # sandbox-exec is the same original Child before exec, not a new target.

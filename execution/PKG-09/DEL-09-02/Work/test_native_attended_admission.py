@@ -46,3 +46,19 @@ class ExecBindingTests(unittest.TestCase):
         run=N(reservation=N(child=N(pid=4),observe=lambda:None),ui_deadline=10,value={'executable':'/invented/App'})
         with patch('time.sleep'),self.assertRaises(RuntimeError):a.bind_birth('A',run)
         self.assertFalse(a.births)
+
+class PolicyTests(unittest.TestCase):
+    def test_bridge_and_other_phase_are_protected_with_only_current_tmp_exception(self):
+        from native_attended_admission import NativeAdmissions
+        from types import SimpleNamespace as N
+        a=NativeAdmissions.__new__(NativeAdmissions)
+        a.root=Path('/invented/controller');a.build_root=Path('/invented/build');a.value={}
+        a.b=N(policy=lambda value,phase:'(version 1)\n(allow default)\n(allow process-fork)\n')
+        text=a.policy('A',a.root/'A')
+        self.assertIn('(deny process-fork)',text);self.assertNotIn('(allow process-fork)',text)
+        protect='(deny file-read* file-write* (subpath "/invented/controller"))'
+        self.assertIn(protect,text)
+        self.assertIn('(subpath "/invented/controller/A/tmp")',text)
+        self.assertNotIn('(subpath "/invented/controller/bridge")',text)
+        self.assertNotIn('(subpath "/invented/controller/B/tmp")',text)
+        self.assertLess(text.index(protect),text.index('(subpath "/invented/controller/A/tmp")'))

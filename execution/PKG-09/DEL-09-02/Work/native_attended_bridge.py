@@ -37,6 +37,11 @@ def read(path):
 def publish(path, value):
     path=Path(path);private_directory(path.parent)
     require(not os.path.lexists(path),'receipt already exists; no replacement')
+    import fcntl
+    lock=os.open(path.parent/'.publication.lock',os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
+    fcntl.flock(lock,fcntl.LOCK_EX)
+    if os.path.lexists(path):
+        os.close(lock);raise RuntimeError('receipt already exists; no replacement')
     temp=path.parent/('.'+path.name+'.'+uuid.uuid4().hex)
     fd=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
     try:
@@ -45,6 +50,7 @@ def publish(path, value):
         os.rename(temp,path)
     finally:
         if temp.exists():temp.unlink()
+        os.close(lock)
 
 class ReceiptBridge:
     def __init__(self,root,candidate,run_id,admissions,clock=time.monotonic,sleep=time.sleep,wall=time.time,simulation=False):
@@ -74,7 +80,7 @@ class ReceiptBridge:
     def deliver(self,event):
         event_id=self.emit(event)
         # T3 tool result is evidence of transport acceptance, never owner reading.
-        end=min(self.clock()+8,event.get('fixed_end',self.clock()+8))
+        end=self.clock()+8 # transport only; never extends any UI/action deadline
         receipt=self.events/(event_id+'.delivery.json')
         while self.clock()<end:
             if receipt.exists():

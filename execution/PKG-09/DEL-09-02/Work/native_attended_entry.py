@@ -16,6 +16,10 @@ import time
 import uuid
 from datetime import datetime,timezone
 
+# Explicit source directory under isolated Python; pycache is redirected to an empty prepared directory.
+HERE=Path(__file__).resolve().parent
+sys.path.insert(0,str(HERE))
+
 from native_attended_bridge import publish,read,private_directory,delivery_receipt,owner_completion,ReceiptBridge
 from native_attended_sequence import AttendedSequence
 
@@ -34,7 +38,8 @@ def sha(path):
     return h.hexdigest()
 
 def dependencies():
-    paths=list(HERE.glob('native*.py'))+[HERE/'native_attended_manager.js']
+    paths=list(HERE.glob('native*.py'))+[HERE/'native_attended_manager.js',
+        Path('/Users/ryan/dev/chirality-t3/tools/t3_slot.sh'),Path('/Users/ryan/dev/chirality-t3/tools/t3_slot_run.sh')]
     import native_successor_relaunch as b
     paths.extend(Path(p) for p in b.dependencies())
     return {str(p):sha(p) for p in sorted(set(paths))}
@@ -54,7 +59,7 @@ def prepare(build_root):
     checked=preflight_a(build_root,PLAN_SHA,load_identify())
     require(checked['candidate']==CANDIDATE,'wrong selected candidate')
     root=Path(tempfile.mkdtemp(prefix='app-attended-prepared-',dir=SCRATCH)).resolve()
-    for name in ('A','B','bridge'):(root/name).mkdir(mode=0o700)
+    for name in ('A','B','bridge','manager-home','bytecode-cache'):(root/name).mkdir(mode=0o700)
     admission=NativeAdmissions(root,build_root,PLAN_SHA,b,load_identify(),time.monotonic)
     artifacts={}
     for label in ('A','B'):
@@ -66,8 +71,9 @@ def prepare(build_root):
             if path.is_file():artifacts[str(path.relative_to(root))]=sha(path)
     manifest={'format':'attended-prepared-entry/v1','run_id':uuid.uuid4().hex,'candidate':CANDIDATE,
         'build_root':str(build_root),'plan_sha256':PLAN_SHA,'controller_root':str(root),'entry_source':str(Path(__file__).resolve()),
-        'dependencies':dependencies(),'artifacts':artifacts,'A_preflight':checked,'total_seconds':295,
+        'dependencies':dependencies(),'manager_function_sha256':hashlib.sha256(('async function'+(HERE/'native_attended_manager.js').read_text().split('(async function',1)[1]).rstrip().removesuffix(')').encode()).hexdigest(),'artifacts':artifacts,'A_preflight':checked,'total_seconds':295,
         'Stop_entry_reserve':135,'launch_limit':2,'Stop_confirmation':False,'PR69_active':False,
+        'interpreter':{'path':str(Path(sys.executable).resolve()),'sha256':sha(Path(sys.executable).resolve())},
         'native_executed':False,'prepared_at':datetime.now(timezone.utc).isoformat()}
     publish(root/'prepared.json',manifest)
     print(json.dumps({'root':str(root),'prepared_sha256':sha(root/'prepared.json'),'candidate':CANDIDATE,
@@ -84,6 +90,7 @@ def check(root,expected_sha):
             and manifest['total_seconds']==295 and manifest['Stop_entry_reserve']==135
             and manifest['launch_limit']==2 and manifest['Stop_confirmation'] is False
             and manifest['PR69_active'] is False,'prepared scope differs')
+    require(manifest['interpreter']=={'path':str(Path(sys.executable).resolve()),'sha256':sha(Path(sys.executable).resolve())},'entry interpreter differs')
     require(manifest['dependencies']==dependencies(),'controller/source dependency changed')
     for relative,digest in manifest['artifacts'].items():
         path=root/relative
@@ -111,7 +118,7 @@ def supervise_held(ports,bridge,sequence,clock=time.monotonic,sleep=time.sleep):
     required recovery (not a silent hours-long orphan). An explicit later owner
     disposition is necessary for UI work outside the original fixed interval.
     """
-    last=None;late=set();last_heartbeat=clock()
+    last=None;late=set();last_heartbeat=clock();dispositions={};reported_errors=set()
     while True:
         held=original_custody(ports)
         if not held:return
@@ -119,6 +126,23 @@ def supervise_held(ports,bridge,sequence,clock=time.monotonic,sleep=time.sleep):
             try:print(json.dumps({'event':'attended-held-heartbeat','held':held,'overrun':max(0,clock()-sequence.deadline)}),flush=True)
             except (BrokenPipeError,OSError):pass
             last_heartbeat=clock()
+        # Terminal nonzero/signal observations get a concrete decision offer,
+        # never local self-approval. One offer/receipt per original incarnation.
+        from native_attended_disposition import offer,consume
+        for label,kind in held:
+            if kind!='original-child':continue
+            try:
+                if label not in dispositions:
+                    selected=offer(ports,bridge,label)
+                    event_id=bridge.emit({'event':'attended-terminal-disposition-needed','incarnation':label,
+                        'fixed_end':sequence.deadline,'administrative_disposition_offer':selected,
+                        'instruction':'Agent0 may issue the exact one-time exited-Child reap disposition; no signal or live action.'})
+                    dispositions[label]=event_id
+                consume(ports,bridge,label,dispositions[label])
+            except Exception as error:
+                key=(label,'disposition',str(error))
+                if key not in reported_errors and len(reported_errors)<20:
+                    reported_errors.add(key);sequence.safe_record('disposition-observation-'+str(len(reported_errors)),{'error':str(error),'incarnation':label})
         state=tuple(held)
         if state!=last:
             try:bridge.deliver({'event':'attended-held-supervision','incarnation':sequence.current,
@@ -137,7 +161,10 @@ def supervise_held(ports,bridge,sequence,clock=time.monotonic,sleep=time.sleep):
                         ports.record('late-owner-completion-'+label,{'actual_reply':completion,'fixed_end':sequence.deadline,
                             'received_at_monotonic':clock(),'overrun':max(0,clock()-sequence.deadline),
                             'meaning':'completion only; no deadline rearm or presumed dismissal'})
-                except BaseException as error:sequence.safe_record('late-completion-error-'+label,{'error':str(error)})
+                except BaseException as error:
+                    key=(label,'completion',str(error))
+                    if key not in reported_errors and len(reported_errors)<20:
+                        reported_errors.add(key);sequence.safe_record('late-completion-error-'+label,{'error':str(error)})
             run=ports.runs.get(label)
             if run is None:continue
             # Reap only the original exited child. Never call a live-PID action.
@@ -150,13 +177,22 @@ def supervise_held(ports,bridge,sequence,clock=time.monotonic,sleep=time.sleep):
                         run.act_record('late-original-exit-release-intent.json',offered)
                         rc=run.reservation.administrative_reap(offered['expected_app_exit'])
                         run.act_record('late-original-exit-release-result.json',{'wait':rc,'success':False,'overrun':max(0,clock()-sequence.deadline)})
-                        run.stop.set()
-                except BaseException as error:run.safe_log('held_exit_refusal',error=str(error))
+                except BaseException as error:
+                    key=(label,'exit',str(error))
+                    if key not in reported_errors and len(reported_errors)<20:
+                        reported_errors.add(key);run.safe_log('held_exit_refusal',error=str(error))
             elif run.reservation is None:
                 # A failed spawn with no returned Child remains unknown until
                 # the launch port supplies an explicit failure/closure receipt.
                 continue
-            else:run.stop.set()
+            else:
+                try:
+                    run.sample()
+                    if not run.observed_processes and run.extra_cleanup_ready():run.stop.set()
+                except Exception as error:
+                    key=(label,'residency',str(error))
+                    if key not in reported_errors and len(reported_errors)<20:
+                        reported_errors.add(key);run.safe_log('held_resource_uncertainty',error=str(error))
         sleep(.2)
 
 def run_sequence(ports,bridge,slot_start,clock=time.monotonic,sleep=time.sleep):
@@ -168,7 +204,8 @@ def run_sequence(ports,bridge,slot_start,clock=time.monotonic,sleep=time.sleep):
     while original_custody(ports):
         try:supervise_held(ports,bridge,sequence,clock,sleep)
         except BaseException as error:
-            sequence.delivery_errors.append('supervision error; custody retained: '+repr(error))
+            message='supervision error; custody retained: '+repr(error)
+            if message not in sequence.delivery_errors and len(sequence.delivery_errors)<20:sequence.delivery_errors.append(message)
             # Never turn observer/pipe/control failure into released custody.
             try:sleep(.2)
             except BaseException:pass
@@ -178,15 +215,63 @@ def run_sequence(ports,bridge,slot_start,clock=time.monotonic,sleep=time.sleep):
     ports.record('attended-resource-closure',result)
     return result
 
+def slot_acquisition(root):
+    """Readonly wrapper ancestry/held-lock proof; log's second is conservative.
+
+    The START record is emitted inside lockf after acquisition, before Python
+    startup. Its rounded-down UTC second is used, counting startup/imports.
+    """
+    import re
+    parent=os.getppid()
+    row=subprocess.check_output(['/bin/ps','-p',str(parent),'-o','ppid=,uid=,command='],text=True,timeout=2).strip()
+    fields=row.split(None,2)
+    require(len(fields)==3 and int(fields[1])==os.getuid() and
+            '/Users/ryan/dev/chirality-t3/tools/t3_slot_run.sh' in fields[2], 'actual slot runner parent unavailable')
+    lock_pid=int(fields[0])
+    command=subprocess.check_output(['/bin/ps','-p',str(lock_pid),'-o','command='],text=True,timeout=2).strip()
+    match=re.search(r'/Users/ryan/dev/chirality-t3/guard/(cargo_job(?:\.slot[234])?\.lock)(?: |$)',command)
+    require(command.startswith('/usr/bin/lockf ') and match,'lockf ancestor/slot unavailable')
+    slot=Path('/Users/ryan/dev/chirality-t3/guard')/match.group(1)
+    locks=subprocess.run(['/usr/sbin/lsof','-a','-p',str(lock_pid),'-F','pfnl','--',str(slot)],capture_output=True,text=True,timeout=3)
+    require(locks.returncode==0 and 'p'+str(lock_pid) in locks.stdout.splitlines()
+            and 'n'+str(slot) in locks.stdout.splitlines(),
+            'original lockf slot descriptor not observed')
+    import errno,fcntl
+    fd=os.open(slot,os.O_RDWR|os.O_NOFOLLOW)
+    try:
+        info=os.fstat(fd)
+        require(stat.S_ISREG(info.st_mode) and info.st_uid==os.getuid(),'slot leaf ownership differs')
+        try:fcntl.lockf(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except OSError as error:
+            require(error.errno in (errno.EACCES,errno.EAGAIN),'slot contention observation failed')
+        else:
+            fcntl.lockf(fd,fcntl.LOCK_UN)
+            raise RuntimeError('slot was not held by wrapper; refuse')
+    finally:os.close(fd)
+    log=Path('/Users/ryan/dev/chirality-t3/guard/cargo_jobs.log')
+    with log.open('rb') as stream:
+        stream.seek(0,2);size=stream.tell();stream.seek(max(0,size-1024*1024));lines=stream.read().decode().splitlines()
+    selected=[line for line in lines if ' START pid='+str(parent)+' slot='+slot.name+' ' in line and str(root) in line]
+    require(selected,'current root-bound slot START record unavailable')
+    started=datetime.strptime(selected[-1].split(' ',1)[0],'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
+    age=time.time()-started
+    require(0<=age<30,'slot start stale; no budget reset')
+    return time.monotonic()-age,started,{'parent_pid':parent,'lockf_pid':lock_pid,'slot':str(slot),
+        'START_record':selected[-1],'lock_observation':locks.stdout,'nonblocking_contention':'EACCES/EAGAIN','clock_limit':'UTC log rounded down to second; conservatively counts Python startup'}
+
 def execute(root,expected_sha):
-    # Time is fixed at actual wrapper acquisition, before validation overhead.
-    acquired=time.monotonic();wall=time.time()
     manifest=check(root,expected_sha);root=Path(root)
     require(not (root/'simulation-started.json').exists(),'simulation root cannot execute natively; reprepare')
-    parent=subprocess.check_output(['/bin/ps','-p',str(os.getppid()),'-o','command='],text=True,timeout=2)
-    require('/Users/ryan/dev/chirality-t3/tools/t3_slot_run.sh' in parent,'actual slot parent unavailable')
+    start=read(root/'coordinated-start.json')
+    require(start.get('run_id')==manifest['run_id'] and start.get('prepared_sha256')==expected_sha
+            and start.get('parent_start_message_id') and start.get('resource_concurrence_message_id')
+            and start.get('manager_function_sha256')==manifest['manager_function_sha256'], 'coordinated start binding unavailable')
+    acquired,wall,slot_proof=slot_acquisition(root)
+    require(sys.flags.isolated and sys.pycache_prefix==str(root/'bytecode-cache')
+            and not list((root/'bytecode-cache').iterdir()),'isolated interpreter/empty redirected bytecode required')
+    publish(root/'mode.json',{'mode':'native','prepared_sha256':expected_sha})
     publish(root/'execution-started.json',{'acquired_monotonic':acquired,'acquired_utc':datetime.fromtimestamp(wall,timezone.utc).isoformat(),
-        'fixed_end_utc':datetime.fromtimestamp(wall+295,timezone.utc).isoformat(),'prepared_sha256':expected_sha})
+        'fixed_end_utc':datetime.fromtimestamp(wall+295,timezone.utc).isoformat(),'prepared_sha256':expected_sha,'slot_proof':slot_proof})
     import native_successor_relaunch as b
     from native_attended_admission import NativeAdmissions
     from native_attended_ports import NativePorts
@@ -210,11 +295,12 @@ def simulate(root,expected_sha):
     """
     manifest=check(root,expected_sha)
     require(not (Path(root)/'execution-started.json').exists(),'cannot simulate a used native root')
+    publish(Path(root)/'mode.json',{'mode':'simulation','prepared_sha256':expected_sha})
     publish(Path(root)/'simulation-started.json',{'simulation':True,'prepared_sha256':expected_sha,
         'candidate_not_launched':manifest['candidate']})
     from test_native_attended_entry import EntryTests
     results={}
-    for scenario in ('normal','owner','delivery-failure','late-owner'):
+    for scenario in ('normal','owner','delivery-failure','late-owner','nonzero-exit'):
         results[scenario]=EntryTests().exercise(scenario)
     publish(Path(root)/'simulation-result.json',{'simulation':True,'native_calls':0,'App_launches':0,
         'prepared_sha256':expected_sha,'cases':results,'standing':'offline entry/custody/bridge fixtures only'})
@@ -225,14 +311,25 @@ def main():
     p=sub.add_parser('prepare');p.add_argument('--build-root',required=True)
     for command in ('check','execute','simulate'):
         p=sub.add_parser(command);p.add_argument('--root',required=True);p.add_argument('--prepared-sha256',required=True)
+    p=sub.add_parser('record-start');p.add_argument('--root',required=True);p.add_argument('--prepared-sha256',required=True);p.add_argument('--json',required=True)
     p=sub.add_parser('record-delivery');p.add_argument('--root',required=True);p.add_argument('--event-id',required=True);p.add_argument('--json',required=True)
+    p=sub.add_parser('disposition');p.add_argument('--root',required=True);p.add_argument('--event-id',required=True);p.add_argument('--parent-message-id',required=True)
     p=sub.add_parser('owner-completion');p.add_argument('--root',required=True);p.add_argument('--event-id',required=True);p.add_argument('--actual-reply',required=True);p.add_argument('--owner-message-id',required=True)
     args=parser.parse_args()
     if args.command=='prepare':prepare(args.build_root)
     elif args.command=='check':print(json.dumps(check(args.root,args.prepared_sha256)))
     elif args.command=='simulate':simulate(args.root,args.prepared_sha256)
     elif args.command=='execute':return execute(args.root,args.prepared_sha256)
+    elif args.command=='record-start':
+        manifest=check(args.root,args.prepared_sha256);value=json.loads(args.json)
+        require(value.get('run_id')==manifest['run_id'] and value.get('prepared_sha256')==args.prepared_sha256
+                and value.get('manager_function_sha256')==manifest['manager_function_sha256']
+                and value.get('parent_start_message_id') and value.get('resource_concurrence_message_id'),'start record differs')
+        publish(Path(args.root)/'coordinated-start.json',value)
     elif args.command=='record-delivery':delivery_receipt(args.root,args.event_id,json.loads(args.json))
+    elif args.command=='disposition':
+        from native_attended_disposition import publish_disposition
+        publish_disposition(Path(args.root),args.event_id,args.parent_message_id)
     elif args.command=='owner-completion':owner_completion(args.root,args.event_id,args.actual_reply,args.owner_message_id)
     return 0
 if __name__=='__main__':raise SystemExit(main())

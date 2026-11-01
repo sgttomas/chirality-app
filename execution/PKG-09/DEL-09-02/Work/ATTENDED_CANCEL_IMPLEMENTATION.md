@@ -454,3 +454,78 @@ receipts. Current focused checks:42 attended Python +17 sheet Python +3 JS
 bridge cases. Existing52-fixture source evidence stays its original subject;
 new custody/execution entry boundaries require the selected independent Claude
 scrutiny before readyreturn. No live/native invocation or attendance occurred.
+
+## Final-entry review repairs and explicit exited-Child disposition
+
+Independent Claude review of049e16f9 identified the early unknown-launch marker,
+manager exception/result-shape exits, unprotected bridge/other-phase paths,
+after-deadline delivery failure and nominal start/owner bindings. These are
+manager repairs; no clean rereview of the full earlier contribution is claimed.
+
+The sandbox now denies read/write to the **whole** controller root after the
+base policy, then allows only the current phase's TMPDIR and stdout/stderr.
+Bridge receipts, other-phase helpers/policies and manifests are outside the
+App/supplier writable plane. A fresh preparation is required; ahij46z9 and all
+earlier roots are stale and retained. The unknown-spawn marker moves immediately
+before Popen. Failures before that call stop/join any started monitor and never
+claim a possibly launched Child. Failures inside Popen without a returned Child
+remain genuinely unknown and require retained supervision, not invented exit.
+
+Manager parsing, event-read/write, polling and notify failures no longer return
+false closure. Only an integer terminal exit with no active session permits
+transport completion; null/missing/combined active-session results retain the
+original session. Poll failures retry observation of that same tool session,
+never launch. A missing initial handle escalates once and remains active; a
+`recoverSession` callback can supply the actual original tool-record/session
+bound to root/run/exact launch command (never a guessed process PID). New JS
+fixtures cover these failure/result shapes. Held transport notices have their
+own8s receipt allowance even after fixed end; this extends no UI/launch budget.
+
+Agent0 explicitly selected one-use administrative wait/reap for an **already
+observed exited original Child**, including nonzero/signalled status, only on
+its concrete matching disposition and settled helpers. `native_attended_disposition`
+offers run/candidate/incarnation/admission/original-birth/WNOWAIT kind+status+
+exit-code-or-signal facts. The bridge delivers that offer; Agent0's offline
+`disposition --root ROOT --event-id ID --parent-message-id ACTUAL_DECISION_ID`
+command publishes that exact offer once. Consumption rechecks retained Popen,
+birth, exit and helpers, writes consumption/intent before wait, records actual
+wait and mismatch, and always stays FAILED with no supplier/LT23/qualification
+claim. No live signal/termination or unknown-helper release is admitted. A
+reaped Child is not all resources closed: fresh census and helper standing gate
+monitor/slot release; surviving or unknown resources remain reported/supervised.
+Nonzero and signal/replay/mismatched-exit/birth/helper tests cover this boundary.
+
+The preparation now binds the exact Python executable digest and manager
+function-body digest. The manager hashes its executing function body against
+that frozen source and requires run/preparation-bound parent-start and resource-
+concurrence message references before it can publish a coordinated-start record.
+Those message references and owner-completion IDs are **trusted Agent0/manager
+attestations**, not cryptographic authentication or independent T3 content
+verification. The tool transport receipt is actual returned T3 metadata; it does
+not prove owner reading or an act. This limit replaces any stronger implication.
+
+Execution uses isolated Python, no bytecode writes and an empty prepared
+pycache prefix, avoiding stale Work/__pycache__ reads. The interpreter is checked
+again. A locked atomic mode record makes execute/simulate mutually exclusive;
+publication serializes existing-path checks and atomic rename under a private
+file lock, preventing concurrent receipt replacement. Persistent error logging
+is deduplicated/capped. No process/control interruption is treated as proof of
+released live custody; the event/disposition channel remains the safe recovery
+route while original custody exists.
+
+Slot admission now checks actual runner and lockf ancestry, the ancestor's
+open descriptor to the exact slot file and a nonblocking contention refusal.
+The current root-bound START log record was emitted inside the lock before
+Python startup; its rounded-down UTC second sets the conservative295s clock,
+including imports/check overhead. A standalone shared-slot resource check
+passed without any App/native API call. macOS lsof exposes the descriptor but
+not lock status (observed `l `), hence the separate nonblocking contention check;
+if it unexpectedly obtains the lock, it unlocks immediately and refuses entry.
+No slot/exclusive bypass is introduced.
+
+The repaired offline simulation now includes a fifth end-to-end case: original
+nonzero exit remains held until the exact simulated Agent0 disposition arrives,
+then records failed reap without qualification. All simulations stay explicitly
+invented and consumed roots cannot execute natively. Native timings, AX layout,
+App Quit behavior and tool latency within the actual attended interval remain
+unverified despite source/fixture checks. No App invocation occurred.
