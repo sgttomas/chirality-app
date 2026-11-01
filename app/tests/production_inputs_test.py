@@ -59,6 +59,28 @@ class ProductionInputs(unittest.TestCase):
         return path
     def run_plan(self, **changes):
         return module.prepare(**(self.kw | changes))
+    def test_explicit_upstream_supplement_is_mapped_and_revalidated(self):
+        helper_spec = importlib.util.spec_from_file_location('notice_receipt_fixture', ROOT / 'app/tests/notice_receipts_test.py')
+        helper = importlib.util.module_from_spec(helper_spec); helper_spec.loader.exec_module(helper)
+        fixture, r = helper.fixture, helper.r
+        intake = self.root / 'notice-intake'
+        fixture(self.source, intake)
+        private = self.root / 'notice-private'; private.mkdir()
+        selection = private / 'selection.json'
+        selection.write_bytes(r.encode(dict(format='upstream-notice-selection/1',
+            plan_sha256=r.files.sha(r.encode(r.plan(self.source))), components=['objc2'], basis='invented selection')))
+        supplement = self.root / 'supplement'
+        r.stage(intake, selection, supplement, self.source)
+        self.run_plan(upstream_notices=supplement)
+        config = json.loads((self.output / 'tauri.package-inputs.conf.json').read_bytes())
+        resources = config['bundle']['resources']
+        self.assertEqual(resources[str(supplement / 'LICENSE.md')], 'third-party-notices/upstream/LICENSE.md')
+        self.assertEqual(resources[str(supplement / 'manifest.json')], 'third-party-notices/upstream/manifest.json')
+        self.assertFalse(any('COMPLETE' in name or str(private) in name or str(intake) in name for name in resources))
+        module.check_plan(self.output)
+        (supplement / 'LICENSE.md').write_text('modified')
+        with self.assertRaises(ValueError): self.run_plan(output=self.root / 'other', upstream_notices=supplement)
+
     def test_default_none_release_plan_has_all_resources_and_no_execution(self):
         result = self.run_plan()
         config=json.loads((self.output/'tauri.package-inputs.conf.json').read_text())
