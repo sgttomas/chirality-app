@@ -10,18 +10,21 @@ class Ports:
     def record(self,n,v):self.records[n]=dict(v)
     def admit_empty_namespace(self,end):self.event('admitA');return {'admission_id':'a'}
     def launch(self,label,a,end):self.event('launch'+label);return label
-    def ordinary_setup_save(self,a,end):self.event('setup');return {'performed_through_native_ui':True,'applies_next_launch_only':True,'incarnation':a,'generation':None}
+    def ordinary_setup_save(self,a,end):self.event('setup');return {'performed_through_native_ui':True,'applies_next_launch_only':True,'incarnation':a,'generation':None,'request_sha256':'a'*64,'account':'/invented/account'}
     def quit_normal(self,i,end):
         self.quits.append(i);self.event('quit'+i)
         return {'incarnation':i,'normal_exit':0,'helpers_settled':True,'reaped':True,'released':True,'release_id':i+'-release','helper_custody_id':i+'-helpers'}
-    def readmit_saved_state(self,a,s,c,end):self.event('readmit');return {'admission_id':'b','fresh_after_closure':True,'a_release_id':c['release_id']}
+    def readmit_saved_state(self,a,s,c,end):self.event('readmit');return {'admission_id':'b','fresh_after_closure':True,'a_release_id':c['release_id'],'request_sha256':s['request_sha256'],'account':s['account'],'ledger_standing':'absent setup-only'}
     def observe_ready(self,b,end):
-        self.event('ready');return {'incarnation':b,'full_source_gate':True,'ready':True,'zero_observed_work':True,'generation':{'appSession':'B','home':'invented','spawnCounter':1}}
+        self.event('ready');return {'incarnation':b,'full_source_gate':True,'ready':True,'zero_observed_work':True,'generation':{'appSession':'B','home':'invented','spawnCounter':1},'request_sha256':'a'*64,'account':'/invented/account'}
     def sheet_preflight(self,*args):self.event('preflight')
     def post_stop_once(self,*args):self.event('Stop')
     def discover_cancel(self,*args):self.event('discover');return {'exact':'cancel'}
     def observe_question_if_budget(self,*args):self.event('question')
     def cancel_once(self,*args):self.event('Cancel')
+    def cancel_dispatch_attempted(self,b):return 'Cancel' in self.events
+    def wait_owner_completion(self,b,end):self.event('owner-completion');return 'Cancelled'
+    def record_owner_completion(self,b,actual):self.event('owner-recorded')
     def owner_cancel_now(self,*args):self.events.append('owner-needed');self.reports.append(args)
     def verify_dismissal_and_source(self,b,ready,end):self.event('dismiss');return {'incarnation':b,'same_source':True,'ready':True,'sheet_absent':True}
     def retain_and_report(self,*args):self.events.append('held')
@@ -56,3 +59,40 @@ class Tests(unittest.TestCase):
         p=Ports();old=p.launch
         p.launch=lambda label,a,end: old('A',a,end)
         out=AttendedSequence(p,lambda:p.now).run(0);self.assertFalse(out['witness_complete']);self.assertNotIn('Stop',p.events)
+
+    def test_launch_exception_retains_unknown_custody(self):
+        for fail in ['launchA','launchB']:
+            p,r,out=self.run_case(fail=fail)
+            self.assertTrue(out['custody_unknown']);self.assertTrue(out['custody_held']);self.assertIn('held',p.events)
+            self.assertFalse(p.reports)
+    def test_failed_owner_delivery_does_not_escape_or_repeat(self):
+        p=Ports();p.fail='discover';calls=[]
+        def fail(*args):calls.append(args);raise OSError('delivery down')
+        p.owner_cancel_now=fail
+        out=AttendedSequence(p,lambda:p.now).run(0)
+        self.assertEqual(len(calls),1);self.assertTrue(out['custody_held']);self.assertIn('held',p.events)
+    def test_discovery_then_dismissal_failure_sends_one_fallback(self):
+        p=Ports();original=p.event
+        def fail(name):
+            original(name)
+            if name in ['discover','dismiss']:raise Refusal(name)
+        p.event=fail
+        out=AttendedSequence(p,lambda:p.now).run(0)
+        self.assertEqual(len(p.reports),1);self.assertTrue(out['custody_held'])
+    def test_closure_failure_after_dismissal_does_not_request_Cancel(self):
+        p,r,out=self.run_case(fail='quitB');self.assertFalse(p.reports);self.assertTrue(out['custody_held'])
+    def test_failed_question_record_does_not_block_valid_cancel(self):
+        p=Ports();p.fail='question';original=p.record
+        def record(name,value):
+            if name=='question-observation-failed':raise OSError('disk')
+            original(name,value)
+        p.record=record
+        out=AttendedSequence(p,lambda:p.now).run(0)
+        self.assertIn('Cancel',p.events);self.assertFalse(p.reports);self.assertFalse(out['witness_complete'])
+    def test_missing_helper_receipt_blocks_B(self):
+        p=Ports();original=p.quit_normal
+        def quit(i,end):
+            r=original(i,end);r.pop('helper_custody_id');return r
+        p.quit_normal=quit
+        out=AttendedSequence(p,lambda:p.now).run(0)
+        self.assertNotIn('launchB',p.events);self.assertTrue(out['custody_held'])

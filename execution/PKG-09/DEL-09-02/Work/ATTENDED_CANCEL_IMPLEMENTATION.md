@@ -170,3 +170,48 @@ Seventeen component fixtures now pass, including maximal accepted layout,
 Cancel-only unrelated sheet rejection, failed-discovery no repeat, typed
 readback refusal, uncertain actor and retained late rc. These manager fixes are
 not a clean independent rereview claim. Native layout/timing remain unverified.
+
+## Two-incarnation review correction — supersedes three-row assumption
+
+Independent Claude review atf53ccb18 identified launch-exception custody loss,
+escaping fallback delivery errors, stage-inappropriate/duplicate Cancel notices,
+missing owner-completion ingress, record-error suppression of valid Cancel and
+receipt identity checks after custody release. Corrections mark custody unknown
+before either launch port, retain/report unknown custody on any BaseException,
+consume one fallback delivery attempt, distinguish sheet-pending from post-
+dismissal/identity failure, and require an actual bounded owner-completion port
+before the owner fallback readback. Unknown delivery does not escape or repeat.
+Question-observation record failure retains failed evidence status but does not
+block independently valid Cancel. Closure receipt helper/release presence and
+distinctness are checked before clearing custody on every path. Actual component
+dispatch standing supplies cancel_attempted; prechecks alone are not a click.
+
+The prior fixed-three-row A admission was **unsupported and is removed**.
+Source basis: lib.rs2617–2646 requires resolved host config/namespaces for
+recovery initialization; runtime_session.rs initialize_with_namespaces propagates
+that failure before opening the ledger; desktop_startup NewHome preparation
+only saves pending references for next launch and does not reconfigure current
+owners. app_quit records only where a ledger host exists. Consequently the
+selected empty-namespace/setup-only A expects **no runtime recovery ledger**.
+Any legacy JSONL, SQLite or mutable sidecar is an unexpected state refusal,
+not a guessed alternative row count. B must validate the actual ordinary saved
+request digest, account/source references and links after A closure, while
+observing the expected ledger absence. B's fresh startup generation and
+protocol/source proof must bind that exact request/account; no invented A
+generation or previousSession linkage is required when A had no ledger.
+
+The admission reader now directly enforces this absence locally (no injectable
+sidecar-check object), checks build-observation.json as a plain owned file,
+and requires empty fallback Codex home/tmp without reading auth contents.
+Additional prelaunch metadata-only absence checks cover Preferences plist,
+Saved Application State and HTTPStorages. Their post-A actual metadata still
+needs bounded collection/readmission; absence at build time is not a promise
+that they remain absent after normal use.
+
+Sixteen sequence tests now include A/B launch exceptions, failed owner delivery,
+double-failure single fallback, post-dismissal Quit failure without a Cancel
+request, observation-record failure with valid Cancel, and missing helper receipt.
+Two admission tests verify true absence and rejection of any unexpected ledger /
+sidecar without creating files. These18 tests and17 sheet-component tests pass.
+The report is scoped source/mock verification, not a completed native port
+adapter or exact-head integration review. No launch authorization is inferred.

@@ -42,6 +42,7 @@ def preflight_a(root, expected_plan_sha, identify):
             and plan['total_seconds'] == 295 and plan['minimum_remaining_before_Stop'] == 135
             and plan['Stop_confirmation_allowed'] is False and plan['PR69_active'] is False,
             'unexpected attended input scope')
+    plain(root / 'build-observation.json')
     observed = json.loads((root / 'build-observation.json').read_bytes())
     require(observed['candidate_key'] == plan['candidate'] and observed['source_revision'] == plan['source_revision']
             and observed['build_identity'] == plan['build_identity'] and observed['identifier'] == plan['identifier'],
@@ -59,53 +60,57 @@ def preflight_a(root, expected_plan_sha, identify):
     for relative,digest in plan['files'].items():
         path=root/'witness-inputs'/relative;plain(path)
         require(sha(path)==digest, 'invented input bytes changed')
+    for name in ('fallback-codex-home','tmp'):
+        path=root/'witness-inputs'/name;plain(path,True)
+        require(not list(path.iterdir()), 'fallback home/tmp not empty; no auth read permitted')
     for key in ('shared_skills','project'):
         path=Path(plan['input_paths'][key]);plain(path,True)
         require(not list(path.iterdir()), 'invented input directory not empty')
     namespaces=identify.app_data_state(plan['identifier'])
+    for relative in ('Library/Preferences/'+plan['identifier']+'.plist',
+                     'Library/Saved Application State/'+plan['identifier']+'.savedState',
+                     'Library/HTTPStorages/'+plan['identifier']):
+        require(not os.path.lexists(Path.home()/relative), 'additional candidate namespace exists; preserve/reassess')
     require(not namespaces['present_at_identification'], 'candidate namespace no longer empty; preserve and reassess')
     return {'kind':'empty-candidate-A-preflight','candidate':plan['candidate'],'plan_sha256':expected_plan_sha,
             'namespace':namespaces,'B_admitted':False,'saved_A':None,'launch_authorized':False,
             'limits':'Guard/slot/current review and actual setup/closure still required; no native observation.'}
 
 
-def three_row_setup_end(rows, original_session):
-    require(len(rows) == 3 and [r.get('kind') for r in rows] ==
-            ['session_started', 'quit_requested', 'session_ended'], 'unexpected post-setup activity')
-    require(original_session and all(r.get('session') == original_session for r in rows),
-            'post-setup session differs from original A')
-    require(rows[0].get('previousSessionEnd') == 'none', 'new namespace has prior session')
-    require(all(rows[1].get(k) == [] for k in ('liveTurns','outstandingEntries','activeDescendants')),
-            'post-setup ledger names live work')
-    require(rows[2].get('how') == 'quit' and rows[2].get('stopRequests') == [],
-            'post-setup end is not normal empty Quit')
-    return {'session':original_session,'row_count':3,'recorded_end':'quit','Stop_requests':0}
+def require_setup_only_ledger_absent(app_data):
+    """Initial setup has no configured host/namespace ledger; never invent rows.
 
-
-def read_setup_ledger(database, schema_path, original_session, retained):
-    """Read only after actual A closure; never accept arbitrary future rows.
-
-    retained supplies reviewed owned_plain/require_quiescent primitives. No
-    supplier content is read. Current-user lsof is corroboration, not global
-    exclusion; stable metadata+hash before/after is additionally required.
+    NewHome saves pending references only and does not reconfigure current
+    owners. Unexpected ledger evidence requires inspection, not flexible rows.
     """
-    import sqlite3
-    import jsonschema
-    database=Path(database)
-    retained.require_quiescent(database)
-    before=retained.owned_plain(database);digest=sha(database)
-    validator=jsonschema.Draft202012Validator(json.loads(Path(schema_path).read_bytes()))
-    with sqlite3.connect(database.as_uri()+'?mode=ro&immutable=1',uri=True) as connection:
-        connection.execute('PRAGMA query_only=ON')
-        require(connection.execute("SELECT value FROM ledger_meta WHERE key='schema'").fetchone()==('1',),
-                'post-setup schema differs')
-        require(connection.execute('SELECT count(*) FROM ledger_entry').fetchone()==(3,),
-                'post-setup row count differs')
-        rows=[json.loads(raw) for raw, in connection.execute('SELECT entry FROM ledger_entry ORDER BY seq')]
-        for row in rows:validator.validate(row)
-    summary=three_row_setup_end(rows,original_session)
-    retained.require_quiescent(database);after=retained.owned_plain(database)
+    runtime=Path(app_data)/'runtime'
+    for name in ('recovery.ledger.jsonl','recovery.ledger.sqlite'):
+        for suffix in ('','-wal','-shm','-journal'):
+            require(not os.path.lexists(runtime/(name+suffix)), 'unexpected initial setup ledger/sidecar; preserve and assess')
+
+
+def validate_saved_setup(request, account, value, saved_sha):
+    """Read the actual ordinary saved request after A closure; supplier opaque.
+
+    Fresh descriptor/source references must match each declared input. This
+    does not manufacture a ledger or predict B's runtime generation.
+    """
+    import importlib.util
+    path=Path(__file__).with_name('native_setup_continuation.py')
+    spec=importlib.util.spec_from_file_location('attended_setup_validator',path)
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    request=Path(request);account=Path(account)
+    plain(request);plain(account,True)
+    before=request.stat()
+    raw,record=module.validate_request(request,account,value)
+    require(hashlib.sha256(raw).hexdigest()==saved_sha,'actual saved request changed after A closure')
+    after=request.stat()
     stamp=lambda s:tuple(getattr(s,k) for k in ('st_dev','st_ino','st_mode','st_uid','st_nlink','st_size','st_mtime_ns','st_ctime_ns'))
-    require(stamp(before)==stamp(after) and sha(database)==digest,'post-setup ledger changed during read')
-    return {**summary,'database_sha256':digest,'schema_sha256':sha(schema_path),
-            'limits':'current-user descriptor corroboration, no App sidecars, stable readonly immutable snapshot; no supplier internals claim'}
+    require(stamp(before)==stamp(after),'saved request changed during readmission')
+    require_setup_only_ledger_absent(value['expected_app_data'])
+    for name,key in [('config.toml','shared_config'),('AGENTS.md','shared_agents'),('skills','shared_skills')]:
+        link=account/name
+        require(link.is_symlink() and link.resolve(strict=True)==Path(value['native_input_paths'][key]),
+                'saved account link changed')
+    return {'request_sha256':saved_sha,'account':str(account),'ledger_standing':'absent setup-only',
+            'saved_reference_record':record,'B_generation':'not observed; requires fresh native ready'}
