@@ -214,23 +214,30 @@ explicit canonical sidecars; `check-blank` is not a completed-form validator.
    assigned to that attempt. A/B incarnations here are not SQ RUN-A/RUN-B.
    Neither successful entry nor cancellation passes a workflow scenario or
    confirms Stop. Do not infer permission for a new run from this account.
-2. **Before SQ RUN-A:** integration owner identifies candidate/build/Codex pin,
-   runtime configuration, native route/tool check and examiner; examiner freezes
+2. **Before SQ RUN-A:** integration owner resolves SQ U-SQ-3/I-6: development
+   build or installed package, with the actual candidate/build/Codex pin,
+   runtime configuration, native route/tool check and examiner. Development
+   observations remain `native_development`; they cannot qualify a later signed
+   subject. U-SQ-3's conditional SEAL-2 capture limit must be recorded if applicable,
+   not treated as SEAL-2 implementation or activation (it remains deferred).
+   Record the actual selected seal/capture standing and limits. Examiner freezes
    the case definition, new-input/collision bytes, ST-4 delegation route and
    ST-5 actual candidate-pin capture/replay requirements. J-1 starts empty;
    maintained fixtures are examples, not preinstalled/registered workflows.
 3. **V4-EXM-10 with V4-EXM-11 inside the same RUN-A:** plan/tool work and delegated
    child J-1/2; draft/try J-3/4; collision review J-5; ST-3 unperformed-act negatives
    then actual person's A15 J-6; reuse J-7; two tried/reviewed/registered refinements
-   J-8/9 while revision 1 remains unchanged (ST-1). Keep J-8R/J-9R recorded but
+   J-8/9, repeating ST-3 negatives at J-8 before registration, while revision 1
+   remains unchanged (ST-1). Keep J-8R/J-9R recorded but
    uncounted. Insert S11-1 interruption while the J-2 child is active, S11-2…4
    close/reopen/deny/grant at actual J-7 requests, S11-5 quit with live J-8 trial
    and waiting request, then S11-6 admitted continuation and truthful recovery.
    No request means blocked, not pass; continuation is not recovery of the whole
    undertaking. ST-1…3 have no replay replacement; preserve required ST-4/5
    counterparts and unknowns. N-2 automation does not become a person's A15.
-4. **V4-EXM-12, SQ RUN-B on the same candidate:** owner performs actual sign-in
-   in H-acct and key entry in distinct H-key; select identified local endpoint/
+4. **V4-EXM-12, SQ RUN-B on the same candidate:** the person performs actual
+   sign-in in H-acct and key entry in distinct H-key, with the owner present for
+   credential use under repository controls; select identified local endpoint/
    model, retain explicit no-default choice, then three distinct conversations
    with all modes remaining selectable and credential-custody checks. Missing
    credential/server input remains awaiting input; no substitute-mode pass or
@@ -244,7 +251,11 @@ explicit canonical sidecars; `check-blank` is not a completed-form validator.
    S4/full-generation/native witness. Use the existing wrapper and independent
    configuration, preserving missing/null/error standing. Finally join actual
    candidate results and independent review for the owner's release/replacement
-   decisions. Separate source-applicable SWBPIPE reference-system/Apply/lifecycle
+   decisions. Development-build SQ results retain only their original candidate;
+   a different signed release subject requires applicable package-native results
+   or an explicit outstanding limitation for the owner's decision, never silent
+   transfer of qualification. Resolve U-SQ-3 before execution; this ordering does
+   not force a development-first run. Separate source-applicable SWBPIPE reference-system/Apply/lifecycle
    witness and criterion 17 remain required; catalog source tests are not it.
 
 ### Verification of this reconciliation
@@ -257,3 +268,10 @@ and isolated closure replay. No skipped failure, new cohort or current pin
 renewal was used. The broad manual suite, Rust/React suites and actual native/
 signed/host journeys were not run here. The two historical distribution guard
 drifts remain exactly as recorded in the linked disposition.
+
+Bounded independent Claude Opus5.5/high review of `1131aa9b` found no blockers.
+Manager repairs make U-SQ-3's pre-run subject choice, repeated J-8 ST-3 negatives,
+the person's credential-entry role and retained predecessor/native histories
+explicit. Review did not rerun tests or validate the private j580 observations.
+CI's historical stale-`hosting.rs` wording was reported to Agent 0 for a separate
+text correction; CI selection and guards remain unchanged here.

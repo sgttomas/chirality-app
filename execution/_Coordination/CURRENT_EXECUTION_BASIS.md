@@ -76,6 +76,11 @@ Current Type 1 assignments are:
   recovery and three-access-mode journeys still require their actual evidence.
   [Receiving sequence and limits](../PKG-09/DEL-09-01/Work/package-successor-receiving-v1/RECEIVING.md#downstream-native-journey-readiness-2026-11-01)
   distinguishes source tests, candidate observations and administrative closure.
+  Retained history: PRs #33/#35's candidate `fdcf608fb5-23c6c3f22f5e`, actual
+  source `fdcf608fb57c4f8299c7440ffc56519314046cff`, setup/save/normal Quit at
+  22:28:05–22:28:16 UTC on 2026-10-30 and saved A state remain preserved alongside
+  failed B evidence. The native terminal-route account's older candidate heading
+  describes that subject, not a transfer of its observations to current main.
 - **macOS distribution readiness:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:29a4e14ac4c1423f4ccd20d7605000caf9a5b6d9030c967d51875cd09021e07f>.
   Own package/signing/install preparation and the approved terms representation.
   SIGN-1 Option B remains selected. The separate identity route, minimum OS and

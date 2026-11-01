@@ -6,9 +6,11 @@ release reliance. Their original bytes, guards, tests, reports and producer
 subjects remain retained. This removes no product acceptance criterion and
 establishes no actual lifecycle, custody or release result.
 
-Subjects remain `stop-admission` at producer
+Selectable cohort heads remain `stop-admission` at producer
 `127d48f61d91b70d00d0670d2150c79b8ac26d1f` and `build-selection` at producer
-`b5dbfbbdf300b993f34fc87924146073bb017877`. The historical exchange formats
+`b5dbfbbdf300b993f34fc87924146073bb017877`. Their hash-chained predecessor
+pins and original producer revisions also remain unchanged; these two heads
+are not a replacement list of every historical subject. The historical exchange formats
 `group-b-s1-reader-exchange.v1` and `group-b-s1-terminal-reader-exchange.v1`
 represent synthetic S1/legacy-transport file correspondence, not the current
 signed package or an authenticated stopped process tree.
