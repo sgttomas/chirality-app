@@ -1,0 +1,23 @@
+{
+  "format": "seal-c-sdk-basis/1",
+  "standing": "public SDK source observations; not entitlement or profile authorization",
+  "sources": [
+    {
+      "sdk_relative_path": "System/Library/Frameworks/Security.framework/Headers/SecItem.h",
+      "sha256": "1a5a731dc52e85cf7fb6ebe26d75aa467113c07b6ec3389c98e183d75c651eaf"
+    },
+    {
+      "sdk_relative_path": "Entitlements.plist",
+      "sha256": "1ae4d4e9b44962c5c2b4cdc636a45e2c7d03f2ee70fe5c8804888603a064bd4e"
+    }
+  ],
+  "observations": {
+    "macos_application_identifier_key": "com.apple.application-identifier",
+    "macos_application_identifier_template": "$(AppIdentifierPrefix)$(CFBundleIdentifier)",
+    "access_group_membership": "SecItem.h kSecAttrAccessGroup: application-identifier default group unless keychain-access-groups explicitly lists groups; caller must be a member",
+    "data_protection": "kSecUseDataProtectionKeychain permits access-group/accessibility use on macOS without synchronization",
+    "activation_limit": "SDK defines API and entitlement mechanisms; not actual profile grant or successful signed access"
+  },
+  "observed_date": "2026-11-01",
+  "sdk_name": "MacOSX.sdk"
+}
