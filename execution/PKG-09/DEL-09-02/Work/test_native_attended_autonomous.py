@@ -48,7 +48,8 @@ class AutonomousGateTests(unittest.TestCase):
         calls=[];frame={'identity':{'pid':10},'window':{'window_id':20},'sha256':'a'*64}
         route=N(sequence=1,initial_binding=(frame['identity'],frame['window']))
         route.input=lambda action,before:calls.append(('helper',action,before)) or frame
-        trace={'mechanism':'AXRaise+AXFrontmost','observations':[{'frontmost':True}]}
+        trace={'mechanism':'AXRaise+AXFrontmost','observations':[{'frontmost':True}],
+               'raise_attempted':False,'frontmost_attempted':False,'native_calls':12,'native_call_cap':400}
         b=N(screen_support=N(w=N(private_json=lambda *a:trace)))
         value={};admissions=N(value=value,check_birth=lambda *a:calls.append('birth'))
         p=NativePorts(b,'/invented',value,admissions,lambda event:(_ for _ in ()).throw(AssertionError('no owner event')),
@@ -91,22 +92,23 @@ class AutonomousGateTests(unittest.TestCase):
 
 class NativeMainMappingTests(unittest.TestCase):
     def test_actual_mapping_rejects_foreign_window_modal_and_unknown_children(self):
-        for case in ['ok','number','title','modal','child','self','extra']:
+        for case in ['ok','mixed','number','title','modal','child','self','extra']:
             with self.subTest(case=case):
                 ops=helper.NativeFocus.__new__(helper.NativeFocus)
-                ops.pid=10;ops.app='app';ops.check_time=lambda:None
+                ops.pid=10;ops.app='app';ops.trace={};ops.check_time=lambda:None
                 def number(main,out):out._obj.value=99 if case=='number' else 20;return 0
                 ops.b=N(equal=lambda a,b:a==b,a=N(_AXUIElementGetWindow=number))
                 def read(e,name):
-                    refs=(['app'] if case=='self' else ['main','extra'] if case=='extra' else ['main']) if name=='AXWindows' else ['group']
+                    refs=(['main','app'] if case=='mixed' else ['app'] if case=='self' else ['main','extra'] if case=='extra' else ['main']) if name=='AXWindows' else ['group']
                     return {'type':{'name':'CFArray'}},refs
                 ops.read=read
                 def scalar(e,name):
+                    if name=='AXRole' and e=='app':return 'AXApplication'
                     if name=='AXRole':return 'AXSheet' if case=='child' and e=='group' else ('AXGroup' if e=='group' else 'AXWindow')
                     if name=='AXTitle':return 'changed' if case=='title' else 'Original'
                     if name=='AXModal':return case=='modal'
                 ops.scalar=scalar
-                if case=='ok':self.assertEqual(ops.main({'window_id':20,'title':'Original'}),'main')
+                if case in ('ok','mixed'):self.assertEqual(ops.main({'window_id':20,'title':'Original'}),'main')
                 else:
                     with self.assertRaises(RuntimeError):ops.main({'window_id':20,'title':'Original'})
 
@@ -124,10 +126,10 @@ class ActualHelperDecodeTests(unittest.TestCase):
                 fixture.backend.app=lambda pid:'app';fixture.backend.owner=lambda app:(0,123)
                 calls=[]
                 class Ops:
-                    def __init__(self,*args):calls.append('construct')
+                    def __init__(self,*args,**kwargs):calls.append('construct');self.intent=kwargs['intent']
                     def close(self):calls.append('close')
                 def sequence(ops,bound,window,trace):
-                    calls.append('sequence')
+                    calls.append('sequence');ops.intent('raise')
                     if case=='failed':raise RuntimeError('failed raise')
                     trace['observations']=[{'frontmost':True}]
                 # The fixture uses an independently loaded copy of the real helper.
@@ -140,6 +142,10 @@ class ActualHelperDecodeTests(unittest.TestCase):
                 if case=='wrong':self.assertEqual(calls,[])
                 else:
                     self.assertEqual(calls,['construct','sequence','close'])
+                    intent=json.loads((fixture.root/'window-helper-001.raise-intent.json').read_text())
+                    self.assertEqual(intent['identity'],fixture.identity)
+                    self.assertEqual(intent['admission_sha256'],fixture.request['admission_sha256'])
+                    self.assertIn('not dispatch/effect proof',intent['dispatch'])
                     trace=json.loads((fixture.root/'window-helper-001.focus.json').read_text())
                     self.assertEqual(trace['mechanism'],'AXRaise+AXFrontmost')
                     self.assertEqual('error' in trace,case=='failed')
@@ -148,7 +154,7 @@ class ActualHelperDecodeTests(unittest.TestCase):
 
 class NativeAdapterBudgetTests(unittest.TestCase):
     def test_actual_support_query_requires_settable(self):
-        ops=helper.NativeFocus.__new__(helper.NativeFocus);ops.app='app';ops.check_time=lambda:None
+        ops=helper.NativeFocus.__new__(helper.NativeFocus);ops.app='app';ops.trace={};ops.check_time=lambda:None
         def actions(e,out):out._obj.value=1;return 0
         def settable(e,key,out):out._obj.value=False;return 0
         ops.b=N(a=N(AXUIElementCopyActionNames=actions,AXUIElementIsAttributeSettable=settable),held=[],
@@ -164,8 +170,40 @@ class NativeAdapterBudgetTests(unittest.TestCase):
         try:
             self.assertEqual(b.a.AXUIElementPerformAction('main','raise'),0)
             self.assertTrue(trace['raise_attempted']);self.assertEqual(ops.calls,1)
-            ops.calls=200
+            ops.calls=400
             with self.assertRaisesRegex(RuntimeError,'bound'):b.a.AXUIElementSetAttributeValue('app','front',True)
             self.assertNotIn('frontmost_attempted',trace)
         finally:ops.close()
-        self.assertIs(b.a,a);self.assertIs(b.p,p);self.assertEqual(trace['native_calls'],200)
+        self.assertIs(b.a,a);self.assertIs(b.p,p);self.assertEqual(trace['native_calls'],400)
+
+class ReviewRepairTests(unittest.TestCase):
+    def test_intent_precedes_native_dispatch_and_late_intent_refuses_action(self):
+        for late in (False,True):
+            now=[0];events=[];trace={}
+            names=['AXUIElementCopyActionNames','AXUIElementIsAttributeSettable','AXUIElementSetAttributeValue','AXUIElementPerformAction','_AXUIElementGetWindow']
+            a=N(**{n:(lambda *args:events.append('native') or 0) for n in names})
+            b=N(a=a,p=N())
+            def intent(action):
+                events.append('intent:'+action)
+                if late:now[0]=3
+            ops=helper.NativeFocus(b,10,'app',trace,clock=lambda:now[0],deadline=2,intent=intent)
+            try:
+                if late:
+                    with self.assertRaises(RuntimeError):b.a.AXUIElementPerformAction('main','raise')
+                    self.assertNotIn('native',events);self.assertNotIn('raise_attempted',trace)
+                else:
+                    b.a.AXUIElementPerformAction('main','raise')
+                    self.assertEqual(events,['intent:raise','native'])
+            finally:ops.close()
+    def test_contradictory_trace_never_admits_input(self):
+        for change in [{'raise_attempted':True},{'native_calls':401},{'frontmost_rc':0}]:
+            p,r,f,c,t=AutonomousGateTests().fixture();t.update(change)
+            with self.assertRaises(RuntimeError):p.autonomous_start('A',r,f,45)
+            self.assertFalse(r.foreground_verified)
+    def test_recovery_reports_consumed_focus_and_uncertain_quit(self):
+        p,r,f,c,t=AutonomousGateTests().fixture();p.value['bundle']='/invented/App.app'
+        r.resource_end=295;r.autonomous_focus_started=True;r.quit_requested=True;r.quit_posted=False
+        reports=[];p.deliver=reports.append;p.owner_normal_quit_now('A','uncertain')
+        self.assertTrue(reports[0]['action_status']['focus_helper_consumed'])
+        self.assertTrue(reports[0]['action_status']['quit_requested'])
+        self.assertNotIn('no automatic activation',reports[0]['custody'])

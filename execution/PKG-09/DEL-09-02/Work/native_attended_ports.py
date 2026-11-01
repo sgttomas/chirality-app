@@ -126,7 +126,11 @@ class NativePorts:
         self.deliver({'event':'owner-normal-quit-needed-now','incarnation':label,
             'admitted_app':Path(self.value['bundle']).name,'reason':str(reason),'fixed_end':run.resource_end,
             'instruction':'If this exact App is still running, normal-Quit it once. If a blocking question is visible, report its actual text; do not confirm an action or guess Cancel. No completion file is required; original exit is observed.',
-            'custody':'original Child and helpers retained; no automatic activation or agent input'})
+            'custody':'original Child and helpers retained; no further blind input',
+            'action_status':{'focus_helper_consumed':getattr(run,'autonomous_focus_started',False),
+                'focus_effect_verified':getattr(run,'foreground_verified',False),
+                'quit_requested':getattr(run,'quit_requested',False),'quit_posted':getattr(run,'quit_posted',False),
+                'limit':'Consumed/requested does not prove dispatch or effect; consult helper intent/return records.'}})
         self.owner_quit_requested.add(label)
 
     def await_owner_frontmost(self,run,end):
@@ -206,6 +210,14 @@ class NativePorts:
         require(trace.get('mechanism')=='AXRaise+AXFrontmost' and not trace.get('error')
                 and trace.get('observations') and trace['observations'][-1]['frontmost'] is True,
                 'autonomous focus trace unavailable')
+        require(type(trace.get('native_calls')) is int and 0<trace['native_calls']<=400
+                and trace.get('native_call_cap')==400,'focus native call accounting unavailable')
+        raised,front=trace.get('raise_attempted'),trace.get('frontmost_attempted')
+        require(type(raised) is bool and type(front) is bool,'focus attempt flags unavailable')
+        require((raised and front and trace.get('raise_rc')==0 and trace.get('frontmost_rc')==0)
+                or (not raised and not front and 'raise_rc' not in trace and 'frontmost_rc' not in trace
+                    and trace['observations'][0]['frontmost'] is True),
+                'focus dispatch/return accounting contradictory')
         require(verified is not None and (verified['identity'],verified['window'])==run.screen.window.initial_binding,
                 'autonomous focus fresh capture differs')
         self.cleanup_original_main(run,min(self.clock()+5,end))

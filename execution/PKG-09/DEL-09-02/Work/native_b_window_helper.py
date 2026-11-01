@@ -3,6 +3,7 @@ from pathlib import Path
 import argparse,ctypes as C,hashlib,json,os,stat,sys,time
 sys.path.insert(0,str(Path(__file__).resolve().parent)) # protected sibling copies under -I -S
 import native_b_window as w
+HELPER_STARTED=time.monotonic()
 
 def write_result(path,value):
     fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
@@ -67,9 +68,10 @@ class NativeFocus:
     CF decoding is local; identity hashes share the same wall deadline. The
     outer original-helper custody still enforces its existing4s wait/1s reap.
     """
-    def __init__(self,backend,pid,app,trace,clock=time.monotonic):
+    def __init__(self,backend,pid,app,trace,clock=time.monotonic,deadline=None,intent=lambda action:None):
         self.b,self.pid,self.app,self.trace,self.clock=backend,pid,app,trace,clock
-        self.end=clock()+3;self.calls=0
+        self.end=min(clock()+3,deadline) if deadline is not None else clock()+3;self.calls=0
+        self.intent=intent
         declarations=[('AXUIElementCopyActionNames',C.c_int,[C.c_void_p,C.POINTER(C.c_void_p)]),
             ('AXUIElementIsAttributeSettable',C.c_int,[C.c_void_p,C.c_void_p,C.POINTER(C.c_bool)]),
             ('AXUIElementSetAttributeValue',C.c_int,[C.c_void_p,C.c_void_p,C.c_void_p]),
@@ -84,18 +86,21 @@ class NativeFocus:
             def __setattr__(self,k,v):setattr(self.fn,k,v)
             def __getattr__(self,k):return getattr(self.fn,k)
             def __call__(self,*args):
-                w.require(owner.calls<200 and clock()+.2<owner.end,'autonomous focus call/deadline bound')
+                w.require(owner.calls<400 and clock()+.2<owner.end,'autonomous focus call/deadline bound')
                 if self.name=='AXUIElementSetMessagingTimeout':args=(args[0],.2)
+                action={'AXUIElementPerformAction':'raise','AXUIElementSetAttributeValue':'frontmost'}.get(self.name)
+                if action:
+                    owner.intent(action)
+                    w.require(clock()+.2<owner.end,'focus intent publication exhausted dispatch reserve')
+                    owner.trace[action+'_attempted']=True
                 owner.calls+=1
-                if self.name=='AXUIElementPerformAction':owner.trace['raise_attempted']=True
-                if self.name=='AXUIElementSetAttributeValue':owner.trace['frontmost_attempted']=True
                 return self.fn(*args) # action rc must be retained even if late
         class Library:
             def __init__(self,lib):self.lib=lib
             def __getattr__(self,name):return Function(getattr(self.lib,name),name)
         backend.a,backend.p=Library(backend.a),Library(backend.p)
     def close(self):
-        self.trace.update(native_calls=self.calls,native_call_cap=200,deadline=self.end)
+        self.trace.update(native_calls=self.calls,native_call_cap=400,deadline=self.end)
         self.b.a,self.b.p=self.original_a,self.original_p
     def check_time(self):w.require(self.clock()<self.end,'autonomous focus returned late')
     def read(self,e,name):
@@ -110,7 +115,10 @@ class NativeFocus:
         w.require(row['type']['name']=='CFArray' and 0<len(refs)<=8,'focus window roots unavailable')
         roots=[]
         for e in refs:
-            w.require(not self.b.equal(e,self.app),'focus self-reference is not a window')
+            if self.b.equal(e,self.app):
+                w.require(self.scalar(e,'AXRole')=='AXApplication','focus self-reference role unavailable')
+                self.trace['ignored_application_self_references']=self.trace.get('ignored_application_self_references',0)+1
+                continue
             if any(self.b.equal(e,old) for old in roots):continue
             w.require(self.scalar(e,'AXRole')=='AXWindow','ambiguous/unknown focus window root')
             roots.append(e)
@@ -134,7 +142,9 @@ class NativeFocus:
         if value.value:self.b.held.append(value.value)
         w.require(rc==0 and value.value,'focus action list unavailable')
         actions=[self.b.scalar(e) for e in self.b.array(value.value,32)]
+        self.trace['raise_actions']=actions
         settable=C.c_bool();rc=self.b.a.AXUIElementIsAttributeSettable(self.app,self.b.string('AXFrontmost'),C.byref(settable))
+        self.trace.update(frontmost_settable_rc=rc,frontmost_settable=bool(settable.value))
         self.check_time();return 'AXRaise' in actions and rc==0 and settable.value
     def raise_main(self,main):return self.b.a.AXUIElementPerformAction(main,self.b.string('AXRaise'))
     def front(self):return self.scalar(self.app,'AXFrontmost') is True
@@ -145,6 +155,7 @@ def autonomous_focus(ops,bound,expected,trace,sleep=time.sleep):
     if not trace['observations'][-1]['frontmost']:
         w.require(ops.supports(main),'AXRaise or settable AXFrontmost unavailable')
         bound('before-autonomous-raise');ops.check_time()
+        w.require(ops.b.equal(main,ops.main(expected)),'focus main changed before Raise')
         trace['raise_rc']=ops.raise_main(main)
         ops.check_time();w.require(trace['raise_rc']==0,'owned AXRaise refused')
         bound('before-autonomous-frontmost');ops.check_time()
@@ -213,7 +224,15 @@ def main(request_path,expected_sha):
             trace={'mechanism':'AXRaise+AXFrontmost','raise_attempted':False,'frontmost_attempted':False,'observations':[]}
             ops=None
             try:
-                ops=NativeFocus(backend,pid,app,trace)
+                def intent(action):
+                    path=root/f"window-helper-{request['sequence']:03d}.{action}-intent.json"
+                    fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+                    with os.fdopen(fd,'w') as stream:
+                        json.dump({'action':action,'identity':expected,'window':window,
+                            'admission_sha256':request['admission_sha256'],'sequence':request['sequence'],
+                            'at':w.d.now(),'dispatch':'may follow; intent alone is not dispatch/effect proof'},stream)
+                        stream.flush();os.fsync(stream.fileno())
+                ops=NativeFocus(backend,pid,app,trace,deadline=HELPER_STARTED+3,intent=intent)
                 autonomous_focus(ops,bound,window,trace)
             except BaseException as error:trace['error']=str(error);raise
             finally:

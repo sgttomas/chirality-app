@@ -51,7 +51,7 @@ claimed autonomous or deterministic.
 The existing45s per-incarnation initial phase and shared160s pre-Stop cutoff,
 135s Stop-entry reserve and295s total remain unchanged. No human reply allocation
 is consumed. The port requires18s remaining before starting focus/helper/capture/
-preflight. The new helper transaction has a3s deadline, at most200 cumulative
+preflight. The new helper transaction has a3s deadline anchored at helper module startup, at most400 cumulative
 AX/CG/libproc calls through its wrappers, with AX messaging capped at0.2s;
 at most10 focus observations follow the one set. This count covers the new
 transaction (including its bound rechecks), not earlier helper initialization/
@@ -83,3 +83,28 @@ parent integration; fresh resource/start coordination precedes any live interval
 
 Validation before independent review:101 attended tests,18 fixed-helper tests
 and38 AX-route tests pass under the shared wrapper with fresh scratch homes.
+
+## Independent review and bounded repairs
+
+Claude Opus5.5/high reviewed5b670c7d0850c5a705aa7a001afc5750701f48a4;
+no safety defect in focus/Quit gates, but CI failed because the newly exercised
+helper fixture used a hard-coded sibling scratch path. It now uses system temp.
+Mixed original application-self references are ignored after AXApplication role
+validation, as cleanup already does; self-only/unknown/other windows refuse.
+
+Each action now writes/fsyncs a separate exclusive-create intent before native
+dispatch, bound to original identity/window/admission/sequence. Intent is not
+proof the call occurred: a kill or post-write budget refusal leaves dispatch
+unknown. Actual attempt flags are set only immediately before the native call;
+returned rc is retained before lateness refusal. Native abort can still prevent
+return/effect evidence. The transaction deadline includes initial source/hash
+work since helper module startup, bounded by the existing outer helper limit.
+
+The full AX/window/modal structure is rechecked immediately before Raise too.
+The400-call cap covers four checks at the accepted8-root/8-child bounds, actions,
+identity/WindowServer rechecks and at most12 total foreground reads; it is not
+extra wall time. Support traces retain actions and settable rc/value. The port
+rejects inconsistent attempt/rc/call-count traces. Recovery messages now identify
+consumed focus and requested/posted Quit, without falsely claiming no input.
+The bounded10-read focus wait is retained; a slow animation still refuses and
+uses independently checked cleanup. No claim that native activation will work.
