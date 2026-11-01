@@ -12,7 +12,7 @@ import subprocess
 import threading
 import time
 
-from native_sheet_cancel import for_owned_run
+from native_sheet_cancel import for_owned_run, NativeAdapter
 from native_attended_readback import source_after_cancel, CountedAXLibrary
 from native_attended_admission import validate_saved_setup
 
@@ -23,6 +23,7 @@ def require(ok, message):
 
 class NativePorts:
     def __init__(self, b, root, value, admissions, deliver, owner_completion, clock=time.monotonic):
+        require(value is admissions.value,'ports must share exact mutable admission value')
         self.b,self.root,self.value,self.admissions=b,Path(root),value,admissions
         self.deliver,self.owner_completion,self.clock=deliver,owner_completion,clock
         self.runs={};self.controls={};self.launches=set();self.pending_launch=None
@@ -39,6 +40,7 @@ class NativePorts:
     def launch(self, label, admission, end):
         require(label in ('A','B') and label not in self.launches, 'unknown/repeated incarnation')
         require(label=='A' or ('A' in self.closures and self.saved is not None), 'B before complete A closure')
+        self.b.check_observation_capabilities()
         self.admissions.before_launch(label,admission,end)
         self.launches.add(label);self.pending_launch=label
         phase=self.root/label
@@ -61,7 +63,7 @@ class NativePorts:
         run.thread=threading.Thread(target=run.monitor,daemon=True);run.thread.start()
         policy=phase/'phase.sb'
         require(policy.read_text()==self.admissions.policy(label,phase),'prepared native policy changed')
-        with (phase/'stdout.log').open('wb') as out,(phase/'stderr.log').open('wb') as err:
+        with (phase/'stdout.log').open('xb') as out,(phase/'stderr.log').open('xb') as err:
             child=subprocess.Popen(['/usr/bin/sandbox-exec','-f',str(policy),self.value['executable']],
                 cwd=self.value['native_input_paths']['project'],env=self.admissions.environment(label),
                 stdin=subprocess.DEVNULL,stdout=out,stderr=err,start_new_session=True)
@@ -91,6 +93,19 @@ class NativePorts:
         # modal lookup and unsupervised screenshot with exact owned bindings.
         run.ax.capture_window=lambda element,name: route.capture(expected_binding=run.ax_binding)
         original_dialog=run.dialog
+        original_press=run.ax.press
+        setup_baseline=[None]
+        def setup_press(element):
+            if setup_baseline[0] is None and run.ax.attr(element,'AXTitle')=='Prepare home and save for next launch':
+                run.bound_main(press=True)
+                w=self.b.screen_support.w;backend=w.d.NativeBackend()
+                try:
+                    require(w.d.bound_identity(run,backend)==run.ax_binding[0],'setup Child changed before sheet request')
+                    setup_baseline[0]=w.owned_inventory(backend,run.reservation.child.pid)
+                    run.act_record('setup-sheet-before-inventory.json',setup_baseline[0])
+                finally:backend.close()
+            original_press(element)
+        run.ax.press=setup_press
         def dialog(title,button):
             # A sheet legitimately increases owned window count. Keep original
             # identity/title/bounds/ID while deriving this one setup sheet.
@@ -106,6 +121,7 @@ class NativePorts:
                 require(self.b.ax_route_support.window_number(run.ax,main)==expected['window_id'],'setup AX main differs')
             finally:backend.close()
             children=run.ax.attr(main,'AXChildren')
+            if children is None:return None # bounded read-only wait in existing form
             require(isinstance(children,list) and len(children)<=8,'setup sheet children unsupported')
             sheets=[e for e in children if run.ax.attr(e,'AXRole')=='AXSheet']
             require(len(sheets)<=1,'ambiguous setup sheet')
@@ -114,8 +130,21 @@ class NativePorts:
             require(parent is not None and run.ax.c.CFEqual(parent,main),'setup sheet parent differs')
             run.ax.own(sheet)
             number=self.b.ax_route_support.window_number(run.ax,sheet)
-            candidates=[r for r in inventory if r['on_screen'] is True and r['window_id']!=expected['window_id']]
+            require(setup_baseline[0] is not None,'setup sheet has no pre-post inventory')
+            backend=w.d.NativeBackend()
+            try:inventory=w.owned_inventory(backend,identity['pid'])
+            finally:backend.close()
+            before={r['window_id'] for r in setup_baseline[0] if r['on_screen'] is True}
+            candidates=[r for r in inventory if r['on_screen'] is True and r['window_id'] not in before]
+            if not candidates:return None # AX sheet may precede its visible WS row
             require(len(candidates)==1 and candidates[0]['window_id']==number,'setup sheet has no unique owned row')
+            candidate=candidates[0]
+            require(candidate['title'] in (None,'',title) and candidate['layer'] in (0,8)
+                    and all(80<=candidate['bounds'][key]<=10000 for key in ('Width','Height')),
+                    'unsupported setup sheet window facts')
+            require(run.ax.attr(sheet,'AXModal') is True,'setup sheet not modal')
+            focused=run.ax.attr(run.ax.app,'AXFocusedWindow')
+            require(focused and run.ax.c.CFEqual(focused,sheet),'setup sheet not focused')
             require(run.ax.attr(run.ax.app,'AXFrontmost') is True,'setup App lost focus')
             rows=run.ax.walk(sheet)
             require(not any(web for _,_,web in rows),'setup question must be native')
@@ -125,7 +154,7 @@ class NativePorts:
             return rows,matches[0]
         run.dialog=dialog
         original_library=run.ax.a
-        budget=CountedAXLibrary(original_library,end,cap=12000,clock=self.clock)
+        budget=CountedAXLibrary(original_library,end,cap=1000000,clock=self.clock,setup_pid=run.reservation.child.pid)
         run.ax.a=budget
         # base.form's immutable input recheck is rebound only within this owned
         # serialized manager process, to the same exact admission verifier.
@@ -133,7 +162,7 @@ class NativePorts:
         self.b.base.inputs=lambda:self.admissions.recheck_inputs()
         try:self.b.base.form(run,self.value)
         finally:
-            self.b.base.inputs=old_inputs;run.ax.a=original_library;run.dialog=original_dialog
+            self.b.base.inputs=old_inputs;run.ax.a=original_library;run.dialog=original_dialog;run.ax.press=original_press
         saved=json.loads((run.root/'saved-bindings.json').read_text())
         self.saved={**saved,'incarnation':'A','performed_through_native_ui':True,
                     'applies_next_launch_only':True,'generation':None}
@@ -162,9 +191,12 @@ class NativePorts:
         self.controls[label]=control;control.preflight(end)
 
     def post_stop_once(self,label,ready,end):
-        run=self._original(label);run.cleanup=True;run.ui_deadline=end
+        run=self._original(label);run.ui_deadline=end
+        run.work_end=end
         require(run.generation==ready['generation'],'Stop source changed')
-        run.request_stop_ui()
+        try:run.request_stop_ui()
+        finally:
+            if run.stop_requested:run.cleanup=True
         require(self.clock()<end,'Stop post exceeded phase cap')
 
     def discover_cancel(self,label,ready,end):
@@ -175,7 +207,7 @@ class NativePorts:
         run=self._original(label);run.ui_deadline=end
         identity,main,modal=cancel[0]
         require(identity==run.stop_context['identity'],'question identity differs')
-        original_library=run.ax.a;budget=CountedAXLibrary(original_library,end,cap=300,clock=self.clock)
+        original_library=run.ax.a;budget=CountedAXLibrary(original_library,end,cap=4000,clock=self.clock)
         run.ax.a=budget
         try:
             rows=run.ax.walk(cancel[1])
@@ -218,13 +250,61 @@ class NativePorts:
         control.ax.close()
         return {'incarnation':label,'same_source':True,'sheet_absent':True,'ready':True}
 
+    def owned_menu_quit(self,run,end):
+        """One original-App menu AXPress; no activation, Esc or Cmd-Q."""
+        adapter=NativeAdapter(run.ax)
+        calls=[0]
+        def call(fn,*args):
+            require(calls[0]<600 and self.clock()+.2<end,'owned menu call/deadline cap')
+            calls[0]+=1;result=fn(*args)
+            require(self.clock()<end,'owned menu native call returned late')
+            return result
+        def read(e,name):
+            require(call(adapter.timeout,e,.2)==0,'menu timeout unavailable')
+            require(call(adapter.owner,e)==run.reservation.child.pid,'menu owner differs')
+            rc,value=call(adapter.read,e,name);require(rc==0,'menu attribute unavailable: '+name)
+            return value
+        try:
+            app=adapter.app;title=read(app,'AXTitle');menu=read(app,'AXMenuBar')
+            require(read(menu,'AXRole')=='AXMenuBar','original menu bar unavailable')
+            children=read(menu,'AXChildren');require(isinstance(children,list) and len(children)<=32,'menu expansion')
+            roots=[e for e in children if read(e,'AXRole')=='AXMenuBarItem' and read(e,'AXTitle')==title]
+            require(len(roots)==1,'original App menu ambiguous')
+            seen=[];stack=[(roots[0],0)];matches=[]
+            while stack:
+                element,depth=stack.pop()
+                if any(adapter.same(element,old) for old in seen):continue
+                seen.append(element);require(depth<=6 and len(seen)<=100,'owned menu traversal bound')
+                role=read(element,'AXRole')
+                require(role in ('AXMenuBarItem','AXMenu','AXMenuItem'),'unexpected menu role')
+                if role=='AXMenuItem':
+                    if read(element,'AXTitle')=='Quit '+title and read(element,'AXEnabled') is True:matches.append(element)
+                    continue # never traverse Services/submenus of a command
+                refs=read(element,'AXChildren');require(isinstance(refs,list) and len(refs)<=50,'menu child bound')
+                stack.extend((e,depth+1) for e in refs)
+            require(len(matches)==1,'unique enabled original Quit unavailable')
+            run.bound_main();target=matches[0]
+            require(read(target,'AXTitle')=='Quit '+title and read(target,'AXEnabled') is True,'Quit changed')
+            run.act_record('owned-menu-quit-intent.json',{'title':'Quit '+title,'calls':calls[0]})
+            require(calls[0]<600 and self.clock()+.2<end,'Quit dispatch reserve exhausted')
+            started=self.clock();rc=None;error=None
+            try:rc=adapter.press(target)
+            except BaseException as exc:error=repr(exc);raise
+            finally:run.act_record('owned-menu-quit-result.json',{'return_code':rc,'error':error,
+                'effect_observed':False,'started':started,'finished':self.clock(),'late':self.clock()>=end})
+            require(self.clock()<end,'Quit native call returned late')
+            require(rc==0,'Quit dispatch uncertain; no repeat')
+        finally:adapter.close()
+
     def quit_normal(self,label,end):
         run=self._original(label);run.cleanup=True;run.ui_deadline=end
         require(run.extra_cleanup_ready(),'helper custody unknown before Quit')
         if label=='B' and run.stop_requested:require(label in self.last_readback,'Stop sheet not verified dismissed')
         run.bound_main()
         require(not run.quit_requested,'Quit already requested')
-        run.quit_requested=True;run.ax.quit_ui()  # never confirm a Quit question
+        run.quit_requested=True;run.quit_attempted=True
+        self.owned_menu_quit(run,min(self.clock()+5,end-40))
+        run.quit_posted=True
         while self.clock()<end:
             exit_fact=run.reservation.observe()
             if exit_fact is not None:break
@@ -237,7 +317,7 @@ class NativePorts:
         run.act_record('attended-admin-release-intent.json',offered)
         code=run.reservation.administrative_reap(offered['expected_app_exit'])
         require(code==0,'original Child wait not0')
-        run.stop.set();run.thread.join(timeout=2)
+        run.stop.set();run.thread.join(timeout=8)
         require(not run.thread.is_alive(),'guard did not settle')
         receipt={'incarnation':label,'normal_exit':code,'helpers_settled':True,'reaped':True,
                  'released':True,'release_id':label+':'+run.admission_sha,
@@ -247,5 +327,7 @@ class NativePorts:
 
     def retain_and_report(self,label,end):
         held=[key for key,run in self.runs.items() if run.reservation is not None and not run.reservation.reaped]
+        guards=[key for key,run in self.runs.items() if run.thread is not None and run.thread.is_alive()]
         self.deliver({'event':'custody-held','requested_incarnation':label,'pending_launch':self.pending_launch,
+                      'live_guard_incarnations':guards,
                       'retained_incarnations':held,'fixed_end':end,'action':'manager retain supervision; no blind input/reap'})

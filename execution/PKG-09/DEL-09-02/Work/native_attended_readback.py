@@ -10,14 +10,16 @@ def require(ok, message):
 
 
 class CountedFunction:
-    def __init__(self, owner, fn):
-        object.__setattr__(self, 'owner', owner);object.__setattr__(self, 'fn', fn)
+    def __init__(self, owner, fn, name):
+        object.__setattr__(self, 'owner', owner);object.__setattr__(self, 'fn', fn);object.__setattr__(self,'name',name)
     def __setattr__(self, name, value):setattr(self.fn, name, value)
     def __getattr__(self, name):return getattr(self.fn, name)
     def __call__(self, *args):
         budget=self.owner
         require(budget.calls < budget.cap and budget.clock()+.2 < budget.end,
                 'attended AX readback budget exhausted')
+        if self.name == "CGEventPostToPid":
+            require(args and args[0] == budget.setup_pid, "keyboard target differs from original Child")
         budget.calls+=1
         result=self.fn(*args)
         require(budget.clock() < budget.end, 'attended AX readback returned late')
@@ -31,12 +33,14 @@ class CountedAXLibrary:
     count bound is a maximum, not a worst-case timing-fit claim: 0.2s timeouts
     may exhaust the deadline long before the allowed node/call bound.
     """
-    def __init__(self, library, end, cap=2000, clock=time.monotonic):
+    def __init__(self, library, end, cap=20000, clock=time.monotonic, setup_pid=None):
         self.library,self.end,self.cap,self.clock=library,end,cap,clock
-        self.calls=0;self.functions={}
+        self.calls=0;self.functions={};self.setup_pid=setup_pid
     def __getattr__(self, name):
-        require(name.startswith(('AX','_AX')), 'non-AX operation not allowed in readback')
-        if name not in self.functions:self.functions[name]=CountedFunction(self,getattr(self.library,name))
+        setup_names={'CGEventCreateKeyboardEvent','CGEventSetFlags','CGEventKeyboardSetUnicodeString','CGEventPostToPid'}
+        require(name.startswith(('AX','_AX')) or (self.setup_pid is not None and name in setup_names),
+                'non-AX operation not allowed outside exact setup keyboard path')
+        if name not in self.functions:self.functions[name]=CountedFunction(self,getattr(self.library,name),name)
         return self.functions[name]
 
 

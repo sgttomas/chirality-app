@@ -320,3 +320,51 @@ manager tool-forwarding/held supervision and post-cutoff supported recovery
 remain explicit readiness prerequisites; this draft cannot be run unattended
 or presented as checked live readiness. Meaningful review of this newly
 connected custody/setup boundary precedes activation.
+
+## Native-hookup review corrections
+
+Claude review of0718b69c found that setup keyboard calls were rejected by the
+AX-only wrapper, normal BAX walks exceeded the chosen call caps, original Child
+binding raced sandbox-exec, setup-sheet association lacked a pre-post baseline,
+Stop set cleanup before dispatch (skipping guard checks), and guard joining was
+too short. The following are manager corrections, not a claimed clean rereview.
+
+The setup counter explicitly permits only the four existing keyboard CG calls
+and checks CGEventPostToPid against the original Child PID. Readback remains
+AX-only. An actual BAX fixture traversing416nodes uses8320 counted calls; the
+former2000cap could not pass an ordinary walk. New expansion caps are20000 for
+one source readback,4000 for the native question, and1000000 for the multiwalk
+setup form. No elapsed deadline is increased: these are expansion ceilings,
+not worst-case latency claims. All nested owner/timeout/attribute calls still
+consume the same absolute phase deadline, and timeout-heavy runs refuse.
+
+Original birth binding now waits at most5s/26samples for the same unreaped
+sandbox-exec Child to exec the exact App. Kernel pid/parent/uid/start tuple must
+remain unchanged; any other executable or birth refuses. Fresh App hash and
+identity are then checked. Accessibility trust is checked without prompting
+before spawn. Controller roots must be outside protected build/repository
+paths; A policy replacement must occur exactly once, phase roots must be0700,
+and stdout/stderr use exclusive creation.
+
+Setup records original owned inventory immediately before its one web-level
+prepare/save post. Native sheet lookup then uses a fresh inventory after AX
+children: missing AX children/WS row may receive only the existing bounded
+read-only wait, while ambiguous/contradictory facts refuse. The sheet requires
+a new distinct owned row, supported title/layer/bounds, original-main parent,
+modality and sheet focus. The same source effect checks precede affirmation.
+
+Stop keeps cleanup=false and guard/heartbeat/reason checks through its post;
+only after the Stop intent has been consumed does cleanup mode apply. Quit is
+now an explicit bounded cycle-pruned original App menu traversal and one
+AXPress, with no activation, Esc or Cmd-Q. It retains rc/error/late timestamps
+before refusing late delivery. No Quit question is affirmed. Menu lookup/post
+is capped at5s and cannot borrow the40s exit reserve. Guard join uses the prior
+8s bound, and retained-state reports separately list reaped App versus still-
+live guard custody. A's normal-exit wait may consume the remaining resource
+interval; if A closure is past160s, B is refused, not launched on a new budget.
+
+Current focused mocks:35 attended modules +17 sheet =52. Added fixtures cover
+416-node BAX traversal, exact-PID setup keyboard counting, original exec transition
+and birth replacement refusal. Native adapter use remains unexecuted. The entry
+supervisor must still stay active through late owner recovery/guard closure;
+these tests do not establish hard closure or native timing fit.

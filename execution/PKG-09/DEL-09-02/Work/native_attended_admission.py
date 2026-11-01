@@ -133,6 +133,9 @@ class NativeAdmissions:
     """
     def __init__(self, root, build_root, plan_sha, b, identify, clock):
         self.root,self.build_root=Path(root),Path(build_root)
+        repo=Path(__file__).resolve().parents[4]
+        require(not self.root.resolve().is_relative_to(self.build_root.resolve()) and
+                not self.root.resolve().is_relative_to(repo), 'controller root must be outside protected build/repo')
         self.plan_sha,self.b,self.identify,self.clock=plan_sha,b,identify,clock
         self.plan=json.loads((self.build_root/'witness-inputs/input-plan.json').read_bytes())
         self.observed=json.loads((self.build_root/'build-observation.json').read_bytes())
@@ -151,7 +154,9 @@ class NativeAdmissions:
 
     def policy(self,label,phase):
         result=self.b.policy(self.value,phase)
-        if label=='A':result=result.replace('(allow process-fork)','(deny process-fork)')
+        if label=='A':
+            require(result.count('(allow process-fork)')==1,'A fork policy replacement unavailable')
+            result=result.replace('(allow process-fork)','(deny process-fork)')
         for path in (self.build_root,Path(__file__).resolve().parents[4]):
             result+='(deny file-write* (subpath '+json.dumps(str(path))+'))\n'
         return result
@@ -217,6 +222,7 @@ class NativeAdmissions:
                 'fresh full bundle changed before launch')
         require(self.clock()<end-135,'launch missed combined setup/readiness cutoff')
         phase=self.root/label
+        require(stat.S_IMODE(plain(phase,True).st_mode)==0o700,'phase root not private0700')
         for directory in ('tmp','helper-tmp','codex-home'):
             plain(phase/directory,True);require(not list((phase/directory).iterdir()),'phase scratch not empty')
         for filename,digest in self.value['window_route']['helper_sources'].items():
@@ -228,8 +234,26 @@ class NativeAdmissions:
                                  Path(self.saved['account']),self.value,self.saved['request_sha256'])
 
     def bind_birth(self,label,run):
-        backend=self.b.screen_support.w.d.NativeBackend()
-        try:self.births[label]=self.b.screen_support.w.d.bound_identity(run,backend)
+        # sandbox-exec is the same original Child before exec, not a new target.
+        # Only its executable may transition; kernel birth/owner/parent stay fixed.
+        import time
+        backend=self.b.screen_support.w.d.NativeBackend();first=None
+        end=min(self.clock()+5,run.ui_deadline)
+        try:
+            for attempt in range(26):
+                require(run.reservation.observe() is None,'original Child ended before App exec')
+                current=backend.identity(run.reservation.child.pid)
+                kernel={k:v for k,v in current.items() if k!='executable'}
+                require(current['ppid']==os.getpid(),'original Child parent changed')
+                if first is None:first=kernel
+                require(kernel==first,'Child incarnation changed during exec')
+                if current['executable']==run.value['executable']:
+                    self.births[label]=self.b.screen_support.w.d.bound_identity(run,backend)
+                    break
+                require(current['executable']=='/usr/bin/sandbox-exec','unexpected original Child executable')
+                require(self.clock()+.2<end,'original App exec wait exhausted')
+                time.sleep(.2)
+            else:raise RuntimeError('original App exec sample bound exhausted')
         finally:backend.close()
         require(label!='B' or self.births['B']!=self.births['A'],'B reused original Child birth')
 

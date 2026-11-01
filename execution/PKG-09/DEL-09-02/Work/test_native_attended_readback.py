@@ -55,3 +55,33 @@ class ReadbackTests(unittest.TestCase):
         b.source_gate=reject
         with self.assertRaises(RuntimeError):fn(run,ctx,None,15,b,route,w,clock=lambda:0)
         self.assertFalse(saved);self.assertIs(run.ax.a,native)
+
+class RepresentativeWalkTests(unittest.TestCase):
+    def test_real_BAX_walk_416_nodes_fits_readback_call_expansion(self):
+        from native_b_ax import wrap_ax
+        from types import SimpleNamespace as N
+        class Library:
+            def AXOwner(self):return 0
+            def AXTimeout(self):return 0
+            def AXRead(self):return 0
+        class Base:
+            def __init__(self):
+                self.a=CountedAXLibrary(Library(),15,clock=lambda:0)
+                self.c=N(CFEqual=lambda a,b:a==b);self.app='app'
+            def own(self,e):self.a.AXOwner();self.a.AXTimeout()
+            def attr(self,e,name):
+                self.own(e);self.a.AXRead()
+                if name=='AXRole':return 'AXWindow' if e==0 else 'AXStaticText'
+                if name=='AXChildren':return list(range(1,416)) if e==0 else []
+                if name=='AXValue':return 'actual fixture text'
+                return None
+        ax=wrap_ax(Base)();rows=ax.walk(0)
+        self.assertEqual(len(rows),416);self.assertEqual(ax.a.calls,8320)
+    def test_setup_keyboard_counts_and_requires_original_pid(self):
+        class Keyboard:
+            def CGEventPostToPid(self,pid,event):return None
+        budget=CountedAXLibrary(Keyboard(),10,clock=lambda:0,setup_pid=42)
+        budget.CGEventPostToPid(42,'event')
+        with self.assertRaises(RuntimeError):budget.CGEventPostToPid(43,'event')
+        with self.assertRaises(RuntimeError):CountedAXLibrary(Keyboard(),10,clock=lambda:0).CGEventPostToPid(42,'event')
+        self.assertEqual(budget.calls,1)

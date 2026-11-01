@@ -7,10 +7,11 @@ from native_attended_ports import NativePorts
 
 class Tests(unittest.TestCase):
     def ports(self,run):
-        a=N(check_birth=lambda label,r:None)
+        value={};a=N(check_birth=lambda label,r:None,value=value)
         b=N(release_support=N(normal_exit=lambda x:x=={'code':1,'status':0},
               request_for=lambda r:{'expected_app_exit':{'code':1,'status':0},'admission':r.admission_sha}))
-        p=NativePorts(b,'/invented',{},a,lambda event:None,lambda label,end:'Cancelled',clock=lambda:0)
+        p=NativePorts(b,'/invented',value,a,lambda event:None,lambda label,end:'Cancelled',clock=lambda:0)
+        p.owned_menu_quit=lambda run,end:run.ax.quit_ui()
         p.runs['A']=run
         return p
     def run_fixture(self):
