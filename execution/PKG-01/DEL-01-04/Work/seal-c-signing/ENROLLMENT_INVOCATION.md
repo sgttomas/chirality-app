@@ -1,15 +1,18 @@
 # Minimal native-host enrollment invocation design
 
-Status: reviewable source design for the later admitted signing stage, **not
-implemented, not activated**. KEYCHAIN_SELECTION remains None. This design adds
+Status: native caller design for the later admitted signing stage, **not
+registered or activated**. The provider-only prepared-intent/consume boundary
+is implemented by SEAL-C-PREPARED-01; the native caller obligations below remain
+unimplemented. KEYCHAIN_SELECTION remains None. This design adds
 no new enduring governance mechanism and does not change SEAL-C/SEAL-2 scope.
 The offline preparation is usable now; executing SC-1/SC-3 requires this bounded
 source work and actual owner signing-stage authority first.
 
 ## Existing source and the exact gap
 
-- `capture_seal_keychain.rs::enroll_initial(app_data)` takes an AppData path and
-  uses the compiled provider authority. It is not called by product code. It
+- `capture_seal_keychain.rs::prepare_enrollment(app_data)` now creates a private
+  provider intent; `enroll_initial(prepared)` consumes it after authority refresh
+  and both in-lock joins. Neither is called by product code. It
   returns `Result<(), String>` and does not distinguish newly created, already
   enrolled or completed-pending outcomes.
 - `lib.rs::app_menu` / `on_menu_event` already dispatch native menu actions to
@@ -23,10 +26,10 @@ source work and actual owner signing-stage authority first.
   a nonblocking acquisition of it before proceeding. Quit state is also exposed
   through `AppState.app_quit.busy()/proceeding()`.
 
-Calling the existing path-only `enroll_initial` directly after a dialog would
-not by itself bind the operation to the marker state the operator confirmed.
-That is an actual gap, not an assumed existing capability. The implementation
-below must add the small provider-owned prepared-intent join before invocation.
+The former path-only entry could not bind confirmation to marker state. That
+provider gap is now addressed by the private single-use intent; direct enrollment
+dispatch is refused. Original-window/confirmation and host admission remain actual
+caller gaps, not capabilities inferred from the provider type.
 
 ## One action, no new authority input surface
 
@@ -44,7 +47,7 @@ personal identity or agent-exclusion guarantee is inferred.
 
 ## Prepared subject and ownership
 
-Add a private, non-Deserialize `PreparedSealEnrollment` in the provider module,
+The implemented private, non-Clone/non-Deserialize `PreparedSealEnrollment` in the provider module is
 created only from the running host's checked compiled selection and installed
 AppData root. It contains no secret material. Its frozen subject is:
 
@@ -54,7 +57,8 @@ AppData root. It contains no secret material. Its frozen subject is:
   parent plus the expected absent child for an uncreated directory;
 - exact existing marker digest and committed/pending key IDs, or explicit marker
   absence; the observed legacy-directory presence/absence;
-- one in-process attempt identity and original native-window handle/custody.
+- one in-process attempt identity. The original native-window handle/custody
+  belongs to the future caller wrapper, not the provider intent.
 
 It is not a public constructor from JSON and not a namespace picker. Disk marker
 bytes remain evidence only. Preview reads no key material and performs no SecItem
@@ -161,5 +165,6 @@ no storage algorithm rewrite. Native owner: `lib.rs` App menu/dispatch and the
 single key-operation Quit notice; reuse `native_lifecycle_confirmation` unchanged
 unless a concrete interface gap appears. Packaging: exact selected entitlement/
 profile/signature and fresh namespace/witness inputs. Parent: integration and
-reserved namespace/signing-stage choices. No such runtime/native edits are made
-by this preparation PR, and their overlaps must be disclosed again before work.
+reserved namespace/signing-stage choices. The provider-only boundary is now supplied in capture_seal_keychain.rs/tests.
+No native menu/confirmation/Quit edits are made by that slice; those overlaps
+must be disclosed again before the future caller implementation.

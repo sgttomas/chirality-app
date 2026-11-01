@@ -97,7 +97,7 @@ fn seal_keychain_none_never_touches_platform_and_unsigned_file_route_stays() {
     assert!(KEYCHAIN_SELECTION.is_none());
     assert!(KeychainAuthority::current().is_err());
     assert!(!selected_route());
-    assert!(enroll_initial(Path::new("/must-not-read")).is_err());
+    assert!(prepare_enrollment(Path::new("/must-not-read")).is_err());
     assert!(dispatch(Path::new("/must-not-read/legacy"), Operation::Seal).is_none());
 }
 #[test]
@@ -351,6 +351,7 @@ fn seal_keychain_native_capability_rejects_foreign_namespace_and_test_calls_cann
     let authority = KeychainAuthority {
         identity: f.identity.clone(),
         allow_first: true,
+        publisher_subject: serde_json::json!({"bundle":"invalid.example.synthetic","team":"SYNTHETIC0","binding":"a".repeat(64)}),
         _installed: crate::installed_custody::synthetic_for_tests(&resources).unwrap(),
     };
     let native = macos::NativeBackend::new(&authority);
@@ -514,6 +515,7 @@ fn seal_keychain_authority_is_process_local_reused_and_failed_refresh_revokes() 
         Ok(KeychainAuthority {
             identity: f.identity.clone(),
             allow_first: true,
+            publisher_subject: serde_json::json!({"bundle":"invalid.example.synthetic","team":"SYNTHETIC0","binding":"a".repeat(64)}),
             _installed: crate::installed_custody::synthetic_for_tests(&resources).unwrap(),
         })
     };
@@ -606,4 +608,216 @@ fn seal_keychain_disappearing_existing_directory_never_gets_recreated() {
     assert!(f.run(&b, Operation::Enroll, 2).is_err());
     assert!(!f.dir.exists());
     assert_eq!(*b.adds.lock().unwrap(), 1);
+}
+
+fn enrollment_fixture() -> (Fixture, KeychainAuthority) {
+    let mut f = Fixture::new();
+    f.dir = f.root.join("capture-seal-keychain");
+    f.legacy = f.root.join(crate::capture_seal::KEY_FOLDER);
+    let resources = f.root.join("Synthetic.app/Contents/Resources");
+    fs::create_dir_all(&resources).unwrap();
+    let authority = KeychainAuthority {
+        identity: f.identity.clone(),
+        allow_first: true,
+        publisher_subject: serde_json::json!({"bundle":"invalid.example.synthetic","team":"SYNTHETIC0","binding":"a".repeat(64)}),
+        _installed: crate::installed_custody::synthetic_for_tests(&resources).unwrap(),
+    };
+    (f, authority)
+}
+#[test]
+fn seal_prepared_read_only_drop_and_none_gate_do_not_touch_backend_or_files() {
+    let (f, a) = enrollment_fixture();
+    let b = Mock::default();
+    let names = || {
+        let mut names = fs::read_dir(&f.root)
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect::<Vec<_>>();
+        names.sort();
+        names
+    };
+    let before = names();
+    let p = prepare_subject(&f.root, &a).unwrap();
+    assert_eq!(names(), before);
+    assert_eq!(p.preview()["continuity_directory_present"], false);
+    assert!(p.preview()["marker_sha256"].is_null());
+    drop(p);
+    assert_eq!(names(), before);
+    assert!(b.reads.lock().unwrap().is_empty());
+    assert_eq!(*b.adds.lock().unwrap(), 0);
+    assert!(prepare_enrollment(Path::new("/not-read-before-None-gate")).is_err());
+    let p = prepare_subject(&f.root, &a).unwrap();
+    assert!(enroll_initial(p).is_err());
+    assert_eq!(names(), before);
+    assert!(dispatch(&f.legacy, Operation::Enroll).unwrap().is_err());
+    assert_eq!(names(), before);
+}
+#[test]
+fn seal_prepared_competing_absence_intents_allow_only_original_one_add() {
+    let (f, a) = enrollment_fixture();
+    let b = Mock::default();
+    let first = prepare_subject(&f.root, &a).unwrap();
+    let second = prepare_subject(&f.root, &a).unwrap();
+    assert_ne!(first.preview()["attempt"], second.preview()["attempt"]);
+    consume_prepared(first, &a, &b, &mut || Ok([1; 32])).unwrap();
+    let reads = b.reads.lock().unwrap().len();
+    assert!(consume_prepared(second, &a, &b, &mut || panic!("stale cannot generate")).is_err());
+    assert_eq!(b.reads.lock().unwrap().len(), reads);
+    assert_eq!(*b.adds.lock().unwrap(), 1);
+}
+#[test]
+fn seal_prepared_policy_and_permission_drift_refuse_before_lock_or_backend() {
+    for case in 0..4 {
+        let (f, mut a) = enrollment_fixture();
+        let b = Mock::default();
+        let intent = prepare_subject(&f.root, &a).unwrap();
+        match case {
+            0 => a.identity.access_group = "OTHER00000.invalid.example.group".into(),
+            1 => a.allow_first = false,
+            2 => a.publisher_subject["binding"] = serde_json::json!("b".repeat(64)),
+            _ => a.identity.service = "invalid.example.other".into(),
+        }
+        assert!(consume_prepared(intent, &a, &b, &mut || panic!(
+            "changed policy cannot generate"
+        ))
+        .is_err());
+        assert!(!f.root.join(".seal-c-enrollment.lock").exists());
+        assert!(!f.dir.exists());
+        assert!(b.reads.lock().unwrap().is_empty());
+    }
+}
+#[test]
+fn seal_prepared_root_replacement_and_legacy_appearance_refuse_before_backend() {
+    let (f, a) = enrollment_fixture();
+    let b = Mock::default();
+    let intent = prepare_subject(&f.root, &a).unwrap();
+    let moved = f.root.with_extension("held-original");
+    fs::rename(&f.root, &moved).unwrap();
+    fs::create_dir(&f.root).unwrap();
+    assert!(consume_prepared(intent, &a, &b, &mut || panic!("replaced root")).is_err());
+    assert!(b.reads.lock().unwrap().is_empty());
+    fs::remove_dir_all(moved).unwrap();
+    let (f, a) = enrollment_fixture();
+    let intent = prepare_subject(&f.root, &a).unwrap();
+    fs::create_dir(&f.legacy).unwrap();
+    assert!(consume_prepared(intent, &a, &b, &mut || panic!("legacy changed")).is_err());
+    assert!(b.reads.lock().unwrap().is_empty());
+}
+#[test]
+fn seal_prepared_in_lock_absence_join_precedes_fresh_keychain_read() {
+    let (f, a) = enrollment_fixture();
+    let b = Mock::default();
+    let intent = prepare_subject(&f.root, &a).unwrap();
+    let dir = f.dir.clone();
+    BEFORE_ENROLLMENT_JOIN.with(|slot| {
+        *slot.borrow_mut() = Some(Box::new(move || {
+            fs::DirBuilder::new().mode(0o700).create(dir).unwrap()
+        }))
+    });
+    assert!(consume_prepared(intent, &a, &b, &mut || panic!("changed absence")).is_err());
+    assert!(b.reads.lock().unwrap().is_empty());
+    assert_eq!(*b.adds.lock().unwrap(), 0);
+}
+#[test]
+fn seal_prepared_exact_marker_join_under_continuity_lock_precedes_readback() {
+    let (f, a) = enrollment_fixture();
+    let b = Mock::default();
+    f.run(&b, Operation::Enroll, 1).unwrap();
+    let intent = prepare_subject(&f.root, &a).unwrap();
+    let marker = f.dir.join(MARKER);
+    let mut raw = fs::read(&marker).unwrap();
+    raw.push(b'\n');
+    let reads = b.reads.lock().unwrap().len();
+    BEFORE_GUARD
+        .with(|slot| *slot.borrow_mut() = Some(Box::new(move || fs::write(marker, raw).unwrap())));
+    assert!(consume_prepared(intent, &a, &b, &mut || panic!("changed marker")).is_err());
+    assert_eq!(b.reads.lock().unwrap().len(), reads);
+    assert_eq!(*b.adds.lock().unwrap(), 1);
+}
+#[test]
+fn seal_prepared_marker_replacement_with_identical_bytes_refuses() {
+    let (f, a) = enrollment_fixture();
+    let b = Mock::default();
+    f.run(&b, Operation::Enroll, 1).unwrap();
+    let intent = prepare_subject(&f.root, &a).unwrap();
+    let raw = fs::read(f.dir.join(MARKER)).unwrap();
+    let replacement = f.dir.join("replacement");
+    fs::write(&replacement, raw).unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(&replacement, fs::Permissions::from_mode(0o600)).unwrap();
+    fs::rename(replacement, f.dir.join(MARKER)).unwrap();
+    let reads = b.reads.lock().unwrap().len();
+    assert!(consume_prepared(intent, &a, &b, &mut || panic!("replacement")).is_err());
+    assert_eq!(b.reads.lock().unwrap().len(), reads);
+}
+#[test]
+fn seal_prepared_pending_completion_keeps_original_subject_and_competitor_stale() {
+    let (f, a) = enrollment_fixture();
+    let b = Mock::default();
+    *b.add_mode.lock().unwrap() = 2;
+    assert!(f.run(&b, Operation::Enroll, 1).is_err());
+    let first = prepare_subject(&f.root, &a).unwrap();
+    let second = prepare_subject(&f.root, &a).unwrap();
+    assert_eq!(
+        first.preview()["marker"]["pending_key_id"],
+        key_id(&[1; 32])
+    );
+    let held =
+        consume_prepared(first, &a, &b, &mut || panic!("pending cannot regenerate")).unwrap();
+    assert_eq!(held.current, key_id(&[1; 32]));
+    let reads = b.reads.lock().unwrap().len();
+    assert!(consume_prepared(second, &a, &b, &mut || panic!("stale pending")).is_err());
+    assert_eq!(b.reads.lock().unwrap().len(), reads);
+    assert_eq!(*b.adds.lock().unwrap(), 1);
+}
+#[test]
+fn seal_prepared_pending_missing_stays_preserved_and_normal_paths_cannot_enroll() {
+    let (f, a) = enrollment_fixture();
+    let b = Mock::default();
+    *b.add_mode.lock().unwrap() = 1;
+    assert!(f.run(&b, Operation::Enroll, 1).is_err());
+    let before = fs::read(f.dir.join(MARKER)).unwrap();
+    let intent = prepare_subject(&f.root, &a).unwrap();
+    assert!(consume_prepared(intent, &a, &b, &mut || panic!(
+        "missing pending must not regenerate"
+    ))
+    .is_err());
+    assert_eq!(fs::read(f.dir.join(MARKER)).unwrap(), before);
+    assert_eq!(*b.adds.lock().unwrap(), 1);
+}
+
+#[test]
+fn seal_prepared_holds_descriptors_not_locks_across_confirmation() {
+    let (f, a) = enrollment_fixture();
+    let b = Mock::default();
+    f.run(&b, Operation::Enroll, 1).unwrap();
+    let reads = b.reads.lock().unwrap().len();
+    let p = prepare_subject(&f.root, &a).unwrap();
+    let guard = guard_mode(&f.dir, false, false, false)
+        .unwrap()
+        .expect("intent must not hold a lock");
+    drop(guard);
+    assert_eq!(b.reads.lock().unwrap().len(), reads);
+    consume_prepared(p, &a, &b, &mut || panic!("already committed")).unwrap();
+    assert_eq!(*b.adds.lock().unwrap(), 1);
+}
+#[test]
+fn seal_prepared_directory_permissions_and_replacement_refuse() {
+    use std::os::unix::fs::PermissionsExt;
+    for replace in [false, true] {
+        let (f, a) = enrollment_fixture();
+        let b = Mock::default();
+        f.run(&b, Operation::Enroll, 1).unwrap();
+        let p = prepare_subject(&f.root, &a).unwrap();
+        if replace {
+            let moved = f.root.join("original-continuity");
+            fs::rename(&f.dir, moved).unwrap();
+            fs::DirBuilder::new().mode(0o700).create(&f.dir).unwrap();
+        } else {
+            fs::set_permissions(&f.dir, fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let reads = b.reads.lock().unwrap().len();
+        assert!(consume_prepared(p, &a, &b, &mut || panic!("changed physical source")).is_err());
+        assert_eq!(b.reads.lock().unwrap().len(), reads);
+    }
 }
