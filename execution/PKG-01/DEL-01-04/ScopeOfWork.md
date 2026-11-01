@@ -123,3 +123,12 @@ and explicit continuity interface. It does not adopt deferred SEAL-2, change
 acceptance criteria, activate a real keychain or establish exclusive-agent or
 personal-act guarantees. Actual signed identity, entitlement/profile compatibility
 and continuity witness remain at their signing-stage points of need.
+
+## SEAL-C signing preparation refinement
+
+[Work/seal-c-signing/README.md](Work/seal-c-signing/README.md) supplies executable
+offline profile/entitlement/publisher metadata preparation and a concrete signed
+witness/recovery plan under the existing signing obligation. It neither selects
+real namespace values nor authenticates a profile, activates keychain access or
+qualifies SEAL-2. Exact signer intake, controlled enrollment invocation and actual
+signed-candidate evidence remain explicitly required.

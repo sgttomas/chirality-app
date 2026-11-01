@@ -97,3 +97,112 @@ continuity disposition/new independently admitted namespace if required. Do not
 silently reset/delete the marker or retry add with different bytes. This is a
 signing-stage recovery boundary, not a new generic approval prerequisite for
 ordinary source work.
+
+## Executable signing-stage preparation (lane3, 2026-11-01)
+
+The source-owned [offline preparation](../../DEL-01-04/Work/seal-c-signing/README.md)
+now consumes the integrated production_inputs completed plan and reuses the
+existing package successor publisher checker. It emits a private metadata/gap
+report, an unsigned entitlement proposal only when complete supplied profile/
+certificate metadata agrees, and an exact SC-0…SC-6 witness/recovery plan. It
+does not authenticate CMS, sign, call SecItem or alter KEYCHAIN_SELECTION=None.
+
+The concrete proposed authorization route is an explicit v4 macOS App ID and
+Apple-issued Developer ID Application distribution profile including the existing
+signer. The SDK spells the macOS entitlement com.apple.application-identifier as
+AppIdentifierPrefix + bundle identifier; the prefix is obtained from the actual
+profile, never guessed from the recovered team. The own-application group is
+the smallest proposed namespace. Without a signed keychain-access-groups list,
+SecItem documents that application identifier as the default group; with an
+explicit list, the exact own-App group must be an authorized member. The helper
+prepares either the default own-App route or one explicit own-App group, never
+cross-App sharing or arbitrary profile entitlements. This conservative profile-
+backed route is not a claim that every Developer ID app universally needs a profile.
+
+Parent need not request team/private-key data again. Remaining actual actions are
+owner confirmation of bundle/service/account and profile-derived own-App group,
+Apple account operator obtaining the matching explicit App ID/profile, then
+authenticated signer intake and separately authorized signing/enrollment witness.
+A real profile's CMS/decode correspondence, certificate class/chain/validity and
+signed entitlement membership remain independent checks, not facts proven by
+plist shape. Existing v3 allow-jit-only metadata supplies none of these grants.
+
+Inputs/outputs: existing completed tauri.package-inputs config/recipe/inventory;
+exact publisher input and, when built, original binding/public projection/
+requirement/effective config with independent original-binding digest; explicit
+CMS, decoded plist, public certificate references and independent signer
+fingerprint. Outputs are signing-plan.json, optional entitlements.proposed.plist,
+witness-sequence.json and digest-bound COMPLETE.json. No new publisher picker
+or new packaging config format is introduced. The helper cannot be used as an
+authority input to the runtime. Original/private evidence and public derivatives
+retain distinct exact digests.
+
+The integrated host-only enroll_initial has no production caller. A reviewed
+controlled native host invocation for the admitted signing stage remains an
+explicit source prerequisite, not a hidden CLI/renderer bypass or startup act.
+The witness plan identifies that prerequisite before any actual signing/
+enrollment result may be claimed. Native qualification and existing packaging
+FP/notary/install owners retain their respective execution scope.
+
+The [concrete invocation design](../../DEL-01-04/Work/seal-c-signing/ENROLLMENT_INVOCATION.md)
+narrows that source prerequisite: one native-menu administrative action, original
+window and private prepared enrollment subject, no renderer/MCP/CLI constructor,
+inside-lock marker/root/policy revalidation, and existing key_setup/Quit exclusion.
+It specifies exact prospective runtime/native file ownership and cancellation/
+staleness/concurrency tests. It is design for a later admitted implementation,
+not a claim that the caller or native witness already exists.
+
+## Inactive provider confirmation-subject join
+
+SEAL-C-PREPARED-01 replaces the path-only entry with
+`prepare_enrollment()` and `enroll_initial(PreparedSealEnrollment)`. The
+private non-Clone/non-Deserialize intent freezes checked publisher/provider
+policy, physical AppData/ancestor/directory identity, expected absence, exact
+marker bytes/identity and committed/pending key IDs. Read-only preparation makes
+no SecItem call or state write and holds no advisory lock across confirmation.
+The consuming call refreshes authority and refuses changed policy before locks,
+then performs the reviewed absence/directory join under enrollment lock before
+fresh query and marker join under continuity lock before readback/add. Direct
+path-only/dispatch enrollment is unavailable in production.
+
+This is an inactive provider prerequisite, not the native operator action. The
+original-window, affirmative confirmation, key_setup and Quit duties remain with
+the future native host caller. Preview/attempt data cannot reconstruct authority;
+dropping an intent cancels without effects. The compiled None gate, exact signer
+inputs, original/private evidence and separate actual signed witness are unchanged.
+No profile/namespace choice, entitlement/signing change or real SecItem access
+is established by the source fixtures.
+
+The prepared provider now derives AppData from the installed capture-seal folder
+through a read-only accessor and accepts no enrollment path argument. A changed
+installed root or a post-join presence/absence change refuses before backend
+effects. No installation/legacy behavior changes. Path-based open races against
+hostile same-user mutation remain explicitly bounded; this is not a claim of
+atomic namespace integrity or completed native-caller confirmation.
+
+## Native caller now wired in source, still None-gated
+
+[The native caller implementation](../../DEL-01-04/Work/SEAL_C_NATIVE_CALLER.md)
+closes the source invocation gap: one native-menu worker retains the original
+window and private prepared intent, uses the unchanged safe-cancel confirmation,
+then try-acquires key_setup, checks Quit, rechecks the original on the main thread
+and checks Quit again before consume. Key_setup remains held until the provider
+returns. No direct SEAL-C IPC/MCP/CLI/path/startup endpoint is added. Availability is a
+pure compiled query; None hides the menu and rejects dispatch before preparation.
+
+Packaging should now distinguish implemented source custody from the still-unrun
+SC-0…SC-6 native/signed witness. No real namespace/profile/entitlement values are
+selected by this join; no SecItem/signing action was executed. Success reports
+only provider-returned success, not new-key creation or personal-act proof.
+The final window check is not a lifetime lease, blocking provider waits may delay
+App-initiated Quit, and external termination retains existing crash limits.
+
+Menu-origin precision from caller review: existing core:default/core:menu permits
+web content to construct a matching-ID menu whose click requests the native
+question. The ID does not authenticate its origin. That route cannot confirm
+the native sheet or grant provider authority; None rejects dispatch. Agent 0
+must disposition the request-origin limit or separately authorize capability
+narrowing before activation. No permission change is made by this contribution.
+Provider/final-admission unwind is reported as outcome-unknown/not-retried inside
+a boundary that preserves the shared key_setup lock from poisoning; existing
+Quit logic is unchanged and real native/signing evidence remains separate.

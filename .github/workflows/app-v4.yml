@@ -178,7 +178,7 @@ jobs:
           tests/group_b_native_forms_test.py tests/group_b_sq_receiving_test.py
           tests/group_b_publication_sources_test.py tests/group_b_support_identity_test.py
           tests/group_b_support_identity_canonical_test.py tests/deliverable_path_test.py
-          tests/terms_position_test.py tests/package_successor_test.py tests/production_inputs_test.py tests/group_b_package_successor_test.py tests/group_b_documentary_condition_test.py
+          tests/terms_position_test.py tests/package_successor_test.py tests/production_inputs_test.py tests/notice_receipts_test.py tests/group_b_package_successor_test.py tests/group_b_documentary_condition_test.py
           tests/supplier_notice_observations_test.py
           tests/group_b_terms_successor_test.py
           tests/group_b_admission_test.py tests/group_b_current_admission_test.py
@@ -194,8 +194,12 @@ jobs:
         run: |
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib publisher_recipe:: -- --test-threads=1
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib publisher_selection::tests -- --test-threads=1
-      - name: SEAL-C provider transition (mock keychain only)
-        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib capture_seal -- --test-threads=1
+      - name: SEAL-C offline signing preparation (invented metadata only)
+        run: python3 -B -m unittest discover -s ../execution/PKG-01/DEL-01-04/Work/seal-c-signing -p 'test_prepare.py' -v
+      - name: SEAL-C provider transition and native caller gates (source fixtures)
+        run: |
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --lib capture_seal -- --test-threads=1
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --lib seal_c_enrollment -- --test-threads=1
       - name: Connected static packaging
         run: |
           cargo build --locked --manifest-path src-tauri/Cargo.toml --example distribution-static

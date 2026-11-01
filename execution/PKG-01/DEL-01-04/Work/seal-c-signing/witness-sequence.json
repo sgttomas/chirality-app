@@ -1,0 +1,64 @@
+{
+  "format": "seal-c-signed-witness-plan/1",
+  "standing": "planned-not-executed",
+  "activation_authorized": false,
+  "operations_authorized": false,
+  "steps": [
+    {
+      "id": "SC-0",
+      "action": "Confirm the exact proposed v4 bundle/service/account and own-App group derived from an independently authenticated profile AppIdentifierPrefix; reuse the already identified Developer ID signer without asking for its private key.",
+      "requires": ["actual owner namespace choice", "Apple-issued Developer ID distribution profile and verified decode/provenance", "matching public signer certificate and fingerprint"],
+      "retain": ["owner choice reference", "original CMS and decoded plist digests", "public signer certificate digest", "exact unsigned proposed entitlement plist digest"],
+      "on_failure": "Retain missing or contradictory inputs; do not invent a prefix, switch group, activate None or sign."
+    },
+    {
+      "id": "SC-1",
+      "action": "Review the exact compiled keychain selection and the source-wired native-menu enrollment invocation with its original-window/key_setup/Quit guards. The menu remains absent under None; admit the exact signing-stage policy before any actual invocation. Rotation witnessing still needs its separately reviewed invocation.",
+      "requires": ["selected runtime source revision", "explicit scope for actual signing and fresh-namespace SecItem witness", "reviewed native host invocation; no general renderer/MCP/runtime-config authority"],
+      "retain": ["source and selection-policy digests", "candidate invocation source and actor", "fresh AppData and namespace reservation"],
+      "on_failure": "Stop at preparation; do not call private functions through an unreviewed entry point or silently enable startup enrollment."
+    },
+    {
+      "id": "SC-2",
+      "action": "Use the packaging owner recipe to build the exact release source and sign under separately authorized signing. Retain publisher original binding/public projection/requirement independently. Verify the signed entitlements and embedded profile match this preparation, then run the installed-integrity prerequisite.",
+      "requires": ["reviewed effective version4.0.0/minimum15 configuration", "preserved OptionB supplier equality", "authorized signer operations"],
+      "retain": ["actual source/build/executable identity and cdhash", "effective configuration bytes", "signed entitlement bytes and digest", "embedded profile bytes and digest", "publisher original/public digests", "actual S4 observation"],
+      "on_failure": "Refuse enrolled use; never treat unsigned entitlement files, profile metadata or old v3 facts as signed permission."
+    },
+    {
+      "id": "SC-3",
+      "action": "On the admitted fresh namespace, explicitly invoke initial enrollment once in the actual signed App, then seal and verify one invented capture. Restart the same signed subject and verify the same capture without another add.",
+      "requires": ["SC-0 through SC-2 actual evidence", "fresh namespace explicitly admitted", "no old development key directory"],
+      "retain": ["nonsecret reservation/commit marker before and after", "key IDs only, never key bytes", "actual no-UI observations and operation result categories", "capture exact bytes/seal and subsequent verification", "restart subject"],
+      "on_failure": "No automatic retry-add. If no marker was reserved, explicit enrollment may retry after absence checks. If reserved-only and item missing, retain the reservation and block first sealing."
+    },
+    {
+      "id": "SC-4",
+      "action": "Observe locked/denied/missing behavior only in an independently authorized disposable test namespace/session. Exercise a pre-enrollment denial, then clear the condition and explicitly retry; verify no file-key fallback. Do not alter the owner's ordinary login keychain.",
+      "requires": ["specific permission for the isolated failure controls", "same admitted signing-policy subject"],
+      "retain": ["controlled failure method and namespace", "actual no-UI observation", "categorical refusal/unsealed evidence", "unchanged historical files and marker facts", "later successful explicit retry where unreserved"],
+      "on_failure": "Do not reinterpret prompts, blocked callbacks, timeouts or missing items as success. Unsupported no-UI policy requires source repair and another exact candidate."
+    },
+    {
+      "id": "SC-5",
+      "action": "With admitted rotation invocation, retain an old committed capture, rotate once, and verify both old and new captures after restart. Separately exercise pending rotation failure in a disposable namespace: old verification and new sealing use committed keys while pending stays unchanged.",
+      "requires": ["explicit rotation/failure-injection scope", "exact original and post-rotation subject"],
+      "retain": ["old/new key IDs and marker states", "actual captures and verification results", "one-add/retained-prior-item evidence without secret contents", "cache invalidation and concurrent Verify/Seal outcomes"],
+      "on_failure": "No overwrite/delete/reset. Missing historical key affects that historical verification; missing current key refuses new sealing; pending-only first enrollment stays unavailable."
+    },
+    {
+      "id": "SC-6",
+      "action": "Join the actual signing/enrollment evidence to the existing package/S4 receiver and App candidate, preserving distinct original/private and public derivative digests. Return for owner acceptance and publication decisions.",
+      "requires": ["exact same candidate and namespace", "existing package receiver's independent publisher trust input", "separate FP/install/quarantine evidence as required"],
+      "retain": ["source/build/configuration/publisher/profile/entitlement/namespace joins", "pre/post installer digests", "actual result and outstanding limits"],
+      "on_failure": "A source fixture, metadata-consistency result or signature alone never supplies native qualification, personal-act proof or release authority."
+    }
+  ],
+  "recovery": {
+    "locked_or_denied_without_reservation": "Clear only the authorized failure condition, then explicitly retry enrollment after fresh namespace checks.",
+    "pending_with_matching_actual_item": "Explicit enrollment/rotation can commit after exact readback and retained-key checks; Verify and ordinary Seal never commit pending.",
+    "pending_only_item_missing": "Preserve the reservation and failed subject. Exact secret is unrecoverable from its digest. Parent/owner must disposition continuity, for example admit a distinct new namespace in reviewed source; never delete/reset or add different bytes under the old reservation.",
+    "pending_rotation_item_missing": "Continue ordinary sealing with the committed current key and historical verification with requested committed keys. Keep pending intact; explicit future recovery/disposition must preserve prior evidence.",
+    "all_marker_and_items_lost": "Normal capture/verify/rotate must remain unavailable and never reenroll. Any genuinely fresh namespace needs a separately admitted explicit enrollment act."
+  }
+}

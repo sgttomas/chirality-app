@@ -219,3 +219,113 @@ safely. The record and items are retained for a later explicit signing-stage
 continuity disposition (for example, a separately admitted new namespace).
 This limitation remains visible, not converted to successful enrollment or
 silent key replacement. No destructive recovery action is implemented here.
+
+## Inactive prepared enrollment boundary (SEAL-C-PREPARED-01)
+
+The path-only production enrollment entry is replaced by
+`prepare_enrollment() -> PreparedSealEnrollment` and
+`enroll_initial(prepared) -> Result<(), String>`. The intent has private fields,
+no Clone/Deserialize implementation and no persisted reconstruction path. Direct
+`dispatch(..., Operation::Enroll)` refuses; production enrollment cannot enter
+the raw provider engine without the intent. Existing test-only raw provider
+fixtures remain synthetic and cannot compile into production authority. No
+product caller/menu/IPC/startup registration is added. KEYCHAIN_SELECTION stays
+None; default builds refuse preparation before installation reads or SecItem.
+
+Preparation uses the checked process-local authority and freezes its exact
+compiled publisher subject, namespace and allow_first policy. It retains read-
+only descriptors for AppData and its physical ancestor chain, the existing
+continuity directory if present, and the exact marker if present. Directory
+identity/ownership/mode and marker identity/times/size/mode/exact-byte hash are
+bound; descriptor retention prevents inode reuse masquerading as the original
+held object. Legacy namespace absence is required. The marker's committed and
+pending key IDs are exposed only as a nonsecret preview. Preparation takes no
+advisory lock, writes no state and performs no SecItem query/add. Dropping it is
+a side-effect-free cancellation. The attempt ID/preview is evidence/display data,
+not a constructor or proof of operator confirmation.
+
+Consumption moves the intent once, refreshes installed authority and compares
+the whole refreshed policy to the frozen policy before taking provider locks.
+The source joins are repeated at the reviewed effect boundaries:
+
+1. Under the enrollment lock, recheck AppData/ancestor identity, the original
+   directory presence/absence, and legacy absence before fresh_namespace or its
+   first keychain read. A newly appeared directory is not silently adopted.
+2. Under the continuity lock, recheck held directory/root facts and the exact
+   marker identity/bytes before pending readback or add. Marker parsing reads
+   compare opened-before/after and named metadata, refusing changed reads. The
+   provider guard retains its directory descriptor while the operation runs.
+
+New directory/lock creation is the existing provider's own consumption effect,
+not a stale-source exception permitting a different pre-existing directory.
+Directory timestamps are not frozen: the provider's own lock-file creation must
+not invalidate its AppData subject. Directory device/inode/owner/mode and the
+marker's full stamp/bytes remain checked. This is bounded cooperating-App
+custody, not atomic filesystem integrity against hostile same-user/admin mutation
+after a check; the previously stated residual limits remain.
+
+Competing absent or pending intents cannot duplicate an add/commit: the first
+operation changes the namespace or marker, making the second stale before its
+backend call. Existing committed state can legitimately produce another
+idempotent observation under a separately prepared intent, without mutation.
+Failed consumption does not reconstruct/retry an intent. A missing pending item
+retains the original marker and cannot generate replacement bytes. Ordinary
+Seal/Verify/Rotate keep their original no-enrollment rules.
+
+The provider does NOT establish the original native window, affirmative choice,
+AppState.key_setup admission or Quit exclusion. The future native caller must
+hold those duties around this intent/consume API as described in
+[ENROLLMENT_INVOCATION.md](seal-c-signing/ENROLLMENT_INVOCATION.md). No native or
+signing authority is inferred from this inactive slice. Source tests use the
+existing invented-key/mock backend, including stale policy/root/marker/absence,
+cancel/drop, exact pending recovery, competing intents and unchanged file-key
+regressions. Independent persistence/authority review and exact-head CI are
+required before integration; real activation remains separate.
+
+Prepared-intent source assurance: the guarded offline/locked `capture_seal`
+cohort passed 40 tests with serial execution and a fresh scratch home. This
+includes unchanged file-key/provider regressions and eleven prepared-intent
+cases; native SecItem wrappers remain disabled in tests. Deliverable validation
+reported zero errors. Independent review and exact-head hosted checks are retained
+in the contribution PR; these source results are not native confirmation or
+signed enrollment qualification.
+
+Review repair disposition: independent Claude Opus 5.5/high reviewed 7b0420d8
+and found no inactive-scope blockers, with F1/F2 recommended before integration.
+The post-join observed absence must now still equal the frozen absence before
+any fresh backend query or directory creation. Tests inject both appearance and
+disappearance in that exact gap. Parent approved the narrow capture_seal.rs
+read-only installed-root accessor: prepare_enrollment() accepts no caller path
+and derives the same folder()/KEY_FOLDER root used by ordinary sealing. Consume
+also refuses a changed installed root. Unavailable/invalid root has no fallback.
+The installation and legacy behavior themselves are unchanged.
+
+The retained descriptors pin observed objects, but existing enrollment/continuity
+lock and marker opens remain path-based rather than openat-relative to those
+descriptors. Hostile same-user swap-and-restore between path checks remains a
+stated residual, not closed by this slice. No automatic clean rereview or native
+confirmation/Quit/activation result is claimed for the manager's bounded repairs.
+
+Post-review targeted checks passed all 43 capture-seal/provider tests, including
+both exact presence/absence gap cases and installed-root provenance/refusal.
+The maintained package producer source dependency map was compared read-only
+with the current receiving profile and had zero drift; no generated file or
+frozen pin was changed. Deliverable validation reported zero errors. The
+production-only internal no-intent guard remains source-inspected rather than
+directly executed by cfg(test); the public dispatch refusal is tested. Actual
+signed/native activation remains outside these results.
+
+## Native source caller join
+
+[SEAL-C-NATIVE-CALLER-01](SEAL_C_NATIVE_CALLER.md) supplies the previously absent
+menu-event worker around PreparedSealEnrollment, original-window confirmation,
+key_setup admission and Quit checks. The exact original intent is consumed once;
+None hides and rejects the action. Existing provider policy, persistence, source
+checks and recovery are unchanged. Source tests do not establish native dialog,
+real keychain, personal-attribution or signing-stage qualification.
+
+The caller does not authenticate menu-event origin: existing core:menu grants
+allow web content to request the question. A separate native affirmative choice
+and all provider checks remain required; no direct SEAL-C IPC authority is added.
+The current None gate rejects dispatch. Any capability narrowing is a separate
+reserved decision before real activation.

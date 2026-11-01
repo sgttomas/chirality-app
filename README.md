@@ -4,7 +4,10 @@ Start a conversation with Help Human, the assistant in Chirality App. Work out
 what you need, make a plan when it helps, and carry out the work together. Turn
 a useful plan into a workflow for next time.
 
-[Download Chirality App](https://github.com/sgttomas/chirality-app/releases/latest) · [Website](https://chirality.ai) · [Release announcement](https://chirality.ai/announcements)
+[Download v3.0.1](https://github.com/sgttomas/chirality-app/releases/tag/v3.0.1) · [Website](https://chirality.ai) · [Release announcement](https://chirality.ai/announcements)
+
+The download is **v3.0.1**. This repository’s `main` branch develops **v4**,
+which is not yet released.
 
 ## Use the App
 
@@ -22,16 +25,21 @@ to its consequences.
   published 2026-09-20 as `Chirality-3.0.1-arm64.dmg` with its SHA-256 checksum.
   App v4 is [in development](#develop-the-app) and does not replace v3.0.1
   until a separate release decision.
-- **Requirements:** an Apple Silicon Mac with macOS 15 or newer, and a ChatGPT
-  account. The App uses Codex through your account. Local-model support is
-  planned for a later release.
-- **Your data:** saved plans, workflows, references, and outputs are ordinary
+- **v3.0.1 requirements:** an Apple Silicon Mac with macOS 15 or newer, and a ChatGPT
+  account. v3.0.1 uses Codex through your account and does not offer local-model
+  support.
+- **Your data in v3.0.1:** saved plans, workflows, references, and outputs are ordinary
   files in your folders. Plans stay in conversation history unless you choose
   to save them to a file. You can keep and use them outside the App. Task
   content needed by the model is sent to OpenAI using your account; Chirality
   AI Ltd does not proxy or retain that content. See
-  [installation and data handling](https://chirality.ai/deployment).
+  [installation and data handling](https://chirality.ai/app#install).
 - **Issues:** [report an App issue](https://github.com/sgttomas/chirality-app/issues/new).
+
+The [released v3.0.1 desktop source](https://github.com/sgttomas/chirality/tree/485051eac923c759238948a54cd7bb094eee4899/projects/chirality-app-dev/frontend)
+is identified by the release notes. GitHub’s automatic source archives for that
+release contain the release repository’s framework snapshot, not the desktop
+application source.
 
 App v3 is frozen and no longer developed or verified;
 [Frozen products](https://github.com/sgttomas/chirality/blob/main/projects/FROZEN.md)
@@ -53,7 +61,7 @@ It identifies delivery owners, next results and the evidence still needed.
 Chirality makes a general agent act within and for a host application. Its
 workflow-authoring App is the exemplar. [Chirality thesis](https://github.com/sgttomas/chirality/blob/main/docs/thesis/README.md)
 develops the reasons for its form; product commitments are in the [PRD](docs/PRD.md),
-its companions and the deliverable Scopes of Work and Designs.
+its companions and the deliverable Scopes of Work and `Work/` material.
 
 Development enters through the [App v4 loop](loop/LOOP_INIT.md). Deliverables live
 in `execution/PKG-nn/DEL-nn-nn/`: `ScopeOfWork.md` holds commitments and acceptance
@@ -65,8 +73,10 @@ For the toolchain, build and launch instructions, start with the
 describes the current product path, checks and remaining qualification limits.
 
 The [current manual selection](execution/_Coordination/CURRENT_EXECUTION_BASIS.md)
-applies to forward development. The [SWB/Domain interface basis](execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md)
-retains its undelivered and unadopted standing. New contract gaps belong in their
+applies to forward development. The [current SWBPIPE receiving account](execution/PKG-09/DEL-09-06/Work/SWBPIPE_RECEIVING_BINDING.md)
+identifies the selected integration sources and evidence limits. The
+[historical SWB/Domain interface basis](execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md)
+retains the dated relay and adoption record. New contract gaps belong in their
 owning deliverable's `Work/`; PR descriptions carry the history of their fixes.
 
 ### User documentation
@@ -77,23 +87,23 @@ need verification against the release candidate before publication.
 
 ### Basis and history
 
-The owner accepted the revised composite basis on 2026-09-26, including its open
-matters and external dependencies, and accepted the 60% gate on 2026-10-04. The
-[composite acceptance](https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md),
-[Group1](execution/_Decomposition/checkpoint_snapshots/_LATEST_GROUP1.md),
-[Group2](execution/_Decomposition/checkpoint_snapshots/_LATEST_GROUP2.md),
-[final decomposition](execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md),
-[project DAG](execution/_DAG/_LATEST.md) and
-[gate decision](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-GRAPH-CLOSURE-20261004/OWNER_DECISIONS.md)
-identify those acts and their subjects. The published fallback remains v3.0.1
-until the separate replacement decision.
+The [execution basis and retained history](execution/_Coordination/CURRENT_EXECUTION_BASIS.md)
+identify the accepted project basis, current release obligations and historical
+source selections. Earlier acceptance gates apply to their recorded subjects;
+v4 publication and replacement of v3.0.1 remain separate decisions.
 
-Old setup logs, handoffs, work graphs, acceptance packets and implementation
-register history are recoverable at
-[`archive/app-v4-pre-contract-register-retirement-20261011`](https://github.com/sgttomas/chirality/tree/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4).
-Earlier AgentRuns are in
-[`archive/pre-efficiency-cleanup-2026-10-09`](https://github.com/sgttomas/chirality/tree/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns).
-These are historical sources, not a standing development backlog.
+<details>
+<summary>Historical source recovery</summary>
+
+The [accepted decomposition](execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md)
+and [project DAG](execution/_DAG/_LATEST.md) retain their original decision records.
+Old setup logs, handoffs and acceptance packets are recoverable in the
+[pre-contract-register-retirement archive](https://github.com/sgttomas/chirality/tree/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4).
+Earlier AgentRuns are in the
+[pre-efficiency-cleanup archive](https://github.com/sgttomas/chirality/tree/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns).
+These sources preserve history; they do not define a standing development backlog.
+
+</details>
 
 ### Layout
 
@@ -101,7 +111,13 @@ These are historical sources, not a standing development backlog.
 |---|---|
 | [docs/](docs/) | PRD, architecture, host integration, examination and operating method |
 | [app/](app/) | Rust host, web view and maintained product checks |
-| [execution/](execution/) | Deliverable contracts, Designs and dependency conditions |
+| [execution/](execution/) | Deliverable contracts, `Work/` material and dependency conditions |
 | [conceptual/](conceptual/) | Source interpretation and the original conceptual choices |
 | [reference/](reference/) | Identified source revisions and inventories |
 | [foundation/](foundation/) | Preserved thesis and its transfer account |
+
+## License
+
+Repository code is available under the [MIT License](LICENSE.md). Bundled
+third-party components retain their own licenses, terms and notices; the
+repository license does not replace them.
