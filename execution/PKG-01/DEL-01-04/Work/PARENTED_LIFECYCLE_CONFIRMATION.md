@@ -15,3 +15,9 @@ This supplies the DEL-01-04 native interaction input; it does not establish the
 joined DEL-09-02 native journey or change either deliverable's ScopeOfWork or
 needs. Other confirmation families, supplier/account behavior and SEAL-C stay
 outside this change. The historical retained candidate is unchanged.
+
+The separate [inactive owned-sheet recovery backend](../../../PKG-09/DEL-09-02/Work/OWNED_SHEET_RECOVERY_BACKEND.md)
+retains the exact App-created NSAlert lifetime for future bounded cancellation.
+It does not activate a question timeout or change human reading time. Lifetime
+policy, controller wiring, independent native-boundary review and real timing
+remain explicit prerequisites.
