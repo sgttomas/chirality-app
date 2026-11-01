@@ -51,16 +51,16 @@ def load_identify():
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     return module
 
-def prepare(build_root):
+def prepare(build_root,state_basis=None):
     from native_attended_admission import NativeAdmissions,preflight_a
     import native_successor_relaunch as b
     build_root=Path(build_root).resolve()
     require(build_root.is_relative_to(SCRATCH),'build root outside owned scratch')
-    checked=preflight_a(build_root,PLAN_SHA,load_identify())
+    checked=preflight_a(build_root,PLAN_SHA,load_identify(),state_basis)
     require(checked['candidate']==CANDIDATE,'wrong selected candidate')
     root=Path(tempfile.mkdtemp(prefix='app-attended-prepared-',dir=SCRATCH)).resolve()
     for name in ('A','B','bridge','manager-home','bytecode-cache'):(root/name).mkdir(mode=0o700)
-    admission=NativeAdmissions(root,build_root,PLAN_SHA,b,load_identify(),time.monotonic)
+    admission=NativeAdmissions(root,build_root,PLAN_SHA,b,load_identify(),time.monotonic,state_basis)
     artifacts={}
     for label in ('A','B'):
         phase=root/label
@@ -70,7 +70,7 @@ def prepare(build_root):
         for path in phase.iterdir():
             if path.is_file():artifacts[str(path.relative_to(root))]=sha(path)
     manifest={'format':'attended-prepared-entry/v1','run_id':uuid.uuid4().hex,'candidate':CANDIDATE,
-        'build_root':str(build_root),'plan_sha256':PLAN_SHA,'controller_root':str(root),'entry_source':str(Path(__file__).resolve()),
+        'build_root':str(build_root),'state_basis':state_basis,'plan_sha256':PLAN_SHA,'controller_root':str(root),'entry_source':str(Path(__file__).resolve()),
         'dependencies':dependencies(),'manager_function_sha256':hashlib.sha256(('async function'+(HERE/'native_attended_manager.js').read_text().split('(async function',1)[1]).rstrip().removesuffix(')').encode()).hexdigest(),'artifacts':artifacts,'A_preflight':checked,'total_seconds':295,
         'Stop_entry_reserve':135,'launch_limit':2,'Stop_confirmation':False,'PR69_active':False,
         'interpreter':{'path':str(Path(sys.executable).resolve()),'sha256':sha(Path(sys.executable).resolve())},
@@ -90,6 +90,10 @@ def check(root,expected_sha):
             and manifest['total_seconds']==295 and manifest['Stop_entry_reserve']==135
             and manifest['launch_limit']==2 and manifest['Stop_confirmation'] is False
             and manifest['PR69_active'] is False,'prepared scope differs')
+    if manifest.get('state_basis') is not None:
+        from native_attended_retained_shell import ASSESSMENT_SHA
+        require(manifest['state_basis']['sha256']==ASSESSMENT_SHA and sha(Path(manifest['state_basis']['path']))==ASSESSMENT_SHA,
+                'retained basis descriptor changed')
     require(manifest['interpreter']=={'path':str(Path(sys.executable).resolve()),'sha256':sha(Path(sys.executable).resolve())},'entry interpreter differs')
     require(manifest['dependencies']==dependencies(),'controller/source dependency changed')
     for relative,digest in manifest['artifacts'].items():
@@ -288,7 +292,7 @@ def execute(root,expected_sha):
     import native_successor_relaunch as b
     from native_attended_admission import NativeAdmissions
     from native_attended_ports import NativePorts
-    admissions=NativeAdmissions(root,Path(manifest['build_root']),manifest['plan_sha256'],b,load_identify(),time.monotonic)
+    admissions=NativeAdmissions(root,Path(manifest['build_root']),manifest['plan_sha256'],b,load_identify(),time.monotonic,manifest.get('state_basis'))
     bridge=ReceiptBridge(root,manifest['candidate'],manifest['run_id'],admissions)
     ports=NativePorts(b,root,admissions.value,admissions,bridge.deliver,bridge.completion)
     original_before=admissions.before_launch
@@ -321,7 +325,7 @@ def simulate(root,expected_sha):
 
 def main():
     parser=argparse.ArgumentParser();sub=parser.add_subparsers(dest='command',required=True)
-    p=sub.add_parser('prepare');p.add_argument('--build-root',required=True)
+    p=sub.add_parser('prepare');p.add_argument('--build-root',required=True);p.add_argument('--retained-basis');p.add_argument('--retained-sha256')
     for command in ('check','execute','simulate'):
         p=sub.add_parser(command);p.add_argument('--root',required=True);p.add_argument('--prepared-sha256',required=True)
     p=sub.add_parser('record-start');p.add_argument('--root',required=True);p.add_argument('--prepared-sha256',required=True);p.add_argument('--json',required=True)
@@ -329,7 +333,9 @@ def main():
     p=sub.add_parser('disposition');p.add_argument('--root',required=True);p.add_argument('--event-id',required=True);p.add_argument('--parent-message-id',required=True)
     p=sub.add_parser('owner-completion');p.add_argument('--root',required=True);p.add_argument('--event-id',required=True);p.add_argument('--actual-reply',required=True);p.add_argument('--owner-message-id',required=True)
     args=parser.parse_args()
-    if args.command=='prepare':prepare(args.build_root)
+    if args.command=='prepare':
+        require(bool(args.retained_basis)==bool(args.retained_sha256),'both retained basis and digest required')
+        prepare(args.build_root,{'path':args.retained_basis,'sha256':args.retained_sha256} if args.retained_basis else None)
     elif args.command=='check':print(json.dumps(check(args.root,args.prepared_sha256)))
     elif args.command=='simulate':simulate(args.root,args.prepared_sha256)
     elif args.command=='execute':return execute(args.root,args.prepared_sha256)

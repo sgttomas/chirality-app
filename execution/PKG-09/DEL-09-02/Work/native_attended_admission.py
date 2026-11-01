@@ -32,7 +32,7 @@ def plain(path, directory=False):
     return info
 
 
-def preflight_a(root, expected_plan_sha, identify):
+def preflight_a(root, expected_plan_sha, identify, state_basis=None):
     root = Path(root); plain(root, True)
     plan_path = root / 'witness-inputs/input-plan.json'; plain(plan_path)
     require(sha(plan_path) == expected_plan_sha, 'invented input plan changed')
@@ -75,14 +75,23 @@ def preflight_a(root, expected_plan_sha, identify):
         path=Path(plan['input_paths'][key]);plain(path,True)
         require(not list(path.iterdir()), 'invented input directory not empty')
     namespaces=identify.app_data_state(plan['identifier'])
-    for relative in ('Library/Preferences/'+plan['identifier']+'.plist',
-                     'Library/Saved Application State/'+plan['identifier']+'.savedState',
-                     'Library/HTTPStorages/'+plan['identifier']):
-        require(not os.path.lexists(Path.home()/relative), 'additional candidate namespace exists; preserve/reassess')
-    require(not namespaces['present_at_identification'], 'candidate namespace no longer empty; preserve and reassess')
-    return {'kind':'empty-candidate-A-preflight','candidate':plan['candidate'],'plan_sha256':expected_plan_sha,
-            'namespace':namespaces,'B_admitted':False,'saved_A':None,'launch_authorized':False,
-            'limits':'Guard/slot/current review and actual setup/closure still required; no native observation.'}
+    retained=None
+    if state_basis is not None:
+        from native_attended_retained_shell import verify,CANDIDATE,IDENTIFIER
+        require(plan['candidate']==CANDIDATE and plan['identifier']==IDENTIFIER,
+                'retained shell belongs to another candidate')
+        require(set(state_basis)=={'path','sha256'},'retained state descriptor differs')
+        retained=verify(state_basis['path'],state_basis['sha256'],plan['executable'])
+    else:
+        for relative in ('Library/Preferences/'+plan['identifier']+'.plist',
+                         'Library/Saved Application State/'+plan['identifier']+'.savedState',
+                         'Library/HTTPStorages/'+plan['identifier']):
+            require(not os.path.lexists(Path.home()/relative), 'additional candidate namespace exists; preserve/reassess')
+        require(not namespaces['present_at_identification'], 'candidate namespace no longer empty; preserve and reassess')
+    return {'kind':'retained-shell-A-preflight' if retained else 'empty-candidate-A-preflight',
+            'candidate':plan['candidate'],'plan_sha256':expected_plan_sha,
+            'namespace':namespaces,'retained_state':retained,'B_admitted':False,'saved_A':None,'launch_authorized':False,
+            'limits':'Guard/slot/current review and actual setup/closure still required; no native observation. Prior empty admission is not reused.'}
 
 
 def require_setup_only_ledger_absent(app_data):
@@ -131,12 +140,13 @@ class NativeAdmissions:
     revalidate full bundle and exact sources; new state is read only after A
     closure. The actual native entrypoint must supply/check the slot start.
     """
-    def __init__(self, root, build_root, plan_sha, b, identify, clock):
+    def __init__(self, root, build_root, plan_sha, b, identify, clock, state_basis=None):
         self.root,self.build_root=Path(root),Path(build_root)
         repo=Path(__file__).resolve().parents[4]
         require(not self.root.resolve().is_relative_to(self.build_root.resolve()) and
                 not self.root.resolve().is_relative_to(repo), 'controller root must be outside protected build/repo')
         self.plan_sha,self.b,self.identify,self.clock=plan_sha,b,identify,clock
+        self.state_basis=state_basis
         self.plan=json.loads((self.build_root/'witness-inputs/input-plan.json').read_bytes())
         self.observed=json.loads((self.build_root/'build-observation.json').read_bytes())
         self.saved=None;self.births={};self.receipts={}
@@ -162,6 +172,8 @@ class NativeAdmissions:
         # Protect the ENTIRE private control tree: bridge, both incarnations,
         # manifests and receipts. Only this incarnation's scratch/log outputs are
         # opened again; the other phase and bridge never receive an exception.
+        if getattr(self,'state_basis',None) is not None:
+            result+='(deny file-read* file-write* (subpath '+json.dumps(str(Path(self.state_basis['path']).parent))+'))\n'
         result+='(deny file-read* file-write* (subpath '+json.dumps(str(self.root))+'))\n'
         result+='(allow file-read-metadata (literal '+json.dumps(str(self.root))+'))\n'
         result+='(allow file-read-metadata file-read-data (literal '+json.dumps(str(phase))+'))\n'
@@ -183,7 +195,7 @@ class NativeAdmissions:
     def empty(self,end):
         require(self.clock()<end-135,'A admission missed setup budget')
         self.recheck_inputs()
-        return self._receipt('A',preflight_a(self.build_root,self.plan_sha,self.identify))
+        return self._receipt('A',preflight_a(self.build_root,self.plan_sha,self.identify,self.state_basis))
 
     def recheck_inputs(self):
         require(sha(self.build_root/'witness-inputs/input-plan.json')==self.plan_sha,'prepared input plan changed')
@@ -231,6 +243,7 @@ class NativeAdmissions:
         require(self.identify.identity(self.identify.inventory(Path(self.value['bundle'])))==self.plan['build_identity'],
                 'fresh full bundle changed before launch')
         require(self.clock()<end-135,'launch missed combined setup/readiness cutoff')
+        if label=='A':preflight_a(self.build_root,self.plan_sha,self.identify,self.state_basis)
         phase=self.root/label
         require(stat.S_IMODE(plain(phase,True).st_mode)==0o700,'phase root not private0700')
         for directory in ('tmp','helper-tmp','codex-home'):
