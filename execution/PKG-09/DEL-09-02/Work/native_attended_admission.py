@@ -48,8 +48,16 @@ def preflight_a(root, expected_plan_sha, identify):
             and observed['build_identity'] == plan['build_identity'] and observed['identifier'] == plan['identifier'],
             'candidate/input identities differ')
     bundle = Path(observed['bundle']); plain(bundle, True)
-    require(bundle.is_relative_to(root / 'target/release/bundle/macos'), 'bundle outside exact prepared root')
+    require(bundle.is_relative_to(root / 'target/debug/bundle/macos'), 'bundle outside exact prepared root')
     require(identify.identity(identify.inventory(bundle)) == plan['build_identity'], 'fresh full bundle inventory differs')
+    require(plan.get('build_profile') == 'debug' and plan.get('features') == ['custom-protocol'],
+            'ordinary owner-use route requires exact debug/default distribution selection')
+    invocation=root/'build-invocation.json';plain(invocation)
+    require(sha(invocation)==plan['build_invocation_sha256'],'build provenance changed')
+    build=json.loads(invocation.read_bytes())
+    require(build['exit_code']==0 and build['profile']=='debug' and build['features']==['custom-protocol']
+            and '--debug' in build['command'] and build['source_revision']==plan['source_revision'],
+            'compiled owner-use route evidence differs')
     executable = Path(plan['executable']); plain(executable)
     require(executable.is_relative_to(bundle / 'Contents/MacOS') and sha(executable) == plan['executable_sha256'],
             'candidate executable differs')

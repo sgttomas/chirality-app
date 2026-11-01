@@ -215,3 +215,54 @@ Two admission tests verify true absence and rejection of any unexpected ledger /
 sidecar without creating files. These18 tests and17 sheet-component tests pass.
 The report is scoped source/mock verification, not a completed native port
 adapter or exact-head integration review. No launch authorization is inferred.
+
+## Build-selection correction and distinct current candidate
+
+The release-profile artifact `1f67d3822b-3bf68520e11f` remains unchanged/unrun as
+packaging evidence. It is **ineligible** for the selected unsigned owner-use
+startup: desktop_startup.rs951 restricts that branch to debug assertions; the
+production successor path instead requires installed custody/publisher inputs.
+Neither guard was changed. Treating that release artifact as ready-capable was
+a preparation error, caught offline before any App launch.
+
+Agent0 accepted a distinct ordinary debug build of exact1f67d382 with only
+custom-protocol/default distribution selection, no PR69 caller/qualification
+feature. It completed rc0 under normal shared t3_slot/jobs2/offline/copied cache,
+without bypassing SWB exclusive locks or starting a native interval. The first
+configuration attempt was rejected by Tauri before compilation for an underscore
+in the generated identifier; its config/log/result remain retained, and only the
+new configuration was corrected before the successful build.
+
+Current candidate `1f67d3822b-8c83d74ae3ce`, identifier
+`dev.chirality.app-v4.candidate.gvpud8q`, bundle-tree SHA256
+`8c83d74ae3ce1ea0116234ff654f1db23ebb6ccc760d05c1af66c325b19039b1`,
+is retained under `app-parented-debug-_gvpud8q`. Full source-export verification
+and50 mapped resource byte comparisons pass; declared namespace directories
+remain absent. The separate invented input plan SHA256 is
+`f0da12bb0b631d77ee94ce0b4abdc584c2077925b2ea6d60e03871230ae292a7`.
+A fresh preflight verifies full bundle/executable, exact build invocation/debug
+selection and input paths/hashes/empty fallback home/tmp/additional namespace
+absence. It reports B_admitted=false, saved_A=null, launch_authorized=false.
+The older release input plan is retained as ineligible, never relabelled.
+Five missing notice texts remain explicit; no signing/publication/native pass.
+
+`native_attended_readback.source_after_cancel` now supplies a concrete read-only
+callback over the existing keeper/main AX path. It revalidates original identity
+and complete main/inventory before/after, rejects any newly visible owned window,
+decodes actual displayed protocol text, calls the existing source/ready gates,
+requires the actual enabled Stop control and rejects same-generation stopping
+or LT23 rows. An instance-only AX library wrapper counts nested native owner /
+timeout/attribute/window-number calls and enforces the cumulative deadline;
+CF decoding/evidence/hash costs also consume that deadline. A2000call maximum
+is a hard expansion limit, **not** a2000×0.2s timing-fit claim. Timeout-heavy
+observations will refuse before completing. The original library is restored
+on all exceptions. Six fixtures cover cap/deadline/late return and complete,
+changed-source and terminal-effect readbacks. Total current focused fixtures:
+17 sheet +16 sequence +2 admission +6 readback =41, all pass offline.
+
+Native two-incarnation launch/keeper-port wiring, setup-form sheet observation,
+actual T3 delivery/owner completion ingress and full phase policy admission are
+still incomplete. Existing source tests and source-readback callback do not
+establish native timing or authorize running the draft. The next reviewable
+integration must connect these exact components without calling the old B
+Stop-confirmation/qualification path or old A forced-termination cleanup.
