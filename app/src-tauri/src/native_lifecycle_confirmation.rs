@@ -128,6 +128,22 @@ pub(crate) fn confirm(
     })
 }
 
+/// Read-only final check for a retained original, from an off-main-thread
+/// worker. This establishes handle availability at this check, not an atomic
+/// lifetime lease throughout subsequent provider work. Never reselect a window.
+pub(crate) fn revalidate_original(window: &tauri::Window) -> Result<(), String> {
+    let (send, receive) = mpsc::channel();
+    let original = window.clone();
+    window
+        .run_on_main_thread(move || {
+            let _ = send.send(checked(&original, |_| ()));
+        })
+        .map_err(|_| UNAVAILABLE.to_owned())?;
+    receive
+        .recv()
+        .map_err(|_| "Original-window validation ended without a result".to_owned())?
+}
+
 /// Explanatory Quit refusals also must not fall back to an unowned alert.
 /// Logging remains available if the original window cannot present the notice.
 pub(crate) fn notice(window: Option<&tauri::Window>, title: &str, message: String) {

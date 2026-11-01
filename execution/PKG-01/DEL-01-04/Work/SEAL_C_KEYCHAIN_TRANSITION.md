@@ -314,3 +314,18 @@ frozen pin was changed. Deliverable validation reported zero errors. The
 production-only internal no-intent guard remains source-inspected rather than
 directly executed by cfg(test); the public dispatch refusal is tested. Actual
 signed/native activation remains outside these results.
+
+## Native source caller join
+
+[SEAL-C-NATIVE-CALLER-01](SEAL_C_NATIVE_CALLER.md) supplies the previously absent
+menu-event worker around PreparedSealEnrollment, original-window confirmation,
+key_setup admission and Quit checks. The exact original intent is consumed once;
+None hides and rejects the action. Existing provider policy, persistence, source
+checks and recovery are unchanged. Source tests do not establish native dialog,
+real keychain, personal-attribution or signing-stage qualification.
+
+The caller does not authenticate menu-event origin: existing core:menu grants
+allow web content to request the question. A separate native affirmative choice
+and all provider checks remain required; no direct SEAL-C IPC authority is added.
+The current None gate rejects dispatch. Any capability narrowing is a separate
+reserved decision before real activation.

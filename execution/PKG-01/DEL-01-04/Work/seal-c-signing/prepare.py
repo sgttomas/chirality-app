@@ -192,7 +192,7 @@ def prepare(request_path, *, evidence_root, package_plan, output, trusted_signer
         remaining = missing + [
             'owner confirms proposed production bundle/service/account and exact profile-derived own-App group',
             'signer authenticates Apple CMS/profile provenance, decoded-to-CMS correspondence, certificate class/chain/validity',
-            'reviewed exact KEYCHAIN_SELECTION and controlled signed-App enrollment invocation; current gate remains None and no invocation exists',
+            'review and admit exact KEYCHAIN_SELECTION for the source-wired native-menu caller; gate remains None until the actual signing stage',
             'authorized signing then actual signed entitlements/embedded profile/cdhash/effective config and publisher binding joins',
             'authorized fresh-namespace signed witness: no-UI, enrollment/readback/restart, locked/denied/missing and pending recovery',
         ]

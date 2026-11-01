@@ -13,7 +13,7 @@
     },
     {
       "id": "SC-1",
-      "action": "Review the exact compiled keychain selection and controlled signed-App enrollment/rotation invocation with source-owned evidence capture. This invocation is not present in the current product; enroll_initial is host-only and otherwise uncalled.",
+      "action": "Review the exact compiled keychain selection and the source-wired native-menu enrollment invocation with its original-window/key_setup/Quit guards. The menu remains absent under None; admit the exact signing-stage policy before any actual invocation. Rotation witnessing still needs its separately reviewed invocation.",
       "requires": ["selected runtime source revision", "explicit scope for actual signing and fresh-namespace SecItem witness", "reviewed native host invocation; no general renderer/MCP/runtime-config authority"],
       "retain": ["source and selection-policy digests", "candidate invocation source and actor", "fresh AppData and namespace reservation"],
       "on_failure": "Stop at preparation; do not call private functions through an unreviewed entry point or silently enable startup enrollment."
