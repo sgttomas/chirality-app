@@ -78,26 +78,40 @@ its existing refusal instead of offering migration/reset.
    A competing explicit key operation returns busy with no keychain work. Check
    `app_quit.busy()` and `proceeding()` while holding that gate. If Quit already
    won, refuse. A later Quit finds key_setup held and follows the existing retry
-   behavior; it must not exit under enrollment. The existing Quit notice should
+   behavior; App-initiated Quit must not proceed under enrollment. External
+   termination/logout remains possible and is covered by crash recovery, not
+   prevented by this gate. The existing Quit notice should
    say an explicit key operation is in progress, not falsely claim an API-key
    home change. This one wording hunk needs native-owner coordination.
-4. Revalidate original window, AppData/compiled selection and prepared marker
-   subject. Move the intent once into a provider-owned consume operation. Under
-   the **same existing enrollment → continuity lock order**, compare its frozen
-   directory/marker facts again before any SecItem operation. A changed/absent/
-   replaced subject refuses; do not reconstruct a fresh intent from disk or a
-   newer selected window. This within-lock check is necessary even if the UI
-   performed an earlier comparison; other processes may use the same namespace.
-5. Reuse the existing `process_authority(recheck=true)` and pending/fresh logic.
-   No duplicate implementation of key storage, entropy, reservation or readback.
-   Keep lock ordering explicit: host key_setup → authority refresh → provider
-   enrollment lock → continuity lock. Verification never acquires host key_setup
-   or reverses this order. No marker/secret work occurs on the main thread.
+4. Revalidate original window and AppData/compiled selection. Refresh the
+   authority through `process_authority(recheck=true)` **before taking provider
+   locks**. Require the refreshed identity and `allow_first` to equal the frozen
+   prepared policy; a mismatch refuses, never updates the intent to new policy.
+   Move the intent once into a provider-owned consume operation.
+5. Preserve the **existing enrollment → continuity lock order** with two distinct
+   comparisons. Immediately after acquiring the enrollment lock, compare frozen
+   AppData/parent/directory identity and expected absence **before** computing
+   `observed_absent` or calling `fresh_namespace` (which may perform a SecItem
+   read). A fresh continuity directory and lock do not yet exist: never create
+   them early just to perform this comparison. After taking the continuity lock
+   and loading the marker, compare its exact digest and committed/pending IDs
+   before any pending readback or add. Changed subjects refuse; no reconstruction
+   from newer disk/window state. Reuse existing storage/entropy/reservation logic.
+   Lock order remains host key_setup → authority refresh → enrollment lock →
+   continuity lock; verification never reverses it. No marker/secret work runs
+   on the main thread.
 6. Retain key_setup until the actual call returns and evidence is settled.
    Failure/panic/termination never manufactures successful enrollment. The
    provider's reservation/readback semantics remain the recovery authority.
    Release guards on every return. Normal Seal/Verify/Rotate still cannot create
    a first key, and no failure path silently repeats Enroll.
+
+The existing provider uses blocking writer locks with no timeout. Holding
+key_setup during such a wait can delay App-initiated Quit indefinitely; this is a
+known liveness limit, not a successful enrollment. External termination can still
+interrupt it. The minimal invocation design retains that limit explicitly rather
+than claiming a bounded wait; any later bounded/nonblocking writer policy needs
+its own source tests and must preserve durable pending-state semantics.
 
 If integration cannot reuse key_setup without an actual lock-order or native
 ownership conflict, return that specific source conflict before adding another

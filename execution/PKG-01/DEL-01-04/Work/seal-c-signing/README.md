@@ -141,6 +141,10 @@ not a trusted time source. Preparation outputs must be rechecked against current
 profile/signing validity when used. No account sign-in or profile acquisition is
 performed by this command.
 
+Private evidence and the packaging plan must be outside this repository worktree.
+CMS, decoded plist and certificate references must name distinct byte digests;
+this separation is not cryptographic proof of CMS/decode correspondence.
+
 The output must be a new directory, outside the repository, evidence root and
 package plan, with an existing physical parent. Files are private (0600 in 0700).
 `signing-plan.json` binds exact inputs/plan/code/SDK basis and lists remaining
@@ -149,7 +153,13 @@ metadata passes the conservative route. It never copies v3 allow-jit or arbitrar
 profile entitlements. `witness-sequence.json` is an exact copy of the source-owned
 plan. `COMPLETE.json` binds each output digest, and `INCOMPLETE.txt` remains on
 failed/interrupted publication. Require `check_output(directory)` before review;
-completion means output integrity, not permission to sign or activate.
+completion means output integrity, not permission to sign or activate. Extra
+output members are refused. A profile-only proposal with missing publisher
+artifacts/trust is labelled `profile-proposal-publisher-gaps`; the report separately
+states `publisher_closure`, metadata gaps and the always-outstanding activation
+conditions. A supplied trusted original-binding digest must be lowercase SHA-256
+and cannot be supplied without its artifacts. The effective build identifier and
+version must equal the completed packaging plan, not just each other.
 
 ## Signed witness and recovery
 
@@ -194,3 +204,13 @@ certificates. Tests cover distinct prefix/team, default versus explicit own-App
 group, metadata failures, exact-byte tamper/symlink refusal, incomplete outputs,
 default-None refusal and existing publisher original/public joins. No real
 SecItem, key, certificate, profile, native candidate, signing or build is used.
+
+Independent Claude Opus 5.5/high reviewed f25f99aa: no blockers after bounded
+metadata corrections and two invocation-design precision fixes. The manager
+added exact effective version/identifier joins, explicit publisher-gap status,
+validated non-orphan trusted digest, exact output membership, distinct profile
+artifacts, full UTC timestamp syntax and private-input location guards. Invocation
+comparison points now precede fresh_namespace under the enrollment lock and
+follow marker load under the continuity lock, with refreshed authority compared
+to frozen policy first. App-initiated Quit exclusion is distinct from external
+termination and the known blocking-wait liveness limit. No runtime code changed.

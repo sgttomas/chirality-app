@@ -75,9 +75,14 @@ class Preparation(unittest.TestCase):
         self.assertNotIn('com.apple.security.cs.allow-jit', ent)
         self.assertNotIn('com.apple.security.get-task-allow', ent)
         report = json.loads((self.output / 'signing-plan.json').read_bytes())
+        self.assertEqual(report['metadata_state'], 'profile-proposal-publisher-gaps')
+        self.assertTrue(report['metadata_gaps_remaining']); self.assertEqual(report['publisher_closure'], 'missing')
         self.assertFalse(report['profile_metadata_authenticated']); self.assertFalse(report['secitem_executed'])
         self.assertIn('original/public', report['remaining'][0])
         self.assertEqual(subject.check_output(self.output)['files'], result['files'])
+        extra = self.output / 'extra-authority.plist'; extra.write_bytes(b'not selected')
+        with self.assertRaises(ValueError): subject.check_output(self.output)
+        extra.unlink()
         (self.output / 'entitlements.proposed.plist').write_bytes(b'changed')
         with self.assertRaises(ValueError): subject.check_output(self.output)
 
@@ -166,6 +171,18 @@ class Preparation(unittest.TestCase):
         with self.assertRaises(ValueError): subject.check_output(self.output)
         with self.assertRaises(ValueError): self.run_plan()
 
+    def test_invalid_or_uncheckable_trust_date_and_reused_profile_bytes_refuse(self):
+        self.args['trusted_publisher_sha256'] = 'NOT-A-DIGEST'
+        with self.assertRaises(ValueError): self.run_plan()
+        self.args['trusted_publisher_sha256'] = 'a'*64
+        with self.assertRaises(ValueError): self.run_plan()
+        self.args.pop('trusted_publisher_sha256')
+        self.args['assessed_at'] = '2026-11-01Z'
+        with self.assertRaises(ValueError): self.run_plan()
+        self.args['assessed_at'] = '2026-11-01T00:00:00Z'
+        self.request['profile_cms'] = self.request['profile_plist']
+        with self.assertRaises(ValueError): self.run_plan()
+
     def test_existing_publisher_checker_is_used_with_original_public_and_effective_config(self):
         # Rebind invented existing fixture to the exact planned effective config;
         # no synthetic record is labelled authenticated or used by runtime.
@@ -191,6 +208,22 @@ class Preparation(unittest.TestCase):
         self.args['output'] = self.root / 'wrong-binding'
         self.args['trusted_publisher_sha256'] = public['sha256']
         with self.assertRaises(ValueError): self.run_plan()
+        # Coherently rehash both config and publisher binding at another version:
+        # the existing checker accepts their mutual join, but the plan must not.
+        self.config['version'] = '9.9.9'
+        config_ref = self.fixture.put(wrapper['tauri_config']['path'], self.config)
+        binding['build_context']['application_version'] = '9.9.9'
+        binding['build_context']['tauri_config_sha256'] = subject.sha(subject.successor.canonical(self.config))
+        binding['build_context_sha256'] = subject.sha(subject.successor.canonical(binding['build_context']))
+        original = self.fixture.put(wrapper['publisher_binding']['path'], binding)
+        projection['original_binding_sha256'] = original['sha256']
+        for key in binding:
+            if key.endswith('_sha256'): projection[key] = binding[key]
+        public = self.fixture.put(wrapper['publisher_projection']['path'], projection)
+        self.request['publisher_artifacts'].update(publisher_binding=original, publisher_projection=public, tauri_config=config_ref)
+        self.args['trusted_publisher_sha256'] = original['sha256']
+        self.args['output'] = self.root / 'wrong-version'
+        with self.assertRaisesRegex(ValueError, 'effective version/identifier'): self.run_plan()
 
 
 if __name__ == '__main__': unittest.main()

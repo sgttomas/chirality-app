@@ -19,5 +19,9 @@
     "activation_limit": "SDK defines API and entitlement mechanisms; not actual profile grant or successful signed access"
   },
   "observed_date": "2026-11-01",
-  "sdk_name": "MacOSX.sdk"
+  "sdk_name": "macosx27.0",
+  "sdk_version": "27.0",
+  "xcode_version": "27.1",
+  "xcode_build": "27A9275",
+  "sdk_settings_sha256": "90a738dbf3fd88e7f6d35646e19d3a8a716923b9773ce1b67260466d9ceed370"
 }

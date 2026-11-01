@@ -46,7 +46,7 @@ def capture(path):
 
 
 def timestamp(value):
-    require(isinstance(value, str) and value.endswith('Z'), 'explicit UTC assessment time required')
+    require(isinstance(value, str) and re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z', value), 'explicit UTC assessment time required')
     return dt.datetime.fromisoformat(value[:-1] + '+00:00').replace(tzinfo=None)
 
 
@@ -108,11 +108,20 @@ def prepare(request_path, *, evidence_root, package_plan, output, trusted_signer
     require(request_path.is_relative_to(root), 'request must be inside its evidence root')
     require(re.fullmatch('[0-9a-fA-F]{40}', trusted_signer_sha1) is not None,
             'independently selected public signer fingerprint required')
+    if trusted_publisher_sha256 is not None:
+        require(re.fullmatch('[0-9a-f]{64}', trusted_publisher_sha256) is not None, 'invalid independent publisher digest')
+    package.no_overlap(root, [ROOT])
+    package.no_overlap(plan, [ROOT])
+    package.no_overlap(request_path.parent, [ROOT])
     at = timestamp(assessed_at)
     request_raw = capture(request_path); request = parse(request_raw)
     exact(request, ('format', 'namespace', 'publisher_input', 'publisher_artifacts',
                     'profile_plist', 'profile_cms', 'signer_certificate'), 'SEAL-C request')
     require(request['format'] == FORMAT, 'unknown preparation format')
+    require(trusted_publisher_sha256 is None or request['publisher_artifacts'] is not None,
+            'publisher trust digest cannot be checked without publisher artifacts')
+    supplied = [request[k] for k in ('profile_plist', 'profile_cms', 'signer_certificate') if request[k] is not None]
+    require(len({r['sha256'] for r in supplied}) == len(supplied), 'profile CMS, decoded plist and certificate must be distinct artifacts')
     namespace = request['namespace']
     exact(namespace, ('service', 'account', 'access_group'), 'namespace proposal')
     require(all(isinstance(namespace[k], str) and re.fullmatch('[A-Za-z0-9._-]{1,255}', namespace[k])
@@ -146,18 +155,24 @@ def prepare(request_path, *, evidence_root, package_plan, output, trusted_signer
             require(certificate and hashlib.sha1(certificate).hexdigest() == trusted_signer_sha1.lower(),
                     'public certificate differs from independently selected signer fingerprint')
         publisher = None
+        publisher_state = 'missing'
         artifacts = request['publisher_artifacts']
         if artifacts is None:
             missing.append('selector original/public binding, requirement and exact effective configuration after authorized build')
         else:
             exact(artifacts, ('publisher_binding', 'publisher_projection', 'publisher_requirement', 'tauri_config'), 'publisher artifacts')
+            before_publisher_missing = len(ctx.missing)
             publisher = ctx.publisher(dict(artifacts, publisher_input=request['publisher_input']), trusted_publisher_sha256)
             effective = ctx.get(artifacts['tauri_config'])
             require(effective is not None, 'effective configuration absent')
+            require(effective.get('version') == config['version'] and effective.get('identifier') == config['identifier'],
+                    'effective version/identifier differs from packaging plan')
             require(effective.get('bundle', {}).get('macOS', {}).get('minimumSystemVersion') == '15.0', 'effective minimum differs')
             require(effective.get('bundle', {}).get('resources') == config['bundle']['resources'], 'effective resource mappings differ')
             require(not ctx.errors, 'existing publisher checker rejected exact closure')
-            missing.extend(ctx.missing)
+            publisher_missing = ctx.missing[before_publisher_missing:]
+            missing.extend(publisher_missing)
+            publisher_state = 'gaps' if publisher_missing else 'consistent-exact-byte-joins'
         proposal, profile_summary = None, None
         cms = ctx.raw(request['profile_cms']) if request['profile_cms'] is not None else None
         if request['profile_cms'] is not None: require(cms, 'profile CMS bytes absent or empty')
@@ -182,7 +197,10 @@ def prepare(request_path, *, evidence_root, package_plan, output, trusted_signer
             'authorized fresh-namespace signed witness: no-UI, enrollment/readback/restart, locked/denied/missing and pending recovery',
         ]
         facts = {'format': 'seal-c-signing-plan/1', 'standing': 'offline-proposal-metadata-only',
-                 'metadata_state': 'consistent-profile-proposal' if proposal else 'required-metadata-missing',
+                 'metadata_state': ('profile-proposal-publisher-gaps' if missing else 'consistent-profile-proposal') if proposal else 'required-metadata-missing',
+                 'metadata_gaps_remaining': bool(missing), 'metadata_gaps': missing,
+                 'publisher_closure': publisher_state,
+                 'activation_gaps_remaining': True,
                  'assessed_at': assessed_at, 'request_sha256': sha(request_raw),
                  'evidence_root_locator': str(root), 'packaging_plan_locator': str(plan),
                  'locator_limit': 'private resolution hints only, never authority or future-integrity proof',
@@ -235,6 +253,7 @@ def check_output(directory):
     exact(value, ('format', 'files'), 'completion')
     require(value['format'] == 'seal-c-preparation-complete/1' and set(value['files']) in
             ({'signing-plan.json', 'witness-sequence.json'}, {'signing-plan.json', 'witness-sequence.json', 'entitlements.proposed.plist'}), 'unsupported output closure')
+    require({p.name for p in directory.iterdir()} == set(value['files']) | {'COMPLETE.json'}, 'unexpected output member')
     for name, digest in value['files'].items(): require(sha(capture(directory / name)) == digest, 'output byte digest differs')
     return value
 
