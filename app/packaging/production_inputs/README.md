@@ -187,3 +187,12 @@ The earlier `app-package-inputs-wgel4r51/plan` is retained as a historical input
 test only. It lacks the new completion marker and names a live checkout and
 volatile `/private/tmp` vendor. Do not execute that earlier recipe. Preserve both
 input accounts until their consumers release them; neither is an App artifact.
+
+Optional upstream notice inclusion uses `--upstream-notices` with a completed
+`packaging/notices/receipts.py stage` directory. The helper validates exact
+metadata/index/asset joins, adds only the public manifest and license resource,
+and records them separately from archive-member notices. Default preparation
+and `check_plan` remain unchanged. See DEL-01-06
+`Work/supplier-notice-associations/LOCAL_RECEIPT_INTAKE.md` for local receipt and
+explicit selection commands. No actual receipt, applicability or completeness
+is inferred from the invented tests.
