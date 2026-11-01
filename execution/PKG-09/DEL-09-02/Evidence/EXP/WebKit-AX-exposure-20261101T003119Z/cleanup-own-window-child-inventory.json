@@ -1,0 +1,190 @@
+{
+  "at": "2026-11-01T00:33:05.996167+00:00",
+  "creation": {
+    "at": "2026-11-01T00:31:20.341721+00:00",
+    "event": "native_B_started",
+    "pid": 29865,
+    "actor": "agent under owner direction; not a personal human act",
+    "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+  },
+  "heartbeat": {
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "phase": "B",
+    "state": "held-unknown",
+    "administrative_release_request": null,
+    "administrative_release_consumed": false,
+    "administrative_release_control": {
+      "file": "release-observer-after-app-exit.json",
+      "mode": "0600",
+      "requirements": "plain owned single-link file, exact offered JSON body; create privately then atomically rename into place; one occurrence including refusal, no replacement/retry"
+    },
+    "error": "original App no longer frontmost",
+    "app_exit_observation": null,
+    "original_app_reaped": false,
+    "supplier_settled_observed": false,
+    "quit_requested": false,
+    "generation": null,
+    "recovery_limit": "No wait-only retry offered without an observed owned-menu Quit post; retain custody and report actual state.",
+    "recovery_control": null,
+    "guard_reason": null,
+    "logging_errors": [],
+    "sampling_observations": {
+      "exclusive": {
+        "at": "2026-11-01T00:33:03.896298+00:00",
+        "source": "exclusive.pending existence",
+        "ok": true,
+        "value": false
+      },
+      "shared_memguard_pgrep": {
+        "at": "2026-11-01T00:33:03.914533+00:00",
+        "source": "shared_memguard_pgrep",
+        "ok": true,
+        "value": [
+          78827
+        ]
+      },
+      "ps_census_and_rss": {
+        "at": "2026-11-01T00:33:03.945393+00:00",
+        "source": "ps_census_and_rss",
+        "ok": true,
+        "value": {
+          "processes": [
+            {
+              "pid": 29865,
+              "parent": 29828,
+              "under_controller_ancestry": true
+            },
+            {
+              "pid": 29883,
+              "parent": 29865,
+              "under_controller_ancestry": true
+            }
+          ],
+          "shared_and_owned_rss_kib": 258144,
+          "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody."
+        }
+      },
+      "sysctl_free_percent": {
+        "at": "2026-11-01T00:33:03.948419+00:00",
+        "source": "sysctl_free_percent",
+        "ok": true,
+        "value": 73
+      }
+    },
+    "census_freshness": "Use ps_census_and_rss timestamp/ok; heartbeat is original-Child observation, not census freshness",
+    "observed_executable_processes": [
+      {
+        "pid": 29865,
+        "parent": 29828,
+        "under_controller_ancestry": true
+      },
+      {
+        "pid": 29883,
+        "parent": 29865,
+        "under_controller_ancestry": true
+      }
+    ],
+    "overrun": false,
+    "at": "2026-11-01T00:33:04.301825+00:00",
+    "limits": "Original owned groups only; detached/escaped helpers unobserved. Process census is corroboration, never custody.",
+    "window_helper": {
+      "settlement": "no live held helper"
+    },
+    "screen_step": 0,
+    "last_verified_capture": {
+      "at": "2026-11-01T00:31:22.935520+00:00",
+      "sequence": 3,
+      "path": "/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-xz8ogujz/window-003.png",
+      "sha256": "843dcdae524a36cb69550e91a675ff0f2c39c98e53999c6bd50979e54be36e19",
+      "identity": {
+        "pid": 29865,
+        "ppid": 29828,
+        "uid": 501,
+        "ruid": 501,
+        "start_sec": 1793493080,
+        "start_usec": 335925,
+        "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/MacOS/chirality-app-v4"
+      },
+      "window": {
+        "window_id": 57116,
+        "title": "Chirality App v4 \u2014 walking skeleton",
+        "bounds": {
+          "X": 106.0,
+          "Y": 32.0,
+          "Width": 1100.0,
+          "Height": 800.0
+        },
+        "on_screen": true,
+        "layer": 0.0,
+        "own_visible_layer0_count": 1
+      },
+      "image": {
+        "width": 2200,
+        "height": 1600,
+        "scale": 2.0,
+        "image_data_sha256": "848f01d3b498e8b375af9e28efeedbacb6a7d1fab036712bb050d8dab7fe79d7"
+      },
+      "limits": "Exact owned window only, -a excludes attached windows, -o excludes shadow. Before/after checks are not atomic. Pixels are observations, not native source records.",
+      "target": "main"
+    },
+    "quit_posted": false,
+    "owned_AX_journey": {
+      "version": "chirality.owned-AX-journey/v1",
+      "boundary_failed": true,
+      "reads": 2,
+      "stop_requested": false,
+      "stop_confirmed": false,
+      "stop_posted_observed": false,
+      "limits": "No screenshot-only fallback. If Stop was requested, flags do not prove modal dismissal; inspect actual question/state before any external cleanup action."
+    }
+  },
+  "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/MacOS/chirality-app-v4",
+  "birth": "Sat Oct 31 18:31:20 2026",
+  "AX_window_inventory": [
+    {
+      "attribute": "AXWindows",
+      "references": [
+        {
+          "AXRole": "AXWindow",
+          "AXSubrole": "AXStandardWindow",
+          "AXTitle": "Chirality App v4 \u2014 walking skeleton",
+          "AXEnabled": null,
+          "application_self_reference": false
+        }
+      ]
+    },
+    {
+      "attribute": "AXMainWindow",
+      "references": [
+        {
+          "AXRole": "AXWindow",
+          "AXSubrole": "AXStandardWindow",
+          "AXTitle": "Chirality App v4 \u2014 walking skeleton",
+          "AXEnabled": null,
+          "application_self_reference": false
+        }
+      ]
+    },
+    {
+      "attribute": "AXFocusedWindow",
+      "references": [
+        {
+          "AXRole": "AXWindow",
+          "AXSubrole": "AXStandardWindow",
+          "AXTitle": "Chirality App v4 \u2014 walking skeleton",
+          "AXEnabled": null,
+          "application_self_reference": false
+        }
+      ]
+    }
+  ],
+  "direct_children": [
+    {
+      "pid": 29883,
+      "parent": 29865,
+      "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/Resources/codex/bin/codex",
+      "role": "bundled stock Codex supplier"
+    }
+  ],
+  "limits": "AX only; no desktop capture. Child identity/census corroboration, not custody."
+}

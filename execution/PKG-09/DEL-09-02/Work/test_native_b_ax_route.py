@@ -43,6 +43,7 @@ class Route(unittest.TestCase):
   patch.object(w.d,'NativeBackend',return_value=SimpleNamespace(close=Mock())).start()
   patch.object(w.d,'bound_identity',return_value=self.identity).start()
   patch.object(w,'select_main',return_value=self.window).start()
+  self.focus_receipt=patch.object(w,'private_json',return_value={'activation':None,'observations':[{'frontmost':True}]}).start()
   patch.object(w,'owned_inventory',return_value=[self.window]).start()
   patch.object(w,'select_modal',side_effect=lambda *args:self.modal if self.modal_open else (_ for _ in ()).throw(w.WindowUnavailable('no modal'))).start()
   patch.object(m,'window_number',side_effect=lambda ax,e:self.mapping[e]).start()
@@ -200,6 +201,76 @@ class Route(unittest.TestCase):
   self.run.alive=Mock(side_effect=m.AXGateFailure('guard heartbeat unavailable'))
   with self.assertRaisesRegex(m.AXGateFailure,'heartbeat'):self.run.main_rows()
   self.assertFalse(self.run.ax_failed)
+ def test_unused_activation_can_be_used_once_before_first_press(self):
+  self.run.observe_ready() # initial fixture opens controls, reset to fresh first-control boundary below
+  self.run.ax_actions.clear();self.pressed.clear();self.nodes[4]['AXValue']=False;self.front=False
+  def focus(action,frame):
+   self.front=True
+   self.focus_receipt.return_value={'activation':{'receiver_pid':123,'activation_policy':0,'options':0,'request_sent':True},'observations':[{'frontmost':False},{'frontmost':True}]}
+   return self.frame
+  self.window_route.input.side_effect=focus
+  self.run.open_disclosure('Host diagnostics')
+  self.assertEqual(self.pressed,[4]);self.assertTrue(self.run.activation_spent);self.assertTrue(self.run.first_press_focus_used)
+  self.assertTrue((self.root/'first-press-focus-observed.json').exists())
+  self.front=False
+  with self.assertRaisesRegex(RuntimeError,'no unused'):self.run.first_press_focus()
+  self.assertEqual(self.window_route.input.call_count,2) # initial no-op + one actual request
+ def test_ready_journey_recovers_only_initial_noop_focus_drift(self):
+  original=self.ax.walk;walks=0
+  def walk(e):
+   nonlocal walks
+   walks+=1
+   if walks==1:self.front=False
+   return original(e)
+  self.ax.walk=walk
+  def focus(action,frame):
+   self.front=True
+   self.focus_receipt.return_value=({'activation':None,'observations':[{'frontmost':True}]} if self.window_route.input.call_count==1 else
+     {'activation':{'receiver_pid':123,'activation_policy':0,'options':0,'request_sent':True},'observations':[{'frontmost':True}]})
+   return self.frame
+  self.window_route.input.side_effect=focus
+  self.assertEqual(self.run.observe_ready(),t.G)
+  self.assertEqual(self.window_route.input.call_count,2);self.assertEqual(self.pressed,[4,5,6])
+  self.assertTrue(self.run.activation_spent)
+ def test_focus_receipt_is_for_the_exact_next_helper_operation(self):
+  self.window_route.sequence=11
+  self.run.focus_receipt(self.frame)
+  self.focus_receipt.assert_called_once_with(self.root/'window-helper-012.focus.json',32768)
+  self.assertFalse(self.run.activation_spent)
+  self.focus_receipt.side_effect=FileNotFoundError('missing trace')
+  with self.assertRaises(FileNotFoundError):self.run.focus_receipt(self.frame)
+  self.assertTrue(self.run.activation_spent)
+ def test_changed_first_press_capture_never_activates(self):
+  self.run.ax_binding=(self.identity,self.window);self.run.activation_spent=False;self.front=False
+  self.window_route.capture.return_value={**self.frame,'window':{**self.window,'window_id':99}}
+  with self.assertRaisesRegex(RuntimeError,'capture changed binding'):self.run.first_press_focus()
+  self.window_route.input.assert_not_called();self.assertTrue(self.run.activation_spent)
+ def test_sent_or_unknown_activation_never_retries(self):
+  self.run.ax_binding=(self.identity,self.window);self.front=False
+  for spent,used,actions in ((True,False,set()),(False,True,set()),(False,False,{'Host diagnostics'})):
+   self.run.activation_spent=spent;self.run.first_press_focus_used=used;self.run.ax_actions=actions
+   with self.assertRaisesRegex(RuntimeError,'no unused'):self.run.first_press_focus()
+  self.window_route.input.assert_not_called()
+ def test_missing_or_wrong_focus_receipt_cannot_grant_unused_budget(self):
+  for trace in ({'observations':[{'frontmost':True}]},{'activation':{'receiver_pid':999,'request_sent':True,'options':0,'activation_policy':0},'observations':[{'frontmost':True}]}):
+   self.focus_receipt.return_value=trace
+   with self.assertRaises(RuntimeError):self.run.focus_receipt(self.frame)
+   self.assertTrue(self.run.activation_spent)
+ def test_first_press_focus_discards_pre_activation_control_reference(self):
+  self.run.ax_binding=(self.identity,self.window);self.run.activation_spent=False;self.front=False
+  original=self.ax.walk
+  def focus(action,frame):
+   self.front=True;self.nodes[44]=self.nodes.pop(4)
+   self.focus_receipt.return_value={'activation':{'receiver_pid':123,'activation_policy':0,'options':0,'request_sent':True},'observations':[{'frontmost':True}]}
+   return self.frame
+  self.window_route.input.side_effect=focus
+  old_press=self.ax.press
+  def press(e):
+   if e==44:self.pressed.append(e);self.nodes[e]['AXValue']=True
+   else:old_press(e)
+  self.ax.press=press
+  self.run.open_disclosure('Host diagnostics')
+  self.assertEqual(self.pressed,[44])
  def test_guard_phase_deadline_remains_enforced(self):
   self.run.ui_deadline=time.monotonic()-1
   with patch.object(b.Run,'alive'):

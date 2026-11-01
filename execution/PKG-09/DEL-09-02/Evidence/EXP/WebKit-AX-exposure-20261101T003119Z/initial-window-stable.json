@@ -1,0 +1,30 @@
+{
+  "at": "2026-11-01T00:31:21.850437+00:00",
+  "identity": {
+    "pid": 29865,
+    "ppid": 29828,
+    "uid": 501,
+    "ruid": 501,
+    "start_sec": 1793493080,
+    "start_usec": 335925,
+    "executable": "/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app/Contents/MacOS/chirality-app-v4"
+  },
+  "window": {
+    "window_id": 57116,
+    "title": "Chirality App v4 \u2014 walking skeleton",
+    "bounds": {
+      "X": 106.0,
+      "Y": 32.0,
+      "Width": 1100.0,
+      "Height": 800.0
+    },
+    "on_screen": true,
+    "layer": 0.0,
+    "own_visible_layer0_count": 1
+  },
+  "samples": 5,
+  "consecutive_matches": 3,
+  "minimum_spacing_seconds": 0.25,
+  "elapsed_seconds": 1.5044171661138535,
+  "limits": "Pre-capture acquisition only; subsequent exact checks remain mandatory."
+}

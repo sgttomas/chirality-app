@@ -281,14 +281,15 @@ class WindowRoute:
         finally:
             if backend is not None:backend.close()
 
-    def capture(self):
+    def capture(self,expected_binding=None):
         self.run.alive();require(self.sequence<MAX_OPERATIONS,'window operation bound exhausted')
         backend=d.NativeBackend()
         try:
             require(backend.screen_access(),'screen capture unavailable: preflight false; no prompt/fallback')
             identity,window=self.bound_window(backend)
-            if self.initial_binding is not None and self.sequence==0:
-                require((identity,window)==self.initial_binding,'initial stable window changed before capture request; no reselection')
+            pinned=expected_binding if expected_binding is not None else (self.initial_binding if self.sequence==0 else None)
+            if pinned is not None:
+                require((identity,window)==pinned,'bound window changed before capture request; no reselection')
             self.sequence+=1;number=self.sequence
             path=self.run.root/f'capture-{number:03d}.unverified.png'
             require(not os.path.lexists(path),'capture destination used')
@@ -369,7 +370,7 @@ class WindowRoute:
             after,after_window=self.bound_window(backend)
             require(after==identity and after_window['window_id']==window['window_id'] and after_window['bounds']==window['bounds'],'post-input binding changed; effect unknown')
         finally:backend.close()
-        return self.capture() # Next action requires reading this actual effect.
+        return self.capture(expected_binding=(identity,window)) # No post-input window substitution.
 
 def private_path(root,filename):
     require(Path(filename).name==filename,'helper path escape')
