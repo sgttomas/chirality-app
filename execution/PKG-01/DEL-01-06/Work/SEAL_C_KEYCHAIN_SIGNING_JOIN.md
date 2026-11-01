@@ -97,3 +97,57 @@ continuity disposition/new independently admitted namespace if required. Do not
 silently reset/delete the marker or retry add with different bytes. This is a
 signing-stage recovery boundary, not a new generic approval prerequisite for
 ordinary source work.
+
+## Executable signing-stage preparation (lane3, 2026-11-01)
+
+The source-owned [offline preparation](../../DEL-01-04/Work/seal-c-signing/README.md)
+now consumes the integrated production_inputs completed plan and reuses the
+existing package successor publisher checker. It emits a private metadata/gap
+report, an unsigned entitlement proposal only when complete supplied profile/
+certificate metadata agrees, and an exact SC-0…SC-6 witness/recovery plan. It
+does not authenticate CMS, sign, call SecItem or alter KEYCHAIN_SELECTION=None.
+
+The concrete proposed authorization route is an explicit v4 macOS App ID and
+Apple-issued Developer ID Application distribution profile including the existing
+signer. The SDK spells the macOS entitlement com.apple.application-identifier as
+AppIdentifierPrefix + bundle identifier; the prefix is obtained from the actual
+profile, never guessed from the recovered team. The own-application group is
+the smallest proposed namespace. Without a signed keychain-access-groups list,
+SecItem documents that application identifier as the default group; with an
+explicit list, the exact own-App group must be an authorized member. The helper
+prepares either the default own-App route or one explicit own-App group, never
+cross-App sharing or arbitrary profile entitlements. This conservative profile-
+backed route is not a claim that every Developer ID app universally needs a profile.
+
+Parent need not request team/private-key data again. Remaining actual actions are
+owner confirmation of bundle/service/account and profile-derived own-App group,
+Apple account operator obtaining the matching explicit App ID/profile, then
+authenticated signer intake and separately authorized signing/enrollment witness.
+A real profile's CMS/decode correspondence, certificate class/chain/validity and
+signed entitlement membership remain independent checks, not facts proven by
+plist shape. Existing v3 allow-jit-only metadata supplies none of these grants.
+
+Inputs/outputs: existing completed tauri.package-inputs config/recipe/inventory;
+exact publisher input and, when built, original binding/public projection/
+requirement/effective config with independent original-binding digest; explicit
+CMS, decoded plist, public certificate references and independent signer
+fingerprint. Outputs are signing-plan.json, optional entitlements.proposed.plist,
+witness-sequence.json and digest-bound COMPLETE.json. No new publisher picker
+or new packaging config format is introduced. The helper cannot be used as an
+authority input to the runtime. Original/private evidence and public derivatives
+retain distinct exact digests.
+
+The integrated host-only enroll_initial has no production caller. A reviewed
+controlled native host invocation for the admitted signing stage remains an
+explicit source prerequisite, not a hidden CLI/renderer bypass or startup act.
+The witness plan identifies that prerequisite before any actual signing/
+enrollment result may be claimed. Native qualification and existing packaging
+FP/notary/install owners retain their respective execution scope.
+
+The [concrete invocation design](../../DEL-01-04/Work/seal-c-signing/ENROLLMENT_INVOCATION.md)
+narrows that source prerequisite: one native-menu administrative action, original
+window and private prepared enrollment subject, no renderer/MCP/CLI constructor,
+inside-lock marker/root/policy revalidation, and existing key_setup/Quit exclusion.
+It specifies exact prospective runtime/native file ownership and cancellation/
+staleness/concurrency tests. It is design for a later admitted implementation,
+not a claim that the caller or native witness already exists.
