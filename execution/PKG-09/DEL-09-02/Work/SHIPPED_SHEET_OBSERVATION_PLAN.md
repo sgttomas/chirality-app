@@ -161,3 +161,9 @@ evidence but is still not infallible. A failed witness returns concrete facts
 and closure status, not another automatic preparation/launch cycle. Fresh
 candidate/state admission, current notice gaps and identity remain explicit;
 no result transfers automatically to the retained fdcf or release subject.
+
+
+Implementation refinement: the initial20s/5s proposal is superseded by15s
+initial discovery and10s retained-reference immediate revalidation/Cancel,
+leaving5s of the30s modal cap. See ATTENDED_CANCEL_IMPLEMENTATION.md for actual
+call caps and once-only phases; unmeasured overhead may still refuse.

@@ -131,3 +131,42 @@ meaningful scrutiny before live use; that earlier review is not claimed to
 cover it. Native keeper-port integration, source readback/parent report delivery,
 actual complete input-policy admission and shared start coordination remain
 open. No owner attendance or live interval has been requested.
+
+## Review-response corrections (supersede earlier component limits)
+
+Claude review of38b755f2 found missing exact Stop button identity, unchecked
+readback claims, repeatable failed discovery, an oversized admitted layout,
+missing late dispatch receipts, fallback delivery blocked by record errors and
+unbound preflight. Source corrections require exactly Keep Codex running /
+Stop Codex / Cancel during discovery and immediate revalidation, retain those
+button observations, and consume each discovery/preflight/cancel/dismissal phase
+on entry. Initial main children are capped at5, sheet children6; the maximum
+accepted layout now fits the60call discovery cap. Immediate revalidation cap
+is46calls (9.2s timeout allowance within10s; remaining overhead may refuse).
+All phases share an enforced190call lifetime cap. No failed phase can reset
+that allowance or silently repeat discovery. The first absent sheet therefore
+requests attended fallback immediately, not an uncounted poll.
+
+Cancel dispatch separately prechecks budget, sets attempted immediately before
+the native call, and retains return code/error/start/end/late status even when
+it returns after the deadline. Unknown/late delivery is never repeated.
+Fallback messages say to click Cancel only if the Stop sheet is still visible.
+Delivery precedes sequenced evidence writes, which cannot suppress delivery.
+Preflight resolves original keeper identity/main facts and checks the passed
+AX main's window number. Stop context and generation are rechecked on each
+binding call; preflight can now run before Stop is posted.
+
+Dismissal requires typed actual generation, ready state, enabled Stop, absent
+sheet row, successful full source gate and empty same-generation stopping /
+LT23 rows. It does not manufacture a negative LT23 claim without that readback.
+Actor is agent only after rc0 and no owner fallback; uncertain delivery is
+undetermined unless an actual owner Cancel completion was supplied. If automatic
+binding never succeeded, actual owner completion plus no remaining sheets,
+restored main focus and no new owned on-screen windows/full-source readback is
+required. The callback must derive those facts from live observations; the
+current component fixture is not a substitute for that unfinished integration.
+
+Seventeen component fixtures now pass, including maximal accepted layout,
+Cancel-only unrelated sheet rejection, failed-discovery no repeat, typed
+readback refusal, uncertain actor and retained late rc. These manager fixes are
+not a clean independent rereview claim. Native layout/timing remain unverified.

@@ -29,7 +29,7 @@ class Tests(unittest.TestCase):
         def record(n,v):
             if n in self.records:raise RuntimeError('duplicate evidence')
             self.records[n]=copy.deepcopy(v)
-        self.c=SheetCancel(self.ax,'main',3,lambda:copy.deepcopy(self.facts),record,self.reports.append,lambda:self.now)
+        self.c=SheetCancel(self.ax,'main',3,lambda:copy.deepcopy(self.facts),record,self.reports.append,lambda:self.now,generation={'session':'B'},main_binding=lambda:{'window_id':1})
     def test_cancel_once_no_stop_or_effect_claim(self):
         self.c.observe(15);self.c.cancel(10)
         self.assertEqual(self.ax.pressed,['cancel']);self.assertFalse(self.records['sheet-cancel-posted']['effect_verified'])
@@ -79,12 +79,50 @@ class Tests(unittest.TestCase):
     def test_preflight_refuses_existing_sheet(self):
         with self.assertRaises(Refusal):self.c.preflight(10)
         self.assertFalse(self.ax.pressed)
+    def proof(self):return {'generation':{'session':'B'},'state':'ready','stop_enabled':True,
+        'sheet_row_absent':True,'source_gate_passed':True,'stopping_rows':[],'LT23_rows':[]}
+    def detach(self):
+        self.ax.props['main']['AXChildren']=[];self.ax.props['app']['AXFocusedWindow']='main'
     def test_dismissal_requires_both_hierarchy_and_fresh_source(self):
         self.c.observe(15);self.c.cancel(10)
-        with self.assertRaises(Refusal):self.c.dismissed(15,lambda _: {})
-        self.ax.props['main']['AXChildren']=[];self.ax.props['app']['AXFocusedWindow']='main'
-        def fail(_):raise Refusal('generation changed')
-        with self.assertRaises(Refusal):self.c.dismissed(15,fail)
+        with self.assertRaises(Refusal):self.c.dismissed(15,lambda _: self.proof())
+        self.setUp();self.c.observe(15);self.c.cancel(10);self.detach()
+        with self.assertRaises(Refusal):self.c.dismissed(15,lambda _: {'state':'stopping'})
         self.assertNotIn('sheet-dismissed',self.records)
-        self.c.dismissed(15,lambda facts: {'same_generation':True,'state':'ready'})
-        self.assertFalse(self.records['sheet-dismissed']['stop_confirmed'])
+    def test_valid_dismissal_and_uncertain_actor(self):
+        self.c.observe(15);self.ax.rc=-25204
+        with self.assertRaises(Refusal):self.c.cancel(10)
+        self.c.unsupported('uncertain','fixed');self.detach()
+        self.c.dismissed(15,lambda _:self.proof())
+        self.assertEqual(self.records['sheet-dismissed']['actor'],'undetermined')
+    def test_discovery_failure_is_single_shot(self):
+        self.ax.props['main']['AXChildren']=[]
+        with self.assertRaises(Refusal):self.c.observe(15)
+        count=self.c.total_calls
+        with self.assertRaises(Refusal):self.c.observe(15)
+        self.assertEqual(count,self.c.total_calls)
+    def test_cancel_only_sheet_is_not_Stop(self):
+        self.ax.props['sheet']['AXChildren']=['cancel']
+        with self.assertRaises(Refusal):self.c.observe(15)
+        self.assertFalse(self.ax.pressed)
+    def test_late_press_still_retains_return_code(self):
+        self.c.observe(15);self.ax.late=lambda:setattr(self,'now',11)
+        with self.assertRaises(Refusal):self.c.cancel(10)
+        self.assertEqual(self.records['sheet-cancel-posted']['return_code'],0)
+        self.assertTrue(self.records['sheet-cancel-posted']['late'])
+    def test_max_admitted_layout_fits_count(self):
+        self.ax.props['main']['AXChildren']=['sheet']+['g'+str(i) for i in range(4)]
+        for i in range(4):self.ax.props['g'+str(i)]={'AXRole':'AXGroup'}
+        self.ax.props['sheet']['AXChildren'] += ['icon','text','text2']
+        for e in ['icon','text','text2']:self.ax.props[e]={'AXRole':'AXStaticText'}
+        self.c.observe(15);self.assertLessEqual(self.c.calls,60)
+        self.c.cancel(10);self.assertLessEqual(self.c.calls,46)
+    def test_wrong_preflight_main_refuses(self):
+        self.c.main_binding=lambda:{'window_id':999}
+        with self.assertRaises(Refusal):self.c.preflight(10)
+
+    def test_owner_completion_without_selected_sheet_requires_inventory_and_source(self):
+        self.c.unsupported('no sheet binding','end');self.c.record_owner_completion('Cancelled');self.detach()
+        proof=self.proof();proof['no_new_owned_windows']=True
+        self.c.dismissed(15,lambda _:proof)
+        self.assertEqual(self.records['sheet-dismissed']['actor'],'owner-reported-and-verified')

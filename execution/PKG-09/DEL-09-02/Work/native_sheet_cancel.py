@@ -25,9 +25,17 @@ class SheetCancel:
     `record` is a mandatory write-once durable evidence operation. `report` must
     immediately deliver fallback instructions to the supervising parent.
     """
-    def __init__(self, ax, main, pid, binding, record, report, clock=time.monotonic):
+    def __init__(self, ax, main, pid, binding, record, report, clock=time.monotonic, generation=None, main_binding=None):
         self.ax, self.main, self.pid = ax, main, pid
         self.binding, self.record, self.report, self.clock = binding, record, report, clock
+        self.generation, self.main_binding = generation, main_binding
+        self.discovery_started = False
+        self.preflight_started = False
+        self.cancel_started = False
+        self.dismissal_started = False
+        self.posted_rc = None
+        self.fallback_sent = False
+        self.owner_completion = None
         self.selected = None
         self.attempted = False
         self.calls = 0
@@ -36,7 +44,7 @@ class SheetCancel:
         self.observation_failure = None
 
     def call(self, fn, *args):
-        require(self.calls < self.cap, 'sheet native-call cap exhausted')
+        require(self.calls < self.cap and self.total_calls < 190, 'sheet native-call cap exhausted')
         require(self.clock() + .2 < self.end, 'sheet time reserve exhausted')
         self.calls += 1
         self.total_calls += 1
@@ -57,16 +65,22 @@ class SheetCancel:
         return value
 
     def preflight(self, end):
-        require(self.selected is None and not self.attempted, 'preflight after sheet transaction')
+        require(not self.preflight_started and not self.discovery_started, 'preflight cannot repeat')
+        self.preflight_started = True
+        require(self.main_binding is not None, 'preflight needs original keeper main binding')
         self.end, self.cap, self.calls, self.prepared = end, 40, 0, []
+        expected = self.main_binding()
+        self.prepare(self.main)
+        require(self.call(self.ax.number, self.main) == expected['window_id'], 'preflight main differs')
         children = self.read(self.main, 'AXChildren')
-        require(isinstance(children, list) and len(children) <= 8, 'main child list unsupported')
+        require(isinstance(children, list) and len(children) <= 5, 'main child list unsupported')
         require(all(self.read(child, 'AXRole') != 'AXSheet' for child in children), 'preexisting sheet')
         self.record('sheet-preflight', {'calls': self.calls, 'sheet_present': False})
         require(self.clock() < end, 'preflight evidence exceeded deadline')
 
     def observe(self, end, cap=60):
-        require(self.selected is None and not self.attempted, "initial discovery cannot repeat")
+        require(not self.discovery_started, "initial discovery cannot repeat")
+        self.discovery_started = True
         self.end, self.cap, self.calls = end, cap, 0
         self.prepared = []
         facts = self.binding()  # caller bounds non-AX identity/inventory cost
@@ -74,7 +88,7 @@ class SheetCancel:
         self.prepare(self.main)
         require(self.call(self.ax.number, self.main) == facts[1]['window_id'], 'AX main mapping differs')
         children = self.read(self.main, 'AXChildren')
-        require(isinstance(children, list) and len(children) <= 8, 'sheet child list unsupported')
+        require(isinstance(children, list) and len(children) <= 5, 'sheet child list unsupported')
         sheets = []
         for child in children:
             if any(self.ax.same(child, old) for old in sheets):
@@ -97,29 +111,30 @@ class SheetCancel:
         controls = self.read(sheet, 'AXChildren')
         require(isinstance(controls, list) and len(controls) <= 6, 'sheet control layout unsupported')
         cancel = []
+        titles = []
         for control in controls:
             if self.read(control, 'AXRole') != 'AXButton':
                 continue
-            if self.read(control, 'AXTitle') == 'Cancel':
+            title = self.read(control, 'AXTitle')
+            titles.append(title)
+            if title == 'Cancel':
                 require(self.read(control, 'AXEnabled') is True, 'Cancel disabled or unknown')
                 cancel.append(control)
+        require(sorted(titles) == ['Cancel','Keep Codex running','Stop Codex'], 'not the exact Stop question button set')
         require(len(cancel) == 1, 'unique enabled Cancel unavailable')
         require(self.ax.same(self.read(cancel[0], 'AXParent'), sheet), 'Cancel parent differs')
         require('AXPress' in self.call(self.ax.actions, cancel[0]), 'Cancel has no AXPress')
         selected = (facts, sheet, cancel[0])
-        if self.selected is not None:
-            old = self.selected
-            require(facts == old[0] and self.ax.same(sheet, old[1]) and self.ax.same(cancel[0], old[2]),
-                    'sheet/Cancel changed; no replacement')
-        self.record('sheet-cancel-observation', {'binding': facts, 'calls': self.calls})
+        self.record('sheet-cancel-observation', {'binding': facts, 'calls': self.calls, 'buttons': titles})
         require(self.clock() < end, 'sheet evidence exceeded deadline')
         self.selected = selected
         return selected
 
     def cancel(self, end):
-        require(not self.attempted, 'Cancel already attempted; no repeat')
+        require(not self.cancel_started, 'Cancel phase already used; no repeat')
+        self.cancel_started = True
         require(self.selected is not None, 'Cancel has no original observation')
-        self.end, self.cap, self.calls = end, 42, 0
+        self.end, self.cap, self.calls = end, 46, 0
         self.prepared = []
         selected = self.selected
         facts, sheet, button = selected
@@ -133,9 +148,12 @@ class SheetCancel:
         require(isinstance(controls, list) and len(controls) <= 6, 'sheet controls changed')
         require(sum(self.ax.same(e, button) for e in controls) == 1, 'original Cancel absent/duplicated')
         matches=[]
+        titles=[]
         for e in controls:
-            if self.read(e, 'AXRole') == 'AXButton' and self.read(e, 'AXTitle') == 'Cancel':
-                matches.append(e)
+            if self.read(e, 'AXRole') == 'AXButton':
+                title=self.read(e, 'AXTitle');titles.append(title)
+                if title == 'Cancel':matches.append(e)
+        require(sorted(titles) == ['Cancel','Keep Codex running','Stop Codex'], 'Stop question buttons changed')
         require(len(matches)==1 and self.ax.same(matches[0],button), 'Cancel is no longer unique')
         require(self.read(button, 'AXRole') == 'AXButton' and self.read(button, 'AXTitle') == 'Cancel'
                 and self.read(button, 'AXEnabled') is True, 'original Cancel changed')
@@ -146,31 +164,67 @@ class SheetCancel:
         self.record('sheet-cancel-intent', {'binding': selected[0], 'action': 'Cancel',
                                           'actor': 'agent', 'qualification': False})
         require(self.clock() + .2 < end, 'Cancel dispatch reserve unavailable')
-        self.attempted = True  # consumed before native dispatch, including errors
-        rc = self.call(self.ax.press, selected[2])
-        self.record('sheet-cancel-posted', {'return_code': rc, 'effect_verified': False})
+        require(self.calls < self.cap and self.total_calls < 190, 'Cancel call cap exhausted')
+        started = self.clock()
+        require(started + .2 < end, 'Cancel dispatch reserve exhausted before native call')
+        self.calls += 1; self.total_calls += 1
+        self.attempted = True
+        rc = None; error = None
+        try:
+            rc = self.ax.press(button)
+            self.posted_rc = rc
+        except BaseException as exc:
+            error = repr(exc)
+            raise
+        finally:
+            self.record('sheet-cancel-posted', {'return_code': rc, 'error': error,
+                'started': started, 'finished': self.clock(), 'late': self.clock() >= end,
+                'effect_verified': False})
+        require(self.clock() < end, 'Cancel returned after deadline; do not repeat')
         require(rc == 0, 'Cancel delivery uncertain; do not repeat')
         return rc
 
     def dismissed(self, end, readback):
-        require(self.selected is not None, 'no bound sheet to observe dismissal')
+        require(not self.dismissal_started, 'dismissal phase already used')
+        self.dismissal_started = True
+        require(self.selected is not None or self.owner_completion == 'Cancelled',
+                'unbound dismissal needs actual owner Cancel completion')
         self.end, self.cap, self.calls, self.prepared = end, 40, 0, []
         children = self.read(self.main, 'AXChildren')
         require(isinstance(children, list) and len(children) <= 8, 'dismissal children unsupported')
-        require(not any(self.ax.same(e, self.selected[1]) for e in children), 'sheet still attached')
+        if self.selected is not None:
+            require(not any(self.ax.same(e, self.selected[1]) for e in children), 'sheet still attached')
         require(all(self.read(e, 'AXRole') != 'AXSheet' for e in children), 'another sheet present')
         require(self.read(self.main, 'AXMain') is True, 'original main changed')
         require(self.read(self.ax.app, 'AXFrontmost') is True, 'App focus not restored')
         require(self.ax.same(self.read(self.ax.app, 'AXFocusedWindow'), self.main), 'main focus not restored')
         # Caller freshly verifies kernel/executable/main, absence of the exact
         # sheet WS row, full source/generation ready and restored enabled Stop.
-        observation = readback(self.selected[0])
+        observation = readback(self.selected[0] if self.selected else None)
+        if self.selected is None:
+            require(observation.get('no_new_owned_windows') is True, 'unbound owner dismissal inventory unavailable')
         require(self.clock() < end, 'dismissal/source readback exceeded deadline')
+        self.validate_readback(observation)
+        actor = ('owner-reported-and-verified' if self.owner_completion == 'Cancelled' else
+                 'agent' if self.posted_rc == 0 and not self.fallback_sent else 'undetermined')
         self.record('sheet-dismissed', {'readback': observation, 'cancel_attempted': self.attempted,
-                                       'actor': 'agent' if self.attempted else 'owner-reported-and-verified',
-                                       'stop_confirmed': False, 'LT23_observed': False})
+                                      'actor': actor, 'Stop_action_authorized_by_controller': False})
         require(self.clock() < end, 'dismissal evidence exceeded deadline')
         return observation
+
+    def validate_readback(self, observation):
+        require(isinstance(observation, dict) and self.generation is not None
+                and observation.get('generation') == self.generation
+                and observation.get('state') == 'ready'
+                and observation.get('stop_enabled') is True
+                and observation.get('sheet_row_absent') is True
+                and observation.get('source_gate_passed') is True
+                and observation.get('stopping_rows') == []
+                and observation.get('LT23_rows') == [], 'dismissal source/effect proof unavailable')
+
+    def record_owner_completion(self, actual_message):
+        require(actual_message == 'Cancelled', 'actual owner completion required')
+        self.owner_completion = actual_message
 
     def note_observation_failure(self, reason):
         # Screenshot/question failure is not missing ownership/Cancel evidence.
@@ -178,8 +232,9 @@ class SheetCancel:
         self.record('sheet-witness-failed', {'reason': str(reason), 'cancel_bound': self.selected is not None})
 
     def unsupported(self, reason, fixed_end):
+        self.fallback_sent = True
         self.report({'event': 'owner-cancel-needed-now', 'reason': str(reason),
-                     'instruction': 'Please click Cancel on the ordinary Stop Codex sheet now; do not click Stop.',
+                     'instruction': 'If the ordinary Stop Codex sheet is still visible, please click Cancel now; do not click Stop. Report what you actually observe.',
                      'fixed_end': fixed_end, 'cancel_attempted': self.attempted,
                      'custody': 'original keeper retained; no release or success inferred'})
 
@@ -267,11 +322,27 @@ def for_owned_run(run, main, fixed_end, window_module):
     must select it explicitly and must never call confirm_stop_ui afterwards.
     """
     w = window_module
-    context = run.stop_context
-    require(context and context.get('posted') is True and run.stop_requested
-            and not run.stop_confirmed, 'no original unconfirmed Stop transaction')
-    require(context['generation'] == run.generation, 'Stop generation changed')
+    require(run.ax_binding is not None and run.generation is not None and not run.stop_confirmed,
+            'original ready binding unavailable')
+    original_binding = run.ax_binding
+    generation = run.generation
+    def main_binding():
+        run.alive()
+        backend = w.d.NativeBackend()
+        try:
+            identity = w.d.bound_identity(run, backend)
+            main_facts = w.select_main(backend, identity['pid'])
+            require((identity, main_facts) == original_binding, 'preflight original main changed')
+            return main_facts
+        finally:
+            backend.close()
     def binding():
+        context = run.stop_context
+        require(context and context.get('posted') is True and run.stop_requested
+                and not run.stop_confirmed and context['generation'] == generation == run.generation,
+                'no original unconfirmed Stop transaction')
+        require(context['identity'] == original_binding[0] and context['main'] == original_binding[1],
+                'Stop context differs from original ready main')
         run.alive()
         require(run.extra_cleanup_ready(), 'helper custody unsettled')
         backend = w.d.NativeBackend()
@@ -289,8 +360,13 @@ def for_owned_run(run, main, fixed_end, window_module):
             backend.close()
     def record(name, value):
         run.act_record(name + '.json', value)
+    reports = [0]
     def report(value):
-        run.record('owner-cancel-needed.json', value)
-        run.report(value)  # manager must forward immediately on this supervised session
+        value['fixed_end'] = fixed_end
+        run.report(value)  # delivery must not depend on evidence disk writes
+        reports[0] += 1
+        try:run.record('owner-cancel-needed-%03d.json' % reports[0], value)
+        except Exception as error:run.safe_log('fallback_record_failed', error=str(error))
     adapter = NativeAdapter(run.ax)
-    return SheetCancel(adapter, main, context['identity']['pid'], binding, record, report)
+    return SheetCancel(adapter, main, original_binding[0]['pid'], binding, record, report,
+                       generation=generation, main_binding=main_binding)
