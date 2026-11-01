@@ -12,6 +12,7 @@ class Tests(unittest.TestCase):
               request_for=lambda r:{'expected_app_exit':{'code':1,'status':0},'admission':r.admission_sha}))
         p=NativePorts(b,'/invented',value,a,lambda event:None,lambda label,end:'Cancelled',clock=lambda:0)
         p.owned_menu_quit=lambda run,end:run.ax.quit_ui()
+        p.cleanup_original_main=lambda run,end:run.bound_main()
         p.runs['A']=run
         return p
     def run_fixture(self):
@@ -79,3 +80,60 @@ class PostReapTests(unittest.TestCase):
         run,events=self.run_fixture();p=self.ports(run);run.observed_processes=['invented survivor']
         with patch('native_attended_ports.time.sleep'),self.assertRaises(RuntimeError):p.quit_normal('A',20)
         self.assertIn('attended-admin-release-result.json',events);self.assertNotIn('A',p.closures)
+
+class PreJourneyCleanupTests(unittest.TestCase):
+    def fixture(self):
+        identity={'pid':10,'birth':'original'};window={'window_id':20,'title':'original'}
+        inventory=[{'window_id':20,'on_screen':True}];children=['group'];roots=['main'];closed=[];logged=[]
+        class Backend:
+            def close(self):closed.append(True)
+        w=N(d=N(NativeBackend=Backend,bound_identity=lambda run,backend:dict(identity)),
+            select_main=lambda backend,pid:dict(window),owned_inventory=lambda backend,pid:list(inventory))
+        ax=N(a=N(),main=lambda:'main',own=lambda e:None,windows=lambda:list(roots),c=N(CFEqual=lambda a,b:a==b),
+            attr=lambda e,k:list(children) if (e,k)==('main','AXChildren') else ('AXSheet' if e=='sheet' else 'AXGroup'))
+        run=N(ax_binding=None,screen=N(window=N(initial_binding=(dict(identity),dict(window)))),
+              ax=ax,extra_cleanup_ready=lambda:True,safe_log=lambda *a,**k:logged.append(k))
+        value={};admissions=N(value=value)
+        b=N(screen_support=N(w=w),ax_route_support=N(window_number=lambda ax,e:20))
+        ports=NativePorts(b,'/invented',value,admissions,lambda event:None,lambda *args:None,clock=lambda:0)
+        return ports,run,identity,window,inventory,children,roots,closed,logged
+    def test_failed_capture_before_journey_can_revalidate_exact_initial_main(self):
+        p,r,*rest=self.fixture();library=r.ax.a
+        self.assertEqual(p.cleanup_original_main(r,5),'main')
+        self.assertIsNone(r.ax_binding);self.assertIs(r.ax.a,library)
+        self.assertEqual(rest[-2],[True]);self.assertFalse(rest[-1][0]['qualification_binding_initialized'])
+    def test_missing_changed_or_blocked_initial_main_never_authorizes_Quit(self):
+        for case in ['missing','birth','window','sheet','extra-window','extra-AX','helper']:
+            with self.subTest(case=case):
+                p,r,identity,window,inventory,children,roots,closed,logged=self.fixture()
+                if case=='missing':r.screen.window.initial_binding=None
+                if case=='birth':identity['birth']='replacement'
+                if case=='window':window['window_id']=21
+                if case=='sheet':children.append('sheet')
+                if case=='extra-window':inventory.append({'window_id':21,'on_screen':True})
+                if case=='extra-AX':roots.append('dialog')
+                if case=='helper':r.extra_cleanup_ready=lambda:False
+                with self.assertRaises(RuntimeError):p.cleanup_original_main(r,5)
+                self.assertFalse(logged)
+
+class PreJourneyQuitPathTests(unittest.TestCase):
+    def test_full_quit_path_after_helper_refusal_uses_independent_binding(self):
+        p,r,identity,window,inventory,children,roots,closed,logged=PreJourneyCleanupTests().fixture()
+        events=[]
+        r.cleanup=False;r.ui_deadline=0;r.quit_requested=False;r.stop_requested=False
+        r.admission_sha='a'*64;r.root=Path('/invented/A')
+        r.reservation=N(reaped=False,observe=lambda:{'code':1,'status':0})
+        def reap(observed):r.reservation.reaped=True;events.append('original wait');return 0
+        r.reservation.administrative_reap=reap
+        r.act_record=lambda name,value:events.append(name)
+        r.sample=lambda:None;r.observed_processes=[]
+        r.stop=N(set=lambda:events.append('stop guard'));r.thread=N(join=lambda timeout:None,is_alive=lambda:False)
+        r.bound_main=lambda:(_ for _ in ()).throw(RuntimeError('owned AX journey not initialized'))
+        p.admissions.check_birth=lambda label,run:None;p.runs['A']=r
+        p.b.release_support=N(normal_exit=lambda value:value=={'code':1,'status':0},
+            request_for=lambda run:{'expected_app_exit':{'code':1,'status':0}})
+        p.owned_menu_quit=lambda run,end:events.append('one owned menu Quit')
+        receipt=p.quit_normal('A',295)
+        self.assertTrue(receipt['reaped']);self.assertTrue(receipt['released'])
+        self.assertEqual(events.count('one owned menu Quit'),1);self.assertIsNone(r.ax_binding)
+        self.assertLess(events.index('one owned menu Quit'),events.index('original wait'))

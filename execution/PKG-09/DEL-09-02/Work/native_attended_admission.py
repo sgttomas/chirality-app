@@ -172,7 +172,9 @@ class NativeAdmissions:
     def _receipt(self,label,facts):
         path=self.root/label/'admission.json'
         record={'format':'attended-native-admission/v1','incarnation':label,'candidate':self.plan['candidate'],
-                'plan_sha256':self.plan_sha,'facts':facts,'policy_sha256':hashlib.sha256(self.policy(label,self.root/label).encode()).hexdigest()}
+                'plan_sha256':self.plan_sha,'facts':facts,
+                'inputs':json.loads(json.dumps(self.value)),
+                'policy_sha256':hashlib.sha256(self.policy(label,self.root/label).encode()).hexdigest()}
         self.b.write_once(path,record)
         receipt={'admission_id':label+':'+sha(path),'admission_sha256':sha(path),**facts}
         self.receipts[label]=receipt
