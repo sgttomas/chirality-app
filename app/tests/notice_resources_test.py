@@ -43,10 +43,47 @@ class NoticeResources(unittest.TestCase):
 
     def test_saved_scope_is_app_and_exact_direct_runtime_set(self):
         index = self.validate()
-        self.assertEqual(len(index['components']), 17)
+        self.assertEqual(len(index['components']), 22)
         self.assertEqual(sum(len(c['notices']) for c in index['components']), 30)
         self.assertEqual(sum(n['size_bytes'] for c in index['components'] for n in c['notices']), 133902)
         self.assertNotIn('tauri-build', {c['package'] for c in index['components']})
+
+    def test_macos_target_runtime_dependencies_cannot_be_omitted(self):
+        self.assertEqual(self.index['format'], 'chirality.app.direct-runtime-notices/v2')
+        self.assertEqual(self.index['target'], 'aarch64-apple-darwin')
+        expected = {'objc2', 'objc2-app-kit', 'objc2-foundation', 'block2', 'dispatch2'}
+        target = [c for c in self.index['components'] if c['declaration_targets'] == ['cfg(target_os = "macos")']]
+        self.assertEqual({c['package'] for c in target}, expected)
+        for component in target:
+            self.assertEqual(component['notices'], [])
+            self.assertEqual(component['notice_gap']['reason'], 'locked_archive_contains_no_root_notice_text')
+            self.assertTrue(component['notice_gap']['revision'])
+        self.index['components'] = [c for c in self.index['components'] if c['package'] != 'objc2']
+        self.write_index()
+        with self.assertRaisesRegex(ValueError, 'missing direct runtime component'):
+            self.validate()
+
+    def test_target_scope_is_explicit_and_build_dev_do_not_expand_runtime(self):
+        manifest = {'dependencies': {'shared': '1'}, 'build-dependencies': {'build': '1'}, 'dev-dependencies': {'test': '1'},
+                    'target': {'cfg(target_os = "macos")': {'dependencies': {'native': '1'}},
+                               'cfg(target_os = "windows")': {'dependencies': {'windows-only': '1'}},
+                               'cfg(unix)': {'dependencies': {'shared': '1'}},
+                               'cfg(unrecognized)': {'build-dependencies': {'not-runtime': '1'}}}}
+        self.assertEqual(check.cargo_runtime_declarations(manifest),
+                         {'shared': ['all', 'cfg(unix)'], 'native': ['cfg(target_os = "macos")']})
+        manifest['target']['cfg(unrecognized)']['dependencies'] = {'new-runtime': '1'}
+        with self.assertRaisesRegex(ValueError, 'unsupported runtime target condition'):
+            check.cargo_runtime_declarations(manifest)
+
+    def test_wrong_platform_and_missing_text_status_refuse(self):
+        self.index['target'] = 'x86_64-pc-windows-msvc'; self.write_index()
+        with self.assertRaisesRegex(ValueError, 'notice target differs'): self.validate()
+        self.index['target'] = 'aarch64-apple-darwin'
+        target = next(c for c in self.index['components'] if c['package'] == 'objc2')
+        target['declaration_targets'] = ['all']; self.write_index()
+        with self.assertRaisesRegex(ValueError, 'runtime declaration target differs'): self.validate()
+        target['declaration_targets'] = ['cfg(target_os = "macos")']; target['notice_gap'] = None; self.write_index()
+        with self.assertRaisesRegex(ValueError, 'missing notice requires'): self.validate()
 
     def test_changed_notice_bytes_refuse(self):
         path = self.root / self.index['components'][1]['notices'][0]['asset']

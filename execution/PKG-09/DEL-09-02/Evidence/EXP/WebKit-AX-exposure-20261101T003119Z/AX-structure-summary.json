@@ -1,0 +1,90 @@
+[
+  {
+    "source_sha256": "6a09b6040f4912ed5d45d8848fa04d3f5cb0fd111f30cecb9abf6589d410c60f",
+    "source_name": "owned-AX-001.json",
+    "at": "2026-11-01T00:31:23.048612+00:00",
+    "window_id": 57116,
+    "role_counts": {
+      "AXWindow": 1,
+      "AXGroup": 2,
+      "AXButton": 3,
+      "AXStaticText": 1
+    },
+    "walk": {
+      "cycles_pruned": 0,
+      "duplicate_references_pruned": 0,
+      "application_boundaries_pruned": 0,
+      "window_boundaries_pruned": 0,
+      "unique_nodes": 7,
+      "references_checked": 7,
+      "attribute_errors": {
+        "AXDescription:-25205": 7,
+        "AXValue:-25205": 6,
+        "AXEnabled:-25205": 2,
+        "AXTitle:-25205": 3,
+        "AXChildren:-25212": 3,
+        "AXTitle:-25212": 3
+      }
+    },
+    "known_control": {
+      "prefix": "Host diagnostics",
+      "matches": 0,
+      "enabled": [],
+      "state": []
+    },
+    "limits": "Selected structural fields only; not full text, source/generation or qualification proof."
+  },
+  {
+    "source_sha256": "baff7d973b8d80c3d3defc3545006300fc1196e035d72c0eb868b204ff291746",
+    "source_name": "owned-AX-002.json",
+    "at": "2026-11-01T00:31:23.981657+00:00",
+    "window_id": 57116,
+    "role_counts": {
+      "AXWindow": 1,
+      "AXGroup": 93,
+      "AXScrollArea": 1,
+      "AXWebArea": 1,
+      "AXHeading": 8,
+      "AXStaticText": 118,
+      "AXLink": 8,
+      "AXDisclosureTriangle": 13,
+      "AXTextField": 5,
+      "AXButton": 22,
+      "AXPopUpButton": 5,
+      "AXRadioButton": 4,
+      "AXTextArea": 2,
+      "AXList": 1,
+      "AXScrollBar": 1
+    },
+    "walk": {
+      "cycles_pruned": 0,
+      "duplicate_references_pruned": 0,
+      "application_boundaries_pruned": 0,
+      "window_boundaries_pruned": 0,
+      "unique_nodes": 283,
+      "references_checked": 283,
+      "attribute_errors": {
+        "AXDescription:-25205": 8,
+        "AXValue:-25205": 7,
+        "AXEnabled:-25205": 3,
+        "AXTitle:-25205": 4,
+        "AXTitle:-25212": 4,
+        "AXDescription:-25212": 1,
+        "AXValue:-25212": 1,
+        "AXEnabled:-25212": 1,
+        "AXChildren:-25212": 2
+      }
+    },
+    "known_control": {
+      "prefix": "Host diagnostics",
+      "matches": 1,
+      "enabled": [
+        true
+      ],
+      "state": [
+        false
+      ]
+    },
+    "limits": "Selected structural fields only; not full text, source/generation or qualification proof."
+  }
+]

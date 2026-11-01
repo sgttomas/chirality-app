@@ -1,0 +1,832 @@
+{
+  "tool_sha256": {
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/production_inputs/prepare.py": "46b82d40ab6b89ab6d15f75c85ead951c8485e56f1e46f4a18c2444dee51f062",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/inventory.py": "aed3b7da0376f29e79fd712fd3a5a3a36213add0302e619009df999782ef3b27",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/static_distribution/check.py": "4e8f5589890f0098f44d6ef7fde247d0ff1c2dc00b1e46db00a8895a9b8d7584"
+  },
+  "jsonschema_version": "4.26.0",
+  "source_revision": "12d26b8db5f251be97d83d4f574196697df40a70",
+  "source_root": "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source",
+  "source_claim": "caller-selected disposable export; hashes below, not Git export authentication",
+  "mode": "unqualified-input-test",
+  "resource_inputs": {
+    "resources/instructions/": {
+      "destination": "instructions/",
+      "tree": {
+        "root": "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/resources/instructions",
+        "root_mode": "0o755",
+        "entries": [
+          {
+            "path": "AGENTS.md",
+            "mode": "0o644",
+            "kind": "file",
+            "sha256": "33560b332ca2430d872f5cba8f1013c0c10687cb009b060da0fde19f359de37e",
+            "size": 7974,
+            "macho": false
+          },
+          {
+            "path": "ROLE_SET_SOURCE_BINDING.json",
+            "mode": "0o644",
+            "kind": "file",
+            "sha256": "da57b6103c2443a7e9996ac1a7a608da05b7704f9c95812ddd35743b1743702d",
+            "size": 7527,
+            "macho": false
+          },
+          {
+            "path": "SOURCE_MAP.json",
+            "mode": "0o644",
+            "kind": "file",
+            "sha256": "138aba1849de0fd39a4bcf75a69ffb82b8d59a2a0b02ff0790da9a44bfd66be6",
+            "size": 9368,
+            "macho": false
+          },
+          {
+            "path": "agents",
+            "mode": "0o755",
+            "kind": "dir"
+          },
+          {
+            "path": "agents/AGENT_HELPS_HUMANS.md",
+            "mode": "0o644",
+            "kind": "file",
+            "sha256": "771453ac033e038c7ee26bce397e02fedbf7e021ed1d4dd5c7ebb48a73e012ae",
+            "size": 1084,
+            "macho": false
+          },
+          {
+            "path": "agents/AGENT_HELP_HUMAN.md",
+            "mode": "0o644",
+            "kind": "file",
+            "sha256": "88aee799de1f7e8d490fd6e4b30affee17d3a2654ff67a4628ac4d45dc834ad3",
+            "size": 1052,
+            "macho": false
+          },
+          {
+            "path": "agents/AGENT_TASK.md",
+            "mode": "0o644",
+            "kind": "file",
+            "sha256": "c11c1020dcf50ecd9fd596c65aab4add5e263bf786d60dcb6fdd479b7e588908",
+            "size": 1074,
+            "macho": false
+          },
+          {
+            "path": "agents/AGENT_WORKING_ITEMS.md",
+            "mode": "0o644",
+            "kind": "file",
+            "sha256": "051a57528a1de4e549aa18f03c1acd7e685977c81b5f9c8085f391c2bed48cc8",
+            "size": 1196,
+            "macho": false
+          },
+          {
+            "path": "roles.json",
+            "mode": "0o644",
+            "kind": "file",
+            "sha256": "15fa4ca9d30f391a0b4c606b374b6255ab31bc994cf4a0a298907f786844f7d4",
+            "size": 1106,
+            "macho": false
+          }
+        ],
+        "manifest_sha256": "50c82a3c663773b327d7ed84bb27a7d639514062e0d1335f7c47b6f3b0194d18",
+        "files": 8,
+        "macho_files": 0
+      }
+    },
+    "resources/production_workflows/": {
+      "destination": "workflows/",
+      "tree": {
+        "root": "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/resources/production_workflows",
+        "root_mode": "0o755",
+        "entries": [
+          {
+            "path": "MANIFEST.json",
+            "mode": "0o644",
+            "kind": "file",
+            "sha256": "5eb8ab6d6259c47ef8d270597d9323f0399e2f668ff2defc37159faa05f71dc3",
+            "size": 988,
+            "macho": false
+          },
+          {
+            "path": "coordinated-knowledge-work",
+            "mode": "0o755",
+            "kind": "dir"
+          },
+          {
+            "path": "coordinated-knowledge-work/REVIEW-NOTES.md",
+            "mode": "0o644",
+            "kind": "file",
+            "sha256": "0ae8867dc3010f99feb0251756f0008fb67dd57ff96a1af70125f688c91d055d",
+            "size": 16058,
+            "macho": false
+          },
+          {
+            "path": "coordinated-knowledge-work/WORKFLOW.md",
+            "mode": "0o644",
+            "kind": "file",
+            "sha256": "0488a744eb163fc633e1ae356de1955a58e9ca1f6396ef6b028c2e8ffad75355",
+            "size": 6563,
+            "macho": false
+          }
+        ],
+        "manifest_sha256": "cd34f3262ece093f782cf1594063e2fc7681708ef8624899360187367fc73e29",
+        "files": 3,
+        "macho_files": 0
+      }
+    },
+    "resources/distribution-reference/VERSION_ADVANCE_0.160.0.md": {
+      "destination": "distribution-reference/VERSION_ADVANCE_0.160.0.md",
+      "sha256": "b58c75ce82f0d715091b585a58d9ed60740356db09adcbb8ccd37929644c4cd6",
+      "size": 65215
+    },
+    "resources/distribution-reference/build-selection.s2.json": {
+      "destination": "distribution-reference/build-selection.s2.json",
+      "sha256": "49df30f500af353c5cc141bf939515a21ab9438c92d2fd61ed435c831bcd0fea",
+      "size": 529
+    },
+    "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/acquisition.json": {
+      "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/acquisition.json",
+      "sha256": "0711daae91a41f97b85f60cfd6f2d7ae520fc47b52ff09387b0ba465188291f8",
+      "size": 2266
+    },
+    "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json": {
+      "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json",
+      "sha256": "dc901fa2f8a3a3fce7bed8df7efbee49e3f4c77f9878bacfde132d13c4c73841",
+      "size": 1329
+    },
+    "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json": {
+      "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json",
+      "sha256": "09e1fae9d243462132803d868174b70ddae111bde2106aa2351ebfe74c793fe9",
+      "size": 2212
+    },
+    "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/custody.json": {
+      "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/custody.json",
+      "sha256": "fcf292db0644b6e2f99c7e7bec0ac2161f51373b68f5e17db6a39bafa806427d",
+      "size": 2367
+    },
+    "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json": {
+      "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json",
+      "sha256": "754eebae912023aebe40cab157c0882081bec2d1d9db518627986526371a2a37",
+      "size": 13386
+    },
+    "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/extraction.json": {
+      "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/extraction.json",
+      "sha256": "3e5330ab122e1ba025a2b830f01bb8ab775e6737a67018ba9b310becbbde20a2",
+      "size": 2939
+    },
+    "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json": {
+      "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json",
+      "sha256": "1451412b412bfd0da38e2cc614c38bc020073e31edf25eba313d53674057feef",
+      "size": 6272
+    },
+    "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/label-probe.json": {
+      "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/label-probe.json",
+      "sha256": "cb05e9f0c9509219fec9e85ecaf77879032554e4ecd450b753a984077d3b8375",
+      "size": 2675
+    },
+    "resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/review.md": {
+      "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/review.md",
+      "sha256": "b820240871c14261362a7dca650df1820dc18de3bf4566a33bbb56c8dd3f7146",
+      "size": 4633
+    },
+    "resources/distribution-reference/generated/0.160.0/GENERATION.json": {
+      "destination": "distribution-reference/generated/0.160.0/GENERATION.json",
+      "sha256": "5774a783ea98c60cc7ceeabd61f86ca86685e6ade224123cfef3d5507dcbb544",
+      "size": 4220
+    },
+    "../packaging/notices/index.json": {
+      "destination": "third-party-notices/index.json",
+      "sha256": "907ef89f059b9674f84a12ab2637a80c723a33364e269cb5385410a252827a90",
+      "size": 24032
+    },
+    "../packaging/notices/assets/app/LICENSE.md": {
+      "destination": "third-party-notices/assets/app/LICENSE.md",
+      "sha256": "495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da",
+      "size": 1067
+    },
+    "../packaging/notices/assets/cargo/pulldown-cmark/0.13.4/LICENSE": {
+      "destination": "third-party-notices/assets/cargo/pulldown-cmark/0.13.4/LICENSE",
+      "sha256": "c4f10f55904bdb9f27d3fbf94c354926d6cfe8b982276e556238c258941b243b",
+      "size": 1089
+    },
+    "../packaging/notices/assets/cargo/tauri/2.11.1/LICENSE_APACHE-2.0": {
+      "destination": "third-party-notices/assets/cargo/tauri/2.11.1/LICENSE_APACHE-2.0",
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "size": 10174
+    },
+    "../packaging/notices/assets/cargo/tauri/2.11.1/LICENSE_MIT": {
+      "destination": "third-party-notices/assets/cargo/tauri/2.11.1/LICENSE_MIT",
+      "sha256": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d",
+      "size": 1090
+    },
+    "../packaging/notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_APACHE-2.0": {
+      "destination": "third-party-notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_APACHE-2.0",
+      "sha256": "0cec06e0e55fbc3dc5cee4fca9b607f66cb8f4e4dbcf3b3c013594dd156732e9",
+      "size": 10173
+    },
+    "../packaging/notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE.spdx": {
+      "destination": "third-party-notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE.spdx",
+      "sha256": "eb8a6c84630461b352badcab1dbe5d0168c56d377358b2b8c86b51003272d5ef",
+      "size": 888
+    },
+    "../packaging/notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_MIT": {
+      "destination": "third-party-notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_MIT",
+      "sha256": "89ff9689dcf9dd53968785d05a26f7898bb169dbfcada8d032b3e68cf0d55607",
+      "size": 1089
+    },
+    "../packaging/notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-MIT.md": {
+      "destination": "third-party-notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-MIT.md",
+      "sha256": "9c5a80639a57c1c945570e7ebbca0706305849ce3c098021325cca9db2f7acc4",
+      "size": 1064
+    },
+    "../packaging/notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-ZLIB.md": {
+      "destination": "third-party-notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-ZLIB.md",
+      "sha256": "ae895c8576e682f310fb70d93d9f99b1dd82872094c54a8f6cdfe2ca5c2d6ecb",
+      "size": 836
+    },
+    "../packaging/notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-APACHE.md": {
+      "destination": "third-party-notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-APACHE.md",
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "size": 10174
+    },
+    "../packaging/notices/assets/cargo/serde/1.0.229/LICENSE-APACHE": {
+      "destination": "third-party-notices/assets/cargo/serde/1.0.229/LICENSE-APACHE",
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+      "size": 9723
+    },
+    "../packaging/notices/assets/cargo/serde/1.0.229/LICENSE-MIT": {
+      "destination": "third-party-notices/assets/cargo/serde/1.0.229/LICENSE-MIT",
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "size": 1023
+    },
+    "../packaging/notices/assets/cargo/serde_json/1.0.151/LICENSE-APACHE": {
+      "destination": "third-party-notices/assets/cargo/serde_json/1.0.151/LICENSE-APACHE",
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+      "size": 9723
+    },
+    "../packaging/notices/assets/cargo/serde_json/1.0.151/LICENSE-MIT": {
+      "destination": "third-party-notices/assets/cargo/serde_json/1.0.151/LICENSE-MIT",
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "size": 1023
+    },
+    "../packaging/notices/assets/cargo/sha2/0.10.9/LICENSE-APACHE": {
+      "destination": "third-party-notices/assets/cargo/sha2/0.10.9/LICENSE-APACHE",
+      "sha256": "a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5",
+      "size": 10849
+    },
+    "../packaging/notices/assets/cargo/sha2/0.10.9/LICENSE-MIT": {
+      "destination": "third-party-notices/assets/cargo/sha2/0.10.9/LICENSE-MIT",
+      "sha256": "b4eb00df6e2a4d22518fcaa6a2b4646f249b3a3c9814509b22bd2091f1392ff1",
+      "size": 1138
+    },
+    "../packaging/notices/assets/cargo/libc/0.2.189/LICENSE-APACHE": {
+      "destination": "third-party-notices/assets/cargo/libc/0.2.189/LICENSE-APACHE",
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+      "size": 9723
+    },
+    "../packaging/notices/assets/cargo/libc/0.2.189/LICENSE-MIT": {
+      "destination": "third-party-notices/assets/cargo/libc/0.2.189/LICENSE-MIT",
+      "sha256": "123a331b5dbf04c30097fa43b8f858bc85df671fe776de498d01f3d6b7c1f69e",
+      "size": 1066
+    },
+    "../packaging/notices/assets/cargo/uuid/1.23.1/LICENSE-APACHE": {
+      "destination": "third-party-notices/assets/cargo/uuid/1.23.1/LICENSE-APACHE",
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "size": 10847
+    },
+    "../packaging/notices/assets/cargo/uuid/1.23.1/LICENSE-MIT": {
+      "destination": "third-party-notices/assets/cargo/uuid/1.23.1/LICENSE-MIT",
+      "sha256": "436bc5a105d8e57dcd8778730f3754f7bf39c14d2f530e4cde4bd2d17a83ec3d",
+      "size": 1157
+    },
+    "../packaging/notices/assets/cargo/getrandom/0.4.2/LICENSE-APACHE": {
+      "destination": "third-party-notices/assets/cargo/getrandom/0.4.2/LICENSE-APACHE",
+      "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf",
+      "size": 10849
+    },
+    "../packaging/notices/assets/cargo/getrandom/0.4.2/LICENSE-MIT": {
+      "destination": "third-party-notices/assets/cargo/getrandom/0.4.2/LICENSE-MIT",
+      "sha256": "523a42c25d245dde9c015f882cec7f4555aad883382a6cf19b4b7d9b2cd5419b",
+      "size": 1130
+    },
+    "../packaging/notices/assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-APACHE": {
+      "destination": "third-party-notices/assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-APACHE",
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "size": 11358
+    },
+    "../packaging/notices/assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-MIT": {
+      "destination": "third-party-notices/assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-MIT",
+      "sha256": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6",
+      "size": 1062
+    },
+    "../packaging/notices/assets/cargo/jsonschema/0.58.5/LICENSE": {
+      "destination": "third-party-notices/assets/cargo/jsonschema/0.58.5/LICENSE",
+      "sha256": "117829c3ca21efb132d81a44b55363d395ab8eea18526873bc828da4c0e5f038",
+      "size": 1075
+    },
+    "../packaging/notices/assets/cargo/rusqlite/0.32.1/LICENSE": {
+      "destination": "third-party-notices/assets/cargo/rusqlite/0.32.1/LICENSE",
+      "sha256": "f59ba65550f2a5adff98ec6478d783402c8e0a3eb515025c0b3438f3d30dc39e",
+      "size": 1072
+    },
+    "../packaging/notices/assets/npm/@tauri-apps/api/2.11.0/LICENSE_APACHE-2.0": {
+      "destination": "third-party-notices/assets/npm/@tauri-apps/api/2.11.0/LICENSE_APACHE-2.0",
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "size": 10174
+    },
+    "../packaging/notices/assets/npm/@tauri-apps/api/2.11.0/LICENSE_MIT": {
+      "destination": "third-party-notices/assets/npm/@tauri-apps/api/2.11.0/LICENSE_MIT",
+      "sha256": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d",
+      "size": 1090
+    },
+    "../packaging/notices/assets/npm/react/19.2.7/LICENSE": {
+      "destination": "third-party-notices/assets/npm/react/19.2.7/LICENSE",
+      "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93",
+      "size": 1088
+    },
+    "../packaging/notices/assets/npm/react-dom/19.2.7/LICENSE": {
+      "destination": "third-party-notices/assets/npm/react-dom/19.2.7/LICENSE",
+      "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93",
+      "size": 1088
+    },
+    "../packaging/sqlite_notice/index.json": {
+      "destination": "third-party-notices/sqlite-preparation/index.json",
+      "sha256": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",
+      "size": 1394
+    },
+    "../packaging/sqlite_notice/libsqlite3-sys.LICENSE": {
+      "destination": "third-party-notices/sqlite-preparation/libsqlite3-sys.LICENSE",
+      "sha256": "f59ba65550f2a5adff98ec6478d783402c8e0a3eb515025c0b3438f3d30dc39e",
+      "size": 1072
+    },
+    "../packaging/sqlite_notice/sqlite3-source-header.txt": {
+      "destination": "third-party-notices/sqlite-preparation/sqlite3-source-header.txt",
+      "sha256": "54c4f16385920a82097fa915543acfad929c7e6ced5a7320f57db7ef25576923",
+      "size": 1968
+    },
+    "../packaging/sqlite_notice/README.md": {
+      "destination": "third-party-notices/sqlite-preparation/README.md",
+      "sha256": "6394bed41da5135273ad2ed71610e63aedc292035ad5fc67bec095b180b80e50",
+      "size": 1700
+    }
+  },
+  "supplier": {
+    "root": "/Users/ryan/dev/chirality-t3/scratch/app-package-inputs-frozen-b42vohmf/vendor",
+    "root_mode": "0o755",
+    "entries": [
+      {
+        "path": "bin",
+        "mode": "0o755",
+        "kind": "dir"
+      },
+      {
+        "path": "bin/codex",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+        "size": 241555024,
+        "macho": true
+      },
+      {
+        "path": "bin/codex-code-mode-host",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "679eedaea70529aa1cffc9bc0a0788c186412663544fa76c09d63b57f383a65a",
+        "size": 65391216,
+        "macho": true
+      },
+      {
+        "path": "codex-package.json",
+        "mode": "0o644",
+        "kind": "file",
+        "sha256": "404c4c935bf9b7a57fc02b6f0d09ba6b7bbbf15cf14286fc017de2a6c01cab47",
+        "size": 200,
+        "macho": false
+      },
+      {
+        "path": "codex-path",
+        "mode": "0o755",
+        "kind": "dir"
+      },
+      {
+        "path": "codex-path/rg",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "7c7d5b09c3a57de864500c65dc2e9c4d2a5e96a3fc7b7d5318480c19887a739b",
+        "size": 4030432,
+        "macho": true
+      },
+      {
+        "path": "codex-resources",
+        "mode": "0o755",
+        "kind": "dir"
+      },
+      {
+        "path": "codex-resources/voice",
+        "mode": "0o755",
+        "kind": "dir"
+      },
+      {
+        "path": "codex-resources/voice/NOTICE.md",
+        "mode": "0o644",
+        "kind": "file",
+        "sha256": "40097a1799441051aa0b6645cdc819cceb19be73cdd265eb602aa2b15e0b1f48",
+        "size": 2403,
+        "macho": false
+      },
+      {
+        "path": "codex-resources/voice/bin",
+        "mode": "0o755",
+        "kind": "dir"
+      },
+      {
+        "path": "codex-resources/voice/bin/codex-voice-host",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "e408413b79d76e518966046ce1d7758523c606844269fe4dd56446bed80c1062",
+        "size": 9900112,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib",
+        "mode": "0o755",
+        "kind": "dir"
+      },
+      {
+        "path": "codex-resources/voice/lib/libffi.8.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "3dfe23b471423eb61bf38785c21ddb7054c5be1f87f87fbed7aa8a8c91e3bde0",
+        "size": 136768,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libgio-2.0.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "b0c1b06de1deef21fde623c38a604cf413b1d607dda85644e296fb6d97067c39",
+        "size": 1866272,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libglib-2.0.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "65a0785497ed134d79284c08118d8bba560f7f60e20682debe4ee12e848a5f8c",
+        "size": 1310992,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libgmodule-2.0.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "3b4b70cdd569c088c28d6618b330d1acdc0fe456cf34267525c594f89e5dae84",
+        "size": 68912,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libgobject-2.0.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "ae78667a1a328528169ade0b18aa4ef547ce6b5f70db891781db8dab95ac46a1",
+        "size": 403088,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libgstapp-1.0.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "04d8b371136a375f1efe0af61d18a7605a8556b80599b2cfa0c91a5a235a43e4",
+        "size": 152608,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libgstaudio-1.0.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "3fa362d9b53ef65993108a7fdc88471086e95012f5de4cb35ab37991490cfb60",
+        "size": 530400,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libgstbase-1.0.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "437beaf6d2f2b1204a58d987d0698fd8c1c796a6c341f25c8a7a797b0e045540",
+        "size": 505968,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libgstnet-1.0.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "5173345f4b6ab9fa75ca731c8fe94ae187d6ac395eb213844312a04218924e3e",
+        "size": 117008,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libgstpbutils-1.0.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "e3f9bb0e56280e1572267f2cf482cd26b5341cecae4cc279e2d1dd2b6d80920c",
+        "size": 309856,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libgstreamer-1.0.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "0e6826b74f874848e8a0e37fdcb7f5061abc711edfb802587771c5dc1c399f1b",
+        "size": 1304704,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libgstrtp-1.0.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "fd50798327e0f20605c02ff133a3ca4583ebb8cf13f082205360da8b07389209",
+        "size": 205696,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libgsttag-1.0.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "3b40bd0003b56507d701d3c4111ee5b8c58be3a2dcaf6da9e0a30498611222bc",
+        "size": 283696,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libgstvideo-1.0.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "ae8adbb687f26decf3c685265e595f1649769e49202e38b6854f1debdc06d363",
+        "size": 903664,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libintl.8.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "d9ee5a31754b382365628fad50df33b6111ad84e133d6f141e73822611c9f727",
+        "size": 50112,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libopus.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "c51f552406b80e7026659f77902488eea4ddad101af84f244cfe4912e90bccb2",
+        "size": 504080,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libpcre2-8.0.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "ce76aa5a13b32e8d8d8ddfd723f519e025e028b53250f3e11a90df39ec473e53",
+        "size": 456816,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/lib/libz.1.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "d80d2b42ec19b265c361d5bba2070c29c38a6ef389ffecd87822e248fc700993",
+        "size": 123312,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/licenses",
+        "mode": "0o755",
+        "kind": "dir"
+      },
+      {
+        "path": "codex-resources/voice/licenses/LGPL-2.1.txt",
+        "mode": "0o644",
+        "kind": "file",
+        "sha256": "ad2eec519ebd4b5df86ea84dff24ae3bfa2edea846a703b58902dd221ae375db",
+        "size": 26431,
+        "macho": false
+      },
+      {
+        "path": "codex-resources/voice/licenses/Opus.txt",
+        "mode": "0o644",
+        "kind": "file",
+        "sha256": "01e1167d54a096d123cf6dfbbeb19587278845c6481d2d66d545669846079551",
+        "size": 1945,
+        "macho": false
+      },
+      {
+        "path": "codex-resources/voice/licenses/PCRE2.md",
+        "mode": "0o644",
+        "kind": "file",
+        "sha256": "197d8a73ffee0d6b09adba2f9c677b5f5aede24edf89258a68e48248d010d811",
+        "size": 4011,
+        "macho": false
+      },
+      {
+        "path": "codex-resources/voice/licenses/libffi.txt",
+        "mode": "0o644",
+        "kind": "file",
+        "sha256": "17b64dc60f3b6897a60f971e288b973f655c2edcdf08b25f3c3dd5549857881c",
+        "size": 1132,
+        "macho": false
+      },
+      {
+        "path": "codex-resources/voice/licenses/proxy-libintl.txt",
+        "mode": "0o644",
+        "kind": "file",
+        "sha256": "d245807f90032872d1438d741ed21e2490e1175dc8aa3afa5ddb6c8e529b58e5",
+        "size": 25292,
+        "macho": false
+      },
+      {
+        "path": "codex-resources/voice/licenses/sljit.txt",
+        "mode": "0o644",
+        "kind": "file",
+        "sha256": "5f216505c0f6ea3273caec89e766eef93cdeb7bbb0c429f9360116d7c938feeb",
+        "size": 1444,
+        "macho": false
+      },
+      {
+        "path": "codex-resources/voice/licenses/zlib.txt",
+        "mode": "0o644",
+        "kind": "file",
+        "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2",
+        "size": 1002,
+        "macho": false
+      },
+      {
+        "path": "codex-resources/voice/manifest.json",
+        "mode": "0o644",
+        "kind": "file",
+        "sha256": "dcf75f68cd3d1e94e557f80998dd1a707283dc2a9799c9c14c5d46aa6e158909",
+        "size": 4637,
+        "macho": false
+      },
+      {
+        "path": "codex-resources/voice/plugins",
+        "mode": "0o755",
+        "kind": "dir"
+      },
+      {
+        "path": "codex-resources/voice/plugins/libgstapp.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "86a4f96e8ecc4802777eec36391105226976dce1a80ce68e561989aa83314e9d",
+        "size": 49872,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/plugins/libgstaudioconvert.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "4c85c9ea1568cf778f8f1365979cc8383376bb2a4630768de24eb66a1b254c52",
+        "size": 93824,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/plugins/libgstaudioresample.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "757a61f900ed50c0a51ec9928c4ca0b27798ff6b0a3a235329d240faedd438c1",
+        "size": 91840,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/plugins/libgstcoreelements.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "a2e96bac9f9a88712a94320d9017077346f212e77c4fc4b20f02f23c3ee6ff49",
+        "size": 446608,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/plugins/libgstopus.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "42eac3b57ef0ec6de84c9aed32453b07482294738345062f4699ec9e0454c867",
+        "size": 131680,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/plugins/libgstrtp.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "591b36944f84d8740b2813ff7bee74b15fdd364b5ac3351bd40c91a498d7f54b",
+        "size": 673888,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/plugins/libgstrtpmanager.dylib",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "5109cff21697ce04c93ea822577aac3bcb0fb659a53ea32f332f10ca44c0496e",
+        "size": 527568,
+        "macho": true
+      },
+      {
+        "path": "codex-resources/voice/runtime.json",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "2a2e60d93e82a335039dc5a08a26963ca853f2238e927c2498d76dc2466f7d74",
+        "size": 14915,
+        "macho": false
+      },
+      {
+        "path": "codex-resources/voice/sources.json",
+        "mode": "0o644",
+        "kind": "file",
+        "sha256": "e2f6b124f6277e7c3c4f5c7cc8830c66190f671ad65e972bb2cc9507dbfcb937",
+        "size": 4911,
+        "macho": false
+      },
+      {
+        "path": "codex-resources/zsh",
+        "mode": "0o755",
+        "kind": "dir"
+      },
+      {
+        "path": "codex-resources/zsh/bin",
+        "mode": "0o755",
+        "kind": "dir"
+      },
+      {
+        "path": "codex-resources/zsh/bin/zsh",
+        "mode": "0o755",
+        "kind": "file",
+        "sha256": "d715e06edcf1661edb2e7767d65fbd1b44af505edfb217281b701f0a6ae93b15",
+        "size": 754208,
+        "macho": true
+      }
+    ],
+    "manifest_sha256": "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12",
+    "files": 42,
+    "macho_files": 30
+  },
+  "inspected_files": {
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/unsigned/tauri.attested-reference.conf.json": "95ab9b891f66b2552394ef29c2d8ea00380545e889d21c497a97032ef667a70b",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/unsigned/tauri.notices.conf.json": "ebb9ad2eb5a54331df964e31f171d2a6a34a9dec2bd688cbc84f7801dcdd9d50",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/resources/distribution-reference/VERSION_ADVANCE_0.160.0.md": "b58c75ce82f0d715091b585a58d9ed60740356db09adcbb8ccd37929644c4cd6",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/resources/distribution-reference/build-selection.s2.json": "49df30f500af353c5cc141bf939515a21ab9438c92d2fd61ed435c831bcd0fea",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/acquisition.json": "0711daae91a41f97b85f60cfd6f2d7ae520fc47b52ff09387b0ba465188291f8",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json": "dc901fa2f8a3a3fce7bed8df7efbee49e3f4c77f9878bacfde132d13c4c73841",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json": "09e1fae9d243462132803d868174b70ddae111bde2106aa2351ebfe74c793fe9",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/custody.json": "fcf292db0644b6e2f99c7e7bec0ac2161f51373b68f5e17db6a39bafa806427d",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json": "754eebae912023aebe40cab157c0882081bec2d1d9db518627986526371a2a37",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/extraction.json": "3e5330ab122e1ba025a2b830f01bb8ab775e6737a67018ba9b310becbbde20a2",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json": "1451412b412bfd0da38e2cc614c38bc020073e31edf25eba313d53674057feef",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/label-probe.json": "cb05e9f0c9509219fec9e85ecaf77879032554e4ecd450b753a984077d3b8375",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/review.md": "b820240871c14261362a7dca650df1820dc18de3bf4566a33bbb56c8dd3f7146",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/resources/distribution-reference/generated/0.160.0/GENERATION.json": "5774a783ea98c60cc7ceeabd61f86ca86685e6ade224123cfef3d5507dcbb544",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/index.json": "907ef89f059b9674f84a12ab2637a80c723a33364e269cb5385410a252827a90",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/app/LICENSE.md": "495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/pulldown-cmark/0.13.4/LICENSE": "c4f10f55904bdb9f27d3fbf94c354926d6cfe8b982276e556238c258941b243b",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/tauri/2.11.1/LICENSE_APACHE-2.0": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/tauri/2.11.1/LICENSE_MIT": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_APACHE-2.0": "0cec06e0e55fbc3dc5cee4fca9b607f66cb8f4e4dbcf3b3c013594dd156732e9",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE.spdx": "eb8a6c84630461b352badcab1dbe5d0168c56d377358b2b8c86b51003272d5ef",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_MIT": "89ff9689dcf9dd53968785d05a26f7898bb169dbfcada8d032b3e68cf0d55607",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-MIT.md": "9c5a80639a57c1c945570e7ebbca0706305849ce3c098021325cca9db2f7acc4",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-ZLIB.md": "ae895c8576e682f310fb70d93d9f99b1dd82872094c54a8f6cdfe2ca5c2d6ecb",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-APACHE.md": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/serde/1.0.229/LICENSE-APACHE": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/serde/1.0.229/LICENSE-MIT": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/serde_json/1.0.151/LICENSE-APACHE": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/serde_json/1.0.151/LICENSE-MIT": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/sha2/0.10.9/LICENSE-APACHE": "a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/sha2/0.10.9/LICENSE-MIT": "b4eb00df6e2a4d22518fcaa6a2b4646f249b3a3c9814509b22bd2091f1392ff1",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/libc/0.2.189/LICENSE-APACHE": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/libc/0.2.189/LICENSE-MIT": "123a331b5dbf04c30097fa43b8f858bc85df671fe776de498d01f3d6b7c1f69e",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/uuid/1.23.1/LICENSE-APACHE": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/uuid/1.23.1/LICENSE-MIT": "436bc5a105d8e57dcd8778730f3754f7bf39c14d2f530e4cde4bd2d17a83ec3d",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/getrandom/0.4.2/LICENSE-APACHE": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/getrandom/0.4.2/LICENSE-MIT": "523a42c25d245dde9c015f882cec7f4555aad883382a6cf19b4b7d9b2cd5419b",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-APACHE": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-MIT": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/jsonschema/0.58.5/LICENSE": "117829c3ca21efb132d81a44b55363d395ab8eea18526873bc828da4c0e5f038",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/cargo/rusqlite/0.32.1/LICENSE": "f59ba65550f2a5adff98ec6478d783402c8e0a3eb515025c0b3438f3d30dc39e",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/npm/@tauri-apps/api/2.11.0/LICENSE_APACHE-2.0": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/npm/@tauri-apps/api/2.11.0/LICENSE_MIT": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/npm/react/19.2.7/LICENSE": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/notices/assets/npm/react-dom/19.2.7/LICENSE": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/sqlite_notice/index.json": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/sqlite_notice/libsqlite3-sys.LICENSE": "f59ba65550f2a5adff98ec6478d783402c8e0a3eb515025c0b3438f3d30dc39e",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/sqlite_notice/sqlite3-source-header.txt": "54c4f16385920a82097fa915543acfad929c7e6ced5a7320f57db7ef25576923",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/sqlite_notice/README.md": "6394bed41da5135273ad2ed71610e63aedc292035ad5fc67bec095b180b80e50",
+    "/Users/ryan/dev/chirality-t3/scratch/app-package-inputs-frozen-b42vohmf/vendor/codex-package.json": "404c4c935bf9b7a57fc02b6f0d09ba6b7bbbf15cf14286fc017de2a6c01cab47",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/package-lock.json": "1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/Cargo.lock": "8d478b4d5edcd13edd3deb266feadcac47276bf866c5dfcb8805090449e87df8",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/Cargo.toml": "82e1347af748e322b7699c39577598dbf7dbbaeee9cae5eb9abfc90c2a6ecf2d",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/src-tauri/tauri.conf.json": "81fd8757f147e9ec8b3a34078f3fb113a6457a07da1111940660451cb0bb377b",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/production_inputs/prepare.py": "46b82d40ab6b89ab6d15f75c85ead951c8485e56f1e46f4a18c2444dee51f062",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/inventory.py": "aed3b7da0376f29e79fd712fd3a5a3a36213add0302e619009df999782ef3b27",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app/packaging/static_distribution/check.py": "4e8f5589890f0098f44d6ef7fde247d0ff1c2dc00b1e46db00a8895a9b8d7584"
+  },
+  "publisher_input": null,
+  "limits": [
+    "input preparation only; no App build or resource mapper executed",
+    "stock cache selection does not qualify supplier pin",
+    "no signed package, S4 installed observation, OS qualification or release",
+    "four supplier notice/source associations and transitive completeness remain unresolved"
+  ]
+}

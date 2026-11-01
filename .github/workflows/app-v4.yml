@@ -105,7 +105,7 @@ jobs:
           act_control::a15::tests::listed_a15_
           runtime_session::workflow_root_tests::proposal_disclosure_tests
           handoff_send_tests
-          hosting::probe::tests app_quit::tests codex_stop::tests
+          hosting::probe::tests app_quit::tests codex_stop::tests native_lifecycle_confirmation::
           hosting::successor::tests::lt12
           stalled_probe_does_not_hold_app_writer_and_is_bounded
           j3_end_writes_run_ended_and_the_next_ordinary_turn_carries_the_notice_once
@@ -168,6 +168,9 @@ jobs:
           python3 supplier_checks/swbpipe_receiving_v4_pr30_test.py
           python3 supplier_checks/swbpipe_receiving_pr40_test.py
           python3 -m unittest discover -s tests -p 'child_role_carrier_test.py'
+          python3 -B -m unittest discover -s ../execution/PKG-09/DEL-09-02/Work -p 'test_native_sheet_cancel.py'
+          python3 -B -m unittest discover -s ../execution/PKG-09/DEL-09-02/Work -p 'test_native_attended*.py'
+          node ../execution/PKG-09/DEL-09-02/Work/test_native_attended_manager.cjs
       - name: Examination preparation and receiving against pinned sources
         # Fail closed when a pinned Design source changes meaning. Dispatch runs these in the full Python set.
         run: >-
@@ -175,7 +178,8 @@ jobs:
           tests/group_b_native_forms_test.py tests/group_b_sq_receiving_test.py
           tests/group_b_publication_sources_test.py tests/group_b_support_identity_test.py
           tests/group_b_support_identity_canonical_test.py tests/deliverable_path_test.py
-          tests/terms_position_test.py tests/package_successor_test.py tests/group_b_package_successor_test.py tests/group_b_documentary_condition_test.py
+          tests/terms_position_test.py tests/package_successor_test.py tests/production_inputs_test.py tests/group_b_package_successor_test.py tests/group_b_documentary_condition_test.py
+          tests/supplier_notice_observations_test.py
           tests/group_b_terms_successor_test.py
           tests/group_b_admission_test.py tests/group_b_current_admission_test.py
           && python3 -B tests/candidate_identity_test.py
@@ -190,6 +194,8 @@ jobs:
         run: |
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib publisher_recipe:: -- --test-threads=1
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib publisher_selection::tests -- --test-threads=1
+      - name: SEAL-C provider transition (mock keychain only)
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib capture_seal -- --test-threads=1
       - name: Connected static packaging
         run: |
           cargo build --locked --manifest-path src-tauri/Cargo.toml --example distribution-static
@@ -259,6 +265,9 @@ jobs:
           python3 supplier_checks/swbpipe_receiving_v4_pr30_test.py
           python3 supplier_checks/swbpipe_receiving_pr40_test.py
           python3 -m unittest discover -s tests -p 'child_role_carrier_test.py'
+          python3 -B -m unittest discover -s ../execution/PKG-09/DEL-09-02/Work -p 'test_native_sheet_cancel.py'
+          python3 -B -m unittest discover -s ../execution/PKG-09/DEL-09-02/Work -p 'test_native_attended*.py'
+          node ../execution/PKG-09/DEL-09-02/Work/test_native_attended_manager.cjs
       - name: Full Rust suite
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml -- --test-threads=1
       - name: Standalone terminal identity and connected static packaging

@@ -124,6 +124,8 @@ needs:
   gating: false
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 code_paths:
+- app/packaging/supplier_notices/**
+- app/packaging/production_inputs/**
 - app/packaging/successor/**
 - app/packaging/sqlite_notice/**
 - app/packaging/terms/**
@@ -131,6 +133,8 @@ code_paths:
 - app/packaging/notices/**
 - app/packaging/unsigned/tauri.notices.conf.json
 checks:
+- app/tests/supplier_notice_observations_test.py
+- app/tests/production_inputs_test.py
 - app/packaging/sqlite_notice/check.py
 - app/tests/package_successor_test.py
 - app/tests/terms_position_test.py

@@ -1,0 +1,204 @@
+{
+  "source_revision": "12d26b8db5f251be97d83d4f574196697df40a70",
+  "source_tree": "a56efd947626ffb2fc15e2092631c6bcaee41036",
+  "build_identity": "chirality.app.bundle-tree.sha256/v2:278899dad62ebbc6dd701490f71b20bd04e1329bca4dbefbd5d88eecd83e31f0",
+  "build_observation_sha256": "e086acdccbb682b68062a93d6c511b11d785c8f0ca3d1b61ca4a6f9c3f1d8b23",
+  "all_mapped_resource_bytes_match": true,
+  "p1_p2_p3_complete_modes_match": true,
+  "mapped_file_modes": {
+    "distribution-reference/VERSION_ADVANCE_0.160.0.md": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "distribution-reference/build-selection.s2.json": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/acquisition.json": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/custody.json": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/extraction.json": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/label-probe.json": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/review.md": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "distribution-reference/generated/0.160.0/GENERATION.json": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/index.json": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/app/LICENSE.md": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/pulldown-cmark/0.13.4/LICENSE": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/tauri/2.11.1/LICENSE_APACHE-2.0": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/tauri/2.11.1/LICENSE_MIT": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_APACHE-2.0": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE.spdx": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_MIT": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-MIT.md": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-ZLIB.md": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-APACHE.md": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/serde/1.0.229/LICENSE-APACHE": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/serde/1.0.229/LICENSE-MIT": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/serde_json/1.0.151/LICENSE-APACHE": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/serde_json/1.0.151/LICENSE-MIT": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/sha2/0.10.9/LICENSE-APACHE": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/sha2/0.10.9/LICENSE-MIT": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/libc/0.2.189/LICENSE-APACHE": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/libc/0.2.189/LICENSE-MIT": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/uuid/1.23.1/LICENSE-APACHE": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/uuid/1.23.1/LICENSE-MIT": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/getrandom/0.4.2/LICENSE-APACHE": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/getrandom/0.4.2/LICENSE-MIT": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-APACHE": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-MIT": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/jsonschema/0.58.5/LICENSE": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/cargo/rusqlite/0.32.1/LICENSE": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/npm/@tauri-apps/api/2.11.0/LICENSE_APACHE-2.0": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/npm/@tauri-apps/api/2.11.0/LICENSE_MIT": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/npm/react/19.2.7/LICENSE": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/assets/npm/react-dom/19.2.7/LICENSE": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/sqlite-preparation/index.json": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/sqlite-preparation/libsqlite3-sys.LICENSE": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/sqlite-preparation/sqlite3-source-header.txt": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    },
+    "third-party-notices/sqlite-preparation/README.md": {
+      "source_mode": "0o644",
+      "bundle_mode": "0o644"
+    }
+  },
+  "resource_directory_count": 60,
+  "extra_or_missing_resource_paths": [],
+  "app_load_commands_sha256": "f1c99a78b8fca1efb2c671e91b828d5212f95dada27f856d5a6eaa41dee2490e",
+  "declared_app_minimum": "15.0",
+  "minimum_os_run_qualified": false,
+  "standing": "read-only complete resource correspondence and declared deployment target, not signature/native/OS qualification"
+}

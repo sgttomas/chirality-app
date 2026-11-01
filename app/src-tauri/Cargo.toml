@@ -52,3 +52,11 @@ synthetic-distribution-anchor = []
 tauri-build = { version = "2", features = [] }
 tauri-utils = "=2.9.1"
 json-patch = "3"
+
+# Already locked/cache-available native types for exact owned-sheet lifetime.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "=0.6.4"
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "block2", "NSAlert", "NSApplication", "NSButton", "NSControl", "NSResponder", "NSView", "NSWindow"] }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSArray", "NSString"] }
+block2 = "=0.6.2"
+dispatch2 = "=0.3.1"

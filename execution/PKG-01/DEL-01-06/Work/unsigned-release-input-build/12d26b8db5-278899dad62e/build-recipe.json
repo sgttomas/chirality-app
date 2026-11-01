@@ -1,0 +1,82 @@
+{
+  "working_directory": "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/source/app",
+  "inherit_environment": false,
+  "environment_allowlist": [
+    "CARGO_BUILD_JOBS",
+    "CARGO_HOME",
+    "CARGO_NET_OFFLINE",
+    "CARGO_TARGET_DIR",
+    "CODEX_HOME",
+    "HOME",
+    "LANG",
+    "MACOSX_DEPLOYMENT_TARGET",
+    "NPM_CONFIG_CACHE",
+    "NPM_CONFIG_GLOBALCONFIG",
+    "NPM_CONFIG_OFFLINE",
+    "NPM_CONFIG_USERCONFIG",
+    "PATH",
+    "TMPDIR"
+  ],
+  "required_environment": {
+    "PATH": "prepared toolchain PATH",
+    "HOME": "explicit build HOME, not a Codex home",
+    "LANG": "explicit locale",
+    "TMPDIR": "private build temporary directory",
+    "CARGO_HOME": "prepared offline cache view",
+    "CARGO_TARGET_DIR": "new isolated absolute target outside inputs",
+    "CODEX_HOME": "fresh private scratch Codex home",
+    "NPM_CONFIG_CACHE": "prepared offline npm cache",
+    "NPM_CONFIG_USERCONFIG": "empty task-owned config",
+    "NPM_CONFIG_GLOBALCONFIG": "empty task-owned config"
+  },
+  "environment": {
+    "CARGO_NET_OFFLINE": "true",
+    "NPM_CONFIG_OFFLINE": "true",
+    "CARGO_BUILD_JOBS": "2",
+    "MACOSX_DEPLOYMENT_TARGET": "15.0"
+  },
+  "unset_environment": [
+    "APPLE_SIGNING_IDENTITY",
+    "APPLE_CERTIFICATE",
+    "APPLE_CERTIFICATE_PASSWORD",
+    "APPLE_ID",
+    "APPLE_PASSWORD",
+    "APPLE_TEAM_ID",
+    "APPLE_API_KEY",
+    "APPLE_API_ISSUER",
+    "APPLE_API_KEY_PATH",
+    "TAURI_CONFIG",
+    "TAURI_SIGNING_PRIVATE_KEY",
+    "TAURI_SIGNING_PRIVATE_KEY_PASSWORD",
+    "RUSTFLAGS",
+    "CARGO_ENCODED_RUSTFLAGS",
+    "CHIRALITY_PUBLISHER_SELECTION",
+    "CHIRALITY_PUBLISHER_INPUT_FILE",
+    "CHIRALITY_PUBLISHER_INPUT_SHA256"
+  ],
+  "argv": [
+    "node",
+    "node_modules/@tauri-apps/cli/tauri.js",
+    "build",
+    "--no-sign",
+    "--bundles",
+    "app",
+    "--features",
+    "custom-protocol,distribution-successor",
+    "--config",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/plan/tauri.package-inputs.conf.json",
+    "--",
+    "--offline",
+    "--locked"
+  ],
+  "required_host_controls": [
+    "prepared offline caches and isolated target",
+    "fresh scratch CODEX_HOME",
+    "shared t3_slot.sh/t3_cargo.sh and running memguard admission",
+    "jobs2",
+    "coordinate one fresh candidate; never mutate retained native artifacts"
+  ],
+  "signing": "disabled; no signing or build executed",
+  "profile": "release",
+  "mode": "unqualified-input-test"
+}

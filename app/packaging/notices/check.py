@@ -18,7 +18,9 @@ REPO = HERE.parents[2]
 sys.path.insert(0, str(HERE.parent))
 from inventory import scan
 
-FORMAT = 'chirality.app.direct-runtime-notices/v1'
+FORMAT = 'chirality.app.direct-runtime-notices/v2'
+LEGACY_FORMAT = 'chirality.app.direct-runtime-notices/v1'
+TARGET = 'aarch64-apple-darwin'
 BASIS = ('app/package.json', 'app/package-lock.json', 'app/src-tauri/Cargo.toml', 'app/src-tauri/Cargo.lock')
 
 
@@ -47,10 +49,44 @@ def relative(value):
     return value
 
 
+def cargo_runtime_declarations(manifest):
+    """Explicit macOS arm64 selection, not host auto-detection or a cfg evaluator."""
+    selected = {name: ['all'] for name in manifest.get('dependencies', {})}
+    predicates = {
+        'cfg(target_os = "macos")': True, 'cfg(unix)': True,
+        'cfg(target_family = "unix")': True, 'aarch64-apple-darwin': True,
+        'cfg(windows)': False, 'cfg(target_os = "windows")': False,
+        'cfg(target_family = "windows")': False, 'cfg(target_os = "linux")': False,
+        'x86_64-apple-darwin': False, 'x86_64-pc-windows-msvc': False,
+        'aarch64-pc-windows-msvc': False,
+    }
+    for condition, table in manifest.get('target', {}).items():
+        dependencies = table.get('dependencies', {})
+        if not dependencies:
+            continue  # build/dev-only target declarations are outside runtime scope
+        require(condition in predicates, 'unsupported runtime target condition; explicit scope adoption needed: ' + condition)
+        if predicates[condition]:
+            for name in dependencies:
+                selected.setdefault(name, []).append(condition)
+    for name, selectors in selected.items():
+        for selector in selectors:
+            definition = manifest['dependencies'][name] if selector == 'all' else manifest['target'][selector]['dependencies'][name]
+            require(not isinstance(definition, dict) or definition.get('package', name) == name,
+                    'renamed runtime dependency requires explicit package selection: ' + name)
+        selected[name] = sorted(selectors)
+    return selected
+
+
 def check(root=HERE, repo=REPO, overlay=None):
     root, repo = Path(root), Path(repo)
     index = load(root / 'index.json')
-    require(set(index) == {'format', 'scope', 'source_basis', 'components', 'unresolved_supplier_inputs', 'limits'} and index['format'] == FORMAT, 'unknown notice index shape/version')
+    version = index.get('format')
+    require(version in (FORMAT, LEGACY_FORMAT), 'unknown notice index shape/version')
+    fields = {'format', 'scope', 'source_basis', 'components', 'unresolved_supplier_inputs', 'limits'}
+    if version == FORMAT:
+        fields.add('target')
+        require(index.get('target') == TARGET, 'notice target differs')
+    require(set(index) == fields, 'unknown notice index shape')
     basis = index['source_basis']
     require(set(basis) == {'app_revision', 'manifest_sha256'} and re.fullmatch('[0-9a-f]{40}', basis['app_revision']), 'invalid source basis')
     require(set(basis['manifest_sha256']) == set(BASIS), 'manifest basis differs')
@@ -58,7 +94,9 @@ def check(root=HERE, repo=REPO, overlay=None):
         require(sha((repo / path).read_bytes()) == digest, 'manifest/lock changed: ' + path)
     npm = load(repo / 'app/package.json')
     npm_lock = load(repo / 'app/package-lock.json')['packages']
-    cargo = tomllib.loads((repo / 'app/src-tauri/Cargo.toml').read_text())['dependencies']
+    cargo = cargo_runtime_declarations(tomllib.loads((repo / 'app/src-tauri/Cargo.toml').read_text()))
+    if version == LEGACY_FORMAT:
+        require(all(selectors == ['all'] for selectors in cargo.values()), 'legacy notice index cannot describe target-specific runtime scope')
     cargo_lock = tomllib.loads((repo / 'app/src-tauri/Cargo.lock').read_text())['package']
     app_lock = next(p for p in cargo_lock if p['name'] == 'chirality-app-v4')
     expected = {('app', 'chirality-app'): npm['version']}
@@ -72,9 +110,14 @@ def check(root=HERE, repo=REPO, overlay=None):
     expected.update({('npm', name): version for name, version in npm['dependencies'].items()})
     found, assets = set(), {}
     for component in index['components']:
-        require(set(component) == {'ecosystem', 'package', 'version', 'declared_license', 'source', 'notices'}, 'unexpected component fields')
+        component_fields = {'ecosystem', 'package', 'version', 'declared_license', 'source', 'notices'}
+        if index['format'] == FORMAT:
+            component_fields.update(('declaration_targets', 'notice_gap'))
+        require(set(component) == component_fields, 'unexpected component fields')
         kind, name, version = component['ecosystem'], component['package'], component['version']
         key = kind, name
+        if index['format'] == FORMAT:
+            require(component['declaration_targets'] == (cargo.get(name) if kind == 'cargo' else ['all']), 'runtime declaration target differs: ' + name)
         require(key not in found and expected.get(key) == version, 'duplicate, extra or wrong-version runtime component: ' + name)
         found.add(key)
         source = component['source']
@@ -90,7 +133,20 @@ def check(root=HERE, repo=REPO, overlay=None):
             require(source['resolved'] == locked['resolved'] and source['integrity'] == locked['integrity'] and source['manifest_member'] == 'package/package.json', 'npm lock identity differs')
         else:
             require(set(source) == {'kind', 'repository', 'revision', 'blob'} and source['revision'] == basis['app_revision'] and source['repository'] == 'https://github.com/sgttomas/chirality-app', 'App source identity differs')
-        require(component['notices'], 'component has no notice inputs')
+        if index['format'] == LEGACY_FORMAT:
+            require(component['notices'], 'component has no notice inputs')
+        elif component['notices']:
+            require(component['notice_gap'] is None, 'provided notice component cannot carry a missing-text assertion')
+        else:
+            gap = component['notice_gap']
+            require(kind == 'cargo' and isinstance(gap, dict), 'missing notice requires exact Cargo source gap')
+            require(set(gap) == {'reason', 'repository', 'revision', 'path_in_vcs', 'vcs_info_member', 'vcs_info_sha256', 'readme_member', 'readme_sha256', 'readme_license_link'}, 'unknown notice gap fields')
+            require(gap['reason'] == 'locked_archive_contains_no_root_notice_text', 'unknown notice gap reason')
+            require(re.fullmatch('[0-9a-f]{40}', gap['revision']) and gap['repository'].startswith('https://'), 'invalid notice source locator')
+            require(gap['vcs_info_member'] == name + '-' + version + '/.cargo_vcs_info.json' and gap['readme_member'] == name + '-' + version + '/README.md', 'notice provenance member differs')
+            require(all(re.fullmatch('[0-9a-f]{64}', gap[k]) for k in ('vcs_info_sha256', 'readme_sha256')), 'invalid notice provenance digest')
+            relative(gap['path_in_vcs'])
+            require(gap['readme_license_link'] == '../../LICENSE.md', 'unknown notice link')
         for notice in component['notices']:
             require(set(notice) == {'asset', 'source_path', 'archive_member', 'size_bytes', 'sha256'}, 'unexpected notice fields')
             path, origin = relative(notice['asset']), relative(notice['source_path'])
@@ -163,6 +219,13 @@ def check_archives(index, repo, cargo_home, npm_cache):
             provided = {m.name for m in members if m.name.startswith(prefix) and '/' not in m.name[len(prefix):] and
                         (m.name[len(prefix):].lower().startswith(('license', 'licence', 'notice', 'copying', 'copyright')) or m.name[len(prefix):] == metadata.get('license-file'))}
             require(provided == {n['archive_member'] for n in component['notices']}, 'provided license/notice input omitted or added')
+            if component.get('notice_gap'):
+                gap = component['notice_gap']
+                vcs_raw, readme = read(gap['vcs_info_member']), read(gap['readme_member'])
+                vcs = json.loads(vcs_raw)
+                require(sha(vcs_raw) == gap['vcs_info_sha256'] and sha(readme) == gap['readme_sha256'], 'notice source gap bytes differ')
+                require(vcs['git']['sha1'] == gap['revision'] and vcs['path_in_vcs'] == gap['path_in_vcs'], 'notice source revision differs')
+                require(metadata.get('repository') == gap['repository'] and gap['readme_license_link'].encode() in readme, 'notice source link differs')
             for notice in component['notices']:
                 data = read(notice['archive_member'])
                 require(sha(data) == notice['sha256'] and len(data) == notice['size_bytes'], 'notice contradicts cached archive member')
@@ -183,6 +246,7 @@ def main():
         count = check_archives(index, REPO, args.cargo_home, args.npm_cache) if args.archives else 0
         print(json.dumps({'index_and_assets_match': True, 'components': len(index['components']),
                           'notice_artifacts': sum(len(c['notices']) for c in index['components']),
+                          'target': index.get('target'), 'notice_text_coverage': 'incomplete' if any(not c['notices'] for c in index['components']) else 'indexed-direct-inputs-only', 'missing_notice_components': [c['package'] for c in index['components'] if not c['notices']],
                           'source_archives_checked': count, 'tauri_sdk_mapper_executed': False,
                           'standing': 'optional resource preparation only; no built/shipped/qualified candidate'}))
         return 0

@@ -1,0 +1,57 @@
+{
+  "source_revision": "12d26b8db5f251be97d83d4f574196697df40a70",
+  "source_tree": "a56efd947626ffb2fc15e2092631c6bcaee41036",
+  "source_archive_sha256": "1a393af08e673f204b1ae2ef9a696224a4d6123ba113e830a9f8c8233b33eb85",
+  "source_archive_bytes": 78151680,
+  "prepared_node_lock_sha256": "1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa",
+  "node_dependencies": "read-only COW copied from retained prepared installation, internal symlinks only; no install/download",
+  "npm_cache": "empty isolated runtime cache; no dependency acquisition",
+  "plan": {
+    "mode": "unqualified-input-test",
+    "output": "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/plan",
+    "files": {
+      "tauri.package-inputs.conf.json": "dc4fef9c25ae54ce61015cb1d5e02eec12146bf15f62c6fa37e0937bd5554f4f",
+      "build-recipe.json": "20f81a20ece107237abbcc10b6817156cced49aa06553a13e7272c096b03c432",
+      "input-inventory.json": "8b17db4550c2de032e2067ce65923d04475f677bce53e9a1a0fed091f52b4405"
+    },
+    "build_executed": false,
+    "signing_executed": false,
+    "package_complete": false
+  },
+  "command": [
+    "/Users/ryan/dev/chirality-t3/tools/t3_slot.sh",
+    "node",
+    "node_modules/@tauri-apps/cli/tauri.js",
+    "build",
+    "--no-sign",
+    "--bundles",
+    "app",
+    "--features",
+    "custom-protocol,distribution-successor",
+    "--config",
+    "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/plan/tauri.package-inputs.conf.json",
+    "--",
+    "--offline",
+    "--locked"
+  ],
+  "environment": {
+    "CARGO_NET_OFFLINE": "true",
+    "NPM_CONFIG_OFFLINE": "true",
+    "CARGO_BUILD_JOBS": "2",
+    "MACOSX_DEPLOYMENT_TARGET": "15.0",
+    "PATH": "/Users/ryan/.local/share/mise/installs/node/24.18.0/bin:/Users/ryan/.rustup/toolchains/stable-aarch64-apple-darwin/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "HOME": "/Users/ryan",
+    "LANG": "en_US.UTF-8",
+    "TMPDIR": "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/tmp",
+    "CARGO_HOME": "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/cargo-home",
+    "CARGO_TARGET_DIR": "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/target",
+    "CODEX_HOME": "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/codex-home",
+    "NPM_CONFIG_CACHE": "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/npm-cache",
+    "NPM_CONFIG_USERCONFIG": "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/npm-user.conf",
+    "NPM_CONFIG_GLOBALCONFIG": "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/npm-global.conf"
+  },
+  "started_at": "2026-10-31T23:13:29.357282+00:00",
+  "mode": "unqualified unsigned release-profile input test; publisher unselected; no App/supplier launch",
+  "finished_at": "2026-10-31T23:16:44.343980+00:00",
+  "exit_code": 0
+}

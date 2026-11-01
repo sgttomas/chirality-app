@@ -24,7 +24,7 @@ def deliverable_path(root, relative):
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = 'facc3768fd17cce2df10555f6f57ab913d8f9fd5b554966374120d94d748a38c'
+PINS_SHA256 = '15690194154a9c6d1de1b836142443fd7a922e0ced36ac31df5475dde4a0a69c'
 
 
 def sha(data):

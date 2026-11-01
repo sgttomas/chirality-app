@@ -1,0 +1,16 @@
+{
+  "at": "2026-11-01T00:33:18.323806+00:00",
+  "request": {
+    "action": "release-observer-after-app-exit",
+    "candidate": "fdcf608fb5-23c6c3f22f5e",
+    "admission_sha256": "aa2ba65ff4dc5ad3565523ff0614a96b049fd7e33498ab49902377be89517583",
+    "expected_app_exit": {
+      "code": 1,
+      "status": 0
+    }
+  },
+  "request_sha256": "29cecbdf61dc7e6d632cac4e137d054de777c6e07580fea5e27383eec436260f",
+  "actor": "controller under explicit task-operator disposition; not personal human act",
+  "original_error": "original App no longer frontmost",
+  "limits": "Administrative observer release only. No generation, LT-23, supplier settlement or B success is manufactured by waiting the original App."
+}

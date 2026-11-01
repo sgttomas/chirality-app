@@ -187,6 +187,11 @@ runpy.run_path({peer},run_name='__main__')
         }
     }
     fn ledger(&self) -> Vec<Value> {
+        // Independently reopen the persisted fixture ledger, but exclude this
+        // Host's concurrent writer while inspecting SQLite's transient journal.
+        // Keep the product's physical single-link guard and disk-read assertion.
+        let ledger = self.home.host.inner.0.lock().unwrap().recovery.clone().unwrap();
+        let _writer = ledger.lock().unwrap();
         crate::recovery::stored_entries(&self.root.join("recovery.ledger.jsonl"))
     }
     fn audit(&self, stage: u64) -> Vec<Value> {

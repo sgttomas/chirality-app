@@ -1,0 +1,16 @@
+{
+  "version": "chirality.owned-AX-journey/v1",
+  "operator_control_files": false,
+  "commands": [
+    "activate-original-app",
+    "open-host-diagnostics",
+    "open-lifecycle",
+    "open-raw-envelopes",
+    "read-complete-diagnostics",
+    "open-connection",
+    "request-stop-once",
+    "confirm-exact-native-stop-once",
+    "owned-menu-quit"
+  ],
+  "limits": "Only fixed role/title controls in the bound owned main/native Stop window. No caller PID, arbitrary selector, text injection or internal App command."
+}
