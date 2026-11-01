@@ -89,7 +89,7 @@ class PreJourneyCleanupTests(unittest.TestCase):
             def close(self):closed.append(True)
         w=N(d=N(NativeBackend=Backend,bound_identity=lambda run,backend:dict(identity)),
             select_main=lambda backend,pid:dict(window),owned_inventory=lambda backend,pid:list(inventory))
-        ax=N(a=N(),main=lambda:'main',own=lambda e:None,windows=lambda:list(roots),c=N(CFEqual=lambda a,b:a==b),
+        ax=N(last_window_observation=[{'AXRole':'AXWindow','AXTitle':'original','disposition':'owned-window-root'}],a=N(),main=lambda:'main',own=lambda e:None,windows=lambda:list(roots),c=N(CFEqual=lambda a,b:a==b),
             attr=lambda e,k:list(children) if (e,k)==('main','AXChildren') else ('AXSheet' if e=='sheet' else 'AXGroup'))
         run=N(ax_binding=None,screen=N(window=N(initial_binding=(dict(identity),dict(window)))),
               ax=ax,extra_cleanup_ready=lambda:True,safe_log=lambda *a,**k:logged.append(k))
@@ -137,3 +137,112 @@ class PreJourneyQuitPathTests(unittest.TestCase):
         self.assertTrue(receipt['reaped']);self.assertTrue(receipt['released'])
         self.assertEqual(events.count('one owned menu Quit'),1);self.assertIsNone(r.ax_binding)
         self.assertLess(events.index('one owned menu Quit'),events.index('original wait'))
+
+class AcquiredChildFailureTests(unittest.TestCase):
+    def test_failures_after_spawn_before_AX_or_first_capture_retain_original_custody(self):
+        for stage in ('start-log','AX-load','AX-init','first-capture'):
+            with self.subTest(stage=stage),tempfile.TemporaryDirectory(prefix='acquired-child-failure-') as d:
+                root=Path(d).resolve();(root/'A').mkdir();(root/'A/phase.sb').write_text('fixture-policy')
+                child=N(pid=123);stops=[];reports=[];births=[]
+                def fail():raise RuntimeError('invented '+stage)
+                class Guard:
+                    def __init__(self,**kwargs):self.live=False
+                    def start(self):self.live=True
+                    def is_alive(self):return self.live
+                    def join(self,timeout):self.live=False
+                class Run:
+                    def __init__(self,*args):
+                        self.reservation=None;self.thread=None;self.ax=None;self.ax_binding=None
+                        self.stop=N(set=lambda:stops.append(True));self.monitor=lambda:None
+                        self.screen=N(window=N(initial_binding=None,acquire_initial_window=lambda:None,capture=fail))
+                        self.sample=lambda **kwargs:None;self.safe_log=lambda *a,**k:None;self.alive=lambda:None
+                    def log(self,*args,**kwargs):
+                        if stage=='start-log':fail()
+                def ax_factory(*args):
+                    if stage=='AX-init':fail()
+                    return N()
+                def load_ax():
+                    if stage=='AX-load':fail()
+                    return ax_factory
+                value={'executable':'/invented/App','native_input_paths':{'project':str(root)}}
+                admissions=N(value=value,before_launch=lambda *args:None,policy=lambda *args:'fixture-policy',
+                    environment=lambda label:{},bind_birth=lambda label,run:births.append(run.reservation.child),
+                    check_birth=lambda label,run:None)
+                b=N(check_observation_capabilities=lambda:None,
+                    ax_route_support=N(make_run=lambda b:Run,bounded_ax=lambda ax:ax),
+                    ax_support=N(wrap_ax=lambda ax:ax),base=N(load_ax=load_ax),
+                    AppReservation=lambda original:N(child=original,reaped=False))
+                ports=NativePorts(b,root,value,admissions,reports.append,lambda *a:None,clock=lambda:0)
+                with patch('native_attended_ports.threading.Thread',Guard),patch('native_attended_ports.subprocess.Popen',return_value=child) as spawn:
+                    if stage=='first-capture':
+                        self.assertEqual(ports.launch('A',{'admission_sha256':'a'*64},295),'A')
+                        with self.assertRaisesRegex(RuntimeError,stage):ports.ordinary_setup_save('A',160)
+                    else:
+                        with self.assertRaisesRegex(RuntimeError,stage):ports.launch('A',{'admission_sha256':'a'*64},295)
+                    spawn.assert_called_once()
+                self.assertIs(ports.runs['A'].reservation.child,child)
+                self.assertFalse(ports.runs['A'].reservation.reaped);self.assertTrue(ports.runs['A'].thread.is_alive())
+                self.assertIsNone(ports.pending_launch);self.assertIsNone(ports.runs['A'].ax_binding)
+                self.assertFalse(stops);self.assertFalse(ports.closures)
+                ports.retain_and_report('A',295,failure={'original_error':'invented '+stage,'cleanup_error':None})
+                self.assertEqual(reports[0]['failure']['original_error'],'invented '+stage)
+                self.assertEqual(reports[0]['retained_incarnations'],['A'])
+                self.assertEqual(reports[0]['live_guard_incarnations'],['A'])
+
+class CleanupRootAndPressTests(unittest.TestCase):
+    def test_real_window_filter_dropped_unknown_root_still_refuses_cleanup(self):
+        from native_b_ax import wrap_ax
+        p,r,*_=PreJourneyCleanupTests().fixture()
+        class Base:
+            def __init__(self):self.app='app';self.c=N(CFEqual=lambda a,b:a==b)
+            def windows(self):return ['main','unknown']
+            def own(self,e):pass
+            def attr(self,e,name):return ({'AXRole':'AXWindow','AXTitle':'original'} if e=='main' else {}).get(name)
+        filtered=wrap_ax(Base)()
+        def windows():
+            result=filtered.windows();r.ax.last_window_observation=filtered.last_window_observation;return result
+        r.ax.windows=windows
+        with self.assertRaisesRegex(RuntimeError,'unclassified'):p.cleanup_original_main(r,5)
+        self.assertEqual(filtered._admitted_window_roots,['main'])
+    def test_late_helper_or_inventory_change_and_role_failures_refuse(self):
+        for case in ['helper','inventory','AXUnknown','AXPopover','AXMenu','AXWindow','None','children','number','deadline','bounds']:
+            with self.subTest(case=case):
+                p,r,identity,window,inventory,children,roots,closed,logged=PreJourneyCleanupTests().fixture()
+                if case=='helper':
+                    calls=iter([True,False]);r.extra_cleanup_ready=lambda:next(calls)
+                elif case=='inventory':
+                    calls=iter([list(inventory),[]]);p.b.screen_support.w.owned_inventory=lambda *args:next(calls)
+                elif case=='children':children.extend(['group']*8)
+                elif case=='number':p.b.ax_route_support.window_number=lambda *args:999
+                elif case=='deadline':p.clock=lambda:6
+                elif case=='bounds':window['bounds']={'X':1}
+                else:
+                    old=r.ax.attr
+                    r.ax.attr=lambda e,k,old=old,case=case: (None if case=='None' else case) if (e,k)==('group','AXRole') else old(e,k)
+                with self.assertRaises(RuntimeError):p.cleanup_original_main(r,5)
+                self.assertFalse(logged)
+    def test_actual_menu_path_revalidates_before_intent_and_press(self):
+        events=[]
+        class Adapter:
+            app='app'
+            def __init__(self,ax):pass
+            def same(self,a,b):return a==b
+            def owner(self,e):return 10
+            def timeout(self,e,t):return 0
+            def read(self,e,k):
+                data={'app':{'AXTitle':'App','AXMenuBar':'bar'},'bar':{'AXRole':'AXMenuBar','AXChildren':['top']},
+                      'top':{'AXRole':'AXMenuBarItem','AXTitle':'App','AXChildren':['menu']},
+                      'menu':{'AXRole':'AXMenu','AXChildren':['quit']},
+                      'quit':{'AXRole':'AXMenuItem','AXTitle':'Quit App','AXEnabled':True}}
+                events.append('read:'+e+':'+k);return 0,data[e][k]
+            def press(self,e):events.append('press');return 0
+            def close(self):events.append('close')
+        p,r,*_=PreJourneyCleanupTests().fixture()
+        r.reservation=N(child=N(pid=10));r.act_record=lambda name,value:events.append(name)
+        def refuse(run,end):events.append('fresh cleanup');raise RuntimeError('late modal')
+        p.cleanup_original_main=refuse
+        with patch('native_attended_ports.NativeAdapter',Adapter),self.assertRaisesRegex(RuntimeError,'late modal'):
+            p.owned_menu_quit(r,5)
+        self.assertIn('read:quit:AXEnabled',events);self.assertIn('fresh cleanup',events)
+        self.assertNotIn('owned-menu-quit-intent.json',events);self.assertNotIn('press',events)
+        self.assertEqual(events[-1],'close')

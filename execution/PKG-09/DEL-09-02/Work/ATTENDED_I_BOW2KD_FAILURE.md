@@ -77,3 +77,39 @@ independent scrutiny before future live use; there is no launch in this repair.
 This supplies the DEL-09-02 failure/repair account under REQ-005/007. Product
 commitments, ScopeOfWork/needs, the candidate source and untimed question
 semantics are unchanged. Parent owns PR integration and any later actual start.
+
+## Review and uncovered fault-stage checks
+
+Claude Opus5.5/high reviewed exact0892c730 against820cca9b, found no blocking
+defect in this narrow repair, confirmed the actual staged-parser regression
+and no binding promotion/new action. The reviewer identified precision gaps:
+filtered AX roots could hide a failed role read, and the direct-child denylist
+was shorter than the Work wording. Manager fixes now inspect every production
+`last_window_observation`, rejecting unclassified/missing-role roots and
+contradictory admitted-main role/title. Direct children reject missing/nonstring
+roles and AXUnknown/AXPopover/AXMenu/AXWindow as well as AXSheet/AXDialog. This
+is an explicit refusal list, not an unmeasured universal role allowlist.
+Helper settlement is freshly checked again at the end of cleanup observation.
+
+New tests use the real BAX root filter with an unclassifiable root, cover late
+inventory/helper changes, bounds-only/window-number differences, None/blocked
+roles, excess children and deadline refusal, and execute the actual menu
+traversal with a final cleanup refusal. They establish that the final refusal
+occurs before the Quit intent and press; no mock replacement of owned_menu_quit
+is used in that ordering regression.
+
+Only uncovered initialization stages were added: start-log failure, AX loader
+failure, AX construction failure and first-capture failure after actual port
+Child acquisition (using an invented Popen). Each keeps the original reservation
+and guard, no second spawn, no closure claim, and preserves the thrown original
+failure. Held reports now include separate original/cleanup/custody reasons and
+the admitted App name, rather than requiring the parent to infer them from a
+generic custody event. These tests are source/mock evidence, not an inspected
+Electron-wrapper adoption or a native lifecycle pass.
+
+The real all-layer on-screen window count, child roles and menu timing remain
+unmeasured. Any extra visible owned window or unsupported role may conservatively
+refuse cleanup and require the attended owner route. Source comparisons supplied
+by Agent0 corroborate real-serialization and initialization-independent cleanup
+practice only; no parentless fallback, forced termination, restart or binary-
+source identity claim is imported. No repeated broad native experiment occurred.

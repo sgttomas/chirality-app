@@ -288,13 +288,23 @@ class NativePorts:
             require(isinstance(children,list) and len(children)<=8,'cleanup main hierarchy unavailable')
             for child in children:
                 run.ax.own(child)
-                require(run.ax.attr(child,'AXRole') not in (None,'AXSheet','AXDialog'),
+                role=run.ax.attr(child,'AXRole')
+                require(isinstance(role,str) and role.startswith('AX') and role not in
+                        ('AXSheet','AXDialog','AXUnknown','AXPopover','AXMenu','AXWindow'),
                         'blocking/unknown native child prevents Quit')
             roots=run.ax.windows()
             require(roots and all(run.ax.c.CFEqual(e,main) for e in roots),
                     'another owned AX window prevents Quit')
+            observations=getattr(run.ax,'last_window_observation',None)
+            require(isinstance(observations,list) and observations and all(
+                row.get('AXRole') is not None and row.get('disposition') in
+                ('application-self-reference','duplicate-reference','owned-window-root') and
+                (row.get('disposition')!='owned-window-root' or
+                 (row.get('AXRole')=='AXWindow' and row.get('AXTitle')==window['title']))
+                for row in observations), 'unclassified/contradictory AX root prevents Quit')
             require(w.d.bound_identity(run,backend)==identity and w.owned_inventory(backend,identity['pid'])==inventory,
                     'cleanup binding changed during observation')
+            require(run.extra_cleanup_ready(),'helper custody changed during cleanup observation')
             require(self.clock()<end,'cleanup binding exceeded allowance')
             run.safe_log('cleanup_original_main_verified',identity=identity,window=window,
                          qualification_binding_initialized=run.ax_binding is not None)
@@ -389,9 +399,10 @@ class NativePorts:
         self.closures[label]=receipt
         return receipt
 
-    def retain_and_report(self,label,end):
+    def retain_and_report(self,label,end,failure=None):
         held=[key for key,run in self.runs.items() if run.reservation is not None and not run.reservation.reaped]
         guards=[key for key,run in self.runs.items() if run.thread is not None and run.thread.is_alive()]
         self.deliver({'event':'custody-held','requested_incarnation':label,'pending_launch':self.pending_launch,
+                      'failure':failure,'admitted_app':Path(self.value.get('bundle','unknown')).name,
                       'live_guard_incarnations':guards,
                       'retained_incarnations':held,'fixed_end':end,'action':'manager retain supervision; no blind input/reap'})
