@@ -125,3 +125,135 @@ applicable installed S4/native/FP observations and joined candidate results,
 independent examination and the owner's separate release/replacement decision.
 No fixture pass supplies those acts or artifacts. Unrelated known terminal/S4
 historical-source conditions are not swept into this adoption.
+
+## Downstream native journey readiness (2026-11-01)
+
+Inspected against integrated main `e5a18920574ed56a8e4bf57f78566d7dab7ccfd8`.
+This receiving update uses the existing EXP/SQ contracts and reader selection;
+it changes no criterion, source profile, fixture, protocol or bound Scope bytes.
+DEL-09-01's existing dependency conditions and code/check declarations still
+apply. Native DEL-09-02 owns execution and its controller; this lane performs
+only offline receiving checks and reconciles supplied evidence.
+
+### Received subjects and limits
+
+- PR65's committed input-test evidence under DEL-01-06
+  `Work/unsigned-release-input-build/12d26b8db5-278899dad62e/` binds source
+  `12d26b8db5f251be97d83d4f574196697df40a70`, bundle tree
+  `278899dad62ebbc6dd701490f71b20bd04e1329bca4dbefbd5d88eecd83e31f0`, and
+  executable P0 `1b3c6c2ec345845122322134cd6f9b59e60d32c78ef0795a5e2b4e5cf26796b8`.
+  Its records report 3,504 source-export files, 50 resource mappings/full
+  Resources correspondence, version 4.0.0/minimum macOS 15.0. Receiving checked
+  the committed plan/observation/inventory/load-command digest joins; it did not
+  remeasure or launch the retained bundle. Publisher binding/projection hashes
+  describe `null\n`, with compiled values `None`. These are unavailable publisher
+  inputs, never real typed packet bindings. This release-profile input build
+  is not a debug-v3 candidate-identification record or installed S4 witness.
+- The attended candidate is separately `1f67d3822b-8c83d74ae3ce`, source
+  `1f67d3822b685c9c0d0ac4d52b0e52a570ef3d52`, tree
+  `8c83d74ae3ce1ea0116234ff654f1db23ebb6ccc760d05c1af66c325b19039b1`.
+  [Native preparation](../../../DEL-09-02/Work/POST_I_BOW2KD_RETAINED_SHELL.md)
+  binds controller `8b2569d5`, root `app-attended-prepared-j58087z7`, manifest
+  `6a2e17f393912a4150bac88dc59fe000ba872cd7a42ec662e6995697254ef252`.
+  The document's **unrun** status is historical preparation standing: parent
+  subsequently reported this root consumed, failed initial focus after
+  capture/parser progress, owner normal Quit, normal exit 0/admin wait 0,
+  56.973 s/no overrun. No setup, B, Stop or LT23. This paragraph records that
+  supplied report, not independent raw-run validation or a completed EXP result.
+  Preserve the original result/closure receipts with the native owner; do not
+  rearm that root or relabel this candidate to current main.
+- Earlier `fdcf608fb5-23c6c3f22f5e` setup and failed B observations retain their
+  actual candidate/source. They do not qualify the later attended or release
+  input builds. PR68 parenting and PR70/73/74 controller changes are source
+  preparation; PR69 recovery backend is integrated but inactive.
+
+Original App Child exit/reap and released controller resources are
+**administrative closure**, not supplier settlement. The
+[native terminal route](../../../DEL-09-02/Work/NATIVE_TERMINAL_RECEIPT_ROUTE.md)
+requires the observed full generation `{appSession, home, spawnCounter}`,
+source-bound stopped/tree-ended/LT23, actual exit facts and original process-
+group descendant check, retaining unknowns and detached-descendant limits.
+An installed issuer/terminal publication additionally needs its actual same-source
+LT09/S4/custody/store joins. Neither AX text nor EOF, wait 0, expected home paths,
+static package consistency or an invented combination of session fields supplies
+that publication. No actual terminal packet has been admitted here. The
+[historical LT09/LT23 disposition](../HISTORICAL_DISTRIBUTION_TERMINAL_DISPOSITION.md)
+retires synthetic cohorts from current release reliance, preserving their tests,
+guards and bytes; actual lifecycle/cleanup remains owed.
+
+### Executable coverage and next action
+
+These are existing executable checks, not a new qualification framework:
+
+| Seam | Existing executable coverage | What it cannot establish |
+|---|---|---|
+| Create/try/review/register/reuse/refine | Rust `workflow_journey_tests.rs::journey_select_register_run_check_end_and_reopen_after_process_loss`, `workflow_trials_tests.rs`; React `workflow-drafts`, `trials`, `registration-review`, `workflow-selection` tests | Fixture Python supplier and synthetic A15, not a model/tool witness or person's registration; Root APIs are below some command/native-dialog guards |
+| Interruption/restart | Journey test retains publication/run records across dropped sessions; `run_restart_tests.rs`, `hosting_recovery_reads_tests.rs`; mounted `clean-trial-restart`, `recovery-custody`, `history-continue-navigation` tests consume source DTOs | Simulated process loss/fixture requests are not actual App relaunch, waiting tool request, personal Quit or exhaustive child settlement |
+| Three access modes | `access.rs` selection/home/generation refusals, `access_provider_tests.rs` private config/fresh Start refusals; mounted `access-provider` tests preserve source/home/choice | No complete credentialed M12-1…6 witness. Three configured entries, a canary loopback fixture or an anonymous local provider cannot substitute for three working modes |
+| Downstream receiving | `group_b_standalone_test`, `group_b_pre_run_inputs_test`, `group_b_native_forms_test`, `group_b_sq_receiving_test`, `group_b_package_successor_test` | Preparation and evidence consistency only; never authenticates a person's act, signing or native outcome |
+
+Rust/React source above was inspected, not re-executed in this lane; some Node
+suites launch Cargo fixture producers, so they are not silently treated as pure
+presentation checks. Native final checks keep priority. The focused Python
+results below exercise the actual preparation/form/receiving paths without an
+App, supplier, native library, model or scanner. No missing offline join has yet
+required a new adapter or fixture cohort.
+
+The smallest missing join is **actual case input and evidence**, not a new
+source lock: the maintained pre-run helper intentionally leaves the candidate,
+configuration, record IDs, observations and outcomes unassigned. Bind an actual
+examiner-declared case definition and its inputs before a journey; do not edit
+or repin the generated blank preparation into an executed dossier. Changed real
+draft bytes need their own exact case binding, not substitution into the fixed
+13-role example selection. Completed evidence uses EXP results/SQ dossier and
+explicit canonical sidecars; `check-blank` is not a completed-form validator.
+
+1. **Native owner first:** fix and demonstrate the initial attended path on its
+   exact candidate/controller/state admission; obtain actual setup/save and B
+   source/generation facts, and the scoped cancel/readback/closure observations
+   assigned to that attempt. A/B incarnations here are not SQ RUN-A/RUN-B.
+   Neither successful entry nor cancellation passes a workflow scenario or
+   confirms Stop. Do not infer permission for a new run from this account.
+2. **Before SQ RUN-A:** integration owner identifies candidate/build/Codex pin,
+   runtime configuration, native route/tool check and examiner; examiner freezes
+   the case definition, new-input/collision bytes, ST-4 delegation route and
+   ST-5 actual candidate-pin capture/replay requirements. J-1 starts empty;
+   maintained fixtures are examples, not preinstalled/registered workflows.
+3. **V4-EXM-10 with V4-EXM-11 inside the same RUN-A:** plan/tool work and delegated
+   child J-1/2; draft/try J-3/4; collision review J-5; ST-3 unperformed-act negatives
+   then actual person's A15 J-6; reuse J-7; two tried/reviewed/registered refinements
+   J-8/9 while revision 1 remains unchanged (ST-1). Keep J-8R/J-9R recorded but
+   uncounted. Insert S11-1 interruption while the J-2 child is active, S11-2…4
+   close/reopen/deny/grant at actual J-7 requests, S11-5 quit with live J-8 trial
+   and waiting request, then S11-6 admitted continuation and truthful recovery.
+   No request means blocked, not pass; continuation is not recovery of the whole
+   undertaking. ST-1…3 have no replay replacement; preserve required ST-4/5
+   counterparts and unknowns. N-2 automation does not become a person's A15.
+4. **V4-EXM-12, SQ RUN-B on the same candidate:** owner performs actual sign-in
+   in H-acct and key entry in distinct H-key; select identified local endpoint/
+   model, retain explicit no-default choice, then three distinct conversations
+   with all modes remaining selectable and credential-custody checks. Missing
+   credential/server input remains awaiting input; no substitute-mode pass or
+   new auth/download act is authorized by preparation.
+5. **Package/release:** recovered team `8A7JL35U4S` is not a selected publisher;
+   proposed `com.chirality.app.v4` awaits owner selection. Packaging receives the
+   private publisher selection/digest, freezes the actual production subject and
+   emits original/public binding plus App inventory. Runtime/packaging settle
+   SEAL-C namespace/entitlement/profile/enrollment inputs before owner signing,
+   notarization/stapling, pre/post installer bytes and installed quarantined
+   S4/full-generation/native witness. Use the existing wrapper and independent
+   configuration, preserving missing/null/error standing. Finally join actual
+   candidate results and independent review for the owner's release/replacement
+   decisions. Separate source-applicable SWBPIPE reference-system/Apply/lifecycle
+   witness and criterion 17 remain required; catalog source tests are not it.
+
+### Verification of this reconciliation
+
+At the inspected main basis, 89 focused Python tests passed: standalone 12,
+connected pre-run inputs/forms 12, and native forms/SQ/package receiving 65.
+They include exact-source/fixture tamper, completed-form refusal, missing terms/
+S4/trust, rehashed null/generation contradictions, native failure propagation
+and isolated closure replay. No skipped failure, new cohort or current pin
+renewal was used. The broad manual suite, Rust/React suites and actual native/
+signed/host journeys were not run here. The two historical distribution guard
+drifts remain exactly as recorded in the linked disposition.

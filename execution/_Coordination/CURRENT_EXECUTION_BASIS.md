@@ -2,7 +2,9 @@
 
 ## Current release pathway
 
-Updated 2026-10-31 UTC. HELP_HUMAN/Agent 0 owns purpose, cross-front sequencing,
+Updated 2026-11-01 UTC against integrated main
+`e5a18920574ed56a8e4bf57f78566d7dab7ccfd8`. HELP_HUMAN/Agent 0 owns purpose,
+cross-front sequencing,
 review of returns, final App integration and continuity with the owner.
 This is the current execution account; requirements and acceptance remain in
 the PRD and owning deliverables. Historical selections below retain their
@@ -19,8 +21,11 @@ initial macOS release. Windows work adds no gate to that initial Mac release.
 
 Subsequent owner steering selected a **separate v4 production identity**,
 **macOS 15** as the declared minimum and **v4.0.0** as the planned publication
-version (package version `4.0.0`). Exact owner-controlled bundle identifier and
-Developer ID team values remain unsupplied. These choices do not establish
+version (package version `4.0.0`). Developer ID team `8A7JL35U4S` has been
+recovered; the v4 identifier proposal
+`com.chirality.app.v4` still awaits owner selection. Recovery of the team does
+not select a production publisher binding. Signing, enrollment and outstanding
+download approvals remain unresolved. These choices do not establish
 OS qualification, signing, data migration or replacement of v3.0.1.
 The owner selected v3's overall visual form as the UI reference and gave
 Agent 0 discretion over functional and interactive components. T3 Code may
@@ -59,33 +64,66 @@ Current Type 1 assignments are:
 
 - **Native desktop qualification:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:22359dd2b3895ab8526f6413ce3500b18c9dfe3ce3973194a3a0e3f66f724f66>.
   Own the identified candidate and native workflow/recovery/access-mode journeys.
-  PR #33 integrated bounded probe custody and Quit settlement. PR #35 integrated
-  successor `fdcf608fb5-23c6c3f22f5e`, actual source `fdcf608f`, and its successful
-  agent-operated setup/save/normal quit at 22:28:05–22:28:16 UTC on 2026-10-30.
-  The recorded source is not relabelled to a later merge. B was unrun in that
-  integration; its first subsequent attempt failed before a generation was
-  captured. Recovery observations do not turn that failure into a B pass.
-  Preserve its candidate, saved A state and original attempt evidence.
+  PR #68's original-window parenting, PR #69's inactive recovery backend and
+  PRs #70/#73/#74's attended controller repairs/preparation are integrated.
+  The PR69 backend remains inactive; no product timeout is selected by this
+  account. Current attended candidate is `1f67d3822b-8c83d74ae3ce`, not current
+  main or the unsigned release-profile input build. Parent reports the consumed
+  `j58087z7` attempt failed initial focus after capture/parser progress; owner
+  normal Quit, original Child normal exit 0, administrative wait 0, 56.973 s,
+  no overrun. No setup, B, Stop or LT23 was reached. Original failures and state
+  remain retained. Native owner fixes initial attended entry; later workflow,
+  recovery and three-access-mode journeys still require their actual evidence.
+  [Receiving sequence and limits](../PKG-09/DEL-09-01/Work/package-successor-receiving-v1/RECEIVING.md#downstream-native-journey-readiness-2026-11-01)
+  distinguishes source tests, candidate observations and administrative closure.
 - **macOS distribution readiness:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:29a4e14ac4c1423f4ccd20d7605000caf9a5b6d9030c967d51875cd09021e07f>.
   Own package/signing/install preparation and the approved terms representation.
   SIGN-1 Option B remains selected. The separate identity route, minimum OS and
-  version are selected above; exact publisher/team and production identifier
-  values remain pending secure input. Preparation and metadata observations do
-  not supply signing or OS qualification. Secure handling does not make the
-  eventual shipped identity or compiled requirement secret.
+  version are selected above; recovered team is not a selected production
+  publisher binding, and the proposed identifier remains pending. PR #65 retains
+  actual unsigned release-profile input evidence at source `12d26b8db5`, tree
+  `278899dad62e…`, P0 `1b3c6c2ec345…`, version 4.0.0/minimum 15.0; 50 resource
+  mappings and the complete Resources comparison were reported matching.
+  Binding/projection outputs are null (`None`), not packet bindings. No signed
+  App, installer, installed S4 or production qualification follows. PRs #57/#59
+  integrated the explicit package/S4 → EXP/SQ route; collect actual artifacts
+  through that route after selected private publisher input and signing-stage
+  prerequisites. Private originals remain private. Secure handling does not
+  make the eventual shipped identity or compiled requirement secret.
 - **Installed supplier integrity:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:72b0bb46c6645f2fd7155deab7d5ff1fa5b3b56a4e77151178a0e322c1e906ae>.
   PR #36 integrated the selected S4 process-local macOS observation and explicit
   reader semantics. The compiled publisher requirement remains `None`; there is
   no real installed verification or signing claim. PR #38 integrated the
   separately bound publisher-build selector; ordinary builds remain unselected
   and no real publisher input is supplied. Serialized evidence
-  cannot grant live-start authority; package/EXP/SQ adoption remains explicit work.
+  cannot grant live-start authority. PR #62's SEAL-C keychain provider and
+  CFIndex ABI correction are integrated, with current package-profile adoption;
+  provider selection remains `None`. Exact namespace/access-group/entitlement/
+  profile and enrollment choices, owner signing and actual installed witness
+  remain owed. The integrated package/EXP/SQ reader checks consistency only.
 - **Examination consumer adoption:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:dfd5f3387f3d829609ad20116fc248c584aecf045d0fd2268b5674b536a95b92>.
   Own the terms documentary successor and its standalone/canonical/SQ joins.
   The explicit v3 terms condition selects the approved PK-R4/§9 meaning and
   retained owner/publication evidence; original v2 artifacts, pins and reader
   bytes retain their historical subjects. This is not package/S4 activation.
-  PR #44 integrated explicit SWBPIPE catalog-v4 receiving behavior and source selection at `sgttomas/SWBPIPE@9b6281e7eaca924e6166336b87b6d25937c1ca04`. The [PR30 source-binding contribution](../PKG-09/DEL-09-06/Work/catalog-v4-pr30/RECEIVING_ADOPTION.md) separately selects actual integrated host `a659523a75dbbf2cdfcccdf8a667b6fb482e10ea` for reviewed App receiving; it is not described here as an already merged App change. The 50,864-byte catalog remains SHA256 `8e9a4b4e3eec027d092033ea5d95f1648030520e797c5a660ab387531f23be17`; the successor binds the updated host account/session and the actual shared `removalIntents.ts` formatter import/dependency. PR27, v3, v2 and original App source subjects remain preserved at their actual identities. Source correspondence supplies no live/native execution, person's Apply, W9-A or criterion-17 qualification.
+  PR #44 integrated catalog-v4 behavior at SWBPIPE
+  `9b6281e7eaca924e6166336b87b6d25937c1ca04`; PR #46
+  integrated the [PR30 source successor](../PKG-09/DEL-09-06/Work/catalog-v4-pr30/RECEIVING_ADOPTION.md)
+  at `a659523a75dbbf2cdfcccdf8a667b6fb482e10ea`, binding the shared `removalIntents.ts` import. PR #49 integrated
+  the [PR40 source/hash successor](../PKG-09/DEL-09-06/Work/catalog-v4-pr40/RECEIVING_ADOPTION.md)
+  at `cc91aadc9822c5c1d8ba3d883a3ee220dddc1b65`: strict engine-prefixed to bare
+  catalog hash correspondence and revision gating, not a generic reverse
+  conversion. Catalog remains 50,864 bytes/SHA256
+  `8e9a4b4e3eec027d092033ea5d95f1648030520e797c5a660ab387531f23be17`.
+  PR27/PR30/v3/v2/origin subjects remain historical and unchanged. Actual host
+  witness must name an applicable source; source correspondence is no live,
+  person's Apply, W9-A or criterion-17 qualification. PRs #57/#59 integrated
+  [explicit package/S4 receiving](../PKG-09/DEL-09-01/Work/package-successor-receiving-v1/RECEIVING.md):
+  outer wrapper citation, independent publisher trust and exact EXP/SQ joins,
+  preserving missing/failed evidence and historical routes. No actual signed
+  packet has been received. Lane 4 owns downstream readiness and this current
+  account; native implementation remains with its owner. Maximum four App
+  delivery lanes; native final checks take priority.
 
 Earlier delivered contributions and continuing external boundaries:
 
