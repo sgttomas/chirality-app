@@ -64,7 +64,7 @@ def check_plan(output):
 
 
 def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
-            test_identifier=None, publisher_input=None, publisher_sha256=None):
+            test_identifier=None, publisher_input=None, publisher_sha256=None, upstream_notices=None):
     source_root, vendor, output = map(inventory.anchored, (source_root, vendor, output))
     require(not os.path.lexists(source_root / '.git'), 'source must be a disposable frozen export, not a checkout')
     require('*' not in str(vendor), 'glob characters in vendor source refused')
@@ -113,13 +113,24 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
         src, dst = '../packaging/sqlite_notice/' + name, 'third-party-notices/sqlite-preparation/' + name
         require(src not in resources or resources[src] == dst, 'SQLite resource mapping conflict')
         resources[src] = dst
+    supplement_sources = set()
+    supplement = None
+    if upstream_notices is not None:
+        receipts = load_module('production_notice_receipts', 'app/packaging/notices/receipts.py')
+        upstream_notices = inventory.anchored(upstream_notices)
+        supplement = receipts.check_stage(upstream_notices, source_root)
+        for name in supplement['files']:
+            src = str(upstream_notices / name)
+            require('*' not in src and src not in resources, 'supplement source conflict')
+            resources[src] = 'third-party-notices/upstream/' + name
+            supplement_sources.add(src)
     resource_inputs = {}
     for src, dst in resources.items():
         require('*' not in src and '*' not in dst, 'glob resource mapping refused')
-        require(not Path(src).is_absolute(), 'source resource mapping must be repository-relative')
+        require(not Path(src).is_absolute() or src in supplement_sources, 'source resource mapping must be repository-relative')
         files.relative(dst.rstrip('/'))
         path = inventory.anchored(os.path.abspath(app / 'src-tauri' / src))
-        require(path.is_relative_to(source_root), 'source resource mapping escapes selected source')
+        require(path.is_relative_to(source_root) or src in supplement_sources, 'source resource mapping escapes selected source')
         if path.is_dir():
             tree = inventory.scan(path)
             require(all(e['kind'] in ('file', 'dir') for e in tree['entries']), 'resource tree contains link/special input')
@@ -173,7 +184,9 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
     # Read relevant recipe inputs without selecting a new supplier pin or changing source.
     for relative in ('app/package-lock.json', 'app/src-tauri/Cargo.lock', 'app/src-tauri/Cargo.toml', 'app/src-tauri/tauri.conf.json'):
         read(source_root / relative)
-    tool_hashes = {str(inventory.anchored(p)): sha(read(Path(p))) for p in (__file__, inventory.__file__, files.__file__)}
+    tool_paths = [__file__, inventory.__file__, files.__file__]
+    if supplement is not None: tool_paths.append(receipts.__file__)
+    tool_hashes = {str(inventory.anchored(p)): sha(read(Path(p))) for p in tool_paths}
     no_overlap(output.parent, [source_root, vendor, *{Path(p).parent for p in inspected}])
     config = {'productName': product, 'version': '4.0.0', 'identifier': identifier,
               'bundle': {'active': True, 'targets': ['app'], 'resources': resources,
@@ -206,13 +219,15 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
     for info in resource_inputs.values():
         if 'tree' in info:
             require(inventory.compare(inventory.scan(info['tree']['root']), info['tree'])['equal'], 'resource tree changed during preparation')
+    if supplement is not None:
+        require(receipts.check_stage(upstream_notices, source_root) == supplement, 'supplement changed during preparation')
     output.mkdir(exist_ok=False, mode=0o700)
     write_new(output / 'INCOMPLETE.txt', b'Not usable until PLAN_COMPLETE.json validates and this marker is absent.\n')
     try:
         account = {'tool_sha256': tool_hashes, 'jsonschema_version': importlib.metadata.version('jsonschema'),
                    'source_revision': revision, 'source_root': str(source_root), 'source_claim': 'caller-selected disposable export; hashes below, not Git export authentication',
                    'mode': mode, 'resource_inputs': resource_inputs, 'supplier': supplier, 'inspected_files': inspected,
-                   'publisher_input': publisher_ref, 'limits': ['input preparation only; no App build or resource mapper executed',
+                   'publisher_input': publisher_ref, 'upstream_notice_supplement': supplement, 'limits': ['input preparation only; no App build or resource mapper executed',
                    'stock cache selection does not qualify supplier pin', 'no signed package, S4 installed observation, OS qualification or release',
                    'four supplier notice/source associations and transitive completeness remain unresolved']}
         completed = {}
@@ -244,6 +259,7 @@ if __name__ == '__main__':
     parser.add_argument('--test-identifier')
     parser.add_argument('--publisher-input')
     parser.add_argument('--publisher-sha256')
+    parser.add_argument('--upstream-notices', help='Explicit completed upstream notice supplement; default omitted')
     args = vars(parser.parse_args())
     try:
         print(json.dumps(prepare(**args), indent=2))
