@@ -65,3 +65,25 @@ Stop-entry reserve, no Stop confirmation/LT23/PR69 activation remain unchanged.
 This is DEL-09-02's exact receiving-state preparation, not a new product
 commitment, supplier-qualification result or release. ScopeOfWork/needs and all
 historical profiles/evidence remain unchanged.
+
+## Concrete prepared result
+
+Source e6c96c1e prepared unrun root `app-attended-prepared-u8nckc6l`, manifest
+SHA256 `9ae866e6523539882eec72efc1df91f80499c7992af526575208959674b76c22`.
+Candidate/source remain unchanged. A distinct root `app-attended-prepared-vz09w39g`
+was simulation-consumed and completed all five entry/custody/bridge scenarios.
+Its production NativeAdmissions emitter then wrote actual prepared-input A/B
+helper envelopes, which the actual staged helper parser accepted for A main,
+B main and B modal format. Only native backend construction was intercepted.
+B's generation-home value was explicitly invented for parser-format coverage;
+no real B admission, saved setup or native generation is claimed. No image or
+App/native action occurred. The unrun root has no phase admission/start/mode
+record. The private `final-preparation-result.json` retains source/root hashes,
+parser receipts, test labels and limits.
+
+All66 attended tests pass, including the four retained-profile fixtures and
+existing real-helper/cleanup regressions. This source change adds a narrowly
+selected retained input profile; its independent scrutiny and exact-head CI
+precede parent integration and any later resource/attendance coordination.
+Old preparations, including consumed i_bow2kd, remain preserved at their actual
+source/state identities.
