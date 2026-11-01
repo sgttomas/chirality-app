@@ -77,36 +77,36 @@ class EntryTests(unittest.TestCase):
                     for run in ports.runs.values():run.reservation.exited=True
                 if now[0]>310:raise AssertionError('offline supervision failed to close within fixture')
             bridge.sleep=tick
-            if mode=='foreground-flow':
-                from test_native_attended_foreground import GateTests
+            if mode=='autonomous-flow':
+                from test_native_attended_autonomous import AutonomousGateTests
                 original_setup,original_ready=ports.ordinary_setup_save,ports.observe_ready
                 def gate(label):
-                    native,run,frame,events,_=GateTests().fixture()
+                    native,run,frame,events,_=AutonomousGateTests().fixture()
                     native.runs={label:run};native.clock=clock
                     native.deliver=bridge.deliver;native.owner_completion=bridge.completion
                     run.act_record=lambda name,value:ports.record(label+'-'+name,value)
-                    native.foreground_start(label,run,frame,min(clock()+45,160))
+                    native.autonomous_start(label,run,frame,min(clock()+45,160))
                 def setup(label,end):gate(label);return original_setup(label,end)
                 def ready(label,end):gate(label);return original_ready(label,end)
                 ports.ordinary_setup_save=setup;ports.observe_ready=ready
             if mode=='nonzero-exit':ports.fail='quitB'
-            elif mode not in ('normal','foreground-flow'):ports.fail='discover'
+            elif mode not in ('normal','autonomous-flow'):ports.fail='discover'
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 result=run_sequence(ports,bridge,0,clock=clock,sleep=tick)
             self.assertFalse(original_custody(ports));self.assertFalse(result['qualification_success'])
             self.assertFalse(result['Stop_confirmed']);self.assertFalse(result['LT23_observed'])
             self.assertTrue(result['resource_custody_closed'])
             self.assertTrue((root/'attended-resource-closure.json').exists())
-            if mode in ('normal','foreground-flow'):
+            if mode in ('normal','autonomous-flow'):
                 self.assertTrue(result['witness_complete'])
-                if mode=='foreground-flow':self.assertTrue({'A:foreground','B:foreground'}<=bridge.consumed)
+                if mode=='autonomous-flow':self.assertEqual(bridge.offers,{})
             else:
                 self.assertFalse(result['witness_complete']);self.assertEqual(len(ports.reports),0 if mode=='nonzero-exit' else 1)
                 self.assertIn('attended-manager-forward',output.getvalue())
             if mode in ('delivery-failure','late-owner'):self.assertGreater(result['final_overrun'],0)
             return result
     def test_complete_two_incarnation_entrypoint(self):self.exercise('normal')
-    def test_both_foreground_receipts_gate_full_entry_sequence(self):self.exercise('foreground-flow')
+    def test_both_autonomous_gates_run_without_owner_completion(self):self.exercise('autonomous-flow')
     def test_actual_completion_ingress_simulated_without_native_actions(self):self.exercise('owner')
     def test_transport_failure_keeps_custody_until_observed_exit(self):self.exercise('delivery-failure')
     def test_late_owner_completion_records_overrun_without_rearming(self):self.exercise('late-owner')

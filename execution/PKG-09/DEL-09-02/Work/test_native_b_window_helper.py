@@ -7,7 +7,7 @@ s=importlib.util.spec_from_file_location('window_helper_test',Path(__file__).wit
 class Executed(BaseException):pass
 class HelperTests(unittest.TestCase):
  def setUp(self):
-  self.tmp=tempfile.TemporaryDirectory(dir='/Users/ryan/dev/chirality-t3/scratch',prefix='window-helper-fixture-');self.addCleanup(self.tmp.cleanup)
+  self.tmp=tempfile.TemporaryDirectory(prefix='window-helper-fixture-');self.addCleanup(self.tmp.cleanup)
   self.root=Path(self.tmp.name).resolve();(self.root/'helper-tmp').mkdir(mode=0o700);self.exe=self.root/'invented';self.exe.write_bytes(b'not executed')
   self.identity={'pid':123,'ppid':456,'uid':os.getuid(),'ruid':os.getuid(),'start_sec':1,'start_usec':2,'executable':str(self.exe)}
   self.window={'window_id':42,'title':h.w.TITLE,'bounds':{'X':0,'Y':0,'Width':100,'Height':100},'own_visible_layer0_count':1}

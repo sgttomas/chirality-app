@@ -72,7 +72,7 @@ def prepare(build_root,state_basis=None):
     manifest={'format':'attended-prepared-entry/v1','run_id':uuid.uuid4().hex,'candidate':CANDIDATE,
         'build_root':str(build_root),'state_basis':state_basis,'plan_sha256':PLAN_SHA,'controller_root':str(root),'entry_source':str(Path(__file__).resolve()),
         'dependencies':dependencies(),'manager_function_sha256':hashlib.sha256(('async function'+(HERE/'native_attended_manager.js').read_text().split('(async function',1)[1]).rstrip().removesuffix(')').encode()).hexdigest(),'artifacts':artifacts,'A_preflight':checked,'total_seconds':295,
-        'owner_foreground_route':admission.value['owner_foreground_route'],
+        'autonomous_focus_route':admission.value['autonomous_focus_route'],
         'Stop_entry_reserve':135,'launch_limit':2,'Stop_confirmation':False,'PR69_active':False,
         'interpreter':{'path':str(Path(sys.executable).resolve()),'sha256':sha(Path(sys.executable).resolve())},
         'native_executed':False,'prepared_at':datetime.now(timezone.utc).isoformat()}
@@ -99,7 +99,7 @@ def check(root,expected_sha):
         except RuntimeError as error:raise RuntimeError('retained basis descriptor changed') from error
         require(sha(Path(descriptor['path']))==descriptor['sha256'],'retained basis descriptor changed')
     require(manifest['interpreter']=={'path':str(Path(sys.executable).resolve()),'sha256':sha(Path(sys.executable).resolve())},'entry interpreter differs')
-    require(manifest.get('owner_foreground_route')=={'version':'attended-owner-foreground/v1','per_incarnation_cap_seconds':45,'automatic_activation':False},'owner foreground route binding differs')
+    require(manifest.get('autonomous_focus_route')=={'version':'autonomous-owned-focus/v1','per_incarnation_cap_seconds':45,'mechanism':'AXRaise+AXFrontmost'},'autonomous focus route binding differs')
     require(manifest['dependencies']==dependencies(),'controller/source dependency changed')
     for relative,digest in manifest['artifacts'].items():
         path=root/relative
@@ -324,7 +324,7 @@ def simulate(root,expected_sha):
         'candidate_not_launched':manifest['candidate']})
     from test_native_attended_entry import EntryTests
     results={}
-    for scenario in ('normal','foreground-flow','owner','delivery-failure','late-owner','nonzero-exit'):
+    for scenario in ('normal','autonomous-flow','owner','delivery-failure','late-owner','nonzero-exit'):
         results[scenario]=EntryTests().exercise(scenario)
     publish(Path(root)/'simulation-result.json',{'simulation':True,'native_calls':0,'App_launches':0,
         'prepared_sha256':expected_sha,'cases':results,'standing':'offline entry/custody/bridge fixtures only'})
