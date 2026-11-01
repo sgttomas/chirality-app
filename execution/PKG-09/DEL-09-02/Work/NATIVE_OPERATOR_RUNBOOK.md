@@ -1,3 +1,10 @@
+# Active method: owned AX-first
+
+Parent selected method A. The [fixed AX journey](OWNED_AX_JOURNEY.md) is the active
+implementation proposal; it has no screenshot-operator control files. The
+following screenshot-only runbook and failure are retained as historical evidence,
+not instructions to retry that method. Owner-reserved auth steps remain unperformed.
+
 # Bounded native operator delivery runbook
 
 Manager owns the original Child, guard/slot and cleanup through actual closure.

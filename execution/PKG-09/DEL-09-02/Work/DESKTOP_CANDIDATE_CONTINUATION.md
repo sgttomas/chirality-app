@@ -309,3 +309,7 @@ are kept distinct from those actual facts.
 in uef3r3p2, before any annotated click. It retains failedqualification/cleanup
 facts and proposes one documented same-PID activation request with unchanged
 actual-frontmost/effect gates; live review/CI remains outstanding.
+
+The selected [owned AX-first journey](OWNED_AX_JOURNEY.md) replaces the unproven
+screenshot-only handoff method after actual activation/capture progress. Actual
+WebKit text/Stop/LT23 remain live gates, not claims of completed qualification.
