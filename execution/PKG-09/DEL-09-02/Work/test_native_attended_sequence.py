@@ -27,7 +27,7 @@ class Ports:
     def record_owner_completion(self,b,actual):self.event('owner-recorded')
     def owner_cancel_now(self,*args):self.events.append('owner-needed');self.reports.append(args)
     def verify_dismissal_and_source(self,b,ready,end):self.event('dismiss');return {'incarnation':b,'same_source':True,'ready':True,'sheet_absent':True}
-    def retain_and_report(self,*args):self.events.append('held')
+    def retain_and_report(self,*args,**kwargs):self.events.append('held')
 
 class Tests(unittest.TestCase):
     def run_case(self,fail=None,slow=None):

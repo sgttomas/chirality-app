@@ -258,6 +258,60 @@ class NativePorts:
         control.ax.close()
         return {'incarnation':label,'same_source':True,'sheet_absent':True,'ready':True}
 
+    def cleanup_original_main(self,run,end):
+        """Fresh cleanup-only binding, including failure before journey init.
+
+        Reuse the exact initial stable window if capture/focus failed before
+        ax_binding was set. Never assign it as a qualification observation,
+        capture a replacement or issue input while another owned window/sheet is
+        visible. A missing initial binding still requires owner recovery.
+        """
+        expected=run.ax_binding or run.screen.window.initial_binding
+        require(expected is not None,'no original stable main binding for cleanup')
+        require(run.extra_cleanup_ready(),'helper custody unknown before cleanup observation')
+        w=self.b.screen_support.w;backend=w.d.NativeBackend()
+        original_library=run.ax.a
+        run.ax.a=CountedAXLibrary(original_library,end,cap=1000,clock=self.clock)
+        try:
+            identity=w.d.bound_identity(run,backend)
+            require(identity==expected[0],'cleanup original Child identity changed')
+            window=w.select_main(backend,identity['pid'])
+            require((identity,window)==expected,'cleanup original main facts changed')
+            inventory=w.owned_inventory(backend,identity['pid'])
+            visible=[r for r in inventory if r['on_screen'] is True]
+            require(len(visible)==1 and visible[0]['window_id']==window['window_id'],
+                    'another owned window is visible; no blind Quit')
+            main=run.ax.main();run.ax.own(main)
+            require(self.b.ax_route_support.window_number(run.ax,main)==window['window_id'],
+                    'cleanup AX main differs from original selected window')
+            children=run.ax.attr(main,'AXChildren')
+            require(isinstance(children,list) and len(children)<=8,'cleanup main hierarchy unavailable')
+            for child in children:
+                run.ax.own(child)
+                role=run.ax.attr(child,'AXRole')
+                require(isinstance(role,str) and role.startswith('AX') and role not in
+                        ('AXSheet','AXDialog','AXUnknown','AXPopover','AXMenu','AXWindow'),
+                        'blocking/unknown native child prevents Quit')
+            roots=run.ax.windows()
+            require(roots and all(run.ax.c.CFEqual(e,main) for e in roots),
+                    'another owned AX window prevents Quit')
+            observations=getattr(run.ax,'last_window_observation',None)
+            require(isinstance(observations,list) and observations and all(
+                row.get('AXRole') is not None and row.get('disposition') in
+                ('application-self-reference','duplicate-reference','owned-window-root') and
+                (row.get('disposition')!='owned-window-root' or
+                 (row.get('AXRole')=='AXWindow' and row.get('AXTitle')==window['title']))
+                for row in observations), 'unclassified/contradictory AX root prevents Quit')
+            require(w.d.bound_identity(run,backend)==identity and w.owned_inventory(backend,identity['pid'])==inventory,
+                    'cleanup binding changed during observation')
+            require(run.extra_cleanup_ready(),'helper custody changed during cleanup observation')
+            require(self.clock()<end,'cleanup binding exceeded allowance')
+            run.safe_log('cleanup_original_main_verified',identity=identity,window=window,
+                         qualification_binding_initialized=run.ax_binding is not None)
+            return main
+        finally:
+            run.ax.a=original_library;backend.close()
+
     def owned_menu_quit(self,run,end):
         """One original-App menu AXPress; no activation, Esc or Cmd-Q."""
         adapter=NativeAdapter(run.ax)
@@ -291,7 +345,7 @@ class NativePorts:
                 refs=read(element,'AXChildren');require(isinstance(refs,list) and len(refs)<=50,'menu child bound')
                 stack.extend((e,depth+1) for e in refs)
             require(len(matches)==1,'unique enabled original Quit unavailable')
-            run.bound_main();target=matches[0]
+            self.cleanup_original_main(run,end);target=matches[0]
             require(read(target,'AXTitle')=='Quit '+title and read(target,'AXEnabled') is True,'Quit changed')
             run.act_record('owned-menu-quit-intent.json',{'title':'Quit '+title,'calls':calls[0]})
             require(calls[0]<600 and self.clock()+.2<end,'Quit dispatch reserve exhausted')
@@ -308,7 +362,7 @@ class NativePorts:
         run=self._original(label);run.cleanup=True;run.ui_deadline=end
         require(run.extra_cleanup_ready(),'helper custody unknown before Quit')
         if label=='B' and run.stop_requested:require(label in self.last_readback,'Stop sheet not verified dismissed')
-        run.bound_main()
+        self.cleanup_original_main(run,min(self.clock()+5,end-40))
         require(not run.quit_requested,'Quit already requested')
         run.quit_requested=True;run.quit_attempted=True
         self.owned_menu_quit(run,min(self.clock()+5,end-40))
@@ -345,9 +399,10 @@ class NativePorts:
         self.closures[label]=receipt
         return receipt
 
-    def retain_and_report(self,label,end):
+    def retain_and_report(self,label,end,failure=None):
         held=[key for key,run in self.runs.items() if run.reservation is not None and not run.reservation.reaped]
         guards=[key for key,run in self.runs.items() if run.thread is not None and run.thread.is_alive()]
         self.deliver({'event':'custody-held','requested_incarnation':label,'pending_launch':self.pending_launch,
+                      'failure':failure,'admitted_app':Path(self.value.get('bundle','unknown')).name,
                       'live_guard_incarnations':guards,
                       'retained_incarnations':held,'fixed_end':end,'action':'manager retain supervision; no blind input/reap'})

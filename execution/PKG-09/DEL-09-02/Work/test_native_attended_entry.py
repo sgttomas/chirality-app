@@ -43,7 +43,7 @@ class SimulatedPorts(Ports):
             'incarnation':label,'fixed_end':end,'reason':reason,'cancel_attempted':attempted})
     def wait_owner_completion(self,label,end):return self.bridge.completion(label,end)
     def record_owner_completion(self,label,value):self.messages.append((label,value))
-    def retain_and_report(self,label,end):self.events.append('held')
+    def retain_and_report(self,label,end,**kwargs):self.events.append('held')
 
 class EntryTests(unittest.TestCase):
     def exercise(self,mode):

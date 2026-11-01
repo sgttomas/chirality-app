@@ -71,7 +71,9 @@ class AttendedSequence:
         except BaseException as error:self.delivery_errors.append('record '+name+': '+repr(error))
 
     def retain(self, reason):
-        try:self.p.retain_and_report(self.current, self.deadline)
+        try:self.p.retain_and_report(self.current, self.deadline, failure={
+            'original_error':self.result.get('error'),'cleanup_error':self.result.get('cleanup_error'),
+            'custody_reason':str(reason)})
         except BaseException as error:self.delivery_errors.append('retain/report: '+repr(error))
         self.safe_record('custody-retained', {'incarnation':self.current,'unknown':self.custody_unknown,
                                             'reason':str(reason)})
@@ -91,7 +93,8 @@ class AttendedSequence:
         # Unknown custody begins before calling a port that may spawn then fail.
         self.custody_unknown = True
         try:incarnation = self.p.launch(label, admission, self.deadline)
-        except BaseException:
+        except BaseException as error:
+            self.result.setdefault('error',str(error))
             self.retain('launch '+label+' failed; original Child custody unknown')
             raise
         self.current = incarnation
