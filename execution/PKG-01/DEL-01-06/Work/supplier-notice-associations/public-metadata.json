@@ -1,0 +1,168 @@
+{
+  "format": "supplier-notice-public-metadata/1",
+  "commit": "a956835d020762cb2b570053af06f643a11c0ecc",
+  "tree": "c09968bc06fc543c9d8bd9ffbaaa72829b31f5d9",
+  "retrieved_at": "2026-11-01T02:52:17.141287+00:00",
+  "metadata_custody": [
+    {
+      "path": "/Users/ryan/dev/chirality-t3/scratch/app-macos-packaging-k15ok7t8/public-source-metadata/codex-commit.json",
+      "sha256": "6d65680c687e1e57e067f37c340347c3f4a8714f08b46ca4a41db3157b6ddf89"
+    },
+    {
+      "path": "/Users/ryan/dev/chirality-t3/scratch/app-macos-packaging-k15ok7t8/public-source-metadata/codex-exact-tree.json",
+      "sha256": "7d78c9b13ee34936304c5485f200766c27bba1fda266f580fd3273fdc3a5f0c4"
+    },
+    {
+      "path": "/Users/ryan/dev/chirality-t3/scratch/app-macos-packaging-k15ok7t8/public-source-metadata/codex-release.json",
+      "sha256": "b030fb55819cde3a4b7ca537e3222b2246bb0b95b8b86c7157e17cc82d240cf4"
+    },
+    {
+      "path": "/Users/ryan/dev/chirality-t3/scratch/app-macos-packaging-k15ok7t8/public-source-metadata/codex-tree.json",
+      "sha256": "f29e8d3eca80d7d993baf434435d535d4ce767d01c8b04320269dd670122cebf"
+    },
+    {
+      "path": "/Users/ryan/dev/chirality-t3/scratch/app-macos-packaging-k15ok7t8/public-source-metadata/ripgrep-release.json",
+      "sha256": "605f9f2892bb6578056d827a6535f9062f3efdf5ee4adf53e1b04575bf270768"
+    },
+    {
+      "path": "/Users/ryan/dev/chirality-t3/scratch/app-macos-packaging-k15ok7t8/public-source-metadata/zsh-commit-candidate.json",
+      "sha256": "00d4280b4ea9f65217a26e32a5b5fad9ecb649886860f2d44c17cd07fd532ba8"
+    }
+  ],
+  "metadata_query_url": "https://api.github.com/repos/openai/codex/git/trees/c09968bc06fc543c9d8bd9ffbaaa72829b31f5d9?recursive=1",
+  "tree_truncated": false,
+  "matched_local_root_notices": [
+    {
+      "path": "LICENSE",
+      "size_bytes": 10926,
+      "git_blob_sha1": "4606e72e042564097e8780d66c1d4dcb611869bd",
+      "sha256": "d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc",
+      "copied_from_existing_local_input": "/Users/ryan/dev/chirality-t3/scratch/agent-supplier-packaging-a456h3oa/LICENSE",
+      "standing": "exact source-commit content correspondence using public tree metadata; no new body download or complete notice applicability conclusion"
+    },
+    {
+      "path": "NOTICE",
+      "size_bytes": 242,
+      "git_blob_sha1": "2805899d56d0332d175cfc613c67d45d6f006db7",
+      "sha256": "9d71575ecfd9a843fc1677b0efb08053c6ba9fd686a0de1a6f5382fd3c220915",
+      "copied_from_existing_local_input": "/Users/ryan/dev/chirality-t3/scratch/agent-supplier-packaging-a456h3oa/NOTICE",
+      "standing": "exact source-commit content correspondence using public tree metadata; no new body download or complete notice applicability conclusion"
+    }
+  ],
+  "proposed_file_retrieval": [
+    {
+      "path": "codex-rs/code-mode-host/Cargo.toml",
+      "url": "https://raw.githubusercontent.com/openai/codex/a956835d020762cb2b570053af06f643a11c0ecc/codex-rs/code-mode-host/Cargo.toml",
+      "size_bytes": 1340,
+      "git_blob_sha1": "d56661f7d0ad2ac661ae788812a23190241b2569",
+      "purpose": "Identify host package license inheritance and build target; not alone a binary association."
+    },
+    {
+      "path": "codex-rs/Cargo.toml",
+      "url": "https://raw.githubusercontent.com/openai/codex/a956835d020762cb2b570053af06f643a11c0ecc/codex-rs/Cargo.toml",
+      "size_bytes": 20615,
+      "git_blob_sha1": "1a60bc36f8350f25c8ef6d6d7096354d9aaf5314",
+      "purpose": "Resolve workspace license/source declarations used by host."
+    },
+    {
+      "path": ".github/workflows/rust-release.yml",
+      "url": "https://raw.githubusercontent.com/openai/codex/a956835d020762cb2b570053af06f643a11c0ecc/.github/workflows/rust-release.yml",
+      "size_bytes": 82797,
+      "git_blob_sha1": "26d4985a15ed390227ee64d8f8457086f4912c17",
+      "purpose": "Trace exact release compilation/signing/assembly and input identities for retained host and packaged tools."
+    },
+    {
+      "path": "scripts/codex_package/cargo.py",
+      "url": "https://raw.githubusercontent.com/openai/codex/a956835d020762cb2b570053af06f643a11c0ecc/scripts/codex_package/cargo.py",
+      "size_bytes": 5872,
+      "git_blob_sha1": "f759e447620c62d50ab0441880e3383e335e0648",
+      "purpose": "Trace which built host/main executables the package assembly selects."
+    },
+    {
+      "path": "scripts/codex_package/layout.py",
+      "url": "https://raw.githubusercontent.com/openai/codex/a956835d020762cb2b570053af06f643a11c0ecc/scripts/codex_package/layout.py",
+      "size_bytes": 5761,
+      "git_blob_sha1": "f4fef6912c3ad6d555b1bef872998b665ee5852c",
+      "purpose": "Trace mapping into the platform vendor tree and preserved source inputs."
+    },
+    {
+      "path": "scripts/codex_package/rg",
+      "url": "https://raw.githubusercontent.com/openai/codex/a956835d020762cb2b570053af06f643a11c0ecc/scripts/codex_package/rg",
+      "size_bytes": 2592,
+      "git_blob_sha1": "3b7c34843aaafe4cf26a87b3daf5806195d4bb0e",
+      "purpose": "Read pinned rg input locator/digest metadata, without downloading that artifact."
+    },
+    {
+      "path": "scripts/codex_package/codex-zsh",
+      "url": "https://raw.githubusercontent.com/openai/codex/a956835d020762cb2b570053af06f643a11c0ecc/scripts/codex_package/codex-zsh",
+      "size_bytes": 1676,
+      "git_blob_sha1": "68b8f03fd2cff9c35d28e553ed6f0ab85582b05d",
+      "purpose": "Read pinned zsh input locator/digest metadata."
+    },
+    {
+      "path": ".github/dotslash-zsh-config.json",
+      "url": "https://raw.githubusercontent.com/openai/codex/a956835d020762cb2b570053af06f643a11c0ecc/.github/dotslash-zsh-config.json",
+      "size_bytes": 856,
+      "git_blob_sha1": "2c2b11eec597298410cd0e265aa4bdf222f12ce9",
+      "purpose": "Identify zsh recipe bootstrap input, distinct from binary provenance."
+    },
+    {
+      "path": ".github/workflows/rust-release-zsh.yml",
+      "url": "https://raw.githubusercontent.com/openai/codex/a956835d020762cb2b570053af06f643a11c0ecc/.github/workflows/rust-release-zsh.yml",
+      "size_bytes": 5528,
+      "git_blob_sha1": "030cc92a90771ef57d9f3d9a5270ff84e3132f51",
+      "purpose": "Resolve exact zsh source/fork/build revision and artifact recipe."
+    },
+    {
+      "path": ".github/scripts/build-zsh-release-artifact.sh",
+      "url": "https://raw.githubusercontent.com/openai/codex/a956835d020762cb2b570053af06f643a11c0ecc/.github/scripts/build-zsh-release-artifact.sh",
+      "size_bytes": 1629,
+      "git_blob_sha1": "4fc3db3903e5271caceaf4bd16c7981092ed27e1",
+      "purpose": "Identify patch/build source and notice handling for zsh artifact."
+    }
+  ],
+  "proposed_total_bytes": 128666,
+  "release_metadata": {
+    "tag": "rust-v0.160.0",
+    "target_commitish": "a956835d020762cb2b570053af06f643a11c0ecc",
+    "immutable": false,
+    "assets_not_requested": [
+      {
+        "name": "codex-code-mode-host-aarch64-apple-darwin.tar.gz",
+        "size": 23825926,
+        "digest": "sha256:dc70fbc76e9dcae5ae3d5424808c8e7c2df5e0db4ac827ddd4fbe339015aad75",
+        "browser_download_url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-code-mode-host-aarch64-apple-darwin.tar.gz"
+      },
+      {
+        "name": "codex-code-mode-host-aarch64-apple-darwin.zst",
+        "size": 17526311,
+        "digest": "sha256:05757c07d1fb8e895db1f17089f5d0a83f903d1c3ddee051a1b70896a8a17dc5",
+        "browser_download_url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-code-mode-host-aarch64-apple-darwin.zst"
+      },
+      {
+        "name": "codex-package-aarch64-apple-darwin.tar.gz",
+        "size": 129976298,
+        "digest": "sha256:007df41b607dbbc8d204b9746ce7fed2d4ce6c813f44c32ceee54175ca796525",
+        "browser_download_url": "https://github.com/openai/codex/releases/download/rust-v0.160.0/codex-package-aarch64-apple-darwin.tar.gz"
+      }
+    ]
+  },
+  "negative_queries": [
+    {
+      "url": "https://api.github.com/repos/BurntSushi/ripgrep/releases/tags/16.0.0",
+      "status": 404,
+      "reason": "Not Found"
+    },
+    {
+      "url": "https://api.github.com/repos/zsh-users/zsh/git/commits/77045ef",
+      "status": 404,
+      "reason": "Not Found"
+    }
+  ],
+  "limits": [
+    "Metadata only fetched without credentials; no source/archive bodies retrieved.",
+    "Public release metadata identifies compressed artifacts, not their uncompressed binary equality.",
+    "404 for a guessed upstream ref does not establish source absence or upstream repository identity.",
+    "All four complete binary/source/notice associations remain open; main exact root text availability is now established."
+  ]
+}
