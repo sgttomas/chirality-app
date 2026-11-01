@@ -9,6 +9,7 @@ import subprocess
 VERSION='attended-retained-shell/v1'
 CANDIDATE='1f67d3822b-8c83d74ae3ce'
 IDENTIFIER='dev.chirality.app-v4.candidate.gvpud8q'
+ASSESSMENT_PATH=Path('/Users/ryan/dev/chirality-t3/scratch/app-post-i_bow2kd-assessment-l1gpyy6f/assessment.json')
 ASSESSMENT_SHA='4f0a37a714d513fc7c564b9416f399126ec5838de67b4789ad3a240322b9e9b1'
 
 
@@ -72,7 +73,11 @@ def check_snapshot(assessment,home,current):
 def verify(path,expected_sha,executable):
     path=Path(path)
     require(expected_sha==ASSESSMENT_SHA,'unselected future retained basis')
+    require(path==ASSESSMENT_PATH,'retained assessment location differs')
     require(path.is_absolute() and path.resolve()==path,'retained assessment alias')
+    parent=path.parent.lstat()
+    require(stat.S_ISDIR(parent.st_mode) and parent.st_uid==os.getuid()
+            and stat.S_IMODE(parent.st_mode)==0o700,'retained assessment parent not private0700')
     fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
     try:
         before=os.fstat(fd)

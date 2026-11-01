@@ -1,6 +1,6 @@
 # Exact retained browser-shell admission after i_bow2kd
 
-Candidate remains `1f67d3822b-8c83d74ae3ce`, product source1f67d382; no rebuild,
+Candidate remains `1f67d3822b-8c83d74ae3ce`, product source 1f67d382; no rebuild,
 reset or namespace freshening. The consumed i_bow2kd run and its FAILED,
 owner-Quit/normalexit0/wait0/no-overrun evidence remain unchanged. The previous
 empty admission is historical and still refuses the current state.
@@ -13,8 +13,8 @@ The current namespace has:
 | Surface | Actual observation |
 | --- | --- |
 | AppData | absent; no saved setup, account home or App ledger |
-| WebKit | present,21 metadata entries |
-| Caches | present,10 metadata entries |
+| WebKit | present, 21 metadata entries |
+| Caches | present, 10 metadata entries |
 | Preferences / Saved State / HTTPStorages | absent |
 
 WebKit's own ResourceLoadStatistics databases include WAL/SHM sidecars. They
@@ -40,7 +40,9 @@ and rejects any changed inode/mode/size/mtime/ctime/path/extra file, new AppData
 or future assessment digest. It reads only the assessment's JSON; browser bytes
 stay opaque. It makes no general allowance for future rows or state drift.
 
-The original empty profile remains default and unchanged. A new preparation
+The original empty-profile acceptance rule remains the default and still
+requires absence. A now rechecks that rule before launch too; its limit text
+explicitly states that the prior empty admission is not reused. A new preparation
 must explicitly select `--retained-basis PATH --retained-sha256 SHA`, which is
 bound in its own manifest and checked again before A launches. The selected
 assessment directory is additionally denied to App/supplier reads and writes
@@ -68,7 +70,7 @@ historical profiles/evidence remain unchanged.
 
 ## Concrete prepared result
 
-Source e6c96c1e prepared unrun root `app-attended-prepared-u8nckc6l`, manifest
+Source e6c96c1e initially prepared unrun root `app-attended-prepared-u8nckc6l`, manifest
 SHA256 `9ae866e6523539882eec72efc1df91f80499c7992af526575208959674b76c22`.
 Candidate/source remain unchanged. A distinct root `app-attended-prepared-vz09w39g`
 was simulation-consumed and completed all five entry/custody/bridge scenarios.
@@ -81,9 +83,24 @@ App/native action occurred. The unrun root has no phase admission/start/mode
 record. The private `final-preparation-result.json` retains source/root hashes,
 parser receipts, test labels and limits.
 
-All66 attended tests pass, including the four retained-profile fixtures and
+All 66 attended tests pass, including the four retained-profile fixtures and
 existing real-helper/cleanup regressions. This source change adds a narrowly
 selected retained input profile; its independent scrutiny and exact-head CI
 precede parent integration and any later resource/attendance coordination.
 Old preparations, including consumed i_bow2kd, remain preserved at their actual
 source/state identities.
+
+
+## Narrow review response
+
+Claude Opus5.5/high reviewed cab7f789 vs330d88c4 and found nothing blocking
+this narrow profile; it confirmed source/admission identity and exact-state
+refusal. Manager fixes pin the assessment's exact canonical private0700 path
+as well as its digest, and enforce the setup/readiness cutoff after all final
+preflight work. A same-digest copy cannot redirect the policy protection.
+These source changes invalidate the earlier prepared root's dependency pins;
+it is preserved unrun and a new root is frozen after verification. No clean
+full rereview or execution approval is claimed. Focused added fixtures cover
+copy/path/mode/link refusal, descriptor/process refusal and the final budget
+boundary. The empty-profile wording above distinguishes unchanged acceptance
+criteria from the newly repeated before-launch check.

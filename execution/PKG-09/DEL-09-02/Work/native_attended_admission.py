@@ -262,6 +262,7 @@ class NativeAdmissions:
                 for name,key in [('config.toml','shared_config'),('AGENTS.md','shared_agents'),('skills','shared_skills')]}
             require(metadata({name:Path(value['path']) for name,value in recorded.items()},links)==recorded,
                     'opaque namespace metadata changed after B admission')
+        require(self.clock()<end-135,'final admission crossed setup/readiness cutoff; no launch')
 
     def bind_birth(self,label,run):
         # sandbox-exec is the same original Child before exec, not a new target.

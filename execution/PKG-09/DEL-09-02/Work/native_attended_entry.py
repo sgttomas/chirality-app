@@ -91,8 +91,9 @@ def check(root,expected_sha):
             and manifest['launch_limit']==2 and manifest['Stop_confirmation'] is False
             and manifest['PR69_active'] is False,'prepared scope differs')
     if manifest.get('state_basis') is not None:
-        from native_attended_retained_shell import ASSESSMENT_SHA
-        require(manifest['state_basis']['sha256']==ASSESSMENT_SHA and sha(Path(manifest['state_basis']['path']))==ASSESSMENT_SHA,
+        from native_attended_retained_shell import ASSESSMENT_SHA,ASSESSMENT_PATH
+        require(manifest['state_basis']=={'path':str(ASSESSMENT_PATH),'sha256':ASSESSMENT_SHA}
+                and sha(ASSESSMENT_PATH)==ASSESSMENT_SHA,
                 'retained basis descriptor changed')
     require(manifest['interpreter']=={'path':str(Path(sys.executable).resolve()),'sha256':sha(Path(sys.executable).resolve())},'entry interpreter differs')
     require(manifest['dependencies']==dependencies(),'controller/source dependency changed')
