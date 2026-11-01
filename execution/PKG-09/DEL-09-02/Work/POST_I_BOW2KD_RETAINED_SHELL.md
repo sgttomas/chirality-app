@@ -104,3 +104,16 @@ full rereview or execution approval is claimed. Focused added fixtures cover
 copy/path/mode/link refusal, descriptor/process refusal and the final budget
 boundary. The empty-profile wording above distinguishes unchanged acceptance
 criteria from the newly repeated before-launch check.
+
+
+After the bounded review fixes, controller8b2569d5 prepared the new UNRUN root
+`app-attended-prepared-j58087z7`, manifest SHA256
+`6a2e17f393912a4150bac88dc59fe000ba872cd7a42ec662e6995697254ef252`.
+The separate `ykgwu6sf` root was simulation-consumed:5 entry cases passed and
+real staged A-main/B-main/B-modal parser checks passed at the native-boundary
+sentinel, with the same explicit invented B-home limit. All71 attended tests
+pass. The private versioned8b2569d5 result retains exact receipts. Earlier roots
+remain unchanged; the earlier summary is additionally reconstructed from its
+original tool output/root records and labelled as such, not byte-identical.
+The metadata assessment and its pinned digest remain unchanged. No App state,
+opaque bytes, old failure record or candidate was modified by this preparation.
