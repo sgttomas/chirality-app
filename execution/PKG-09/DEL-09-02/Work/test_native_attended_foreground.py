@@ -3,6 +3,7 @@ import contextlib,io,tempfile
 from pathlib import Path
 from types import SimpleNamespace as N
 import unittest
+from unittest.mock import patch
 from native_attended_ports import NativePorts
 from native_attended_bridge import ReceiptBridge,delivery_receipt,owner_completion,publish
 
@@ -11,7 +12,7 @@ class GateTests(unittest.TestCase):
         events=[];now=[0];frame={'identity':{'pid':10},'window':{'window_id':20},'path':'/invented/image.png','sha256':'a'*64}
         route=N(initial_binding=(frame['identity'],frame['window']),capture=lambda **kw:events.append('capture') or dict(frame))
         run=N(screen=N(window=route),foreground_verified=False,activation_spent=True,resource_end=295,
-              ax=N(app='app',attr=lambda e,k:events.append('read-frontmost') or True),
+              ax=N(a=N(),app='app',attr=lambda e,k:events.append('read-frontmost') or True),
               act_record=lambda name,value:events.append(name),safe_log=lambda *a,**k:None)
         value={'bundle':'/invented/Exact App.app'};admissions=N(value=value,check_birth=lambda *args:events.append('birth'))
         def deliver(event):events.append(event['event'])
@@ -86,3 +87,33 @@ class EarlyQuitTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'owner normal Quit requested'):ports.quit_normal('A',295)
         self.assertEqual(len(reports),1);self.assertEqual(reports[0]['event'],'owner-normal-quit-needed-now')
         self.assertFalse(events);self.assertFalse(run.quit_requested)
+
+class ReviewRegressionTests(unittest.TestCase):
+    def test_owner_return_to_app_is_observed_without_activation(self):
+        p,r,frame,events,now=GateTests().fixture();reads=iter([False,True,True])
+        r.ax.attr=lambda *args:next(reads)
+        with patch('native_attended_ports.time.sleep'):
+            p.foreground_start('A',r,frame,30)
+        self.assertTrue(r.foreground_verified);self.assertIn('capture',events)
+    def test_failed_delivery_can_be_reoffered_once_not_silently_suppressed(self):
+        p,r,frame,events,now=GateTests().fixture();calls=[]
+        def delivery(event):
+            calls.append(event)
+            if len(calls)==1:raise RuntimeError('transport unavailable')
+        p.deliver=delivery
+        with self.assertRaises(RuntimeError):p.owner_normal_quit_now('A','failure')
+        p.owner_normal_quit_now('A','failure');p.owner_normal_quit_now('A','failure')
+        self.assertEqual(len(calls),2)
+    def test_cleanup_or_dispatch_failure_after_gate_notifies_owner(self):
+        from test_native_attended_ports import Tests as Existing
+        for stage in ['cleanup','menu']:
+            run,events=Existing().run_fixture();p=Existing().ports(run)
+            p.value['bundle']='/invented/Exact App.app';run.resource_end=295
+            run.safe_log=lambda *a,**kw:None;run.foreground_verified=True
+            reports=[];p.deliver=reports.append
+            def fail(*a,**kw):raise RuntimeError('invented '+stage+' failure')
+            if stage=='cleanup':p.cleanup_original_main=fail
+            else:p.owned_menu_quit=fail
+            with self.assertRaisesRegex(RuntimeError,'invented'):p.quit_normal('A',295)
+            self.assertEqual(reports[0]['event'],'owner-normal-quit-needed-now')
+            self.assertNotIn('reap',events)

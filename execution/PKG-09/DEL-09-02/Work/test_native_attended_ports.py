@@ -7,7 +7,7 @@ from native_attended_ports import NativePorts
 
 class Tests(unittest.TestCase):
     def ports(self,run):
-        value={};a=N(check_birth=lambda label,r:None,value=value)
+        value={'bundle':'/invented/App.app'};a=N(check_birth=lambda label,r:None,value=value)
         b=N(release_support=N(normal_exit=lambda x:x=={'code':1,'status':0},
               request_for=lambda r:{'expected_app_exit':{'code':1,'status':0},'admission':r.admission_sha}))
         p=NativePorts(b,'/invented',value,a,lambda event:None,lambda label,end:'Cancelled',clock=lambda:0)
@@ -17,7 +17,7 @@ class Tests(unittest.TestCase):
         return p
     def run_fixture(self):
         events=[]
-        run=N(sample=lambda:None,observed_processes=[],cleanup=False,ui_deadline=0,quit_requested=False,stop_requested=False,admission_sha='a'*64,root=Path('/invented/A'),
+        run=N(safe_log=lambda *a,**kw:None,resource_end=295,sample=lambda:None,observed_processes=[],cleanup=False,ui_deadline=0,quit_requested=False,stop_requested=False,admission_sha='a'*64,root=Path('/invented/A'),
             extra_cleanup_ready=lambda:True,bound_main=lambda:events.append('bound'),
             ax=N(quit_ui=lambda:events.append('quit')),act_record=lambda n,v:events.append(n),
             reservation=N(observe=lambda:{'code':1,'status':0},administrative_reap=lambda e:events.append('reap') or 0,reaped=False),

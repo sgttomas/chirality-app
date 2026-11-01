@@ -25,14 +25,18 @@ is introduced; changed facts refuse. A report alone never establishes focus.
 
 The attended path no longer calls the automatic AppKit focus helper. Its
 first-press hook is read-only, and setup's control-focus wrapper never assigns
-AXFrontmost. Control focus, AXPress and the existing exact-PID keyboard input
-require the owner-established foreground to remain true. Capture and original
+AXFrontmost. Setup control focus/AXPress and the existing exact-PID keyboard input
+require the owner-established foreground to remain true. Sheet Cancel separately
+checks foreground; owned-menu Quit uses its original-window/modal gates without
+a foreground requirement or activation. Capture and original
 source/identity/effect gates remain unchanged. The general legacy AX route is
 not silently changed; its existing15s initial scope and activation behavior
 remain outside this explicitly selected attended profile.
 
 A failed/late completion or unavailable preflight immediately emits the exact
-`owner-normal-quit-needed-now` event, once per incarnation. It does not attempt
+`owner-normal-quit-needed-now` event, once successfully delivered per incarnation. If delivery fails, a later
+cleanup may reoffer it once (two delivery attempts total); the instruction is
+conditional on the exact App still running, and delivery failure retains custody. It does not attempt
 agent menu input before the foreground/recovery gate is established. A generic
 held event has no Cancel/Foreground completion offer. The manager now includes
 completion CLI instructions only when an actual offer exists, with its exact
@@ -47,7 +51,9 @@ clipped to the existing absolute pre-Stop cutoff. This is a distinct attended
 handoff allocation, not a longer automatic activation wait or a product human
 question timeout. It includes at most3s initial stability,5s initial helper
 capture,8s transport acceptance, up to17s for owner/parent completion handling,
-5s combined read-only main/menu preflight and7s fresh-capture headroom.
+up to1s read-only foreground observation,5s combined main/menu preflight and6s
+fresh-capture headroom. Foreground observation has at most5 probes and20 total
+native calls, each under the existing0.2s call bound, with no activation.
 Actual steps can finish earlier. The last12s are reserved before owner
 completion is accepted; insufficient time refuses before asking for an unusable
 handoff. No automatic request, retry or fallback activation follows refusal.
@@ -85,6 +91,13 @@ latency and effectiveness remain unverified. The source gate/handoff change
 requires the established independent Claude scrutiny and exact-head CI before
 parent integration or any coordinated start.
 
-Offline validation: 84 attended Python tests pass, including exact v2 reader
+Offline validation: 88 attended Python tests pass, including exact v2 reader
 selection and the production owned-menu traversal with no AXPress. These
 fixtures do not establish native layout, timing, foreground or menu usability.
+
+Independent Claude Opus5.5/high review of2937f280 found no blocking boundary
+defect, with two medium recovery/usability findings. The follow-up bounds
+read-only foreground polling inside the unchanged12s reserve and immediately
+requests owner normal Quit if agent cleanup/menu dispatch refuses after a
+verified gate. It preserves the original refusal and records delivery failure.
+Launch-installed override and manager Foreground/no-offer fixtures were added.

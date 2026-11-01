@@ -27,7 +27,7 @@ class NativePorts:
         self.b,self.root,self.value,self.admissions=b,Path(root),value,admissions
         self.deliver,self.owner_completion,self.clock=deliver,owner_completion,clock
         self.runs={};self.controls={};self.launches=set();self.pending_launch=None
-        self.closures={};self.saved=None;self.last_readback={};self.owner_quit_requested=set()
+        self.closures={};self.saved=None;self.last_readback={};self.owner_quit_requested=set();self.owner_quit_delivery_attempts={}
 
     def record(self, name, value):
         self.b.write_once(self.root/(name+'.json'),value)
@@ -119,12 +119,33 @@ class NativePorts:
 
     def owner_normal_quit_now(self,label,reason):
         if label in self.owner_quit_requested:return
-        self.owner_quit_requested.add(label)
+        attempts=self.owner_quit_delivery_attempts.get(label,0)
+        require(attempts<2,'owner normal-Quit delivery failed twice; parent intervention required')
+        self.owner_quit_delivery_attempts[label]=attempts+1
         run=self.runs[label]
         self.deliver({'event':'owner-normal-quit-needed-now','incarnation':label,
             'admitted_app':Path(self.value['bundle']).name,'reason':str(reason),'fixed_end':run.resource_end,
-            'instruction':'Please normal-Quit only this exact App. If a blocking question is visible, report its actual text; do not confirm an action or guess Cancel. No completion file is required; original exit is observed.',
+            'instruction':'If this exact App is still running, normal-Quit it once. If a blocking question is visible, report its actual text; do not confirm an action or guess Cancel. No completion file is required; original exit is observed.',
             'custody':'original Child and helpers retained; no automatic activation or agent input'})
+        self.owner_quit_requested.add(label)
+
+    def await_owner_frontmost(self,run,end):
+        # Owner reporting in T3 can briefly move focus. Observe only, inside
+        # the existing reserve; never activate, extend or rediscover a window.
+        limit=min(self.clock()+1,end-11)
+        library=run.ax.a;budget=CountedAXLibrary(library,limit,cap=20,clock=self.clock)
+        run.ax.a=budget;probes=0
+        try:
+            for _ in range(5):
+                require(self.clock()+.2<limit,'foreground observation reserve exhausted')
+                probes+=1
+                if run.ax.attr(run.ax.app,'AXFrontmost') is True:return
+                time.sleep(min(.1,max(0,limit-self.clock())))
+            raise RuntimeError('original App not actually frontmost')
+        finally:
+            run.ax.a=library
+            run.safe_log('owner_foreground_poll',probes=probes,native_calls=budget.calls,
+                         native_call_cap=20,deadline=limit,automatic_activation_requests=0)
 
     def foreground_start(self,label,run,frame,end):
         require(not getattr(run,'foreground_offer_started',False),'foreground handoff already used')
@@ -145,9 +166,9 @@ class NativePorts:
                 'meaning':'owner report only; native foreground/readiness still unverified',
                 'handoff_elapsed_seconds':self.clock()-started})
             require(self.clock()<end-12,'owner completion too late for preflight/capture')
-            preflight_end=min(self.clock()+5,end-7)
             self._original(label)
-            require(run.ax.attr(run.ax.app,'AXFrontmost') is True,'original App not actually frontmost')
+            self.await_owner_frontmost(run,end)
+            preflight_end=min(self.clock()+5,end-6)
             self.cleanup_original_main(run,preflight_end)
             self.owned_menu_quit(run,preflight_end,post=False)
             require(self.clock()+6<end,'no fresh capture allowance after foreground preflight')
@@ -461,13 +482,19 @@ class NativePorts:
         if getattr(run,'attended_owner_foreground',False) and not getattr(run,'foreground_verified',False):
             self.owner_normal_quit_now(label,'foreground/readiness not established; no agent input')
             raise RuntimeError('owner normal Quit requested; original custody retained')
-        require(run.extra_cleanup_ready(),'helper custody unknown before Quit')
-        if label=='B' and run.stop_requested:require(label in self.last_readback,'Stop sheet not verified dismissed')
-        self.cleanup_original_main(run,min(self.clock()+5,end-40))
-        require(not run.quit_requested,'Quit already requested')
-        run.quit_requested=True;run.quit_attempted=True
-        self.owned_menu_quit(run,min(self.clock()+5,end-40))
-        run.quit_posted=True
+        try:
+            require(run.extra_cleanup_ready(),'helper custody unknown before Quit')
+            if label=='B' and run.stop_requested:require(label in self.last_readback,'Stop sheet not verified dismissed')
+            self.cleanup_original_main(run,min(self.clock()+5,end-40))
+            require(not run.quit_requested,'Quit already requested')
+            run.quit_requested=True;run.quit_attempted=True
+            self.owned_menu_quit(run,min(self.clock()+5,end-40))
+            run.quit_posted=True
+        except BaseException as error:
+            try:self.owner_normal_quit_now(label,'agent normal-Quit unavailable or dispatch uncertain: '+str(error))
+            except BaseException as delivery_error:
+                run.safe_log('owner_quit_delivery_failed',error=str(delivery_error),original_failure=str(error))
+            raise
         while self.clock()<end:
             exit_fact=run.reservation.observe()
             if exit_fact is not None:break
