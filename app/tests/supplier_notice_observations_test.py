@@ -1,6 +1,7 @@
 """Invented bytes test the bounded observation, never supplier execution."""
 import importlib.util
 import json
+import hashlib
 from pathlib import Path
 import tempfile
 import unittest
@@ -39,5 +40,14 @@ class Observations(unittest.TestCase):
   self.assertEqual(saved['tool_sha256'],module.reader.sha(Path(module.__file__).read_bytes()))
   for row in saved['components']:
    self.assertEqual([bytes.fromhex(c['bytes_hex']) for c in row['embedded_clues']],module.CLUES[row['path']])
+ def test_cached_root_notices_match_selected_public_tree_blob_identities(self):
+  evidence=json.loads((ROOT/'execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/public-metadata.json').read_text())
+  for item in evidence['matched_local_root_notices']:
+   raw=(ROOT/'app/packaging/supplier_notices/codex-0.160.0'/item['path']).read_bytes()
+   self.assertEqual(len(raw),item['size_bytes'])
+   self.assertEqual(hashlib.sha256(raw).hexdigest(),item['sha256'])
+   self.assertEqual(hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest(),item['git_blob_sha1'])
+  self.assertEqual(sum(x['size_bytes'] for x in evidence['proposed_file_retrieval']),128666)
+  self.assertTrue(all('/'+evidence['commit']+'/' in x['url'] for x in evidence['proposed_file_retrieval']))
 
 if __name__=='__main__':unittest.main()

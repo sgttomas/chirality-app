@@ -90,3 +90,15 @@ locators are narrowed; **none of the four full notice/source associations is yet
 closed**. SQLite and direct-App notices are separate completed source-preparation
 inputs. No complete transitive coverage, redistribution approval, qualification
 or release follows from any of these observations.
+
+
+## Subsequent authorised public metadata observation
+
+The later metadata-only investigation changes one local availability finding:
+the previously unassociated cached root LICENSE/NOTICE exactly match the pinned
+Codex commit's published Git blob IDs. Their bytes are retained separately;
+there was no file-body download. See [the minimal retrieval proposal](RETRIEVAL_PROPOSAL.md)
+and exact `public-metadata.json` for this new evidence, ten pinned text-file
+URLs/sizes and the still-open binary associations. The earlier local-only search
+above remains its dated observation rather than a claim that those texts can
+never be associated. None of the four complete notice/source gaps is yet closed.
