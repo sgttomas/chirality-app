@@ -135,3 +135,16 @@ class LateTransportTests(unittest.TestCase):
             bridge=ReceiptBridge(root,'invented','run',N(receipts={}),clock=lambda:now[0],sleep=tick,simulation=True)
             with contextlib.redirect_stdout(io.StringIO()):bridge.deliver({'event':'custody-held','fixed_end':295})
             self.assertEqual(count[0],1);self.assertGreater(now[0],295)
+
+class PublicationFailureTests(unittest.TestCase):
+    def test_temp_creation_failure_does_not_leave_publication_lock_held(self):
+        from unittest.mock import patch
+        import os
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d).resolve();root.chmod(0o700);path=root/'receipt.json'
+            original=os.open
+            def fail_temp(name,*args,**kwargs):
+                if Path(name).name.startswith('.receipt.json.'):raise OSError('invented disk failure')
+                return original(name,*args,**kwargs)
+            with patch('native_attended_bridge.os.open',side_effect=fail_temp),self.assertRaises(OSError):publish(path,{'first':True})
+            publish(path,{'second':True});self.assertEqual(read(path),{'second':True})

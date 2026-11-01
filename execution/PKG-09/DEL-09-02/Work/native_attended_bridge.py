@@ -39,17 +39,17 @@ def publish(path, value):
     require(not os.path.lexists(path),'receipt already exists; no replacement')
     import fcntl
     lock=os.open(path.parent/'.publication.lock',os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
-    fcntl.flock(lock,fcntl.LOCK_EX)
-    if os.path.lexists(path):
-        os.close(lock);raise RuntimeError('receipt already exists; no replacement')
-    temp=path.parent/('.'+path.name+'.'+uuid.uuid4().hex)
-    fd=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+    temp=None
     try:
+        fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        require(not os.path.lexists(path),'receipt already exists; no replacement')
+        temp=path.parent/('.'+path.name+'.'+uuid.uuid4().hex)
+        fd=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
         with os.fdopen(fd,'w') as out:json.dump(value,out,sort_keys=True);out.write('\n');out.flush();os.fsync(out.fileno())
         require(not os.path.lexists(path),'receipt appeared; refuse overwrite')
         os.rename(temp,path)
     finally:
-        if temp.exists():temp.unlink()
+        if temp is not None and temp.exists():temp.unlink()
         os.close(lock)
 
 class ReceiptBridge:
