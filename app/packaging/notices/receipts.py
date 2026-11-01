@@ -4,6 +4,8 @@ import hashlib
 import importlib.util
 import json
 import os
+import posixpath
+import stat
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -44,24 +46,32 @@ def plan(repo=ROOT):
     entries.append(dict(id='objc2/LICENSE.md', url=row['url'], size_bytes=row['size_bytes'],
                         git_blob_sha1=row['git_blob_sha1'], kind='upstream-notice'))
     require(len({e['id'] for e in entries}) == len(entries), 'duplicate receipt identity')
-    # The metadata index hash is historical; current explicit association joins below
-    # bind only unchanged exact package/archive/VCS/README subjects.
     index_raw = read(repo / 'app/packaging/notices/index.json')
     index = files.parse(index_raw)
+    require(mac['index_sha256'] == files.sha(index_raw), 'metadata index identity differs')
     for association in mac['crate_associations']:
         component = next(c for c in index['components'] if c['ecosystem'] == 'cargo' and c['package'] == association['package'])
         gap = component['notice_gap']
+        repository = gap['repository']
+        require(repository.startswith('https://github.com/'), 'unsupported upstream repository locator')
+        resolved = files.relative(posixpath.normpath(posixpath.join(gap['path_in_vcs'], gap['readme_license_link'])))
+        expected_url = ('https://raw.githubusercontent.com/' + repository.removeprefix('https://github.com/').removesuffix('.git')
+                        + '/' + gap['revision'] + '/' + resolved)
+        require(association['resolved_repository_path'] == resolved and association['immutable_url'] == expected_url,
+                'upstream URL or README resolution differs')
         require(component['version'] == association['version'] and component['source']['archive_sha256'] == association['archive_sha256']
                 and gap['revision'] == association['vcs_revision'] and gap['path_in_vcs'] == association['path_in_vcs']
                 and gap['readme_sha256'] == association['readme_sha256'] and gap['readme_license_link'] == association['readme_link']
                 and association['git_blob_sha1'] == row['git_blob_sha1'] and association['size_bytes'] == row['size_bytes'],
                 'upstream association differs from current indexed gap')
+    require(row['url'] in {a['immutable_url'] for a in mac['crate_associations']}, 'proposal URL differs from associated source')
     return dict(format='notice-receipt-plan/1', metadata_sha256=sources, index_sha256=files.sha(index_raw),
                 entries=entries, associations=mac['crate_associations'])
 
 
 def verify(intake, repo=ROOT):
     intake = io.inventory.anchored(intake)
+    require(intake.is_dir(), 'existing physical intake directory required')
     selected = plan(repo)
     report = dict(format='notice-local-receipts/1', plan_sha256=files.sha(encode(selected)),
                   verified=[], missing=[], errors=[], limits=LIMITS)
@@ -107,7 +117,13 @@ def stage(intake, selection_path, output, repo=ROOT):
     output.mkdir(mode=0o700)
     io.write_new(output / 'INCOMPLETE.txt', b'Incomplete notice staging. Do not consume.\n')
     contents = {'LICENSE.md': raw, 'manifest.json': encode(manifest)}
-    for name, content in contents.items(): io.write_new(output / name, content)
+    for name, content in contents.items():
+        io.write_new(output / name, content)
+        fd = os.open(output / name, os.O_RDONLY | os.O_NOFOLLOW)
+        try:
+            os.fchmod(fd, 0o644); os.fsync(fd)
+        finally:
+            os.close(fd)
     io.write_new(output / 'COMPLETE.json', encode({'files': {n: files.sha(v) for n, v in contents.items()}}))
     fd = os.open(output, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
@@ -125,6 +141,8 @@ def check_stage(output, repo=ROOT):
     require(isinstance(marker, dict) and set(marker) == {'files'} and isinstance(marker['files'], dict)
             and set(marker['files']) == {'manifest.json', 'LICENSE.md'}, 'invalid supplement marker')
     contents = {n: read(output / n) for n in marker['files']}
+    require(all(stat.S_IMODE(os.stat(output / n, follow_symlinks=False).st_mode) == 0o644 for n in contents),
+            'bundled notice resources require mode 0644')
     require(all(files.sha(raw) == marker['files'][n] for n, raw in contents.items()), 'supplement changed')
     manifest = files.parse(contents['manifest.json']); selected = plan(repo)
     require(isinstance(manifest, dict) and set(manifest) == {'format', 'plan_sha256', 'selection_sha256', 'index_sha256', 'associations', 'limits', 'asset'}, 'invalid public manifest')

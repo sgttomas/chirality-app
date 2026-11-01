@@ -49,6 +49,41 @@ class Receipts(unittest.TestCase):
 
     def stage(self): return r.stage(self.intake, self.selection, self.output, self.repo)
 
+    def test_missing_or_linked_intake_refuses(self):
+        with self.assertRaises(ValueError): r.verify(self.root / 'absent', self.repo)
+        alias = self.root / 'alias'; alias.symlink_to(self.intake, target_is_directory=True)
+        with self.assertRaises(ValueError): r.verify(alias, self.repo)
+
+    def test_public_resource_modes_are_required(self):
+        self.stage()
+        for name in ('LICENSE.md', 'manifest.json'):
+            path = self.output / name
+            self.assertEqual(path.stat().st_mode & 0o7777, 0o644)
+            path.chmod(0o600)
+            with self.assertRaises(ValueError): r.check_stage(self.output, self.repo)
+            path.chmod(0o644)
+        self.assertEqual((self.output / 'COMPLETE.json').stat().st_mode & 0o7777, 0o600)
+
+    def test_locator_and_index_joins_refuse_drift(self):
+        path = self.repo / r.WORK / 'macos-runtime-license-metadata.json'
+        original = path.read_bytes()
+        for field in ('proposal', 'immutable_url', 'resolved_repository_path', 'index_sha256'):
+            with self.subTest(field=field):
+                value = json.loads(original)
+                if field == 'proposal': value['deduplicated_retrieval_proposal']['url'] = 'https://example.invalid/LICENSE.md'
+                elif field == 'index_sha256': value[field] = '0' * 64
+                else: value['crate_associations'][0][field] = 'invalid'
+                path.write_bytes(r.encode(value))
+                with self.assertRaises(ValueError): r.plan(self.repo)
+        path.write_bytes(original)
+        index_path = self.repo / 'app/packaging/notices/index.json'
+        index = json.loads(index_path.read_bytes())
+        next(c for c in index['components'] if c['package'] == 'objc2')['notice_gap']['repository'] = 'https://github.com/example/other'
+        index_path.write_bytes(r.encode(index))
+        value = json.loads(original); value['index_sha256'] = r.files.sha(index_path.read_bytes())
+        path.write_bytes(r.encode(value))
+        with self.assertRaises(ValueError): r.plan(self.repo)
+
     def test_real_plan_exact_proposal(self):
         p = r.plan(); self.assertEqual(len(p['entries']), 11)
         self.assertEqual(sum(e['size_bytes'] for e in p['entries']), 130005)

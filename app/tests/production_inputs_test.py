@@ -60,7 +60,9 @@ class ProductionInputs(unittest.TestCase):
     def run_plan(self, **changes):
         return module.prepare(**(self.kw | changes))
     def test_explicit_upstream_supplement_is_mapped_and_revalidated(self):
-        from notice_receipts_test import fixture, r
+        helper_spec = importlib.util.spec_from_file_location('notice_receipt_fixture', ROOT / 'app/tests/notice_receipts_test.py')
+        helper = importlib.util.module_from_spec(helper_spec); helper_spec.loader.exec_module(helper)
+        fixture, r = helper.fixture, helper.r
         intake = self.root / 'notice-intake'
         fixture(self.source, intake)
         private = self.root / 'notice-private'; private.mkdir()

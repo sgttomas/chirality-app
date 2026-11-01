@@ -20,7 +20,7 @@ python3 -B app/packaging/notices/receipts.py verify --intake /absolute/physical/
 `verify` checks each expected size and Git blob SHA-1, records SHA-256, and
 reports missing and conflicting inputs separately (exit 1 and 2 respectively;
 0 means all planned receipts match). It reads only the eleven named files.
-Links, hardlinks and special inputs refuse. Source scripts remain inert bytes;
+The intake directory must exist. Links, hardlinks and special inputs refuse. Source scripts remain inert bytes;
 references found in their eventual contents do not authorize further acquisition.
 The two already-retained Codex root texts remain under `supplier_notices/` and
 are not counted as new requested receipts. Root-text correspondence does not
@@ -55,14 +55,16 @@ python3 -B app/packaging/notices/receipts.py check-stage \
 The output parent must already exist outside the repository, intake and private
 selection directory. Staging refuses existing output, uses exclusive no-follow
 writes, retains an initial incomplete marker on interruption, and publishes a
-completion manifest last. Completion is valid only with matching files and no
+completion manifest last. The two bundled public files must have mode 0644;
+the staging directory and completion marker remain private. Completion is valid only with matching files and no
 incomplete marker. Preserve the private selection separately for review: its
 canonical digest is public, its free-form rationale and paths are not bundled.
 The public manifest names the exact Git source, archive/VCS/README associations,
 selected component subset and limits. It explicitly does **not** label the
 upstream text an archive member or alter the archive index's missing-text facts.
 This is technical provenance and explicit inclusion, not license approval or
-proof of full transitive coverage.
+proof of full transitive coverage. Any edit to either maintained metadata file
+changes the plan digest and requires renewed explicit selection/staging.
 
 For a future coordinated build, add `--upstream-notices
 /absolute/separate/new-supplement` to the existing production-input preparation

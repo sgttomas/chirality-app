@@ -227,9 +227,10 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
         account = {'tool_sha256': tool_hashes, 'jsonschema_version': importlib.metadata.version('jsonschema'),
                    'source_revision': revision, 'source_root': str(source_root), 'source_claim': 'caller-selected disposable export; hashes below, not Git export authentication',
                    'mode': mode, 'resource_inputs': resource_inputs, 'supplier': supplier, 'inspected_files': inspected,
-                   'publisher_input': publisher_ref, 'upstream_notice_supplement': supplement, 'limits': ['input preparation only; no App build or resource mapper executed',
+                   'publisher_input': publisher_ref, 'limits': ['input preparation only; no App build or resource mapper executed',
                    'stock cache selection does not qualify supplier pin', 'no signed package, S4 installed observation, OS qualification or release',
                    'four supplier notice/source associations and transitive completeness remain unresolved']}
+        if supplement is not None: account['upstream_notice_supplement'] = supplement
         completed = {}
         for name, value in [('tauri.package-inputs.conf.json', config), ('build-recipe.json', recipe), ('input-inventory.json', account)]:
             raw = (json.dumps(value, indent=2) + '\n').encode()
