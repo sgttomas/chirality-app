@@ -116,6 +116,15 @@ fn folder() -> Result<PathBuf, String> {
     #[allow(unreachable_code)]
     FOLDER.lock().unwrap().clone().ok_or_else(|| "this App installation's capture-seal key folder is not known".into())
 }
+/// Read-only enrollment root source: exactly the folder installed for ordinary
+/// capture sealing, never a path supplied by a UI/caller enrollment request.
+pub(crate) fn installed_root_for_enrollment() -> Result<PathBuf, String> {
+    let installed = folder()?;
+    if !installed.is_absolute() || installed.file_name().is_none_or(|name|name != KEY_FOLDER) {
+        return Err("this App installation's capture-seal root is unavailable or invalid".into());
+    }
+    installed.parent().map(Path::to_path_buf).ok_or_else(||"this App installation's capture-seal root is unavailable".into())
+}
 /// The key folder must be outside the project whose captures it seals or reads.
 fn folder_for(root: &Path) -> Result<PathBuf, String> {
     let folder = folder()?;

@@ -151,3 +151,31 @@ inside-lock marker/root/policy revalidation, and existing key_setup/Quit exclusi
 It specifies exact prospective runtime/native file ownership and cancellation/
 staleness/concurrency tests. It is design for a later admitted implementation,
 not a claim that the caller or native witness already exists.
+
+## Inactive provider confirmation-subject join
+
+SEAL-C-PREPARED-01 replaces the path-only entry with
+`prepare_enrollment()` and `enroll_initial(PreparedSealEnrollment)`. The
+private non-Clone/non-Deserialize intent freezes checked publisher/provider
+policy, physical AppData/ancestor/directory identity, expected absence, exact
+marker bytes/identity and committed/pending key IDs. Read-only preparation makes
+no SecItem call or state write and holds no advisory lock across confirmation.
+The consuming call refreshes authority and refuses changed policy before locks,
+then performs the reviewed absence/directory join under enrollment lock before
+fresh query and marker join under continuity lock before readback/add. Direct
+path-only/dispatch enrollment is unavailable in production.
+
+This is an inactive provider prerequisite, not the native operator action. The
+original-window, affirmative confirmation, key_setup and Quit duties remain with
+the future native host caller. Preview/attempt data cannot reconstruct authority;
+dropping an intent cancels without effects. The compiled None gate, exact signer
+inputs, original/private evidence and separate actual signed witness are unchanged.
+No profile/namespace choice, entitlement/signing change or real SecItem access
+is established by the source fixtures.
+
+The prepared provider now derives AppData from the installed capture-seal folder
+through a read-only accessor and accepts no enrollment path argument. A changed
+installed root or a post-join presence/absence change refuses before backend
+effects. No installation/legacy behavior changes. Path-based open races against
+hostile same-user mutation remain explicitly bounded; this is not a claim of
+atomic namespace integrity or completed native-caller confirmation.
