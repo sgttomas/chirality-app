@@ -12,6 +12,17 @@ IDENTIFIER='dev.chirality.app-v4.candidate.gvpud8q'
 ASSESSMENT_PATH=Path('/Users/ryan/dev/chirality-t3/scratch/app-post-i_bow2kd-assessment-l1gpyy6f/assessment.json')
 ASSESSMENT_SHA='4f0a37a714d513fc7c564b9416f399126ec5838de67b4789ad3a240322b9e9b1'
 
+POST_J_PATH=Path('/Users/ryan/dev/chirality-t3/scratch/app-post-j580-assessment-9lgnst4_/assessment.json')
+POST_J_SHA='485ae1b3d5183b667ce2ef1c3fe6630bfb5e64c6686047a4231c2bf90753ce2c'
+
+def selected_profile(path,digest):
+    require(digest in (ASSESSMENT_SHA,POST_J_SHA),'unselected future retained basis')
+    if digest==ASSESSMENT_SHA:
+        require(Path(path)==ASSESSMENT_PATH,'retained assessment location differs')
+        return VERSION,'app-attended-prepared-i_bow2kd'
+    require(Path(path)==POST_J_PATH,'retained assessment location differs')
+    return 'attended-retained-shell/v2','app-attended-prepared-j58087z7'
+
 
 def require(ok,reason):
     if not ok:raise RuntimeError(reason)
@@ -47,10 +58,10 @@ def metadata(home):
     return out
 
 
-def shape(assessment,home):
+def shape(assessment,home,prior_attempt='app-attended-prepared-i_bow2kd'):
     require(assessment.get('format')=='attended-post-attempt-metadata/v1'
             and assessment.get('candidate')==CANDIDATE and assessment.get('identifier')==IDENTIFIER
-            and assessment.get('prior_attempt')=='app-attended-prepared-i_bow2kd'
+            and assessment.get('prior_attempt')==prior_attempt
             and assessment.get('stable_metadata') is True,'retained-shell subject differs')
     namespaces=assessment['namespaces'];expected=roots(home)
     require(set(namespaces)==set(expected),'retained namespace set differs')
@@ -64,16 +75,15 @@ def shape(assessment,home):
     return namespaces
 
 
-def check_snapshot(assessment,home,current):
-    expected=shape(assessment,home)
+def check_snapshot(assessment,home,current,prior_attempt='app-attended-prepared-i_bow2kd'):
+    expected=shape(assessment,home,prior_attempt)
     require(current==expected,'exact retained namespace metadata drift; preserve/reassess')
     return expected
 
 
 def verify(path,expected_sha,executable):
     path=Path(path)
-    require(expected_sha==ASSESSMENT_SHA,'unselected future retained basis')
-    require(path==ASSESSMENT_PATH,'retained assessment location differs')
+    version,prior_attempt=selected_profile(path,expected_sha)
     require(path.is_absolute() and path.resolve()==path,'retained assessment alias')
     parent=path.parent.lstat()
     require(stat.S_ISDIR(parent.st_mode) and parent.st_uid==os.getuid()
@@ -89,7 +99,7 @@ def verify(path,expected_sha,executable):
         require(stamp(before)==stamp(os.fstat(fd))==stamp(path.lstat()),'retained assessment changed')
     finally:os.close(fd)
     assessment=json.loads(raw);home=Path.home()
-    current=metadata(home);check_snapshot(assessment,home,current)
+    current=metadata(home);check_snapshot(assessment,home,current,prior_attempt)
     files=[str(Path(value['path'])/row['relative']) for value in current.values()
            for row in value['metadata'] if stat.S_ISREG(row['mode'])]
     require(files,'retained opaque file metadata unavailable')
@@ -99,8 +109,8 @@ def verify(path,expected_sha,executable):
     ps=subprocess.run(['/bin/ps','-axo','pid=,ppid=,comm='],capture_output=True,text=True,timeout=3)
     require(ps.returncode==0 and not any(executable in line for line in ps.stdout.splitlines()),
             'candidate process observed or census unavailable')
-    check_snapshot(assessment,home,metadata(home))
-    return {'version':VERSION,'assessment_path':str(path),'assessment_sha256':expected_sha,
+    check_snapshot(assessment,home,metadata(home),prior_attempt)
+    return {'version':version,'assessment_path':str(path),'assessment_sha256':expected_sha,
         'namespaces':current,'listed_descriptors':0,'candidate_process_observed':False,
         'AppData':'absent','saved_A':None,'ledger':None,
         'limits':'Exact metadata only, no opaque contents/auth read. Current-user lsof/census are not atomic global exclusion, opaque-byte identity, checkpoint/corruption proof or supplier settlement.'}

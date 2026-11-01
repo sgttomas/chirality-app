@@ -27,7 +27,7 @@ class NativePorts:
         self.b,self.root,self.value,self.admissions=b,Path(root),value,admissions
         self.deliver,self.owner_completion,self.clock=deliver,owner_completion,clock
         self.runs={};self.controls={};self.launches=set();self.pending_launch=None
-        self.closures={};self.saved=None;self.last_readback={}
+        self.closures={};self.saved=None;self.last_readback={};self.owner_quit_requested=set()
 
     def record(self, name, value):
         self.b.write_once(self.root/(name+'.json'),value)
@@ -58,6 +58,13 @@ class NativePorts:
             require(limit>self.clock(),'attended phase has no remaining shared budget')
             run.screen.active_phase=phase;run.screen.phase_deadline=limit;run.ui_deadline=limit
         run.screen.begin_phase=begin_phase
+        run.attended_owner_foreground=True
+        run.foreground_verified=False
+        run.focus_receipt=lambda frame:self.foreground_start(label,run,frame,run.ui_deadline)
+        def no_background_activation():
+            run.bound_main(press=True)
+            return False
+        run.first_press_focus=no_background_activation
         self.runs[label]=run  # register before any launch-side failure
         try:
             run.sample(admission=True)
@@ -81,6 +88,27 @@ class NativePorts:
         ax=self.b.ax_route_support.bounded_ax(self.b.ax_support.wrap_ax(self.b.base.load_ax()))
         run.ax=ax(child.pid,run.alive,run.log);run.ax.output=phase
         self.admissions.bind_birth(label,run)
+        # Control focus is allowed only inside an already foreground App; never
+        # assign AXFrontmost or ask AppKit to activate the application.
+        def control_focus(element):
+            self._original(label)
+            require(run.foreground_verified and run.ax.attr(run.ax.app,'AXFrontmost') is True,
+                    'owner-established foreground lost before control focus')
+            run.ax.own(element)
+            true=__import__('ctypes').c_void_p.in_dll(run.ax.c,'kCFBooleanTrue').value
+            require(run.ax.a.AXUIElementSetAttributeValue(element,run.ax.string('AXFocused'),true)==0,
+                    'owned control focus refused')
+        run.ax.focus=control_focus
+        original_press,original_key=run.ax.press,run.ax.key
+        def foreground_for_input():
+            self._original(label)
+            require(run.foreground_verified and run.ax.attr(run.ax.app,'AXFrontmost') is True,
+                    'owner-established foreground lost before input')
+        def checked_press(element):
+            foreground_for_input();return original_press(element)
+        def checked_key(*args,**kwargs):
+            foreground_for_input();return original_key(*args,**kwargs)
+        run.ax.press,run.ax.key=checked_press,checked_key
         return label
 
     def _original(self, label):
@@ -89,12 +117,64 @@ class NativePorts:
         self.admissions.check_birth(label,run)
         return run
 
+    def owner_normal_quit_now(self,label,reason):
+        if label in self.owner_quit_requested:return
+        self.owner_quit_requested.add(label)
+        run=self.runs[label]
+        self.deliver({'event':'owner-normal-quit-needed-now','incarnation':label,
+            'admitted_app':Path(self.value['bundle']).name,'reason':str(reason),'fixed_end':run.resource_end,
+            'instruction':'Please normal-Quit only this exact App. If a blocking question is visible, report its actual text; do not confirm an action or guess Cancel. No completion file is required; original exit is observed.',
+            'custody':'original Child and helpers retained; no automatic activation or agent input'})
+
+    def foreground_start(self,label,run,frame,end):
+        require(not getattr(run,'foreground_offer_started',False),'foreground handoff already used')
+        run.foreground_offer_started=True
+        started=self.clock()
+        try:
+            require(frame is not None and (frame['identity'],frame['window'])==run.screen.window.initial_binding,
+                    'foreground request has no exact original frame')
+            require(self.clock()+8<end-12,'insufficient existing foreground handoff budget')
+            self.deliver({'event':'owner-foreground-needed-now','incarnation':label,
+                'admitted_app':Path(self.value['bundle']).name,'identity':frame['identity'],'window':frame['window'],
+                'capture_path':frame['path'],'capture_sha256':frame['sha256'],'fixed_end':run.resource_end,
+                'completion_deadline_monotonic':end-12,
+                'instruction':'Bring only this exact App window to the foreground without moving/resizing or using controls. After doing so reply Foreground, then return immediately to this App and leave it frontmost (typing in T3 may take focus). Delivery or intent is not completion; native focus will be rechecked.'})
+            actual=self.owner_completion(label,end-12,'foreground')
+            require(actual=='Foreground','actual new owner foreground completion unavailable')
+            run.act_record('owner-foreground-completion.json',{'incarnation':label,'actual_reply':actual,
+                'meaning':'owner report only; native foreground/readiness still unverified',
+                'handoff_elapsed_seconds':self.clock()-started})
+            require(self.clock()<end-12,'owner completion too late for preflight/capture')
+            preflight_end=min(self.clock()+5,end-7)
+            self._original(label)
+            require(run.ax.attr(run.ax.app,'AXFrontmost') is True,'original App not actually frontmost')
+            self.cleanup_original_main(run,preflight_end)
+            self.owned_menu_quit(run,preflight_end,post=False)
+            require(self.clock()+6<end,'no fresh capture allowance after foreground preflight')
+            verified=run.screen.window.capture(expected_binding=run.screen.window.initial_binding)
+            require(run.ax.attr(run.ax.app,'AXFrontmost') is True,'foreground lost during corroborating capture')
+            require(self.clock()<end,'foreground stage exceeded fixed allowance')
+            run.foreground_verified=True
+            run.activation_spent=True # automatic activation is disabled, not an observed attempt
+            run.act_record('owner-foreground-verified.json',{'incarnation':label,'identity':verified['identity'],
+                'window':verified['window'],'capture_sha256':verified['sha256'],'automatic_activation_requests':0,
+                'quit_preflight':'unique enabled original-owned menu action observed, not pressed',
+                'elapsed_seconds':self.clock()-started,'stage_deadline_monotonic':end})
+            require(self.clock()<end,'foreground evidence completed after stage deadline')
+            return verified
+        except BaseException as error:
+            run.foreground_verified=False
+            try:self.owner_normal_quit_now(label,error)
+            except BaseException as delivery_error:run.safe_log('owner_quit_delivery_failed',error=str(delivery_error))
+            raise
+
     def ordinary_setup_save(self, label, end):
         require(label=='A','setup may run only in A')
-        run=self._original(label);run.ui_deadline=min(end,run.work_end)
+        run=self._original(label);run.ui_deadline=min(end,run.work_end,self.clock()+45)
         route=run.screen.window
         route.acquire_initial_window();frame=route.capture();frame=run.focus_receipt(frame)
-        require(frame is not None,'initial App activation unavailable')
+        require(frame is not None,'attended foreground preflight unavailable')
+        run.ui_deadline=min(end,run.work_end)
         run.ax_binding=(frame['identity'],frame['window'])
         run.bound_main(press=True)
         # Reuse maintained form/input semantics, but replace its root-based
@@ -272,6 +352,7 @@ class NativePorts:
         w=self.b.screen_support.w;backend=w.d.NativeBackend()
         original_library=run.ax.a
         run.ax.a=CountedAXLibrary(original_library,end,cap=1000,clock=self.clock)
+        main_lookup_attempted=False
         try:
             identity=w.d.bound_identity(run,backend)
             require(identity==expected[0],'cleanup original Child identity changed')
@@ -281,6 +362,9 @@ class NativePorts:
             visible=[r for r in inventory if r['on_screen'] is True]
             require(len(visible)==1 and visible[0]['window_id']==window['window_id'],
                     'another owned window is visible; no blind Quit')
+            main_lookup_attempted=True
+            run.ax.attribute_errors={}
+            run.ax.last_window_observation=None
             main=run.ax.main();run.ax.own(main)
             require(self.b.ax_route_support.window_number(run.ax,main)==window['window_id'],
                     'cleanup AX main differs from original selected window')
@@ -307,12 +391,21 @@ class NativePorts:
             require(run.extra_cleanup_ready(),'helper custody changed during cleanup observation')
             require(self.clock()<end,'cleanup binding exceeded allowance')
             run.safe_log('cleanup_original_main_verified',identity=identity,window=window,
-                         qualification_binding_initialized=run.ax_binding is not None)
+                         qualification_binding_initialized=run.ax_binding is not None,
+                         counted_AX_calls=run.ax.a.calls)
             return main
+        except BaseException as error:
+            run.safe_log('cleanup_original_main_refused',error=str(error),
+                AX_main_lookup_attempted=main_lookup_attempted,
+                AX_window_observation=getattr(run.ax,'last_window_observation',None) if main_lookup_attempted else None,
+                AX_attribute_errors=getattr(run.ax,'attribute_errors',None) if main_lookup_attempted else None,
+                counted_AX_calls=run.ax.a.calls,
+                limits='Already-read owned AX observations only; no new native call or inferred missing root cause')
+            raise
         finally:
             run.ax.a=original_library;backend.close()
 
-    def owned_menu_quit(self,run,end):
+    def owned_menu_quit(self,run,end,post=True):
         """One original-App menu AXPress; no activation, Esc or Cmd-Q."""
         adapter=NativeAdapter(run.ax)
         calls=[0]
@@ -347,6 +440,11 @@ class NativePorts:
             require(len(matches)==1,'unique enabled original Quit unavailable')
             self.cleanup_original_main(run,end);target=matches[0]
             require(read(target,'AXTitle')=='Quit '+title and read(target,'AXEnabled') is True,'Quit changed')
+            if not post:
+                require('AXPress' in call(adapter.actions,target),'owned Quit action unavailable')
+                run.act_record('owned-menu-quit-preflight.json',{'title':'Quit '+title,'calls':calls[0],'pressed':False})
+                require(self.clock()<end,'Quit preflight evidence exceeded deadline')
+                return
             run.act_record('owned-menu-quit-intent.json',{'title':'Quit '+title,'calls':calls[0]})
             require(calls[0]<600 and self.clock()+.2<end,'Quit dispatch reserve exhausted')
             started=self.clock();rc=None;error=None
@@ -360,6 +458,9 @@ class NativePorts:
 
     def quit_normal(self,label,end):
         run=self._original(label);run.cleanup=True;run.ui_deadline=end
+        if getattr(run,'attended_owner_foreground',False) and not getattr(run,'foreground_verified',False):
+            self.owner_normal_quit_now(label,'foreground/readiness not established; no agent input')
+            raise RuntimeError('owner normal Quit requested; original custody retained')
         require(run.extra_cleanup_ready(),'helper custody unknown before Quit')
         if label=='B' and run.stop_requested:require(label in self.last_readback,'Stop sheet not verified dismissed')
         self.cleanup_original_main(run,min(self.clock()+5,end-40))

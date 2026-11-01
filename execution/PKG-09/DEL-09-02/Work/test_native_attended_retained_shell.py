@@ -139,3 +139,29 @@ class DispatchTests(unittest.TestCase):
                 with patch.object(retained,'verify') as verify,self.assertRaises(RuntimeError):
                     admission.preflight_a(root,admission.sha(fixture/'input-plan.json'),identify,basis)
                 verify.assert_not_called()
+
+class PostJSelectionTests(unittest.TestCase):
+    def test_profiles_bind_exact_path_digest_and_prior_attempt(self):
+        for path,digest,version,prior in [
+            (retained.ASSESSMENT_PATH,retained.ASSESSMENT_SHA,retained.VERSION,'app-attended-prepared-i_bow2kd'),
+            (retained.POST_J_PATH,retained.POST_J_SHA,'attended-retained-shell/v2','app-attended-prepared-j58087z7')]:
+            with self.subTest(version=version):
+                self.assertEqual(retained.selected_profile(path,digest),(version,prior))
+                with self.assertRaises(RuntimeError):retained.selected_profile(path.parent/'copy.json',digest)
+        with self.assertRaises(RuntimeError):retained.selected_profile(retained.POST_J_PATH,retained.ASSESSMENT_SHA)
+        with self.assertRaises(RuntimeError):retained.selected_profile(retained.ASSESSMENT_PATH,retained.POST_J_SHA)
+    def test_v2_reader_requires_j580_subject_without_relabelling_v1(self):
+        with tempfile.TemporaryDirectory() as d:
+            home=Path(d).resolve();value=Tests().fixture(home);path=home/'assessment.json'
+            for prior,accepted in [('app-attended-prepared-i_bow2kd',False),('app-attended-prepared-j58087z7',True)]:
+                value['prior_attempt']=prior;raw=json.dumps(value).encode()
+                path.write_bytes(raw);path.chmod(0o600);digest=hashlib.sha256(raw).hexdigest()
+                def commands(argv,**kw):return N(returncode=1 if argv[0].endswith('lsof') else 0,stdout='',stderr='')
+                with patch.object(retained,'POST_J_PATH',path),patch.object(retained,'POST_J_SHA',digest),patch.object(Path,'home',return_value=home),patch.object(retained.subprocess,'run',side_effect=commands) as run:
+                    if accepted:
+                        result=retained.verify(path,digest,'/invented/App')
+                        self.assertEqual(result['version'],'attended-retained-shell/v2')
+                        self.assertIsNone(result['saved_A']);self.assertIsNone(result['ledger'])
+                    else:
+                        with self.assertRaisesRegex(RuntimeError,'subject differs'):retained.verify(path,digest,'/invented/App')
+                        run.assert_not_called()
