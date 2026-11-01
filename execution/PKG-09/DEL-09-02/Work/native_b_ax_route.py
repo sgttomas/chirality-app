@@ -143,8 +143,14 @@ def make_run(b):
             require(set(trace)=={'activation','observations'} and isinstance(trace['observations'],list)
                     and 1<=len(trace['observations'])<=16 and trace['observations'][-1].get('frontmost') is True,
                     'successful focus receipt unavailable')
+            outcome=w.private_json(self.root/f'window-helper-{sequence:03d}.result.json',16384)
+            require(outcome.get('action')=='focus' and type(outcome.get('sequence')) is int
+                    and outcome['sequence']==sequence and outcome.get('posted_or_focus_observed') is True,
+                    'focus result receipt binding differs')
             activation=trace['activation']
-            if activation is None:self.activation_spent=False
+            if activation is None:
+                require(len(trace['observations'])==1,'focus no-op receipt has unexpected observations')
+                self.activation_spent=False
             else:
                 require(isinstance(activation,dict) and activation.get('receiver_pid')==frame['identity']['pid']
                         and activation.get('options')==0 and activation.get('activation_policy') in (0,1)
@@ -152,7 +158,8 @@ def make_run(b):
             return result
         def first_press_focus(self):
             if self.ax.attr(self.ax.app,'AXFrontmost') is True:return False
-            require(not self.activation_spent and not self.first_press_focus_used and not self.ax_actions
+            require(self.screen.active_phase=='ready' and not self.cleanup
+                    and not self.activation_spent and not self.first_press_focus_used and not self.ax_actions
                     and not self.stop_requested,'frontmost lost; no unused first-press activation budget')
             self.first_press_focus_used=True;self.activation_spent=True
             self.bound_main() # read-only identity/window revalidation, no replacement

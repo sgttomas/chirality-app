@@ -43,7 +43,11 @@ class Route(unittest.TestCase):
   patch.object(w.d,'NativeBackend',return_value=SimpleNamespace(close=Mock())).start()
   patch.object(w.d,'bound_identity',return_value=self.identity).start()
   patch.object(w,'select_main',return_value=self.window).start()
-  self.focus_receipt=patch.object(w,'private_json',return_value={'activation':None,'observations':[{'frontmost':True}]}).start()
+  self.focus_receipt=Mock(return_value={'activation':None,'observations':[{'frontmost':True}]});self.focus_result_override=None
+  def private_json(path,limit):
+   if path.name.endswith('.focus.json'):return self.focus_receipt()
+   return self.focus_result_override if self.focus_result_override is not None else {'action':'focus','sequence':int(path.name.split('-')[-1].split('.')[0]),'posted_or_focus_observed':True}
+  self.json_reader=patch.object(w,'private_json',side_effect=private_json).start()
   patch.object(w,'owned_inventory',return_value=[self.window]).start()
   patch.object(w,'select_modal',side_effect=lambda *args:self.modal if self.modal_open else (_ for _ in ()).throw(w.WindowUnavailable('no modal'))).start()
   patch.object(m,'window_number',side_effect=lambda ax,e:self.mapping[e]).start()
@@ -235,18 +239,19 @@ class Route(unittest.TestCase):
  def test_focus_receipt_is_for_the_exact_next_helper_operation(self):
   self.window_route.sequence=11
   self.run.focus_receipt(self.frame)
-  self.focus_receipt.assert_called_once_with(self.root/'window-helper-012.focus.json',32768)
+  self.json_reader.assert_any_call(self.root/'window-helper-012.focus.json',32768)
+  self.json_reader.assert_any_call(self.root/'window-helper-012.result.json',16384)
   self.assertFalse(self.run.activation_spent)
   self.focus_receipt.side_effect=FileNotFoundError('missing trace')
   with self.assertRaises(FileNotFoundError):self.run.focus_receipt(self.frame)
   self.assertTrue(self.run.activation_spent)
  def test_changed_first_press_capture_never_activates(self):
-  self.run.ax_binding=(self.identity,self.window);self.run.activation_spent=False;self.front=False
+  self.run.ax_binding=(self.identity,self.window);self.run.activation_spent=False;self.front=False;self.run.screen.active_phase='ready'
   self.window_route.capture.return_value={**self.frame,'window':{**self.window,'window_id':99}}
   with self.assertRaisesRegex(RuntimeError,'capture changed binding'):self.run.first_press_focus()
   self.window_route.input.assert_not_called();self.assertTrue(self.run.activation_spent)
  def test_sent_or_unknown_activation_never_retries(self):
-  self.run.ax_binding=(self.identity,self.window);self.front=False
+  self.run.ax_binding=(self.identity,self.window);self.front=False;self.run.screen.active_phase='ready'
   for spent,used,actions in ((True,False,set()),(False,True,set()),(False,False,{'Host diagnostics'})):
    self.run.activation_spent=spent;self.run.first_press_focus_used=used;self.run.ax_actions=actions
    with self.assertRaisesRegex(RuntimeError,'no unused'):self.run.first_press_focus()
@@ -257,7 +262,7 @@ class Route(unittest.TestCase):
    with self.assertRaises(RuntimeError):self.run.focus_receipt(self.frame)
    self.assertTrue(self.run.activation_spent)
  def test_first_press_focus_discards_pre_activation_control_reference(self):
-  self.run.ax_binding=(self.identity,self.window);self.run.activation_spent=False;self.front=False
+  self.run.ax_binding=(self.identity,self.window);self.run.activation_spent=False;self.front=False;self.run.screen.active_phase='ready'
   original=self.ax.walk
   def focus(action,frame):
    self.front=True;self.nodes[44]=self.nodes.pop(4)
@@ -271,6 +276,31 @@ class Route(unittest.TestCase):
   self.ax.press=press
   self.run.open_disclosure('Host diagnostics')
   self.assertEqual(self.pressed,[44])
+ def test_first_press_activation_refuses_cleanup_and_stop_phase_disclosures(self):
+  self.run.ax_binding=(self.identity,self.window);self.run.activation_spent=False;self.front=False
+  for cleanup,phase in ((True,'cleanup-source'),(True,'stop'),(False,'stop'),(True,'ready')):
+   self.run.cleanup=cleanup;self.run.screen.active_phase=phase
+   with self.assertRaisesRegex(RuntimeError,'no unused'):self.run.open_disclosure('Host diagnostics')
+  self.window_route.input.assert_not_called();self.assertEqual(self.pressed,[])
+ def test_second_helper_noop_still_consumes_boundary_attempt(self):
+  self.run.observe_ready();self.run.ax_actions.clear();self.pressed.clear();self.nodes[4]['AXValue']=False;self.front=False
+  def focus(action,frame):self.front=True;return self.frame
+  self.window_route.input.side_effect=focus
+  self.run.open_disclosure('Host diagnostics')
+  self.assertTrue(self.run.activation_spent);self.assertTrue(self.run.first_press_focus_used)
+  self.assertEqual(self.window_route.input.call_count,2)
+  self.front=False
+  with self.assertRaisesRegex(RuntimeError,'no unused'):self.run.first_press_focus()
+  self.assertEqual(self.window_route.input.call_count,2)
+ def test_focus_result_and_noop_shape_are_required(self):
+  for result in ({'action':'click','sequence':1,'posted_or_focus_observed':True},{'action':'focus','sequence':99,'posted_or_focus_observed':True},{'action':'focus','sequence':1,'posted_or_focus_observed':False}):
+   self.focus_result_override=result
+   with self.assertRaisesRegex(RuntimeError,'result receipt'):self.run.focus_receipt(self.frame)
+   self.assertTrue(self.run.activation_spent)
+  self.focus_result_override=None
+  self.focus_receipt.return_value={'activation':None,'observations':[{'frontmost':False},{'frontmost':True}]}
+  with self.assertRaisesRegex(RuntimeError,'no-op receipt'):self.run.focus_receipt(self.frame)
+  self.assertTrue(self.run.activation_spent)
  def test_guard_phase_deadline_remains_enforced(self):
   self.run.ui_deadline=time.monotonic()-1
   with patch.object(b.Run,'alive'):
