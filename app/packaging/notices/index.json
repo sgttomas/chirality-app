@@ -1,13 +1,13 @@
 {
-  "format": "chirality.app.direct-runtime-notices/v1",
-  "scope": "App MIT and direct runtime dependencies only; not a license election, complete dependency coverage or release/compliance finding",
+  "format": "chirality.app.direct-runtime-notices/v2",
+  "scope": "App MIT and direct runtime dependencies applicable to macOS arm64 (common and explicitly selected target declarations); not complete transitive coverage, license election or release/compliance approval",
   "source_basis": {
-    "app_revision": "0a1fc9becb14a5d77ff85586e458d56d6773e457",
+    "app_revision": "7fdb470b9bedf3bea9f4369672dd24524a6c799d",
     "manifest_sha256": {
       "app/package.json": "c2d6936e8f9c829165d1eedc0e2e81481dd481c99dbe4de278ecf333853497ac",
       "app/package-lock.json": "1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa",
-      "app/src-tauri/Cargo.toml": "82e1347af748e322b7699c39577598dbf7dbbaeee9cae5eb9abfc90c2a6ecf2d",
-      "app/src-tauri/Cargo.lock": "8d478b4d5edcd13edd3deb266feadcac47276bf866c5dfcb8805090449e87df8"
+      "app/src-tauri/Cargo.toml": "cbf249697099c0999dade9ec3fbeeb76ab6515f9c838c1bcdc7a8f9bd2ef7183",
+      "app/src-tauri/Cargo.lock": "c21ce295ae7a31ff136501df5c6ba93b95c6b881b9e2d090c7bb36016ac85ca2"
     }
   },
   "components": [
@@ -19,7 +19,7 @@
       "source": {
         "kind": "git",
         "repository": "https://github.com/sgttomas/chirality-app",
-        "revision": "0a1fc9becb14a5d77ff85586e458d56d6773e457",
+        "revision": "7fdb470b9bedf3bea9f4369672dd24524a6c799d",
         "blob": "6975876e98b3dc9a457ef04bdf31b4f021de2b05"
       },
       "notices": [
@@ -30,7 +30,11 @@
           "size_bytes": 1067,
           "sha256": "495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "cargo",
@@ -54,7 +58,11 @@
           "size_bytes": 1089,
           "sha256": "c4f10f55904bdb9f27d3fbf94c354926d6cfe8b982276e556238c258941b243b"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "cargo",
@@ -85,7 +93,11 @@
           "size_bytes": 1090,
           "sha256": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "cargo",
@@ -123,7 +135,11 @@
           "size_bytes": 1089,
           "sha256": "89ff9689dcf9dd53968785d05a26f7898bb169dbfcada8d032b3e68cf0d55607"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "cargo",
@@ -161,7 +177,11 @@
           "size_bytes": 10174,
           "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "cargo",
@@ -192,7 +212,11 @@
           "size_bytes": 1023,
           "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "cargo",
@@ -223,7 +247,11 @@
           "size_bytes": 1023,
           "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "cargo",
@@ -254,7 +282,11 @@
           "size_bytes": 1138,
           "sha256": "b4eb00df6e2a4d22518fcaa6a2b4646f249b3a3c9814509b22bd2091f1392ff1"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "cargo",
@@ -285,7 +317,11 @@
           "size_bytes": 1066,
           "sha256": "123a331b5dbf04c30097fa43b8f858bc85df671fe776de498d01f3d6b7c1f69e"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "cargo",
@@ -316,7 +352,11 @@
           "size_bytes": 1157,
           "sha256": "436bc5a105d8e57dcd8778730f3754f7bf39c14d2f530e4cde4bd2d17a83ec3d"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "cargo",
@@ -347,7 +387,11 @@
           "size_bytes": 1130,
           "sha256": "523a42c25d245dde9c015f882cec7f4555aad883382a6cf19b4b7d9b2cd5419b"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "cargo",
@@ -378,7 +422,11 @@
           "size_bytes": 1062,
           "sha256": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "cargo",
@@ -402,7 +450,11 @@
           "size_bytes": 1075,
           "sha256": "117829c3ca21efb132d81a44b55363d395ab8eea18526873bc828da4c0e5f038"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "cargo",
@@ -426,7 +478,11 @@
           "size_bytes": 1072,
           "sha256": "f59ba65550f2a5adff98ec6478d783402c8e0a3eb515025c0b3438f3d30dc39e"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "npm",
@@ -457,7 +513,11 @@
           "size_bytes": 1090,
           "sha256": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "npm",
@@ -481,7 +541,11 @@
           "size_bytes": 1088,
           "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
         }
-      ]
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
     },
     {
       "ecosystem": "npm",
@@ -505,6 +569,160 @@
           "size_bytes": 1088,
           "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
         }
+      ],
+      "declaration_targets": [
+        "all"
+      ],
+      "notice_gap": null
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "objc2",
+      "version": "0.6.4",
+      "declared_license": "MIT",
+      "source": {
+        "kind": "cargo",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "objc2-0.6.4.crate",
+        "archive_sha256": "3a12a8ed07aefc768292f076dc3ac8c48f3781c8f2d5851dd3d98950e8c5a89f",
+        "archive_size_bytes": 275200,
+        "manifest_member": "objc2-0.6.4/Cargo.toml",
+        "manifest_sha256": "74bfa13bee2c7362432f22886f9749743c78d32eed5916e26a06ff56ae84c901"
+      },
+      "notices": [],
+      "notice_gap": {
+        "reason": "locked_archive_contains_no_root_notice_text",
+        "repository": "https://github.com/madsmtm/objc2",
+        "revision": "8852b424193ca41602281b3d7540d7c8ed51e49a",
+        "path_in_vcs": "crates/objc2",
+        "vcs_info_member": "objc2-0.6.4/.cargo_vcs_info.json",
+        "vcs_info_sha256": "45343a7cb8cebbb23c2804f99a14f01f6618ce0956dba62f387fb9ffaf00eff7",
+        "readme_member": "objc2-0.6.4/README.md",
+        "readme_sha256": "5da56f1508a87b982a23e6bad2ff09b329f7fcf9181ea15eac17788f8d1c6824",
+        "readme_license_link": "../../LICENSE.md"
+      },
+      "declaration_targets": [
+        "cfg(target_os = \"macos\")"
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "objc2-app-kit",
+      "version": "0.3.2",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "source": {
+        "kind": "cargo",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "objc2-app-kit-0.3.2.crate",
+        "archive_sha256": "d49e936b501e5c5bf01fda3a9452ff86dc3ea98ad5f283e1455153142d97518c",
+        "archive_size_bytes": 531744,
+        "manifest_member": "objc2-app-kit-0.3.2/Cargo.toml",
+        "manifest_sha256": "11a761a52774ed9738fb854ba3eecb48fa360b6ce43dddc00c338346853717b5"
+      },
+      "notices": [],
+      "notice_gap": {
+        "reason": "locked_archive_contains_no_root_notice_text",
+        "repository": "https://github.com/madsmtm/objc2",
+        "revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+        "path_in_vcs": "framework-crates/objc2-app-kit",
+        "vcs_info_member": "objc2-app-kit-0.3.2/.cargo_vcs_info.json",
+        "vcs_info_sha256": "07762c2a438c287ac124300928c9da0f96cefc1932ff8cadac13716fd1e195eb",
+        "readme_member": "objc2-app-kit-0.3.2/README.md",
+        "readme_sha256": "da145d375986071fdf836604db8c6e99438bb484ad51b8775455635e36fc2ce3",
+        "readme_license_link": "../../LICENSE.md"
+      },
+      "declaration_targets": [
+        "cfg(target_os = \"macos\")"
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "objc2-foundation",
+      "version": "0.3.2",
+      "declared_license": "MIT",
+      "source": {
+        "kind": "cargo",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "objc2-foundation-0.3.2.crate",
+        "archive_sha256": "e3e0adef53c21f888deb4fa59fc59f7eb17404926ee8a6f59f5df0fd7f9f3272",
+        "archive_size_bytes": 345384,
+        "manifest_member": "objc2-foundation-0.3.2/Cargo.toml",
+        "manifest_sha256": "eabbe24e325c7b474c6f5de2e955f4f942ecd385608e4b6609b89a1f68ef39cc"
+      },
+      "notices": [],
+      "notice_gap": {
+        "reason": "locked_archive_contains_no_root_notice_text",
+        "repository": "https://github.com/madsmtm/objc2",
+        "revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+        "path_in_vcs": "framework-crates/objc2-foundation",
+        "vcs_info_member": "objc2-foundation-0.3.2/.cargo_vcs_info.json",
+        "vcs_info_sha256": "de34f3c84d7cb1cafcedb4e83b7efdd64047872566827477b954f8a853536bb1",
+        "readme_member": "objc2-foundation-0.3.2/README.md",
+        "readme_sha256": "50be6f8e1214bd644cdc32c9610278c004205cdddbe2aaed7887d8bad48dd6c5",
+        "readme_license_link": "../../LICENSE.md"
+      },
+      "declaration_targets": [
+        "cfg(target_os = \"macos\")"
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "block2",
+      "version": "0.6.2",
+      "declared_license": "MIT",
+      "source": {
+        "kind": "cargo",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "block2-0.6.2.crate",
+        "archive_sha256": "cdeb9d870516001442e364c5220d3574d2da8dc765554b4a617230d33fa58ef5",
+        "archive_size_bytes": 34505,
+        "manifest_member": "block2-0.6.2/Cargo.toml",
+        "manifest_sha256": "e325c51f01145af3e11f2ee5ce7c47f10697d936c1d90b9ee81a0cf4f700f6d7"
+      },
+      "notices": [],
+      "notice_gap": {
+        "reason": "locked_archive_contains_no_root_notice_text",
+        "repository": "https://github.com/madsmtm/objc2",
+        "revision": "b4167b582b2f75f9a1be75495c41b765344fd03c",
+        "path_in_vcs": "crates/block2",
+        "vcs_info_member": "block2-0.6.2/.cargo_vcs_info.json",
+        "vcs_info_sha256": "5b87885cad87999d141e83cc8af4b073192f584b2b92cea77e2d87636621a264",
+        "readme_member": "block2-0.6.2/README.md",
+        "readme_sha256": "99073a83cfe6ee090546e3063f41251f7309fe2a017c4add8494e4ad7990d058",
+        "readme_license_link": "../../LICENSE.md"
+      },
+      "declaration_targets": [
+        "cfg(target_os = \"macos\")"
+      ]
+    },
+    {
+      "ecosystem": "cargo",
+      "package": "dispatch2",
+      "version": "0.3.1",
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "source": {
+        "kind": "cargo",
+        "registry": "registry+https://github.com/rust-lang/crates.io-index",
+        "archive_filename": "dispatch2-0.3.1.crate",
+        "archive_sha256": "1e0e367e4e7da84520dedcac1901e4da967309406d1e51017ae1abfb97adbd38",
+        "archive_size_bytes": 55299,
+        "manifest_member": "dispatch2-0.3.1/Cargo.toml",
+        "manifest_sha256": "f246cf8997c346fdcabb8925ad5be967f397fd8b92630ef7bcc9bdce5d33f775"
+      },
+      "notices": [],
+      "notice_gap": {
+        "reason": "locked_archive_contains_no_root_notice_text",
+        "repository": "https://github.com/madsmtm/objc2",
+        "revision": "8852b424193ca41602281b3d7540d7c8ed51e49a",
+        "path_in_vcs": "crates/dispatch2",
+        "vcs_info_member": "dispatch2-0.3.1/.cargo_vcs_info.json",
+        "vcs_info_sha256": "26f5e6d699ba3ce13b8eea253ad7a7f7feb9345e9da3c01bb9b9bd911a6a7dba",
+        "readme_member": "dispatch2-0.3.1/README.md",
+        "readme_sha256": "eba8f5b9bc021bfaaf84478017baf838a92d56a47e691a8b8989aae1210c05d7",
+        "readme_license_link": "../../LICENSE.md"
+      },
+      "declaration_targets": [
+        "cfg(target_os = \"macos\")"
       ]
     }
   ],
@@ -555,5 +773,6 @@
     "Direct runtime dependencies only; transitive and bundled SQLite coverage unverified. Build/dev-only packages excluded.",
     "Codex main/code-mode-host/rg/zsh exact notice inputs are unavailable in inspected local inputs; no substitute texts supplied.",
     "Optional resource preparation only: no new built, shipped, signed, installed or qualified candidate; sign-in evidence and owner distribution decisions are separate."
-  ]
+  ],
+  "target": "aarch64-apple-darwin"
 }
