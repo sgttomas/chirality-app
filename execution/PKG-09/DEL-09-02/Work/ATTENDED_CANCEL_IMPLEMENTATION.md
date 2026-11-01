@@ -78,3 +78,56 @@ the ordinary product path before this candidate can reach source-bound ready.
 No direct DB seeding or auth read is authorized/implemented. This is an actual
 remaining preparation dependency, not an additional owner permission request
 for the already authorized offline work.
+
+## Selected two-incarnation sequence and actual preparation
+
+Agent0 explicitly selected the required setup relaunch within ONE attended
+witness and ONE295s slot allowance: A native setup/save→normal Quit and fully
+closed original Child/helpers/release→fresh B state admission→B launch/actual
+ready→one Stop→Cancel→normal Quit/closure. No third launch or retry is allowed.
+`native_attended_sequence.py` implements this sequence over explicit keeper
+ports and is exercised end-to-end with invented ports. It consumes Quit and
+Stop intents before dispatch, blocks B after failed A closure/readmission,
+refuses reused incarnation/release/helper identities, and closes before Stop
+if the160s combined setup/readiness cutoff is missed. No Cancel observation is
+promoted to Stop/LT23 qualification. Failed question/capture evidence is retained
+while independent Cancel remains usable. Unsupported binding immediately asks
+for the selected owner Cancel fallback; dismissal/source must still be read.
+The actual keeper-port adapter is not yet complete; this is not a runnable
+native launch entrypoint or an admitted execution root.
+
+Ten sequence tests cover normal two-incarnation flow, A closure failure,
+fresh admission failure, both cutoff cases, failed question with valid Cancel,
+unsupported binding, uncertain Cancel/no repeat, failed dismissal/no Quit and
+reused Child identity. Two additional admission tests require precisely three
+initial session-start/empty-Quit/normal-end rows with original A session, no
+previous session, no work/Stop requests; extra/wrong rows refuse. Actual B
+readmission uses ro/immutable/query_only SQLite, typed schema validation,
+no App sidecars and current-user descriptor checks plus stable before/after
+hash/stat. It does not read supplier contents or accept arbitrary future rows.
+
+Private exact invented input plan now exists under the new build's
+`witness-inputs/input-plan.json`, SHA256
+`7964cfea36437b5da93efcfa701115f0c6300b87db514484ab999d717d9253a3`.
+It binds candidate/source/bundle/executable, four invented source paths, closed
+file hashes, two-launch limit,295s total and135s Stop-entry reserve. It records
+saved_A=null, ledger=null, launch_ready=false. Only ordinary setup may create
+those state artifacts. Empty account/fallback Codex fixtures contain no auth;
+no ~/.codex read is needed. Fresh full bundle inventory and the three absent
+namespace checks passed in `candidate-A-offline-preflight.json`; that record
+explicitly grants no launch authority and no B admission.
+
+Budget: total295s; Stop requires135s remaining, so all setup/first normal exit/
+fresh-state admission/second launch/readiness/preflight must finish before160s.
+There is no source-backed shortcut around next-launch-only setup. No native
+measurement establishes that this first candidate will fit. Crossing the
+cutoff forbids Stop and requests only known-safe current-child Quit within the
+remaining reserve. Native timing and actual new-state row shape may refuse;
+those outcomes are preserved rather than patched by guessing or resetting.
+
+Review separation: the retained-sheet component review was dispatched at
+38b755f2. The two-incarnation custody/readmission addition requires its own
+meaningful scrutiny before live use; that earlier review is not claimed to
+cover it. Native keeper-port integration, source readback/parent report delivery,
+actual complete input-policy admission and shared start coordination remain
+open. No owner attendance or live interval has been requested.
