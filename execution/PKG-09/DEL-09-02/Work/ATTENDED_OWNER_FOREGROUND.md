@@ -101,3 +101,59 @@ read-only foreground polling inside the unchanged12s reserve and immediately
 requests owner normal Quit if agent cleanup/menu dispatch refuses after a
 verified gate. It preserves the original refusal and records delivery failure.
 Launch-installed override and manager Foreground/no-offer fixtures were added.
+
+## Frozen offline preparation and review return
+
+Independent review subject:2937f2805ce7e1d428694f550501229cc497f0f6.
+Review repairs:9efab0b3; integration of actual main3b72b86d produced
+controller source5e8a0a53a49db431a7f96553cb6fb40f6f42141a. Review found no
+blocking defect; its two medium findings and four lower findings are addressed
+by bounded foreground observations, immediate post-gate cleanup recovery,
+bounded redelivery, launch override tests, manager offer tests and corrected
+wording. No second review of unchanged product confirmation or provider code.
+
+The88 attended Python tests and10 manager cases pass; the earlier38 AX-route
+checks passed and that route has not changed in the repairs. Initial CI exit4
+was a missing `tests/notice_receipts_test.py`: current-main workflow requested
+it against the old PR source base. The normal main merge brings the file and
+provider implementation together; fresh exact-head CI is still required.
+
+Private unrun root: `app-attended-prepared-el3pvau4` under shared scratch.
+Run:`eb963bd2457d4621906863558ea0e011`.
+Prepared SHA256:`488140530b8ebf8df578f65848d439fe6b7230089c24af11781ccee72e1f3f94`.
+Its read-only check passes37 dependency hashes and8 staged artifacts. The actual
+candidate/inventory and exact retained v2 metadata were rechecked by prepare;
+A remains prospective and B is not admitted. Product source remains1f67 and
+candidate1f67d3822b-8c83d74ae3ce, irrespective of controller/main revisions.
+
+Separate consumed simulation root:`app-attended-prepared-rw3aj_tv`, prepared
+SHA256:`d8ff60e45ccf991c8bc567be988c5e3f1268e8e7876fdefc236ad8d038464d34`.
+All6 entry scenarios passed. Actual production-emitted A/B admission was read
+by the actual staged helper parser, for A main, B main and B modal formats,
+with a sentinel refusing entry to the native backend. B's generation home is
+invented for format validation; this is not actual B state admission.
+No App launch or native backend invocation occurred.
+
+Private report and guarded invocation are in
+`app-post-j580-assessment-9lgnst4_/foreground-preparation-result.json` and
+`coordinated-manager-el3pvau4.js`. Invocation SHA256:
+`32ea435995cd3513b021f92406cc142ccdfd83a0fdf0e54d4042bda38316eb64`.
+It refuses unchanged start/resource placeholders and checks prepared and manager
+bytes before wrapper admission. Do not execute Python directly or rearm old roots.
+
+Parent obligations before any run: integrate/check the exact source; obtain
+fresh attendance, actual SWB release and concurrence, and announce both launches
+and the foreground handoffs plus one Stop→Cancel. Fill only actual start and
+resource message references. At each actual foreground offer, relay the exact
+candidate/incarnation request; publish completion only after a new actual owner
+Foreground response using the event's bound command and actual message ID.
+Transport acceptance is not owner action or native focus proof. Relay any actual
+Cancel offer separately; never publish Cancel for generic held or normal-Quit
+recovery. Report acquisition, conflict, refusal/held and final closure promptly.
+Owner message/start IDs retain manager-attestation limits. Original custody
+continues through late/unknown closure; no new attempt, forced exit or rearm.
+
+Remaining native limits: owner/parent latency, AX layout/menu availability,
+actual focus and cleanup effectiveness, setup/readiness and total timing fit.
+The unchanged295s/135s budgets are refusal limits, not guarantees. Resource
+snapshot is not acquisition. No fresh attendance or live authority is claimed.
