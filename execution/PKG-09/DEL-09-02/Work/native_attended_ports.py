@@ -58,9 +58,9 @@ class NativePorts:
             require(limit>self.clock(),'attended phase has no remaining shared budget')
             run.screen.active_phase=phase;run.screen.phase_deadline=limit;run.ui_deadline=limit
         run.screen.begin_phase=begin_phase
-        run.attended_owner_foreground=True
+        run.autonomous_owned_focus=True
         run.foreground_verified=False
-        run.focus_receipt=lambda frame:self.foreground_start(label,run,frame,run.ui_deadline)
+        run.focus_receipt=lambda frame:self.autonomous_start(label,run,frame,run.ui_deadline)
         def no_background_activation():
             run.bound_main(press=True)
             return False
@@ -93,7 +93,7 @@ class NativePorts:
         def control_focus(element):
             self._original(label)
             require(run.foreground_verified and run.ax.attr(run.ax.app,'AXFrontmost') is True,
-                    'owner-established foreground lost before control focus')
+                    'verified original foreground lost before control focus')
             run.ax.own(element)
             true=__import__('ctypes').c_void_p.in_dll(run.ax.c,'kCFBooleanTrue').value
             require(run.ax.a.AXUIElementSetAttributeValue(element,run.ax.string('AXFocused'),true)==0,
@@ -103,7 +103,7 @@ class NativePorts:
         def foreground_for_input():
             self._original(label)
             require(run.foreground_verified and run.ax.attr(run.ax.app,'AXFrontmost') is True,
-                    'owner-established foreground lost before input')
+                    'verified original foreground lost before input')
         def checked_press(element):
             foreground_for_input();return original_press(element)
         def checked_key(*args,**kwargs):
@@ -188,6 +188,35 @@ class NativePorts:
             try:self.owner_normal_quit_now(label,error)
             except BaseException as delivery_error:run.safe_log('owner_quit_delivery_failed',error=str(delivery_error))
             raise
+
+    def autonomous_start(self,label,run,frame,end):
+        require(not getattr(run,'autonomous_focus_started',False),'autonomous focus already consumed')
+        run.autonomous_focus_started=True
+        run.foreground_verified=False
+        require(frame is not None and (frame['identity'],frame['window'])==run.screen.window.initial_binding,
+                'autonomous focus has no exact original frame')
+        self._original(label)
+        require(self.clock()+18<end,'autonomous helper/preflight/capture reserve unavailable')
+        # This invokes the pinned isolated helper once; no chat receipt, AppKit
+        # fallback or automatic mechanism cycling. Its returned frame is fresh.
+        run.activation_spent=True
+        seq=run.screen.window.sequence+1
+        verified=run.screen.window.input('focus',frame)
+        trace=self.b.screen_support.w.private_json(run.root/f'window-helper-{seq:03d}.focus.json',32768)
+        require(trace.get('mechanism')=='AXRaise+AXFrontmost' and not trace.get('error')
+                and trace.get('observations') and trace['observations'][-1]['frontmost'] is True,
+                'autonomous focus trace unavailable')
+        require(verified is not None and (verified['identity'],verified['window'])==run.screen.window.initial_binding,
+                'autonomous focus fresh capture differs')
+        self.cleanup_original_main(run,min(self.clock()+5,end))
+        self.owned_menu_quit(run,min(self.clock()+5,end),post=False)
+        require(run.ax.attr(run.ax.app,'AXFrontmost') is True,'foreground lost before setup/readiness')
+        require(self.clock()<end,'autonomous focus gate exceeded shared allowance')
+        run.act_record('autonomous-focus-verified.json',{'identity':verified['identity'],'window':verified['window'],
+            'capture_sha256':verified['sha256'],'incarnation':label,'owner_completion_required':False,
+            'mechanism':'AXRaise+AXFrontmost','native_helper_trace':trace})
+        run.foreground_verified=True
+        return verified
 
     def ordinary_setup_save(self, label, end):
         require(label=='A','setup may run only in A')
@@ -479,7 +508,7 @@ class NativePorts:
 
     def quit_normal(self,label,end):
         run=self._original(label);run.cleanup=True;run.ui_deadline=end
-        if getattr(run,'attended_owner_foreground',False) and not getattr(run,'foreground_verified',False):
+        if not getattr(run,'autonomous_owned_focus',False) and getattr(run,'attended_owner_foreground',False) and not getattr(run,'foreground_verified',False):
             self.owner_normal_quit_now(label,'foreground/readiness not established; no agent input')
             raise RuntimeError('owner normal Quit requested; original custody retained')
         try:

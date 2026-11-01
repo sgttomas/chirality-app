@@ -15,7 +15,13 @@ ASSESSMENT_SHA='4f0a37a714d513fc7c564b9416f399126ec5838de67b4789ad3a240322b9e9b1
 POST_J_PATH=Path('/Users/ryan/dev/chirality-t3/scratch/app-post-j580-assessment-9lgnst4_/assessment.json')
 POST_J_SHA='485ae1b3d5183b667ce2ef1c3fe6630bfb5e64c6686047a4231c2bf90753ce2c'
 
+POST_EL3_PATH=Path('/Users/ryan/dev/chirality-t3/scratch/app-post-el3-assessment-y2ps41jf/assessment.json')
+POST_EL3_SHA='fdec6b5490858f043199513ed019e9e936f8c5ec9517f835f75c666230452291'
+
 def selected_profile(path,digest):
+    if digest==POST_EL3_SHA:
+        require(Path(path)==POST_EL3_PATH,'retained assessment location differs')
+        return 'attended-retained-shell/v3','app-attended-prepared-el3pvau4'
     require(digest in (ASSESSMENT_SHA,POST_J_SHA),'unselected future retained basis')
     if digest==ASSESSMENT_SHA:
         require(Path(path)==ASSESSMENT_PATH,'retained assessment location differs')

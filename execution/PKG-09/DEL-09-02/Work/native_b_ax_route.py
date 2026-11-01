@@ -219,12 +219,13 @@ def make_run(b):
         def observe_ready(self,qualification=True):
             try:
                 if qualification:
-                    self.ui_deadline=min(time.monotonic()+(45 if getattr(self,'attended_owner_foreground',False) else 15),self.work_end)
+                    self.ui_deadline=min(time.monotonic()+(45 if (getattr(self,'attended_owner_foreground',False) or getattr(self,'autonomous_owned_focus',False)) else 15),self.work_end)
                     contract=CONTRACT
-                    if getattr(self,'attended_owner_foreground',False):
-                        contract={**CONTRACT,'version':'chirality.owned-AX-journey/attended-foreground-v1',
-                            'activation_request_limit':0,'first_press_focus':'read-only original foreground check; no automatic activation',
-                            'commands':['owner-foreground-handoff',*[name for name in CONTRACT['commands'] if name not in
+                    if (getattr(self,'attended_owner_foreground',False) or getattr(self,'autonomous_owned_focus',False)):
+                        autonomous=getattr(self,'autonomous_owned_focus',False)
+                        contract={**CONTRACT,'version':'chirality.owned-AX-journey/autonomous-focus-v1' if autonomous else 'chirality.owned-AX-journey/attended-foreground-v1',
+                            'activation_request_limit':1 if autonomous else 0,'first_press_focus':'read-only original foreground check; no automatic activation',
+                            'commands':['autonomous-owned-focus' if autonomous else 'owner-foreground-handoff',*[name for name in CONTRACT['commands'] if name not in
                                 ('activate-original-app','confirm-exact-native-stop-once')],'cancel-exact-owned-stop-sheet-once']}
                     self.record('owned-AX-contract.json',contract)
                     route=self.screen.window;route.acquire_initial_window();frame=route.capture()

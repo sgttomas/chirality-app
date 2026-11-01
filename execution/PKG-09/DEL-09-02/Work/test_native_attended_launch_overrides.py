@@ -41,7 +41,7 @@ class LaunchOverrideTests(unittest.TestCase):
             for verified,fm in [(False,True),(True,False)]:
                 run.foreground_verified=verified;front[0]=fm;calls.clear()
                 for op in (lambda:run.ax.press('x'),lambda:run.ax.key(1),lambda:run.ax.focus('x')):
-                    with self.assertRaisesRegex(RuntimeError,'owner-established foreground lost'):op()
+                    with self.assertRaisesRegex(RuntimeError,'verified original foreground lost'):op()
                 self.assertFalse([c for c in calls if c[0] in ('PRESS','KEY','set','BASE-FOCUS-SETS-AXFrontmost')])
             run.foreground_verified=True;front[0]=True;calls.clear()
             with patch('ctypes.c_void_p.in_dll',return_value=N(value='true')):run.ax.focus('field')

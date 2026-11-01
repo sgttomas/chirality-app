@@ -61,6 +61,109 @@ def activate_original_app(pid):
     finally:void_call(pool,sel(b'drain'))
 
 
+class NativeFocus:
+    """One supervised AX transaction. All AX/CG/libproc calls share one cap.
+
+    CF decoding is local; identity hashes share the same wall deadline. The
+    outer original-helper custody still enforces its existing4s wait/1s reap.
+    """
+    def __init__(self,backend,pid,app,trace,clock=time.monotonic):
+        self.b,self.pid,self.app,self.trace,self.clock=backend,pid,app,trace,clock
+        self.end=clock()+3;self.calls=0
+        declarations=[('AXUIElementCopyActionNames',C.c_int,[C.c_void_p,C.POINTER(C.c_void_p)]),
+            ('AXUIElementIsAttributeSettable',C.c_int,[C.c_void_p,C.c_void_p,C.POINTER(C.c_bool)]),
+            ('AXUIElementSetAttributeValue',C.c_int,[C.c_void_p,C.c_void_p,C.c_void_p]),
+            ('AXUIElementPerformAction',C.c_int,[C.c_void_p,C.c_void_p]),
+            ('_AXUIElementGetWindow',C.c_int,[C.c_void_p,C.POINTER(C.c_uint32)])]
+        for name,result,args in declarations:
+            fn=getattr(backend.a,name);fn.restype=result;fn.argtypes=args
+        self.original_a,self.original_p=backend.a,backend.p
+        owner=self
+        class Function:
+            def __init__(self,fn,name):object.__setattr__(self,'fn',fn);object.__setattr__(self,'name',name)
+            def __setattr__(self,k,v):setattr(self.fn,k,v)
+            def __getattr__(self,k):return getattr(self.fn,k)
+            def __call__(self,*args):
+                w.require(owner.calls<200 and clock()+.2<owner.end,'autonomous focus call/deadline bound')
+                if self.name=='AXUIElementSetMessagingTimeout':args=(args[0],.2)
+                owner.calls+=1
+                if self.name=='AXUIElementPerformAction':owner.trace['raise_attempted']=True
+                if self.name=='AXUIElementSetAttributeValue':owner.trace['frontmost_attempted']=True
+                return self.fn(*args) # action rc must be retained even if late
+        class Library:
+            def __init__(self,lib):self.lib=lib
+            def __getattr__(self,name):return Function(getattr(self.lib,name),name)
+        backend.a,backend.p=Library(backend.a),Library(backend.p)
+    def close(self):
+        self.trace.update(native_calls=self.calls,native_call_cap=200,deadline=self.end)
+        self.b.a,self.b.p=self.original_a,self.original_p
+    def check_time(self):w.require(self.clock()<self.end,'autonomous focus returned late')
+    def read(self,e,name):
+        rc,owner=self.b.owner(e);w.require(rc==0 and owner==self.pid,'focus AX owner differs')
+        row,refs=self.b.attribute(e,name)
+        w.require(row['return_code']==0,'focus AX attribute unavailable: '+name)
+        self.check_time();return row,refs
+    def scalar(self,e,name):
+        row,refs=self.read(e,name);w.require(not refs,'focus scalar is reference');return row['value']
+    def main(self,expected):
+        row,refs=self.read(self.app,'AXWindows')
+        w.require(row['type']['name']=='CFArray' and 0<len(refs)<=8,'focus window roots unavailable')
+        roots=[]
+        for e in refs:
+            w.require(not self.b.equal(e,self.app),'focus self-reference is not a window')
+            if any(self.b.equal(e,old) for old in roots):continue
+            w.require(self.scalar(e,'AXRole')=='AXWindow','ambiguous/unknown focus window root')
+            roots.append(e)
+        w.require(len(roots)==1,'focus requires one distinct owned main')
+        main=roots[0];number=C.c_uint32()
+        w.require(self.b.a._AXUIElementGetWindow(main,C.byref(number))==0 and number.value==expected['window_id'],
+                  'focus AX main number differs')
+        w.require(self.scalar(main,'AXTitle')==expected['title'],'focus AX main title differs')
+        # Missing modal/hierarchy observations refuse; never infer no modal.
+        w.require(self.scalar(main,'AXModal') is False,'focus main modal state unavailable/blocked')
+        row,children=self.read(main,'AXChildren')
+        w.require(row['type']['name']=='CFArray' and len(children)<=8,'focus main children unavailable')
+        for child in children:
+            role=self.scalar(child,'AXRole')
+            w.require(isinstance(role,str) and role.startswith('AX') and role not in
+                      ('AXSheet','AXDialog','AXWindow','AXUnknown','AXPopover','AXMenu'),
+                      'focus blocked by modal/unknown child')
+        self.check_time();return main
+    def supports(self,main):
+        value=C.c_void_p();rc=self.b.a.AXUIElementCopyActionNames(main,C.byref(value))
+        if value.value:self.b.held.append(value.value)
+        w.require(rc==0 and value.value,'focus action list unavailable')
+        actions=[self.b.scalar(e) for e in self.b.array(value.value,32)]
+        settable=C.c_bool();rc=self.b.a.AXUIElementIsAttributeSettable(self.app,self.b.string('AXFrontmost'),C.byref(settable))
+        self.check_time();return 'AXRaise' in actions and rc==0 and settable.value
+    def raise_main(self,main):return self.b.a.AXUIElementPerformAction(main,self.b.string('AXRaise'))
+    def front(self):return self.scalar(self.app,'AXFrontmost') is True
+    def set_front(self):return self.b.a.AXUIElementSetAttributeValue(self.app,self.b.string('AXFrontmost'),C.c_void_p.in_dll(self.b.c,'kCFBooleanTrue').value)
+
+def autonomous_focus(ops,bound,expected,trace,sleep=time.sleep):
+    main=ops.main(expected);trace['observations']=[{'at':w.d.now(),'frontmost':ops.front()}]
+    if not trace['observations'][-1]['frontmost']:
+        w.require(ops.supports(main),'AXRaise or settable AXFrontmost unavailable')
+        bound('before-autonomous-raise');ops.check_time()
+        trace['raise_rc']=ops.raise_main(main)
+        ops.check_time();w.require(trace['raise_rc']==0,'owned AXRaise refused')
+        bound('before-autonomous-frontmost');ops.check_time()
+        # Revalidate the same retained AX window after Raise before second act.
+        again=ops.main(expected)
+        w.require(ops.b.equal(main,again),'focus main reference changed after Raise')
+        trace['frontmost_rc']=ops.set_front()
+        ops.check_time();w.require(trace['frontmost_rc']==0,'owned AXFrontmost write refused')
+        for _ in range(10):
+            actual=ops.front();trace['observations'].append({'at':w.d.now(),'frontmost':actual})
+            if actual:break
+            ops.check_time();sleep(.05)
+        w.require(trace['observations'][-1]['frontmost'],'original App did not become frontmost')
+    bound('after-autonomous-focus');ops.check_time()
+    again=ops.main(expected)
+    w.require(ops.b.equal(main,again) and ops.front(),'focus final original main/frontmost changed')
+    ops.check_time()
+
+
 def main(request_path,expected_sha):
     root=Path(__file__).resolve().parent;info=root.lstat()
     w.require(root.resolve()==root and info.st_uid==os.getuid() and stat.S_IMODE(info.st_mode)==0o700,'helper root not private')
@@ -104,7 +207,19 @@ def main(request_path,expected_sha):
             os.execve(str(w.CAPTURE),command,dict(os.environ))
         app=backend.app(pid)
         owner_rc,owner=backend.owner(app);w.require(owner_rc==0 and owner==pid,'helper AX App ownership unavailable')
-        if action=='focus':
+        if action=='focus' and value.get('autonomous_focus_route') is not None:
+            w.require(value['autonomous_focus_route']=={'version':'autonomous-owned-focus/v1','per_incarnation_cap_seconds':45,'mechanism':'AXRaise+AXFrontmost'},'unselected autonomous focus route')
+            w.require(context is None,'autonomous focus only before main journey')
+            trace={'mechanism':'AXRaise+AXFrontmost','raise_attempted':False,'frontmost_attempted':False,'observations':[]}
+            ops=None
+            try:
+                ops=NativeFocus(backend,pid,app,trace)
+                autonomous_focus(ops,bound,window,trace)
+            except BaseException as error:trace['error']=str(error);raise
+            finally:
+                if ops is not None:ops.close()
+                write_result(root/f"window-helper-{request['sequence']:03d}.focus.json",trace)
+        elif action=='focus':
             trace={'activation':None,'observations':[]}
             def focused():
                 value=w.frontmost(backend,app)

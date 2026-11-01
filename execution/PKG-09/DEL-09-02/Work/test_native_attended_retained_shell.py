@@ -144,7 +144,8 @@ class PostJSelectionTests(unittest.TestCase):
     def test_profiles_bind_exact_path_digest_and_prior_attempt(self):
         for path,digest,version,prior in [
             (retained.ASSESSMENT_PATH,retained.ASSESSMENT_SHA,retained.VERSION,'app-attended-prepared-i_bow2kd'),
-            (retained.POST_J_PATH,retained.POST_J_SHA,'attended-retained-shell/v2','app-attended-prepared-j58087z7')]:
+            (retained.POST_J_PATH,retained.POST_J_SHA,'attended-retained-shell/v2','app-attended-prepared-j58087z7'),
+            (retained.POST_EL3_PATH,retained.POST_EL3_SHA,'attended-retained-shell/v3','app-attended-prepared-el3pvau4')]:
             with self.subTest(version=version):
                 self.assertEqual(retained.selected_profile(path,digest),(version,prior))
                 with self.assertRaises(RuntimeError):retained.selected_profile(path.parent/'copy.json',digest)
@@ -165,3 +166,14 @@ class PostJSelectionTests(unittest.TestCase):
                     else:
                         with self.assertRaisesRegex(RuntimeError,'subject differs'):retained.verify(path,digest,'/invented/App')
                         run.assert_not_called()
+
+class PostEl3Tests(unittest.TestCase):
+    def test_v3_cannot_relabel_prior_attempt_or_use_other_basis(self):
+        with tempfile.TemporaryDirectory() as d:
+            home=Path(d).resolve();value=Tests().fixture(home)
+            with self.assertRaisesRegex(RuntimeError,'subject differs'):
+                retained.shape(value,home,'app-attended-prepared-el3pvau4')
+            value['prior_attempt']='app-attended-prepared-el3pvau4'
+            retained.shape(value,home,'app-attended-prepared-el3pvau4')
+            for path in (retained.POST_J_PATH,retained.ASSESSMENT_PATH):
+                with self.assertRaises(RuntimeError):retained.selected_profile(path,retained.POST_EL3_SHA)
