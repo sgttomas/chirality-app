@@ -58,6 +58,7 @@ pub mod role_lifecycle;
 pub mod role_observations;
 pub mod native_requests;
 mod native_request_answer;
+mod native_lifecycle_confirmation;
 pub mod receiving;
 pub mod recorder;
 pub mod records;
@@ -1218,7 +1219,7 @@ fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str
 /// asked first in a native question; there is no command that stops Codex
 /// without it (the App quit path is separate). See `codex_stop`.
 #[tauri::command(async)]
-fn codex_stop(app: tauri::AppHandle, state: State<'_, AppState>, generation: Value, restart: bool) -> Result<Value, String> {
+fn codex_stop(window: tauri::Window, state: State<'_, AppState>, generation: Value, restart: bool) -> Result<Value, String> {
     let _question = codex_stop::question_gate(&state.codex_stop_gate)?;
     app_quit::admit_codex_stop(&state.app_quit)?;
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
@@ -1229,7 +1230,10 @@ fn codex_stop(app: tauri::AppHandle, state: State<'_, AppState>, generation: Val
     let mut refused = None;
     let person = stop_person(&state, &home);
     let result = codex_stop::stop_native_home(&home, &state.workflows, &generation, restart, &person,
-        |view| confirm_choice(&app, title, act_control::native_statement::codex_stop_statement(view), act_control::native_statement::KEEP_CODEX, act, &mut refused),
+        |view| match native_lifecycle_confirmation::confirm(&window, title, act_control::native_statement::codex_stop_statement(view), act_control::native_statement::KEEP_CODEX, act) {
+            Ok(chosen) => chosen,
+            Err(cause) => { refused = Some(cause); false }
+        },
         || start_home(&state, &home, "the person: Restart Codex"));
     codex_stop::finish(&state.codex_stops, title, refused, result)
 }
@@ -1304,6 +1308,9 @@ fn show_main_window(app: &tauri::AppHandle) {
 /// K-4 / SQ-Q: the person chose Quit. Runs off the main thread (the native
 /// question blocks); one question at a time; the web view takes no part.
 fn request_quit(app: tauri::AppHandle) {
+    // The menu has no IPC invoker. Retain the configured App window now; never
+    // select a focused/first/replacement window after the question is prepared.
+    let question_window = app.get_webview_window("main").map(|window| window.as_ref().window().clone());
     std::thread::spawn(move || {
         let state = app.state::<AppState>();
         if state.app_quit.proceeding().is_some() {
@@ -1319,7 +1326,7 @@ fn request_quit(app: tauri::AppHandle) {
             Err(reason) if reason.starts_with("The quit question") => return,
             Err(reason) => {
                 show_main_window(&app);
-                let _ = app.dialog().message(reason).title("Quit Chirality").kind(MessageDialogKind::Info).buttons(MessageDialogButtons::Ok).blocking_show();
+                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", reason);
                 return;
             }
         };
@@ -1329,20 +1336,21 @@ fn request_quit(app: tauri::AppHandle) {
             Ok(held) => held,
             Err(_) => {
                 show_main_window(&app);
-                let _ = app.dialog().message("API-key home setup is under way. The App is still running; choose Quit again when that operation has finished.").title("Quit Chirality").kind(MessageDialogKind::Info).buttons(MessageDialogButtons::Ok).blocking_show();
+                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", "API-key home setup is under way. The App is still running; choose Quit again when that operation has finished.".into());
                 return;
             }
         };
         let homes = state.homes.lock().unwrap().entries();
         let active = state.homes.lock().unwrap().active();
         let person = stop_person(&state, &active);
-        let shown = app.clone();
+        let retained_question_window = question_window.clone();
         let mut ops = app_quit::HostQuit::new(homes.clone(), &state.workflows, &person, move |view: &Value| {
             use act_control::native_statement as ns;
-            show_main_window(&shown);
-            let mut refused = None;
-            let chosen = confirm_choice(&shown, "Quit Chirality", ns::quit_statement(view), ns::KEEP_RUNNING, ns::QUIT_APP, &mut refused);
-            match refused { Some(cause) => Err(cause), None => Ok(chosen) }
+            let window = retained_question_window.as_ref().ok_or("Original App window unavailable; quit confirmation refused")?;
+            let _ = window.unminimize();
+            let _ = window.show();
+            let _ = window.set_focus();
+            native_lifecycle_confirmation::confirm(window, "Quit Chirality", ns::quit_statement(view), ns::KEEP_RUNNING, ns::QUIT_APP)
         });
         let decision = app_quit::quit_sequence(&mut ops, app_quit::QUIT_WAIT_LIMIT);
         if let app_quit::Decision::NotAsked(outcome) = &decision {
@@ -1355,7 +1363,7 @@ fn request_quit(app: tauri::AppHandle) {
                 app_quit::QuitOps::reopen_to_new_turns(&mut ops);
                 eprintln!("chirality: {error}");
                 show_main_window(&app);
-                let _ = app.dialog().message(error).title("Quit Chirality — still running").kind(MessageDialogKind::Info).buttons(MessageDialogButtons::Ok).blocking_show();
+                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality — still running", error);
             }
         }
     });
