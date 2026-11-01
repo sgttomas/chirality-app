@@ -63,7 +63,13 @@ an unavailable original refuses rather than authorizing the act elsewhere.
 
 Question generation, in-App content disclosure, default-safe button ordering,
 explicit custom action matching, source/generation/work-change rechecks,
-Stop/Restart/Quit sequencing and settlement limits remain unchanged. Cancel,
+Stop/Restart/Quit decision sequencing and settlement limits remain unchanged.
+Presentation changes: sheets attached to one window can queue behind an
+already-open sheet. In particular, a Quit refusal notice cannot dismiss an open
+Stop sheet, and a Quit question may wait behind another family's sheet.
+Overflow content remains inline in the App; its readability/scrolling while a
+sheet is attached is unverified. The zero-work qualification does not cover
+that case. Cancel,
 Escape and the default Keep choice remain non-actions. Invalid statements still
 produce a refusal, not a person's cancellation. Explanatory Quit refusals use
 the same retained parent; when unavailable they are logged without an unowned
@@ -76,46 +82,102 @@ separate root in AXWindows is **not** assumed sufficient. Before requesting a
 live interval, the admitted controller must implement/test this exact method:
 
 1. Retain original Child birth/path/hash, exact main window and full source /
-   account / generation from the successful ready observation. Record owned
-   inventory and the parent's AXSheets immediately before the one Stop press.
-2. Read only that exact parent's AXSheets and original App AXWindows. Admit
-   exactly one newly presented native sheet, related to that parent, mapped to
-   a newly visible original-App WindowServer window. Deduplicate references;
-   no foreign owner, unrelated AX root, unmapped surface or replacement main.
-3. Require the complete exact Stop question and exactly the three enabled
-   expected buttons before qualification confirmation. Preserve strict source,
-   generation, frontmost, image and late-revalidation gates.
+   account / generation from the successful ready observation. Resolve that
+   main's AX object through the existing owned window-number bridge and record
+   its `AXChildren` and the owned WindowServer inventory before the one Stop
+   press. Never rediscover a main by focus or pick a replacement.
+2. The discovery path is **original-main AXChildren → AXRole == AXSheet**.
+   `AXChildren` must succeed with an array; unsupported/error/truncation is a
+   refusal, not an empty list. Enumerate only its bounded direct children,
+   deduplicate AX references and require exactly one newly attached sheet.
+   Its `AXParent` must equal the retained original-main AX object and map to
+   the same main window number: only `original-main-window-parent` is accepted.
+   `owned-application-parent`, missing/contradictory parent data, and a role scan
+   of the application's roots do not establish this relation. Main `AXSheets`,
+   if exposed, is corroboration only and must not contradict that relation.
+   Require the sheet to map to its **own distinct newly visible original-App
+   WindowServer row**; a sheet mapping to the main row, no row or a foreign row
+   remains unsupported. No main-image substitution is allowed. The existing
+   `modal_relation` implementation does not implement this contract and must
+   not be used unchanged for the new route.
+3. During the question, the App must be `AXFrontmost == true` before a press,
+   the retained main must remain `AXMain == true`, and `AXFocusedWindow` must
+   map to the derived sheet. The expected macOS key window is the sheet; this
+   route relies on its AX focus observation, not an invented `AXKey` attribute
+   or a foreign/global key-window query. If macOS instead exposes main as the
+   focused window, the route refuses and retains that fact; there is no silent
+   alternate focus rule. Require the derived sheet to be foremost in the owned
+   on-screen inventory. Corroborating capture is of that exact sheet row only,
+   with unchanged original identity and complete request/helper equality.
+   A main capture cannot stand in for the question. Require the complete exact
+   Stop question and exactly the three enabled expected buttons before
+   qualification confirmation. Source, generation and immediate pre-press
+   revalidation remain mandatory.
 4. For cleanup-only cancellation, require fresh original identity, that same
-   derived sheet/parent/window binding, and exactly one enabled native Cancel.
-   Retain intent before one AXPress and consume the action before dispatch.
-   Never treat the owner screenshot, guessed text, Escape or coordinates as a
-   substitute. A question-gate refusal cannot become a positive Stop result.
-5. Verify disappearance from the original parent's sheets/owned inventory and
-   restored same-source main state before the one owned-menu Quit. Observe
-   original Child normal exit 0 and settled helpers before exact offered atomic
-   administrative release. Qualification stays false after any refusal.
+   derived sheet/parent/window/focus binding, and exactly one enabled native
+   Cancel. Retain intent before one AXPress and consume the action before
+   dispatch. Never treat the owner screenshot, guessed text, Escape or
+   coordinates as a substitute. A question-gate refusal cannot become a
+   positive Stop result. An uncertain Cancel delivery is not repeated.
+5. Verify the sheet is gone from original-main `AXChildren` and the owned
+   on-screen inventory; require original main still `AXMain == true`, original
+   App frontmost and `AXFocusedWindow` mapping back to that main before any
+   further content action. Capture, if required, is again the exact original
+   main with fresh full equality, not reused pre-sheet geometry. Read back the
+   same-source main state before the one owned-menu Quit; do not press Quit
+   while the Stop sheet remains, because the Stop gate refuses it and its
+   explanatory notice could queue behind the sheet. Observe original Child
+   normal exit 0 and settled helpers before exact offered atomic administrative
+   release. Qualification stays false after any refusal.
 
 This is the concrete recovery contract to implement and review; this product
 PR does not add controller permissions or assert native sheet observability.
-If that relation cannot be established, there is no autonomous safe Cancel
-route: notify the parent immediately with the held state and concrete owner
-Cancel instruction, retaining custody. That contingency is not an achievable
-fixed-budget recovery guarantee.
 
-The existing total remains 295s, with its 40s exit reserve. The proposed
-cleanup allocation is 5s for fresh sheet binding, 5s for the one Cancel and
-its native-call return, 5s for dismissal/source readback, 5s for owned-menu
-Quit publication, then the unchanged 40s for original-child/helper exit and
-release: **60s remaining at recovery entry**. Before Stop, reserve that entire
-amount in addition to the allowed qualification modal-acquisition/question
-time. This is a proposed admission minimum, not an extension of a phase. The prior actual
-cancel-readback→Quit cost was 0.584s and Quit→administrative reap 15.420s;
-these are single observations, not upper bounds. New sheet acquisition/AX
-press/readback costs are **unmeasured**. Reserve at least the unchanged 40s for
-exit and do not borrow it for diagnosis or parent round trips. A tested bounded
-recovery implementation and explicit allowance for the new sheet costs must
-fit existing phases before a new interval; this document alone does not prove
-that fit. No live launch is scheduled by this repair.
+### Fixed-budget allocation and unresolved terminal case
+
+The total remains 295s. Recovery **replaces** the unused 45s settlement phase;
+it does not follow it or add another phase. The existing phase table leaves
+85s after the 30s modal phase (45s settlement plus 40s exit). Recovery uses at
+most 20s for binding/actions/readback and retains the unchanged 40s exit
+reserve, fitting within that 85s without changing any cap. Latest recovery
+entry is **fixed end minus 60s**; qualification must stop early enough to enter
+by then. If that entry point has passed, no new cleanup input is dispatched on
+an expired budget; report the actual held state immediately.
+
+The 20s action allocation is four consecutive caps: 5s fresh sheet binding,
+5s for one Cancel and its native-call return, 5s dismissal/source readback,
+5s owned-menu Quit publication. Each new sheet AX element must have an
+explicit successfully set **0.2s messaging timeout** before any attribute read
+or action, matching the existing AX route. No default timeout is allowed.
+Each step allows at most 20 AX calls and checks its cumulative monotonic
+deadline and the fixed end between calls. Do not enter another call when less
+than its timeout remains. These limits include identity/evidence/tool overhead
+inside the step, not an idealized AX-only duration; any overrun refuses. No
+asynchronous operator or parent round trip is part of this recovery path.
+
+The prior actual cancel-readback→Quit cost was 0.584s and
+Quit→administrative reap 15.420s; these are single observations, not upper
+bounds. New sheet acquisition/AX press/readback costs are **unmeasured**.
+A tested bounded recovery implementation and explicit cost allowance must fit
+these caps before a new interval; this document alone does not prove fit.
+
+**Unresolved prerequisite:** if the sheet cannot be uniquely bound/cancelled,
+normal menu Quit cannot close the App while the Stop gate is held. Current
+authority admits no App/supplier signals, force termination, blind dismissal,
+or administrative reaping of a live Child. At fixed end the manager must stop
+inputs, report the exact condition, retain original custody/guard and report
+any overrun; it cannot truthfully promise resource release. Parent notification
+and a concrete owner Cancel request must occur immediately on the unsupported
+condition, not at the deadline, but owner availability is not a bounded-exit
+guarantee. The previous 47.303s overrun remains failed evidence.
+
+Before another live interval, Agent 0 must choose a concrete terminal method
+for this exceptional case or explicitly accept that supervised custody may
+outlast the resource interval. Recommended: resolve a narrowly reviewed
+product-owned cancellation/recovery method first, keeping forced process exit
+outside the current scope. This product PR supplies neither such method nor
+new authority. No new launch is scheduled; a source build alone does not clear
+this prerequisite.
 
 ## Verification and ownership reconciliation
 
@@ -124,7 +186,21 @@ existing Quit tests passed offline with jobs2 and serial tests through t3_slot,
 using a private COW Cargo cache/target and fresh scratch Codex home. The new
 cohort is added once to CI shard B; 62 CI-selection tests passed. Deliverable
 structure check reported no errors. Logs are retained in
-`/Users/ryan/dev/chirality-t3/scratch/app-parented-lifecycle-9bg_3bjr`.
+`/Users/ryan/dev/chirality-t3/scratch/app-parented-lifecycle-9bg_3bjr`:
+`test-0.log` (6), `test-1.log` (37), `test-2.log` (18) and
+`ci-selection-pytest.log` (62). The earlier `ci-selection.log` ran zero tests
+and is not passing evidence. Those local logs did not embed a source SHA;
+formatting followed the first six-test run. The independent reviewer reran
+those six tests at exact `979ea1fd23073ecf62899f122659f3c04d4a2a70` with a
+fresh scratch home: 6/6 passed, no rebuild, log
+`/Users/ryan/dev/chirality-t3/scratch/pr68-review-PCSpTLs7/test.log`.
+The other cohorts were inspected, not independently rerun.
+
+Claude Opus 5.5/high reviewed that exact product delta against `366e7a66` and
+found no blocking product defect. The recovery contract corrections in this
+note address that review; they are manager edits, not a claimed clean rereview.
+Main-thread scheduling/channel lifetime and native sheet behavior were source
+inspection only. No candidate build or native execution was part of the review.
 
 Focused tests exercise cached parent handles, unavailable window/display,
 destroyed original at affirmative result, safe buttons for Stop/Restart/Quit,
@@ -132,10 +208,11 @@ presentation refusal and invalid-statement reporting. The existing Stop and
 Quit sequence cohorts check their unchanged lifecycle effects. These are
 mock/source checks, not observed native sheet behavior or human acts.
 
-DEL-01-04 owns the native Stop/Restart interaction repair and DEL-01-03 the
-native presentation contribution. DEL-09-02 receives it for the next identified
+DEL-01-04 owns this native Stop/Restart interaction repair. DEL-09-02 receives
+it for the next identified
 candidate under REQ-004/005/007/008; no qualification acceptance or scope/needs
-change is made. The owning Work notes link this account. A new build must have
+change is made. The DEL-01-04 Work note links this account; no separate DEL-01-03
+contribution or Work note is claimed. A new build must have
 its own source/bundle/namespace identity; the retained fdcf bundle/state are
 never relabelled, overwritten or reset. Build only after the product boundary
 is reviewed; exact source and fresh admission must include the chosen route
