@@ -8,7 +8,7 @@ not select a namespace or activate the separately compiled None gate.
 
 ## Actual wiring and authority
 
-`seal_c_enrollment.rs` supplies a native-menu-only worker and the confirmation /
+`seal_c_enrollment.rs` supplies a menu-event worker and the confirmation /
 key-setup / Quit coordinator. `lib.rs` adds its module and exact menu-event
 branch, conditionally inserts **Prepare capture sealing…** next to Quit, and
 uses a generic explicit-key-operation refusal notice for Quit. Existing Quit
@@ -21,8 +21,15 @@ is NOT `selected_route()`, which includes invalid publisher routing. With None,
 the menu is absent and the request's same gate rejects dispatch before window
 lookup, worker creation or provider preparation. Some only makes the action
 eligible; real authority is still validated by preparation and consumption.
-There is no new renderer command, MCP tool, CLI/path/URL/environment input or
-startup enrollment. The existing provider takes no caller path.
+There is no new direct SEAL-C renderer command, MCP tool, CLI/path/URL/environment
+input or startup enrollment. **Menu-event origin is not authenticated.** Existing
+`core:default` includes Tauri 2.11.1's `core:menu:default`; web content with that
+permission can create a matching-ID menu, relabel/pop it up or replace menus,
+and a click can request this question. The global menu listener dispatches by
+ID, not by a trusted creator. This cannot answer the separate native sheet or
+supply provider authority. None rejects those requests too. Before activation,
+Agent 0 must disposition this request-origin limit or separately authorize a
+narrower capability list; no capability/permission edit is made here. The existing provider takes no caller path.
 
 The native caller retains the configured `main` Window once at menu dispatch,
 before spawning the off-main-thread worker. It requests restore/show/focus only
@@ -50,7 +57,7 @@ The shared coordinator executes this actual sequence:
 2. Present that intent's exact preview using the retained original. No key_setup,
    App writer or provider lock is held across the human question. Cancellation
    or presentation/window error drops the intent without consumption.
-3. After affirmative choice, acquire the existing `AppState.key_setup` mutex
+3. After affirmative choice, recheck Quit for an accurate refusal, then acquire the existing `AppState.key_setup` mutex
    with `try_lock`. Contention or unavailable/poisoned admission refuses without
    a provider call; no automatic retry. Check both Quit busy and proceeding.
 4. Schedule a read-only main-thread `checked(&original, |_| ())` through the new
@@ -59,7 +66,11 @@ The shared coordinator executes this actual sequence:
 5. Recheck Quit after that main-thread interval. Consume the same non-cloneable
    PreparedSealEnrollment once, retaining key_setup until the actual return.
    The provider performs fresh authority/policy and in-lock root/absence/marker
-   joins. A provider refusal is not replaced by a newly prepared intent.
+   joins. A provider refusal is not replaced by a newly prepared intent. Final
+   window/Quit/provider operations run inside an unwind boundary while the shared
+   key mutex guard stays outside it. An unwind returns outcome-unknown/not-retried
+   and releases key_setup without poisoning Quit/API-key admission. An already
+   poisoned mutex is still refused, never silently cleared.
 
 If Quit won before key admission, enrollment refuses. If enrollment holds
 key_setup first, existing request_quit's nonblocking acquisition refuses to
@@ -120,3 +131,19 @@ passed 11 and CI-selection tests passed 62. Deliverable validation reported zero
 errors; read-only comparison of current package producer dependencies against
 its receiving profile found no drift, so no generated closure was changed.
 These results and independent review/final exact-head CI are retained in the PR.
+
+Independent Claude Opus 5.5/high reviewed 94cd6bcd, found no authority bypass, and
+identified the shared-lock poison risk plus overstated menu-origin wording.
+The manager contained final admission/provider unwind without changing Quit
+logic, corrected menu-origin claims throughout owning Work, added the pre-lock
+Quit check, and renders an absent marker as "none observed". Tests prove unknown
+unwind is not retried and shared key/Quit admission remains usable afterward.
+Capability narrowing remains a reserved preactivation decision, not an implicit
+permission change or a clean rereview claim.
+
+Post-review source checks passed 16 enrollment caller tests, 18 native-confirmation
+regressions, 19 Quit-related tests and 43 provider tests, using guarded offline
+serial execution. Unwind fixtures establish unknown/not-retried outcome and
+non-poisoned shared admission, including the final window-check interval.
+Deliverable validation reported zero errors. Manager repairs follow the original
+review findings; they are not a claim of a second clean review or real activation.

@@ -1,5 +1,7 @@
-//! Native-menu-only joining of the inactive SEAL-C prepared provider intent.
-//! No renderer/MCP/CLI/path input and no startup enrollment. None hides AND
+//! Menu-event joining of the inactive SEAL-C prepared provider intent.
+//! Menu-event origin is not authenticated: existing core:menu permissions may
+//! let web content request a question, never answer it or supply provider authority.
+//! No direct SEAL-C command/MCP/CLI/path input or startup enrollment. None hides AND
 //! rejects dispatch. The provider still owns signature, policy and filesystem
 //! revalidation; this module owns the question and key_setup/Quit ordering.
 use crate::{
@@ -79,6 +81,7 @@ fn coordinate<I>(
     if !confirm(&intent)? {
         return Ok(Outcome::Cancelled);
     }
+    quit_clear(quit)?; // preserve the actual Quit refusal before contention wording
     let _key_setup = key_setup.try_lock().map_err(|error| match error {
         std::sync::TryLockError::WouldBlock => {
             "Another explicit key operation is pending; capture sealing was not started"
@@ -87,13 +90,18 @@ fn coordinate<I>(
             "Key-operation admission is unavailable; capture sealing was not started"
         }
     })?;
-    quit_clear(quit)?;
-    revalidate_original()?;
-    // Window validation schedules a main-thread read. Recheck Quit after that
-    // interval; key_setup prevents App-initiated Quit settlement until return.
-    quit_clear(quit)?;
-    consume(intent)?;
-    Ok(Outcome::ProviderReturnedSuccess)
+    // Keep the shared mutex guard outside the unwind boundary for every final
+    // admission/provider operation. Unexpected failure is unknown, never retry;
+    // it must not poison unrelated key setup or permanently block menu Quit.
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        quit_clear(quit)?;
+        revalidate_original()?;
+        // Main-thread window validation is an interval: check Quit again.
+        quit_clear(quit)?;
+        consume(intent)?;
+        Ok(Outcome::ProviderReturnedSuccess)
+    }))
+    .map_err(|_| "Capture sealing ended unexpectedly; outcome unknown; not retried".to_owned())?
 }
 fn statement(preview: &Value) -> Result<ns::NativeStatement, String> {
     let field = |name| {
@@ -101,8 +109,13 @@ fn statement(preview: &Value) -> Result<ns::NativeStatement, String> {
             .as_str()
             .ok_or_else(|| format!("Prepared capture-seal {name} unavailable"))
     };
+    let marker = if preview["marker"].is_null() {
+        "none observed".to_owned()
+    } else {
+        preview["marker"].to_string()
+    };
     let whole=format!("Prepare capture sealing for this installation?\nLocation: {}\nService: {}\nAccount: {}\nAccess group: {}\nCommitted and pending key IDs: {}\nExisting keys are retained. Development keys are not imported.",
-        field("app_data")?,field("service")?,field("account")?,field("access_group")?,preview["marker"]);
+        field("app_data")?,field("service")?,field("account")?,field("access_group")?,marker);
     ns::whole_or_in_app(
         "Capture sealing",
         "prepared capture-seal installation",

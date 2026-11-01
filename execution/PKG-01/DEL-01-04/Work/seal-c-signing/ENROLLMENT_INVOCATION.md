@@ -35,9 +35,13 @@ caller gaps, not capabilities inferred from the provider type.
 
 Propose one native App-menu action, **Prepare capture sealing**, enabled only in
 an explicitly admitted signing-stage build with both compiled publisher and
-keychain selections available. No `#[tauri::command]`, renderer event, MCP tool,
-URL, CLI flag, persisted boolean or environment variable can invoke it or supply
-its root/namespace. Ordinary startup continues only installing the existing
+keychain selections available. No direct SEAL-C `#[tauri::command]`, MCP tool,
+URL, CLI flag, persisted boolean or environment variable supplies its root/
+namespace or confirms the native action. Existing core:menu capability does let
+web content originate a matching menu event and request the question; event
+origin is not authenticated. Native confirmation and the provider remain the
+authority checks. Capability narrowing, if chosen before activation, is a separate
+reserved permission change. Ordinary startup continues only installing the existing
 location; it never invokes enrollment.
 
 This is an administrative setup action, not an A4/A6/A7 personal act or proof

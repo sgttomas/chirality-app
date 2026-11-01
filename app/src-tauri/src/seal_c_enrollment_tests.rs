@@ -362,16 +362,46 @@ fn seal_enrollment_statement_names_exact_prepared_scope_and_safe_choices() {
     for (how, result) in ns::dialog_model::outcomes(&ns::act_buttons(LEAVE, PREPARE)) {
         assert_eq!(ns::chose(&result, PREPARE), how == "middle");
     }
+    let mut fresh = preview.clone();
+    fresh["marker"] = Value::Null;
+    let text = statement(&fresh).unwrap().text;
+    assert!(text.contains("none observed"));
+    assert!(!text.contains("IDs: null"));
     assert!(statement(&Value::Null).is_err());
 }
 
 #[test]
-fn seal_enrollment_unwind_releases_question_and_poisoned_key_gate_refuses() {
+fn seal_enrollment_provider_unwind_is_unknown_and_does_not_poison_shared_quit_gate() {
     let q = Questions::new();
     let key = Mutex::new(());
     let quit = AppQuit::default();
     let drops = Arc::new(AtomicUsize::new(0));
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+    let calls = AtomicUsize::new(0);
+    let result = run(
+        &q,
+        &key,
+        &quit,
+        || Ok(intent(&drops)),
+        |_| Ok(true),
+        || Ok(()),
+        |_| {
+            calls.fetch_add(1, Ordering::SeqCst);
+            panic!("synthetic provider unwind")
+        },
+    );
+    assert!(result.unwrap_err().contains("outcome unknown; not retried"));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(drops.load(Ordering::SeqCst), 1);
+    assert!(!key.is_poisoned());
+    assert!(q.acquire().is_ok());
+    let stop = Mutex::new(());
+    let held = crate::app_quit::admit_quit(&quit, &stop).unwrap();
+    let key_held = key
+        .try_lock()
+        .expect("Quit and API-key setup remain usable");
+    drop(key_held);
+    drop(held);
+    assert_eq!(
         run(
             &q,
             &key,
@@ -379,22 +409,81 @@ fn seal_enrollment_unwind_releases_question_and_poisoned_key_gate_refuses() {
             || Ok(intent(&drops)),
             |_| Ok(true),
             || Ok(()),
-            |_| panic!("synthetic provider unwind"),
+            |_| Ok(())
         )
+        .unwrap(),
+        Outcome::ProviderReturnedSuccess
+    );
+    assert_eq!(drops.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn seal_enrollment_preexisting_poison_is_unavailable_without_clearing_it() {
+    let q = Questions::new();
+    let key = Mutex::new(());
+    let quit = AppQuit::default();
+    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let _held = key.lock().unwrap();
+        panic!("unrelated synthetic poison");
     }));
-    assert!(result.is_err());
-    assert_eq!(drops.load(Ordering::SeqCst), 1);
+    let result = run(
+        &q,
+        &key,
+        &quit,
+        || Ok(()),
+        |_| Ok(true),
+        || panic!("poisoned admission"),
+        |_| panic!("no provider"),
+    );
+    assert!(result.unwrap_err().contains("admission is unavailable"));
+    assert!(key.is_poisoned());
     assert!(q.acquire().is_ok());
+}
+
+#[test]
+fn seal_enrollment_window_validation_unwind_also_leaves_shared_gate_usable() {
+    let q = Questions::new();
+    let key = Mutex::new(());
+    let quit = AppQuit::default();
+    let drops = Arc::new(AtomicUsize::new(0));
     let result = run(
         &q,
         &key,
         &quit,
         || Ok(intent(&drops)),
         |_| Ok(true),
-        || panic!("poisoned gate"),
-        |_| panic!("no effects"),
+        || panic!("synthetic window check unwind"),
+        |_| panic!("must not consume"),
     );
-    assert!(result.unwrap_err().contains("admission is unavailable"));
-    assert_eq!(drops.load(Ordering::SeqCst), 2);
+    assert!(result.unwrap_err().contains("outcome unknown"));
+    assert!(!key.is_poisoned());
+    assert!(key.try_lock().is_ok());
+    assert!(q.acquire().is_ok());
+    assert_eq!(drops.load(Ordering::SeqCst), 1);
+}
+#[test]
+fn seal_enrollment_quit_refusal_precedes_busy_key_wording_after_choice() {
+    let q = Questions::new();
+    let key = Mutex::new(());
+    let quit = AppQuit::default();
+    let stop = Mutex::new(());
+    let quit_guard = RefCell::new(None);
+    let key_guard = RefCell::new(None);
+    let result = run(
+        &q,
+        &key,
+        &quit,
+        || Ok(()),
+        |_| {
+            *quit_guard.borrow_mut() = Some(crate::app_quit::admit_quit(&quit, &stop).unwrap());
+            *key_guard.borrow_mut() = Some(key.lock().unwrap());
+            Ok(true)
+        },
+        || panic!(),
+        |_| panic!(),
+    );
+    assert!(result.unwrap_err().contains("App is quitting"));
+    drop(key_guard);
+    drop(quit_guard);
     assert!(q.acquire().is_ok());
 }
