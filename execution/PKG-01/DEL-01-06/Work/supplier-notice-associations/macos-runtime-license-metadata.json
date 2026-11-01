@@ -1,0 +1,221 @@
+{
+  "scope": "Public metadata only; no source body acquisition, authentication, signing or legal conclusion",
+  "index_sha256": "4e27d99c8194d004395ccb28c5ab0248f750d6b5145de3dde29a1c97841cc3e2",
+  "index_source_revision": "7fdb470b9bedf3bea9f4369672dd24524a6c799d",
+  "current_counts": {
+    "components": 22,
+    "notice_texts": 30,
+    "missing_text_components": 5
+  },
+  "crate_associations": [
+    {
+      "package": "objc2",
+      "version": "0.6.4",
+      "declaration_targets": [
+        "cfg(target_os = \"macos\")"
+      ],
+      "declared_license": "MIT",
+      "archive_sha256": "3a12a8ed07aefc768292f076dc3ac8c48f3781c8f2d5851dd3d98950e8c5a89f",
+      "vcs_revision": "8852b424193ca41602281b3d7540d7c8ed51e49a",
+      "path_in_vcs": "crates/objc2",
+      "readme_sha256": "5da56f1508a87b982a23e6bad2ff09b329f7fcf9181ea15eac17788f8d1c6824",
+      "readme_link": "../../LICENSE.md",
+      "resolved_repository_path": "LICENSE.md",
+      "tree_sha1": "f5faa3fe0ff7188b494870478597adf9d0d6ffd5",
+      "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
+      "size_bytes": 1339,
+      "immutable_url": "https://raw.githubusercontent.com/madsmtm/objc2/8852b424193ca41602281b3d7540d7c8ed51e49a/LICENSE.md"
+    },
+    {
+      "package": "objc2-app-kit",
+      "version": "0.3.2",
+      "declaration_targets": [
+        "cfg(target_os = \"macos\")"
+      ],
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "archive_sha256": "d49e936b501e5c5bf01fda3a9452ff86dc3ea98ad5f283e1455153142d97518c",
+      "vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+      "path_in_vcs": "framework-crates/objc2-app-kit",
+      "readme_sha256": "da145d375986071fdf836604db8c6e99438bb484ad51b8775455635e36fc2ce3",
+      "readme_link": "../../LICENSE.md",
+      "resolved_repository_path": "LICENSE.md",
+      "tree_sha1": "710642442d33002a98d95957801b30551b4edf82",
+      "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
+      "size_bytes": 1339,
+      "immutable_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md"
+    },
+    {
+      "package": "objc2-foundation",
+      "version": "0.3.2",
+      "declaration_targets": [
+        "cfg(target_os = \"macos\")"
+      ],
+      "declared_license": "MIT",
+      "archive_sha256": "e3e0adef53c21f888deb4fa59fc59f7eb17404926ee8a6f59f5df0fd7f9f3272",
+      "vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+      "path_in_vcs": "framework-crates/objc2-foundation",
+      "readme_sha256": "50be6f8e1214bd644cdc32c9610278c004205cdddbe2aaed7887d8bad48dd6c5",
+      "readme_link": "../../LICENSE.md",
+      "resolved_repository_path": "LICENSE.md",
+      "tree_sha1": "710642442d33002a98d95957801b30551b4edf82",
+      "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
+      "size_bytes": 1339,
+      "immutable_url": "https://raw.githubusercontent.com/madsmtm/objc2/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b/LICENSE.md"
+    },
+    {
+      "package": "block2",
+      "version": "0.6.2",
+      "declaration_targets": [
+        "cfg(target_os = \"macos\")"
+      ],
+      "declared_license": "MIT",
+      "archive_sha256": "cdeb9d870516001442e364c5220d3574d2da8dc765554b4a617230d33fa58ef5",
+      "vcs_revision": "b4167b582b2f75f9a1be75495c41b765344fd03c",
+      "path_in_vcs": "crates/block2",
+      "readme_sha256": "99073a83cfe6ee090546e3063f41251f7309fe2a017c4add8494e4ad7990d058",
+      "readme_link": "../../LICENSE.md",
+      "resolved_repository_path": "LICENSE.md",
+      "tree_sha1": "d0c0ec68bb362989649471ee9952db5a7fe43edc",
+      "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
+      "size_bytes": 1339,
+      "immutable_url": "https://raw.githubusercontent.com/madsmtm/objc2/b4167b582b2f75f9a1be75495c41b765344fd03c/LICENSE.md"
+    },
+    {
+      "package": "dispatch2",
+      "version": "0.3.1",
+      "declaration_targets": [
+        "cfg(target_os = \"macos\")"
+      ],
+      "declared_license": "Zlib OR Apache-2.0 OR MIT",
+      "archive_sha256": "1e0e367e4e7da84520dedcac1901e4da967309406d1e51017ae1abfb97adbd38",
+      "vcs_revision": "8852b424193ca41602281b3d7540d7c8ed51e49a",
+      "path_in_vcs": "crates/dispatch2",
+      "readme_sha256": "eba8f5b9bc021bfaaf84478017baf838a92d56a47e691a8b8989aae1210c05d7",
+      "readme_link": "../../LICENSE.md",
+      "resolved_repository_path": "LICENSE.md",
+      "tree_sha1": "f5faa3fe0ff7188b494870478597adf9d0d6ffd5",
+      "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
+      "size_bytes": 1339,
+      "immutable_url": "https://raw.githubusercontent.com/madsmtm/objc2/8852b424193ca41602281b3d7540d7c8ed51e49a/LICENSE.md"
+    }
+  ],
+  "metadata_receipts": [
+    {
+      "url": "https://api.github.com/repos/madsmtm/objc2/git/commits/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+      "http_status": 200,
+      "retrieved_at": "2026-11-01T06:46:57.756659+00:00",
+      "retained_path": "/Users/ryan/dev/chirality-t3/scratch/app-objc-notice-metadata-vvi629kq/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b-commit.json",
+      "sha256": "e549210af1157510d6a8638400c29cc2b9bd80892508918fc173ca5fa978be87",
+      "selected_metadata": {
+        "sha": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+        "tree": {
+          "sha": "710642442d33002a98d95957801b30551b4edf82",
+          "url": "https://api.github.com/repos/madsmtm/objc2/git/trees/710642442d33002a98d95957801b30551b4edf82"
+        }
+      }
+    },
+    {
+      "url": "https://api.github.com/repos/madsmtm/objc2/git/commits/8852b424193ca41602281b3d7540d7c8ed51e49a",
+      "http_status": 200,
+      "retrieved_at": "2026-11-01T06:46:57.672637+00:00",
+      "retained_path": "/Users/ryan/dev/chirality-t3/scratch/app-objc-notice-metadata-vvi629kq/8852b424193ca41602281b3d7540d7c8ed51e49a-commit.json",
+      "sha256": "e9b41c621168df27eb69c43da218046a304446fce52114b6dfe4ba19fcc02fbe",
+      "selected_metadata": {
+        "sha": "8852b424193ca41602281b3d7540d7c8ed51e49a",
+        "tree": {
+          "sha": "f5faa3fe0ff7188b494870478597adf9d0d6ffd5",
+          "url": "https://api.github.com/repos/madsmtm/objc2/git/trees/f5faa3fe0ff7188b494870478597adf9d0d6ffd5"
+        }
+      }
+    },
+    {
+      "url": "https://api.github.com/repos/madsmtm/objc2/git/commits/b4167b582b2f75f9a1be75495c41b765344fd03c",
+      "http_status": 200,
+      "retrieved_at": "2026-11-01T06:46:57.754619+00:00",
+      "retained_path": "/Users/ryan/dev/chirality-t3/scratch/app-objc-notice-metadata-vvi629kq/b4167b582b2f75f9a1be75495c41b765344fd03c-commit.json",
+      "sha256": "41bc129ada63174c8655dc3cdafee3c26d09c43a35b927253abeb855e552918b",
+      "selected_metadata": {
+        "sha": "b4167b582b2f75f9a1be75495c41b765344fd03c",
+        "tree": {
+          "sha": "d0c0ec68bb362989649471ee9952db5a7fe43edc",
+          "url": "https://api.github.com/repos/madsmtm/objc2/git/trees/d0c0ec68bb362989649471ee9952db5a7fe43edc"
+        }
+      }
+    },
+    {
+      "url": "https://api.github.com/repos/madsmtm/objc2/git/trees/710642442d33002a98d95957801b30551b4edf82",
+      "http_status": 200,
+      "retrieved_at": "2026-11-01T06:48:46.682801+00:00",
+      "retained_path": "/Users/ryan/dev/chirality-t3/scratch/app-objc-notice-metadata-vvi629kq/7b1abfd750a2cacaea71d6a56ecfb83cb7de560b-exact-tree.json",
+      "sha256": "72e887597b34497b0528d644b267cf3f485b42a78d54128a24db858be821ce6a",
+      "selected_metadata": {
+        "sha": "710642442d33002a98d95957801b30551b4edf82",
+        "truncated": false,
+        "license_entry": {
+          "path": "LICENSE.md",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "540ae4c81adb5f64a9f61e222b688880da24300e",
+          "size": 1339,
+          "url": "https://api.github.com/repos/madsmtm/objc2/git/blobs/540ae4c81adb5f64a9f61e222b688880da24300e"
+        }
+      }
+    },
+    {
+      "url": "https://api.github.com/repos/madsmtm/objc2/git/trees/f5faa3fe0ff7188b494870478597adf9d0d6ffd5",
+      "http_status": 200,
+      "retrieved_at": "2026-11-01T06:48:46.807731+00:00",
+      "retained_path": "/Users/ryan/dev/chirality-t3/scratch/app-objc-notice-metadata-vvi629kq/8852b424193ca41602281b3d7540d7c8ed51e49a-exact-tree.json",
+      "sha256": "74ff8486b22df842b844f43e6ad48d40f93a4ee21c219b5f15c708e5a9965246",
+      "selected_metadata": {
+        "sha": "f5faa3fe0ff7188b494870478597adf9d0d6ffd5",
+        "truncated": false,
+        "license_entry": {
+          "path": "LICENSE.md",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "540ae4c81adb5f64a9f61e222b688880da24300e",
+          "size": 1339,
+          "url": "https://api.github.com/repos/madsmtm/objc2/git/blobs/540ae4c81adb5f64a9f61e222b688880da24300e"
+        }
+      }
+    },
+    {
+      "url": "https://api.github.com/repos/madsmtm/objc2/git/trees/d0c0ec68bb362989649471ee9952db5a7fe43edc",
+      "http_status": 200,
+      "retrieved_at": "2026-11-01T06:48:46.805594+00:00",
+      "retained_path": "/Users/ryan/dev/chirality-t3/scratch/app-objc-notice-metadata-vvi629kq/b4167b582b2f75f9a1be75495c41b765344fd03c-exact-tree.json",
+      "sha256": "405cf9d93a2b257f6645c8820241f63c10d72dbb7a06adb77eaa4e9a57ec0c7f",
+      "selected_metadata": {
+        "sha": "d0c0ec68bb362989649471ee9952db5a7fe43edc",
+        "truncated": false,
+        "license_entry": {
+          "path": "LICENSE.md",
+          "mode": "100644",
+          "type": "blob",
+          "sha": "540ae4c81adb5f64a9f61e222b688880da24300e",
+          "size": 1339,
+          "url": "https://api.github.com/repos/madsmtm/objc2/git/blobs/540ae4c81adb5f64a9f61e222b688880da24300e"
+        }
+      }
+    }
+  ],
+  "deduplicated_retrieval_proposal": {
+    "url": "https://raw.githubusercontent.com/madsmtm/objc2/8852b424193ca41602281b3d7540d7c8ed51e49a/LICENSE.md",
+    "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
+    "size_bytes": 1339,
+    "count": 1,
+    "purpose": "Receive exact upstream root license text linked by the five cached crate READMEs; then inspect its own scope without electing a generic license or claiming transitive completeness."
+  },
+  "local_search": {
+    "prepared_registry_root": "/Users/ryan/dev/chirality-t3/scratch/app-package-rpc-repair-656rmzxx/cargo-home/registry/src",
+    "root_notice_files_of_exact_size": 0,
+    "git_object_databases_checked": [
+      "selected Chirality library",
+      "App repository"
+    ],
+    "matching_object_found": false,
+    "limit": "bounded inspected sources, not a whole-machine absence claim"
+  },
+  "standing": "Five source-locator associations reduced to one exact candidate text; body availability/applicability unresolved until authorised receipt."
+}
