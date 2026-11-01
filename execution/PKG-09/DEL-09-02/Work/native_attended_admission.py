@@ -163,6 +163,7 @@ class NativeAdmissions:
         # manifests and receipts. Only this incarnation's scratch/log outputs are
         # opened again; the other phase and bridge never receive an exception.
         result+='(deny file-read* file-write* (subpath '+json.dumps(str(self.root))+'))\n'
+        result+='(allow file-read-metadata (literal '+json.dumps(str(self.root))+'))\n'
         result+='(allow file-read-metadata file-read-data (literal '+json.dumps(str(phase))+'))\n'
         result+='(allow file-read* file-write* (subpath '+json.dumps(str(phase/'tmp'))+'))\n'
         result+='(allow file-read-metadata file-write-data (literal '+json.dumps(str(phase/'stdout.log'))+') (literal '+json.dumps(str(phase/'stderr.log'))+'))\n'

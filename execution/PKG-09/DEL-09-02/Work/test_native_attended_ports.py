@@ -61,3 +61,21 @@ class PreSpawnTests(unittest.TestCase):
         with patch('native_attended_ports.subprocess.Popen',side_effect=AssertionError('must not spawn')):
             with self.assertRaisesRegex(RuntimeError,'exclusive'):ports.launch('A',{'admission_sha256':'a'*64},295)
         self.assertIsNone(ports.pending_launch);self.assertIsNone(ports.runs['A'].reservation);self.assertEqual(stopped,[True])
+
+
+class PostReapTests(unittest.TestCase):
+    ports=Tests.ports
+    run_fixture=Tests.run_fixture
+    def test_passive_settle_after_reap_allows_transient_residency(self):
+        run,events=self.run_fixture();p=self.ports(run);samples=[]
+        def sample():
+            samples.append(True);run.observed_processes=['invented exiting supplier'] if len(samples)==1 else []
+        run.sample=sample
+        with patch('native_attended_ports.time.sleep'):
+            result=p.quit_normal('A',20)
+        self.assertEqual(len(samples),2);self.assertTrue(result['released'])
+        self.assertIn('attended-admin-release-result.json',events)
+    def test_actual_wait_is_recorded_when_resources_never_settle(self):
+        run,events=self.run_fixture();p=self.ports(run);run.observed_processes=['invented survivor']
+        with patch('native_attended_ports.time.sleep'),self.assertRaises(RuntimeError):p.quit_normal('A',20)
+        self.assertIn('attended-admin-release-result.json',events);self.assertNotIn('A',p.closures)

@@ -529,3 +529,45 @@ then records failed reap without qualification. All simulations stay explicitly
 invented and consumed roots cannot execute natively. Native timings, AX layout,
 App Quit behavior and tool latency within the actual attended interval remain
 unverified despite source/fixture checks. No App invocation occurred.
+
+## Focused disposition review return and final small repairs
+
+Claude Opus5.5/high independently reviewed049e16f9..2adb8908 and found **no
+defect in the new exited-Child disposition boundary itself**, checking both
+source and its fixtures. It verified lvaaz6r3's36 dependency/8 artifact pins,
+whole-root policies and manager function hash, and reran49 attended +17 sheet
+Python tests and8 manager JS cases. That root becomes stale with the following
+manager repairs; no clean full rereview or launch approval is claimed.
+
+The normal-exit wait result is now recorded immediately after reap, even if
+resource closure later fails. Post-reap resource checking passively retries
+within at most8s/40samples and the existing deadline, retaining the guard until
+candidate processes/helpers settle. This adds no process action or time
+extension. New fixtures cover transient residency and persistent uncertainty.
+The policy permits **metadata only** on the controller root itself so pathname
+resolution can reach the current phase TMPDIR without exposing bridge contents.
+Publication lock contention gets five bounded attempts (maximum0.2s wait),
+without overwriting receipts. Supervisor offers/error state persists across
+observer re-entry; a cap-reached record discloses suppressed further errors.
+The manager reports an active session once rather than on every poll. A parent
+reap decision must be a disposition event and use a decision message reference
+different from the delivery's own message ID.
+
+A real **non-App** transport fixture confirmed the current tools' shapes:
+exec_command returned positive integer session_id28661; write_stdin returned
+integer exit_code0 and no session_id. It ran only isolated Python sleep/print,
+not App/AppKit/AX/supplier. Actual tool responses are retained in
+`app-parented-lifecycle-9bg_3bjr/actual-manager-tool-shape.json`.
+This resolves the ordinary-shape assumption without spending a native launch;
+exceptional transport loss still follows conservative session recovery/hold.
+Actual T3 send response fields have also been observed in preparation messages;
+no native-event delivery latency or owner response time is inferred.
+
+Conservative exceptional limits remain: no automatic re-offer after a consumed
+disposition fails its final guard, no invented birth for a Child that exits before
+birth can be observed, and no release for genuinely unknown spawn/helper custody.
+Those conditions are reported under active supervision and require an explicit
+Agent0 decision within available authority. A lost stdout event line remains in
+the private bridge queue for manager/Agent0 inspection; transport uncertainty
+cannot become a delivered owner instruction or successful witness. These are
+not claims of deterministic closure under arbitrary failures.

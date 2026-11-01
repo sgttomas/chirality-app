@@ -41,7 +41,12 @@ def publish(path, value):
     lock=os.open(path.parent/'.publication.lock',os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
     temp=None
     try:
-        fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        import errno
+        for attempt in range(5):
+            try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB);break
+            except OSError as error:
+                if error.errno not in (errno.EAGAIN,errno.EACCES) or attempt==4:raise
+                time.sleep(.05)
         require(not os.path.lexists(path),'receipt already exists; no replacement')
         temp=path.parent/('.'+path.name+'.'+uuid.uuid4().hex)
         fd=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)

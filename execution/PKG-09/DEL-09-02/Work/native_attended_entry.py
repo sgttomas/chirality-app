@@ -118,14 +118,27 @@ def supervise_held(ports,bridge,sequence,clock=time.monotonic,sleep=time.sleep):
     required recovery (not a silent hours-long orphan). An explicit later owner
     disposition is necessary for UI work outside the original fixed interval.
     """
-    last=None;late=set();last_heartbeat=clock();dispositions={};reported_errors=set()
+    state_store=getattr(sequence,'_held_state',None)
+    if state_store is None:
+        state_store={'last':None,'late':set(),'last_heartbeat':clock(),'dispositions':{},'errors':set(),'suppressed':False}
+        sequence._held_state=state_store
+    last=state_store['last'];late=state_store['late'];last_heartbeat=state_store['last_heartbeat']
+    dispositions=state_store['dispositions'];reported_errors=state_store['errors']
+    def new_error(key):
+        if key in reported_errors:return False
+        if len(reported_errors)>=20:
+            if not state_store['suppressed']:
+                state_store['suppressed']=True
+                sequence.safe_record('supervision-error-cap',{'limit':20,'additional_errors_suppressed':True,'custody':'retained'})
+            return False
+        reported_errors.add(key);return True
     while True:
         held=original_custody(ports)
         if not held:return
         if clock()-last_heartbeat>=5:
             try:print(json.dumps({'event':'attended-held-heartbeat','held':held,'overrun':max(0,clock()-sequence.deadline)}),flush=True)
             except (BrokenPipeError,OSError):pass
-            last_heartbeat=clock()
+            last_heartbeat=clock();state_store['last_heartbeat']=last_heartbeat
         # Terminal nonzero/signal observations get a concrete decision offer,
         # never local self-approval. One offer/receipt per original incarnation.
         from native_attended_disposition import offer,consume
@@ -141,8 +154,8 @@ def supervise_held(ports,bridge,sequence,clock=time.monotonic,sleep=time.sleep):
                 consume(ports,bridge,label,dispositions[label])
             except Exception as error:
                 key=(label,'disposition',str(error))
-                if key not in reported_errors and len(reported_errors)<20:
-                    reported_errors.add(key);sequence.safe_record('disposition-observation-'+str(len(reported_errors)),{'error':str(error),'incarnation':label})
+                if new_error(key):
+                    sequence.safe_record('disposition-observation-'+str(len(reported_errors)),{'error':str(error),'incarnation':label})
         state=tuple(held)
         if state!=last:
             try:bridge.deliver({'event':'attended-held-supervision','incarnation':sequence.current,
@@ -151,7 +164,7 @@ def supervise_held(ports,bridge,sequence,clock=time.monotonic,sleep=time.sleep):
             except BaseException as error:
                 try:print(json.dumps({'event':'attended-delivery-failed','error':str(error),'custody':'held'}),flush=True)
                 except (BrokenPipeError,OSError):pass
-            last=state
+            last=state;state_store['last']=last
         for label,kind in held:
             if label not in late and label in bridge.offers:
                 try:
@@ -163,8 +176,8 @@ def supervise_held(ports,bridge,sequence,clock=time.monotonic,sleep=time.sleep):
                             'meaning':'completion only; no deadline rearm or presumed dismissal'})
                 except BaseException as error:
                     key=(label,'completion',str(error))
-                    if key not in reported_errors and len(reported_errors)<20:
-                        reported_errors.add(key);sequence.safe_record('late-completion-error-'+label,{'error':str(error)})
+                    if new_error(key):
+                        sequence.safe_record('late-completion-error-'+label,{'error':str(error)})
             run=ports.runs.get(label)
             if run is None:continue
             # Reap only the original exited child. Never call a live-PID action.
@@ -179,8 +192,8 @@ def supervise_held(ports,bridge,sequence,clock=time.monotonic,sleep=time.sleep):
                         run.act_record('late-original-exit-release-result.json',{'wait':rc,'success':False,'overrun':max(0,clock()-sequence.deadline)})
                 except BaseException as error:
                     key=(label,'exit',str(error))
-                    if key not in reported_errors and len(reported_errors)<20:
-                        reported_errors.add(key);run.safe_log('held_exit_refusal',error=str(error))
+                    if new_error(key):
+                        run.safe_log('held_exit_refusal',error=str(error))
             elif run.reservation is None:
                 # A failed spawn with no returned Child remains unknown until
                 # the launch port supplies an explicit failure/closure receipt.
@@ -191,8 +204,8 @@ def supervise_held(ports,bridge,sequence,clock=time.monotonic,sleep=time.sleep):
                     if not run.observed_processes and run.extra_cleanup_ready():run.stop.set()
                 except Exception as error:
                     key=(label,'residency',str(error))
-                    if key not in reported_errors and len(reported_errors)<20:
-                        reported_errors.add(key);run.safe_log('held_resource_uncertainty',error=str(error))
+                    if new_error(key):
+                        run.safe_log('held_resource_uncertainty',error=str(error))
         sleep(.2)
 
 def run_sequence(ports,bridge,slot_start,clock=time.monotonic,sleep=time.sleep):

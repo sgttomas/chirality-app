@@ -324,9 +324,19 @@ class NativePorts:
         require(offered is not None,'fresh admission-bound administrative release unavailable')
         run.act_record('attended-admin-release-intent.json',offered)
         code=run.reservation.administrative_reap(offered['expected_app_exit'])
+        run.act_record('attended-admin-release-result.json',{'expected_exit':exit_fact,'actual_wait':code,
+            'Child_reaped':run.reservation.reaped,'all_resources_closed':False,'qualification_success':False})
         require(code==0,'original Child wait not0')
-        run.sample()
-        require(not run.observed_processes,'known candidate process remains after Child reap; retain guard')
+        settle_end=min(end,self.clock()+8)
+        settled=False;last=None
+        for sample in range(40):
+            if self.clock()>=settle_end:break
+            try:
+                run.sample()
+                if not run.observed_processes and run.extra_cleanup_ready():settled=True;break
+            except Exception as error:last=str(error)
+            time.sleep(min(.2,max(0,settle_end-self.clock())))
+        require(settled,'post-reap resources not settled within bounded observation: '+str(last))
         run.stop.set();run.thread.join(timeout=8)
         require(not run.thread.is_alive(),'guard did not settle')
         receipt={'incarnation':label,'normal_exit':code,'helpers_settled':True,'reaped':True,

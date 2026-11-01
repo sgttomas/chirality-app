@@ -34,7 +34,9 @@ def publish_disposition(root,event_id,parent_message_id):
     require(delivered.get('accepted') is True and delivered.get('run_id')==event['run_id']
             and delivered.get('event_id')==event_id,'disposition event not delivered')
     selected=event.get('administrative_disposition_offer')
-    require(selected and selected['issuer_thread']==PARENT and parent_message_id,'actual Agent0 decision required')
+    require(event.get('event')=='attended-terminal-disposition-needed' and selected
+            and selected['issuer_thread']==PARENT and parent_message_id
+            and parent_message_id!=delivered.get('message_id'),'actual distinct Agent0 decision required')
     terminal(selected['observed_exit'])
     publish(root/'bridge'/(event_id+'.disposition.json'),{'offer':selected,
             'parent_decision_message_id':parent_message_id,'simulation':event.get('simulation',False)})

@@ -69,7 +69,7 @@
   const launchCommand=`/Users/ryan/dev/chirality-t3/tools/t3_slot.sh ${runtime} ${quote(entry)} execute --root ${quote(root)} --prepared-sha256 ${quote(preparedSha256)}`;
   try { output=await exec({cmd:launchCommand,yield_time_ms:1000,max_output_tokens:12000}); }
   catch(error) { output={unknown_launch_error:String(error)}; }
-  let pollErrors=0;
+  let pollErrors=0, reportedSession;
   // Only an explicit integer exit code with no active session proves transport
   // completion. Null/missing/unknown shapes never mean exit0.
   while (true) {
@@ -104,7 +104,7 @@
       await new Promise(resolve=>setTimeout(resolve,1000));
       continue;
     }
-    safeNotify({active_session:session,run_id:manifest.run_id,root});
+    if(reportedSession!==session){safeNotify({active_session:session,run_id:manifest.run_id,root});reportedSession=session;}
     try {
       output=await tools.write_stdin({session_id:session,chars:'',yield_time_ms:1000,max_output_tokens:12000});
       pollErrors=0;
