@@ -1,6 +1,6 @@
 # Chirality App v4 User Manual
 
-**Working draft, 30 October 2026. Not yet a release manual.**
+**Working draft, 1 November 2026. Not yet a release manual.**
 
 This manual is for the person using Chirality App. It explains how to work with
 an agent, use a workflow, examine the result and improve a method for next time.
@@ -29,6 +29,9 @@ a saved workflow for every task. Use one when its method fits the work, or when
 you want to repeat and improve a method.
 
 ## Read by task
+
+- [Set up your workspace](setting-up.md): choose shared settings, review and save
+  next-launch choices, and navigate to connection and conversation controls.
 
 - [Use a workflow](using-workflows.md): choose the method and revision, provide
   inputs, run the work and examine the result.
