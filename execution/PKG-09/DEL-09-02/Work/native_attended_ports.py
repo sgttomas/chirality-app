@@ -38,6 +38,10 @@ class NativePorts:
         return self.admissions.empty(end)
 
     def launch(self, label, admission, end):
+        if 'typed_ax_comparison' in self.value:
+            require(label=='A' and admission.get('diagnostic_only') is True and admission.get('launch_limit')==1
+                    and all(admission.get(k) is False for k in ('setup_allowed','focus_allowed','Stop_allowed')),
+                    'diagnostic forbids B or broader admission')
         require(label in ('A','B') and label not in self.launches, 'unknown/repeated incarnation')
         require(label=='A' or ('A' in self.closures and self.saved is not None), 'B before complete A closure')
         self.b.check_observation_capabilities()
@@ -93,6 +97,7 @@ class NativePorts:
         # Control focus is allowed only inside an already foreground App; never
         # assign AXFrontmost or ask AppKit to activate the application.
         def control_focus(element):
+            require('typed_ax_comparison' not in self.value,'diagnostic forbids focus/input')
             self._original(label)
             require(run.foreground_verified and run.ax.attr(run.ax.app,'AXFrontmost') is True,
                     'verified original foreground lost before control focus')
@@ -104,6 +109,7 @@ class NativePorts:
         run.ax.focus=control_focus
         original_press,original_key=run.ax.press,run.ax.key
         def foreground_for_input():
+            require('typed_ax_comparison' not in self.value,'diagnostic forbids input')
             self._original(label)
             require(run.foreground_verified and run.ax.attr(run.ax.app,'AXFrontmost') is True,
                     'verified original foreground lost before input')
@@ -197,6 +203,7 @@ class NativePorts:
             raise
 
     def autonomous_start(self,label,run,frame,end):
+        require('typed_ax_comparison' not in self.value,'diagnostic forbids focus')
         require(not getattr(run,'autonomous_focus_started',False),'autonomous focus already consumed')
         run.autonomous_focus_started=True
         run.foreground_verified=False
@@ -235,6 +242,7 @@ class NativePorts:
         return verified
 
     def ordinary_setup_save(self, label, end):
+        require('typed_ax_comparison' not in self.value,'diagnostic forbids setup/ready/Stop')
         require(label=='A','setup may run only in A')
         run=self._original(label);run.ui_deadline=min(end,run.work_end,self.clock()+45)
         route=run.screen.window
@@ -330,6 +338,7 @@ class NativePorts:
         return self.admissions.saved_after_closure(a,saved,closure,end)
 
     def observe_ready(self,label,end):
+        require('typed_ax_comparison' not in self.value,'diagnostic forbids setup/ready/Stop')
         require(label=='B','ready only in B')
         run=self._original(label)
         run.work_end=min(end,run.resource_end-40)
@@ -341,11 +350,13 @@ class NativePorts:
                 'generation':gen,'request_sha256':self.saved['request_sha256'],'account':self.saved['account']}
 
     def sheet_preflight(self,label,ready,end):
+        require('typed_ax_comparison' not in self.value,'diagnostic forbids setup/ready/Stop')
         run=self._original(label);run.ui_deadline=end
         control=for_owned_run(run,run.bound_main(),run.resource_end,self.b.screen_support.w)
         self.controls[label]=control;control.preflight(end)
 
     def post_stop_once(self,label,ready,end):
+        require('typed_ax_comparison' not in self.value,'diagnostic forbids setup/ready/Stop')
         run=self._original(label);run.ui_deadline=end
         run.work_end=end
         require(run.generation==ready['generation'],'Stop source changed')

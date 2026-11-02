@@ -196,7 +196,10 @@ class NativeAdmissions:
     def empty(self,end):
         require(self.clock()<end-135,'A admission missed setup budget')
         self.recheck_inputs()
-        return self._receipt('A',preflight_a(self.build_root,self.plan_sha,self.identify,self.state_basis))
+        facts=preflight_a(self.build_root,self.plan_sha,self.identify,self.state_basis)
+        if 'typed_ax_comparison' in self.value:
+            facts.update(diagnostic_only=True,setup_allowed=False,focus_allowed=False,Stop_allowed=False,launch_limit=1)
+        return self._receipt('A',facts)
 
     def recheck_inputs(self):
         require(sha(self.build_root/'witness-inputs/input-plan.json')==self.plan_sha,'prepared input plan changed')
@@ -239,6 +242,7 @@ class NativeAdmissions:
             'actual_state':proof})
 
     def before_launch(self,label,admission,end):
+        if 'typed_ax_comparison' in self.value:require(label=='A','diagnostic admits one original A only')
         require(admission==self.receipts.get(label),'current incarnation admission differs')
         self.recheck_inputs()
         require(self.identify.identity(self.identify.inventory(Path(self.value['bundle'])))==self.plan['build_identity'],
@@ -252,6 +256,14 @@ class NativeAdmissions:
         for filename,digest in self.value['window_route']['helper_sources'].items():
             require(sha(phase/filename)==digest,'phase helper source changed')
         require((phase/'phase.sb').read_text()==self.policy(label,phase),'phase sandbox policy changed')
+        if 'typed_ax_comparison' in self.value:
+            binding=self.value['typed_ax_comparison']
+            require(binding['manifest']==str(phase/'typed-ax-build.json') and sha(phase/'typed-ax-build.json')==binding['sha256'],'diagnostic manifest changed')
+            manifest=json.loads((phase/'typed-ax-build.json').read_text())
+            library=phase/'typed-ax-reader.dylib';plain(library)
+            require(manifest['library']['path']==str(library) and sha(library)==manifest['library']['sha256'],'diagnostic library changed')
+            for name,digest in binding['helper_sources'].items():
+                p=phase/name;plain(p);require(sha(p)==digest,'diagnostic helper source changed')
         if label=='B':
             require(self.saved is not None,'B has no actual A setup')
             validate_saved_setup(Path(self.value['expected_app_data'])/'desktop-startup/request.json',

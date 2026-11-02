@@ -49,7 +49,7 @@ def source_binding(manifest):
     for path,digest in manifest['sources'].items():require(sha(plain(path))==digest,'typed AX source changed')
 
 
-def stage_build(root, manifest_path, reviewed_manifest_sha):
+def stage_build(root, manifest_path, reviewed_manifest_sha, *, isolated_sources=False):
     """Copy checked code into the existing B sandbox-denied control root prelaunch.
 
     Returns the binding for a NEW admission; never edits an existing admission.
@@ -68,6 +68,22 @@ def stage_build(root, manifest_path, reviewed_manifest_sha):
     descriptor=os.open(copied,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
     with os.fdopen(descriptor,'wb') as stream:stream.write(raw)
     manifest['original_build_manifest']={'path':str(source),'sha256':sha(source)}
+    if isolated_sources:
+        # Relocate byte-identical reviewed sources for the isolated helper's
+        # loader; preserve the original compiler manifest as provenance.
+        relocated={}
+        for original_path,digest in manifest['sources'].items():
+            original_source=plain(original_path)
+            relative=original_source.relative_to(HERE.parent)
+            target=root/relative;target.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+            data=original_source.read_bytes();require(hashlib.sha256(data).hexdigest()==digest,'typed source changed while staging')
+            if target.exists():require(sha(plain(target))==digest,'staged typed source collision')
+            else:
+                fd=os.open(target,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+                with os.fdopen(fd,'wb') as stream:stream.write(data)
+            relocated[str(target)]=digest
+        manifest['original_source_bindings']=manifest['sources']
+        manifest['sources']=relocated
     manifest['library']={'path':str(copied),'sha256':hashlib.sha256(raw).hexdigest()}
     staged=root/'typed-ax-build.json'
     descriptor=os.open(staged,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)

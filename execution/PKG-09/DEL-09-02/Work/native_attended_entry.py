@@ -38,7 +38,7 @@ def sha(path):
     return h.hexdigest()
 
 def dependencies():
-    paths=list(HERE.glob('native*.py'))+[HERE/'native_attended_manager.js',
+    paths=list(HERE.glob('native*.py'))+[HERE/'typed_ax/reader.c',HERE/'typed_ax/reader.h',HERE/'typed_ax/build.py']+[HERE/'native_attended_manager.js',
         Path('/Users/ryan/dev/chirality-t3/tools/t3_slot.sh'),Path('/Users/ryan/dev/chirality-t3/tools/t3_slot_run.sh')]
     import native_successor_relaunch as b
     paths.extend(Path(p) for p in b.dependencies())
@@ -51,7 +51,7 @@ def load_identify():
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     return module
 
-def prepare(build_root,state_basis=None):
+def prepare(build_root,state_basis=None,typed_manifest=None,typed_sha=None):
     from native_attended_admission import NativeAdmissions,preflight_a
     import native_successor_relaunch as b
     build_root=Path(build_root).resolve()
@@ -61,19 +61,28 @@ def prepare(build_root,state_basis=None):
     root=Path(tempfile.mkdtemp(prefix='app-attended-prepared-',dir=SCRATCH)).resolve()
     for name in ('A','B','bridge','manager-home','bytecode-cache'):(root/name).mkdir(mode=0o700)
     admission=NativeAdmissions(root,build_root,PLAN_SHA,b,load_identify(),time.monotonic,state_basis)
+    require(bool(typed_manifest)==bool(typed_sha),'diagnostic manifest and digest both required')
+    diagnostic=bool(typed_manifest)
+    if diagnostic:
+        from native_ax_comparison import stage
+        admission.value.pop('autonomous_focus_route')
     artifacts={}
-    for label in ('A','B'):
+    for label in (('A',) if diagnostic else ('A','B')):
         phase=root/label
         for name in ('codex-home','tmp','helper-tmp'):(phase/name).mkdir(mode=0o700)
         b.screen_support.w.stage(phase,admission.value['window_route'])
+        if diagnostic:admission.value['typed_ax_comparison']=stage(phase,typed_manifest,typed_sha)
         policy=phase/'phase.sb';policy.write_text(admission.policy(label,phase));policy.chmod(0o600)
-        for path in phase.iterdir():
+        for path in phase.rglob('*'):
             if path.is_file():artifacts[str(path.relative_to(root))]=sha(path)
     manifest={'format':'attended-prepared-entry/v1','run_id':uuid.uuid4().hex,'candidate':CANDIDATE,
         'build_root':str(build_root),'state_basis':state_basis,'plan_sha256':PLAN_SHA,'controller_root':str(root),'entry_source':str(Path(__file__).resolve()),
         'dependencies':dependencies(),'manager_function_sha256':hashlib.sha256(('async function'+(HERE/'native_attended_manager.js').read_text().split('(async function',1)[1]).rstrip().removesuffix(')').encode()).hexdigest(),'artifacts':artifacts,'A_preflight':checked,'total_seconds':295,
-        'autonomous_focus_route':admission.value['autonomous_focus_route'],
-        'Stop_entry_reserve':135,'launch_limit':2,'Stop_confirmation':False,'PR69_active':False,
+        'autonomous_focus_route':admission.value.get('autonomous_focus_route'),
+        'experiment':'typed-ax-diagnostic/v1' if diagnostic else 'stop-cancel/v1',
+        'typed_ax_comparison':admission.value.get('typed_ax_comparison'),
+        'diagnostic_scope':{'setup':False,'focus':False,'Stop':False,'launches':1,'helper_seconds':10,'helper_reap_seconds':1,'cleanup_headroom_seconds':57} if diagnostic else None,
+        'Stop_entry_reserve':135,'launch_limit':1 if diagnostic else 2,'Stop_confirmation':False,'PR69_active':False,
         'interpreter':{'path':str(Path(sys.executable).resolve()),'sha256':sha(Path(sys.executable).resolve())},
         'native_executed':False,'prepared_at':datetime.now(timezone.utc).isoformat()}
     publish(root/'prepared.json',manifest)
@@ -89,7 +98,7 @@ def check(root,expected_sha):
     require(manifest['controller_root']==str(root) and manifest['entry_source']==str(Path(__file__).resolve())
             and manifest['candidate']==CANDIDATE and manifest['plan_sha256']==PLAN_SHA
             and manifest['total_seconds']==295 and manifest['Stop_entry_reserve']==135
-            and manifest['launch_limit']==2 and manifest['Stop_confirmation'] is False
+            and manifest['launch_limit']==(1 if manifest.get('experiment')=='typed-ax-diagnostic/v1' else 2) and manifest['Stop_confirmation'] is False
             and manifest['PR69_active'] is False,'prepared scope differs')
     if manifest.get('state_basis') is not None:
         from native_attended_retained_shell import selected_profile
@@ -99,7 +108,20 @@ def check(root,expected_sha):
         except RuntimeError as error:raise RuntimeError('retained basis descriptor changed') from error
         require(sha(Path(descriptor['path']))==descriptor['sha256'],'retained basis descriptor changed')
     require(manifest['interpreter']=={'path':str(Path(sys.executable).resolve()),'sha256':sha(Path(sys.executable).resolve())},'entry interpreter differs')
-    require(manifest.get('autonomous_focus_route')=={'version':'autonomous-owned-focus/v1','per_incarnation_cap_seconds':45,'mechanism':'AXRaise+AXFrontmost'},'autonomous focus route binding differs')
+    require(manifest.get('experiment','stop-cancel/v1') in ('stop-cancel/v1','typed-ax-diagnostic/v1'),'unknown experiment')
+    if manifest.get('experiment')=='typed-ax-diagnostic/v1':
+        require(manifest.get('diagnostic_scope')=={'setup':False,'focus':False,'Stop':False,'launches':1,'helper_seconds':10,'helper_reap_seconds':1,'cleanup_headroom_seconds':57},'diagnostic authority/budget changed')
+        binding=manifest.get('typed_ax_comparison')
+        require(manifest.get('autonomous_focus_route') is None and binding is not None
+                and binding['action']=='same-original-ax-reference/v1' and binding['helper_seconds']==10
+                and binding['helper_reap_seconds']==1,'diagnostic scope binding differs')
+        from native_ax_comparison import SOURCES
+        require(set(binding['helper_sources'])==SOURCES and all(manifest['artifacts'].get('A/'+name)==digest for name,digest in binding['helper_sources'].items()),'diagnostic helper artifact binding differs')
+        require(binding['manifest']==str(root/'A/typed-ax-build.json') and sha(Path(binding['manifest']))==binding['sha256'],
+                'diagnostic reviewed manifest differs')
+    else:
+        require(manifest.get('typed_ax_comparison') is None,'unexpected diagnostic binding')
+        require(manifest.get('autonomous_focus_route')=={'version':'autonomous-owned-focus/v1','per_incarnation_cap_seconds':45,'mechanism':'AXRaise+AXFrontmost'},'autonomous focus route binding differs')
     require(manifest['dependencies']==dependencies(),'controller/source dependency changed')
     for relative,digest in manifest['artifacts'].items():
         path=root/relative
@@ -219,8 +241,11 @@ def supervise_held(ports,bridge,sequence,clock=time.monotonic,sleep=time.sleep):
                         run.safe_log('held_resource_uncertainty',error=str(error))
         sleep(.2)
 
-def run_sequence(ports,bridge,slot_start,clock=time.monotonic,sleep=time.sleep):
-    sequence=AttendedSequence(ports,clock)
+def run_sequence(ports,bridge,slot_start,clock=time.monotonic,sleep=time.sleep,diagnostic=False):
+    if diagnostic:
+        from native_ax_comparison import DiagnosticSequence
+        sequence=DiagnosticSequence(ports,clock)
+    else:sequence=AttendedSequence(ports,clock)
     try:result=sequence.run(slot_start)
     except BaseException as error:
         sequence.result.update(witness_complete=False,error=repr(error),custody_held=True)
@@ -300,6 +325,10 @@ def execute(root,expected_sha):
     from native_attended_admission import NativeAdmissions
     from native_attended_ports import NativePorts
     admissions=NativeAdmissions(root,Path(manifest['build_root']),manifest['plan_sha256'],b,load_identify(),time.monotonic,manifest.get('state_basis'))
+    diagnostic=manifest.get('experiment')=='typed-ax-diagnostic/v1'
+    if diagnostic:
+        admissions.value.pop('autonomous_focus_route')
+        admissions.value['typed_ax_comparison']=manifest['typed_ax_comparison']
     bridge=ReceiptBridge(root,manifest['candidate'],manifest['run_id'],admissions)
     ports=NativePorts(b,root,admissions.value,admissions,bridge.deliver,bridge.completion)
     original_before=admissions.before_launch
@@ -307,9 +336,10 @@ def execute(root,expected_sha):
         check(root,expected_sha)
         original_before(label,receipt,end)
     admissions.before_launch=before
-    result=run_sequence(ports,bridge,acquired)
+    result=run_sequence(ports,bridge,acquired,diagnostic=diagnostic)
     print(json.dumps({'event':'attended-final','result':result}),flush=True)
-    return 0 if result.get('witness_complete') and result.get('resource_custody_closed') and not result.get('delivery_errors') else 1
+    completed=result.get('diagnostic_complete') if diagnostic else result.get('witness_complete')
+    return 0 if completed and result.get('resource_custody_closed') and not any(result.get(k) for k in ('error','cleanup_error','delivery_errors','final_overrun')) else 1
 
 def simulate(root,expected_sha):
     """Verify actual frozen prep, then exercise only invented in-process ports.
@@ -322,17 +352,22 @@ def simulate(root,expected_sha):
     publish(Path(root)/'mode.json',{'mode':'simulation','prepared_sha256':expected_sha})
     publish(Path(root)/'simulation-started.json',{'simulation':True,'prepared_sha256':expected_sha,
         'candidate_not_launched':manifest['candidate']})
-    from test_native_attended_entry import EntryTests
     results={}
-    for scenario in ('normal','autonomous-flow','owner','delivery-failure','late-owner','nonzero-exit'):
-        results[scenario]=EntryTests().exercise(scenario)
+    if manifest.get('experiment')=='typed-ax-diagnostic/v1':
+        from test_native_attended_diagnostic import DiagnosticEntryTests
+        for scenario in ('normal','C-crash','Python-crash','timeout','identity','unknown-helper'):
+            results[scenario]=DiagnosticEntryTests().exercise(scenario)
+    else:
+        from test_native_attended_entry import EntryTests
+        for scenario in ('normal','autonomous-flow','owner','delivery-failure','late-owner','nonzero-exit'):
+            results[scenario]=EntryTests().exercise(scenario)
     publish(Path(root)/'simulation-result.json',{'simulation':True,'native_calls':0,'App_launches':0,
         'prepared_sha256':expected_sha,'cases':results,'standing':'offline entry/custody/bridge fixtures only'})
     print(json.dumps({'simulation':True,'cases':len(results),'root':str(root),'native_calls':0,'App_launches':0}))
 
 def main():
     parser=argparse.ArgumentParser();sub=parser.add_subparsers(dest='command',required=True)
-    p=sub.add_parser('prepare');p.add_argument('--build-root',required=True);p.add_argument('--retained-basis');p.add_argument('--retained-sha256')
+    p=sub.add_parser('prepare');p.add_argument('--build-root',required=True);p.add_argument('--retained-basis');p.add_argument('--retained-sha256');p.add_argument('--typed-manifest');p.add_argument('--typed-sha256')
     for command in ('check','execute','simulate'):
         p=sub.add_parser(command);p.add_argument('--root',required=True);p.add_argument('--prepared-sha256',required=True)
     p=sub.add_parser('record-start');p.add_argument('--root',required=True);p.add_argument('--prepared-sha256',required=True);p.add_argument('--json',required=True)
@@ -342,7 +377,7 @@ def main():
     args=parser.parse_args()
     if args.command=='prepare':
         require(bool(args.retained_basis)==bool(args.retained_sha256),'both retained basis and digest required')
-        prepare(args.build_root,{'path':args.retained_basis,'sha256':args.retained_sha256} if args.retained_basis else None)
+        prepare(args.build_root,{'path':args.retained_basis,'sha256':args.retained_sha256} if args.retained_basis else None,args.typed_manifest,args.typed_sha256)
     elif args.command=='check':print(json.dumps(check(args.root,args.prepared_sha256)))
     elif args.command=='simulate':simulate(args.root,args.prepared_sha256)
     elif args.command=='execute':return execute(args.root,args.prepared_sha256)
