@@ -19,10 +19,30 @@ Specify:
 Keep the instructions as short as the task permits. Do not require extra
 records that nobody needs to use or examine.
 
-The development App can create a draft from inspected or selected content in
-an open library. Give the draft a clear name. Its draft list shows the available
-content and actions. A draft is editable work; it is not yet a registered
-workflow revision.
+The development App's Workflow studio groups the route into three stages:
+
+1. **Choose content and a library.** Open the project or user workflow library
+   where the draft belongs. Inspect the intended content. With **No chat**, this
+   is library inspection only; a Workflow chat keeps its own content selection.
+2. **Create a named draft.** Check the displayed content and draft destination.
+   Enter a name explicitly; the App does not prefill an example workflow's
+   name. The explanation above Create names any missing prerequisite. Blank
+   names cannot be submitted; other name and destination checks belong to the
+   host, which receives the text exactly as entered.
+3. **Try and review drafts.** Use the draft list's trial and review controls.
+   A draft is editable work, not a registered workflow revision.
+
+While an operation is pending, wait for its result. Repeated clicks do not queue
+another workflow operation. A successful creation and a later failed view read
+are different outcomes: the original result remains reported with the read's
+limit. Do not repeat a creation merely to refresh its display. Nothing here
+registers or runs the draft automatically.
+
+**Advanced: exact revision or in-place entry** retains the explicit revision-
+store and in-place review operations. Those controls also use the name entered
+above; no revision is chosen automatically. Normal drafts are reviewed from
+the draft list. These are development-source instructions, not a completed
+native walkthrough.
 
 ## Try the draft
 

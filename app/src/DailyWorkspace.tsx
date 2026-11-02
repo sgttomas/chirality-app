@@ -101,6 +101,9 @@ export function DailyWorkspace({ children }: { children: ReactNode }) {
       .workspace-notices:empty { display:none; }
       .workspace-notices { margin:12px 0; }
       .workspace-notices [role=alert] { border-left:3px solid var(--danger); padding-left:10px; }
+      .workflow-stage { border-top:1px solid var(--rule); padding:12px 0; margin:12px 0; }
+      .workflow-stage h3 { font-family:var(--font-display); }
+      .workflow-stage input { margin:6px 0; }
       .history-browser { border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); padding:12px 0; margin:12px 0; }
       .history-search { display:flex; flex-wrap:wrap; align-items:end; gap:8px; margin-top:16px; }
       .history-search label { display:flex; flex:1 1 250px; flex-direction:column; gap:4px; }

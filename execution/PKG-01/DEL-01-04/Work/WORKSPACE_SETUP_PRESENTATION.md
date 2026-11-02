@@ -157,3 +157,51 @@ with controlled host-shaped packets; this slice does not claim a newly executed
 Rust producer, actual native history or a candidate walkthrough. TypeScript/Vite
 and structure/whitespace checks accompany the contribution; real layout/keyboard/
 AX/native focus remain unrun. All prior candidate/evidence identities remain intact.
+
+## Explicit workflow discovery and draft creation
+
+Next frontend slice on App `446b06a501299316e3709b5103db1ec5d6e70d77`.
+The exact v3 visual assets/tokens remain those already integrated by PR84.
+Additional inspected source at Root `485051eac923c759238948a54cd7bb094eee4899`,
+`projects/chirality-app-dev/frontend/src/components/woven-dialogue/`:
+`workflows-view.tsx` lines 1–33 (complete file) and `workflow-draft-review.tsx`
+lines 1–80. Their explicit content/read/review progress informs presentation;
+v3 fetch, registration and runtime authority are not adopted.
+
+Workflow studio now groups choosing content/library, creating a named draft,
+and trying/reviewing drafts in that order. Create moves before the draft list,
+with its current prerequisite and opened destination adjacent. Its name begins
+empty instead of implicitly proposing `coordinated-knowledge-work` for every
+source. Empty/whitespace-only names disable Create; all other submitted text
+is preserved exactly for the host's existing validation, not trimmed/rewritten.
+No inspected name, catalogue entry, revision or conversation is auto-selected.
+Exact-revision/in-place operations remain under an Advanced disclosure and use
+the same explicitly entered name; normal draft review remains in the draft list.
+Original labels, source/role notices, actual review text and native confirmation
+controls are retained. This introduces no new path, library, registration,
+selection or persistence contract.
+
+A synchronous local in-flight guard prevents repeated retained callbacks from
+issuing another workflow operation before the original command and observation
+finish. The panel announces the pending stage and marks its region busy. The
+original operation still captures exact `workflowArguments` before awaiting,
+returns the unchanged host value, reports its original relation, and performs
+the existing single original-context draft observation after Create/Refine.
+A failed observation remains a separate limit and cannot turn original success
+into an invitation to duplicate the write. Refusal releases the local guard;
+there is no retry, queue, native-confirmation shortcut or webview filesystem
+write. Native host validation remains the authority even if a stale callback
+has retained earlier values.
+
+Verification: 94 maintained Node tests passed, zero skipped, across
+workflow-library, workflow-action-result, library-entries and prepared-message-
+navigation suites. The maintained action-result and library-entry suites execute
+their existing Rust source producers with invented filesystem/host fixtures;
+this is not App/native/model execution. New checks require explicit names,
+retain exact submitted text/context, verify missing-prerequisite messages and
+prove duplicate Create callbacks cannot issue a second mutation while the
+original view read is pending. Existing original-result/failed-observation,
+source-switch, registration, selection and independent-composer cases remain.
+TypeScript/Vite, structure and whitespace checks accompany the slice. The
+user manual now follows these actual stages. Real visual/native/keyboard/AX
+verification and all historical candidate limits remain unchanged.

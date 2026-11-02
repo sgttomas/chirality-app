@@ -230,3 +230,21 @@ test('the real Compare child receives its raw result through RootPanel even when
     assert.equal(resultText(view.container),JSON.stringify(nativeValue));assert.equal(limits(view.container).length,1);
   } finally {await view.close();}
 });
+
+test('one pending create owns workflow controls through observation and duplicate callbacks cannot write twice',async t=>{
+  const gate={started:Promise.withResolvers(),reply:Promise.withResolvers()};
+  const view=await mountedApp(t,{viewGate:gate});let pending;
+  try {
+    const handler=props(createButton(view.container)).onClick;
+    await React.act(async()=>{pending=handler();assert.equal(await handler(),undefined);await gate.started.promise;});
+    assert.equal(view.calls.filter(([command])=>command===view.source.command).length,1);
+    assert.match(panelIn(view.container).textContent,/Creating the draft, then reading its recorded state/);
+    assert.equal(props(panelIn(view.container))['aria-busy'],true);
+    assert.equal(resultText(view.container),JSON.stringify(view.source.nativeResult));
+    await React.act(async()=>{gate.reply.resolve(view.source.afterWriteHostStatus);assert.equal(await pending,view.source.nativeResult);});
+    assert.equal(props(panelIn(view.container))['aria-busy'],false);
+    assert.equal(props(createButton(view.container)).disabled,false);
+    assert.equal(view.calls.filter(([command])=>command==='workflow_observe_drafts').length,1);
+    assert.equal(resultText(view.container),JSON.stringify(view.source.nativeResult));
+  } finally {gate.reply.resolve(actualPacket().afterWriteHostStatus);if(pending)await pending;await view.close();}
+});
