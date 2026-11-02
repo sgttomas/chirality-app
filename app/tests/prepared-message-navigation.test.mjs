@@ -517,3 +517,28 @@ test('ordinary model choice stays local to its full conversation and never enter
   ui.assertIndependent();
  });
 });
+
+test('workspace links reveal and focus existing destinations without changing choices or issuing commands',async()=>{
+ await mounted({},async ui=>{
+  const connection=byId(ui.c,'workspace-connection');const summary=connection.childNodes.find(n=>n.localName==='summary');
+  const focused=[];summary.focus=()=>focused.push(summary);
+  await toggleDisclosure(ui.c,'workspace-connection',false);
+  const before=ui.calls.length;await followWorkspaceLink(ui.c,'Connection & access');
+  assert.equal(disclosureOpen(connection),true);assert.deepEqual(focused,[summary]);
+  const target=byId(ui.c,'conversation');target.focus=()=>focused.push(target);
+  await followWorkspaceLink(ui.c,'Conversation');assert.equal(focused.at(-1),target);assert.equal(target.getAttribute('tabindex'),'-1');
+  assert.equal(ui.calls.length,before);ui.assertIndependent();
+ });
+});
+
+for (const [state,closed,expected] of [['absent',false,'Codex is not connected'],['starting',false,'Codex is starting'],['ready',false,'Codex is connected'],['ready',true,'Codex is not connected'],['refused',false,'Codex could not stay connected']]) {
+ test(`connection overview reports ${state}/${closed} without choosing or starting`,async()=>{
+  await mounted({initialize:false,beforeMount:account=>{account.state=state;account.generationClosed=closed;}},async ui=>{
+   const status=region(ui.c,'Workspace connection status');assert.ok(status);
+   assert.match(status.textContent,new RegExp(expected));
+   const before=ui.calls.length;
+   const link=elements(status,'a')[0];if(link)await followWorkspaceLink(ui.c,link.textContent);
+   assert.equal(ui.calls.length,before);
+  });
+ });
+}

@@ -219,3 +219,88 @@ test('setup save in the mounted App preserves operational A, Workflow C, unsent 
     idle.assertClean(c);
   } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous);assert.equal(timers.size,0); }
 });
+
+// The existing miniDOM has no browser focus engine. Record focus() calls on
+// mounted elements; this verifies intent/target, not AppKit or visual layout.
+const focused=[];
+Object.getPrototypeOf(document.createElement('p')).focus=function(){focused.push(this);};
+const guidance=c=>c.querySelectorAll(n=>n.getAttribute('id')==='desktop-setup-next-step')[0];
+const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
+
+test('setup explains incomplete choices, focuses real preview and edit returns without saving',async()=>{
+  await mountedPanel(packet.initial,command=>{
+    assert.equal(command,'desktop_setup_preview');return packet.preview;
+  },async(c,calls)=>{
+    assert.match(guidance(c).textContent,/Choose whether/);
+    assert.equal(props(button(c,'Review setup effects'))['aria-describedby'],'desktop-setup-next-step');
+    assert.deepEqual(nodes(c,'legend').map(n=>n.textContent),['1. Account and shared settings','2. Project and supplier']);
+    await change(field(c,'Desktop setup action'),'new');assert.match(guidance(c).textContent,/all three shared locations/);
+    await explicitInputs(c);assert.match(guidance(c).textContent,/ready to review/);
+    await press(c,'Review setup effects');assert.equal(focused.at(-1).textContent,'Review before saving');
+    const savedPath=props(field(c,'Shared config.toml')).value;
+    await press(c,'Edit setup choices');assert.equal(region(c,'Desktop setup effects'),undefined);
+    assert.equal(focused.at(-1),button(c,'Review setup effects'));
+    assert.equal(props(field(c,'Shared config.toml')).value,savedPath);
+    assert.deepEqual(calls.map(c=>c.command),['desktop_setup_preview']);
+  });
+});
+
+test('pending review and native save report progress and refuse duplicate retained callbacks',async()=>{
+  const checking=deferred(),saving=deferred();
+  await mountedPanel(packet.initial,command=>{
+    if(command==='desktop_setup_preview')return checking.promise;
+    if(command==='desktop_setup_prepare')return saving.promise;
+    assert.fail(command);
+  },async(c,calls)=>{
+    await explicitInputs(c);
+    const review=props(button(c,'Review setup effects')).onClick;
+    let first;await React.act(()=>{first=review();void review();});
+    assert.equal(calls.length,1);assert.match(guidance(c).textContent,/Checking the selected locations/);
+    assert.equal(props(region(c,'Desktop setup inputs'))['aria-busy'],true);
+    assert.ok(nodes(c,'fieldset').every(n=>props(n).disabled));
+    await React.act(async()=>{checking.resolve(packet.preview);await first;});
+    const confirm=props(button(c,packet.preview.affirmative)).onClick;
+    let second;await React.act(()=>{second=confirm();void confirm();});
+    assert.equal(calls.length,2);assert.match(guidance(c).textContent,/native confirmation/);
+    assert.equal(props(button(c,'Edit setup choices')).disabled,true,'local Edit cannot dismiss a native question');
+    await React.act(()=>props(region(c,'Desktop setup effects')).onKeyDown({key:'Escape',preventDefault(){assert.fail('must not consume native Escape');},stopPropagation(){assert.fail('must not consume native Escape');}}));
+    assert.equal(calls.length,2);assert.ok(region(c,'Desktop setup effects'));
+    await React.act(async()=>{saving.resolve(packet.saved);await second;});
+    assert.match(focused.at(-1).textContent,/saved for your next launch/);
+    assert.equal(props(focused.at(-1)).role,'status');
+    assert.equal(props(region(c,'Desktop setup inputs'))['aria-busy'],false);
+    assert.match(c.textContent,/Current launch: setup-required/);
+  });
+});
+
+test('failed review is announced, retains inputs and retries only on explicit action',async()=>{
+  let count=0;
+  await mountedPanel(packet.initial,command=>{
+    assert.equal(command,'desktop_setup_preview');if(++count===1)throw Error('source is unavailable');return packet.preview;
+  },async(c,calls)=>{
+    await explicitInputs(c);await press(c,'Review setup effects');
+    assert.equal(props(focused.at(-1)).role,'alert');assert.match(focused.at(-1).textContent,/source is unavailable/);
+    assert.equal(props(field(c,'Supplier for next launch')).value,packet.initial.supplier.selection);
+    assert.equal(calls.length,1);assert.equal(region(c,'Desktop setup effects'),undefined);
+    await press(c,'Review setup effects');assert.equal(calls.length,2);assert.ok(region(c,'Desktop setup effects'));
+  });
+});
+
+test('Escape leaves only local review; picker cancel preserves choices and native cancel cannot imply a save',async()=>{
+  await mountedPanel(packet.initial,command=>{
+    if(command==='desktop_setup_pick')return null;
+    if(command==='desktop_setup_preview')return packet.preview;
+    if(command==='desktop_setup_prepare')return {state:'cancelled; setup unchanged'};
+    assert.fail(command);
+  },async(c,calls)=>{
+    await explicitInputs(c);const path=props(field(c,'Shared config.toml')).value;
+    await press(c,'Browse Shared config.toml');assert.equal(props(field(c,'Shared config.toml')).value,path);
+    await press(c,'Review setup effects');
+    let prevented=false;await React.act(()=>props(region(c,'Desktop setup effects')).onKeyDown({key:'Escape',preventDefault(){prevented=true;},stopPropagation(){}}));
+    assert.equal(prevented,true);assert.equal(region(c,'Desktop setup effects'),undefined);assert.equal(focused.at(-1),button(c,'Review setup effects'));
+    assert.equal(calls.filter(c=>c.command==='desktop_setup_prepare').length,0);
+    await press(c,'Review setup effects');await press(c,packet.preview.affirmative);
+    assert.equal(region(c,'Pending desktop setup'),undefined);assert.match(focused.at(-1).textContent,/cancelled; setup unchanged/);
+    assert.equal(props(field(c,'Shared config.toml')).value,path);
+  });
+});
