@@ -2,11 +2,14 @@
 
 This helper prepares configuration and an exact resource/input account; it does
 not build, copy the supplier, sign, notarise, install, launch or read account state.
-The owner-selected basis is the parent-maintained
-`execution/_Coordination/CURRENT_EXECUTION_BASIS.md`: separate v4 identity,
-macOS 15 minimum and package version 4.0.0. These choices do not select an exact
-production identifier/team or qualify OS support. The historical publisher draft
-and native candidates are not rewritten.
+The current owner selection is recorded in
+`execution/PKG-01/DEL-01-06/Work/V4_TEST_SUBJECT.md`: on 2026-11-02 the owner kept
+the existing production identifier `com.chirality.app` (same-ID), superseding the
+earlier separate-v4 route, with macOS 15 minimum and package version 4.0.0. The
+exact identifier/team enter only through the closed private publisher input. These
+choices do not select keychain service/account/group values, qualify OS support or
+authorize signing. The historical publisher draft and native candidates are not
+rewritten.
 
 From repository root, with a disposable frozen source export (never a live Git
 checkout), stable vendor tree in durable task storage, explicit expected vendor
