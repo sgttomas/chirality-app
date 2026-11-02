@@ -16,7 +16,7 @@ from referencing import Registry
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
 PROFILE = 'exp-package-s4-receiving/1'
-PINS_SHA256 = '9ee18c539e92098a3d6bc17cf3f065ab83ccd06bed4b3fca8a0cb665554bd9d3'
+PINS_SHA256 = 'e3683d964681082b20274496c1924e2d649de69e527f878b6918201dc18e5c11'
 LIMITS = [
     'Exact selected package/terms/S4 evidence consistency only; actual custody and producer use are not authenticated.',
     'The outer witness record is the EXP/SQ citation; its inner static package ID remains a separate joined identity.',
