@@ -28,7 +28,7 @@ import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./
 import { ConversationContext, ProjectLibraryContext, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget } from "./DailyWorkspace";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
-import { DIGEST_LIMIT, digestComparison, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
+import { DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -792,7 +792,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
 }
 
 export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
-  const [name,setName]=useState("coordinated-knowledge-work");
+  const [name,setName]=useState("");
   const [revision,setRevision]=useState("");
   const [thread,setThread]=useState("");
   const [chatChoice, setChatChoice] = useState<{ source: string; reference: Json } | null>(null);
@@ -811,14 +811,23 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
   const chatAvailable=!!context&&!!thread;
   const [text,setText]=useState("");
   const [busy,setBusy]=useState(false);
+  const pendingAction = useRef(false);
+  const [progress, setProgress] = useState("");
   const [outcome,setOutcome]=useState<{relation:{command:string;source:Json;request:Record<string,unknown>};message:string;limits:string[]}>();
   // Native results and later observation limits belong to the original press.
   // Children receive the unchanged native value, including pre-fill results.
   const action=async(command:string,args:Record<string,unknown>):Promise<Json>=>{
+    if (pendingAction.current) return undefined;
+    pendingAction.current = true;
     setBusy(true);
+    setProgress(command === "workflow_create_draft" ? "Creating the draft, then reading its recorded state…"
+      : command === "workflow_open_library" ? "Opening the selected workflow library…"
+      : command === "workflow_register_native" ? "Waiting for the native registration result…"
+      : command.startsWith("workflow_select_") ? "Reading the selected workflow content…"
+      : "Waiting for the workflow operation and its current view…");
     let request:Record<string,unknown>;
     try{request=workflowArguments(command,args,data,host,thread);}
-    catch(error){setOutcome({relation:{command,source:structuredClone(data?.context??null),request:structuredClone(args)},message:String(error),limits:[]});setBusy(false);return undefined;}
+    catch(error){setOutcome({relation:{command,source:structuredClone(data?.context??null),request:structuredClone(args)},message:String(error),limits:[]});pendingAction.current=false;setBusy(false);setProgress("");return undefined;}
     const relation={command,source:structuredClone(data?.context??null),request:structuredClone(request)};
     setOutcome({relation,message:"",limits:[]});
     const limit=(message:string)=>setOutcome(old=>old?.relation===relation?{...old,limits:[...old.limits,message]}:old);
@@ -843,7 +852,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
       }
       return result;
     }catch(error){setOutcome(old=>old?.relation===relation?{...old,message:String(error)}:old);return undefined;}
-    finally{setBusy(false);}
+    finally{pendingAction.current=false;setBusy(false);setProgress("");}
   };
   const conversations:Json[]=(host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation));
   const entries:Json[]=data?.reviews??[];
@@ -871,7 +880,16 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     })();
     return()=>{live=false;};
   },[presentations]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <section><h2>Workflow selection and native registration</h2><a href="#file-acts">Review a workspace draft file for a separate standing act</a>
+  const draftLibrary = (data?.libraries ?? []).find((library: Json) => library.reference === data?.activeLibrary);
+  const draftReason = busy ? progress : !context ? "The workflow source is unavailable or changed. Refresh the App view before creating a draft."
+    : !data?.activeLibrary ? "Open a project or user workflow library for the new draft."
+    : !selected ? "Inspect bundled content or a development copy, or choose content for the Workflow chat."
+    : !name.trim() ? "Enter a name for your new draft. The App will check the exact name and destination."
+    : "Ready to create a draft from the displayed content in the opened library. This does not register or run it.";
+  return <section aria-label="Workflow studio controls" aria-busy={busy}><h2>Workflow selection and native registration</h2>
+    <p>Choose content and a library, create a named draft, then try and review it before registration.</p>
+    {busy && <p role="status" aria-live="polite">{progress} No automatic retry.</p>}
+    <a href="#file-acts">Review a workspace draft file for a separate standing act</a>
     <aside aria-label="Workflow working context">
       <ProjectLibraryContext host={host} />
       <ConversationContext label="Operational conversation viewed" host={host} reference={operationalReference} empty={operationalReference === null ? "No operational conversation selected." : undefined} />
@@ -881,6 +899,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     <label>Workflow chat <select value={thread} onChange={e=>chooseWorkflowChat(e.target.value)} disabled={busy}><option value="">No chat — inspect library content</option>{(host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation)).map((entry:Json)=><option key={entry.threadId} value={entry.threadId}>{entry.threadId} · {entry.modelProvider}/{entry.model}</option>)}</select></label>
     {chatChoiceLimit && <button type="button" disabled={busy} onClick={()=>chooseWorkflowChat("")}>Use No chat — inspect library content</button>}
     <p>{thread ? "This chat keeps its own pending workflow selection. Started runs keep their own revision." : "Library browsing is shared. Inspection here selects no workflow for a new chat."}</p>
+    <section className="workflow-stage" aria-label="Choose workflow content and library"><h3>1. Choose content and a library</h3>
     <p>Development content, native registration, supplied text, model adoption and run standing remain separate observations.</p>
     <p>Bundle candidate content can be inspected or copied into a draft. It is not runnable as a shipped workflow; release registration remains pending.</p>
     {(data?.productionCatalog?.entries??[]).map((entry:Json)=><article key={entry.name}>
@@ -891,10 +910,18 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     <button disabled={busy||!context} onClick={()=>action("workflow_select_development",{})}>Select exact development workflow holding copy…</button>
     <button disabled={busy||!context} onClick={()=>action("workflow_open_library",{origin:"project"})}>Open project workflow library…</button>
     <button disabled={busy||!context} onClick={()=>action("workflow_open_library",{origin:"user"})}>Open user workflow library…</button>
+    </section>
     <SelectedWorkflow selection={selected} inspection={!thread}/>
     {thread&&<NewerRevisionNotice selection={selected} busy={busy||!context} act={action}/>}
     <details><summary>Selection and libraries as the host reports them (paths shown as text; identities keep their exact bytes; a path that is not valid UTF-8 is marked)</summary>
     <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths({selection:selected,inspection:data?.inspection,chatContext:context,libraries:data?.libraries,activeLibrary:data?.activeLibrary}),null,2)}</pre></details>
+    <section className="workflow-stage" aria-label="Create a workflow draft"><h3>2. Create a named draft</h3>
+    <p id="workflow-draft-next-step" role="status">{draftReason}</p>
+    {draftLibrary && <p>Draft destination: {draftLibrary.origin ?? "origin not reported"} library · {nativePathText(draftLibrary.root) ?? draftLibrary.sourceRoot ?? "folder not reported"}. The host checks this opened library again before writing.</p>}
+    <label>New draft name, or in-place library entry name <input {...EXACT_TEXT} aria-describedby="workflow-draft-next-step" value={name} onChange={e=>setName(e.target.value)} disabled={busy}/></label>
+    <button className="setup-primary" aria-describedby="workflow-draft-next-step" disabled={busy||!context||!selected||!data?.activeLibrary||!name.trim()} onClick={()=>action("workflow_create_draft",{name})}>{thread?"Create draft from this chat’s selected content":"Create draft from inspected content"}</button>
+    </section>
+    <h3>3. Try and review drafts</h3>
     <WorkflowDraftsView data={data?.drafts} workspace={data?.projectLibraryAvailable===true} pointerLimits={data?.trialPointerLimits} conversations={conversations} contextHost={host}
       runs={[...(data?.runs??[]),...(data?.reopened?.runs??[])]} pending={data?.pendingTrials} busy={busy} act={action}/>
     {openPreparedMessage && preparedMessages(host).map(item => <div key={item.identity}>
@@ -903,15 +930,16 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
         : <><ConversationContext label="Original composer owner" host={host} reference={item.owner} workflow limit={preparedMessageLimit(host, item)} />
           <button onClick={() => openPreparedMessage(item)}>View prepared message in conversation {item.owner?.threadId ?? "unavailable"}</button></>}
     </div>)}
-    <label>New draft name, or in-place library entry name <input {...EXACT_TEXT} value={name} onChange={e=>setName(e.target.value)} disabled={busy}/></label>
-    <button disabled={busy||!context||!selected||!data?.activeLibrary} onClick={()=>action("workflow_create_draft",{name})}>{thread?"Create draft from this chat’s selected content":"Create draft from inspected content"}</button>
     {(data?.libraries??[]).filter((l:Json)=>l.reference===data?.activeLibrary&&Array.isArray(l.registered)).map((l:Json)=><RegisteredRevisions key={l.reference} library={l.reference} rows={l.registered} busy={busy} chatAvailable={chatAvailable} act={action}/>)}
     {(data?.libraries??[]).filter((l:Json)=>l.reference===data?.activeLibrary).map((l:Json)=><LibraryEntries key={`${l.reference}:${l.entryListing?.reference??"unobserved"}`} library={l} busy={busy} available={!!context} act={action}/>)}
     {(data?.libraries??[]).filter((l:Json)=>l.reference===data?.activeLibrary).map((l:Json)=><RegistrationEvidence key={l.reference} evidence={l.registrationEvidence}/>)}
+    <details className="workflow-stage"><summary>Advanced: exact revision or in-place entry</summary>
+    <p>The name field above is also used by these explicit operations. No revision is selected automatically.</p>
     <label>Registered revision (content identity) <input {...EXACT_TEXT} value={revision} onChange={e=>setRevision(e.target.value)} disabled={busy}/></label>
     <button disabled={busy||!data?.activeLibrary||!name||!revision} onClick={()=>action("workflow_refine_registered",{name,revision})}>Refine registered revision from the revision store (no selection)</button>
     <button disabled={busy||!data?.activeLibrary||!name} onClick={()=>action("workflow_review",{names:[name],inPlace:true})}>Review this unregistered in-place library entry</button>
     <small> Drafts are reviewed from the draft list above.</small>
+    </details>
     {orderedReviews.map(review=><article key={review.reference}>
       <h3>{review.reference===data?.activeReview?"Current review":"Retained review"} · {review.reference}</h3>
       {digests[review.reference]&&<p>{digestComparison(digests[review.reference])}{review.status?.presentation?<> Read the complete review below before choosing {review.status.presentation.entries?.[0]?.disposition==="re-confirmation"?"Re-confirm":"Register"}: the native confirmation shows the act statement and this digest, not the review itself.</>:" (as last shown with the review; while the native confirmation is open, the review it names is shown under \"Content named by an open native confirmation\")"}</p>}

@@ -260,3 +260,28 @@ test('native review actions end with the host presentation while original contin
     }
   }
 });
+
+test('draft creation requires an explicit name and explains the current source/library/content prerequisite',async()=>{
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c),calls=[];
+  const props=n=>n[Object.keys(n).find(k=>k.startsWith('__reactProps$'))];
+  const nodes=tag=>c.querySelectorAll(n=>n.localName===tag);
+  const create=()=>nodes('button').find(n=>n.textContent==='Create draft from inspected content');
+  const input=()=>nodes('label').find(n=>n.textContent.startsWith('New draft name')).querySelectorAll(n=>n.localName==='input')[0];
+  const guidance=()=>c.querySelectorAll(n=>n.getAttribute('id')==='workflow-draft-next-step')[0].textContent;
+  let data={context:{sourceRef:'draft-source',generation:null},libraries:[],reviews:[],runs:[]};
+  const host=()=>({generation:null,state:'not started',threads:[],workflowRoot:data});
+  const show=()=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host:host(),act:async(command,args)=>{calls.push([command,args]);return {state:'controlled result'};}})));
+  try {
+    await show();assert.equal(props(input()).value,'');assert.match(guidance(),/Open a project or user/);assert.equal(props(create()).disabled,true);
+    data={...data,activeLibrary:'lib',libraries:[{reference:'lib',origin:'user',sourceRoot:'/explicit-library',registered:[]}]};await show();assert.match(guidance(),/Inspect bundled content/);assert.match(c.textContent,/Draft destination: user library · \/explicit-library/);
+    data={...data,inspection:{reference:'inspected',identity:{name:'different-method',origin:'project',revision:'exact'},standing:'inspected',runnable:false}};await show();
+    assert.match(guidance(),/Enter a name/);assert.equal(props(input()).value,'','no name inferred from an example or inspected content');
+    await React.act(()=>props(input()).onChange({target:{value:'   '}}));assert.equal(props(create()).disabled,true);
+    await React.act(()=>props(input()).onChange({target:{value:' Exact chosen name '}}));assert.equal(props(create()).disabled,false);assert.match(guidance(),/does not register or run/);
+    await React.act(async()=>props(create()).onClick());
+    assert.equal(calls[0][0],'workflow_create_draft');assert.equal(calls[0][1].name,' Exact chosen name ','UI does not trim or normalize the exact submitted name');
+    assert.equal(calls[0][1].context.inspectionRef,'inspected');assert.equal(calls[0][1].context.libraryRef,'lib');
+    assert.deepEqual(calls.map(c=>c[0]),['workflow_create_draft','workflow_observe_drafts']);
+    data={...data,context:null};await show();assert.equal(props(create()).disabled,true);assert.match(guidance(),/source is unavailable or changed/);
+  } finally {await React.act(()=>root.unmount());document.body.removeChild(c);}
+});
