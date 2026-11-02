@@ -41,9 +41,15 @@ def dependencies():
     import subprocess,sysconfig,_posixsubprocess
     subprocess_path=Path(subprocess.__file__).resolve()
     require(subprocess_path==Path(sysconfig.get_path('stdlib')).resolve()/'subprocess.py','subprocess is not selected interpreter standard library')
-    posix_path=Path(_posixsubprocess.__file__).resolve()
-    require(posix_path.is_relative_to(Path(sysconfig.get_config_var('DESTSHARED')).resolve()),'posix subprocess extension outside interpreter')
-    paths=[subprocess_path,posix_path]+list(HERE.glob('native*.py'))+[HERE/'typed_ax/reader.c',HERE/'typed_ax/reader.h',HERE/'typed_ax/build.py']+[HERE/'native_attended_manager.js',
+    if getattr(_posixsubprocess,'__file__',None):
+        posix_path=Path(_posixsubprocess.__file__).resolve()
+        require(posix_path.is_relative_to(Path(sysconfig.get_config_var('DESTSHARED')).resolve()),'posix subprocess extension outside interpreter')
+        posix_paths=[posix_path]
+    else:
+        require(_posixsubprocess.__spec__.origin=='built-in' and '_posixsubprocess' in sys.builtin_module_names,
+                'posix subprocess is neither bound extension nor interpreter builtin')
+        posix_paths=[] # covered by the prepared interpreter executable hash
+    paths=[subprocess_path]+posix_paths+list(HERE.glob('native*.py'))+[HERE/'typed_ax/reader.c',HERE/'typed_ax/reader.h',HERE/'typed_ax/build.py']+[HERE/'native_attended_manager.js',
         Path('/Users/ryan/dev/chirality-t3/tools/t3_slot.sh'),Path('/Users/ryan/dev/chirality-t3/tools/t3_slot_run.sh')]
     import native_successor_relaunch as b
     paths.extend(Path(p) for p in b.dependencies())
@@ -61,6 +67,7 @@ def prepare(build_root,state_basis=None,typed_manifest=None,typed_sha=None):
     import native_successor_relaunch as b
     build_root=Path(build_root).resolve()
     require(build_root.is_relative_to(SCRATCH),'build root outside owned scratch')
+    deps=dependencies()
     checked=preflight_a(build_root,PLAN_SHA,load_identify(),state_basis)
     require(checked['candidate']==CANDIDATE,'wrong selected candidate')
     root=Path(tempfile.mkdtemp(prefix='app-typed-ax-prepared-' if typed_manifest else 'app-attended-prepared-',dir=SCRATCH)).resolve()
@@ -82,7 +89,7 @@ def prepare(build_root,state_basis=None,typed_manifest=None,typed_sha=None):
             if path.is_file():artifacts[str(path.relative_to(root))]=sha(path)
     manifest={'format':'attended-prepared-entry/v1','run_id':uuid.uuid4().hex,'candidate':CANDIDATE,
         'build_root':str(build_root),'state_basis':state_basis,'plan_sha256':PLAN_SHA,'controller_root':str(root),'entry_source':str(Path(__file__).resolve()),
-        'dependencies':dependencies(),'manager_function_sha256':hashlib.sha256(('async function'+(HERE/'native_attended_manager.js').read_text().split('(async function',1)[1]).rstrip().removesuffix(')').encode()).hexdigest(),'artifacts':artifacts,'A_preflight':checked,'total_seconds':295,
+        'dependencies':deps,'manager_function_sha256':hashlib.sha256(('async function'+(HERE/'native_attended_manager.js').read_text().split('(async function',1)[1]).rstrip().removesuffix(')').encode()).hexdigest(),'artifacts':artifacts,'A_preflight':checked,'total_seconds':295,
         'autonomous_focus_route':admission.value.get('autonomous_focus_route'),
         'experiment':'typed-ax-diagnostic/v1' if diagnostic else 'stop-cancel/v1',
         'typed_ax_comparison':admission.value.get('typed_ax_comparison'),
@@ -90,6 +97,7 @@ def prepare(build_root,state_basis=None,typed_manifest=None,typed_sha=None):
         'Stop_entry_reserve':135,'launch_limit':1 if diagnostic else 2,'Stop_confirmation':False,'PR69_active':False,
         'interpreter':{'path':str(Path(sys.executable).resolve()),'sha256':sha(Path(sys.executable).resolve())},
         'native_executed':False,'prepared_at':datetime.now(timezone.utc).isoformat()}
+    require(deps==dependencies(),'controller sources changed during preparation')
     publish(root/'prepared.json',manifest)
     print(json.dumps({'root':str(root),'prepared_sha256':sha(root/'prepared.json'),'candidate':CANDIDATE,
                       'standing':'UNRUN; requires review, integration and coordinated start'}))

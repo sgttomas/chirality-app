@@ -444,3 +444,12 @@ class FollowupRepairTests(unittest.TestCase):
             stderr=(root/'typed-ax-helper.stderr').read_text()
             self.assertIn('diagnostic request stale',stderr);self.assertNotIn('UNEXPECTED_NATIVE_ENTRY',stderr)
             self.assertTrue(run.extra_cleanup_ready());self.assertFalse(run.reservation.reaped)
+
+class InterpreterDependencyTests(unittest.TestCase):
+    def test_actual_stdlib_and_builtin_or_extension_are_bound(self):
+        import sys,sysconfig,_posixsubprocess
+        import native_attended_entry as entry
+        deps=entry.dependencies()
+        self.assertIn(str(Path(sysconfig.get_path('stdlib')).resolve()/'subprocess.py'),deps)
+        if getattr(_posixsubprocess,'__file__',None):self.assertIn(str(Path(_posixsubprocess.__file__).resolve()),deps)
+        else:self.assertEqual(_posixsubprocess.__spec__.origin,'built-in');self.assertIn('_posixsubprocess',sys.builtin_module_names)
