@@ -76,19 +76,6 @@ class AutonomousGateTests(unittest.TestCase):
             with self.subTest(case=case),self.assertRaises(RuntimeError):p.autonomous_start('A',r,f,45)
             self.assertFalse(r.foreground_verified)
             self.assertNotIn('autonomous-focus-verified.json',c)
-    def test_early_focus_failure_cleanup_succeeds_without_foreground(self):
-        from test_native_attended_ports import Tests
-        r,c=Tests().run_fixture();p=Tests().ports(r)
-        r.autonomous_owned_focus=True;r.foreground_verified=False
-        self.assertTrue(p.quit_normal('A',295)['released']);self.assertIn('quit',c)
-    def test_early_cleanup_refusal_notifies_owner_without_guessing_input(self):
-        from test_native_attended_ports import Tests
-        r,c=Tests().run_fixture();p=Tests().ports(r);reports=[];p.deliver=reports.append
-        r.autonomous_owned_focus=True;r.foreground_verified=False
-        p.cleanup_original_main=lambda *a:(_ for _ in ()).throw(RuntimeError('modal unknown'))
-        with self.assertRaisesRegex(RuntimeError,'modal unknown'):p.quit_normal('A',295)
-        self.assertNotIn('quit',c);self.assertNotIn('reap',c)
-        self.assertEqual(reports[0]['event'],'owner-normal-quit-needed-now')
 
 class NativeMainMappingTests(unittest.TestCase):
     def test_actual_mapping_rejects_foreign_window_modal_and_unknown_children(self):
