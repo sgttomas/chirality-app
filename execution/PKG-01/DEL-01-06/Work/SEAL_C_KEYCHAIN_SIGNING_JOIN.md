@@ -119,6 +119,10 @@ explicit list, the exact own-App group must be an authorized member. The helper
 prepares either the default own-App route or one explicit own-App group, never
 cross-App sharing or arbitrary profile entitlements. This conservative profile-
 backed route is not a claim that every Developer ID app universally needs a profile.
+For data protection keychain access groups specifically, Apple's public TN3137
+and TN3125 (consulted 2026-11-02; cited in the helper README) document that the
+entitlements must be authorized by a provisioning profile, and that Developer ID
+profiles are supported. That is documentary evidence, not a signed witness.
 
 Parent need not request team/private-key data again. Remaining actual actions are
 owner confirmation of bundle/service/account and profile-derived own-App group,

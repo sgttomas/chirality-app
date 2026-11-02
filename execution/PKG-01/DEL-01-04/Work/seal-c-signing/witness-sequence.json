@@ -27,24 +27,31 @@
     },
     {
       "id": "SC-3",
-      "action": "On the admitted fresh namespace, explicitly invoke initial enrollment once in the actual signed App, then seal and verify one invented capture. Restart the same signed subject and verify the same capture without another add.",
+      "action": "Before enrollment, with the admitted namespace and marker absent, make one person-confirmed act capture: it must be recorded with its 'capture not sealed' limit, with no file-key directory, keychain add or marker created. Then, on the admitted fresh namespace, explicitly invoke initial enrollment once in the actual signed App, then seal and verify one invented capture. Restart the same signed subject and verify the same capture without another add. Throughout, observe that no keychain authorization prompt appears.",
       "requires": ["SC-0 through SC-2 actual evidence", "fresh namespace explicitly admitted", "no old development key directory"],
-      "retain": ["nonsecret reservation/commit marker before and after", "key IDs only, never key bytes", "actual no-UI observations and operation result categories", "capture exact bytes/seal and subsequent verification", "restart subject"],
-      "on_failure": "No automatic retry-add. If no marker was reserved, explicit enrollment may retry after absence checks. If reserved-only and item missing, retain the reservation and block first sealing."
+      "retain": ["nonsecret reservation/commit marker before and after", "key IDs only, never key bytes", "actual no-UI observations and operation result categories", "capture exact bytes/seal and subsequent verification", "restart subject", "pre-enrollment unsealed capture with its limit and absent file-key directory/marker", "no-prompt observation method (operator form or screen recording) for pre-enrollment read, enrollment add/readback and restart verify"],
+      "on_failure": "No automatic retry-add. If no marker was reserved, explicit enrollment may retry after absence checks. If reserved-only and item missing, retain the reservation and block first sealing. Any keychain prompt is a failure of the no-UI policy: repair source and produce a new candidate; never accept a prompted grant."
     },
     {
       "id": "SC-4",
       "action": "Observe locked/denied/missing behavior only in an independently authorized disposable test namespace/session. Exercise a pre-enrollment denial, then clear the condition and explicitly retry; verify no file-key fallback. Do not alter the owner's ordinary login keychain.",
       "requires": ["specific permission for the isolated failure controls", "same admitted signing-policy subject"],
       "retain": ["controlled failure method and namespace", "actual no-UI observation", "categorical refusal/unsealed evidence", "unchanged historical files and marker facts", "later successful explicit retry where unreserved"],
-      "on_failure": "Do not reinterpret prompts, blocked callbacks, timeouts or missing items as success. Unsupported no-UI policy requires source repair and another exact candidate."
+      "on_failure": "Do not reinterpret prompts, blocked callbacks, timeouts or missing items as success. Unsupported no-UI policy requires source repair and another exact candidate.",
+      "native_vs_mock": {
+        "mock_covered": "Missing, -25308, -25293, -34018 and malformed/foreign-group results refuse without file-key fallback; transient initial denial does not poison later enrollment; native status mapping fixtures. Mocks never call SecItem.",
+        "missing_native": "Pre-enrollment missing is observed inside SC-3. Post-enrollment item loss needs deletion of the one test-user item: proposal only, separately authorized.",
+        "locked_native": "Proposal only: requires an App path that reads keys without a person act while the test user's session is locked; whether a locked session makes WhenUnlockedThisDeviceOnly items unavailable on macOS is not established. If no such path exists, locked stays mock-only with a recorded residual.",
+        "denied_native": "Not stageable on the same candidate: denial needs a differently entitled signed build, which is a different subject. Stays mock and status-mapping only unless a distinct subject is separately authorized."
+      }
     },
     {
       "id": "SC-5",
       "action": "With admitted rotation invocation, retain an old committed capture, rotate once, and verify both old and new captures after restart. Separately exercise pending rotation failure in a disposable namespace: old verification and new sealing use committed keys while pending stays unchanged.",
       "requires": ["explicit rotation/failure-injection scope", "exact original and post-rotation subject"],
       "retain": ["old/new key IDs and marker states", "actual captures and verification results", "one-add/retained-prior-item evidence without secret contents", "cache invalidation and concurrent Verify/Seal outcomes"],
-      "on_failure": "No overwrite/delete/reset. Missing historical key affects that historical verification; missing current key refuses new sealing; pending-only first enrollment stays unavailable."
+      "on_failure": "No overwrite/delete/reset. Missing historical key affects that historical verification; missing current key refuses new sealing; pending-only first enrollment stays unavailable.",
+      "invocation_status": "Blocked: no supported invocation exists. capture_seal::rotate() has only test callers, and AAC section 6.3 says rotation is a host function not offered in the interface. A signed-subject witness needs an owner-chosen clause change or host policy first; no IPC/CLI/debug entry or test relabelling substitutes."
     },
     {
       "id": "SC-6",

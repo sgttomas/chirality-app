@@ -45,6 +45,21 @@ it does not assert that every Developer ID app universally needs a provisioning
 profile. No new certificate/private key, new account, purchase, cross-App sharing,
 or repeated team-input request is part of the minimum proposal.
 
+Public documentation consulted on 2026-11-02 (Apple Developer Documentation JSON
+for the published pages; no date or revision shown):
+[TN3137: On Mac keychain APIs and implementations](https://developer.apple.com/documentation/technotes/tn3137-on-mac-keychains)
+says that macOS builds a program's data protection keychain access groups from
+its code-signing entitlements, and that "These entitlements must be authorized by
+a provisioning profile". [TN3125: Inside Code Signing: Provisioning Profiles](https://developer.apple.com/documentation/technotes/tn3125-inside-code-signing-provisioning-profiles)
+says restricted entitlements must be authorized by a profile, lists the
+unrestricted macOS entitlements (none of them is the application identifier or
+keychain-access-groups), expects the profile at `Contents/embedded.provisionprofile`,
+and says macOS supports profiles for Developer ID distribution. For this provider
+(Data Protection keychain with an explicit access group), the profile-backed route
+is therefore the documented one. This is documentary evidence. It is not a signed
+witness: the actual profile's grants and the signed candidate's launch and
+keychain access remain to be observed at SC-0 and SC-2/SC-3.
+
 The executable handles a conservative metadata shape: `Platform=["OSX"]`,
 `ProvisionsAllDevices=true`, no device list, valid creation/expiration interval,
 matching single TeamIdentifier, single explicit AppIdentifierPrefix, exact
@@ -172,6 +187,15 @@ version must equal the completed packaging plan, not just each other.
 `witness-sequence.json` gives SC-0…SC-6: exact subject/profile, source-controlled
 invocation, actual signing/S4, explicit enrollment+restart, isolated locked/denied/
 missing behavior, rotation/history/cache/concurrency, and final package joins.
+SC-3 now also prepares the pre-enrollment observation: an act capture is recorded
+with its unsealed limit, and no file key, keychain add or marker is created. It also
+requires that no keychain prompt appears. SC-4 records, for each failure class,
+what mocks cover and what native staging remains a proposal: locked needs a
+key-reading path that runs without a person act; denied needs a different subject.
+SC-5 records that no supported invocation exists. AAC §6.3 makes rotation a host
+function not offered in the interface, and `rotate()` has only test callers, so
+a signed rotation witness waits for an owner-chosen clause or host policy. It is
+not replaced by IPC, CLI, debug entries or relabelled tests.
 The sequence is data, not a shell script or automated runner. Existing packaging
 owns Option B, signing/notary/install/FP operations; native qualification remains
 its separate undertaking.
