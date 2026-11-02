@@ -409,6 +409,7 @@ code_paths:
 
 - app/src/App.tsx
 - app/src/DailyWorkspace.tsx
+- app/src/workspace.css
 - app/src/NativeHistory.tsx
 - app/src/ObserverAttachment.tsx
 - app/src-tauri/src/act_control.rs
