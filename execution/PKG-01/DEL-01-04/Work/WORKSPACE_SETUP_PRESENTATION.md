@@ -256,3 +256,46 @@ Independent Astra/medium source review of `16547e68` found no actionable defects
 it inspected source/host guards before the queued checks ran and claims no
 independent runtime pass. The later test repair and passing run are manager
 verification, not an invented repeat review.
+
+## One pending ordinary turn submission
+
+Integrated-source inspection at `3b964e650179b79937a7c568f310af2c1fe44072`
+found a concrete adjacent gap: `attachmentText` relied only on React busy state,
+so two deliveries of the original attachment callback before a render invoked
+its submission twice. The new maintained regression failed on the original
+source with **2 dispatches, expected 1**, using the existing actual Rust-produced
+attachment snapshot and result in mounted React. Its original failure log is
+retained in the task scratch. This is a demonstrated source defect, not a claim
+that a real user/native session duplicated a turn.
+
+ConversationPanel now shares one synchronous ref among ordinary text (including
+plan/default), steering, ordered-attachment Send/Steer and turn interruption.
+The first operation owns that guard through its command and existing optional
+observer read; repeated or competing retained callbacks return without another
+dispatch. Success or refusal releases it only after that sequence completes.
+This is a small replacement of the separate local refs, not a new queue,
+framework, persistence store or host-wide exclusion claim. Other workflow/role/
+trial controls retain their own contracts and existing busy presentation.
+
+Steering/attachment handlers and plan/steering/attachment button readiness also
+use the same current-source condition as Send and Interrupt, including closed
+generations. An offered closed-source plan send can no longer silently reach
+an ordinary handler that refuses it, and direct attachment/steering deliveries
+refuse that closed source before dispatch. Native generation/selection/custody/
+ordered-list/target/reply revalidation remains unchanged and authoritative.
+No submitted payload is transformed; acknowledgment, pending/late reply,
+observer failure and original-source result standing remain separate. The PR88
+exception for an observed live-turn interrupt during process-only busy remains,
+subject to source readiness and no pending operation in these turn controls.
+
+Verification: 108 maintained Node tests pass, zero skips, across attachment-
+outcome, conversation-panel, codex-controls and plan-mode. The attachment suite
+executes its existing Rust fixture producer; mounted timing controls test
+pre-render duplicates, competing controls, guard retention through observer
+completion and closed-source refusal. Existing exact ordered refs/owner/revision,
+source switches, late acknowledgments, native errors and immutable original
+outcomes remain covered. TypeScript/Vite, structure and whitespace checks
+accompany the source. No visuals/assets, Rust, IPC, native lifecycle policy or
+pins change. Real layout/keyboard/AX/native recovery verification is still
+blocked by the hold; no App/browser/model/auth/signing/download/VM action or
+historical candidate relabelling is inferred from these source tests.
