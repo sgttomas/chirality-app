@@ -49,7 +49,7 @@
     "app/packaging/successor/check.py": "332e3ea79cece9d1872bfb5b2ffea65ad007a8841941bf5af71f3f8b369997e7",
     "app/packaging/terms/check.py": "0a35adf5f8218b9abe3f968e244cc799ec8bb95776fbf2961e1fe488b4f04e4f",
     "app/src-tauri/Cargo.lock": "c21ce295ae7a31ff136501df5c6ba93b95c6b881b9e2d090c7bb36016ac85ca2",
-    "app/src-tauri/Cargo.toml": "cbf249697099c0999dade9ec3fbeeb76ab6515f9c838c1bcdc7a8f9bd2ef7183",
+    "app/src-tauri/Cargo.toml": "32aeb2faacc2f8ec31a1d11aa617ff75fc83cced085fe1299a15cde64e4a3638",
     "app/src-tauri/build.rs": "5c89aac6205db9e6e0df74165489ea62f6e12cfd8cd3f82e80f8b6a412a92b24",
     "app/src-tauri/build_support/developer-id-application.s1.requirement-template.txt": "00a16b523232eab6750957666e2d48a9c9f0ea4bf75d45bc40b18713611a9272",
     "app/src-tauri/build_support/publisher_selection.rs": "b9921087b53d28d30aab7e2f5a24c37fa5dfaf37829cc47188807ec2fa6e4c36",

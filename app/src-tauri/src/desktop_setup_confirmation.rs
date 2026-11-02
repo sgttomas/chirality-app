@@ -6,7 +6,7 @@ use raw_window_handle::{
 };
 use serde_json::{json, Value};
 use std::sync::{mpsc, Mutex};
-use tauri_plugin_dialog::{DialogExt, MessageDialogKind, MessageDialogResult};
+use tauri_plugin_dialog::{DialogExt, FilePath, MessageDialogKind, MessageDialogResult};
 
 const TITLE: &str = "Desktop setup — next launch only";
 const LEAVE: &str = "Leave setup unchanged";
@@ -137,6 +137,55 @@ pub(crate) fn confirm(
         if let Err(error) = shown { let _ = send.send(Err(error)); }
     }).map_err(|_| "Invoking App window could not present desktop setup confirmation".to_string())?;
     receive_result(receive)
+}
+
+fn picker_spec(kind: &str) -> Result<(&'static str, bool), String> {
+    match kind {
+        "config" => Ok(("Choose the explicit shared config.toml reference", false)),
+        "agents" => Ok(("Choose the explicit shared AGENTS.md reference", false)),
+        "skills" => Ok(("Choose the explicit shared skills directory reference", true)),
+        "project" => Ok(("Choose the project for the next App launch", true)),
+        _ => Err("Unknown desktop setup location".into()),
+    }
+}
+fn selection_in_parent<T>(
+    original: &(impl HasWindowHandle + HasDisplayHandle),
+    selected: Option<T>,
+) -> Result<Option<T>, String> {
+    if selected.is_some() { with_checked_parent(original, |_| ())?; }
+    Ok(selected)
+}
+
+/// File/folder selection is attached to the IPC invoker just like prepare.
+/// The main-thread turn schedules the asynchronous native picker; only the
+/// command worker waits. No Root guard is held and no path is saved here.
+pub(crate) fn pick(invoking: &tauri::Window, kind: &str) -> Result<Option<FilePath>, String> {
+    let (title, folder) = picker_spec(kind)?;
+    let (send, receive) = mpsc::channel();
+    let window = invoking.clone();
+    invoking.run_on_main_thread(move || {
+        let callback_send = send.clone();
+        let callback_window = window.clone();
+        let shown = with_checked_parent(&window, |parent| {
+            let picker = window.dialog().file().set_title(title).set_parent(parent);
+            let completed = move |selected: Option<FilePath>| {
+                if selected.is_none() {
+                    let _ = callback_send.send(Ok(None));
+                    return;
+                }
+                let original = callback_window.clone();
+                let failure = callback_send.clone();
+                if callback_window.run_on_main_thread(move || {
+                    let _ = callback_send.send(selection_in_parent(&original, selected));
+                }).is_err() {
+                    let _ = failure.send(Err("Invoking App window could not be revalidated; desktop setup selection refused".into()));
+                }
+            };
+            if folder { picker.pick_folder(completed); } else { picker.pick_file(completed); }
+        });
+        if let Err(error) = shown { let _ = send.send(Err(error)); }
+    }).map_err(|_| "Invoking App window could not present desktop setup selection".to_string())?;
+    receive.recv().map_err(|_| "Desktop setup selection ended without a result; no path accepted".to_string())?
 }
 
 #[cfg(test)]
@@ -410,6 +459,29 @@ mod tests {
             }
             assert_eq!(f.home_count(), 1);
         }
+    }
+
+    #[test]
+    fn picker_preserves_each_location_kind_and_rejects_unknown_before_presentation() {
+        for (kind, folder) in [("config", false), ("agents", false), ("skills", true), ("project", true)] {
+            let (title, actual) = picker_spec(kind).unwrap();
+            assert!(!title.is_empty());
+            assert_eq!(actual, folder);
+        }
+        assert!(picker_spec("unknown").is_err());
+    }
+
+    #[test]
+    fn picker_accepts_only_a_selection_with_the_original_parent_still_available() {
+        let original = HandleFixture::valid();
+        assert_eq!(selection_in_parent(&original, Some("chosen-path")).unwrap(), Some("chosen-path"));
+        original.window_available.set(false);
+        assert!(selection_in_parent(&original, Some("chosen-path")).is_err());
+        // Closing/cancelling the picker never accepts a path, even after parent destruction.
+        assert_eq!(selection_in_parent::<&str>(&original, None).unwrap(), None);
+        let original = HandleFixture::valid();
+        original.display_available.set(false);
+        assert!(selection_in_parent(&original, Some("chosen-path")).is_err());
     }
 
     #[test]

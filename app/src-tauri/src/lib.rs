@@ -52,6 +52,7 @@ mod publisher_recipe;
 pub mod home_resources;
 mod desktop_startup;
 mod desktop_setup_confirmation;
+mod main_window;
 mod provider_endpoint_confirmation;
 pub mod native_items;
 pub mod native_history;
@@ -639,14 +640,8 @@ fn provider_endpoint_save(
 }
 
 #[tauri::command(async)]
-fn desktop_setup_pick(app: tauri::AppHandle, kind: String) -> Result<Value, String> {
-    let file = match kind.as_str() {
-        "config" => app.dialog().file().set_title("Choose the explicit shared config.toml reference").blocking_pick_file(),
-        "agents" => app.dialog().file().set_title("Choose the explicit shared AGENTS.md reference").blocking_pick_file(),
-        "skills" => app.dialog().file().set_title("Choose the explicit shared skills directory reference").blocking_pick_folder(),
-        "project" => app.dialog().file().set_title("Choose the project for the next App launch").blocking_pick_folder(),
-        _ => return Err("Unknown desktop setup location".into()),
-    };
+fn desktop_setup_pick(window: tauri::Window, kind: String) -> Result<Value, String> {
+    let file = desktop_setup_confirmation::pick(&window, &kind)?;
     file.map(|file|file.into_path().map(|path|json!({"displayPath":path.display().to_string(),"nativePath":attachments::native_path_identity(&path)})).map_err(|e|format!("Selected location is not a native filesystem path: {e}"))).transpose().map(|p|p.unwrap_or(Value::Null))
 }
 #[tauri::command(async)]
@@ -1274,6 +1269,7 @@ fn app_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wr
 // Menu dispatch only queues navigation; activation stays behind the App's guards.
 fn request_native_waiting(app: &tauri::AppHandle, id: &str) {
     use tauri::Emitter;
+    let original = main_window::original(app);
     let state = app.state::<AppState>();
     let result = {
         let homes = state.homes.lock().unwrap();
@@ -1281,7 +1277,12 @@ fn request_native_waiting(app: &tauri::AppHandle, id: &str) {
     };
     show_main_window(app);
     if let Err(reason) = result {
-        app.dialog().message(reason).title("Waiting requests").kind(MessageDialogKind::Info).show(|_| {});
+        // The menu callback must not block its main thread awaiting a notice.
+        // Retain the configured window; a missing/destroyed parent only logs.
+        if let Err(error) = std::thread::Builder::new().name("chirality-waiting-notice".into())
+            .spawn(move || native_lifecycle_confirmation::notice(original.as_ref(), "Waiting requests", reason)) {
+            eprintln!("chirality: Waiting requests notice unavailable: {error}");
+        }
     } else {
         // This is a wake-up only. The host retains the original pending target
         // even if there is no listener yet or this emit fails.
@@ -1305,7 +1306,7 @@ fn finish_native_waiting_intent(registry: State<'_, Mutex<native_waiting::Regist
 /// DEF-1 / SQ-W W-4: show the App's window again (the Dock click on macOS,
 /// or before the quit question so that content it names is visible).
 fn show_main_window(app: &tauri::AppHandle) {
-    if let Some(window) = app.webview_windows().into_values().next() {
+    if let Some(window) = main_window::original(app) {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
@@ -1386,7 +1387,7 @@ fn show_waiting_indicator(app: &tauri::AppHandle, last: &mut Option<i64>, menu: 
     }
     let count = app_quit::waiting_requests(&snapshots)["count"].as_i64().unwrap_or(0);
     if *last != Some(count) {
-        if let Some(window) = app.webview_windows().into_values().next() {
+        if let Some(window) = main_window::original(app) {
             if window.set_badge_count((count > 0).then_some(count)).is_ok() {
                 *last = Some(count);
             }
