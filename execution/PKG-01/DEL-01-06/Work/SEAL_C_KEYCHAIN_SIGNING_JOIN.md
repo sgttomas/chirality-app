@@ -107,7 +107,8 @@ report, an unsigned entitlement proposal only when complete supplied profile/
 certificate metadata agrees, and an exact SC-0…SC-6 witness/recovery plan. It
 does not authenticate CMS, sign, call SecItem or alter KEYCHAIN_SELECTION=None.
 
-The concrete proposed authorization route is an explicit v4 macOS App ID and
+The concrete proposed authorization route is an explicit macOS App ID for the
+selected `com.chirality.app` (superseding earlier separate-v4-ID wording) and
 Apple-issued Developer ID Application distribution profile including the existing
 signer. The SDK spells the macOS entitlement com.apple.application-identifier as
 AppIdentifierPrefix + bundle identifier; the prefix is obtained from the actual
@@ -235,12 +236,17 @@ state test that meets such a refusal needs a concrete disposition; failure is
 not a mandate for a v3 migration campaign or an automatic cleanup operation.
 
 Service/account are independent compiled strings, not required to equal the
-bundle identifier. The prior candidate service `com.chirality.app.v4.capture-seal`
-with primary account `installation-keyring` remains a feasible versioned service
-recommendation under production `com.chirality.app`: its version suffix can avoid
-an accidental pre-existing service subject without changing bundle identity.
-It is NOT newly selected by this note, not silently renamed to the unversioned
-service, and it does not prove the namespace is empty. The exact access group
+bundle identifier. Agent 0 then selected (2026-11-02, ordinary implementation selection, no
+repeated owner string choice): service `com.chirality.app.v4.capture-seal`,
+primary account `installation-keyring`, and `allow_first_enrollment=true` for the
+explicit native enrollment action only. `v4` names a stable namespace generation
+kept across later App versions; it is not bumped with the App version, because a
+changed service would leave earlier keys unread and their captures "not verified
+here". The selection is not enrollment or any key operation:
+`KEYCHAIN_SELECTION` stays None until authorized signer facts and source
+activation. The suffix lowers the chance of meeting a pre-existing item; it does
+not prove the namespace is empty. Observed metadata of one installed v3 bundle
+is bounded evidence, not an account of every historical installation. The exact access group
 still derives from actual signer/profile authorization (AppIdentifierPrefix is
 not guessed from team), bound to the selected `com.chirality.app` identity.
 Rotation continues `<primary>.rotation.<keyId>`; normal paths never reenroll.

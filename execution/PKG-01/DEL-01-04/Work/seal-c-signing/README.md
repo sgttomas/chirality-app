@@ -22,8 +22,10 @@ and observations are in `sdk-basis.json`):
    synchronizable items.
 
 The smallest proposed namespace is therefore the **own-application group**, not
-cross-App sharing: exact profile prefix + selected separate v4 identifier. This
-is a proposal until the owner/signing stage adopts the actual value. The helper
+cross-App sharing: exact profile prefix + the selected production identifier
+`com.chirality.app` (owner retained the existing App ID on 2026-11-02; earlier
+separate-v4-identifier wording is superseded). The prefix remains unknown until
+actual authorized evidence supplies it. The helper
 never substitutes the recovered team for the prefix. Where the profile grants
 an explicit group list, it checks an exact own-App group against those grants
 and emits only that one group. Where there is no group-list grant, it prepares
@@ -33,7 +35,8 @@ documented default-group route is the intended candidate. Neither is
 actually signed into the correct App.
 
 For a conservative reviewable authorization route, the existing Apple Developer
-account operator should register/use the **explicit v4 macOS App ID**, then obtain
+account operator should register/use the **explicit macOS App ID for
+`com.chirality.app`**, then obtain
 an **Apple-issued Developer ID Application distribution provisioning profile**
 that includes the already identified signing certificate and grants that exact
 application identifier (and the own-App group if a group list is used). Retain
@@ -62,10 +65,13 @@ The old default-None unsigned candidate is not a production publisher binding.
 
 ## Minimal remaining owner/operator actions
 
-1. Parent receives the owner's exact **bundle/service/account choice** and
-   existing-team use. The proposed separate-v4 names are already in the parent
-   decision context; this tool contains no real default choice and asks for no
-   team or private key again. The existing closed three-field publisher input
+1. Settled: the owner retained bundle `com.chirality.app` with the recovered
+   team; Agent 0 selected service `com.chirality.app.v4.capture-seal`, primary
+   account `installation-keyring` and explicit-native-only first enrollment
+   (2026-11-02, ordinary implementation selection; `v4` is a stable namespace
+   generation, never bumped with App versions). Runtime `KEYCHAIN_SELECTION`
+   stays None until authorized signer facts and source activation. This tool
+   still contains no real default choice and asks for no team or private key. The existing closed three-field publisher input
    remains unchanged.
 2. The Apple account operator obtains the explicit App ID/profile authorization
    described above for the existing Developer ID Application certificate. The

@@ -6,7 +6,7 @@
   "steps": [
     {
       "id": "SC-0",
-      "action": "Confirm the exact proposed v4 bundle/service/account and own-App group derived from an independently authenticated profile AppIdentifierPrefix; reuse the already identified Developer ID signer without asking for its private key.",
+      "action": "Confirm the selected com.chirality.app bundle, service com.chirality.app.v4.capture-seal, account installation-keyring and own-App group derived from an independently authenticated profile AppIdentifierPrefix; reuse the already identified Developer ID signer without asking for its private key.",
       "requires": ["actual owner namespace choice", "Apple-issued Developer ID distribution profile and verified decode/provenance", "matching public signer certificate and fingerprint"],
       "retain": ["owner choice reference", "original CMS and decoded plist digests", "public signer certificate digest", "exact unsigned proposed entitlement plist digest"],
       "on_failure": "Retain missing or contradictory inputs; do not invent a prefix, switch group, activate None or sign."
