@@ -48,6 +48,8 @@ distribution-successor = []
 synthetic-distribution-anchor = []
 
 [dev-dependencies]
+# Mock runtime exercises window-label selection without an App or native UI.
+tauri = { version = "2", features = ["test"] }
 # Exercise the actual build recipe with isolated synthetic process environments.
 tauri-build = { version = "2", features = [] }
 tauri-utils = "=2.9.1"
