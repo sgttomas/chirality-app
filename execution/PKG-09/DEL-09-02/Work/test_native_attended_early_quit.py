@@ -8,6 +8,9 @@ from native_attended_ports import NativePorts
 import native_b_window as w
 
 class EarlyQuitTests(unittest.TestCase):
+    def assert_owner_notified_once(self,events):
+        reports=[e for e in events if isinstance(e,dict) and e.get('event')=='owner-normal-quit-needed-now']
+        self.assertEqual(len(reports),1)
     def fixture(self,root,case='ok'):
         from test_native_attended_ports import Tests
         root=root.resolve()
@@ -77,7 +80,7 @@ class EarlyQuitTests(unittest.TestCase):
                 p,r,A,e,reads,presses,closed=self.fixture(Path(d),case)
                 with patch('native_attended_ports.NativeAdapter',A),self.assertRaises(RuntimeError):p.quit_normal('A',295)
                 self.assertFalse(presses);self.assertNotIn('reap',e)
-                self.assertTrue(r.early_quit_consumed)
+                self.assertTrue(r.early_quit_consumed);self.assert_owner_notified_once(e)
     def test_ineligible_stage_or_helper_unknown_refuses_before_menu(self):
         for case in ['setup_started','ordinary_input_attempted','stop_phase_started','stop_requested','helpers','B','missing_stage']:
             with self.subTest(case=case),tempfile.TemporaryDirectory() as d:
@@ -87,14 +90,14 @@ class EarlyQuitTests(unittest.TestCase):
                 elif case=='missing_stage':del r.setup_started
                 else:setattr(r,case,True)
                 with patch('native_attended_ports.NativeAdapter',A),self.assertRaises(RuntimeError):p.quit_normal(label,295)
-                self.assertFalse(reads);self.assertFalse(presses);self.assertNotIn('reap',e)
+                self.assertFalse(reads);self.assertFalse(presses);self.assertNotIn('reap',e);self.assert_owner_notified_once(e)
     def test_uncertain_dispatch_is_consumed_and_never_repeated(self):
         with tempfile.TemporaryDirectory() as d:
             p,r,A,e,reads,presses,closed=self.fixture(Path(d),'uncertain')
             with patch('native_attended_ports.NativeAdapter',A):
                 for _ in range(2):
                     with self.assertRaises(RuntimeError):p.quit_normal('A',295)
-            self.assertEqual(presses,['quit']);self.assertNotIn('reap',e)
+            self.assertEqual(presses,['quit']);self.assertNotIn('reap',e);self.assert_owner_notified_once(e)
             self.assertEqual(json.loads((r.root/'early-owned-menu-quit-result.json').read_text())['return_code'],-25204)
     def test_focus_dispatch_or_unknown_trace_prevents_early_route(self):
         for case in ['no-actions','attempted','missing','intent']:
@@ -107,7 +110,7 @@ class EarlyQuitTests(unittest.TestCase):
                     if case=='no-actions':self.assertTrue(p.quit_normal('A',295)['released'])
                     else:
                         with self.assertRaises((RuntimeError,FileNotFoundError)):p.quit_normal('A',295)
-                        self.assertFalse(presses)
+                        self.assertFalse(presses);self.assert_owner_notified_once(e)
 
     def test_no_exit_after_successful_menu_request_never_reaps(self):
         with tempfile.TemporaryDirectory() as d:
@@ -122,4 +125,4 @@ class EarlyQuitTests(unittest.TestCase):
             p,r,A,e,reads,presses,closed=self.fixture(Path(d))
             with patch('native_attended_ports.NativeAdapter',A),patch('native_attended_ports.os.fsync',side_effect=OSError('sync failed')):
                 with self.assertRaises(OSError):p.quit_normal('A',295)
-            self.assertFalse(presses);self.assertTrue(r.early_quit_consumed);self.assertNotIn('reap',e)
+            self.assertFalse(presses);self.assertTrue(r.early_quit_consumed);self.assertNotIn('reap',e);self.assert_owner_notified_once(e)
