@@ -125,7 +125,18 @@ test('stop-request records label turns first and read back after a relaunch (REC
 
 test('conversation sends are paused while Stop or Restart Codex runs',()=>{
   const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
-  assert.ok(app.includes('<ConversationPanel codexBusy={processBusy}'));
+  // Check the actual JSX binding, independent of prop ordering/formatting.
+  // The mounted conversation suite exercises its send/interrupt behavior.
+  const source=ts.createSourceFile('App.tsx',app,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+  const panels=[];
+  const visit=node=>{
+    if((ts.isJsxSelfClosingElement(node)||ts.isJsxOpeningElement(node))&&node.tagName.getText(source)==='ConversationPanel')panels.push(node);
+    ts.forEachChild(node,visit);
+  };
+  visit(source);assert.equal(panels.length,1);
+  const binding=panels[0].attributes.properties.find(attribute=>ts.isJsxAttribute(attribute)&&attribute.name.getText(source)==='codexBusy');
+  assert.ok(binding?.initializer&&ts.isJsxExpression(binding.initializer));
+  assert.equal(binding.initializer.expression?.getText(source),'processBusy');
   assert.ok(app.includes('const busy = ownBusy || (codexBusy ? "Stop or Restart Codex in progress" : "");'));
   // Interrupting stays available during a stop; only the panel's own operation blocks it.
   assert.ok(app.includes('!live || !!ownBusy || alreadyRequested} onClick={interruptTurn}'));

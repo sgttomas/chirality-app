@@ -784,3 +784,60 @@ for (const command of ['conversation_steer_text', 'conversation_interrupt']) {
     });
   });
 }
+
+async function withReadinessPanel(check) {
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c),calls=[];
+  let current={...host,conversationTurns:[{generation:g,threadId:'thread-a',turnId:'live-a',nativeTurn:{id:'live-a',status:'inProgress'}}]},selected=key('thread-a'),processBusy=false;
+  let interruptResult=async()=>true;
+  const show=()=>React.act(()=>root.render(React.createElement(ConversationPanel,{host:current,threadKey:selected,setThreadKey:value=>{selected=value;},answer:noop,runAct:noop,send:async(...args)=>calls.push(['send',args]),steer:noop,submitAttachments:noop,interrupt:async(...args)=>{calls.push(['interrupt',args]);return interruptResult();},checkPlanMode:noop,codexBusy:processBusy})));
+  const byId=id=>c.querySelectorAll(n=>n.getAttribute('id')===id)[0];
+  try {await show();await check({c,calls,show,byId,get host(){return current;},setHost:value=>{current=value;},choose:value=>{selected=value;},setBusy:value=>{processBusy=value;},interruptWith:value=>{interruptResult=value;}});}
+  finally {await React.act(()=>root.unmount());document.body.removeChild(c);}
+}
+
+test('ordinary send explains disconnected, unselected, empty and ready states without losing the draft',async()=>{
+ await withReadinessPanel(async ui=>{
+  assert.match(ui.byId('ordinary-send-readiness').textContent,/Write a message/);
+  await change(elements(ui.c,'textarea')[0],'Retained ordinary draft');
+  assert.match(ui.byId('ordinary-send-readiness').textContent,/Ready to send text to thread-a/);
+  assert.equal(props(button(ui.c,'Send text'))['aria-describedby'],'ordinary-send-readiness');
+  ui.choose('');await ui.show();assert.match(ui.byId('ordinary-send-readiness').textContent,/Choose a current conversation/);
+  assert.equal(props(button(ui.c,'Send text')).disabled,true);
+  ui.setHost({...ui.host,state:'stopped'});await ui.show();assert.match(ui.byId('ordinary-send-readiness').textContent,/Connect to Codex/);
+  assert.equal(props(elements(ui.c,'textarea')[0]).value,'Retained ordinary draft');assert.deepEqual(ui.calls,[]);
+ });
+});
+
+test('offered interrupt works during process-operation busy while sends stay paused and duplicate callbacks refuse',async()=>{
+ await withReadinessPanel(async ui=>{
+  await change(elements(ui.c,'textarea')[0],'Keep this text');
+  await change(labelled(ui.c,'select','Observed live turn '),'live-a');
+  ui.setBusy(true);await ui.show();
+  assert.equal(props(button(ui.c,'Send text')).disabled,true);
+  const interrupt=button(ui.c,'Interrupt selected live turn');assert.equal(props(interrupt).disabled,false);
+  const held=deferred();ui.interruptWith(()=>held.promise);let pending;
+  await React.act(()=>{pending=props(interrupt).onClick();void props(interrupt).onClick();});
+  assert.deepEqual(ui.calls,[['interrupt',[g,'thread-a','live-a']]]);
+  assert.equal(props(button(ui.c,'Interrupt selected live turn')).disabled,true);
+  assert.match(ui.byId('conversation-interrupt-readiness').textContent,/pending conversation operation/);
+  await React.act(async()=>{held.resolve(true);await pending;});
+  assert.equal(props(elements(ui.c,'textarea')[0]).value,'Keep this text');
+  assert.match(ui.byId('conversation-interrupt-readiness').textContent,/does not end a workflow run/);
+  assert.equal(props(button(ui.c,'Send text')).disabled,true);
+ });
+});
+
+test('closed sources, unobserved turns and already requested interruption explain refusal without dispatch',async()=>{
+ await withReadinessPanel(async ui=>{
+  assert.match(ui.byId('conversation-interrupt-readiness').textContent,/Choose an observed live turn/);
+  await change(labelled(ui.c,'select','Observed live turn '),'live-a');
+  ui.setHost({...ui.host,generationClosed:true});await ui.show();
+  const interrupted=button(ui.c,'Interrupt selected live turn');assert.equal(props(interrupted).disabled,true);
+  await React.act(async()=>props(interrupted).onClick());assert.deepEqual(ui.calls,[]);
+  assert.match(ui.byId('conversation-interrupt-readiness').textContent,/source is not ready/);
+  ui.setHost({...ui.host,generationClosed:false,turnInterruptRequests:[{binding:{generation:g,threadId:'thread-a',turnId:'live-a'},clientRequest:{outcome:'response-observed-result'}}]});await ui.show();
+  assert.equal(props(button(ui.c,'Interrupt selected live turn')).disabled,true);assert.match(ui.byId('conversation-interrupt-readiness').textContent,/already requested/);
+  ui.setHost({...ui.host,conversationTurns:[]});await ui.show();assert.match(ui.byId('conversation-interrupt-readiness').textContent,/No current live turn is observed/);
+  assert.deepEqual(ui.calls,[]);
+ });
+});
