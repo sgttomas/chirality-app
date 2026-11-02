@@ -7,6 +7,8 @@ from unittest.mock import patch
 import unittest
 import native_ax_comparison as control
 import native_ax_comparison_helper as helper
+import native_b_typed_ax, native_b_window
+helper.typed=native_b_typed_ax;helper.w=native_b_window # explicit offline dependency injection; no native construction
 from native_attended_admission import NativeAdmissions
 from native_attended_entry import original_custody
 
@@ -118,7 +120,7 @@ class SupervisorTests(unittest.TestCase):
                 if mode=='timeout' and self.waits==1:raise subprocess.TimeoutExpired('invented',timeout)
                 if mode in ('C-crash','Python-crash'):return -11 if mode=='C-crash' else 1
                 if mode in ('timeout','unknown-helper'):return -9
-                record('typed-ax-c.json',{'invented':True});record('typed-ax-python.json',{'invented':True})
+                record('typed-ax-c.json',{'identity':identity,'admission_sha256':run.admission_sha,'library_sha256':helper.w.sha(library)});record('typed-ax-python.json',{'invented':True})
                 record('typed-ax-result.json',{'action':control.ACTION,'identity_before':identity,'identity_after':identity,
                     'admission_sha256':run.admission_sha,'request_sha256':helper.w.sha(root/'typed-ax-request.json'),
                     'c_sha256':helper.w.sha(root/'typed-ax-c.json'),'python_sha256':helper.w.sha(root/'typed-ax-python.json'),
@@ -128,7 +130,7 @@ class SupervisorTests(unittest.TestCase):
         child=Child()
         def popen(argv,**kw):
             events.append('spawn-only-helper');self.assertEqual(argv[1:4],['-I','-B','-S'])
-            self.assertEqual(argv[4],str(root/'native_ax_comparison_helper.py'));return child
+            self.assertEqual(argv[4],'-c');self.assertIn(str(root/'native_ax_comparison_helper.py'),argv[5]);return child
         return run,ports,child,events,popen
     def test_supervised_crash_timeout_and_identity_never_load_FFI_or_reap_App(self):
         for mode in ('normal','C-crash','Python-crash','timeout','identity','unknown-helper'):
@@ -281,3 +283,99 @@ class DiagnosticAuthorityTests(unittest.TestCase):
         for operation in (lambda:ports.autonomous_start('A',None,None,295),lambda:ports.ordinary_setup_save('A',295),
                           lambda:ports.observe_ready('A',295),lambda:ports.post_stop_once('A',{},295)):
             with self.assertRaises(RuntimeError):operation()
+
+class ReviewRepairTests(unittest.TestCase):
+    def test_real_writer_under_umask022_admits_request_and_early_cleanup(self):
+        from native_successor_setup import write_once
+        from test_native_attended_early_quit import EarlyQuitTests
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d).resolve();run,ports,child,events,popen=SupervisorTests().fixture(root,'normal')
+            admitted=json.loads((root/'admission.json').read_text());(root/'admission.json').unlink()
+            old=os.umask(0o022)
+            try:
+                write_once(root/'admission.json',admitted)
+                run.admission_sha=helper.w.sha(root/'admission.json')
+                run.act_record=lambda name,value:write_once(root/name,value)
+                supervisor=control.DiagnosticHelper(ports,run,clock=lambda:0,popen=popen)
+                supervisor.invoke(295)
+            finally:os.umask(old)
+            for name in ('admission.json','typed-ax-request.json'):
+                self.assertEqual((root/name).stat().st_mode&0o777,0o600)
+                helper.w.private_json(root/name,2*1024*1024)
+        with tempfile.TemporaryDirectory() as d:
+            p,r,adapter,events,reads,presses,closed=EarlyQuitTests().fixture(Path(d))
+            admitted=json.loads((r.root/'admission.json').read_text());(r.root/'admission.json').unlink()
+            old=os.umask(0o022)
+            try:write_once(r.root/'admission.json',admitted)
+            finally:os.umask(old)
+            r.admission_sha=helper.w.sha(r.root/'admission.json');p.admissions.receipts['A']['admission_sha256']=r.admission_sha
+            with patch('native_attended_ports.NativeAdapter',adapter):self.assertTrue(p.quit_normal('A',295)['released'])
+            self.assertEqual(presses,['quit'])
+    def test_last_Python_attribute_overrun_preserves_partial_but_no_final_record(self):
+        with tempfile.TemporaryDirectory() as d:
+            root,req,value,b,lib,load,py,seen=HelperTests().fixture(Path(d));now=[0];calls=[0]
+            def late(*args,**kwargs):
+                calls[0]+=1
+                if calls[0]==4:now[0]=5;raise RuntimeError('late final attribute')
+                return py(*args,**kwargs)
+            with patch.object(helper.os,'getppid',return_value=123),patch.object(helper.typed.reference,'ax_inventory',side_effect=late),self.assertRaisesRegex(RuntimeError,'Python comparison deadline'):
+                helper.compare(root,req,value,123,lambda:b,load,clock=lambda:now[0])
+            self.assertTrue((root/'typed-ax-c.json').exists());self.assertTrue((root/'typed-ax-python-4.json').exists())
+            self.assertFalse((root/'typed-ax-result.json').exists())
+    def test_pre_spawn_refusal_has_no_false_held_or_Quit_report(self):
+        calls=[];ports=N(runs={},pending_launch=None,record=lambda *a:None,
+                         admit_empty_namespace=lambda end:{},launch=lambda *a:(_ for _ in ()).throw(RuntimeError('admission refused')),
+                         quit_normal=lambda *a:calls.append('Quit'),retain_and_report=lambda *a:calls.append('held'))
+        result=control.DiagnosticSequence(ports,clock=lambda:0).run(0)
+        self.assertEqual(calls,[]);self.assertFalse(result['custody_held']);self.assertTrue(result['launch_not_started'])
+    def test_actual_CPython_missing_executable_is_known_settled_failure(self):
+        with tempfile.TemporaryDirectory() as d:
+            run,ports,child,events,popen=SupervisorTests().fixture(Path(d),'normal')
+            supervisor=control.DiagnosticHelper(ports,run,clock=lambda:0)
+            with patch.object(control.sys,'executable',str(run.root/'missing-interpreter')):
+                with self.assertRaises(FileNotFoundError):supervisor.invoke(295)
+            self.assertFalse(supervisor.pending);self.assertTrue(run.extra_cleanup_ready());self.assertFalse(run.reservation.reaped)
+            self.assertTrue((run.root/'typed-ax-helper-not-started.json').exists())
+
+class VerifiedBootstrapTests(unittest.TestCase):
+    def test_isolated_bootstrap_ignores_unlisted_stdlib_shadow_and_executes_verified_bytes(self):
+        import sys
+        from native_successor_setup import write_once
+        with tempfile.TemporaryDirectory() as d:
+            base=Path(d).resolve();root=base/'A';root.mkdir(mode=0o700);build=base/'build';build.mkdir()
+            lib=build/'reader.dylib';lib.write_bytes(b'not loaded')
+            manifest={'format':'chirality.typed-ax-build/v1','fixture_build':False,
+                      'sources':{p:helper.w.sha(Path(p)) for p in helper.typed.production_sources()},
+                      'library':{'path':str(lib),'sha256':helper.w.sha(lib)}}
+            path=build/'reader-build.json';path.write_text(json.dumps(manifest))
+            binding=control.stage(root,path,helper.w.sha(path));(root/'helper-tmp').mkdir()
+            policy='(deny file-read* file-write* (subpath '+json.dumps(str(base))+'))\n'
+            (root/'phase.sb').write_text(policy);(root/'phase.sb').chmod(0o600)
+            a=NativeAdmissions.__new__(NativeAdmissions);a.root=base;a.plan={'candidate':'invented'};a.plan_sha='p'*64
+            a.value={'typed_ax_comparison':binding,'executable':'/invented/App'};a.receipts={};a.policy=lambda *args:policy;a.b=N(write_once=write_once)
+            old=os.umask(0o022)
+            try:receipt=a._receipt('A',{'diagnostic_only':True,'launch_limit':1,'setup_allowed':False,'focus_allowed':False,'Stop_allowed':False})
+            finally:os.umask(old)
+            # No staged module may be imported by name before source verification.
+            (root/'datetime.py').write_text("raise AssertionError('shadow imported')")
+            script='''import os,sys,json,hashlib
+from pathlib import Path
+root=Path(sys.argv[1]);entry=root/'native_ax_comparison_helper.py'
+namespace={'__file__':str(entry),'__name__':'offline_bootstrap'}
+exec(compile(entry.read_bytes(),str(entry),'exec'),namespace)
+admission=json.loads((root/'admission.json').read_text())
+request={'action':'same-original-ax-reference/v1','candidate':'invented','binding':admission['inputs']['typed_ax_comparison'],
+'identity':{'pid':10,'ppid':os.getppid(),'executable':'/invented/App'},'keeper_pid':os.getppid(),
+'admission_sha256':hashlib.sha256((root/'admission.json').read_bytes()).hexdigest(),
+'recorded_at':namespace['datetime'].datetime.now(namespace['datetime'].timezone.utc).isoformat()}
+namespace['publish'](root/'typed-ax-request.json',request)
+digest=hashlib.sha256((root/'typed-ax-request.json').read_bytes()).hexdigest()
+r,req,v,p,buffers=namespace['admitted'](root/'typed-ax-request.json',digest,with_sources=True)
+(root/'native_b_diagnostic.py').write_text("raise AssertionError('unverified replacement executed')")
+typed,window=namespace['verified_modules'](r,buffers)
+assert typed.reference is window.d
+assert str(root) not in sys.path
+print('VERIFIED_BYTES_NO_NATIVE')
+'''
+            result=subprocess.run([sys.executable,'-I','-B','-S','-c',script,str(root)],env={**os.environ,'TMPDIR':str(root/'helper-tmp')},capture_output=True,text=True,timeout=5)
+            self.assertEqual(result.returncode,0,result.stderr);self.assertIn('VERIFIED_BYTES_NO_NATIVE',result.stdout)

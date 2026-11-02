@@ -39,8 +39,10 @@ is specifically about the newly isolated comparison FFI, not absence of all
 existing native APIs from the keeper.
 
 The keeper validates its original birth/admission/source before launching one
-fixed -I/-B/-S helper. A pending spawn is registered before Popen; ambiguous
-constructor failure stays unknown, not released. The actual retained helper
+fixed -I/-B/-S helper. A pending spawn is registered before Popen. Ambiguous constructor failures stay
+unknown. Precisely executable-bound CPython exec-error exceptions are separately
+recorded as known failed exec after CPython has waited its child; other errors
+(including injected/custom spawners) cannot claim this settlement. The actual retained helper
 handle has its own10s deadline from Popen invocation; timeout may kill/reap ONLY
 that disposable helper, with1s settlement allowance. Unknown helper settlement
 or pending spawn joins extra_cleanup_ready and therefore original_custody,
@@ -108,3 +110,57 @@ entry/held-supervision exercise across6 outcomes. The typed-reader suite has14
 passing source/mock checks and4 compiled cases explicitly skipped; unchanged C
 source was not loaded against the App. Admission staging and tests create only
 invented temporary fixtures, not a live diagnostic preparation.
+
+## Review repairs and real production-writer regression
+
+Claude Opus5.5/high reviewed236dd3e48220bf7c398a97edc057f5ca34c13b15.
+Its high finding was real: production write_once used open('x'), yielding0644
+under umask022, while admission/request/early-Quit readers require0600. The
+shared native control-record writer now creates exclusive no-follow0600 files
+directly, without changing the process umask. This also fixes the latent PR82
+reader/writer mismatch. The regression uses the actual production writer and
+receipt emitter under022, reaches actual diagnostic validation and early menu
+cleanup, and requires exact0600 admission/request modes. It does not chmod away
+the defect in its fixtures. Previously consumed records remain unchanged.
+
+The diagnostic launcher now verifies/captures the entry bytes and supplies them
+to isolated Python via -c with the exact __file__ binding. Bootstrap imports only
+standard-library code on isolated sys.path, validates private admission/request/
+policy and source digests, then executes captured companion-module bytes by
+explicit identity. The same verified reference module is injected into both
+readers; no phase sys.path insertion, dependency reread or unlisted stdlib-module
+shadowing is needed. The regression adds a malicious datetime.py in the phase
+and replaces a companion after verification: neither is executed. This strengthens
+source loading; it does not claim protection from every same-UID intervention
+in the OS or dynamic-library loader.
+
+Last-attribute Python overruns now preserve partial evidence but refuse the final
+record. Helper publish fsyncs both file and directory; the C partial explicitly
+says post-call identity validation is pending until a final bound result exists.
+Keeper result validation cross-checks C identity/admission/library, not hashes
+alone. Before-spawn launch refusal reports no custody held and issues no Quit.
+
+The known-exec-failure distinction is deliberately narrow: actual CPython Popen,
+errno ENOENT/ENOEXEC/EACCES/EPERM, and filename exactly the requested interpreter.
+The inspected subprocess errpipe path calls waitpid before raising these errors;
+its source file is included in prepared dependencies. Other Popen errors remain
+unknown. A real missing-interpreter regression verifies known settlement without
+reaping the App; an injected unknown-outcome regression remains held. This is not
+authority to release unknown helpers or to reuse a diagnostic attempt.
+
+Affected-suite run:169 tests,165 passed and4 compiled fixtures skipped. A fresh
+offline reader/fixture build then passed all18 typed-reader tests including those
+4 harmless compiled CF/fake-AX cases. No production reader/AX service was loaded.
+Build root:app-isolated-typed-ax-build-nYiZGd4i/build in shared scratch.
+Production manifest SHA256:
+cfa65766b76408313ff2a5fbc81a19630b72ee273de5f9f959120f3e4433267f.
+Production dylib SHA256:
+5b2afb0fea4283f377858529900d884edbc3f8576c29962aef1730f33a740be5.
+Exact production source hashes remain matched after build. This is an observer
+library build, not a new App candidate, prepared native interval or qualification.
+
+The repaired byte-loading and known-exec-failure custody changes receive narrow
+follow-up scrutiny before actual-state assessment/frozen diagnostic preparation.
+No ordinary owner attendance is requested during this work. Exceptional owner
+normal-Quit remains a possible recovery request, never successful comparison or
+foreground proof; no all-conditions closure guarantee is introduced.

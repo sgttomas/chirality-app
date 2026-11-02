@@ -1,5 +1,5 @@
 """Keeper supervision for one isolated typed AX diagnostic. Never loads its DLL."""
-import json,os,subprocess,sys,time
+import errno,hashlib,json,os,subprocess,sys,time
 from pathlib import Path
 from native_attended_sequence import AttendedSequence,closed
 import native_b_window as w
@@ -66,14 +66,30 @@ class DiagnosticHelper:
         request={'action':ACTION,'candidate':run.value['candidate_key'],'binding':binding,
                  'identity':identity,'keeper_pid':os.getpid(),'admission_sha256':run.admission_sha,'recorded_at':w.d.now()}
         run.act_record('typed-ax-request.json',request)
-        command=[str(Path(sys.executable).resolve()),'-I','-B','-S',str(run.root/'native_ax_comparison_helper.py'),
+        entry=run.root/'native_ax_comparison_helper.py';source=entry.read_bytes()
+        w.require(hashlib.sha256(source).hexdigest()==binding['helper_sources'][entry.name],'diagnostic entry bytes changed')
+        code_source='__file__='+repr(str(entry))+'\n'+source.decode('utf-8')
+        command=[str(Path(sys.executable).resolve()),'-I','-B','-S','-c',code_source,
                  '--request',str(run.root/'typed-ax-request.json'),'--sha256',w.sha(run.root/'typed-ax-request.json')]
         env={'HOME':str(Path.home()),'PATH':'/usr/bin:/bin','TMPDIR':str(run.root/'helper-tmp'),
              'CODEX_HOME':str(run.root/'codex-home'),'PYTHONDONTWRITEBYTECODE':'1'}
         with (run.root/'typed-ax-helper.stdout').open('xb') as out,(run.root/'typed-ax-helper.stderr').open('xb') as err:
             started=self.clock();helper_end=started+10
             self.pending=True # failed Popen outcome remains unknown, never original custody release
-            self.child=self.popen(command,env=env,stdin=subprocess.DEVNULL,stdout=out,stderr=err,close_fds=True,umask=0o077)
+            try:self.child=self.popen(command,env=env,stdin=subprocess.DEVNULL,stdout=out,stderr=err,close_fds=True,umask=0o077)
+            except OSError as error:
+                # CPython's errpipe exec-error path waitpids its child before
+                # raising these executable-bound errors. Other failures remain
+                # unknown; an injected/custom spawner cannot assert this proof.
+                known=(self.popen is subprocess.Popen and sys.implementation.name=='cpython'
+                       and error.errno in (errno.ENOENT,errno.ENOEXEC,errno.EACCES,errno.EPERM)
+                       and error.filename==command[0])
+                if known:
+                    self.pending=False
+                    run.act_record('typed-ax-helper-not-started.json',{'errno':error.errno,
+                        'executable':command[0],'proof':'CPython executable-error path completed child wait before raising',
+                        'original_Child_reaped':False})
+                raise
             self.pending=False
             try:
                 code=self.child.wait(timeout=max(0,helper_end-self.clock()))
@@ -97,6 +113,10 @@ class DiagnosticHelper:
                   and result['python_sha256']==w.sha(run.root/'typed-ax-python.json')
                   and result['readiness_promoted'] is False and result['qualification_success'] is False,
                   'diagnostic result binding differs')
+        c_record=w.private_json(run.root/'typed-ax-c.json',2*1024*1024)
+        manifest=w.private_json(Path(binding['manifest']),2*1024*1024,binding['sha256'])
+        w.require(c_record['identity']==identity and c_record['admission_sha256']==run.admission_sha
+                  and c_record['library_sha256']==manifest['library']['sha256'],'diagnostic C record subject differs')
         return result
 
 class DiagnosticSequence(AttendedSequence):
@@ -113,6 +133,8 @@ class DiagnosticSequence(AttendedSequence):
             self.p.record('typed-ax-diagnostic-result',helper.invoke(self.deadline))
             self.result['diagnostic_complete']=True
         except BaseException as error:self.result['error']=repr(error)
+        if self.current=='A' and 'A' not in self.p.runs and getattr(self.p,'pending_launch',None) is None:
+            self.current=None;self.result['launch_not_started']=True
         # This route never invokes setup, focus, readiness, B, Stop or Cancel.
         if self.current=='A':
             try:

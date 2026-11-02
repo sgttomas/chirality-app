@@ -9,8 +9,11 @@ import stat
 import time
 
 HERE=Path(__file__).resolve()
-spec=importlib.util.spec_from_file_location('typed_ax_python_reference',HERE.with_name('native_b_diagnostic.py'))
-reference=importlib.util.module_from_spec(spec);spec.loader.exec_module(reference)
+if '_verified_reference' in globals():
+    reference=_verified_reference
+else:
+    spec=importlib.util.spec_from_file_location('typed_ax_python_reference',HERE.with_name('native_b_diagnostic.py'))
+    reference=importlib.util.module_from_spec(spec);spec.loader.exec_module(reference)
 require=reference.require
 
 class Ref(C.Structure):

@@ -38,7 +38,8 @@ def sha(path):
     return h.hexdigest()
 
 def dependencies():
-    paths=list(HERE.glob('native*.py'))+[HERE/'typed_ax/reader.c',HERE/'typed_ax/reader.h',HERE/'typed_ax/build.py']+[HERE/'native_attended_manager.js',
+    import subprocess
+    paths=[Path(subprocess.__file__).resolve()]+list(HERE.glob('native*.py'))+[HERE/'typed_ax/reader.c',HERE/'typed_ax/reader.h',HERE/'typed_ax/build.py']+[HERE/'native_attended_manager.js',
         Path('/Users/ryan/dev/chirality-t3/tools/t3_slot.sh'),Path('/Users/ryan/dev/chirality-t3/tools/t3_slot_run.sh')]
     import native_successor_relaunch as b
     paths.extend(Path(p) for p in b.dependencies())
