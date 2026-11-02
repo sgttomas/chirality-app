@@ -25,7 +25,7 @@ export function revealWorkspaceTarget(id: string, focus = false): void {
   }
   target?.scrollIntoView?.({ block: "start" });
 }
-const targets = new Set(["conversation", "workflow-studio", "workspace-start", "workspace-connection", "workspace-tools", "file-acts", "other-requests"]);
+const targets = new Set(["conversation", "workflow-studio", "workspace-start", "workspace-connection", "workspace-tools", "workspace-history", "file-acts", "other-requests"]);
 function revealLink(event: MouseEvent<HTMLElement>): void {
   for (let node = event.target as HTMLElement | null; node && node !== event.currentTarget; node = node.parentNode as HTMLElement | null) {
     const href = node.tagName === "A" ? node.getAttribute("href") : null;
@@ -101,6 +101,11 @@ export function DailyWorkspace({ children }: { children: ReactNode }) {
       .workspace-notices:empty { display:none; }
       .workspace-notices { margin:12px 0; }
       .workspace-notices [role=alert] { border-left:3px solid var(--danger); padding-left:10px; }
+      .history-browser { border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); padding:12px 0; margin:12px 0; }
+      .history-search { display:flex; flex-wrap:wrap; align-items:end; gap:8px; margin-top:16px; }
+      .history-search label { display:flex; flex:1 1 250px; flex-direction:column; gap:4px; }
+      .history-hint,.history-pagination small { color:var(--ink-soft); font-size:.88rem; }
+      .history-pagination { display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px; }
       .setup-steps { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
       .setup-step { border:0; border-top:1px solid var(--rule); padding:14px 0; margin:0; min-width:0; }
       .setup-step legend { font-weight:600; padding-right:12px; }

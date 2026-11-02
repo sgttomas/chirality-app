@@ -104,3 +104,56 @@ license matches its retained source bytes. Deliverable structure has zero errors
 whitespace checks pass. Native owner's separately coordinated picker-parenting
 work preserves the same `{kind}` / null-or-location interface; no frontend
 assumption about which native window is selected is added here.
+
+## Find and inspect a past conversation
+
+Next frontend slice on integrated App `a6800aa35cdb269eaa268517dedbeae27bd9eb4b`.
+The previous PR84 assets, palette and exact v3 source remain unchanged. Additional
+v3 source inspected at the same Root `485051eac923c759238948a54cd7bb094eee4899`:
+`components/shell/workspace-sidebar.tsx` lines 1–70 and
+`components/shell/session-list-view.tsx` lines 1–165. The former places Sessions
+and Transcript in the workspace; the latter supplies explicit empty/loading/
+error/opening presentation. This adopts presentation lessons only. Its v3
+runtime event-buffer hydration and automatic list reads are not v4 contracts.
+
+The current v4 history route gains a direct **History** workspace link, opening
+and focusing the existing disclosure while preserving every mounted pane.
+**Find in received conversations** filters only currently supplied IDs and
+previews, case-insensitively. It neither reads disk nor fetches another page,
+selects a conversation nor resumes it. Counts explicitly cover received rows,
+not all saved history. No-match/empty-list states explain the next explicit
+read. The selected conversation stays in the chooser even outside the filter
+or current received list, clearly labelled; it is not silently replaced by a
+matching row. Clear search restores the full received list and input focus.
+The filter persists across same-source polls and inspection choices, resets on
+home/generation change, and is not persisted to storage.
+
+Read, inspection and Continue retain distinct controls and existing exact IPC
+arguments. Pending operations now name the requested read/selection/continuation
+and mark the region busy; unavailable-source guidance explains disabled reads.
+The existing duplicate-operation guard remains in force. A failed list refresh
+explicitly identifies retained observations; the original source error remains
+in the unchanged diagnostic details. Paged buttons have stream-specific accessible
+names while preserving their existing text and exact cursor/direction/reference
+bindings. Conversation source/role metadata moves into a disclosure; current
+receiving limits, original guidance notices and resume consequences remain visible.
+
+No change to `historyPageBinding`, stream acceptance, resume ticket/admission,
+observer currency or navigation checks, original role standing, host authority,
+persistence or native code. A successful history read never becomes an active
+conversation. Continue still needs its matched original native resume, and never
+automatically resends text or overwrites the current draft/model/access choice.
+No interaction is inferred merely from filtering, rendering, focusing or a
+closed/reopened disclosure. PR85 retains native integration priority and has no
+frontend overlap; no receiving pin changes are made here.
+
+Verification uses the existing native-history, history-continue-navigation and
+prepared-message-navigation Node suites: 122 tests passed, zero skips. New cases
+exercise local search, unchanged host data/IPC, exact selection request, source
+reset, retained selected row, clear focus, pending/error/no-retry and direct
+History navigation. Existing accepted-page, cursor and Continue source/epoch/
+request/race/refusal guards remain covered. These tests mount production React
+with controlled host-shaped packets; this slice does not claim a newly executed
+Rust producer, actual native history or a candidate walkthrough. TypeScript/Vite
+and structure/whitespace checks accompany the contribution; real layout/keyboard/
+AX/native focus remain unrun. All prior candidate/evidence identities remain intact.
