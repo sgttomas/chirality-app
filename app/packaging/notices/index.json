@@ -2,11 +2,11 @@
   "format": "chirality.app.direct-runtime-notices/v2",
   "scope": "App MIT and direct runtime dependencies applicable to macOS arm64 (common and explicitly selected target declarations); not complete transitive coverage, license election or release/compliance approval",
   "source_basis": {
-    "app_revision": "7fdb470b9bedf3bea9f4369672dd24524a6c799d",
+    "app_revision": "4e942918f1fc4e99140665b2cbb36024c937255e",
     "manifest_sha256": {
       "app/package.json": "c2d6936e8f9c829165d1eedc0e2e81481dd481c99dbe4de278ecf333853497ac",
       "app/package-lock.json": "1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa",
-      "app/src-tauri/Cargo.toml": "cbf249697099c0999dade9ec3fbeeb76ab6515f9c838c1bcdc7a8f9bd2ef7183",
+      "app/src-tauri/Cargo.toml": "32aeb2faacc2f8ec31a1d11aa617ff75fc83cced085fe1299a15cde64e4a3638",
       "app/src-tauri/Cargo.lock": "c21ce295ae7a31ff136501df5c6ba93b95c6b881b9e2d090c7bb36016ac85ca2"
     }
   },
@@ -19,7 +19,7 @@
       "source": {
         "kind": "git",
         "repository": "https://github.com/sgttomas/chirality-app",
-        "revision": "7fdb470b9bedf3bea9f4369672dd24524a6c799d",
+        "revision": "4e942918f1fc4e99140665b2cbb36024c937255e",
         "blob": "6975876e98b3dc9a457ef04bdf31b4f021de2b05"
       },
       "notices": [

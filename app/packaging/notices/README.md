@@ -1,7 +1,13 @@
 # macOS arm64 direct-runtime notice inputs (v2)
 
-Current basis is exact native PR69 source
-`7fdb470b9bedf3bea9f4369672dd24524a6c799d`, not a built package. The index selects
+Current basis is main source `4e942918f1fc4e99140665b2cbb36024c937255e`, not a
+built package. It reconciles only the manifest digest after that commit added the
+dev-only `tauri` `test` feature (and its comment) to `Cargo.toml`. Runtime
+declarations, `Cargo.lock`, npm manifests, App `LICENSE.md`, components and texts
+are unchanged from the original PR69 implementation basis
+`7fdb470b9bedf3bea9f4369672dd24524a6c799d`. Any later `Cargo.toml` edit,
+including a dev-only one, still requires deliberate reconciliation here and in
+the dependent receipt plan. The index selects
 common direct runtime declarations plus applicable target-specific declarations
 for `aarch64-apple-darwin`, retaining each component's declaration targets.
 Top-level build/dev-only dependencies remain excluded. Known other-platform
