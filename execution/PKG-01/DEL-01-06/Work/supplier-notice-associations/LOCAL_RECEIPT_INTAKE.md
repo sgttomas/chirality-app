@@ -1,5 +1,10 @@
 # Local source receipt and explicit notice inclusion
 
+2026-11-02 update: the owner approved and packaging received the eleven exact
+files. See [actual receipt and scope](approved-receipt-20261102/SCOPE.md).
+Pending-acquisition wording below records the original implementation basis;
+receipt does not establish full license coverage or binary associations.
+
 The executable intake is `app/packaging/notices/receipts.py`. It has no network
 client, downloader, source executor or archive extractor. The maintained plan
 is derived from `public-metadata.json`, `macos-runtime-license-metadata.json`

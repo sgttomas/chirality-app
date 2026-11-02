@@ -1,5 +1,9 @@
 # Unsigned release-profile input assembly
 
+Current owner selection/testing scope: [V4_TEST_SUBJECT.md](V4_TEST_SUBJECT.md).
+The 2026-11-02 same-ID decision supersedes the historical separate-route basis
+below; retained input/build subjects are unchanged.
+
 The parent-maintained CURRENT_EXECUTION_BASIS at integrated
 `16f7b5a1f31e13a81332888efe99587b422f7543` records the owner's separate v4
 identity route, minimum macOS 15 and package version 4.0.0. Exact identifier/team
