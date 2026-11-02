@@ -89,3 +89,12 @@ and receiving limits; it does not grant native qualification, publication or a
 candidate identity change. Parent owns integration and future candidate/runtime
 selection. Owner actions, signing, recovery exceptions and publication remain
 separate authority.
+
+Independent Astra MEDIUM review completed at
+4e942918f1fc4e99140665b2cbb36024c937255e against
+3f7974bcfac00a6a246c17b6c282657e4f352c40, with no actionable findings.
+The reviewer independently reran the2 mock-manager window tests and2 picker
+regressions; all4 passed and diff-check was clean. The broader38-test result
+above is the manager's verification, not attributed to the reviewer. Native
+hardware lifetime/cancellation/AX behavior remains unqualified. Hosted exact-head
+checks and parent integration remain required; candidate/diagnostic holds stand.
