@@ -2,8 +2,11 @@
 import binascii,hashlib,importlib.util,json,math,os,stat,struct,subprocess,sys,time
 from pathlib import Path
 HERE=Path(__file__).resolve()
-spec=importlib.util.spec_from_file_location('window_identity_primitives',HERE.with_name('native_b_diagnostic.py'))
-d=importlib.util.module_from_spec(spec);spec.loader.exec_module(d)
+if '_verified_reference' in globals():
+    d=_verified_reference
+else:
+    spec=importlib.util.spec_from_file_location('window_identity_primitives',HERE.with_name('native_b_diagnostic.py'))
+    d=importlib.util.module_from_spec(spec);spec.loader.exec_module(d)
 require=d.require
 TITLE='Chirality App v4 — walking skeleton'
 CAPTURE=Path('/usr/sbin/screencapture')

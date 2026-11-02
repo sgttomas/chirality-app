@@ -37,7 +37,9 @@ def digest(path):
 
 
 def write_once(path, value):
-    with path.open('x') as stream:
+    # Control/evidence readers require private bytes regardless of shell umask.
+    fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+    with os.fdopen(fd,'w') as stream:
         stream.write(json.dumps(value, indent=2) + '\n')
 
 

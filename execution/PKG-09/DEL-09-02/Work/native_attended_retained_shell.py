@@ -18,7 +18,13 @@ POST_J_SHA='485ae1b3d5183b667ce2ef1c3fe6630bfb5e64c6686047a4231c2bf90753ce2c'
 POST_EL3_PATH=Path('/Users/ryan/dev/chirality-t3/scratch/app-post-el3-assessment-y2ps41jf/assessment.json')
 POST_EL3_SHA='fdec6b5490858f043199513ed019e9e936f8c5ec9517f835f75c666230452291'
 
+POST_JAG_PATH=Path('/Users/ryan/dev/chirality-t3/scratch/app-post-jag-assessment-2wggpwyy/assessment.json')
+POST_JAG_SHA='2bd734aa507badccdd02eb667d978ad6c24e249785561f0df39814cc34e6a1e8'
+
 def selected_profile(path,digest):
+    if digest==POST_JAG_SHA:
+        require(Path(path)==POST_JAG_PATH,'retained assessment location differs')
+        return 'attended-retained-shell/v4','app-attended-prepared-jag50nz3'
     if digest==POST_EL3_SHA:
         require(Path(path)==POST_EL3_PATH,'retained assessment location differs')
         return 'attended-retained-shell/v3','app-attended-prepared-el3pvau4'

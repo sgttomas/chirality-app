@@ -8,7 +8,7 @@ spec=importlib.util.spec_from_file_location('typed_reader_test',Path(__file__).w
 
 class TypedBinding(unittest.TestCase):
  def setUp(self):
-  self.tmp=tempfile.TemporaryDirectory(dir='/Users/ryan/dev/chirality-t3/scratch',prefix='typed-binding-test-');self.addCleanup(self.tmp.cleanup)
+  self.tmp=tempfile.TemporaryDirectory(prefix='typed-binding-test-');self.addCleanup(self.tmp.cleanup)
   self.root=Path(self.tmp.name).resolve();self.exe=self.root/'invented';self.exe.write_bytes(b'not executed')
   self.binding={'version':'chirality.typed-ax-build/v1','manifest':str(self.root/'typed-ax-build.json'),'sha256':'1'*64}
   self.value={'candidate_key':'invented','executable':str(self.exe),'executable_sha256':m.sha(self.exe),'typed_ax_comparison':self.binding}
