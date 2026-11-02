@@ -164,3 +164,32 @@ follow-up scrutiny before actual-state assessment/frozen diagnostic preparation.
 No ordinary owner attendance is requested during this work. Exceptional owner
 normal-Quit remains a possible recovery request, never successful comparison or
 foreground proof; no all-conditions closure guarantee is introduced.
+
+## Focused recheck and final bounded corrections
+
+Claude Opus5.5/high rechecked236dd3e4..c61a4c12: no HIGH or MEDIUM issue;
+known-exec failure cannot release a live/unknown helper. Remaining LOW findings
+are corrected: registered-but-unspawned A no longer requests Quit/reports an App
+held; any live guard remains separately held. Known exec failure receipt errors
+retain original errno and the recording error in the sequence evidence. The C
+record is parsed with its expected digest and checked for the exact action too.
+The subprocess dependency must be under the selected interpreter's stdlib and
+its _posixsubprocess extension is also bound; interpreter executable is already
+manifest-bound. This is not a guarantee against arbitrary same-UID interpreter
+memory changes.
+
+Added regressions cover a matching-filename forged ENOENT from a custom spawner
+(unknown/held), real CPython failed-exec plus receipt failure, wrong C subject/
+action even with matching hashes, and the keeper's actual -c/__main__/argparse
+command refusing a stale request before native entry.132 attended tests are
+selected after the additional v4 basis test; earlier compiled fixtures remain
+valid because reader/wrapper build-source hashes have not changed.
+
+Exact post-jag v4 assessment:
+app-post-jag-assessment-2wggpwyy/assessment.json, SHA256
+2bd734aa507badccdd02eb667d978ad6c24e249785561f0df39814cc34e6a1e8.
+Repeated metadata matched; scoped lsof found no listed descriptors and process
+comm contained no candidate executable. AppData/setup/ledger and Preferences/
+SavedState/HTTPStorages absent; WebKit21/Caches10. No opaque bytes/credentials
+read. This is a new exact prior-attempt/path/hash pin, not relabelled v3 or a
+reset; old profiles and all consumed roots remain immutable.

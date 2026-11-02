@@ -120,7 +120,7 @@ class SupervisorTests(unittest.TestCase):
                 if mode=='timeout' and self.waits==1:raise subprocess.TimeoutExpired('invented',timeout)
                 if mode in ('C-crash','Python-crash'):return -11 if mode=='C-crash' else 1
                 if mode in ('timeout','unknown-helper'):return -9
-                record('typed-ax-c.json',{'identity':identity,'admission_sha256':run.admission_sha,'library_sha256':helper.w.sha(library)});record('typed-ax-python.json',{'invented':True})
+                record('typed-ax-c.json',{'action':control.ACTION,'identity':identity,'admission_sha256':run.admission_sha,'library_sha256':helper.w.sha(library)});record('typed-ax-python.json',{'invented':True})
                 record('typed-ax-result.json',{'action':control.ACTION,'identity_before':identity,'identity_after':identity,
                     'admission_sha256':run.admission_sha,'request_sha256':helper.w.sha(root/'typed-ax-request.json'),
                     'c_sha256':helper.w.sha(root/'typed-ax-c.json'),'python_sha256':helper.w.sha(root/'typed-ax-python.json'),
@@ -379,3 +379,68 @@ print('VERIFIED_BYTES_NO_NATIVE')
 '''
             result=subprocess.run([sys.executable,'-I','-B','-S','-c',script,str(root)],env={**os.environ,'TMPDIR':str(root/'helper-tmp')},capture_output=True,text=True,timeout=5)
             self.assertEqual(result.returncode,0,result.stderr);self.assertIn('VERIFIED_BYTES_NO_NATIVE',result.stdout)
+
+class FollowupRepairTests(unittest.TestCase):
+    def test_registered_but_unspawned_run_does_not_request_Quit_or_report_App_held(self):
+        calls=[];ports=N(runs={},pending_launch=None,record=lambda *a:None,admit_empty_namespace=lambda end:{},
+                         quit_normal=lambda *a:calls.append('Quit'),retain_and_report=lambda *a:calls.append('held'))
+        def refused(*args):ports.runs['A']=N(reservation=None,thread=None);raise RuntimeError('sample refused')
+        ports.launch=refused
+        result=control.DiagnosticSequence(ports,clock=lambda:0).run(0)
+        self.assertEqual(calls,[]);self.assertFalse(result['custody_held']);self.assertTrue(result['launch_not_started'])
+    def test_forged_custom_ENOENT_stays_unknown(self):
+        import errno
+        with tempfile.TemporaryDirectory() as d:
+            run,ports,child,events,unused=SupervisorTests().fixture(Path(d),'normal')
+            def forged(argv,**kw):raise FileNotFoundError(errno.ENOENT,'invented',argv[0])
+            supervisor=control.DiagnosticHelper(ports,run,clock=lambda:0,popen=forged)
+            with self.assertRaises(FileNotFoundError):supervisor.invoke(295)
+            self.assertTrue(supervisor.pending);self.assertFalse(run.extra_cleanup_ready());self.assertFalse(run.reservation.reaped)
+    def test_known_exec_receipt_failure_preserves_original_errno(self):
+        import errno
+        with tempfile.TemporaryDirectory() as d:
+            run,ports,child,events,unused=SupervisorTests().fixture(Path(d),'normal');record=run.act_record
+            def fail(name,value):
+                if name=='typed-ax-helper-not-started.json':raise OSError(errno.EIO,'receipt failure')
+                record(name,value)
+            run.act_record=fail;supervisor=control.DiagnosticHelper(ports,run,clock=lambda:0)
+            with patch.object(control.sys,'executable',str(run.root/'missing-interpreter')):
+                with self.assertRaisesRegex(RuntimeError,'exec failure errno=2; receipt failed'):supervisor.invoke(295)
+            self.assertFalse(supervisor.pending);self.assertTrue(run.extra_cleanup_ready());self.assertFalse(run.reservation.reaped)
+    def test_wrong_C_subject_or_action_refuses_even_when_hash_matches(self):
+        for key,value in [('identity',{'pid':99}),('admission_sha256','wrong'),('library_sha256','wrong'),('action','wrong')]:
+            with self.subTest(key=key),tempfile.TemporaryDirectory() as d:
+                run,ports,child,events,popen=SupervisorTests().fixture(Path(d),'normal');wait=child.wait
+                def changed(timeout):
+                    rc=wait(timeout);c=run.root/'typed-ax-c.json';data=json.loads(c.read_text());data[key]=value;c.write_text(json.dumps(data))
+                    result=run.root/'typed-ax-result.json';data=json.loads(result.read_text());data['c_sha256']=helper.w.sha(c);result.write_text(json.dumps(data));return rc
+                child.wait=changed
+                supervisor=control.DiagnosticHelper(ports,run,clock=lambda:0,popen=popen)
+                with self.assertRaisesRegex(RuntimeError,'C record subject'):supervisor.invoke(295)
+                self.assertFalse(run.reservation.reaped)
+    def test_actual_keeper_c_command_refuses_stale_request_before_native_entry(self):
+        import sys
+        with tempfile.TemporaryDirectory() as d:
+            run,ports,child,events,unused=SupervisorTests().fixture(Path(d),'normal');root=run.root
+            here=Path(control.__file__).parent
+            for name in control.SOURCES:
+                data=(here/name).read_text()
+                if name=='native_b_diagnostic.py':data=data.replace('    def __init__(self):','    def __init__(self):\n        raise AssertionError("UNEXPECTED_NATIVE_ENTRY")',1)
+                (root/name).write_text(data)
+            binding=run.value['typed_ax_comparison'];binding['helper_sources']={name:helper.w.sha(root/name) for name in control.SOURCES}
+            run.value['executable']='/invented/App';ports.admissions.births['A']['executable']='/invented/App'
+            policy='(deny file-read* file-write* (subpath '+json.dumps(str(root.parent))+'))\n'
+            (root/'phase.sb').write_text(policy);(root/'phase.sb').chmod(0o600);(root/'helper-tmp').mkdir()
+            admitted={'inputs':run.value,'incarnation':'A','candidate':'invented','policy_sha256':helper.w.sha(root/'phase.sb'),
+                      'facts':{'diagnostic_only':True,'launch_limit':1,'setup_allowed':False,'focus_allowed':False,'Stop_allowed':False}}
+            (root/'admission.json').write_text(json.dumps(admitted));run.admission_sha=helper.w.sha(root/'admission.json')
+            def actual(argv,**kwargs):
+                self.assertEqual(argv[4],'-c');self.assertIn('__file__=',argv[5])
+                request=root/'typed-ax-request.json';data=json.loads(request.read_text());data['recorded_at']='2000-01-01T00:00:00+00:00';request.write_text(json.dumps(data))
+                argv[-1]=helper.w.sha(request)
+                return subprocess.Popen(argv,**kwargs)
+            supervisor=control.DiagnosticHelper(ports,run,popen=actual)
+            with self.assertRaisesRegex(RuntimeError,'helper failed'):supervisor.invoke(supervisor.clock()+295)
+            stderr=(root/'typed-ax-helper.stderr').read_text()
+            self.assertIn('diagnostic request stale',stderr);self.assertNotIn('UNEXPECTED_NATIVE_ENTRY',stderr)
+            self.assertTrue(run.extra_cleanup_ready());self.assertFalse(run.reservation.reaped)

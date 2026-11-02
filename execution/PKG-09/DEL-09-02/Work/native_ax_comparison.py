@@ -86,9 +86,11 @@ class DiagnosticHelper:
                        and error.filename==command[0])
                 if known:
                     self.pending=False
-                    run.act_record('typed-ax-helper-not-started.json',{'errno':error.errno,
+                    try:run.act_record('typed-ax-helper-not-started.json',{'errno':error.errno,
                         'executable':command[0],'proof':'CPython executable-error path completed child wait before raising',
                         'original_Child_reaped':False})
+                    except BaseException as receipt_error:
+                        raise RuntimeError('known helper exec failure errno='+str(error.errno)+'; receipt failed: '+repr(receipt_error)+'; helper settled, original Child not reaped') from error
                 raise
             self.pending=False
             try:
@@ -113,9 +115,9 @@ class DiagnosticHelper:
                   and result['python_sha256']==w.sha(run.root/'typed-ax-python.json')
                   and result['readiness_promoted'] is False and result['qualification_success'] is False,
                   'diagnostic result binding differs')
-        c_record=w.private_json(run.root/'typed-ax-c.json',2*1024*1024)
+        c_record=w.private_json(run.root/'typed-ax-c.json',2*1024*1024,result['c_sha256'])
         manifest=w.private_json(Path(binding['manifest']),2*1024*1024,binding['sha256'])
-        w.require(c_record['identity']==identity and c_record['admission_sha256']==run.admission_sha
+        w.require(c_record.get('action')==ACTION and c_record['identity']==identity and c_record['admission_sha256']==run.admission_sha
                   and c_record['library_sha256']==manifest['library']['sha256'],'diagnostic C record subject differs')
         return result
 
@@ -133,7 +135,9 @@ class DiagnosticSequence(AttendedSequence):
             self.p.record('typed-ax-diagnostic-result',helper.invoke(self.deadline))
             self.result['diagnostic_complete']=True
         except BaseException as error:self.result['error']=repr(error)
-        if self.current=='A' and 'A' not in self.p.runs and getattr(self.p,'pending_launch',None) is None:
+        unspawned=(getattr(self.p,'pending_launch',None) is None and
+                   ('A' not in self.p.runs or getattr(self.p.runs['A'],'reservation','unknown') is None))
+        if self.current=='A' and unspawned:
             self.current=None;self.result['launch_not_started']=True
         # This route never invokes setup, focus, readiness, B, Stop or Cancel.
         if self.current=='A':
@@ -144,7 +148,7 @@ class DiagnosticSequence(AttendedSequence):
                 self.result['cleanup_error']=repr(error)
                 try:self.p.retain_and_report('A',self.deadline,self.result)
                 except BaseException as delivery:self.delivery_errors.append(str(delivery))
-        self.result.update(incarnations=list(self.incarnations),custody_held=self.current is not None,
+        self.result.update(incarnations=list(self.incarnations),custody_held=self.current is not None or any(getattr(r,'thread',None) is not None and r.thread.is_alive() for r in self.p.runs.values()),
                            elapsed=self.clock()-slot_start,overrun=max(0,self.clock()-self.deadline),
                            delivery_errors=self.delivery_errors)
         self.safe_record('typed-ax-sequence-result',self.result)

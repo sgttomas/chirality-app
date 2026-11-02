@@ -145,7 +145,8 @@ class PostJSelectionTests(unittest.TestCase):
         for path,digest,version,prior in [
             (retained.ASSESSMENT_PATH,retained.ASSESSMENT_SHA,retained.VERSION,'app-attended-prepared-i_bow2kd'),
             (retained.POST_J_PATH,retained.POST_J_SHA,'attended-retained-shell/v2','app-attended-prepared-j58087z7'),
-            (retained.POST_EL3_PATH,retained.POST_EL3_SHA,'attended-retained-shell/v3','app-attended-prepared-el3pvau4')]:
+            (retained.POST_EL3_PATH,retained.POST_EL3_SHA,'attended-retained-shell/v3','app-attended-prepared-el3pvau4'),
+            (retained.POST_JAG_PATH,retained.POST_JAG_SHA,'attended-retained-shell/v4','app-attended-prepared-jag50nz3')]:
             with self.subTest(version=version):
                 self.assertEqual(retained.selected_profile(path,digest),(version,prior))
                 with self.assertRaises(RuntimeError):retained.selected_profile(path.parent/'copy.json',digest)
@@ -177,3 +178,12 @@ class PostEl3Tests(unittest.TestCase):
             retained.shape(value,home,'app-attended-prepared-el3pvau4')
             for path in (retained.POST_J_PATH,retained.ASSESSMENT_PATH):
                 with self.assertRaises(RuntimeError):retained.selected_profile(path,retained.POST_EL3_SHA)
+
+class PostJagTests(unittest.TestCase):
+    def test_v4_cannot_use_old_path_or_prior_attempt(self):
+        with tempfile.TemporaryDirectory() as d:
+            home=Path(d).resolve();value=Tests().fixture(home)
+            with self.assertRaisesRegex(RuntimeError,'subject differs'):retained.shape(value,home,'app-attended-prepared-jag50nz3')
+            value['prior_attempt']='app-attended-prepared-jag50nz3';retained.shape(value,home,'app-attended-prepared-jag50nz3')
+            for path in (retained.ASSESSMENT_PATH,retained.POST_J_PATH,retained.POST_EL3_PATH):
+                with self.assertRaises(RuntimeError):retained.selected_profile(path,retained.POST_JAG_SHA)

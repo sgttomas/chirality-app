@@ -38,8 +38,12 @@ def sha(path):
     return h.hexdigest()
 
 def dependencies():
-    import subprocess
-    paths=[Path(subprocess.__file__).resolve()]+list(HERE.glob('native*.py'))+[HERE/'typed_ax/reader.c',HERE/'typed_ax/reader.h',HERE/'typed_ax/build.py']+[HERE/'native_attended_manager.js',
+    import subprocess,sysconfig,_posixsubprocess
+    subprocess_path=Path(subprocess.__file__).resolve()
+    require(subprocess_path==Path(sysconfig.get_path('stdlib')).resolve()/'subprocess.py','subprocess is not selected interpreter standard library')
+    posix_path=Path(_posixsubprocess.__file__).resolve()
+    require(posix_path.is_relative_to(Path(sysconfig.get_config_var('DESTSHARED')).resolve()),'posix subprocess extension outside interpreter')
+    paths=[subprocess_path,posix_path]+list(HERE.glob('native*.py'))+[HERE/'typed_ax/reader.c',HERE/'typed_ax/reader.h',HERE/'typed_ax/build.py']+[HERE/'native_attended_manager.js',
         Path('/Users/ryan/dev/chirality-t3/tools/t3_slot.sh'),Path('/Users/ryan/dev/chirality-t3/tools/t3_slot_run.sh')]
     import native_successor_relaunch as b
     paths.extend(Path(p) for p in b.dependencies())
@@ -59,7 +63,7 @@ def prepare(build_root,state_basis=None,typed_manifest=None,typed_sha=None):
     require(build_root.is_relative_to(SCRATCH),'build root outside owned scratch')
     checked=preflight_a(build_root,PLAN_SHA,load_identify(),state_basis)
     require(checked['candidate']==CANDIDATE,'wrong selected candidate')
-    root=Path(tempfile.mkdtemp(prefix='app-attended-prepared-',dir=SCRATCH)).resolve()
+    root=Path(tempfile.mkdtemp(prefix='app-typed-ax-prepared-' if typed_manifest else 'app-attended-prepared-',dir=SCRATCH)).resolve()
     for name in ('A','B','bridge','manager-home','bytecode-cache'):(root/name).mkdir(mode=0o700)
     admission=NativeAdmissions(root,build_root,PLAN_SHA,b,load_identify(),time.monotonic,state_basis)
     require(bool(typed_manifest)==bool(typed_sha),'diagnostic manifest and digest both required')
