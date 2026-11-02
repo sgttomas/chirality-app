@@ -244,3 +244,15 @@ source-level packets, not native interruption or App execution. Test/build jobs
 are admitted through the shared slot wrapper; actual results are recorded in
 the PR, not inferred from code inspection. Real visual/keyboard/AX/native focus
 and recovery qualification remain unrun; the recovery hold is unchanged.
+
+After shared-slot admission, all 152 focused Node tests pass with zero skips;
+TypeScript/Vite production build passes with the existing chunk warning. The
+first run exposed a pre-existing codex-controls source-text assertion requiring
+`codexBusy` to be the first JSX prop. Main already placed other props before it.
+The bounded test repair checks the actual `ConversationPanel` JSX attribute via
+the existing TypeScript parser, retaining the exact `processBusy` binding check
+without depending on formatting/order. No product code changed for that repair.
+Independent Astra/medium source review of `16547e68` found no actionable defects;
+it inspected source/host guards before the queued checks ran and claims no
+independent runtime pass. The later test repair and passing run are manager
+verification, not an invented repeat review.
