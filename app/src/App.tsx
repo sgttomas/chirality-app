@@ -355,11 +355,24 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
   const operation = useRef(0);
   const activeNavigation = useRef<ContinueNavigation | null>(null);
   const [direction, setDirection] = useState("desc");
+  const [search, setSearch] = useState("");
+  const searchInput = useRef<HTMLInputElement>(null);
+  const [progress, setProgress] = useState("");
   const history = host?.nativeHistory;
   const selected = history?.selected;
   const generation = history?.generation;
   const epoch = history?.selectionEpoch;
   const available = host?.state === "ready" && history?.state === "history-receiving" && JSON.stringify(generation) === JSON.stringify(host?.generation);
+  const searchSource = JSON.stringify([history?.home, generation]);
+  useEffect(() => { setSearch(""); }, [searchSource]);
+  const received = (history?.threads ?? []) as Json[];
+  const query = search.trim().toLocaleLowerCase();
+  const matches = received.filter(row => [row.native.id, row.native.preview].some(value => typeof value === "string" && value.toLocaleLowerCase().includes(query)));
+  const outsideFilter = !!selected?.threadId && !matches.some(row => row.native.id === selected.threadId);
+  const retainedSelection = outsideFilter ? received.find(row => row.native.id === selected.threadId) : null;
+  const guidance = !available ? "Connect to the selected Codex home to read stored conversations."
+    : busy ? progress : !selected ? "Read stored conversations, then choose one to inspect. Reading does not open it for new messages."
+    : "Read turns to inspect prior work. Use Continue only when you want to open this conversation for new messages.";
   const turnPage = historyPageBinding(host, "turns");
   const itemPage = historyPageBinding(host, "items");
   const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
@@ -464,6 +477,7 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     activeNavigation.current = navigation;
     setContinueNotice("");
     setBusy(true); setError("");
+    setProgress(({ list: "Reading stored conversations…", metadata: "Reading conversation details…", turns: "Reading turns…", items: "Reading messages and activity…", goal: "Reading the conversation goal…", child: "Reading child conversation details…", continue: "Waiting for this conversation to be admitted for continuation…" } as Record<string, string>)[action] ?? "Waiting for the history request…");
     const priorRequests = new Set((history?.dispatches ?? []).map((dispatch: Json) => dispatch.requestRef));
     let ticket: ContinueNavigationTicket | null = null;
     try {
@@ -485,7 +499,7 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
           : "No matched Continue admission was returned. The conversation selection is retained; no automatic retry.");
       }
       busyRef.current = false;
-      setBusy(false);
+      setBusy(false); setProgress("");
     }
   };
   const select = async (threadId: string) => {
@@ -494,29 +508,44 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     operation.current++;
     activeNavigation.current = null;
     setPendingContinue(null); setContinueNotice("");
-    setBusy(true); setError("");
+    setBusy(true); setError(""); setProgress("Selecting the stored conversation for inspection…");
     try { await invoke("history_select", { generation, selectionEpoch: epoch, threadId }); }
     catch (e) { setError(String(e)); }
-    finally { try { await refresh(); } catch (e) { setError(String(e)); } busyRef.current = false; setBusy(false); }
+    finally { try { await refresh(); } catch (e) { setError(String(e)); } busyRef.current = false; setBusy(false); setProgress(""); }
   };
-  const pageButtons = (action: string, page: Json, reference: string | null = null, pageDirection = direction) => <span>
-    {typeof page?.nextCursor === "string" && <button disabled={!available || busy} onClick={() => run(action, page.nextCursor, reference, pageDirection)}>Next page</button>}
-    {typeof page?.backwardsCursor === "string" && <button disabled={!available || busy} onClick={() => run(action, page.backwardsCursor, reference, pageDirection === "desc" ? "asc" : "desc")}>Previous page</button>}
+  const pageButtons = (action: string, page: Json, reference: string | null = null, pageDirection = direction) => <span className="history-pagination">
+    {typeof page?.nextCursor === "string" && <button aria-label={`Next ${action === "list" ? "conversations" : action} page`} disabled={!available || busy} onClick={() => run(action, page.nextCursor, reference, pageDirection)}>Next page</button>}
+    {typeof page?.backwardsCursor === "string" && <button aria-label={`Previous ${action === "list" ? "conversations" : action} page`} disabled={!available || busy} onClick={() => run(action, page.backwardsCursor, reference, pageDirection === "desc" ? "asc" : "desc")}>Previous page</button>}
     <small> Cursor: {page === null || page === undefined ? "not read" : page.nextCursor === null ? "exhausted" : page.nextCursor === undefined ? "not reported" : "available"}</small>
   </span>;
-  return <section>
-    <h2>Stored native conversations and history</h2>
+  return <section aria-label="Stored conversations" aria-busy={busy}>
+    <h2>Find a past conversation</h2>
+    <p id="history-guidance" role="status" aria-live="polite">{guidance}</p>
+    {!available && <p><a href="#workspace-connection">Open connection controls</a></p>}
+    <div className="history-browser">
     <p>These disposable pages come from the selected native home. Reading history does not make a conversation operational. Original App role evidence remains unknown after a cold App restart.</p>
     <label>Page direction <select value={direction} disabled={busy} onChange={e => setDirection(e.target.value)}><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></label>{" "}
-    <button disabled={!available || busy} onClick={() => run("list")}>Read stored conversations</button>{" "}{pageButtons("list", history?.listPage, null, history?.listDirection ?? direction)}
-    <p><label>Stored conversation <select value={selected?.threadId ?? ""} disabled={!available || busy} onChange={e => select(e.target.value)}><option value="">Select a received conversation</option>{(history?.threads ?? []).map((row: Json) => <option key={row.native.id} value={row.native.id}>{row.native.id} · {row.native.status?.type ?? "status not reported"} · {row.native.preview || "empty preview"}</option>)}</select></label></p>
+    <button aria-describedby="history-guidance" disabled={!available || busy} onClick={() => run("list")}>Read stored conversations</button>{" "}{pageButtons("list", history?.listPage, null, history?.listDirection ?? direction)}
+    <div className="history-search">
+      <label>Find in received conversations <input ref={searchInput} type="search" aria-describedby="history-search-count" value={search} onChange={event => setSearch(event.target.value)} /></label>
+      <button disabled={!search} onClick={() => { setSearch(""); searchInput.current?.focus?.(); }}>Clear search</button>
+    </div>
+    <p id="history-search-count" className="history-hint" role="status">{matches.length} matching of {received.length} received conversations. Search checks these IDs and previews only; it does not fetch other pages.</p>
+    {received.length === 0 && <p>{history?.listPage ? "No conversation rows are available from the received list. Other pages or homes may contain more." : "No conversations have been received here yet. Select Read stored conversations to request a page."}</p>}
+    {query && matches.length === 0 && received.length > 0 && <p>No received conversation matches. Clear the search or explicitly read another page.</p>}
+    <p><label>Stored conversation <select aria-describedby="history-guidance history-search-count" value={selected?.threadId ?? ""} disabled={!available || busy} onChange={e => select(e.target.value)}><option value="">Select a received conversation</option>{matches.map((row: Json) => <option key={row.native.id} value={row.native.id}>{row.native.id} · {row.native.status?.type ?? "status not reported"} · {row.native.preview || "empty preview"}</option>)}{outsideFilter && <option value={selected.threadId}>{selected.threadId} · selected{retainedSelection ? " — outside this search" : " — not in the received list"}</option>}</select></label></p>
+    {outsideFilter && <p>The selected conversation stays selected. Filtering does not change which conversation you inspect or continue.</p>}
+    {history?.listError && <p role="alert">The conversation list could not be refreshed. Received rows are retained observations, not a successful refresh. See History dispatch and pending/error evidence below for the source error.</p>}
+    </div>
     {selected && <>
-      <p>History state: {selected.state}. App role in force: {JSON.stringify(selected.appRole)}. Native agentRole: {JSON.stringify(selected.metadata?.thread?.agentRole === undefined ? { state: "not reported" } : selected.metadata.thread.agentRole)}.</p>
+      <h3>Inspect selected conversation: {selected.threadId}</h3>
+      <details><summary>Conversation source and role details</summary>
+      <p>History state: {selected.state}. App role in force: {JSON.stringify(selected.appRole)}. Native agentRole: {JSON.stringify(selected.metadata?.thread?.agentRole === undefined ? { state: "not reported" } : selected.metadata.thread.agentRole)}.</p></details>
       {(selected.futureGuidanceNotices ?? []).map((notice: Json) => <p key={notice.path}>{notice.path}: {notice.kind === "not-read" ? `current guidance not compared (${notice.reason})` : notice.reason}; new conversations use the current guidance. This conversation retains its original role.</p>)}
       <button disabled={!available || busy} onClick={() => run("metadata")}>Read metadata</button>{" "}
       <button disabled={!available || busy} onClick={() => run("turns")}>Read turns</button>{" "}
       <button disabled={!available || busy} onClick={() => run("goal")}>Read goal</button>{" "}
-      <button disabled={!available || busy} onClick={() => run("continue")}>Continue selected conversation</button>
+      <button aria-describedby="history-guidance" disabled={!available || busy} onClick={() => run("continue")}>Continue selected conversation</button>
       <p>Current resume eligibility: {String(selected.resumeEligibilityCurrent ?? false)}. Active admission is reported in the dispatch evidence below and the operational conversation selector.</p>
       <p>Continue sends the native thread ID and waits for a matching resume response before active admission. Its existing guidance and settings remain in force. No automatic resend.</p>
       <p>Goal: {selected.goalAvailability}. {selected.goal?.goal === null ? "Native reported no goal." : selected.goal ? JSON.stringify(selected.goal.goal) : "Goal has not been read."}</p>
@@ -530,7 +559,7 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
       <details><summary>Metadata, child reads, standalone receiver references and stream errors</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ metadata: selected.metadata, childReads: selected.childReads, receiverReferences: selected.receiverReferences, errors: selected.errorsByStream, errorHistory: selected.errorHistory, resolutions: selected.streamResolutions, resumeEligibilityCurrent: selected.resumeEligibilityCurrent }, null, 2)}</pre></details>
       {selected.originalRoleSupply && <details><summary>Original App role supply evidence (memory only; adoption unknown)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(selected.originalRoleSupply, null, 2)}</pre></details>}
     </>}
-    {busy && <p>Waiting for native protocol response; no automatic retry.</p>}
+    {busy && <p role="status">{progress} No automatic retry.</p>}
     {continueNotice && <p role="status">{continueNotice}</p>}
     {error && <p role="alert">{error}</p>}
     {(history?.receivingLimits ?? history?.limits ?? []).map((limit: string, index: number) => <p key={index}>{limit}</p>)}
@@ -1860,7 +1889,7 @@ export function App() {
   return (<DailyWorkspace>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
         <nav className="workspace-nav" aria-label="Workspace navigation">
-          <a href="#conversation">Conversation</a><a href="#workflow-studio">Workflow studio</a><a href="#workspace-start">New conversation</a><a href="#workspace-connection">Connection &amp; access</a><a href="#workspace-tools">More tools</a><a href="#other-requests">Waiting requests</a>
+          <a href="#conversation">Conversation</a><a href="#workflow-studio">Workflow studio</a><a href="#workspace-history">History</a><a href="#workspace-start">New conversation</a><a href="#workspace-connection">Connection &amp; access</a><a href="#workspace-tools">More tools</a><a href="#other-requests">Waiting requests</a>
         </nav>
         <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed}/>
         <DesktopSetupPanel view={host?.desktopSetup}/>

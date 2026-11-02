@@ -542,3 +542,12 @@ for (const [state,closed,expected] of [['absent',false,'Codex is not connected']
   });
  });
 }
+
+test('History navigation reveals and focuses existing history without reading or replacing unsent work',async()=>{
+ await mounted({},async ui=>{
+  const history=byId(ui.c,'workspace-history');const summary=history.childNodes.find(n=>n.localName==='summary');let focused=0;summary.focus=()=>focused++;
+  await toggleDisclosure(ui.c,'workspace-history',false);const before=ui.calls.length;
+  await followWorkspaceLink(ui.c,'History');assert.equal(disclosureOpen(history),true);assert.equal(focused,1);
+  assert.equal(ui.calls.length,before);ui.assertIndependent();
+ });
+});

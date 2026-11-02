@@ -33,6 +33,8 @@ you want to repeat and improve a method.
 - [Set up your workspace](setting-up.md): choose shared settings, review and save
   next-launch choices, and navigate to connection and conversation controls.
 
+- [Find and continue a past conversation](finding-conversations.md): search
+  received history, inspect prior work and continue explicitly.
 - [Use a workflow](using-workflows.md): choose the method and revision, provide
   inputs, run the work and examine the result.
 - [Create and improve a workflow](creating-workflows.md): draft, try, review,

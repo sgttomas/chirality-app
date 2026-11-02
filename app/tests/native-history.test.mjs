@@ -386,3 +386,64 @@ test('HistoryPanel withholds retained-page buttons during pending/error/source c
     assert.deepEqual(calls, [], 'source/selection changes and restart never trigger automatic reads or resume');
   } finally {await React.act(() => root.unmount()); window.__TAURI_INTERNALS__ = previous;}
 });
+
+async function mountedHistoryBrowser(check) {
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c),calls=[];
+  let host=fixture(),handler=async()=>host.nativeHistory;
+  host.nativeHistory.threads.push({native:{id:'other-É',status:{type:'idle'},preview:'Budget review <notes>'}});
+  const previous=window.__TAURI_INTERNALS__;
+  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{calls.push({command,args:clone(args)});return handler(command,args);}};
+  const show=()=>React.act(()=>root.render(React.createElement(HistoryPanel,{host,refresh:async()=>host,threadKey:'untouched-active',setThreadKey:()=>assert.fail('inspection must not change operational conversation'),captureContinueNavigation:()=>assert.fail('search must not resume')})));
+  const field=()=>c.querySelectorAll(n=>n.localName==='input'&&props(n).type==='search')[0];
+  const chooser=()=>c.querySelectorAll(n=>n.localName==='select'&&n.parentNode.textContent.startsWith('Stored conversation '))[0];
+  const search=async value=>React.act(()=>props(field()).onChange({target:{value}}));
+  try {await show();await check({c,calls,field,chooser,search,show,get host(){return host;},setHost:value=>{host=value;},handle:value=>{handler=value;}});}
+  finally {await React.act(()=>root.unmount());document.body.removeChild(c);window.__TAURI_INTERNALS__=previous;}
+}
+
+test('history search filters received IDs/previews locally and preserves selected conversation outside matches',async()=>{
+ await mountedHistoryBrowser(async ui=>{
+  const original=clone(ui.host);await ui.search('BUDGET');
+  assert.match(ui.c.textContent,/1 matching of 2 received/);
+  const options=ui.chooser().querySelectorAll(n=>n.localName==='option');
+  assert.deepEqual(options.map(n=>n.getAttribute('value')),['','other-É','stored']);
+  assert.match(options.at(-1).textContent,/selected.*outside this search/);
+  assert.equal(props(ui.chooser()).value,'stored');assert.deepEqual(ui.host,original);assert.deepEqual(ui.calls,[]);
+  await ui.search('é');assert.match(ui.c.textContent,/1 matching of 2/);
+  await ui.search('no matches');assert.match(ui.c.textContent,/No received conversation matches/);
+  let focus=0;ui.field().focus=()=>focus++;await click(button(ui.c,'Clear search'));
+  assert.equal(props(ui.field()).value,'');assert.equal(focus,1);assert.deepEqual(ui.calls,[]);
+  assert.equal(props(ui.chooser()).value,'stored');
+ });
+});
+
+test('history filter survives polling and inspection choice but resets on home or generation change',async()=>{
+ await mountedHistoryBrowser(async ui=>{
+  await ui.search('budget');await ui.show();assert.equal(props(ui.field()).value,'budget');
+  await React.act(()=>props(ui.chooser()).onChange({target:{value:'other-É'}}));
+  assert.deepEqual(ui.calls,[{command:'history_select',args:{generation,selectionEpoch:3,threadId:'other-É'}}]);
+  assert.equal(props(ui.field()).value,'budget');
+  const changed=clone(ui.host);changed.nativeHistory.generation={...generation,spawnCounter:3};changed.generation=clone(changed.nativeHistory.generation);
+  ui.setHost(changed);await ui.show();assert.equal(props(ui.field()).value,'');
+  await ui.search('another');changed.nativeHistory.home='other-home';await ui.show();assert.equal(props(ui.field()).value,'');
+  assert.equal(ui.calls.length,1);
+ });
+});
+
+test('history list loading and errors are visible without replay, resume or lost search',async()=>{
+ await mountedHistoryBrowser(async ui=>{
+  let reject;const held=new Promise((_,no)=>{reject=no;});ui.handle(()=>held);
+  await ui.search('budget');let request;
+  const read=props(button(ui.c,'Read stored conversations')).onClick;
+  await React.act(()=>{request=read();void read();});
+  assert.equal(ui.calls.length,1);assert.match(ui.c.textContent,/Reading stored conversations/);
+  assert.equal(props(button(ui.c,'Read stored conversations')).disabled,true);
+  assert.equal(props(ui.chooser()).disabled,true);assert.equal(props(ui.field()).value,'budget');
+  await React.act(async()=>{reject(Error('source read refused'));await request;});
+  assert.match(ui.c.textContent,/source read refused/);assert.equal(ui.calls.length,1);
+  assert.equal(props(ui.field()).value,'budget');assert.equal(props(button(ui.c,'Read stored conversations')).disabled,false);
+  ui.host.nativeHistory.listError='list source unavailable';await ui.show();assert.match(ui.c.textContent,/Received rows are retained observations/);
+  ui.host.state='stopped';await ui.show();assert.match(ui.c.textContent,/Connect to the selected Codex home/);
+  assert.equal(props(button(ui.c,'Read stored conversations')).disabled,true);
+ });
+});
