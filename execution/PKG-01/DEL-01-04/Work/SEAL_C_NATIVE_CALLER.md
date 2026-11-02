@@ -147,3 +147,14 @@ serial execution. Unwind fixtures establish unknown/not-retried outcome and
 non-poisoned shared admission, including the final window-check interval.
 Deliverable validation reported zero errors. Manager repairs follow the original
 review findings; they are not a claim of a second clean review or real activation.
+
+## Owner-selected menu permission correction (2026-11-02)
+
+[The bounded capability narrowing](CORE_MENU_CAPABILITY_NARROWING.md) removes
+core:menu from the main webview while preserving the other eight locked core
+component defaults. The earlier inherited-core:menu paragraphs retain the PR78
+review's original subject; that specific webview menu-object creation/mutation
+route is now denied in the narrowed build. Rust menu dispatch, ordinary authorized
+UI/Accessibility routes and required native affirmative/provider checks remain.
+No universal agent/human parity or personal-act guarantee is asserted. The source
+permission decision does not activate KEYCHAIN_SELECTION or signing.

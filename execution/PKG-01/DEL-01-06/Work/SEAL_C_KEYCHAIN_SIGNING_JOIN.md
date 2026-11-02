@@ -206,3 +206,64 @@ narrowing before activation. No permission change is made by this contribution.
 Provider/final-admission unwind is reported as outcome-unknown/not-retried inside
 a boundary that preserves the shared key_setup lock from poisoning; existing
 Quit logic is unchanged and real native/signing evidence remains separate.
+
+## Current owner identity and v4-focused testing correction (2026-11-02)
+
+The owner selected **production `com.chirality.app`**, retaining the existing App
+ID, and expressly replaced a broad v3 comparison plan with **testing v4 itself**.
+Earlier separate-v4-ID proposals in historical evidence are superseded for this
+choice; no historical artifact is rewritten. Planned version4.0.0/minimum15 remain.
+The recovered Developer ID team remains the parent/signer basis, not a question
+that needs to be asked again. No real profile/group/signing/enrollment activation
+follows from the App ID decision, and KEYCHAIN_SELECTION remains None.
+
+`lib.rs` obtains AppData through `app.path().app_data_dir()` and installs that
+same root for capture sealing and installation attribution. Reusing the ID can
+therefore target an existing same-ID namespace; source inspection does not say
+which files actually exist in the owner's v3 data, nor that v3 used the same
+storage layout. Do not launch a new same-ID build against the owner's state to
+find out. The narrow required precaution is to establish the selected test root/
+account/configuration before use and avoid unintended existing-state access.
+
+The adopted SEAL-C provider rejects preparation/enrollment when its legacy
+`capture-seal` directory is present. It does not read/import that key material,
+reseal captures, reset/delete the directory or silently make a new key. Existing
+`capture-seal-keychain` marker/item state likewise needs its existing exact
+continuity semantics. Retaining the App ID does not authorize reusing any old
+key, group, installation.json or other stored authority. A same-ID future owner-
+state test that meets such a refusal needs a concrete disposition; failure is
+not a mandate for a v3 migration campaign or an automatic cleanup operation.
+
+Service/account are independent compiled strings, not required to equal the
+bundle identifier. The prior candidate service `com.chirality.app.v4.capture-seal`
+with primary account `installation-keyring` remains a feasible versioned service
+recommendation under production `com.chirality.app`: its version suffix can avoid
+an accidental pre-existing service subject without changing bundle identity.
+It is NOT newly selected by this note, not silently renamed to the unversioned
+service, and it does not prove the namespace is empty. The exact access group
+still derives from actual signer/profile authorization (AppIdentifierPrefix is
+not guessed from team), bound to the selected `com.chirality.app` identity.
+Rotation continues `<primary>.rotation.<keyId>`; normal paths never reenroll.
+
+Practical sequence stays v4-focused:
+
+1. Offline source/mock and isolated unqualified test-namespace/default-None
+   builds exercise v4 functionality using fresh AppData/Codex/project fixtures.
+   They do not establish the production identity or signing/keychain grants.
+2. For the actual selected same-ID signed/installed v4 witness, use an explicitly
+   admitted isolated macOS user/session with its own AppData/keychain and fresh
+   v4 fixture projects, or another concretely reviewed isolation route. Merely
+   changing HOME, choosing another project or copying the app bundle is not
+   assumed to isolate OS AppData/keychain. No new account/session is created or
+   requested by this source work. Packaging/native owners retain the later
+   precise setup and actual-operation authority.
+3. The owner tests v4's functional experience and the actual signed subject.
+   Retain v3 artifacts only as fallback/aesthetic reference; no v3 equivalence,
+   regression, migration or rollback qualification is a publication gate.
+
+The owner also approved exactly the webview core:menu narrowing described in
+[CORE_MENU_CAPABILITY_NARROWING.md](../../DEL-01-04/Work/CORE_MENU_CAPABILITY_NARROWING.md).
+It preserves Rust menus and ordinary UI/Accessibility routes while denying
+webview menu-object construction/mutation. It is neither universal agent/human
+parity nor a grant for person-reserved acts. It changes no signing or keychain
+permission and requires no immediate new owner act in this source lane.

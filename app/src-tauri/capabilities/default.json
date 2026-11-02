@@ -1,7 +1,18 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The main window may call the App's own commands only. No dialog, file-system or shell permission is granted to the webview: the native confirmation is opened by the host (AAC §6.2 P-2).",
-  "windows": ["main"],
-  "permissions": ["core:default"]
+  "description": "The main window retains the selected non-menu Tauri core defaults and App commands. Webview menu construction and mutation are not granted. Rust-owned menus and host-native confirmation remain separate; this does not establish person identity or exclude UI/accessibility automation.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:path:default",
+    "core:event:default",
+    "core:window:default",
+    "core:webview:default",
+    "core:app:default",
+    "core:image:default",
+    "core:resources:default",
+    "core:tray:default"
+  ]
 }
