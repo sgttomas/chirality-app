@@ -740,10 +740,13 @@ then requires recovery by the native input owner, not an inferred new pass.
    Record the actual Finder-copy destination path. §8 W-2 names `/Applications`;
    that section is pinned examination meaning and is not changed here. Installing
    into an isolated test user's `~/Applications` is a recorded destination
-   deviation. It still witnesses W-2's quarantine, Gatekeeper and first-launch
-   properties, with S4 location facts recording `app_translocation_path_component:
-   false` (S4's `translocation` stays `not-established`). It does not witness a
-   system `/Applications` install, which remains a stated residual until observed.
+   deviation. When actually observed there, it can witness W-2's quarantine,
+   Gatekeeper and first-launch properties; the destination alone establishes none
+   of them. Record the actual S4 `app_translocation_path_component` value for the
+   running bundle; `true` contradicts the expected Finder-copy outcome and is
+   reported as observed (S4's `translocation` stays `not-established`). It does
+   not witness a system `/Applications` install, which remains a stated residual
+   until observed.
    Revising W-2's text needs coordinated re-pinning of the examination sources.
    Whether a test-user witness suffices for release is an owner acceptance decision.
 
