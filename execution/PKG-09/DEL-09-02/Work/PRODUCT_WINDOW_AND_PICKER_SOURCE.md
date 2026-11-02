@@ -98,3 +98,15 @@ regressions; all4 passed and diff-check was clean. The broader38-test result
 above is the manager's verification, not attributed to the reviewer. Native
 hardware lifetime/cancellation/AX behavior remains unqualified. Hosted exact-head
 checks and parent integration remain required; candidate/diagnostic holds stand.
+
+CI follow-up:4970534a failed the pinned package/EXP/SQ receiving cohort because
+the dev-only Tauri test feature changed Cargo.toml bytes. The maintained
+app/examination/package_receiving/generate.py regenerated only its four outputs:
+package source profile/adapter constant and SQ package pins/reader constant.
+The source delta is Cargo.toml's exact digest plus derived digests; no validator,
+legacy cohort, historical evidence or candidate identity was relaxed/rewritten.
+All41 targeted package-successor and joined receiving tests passed offline.
+Actual maina6800aa35cdb269eaa268517dedbeae27bd9eb4b (PR84 frontend slice) was
+normally merged before generation. The four Rust/product files are byte-identical
+to reviewed4970534a; picker IPC payload/result/titles remain compatible. No
+unchanged Rust tests or independent reviews were repeated for this pin repair.
