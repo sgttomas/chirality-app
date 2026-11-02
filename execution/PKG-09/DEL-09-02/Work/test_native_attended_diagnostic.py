@@ -449,7 +449,10 @@ class InterpreterDependencyTests(unittest.TestCase):
     def test_actual_stdlib_and_builtin_or_extension_are_bound(self):
         import sys,sysconfig,_posixsubprocess
         import native_attended_entry as entry
-        deps=entry.dependencies()
+        # Exercise actual interpreter-path selection without requiring local
+        # slot-wrapper files or unrelated controller dependencies on hosted CI.
+        with patch.dict(sys.modules,{'native_successor_relaunch':N(dependencies=lambda:{})}),patch.object(entry,'sha',return_value='fixture-digest'):
+            deps=entry.dependencies()
         self.assertIn(str(Path(sysconfig.get_path('stdlib')).resolve()/'subprocess.py'),deps)
         if getattr(_posixsubprocess,'__file__',None):self.assertIn(str(Path(_posixsubprocess.__file__).resolve()),deps)
         else:self.assertEqual(_posixsubprocess.__spec__.origin,'built-in');self.assertIn('_posixsubprocess',sys.builtin_module_names)

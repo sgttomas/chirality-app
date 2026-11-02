@@ -193,3 +193,41 @@ comm contained no candidate executable. AppData/setup/ledger and Preferences/
 SavedState/HTTPStorages absent; WebKit21/Caches10. No opaque bytes/credentials
 read. This is a new exact prior-attempt/path/hash pin, not relabelled v3 or a
 reset; old profiles and all consumed roots remain immutable.
+
+## Frozen diagnostic preparation
+
+Runtime source2568bdcf1daf21d7390c57b948f9235c76fae313. All132 attended
+checks pass;23 diagnostic checks include the final corrections. Preparation
+initially refused because this interpreter embeds _posixsubprocess (no __file__).
+It is now explicitly accepted only as an interpreter builtin, covered by the
+already-pinned interpreter binary; external extensions remain separately bound.
+Dependency validation now precedes root allocation and is repeated before the
+manifest is written. Incomplete root app-typed-ax-prepared-06jda34c is retained
+with preparation-refused.json; it was never admitted, consumed or executable.
+
+UNRUN diagnostic root:`app-typed-ax-prepared-zootd3ob`; run:`360ca11f1ea44fe2bbe24f071b26c786`.
+Prepared SHA256:`facd1999752e9841bf7943389485909f10041c11b321f0ada834485738fc6b87`.
+Read-only check passed43 dependencies and11 staged artifacts. Full unchanged
+candidate inventory/executable/provenance and exact v4 state were revalidated.
+No actual A admission, mode/start/execution or comparison result exists there.
+Scope is one A launch, no setup/focus/Stop,10s helper +1s helper settlement,
+57s minimum cleanup headroom inside295s outer ceiling. No two-incarnation
+journey is enabled by this manifest.
+
+Separate consumed simulation root:`app-typed-ax-prepared-9aur3al1`, prepared
+SHA256:`3cda26ddec77cc3b9cba1910a05b546ebc208268f5185a2e33e53d8c8fc674b0`.
+All6 diagnostic entry/held-supervision cases passed. The real production emitter
+wrote0600 admission/request files, and the actual staged bootstrap verified the
+admission, policy, manifest and source bytes, stopping at a sentinel before any
+native backend/DLL construction. Identity in that bootstrap fixture is invented;
+this is not an actual Child admission or live comparison. Production library
+remains uninvoked; no App/native AX calls occurred.
+
+Private report:app-post-jag-assessment-2wggpwyy/diagnostic-preparation-result.json.
+Guarded invocation:app-post-jag-assessment-2wggpwyy/coordinated-manager-zootd3ob.js,
+SHA256:`cb545d19cc7e53f6fc36bb8b3cf6e9b2604ee6076b17b840b42ce6598a1ea91c`. Start/resource placeholders remain unfilled. Parent
+integration, fresh state/resource revalidation and actual diagnostic start are
+still required; no ordinary owner Foreground or attendance prerequisite. Parent
+remains exceptional recovery owner if normal menu/exit/helper custody is
+unsupported. An actual API result can still be error/partial; comparison is not
+native qualification, timing assurance or a cause determination.
