@@ -60,6 +60,8 @@ class NativePorts:
         run.screen.begin_phase=begin_phase
         run.autonomous_owned_focus=True
         run.foreground_verified=False
+        run.setup_started=False;run.ordinary_input_attempted=False;run.stop_phase_started=False
+        run.focus_helper_started=False;run.early_quit_consumed=False
         run.focus_receipt=lambda frame:self.autonomous_start(label,run,frame,run.ui_deadline)
         def no_background_activation():
             run.bound_main(press=True)
@@ -96,6 +98,7 @@ class NativePorts:
                     'verified original foreground lost before control focus')
             run.ax.own(element)
             true=__import__('ctypes').c_void_p.in_dll(run.ax.c,'kCFBooleanTrue').value
+            run.ordinary_input_attempted=True
             require(run.ax.a.AXUIElementSetAttributeValue(element,run.ax.string('AXFocused'),true)==0,
                     'owned control focus refused')
         run.ax.focus=control_focus
@@ -105,9 +108,9 @@ class NativePorts:
             require(run.foreground_verified and run.ax.attr(run.ax.app,'AXFrontmost') is True,
                     'verified original foreground lost before input')
         def checked_press(element):
-            foreground_for_input();return original_press(element)
+            foreground_for_input();run.ordinary_input_attempted=True;return original_press(element)
         def checked_key(*args,**kwargs):
-            foreground_for_input();return original_key(*args,**kwargs)
+            foreground_for_input();run.ordinary_input_attempted=True;return original_key(*args,**kwargs)
         run.ax.press,run.ax.key=checked_press,checked_key
         return label
 
@@ -205,6 +208,7 @@ class NativePorts:
         # fallback or automatic mechanism cycling. Its returned frame is fresh.
         run.activation_spent=True
         seq=run.screen.window.sequence+1
+        run.focus_helper_sequence=seq;run.focus_helper_started=True
         verified=run.screen.window.input('focus',frame)
         trace=self.b.screen_support.w.private_json(run.root/f'window-helper-{seq:03d}.focus.json',32768)
         require(trace.get('mechanism')=='AXRaise+AXFrontmost' and not trace.get('error')
@@ -310,6 +314,7 @@ class NativePorts:
         # serialized manager process, to the same exact admission verifier.
         old_inputs=self.b.base.inputs
         self.b.base.inputs=lambda:self.admissions.recheck_inputs()
+        run.setup_started=True
         try:self.b.base.form(run,self.value)
         finally:
             self.b.base.inputs=old_inputs;run.ax.a=original_library;run.dialog=original_dialog;run.ax.press=original_press
@@ -344,6 +349,7 @@ class NativePorts:
         run=self._original(label);run.ui_deadline=end
         run.work_end=end
         require(run.generation==ready['generation'],'Stop source changed')
+        run.stop_phase_started=True
         try:run.request_stop_ui()
         finally:
             if run.stop_requested:run.cleanup=True
@@ -518,6 +524,106 @@ class NativePorts:
             require(rc==0,'Quit dispatch uncertain; no repeat')
         finally:adapter.close()
 
+    def early_quit_eligibility(self,label,run):
+        require(label=='A' and set(self.runs)=={'A'} and self.saved is None and not self.controls,
+                'early Quit only before first setup/Stop')
+        require(all(getattr(run,name,None) is False for name in
+                    ('setup_started','ordinary_input_attempted','stop_phase_started','stop_requested')),
+                'early Quit prior input/stage unknown or ineligible')
+        require(run.extra_cleanup_ready(),'early Quit helper custody unknown')
+        require(getattr(run,'focus_helper_started',None) in (False,True),'focus helper stage unknown')
+        if run.focus_helper_started:
+            seq=run.focus_helper_sequence
+            trace=self.b.screen_support.w.private_json(run.root/f'window-helper-{seq:03d}.focus.json',32768)
+            require(trace.get('mechanism')=='AXRaise+AXFrontmost'
+                    and trace.get('raise_attempted') is False and trace.get('frontmost_attempted') is False,
+                    'early Quit focus input attempted/unknown')
+            require(not any((run.root/f'window-helper-{seq:03d}.{name}-intent.json').exists()
+                            for name in ('raise','frontmost')),'early Quit focus dispatch intent exists')
+        require(not run.quit_requested,'Quit already requested')
+        require(self.admissions.receipts[label]['admission_sha256']==run.admission_sha,
+                'early Quit admission receipt differs')
+        admitted=self.b.screen_support.w.private_json(run.root/'admission.json',2*1024*1024,run.admission_sha)
+        require(admitted['inputs']['executable']==self.value['executable'] and
+                admitted['inputs']['executable_sha256']==self.value['executable_sha256'],
+                'early Quit admitted executable differs')
+
+    def early_owned_menu_quit(self,label,run,end):
+        """One pre-setup recovery request; modal UNKNOWN, never absent/confirmed."""
+        require(getattr(run,'early_quit_consumed',None) is False,'early Quit already consumed/unknown')
+        run.early_quit_consumed=True # discovery/refusal also consumes this cleanup
+        self.early_quit_eligibility(label,run);self._original(label)
+        adapter=NativeAdapter(run.ax);calls=0
+        def call(fn,*args):
+            nonlocal calls
+            require(calls<600 and self.clock()+.2<end,'early menu call/deadline cap')
+            calls+=1;result=fn(*args)
+            require(self.clock()<end,'early menu native read returned late')
+            return result
+        def read(e,name):
+            require(call(adapter.timeout,e,.2)==0,'early menu timeout unavailable')
+            require(call(adapter.owner,e)==run.reservation.child.pid,'early menu owner differs')
+            rc,value=call(adapter.read,e,name);require(rc==0,'early menu attribute unavailable: '+name)
+            return value
+        def locate():
+            app=adapter.app
+            require(read(app,'AXRole')=='AXApplication','original AX application role differs')
+            title=read(app,'AXTitle')
+            require(title==Path(self.value['bundle']).stem,'original App title differs')
+            bar=read(app,'AXMenuBar');require(read(bar,'AXRole')=='AXMenuBar','original menu bar unavailable')
+            roots=read(bar,'AXChildren');require(isinstance(roots,list) and len(roots)<=32,'early menu roots bound')
+            roots=[e for e in roots if read(e,'AXRole')=='AXMenuBarItem' and read(e,'AXTitle')==title]
+            require(len(roots)==1,'original App menu ambiguous/missing')
+            seen=[];stack=[(roots[0],0)];matches=[]
+            while stack:
+                element,depth=stack.pop()
+                if any(adapter.same(element,e) for e in seen):continue
+                seen.append(element);require(depth<=6 and len(seen)<=100,'early menu traversal bound')
+                role=read(element,'AXRole');require(role in ('AXMenuBarItem','AXMenu','AXMenuItem'),'early menu role differs')
+                if role=='AXMenuItem':
+                    if read(element,'AXTitle')=='Quit '+title and read(element,'AXEnabled') is True:matches.append(element)
+                    continue
+                refs=read(element,'AXChildren');require(isinstance(refs,list) and len(refs)<=50,'early menu children bound')
+                stack.extend((e,depth+1) for e in refs)
+            require(len(matches)==1,'unique enabled exact Quit unavailable')
+            target=matches[0]
+            require('AXPress' in call(adapter.actions,target),'early Quit action unavailable')
+            return app,bar,roots[0],target,title
+        try:
+            app,bar,menu,target,title=locate()
+            intent={'incarnation':label,'candidate':self.value.get('candidate_key'),
+                'admission_sha256':run.admission_sha,'original_birth':self.admissions.births[label],
+                'title':'Quit '+title,'modal_state':'UNKNOWN; no main AX window required',
+                'scope':'early pre-setup/pre-Stop normal App-menu Quit only; no confirmation',
+                'dispatch':'may follow; intent is not dispatch/effect proof','adapter_calls':calls}
+            path=run.root/'early-owned-menu-quit-intent.json'
+            fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+            with os.fdopen(fd,'w') as stream:
+                json.dump(intent,stream,indent=2);stream.flush();os.fsync(stream.fileno())
+            directory=os.open(run.root,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+            try:os.fsync(directory)
+            finally:os.close(directory)
+            self.early_quit_eligibility(label,run)
+            current=locate()
+            require(all(adapter.same(a,b) for a,b in zip((app,bar,menu,target),current[:4])) and current[4]==title,
+                    'early Quit retained menu target/path changed')
+            self.early_quit_eligibility(label,run);self._original(label)
+            require(read(target,'AXTitle')=='Quit '+title and read(target,'AXEnabled') is True,
+                    'early Quit target changed before dispatch')
+            require(run.extra_cleanup_ready(),'early Quit helper custody changed')
+            require(calls<600 and self.clock()+.2<end,'early Quit dispatch reserve unavailable')
+            rc=None;error=None;started=self.clock()
+            run.quit_requested=True;run.quit_attempted=True;calls+=1
+            try:rc=adapter.press(target)
+            except BaseException as exc:error=repr(exc);raise
+            finally:run.act_record('early-owned-menu-quit-result.json',{'return_code':rc,'error':error,
+                'started':started,'finished':self.clock(),'late':self.clock()>=end,'adapter_calls':calls,
+                'modal_state':'UNKNOWN','effect_observed':False,'qualification_success':False})
+            require(self.clock()<end,'early Quit dispatch returned late')
+            require(rc==0,'early Quit dispatch uncertain; no duplicate')
+            run.quit_posted=True
+        finally:adapter.close()
+
     def quit_normal(self,label,end):
         run=self._original(label);run.cleanup=True;run.ui_deadline=end
         if not getattr(run,'autonomous_owned_focus',False) and getattr(run,'attended_owner_foreground',False) and not getattr(run,'foreground_verified',False):
@@ -526,11 +632,14 @@ class NativePorts:
         try:
             require(run.extra_cleanup_ready(),'helper custody unknown before Quit')
             if label=='B' and run.stop_requested:require(label in self.last_readback,'Stop sheet not verified dismissed')
-            self.cleanup_original_main(run,min(self.clock()+5,end-40))
-            require(not run.quit_requested,'Quit already requested')
-            run.quit_requested=True;run.quit_attempted=True
-            self.owned_menu_quit(run,min(self.clock()+5,end-40))
-            run.quit_posted=True
+            if getattr(run,'autonomous_owned_focus',False) and not getattr(run,'foreground_verified',False):
+                self.early_owned_menu_quit(label,run,min(self.clock()+5,end-40))
+            else:
+                self.cleanup_original_main(run,min(self.clock()+5,end-40))
+                require(not run.quit_requested,'Quit already requested')
+                run.quit_requested=True;run.quit_attempted=True
+                self.owned_menu_quit(run,min(self.clock()+5,end-40))
+                run.quit_posted=True
         except BaseException as error:
             try:self.owner_normal_quit_now(label,'agent normal-Quit unavailable or dispatch uncertain: '+str(error))
             except BaseException as delivery_error:
