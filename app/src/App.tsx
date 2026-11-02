@@ -92,8 +92,8 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
   const textRevision = useRef(0);
   const [ordinaryModel, setOrdinaryModel] = useState({ owner: "", value: "", revision: 0 });
   const [ordinaryOutcome, setOrdinaryOutcome] = useState<OrdinaryTextOutcome | null>(null);
-  const ordinaryPending = useRef(false);
-  const controlPending = useRef(false);
+  // One synchronous owner across ordinary turn controls, before React renders busy.
+  const turnActionPending = useRef(false);
   const ordinaryView = useRef({ owner: "", epoch: 0, ready: false });
   const [ownBusy, setBusy] = useState<string>("");
   const [forkBusy, setForkBusy] = useState(false);
@@ -123,12 +123,12 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
   const steeringTarget = steering?.target && JSON.stringify(steering.target.generation) === generationKey && steering.target.threadId === selected?.threadId ? steering.target : null;
   const alreadyRequested = (host?.turnInterruptRequests ?? []).some((request: Json) => live && JSON.stringify(request.binding?.generation) === generationKey && request.binding?.threadId === live.threadId && request.binding?.turnId === live.turnId && (request.clientRequest?.outcome === "response-observed-result" || (request.clientRequest?.outcome === "pending" && request.clientRequest?.writeResult === "written")));
   const sendText = async (mode?: "plan" | "default") => {
-    if (!selected || !text || busy || ordinaryPending.current || !sourceReady) return;
+    if (!selected || !text || busy || turnActionPending.current || !sourceReady) return;
     const request: OrdinaryTextRequest = { generation: { ...selected.generation }, threadId: selected.threadId, text,
       ...(mode ? { mode } : {}), ...(ordinaryModelValue ? { model: ordinaryModelValue } : {}) };
     const view = ordinaryView.current, revision = textRevision.current, choice = ordinaryModel;
     const isCurrent = () => ordinaryView.current.owner === view.owner && ordinaryView.current.epoch === view.epoch && ordinaryView.current.ready;
-    ordinaryPending.current = true;
+    turnActionPending.current = true;
     setBusy(mode ? `sending in ${mode} mode` : "sending"); setError(""); setOrdinaryOutcome(null);
     let outcome: OrdinaryTextOutcome;
     try {
@@ -143,13 +143,13 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
     setOrdinaryOutcome(outcome);
     try { await observeOrdinaryView?.(request, isCurrent); }
     catch (error) { setOrdinaryOutcome({ ...outcome, observationLimit: String(error) }); }
-    finally { ordinaryPending.current = false; setBusy(""); }
+    finally { turnActionPending.current = false; setBusy(""); }
   };
   const steerText = async () => {
-    if (!selected || !steeringTarget || !text || busy || controlPending.current) return;
+    if (!sourceReady || !selected || !steeringTarget || !text || busy || turnActionPending.current) return;
     const view = ordinaryView.current, revision = textRevision.current;
     const isCurrent = () => ordinaryView.current.owner === view.owner && ordinaryView.current.epoch === view.epoch && ordinaryView.current.ready;
-    controlPending.current = true;
+    turnActionPending.current = true;
     setBusy("steering"); setError("");
     try {
       const currentAcknowledgment = await steer(selected.generation, selected.threadId, steeringTarget.turnId, text);
@@ -158,12 +158,13 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
       if (currentAcknowledgment !== false && isCurrent() && textRevision.current === revision) setText(current => current === text ? "" : current);
     }
     catch (e) { if (isCurrent()) setError(String(e)); }
-    finally { controlPending.current = false; setBusy(""); }
+    finally { turnActionPending.current = false; setBusy(""); }
   };
   const attachmentText = async (expected: string | null) => {
     const selection = host?.attachmentSelections;
-    if (!selected || !selection?.ownerRef || !(selection.selections ?? []).length || busy) return;
+    if (!sourceReady || !selected || !selection?.ownerRef || !(selection.selections ?? []).length || busy || turnActionPending.current) return;
     const request: AttachmentRequest = { generation: selected.generation, threadId: selected.threadId, expectedTurnId: expected, text, ownerRef: selection.ownerRef, listRevision: selection.listRevision, selectionRefs: selection.selections.map((row: Json) => row.selection.selectionRef) };
+    turnActionPending.current = true;
     setBusy(expected ? "steering with attachments" : "sending with attachments"); setError("");
     setAttachmentOutcome(null);
     let outcome: AttachmentOutcome;
@@ -179,17 +180,17 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
     setAttachmentOutcome(outcome);
     try { await observeAttachmentView?.(request); }
     catch (e) { setAttachmentOutcome({ ...outcome, observationLimit: String(e) }); }
-    finally { setBusy(""); }
+    finally { turnActionPending.current = false; setBusy(""); }
     return outcome.result.acknowledged ? outcome.result.nativeValue : undefined;
   };
   const interruptTurn = async () => {
-    if (!sourceReady || !selected || !live || ownBusy || controlPending.current || alreadyRequested) return;
+    if (!sourceReady || !selected || !live || ownBusy || turnActionPending.current || alreadyRequested) return;
     const view = ordinaryView.current;
-    controlPending.current = true;
+    turnActionPending.current = true;
     setBusy("interrupting"); setError("");
     try { await interrupt(live.generation, live.threadId, live.turnId); }
     catch (e) { if (ordinaryView.current.owner === view.owner && ordinaryView.current.epoch === view.epoch && ordinaryView.current.ready) setError(String(e)); }
-    finally { controlPending.current = false; setBusy(""); }
+    finally { turnActionPending.current = false; setBusy(""); }
   };
   // NIR §4.1/§4.8: this conversation's request cards sit beside its activity, waiting ones first.
   const requests: Json[] = hostRequests(host).filter((request: Json) => selected && requestThread(request) === selected.threadId);
@@ -308,7 +309,7 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
     <p id="ordinary-model-help">Applies to Send text and the plan/default text controls below. Empty keeps the existing native model choice. An explicit identifier overrides the model for this turn and subsequent native turns; clearing this field does not revert it. Attachment, steering and prepared-message sends do not use this field.</p>
     <button aria-describedby="ordinary-send-readiness" disabled={!sourceReady || !selected || !text || !!busy} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
     {selected && <PlanModeControl planMode={host?.planMode} requested={(host?.requestedModes ?? []).find((r: Json) => JSON.stringify(r.generation) === generationKey && r.threadId === selected.threadId) ?? null}
-      ready={host?.state === "ready"} busy={!!busy} hasText={!!text}
+      ready={sourceReady} busy={!!busy} hasText={!!text}
       check={() => { setError(""); checkPlanMode(selected.generation).catch(e => setError(String(e))); }} send={mode => { void sendText(mode); }} />}
     {(host?.attachmentSelections?.selections ?? []).length > 0 && <p>This plain-text action excludes the selected attachments. Use the explicit ordered-attachment action to include the entire private selection.</p>}
     <p>Text is sent unchanged to the selected native conversation. Its role, access entry, provider and home remain the conversation's existing settings; a model choice opens no new run.</p>
@@ -320,8 +321,8 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
       {ordinaryOutcome.observationLimit && <p role="alert">Ordinary text view refresh unavailable for this original request: {ordinaryOutcome.observationLimit}. The command outcome above is unchanged; no automatic resend.</p>}
     </div>}
     {(host?.attachmentSelections?.selections ?? []).length > 0 && <div>
-      <button disabled={host?.state !== "ready" || !selected || !!busy || host?.attachmentCustody?.state !== "opened"} onClick={() => attachmentText(null)}>Send text and ordered attachments</button>{" "}
-      <button disabled={host?.state !== "ready" || !selected || !steeringTarget || !!busy || host?.attachmentCustody?.state !== "opened"} onClick={() => attachmentText(steeringTarget.turnId)}>Steer current turn with ordered attachments</button>
+      <button disabled={!sourceReady || !selected || !!busy || host?.attachmentCustody?.state !== "opened"} onClick={() => attachmentText(null)}>Send text and ordered attachments</button>{" "}
+      <button disabled={!sourceReady || !selected || !steeringTarget || !!busy || host?.attachmentCustody?.state !== "opened"} onClick={() => attachmentText(steeringTarget.turnId)}>Steer current turn with ordered attachments</button>
       <p>Every selected source is revalidated as one whole list. Source/custody/context failures retain the draft and evidence; no text-only fallback or automatic resend. Native acknowledgments remain separate from completion and provider uptake.</p>
       {host?.attachmentCustody?.state !== "opened" && <p>Attachment custody unavailable: {host?.attachmentCustody?.error}. Plain-text controls remain available.</p>}
     </div>}
@@ -336,7 +337,7 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
         <ol>{attachmentOutcome.request.selectionRefs.map((ref, index) => <li key={`${index}:${ref}`}>{ref}</li>)}</ol>
       </details>
     </div>}
-    <SteeringControl target={steeringTarget} reason={steering?.reason} ready={host?.state === "ready" && !!selected} busy={!!busy} text={text} submit={() => { void steerText(); }} />
+    <SteeringControl target={steeringTarget} reason={steering?.reason} ready={sourceReady && !!selected} busy={!!busy} text={text} submit={() => { void steerText(); }} />
     <section aria-label="Turn interruption"><h3>Interrupt a live turn</h3>
     <p id="conversation-interrupt-readiness" role="status" aria-live="polite">{interruptReadiness}</p>
     <label>Observed live turn <select disabled={!!ownBusy} value={turnId} onChange={e => setTurnId(e.target.value)}><option value="">Select a live turn</option>{liveTurns.map((turn: Json) => <option key={turn.turnId} value={turn.turnId}>{turn.turnId} · {turn.nativeTurn.status}</option>)}</select></label>{" "}

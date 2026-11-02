@@ -18,6 +18,15 @@ conversation's role, access entry or home. If attachments are selected, **Send
 text only** excludes them; use the separate attachment action to include them.
 Do not assume an acknowledgment means the model completed the requested work.
 
+The ordinary Send, plan/default, steering, attachment and turn-interrupt controls
+allow one pending turn operation from this panel at a time. Repeated clicks or
+switching between those controls do not queue a second request while its command
+and follow-up view read are pending. Wait for the result before choosing another
+action. If the connection has closed, these sends are unavailable and the draft
+stays here; reconnect or inspect History rather than repeatedly pressing Send.
+Attachment submissions keep the entire selected order and never fall back to a
+text-only send after a refusal.
+
 ## Interrupt one observed live turn
 
 1. Choose the conversation whose work you intend to interrupt.

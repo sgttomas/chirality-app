@@ -235,8 +235,11 @@ test('standalone ConversationPanel preserves its raw return and optional legacy 
   try {
     await React.act(() => root.render(React.createElement(ConversationPanel,panelProps)));
     await React.act(() => props(composer(container)).onChange({target:{value:request.text}}));
-    await React.act(async () => {pending = props(button(container,sendLabel)).onClick();});
+    const retainedSend = props(button(container,sendLabel)).onClick;
+    await React.act(async () => {pending = retainedSend();});
     assert.equal(props(composer(container)).value,'');
+    await React.act(async () => {assert.equal(await retainedSend(),undefined);});
+    assert.equal(calls.length,1,'the original acknowledgment does not release dispatch while its observer is pending');
     assert.equal(!!props(composer(container)).disabled,true,'existing busy condition prevents edits during the observer');
     await React.act(async () => {gate.resolve();assert.equal(await pending,sample.nativeValue);});
     await React.act(() => props(composer(container)).onChange({target:{value:'Newer person draft'}}));
@@ -248,4 +251,55 @@ test('standalone ConversationPanel preserves its raw return and optional legacy 
     await React.act(async () => {await props(button(container,sendLabel)).onClick();});
     assert.equal(props(composer(container)).value,'');
   } finally {gate.resolve();if (pending) await pending;await React.act(() => root.unmount());document.body.removeChild(container);}
+});
+
+test('pending attachment submission refuses duplicate deliveries before React renders busy',async()=>{
+  const sample=sampleFor('send'),request=sample.args,calls=[],gate=Promise.withResolvers();
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c),noop=async()=>{};
+  const values={host:sample.beforeHostStatus,threadKey:JSON.stringify([request.generation,request.threadId]),setThreadKey:()=>{},answer:noop,runAct:noop,send:noop,steer:noop,interrupt:noop,checkPlanMode:noop,codexBusy:false,submitAttachments:async(...args)=>{calls.push(args);await gate.promise;return sample.nativeValue;}};
+  let first,second;
+  try {
+    await React.act(()=>root.render(React.createElement(ConversationPanel,values)));
+    await React.act(()=>props(composer(c)).onChange({target:{value:request.text}}));
+    const handler=props(button(c,sendLabel)).onClick;
+    await React.act(()=>{first=handler();second=handler();});
+    assert.equal(calls.length,1,'one explicit ordered-list dispatch even before busy re-render');
+    assert.deepEqual(calls[0],[request.generation,request.threadId,request.expectedTurnId,request.text,request.ownerRef,request.listRevision,request.selectionRefs]);
+    await React.act(async()=>{gate.resolve();assert.equal(await first,sample.nativeValue);assert.equal(await second,undefined);});
+  } finally {gate.resolve();await React.act(async()=>{await Promise.allSettled([first,second]);root.unmount();});document.body.removeChild(c);}
+});
+
+for(const [firstLabel,secondLabel] of [[sendLabel,'Send text only'],['Send text only',sendLabel],[sendLabel,'Steer current live turn'],['Steer current live turn',sendLabel],[sendLabel,'Interrupt selected live turn'],[steerLabel,sendLabel]]) {
+ test(`turn submission exclusion: ${firstLabel} then ${secondLabel}`,async()=>{
+  const sample=sampleFor('send'),r=sample.args,gate=Promise.withResolvers(),calls=[];
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c),noop=async()=>{};
+  const source={...sample.beforeHostStatus,conversationTurns:[{generation:r.generation,threadId:r.threadId,turnId:'derived-live',nativeTurn:{id:'derived-live',status:'inProgress'}}],steeringTargets:[{generation:r.generation,threadId:r.threadId,target:{generation:r.generation,threadId:r.threadId,turnId:'derived-live'}}]};
+  const dispatch=name=>async(...args)=>{calls.push([name,args]);await gate.promise;return name==='attachment'?sample.nativeValue:true;};
+  try {
+   await React.act(()=>root.render(React.createElement(ConversationPanel,{host:source,threadKey:JSON.stringify([r.generation,r.threadId]),setThreadKey:()=>{},answer:noop,runAct:noop,send:dispatch('text'),steer:dispatch('steer'),interrupt:dispatch('interrupt'),checkPlanMode:noop,codexBusy:false,submitAttachments:dispatch('attachment')})));
+   await React.act(()=>props(composer(c)).onChange({target:{value:r.text}}));
+   const select=nodes(c,'select').find(n=>n.parentNode.textContent.startsWith('Observed live turn '));await React.act(()=>props(select).onChange({target:{value:'derived-live'}}));
+   const first=props(button(c,firstLabel)).onClick,second=props(button(c,secondLabel)).onClick;
+   await React.act(()=>{void first();void second();});
+   assert.equal(calls.length,1,'only the first original turn operation owns dispatch');
+   assert.equal(calls[0][0],firstLabel===sendLabel||firstLabel===steerLabel?'attachment':firstLabel==='Send text only'?'text':'steer');
+   await React.act(async()=>{gate.resolve();await Promise.resolve();});
+  } finally {gate.resolve();await React.act(async()=>{await Promise.resolve();root.unmount();});document.body.removeChild(c);}
+ });
+}
+
+test('closed generation disables ordinary, plan, steer and attachment sends with no fallback',async()=>{
+ const sample=sampleFor('steer'),r=sample.args,calls=[];
+ const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c),noop=async()=>{};
+ const source={...sample.beforeHostStatus,generationClosed:true,planMode:{state:'offered'}};
+ const reject=async()=>{calls.push('unexpected submission');};
+ try {
+  await React.act(()=>root.render(React.createElement(ConversationPanel,{host:source,threadKey:JSON.stringify([r.generation,r.threadId]),setThreadKey:()=>{},answer:noop,runAct:noop,send:reject,steer:reject,interrupt:reject,checkPlanMode:noop,codexBusy:false,submitAttachments:reject})));
+  await React.act(()=>props(composer(c)).onChange({target:{value:r.text}}));
+  for(const label of ['Send text only',sendLabel,steerLabel,'Steer current live turn','Send in plan mode (experimental)','Send in default mode (carry out / leave plan mode)']) {
+   const control=button(c,label);assert.ok(control,label);assert.equal(props(control).disabled,true,label);
+   await React.act(async()=>{await props(control).onClick();});
+  }
+  assert.deepEqual(calls,[]);assert.equal(props(composer(c)).value,r.text);
+ } finally {await React.act(()=>root.unmount());document.body.removeChild(c);}
 });
