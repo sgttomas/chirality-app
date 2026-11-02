@@ -205,3 +205,42 @@ source-switch, registration, selection and independent-composer cases remain.
 TypeScript/Vite, structure and whitespace checks accompany the slice. The
 user manual now follows these actual stages. Real visual/native/keyboard/AX
 verification and all historical candidate limits remain unchanged.
+
+## Ordinary conversation readiness and effective interruption
+
+Source basis App `509e7cc1bc9da55e296934bf6843a69f6c8437f8`. The current
+ConversationPanel offered Interrupt while `codexBusy` was true and explicitly
+said that turn interruption remained available during Stop/Restart. Its handler
+nevertheless returned on the combined send `busy` flag, silently doing nothing.
+The existing codex-controls test checked the button/source text, not the handler
+under that condition. This slice repairs that demonstrated frontend mismatch.
+
+`interruptTurn` now uses the panel's own pending state plus the current source,
+selected/live turn, duplicate-request and synchronous control-pending checks.
+The button also refuses a closed generation. A process-operation busy flag alone
+continues to pause Send/Steer/attachments but no longer nullifies the offered
+turn-interrupt action. It neither confirms nor dismisses the native lifecycle
+question. The unchanged parent `conversationAction` retains original-source
+request/observer currency; Rust `lib.rs::conversation_interrupt` resolves the
+actual generation and `runtime_session::interrupt_conversation_turn` rechecks
+current conversation, live observation and existing interruption records before
+dispatch. No host guard, lifecycle policy, timeout, receipt or IPC is altered.
+
+Ordinary Send now has a nearby live readiness message and accessible description:
+connection, conversation selection, pending operation, empty text or ready target.
+The existing exact draft/model lifetime and send outcome rules remain. Links to
+connection/new/history destinations only reveal existing panels. Interruption
+has its own grouped live-turn selector and status explaining unavailable source,
+pending own operation, absent live observation, missing choice, already requested
+or ready. Unknown/acknowledged/ended remain distinct; no workflow-run or child-
+settlement claim follows. Existing v3 palette/assets and historical candidates
+remain unchanged; no diagnostics-first route or new framework is introduced.
+
+Targeted maintained conversation-panel/codex-controls/prepared-message-navigation
+regressions exercise the actual React handler during process busy, exact target
+arguments, duplicate callback refusal, preserved draft, closed source/no live
+turn/already-requested refusal and readiness messages. These are controlled
+source-level packets, not native interruption or App execution. Test/build jobs
+are admitted through the shared slot wrapper; actual results are recorded in
+the PR, not inferred from code inspection. Real visual/keyboard/AX/native focus
+and recovery qualification remain unrun; the recovery hold is unchanged.

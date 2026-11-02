@@ -33,6 +33,8 @@ you want to repeat and improve a method.
 - [Set up your workspace](setting-up.md): choose shared settings, review and save
   next-launch choices, and navigate to connection and conversation controls.
 
+- [Send a message and interrupt a live turn](sending-and-interrupting.md):
+  understand readiness, preserve unsent text and target an observed live turn.
 - [Find and continue a past conversation](finding-conversations.md): search
   received history, inspect prior work and continue explicitly.
 - [Use a workflow](using-workflows.md): choose the method and revision, provide

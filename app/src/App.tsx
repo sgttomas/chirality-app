@@ -183,7 +183,7 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
     return outcome.result.acknowledged ? outcome.result.nativeValue : undefined;
   };
   const interruptTurn = async () => {
-    if (!selected || !live || busy || controlPending.current || alreadyRequested) return;
+    if (!sourceReady || !selected || !live || ownBusy || controlPending.current || alreadyRequested) return;
     const view = ordinaryView.current;
     controlPending.current = true;
     setBusy("interrupting"); setError("");
@@ -252,6 +252,18 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
   // header and the activity view once shared the thread ID as key, and React then
   // left the previous conversation's header mounted on every switch (witness
   // 2026-10-10 D-1). Each per-conversation child keys on its own prefix.
+  const sendReadiness = !sourceReady ? "Connect to Codex before sending. Your draft stays here."
+    : !selected ? "Choose a current conversation, start a new one, or continue one from History. Your draft is not sent by choosing."
+    : busy ? "An operation is pending. New messages are paused until its result is received."
+    : !text ? "Write a message to send to the selected conversation."
+    : `Ready to send text to ${selected.threadId}. Sending does not change its role or access entry.`;
+  const interruptReadiness = !sourceReady ? "Interruption is unavailable because this Codex source is not ready."
+    : !selected ? "Choose the conversation whose turn you want to interrupt."
+    : ownBusy ? "Wait for the pending conversation operation before interrupting."
+    : liveTurns.length === 0 ? "No current live turn is observed in this conversation. This does not prove that all work has ended."
+    : !live ? "Choose an observed live turn below. Interruption targets that turn only."
+    : alreadyRequested ? "Interrupt already requested; awaiting native turn status."
+    : "The selected live turn can be interrupted. This does not end a workflow run or prove that child work has stopped.";
   return <section id="conversation">
     <h2>Conversation text and turn control</h2>
     <label>Current-generation conversation <select disabled={!!ownBusy} value={threadKey} onChange={e => { setThreadKey(e.target.value); setTurnId(""); setError(""); }}>
@@ -287,11 +299,14 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
       {ordered.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} observation={replyObservations?.[requestScopeKey(request)]} />)}
     </div>}
-    <p><label>Text <textarea disabled={!!busy} value={text} onChange={e => { textRevision.current += 1; setText(e.target.value); }} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
+    <p id="ordinary-send-readiness" role="status" aria-live="polite">{sendReadiness}</p>
+    {!sourceReady && <p><a href="#workspace-connection">Open connection controls</a></p>}
+    {sourceReady && !selected && <p><a href="#workspace-start">Choose a new conversation</a>{" · "}<a href="#workspace-history">Find a past conversation</a></p>}
+    <p><label>Text <textarea aria-describedby="ordinary-send-readiness" disabled={!!busy} value={text} onChange={e => { textRevision.current += 1; setText(e.target.value); }} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
     <p><label>Optional model identifier for next ordinary text turn <input {...EXACT_TEXT} disabled={!selected || !!busy} value={ordinaryModelValue}
       onChange={e => setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, revision: current.revision + 1 }))} aria-describedby="ordinary-model-help" /></label></p>
     <p id="ordinary-model-help">Applies to Send text and the plan/default text controls below. Empty keeps the existing native model choice. An explicit identifier overrides the model for this turn and subsequent native turns; clearing this field does not revert it. Attachment, steering and prepared-message sends do not use this field.</p>
-    <button disabled={!sourceReady || !selected || !text || !!busy} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
+    <button aria-describedby="ordinary-send-readiness" disabled={!sourceReady || !selected || !text || !!busy} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
     {selected && <PlanModeControl planMode={host?.planMode} requested={(host?.requestedModes ?? []).find((r: Json) => JSON.stringify(r.generation) === generationKey && r.threadId === selected.threadId) ?? null}
       ready={host?.state === "ready"} busy={!!busy} hasText={!!text}
       check={() => { setError(""); checkPlanMode(selected.generation).catch(e => setError(String(e))); }} send={mode => { void sendText(mode); }} />}
@@ -322,12 +337,14 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
       </details>
     </div>}
     <SteeringControl target={steeringTarget} reason={steering?.reason} ready={host?.state === "ready" && !!selected} busy={!!busy} text={text} submit={() => { void steerText(); }} />
+    <section aria-label="Turn interruption"><h3>Interrupt a live turn</h3>
+    <p id="conversation-interrupt-readiness" role="status" aria-live="polite">{interruptReadiness}</p>
     <label>Observed live turn <select disabled={!!ownBusy} value={turnId} onChange={e => setTurnId(e.target.value)}><option value="">Select a live turn</option>{liveTurns.map((turn: Json) => <option key={turn.turnId} value={turn.turnId}>{turn.turnId} · {turn.nativeTurn.status}</option>)}</select></label>{" "}
-    <button disabled={host?.state !== "ready" || !live || !!ownBusy || alreadyRequested} onClick={interruptTurn}>Interrupt selected live turn</button>
+    <button aria-describedby="conversation-interrupt-readiness" disabled={!sourceReady || !live || !!ownBusy || alreadyRequested} onClick={interruptTurn}>Interrupt selected live turn</button>
     <p>An interrupt acknowledgment does not establish turn end or rollback. Turn status comes from native observations.</p>
     {(host?.conversationTurns ?? []).filter((turn: Json) => turn.terminalEventObserved && turn.nativeTurn?.status === "inProgress").map((turn: Json) => <p key={JSON.stringify([turn.generation, turn.threadId, turn.turnId])}>Native turn inconsistency: {turn.threadId}/{turn.turnId} has a terminal event observation and contradictory progress status; interruption is unavailable.</p>)}
     {(host?.conversationTurns ?? []).flatMap((turn: Json) => (turn.inconsistencyLimits ?? []).map((limit: Json, index: number) => <p key={JSON.stringify([turn.generation, turn.threadId, turn.turnId, index])}>Native lifecycle limit for {JSON.stringify(turn.generation)} · {turn.threadId}/{turn.turnId}: {JSON.stringify(limit)}</p>))}
-    {alreadyRequested && <p>Interrupt already requested; awaiting native turn status.</p>}
+    </section>
     {ownBusy && <p>{ownBusy}: waiting for protocol response; no automatic retry.</p>}
     {!ownBusy && codexBusy && <p>Stop or Restart Codex is in progress: sending text, steering and attachments is paused; interrupting a live turn stays available.</p>}
     {error && <p role="alert">{error} No automatic retry.</p>}
