@@ -42,7 +42,18 @@ root_ok() {
   [ "$(stat -f %Lp "$OUT")" = 700 ] || die "output root is not mode 0700"; }
 stage() { root_ok; [ ! -e "$OUT/$1" ] || die "$OUT/$1 already exists"; mkdir "$OUT/$1"; D="$OUT/$1"
   { date -u '+%Y-%m-%dT%H:%M:%SZ'; whoami; id -Gn; } > "$D/who.txt"; }
-manifest() { (cd "$D" && find . -type f ! -name MANIFEST.sha256 -print0 | xargs -0 shasum -a 256 > MANIFEST.sha256); echo "wrote $D"; }
+manifest() { # checked list, then checked hashes; any failure is a refusal, never "wrote"
+  ( cd "$D" || exit 2
+    find . -type f ! -name MANIFEST.sha256 ! -name .mlist > .mlist || exit 2
+    LC_ALL=C sort -o .mlist .mlist || exit 2
+    : > MANIFEST.sha256 || exit 2
+    while IFS= read -r f; do shasum -a 256 "$f" >> MANIFEST.sha256 || exit 2; done < .mlist || exit 2
+    rm .mlist || exit 2 ) || die "evidence manifest failed in $D"
+  echo "wrote $D"; }
+dir_ok() { # an existing evidence directory must be a real, readable, searchable directory
+  if [ -e "$1" ] || [ -L "$1" ]; then
+    nolink "$1"; [ -d "$1" ] && [ -r "$1" ] && [ -x "$1" ] || die "unreadable evidence directory $1"
+  fi; }
 copyrel() { # copyrel SRC: copy one regular file to $D/appdata/<path relative to APPDATA>
   nolink "$1"; [ -f "$1" ] || die "not a regular file: $1"
   rel=${1#"$APPDATA"/}; dst="$D/appdata/$rel"; [ ! -e "$dst" ] || die "collision at $dst"
@@ -161,20 +172,22 @@ c2|c3|c4)
   stage "$1"
   nolink "$APPDATA"
   K="$APPDATA/capture-seal-keychain"
-  for x in "$K" "$APPDATA/capture-seal"; do if [ -e "$x" ] || [ -L "$x" ]; then nolink "$x"; fi; done
+  dir_ok "$APPDATA"; dir_ok "$K"
+  for x in "$APPDATA/capture-seal"; do if [ -e "$x" ] || [ -L "$x" ]; then nolink "$x"; fi; done
   { statf "$K"; statf "$K/continuity.s1.json"; statf "$APPDATA/capture-seal"; } > "$D/marker-stat.txt"
   if [ -f "$K/continuity.s1.json" ] || [ -L "$K/continuity.s1.json" ]; then copyrel "$K/continuity.s1.json"; fi
-  [ -e "$APPDATA/records/projects" ] && nolink "$APPDATA/records/projects"
+  dir_ok "$APPDATA/records"; dir_ok "$APPDATA/records/projects"
   for p in "$APPDATA"/records/projects/*; do
     [ -d "$p" ] || [ -L "$p" ] || continue
-    nolink "$p"; for x in captures acts; do if [ -e "$p/$x" ] || [ -L "$p/$x" ]; then nolink "$p/$x"; fi; done
+    dir_ok "$p"; dir_ok "$p/captures"; dir_ok "$p/acts"
     for f in "$p"/captures/*.json "$p"/acts/*.jsonl; do
       [ -f "$f" ] || [ -L "$f" ] || continue; copyrel "$f"
     done
   done
   if [ "$1" = c4 ]; then
+    dir_ok "$APPDATA/desktop-startup"
     if [ -f "$APPDATA/desktop-startup/request.json" ]; then copyrel "$APPDATA/desktop-startup/request.json"; fi
-    [ -e "$APPDATA/runtime/distribution" ] && nolink "$APPDATA/runtime/distribution"
+    dir_ok "$APPDATA/runtime"; dir_ok "$APPDATA/runtime/distribution"
     for s in "$APPDATA"/runtime/distribution/s1-*; do
       [ -d "$s" ] || [ -L "$s" ] || continue; copytree "$s"
     done

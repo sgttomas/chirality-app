@@ -243,7 +243,9 @@ request.
     <owner account>`, which gives only the owner's own account read access to
     the evidence folder. Tell the agent.
 
-If anything else appears, such as a refusal, a hang or an unexpected dialog,
+A helper step succeeded only if it ends with `wrote …` (or **Gate passed** for
+c1). Any other ending, including `refused`, STOP or an error, means stop. If
+anything else appears, such as a hang or an unexpected dialog, also
 stop. Tell the agent. Do not retry, grant, override, force-quit or log out
 unless the owner separately decides on an exceptional recovery (below). A
 refused checkpoint command leaves its partial folder in place. It is never
@@ -296,15 +298,23 @@ above:
 
 Its safeguards:
 
-- It refuses symlinks along every path before any traversal, stat, hash or copy.
-  That covers the output root, the given DMG, the AppData root, the fixture root,
-  the marker directory, the capture, act and distribution directories, every
-  member of the installed App, and the `manifest` root.
+- It refuses symlinks before reading content through them. That covers the
+  output root, the given DMG, the AppData root, the fixture root, the marker
+  directory, the records, capture, act, startup and distribution directories,
+  every member of the installed App, and the `manifest` root.
+- An existing evidence directory that cannot be read or searched is refused,
+  never reported as absent.
+- The AppData metadata listing records names with `lstat` only. A symlink there
+  is listed as a link, not refused or followed.
 - Copied trees and manifests also refuse special files and names containing
   newlines.
-- Every traversal, temporary-file, sort, stat and hash step is checked
-  explicitly, so a failure gives exit 2 and no digest. This does not rely on
+- In the content manifest and the per-checkpoint `MANIFEST.sha256`, every
+  traversal, temporary-file, sort, stat and hash step is checked explicitly. A
+  failure gives exit 2 and no digest or `wrote` line. This does not rely on
   `set -e`, which is suppressed when callers test a function.
+- Elsewhere (metadata listing, `handoff`, outer temporary files) a failing system
+  command ends the run with a nonzero status, not always 2. Only exit 0 with
+  `wrote …` or **Gate passed** counts as success.
 - The mounted DMG App is read only through `spctl` and `xattr`.
 - It never overwrites.
 - It never reads the keychain.
@@ -312,10 +322,11 @@ Its safeguards:
   mode 0700, not a symlink.
 - After c4, `handoff` grants read access to exactly one named account through
   ACLs.
-- c1 has two failure outcomes, and either means do not launch:
+- c1's failure outcomes all mean do not launch:
   - exit 3 records each failed check as STOP in `gate.txt`;
   - exit 2 ("refused") stops at an unsafe or unreadable path before the gate
-    finishes, leaving partial evidence in `c1/`.
+    finishes, leaving partial evidence in `c1/`;
+  - any other nonzero status is a failed system command.
 
 **Installed-copy comparison.** Bundle-tree v2 `b3dd4145` remains the identity
 of the signed package. The DMG's contained App was recorded with that identity.
@@ -336,8 +347,8 @@ packaging lane accepted this in place of an
 installed v2 value (see below).
 
 Assurance so far: fake-home checks only, repeatable as
-[`test_signed_witness_collect.py`](test_signed_witness_collect.py). Its 12 tests
-pass, run in task scratch. They cover:
+[`test_signed_witness_collect.py`](test_signed_witness_collect.py). Its 14 tests
+pass in task scratch, including the conditional signed-clone test. They cover:
 
 - administrator refusal, the private 0700 root and no rerun of `prepare`;
 - c2–c4 allowlist copies, 0600 modes and no overwrite;
@@ -347,12 +358,14 @@ pass, run in task scratch. They cover:
 - manifest refusal of newline names, FIFOs, unreadable files, unreadable
   directories and a symlinked root;
 - manifest failure when `find` or `sort` fails;
+- unreadable capture and marker directories refused rather than reported absent;
+- c3 failing, with no `wrote` line, when evidence-manifest enumeration fails;
 - digest change on content change;
 - `handoff` granting exactly one named account and refusing an unknown one.
 
-When the retained candidate is present, one more test runs c1 on a quarantined
-clone. There, every check passes except DMG quarantine and the mount, and an
-added symlink in the App is refused.
+The conditional test runs only when the retained candidate is present. It runs
+c1 on a quarantined clone: every check passes except DMG quarantine and the
+mount, and an added symlink in the App is refused.
 
 c1 also ran against an APFS clone of the signed App and the real DMG. The DMG
 digest, the deep strict check, notarized Gatekeeper, cdhash, identifier, team,

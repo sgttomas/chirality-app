@@ -164,6 +164,31 @@ class Helper(unittest.TestCase):
             self.assertIn(f'user:{me} allow', acl)
             self.assertEqual(acl.count(' allow '), 1)
 
+    def test_unreadable_capture_or_marker_directory_is_refused_not_absent(self):
+        self.prepared()
+        caps = self.appdata / 'records/projects/k1/captures'
+        caps.chmod(0o000)
+        self.assertNotEqual(self.run_('c2').returncode, 0)
+        caps.chmod(0o755)
+        shutil.rmtree(self.out / 'c2')
+        marker = self.appdata / 'capture-seal-keychain'
+        marker.mkdir()
+        (marker / 'continuity.s1.json').write_text('{}')
+        marker.chmod(0o000)
+        self.assertNotEqual(self.run_('c2').returncode, 0)
+        marker.chmod(0o755)
+
+    def test_evidence_manifest_enumeration_failure_is_not_success(self):
+        self.prepared()
+        shim = self.tmp / 'shim-find'
+        shim.mkdir()
+        (shim / 'find').write_text('#!/bin/sh\ncase "$*" in *MANIFEST.sha256*) exit 1 ;; esac\nexec /usr/bin/find "$@"\n')
+        (shim / 'find').chmod(0o755)
+        env = dict(self.env, PATH=f'{shim}:{os.environ["PATH"]}')
+        r = subprocess.run(['sh', str(self.na), 'c3'], env=env, capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertNotIn('wrote', r.stdout)
+
     def test_manifest_detects_content_change(self):
         tree = self.tmp / 'tree'
         tree.mkdir()
