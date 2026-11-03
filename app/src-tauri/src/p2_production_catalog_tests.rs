@@ -271,3 +271,47 @@ fn p2_fifo_registry_is_refused_at_recognition_and_use_without_blocking() {
         selected.verify_current()
     });
 }
+
+// BUNDLED-RUN-01 (WR LS-5): only the selected subject, resolved from a bundle
+// root, is admitted; the embedded copy and a library holding copy are not.
+#[test]
+fn bundled_run_admission_is_closed_to_the_selected_installed_subject() {
+    let catalog = ProductionCatalog::load().unwrap();
+    assert_eq!(
+        crate::util::sha256_hex(catalog.manifest()),
+        SELECTED_BUNDLED_MANIFEST_SHA256,
+        "the compiled manifest is the selected subject"
+    );
+    assert_eq!(catalog.identity().revision, SELECTED_BUNDLED_REVISION);
+    let embedded = catalog.select_embedded();
+    assert!(ProductionCatalog::bundled_run_admission(&embedded).is_err());
+    assert_eq!(embedded.admission().standing(), PRODUCTION_STANDING);
+
+    let library = Library::new();
+    library.populate();
+    let held = catalog
+        .recognize_holding_copy(&library.0, "coordinated-knowledge-work")
+        .unwrap();
+    assert!(ProductionCatalog::bundled_run_admission(held.selection()).is_err());
+    assert_eq!(held.selection().admission().standing(), PRODUCTION_STANDING);
+
+    let root = library.0.join("bundle-workflows");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("MANIFEST.json"), catalog.manifest()).unwrap();
+    embedded
+        .snapshot()
+        .publish_new(&root.join("coordinated-knowledge-work"))
+        .unwrap();
+    let resolved = catalog
+        .select_bundle_package(&root, "coordinated-knowledge-work")
+        .unwrap();
+    assert_eq!(
+        ProductionCatalog::bundled_run_admission(resolved.selection()).unwrap(),
+        root.as_path()
+    );
+    assert_eq!(resolved.selection().admission().standing(), BUNDLED_STANDING);
+    assert!(
+        catalog.select_bundle_package(&root, "other-name").is_err(),
+        "unknown name is not in the catalog"
+    );
+}

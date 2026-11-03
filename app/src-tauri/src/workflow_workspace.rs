@@ -11,8 +11,9 @@ pub mod development_catalog;
 /// Release-candidate catalog; development admission remains separate.
 pub mod production_catalog {
     pub use super::development_catalog::{
-        ProductionBundlePackage, ProductionCatalog, ProductionHoldingCopy, PRODUCTION_STANDING,
-        RELEASE_SUBJECT,
+        ProductionBundlePackage, ProductionCatalog, ProductionHoldingCopy, BUNDLED_STANDING,
+        PRODUCTION_STANDING, RELEASE_SUBJECT, SELECTED_BUNDLED_MANIFEST_SHA256,
+        SELECTED_BUNDLED_REVISION,
     };
 }
 
@@ -601,6 +602,17 @@ impl SelectionAdmission {
     pub fn standing(&self) -> &'static str {
         match self {
             Self::RegisteredRevision => "registered revision",
+            // An installed-bundle resolution of the selected subject is LS-5; the
+            // embedded copy and library holding copies stay candidates (LS-8 lists
+            // no shipped revision). Runnability is still `bundled_run_admission`'s.
+            Self::ProductionBundle {
+                manifest_sha256,
+                holding_library: None,
+                bundle_root: Some(_),
+                ..
+            } if manifest_sha256 == production_catalog::SELECTED_BUNDLED_MANIFEST_SHA256 => {
+                production_catalog::BUNDLED_STANDING
+            }
             Self::ProductionBundle { .. } => production_catalog::PRODUCTION_STANDING,
             Self::DevelopmentCatalog { .. } => development_catalog::STANDING,
             #[cfg(test)]

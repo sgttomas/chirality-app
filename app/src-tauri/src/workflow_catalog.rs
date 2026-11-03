@@ -117,6 +117,21 @@ const PRODUCTION_WORKFLOW: &[u8] =
 const PRODUCTION_NOTES: &[u8] =
     include_bytes!("../resources/production_workflows/coordinated-knowledge-work/REVIEW-NOTES.md");
 
+/// WR LS-5 closed bundled-run subject (DEL-02-02 BUNDLED-RUN-01, 2026-11-03).
+/// Agent 0 selected this exact pinned production manifest and package revision as
+/// the first bundled workflow input of App v4. Only this subject, resolved from
+/// this App's own installed resources, runs without A15. Changing either the
+/// compiled manifest or package bytes requires a reviewed change here. These
+/// constants claim no published release, shipped history or qualification.
+pub const SELECTED_BUNDLED_MANIFEST_SHA256: &str =
+    "5eb8ab6d6259c47ef8d270597d9323f0399e2f668ff2defc37159faa05f71dc3";
+pub const SELECTED_BUNDLED_REVISION: &str =
+    "3730d84debb5d77582a0c26211a5f380cdb1a44c7e26eeb537f334db43fdd881";
+/// Standing of the admitted LS-5 selection. The candidate build itself is still
+/// not a published release; that standing stays with the manifest.
+pub const BUNDLED_STANDING: &str =
+    "bundled with this App build (WR LS-5); runs without A15; this build is a release candidate, not a published release";
+
 pub struct ProductionCatalog {
     selection: Selection,
 }
@@ -174,6 +189,35 @@ impl ProductionCatalog {
     }
     pub fn manifest(&self) -> &'static [u8] {
         MANIFEST
+    }
+
+    /// WR LS-5 / TT-1 / TX-1: the closed bundled-run admission. Admits only the
+    /// selected subject above, resolved by `select_bundle_package` from an
+    /// installed bundle root (never the embedded copy, a library holding copy, a
+    /// development or registered selection). Returns that root so the caller can
+    /// bind it to this App's own installed resources. Bytes and location are
+    /// rechecked at use by `verify_store`; this check alone grants no file authority.
+    pub fn bundled_run_admission(selection: &Selection) -> Result<&Path, String> {
+        let SelectionAdmission::ProductionBundle {
+            manifest_sha256,
+            release_subject,
+            holding_library: None,
+            bundle_root: Some(root),
+        } = &selection.admission
+        else {
+            return Err("not a selection resolved from this App's installed bundle".into());
+        };
+        let catalog = Self::load()?;
+        if crate::util::sha256_hex(MANIFEST) != SELECTED_BUNDLED_MANIFEST_SHA256
+            || manifest_sha256 != SELECTED_BUNDLED_MANIFEST_SHA256
+            || release_subject != RELEASE_SUBJECT
+            || &selection.identity != catalog.identity()
+            || selection.identity.revision != SELECTED_BUNDLED_REVISION
+            || selection.snapshot.revision != SELECTED_BUNDLED_REVISION
+        {
+            return Err("bundled subject is not the selected App v4 bundled workflow input".into());
+        }
+        Ok(root)
     }
 
     /// Native wiring supplies App resource_dir/workflows, never a person-minted manifest.

@@ -246,6 +246,26 @@ fn typed_publication_retains_prepared_text_and_refuses_lost_source_or_developmen
     assert!(notice.text().contains("No workflow is in force."));
     std::fs::remove_dir_all(store).unwrap();
     assert!(publication.publish(&p).is_err());
+    // BUNDLED-RUN-01: a ProductionBundle admission naming the selected manifest
+    // and a bundle root, but not the closed subject's identity and bytes, is not
+    // a bundled run, even when it reaches publication directly.
+    let mut forged = selection.clone();
+    forged.admission = SelectionAdmission::ProductionBundle {
+        manifest_sha256:
+            crate::workflow_workspace::production_catalog::SELECTED_BUNDLED_MANIFEST_SHA256.into(),
+        release_subject: crate::workflow_workspace::production_catalog::RELEASE_SUBJECT.into(),
+        holding_library: None,
+        bundle_root: Some(f.0.clone()),
+    };
+    assert!(PreparedRunPublication::new(
+        &p,
+        &forged,
+        prepared.clone(),
+        "writer",
+        "selected",
+        "prepared"
+    )
+    .is_err());
     let mut development = selection.clone();
     development.admission = SelectionAdmission::DevelopmentCatalog {
         source_map_sha256: "test".into(),

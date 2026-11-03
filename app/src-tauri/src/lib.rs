@@ -2703,6 +2703,10 @@ pub fn run() {
     let (state, home) = freeze_startup_state(launch, desktop.clone(), compiled_development_selection::observe_startup(|| resources.clone()));
     let host = Arc::clone(&home.host);
             app.manage(state);
+            // BUNDLED-RUN-01: the only bundle root an LS-5 selection may come from.
+            if let Ok(resources) = &resources {
+                let _ = app.state::<AppState>().workflows.lock().unwrap().configure_installed_bundle(resources.join(RESOURCE_WORKFLOWS));
+            }
             app.manage(Mutex::new(native_waiting::Registry::default()));
             initialize_startup_consumers(&app.state::<AppState>(), &home, data.clone(), allow_operational, tauri::is_dev(), std::env::var_os(records_store::OVERRIDE_ENV).filter(|p|!p.is_empty()).map(PathBuf::from), key_path, shared_paths);
             // OI-008: the host keeps its own records on its own tick, whether or
