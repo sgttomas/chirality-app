@@ -2,6 +2,8 @@
 
 2026-11-02 update: the owner approved and packaging received the eleven exact
 files. See [actual receipt and scope](approved-receipt-20261102/SCOPE.md).
+For current source, pass the [rederived supplement](approved-receipt-20261102/rederived-4e942918/README.md)
+to `--upstream-notices`; the original `supplement/` is bound to the superseded plan.
 Pending-acquisition wording below records the original implementation basis;
 receipt does not establish full license coverage or binary associations.
 

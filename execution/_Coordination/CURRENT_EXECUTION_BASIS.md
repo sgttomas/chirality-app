@@ -19,14 +19,18 @@ reliance are distinct acts. Domains follows a later increment; PEC adds no
 delivery prerequisite. The owner confirmed on 2026-10-30 that Windows will be released after the
 initial macOS release. Windows work adds no gate to that initial Mac release.
 
-Subsequent owner steering selected a **separate v4 production identity**,
-**macOS 15** as the declared minimum and **v4.0.0** as the planned publication
-version (package version `4.0.0`). Developer ID team `8A7JL35U4S` has been
-recovered; the v4 identifier proposal
-`com.chirality.app.v4` still awaits owner selection. Recovery of the team does
-not select a production publisher binding. Signing, enrollment and outstanding
-download approvals remain unresolved. These choices do not establish
-OS qualification, signing, data migration or replacement of v3.0.1.
+The owner's 2026-11-02 direction selects the existing production bundle
+identifier **`com.chirality.app`**, superseding the earlier separate-v4 identity
+proposal. **macOS 15** remains the declared minimum and **4.0.0** the planned
+publication version. Developer ID team `8A7JL35U4S` has been recovered. The
+owner selected v4-focused testing, without a broad v3 comparison, regression
+or migration campaign; narrow namespace/data-collision precautions preserve
+existing owner data without importing, resetting or resealing it. See
+[V4 test subject](../PKG-01/DEL-01-06/Work/V4_TEST_SUBJECT.md).
+The eleven approved source-text downloads have been received and checked;
+the additional four-file provenance proposal remains unapproved. Actual
+signing, enrollment, installed/OS qualification and public release remain
+outstanding; the selected identifier does not establish those results.
 The owner selected v3's overall visual form as the UI reference and gave
 Agent 0 discretion over functional and interactive components. T3 Code may
 inform interactions; its implementation is not presumed transferable. This
@@ -83,9 +87,9 @@ Current Type 1 assignments are:
   describes that subject, not a transfer of its observations to current main.
 - **macOS distribution readiness:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:29a4e14ac4c1423f4ccd20d7605000caf9a5b6d9030c967d51875cd09021e07f>.
   Own package/signing/install preparation and the approved terms representation.
-  SIGN-1 Option B remains selected. The separate identity route, minimum OS and
-  version are selected above; recovered team is not a selected production
-  publisher binding, and the proposed identifier remains pending. PR #65 retains
+  SIGN-1 Option B remains selected. The existing production identifier, minimum
+  OS and version are selected above; recovered team metadata and plan inputs
+  do not establish a signed publisher or installed-custody witness. PR #65 retains
   actual unsigned release-profile input evidence at source `12d26b8db5`, tree
   `278899dad62e…`, P0 `1b3c6c2ec345…`, version 4.0.0/minimum 15.0; 50 resource
   mappings and the complete Resources comparison were reported matching.
@@ -103,9 +107,17 @@ Current Type 1 assignments are:
   and no real publisher input is supplied. Serialized evidence
   cannot grant live-start authority. PR #62's SEAL-C keychain provider and
   CFIndex ABI correction are integrated, with current package-profile adoption;
-  provider selection remains `None`. Exact namespace/access-group/entitlement/
-  profile and enrollment choices, owner signing and actual installed witness
-  remain owed. The integrated package/EXP/SQ reader checks consistency only.
+  provider selection remains `None`. Agent 0 selected the stable service
+  `com.chirality.app.v4.capture-seal`, account `installation-keyring`, and
+  first-enrollment allowance for the explicit native enrollment path; the `v4`
+  suffix denotes a persistent key namespace, not a separate App identifier.
+  Actual authorized prefix/group/profile evidence, signing and installed
+  enrollment witnesses remain owed. On 2026-11-02 the owner directed that
+  rotation remain unavailable for 4.0.0: no production invocation is selected,
+  signed SC-5 remains blocked/not run, and no key-revocation or compromise-response
+  capability is supplied. Earlier keys remain retained. This accepted limitation
+  is not an SC-5 pass, a waiver of enrollment/SC-3/SC-4 or other witnesses, or a
+  later-version policy. The package/EXP/SQ reader checks consistency only.
 - **Examination consumer adoption:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:dfd5f3387f3d829609ad20116fc248c584aecf045d0fd2268b5674b536a95b92>.
   Own the terms documentary successor and its standalone/canonical/SQ joins.
   The explicit v3 terms condition selects the approved PK-R4/§9 meaning and

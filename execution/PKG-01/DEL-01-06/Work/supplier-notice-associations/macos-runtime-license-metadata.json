@@ -1,7 +1,7 @@
 {
   "scope": "Public metadata only; no source body acquisition, authentication, signing or legal conclusion",
-  "index_sha256": "4e27d99c8194d004395ccb28c5ab0248f750d6b5145de3dde29a1c97841cc3e2",
-  "index_source_revision": "7fdb470b9bedf3bea9f4369672dd24524a6c799d",
+  "index_sha256": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",
+  "index_source_revision": "4e942918f1fc4e99140665b2cbb36024c937255e",
   "current_counts": {
     "components": 22,
     "notice_texts": 30,
