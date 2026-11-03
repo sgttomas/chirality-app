@@ -280,6 +280,55 @@ class Helper(unittest.TestCase):
         (prefs / 'com.chirality.app.plist').symlink_to(self.tmp / 'elsewhere')
         self.assertNotEqual(self.run_('prepare', self.me).returncode, 0)
 
+    def test_same_id_metadata_failure_is_not_success(self):
+        (self.home / 'Library/WebKit/com.chirality.app').mkdir(parents=True)
+        shim = self.tmp / 'shim-stat'
+        shim.mkdir()
+        (shim / 'stat').write_text('#!/bin/sh\ncase "$*" in *WebKit/com.chirality.app*) exit 1 ;; esac\nexec /usr/bin/stat "$@"\n')
+        (shim / 'stat').chmod(0o755)
+        env = dict(self.env, PATH=f'{shim}:{os.environ["PATH"]}')
+        r = subprocess.run(['sh', str(self.na), 'prepare', self.me], env=env, capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertNotIn('OK:', r.stdout)
+
+    def test_same_id_unexpected_type_refused(self):
+        (self.home / 'Library/WebKit').mkdir(parents=True)
+        (self.home / 'Library/WebKit/com.chirality.app').write_text('not a directory')
+        r = self.run_('prepare', self.me)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertNotIn('OK:', r.stdout)
+
+    def test_preferences_backup_is_private_even_from_a_0644_source(self):
+        prefs = self.home / 'Library/Preferences'
+        prefs.mkdir(parents=True)
+        (prefs / 'com.chirality.app.plist').write_bytes(b'x')
+        (prefs / 'com.chirality.app.plist').chmod(0o644)
+        self.assertEqual(self.run_('prepare', self.me).returncode, 0)
+        backup = self.out / 'baseline/same-id/com.chirality.app.plist'
+        self.assertEqual(backup.stat().st_mode & 0o777, 0o600)
+
+    def test_inherited_parent_acl_is_removed_from_evidence(self):
+        parent = self.tmp / 'acl-parent'
+        parent.mkdir()
+        subprocess.run(['chmod', '+a', 'everyone allow read,list,search,file_inherit,directory_inherit', str(parent)], check=True)
+        out = parent / 'out'
+        env = dict(self.env, CHIRALITY_WITNESS_OUT=str(out))
+        prefs = self.home / 'Library/Preferences'
+        prefs.mkdir(parents=True)
+        (prefs / 'com.chirality.app.plist').write_bytes(b'x')
+        r = subprocess.run(['sh', str(self.na), 'prepare', self.me], env=env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        for p in [out, *out.rglob('*')]:
+            listing = subprocess.run(['ls', '-led', str(p)], capture_output=True, text=True).stdout
+            self.assertEqual(len(listing.strip().splitlines()), 1, listing)
+            self.assertEqual(p.stat().st_mode & 0o077, 0, p)
+
+    def test_root_with_acl_is_refused(self):
+        self.assertEqual(self.run_('prepare', self.me).returncode, 0)
+        subprocess.run(['chmod', '+a', 'everyone allow read', str(self.out)], check=True)
+        self.prepared_after_prepare()
+        self.assertEqual(self.run_('c2').returncode, 2)
+
     def test_manifest_detects_content_change(self):
         tree = self.tmp / 'tree'
         tree.mkdir()

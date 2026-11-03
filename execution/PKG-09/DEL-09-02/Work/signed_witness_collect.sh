@@ -40,12 +40,19 @@ nolink() { # refuse a symlink at $1 or any ancestor up to $HOME
     if [ "$_nl" = "$HOME" ] || [ "$_nl" = / ]; then break; fi
     _nl=$(dirname "$_nl")
   done; }
+private() { # owner-only mode and no ACL entries on one evidence path
+  if [ -d "$1" ]; then chmod 700 "$1" || die "chmod failed on $1"; else chmod 600 "$1" || die "chmod failed on $1"; fi
+  chmod -N "$1" || die "ACL removal failed on $1"
+  _acl=$(ls -led "$1" | sed -n 2p) || die "ACL check failed on $1"
+  [ -z "$_acl" ] || die "ACL remains on $1"; }
 root_ok() {
   [ -d "$OUT" ] && [ ! -L "$OUT" ] || die "output root $OUT missing; run prepare first"
   nolink "$OUT"
   [ "$(stat -f %u "$OUT")" = "$(id -u)" ] || die "output root not owned by this user"
-  [ "$(stat -f %Lp "$OUT")" = 700 ] || die "output root is not mode 0700"; }
-stage() { root_ok; [ ! -e "$OUT/$1" ] || die "$OUT/$1 already exists"; mkdir "$OUT/$1"; D="$OUT/$1"
+  [ "$(stat -f %Lp "$OUT")" = 700 ] || die "output root is not mode 0700"
+  _acl=$(ls -led "$OUT" | sed -n 2p) || die "ACL check failed on $OUT"
+  [ -z "$_acl" ] || die "output root $OUT carries ACL entries"; }
+stage() { root_ok; [ ! -e "$OUT/$1" ] || die "$OUT/$1 already exists"; mkdir "$OUT/$1"; D="$OUT/$1"; private "$D"
   { date -u '+%Y-%m-%dT%H:%M:%SZ'; whoami; id -Gn; } > "$D/who.txt"; }
 manifest() { # checked list, then checked hashes; any failure is a refusal, never "wrote"
   ( cd "$D" || exit 2
@@ -113,12 +120,27 @@ $HOME/Library/WebKit/com.chirality.app
 $HOME/Library/Caches/com.chirality.app
 $HOME/Library/HTTPStorages/com.chirality.app
 $HOME/Library/Saved Application State/com.chirality.app.savedState"
-sameid() { # record same-ID namespace metadata into $D; privately copy the preferences file
-  { printf '%s\n' "$SAMEID_DIRS" | while IFS= read -r x; do nolink "$x"; statf "$x"; done || exit 2
-    nolink "$SAMEID_PREFS"; statf "$SAMEID_PREFS"; } > "$D/same-id-namespace.txt" || die "same-ID metadata failed"
+sameid() { # top-level same-ID namespace metadata into $D, plus a private copy of the preferences file.
+  # Every step is checked explicitly; errexit cannot be relied on here.
+  _sm="$D/same-id-namespace.txt"; : > "$_sm" || die "same-ID metadata failed"
+  set -f; _ifs=$IFS; IFS='
+'
+  for x in $SAMEID_DIRS; do
+    IFS=$_ifs
+    nolink "$x"
+    if present "$x"; then [ -d "$x" ] && [ ! -L "$x" ] || die "unexpected non-directory $x"; fi
+    statf "$x" >> "$_sm" || die "metadata failed for $x"
+  done
+  IFS=$_ifs; set +f
+  nolink "$SAMEID_PREFS"
+  statf "$SAMEID_PREFS" >> "$_sm" || die "metadata failed for $SAMEID_PREFS"
   if present "$SAMEID_PREFS"; then
-    [ -f "$SAMEID_PREFS" ] || die "unexpected preferences entry $SAMEID_PREFS"
-    mkdir "$D/same-id" && cp -p "$SAMEID_PREFS" "$D/same-id/com.chirality.app.plist" || die "preferences backup failed"
+    [ -f "$SAMEID_PREFS" ] && [ ! -L "$SAMEID_PREFS" ] || die "unexpected preferences entry $SAMEID_PREFS"
+    mkdir "$D/same-id" || die "preferences backup failed"
+    private "$D/same-id"
+    # Plain cp (no -p): created under umask 077, then forced to 0600 with no ACL.
+    cp "$SAMEID_PREFS" "$D/same-id/com.chirality.app.plist" || die "preferences backup failed"
+    private "$D/same-id/com.chirality.app.plist"
   fi; }
 check() { # check NAME STATUS(0 pass)
   if [ "$2" -eq 0 ]; then echo "PASS $1" >> "$D/gate.txt"; else echo "STOP $1" >> "$D/gate.txt"; G=1; fi; }
@@ -131,7 +153,8 @@ prepare)
   [ ! -e "$SHARED" ] && [ ! -e "$HOME/ChiralityV4Fixtures" ] || die "fixtures already exist"
   [ ! -e "$OUT" ] && [ ! -L "$OUT" ] || die "output root $OUT already exists"
   nolink "$(dirname "$OUT")"
-  mkdir "$OUT"; mkdir "$OUT/recording"; mkdir "$OUT/baseline"; D="$OUT/baseline"
+  mkdir "$OUT"; private "$OUT"   # removes any ACL inherited from the parent before anything is written
+  mkdir "$OUT/recording"; private "$OUT/recording"; mkdir "$OUT/baseline"; D="$OUT/baseline"; private "$D"
   { date -u '+%Y-%m-%dT%H:%M:%SZ'; echo "owner-selected account: $2"
     if id -Gn | tr ' ' '\n' | grep -qx admin; then echo "administrator: yes"; else echo "administrator: no"; fi; } > "$D/selection.txt"
   sameid; manifest
