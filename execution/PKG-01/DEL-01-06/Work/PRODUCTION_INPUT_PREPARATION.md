@@ -102,6 +102,42 @@ blob-identical to v3; the declared `@fontsource` 5.3.0 upstream remains unverifi
 This adds the font notice; it does not make notice coverage complete or transitive.
 It is still a plan only, and the build remains withheld pending Agent 0's go.
 
+## Selected unsigned build at `f664ee1d` (2026-11-03)
+
+Agent 0's conditional go ran once, after #98, #99 and #100 merged. The record is in
+[selected-production-build/f664ee1d-caec11a00be3](selected-production-build/f664ee1d-caec11a00be3/build-observation.json).
+The build used `build_selected_candidate.py` from merged source `f664ee1d` (tree
+`93c9bebc`) under one shared slot with memguard, jobs 2, offline cached
+dependencies and fresh home and target. It exited 0 in 3 min 13 s. No signing,
+notarization, launch, enrollment or download occurred.
+
+- **Bundle:** `com.chirality.app`, "Chirality App v4", 4.0.0, minimum 15.0.
+  Executable SHA-256 `df5b12cc…ff3f`. Only a linker ad-hoc signature, as expected.
+- **Publisher:** compiled `selected-production` binding `58463a02…`, projection
+  `a73f4f4c…` and requirement `86d40090…`. The executable embeds all three.
+- **Resources:** all 54 mappings are byte-equal with equal modes, including the
+  font notice, the upstream supplement and the unchanged supplier `codex/` tree.
+  The only unmapped item is the generated icon. The embedded profile equals `5eccea61`.
+- **Normalization:** the profile was embedded with mode 0600, inherited from the
+  private copy. Agent 0 chose an explicit pre-sign normalization: only that file was
+  changed to 0644. The record asserts that this mode is the only difference. The
+  bundle-tree identity moved from `caec11a0…` (the preserved pre-normalization
+  subject) to `bc38496b…`. The runner now places the profile at 0644 for future builds.
+- **SEAL-C helper:** run against the actual artifacts and the 54-mapping plan. Every
+  publisher byte join passed, including an effective configuration reconstructed
+  from the source config and plan overlay, whose canonical digest equals the
+  binding's `1000cf87…`. The proposed entitlements (`7c86aed9…`) are exactly the
+  application identifier and team.
+- **Trusted publisher binding:** Agent 0 independently hashed the actual binding
+  and explicitly selected `58463a02…` as the trusted publisher binding for this
+  candidate only (normalized identity `bc38496b…`, executable `df5b12cc…`). It is
+  not general trust of future build output. Rerun with that trust input, the helper
+  reports `consistent-profile-proposal` with no metadata gaps. This is static
+  byte-join consistency, not signature, OS acceptance, S4, native or qualification
+  evidence.
+
+Signing, notarization, stapling and the installed witness remain owner acts.
+
 The next production subject requires the actual owner identifier/team and
 settled signer/keychain inputs, then a separately identified production build,
 signing/notarisation and quarantined installed witness. This unsigned input-test
