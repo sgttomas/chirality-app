@@ -41,17 +41,25 @@ export function ConversationContext({ label, host, reference, empty, limit, work
 
 /** Fixed project and opened library are Root observations, independent of a
  * supplier closing. Neither projectLibraryAvailable nor native cwd is a path. */
-export function ProjectLibraryContext({ host }: { host: Json }) {
+/** The fixed App project's readable folder, only when the launch observation's
+ * exact projection agrees with the frozen reference; otherwise null. */
+export function appProjectFolder(host: Json): string | null {
   const project = host?.currentAppProjectContext;
-  const projectLimit = host?.currentAppProjectContextLimit;
-  const knownProject = !projectLimit && nonempty(project?.reference);
+  const knownProject = !host?.currentAppProjectContextLimit && nonempty(project?.reference);
   const launch = host?.attachmentSelections?.launchAppProjectObservation;
   const launchPath = nativePathText(launch?.nativeRoot);
   // Both producers receive the same launch workspace. Use that path only when
   // its exact projection agrees with the frozen reference; never decode an
   // opaque reference or infer an accepted REC/native/actor association.
-  const projectPath = knownProject && launch?.source === "explicit App launch CHIRALITY_WORKSPACE" && launchPath !== null
+  return knownProject && launch?.source === "explicit App launch CHIRALITY_WORKSPACE" && launchPath !== null
     && (project.reference === launchPath || project.reference === JSON.stringify(launch.nativeRoot)) ? launchPath : null;
+}
+export function ProjectLibraryContext({ host }: { host: Json }) {
+  const project = host?.currentAppProjectContext;
+  const projectLimit = host?.currentAppProjectContextLimit;
+  const knownProject = !projectLimit && nonempty(project?.reference);
+  const launch = host?.attachmentSelections?.launchAppProjectObservation;
+  const projectPath = appProjectFolder(host);
   const root = host?.workflowRoot;
   const libraries = Array.isArray(root?.libraries) ? root.libraries : [];
   const matches = nonempty(root?.activeLibrary) ? libraries.filter((library: Json) => library?.reference === root.activeLibrary) : [];

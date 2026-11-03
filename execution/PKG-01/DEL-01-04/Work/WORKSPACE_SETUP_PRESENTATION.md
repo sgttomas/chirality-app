@@ -299,3 +299,34 @@ accompany the source. No visuals/assets, Rust, IPC, native lifecycle policy or
 pins change. Real layout/keyboard/AX/native recovery verification is still
 blocked by the hold; no App/browser/model/auth/signing/download/VM action or
 historical candidate relabelling is inferred from these source tests.
+
+## Setup prerequisites in product language (J1 increment)
+
+Owner direction of 2026-11-03 sets publication journey J1 (DEL-02-02
+`Work/PUBLICATION_JOURNEYS.md`): setup must explain the required settings and
+access, and a missing prerequisite must name a concrete next action. Before
+any choice is saved, Desktop setup now says in plain words what the App needs:
+
+- its own new, empty sign-in folder (the native preview's "Create new account
+  directory"), with no credential import or reuse from other Codex tools, and
+  sign-in under Connection & access after reopening;
+- the person's existing Codex `config.toml`, `AGENTS.md` and skills folder,
+  which the App links to rather than copies (the preview's "Create … link"
+  effects), so other Codex tools read the same files;
+- an optional project folder, where the project's workflows (its `.chirality`
+  folder) are kept and where runs write results.
+
+It also states the next-launch consequence: quit and reopen, while the current
+window keeps working until then. The action, project and supplier options and
+the two group legends use product words ("First-time setup…", "Keep my current
+sign-in; change only the project", "No project for now", "Codex included with
+the App (development build, not yet qualified)"). Option values, accessible
+control names, IPC, preview effects, native confirmation and persistence are
+unchanged. The explanation describes the existing native preview; it creates
+no default, path or write. The setup disclosure gains id `desktop-setup`, so the
+J1 guide's "Choose a project in Desktop setup" link reveals it without a command.
+
+Checked by the maintained `desktop-setup` mounted tests (unchanged option
+values and labels) and `run-journey` link checks. Whether a person understands
+this wording on the signed candidate is unobserved; that remains native J1
+evidence for DEL-09-02.

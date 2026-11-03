@@ -86,26 +86,35 @@ export function DesktopSetupPanel({ view }: { view?: DesktopSetupView | null }) 
   };
   const editChoices = () => { if (pending.current) return; changed(); reviewButton.current?.focus?.(); };
   const ready = !busy && (mode === "retain" ? shown.retainProject?.available === true : mode === "new" && paths.every(p => !!p?.displayPath) && supplier !== "") && (projectMode === "none" || (projectMode === "chosen" && !!project?.displayPath));
-  const nextStep = busy ? progress : !mode ? "Choose whether to prepare a new account home or keep your current account."
+  const nextStep = busy ? progress : !mode ? "Choose first-time setup, or keep your current sign-in and change only the project."
     : mode === "retain" && !shown.retainProject?.available ? "Keeping this account is unavailable. See the reason below."
     : mode === "new" && paths.some(p => !p?.displayPath) ? "Choose all three shared locations. You can also enter an absolute path."
     : !projectMode ? "Choose a project for the next launch, or choose No project."
     : projectMode === "chosen" && !project?.displayPath ? "Choose the project directory."
-    : mode === "new" && !supplier ? "Choose the supplier for the next launch."
+    : mode === "new" && !supplier ? "Choose the Codex that the App will start."
     : "Your choices are ready to review. Nothing is saved until you confirm.";
-  return <details className="workspace-disclosure" open={shown.launch.state === "setup-required"} aria-label="Desktop setup">
+  return <details id="desktop-setup" className="workspace-disclosure" open={shown.launch.state === "setup-required"} aria-label="Desktop setup">
     <summary><strong>Desktop setup</strong><span>{shown.launch.state === "setup-required" ? "Choose explicit inputs before Codex can start" : "Changes apply on the next launch"}</span></summary>
     <section className="workspace-disclosure-content" aria-label="Desktop setup inputs" aria-busy={busy}>
       <div className="setup-state">
         <h2>{shown.pending ? "Setup saved for the next launch" : shown.launch.state === "setup-required" ? "Set up your workspace" : "Plan your next workspace"}</h2>
         <p>{shown.pending ? "Keep working here. The saved choices take effect after you quit and open the App again." : "Choose your shared settings and project, review the effects, then confirm in the App’s native dialog."}</p>
       </div>
+      {!shown.pending && <div className="setup-explainer" aria-label="What setup needs">
+        <p>To work, the App needs:</p>
+        <ul>
+          <li><strong>Its own sign-in folder.</strong> On first use the App creates a new, empty folder for its Codex sign-in. It doesn't copy or reuse sign-ins from other Codex tools; you sign in under Connection &amp; access after reopening.</li>
+          <li><strong>Your Codex settings, instructions and skills.</strong> Point to the <code>config.toml</code>, <code>AGENTS.md</code> and skills folder you use with Codex. The App links to them rather than copying, so your other Codex tools see the same files. If one doesn't exist yet, type where it should be.</li>
+          <li><strong>A project folder (optional).</strong> The folder you want to work in. Its workflows are kept in its <code>.chirality</code> folder and runs write their results there. Without one you can still converse, and open a workflow library by hand.</li>
+        </ul>
+        <p>After you confirm, quit and open the App again. Your current window keeps working until then.</p>
+      </div>}
       {shown.custodyProblem && <p role="alert">Setup is unavailable: {shown.custodyProblem}</p>}
       {shown.activeResourceProblem && <p role="alert">Shared settings could not be checked: {shown.activeResourceProblem}</p>}
       <div className="setup-steps">
-      <fieldset className="setup-step" disabled={busy}><legend>1. Account and shared settings</legend>
+      <fieldset className="setup-step" disabled={busy}><legend>1. Sign-in and shared settings</legend>
       <p><label>Desktop setup action <select aria-label="Desktop setup action" disabled={busy} value={mode} onChange={event => { changed(); setMode(event.target.value); }}>
-        <option value="">Choose explicitly</option><option value="new">Prepare a new account home</option><option value="retain" disabled={!shown.retainProject?.available}>Keep the admitted account; change next project</option>
+        <option value="">Choose explicitly</option><option value="new">First-time setup: new sign-in folder and shared settings</option><option value="retain" disabled={!shown.retainProject?.available}>Keep my current sign-in; change only the project</option>
       </select></label></p>
       {!shown.retainProject?.available && <p>Keep-account project change unavailable: {shown.retainProject?.reason ?? "No currently admitted saved-desktop account"}</p>}
       {mode === "retain" ? <p>{shown.retainProject?.available ? `Keep the currently admitted account home ${shown.retainProject.accountHome}.` : "The retained-source project choice is currently unavailable."} Choose only its project for the next launch. No home, link or credential is created or migrated; shared references and supplier remain unchanged.</p> : <p>Prepare a new App-owned account home. Choose each shared reference explicitly; enter an absolute path when its target does not exist yet. Setup checks paths and metadata only. It imports no credentials and never adopts an existing home.</p>}
@@ -114,13 +123,13 @@ export function DesktopSetupPanel({ view }: { view?: DesktopSetupView | null }) 
         <button disabled={busy} onClick={() => pick(["config", "agents", "skills"][index], index)}>Browse {label}</button>
       </div>)}
       </fieldset>
-      <fieldset className="setup-step" disabled={busy}><legend>2. Project and supplier</legend>
+      <fieldset className="setup-step" disabled={busy}><legend>2. Project and Codex</legend>
       <p><label>Project on next launch <select aria-label="Project on next launch" disabled={busy} value={projectMode} onChange={event => { changed(); setProjectMode(event.target.value); }}>
-        <option value="">Choose explicitly</option><option value="none">No project</option><option value="chosen">Choose a project directory</option>
+        <option value="">Choose explicitly</option><option value="none">No project for now</option><option value="chosen">Choose a project folder</option>
       </select></label></p>
       {projectMode === "chosen" && <p><label>Next project directory <input aria-label="Next project directory" disabled={busy} value={project?.displayPath ?? ""} onChange={event => { changed(); setProject(typedLocation(event.target.value)); }}/></label>{" "}<button disabled={busy} onClick={() => pick("project")}>Browse next project</button></p>}
       {mode !== "retain" && <p><label>Supplier for next launch <select aria-label="Supplier for next launch" disabled={busy} value={supplier} onChange={event => { changed(); setSupplier(event.target.value); }}>
-        <option value="">Choose explicitly</option><option value={shown.supplier.selection}>Bundled supplier — unqualified owner-use development</option>
+        <option value="">Choose explicitly</option><option value={shown.supplier.selection}>Codex included with the App (development build, not yet qualified)</option>
       </select></label></p>}
       </fieldset>
       </div>
