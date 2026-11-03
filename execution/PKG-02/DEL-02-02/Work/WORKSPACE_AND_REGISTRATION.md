@@ -1131,6 +1131,67 @@ review/registration. The guide already follows the host's `runnable` field. (2) 
 host separates composition from the recorded once-only send. (3) A run
 interrupted by App restart is still ended from the studio's reopened-run list.
 
+**Make a workflow from your work (J2 guided path).** Publication journey J2
+(`Work/PUBLICATION_JOURNEYS.md`) needs a person to turn useful conversation work
+into a draft, try, review and register it, reuse it, and return to unfinished
+work after reopening. Before this increment SQ-D's J-3 ("the person asks the
+agent to write the method as a draft") had no App help: neither the shipped
+guidance nor the studio named the draft folder or the HY-1/HY-2 requirements,
+and "Create a named draft" only copied already selected content.
+
+The studio now offers **Make a workflow from your work** after Run a workflow:
+
+- **Where you did the work** — a local conversation choice.
+- **Where the draft goes** — the opened library and its
+  `.chirality/workflow-drafts` folder (the host's `DRAFTS`); with none open,
+  "Show this project's workflows" (`workflow_open_project_library`).
+- **Name** — checked by the host's `valid_name` rule; an existing draft of that
+  name is continued rather than requested again; a name already registered in
+  the library is refused in advance (a same-name draft without a base would be
+  refused, DS-3), pointing to Refine.
+- **Ask the agent to write it** — composes an editable request naming the
+  exact folder, `WORKFLOW.md` with front matter `name` (= folder) and
+  `description`, the optional declared part as the shipped guidance describes,
+  supporting files in the same folder, "only write inside that folder" and
+  "don't register it". It is offered to that conversation's ordinary composer
+  (selecting that conversation and revealing it). No host command is issued and
+  nothing is sent; the person edits and presses Send.
+- **Find, try and register it** — "Look for drafts in this library" is the
+  existing `workflow_observe_drafts`. The draft's reported state names its next
+  step: fix HY findings in the conversation (not valid), optionally try then
+  review (draft), confirm in the App's dialog (under review), review again
+  (changed since review), or use it from Run a workflow (registered, unchanged
+  since). Trial, review and A15 registration stay in the existing draft list and
+  review; only the person's act registers.
+- **Unfinished drafts** — drafts other than registered/removed are listed with
+  their state. Continue fills the local name only. The guide states that drafts
+  are library files that persist across quit/reopen and that reading a past
+  conversation in History does not continue it.
+
+The guide also offers the draft list's own trial and review commands for its
+named draft (`workflow_trial_prepare` delegated with the guide's conversation,
+or clean; `workflow_review_draft`), with DraftRow's arguments, try/review limits
+and delegation reading, and opens that draft's pending trial messages through
+the studio's existing source-checked Open (a clean trial points to the global
+new-trial composer). With no library open, its next step opens one first, so a
+returning person sees unfinished drafts before choosing a conversation.
+
+Every host-changing control uses the same busy/stale-source guard as Run a
+workflow. Checked by `app/tests/make-journey.test.mjs` (run directly with
+`node --test tests/make-journey.test.mjs` from `app/`, and in CI by the
+"Workflow and fleet presentation" step; `app/package.json` stays at the
+pinned notice basis) (name rule, exact folder
+and request text, no command or send on compose, each draft state's next step
+without an early registration claim, unfinished-draft return, stale and
+no-library cases) with controlled host views. No supplier, model, native App,
+person act or candidate journey was exercised; J2 remains open.
+
+**J2 limits this increment does not remove.** Whether the agent writes a valid
+draft from the request is a model behavior observed only on a candidate. Resume
+of an unfinished authoring conversation after reopening still uses History's
+existing continuation; the guide does not reopen it. Reuse with new inputs is
+J1's Run a workflow path on the registered revision.
+
 **Read-only workflow working context.** The workflow controls show the host's
 fixed `currentAppProjectContext` and its limit separately from the opened
 workflow library. The existing launch observation supplies a readable native

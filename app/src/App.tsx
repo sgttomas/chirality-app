@@ -29,6 +29,9 @@ import { ConversationContext, ProjectLibraryContext, conversationFromKey, workfl
 import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget } from "./DailyWorkspace";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
 import { RunWorkflowGuide } from "./RunJourney";
+import { MakeWorkflowGuide } from "./MakeJourney";
+/** One App-composed message for the person to edit and send; never sent by the App. */
+export type ComposerOffer = { sequence: number; threadKey: string; text: string };
 import { DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -86,7 +89,7 @@ const ordinaryConversationRef = (generation: Json, thread: string | undefined) =
   ? JSON.stringify([generation.home, generation.appSession, generation.spawnCounter, thread]) : "";
 type PreparedComposerReveal = { sequence: number; item: PreparedMessage; isCurrent: () => boolean; finish: (shown: boolean) => void };
 
-export function ConversationPanel({ host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void> }) {
+export function ConversationPanel({ composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -235,6 +238,17 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
   const composers = composersFor(workflowRoot, selected);
   const prepared = preparedMessages(host);
   const preparedNodes = useRef(new Map<string, HTMLDivElement>());
+  // An offered request fills only an empty composer of its own conversation; unsent
+  // text is never replaced without the person's press, and nothing is sent.
+  const [heldOffer, setHeldOffer] = useState<ComposerOffer | null>(null);
+  const handledOffer = useRef(0);
+  useEffect(() => {
+    if (!composerOffer || handledOffer.current === composerOffer.sequence || composerOffer.threadKey !== threadKey) return;
+    handledOffer.current = composerOffer.sequence;
+    if (text === "") { textRevision.current += 1; setText(composerOffer.text); setHeldOffer(null); }
+    else setHeldOffer(composerOffer);
+    revealWorkspaceTarget("conversation", true);
+  }, [composerOffer, threadKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const handledReveal = useRef(0);
   useEffect(() => {
     if (!preparedReveal || handledReveal.current === preparedReveal.sequence) return;
@@ -304,6 +318,9 @@ export function ConversationPanel({ host, threadKey, setThreadKey, answer, readR
     <p id="ordinary-send-readiness" role="status" aria-live="polite">{sendReadiness}</p>
     {!sourceReady && <p><a href="#workspace-connection">Open connection controls</a></p>}
     {sourceReady && !selected && <p><a href="#workspace-start">Choose a new conversation</a>{" · "}<a href="#workspace-history">Find a past conversation</a></p>}
+    {heldOffer && heldOffer.threadKey === threadKey && <p role="status" aria-label="Prepared workflow request">A workflow-draft request is ready for this conversation. Your unsent text is kept.{" "}
+      <button disabled={!!busy} onClick={() => { textRevision.current += 1; setText(heldOffer.text); setHeldOffer(null); }}>Replace my text with the request</button>{" "}
+      <button onClick={() => setHeldOffer(null)}>Discard the request</button></p>}
     <p><label>Text <textarea aria-describedby="ordinary-send-readiness" disabled={!!busy} value={text} onChange={e => { textRevision.current += 1; setText(e.target.value); }} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
     <p><label>Optional model identifier for next ordinary text turn <input {...EXACT_TEXT} disabled={!selected || !!busy} value={ordinaryModelValue}
       onChange={e => setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, revision: current.revision + 1 }))} aria-describedby="ordinary-model-help" /></label></p>
@@ -810,7 +827,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
   </section>;
 }
 
-export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference }:{ data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
+export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer }:{ offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
   const [name,setName]=useState("");
   const [revision,setRevision]=useState("");
   const [thread,setThread]=useState("");
@@ -909,6 +926,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     {busy && <p role="status" aria-live="polite">{progress} No automatic retry.</p>}
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
       outcome={outcome ? { command: outcome.relation.command, message: outcome.message } : null}/>
+    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage}/>}
     <h2>Workflow selection and native registration</h2>
     <p>Make a new workflow or change one: choose content and a library, create a named draft, then try and review it before registration.</p>
     <a href="#file-acts">Review a workspace draft file for a separate standing act</a>
@@ -1489,6 +1507,9 @@ export function App() {
   const threadChoiceRevision = useRef(0);
   const activityNavigationRef = useRef<NativeActivityHandle>(null);
   const setThreadKey = (key: string) => { threadChoiceRevision.current++; updateThreadKey(key); };
+  const [composerOffer, setComposerOffer] = useState<ComposerOffer | null>(null);
+  const composerOfferSequence = useRef(0);
+  const offerComposer = (key: string, text: string) => { setThreadKey(key); composerOfferSequence.current += 1; setComposerOffer({ sequence: composerOfferSequence.current, threadKey: key, text }); };
   const forkSequence = useRef(0);
   const forkInFlight = useRef(false);
   const [pendingFork, setPendingFork] = useState<ForkNavigation | null>(null);
@@ -1939,7 +1960,7 @@ export function App() {
   return (<DailyWorkspace>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
         <nav className="workspace-nav" aria-label="Workspace navigation">
-          <a href="#run-workflow">Run a workflow</a><a href="#conversation">Conversation</a><a href="#workflow-studio">Workflow studio</a><a href="#workspace-history">History</a><a href="#workspace-start">New conversation</a><a href="#workspace-connection">Connection &amp; access</a><a href="#workspace-tools">More tools</a><a href="#other-requests">Waiting requests</a>
+          <a href="#run-workflow">Run a workflow</a><a href="#make-workflow">Make a workflow</a><a href="#conversation">Conversation</a><a href="#workflow-studio">Workflow studio</a><a href="#workspace-history">History</a><a href="#workspace-start">New conversation</a><a href="#workspace-connection">Connection &amp; access</a><a href="#workspace-tools">More tools</a><a href="#other-requests">Waiting requests</a>
         </nav>
         <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed}/>
         <DesktopSetupPanel view={host?.desktopSetup}/>
@@ -2057,7 +2078,7 @@ export function App() {
         </WorkspaceDisclosure>
         <div className="workspace-primary">
           <div className="workspace-primary-column" aria-label="Conversation workspace">
-            <ConversationPanel preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
+            <ConversationPanel composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
           try {
               await invoke("collaboration_modes_read", { generation });
           }
@@ -2103,7 +2124,7 @@ export function App() {
             </WorkspaceDisclosure>
           </div>
           <div id="workflow-studio" className="workspace-primary-column" aria-label="Workflow studio">
-            <WorkflowRootPanel data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => invoke<Json>(command, args)} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
+            <WorkflowRootPanel offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => invoke<Json>(command, args)} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}
           </div>
         </div>
