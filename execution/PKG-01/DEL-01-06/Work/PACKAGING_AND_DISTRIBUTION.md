@@ -737,6 +737,18 @@ then requires recovery by the native input owner, not an inferred new pass.
    DEL-09-01 with package identity and this install witness; its M3 smoke and
    joined examination remain separate. Neither old native A nor new debug A/B
    substitutes for this signed-package witness.
+   Record the actual Finder-copy destination path. §8 W-2 names `/Applications`;
+   that section is pinned examination meaning and is not changed here. Installing
+   into an isolated test user's `~/Applications` is a recorded destination
+   deviation. When actually observed there, it can witness W-2's quarantine,
+   Gatekeeper and first-launch properties; the destination alone establishes none
+   of them. Record the actual S4 `app_translocation_path_component` value for the
+   running bundle; `true` contradicts the expected Finder-copy outcome and is
+   reported as observed (S4's `translocation` stays `not-established`). It does
+   not witness a system `/Applications` install, which remains a stated residual
+   until observed.
+   Revising W-2's text needs coordinated re-pinning of the examination sources.
+   Whether a test-user witness suffices for release is an owner acceptance decision.
 
 ### Recorded terms/owner disposition
 
@@ -789,6 +801,20 @@ the ordinary unsigned development overlay sets 15.0, observed on this candidate.
 Neither chooses the qualified production minimum. Retain this capability
 requirement for the owner's future minimum-OS and publisher decisions. No
 publisher identity is selected or inspected by this preparation.
+
+**4.0.0 owner-accepted release limitation: key rotation (2026-11-02).** The owner
+directed "leave it unavailable for 4.0.0" (C3). The authoritative record is
+`SEAL_C_KEYCHAIN_SIGNING_JOIN.md`, section "Owner rotation disposition for 4.0.0
+(2026-11-02)", from PR #93. The 4.0.0 candidate's handoff (OUT-002) carries these
+limitations exactly:
+- production key rotation is not invocable: no native menu, automatic trigger,
+  IPC, CLI or other route; the existing host-only source function stays unexposed;
+- the signed SC-5 rotation witness is not run (blocked);
+- rotation supplies no revocation or key-compromise response; earlier keys stay held.
+
+This is a scoped disposition. It is not an SC-5 pass, and it waives no enrollment,
+SC-3, SC-4 or other keychain witness. It selects no policy for later versions.
+KEYCHAIN_SELECTION stays None, and signing and enrollment permissions are unchanged.
 
 ### Concrete producer/consumer migration scope for App Agent 0 allocation
 
