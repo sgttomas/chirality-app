@@ -1,0 +1,55 @@
+{
+  "format": "owner-authorized-notarization-record/1",
+  "authorization": "Owner: 'upload this exact DMG to Apple for notarization, then staple the ticket and verify Gatekeeper acceptance.' (relayed by Agent 0)",
+  "credential": "keychain profile chirality-notary (team 8A7JL35U4S); no credential read, exported or logged",
+  "submitted": {
+    "dmg": "Chirality-App-v4-4.0.0-f664ee1d-b3dd4145.dmg",
+    "sha256": "1a962e3ae95831a5d9ee1ebec06f6c3b395f335998a3d4e38aa4161bd6f43231",
+    "submissions": 1,
+    "id": "430e7461-6741-422d-9644-491aa1babe6c",
+    "upload_date": "2026-11-03T12:12:13.163Z"
+  },
+  "result": {
+    "status": "Accepted",
+    "statusSummary": "Ready for distribution",
+    "statusCode": 0,
+    "issues": null,
+    "log_sha256_bound": "1a962e3ae95831a5d9ee1ebec06f6c3b395f335998a3d4e38aa4161bd6f43231",
+    "ticket_entries": 33,
+    "notary_log_file_sha256": "9a153f903bb0c1e6d58d4ed44346ff80e6723b99da79c5447ed4e56a9efe4fee"
+  },
+  "stapled": {
+    "staple": "The staple and validate action worked!",
+    "validate": "The validate action worked!",
+    "post_staple_sha256": "34ab566132e059d3e51885c87907898238ba95421c88d1303d535d19eafcf26e",
+    "post_staple_size": 156986610,
+    "pre_staple_bytes_retained": "pre-staple-copy.dmg (SHA-256 1a962e3a\u2026)",
+    "dmg_signature": "satisfies its Designated Requirement"
+  },
+  "gatekeeper": {
+    "dmg": "spctl -a -t open --context context:primary-signature: accepted, source=Notarized Developer ID",
+    "contained_app": "spctl -a -t exec (read-only nobrowse mount, not launched): accepted, source=Notarized Developer ID",
+    "contained_app_identity": "chirality.app.bundle-tree.sha256/v2:b3dd4145779e711a0169c08b2f1757eace19e38e08effe03a18c5bef986b5fb8",
+    "contained_app_verify_deep_strict": "valid"
+  },
+  "preserved": [
+    "unsigned candidate bc38496b",
+    "signed app b3dd4145 (directory copy, not stapled)",
+    "pre-staple DMG bytes",
+    "all logs"
+  ],
+  "not_done": [
+    "publication",
+    "install",
+    "launch",
+    "enrollment",
+    "installed W-0..W-6 witness, S4"
+  ],
+  "standing": "notarized and stapled distribution artifact (Apple \"Ready for distribution\") with Gatekeeper acceptance; not release qualification, installed witness, functional test or publication",
+  "open_obligations": [
+    "installed W-0..W-6 and S4 witness on an isolated test account",
+    "owner publication decision",
+    "supplier pin qualification (R23-22)",
+    "notice gaps: four supplier source/binary/notice associations, rg/PCRE2/zsh licence texts, objc2-family full terms and Apple SDK caveat, transitive coverage, unverified @fontsource upstream"
+  ]
+}
