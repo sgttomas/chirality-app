@@ -317,8 +317,8 @@ owner, group, times and extended attributes. Its digest must equal
 `ae04bcaaba7c3eb7ec77248cd2302d5449c3421f2e2b353e1b4e2d7e69b14f6a`, computed by
 the helper's `manifest` mode on the retained signed App directory. Deep strict
 verification and the cdhash bind the same content to the signature. Quarantine
-and ownership are recorded separately. The packaging lane is asked to accept this
-in place of an installed v2 value.
+and ownership are recorded separately. The packaging lane accepted this in place of an
+installed v2 value (see below).
 
 Assurance so far: fake-home checks only. They covered:
 
@@ -388,9 +388,15 @@ The account-home names and project paths it contains refer only to the test user
   The prompts that matter on the recording are at enrollment, at the `check-2`
   seal, and at the restart verification. SC-4 and SC-5 remain uncovered. W-3,
   W-4 and W-5 stay with this lane.
-- **Packaging, W-6 installed-copy comparison:** asked to accept the
-  content-and-structure manifest above in place of an installed bundle-tree v2
-  value.
+- **Packaging, W-6 installed-copy comparison:** **accepted** at head `8e8bb816`
+  (2026-11-03).
+  - Packaging independently reproduced the manifest digest `ae04bcaa…6a`, both
+    from the retained signed App directory and from the App inside the stapled
+    DMG `34ab5661` (read-only nobrowse mount, detached).
+  - Its join binds the package identity bundle-tree v2 `b3dd4145` to that
+    manifest for the installed copy.
+  - v2 is neither recomputed for the installed copy nor redefined, and
+    quarantine is never removed.
 
 ## Exceptional recovery (owner decides at the time; nothing is pre-authorized)
 
@@ -430,8 +436,7 @@ candidate.
 
 ## Owner decisions requested
 
-Runtime confirmation is recorded. Packaging's acceptance of the installed-copy
-comparison is pending.
+Runtime and packaging confirmations are recorded above.
 
 1. Create the standard test user (the owner's act).
 2. Approve the Q1 transfer: a loopback-only Safari download from a short-lived
