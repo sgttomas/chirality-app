@@ -22,8 +22,10 @@ and observations are in `sdk-basis.json`):
    synchronizable items.
 
 The smallest proposed namespace is therefore the **own-application group**, not
-cross-App sharing: exact profile prefix + selected separate v4 identifier. This
-is a proposal until the owner/signing stage adopts the actual value. The helper
+cross-App sharing: exact profile prefix + the selected production identifier
+`com.chirality.app` (owner retained the existing App ID on 2026-11-02; earlier
+separate-v4-identifier wording is superseded). The prefix remains unknown until
+actual authorized evidence supplies it. The helper
 never substitutes the recovered team for the prefix. Where the profile grants
 an explicit group list, it checks an exact own-App group against those grants
 and emits only that one group. Where there is no group-list grant, it prepares
@@ -33,7 +35,8 @@ documented default-group route is the intended candidate. Neither is
 actually signed into the correct App.
 
 For a conservative reviewable authorization route, the existing Apple Developer
-account operator should register/use the **explicit v4 macOS App ID**, then obtain
+account operator should register/use the **explicit macOS App ID for
+`com.chirality.app`**, then obtain
 an **Apple-issued Developer ID Application distribution provisioning profile**
 that includes the already identified signing certificate and grants that exact
 application identifier (and the own-App group if a group list is used). Retain
@@ -41,6 +44,21 @@ the original CMS and decoded metadata. This is a proposed profile-backed route;
 it does not assert that every Developer ID app universally needs a provisioning
 profile. No new certificate/private key, new account, purchase, cross-App sharing,
 or repeated team-input request is part of the minimum proposal.
+
+Public documentation consulted on 2026-11-02 (Apple Developer Documentation JSON
+for the published pages; no date or revision shown):
+[TN3137: On Mac keychain APIs and implementations](https://developer.apple.com/documentation/technotes/tn3137-on-mac-keychains)
+says that macOS builds a program's data protection keychain access groups from
+its code-signing entitlements, and that "These entitlements must be authorized by
+a provisioning profile". [TN3125: Inside Code Signing: Provisioning Profiles](https://developer.apple.com/documentation/technotes/tn3125-inside-code-signing-provisioning-profiles)
+says restricted entitlements must be authorized by a profile, lists the
+unrestricted macOS entitlements (none of them is the application identifier or
+keychain-access-groups), expects the profile at `Contents/embedded.provisionprofile`,
+and says macOS supports profiles for Developer ID distribution. For this provider
+(Data Protection keychain with an explicit access group), the profile-backed route
+is therefore the documented one. This is documentary evidence. It is not a signed
+witness: the actual profile's grants and the signed candidate's launch and
+keychain access remain to be observed at SC-0 and SC-2/SC-3.
 
 The executable handles a conservative metadata shape: `Platform=["OSX"]`,
 `ProvisionsAllDevices=true`, no device list, valid creation/expiration interval,
@@ -62,10 +80,13 @@ The old default-None unsigned candidate is not a production publisher binding.
 
 ## Minimal remaining owner/operator actions
 
-1. Parent receives the owner's exact **bundle/service/account choice** and
-   existing-team use. The proposed separate-v4 names are already in the parent
-   decision context; this tool contains no real default choice and asks for no
-   team or private key again. The existing closed three-field publisher input
+1. Settled: the owner retained bundle `com.chirality.app` with the recovered
+   team; Agent 0 selected service `com.chirality.app.v4.capture-seal`, primary
+   account `installation-keyring` and explicit-native-only first enrollment
+   (2026-11-02, ordinary implementation selection; `v4` is a stable namespace
+   generation, never bumped with App versions). Runtime `KEYCHAIN_SELECTION`
+   stays None until authorized signer facts and source activation. This tool
+   still contains no real default choice and asks for no team or private key. The existing closed three-field publisher input
    remains unchanged.
 2. The Apple account operator obtains the explicit App ID/profile authorization
    described above for the existing Developer ID Application certificate. The
@@ -166,6 +187,20 @@ version must equal the completed packaging plan, not just each other.
 `witness-sequence.json` gives SC-0…SC-6: exact subject/profile, source-controlled
 invocation, actual signing/S4, explicit enrollment+restart, isolated locked/denied/
 missing behavior, rotation/history/cache/concurrency, and final package joins.
+SC-3 now also prepares the pre-enrollment observation: an act capture is recorded
+with its unsealed limit, and no file key, keychain add or marker is created. It also
+requires that no keychain prompt appears. SC-4 records, for each failure class,
+what mocks cover and what native staging remains a proposal: locked needs a
+key-reading path that runs without a person act; denied needs a different subject.
+SC-5 records that no supported invocation exists. AAC §6.3 makes rotation a host
+function not offered in the interface, and `rotate()` has only test callers, so
+a signed rotation witness waits for an owner-chosen clause or host policy. It is
+not replaced by IPC, CLI, debug entries or relabelled tests.
+For 4.0.0 the owner chose to leave rotation unavailable (2026-11-02, option C3).
+Production rotation is not invocable, signed SC-5 is not run (blocked), and
+rotation supplies no revocation or key-compromise response. This is an accepted
+release limitation, not an SC-5 pass or a waiver of the other witnesses, and it
+sets no policy for later versions.
 The sequence is data, not a shell script or automated runner. Existing packaging
 owns Option B, signing/notary/install/FP operations; native qualification remains
 its separate undertaking.
