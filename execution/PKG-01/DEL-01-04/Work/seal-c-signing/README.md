@@ -2,8 +2,9 @@
 
 This is executable preparation for the integrated SEAL-C provider, not an
 activation tool. It never invokes a build, codesign, Security's SecItem APIs,
-Apple accounts, networking or a credential/keychain reader. Default runtime
-`KEYCHAIN_SELECTION=None` is unchanged. All committed tests use invented data.
+Apple accounts, networking or a credential/keychain reader. It never changes
+the runtime `KEYCHAIN_SELECTION`; see the source selection section of
+[SEAL_C_KEYCHAIN_TRANSITION.md](../SEAL_C_KEYCHAIN_TRANSITION.md). All committed tests use invented data.
 
 ## Concrete proposed route and source basis
 
