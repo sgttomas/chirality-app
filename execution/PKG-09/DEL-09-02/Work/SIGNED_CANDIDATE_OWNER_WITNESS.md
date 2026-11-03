@@ -56,11 +56,19 @@ recovery rules still apply, except where this section changes them.
   administrator. The old "not an administrator" refusal is removed because the
   owner selected this account. All other refusals stay: absence, privacy,
   symlink, type and readability.
-- **Same-ID namespace baseline.** `prepare` records the metadata of the
-  preferences file and those directories. It also keeps a private 0600 backup
-  copy of the existing preferences file in the evidence root; nothing reads or
-  prints its contents. c4 records the same after the test, so any change v4 makes
-  to the namespace it shares with v3 is visible.
+- **Same-ID namespace record.**
+  - `prepare` and c4 each record **top-level** metadata (type, mode, size and
+    mtime) for the preferences file and those directories. A namespace directory
+    path holding anything other than a directory is refused.
+  - This is not comprehensive change detection: a nested change inside an
+    existing directory need not change its top-level metadata, and nothing inside
+    those directories is read.
+  - The existing preferences file is **copied in full twice**, at `prepare` as
+    the baseline backup and at c4 as the after-state. `MANIFEST.sha256` then
+    hashes each copy.
+  - The copies are your v3 preferences. They are read only by `cp` and
+    `shasum`, never parsed, displayed or printed, and are stored owner-only (0600,
+    no ACL).
 - **The agent runs the helper.** It runs in the owner's own session (`prepare`,
   c2–c4), read-only apart from `prepare`'s fixtures, with
   `CHIRALITY_WITNESS_OUT=/Users/ryan/dev/chirality-t3/scratch/app-same-user-witness-<UTC>`.
@@ -68,8 +76,16 @@ recovery rules still apply, except where this section changes them.
   Finder and the App.
 - **Recording is the owner's choice.** A full-screen recording in the normal
   account captures whatever is on screen. It needs Focus on and other private
-  windows closed. Without a recording, "no keychain prompt" rests on the owner's
-  own statement.
+  windows closed.
+  - If recording, save it to `$OUT/recording` (⇧⌘5 ▸ Options ▸ Other Location),
+    start it before step 3 and stop it after step 7.
+  - Without a recording, the display-only outcomes are **owner-attested** or
+    **inconclusive**: the first-launch dialog, the setup and readiness text,
+    window reopen, Quit with no question, and "no keychain prompt".
+- **Evidence paths.** In this route, every evidence path in the checklist below
+  is relative to the selected `$OUT`, not `/Users/Shared/chirality-v4-witness-out`.
+  It contains the owner's real home path and account name, and is kept in
+  private scratch.
 
 **Same-ID consequences the owner accepts by proceeding.** None is cleaned up
 automatically.
@@ -86,8 +102,9 @@ automatically.
   the owner's own keychain: service `com.chirality.app.v4.capture-seal`, account
   `installation-keyring`, group `8A7JL35U4S.com.chirality.app`. 4.0.0 has no
   removal or rotation route. If this AppData's marker is later lost, a new first
-  enrollment is refused ("namespace not demonstrably new"). v3's keys are not
-  touched; the service differs and nothing is imported.
+  enrollment is refused ("namespace not demonstrably new"). v4 uses only that
+  service and account and imports nothing. v3's own keychain use is not
+  established by the v4 source.
 
 ### Shortest guided sequence
 
@@ -139,14 +156,26 @@ These are in [`signed_witness_collect.sh`](signed_witness_collect.sh):
 
 - `prepare <account>` makes the account selection explicit and records it, and
   the administrator refusal is removed.
-- A same-ID baseline is taken at `prepare` and again at c4, with a private backup
-  of the preferences file.
+- A same-ID record is taken at `prepare` and again at c4: top-level metadata plus
+  a full private copy of the preferences file each time. These are added to the
+  allowlist.
+- Every evidence directory and file is forced owner-only (0700/0600) with ACL
+  entries removed, so a parent's inherited ACL no longer propagates. An output
+  root carrying ACLs is refused.
 - `prepare` is usage-checked.
 
 Nothing else changed: the allowlist, the privacy, symlink, type and readability
 refusals, the c1 gate, the manifest digest `ae04bcaa…` and the `OK:` rule. The
-tests now total 22, including explicit-account refusal, the private preferences
-backup with c4 after-state, and refusal of a symlinked preferences file.
+tests now total 27. They add:
+
+- explicit-account refusal;
+- the private preferences backup, including from a 0644 source, and the c4
+  after-state;
+- refusal of a symlinked preferences file and of a non-directory at a
+  namespace path;
+- an intermediate metadata failure ending without `OK:`;
+- removal of an inherited parent ACL, and refusal of an output root that
+  carries ACLs.
 
 The c4 evidence and the S4 joins are unchanged. W-2's per-user `~/Applications`
 deviation still applies. The c1 gate is unchanged and is not run on the local
@@ -378,7 +407,8 @@ rerun over that folder.
 
 ## Internal evidence checklist
 
-All files listed are under `/Users/Shared/chirality-v4-witness-out/`.
+All files listed are under the output root: `/Users/Shared/chirality-v4-witness-out/`
+on the superseded route, or the selected `$OUT` on the current route.
 
 | Item | Evidence | Kind | If missing or failed |
 |---|---|---|---|
@@ -517,7 +547,9 @@ Disclosure: Gatekeeper and codesign output contains the certificate holder's
 name. Any repository record redacts it as
 `origin=Developer ID Application: <name> (8A7JL35U4S)`, as packaging records do.
 Evidence otherwise stays in private scratch until the agent's disclosure review.
-The account-home names and project paths it contains refer only to the test user.
+On the superseded route, the account-home names and project paths it contains
+refer only to the test user. On the current route they are the owner's real
+paths, and the evidence also holds the owner's v3 preferences copies.
 
 ## Consumer confirmation (before the owner is asked to approve)
 
