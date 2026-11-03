@@ -231,9 +231,11 @@ test('setup explains incomplete choices, focuses real preview and edit returns w
   await mountedPanel(packet.initial,command=>{
     assert.equal(command,'desktop_setup_preview');return packet.preview;
   },async(c,calls)=>{
-    assert.match(guidance(c).textContent,/Choose whether/);
+    assert.match(guidance(c).textContent,/Choose first-time setup, or keep your current sign-in/);
+    const needs=region(c,'What setup needs').textContent;
+    for(const words of [/new, empty folder for its Codex sign-in/,/doesn't copy or reuse sign-ins/,/links to them rather than copying/,/project folder \(optional\)/,/quit and open the App again/])assert.match(needs,words);
     assert.equal(props(button(c,'Review setup effects'))['aria-describedby'],'desktop-setup-next-step');
-    assert.deepEqual(nodes(c,'legend').map(n=>n.textContent),['1. Account and shared settings','2. Project and supplier']);
+    assert.deepEqual(nodes(c,'legend').map(n=>n.textContent),['1. Sign-in and shared settings','2. Project and Codex']);
     await change(field(c,'Desktop setup action'),'new');assert.match(guidance(c).textContent,/all three shared locations/);
     await explicitInputs(c);assert.match(guidance(c).textContent,/ready to review/);
     await press(c,'Review setup effects');assert.equal(focused.at(-1).textContent,'Review before saving');

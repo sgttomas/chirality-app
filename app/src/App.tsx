@@ -28,6 +28,7 @@ import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./
 import { ConversationContext, ProjectLibraryContext, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget } from "./DailyWorkspace";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
+import { RunWorkflowGuide } from "./RunJourney";
 import { DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -904,9 +905,12 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     : !selected ? "Inspect bundled content or a development copy, or choose content for the Workflow chat."
     : !name.trim() ? "Enter a name for your new draft. The App will check the exact name and destination."
     : "Ready to create a draft from the displayed content in the opened library. This does not register or run it.";
-  return <section aria-label="Workflow studio controls" aria-busy={busy}><h2>Workflow selection and native registration</h2>
-    <p>Choose content and a library, create a named draft, then try and review it before registration.</p>
+  return <section aria-label="Workflow studio controls" aria-busy={busy}>
     {busy && <p role="status" aria-live="polite">{progress} No automatic retry.</p>}
+    <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
+      outcome={outcome ? { command: outcome.relation.command, message: outcome.message } : null}/>
+    <h2>Workflow selection and native registration</h2>
+    <p>Make a new workflow or change one: choose content and a library, create a named draft, then try and review it before registration.</p>
     <a href="#file-acts">Review a workspace draft file for a separate standing act</a>
     <aside aria-label="Workflow working context">
       <ProjectLibraryContext host={host} />
@@ -958,7 +962,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     <button disabled={busy||!data?.activeLibrary||!name} onClick={()=>action("workflow_review",{names:[name],inPlace:true})}>Review this unregistered in-place library entry</button>
     <small> Drafts are reviewed from the draft list above.</small>
     </details>
-    {orderedReviews.map(review=><article key={review.reference}>
+    <div id="workflow-reviews">{orderedReviews.map(review=><article key={review.reference}>
       <h3>{review.reference===data?.activeReview?"Current review":"Retained review"} · {review.reference}</h3>
       {digests[review.reference]&&<p>{digestComparison(digests[review.reference])}{review.status?.presentation?<> Read the complete review below before choosing {review.status.presentation.entries?.[0]?.disposition==="re-confirmation"?"Re-confirm":"Register"}: the native confirmation shows the act statement and this digest, not the review itself.</>:" (as last shown with the review; while the native confirmation is open, the review it names is shown under \"Content named by an open native confirmation\")"}</p>}
       {review.status?.presentation?.entries?.[0]?.disposition==="re-confirmation"&&<p role="note">{review.status.presentation.entries[0].message}. {review.status.presentation.entries[0].reconfirmation?.statement}</p>}
@@ -971,7 +975,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
       <LastCleanTrialLine line={review.lastCleanTrial} busy={busy} act={action}/>
       <button disabled={busy} onClick={()=>action("workflow_continue_registration",{reviewRef:review.reference})}>Continue original captured registration</button>
       <ReviewSelectButtons review={review} libraries={data?.libraries??[]} busy={busy} chatAvailable={chatAvailable} act={action}/>
-    </article>)}
+    </article>)}</div>
     <h3>Send selected workflow text</h3>
     <label>Person text <textarea value={text} onChange={e=>setText(e.target.value)} disabled={busy} rows={3}/></label>
     {selected&&selected.runnable!==true&&<p role="note">Not runnable: {selected.runLimit}</p>}
@@ -1935,7 +1939,7 @@ export function App() {
   return (<DailyWorkspace>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
         <nav className="workspace-nav" aria-label="Workspace navigation">
-          <a href="#conversation">Conversation</a><a href="#workflow-studio">Workflow studio</a><a href="#workspace-history">History</a><a href="#workspace-start">New conversation</a><a href="#workspace-connection">Connection &amp; access</a><a href="#workspace-tools">More tools</a><a href="#other-requests">Waiting requests</a>
+          <a href="#run-workflow">Run a workflow</a><a href="#conversation">Conversation</a><a href="#workflow-studio">Workflow studio</a><a href="#workspace-history">History</a><a href="#workspace-start">New conversation</a><a href="#workspace-connection">Connection &amp; access</a><a href="#workspace-tools">More tools</a><a href="#other-requests">Waiting requests</a>
         </nav>
         <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed}/>
         <DesktopSetupPanel view={host?.desktopSetup}/>

@@ -1046,6 +1046,70 @@ viewports through T3 preview with a strict synthetic IPC peer. Those checks
 do not exercise a supplier, model, native App or person act, and do not turn
 the dated native evidence below into a witness for this new layout.
 
+**Run a workflow (J1 guided path).** Publication journey J1
+(`Work/PUBLICATION_JOURNEYS.md`, owner direction 2026-11-03) needs a person to
+use an existing workflow without authoring one first. Before this increment the
+route existed only as scattered studio controls: the project-library opener sat
+inside the drafts list, registered revisions appeared as "Registered revisions
+in the active library", the run's conversation was chosen in the raw "Workflow
+chat" selector, inputs and outputs appeared only inside the declared part, and
+progress was a lifecycle string beside raw run evidence. Nothing said where
+results go.
+
+The workflow studio now opens with **Run a workflow**: Project → Conversation →
+Workflow → Inputs → Start → Progress → Results, with one live "Next:" line
+naming the concrete next action (connect Codex, choose a project in Desktop
+setup, show this project's workflows, choose a conversation, choose or review a
+workflow, describe inputs, prepare, start). Its buttons call the studio's
+existing commands through the studio's own `action` — `workflow_open_project_library`,
+`workflow_select_listed`, `workflow_review_library_entries` (one entry),
+`workflow_library_entries_refresh`, `workflow_prepare_run`, `workflow_send_run`
+and `workflow_end_run` — so the same single-flight guard, source/chat context
+binding (`workflowArguments`), outcome reporting and view refresh apply. The
+conversation select is the studio's Workflow chat choice, shown once more; it
+creates no second selection state. No command, default, registration, selection
+or file write is added, and every control is disabled while the shown workflow
+source is stale.
+
+- **Workflow.** Selectable registered revisions are offered as "Use ‹name›";
+  others show the host's label. The chosen workflow is named with its origin,
+  registered revision number and content-identity prefix. Unregistered library
+  entries are offered a single-entry first review; registration remains the
+  person's native A15 act in the studio's review (linked as `#workflow-reviews`).
+  The bundled catalog entry is shown as included but not runnable in this
+  build, quoting the host's production standing; the guide offers no control
+  that selects it.
+- **Inputs and results.** Declared inputs (required/optional, kind, meaning,
+  absence effect) and declared outputs (name, path, meaning) are read from the
+  run's or selection's declared part. Results are described as declared
+  destinations in the opened library's folder; the App does not claim the files
+  exist. Files Codex actually changed remain in the conversation activity.
+- **Progress.** One reading per run from host fields only: *Ready to start*
+  (prepared, unsent), *Not started* (send refused, with the host limit),
+  *Starting* (sent, start turn not yet observed — never shown as completed),
+  *The run did not start* (start not confirmed), *Waiting for your answer*
+  (an outstanding request in that conversation), *Working* (thread active),
+  *Codex reported an error* (system error), *Open — Codex is not working right
+  now*, and *Finished* (ended, with the recorded cause). An open run offers
+  **End this run** (records "ended by the person") and explains that Stop in
+  the conversation interrupts a step without ending the run. A run in another
+  conversation is never shown as this one's.
+
+Checked by `app/tests/run-journey.test.mjs` with controlled host views (exact
+command arguments, readings, disabled stale-source controls, no bundled
+selection) and the existing mounted-App suites. This is a source-level
+increment: no supplier, model, native App, person act or candidate journey was
+exercised, and J1 remains open until observed on an identified candidate.
+
+**J1 limits this increment does not remove.** (1) The bundled
+`coordinated-knowledge-work` entry is refused by `run_admission`
+(production-candidate standing), so a fresh project with no registered library
+workflow has no existing runnable workflow without a first review/registration;
+LS-5 release registration of shipped workflows is a host/release change returned
+to Agent 0, not made here. (2) "Prepare" and "Start" remain two steps because the
+host separates composition from the recorded once-only send. (3) A run
+interrupted by App restart is still ended from the studio's reopened-run list.
+
 **Read-only workflow working context.** The workflow controls show the host's
 fixed `currentAppProjectContext` and its limit separately from the opened
 workflow library. The existing launch observation supplies a readable native
