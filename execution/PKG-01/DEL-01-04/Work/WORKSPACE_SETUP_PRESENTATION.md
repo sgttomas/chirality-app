@@ -330,3 +330,16 @@ Checked by the maintained `desktop-setup` mounted tests (unchanged option
 values and labels) and `run-journey` link checks. Whether a person understands
 this wording on the signed candidate is unobserved; that remains native J1
 evidence for DEL-09-02.
+
+## Composer offer for an App-composed request (J2 increment)
+
+The ordinary conversation composer accepts one App-composed message offer
+(`ComposerOffer`: sequence, exact generation/thread key, text), used by DEL-02-02's
+Make a workflow guide. An offer applies once, only when the composer's own
+conversation is selected. It fills the text only when the composer is empty;
+otherwise the person's unsent text is kept and "Replace my text with the
+request" or "Discard the request" is offered. Applying or holding an offer
+reveals the conversation. The offer never sends, never changes model, mode,
+attachments or steering, and adds no IPC; Send keeps its existing readiness,
+single-submission and outcome behavior. Checked by `app/tests/make-journey.test.mjs`
+against the mounted `ConversationPanel`.
