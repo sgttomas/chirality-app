@@ -108,6 +108,13 @@ Coordinated with the frontend lane (PR #107); no field or command change:
   selection view's standing is "bundled with this App build (WR LS-5); runs
   without A15; this build is a release candidate, not a published release",
   with `runnable` true.
+- **Frontend J1 limit (1).** The frontend lane's J1 account in
+  WORKSPACE_AND_REGISTRATION.md lists limit (1): "Until the runtime owner's
+  LS-5 admission lands, the bundled `coordinated-knowledge-work` entry is
+  refused". That condition is met in source by this clause. The guide's
+  existing `runnable` handling now offers "Use ‹name› (included with the App)"
+  whenever the installed subject verifies. The frontend lane's text is left as
+  written; observation on a candidate remains open.
 - **Packaging.** It needs nothing new beyond the existing P-2 mapping. The
   package bytes are part of the signed bundle tree.
 
