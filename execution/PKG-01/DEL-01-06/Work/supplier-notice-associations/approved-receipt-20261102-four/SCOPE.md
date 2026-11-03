@@ -44,8 +44,8 @@ come from a read-only search, not execution.
   codex-rs/shell-escalation/patches/zsh-exec-wrapper.patch` (lines 9–10). The build
   script clones `https://git.code.sf.net/p/zsh/code`, checks out that commit, applies
   the patch (lines 24–27) and archives only `Src/zsh` (lines 58–61).
-- The received patch changes `zexecve` in `Src/exec.c`: when `EXEC_WRAPPER` is set
-  and non-blank, it executes the wrapper with the original path as its first
+- The received patch changes `zexecve` in `Src/exec.c`: when `EXEC_WRAPPER` is
+  nonempty and its first character is not blank, it executes the wrapper with the original path as its first
   argument. The retained zsh (`d715e06e…3b15`) contains `EXEC_WRAPPER\0` once
   (offset 585,164) and the describe string `zsh-5.9.0.3-test-87-g77045ef` (offset
   597,539). A read-only `codesign -d` display shows identifier
@@ -76,7 +76,8 @@ repository, and this record makes no licence determination.
 - The retained rg (`7c7d5b09…739b`) contains `15.2.0` immediately followed by
   `e89fff89ac` and next to ripgrep's "(JIT is available)" text (offset 2,907,359).
   That is consistent with ripgrep's version-plus-revision format. The `16.0.0`
-  string recorded earlier (offset 3,660,432) sits between "ARM-64 64bit (little
+  string recorded earlier starts at offset 3,660,433 (the earlier record's
+  3,660,432 is its preceding NUL). It sits between "ARM-64 64bit (little
   endian + unaligned)" and PCRE2's own version `10.46 2025-08-27`. That context is
   consistent with PCRE2's Unicode version, not a ripgrep version. The earlier
   README reading "likely ripgrep 16.0.0" is superseded by this evidence. The
