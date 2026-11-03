@@ -102,3 +102,20 @@ and exact `public-metadata.json` for this new evidence, ten pinned text-file
 URLs/sizes and the still-open binary associations. The earlier local-only search
 above remains its dated observation rather than a claim that those texts can
 never be associated. None of the four complete notice/source gaps is yet closed.
+
+
+## Four approved source receipts, 2026-11-02
+
+The owner approved the four-file proposal (2,978 bytes), and the files are received
+in [approved-receipt-20261102-four](approved-receipt-20261102-four/SCOPE.md).
+
+- **zsh:** the release selector is resolved. The pinned `codex-zsh-v0.1.0`
+  manifest is digest-checked, and its binary is built from zsh `77045ef8` plus the
+  received exec-wrapper patch, then signed.
+- **rg:** the release takes ripgrep 15.2.0 from the in-tree manifest and signs it.
+- **Corrected reading:** the `16.0.0` string above sits beside PCRE2 `10.46`. It is
+  consistent with PCRE2's Unicode version, not ripgrep's. The retained binary also
+  embeds `15.2.0` followed by revision `e89fff89ac`.
+
+Byte joins to the retained binaries, the selected archives and the rg/PCRE2/zsh
+licence texts remain open, as stated there.

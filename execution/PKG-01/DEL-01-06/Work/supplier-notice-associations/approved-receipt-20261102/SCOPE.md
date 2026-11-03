@@ -86,6 +86,9 @@ above narrower source/license/selector facts now evidenced.
 
 ## Minimal next source inspection, not blanket acquisition
 
+Update: the owner approved these four files, and they were received on 2026-11-02;
+see [approved-receipt-20261102-four](../approved-receipt-20261102-four/SCOPE.md).
+
 `next-source-proposal.json` identifies four files totaling **2,978 bytes** from
 the already-retained exact Codex tree metadata: ripgrep.py862B, zsh.py768B,
 verify-zsh-manifest.sh350B, and zsh-exec-wrapper.patch998B. It includes immutable
