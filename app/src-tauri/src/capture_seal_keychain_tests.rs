@@ -93,8 +93,29 @@ impl Drop for Fixture {
     }
 }
 #[test]
-fn seal_keychain_none_never_touches_platform_and_unsigned_file_route_stays() {
-    assert!(KEYCHAIN_SELECTION.is_none());
+fn seal_keychain_selection_is_exact_own_app_namespace() {
+    let s = KEYCHAIN_SELECTION.as_ref().expect("selected source namespace");
+    assert_eq!(s.bundle_identifier, "com.chirality.app");
+    assert_eq!(s.team_identifier, "8A7JL35U4S");
+    assert_eq!(s.service, "com.chirality.app.v4.capture-seal");
+    assert_eq!(s.account, "installation-keyring");
+    // Default own-App group: exactly <prefix>.<bundle>, never a wildcard or shared group.
+    assert_eq!(s.access_group, format!("{}.{}", s.team_identifier, s.bundle_identifier));
+    assert!(s.allow_first_enrollment);
+    validate_identity(&ItemIdentity {
+        service: s.service.into(),
+        account: s.account.into(),
+        access_group: s.access_group.into(),
+    })
+    .unwrap();
+}
+#[test]
+fn seal_keychain_unselected_publisher_never_touches_platform_and_file_route_stays() {
+    // Source selection is present, but test builds can never compile a publisher
+    // selection, so authority, the keychain route and enrollment stay unavailable.
+    assert!(KEYCHAIN_SELECTION.is_some());
+    assert!(!cfg!(chirality_publisher_selected));
+    assert!(!enrollment_compiled_available());
     assert!(KeychainAuthority::current().is_err());
     assert!(!selected_route());
     assert!(prepare_enrollment().is_err());

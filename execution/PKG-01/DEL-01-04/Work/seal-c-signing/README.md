@@ -2,8 +2,9 @@
 
 This is executable preparation for the integrated SEAL-C provider, not an
 activation tool. It never invokes a build, codesign, Security's SecItem APIs,
-Apple accounts, networking or a credential/keychain reader. Default runtime
-`KEYCHAIN_SELECTION=None` is unchanged. All committed tests use invented data.
+Apple accounts, networking or a credential/keychain reader. It never changes
+the runtime `KEYCHAIN_SELECTION`; see the source selection section of
+[SEAL_C_KEYCHAIN_TRANSITION.md](../SEAL_C_KEYCHAIN_TRANSITION.md). All committed tests use invented data.
 
 ## Concrete proposed route and source basis
 
@@ -26,11 +27,15 @@ cross-App sharing: exact profile prefix + the selected production identifier
 `com.chirality.app` (owner retained the existing App ID on 2026-11-02; earlier
 separate-v4-identifier wording is superseded). The prefix remains unknown until
 actual authorized evidence supplies it. The helper
-never substitutes the recovered team for the prefix. Where the profile grants
-an explicit group list, it checks an exact own-App group against those grants
-and emits only that one group. Where there is no group-list grant, it prepares
-only the profile-authorized application identifier and team entitlements; SecItem's
-documented default-group route is the intended candidate. Neither is
+never substitutes the recovered team for the prefix. The request selects the
+route, not the shape of the profile's allowlist. With `access_group:null` (the
+selected default route) it prepares only the profile-authorized application
+identifier and team entitlements, even when the profile allows a group wildcard
+such as `PREFIX.*`. A wildcard grant is never copied into the proposal, and
+SecItem's documented default group is then the application identifier. An explicit
+own-App group string asks for a one-element `keychain-access-groups` list; the
+profile must actually grant it, or the request refuses. Either way, any group grant
+the profile carries must cover the own-App group. Neither is
 "entitlement-free": the exact application-identifier must be authorized and
 actually signed into the correct App.
 
@@ -127,9 +132,10 @@ The request is a closed JSON object:
 
 All reference paths are relative to one explicit evidence root; use standard
 `{path,sha256}` references for supplied profile plist/CMS and public DER certificate.
-`access_group:null` requests the profile-derived own-App group proposal, not an
-unrestricted group. If a group string is supplied it must equal that exact own-App
-group. Missing profile/certificate bytes produce a gap report, without an
+`access_group:null` requests the default own-App route: the group is the
+profile-derived application identifier, and no group list is signed. If a group
+string is supplied, it must equal that exact own-App group. It then requests the
+explicit one-element list and needs a profile group grant. Missing profile/certificate bytes produce a gap report, without an
 entitlement plist. Supplied contradictions still refuse even when another
 companion is missing.
 
