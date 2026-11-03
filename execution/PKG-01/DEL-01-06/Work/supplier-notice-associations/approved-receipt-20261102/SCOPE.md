@@ -1,5 +1,10 @@
 # Approved receipts and actual source scope — 2026-11-02
 
+Currentness note: `selection.json` and `supplement/` here remain bound to the
+original plan `c2602bbf…`/index `4e27d99c…` and now refuse against current source.
+The same selection, rebound after the dev-only notice-basis repair, is in
+[rederived-4e942918](rederived-4e942918/README.md). Receipt and sources are unchanged.
+
 Parent relayed the owner's answer “2. Approved.” to the enumerated request for
 11 pinned source-text files totaling 130,005 bytes. Exactly those bodies were
 received, without credentials, redirects, extra files or archive retrieval.
