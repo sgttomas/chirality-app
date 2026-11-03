@@ -48,23 +48,37 @@ shipped history or qualification is claimed.
 
   Changing the manifest or package bytes needs a reviewed change to these
   constants.
-- **Location binding.** Native startup records `resource_dir()/workflows` once in
-  the workflow session (`configure_installed_bundle`). A different later root is
-  refused. `select_production_bundle` resolves only that recorded root.
-  `WorkflowRootSession::run_admission` additionally requires the selection's
-  bundle root to equal it. A byte-identical bundle at any other path is refused,
-  and so is a session that has no recorded root.
-- **Recheck at use.** As for every run, `verify_store` rechecks the location, the
-  root `MANIFEST.json` bytes and the package revision at selection, prepare
-  (`prepare_run_with`, `PreparedRunText::start`, publication) and send.
+- **Location binding.** Native startup records `resource_dir()/workflows` once
+  per process in the catalog (`record_installed_root`, through
+  `configure_installed_bundle`). A different later root is refused.
+  `bundled_run_admission` itself requires the selection's bundle root to equal
+  that recorded root, so every consumer inherits the binding:
+  - session run admission;
+  - the catalog entry;
+  - publication.
+
+  A byte-identical bundle at any other path is refused, and so is a process
+  with no recorded root. `select_production_bundle` resolves only that root.
+- **Recheck at use.** `verify_store` rechecks the location, the root
+  `MANIFEST.json` bytes and the package revision at selection, prepare
+  (`prepare_run_with`, `PreparedRunText::start`, `PreparedRunPublication::new`)
+  and send. `PreparedRunPublication` keeps the admitted selection, so
+  `publish()` reruns `verify_store` and `bundled_run_admission` on its first
+  attempt and on every retry, immediately before any record is written. A
+  manifest or package change after preparation therefore publishes no
+  `selection_record` or `run_text`.
 - **Records.** `PreparedRunPublication::new` accepts a registered revision, or a
   selection that passes `bundled_run_admission`, and refuses every other
   admission even if a caller bypassed the session. The `selection_record`
   standing is `bundled`, already in the schema's enum. `holding_library` is the
-  installed workflows root. `identity.origin` is `bundled`.
-- **Files line.** The run's other files reach the agent as a project supply copy
-  (TX-7 c), even when the App is installed under the home folder. No path into
-  the App bundle appears in the run text.
+  installed workflows root. `identity.origin` is `bundled`. When a reopened run
+  is ended after relaunch, its end notice uses an internal
+  `RegisteredRevision` label. That label confers no admission or registration,
+  and the recorded selection keeps its own standing.
+- **Files line.** A bundled selection always uses `bundled_files_folder`: a
+  project supply copy (TX-7 c), wherever the App is installed, including
+  beneath the opened project or the home folder. No path into the App bundle
+  appears in the run text.
 
 ## Still refused (unchanged)
 
@@ -99,9 +113,14 @@ Coordinated with the frontend lane (PR #107); no field or command change:
 
 ## Checks
 
-Focused Rust tests, offline and locked, in a fresh scratch `CODEX_HOME` and target:
+Focused Rust tests, offline and locked, in a fresh scratch `CODEX_HOME` and target.
+Independent Astra-medium review of `a02183cd` found three P2 boundary gaps, all
+repaired here: publication lacked installed-root authority, publication did not
+recheck the manifest, and a supply copy was not forced inside the project.
 - `bundled_run_admission_is_closed_to_the_selected_installed_subject`: embedded
-  and holding copies refused; installed resolution admitted with LS-5 standing.
+  and holding copies are refused. An unknown or different recorded root is
+  refused, and so is rebinding. The installed resolution is admitted only under
+  the recorded root.
 - `bundled_ls5_requires_this_apps_installed_resources`: an unknown root, a
   rebinding and a byte-identical caller location are all refused; the catalog
   entry becomes runnable only once the root is recorded.
@@ -114,6 +133,15 @@ Focused Rust tests, offline and locked, in a fresh scratch `CODEX_HOME` and targ
   offering the workflow. A manifest change after prepare refuses send.
 - `typed_publication_retains_prepared_text_and_refuses_lost_source_or_development`:
   now also refuses a forged bundle admission at publication.
+- `bundled_publication_requires_this_apps_installed_root_and_rechecks_at_publish`:
+  - an exact copy at another root is refused at direct publication;
+  - a manifest change after `new()` refuses `publish()` and its retry;
+  - once restored, the run publishes with standing `bundled`.
+- `bundled_ls5_inside_the_project_still_uses_a_supply_copy`.
+- The lifecycle test also ends the bundled run from its records in a fresh
+  process, after relaunch.
+- The mutation test also confirms that no WR or RS record is published when
+  send is refused after a manifest change.
 - The existing holding-copy, development and registered-revision tests are
   unchanged.
 

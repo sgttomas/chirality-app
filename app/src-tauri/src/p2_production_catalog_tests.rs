@@ -305,11 +305,26 @@ fn bundled_run_admission_is_closed_to_the_selected_installed_subject() {
     let resolved = catalog
         .select_bundle_package(&root, "coordinated-knowledge-work")
         .unwrap();
-    assert_eq!(
-        ProductionCatalog::bundled_run_admission(resolved.selection()).unwrap(),
-        root.as_path()
-    );
+    let unknown = ProductionCatalog::bundled_run_admission(resolved.selection()).unwrap_err();
+    assert!(unknown.contains("not known"), "{unknown}");
+    super::development_catalog::record_installed_root(library.0.join("elsewhere")).unwrap();
+    let elsewhere = ProductionCatalog::bundled_run_admission(resolved.selection()).unwrap_err();
+    assert!(elsewhere.contains("not resolved from this App's installed resources"), "{elsewhere}");
+    assert!(super::development_catalog::record_installed_root(root.clone()).is_err(), "no rebinding");
     assert_eq!(resolved.selection().admission().standing(), BUNDLED_STANDING);
+    // A separate thread records this App's actual root; there the same
+    // installed resolution is admitted.
+    let selection = resolved.selection().clone();
+    let expected = root.clone();
+    std::thread::spawn(move || {
+        super::development_catalog::record_installed_root(expected.clone()).unwrap();
+        assert_eq!(
+            ProductionCatalog::bundled_run_admission(&selection).unwrap(),
+            expected.as_path()
+        );
+    })
+    .join()
+    .unwrap();
     assert!(
         catalog.select_bundle_package(&root, "other-name").is_err(),
         "unknown name is not in the catalog"

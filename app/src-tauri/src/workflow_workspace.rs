@@ -891,13 +891,31 @@ pub fn files_folder(
     project: &Path,
     home: Option<&Path>,
 ) -> Result<FilesFolder, String> {
+    files_folder_for(snapshot, identity, Some(holding), project, home)
+}
+/// TX-7 (c) for a bundled revision inside the App bundle (LS-5): always a
+/// project supply copy, never a path into the App bundle, wherever it is installed.
+pub fn bundled_files_folder(
+    snapshot: &Snapshot,
+    identity: &WorkflowIdentity,
+    project: &Path,
+) -> Result<FilesFolder, String> {
+    files_folder_for(snapshot, identity, None, project, None)
+}
+fn files_folder_for(
+    snapshot: &Snapshot,
+    identity: &WorkflowIdentity,
+    holding: Option<&Path>,
+    project: &Path,
+    home: Option<&Path>,
+) -> Result<FilesFolder, String> {
     if identity.revision != snapshot.revision {
         return Err("workflow identity does not name these package bytes".into());
     }
     if other_files(snapshot).is_empty() {
         return Ok(FilesFolder { label: String::new(), basis: FilesFolderBasis::NoOtherFiles, limits: vec![] });
     }
-    if let Some((label, basis)) = relative_folder_label(holding, Some(project), home) {
+    if let Some((label, basis)) = holding.and_then(|holding| relative_folder_label(holding, Some(project), home)) {
         return Ok(FilesFolder { label, basis, limits: vec![] });
     }
     let refuse = |cause: String| format!("other files of this revision could not be supplied: {cause}");

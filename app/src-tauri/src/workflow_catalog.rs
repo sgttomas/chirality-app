@@ -132,6 +132,47 @@ pub const SELECTED_BUNDLED_REVISION: &str =
 pub const BUNDLED_STANDING: &str =
     "bundled with this App build (WR LS-5); runs without A15; this build is a release candidate, not a published release";
 
+/// BUNDLED-RUN-01: this App's own installed workflow resources
+/// (`resource_dir()/workflows`), recorded once per process by native startup.
+/// It is the only bundle root an LS-5 run may come from, checked by
+/// `bundled_run_admission` at selection, prepare, publication and send. Never a
+/// caller, renderer or record path.
+#[cfg(not(test))]
+static INSTALLED_ROOT: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+#[cfg(test)]
+thread_local! {
+    static TEST_INSTALLED_ROOT: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) };
+}
+/// Native startup only. A second, different root is refused (no rebinding).
+/// Test builds record per test thread instead of process-wide.
+pub(crate) fn record_installed_root(root: PathBuf) -> Result<(), String> {
+    #[cfg(test)]
+    return TEST_INSTALLED_ROOT.with(|held| {
+        let mut held = held.borrow_mut();
+        match held.as_ref() {
+            Some(existing) if *existing != root => Err("installed workflow resources already recorded; no rebinding".into()),
+            _ => {
+                *held = Some(root);
+                Ok(())
+            }
+        }
+    });
+    #[cfg(not(test))]
+    {
+        let held = INSTALLED_ROOT.get_or_init(|| root.clone());
+        if *held != root {
+            return Err("installed workflow resources already recorded; no rebinding".into());
+        }
+        Ok(())
+    }
+}
+pub(crate) fn installed_root() -> Option<PathBuf> {
+    #[cfg(test)]
+    return TEST_INSTALLED_ROOT.with(|held| held.borrow().clone());
+    #[cfg(not(test))]
+    INSTALLED_ROOT.get().cloned()
+}
+
 pub struct ProductionCatalog {
     selection: Selection,
 }
@@ -192,11 +233,11 @@ impl ProductionCatalog {
     }
 
     /// WR LS-5 / TT-1 / TX-1: the closed bundled-run admission. Admits only the
-    /// selected subject above, resolved by `select_bundle_package` from an
-    /// installed bundle root (never the embedded copy, a library holding copy, a
-    /// development or registered selection). Returns that root so the caller can
-    /// bind it to this App's own installed resources. Bytes and location are
-    /// rechecked at use by `verify_store`; this check alone grants no file authority.
+    /// selected subject above, resolved by `select_bundle_package` from exactly
+    /// this App's recorded installed root (never the embedded copy, a library
+    /// holding copy, a copy at another root, a development or registered
+    /// selection). Bytes and location are rechecked at use by `verify_store`;
+    /// this check alone grants no file authority.
     pub fn bundled_run_admission(selection: &Selection) -> Result<&Path, String> {
         let SelectionAdmission::ProductionBundle {
             manifest_sha256,
@@ -217,7 +258,11 @@ impl ProductionCatalog {
         {
             return Err("bundled subject is not the selected App v4 bundled workflow input".into());
         }
-        Ok(root)
+        match installed_root() {
+            Some(installed) if installed.as_path() == root.as_path() => Ok(root),
+            Some(_) => Err("This bundled workflow was not resolved from this App's installed resources (WR LS-5)".into()),
+            None => Err("This App's installed workflow resources are not known in this process (WR LS-5)".into()),
+        }
     }
 
     /// Native wiring supplies App resource_dir/workflows, never a person-minted manifest.

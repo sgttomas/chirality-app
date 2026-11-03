@@ -612,3 +612,51 @@ fn pending_live_check_publishes_original_bytes_and_yields_typed_token() {
     );
     assert_eq!(p.list_references().unwrap().len(), 3);
 }
+// BUNDLED-RUN-01: publication itself requires this App's recorded installed
+// root. An exact copy of the selected subject at another root is not a bundled
+// run even when it reaches publication directly, and a manifest change after
+// preparation refuses publication (first attempt and retry) before any record.
+#[test]
+fn bundled_publication_requires_this_apps_installed_root_and_rechecks_at_publish() {
+    use crate::workflow_workspace::{production_catalog::ProductionCatalog, PreparedRunText, RunScope};
+    let f = Fixture::new();
+    let p = f.store();
+    let catalog = ProductionCatalog::load().unwrap();
+    let make = |name: &str| {
+        let root = f.0.join(name).join("workflows");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join("MANIFEST.json"), catalog.manifest()).unwrap();
+        catalog.select_embedded().snapshot().publish_new(&root.join("coordinated-knowledge-work")).unwrap();
+        root
+    };
+    let installed = make("installed");
+    let elsewhere = make("elsewhere");
+    crate::workflow_workspace::development_catalog::record_installed_root(installed.clone()).unwrap();
+    let start = |root: &std::path::Path| {
+        let resolved = catalog.select_bundle_package(root, "coordinated-knowledge-work").unwrap();
+        let selection = resolved.selection().clone();
+        let scope = RunScope {
+            run: "run-B".into(),
+            conversation: "thread-B".into(),
+            home: "home".into(),
+            generation: json!({"home":"home","appSession":"session","spawnCounter":1}),
+            source_root: selection.identity().source_root.clone(),
+            holding_library: root.to_str().unwrap().into(),
+            selection_ref: "selection-B".into(),
+            revision_store: resolved.package_path().into(),
+        };
+        let prepared = PreparedRunText::start(&selection, scope, ".chirality/workflow-supply/x", None).unwrap();
+        (selection, prepared)
+    };
+    let (copy, prepared) = start(&elsewhere);
+    assert!(PreparedRunPublication::new(&p, &copy, prepared, "writer", "selected", "prepared").is_err());
+    let (selection, prepared) = start(&installed);
+    let publication = PreparedRunPublication::new(&p, &selection, prepared, "writer", "selected", "prepared").unwrap();
+    std::fs::write(installed.join("MANIFEST.json"), b"{}").unwrap();
+    assert!(publication.publish(&p).is_err());
+    assert!(publication.publish(&p).is_err(), "a retry rechecks too");
+    std::fs::write(installed.join("MANIFEST.json"), catalog.manifest()).unwrap();
+    let published = publication.publish(&p).unwrap();
+    assert_eq!(published.selection_record().body()["standing"], "bundled");
+    assert_eq!(published.selection_record().body()["identity"]["origin"], "bundled");
+}
