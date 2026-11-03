@@ -339,3 +339,27 @@ accepted release limitation are recorded in
 The rotation provider semantics and mock tests are unchanged. History continuity
 across restart is still witnessed through SC-3, and the other signed-stage
 evidence is unchanged.
+
+## Source selection admitted (2026-11-03)
+
+`KEYCHAIN_SELECTION` now names `com.chirality.app`, team `8A7JL35U4S`, service
+`com.chirality.app.v4.capture-seal`, primary account `installation-keyring`,
+access group `8A7JL35U4S.com.chirality.app` and explicit first enrollment. The
+group is the default own-App group, with no `keychain-access-groups` entitlement
+signed. The values come from the owner-retained App ID, Agent 0's namespace
+selection and the owner-authorized Developer ID profile. An offline intake checked
+that profile's CMS against Apple Root CA, its App ID and prefix, and its sole
+certificate; private evidence lives outside the repository.
+
+The selection is inert by itself. Authority still requires a compiled publisher
+selection whose subject matches this bundle and team. It also requires S4 own-App
+installed integrity of the running signed App. Builds without a publisher selection
+(debug, test, development and package-test builds) keep the unchanged file provider.
+`enrollment_compiled_available()` now also requires
+`cfg(chirality_publisher_selected)`, so those builds never show the enrollment
+action. Earlier statements in this and the joined documents that
+`KEYCHAIN_SELECTION` stays None describe the state before this selection.
+
+No signing, SecItem call, enrollment or native execution follows from this source
+change. OS acceptance of the entitlements, actual keychain access and the SC-3
+witness remain unrun, and the C3 rotation limit for 4.0.0 is unchanged.

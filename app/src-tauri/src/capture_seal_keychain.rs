@@ -23,11 +23,28 @@ struct Selection {
     access_group: &'static str,
     allow_first_enrollment: bool,
 }
-const KEYCHAIN_SELECTION: Option<Selection> = None;
+/// Selected 2026-11-02/03: owner-retained production App ID and recovered team;
+/// Agent 0's ordinary service/account selection (`v4` is a stable namespace
+/// generation, never bumped with the App version); default own-App access group
+/// from the Apple-signed Developer ID profile's ApplicationIdentifierPrefix,
+/// with no keychain-access-groups entitlement signed. Inert unless the build also
+/// compiles a matching publisher selection and the installed App passes S4.
+const KEYCHAIN_SELECTION: Option<Selection> = Some(Selection {
+    bundle_identifier: "com.chirality.app",
+    team_identifier: "8A7JL35U4S",
+    service: "com.chirality.app.v4.capture-seal",
+    account: "installation-keyring",
+    access_group: "8A7JL35U4S.com.chirality.app",
+    allow_first_enrollment: true,
+});
 /// Menu eligibility only: no namespace, signature, root or keychain observation.
 /// Actual preparation/consumption independently validate authority and policy.
+/// A build without a compiled publisher selection never offers the action.
 pub(crate) const fn enrollment_compiled_available() -> bool {
-    cfg!(target_os = "macos") && !cfg!(debug_assertions) && KEYCHAIN_SELECTION.is_some()
+    cfg!(target_os = "macos")
+        && !cfg!(debug_assertions)
+        && cfg!(chirality_publisher_selected)
+        && KEYCHAIN_SELECTION.is_some()
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

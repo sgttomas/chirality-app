@@ -158,3 +158,12 @@ route is now denied in the narrowed build. Rust menu dispatch, ordinary authoriz
 UI/Accessibility routes and required native affirmative/provider checks remain.
 No universal agent/human parity or personal-act guarantee is asserted. The source
 permission decision does not activate KEYCHAIN_SELECTION or signing.
+
+## Selection admitted; eligibility narrowed (2026-11-03)
+
+With `KEYCHAIN_SELECTION` now selected (see
+[SEAL_C_KEYCHAIN_TRANSITION.md](SEAL_C_KEYCHAIN_TRANSITION.md#source-selection-admitted-2026-11-03)),
+eligibility requires a macOS release build, the compiled publisher selection
+(`cfg(chirality_publisher_selected)`) and the source selection. Without a compiled
+publisher selection, the menu stays absent and dispatch is rejected before window
+lookup, worker creation or preparation. The caller, confirmation and Quit logic are unchanged.
