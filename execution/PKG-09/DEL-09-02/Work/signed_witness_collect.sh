@@ -109,7 +109,7 @@ case "${1:-}" in
 prepare)
   [ "$(cd "$HOME" && pwd -P)" = "$HOME" ] || die "home path is not its real path"
   id -Gn | tr ' ' '\n' | grep -qx admin && die "this user is an administrator"
-  [ ! -e "$APPDATA" ] || die "App data already exists"
+  nolink "$APPDATA"; ! present "$APPDATA" || die "App data already exists"
   [ ! -e "$SHARED" ] && [ ! -e "$HOME/ChiralityV4Fixtures" ] || die "fixtures already exist"
   [ ! -e "$OUT" ] && [ ! -L "$OUT" ] || die "output root $OUT already exists"
   nolink "$(dirname "$OUT")"

@@ -234,6 +234,20 @@ class Helper(unittest.TestCase):
         r = self.run_('handoff', me)
         self.assertTrue(r.stdout.strip().splitlines()[-1].startswith('OK: handoff complete'))
 
+    def test_prepare_refuses_inaccessible_or_dangling_app_data(self):
+        self.appdata.mkdir(parents=True)
+        lib = self.home / 'Library'
+        lib.chmod(0o000)
+        r = self.run_('prepare')
+        lib.chmod(0o755)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertNotIn('OK:', r.stdout)
+        self.appdata.rmdir()
+        self.appdata.symlink_to(self.tmp / 'missing')
+        r = self.run_('prepare')
+        self.assertNotEqual(r.returncode, 0)
+        self.assertNotIn('OK:', r.stdout)
+
     def test_checkpoint_requires_app_data(self):
         self.assertEqual(self.run_('prepare').returncode, 0)
         self.assertNotEqual(self.run_('c2').returncode, 0)

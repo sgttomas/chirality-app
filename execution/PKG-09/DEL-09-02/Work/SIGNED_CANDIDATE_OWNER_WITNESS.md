@@ -354,11 +354,12 @@ packaging lane accepted this in place of an
 installed v2 value (see below).
 
 Assurance so far: fake-home checks only, repeatable as
-[`test_signed_witness_collect.py`](test_signed_witness_collect.py). Its 19
+[`test_signed_witness_collect.py`](test_signed_witness_collect.py). Its 20
 tests pass in task scratch, including the conditional signed-clone test. They
 cover:
 
 - administrator refusal, the private 0700 root and no rerun of `prepare`;
+- `prepare` refusing inaccessible or dangling existing AppData;
 - c2–c4 allowlist copies, 0600 modes and no overwrite;
 - `account-homes` (made mode 000) never read;
 - refusal of symlinks at the fixture root, the marker directory, the capture
