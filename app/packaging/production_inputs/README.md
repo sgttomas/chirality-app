@@ -128,16 +128,22 @@ inventory method can still supply raw inventory for the actual PKG identity.
 2. The signer separately supplies CF-1's Developer ID Application certificate
    identity for the already selected team and the reviewed App entitlement/
    profile basis. No certificate private-key export or keychain enumeration is
-   required from this lane. The approved SEAL-C transition adds an exact compiled
-   service/account/access-group subject under a separate None gate: receive its
-   typed selection/enrollment/cache/rotation contract and actual signing-side
-   `application-identifier`/`keychain-access-groups` and profile compatibility.
+   required from this lane. Since PR #100 (2026-11-03) the SEAL-C source selection
+   is compiled (`com.chirality.app.v4.capture-seal` / `installation-keyring` / own-App
+   group `8A7JL35U4S.com.chirality.app`, explicit first enrollment). It is inert
+   until a publisher-selected signed build: debug and unselected builds keep the
+   file provider and no enrollment menu. Sign the App's main executable with
+   exactly `com.apple.application-identifier` and `com.apple.developer.team-identifier`
+   (no `keychain-access-groups`; the profile's wildcard allowlist is not signed),
+   with the selected profile embedded through `--provisioning-profile`. See
+   `SEAL_C_KEYCHAIN_SIGNING_JOIN.md`, "Source selection admitted (2026-11-03)".
+   Live authority still needs the matching compiled publisher, signing and S4.
    Do not guess a team-derived group or claim empty entitlements. Parent allocated
    this implementation to the runtime owner; no real keychain action is performed
    here. Keychain storage alone does not establish deferred SEAL-2 entry-seal,
    exclusive-agent or native-origin guarantees, or import development keys.
-   The settled runtime interface uses separate compiled KEYCHAIN_SELECTION and
-   explicit `allow_first_enrollment`; the host-only `enroll_initial(app_data)`
+   The runtime interface uses the compiled KEYCHAIN_SELECTION and explicit
+   `allow_first_enrollment`; the host-only `enroll_initial(app_data)`
    operation is not startup, IPC, UI, seal, verify or rotate. Receive the actual
    controlled enrollment procedure before activation. For 4.0.0 the owner left
    key rotation unavailable (C3): expect no rotation route and no signed SC-5
