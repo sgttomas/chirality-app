@@ -72,6 +72,36 @@ with that limit. It is not build-ready: a build needs a new plan from source
 containing the repair, with `--upstream-notices` naming the rederived supplement.
 No build, signing, launch or enrollment occurred.
 
+That successor plan now exists. It was prepared from merged source
+`5d37e1f2075153321c666fcbb0764e27494f27e5` (tree `886788e7…4669`, 3,712 export
+files Git-blob verified) with the same publisher input digest, the same vendor
+(manifest `327effb9…8d12`, cached stock pin 0.160.0 as a development input only)
+and `--upstream-notices` naming the rederived supplement. It is retained at
+`/Users/ryan/dev/chirality-t3/scratch/app-selected-production-plan-AcP2w3vq/plan`
+(PLAN_COMPLETE SHA-256 `28dbd975…ad69`, 52 resource mappings; `check_plan` passes).
+The notice index matches its source, and the supplement passes `check-stage`.
+Destinations equal ram3f93n's. Content changes are only the notice index and the
+supplement path/manifest; the instruction and workflow trees differ only in their
+recorded export root. Effective values: `com.chirality.app`, "Chirality App v4",
+4.0.0, minimum 15.0, signing identity null. It is a plan only. Any build still
+needs coordinated slot admission, a fresh Codex home and its own authorization.
+Compiled publisher bindings, signing, notarisation, installed witnesses,
+enrollment and the remaining notice/supplier items stay open.
+
+`AcP2w3vq` predates the bundled IBM Plex font notice (PR #96) and stays preserved
+as a plan-only record without it. The current plan was prepared from merged source
+`db32e342cefde905545faba4b7e3f99e8fa3b957` (tree `5adeb641…7635`, 3,716 export
+files Git-blob verified), with the same publisher input digest, vendor and pin, and
+the rederived upstream supplement. It is retained at
+`/Users/ryan/dev/chirality-t3/scratch/app-selected-production-plan-EWqBYkw8/plan`
+(PLAN_COMPLETE SHA-256 `96a71e49…0c1c`, 54 resource mappings; `check_plan` passes).
+The font notice check passes with all ten name tables matching. Relative to
+`AcP2w3vq`, the only additions are `third-party-notices/fonts/index.json` and the
+OFL text, with no other content or destination change. The font bytes are
+blob-identical to v3; the declared `@fontsource` 5.3.0 upstream remains unverified.
+This adds the font notice; it does not make notice coverage complete or transitive.
+It is still a plan only, and the build remains withheld pending Agent 0's go.
+
 The next production subject requires the actual owner identifier/team and
 settled signer/keychain inputs, then a separately identified production build,
 signing/notarisation and quarantined installed witness. This unsigned input-test
