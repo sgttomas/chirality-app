@@ -40,11 +40,14 @@ Never put real values in command-line literals, chat or public logs.
 In production mode only, `--provisioning-profile /private/profile.provisionprofile
 --provisioning-profile-sha256 <exact-digest>` embeds the selected private Developer ID
 profile at `Contents/embedded.provisionprofile` through `bundle.macOS.files`. The
-helper requires the exact digest and a bounded DER envelope. It also checks that the
-embedded metadata matches the publisher input: the profile prefix plus the bundle
+helper requires the exact digest and parses the definite-length CMS SignedData
+structure down to its single encapsulated `id-data` OCTET STRING. That content must be
+exactly one XML property list with no duplicate keys, and the profile must be valid at
+preparation time (recorded as `validity_checked_at`). It also checks that the
+metadata matches the publisher input: the profile prefix plus the bundle
 identifier equals the `com.apple.application-identifier` grant, team and platform
 match, all devices are provisioned and no development grant is present. This is
-consistency only. CMS/Apple authentication belongs to the separate intake, and
+structure and consistency only; the CMS signature and Apple authentication belong to the separate intake, and
 actual placement is verified only by the post-build inventory. The profile stays
 outside source, vendor and the repository.
 Publisher input must be outside both source and vendor; vendor must be outside

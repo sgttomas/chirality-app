@@ -115,16 +115,45 @@ class ProductionInputs(unittest.TestCase):
         self.assertEqual(recipe['environment']['CHIRALITY_PUBLISHER_SELECTION'],'production-v1')
         self.assertNotIn(data['production_bundle_identifier'],json.dumps(result))
         self.assertNotIn(data['developer_id_team_identifier'],json.dumps(result))
-    def profile_file(self, **changes):
-        import datetime, plistlib
+    @staticmethod
+    def tlv(tag, body):
+        n=len(body)
+        length=bytes([n]) if n<0x80 else bytes([0x80|((n.bit_length()+7)//8)])+n.to_bytes((n.bit_length()+7)//8,'big')
+        return bytes([tag])+length+body
+    def envelope(self, content, trailing=b''):
+        t=self.tlv
+        encap=t(0x30,t(0x06,module.DATA_OID)+t(0xa0,t(0x04,content)))
+        signed=t(0x30,t(0x02,b'\x01')+t(0x31,b'')+encap+t(0x31,b'INVENTED signer info; never Apple-signed'))
+        return t(0x30,t(0x06,module.SIGNED_DATA_OID)+t(0xa0,signed))+trailing
+    def profile_value(self, **changes):
+        import datetime
         value={'UUID':'INVENTED-PROFILE','Platform':['OSX'],'ProvisionsAllDevices':True,'TeamIdentifier':['EXAMPLE001'],
-               'ApplicationIdentifierPrefix':['PREFIX0001'],'CreationDate':datetime.datetime(2026,1,1),'ExpirationDate':datetime.datetime(2027,1,1),
+               'ApplicationIdentifierPrefix':['PREFIX0001'],'CreationDate':datetime.datetime(2020,1,1),'ExpirationDate':datetime.datetime(2099,1,1),
                'Entitlements':{'com.apple.application-identifier':'PREFIX0001.invalid.example.chirality-v4','com.apple.developer.team-identifier':'EXAMPLE001'}}
-        value.update(changes)
+        value.update(changes); return value
+    def profile_file(self, raw=None, **changes):
+        import plistlib
         folder=self.root/'private-profile';folder.mkdir(exist_ok=True)
         path=folder/'invented.provisionprofile'
-        path.write_bytes(b'\x30\x82INVENTED CMS ENVELOPE; NOT APPLE-SIGNED '+plistlib.dumps(value)+b'\x00signature')
+        path.write_bytes(raw if raw is not None else self.envelope(plistlib.dumps(self.profile_value(**changes))))
         return path
+    def test_ambiguous_or_non_cms_profile_envelopes_refuse(self):
+        import plistlib
+        good=plistlib.dumps(self.profile_value()); bad=plistlib.dumps(self.profile_value(TeamIdentifier=['OTHER00001']))
+        dup=good.replace(b'<key>TeamIdentifier</key>',b'<key>TeamIdentifier</key><array><string>OTHER00001</string></array><key>TeamIdentifier</key>',1)
+        cases={'appended plist':self.envelope(good+bad.split(b'?>',1)[1]),'plist after envelope':self.envelope(good,trailing=bad),
+               'non DER':b'0NOT-DER'+good,'duplicate key':self.envelope(dup),'binary plist':self.envelope(plistlib.dumps(self.profile_value(),fmt=plistlib.FMT_BINARY)),
+               'wrong content type':self.envelope(good).replace(module.DATA_OID,module.SIGNED_DATA_OID,1)}
+        for name,raw in cases.items():
+            with self.subTest(name=name):
+                path=self.profile_file(raw)
+                with self.assertRaises(ValueError):self.run_plan(**self.production(path))
+        self.assertFalse(self.output.exists())
+    def test_profile_outside_validity_refuses(self):
+        import datetime
+        for changes in ({'ExpirationDate':datetime.datetime(2021,1,1)},{'CreationDate':datetime.datetime(2098,1,1)}):
+            with self.subTest(changes=changes),self.assertRaisesRegex(ValueError,'not valid at preparation time'):
+                self.run_plan(**self.production(self.profile_file(**changes)))
     def production(self, profile=None, profile_sha=None):
         path=self.publisher_file()
         kw=dict(test_identifier=None,publisher_input=path,publisher_sha256=module.sha(path.read_bytes()))
@@ -139,7 +168,7 @@ class ProductionInputs(unittest.TestCase):
         account=json.loads((self.output/'input-inventory.json').read_text())['provisioning_profile']
         self.assertEqual(account['sha256'],module.sha(profile.read_bytes()))
         self.assertEqual(account['application_identifier'],'PREFIX0001.invalid.example.chirality-v4')
-        self.assertIn('separate intake', account['standing']);self.assertIn('unverified until build', account['standing']);self.assertNotIn('EXAMPLE001',json.dumps(result))
+        self.assertIn('separate intake', account['standing']);self.assertIn('validity_checked_at',account);self.assertIn('unverified until build', account['standing']);self.assertNotIn('EXAMPLE001',json.dumps(result))
         self.assertNotIn(str(profile),json.dumps(config['bundle']['resources']))
     def test_profile_refuses_test_mode_wrong_digest_and_inconsistent_grants(self):
         profile=self.profile_file()
