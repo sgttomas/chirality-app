@@ -113,6 +113,13 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
         src, dst = '../packaging/sqlite_notice/' + name, 'third-party-notices/sqlite-preparation/' + name
         require(src not in resources or resources[src] == dst, 'SQLite resource mapping conflict')
         resources[src] = dst
+    # Bundle-visible copy of the frontend IBM Plex notice; refuse a stale index for this source.
+    font_notice = load_module('production_font_notice', 'app/packaging/font_notice/check.py')
+    fonts = font_notice.check(source_root)
+    for src, dst in (('../packaging/font_notice/index.json', 'third-party-notices/fonts/index.json'),
+                     ('../' + fonts['license']['path'].removeprefix('app/'), 'third-party-notices/fonts/LICENSE-IBM-Plex-OFL.txt')):
+        require(src not in resources or resources[src] == dst, 'font notice resource mapping conflict')
+        resources[src] = dst
     supplement_sources = set()
     supplement = None
     if upstream_notices is not None:
@@ -184,7 +191,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
     # Read relevant recipe inputs without selecting a new supplier pin or changing source.
     for relative in ('app/package-lock.json', 'app/src-tauri/Cargo.lock', 'app/src-tauri/Cargo.toml', 'app/src-tauri/tauri.conf.json'):
         read(source_root / relative)
-    tool_paths = [__file__, inventory.__file__, files.__file__]
+    tool_paths = [__file__, inventory.__file__, files.__file__, font_notice.__file__]
     if supplement is not None: tool_paths.append(receipts.__file__)
     tool_hashes = {str(inventory.anchored(p)): sha(read(Path(p))) for p in tool_paths}
     no_overlap(output.parent, [source_root, vendor, *{Path(p).parent for p in inspected}])
@@ -221,6 +228,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
             require(inventory.compare(inventory.scan(info['tree']['root']), info['tree'])['equal'], 'resource tree changed during preparation')
     if supplement is not None:
         require(receipts.check_stage(upstream_notices, source_root) == supplement, 'supplement changed during preparation')
+    require(font_notice.check(source_root) == fonts, 'font notice changed during preparation')
     output.mkdir(exist_ok=False, mode=0o700)
     write_new(output / 'INCOMPLETE.txt', b'Not usable until PLAN_COMPLETE.json validates and this marker is absent.\n')
     try:
