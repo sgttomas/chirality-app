@@ -926,7 +926,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     {busy && <p role="status" aria-live="polite">{progress} No automatic retry.</p>}
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
       outcome={outcome ? { command: outcome.relation.command, message: outcome.message } : null}/>
-    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} offerComposer={offerComposer}/>}
+    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage}/>}
     <h2>Workflow selection and native registration</h2>
     <p>Make a new workflow or change one: choose content and a library, create a named draft, then try and review it before registration.</p>
     <a href="#file-acts">Review a workspace draft file for a separate standing act</a>

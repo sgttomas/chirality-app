@@ -29,10 +29,11 @@ const next = c => region(c, 'Make a workflow from your work').textContent.match(
 
 async function mount(view) {
   const c = document.createElement('div'); const root = createRoot(c); const calls = []; const offers = [];
+  const opened = [];
   const render = () => root.render(React.createElement(MakeWorkflowGuide, {data:view.data, host:view.host, busy:!!view.busy,
-    act:async (command, args) => { calls.push({command, args}); }, offerComposer:(threadKey, text) => offers.push({threadKey, text})}));
+    act:async (command, args) => { calls.push({command, args}); }, offerComposer:(threadKey, text) => offers.push({threadKey, text}), openPreparedMessage:item => opened.push(item)}));
   await React.act(async () => render());
-  return {c, calls, offers, rerender:async next => { Object.assign(view, next); await React.act(async () => render()); },
+  return {c, calls, offers, opened, rerender:async next => { Object.assign(view, next); await React.act(async () => render()); },
     choose:async value => React.act(async () => props(all(c, 'select')[0]).onChange({target:{value}})),
     name:async value => React.act(async () => props(all(c, 'input')[0]).onChange({target:{value}})),
     press:async label => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, `${label} enabled`); await React.act(async () => props(node).onClick()); }};
@@ -142,4 +143,49 @@ test('an offered request fills only an empty composer of its conversation, keeps
   assert.deepEqual(sends, [], 'nothing is sent by an offer');
   assert.deepEqual(revealed, ['conversation', 'conversation'], 'each applied or held offer reveals the conversation once');
   await React.act(async () => root.unmount());
+});
+
+test('after reopening, the library comes first so unfinished drafts appear before any conversation is chosen', async () => {
+  const ui = await mount({host:host(), data:data({activeLibrary:null})});
+  assert.match(next(ui.c), /Show this project's workflows so the draft has a place to go, and to see unfinished drafts/);
+  await ui.press('Show this project\'s workflows');
+  await ui.rerender({data:data({drafts:{drafts:[{name:'half-done', state:'draft'}]}})});
+  assert.match(region(ui.c, 'Unfinished drafts').textContent, /half-done/);
+  assert.match(next(ui.c), /Choose the conversation where you did the work/);
+});
+
+test('a listed draft is tried and reviewed with the draft list\'s own commands and the guide\'s conversation', async () => {
+  const ui = await mount({host:host(), data:data({drafts:{drafts:[{name:'spacing-check', state:'draft'}]}})});
+  await ui.name('spacing-check');
+  assert.equal(props(button(ui.c, 'Try it with the agent in this conversation')).disabled, true, 'a delegated trial needs the conversation');
+  await ui.choose(key('T1'));
+  await ui.press('Try it with the agent in this conversation');
+  assert.deepEqual(ui.calls.at(-1), {command:'workflow_trial_prepare', args:{name:'spacing-check', kind:'delegated', generation:g, threadId:'T1'}});
+  await ui.press('Try it in a fresh conversation');
+  assert.deepEqual(ui.calls.at(-1), {command:'workflow_trial_prepare', args:{name:'spacing-check', kind:'clean', generation:g, threadId:'T1'}});
+  await ui.press('Review it for registration…');
+  assert.deepEqual(ui.calls.at(-1), {command:'workflow_review_draft', args:{name:'spacing-check'}});
+  assert.match(region(ui.c, 'Try or review this draft').textContent, /only your confirmation in the App's dialog registers it/);
+  const delegated = {draftName:'spacing-check', sequence:1, reference:'p1', authoring:{generation:g, threadId:'T1'}};
+  await ui.rerender({host:host({threads:[{threadId:'T1', generation:g, model:'m', delegation:{reading:'missing', reason:'invented: no sub-agent tool'}}, {threadId:'T2', generation:g, model:'m'}]}),
+    data:data({drafts:{drafts:[{name:'spacing-check', state:'changed since review', tryLimit:'invented try limit', reviewLimit:'invented review limit'}]}})});
+  const actions = region(ui.c, 'Try or review this draft');
+  assert.equal(button(ui.c, 'Try it with the agent in this conversation'), undefined, 'missing delegation hides the delegated trial');
+  assert.match(actions.textContent, /isn't available in this conversation: invented: no sub-agent tool/);
+  for (const label of ['Try it in a fresh conversation', 'Review it for registration…']) assert.equal(props(button(ui.c, label)).disabled, true, label);
+  assert.match(actions.textContent, /invented try limit.*invented review limit/);
+  await ui.rerender({data:data({drafts:{drafts:[{name:'spacing-check', state:'under review'}]}})});
+  assert.equal(region(ui.c, 'Try or review this draft'), undefined, 'an open review is continued in the review, not reopened here');
+  await ui.rerender({data:data({drafts:{drafts:[{name:'spacing-check', state:'not valid', findings:['HY-1: no WORKFLOW.md']}]}})});
+  assert.equal(region(ui.c, 'Try or review this draft'), undefined, 'an invalid draft is fixed first');
+  const withPending = host({homeRouting:{activeModeHomeClass:'account'}, workflowRoot:{context:{sourceRef:'src', generation:g},
+    pendingTrials:[{kind:'delegated', ...delegated}, {kind:'clean', draftName:'spacing-check', sequence:2, reference:'p2'}, {kind:'delegated', draftName:'other-draft', sequence:3, reference:'p3', authoring:{generation:g, threadId:'T1'}}]}});
+  await ui.rerender({host:withPending, data:data({drafts:{drafts:[{name:'spacing-check', state:'draft'}]}})});
+  const ready = region(ui.c, 'Try or review this draft').textContent;
+  assert.match(ready, /Trial 1 is ready to send/); assert.match(ready, /Trial 2 is ready to send\. Read and send it in the new-trial message box/);
+  assert.doesNotMatch(ready, /Trial 3/, 'another draft\'s trial is not offered here');
+  const before = ui.calls.length;
+  await ui.press('Read and send trial 1');
+  assert.equal(ui.opened.length, 1); assert.equal(ui.opened[0].kind, 'delegated'); assert.equal(ui.opened[0].pending.reference, 'p1');
+  assert.equal(ui.calls.length, before, 'opening a prepared trial issues no command and sends nothing');
 });

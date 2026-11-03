@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { nativePathText } from "./presentation";
 import { draftStateWords } from "./WorkflowDrafts";
+import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 type Act = (command: string, args: Record<string, unknown>) => Promise<Json>;
@@ -27,6 +28,30 @@ export function draftRequestText(folder: string, name: string): string {
   ].join("\n");
 }
 
+/**
+ * The draft list's own trial and review commands for the named draft, with the
+ * guide's conversation as the authoring conversation; arguments are exactly
+ * DraftRow's. Prepared trial messages open through the studio's existing,
+ * source-checked Open; nothing is sent.
+ */
+function DraftActions({ draft, chosen, host, canAct, act, openPreparedMessage }: { draft: Json; chosen: Json; host: Json; canAct: boolean; act: Act; openPreparedMessage?: (item: PreparedMessage) => void }) {
+  const delegationMissing = chosen?.delegation?.reading === "missing";
+  const perform = (command: string, args: Record<string, unknown>) => { if (canAct) void act(command, args); };
+  const prepared = preparedMessages(host).filter(item => item.kind !== "bring-back" && item.pending?.draftName === draft.name);
+  return <div aria-label="Try or review this draft">
+    {!delegationMissing && <><button disabled={!canAct || !chosen || !!draft.tryLimit} onClick={() => perform("workflow_trial_prepare", { name: draft.name, kind: "delegated", generation: chosen?.generation, threadId: chosen?.threadId })}>Try it with the agent in this conversation</button>{" "}</>}
+    <button disabled={!canAct || !!draft.tryLimit} onClick={() => perform("workflow_trial_prepare", { name: draft.name, kind: "clean", generation: chosen?.generation ?? null, threadId: chosen?.threadId ?? null })}>Try it in a fresh conversation</button>{" "}
+    <button disabled={!canAct || !!draft.reviewLimit} onClick={() => perform("workflow_review_draft", { name: draft.name })}>Review it for registration…</button>
+    <p><small>Trying is optional and pre-fills a trial message for you to send; it is not a run or a registration. Reviewing shows exactly the listed content; only your confirmation in the App's dialog registers it.</small></p>
+    {delegationMissing && <p role="note"><small>Trying with the agent isn't available in this conversation: {text(chosen.delegation.reason)}. Try it in a fresh conversation.</small></p>}
+    {draft.tryLimit && <p role="note"><small>{text(draft.tryLimit)}</small></p>}
+    {draft.reviewLimit && <p role="note"><small>{text(draft.reviewLimit)}</small></p>}
+    {prepared.map(item => <p key={item.identity}>Trial {text(item.pending?.sequence)} is ready to send.{" "}
+      {item.kind === "clean" ? <a href="#conversation">Read and send it in the new-trial message box</a>
+        : openPreparedMessage && <button disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>Read and send trial {text(item.pending?.sequence)}</button>}</p>)}
+  </div>;
+}
+
 function nextFor(draft: Json): { words: string; href: string; link: string } {
   switch (draft?.state) {
     case "not valid": return { words: "The App can't review it yet. Ask the agent to fix the findings below, then look again.", href: "#conversation", link: "Go to the conversation" };
@@ -45,8 +70,8 @@ function nextFor(draft: Json): { words: string; href: string; link: string } {
  * `workflow_observe_drafts`; trial, review and registration stay in the
  * existing draft list and review, where only the person's act registers.
  */
-export function MakeWorkflowGuide({ data, host, act, busy, offerComposer }: {
-  data: Json; host: Json; act: Act; busy: boolean; offerComposer: (threadKey: string, text: string) => void;
+export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPreparedMessage }: {
+  data: Json; host: Json; act: Act; busy: boolean; offerComposer: (threadKey: string, text: string) => void; openPreparedMessage?: (item: PreparedMessage) => void;
 }) {
   const [conversation, setConversation] = useState("");
   const [name, setName] = useState("");
@@ -65,8 +90,8 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer }: {
   const unfinished = drafts.filter((draft: Json) => draft.state !== "registered, unchanged since" && draft.state !== "removed");
   const blocked = !ready ? "Connect Codex first: open Connection & access and start Codex."
     : !sourceCurrent ? "The workflow view is out of date. Wait for it to refresh, or reopen the App view."
+    : !active ? data?.projectLibraryAvailable === true ? "Show this project's workflows so the draft has a place to go, and to see unfinished drafts." : "Open a workflow library in the workflow studio below, or choose a project in Desktop setup."
     : !chosen ? conversations.length ? "Choose the conversation where you did the work." : "Do the work in a conversation first, then choose it here."
-    : !active ? data?.projectLibraryAvailable === true ? "Show this project's workflows so the draft has a place to go." : "Open a workflow library in the workflow studio below, or choose a project in Desktop setup."
     : root === null ? "The opened library's folder can't be shown, so the App can't name where the draft goes."
     : !trimmed ? "Name the workflow: lowercase letters and digits, words joined by hyphens."
     : !valid ? "Use lowercase letters and digits only, words joined by single hyphens, at most 64 characters."
@@ -103,6 +128,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer }: {
           <p role="status"><strong>{trimmed}</strong>: {draftStateWords(existingDraft.state, existingDraft.content)}.</p>
           {list(existingDraft.findings).length > 0 && <ul aria-label="What to fix">{list(existingDraft.findings).map((finding: Json) => <li key={text(finding)}>{text(finding)}</li>)}</ul>}
           <p>{next.words} <a href={next.href}>{next.link}</a></p>
+          {(existingDraft.state === "draft" || existingDraft.state === "changed since review") && <DraftActions draft={existingDraft} chosen={chosen} host={host} canAct={canAct} act={act} openPreparedMessage={openPreparedMessage}/>}
         </div>; })() : trimmed && valid && active ? <p>No draft named {trimmed} has been seen yet. After the agent writes it, look for drafts.</p> : null}
       </li>
     </ol>
