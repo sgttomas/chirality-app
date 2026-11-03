@@ -2,8 +2,9 @@
 
 Standing: **proposal, not run.** Prepared offline on 2026-11-03; revised after
 Agent 0's review. Nothing here has been launched, installed, enrolled, captured,
-recorded or served. No account exists. No step runs until the owner approves it
-concretely. Source facts are cited at the exact signed source `f664ee1d`.
+recorded or served. No step runs until the owner approves it concretely. The
+owner has since selected the normal account; see
+[Current route](#current-route-the-owners-normal-account-owner-selection-2026-11-03). Source facts are cited at the exact signed source `f664ee1d`.
 
 ## Subject
 
@@ -27,7 +28,120 @@ subjects. Nothing transfers from them, and no AX fix is inferred.
 The local DMG has no `com.apple.quarantine` attribute. Production step 5 treats
 missing quarantine as **blocked**, so the transfer must create it.
 
-## Isolation basis
+## Current route: the owner's normal account (owner selection, 2026-11-03)
+
+The owner directed: "Test in the normal account. We can deal with this." That
+replaces the mandatory separate standard user for current v4 testing. The
+unused `chiralityv4test` account is retained; nothing is deleted. The
+standard-user sequence below is kept as the superseded route. Its source facts,
+evidence checklist, claim limits, SC-3 joins, packaging W-0…W-6 items and
+recovery rules still apply, except where this section changes them.
+
+**State before the test.** Parent read metadata only, then this lane rechecked:
+
+- `~/Library/Application Support/com.chirality.app` and `…/Chirality` are absent.
+- These same-ID directories are absent: `WebKit`, `Caches`, `HTTPStorages` and
+  `Saved Application State` for `com.chirality.app`.
+- The shared preferences file `~/Library/Preferences/com.chirality.app.plist`
+  exists: 985 bytes, mode 0600.
+- `~/Applications/Chirality App v4.app`, the Downloads DMG name, both fixture
+  folders and the volume `Chirality App v4` are all absent.
+- v3 (`/Applications/Chirality.app`), the R17 trial and v3's Codex were running.
+  The owner quits them normally first; nothing is signalled.
+
+**What changes with the same user.**
+
+- **Account selection is explicit, not bypassed.** `prepare <account>` must name
+  the current account. It records that choice and whether the account is an
+  administrator. The old "not an administrator" refusal is removed because the
+  owner selected this account. All other refusals stay: absence, privacy,
+  symlink, type and readability.
+- **Same-ID namespace baseline.** `prepare` records the metadata of the
+  preferences file and those directories. It also keeps a private 0600 backup
+  copy of the existing preferences file in the evidence root; nothing reads or
+  prints its contents. c4 records the same after the test, so any change v4 makes
+  to the namespace it shares with v3 is visible.
+- **The agent runs the helper.** It runs in the owner's own session, read-only
+  apart from `prepare`'s fixtures, with
+  `CHIRALITY_WITNESS_OUT=/Users/ryan/dev/chirality-t3/scratch/app-same-user-witness-<UTC>`.
+  The output is private 0700, so no `handoff` is needed. The owner only acts in
+  Safari, Finder and the App.
+- **Recording is the owner's choice.** A full-screen recording in the normal
+  account captures whatever is on screen. It needs Focus on and other private
+  windows closed. Without a recording, "no keychain prompt" rests on the owner's
+  own statement.
+
+**Same-ID consequences the owner accepts by proceeding.** None is cleaned up
+automatically.
+
+- v4 may write the shared preferences domain `com.chirality.app`, which v3 also
+  reads. The pre-test backup is kept. Restoring it would be a separate owner
+  decision.
+- v4 creates its own AppData and may create WebKit, cache and saved-state data
+  under `com.chirality.app`. It all persists after the test.
+- The Dock may show a pinned v3 "Chirality" tile. Reopen using the running tile
+  named **Chirality App v4**, or double-click the same App in
+  `~/Applications` again. Either sends the reopen event to the running instance.
+- **Optional enrollment** writes a real, non-synchronizing data-protection item to
+  the owner's own keychain: service `com.chirality.app.v4.capture-seal`, account
+  `installation-keyring`, group `8A7JL35U4S.com.chirality.app`. 4.0.0 has no
+  removal or rotation route. If this AppData's marker is later lost, a new first
+  enrollment is refused ("namespace not demonstrably new"). v3's keys are not
+  touched; the service differs and nothing is imported.
+
+### Shortest guided sequence
+
+"Agent" steps run after parent coordination, once v3 and the trial have quit.
+Each agent step ends only on the helper's `OK:` line.
+
+| # | Who | Act | Expect / stop |
+|---|---|---|---|
+| 1 | Owner | Quit v3 and the R17 trial normally | The agent's read-only `ps` shows no Chirality or Codex processes left |
+| 2 | Agent | `prepare ryan` (baseline and fixtures), then serve a DMG clone on `127.0.0.1:8765` | Prints the four setup paths |
+| 3 | Owner | Safari: open `http://127.0.0.1:8765/` and download. Double-click the DMG. Drag **Chirality App v4** into `~/Applications`, not `/Applications` | — |
+| 4 | Agent | Stop the server; run `c1 ~/Downloads/<dmg>` | `OK: Gate passed`, then the owner ejects the DMG. On STOP or refused: stop |
+| 5 | Owner | Optional: start a recording. Double-click the App in `~/Applications` ▸ **Open** | "Setup needed" appears. A Gatekeeper refusal is a failure |
+| 6 | Owner | Desktop setup: **Prepare a new account home**, the printed paths, the only supplier option, **Review setup effects** ▸ **Prepare home and save for next launch** ▸ confirm. Then ⌘Q | "Setup saved…", then the App exits with no question |
+| 7 | Owner | Relaunch the same way. Open **Host diagnostics** | "Codex is connected", "State: ready", "Supplier standing: verified-pin". Otherwise stop |
+| 8 | Owner | Close the window. Click the running **Chirality App v4** Dock tile | The same workspace returns |
+| 9 | Owner | ⌘Q | The App exits with no question. The agent's `ps` shows no v4 or Codex process |
+| 10 | Agent | `c4` | Copies the S4 publications and the after-state of the same-ID namespace |
+
+Steps 1–10 are the straightforward install, setup, relaunch and readiness test.
+The capture-sealing witness (SC-3) is added only if the owner decides to enroll,
+by inserting these steps between 7 and 8:
+
+| # | Who | Act | Expect / stop |
+|---|---|---|---|
+| 7a | Owner | **Files and standing acts**: Kind `mark checked`, Scope `witness`, Purpose `pre-enrollment`. **Select file and freeze preview…** `check-1.txt` ▸ **Review native act…** ▸ **mark checked**. Then **Read file-act log…** and expand the row | "capture has no App seal … not verified here" |
+| 7b | Agent | `c2` | Marker and `capture-seal` absent |
+| 7c | Owner | App menu ▸ **Prepare capture sealing…** ▸ **Prepare capture sealing** | "Capture sealing check completed…". Any keychain prompt: Deny, stop |
+| 7d | Owner | Repeat 7a with `check-2.txt`, Purpose `after enrollment` | No "not verified here"; `captureCorrespondence` true |
+| 7e | Agent | `c3` | One committed key; `pending` null |
+| 7f | Owner | ⌘Q, relaunch, **Read…**, expand `check-2.txt` | The same `captureId` still verifies; no prompt |
+
+Without enrollment, SC-3 stays **not run**. That is recorded as an owner choice,
+not a failure.
+
+### Collector changes for this route
+
+These are in [`signed_witness_collect.sh`](signed_witness_collect.sh):
+
+- `prepare <account>` makes the account selection explicit and records it, and
+  the administrator refusal is removed.
+- A same-ID baseline is taken at `prepare` and again at c4, with a private backup
+  of the preferences file.
+- `prepare` is usage-checked.
+
+Nothing else changed: the allowlist, the privacy, symlink, type and readability
+refusals, the c1 gate, the manifest digest `ae04bcaa…` and the `OK:` rule. The
+tests now total 22, including explicit-account refusal, the private preferences
+backup with c4 after-state, and refusal of a symlinked preferences file.
+
+The c4 evidence and the S4 joins are unchanged. W-2's per-user `~/Applications`
+deviation still applies. The runtime SC-3 joins J1–J6 apply whenever 7a–7f run.
+
+## Isolation basis (superseded standard-user route)
 
 The App's data lives at `~/Library/Application Support/com.chirality.app`. That
 directory holds the capture-seal marker, the records store and the account homes,
@@ -163,7 +277,7 @@ Window and Quit:
   Chirality" question appears only with live work, which this model-free session
   cannot create.
 
-## Owner-facing sequence
+## Owner-facing sequence (superseded standard-user route)
 
 This takes about 30 minutes of the owner's time. Every App act is the owner's
 own act. The agent never logs in as, automates or receives the password of the
@@ -459,6 +573,15 @@ The account-home names and project paths it contains refer only to the test user
 
 ## Retention
 
+For the current route, keep these until the named consumers release them:
+
+- the private evidence root, including the preferences backup;
+- the App's AppData, `~/Applications/Chirality App v4.app` and the fixtures;
+- any keychain item.
+
+The unused `chiralityv4test` account is also kept. The standard-user text that
+follows applies only if that route is used.
+
 Keep the test user, its keychain item, AppData, fixtures, the recording and the
 handoff folders. Also keep the DMG, the pre-staple DMG, the signed and unsigned
 Apps and all logs. They stay until the named consumers (packaging S4/W-0…W-6,
@@ -482,7 +605,15 @@ configuration. The Host diagnostics also repeat the prefix "Desktop setup
 required:". Both are wording findings for Agent 0. Changing either creates a new
 candidate.
 
-## Owner decisions requested
+## Owner decisions requested (superseded standard-user route)
+
+For the current route, the remaining owner choices are:
+
+- whether to record the screen;
+- whether to add the optional enrollment steps 7a–7f.
+
+The owner's own acts in steps 1–10 are listed in the current-route section.
+
 
 Runtime and packaging confirmations are recorded above.
 

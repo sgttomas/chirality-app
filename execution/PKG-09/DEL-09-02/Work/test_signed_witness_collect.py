@@ -26,9 +26,8 @@ class Helper(unittest.TestCase):
         self.home = self.tmp / 'home'
         self.home.mkdir()
         self.out = self.tmp / 'out'
-        # The admin refusal is tested once; other cases use a copy without it.
-        self.na = self.tmp / 'na.sh'
-        self.na.write_text(''.join(l for l in HELPER.read_text().splitlines(True) if 'grep -qx admin' not in l))
+        self.na = HELPER
+        self.me = subprocess.run(['id', '-un'], capture_output=True, text=True).stdout.strip()
         self.env = dict(os.environ, HOME=str(self.home), CHIRALITY_WITNESS_OUT=str(self.out), TMPDIR=str(self.tmp))
         self.appdata = self.home / APPDATA_REL
 
@@ -42,7 +41,7 @@ class Helper(unittest.TestCase):
         return subprocess.run(['sh', str(script or self.na), *args], env=self.env, capture_output=True, text=True)
 
     def prepared(self):
-        self.assertEqual(self.run_('prepare').returncode, 0)
+        self.assertEqual(self.run_('prepare', self.me).returncode, 0)
         self.prepared_after_prepare()
 
     def prepared_after_prepare(self):
@@ -54,12 +53,16 @@ class Helper(unittest.TestCase):
         (self.appdata / 'account-homes/account-x/auth.json').write_text('SECRET')
         (self.appdata / 'account-homes').chmod(0o000)
 
-    def test_prepare_refuses_admin_and_creates_private_root(self):
-        if 'admin' in subprocess.run(['id', '-Gn'], capture_output=True, text=True).stdout.split():
-            self.assertEqual(self.run_('prepare', script=HELPER).returncode, 2)
-        self.assertEqual(self.run_('prepare').returncode, 0)
-        self.assertEqual(self.out.stat().st_mode & 0o777, 0o700)
+    def test_prepare_requires_explicit_selected_account_and_creates_private_root(self):
         self.assertEqual(self.run_('prepare').returncode, 2)
+        self.assertEqual(self.run_('prepare', 'someone-else-x9').returncode, 2)
+        self.assertFalse(self.out.exists())
+        self.assertEqual(self.run_('prepare', self.me).returncode, 0)
+        sel = (self.out / 'baseline/selection.txt').read_text()
+        self.assertIn(f'owner-selected account: {self.me}', sel)
+        self.assertRegex(sel, r'administrator: (yes|no)')
+        self.assertEqual(self.out.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(self.run_('prepare', self.me).returncode, 2)
 
     def test_checkpoints_copy_allowlist_privately_without_entering_account_homes(self):
         self.prepared()
@@ -147,7 +150,7 @@ class Helper(unittest.TestCase):
             self.assertEqual(r.stdout.strip(), '', tool)
 
     def test_c1_refuses_symlinked_dmg(self):
-        self.assertEqual(self.run_('prepare').returncode, 0)
+        self.assertEqual(self.run_('prepare', self.me).returncode, 0)
         real = self.tmp / 'real.dmg'
         real.write_text('x')
         (self.home / 'Downloads').mkdir()
@@ -225,7 +228,7 @@ class Helper(unittest.TestCase):
         self.assertTrue((self.out / 'c2/appdata/records/projects/k1/captures/pending/p.json').is_file())
 
     def test_every_successful_command_ends_with_ok_line(self):
-        r = self.run_('prepare')
+        r = self.run_('prepare', self.me)
         self.assertEqual(r.stdout.strip().splitlines()[-1], 'OK: prepare complete')
         self.prepared_after_prepare()
         r = self.run_('c2')
@@ -238,19 +241,44 @@ class Helper(unittest.TestCase):
         self.appdata.mkdir(parents=True)
         lib = self.home / 'Library'
         lib.chmod(0o000)
-        r = self.run_('prepare')
+        r = self.run_('prepare', self.me)
         lib.chmod(0o755)
         self.assertNotEqual(r.returncode, 0)
         self.assertNotIn('OK:', r.stdout)
         self.appdata.rmdir()
         self.appdata.symlink_to(self.tmp / 'missing')
-        r = self.run_('prepare')
+        r = self.run_('prepare', self.me)
         self.assertNotEqual(r.returncode, 0)
         self.assertNotIn('OK:', r.stdout)
 
     def test_checkpoint_requires_app_data(self):
-        self.assertEqual(self.run_('prepare').returncode, 0)
+        self.assertEqual(self.run_('prepare', self.me).returncode, 0)
         self.assertNotEqual(self.run_('c2').returncode, 0)
+
+    def test_same_id_baseline_backs_up_preferences_privately_and_c4_records_after(self):
+        prefs = self.home / 'Library/Preferences'
+        prefs.mkdir(parents=True)
+        (prefs / 'com.chirality.app.plist').write_bytes(b'v3-prefs')
+        (prefs / 'com.chirality.app.plist').chmod(0o600)
+        self.prepared()
+        b = self.out / 'baseline'
+        self.assertEqual((b / 'same-id/com.chirality.app.plist').read_bytes(), b'v3-prefs')
+        self.assertEqual((b / 'same-id/com.chirality.app.plist').stat().st_mode & 0o777, 0o600)
+        meta = (b / 'same-id-namespace.txt').read_text()
+        self.assertIn('WebKit/com.chirality.app absent', meta)
+        self.assertIn('MANIFEST.sha256', {p.name for p in b.iterdir()})
+        (prefs / 'com.chirality.app.plist').write_bytes(b'changed-by-v4')
+        (self.home / 'Library/WebKit/com.chirality.app').mkdir(parents=True)
+        self.assertEqual(self.run_('c4').returncode, 0)
+        after = self.out / 'c4'
+        self.assertEqual((after / 'same-id/com.chirality.app.plist').read_bytes(), b'changed-by-v4')
+        self.assertNotIn('WebKit/com.chirality.app absent', (after / 'same-id-namespace.txt').read_text())
+
+    def test_same_id_symlinked_preferences_refused(self):
+        prefs = self.home / 'Library/Preferences'
+        prefs.mkdir(parents=True)
+        (prefs / 'com.chirality.app.plist').symlink_to(self.tmp / 'elsewhere')
+        self.assertNotEqual(self.run_('prepare', self.me).returncode, 0)
 
     def test_manifest_detects_content_change(self):
         tree = self.tmp / 'tree'
@@ -262,7 +290,7 @@ class Helper(unittest.TestCase):
 
     @unittest.skipUnless(SIGNED.is_dir() and DMG.is_file(), 'retained signed candidate not present')
     def test_c1_on_quarantined_clone_passes_all_but_mount_and_dmg_quarantine(self):
-        self.assertEqual(self.run_('prepare').returncode, 0)
+        self.assertEqual(self.run_('prepare', self.me).returncode, 0)
         apps = self.home / 'Applications'
         apps.mkdir()
         subprocess.run(['cp', '-cR', str(SIGNED), str(apps)], check=True)

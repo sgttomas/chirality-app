@@ -1,7 +1,11 @@
 #!/bin/sh
 # Owner-run evidence helper for SIGNED_CANDIDATE_OWNER_WITNESS.md (proposal).
-# Run ONLY inside the dedicated test user's own Terminal, after owner approval.
-#   prepare        : create the private output root and invented fixtures; refuses if present
+# Run ONLY in the owner-selected account (owner-selected 2026-11-03: the owner's normal account),
+# after owner approval.
+#   prepare ACCOUNT: the owner names the selected account explicitly (must be this user);
+#                    records the selection and a same-ID namespace baseline (metadata, plus a
+#                    private backup copy of an existing preferences file), then creates the
+#                    private output root and invented fixtures; refuses if any are present
 #   c1 DMG         : pre-launch gate (DMG, mounted App, installed App); read-only; nonzero = STOP
 #   manifest APP   : print the content-structure manifest digest of APP (preparation aid)
 #   c2             : after the pre-enrollment capture, before enrollment; read-only
@@ -102,18 +106,35 @@ content() { # content-structure manifest of DIR: path, type, mode, file SHA-256 
       fi
     done < "$L/sorted" || exit 2
     exit 0 ); }
+# Same bundle ID (com.chirality.app) namespaces outside AppData that v3 or v4 may use.
+SAMEID_PREFS="$HOME/Library/Preferences/com.chirality.app.plist"
+SAMEID_DIRS="$HOME/Library/Application Support/Chirality
+$HOME/Library/WebKit/com.chirality.app
+$HOME/Library/Caches/com.chirality.app
+$HOME/Library/HTTPStorages/com.chirality.app
+$HOME/Library/Saved Application State/com.chirality.app.savedState"
+sameid() { # record same-ID namespace metadata into $D; privately copy the preferences file
+  { printf '%s\n' "$SAMEID_DIRS" | while IFS= read -r x; do nolink "$x"; statf "$x"; done || exit 2
+    nolink "$SAMEID_PREFS"; statf "$SAMEID_PREFS"; } > "$D/same-id-namespace.txt" || die "same-ID metadata failed"
+  if present "$SAMEID_PREFS"; then
+    [ -f "$SAMEID_PREFS" ] || die "unexpected preferences entry $SAMEID_PREFS"
+    mkdir "$D/same-id" && cp -p "$SAMEID_PREFS" "$D/same-id/com.chirality.app.plist" || die "preferences backup failed"
+  fi; }
 check() { # check NAME STATUS(0 pass)
   if [ "$2" -eq 0 ]; then echo "PASS $1" >> "$D/gate.txt"; else echo "STOP $1" >> "$D/gate.txt"; G=1; fi; }
 
 case "${1:-}" in
 prepare)
   [ "$(cd "$HOME" && pwd -P)" = "$HOME" ] || die "home path is not its real path"
-  id -Gn | tr ' ' '\n' | grep -qx admin && die "this user is an administrator"
+  [ -n "${2:-}" ] && [ "$2" = "$(id -un)" ] || die "name the owner-selected account explicitly: prepare $(id -un)"
   nolink "$APPDATA"; ! present "$APPDATA" || die "App data already exists"
   [ ! -e "$SHARED" ] && [ ! -e "$HOME/ChiralityV4Fixtures" ] || die "fixtures already exist"
   [ ! -e "$OUT" ] && [ ! -L "$OUT" ] || die "output root $OUT already exists"
   nolink "$(dirname "$OUT")"
-  mkdir "$OUT"; mkdir "$OUT/recording"
+  mkdir "$OUT"; mkdir "$OUT/recording"; mkdir "$OUT/baseline"; D="$OUT/baseline"
+  { date -u '+%Y-%m-%dT%H:%M:%SZ'; echo "owner-selected account: $2"
+    if id -Gn | tr ' ' '\n' | grep -qx admin; then echo "administrator: yes"; else echo "administrator: no"; fi; } > "$D/selection.txt"
+  sameid; manifest
   umask 022
   mkdir -p "$SHARED/skills" "$PROJECT"
   : > "$SHARED/config.toml"
@@ -191,6 +212,7 @@ c2|c3|c4)
     done
   done
   if [ "$1" = c4 ]; then
+    sameid
     dir_ok "$APPDATA/desktop-startup"
     if present "$APPDATA/desktop-startup/request.json"; then copyrel "$APPDATA/desktop-startup/request.json"; fi
     dir_ok "$APPDATA/runtime"; dir_ok "$APPDATA/runtime/distribution"
@@ -219,5 +241,5 @@ manifest)
   T=$(mktemp "${TMPDIR:-/tmp}/witness-manifest-out.XXXXXX")
   content "$2" > "$T" || { rm -f "$T"; die "manifest failed"; }
   h=$(shasum -a 256 < "$T"); rm -f "$T"; echo "${h%% *}" ;;
-*) echo "usage: $0 prepare | c1 <dmg> | c2 | c3 | c4 | handoff <account> | manifest <app>" >&2; exit 64 ;;
+*) echo "usage: $0 prepare <account> | c1 <dmg> | c2 | c3 | c4 | handoff <account> | manifest <app>" >&2; exit 64 ;;
 esac
