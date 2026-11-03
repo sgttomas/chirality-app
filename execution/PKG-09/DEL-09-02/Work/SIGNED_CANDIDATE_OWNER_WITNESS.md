@@ -166,7 +166,7 @@ These are in [`signed_witness_collect.sh`](signed_witness_collect.sh):
 
 Nothing else changed: the allowlist, the privacy, symlink, type and readability
 refusals, the c1 gate, the manifest digest `ae04bcaa…` and the `OK:` rule. The
-tests now total 27. They add:
+tests now total 28. They add:
 
 - explicit-account refusal;
 - the private preferences backup, including from a 0644 source, and the c4
@@ -175,7 +175,8 @@ tests now total 27. They add:
   namespace path;
 - an intermediate metadata failure ending without `OK:`;
 - removal of an inherited parent ACL, and refusal of an output root that
-  carries ACLs.
+  carries ACLs
+  or whose ACL inspection fails.
 
 The c4 evidence and the S4 joins are unchanged. W-2's per-user `~/Applications`
 deviation still applies. The c1 gate is unchanged and is not run on the local

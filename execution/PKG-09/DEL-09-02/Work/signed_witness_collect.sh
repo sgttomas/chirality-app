@@ -43,15 +43,17 @@ nolink() { # refuse a symlink at $1 or any ancestor up to $HOME
 private() { # owner-only mode and no ACL entries on one evidence path
   if [ -d "$1" ]; then chmod 700 "$1" || die "chmod failed on $1"; else chmod 600 "$1" || die "chmod failed on $1"; fi
   chmod -N "$1" || die "ACL removal failed on $1"
-  _acl=$(ls -led "$1" | sed -n 2p) || die "ACL check failed on $1"
-  [ -z "$_acl" ] || die "ACL remains on $1"; }
+  acl_free "$1" || die "ACL remains on $1"; }
+acl_free() { # true only if ls -led itself succeeds and shows no ACL lines
+  _ls=$(ls -led "$1") || die "ACL inspection failed on $1"
+  [ -n "$_ls" ] || die "ACL inspection failed on $1"
+  [ "$(printf '%s\n' "$_ls" | wc -l | tr -d ' ')" = 1 ]; }
 root_ok() {
   [ -d "$OUT" ] && [ ! -L "$OUT" ] || die "output root $OUT missing; run prepare first"
   nolink "$OUT"
   [ "$(stat -f %u "$OUT")" = "$(id -u)" ] || die "output root not owned by this user"
   [ "$(stat -f %Lp "$OUT")" = 700 ] || die "output root is not mode 0700"
-  _acl=$(ls -led "$OUT" | sed -n 2p) || die "ACL check failed on $OUT"
-  [ -z "$_acl" ] || die "output root $OUT carries ACL entries"; }
+  acl_free "$OUT" || die "output root $OUT carries ACL entries"; }
 stage() { root_ok; [ ! -e "$OUT/$1" ] || die "$OUT/$1 already exists"; mkdir "$OUT/$1"; D="$OUT/$1"; private "$D"
   { date -u '+%Y-%m-%dT%H:%M:%SZ'; whoami; id -Gn; } > "$D/who.txt"; }
 manifest() { # checked list, then checked hashes; any failure is a refusal, never "wrote"

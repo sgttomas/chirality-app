@@ -329,6 +329,18 @@ class Helper(unittest.TestCase):
         self.prepared_after_prepare()
         self.assertEqual(self.run_('c2').returncode, 2)
 
+    def test_acl_inspection_failure_is_not_success(self):
+        self.prepared()
+        subprocess.run(['chmod', '+a', 'everyone allow read', str(self.out)], check=True)
+        shim = self.tmp / 'shim-ls'
+        shim.mkdir()
+        (shim / 'ls').write_text('#!/bin/sh\nexit 1\n')
+        (shim / 'ls').chmod(0o755)
+        env = dict(self.env, PATH=f'{shim}:{os.environ["PATH"]}')
+        r = subprocess.run(['sh', str(self.na), 'c3'], env=env, capture_output=True, text=True)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertNotIn('OK:', r.stdout)
+
     def test_manifest_detects_content_change(self):
         tree = self.tmp / 'tree'
         tree.mkdir()
