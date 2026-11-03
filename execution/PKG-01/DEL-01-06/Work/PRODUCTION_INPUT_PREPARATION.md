@@ -165,6 +165,29 @@ Notarization, stapling, launch, installation, enrollment and publication have no
 occurred. The notary profile name is unresolved. The signed App `b3dd4145…` and DMG
 `1a962e3a…` are the subjects for those later steps.
 
+### Owner-authorized notarization and stapling (2026-11-03)
+
+Owner direction: "upload this exact DMG to Apple for notarization, then staple the
+ticket and verify Gatekeeper acceptance." The record is
+[notarization.json](selected-production-build/f664ee1d-caec11a00be3/notarization.json).
+
+- One submission, `430e7461-6741-422d-9644-491aa1babe6c`, of DMG `1a962e3a…`
+  through the owner's `chirality-notary` keychain profile. No credential was read or recorded.
+- Apple's result: Accepted, "Ready for distribution", status code 0, no issues. The
+  log binds SHA-256 `1a962e3a…` and lists 33 ticket entries.
+- Stapled and validated. The final DMG is SHA-256
+  `34ab566132e059d3e51885c87907898238ba95421c88d1303d535d19eafcf26e`, 156,986,610 B;
+  the pre-staple bytes are retained privately.
+- Gatekeeper accepts the DMG and the contained App, read-only and not launched, as
+  "Notarized Developer ID". The contained App passes deep strict verification and its
+  identity is unchanged at `b3dd4145…`.
+
+"Ready for distribution" is Apple's notarization status, not release qualification.
+Still open: the installed W-0…W-6 and S4 witness, the owner's publication decision,
+supplier pin qualification, and the recorded notice gaps (the four supplier
+associations, rg/PCRE2/zsh licence texts, full objc2 terms and the Apple SDK caveat,
+transitive coverage, and the unverified `@fontsource` upstream).
+
 The next production subject requires the actual owner identifier/team and
 settled signer/keychain inputs, then a separately identified production build,
 signing/notarisation and quarantined installed witness. This unsigned input-test
