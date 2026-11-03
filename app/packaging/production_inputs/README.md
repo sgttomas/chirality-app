@@ -2,11 +2,14 @@
 
 This helper prepares configuration and an exact resource/input account; it does
 not build, copy the supplier, sign, notarise, install, launch or read account state.
-The owner-selected basis is the parent-maintained
-`execution/_Coordination/CURRENT_EXECUTION_BASIS.md`: separate v4 identity,
-macOS 15 minimum and package version 4.0.0. These choices do not select an exact
-production identifier/team or qualify OS support. The historical publisher draft
-and native candidates are not rewritten.
+The current owner selection is recorded in
+`execution/PKG-01/DEL-01-06/Work/V4_TEST_SUBJECT.md`: on 2026-11-02 the owner kept
+the existing production identifier `com.chirality.app` (same-ID), superseding the
+earlier separate-v4 route, with macOS 15 minimum and package version 4.0.0. The
+exact identifier/team enter only through the closed private publisher input. These
+choices do not select keychain service/account/group values, qualify OS support or
+authorize signing. The historical publisher draft and native candidates are not
+rewritten.
 
 From repository root, with a disposable frozen source export (never a live Git
 checkout), stable vendor tree in durable task storage, explicit expected vendor
@@ -122,7 +125,10 @@ inventory method can still supply raw inventory for the actual PKG identity.
    The settled runtime interface uses separate compiled KEYCHAIN_SELECTION and
    explicit `allow_first_enrollment`; the host-only `enroll_initial(app_data)`
    operation is not startup, IPC, UI, seal, verify or rotate. Receive the actual
-   controlled enrollment procedure before activation. Ordinary operations never
+   controlled enrollment procedure before activation. For 4.0.0 the owner left
+   key rotation unavailable (C3): expect no rotation route and no signed SC-5
+   witness, and carry that release limitation as recorded in
+   `PACKAGING_AND_DISTRIBUTION.md` and the SEAL-C signing join. Ordinary operations never
    provision or regenerate missing keys; no plan here calls enrollment or SecItem.
 3. Retain FP-0 and P1 equality before signing. Under the owner's later signing
    direction, sign P-0 then the outer App using CF-4, never `--deep` for signing.
