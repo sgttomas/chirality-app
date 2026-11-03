@@ -112,6 +112,10 @@ class Preparation(unittest.TestCase):
         self.args['output'] = self.root / 'output-explicit-no-grant'
         with self.assertRaises(ValueError): self.run_plan()
         self.assertFalse(self.args['output'].exists())
+        self.profile['Entitlements'][subject.GROUPS] = ['OTHER00000.*']; self.changed_profile()
+        self.args['output'] = self.root / 'output-explicit-non-covering'
+        with self.assertRaises(ValueError): self.run_plan()
+        self.assertFalse(self.args['output'].exists())
 
     def test_missing_profile_or_certificate_reports_exact_gap_without_plist(self):
         for field in ('profile_plist', 'profile_cms', 'signer_certificate'):
