@@ -2,8 +2,8 @@
 
 ## Current release pathway
 
-Updated 2026-11-01 UTC against integrated main
-`e5a18920574ed56a8e4bf57f78566d7dab7ccfd8`. HELP_HUMAN/Agent 0 owns purpose,
+Updated 2026-11-03 against integrated main
+`9670f7349618086a32a5f9ae16655964a0c28a63`. HELP_HUMAN/Agent 0 owns purpose,
 cross-front sequencing,
 review of returns, final App integration and continuity with the owner.
 This is the current execution account; requirements and acceptance remain in
@@ -27,10 +27,24 @@ owner selected v4-focused testing, without a broad v3 comparison, regression
 or migration campaign; narrow namespace/data-collision precautions preserve
 existing owner data without importing, resetting or resealing it. See
 [V4 test subject](../PKG-01/DEL-01-06/Work/V4_TEST_SUBJECT.md).
-The eleven approved source-text downloads have been received and checked;
-the additional four-file provenance proposal remains unapproved. Actual
-signing, enrollment, installed/OS qualification and public release remain
-outstanding; the selected identifier does not establish those results.
+The eleven approved source-text downloads and the later four approved files have
+been received; source receipts do not close the remaining notice associations.
+Candidate source `f664ee1d`, signed App `b3dd4145`, and stapled DMG `34ab5661`
+have completed signing, notarization and static Gatekeeper assessment. The
+[packaging record](../PKG-01/DEL-01-06/Work/PRODUCTION_INPUT_PREPARATION.md)
+retains their exact identities and limits. The owner selected testing in the
+normal account; the installed copy was launched by exact path after the legacy
+runtime was unloaded with permission. Setup completion, native workflow results,
+enrollment, installed S4 and public release are not established by that launch.
+
+The owner reports that this candidate still presents a walking skeleton and
+has directed continued product work. Both running an existing workflow and
+creating/trialling/saving/reusing one
+are required before 4.0.0 ships. Running an existing workflow comes first; the
+authoring journey is not deferred. These usable journeys are the next product
+milestones, before another final packaging cycle. The bounded
+[publication punchlist](PUBLICATION_PUNCHLIST.md) indexes deliverable-owned
+results and finish conditions; it changes no acceptance requirement or hold.
 The owner selected v3's overall visual form as the UI reference and gave
 Agent 0 discretion over functional and interactive components. T3 Code may
 inform interactions; its implementation is not presumed transferable. This
@@ -66,81 +80,39 @@ The owner clarified that Agent 0 carries the work through publication, with
 acceptance, signing/account acts, replacement and public release still reserved.
 Current Type 1 assignments are:
 
+- **Product UI and examination consumer adoption:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:dfd5f3387f3d829609ad20116fc248c584aecf045d0fd2268b5674b536a95b92>.
+  PRs #84/#86/#87/#88/#89 delivered setup/history/workflow presentation and
+  submission repairs. They did not complete product usability. This lane is
+  active again for task-oriented setup and daily workspace presentation, with
+  retained host authority and no hidden persistence/permission changes.
+  [Product readiness reconciliation](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md)
+  distinguishes implemented slices from the still-open user journey. Agent 0
+  owns shared design and integration; owner acceptance remains reserved.
 - **Native desktop qualification:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:22359dd2b3895ab8526f6413ce3500b18c9dfe3ce3973194a3a0e3f66f724f66>.
-  Own the identified candidate and native workflow/recovery/access-mode journeys.
-  PR #68's original-window parenting, PR #69's inactive recovery backend and
-  PRs #70/#73/#74's attended controller repairs/preparation are integrated.
-  The PR69 backend remains inactive; no product timeout is selected by this
-  account. Current attended candidate is `1f67d3822b-8c83d74ae3ce`, not current
-  main or the unsigned release-profile input build. Parent reports the consumed
-  `j58087z7` attempt failed initial focus after capture/parser progress; owner
-  normal Quit, original Child normal exit 0, administrative wait 0, 56.973 s,
-  no overrun. No setup, B, Stop or LT23 was reached. Original failures and state
-  remain retained. Native owner fixes initial attended entry; later workflow,
-  recovery and three-access-mode journeys still require their actual evidence.
-  [Receiving sequence and limits](../PKG-09/DEL-09-01/Work/package-successor-receiving-v1/RECEIVING.md#downstream-native-journey-readiness-2026-11-01)
-  distinguishes source tests, candidate observations and administrative closure.
-  Retained history: PRs #33/#35's candidate `fdcf608fb5-23c6c3f22f5e`, actual
-  source `fdcf608fb57c4f8299c7440ffc56519314046cff`, setup/save/normal Quit at
-  22:28:05–22:28:16 UTC on 2026-10-30 and saved A state remain preserved alongside
-  failed B evidence. The native terminal-route account's older candidate heading
-  describes that subject, not a transfer of its observations to current main.
+  Current owner-test subject is signed `b3dd4145`, source `f664ee1d`, installed
+  in the owner's `~/Applications`. PR #104 supplies the earlier standard-user
+  procedure; PR #105 proposes the normal-account adaptation. Preparation and
+  exact-path launch are not a completed witness. No quarantine is present on
+  this local copy; no downloaded first-launch assessment is claimed. Native
+  journeys, interruption/recovery and the three access modes remain open.
+  Historical `1f67d3822b-8c83d74ae3ce`, failed attempts, `795` state and held
+  `zootd3ob` remain preserved; no unattended harness is resumed by this plan.
 - **macOS distribution readiness:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:29a4e14ac4c1423f4ccd20d7605000caf9a5b6d9030c967d51875cd09021e07f>.
-  Own package/signing/install preparation and the approved terms representation.
-  SIGN-1 Option B remains selected. The existing production identifier, minimum
-  OS and version are selected above; recovered team metadata and plan inputs
-  do not establish a signed publisher or installed-custody witness. PR #65 retains
-  actual unsigned release-profile input evidence at source `12d26b8db5`, tree
-  `278899dad62e…`, P0 `1b3c6c2ec345…`, version 4.0.0/minimum 15.0; 50 resource
-  mappings and the complete Resources comparison were reported matching.
-  Binding/projection outputs are null (`None`), not packet bindings. No signed
-  App, installer, installed S4 or production qualification follows. PRs #57/#59
-  integrated the explicit package/S4 → EXP/SQ route; collect actual artifacts
-  through that route after selected private publisher input and signing-stage
-  prerequisites. Private originals remain private. Secure handling does not
-  make the eventual shipped identity or compiled requirement secret.
-- **Installed supplier integrity:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:72b0bb46c6645f2fd7155deab7d5ff1fa5b3b56a4e77151178a0e322c1e906ae>.
-  PR #36 integrated the selected S4 process-local macOS observation and explicit
-  reader semantics. The compiled publisher requirement remains `None`; there is
-  no real installed verification or signing claim. PR #38 integrated the
-  separately bound publisher-build selector; ordinary builds remain unselected
-  and no real publisher input is supplied. Serialized evidence
-  cannot grant live-start authority. PR #62's SEAL-C keychain provider and
-  CFIndex ABI correction are integrated, with current package-profile adoption;
-  provider selection remains `None`. Agent 0 selected the stable service
-  `com.chirality.app.v4.capture-seal`, account `installation-keyring`, and
-  first-enrollment allowance for the explicit native enrollment path; the `v4`
-  suffix denotes a persistent key namespace, not a separate App identifier.
-  Actual authorized prefix/group/profile evidence, signing and installed
-  enrollment witnesses remain owed. On 2026-11-02 the owner directed that
-  rotation remain unavailable for 4.0.0: no production invocation is selected,
-  signed SC-5 remains blocked/not run, and no key-revocation or compromise-response
-  capability is supplied. Earlier keys remain retained. This accepted limitation
-  is not an SC-5 pass, a waiver of enrollment/SC-3/SC-4 or other witnesses, or a
-  later-version policy. The package/EXP/SQ reader checks consistency only.
-- **Examination consumer adoption:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:dfd5f3387f3d829609ad20116fc248c584aecf045d0fd2268b5674b536a95b92>.
-  Own the terms documentary successor and its standalone/canonical/SQ joins.
-  The explicit v3 terms condition selects the approved PK-R4/§9 meaning and
-  retained owner/publication evidence; original v2 artifacts, pins and reader
-  bytes retain their historical subjects. This is not package/S4 activation.
-  PR #44 integrated catalog-v4 behavior at SWBPIPE
-  `9b6281e7eaca924e6166336b87b6d25937c1ca04`; PR #46
-  integrated the [PR30 source successor](../PKG-09/DEL-09-06/Work/catalog-v4-pr30/RECEIVING_ADOPTION.md)
-  at `a659523a75dbbf2cdfcccdf8a667b6fb482e10ea`, binding the shared `removalIntents.ts` import. PR #49 integrated
-  the [PR40 source/hash successor](../PKG-09/DEL-09-06/Work/catalog-v4-pr40/RECEIVING_ADOPTION.md)
-  at `cc91aadc9822c5c1d8ba3d883a3ee220dddc1b65`: strict engine-prefixed to bare
-  catalog hash correspondence and revision gating, not a generic reverse
-  conversion. Catalog remains 50,864 bytes/SHA256
-  `8e9a4b4e3eec027d092033ea5d95f1648030520e797c5a660ab387531f23be17`.
-  PR27/PR30/v3/v2/origin subjects remain historical and unchanged. Actual host
-  witness must name an applicable source; source correspondence is no live,
-  person's Apply, W9-A or criterion-17 qualification. PRs #57/#59 integrated
-  [explicit package/S4 receiving](../PKG-09/DEL-09-01/Work/package-successor-receiving-v1/RECEIVING.md):
-  outer wrapper citation, independent publisher trust and exact EXP/SQ joins,
-  preserving missing/failed evidence and historical routes. No actual signed
-  packet has been received. Lane 4 owns downstream readiness and this current
-  account; native implementation remains with its owner. Maximum four App
-  delivery lanes; native final checks take priority.
+  Own package inputs, notices, supplier provenance and final distribution
+  assembly. PRs #92/#94/#96/#97/#99/#101/#102/#103 retain the current assembly,
+  receipts, signing and notarization results. Supplier pin qualification and
+  notice gaps remain open. Preserve successful package evidence; product source
+  changes require a new identified candidate and applicable final signing/
+  notarization, not transfer of old results. No repeat acceptance of the approved
+  OpenAI terms is required; the distribution decision remains `not_made`.
+- **Installed supplier integrity and SEAL-C:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:72b0bb46c6645f2fd7155deab7d5ff1fa5b3b56a4e77151178a0e322c1e906ae>.
+  PRs #93/#98/#100 selected and wired the actual profile/default own-App route.
+  Candidate `b3dd4145` has compiled publisher binding `58463a02` and selected
+  keychain namespace, with signed app-id/team entitlements. Static joins passed;
+  runtime S4, real enrollment/SC-3 and native SC-4 remain unestablished. Enrollment
+  is a separate owner act. Rotation remains unavailable for 4.0.0; signed SC-5 is
+  blocked/not run under the owner's C3 disposition, not passed or waived. Keep
+  earlier keys. No revocation/compromise-response capability is claimed.
 
 Earlier delivered contributions and continuing external boundaries:
 
@@ -218,6 +190,10 @@ project Agent 0. Development-agent model, effort and service-tier settings
 come only from session steering.
 
 ### Evidence still required for release
+
+The original five-part release list below remains open as a whole. Its packaging
+substeps have advanced; it never established product usability. See the dated
+audit and bounded completion rows in [the punchlist](PUBLICATION_PUNCHLIST.md).
 
 1. One identified current desktop candidate with applicable native workflow,
    interruption/recovery and model-access results. Older October 14–16
