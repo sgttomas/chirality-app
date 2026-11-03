@@ -802,6 +802,20 @@ Neither chooses the qualified production minimum. Retain this capability
 requirement for the owner's future minimum-OS and publisher decisions. No
 publisher identity is selected or inspected by this preparation.
 
+**4.0.0 owner-accepted release limitation: key rotation (2026-11-02).** The owner
+directed "leave it unavailable for 4.0.0" (C3). The authoritative record is
+`SEAL_C_KEYCHAIN_SIGNING_JOIN.md`, section "Owner rotation disposition for 4.0.0
+(2026-11-02)", from PR #93. The 4.0.0 candidate's handoff (OUT-002) carries these
+limitations exactly:
+- production key rotation is not invocable: no native menu, automatic trigger,
+  IPC, CLI or other route; the existing host-only source function stays unexposed;
+- the signed SC-5 rotation witness is not run (blocked);
+- rotation supplies no revocation or key-compromise response; earlier keys stay held.
+
+This is a scoped disposition. It is not an SC-5 pass, and it waives no enrollment,
+SC-3, SC-4 or other keychain witness. It selects no policy for later versions.
+KEYCHAIN_SELECTION stays None, and signing and enrollment permissions are unchanged.
+
 ### Concrete producer/consumer migration scope for App Agent 0 allocation
 
 Read-only interface basis: PR #36 `7b9f8cd6`, including

@@ -123,7 +123,10 @@ inventory method can still supply raw inventory for the actual PKG identity.
    The settled runtime interface uses separate compiled KEYCHAIN_SELECTION and
    explicit `allow_first_enrollment`; the host-only `enroll_initial(app_data)`
    operation is not startup, IPC, UI, seal, verify or rotate. Receive the actual
-   controlled enrollment procedure before activation. Ordinary operations never
+   controlled enrollment procedure before activation. For 4.0.0 the owner left
+   key rotation unavailable (C3): expect no rotation route and no signed SC-5
+   witness, and carry that release limitation as recorded in
+   `PACKAGING_AND_DISTRIBUTION.md` and the SEAL-C signing join. Ordinary operations never
    provision or regenerate missing keys; no plan here calls enrollment or SecItem.
 3. Retain FP-0 and P1 equality before signing. Under the owner's later signing
    direction, sign P-0 then the outer App using CF-4, never `--deep` for signing.
