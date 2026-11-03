@@ -90,5 +90,25 @@
     "entitlements_proposed_sha256": "7c86aed9fe6f9ef56c2f42066672f387f3db931248e1cce6b85cb3dd590a3787",
     "signing_plan_sha256": "9836582b71f32a91f7cc4fdd7fb3a51a56073481dc1bd7791bc533ff7365841b",
     "activation_gaps_remaining": true
+  },
+  "historical_note": "Top-level metadata_state/metadata_gaps record the first run without a trust input (historical). trusted_run and corroborating_runtime_run use the Agent 0 selection.",
+  "corroborating_runtime_run": {
+    "by": "Lane3 runtime owner",
+    "private_record": "/Users/ryan/dev/chirality-t3/scratch/seal-c-profile-intake.4peCQRrX/build-join.json",
+    "assessed_at": "2026-11-03T03:22:28Z",
+    "helper": "main f664ee1d, tool 4ecce7cc\u2026",
+    "trusted_publisher_sha256": "58463a0240c7912f841ea2aaf80a4da396d1ba8c05234533621ed3398ebd5e19",
+    "metadata_state": "consistent-profile-proposal",
+    "metadata_gaps": [],
+    "publisher_closure": "consistent-exact-byte-joins",
+    "group_route": "default-application-identifier-group",
+    "outputs": {
+      "signing-plan.json": "6c64499b6fb41a4bab0fc471f3d25d88d71c3d50e78eadaa4774c1c6412f39e5",
+      "witness-sequence.json": "45a44fd71ab19cf0521a0a979baa1d8dd976cd985c6a6c0cd2c8900b2c52cced",
+      "entitlements.proposed.plist": "7c86aed9fe6f9ef56c2f42066672f387f3db931248e1cce6b85cb3dd590a3787",
+      "COMPLETE.json": "d9e24dbc925fceb06c0e5b9730db9206f8c32d5cf0f3fd10738b8126e734528b"
+    },
+    "check_output": "OK",
+    "note": "signing-plan digest differs from trusted_run only by assessed_at and private evidence locators; entitlements and outcome identical"
   }
 }
