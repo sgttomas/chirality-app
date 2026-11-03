@@ -88,6 +88,20 @@ needs coordinated slot admission, a fresh Codex home and its own authorization.
 Compiled publisher bindings, signing, notarisation, installed witnesses,
 enrollment and the remaining notice/supplier items stay open.
 
+`AcP2w3vq` predates the bundled IBM Plex font notice (PR #96) and stays preserved
+as a plan-only record without it. The current plan was prepared from merged source
+`db32e342cefde905545faba4b7e3f99e8fa3b957` (tree `5adeb641…7635`, 3,716 export
+files Git-blob verified), with the same publisher input digest, vendor and pin, and
+the rederived upstream supplement. It is retained at
+`/Users/ryan/dev/chirality-t3/scratch/app-selected-production-plan-EWqBYkw8/plan`
+(PLAN_COMPLETE SHA-256 `96a71e49…0c1c`, 54 resource mappings; `check_plan` passes).
+The font notice check passes with all ten name tables matching. Relative to
+`AcP2w3vq`, the only additions are `third-party-notices/fonts/index.json` and the
+OFL text, with no other content or destination change. The font bytes are
+blob-identical to v3; the declared `@fontsource` 5.3.0 upstream remains unverified.
+This adds the font notice; it does not make notice coverage complete or transitive.
+It is still a plan only, and the build remains withheld pending Agent 0's go.
+
 The next production subject requires the actual owner identifier/team and
 settled signer/keychain inputs, then a separately identified production build,
 signing/notarisation and quarantined installed witness. This unsigned input-test
