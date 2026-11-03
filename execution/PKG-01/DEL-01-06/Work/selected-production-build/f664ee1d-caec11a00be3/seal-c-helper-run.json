@@ -1,0 +1,68 @@
+{
+  "format": "seal-c-helper-run-summary/1",
+  "helper": "execution/PKG-01/DEL-01-04/Work/seal-c-signing/prepare.py at main f664ee1d",
+  "assessed_at": "2026-11-03T03:22:49Z",
+  "packaging_plan_files": {
+    "tauri.package-inputs.conf.json": "3f104a2979bb3a1717a91747e7f2dd31612a5d6bcf800e7e24b422d9a2373912",
+    "build-recipe.json": "b436d5b2b6200a88ed179a304bb6919a47d33918afb562206cd60d0209ac2f6c",
+    "input-inventory.json": "a26d0489ab07d90f8b7a886ead1a0eb46edfdf4125fd597e169abda1f1e0f903",
+    "PLAN_COMPLETE.json": "4d4337c53f86a421c0ac088d3f140ed67ee25c7a82761ba831010d6f281c67c4"
+  },
+  "publisher_input": {
+    "path": "publisher-build-selection.s1.json",
+    "sha256": "63a77b966e93d7db9096c5cd104879a49a14210e835320c2543b57a465cf8f4e"
+  },
+  "publisher_artifacts": {
+    "publisher_binding": {
+      "path": "publisher-build-binding.s1.json",
+      "sha256": "58463a0240c7912f841ea2aaf80a4da396d1ba8c05234533621ed3398ebd5e19"
+    },
+    "publisher_projection": {
+      "path": "publisher-build-public-projection.s1.json",
+      "sha256": "a73f4f4c82b4604586d8fb662309fbca4b3d56b869824b269c526b9db176e334"
+    },
+    "publisher_requirement": {
+      "path": "publisher-requirement.txt",
+      "sha256": "86d4009014b754289d7466429f849887144a1af435e32a7b75f0531aaf8fc128"
+    },
+    "tauri_config": {
+      "path": "effective-tauri-config.json",
+      "sha256": "1000cf8763b1422ec1436c2b92e4fb5cbbd6813c2649cfc2ef5506b646541e4d"
+    }
+  },
+  "profile_cms": {
+    "path": "profile.cms",
+    "sha256": "5eccea61c989e499f738376cd843fe55c0c6ba6a6ad5ca86af074acdef965165"
+  },
+  "profile_metadata": {
+    "uuid": "005576c2-84ca-4906-b4c1-6c50ca4d401c",
+    "prefix": "8A7JL35U4S",
+    "creation": "2026-11-03T01:38:03Z",
+    "expiration": "2044-10-29T01:38:03Z"
+  },
+  "trusted_signer_sha1": "c7f111429f7ac5085484a9df6f5ae7cff552deef",
+  "metadata_state": "profile-proposal-publisher-gaps",
+  "metadata_gaps": [
+    "independently selected publisher binding digest"
+  ],
+  "publisher_closure": "gaps",
+  "group_route": "default-application-identifier-group",
+  "namespace_proposal": {
+    "service": "com.chirality.app.v4.capture-seal",
+    "account": "installation-keyring",
+    "access_group": "8A7JL35U4S.com.chirality.app"
+  },
+  "entitlements_proposed_sha256": "7c86aed9fe6f9ef56c2f42066672f387f3db931248e1cce6b85cb3dd590a3787",
+  "entitlements_proposed": {
+    "com.apple.application-identifier": "8A7JL35U4S.com.chirality.app",
+    "com.apple.developer.team-identifier": "8A7JL35U4S"
+  },
+  "effective_tauri_config": "reconstructed offline as tauri.conf.json merged with the plan overlay; canonical SHA-256 equals the compiled binding tauri_config_sha256",
+  "profile_metadata_authenticated_by_helper": false,
+  "profile_cms_independently_verified": "openssl cms -verify against system-store Apple Root CA b0b1730e\u2026f024 (separate intake)",
+  "independent_publisher_digest": null,
+  "limits": [
+    "the remaining metadata gap is the independently selected trusted publisher binding digest; no trust digest was supplied by this run",
+    "no signing, SecItem, enrollment or activation"
+  ]
+}

@@ -135,7 +135,10 @@ inventory method can still supply raw inventory for the actual PKG identity.
    file provider and no enrollment menu. Sign the App's main executable with
    exactly `com.apple.application-identifier` and `com.apple.developer.team-identifier`
    (no `keychain-access-groups`; the profile's wildcard allowlist is not signed),
-   with the selected profile embedded through `--provisioning-profile`. See
+   with the selected profile embedded through this helper's `--provisioning-profile`
+   option (not a codesign flag). The exact original bytes must be at
+   `Contents/embedded.provisionprofile`, mode 0644, before the outer App signature
+   seals them, and are checked by digest after signing. See
    `SEAL_C_KEYCHAIN_SIGNING_JOIN.md`, "Source selection admitted (2026-11-03)".
    Live authority still needs the matching compiled publisher, signing and S4.
    Do not guess a team-derived group or claim empty entitlements. Parent allocated
@@ -143,8 +146,9 @@ inventory method can still supply raw inventory for the actual PKG identity.
    here. Keychain storage alone does not establish deferred SEAL-2 entry-seal,
    exclusive-agent or native-origin guarantees, or import development keys.
    The runtime interface uses the compiled KEYCHAIN_SELECTION and explicit
-   `allow_first_enrollment`; the host-only `enroll_initial(app_data)`
-   operation is not startup, IPC, UI, seal, verify or rotate. Receive the actual
+   `allow_first_enrollment`; enrollment runs only as `prepare_enrollment()` then
+   `enroll_initial(PreparedSealEnrollment)` through the native-menu caller, never
+   at startup, IPC, UI, seal, verify or rotate. Receive the actual
    controlled enrollment procedure before activation. For 4.0.0 the owner left
    key rotation unavailable (C3): expect no rotation route and no signed SC-5
    witness, and carry that release limitation as recorded in
