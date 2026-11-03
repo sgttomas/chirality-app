@@ -61,11 +61,11 @@ recovery rules still apply, except where this section changes them.
   copy of the existing preferences file in the evidence root; nothing reads or
   prints its contents. c4 records the same after the test, so any change v4 makes
   to the namespace it shares with v3 is visible.
-- **The agent runs the helper.** It runs in the owner's own session, read-only
-  apart from `prepare`'s fixtures, with
+- **The agent runs the helper.** It runs in the owner's own session (`prepare`,
+  c2–c4), read-only apart from `prepare`'s fixtures, with
   `CHIRALITY_WITNESS_OUT=/Users/ryan/dev/chirality-t3/scratch/app-same-user-witness-<UTC>`.
   The output is private 0700, so no `handoff` is needed. The owner only acts in
-  Safari, Finder and the App.
+  Finder and the App.
 - **Recording is the owner's choice.** A full-screen recording in the normal
   account captures whatever is on screen. It needs Focus on and other private
   windows closed. Without a recording, "no keychain prompt" rests on the owner's
@@ -91,25 +91,35 @@ automatically.
 
 ### Shortest guided sequence
 
-"Agent" steps run after parent coordination, once v3 and the trial have quit.
-Each agent step ends only on the helper's `OK:` line.
+**Installed subject.** The packaging lane installed the exact `b3dd4145` App as a
+local copy at `~/Applications/Chirality App v4.app`. It verified every static gate
+there except quarantine, which a local copy does not carry, and did not launch
+it. Those static pre-launch checks remain packaging's record.
+
+In this ordinary functional test, the c1 gate is **not run and not claimed**. The
+helper is unchanged, and its strict quarantine gate would stop on this copy. The
+quarantine witness is **not run** unless the owner later selects it with the
+download route above. That covers W-0, W-1, W-2's installed quarantine and the
+first-launch Gatekeeper dialog. The launched subject is bound afterwards by c4's
+S4 `installed.json` (cdhash and path, join J6).
+
+"Agent" steps run after parent coordination, once v3, the trial and their
+runtime agent have stopped. Each agent step ends only on the helper's `OK:` line.
 
 | # | Who | Act | Expect / stop |
 |---|---|---|---|
-| 1 | Owner | Quit v3 and the R17 trial normally | The agent's read-only `ps` shows no Chirality or Codex processes left |
-| 2 | Agent | `prepare ryan` (baseline and fixtures), then serve a DMG clone on `127.0.0.1:8765` | Prints the four setup paths |
-| 3 | Owner | Safari: open `http://127.0.0.1:8765/` and download. Double-click the DMG. Drag **Chirality App v4** into `~/Applications`, not `/Applications` | — |
-| 4 | Agent | Stop the server; run `c1 ~/Downloads/<dmg>` | `OK: Gate passed`, then the owner ejects the DMG. On STOP or refused: stop |
-| 5 | Owner | Optional: start a recording. Double-click the App in `~/Applications` ▸ **Open** | "Setup needed" appears. A Gatekeeper refusal is a failure |
-| 6 | Owner | Desktop setup: **Prepare a new account home**, the printed paths, the only supplier option, **Review setup effects** ▸ **Prepare home and save for next launch** ▸ confirm. Then ⌘Q | "Setup saved…", then the App exits with no question |
-| 7 | Owner | Relaunch the same way. Open **Host diagnostics** | "Codex is connected", "State: ready", "Supplier standing: verified-pin". Otherwise stop |
-| 8 | Owner | Close the window. Click the running **Chirality App v4** Dock tile | The same workspace returns |
-| 9 | Owner | ⌘Q | The App exits with no question. The agent's `ps` shows no v4 or Codex process |
-| 10 | Agent | `c4` | Copies the S4 publications and the after-state of the same-ID namespace |
+| 1 | Owner/parent | Stop v3, the R17 trial and the trial runtime agent by the route the parent agrees with the owner | The agent's read-only `ps` shows no Chirality or Codex processes left |
+| 2 | Agent | `prepare ryan`, which takes the same-ID baseline and creates the fixtures | Prints the four setup paths |
+| 3 | Owner | Optional: start a recording. In Finder, double-click **Chirality App v4** in `~/Applications` | "Setup needed" appears. A local copy normally shows no Gatekeeper dialog; if one appears, record it |
+| 4 | Owner | Desktop setup: **Prepare a new account home**, the printed paths, the only supplier option, **Review setup effects** ▸ **Prepare home and save for next launch** ▸ confirm. Then ⌘Q | "Setup saved…", then the App exits with no question |
+| 5 | Owner | Relaunch the same way. Open **Host diagnostics** | "Codex is connected", "State: ready", "Supplier standing: verified-pin". Otherwise stop |
+| 6 | Owner | Close the window. Click the running **Chirality App v4** Dock tile | The same workspace returns |
+| 7 | Owner | ⌘Q | The App exits with no question. The agent's `ps` shows no v4 or Codex process |
+| 8 | Agent | `c4` | Copies the S4 publications and the after-state of the same-ID namespace |
 
-Steps 1–10 are the straightforward install, setup, relaunch and readiness test.
-The capture-sealing witness (SC-3) is added only if the owner decides to enroll,
-by inserting these steps between 7 and 8:
+Steps 1–8 are the straightforward first-launch, setup, relaunch and readiness
+test. The capture-sealing witness (SC-3) is added only if the owner decides to
+enroll, by inserting these steps between 5 and 6:
 
 | # | Who | Act | Expect / stop |
 |---|---|---|---|
@@ -139,7 +149,8 @@ tests now total 22, including explicit-account refusal, the private preferences
 backup with c4 after-state, and refusal of a symlinked preferences file.
 
 The c4 evidence and the S4 joins are unchanged. W-2's per-user `~/Applications`
-deviation still applies. The runtime SC-3 joins J1–J6 apply whenever 7a–7f run.
+deviation still applies. The c1 gate is unchanged and is not run on the local
+copy. The runtime SC-3 joins J1–J6 apply whenever 7a–7f run.
 
 ## Isolation basis (superseded standard-user route)
 
@@ -612,7 +623,7 @@ For the current route, the remaining owner choices are:
 - whether to record the screen;
 - whether to add the optional enrollment steps 7a–7f.
 
-The owner's own acts in steps 1–10 are listed in the current-route section.
+The owner's own acts in steps 1–8 are listed in the current-route section.
 
 
 Runtime and packaging confirmations are recorded above.
