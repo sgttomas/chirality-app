@@ -11,7 +11,7 @@ const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {App} = loadSrc('App');
-const {modelMatch, validModelPacket, NO_PROVIDER_LIMIT} = loadSrc('ModelChoice');
+const {modelMatch, validModelPacket} = loadSrc('ModelChoice');
 
 const g = {home:'account', appSession:'s1', spawnCounter:1};
 const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
@@ -23,7 +23,7 @@ const models = [
   {id:'model-a', model:'model-a', displayName:'Model A', description:'Invented general model', isDefault:true},
   {id:'model-b', model:'model-b', displayName:'Model B', description:'Invented small model', isDefault:false},
 ];
-const packet = (over = {}) => ({state:'observed', generation:g, modeHomeClass:'account', serverProvider:'openai', models, complete:true, limits:[], readAt:'2026-11-03T00:00:00Z',
+const packet = (over = {}) => ({state:'observed', generation:g, modeHomeClass:'account', serverProvider:'openai', serverProviderState:'named', models, complete:true, limits:[], readAt:'2026-11-03T00:00:00Z',
   standing:'Models Codex reports for the app-server\'s own provider in this Codex generation, read now at your press. A listed model is the supplier\'s reported availability for that provider, not your account\'s entitlement or access; Start still checks the current configuration.', ...over});
 const snapshotFor = (mode = 'account', generation = g) => ({state:'ready', generation, homeRouting:{activeModeHomeClass:mode}, threads:[],
   roleLimits:{account:{roles:[]}, 'api-key':{roles:[]}}, roleSet:{available:true, defaultRole:'HELP_HUMAN', roles:[{name:'HELP_HUMAN', meaning:'fixture role', default_for_new_chat:true}]}});
@@ -53,17 +53,20 @@ test('a listed model is offered only for a confirmed or explicitly unconfirmed b
   assert.equal(modelMatch(packet(), 'openai', 'chatgpt-account'), 'confirmed');
   assert.equal(modelMatch(packet(), 'local-lab', 'local-provider'), 'none', 'a list for another provider is not this provider\'s');
   assert.equal(modelMatch(packet(), '', ''), 'none', 'no provider chosen yet');
-  const unnamed = packet({serverProvider:null, providerLimit:NO_PROVIDER_LIMIT});
+  const unnamed = packet({serverProvider:null, serverProviderState:'unnamed', providerLimit:'the app-server\'s configuration names no provider; the list is not matched to any conversation provider'});
   assert.equal(modelMatch(unnamed, 'openai', 'chatgpt-account'), 'unconfirmed');
   assert.equal(modelMatch(unnamed, 'openai', 'api-key'), 'unconfirmed');
   assert.equal(modelMatch(unnamed, 'local-lab', 'local-provider'), 'none', 'an unnamed provider is never matched to a local one');
   assert.equal(modelMatch(unnamed, 'openai', 'local-provider'), 'none');
-  assert.equal(modelMatch(packet({serverProvider:null, providerLimit:'provider not established: disagree'}), 'openai', 'chatgpt-account'), 'none', 'a disagreeing configuration is not established');
+  assert.equal(modelMatch(packet({serverProvider:null, serverProviderState:'not-established', providerLimit:'provider not established: disagree'}), 'openai', 'chatgpt-account'), 'none', 'a disagreeing configuration is not established');
   assert.equal(validModelPacket(packet(), g, 'account'), true);
   assert.equal(validModelPacket(packet(), {...g, spawnCounter:2}, 'account'), false);
   assert.equal(validModelPacket(packet(), g, 'api-key'), false);
   assert.equal(validModelPacket(packet({models:[{id:'x', model:'', displayName:'X', description:'', isDefault:false}]}), g, 'account'), false);
   assert.equal(validModelPacket({...packet(), complete:undefined}, g, 'account'), false);
+  assert.equal(validModelPacket(packet({serverProviderState:'unnamed'}), g, 'account'), false, 'a named provider with an unnamed state is contradictory');
+  assert.equal(validModelPacket(packet({serverProviderState:'guessed'}), g, 'account'), false);
+  assert.equal(modelMatch(packet({serverProviderState:undefined}), 'openai', 'chatgpt-account'), 'none', 'an untyped reading is never matched');
 });
 
 test('a first-time account user chooses the built-in route and a reported model, then Start sends exactly that choice', async () => {
@@ -99,9 +102,9 @@ test('a list for another provider, an unnamed provider and a stale or failed rea
     await ui.press('Read available models');
     assert.match(region(ui.c, 'Available models').textContent, /This list isn't for this conversation's provider \(openai; the list is for local-lab\)/);
     assert.deepEqual(buttons(ui.c, 'Use Model'), [], 'no choice from another provider\'s list');
-    reply = packet({serverProvider:null, providerLimit:NO_PROVIDER_LIMIT});
+    reply = packet({serverProvider:null, serverProviderState:'unnamed', providerLimit:'the app-server\'s configuration names no provider; the list is not matched to any conversation provider'});
     await ui.press('Read available models');
-    assert.match(region(ui.c, 'Available models').textContent, /can't confirm these models are for the built-in OpenAI route/);
+    assert.match(region(ui.c, 'Available models').textContent, /can't confirm these models are for the built-in OpenAI route.*it doesn't confirm this model is offered on it/);
     await ui.press('Use Model A (provider not confirmed)');
     assert.match(ui.summary(), /model-a via openai/);
     ui.setSnapshot(snapshotFor('account', {...g, spawnCounter:2})); await ui.refresh();

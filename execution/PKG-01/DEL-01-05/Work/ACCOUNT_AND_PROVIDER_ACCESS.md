@@ -1660,10 +1660,16 @@ provider identifier. The form now offers, in this order:
    generation only. The host sends `config/read` with no folder and at the
    app-server's own folder, then `model/list` with `includeHidden:false`
    following `nextCursor` (at most 20 pages, 200 entries), under the delegation
-   read's waits; replies are journalled reduced and the request evidence keeps
-   outcomes only. It returns the agreed server provider (or why it is not
-   established) and each visible model's `id`, `model`, `displayName`, a
-   300-character `description` and `isDefault`. No configuration body, other
+   read's waits. Native error text and schema findings can quote configuration
+   or credentials, so none leaves the read: its causes are fixed wording (not
+   sent, no response, error code, unexpected shape). Its replies are journalled
+   and kept as request evidence in outcome-only form, an error reduced to its
+   numeric code (`catalog_withheld`), and its client records keep the error code
+   only (`catalog_record`); delegation reads keep their existing reduction. It
+   returns the server provider with a typed `serverProviderState` (`named`,
+   `unnamed`, `not-established`, `not-read`) and each visible model's `id`,
+   `model`, `displayName`, a 300-character `description` and `isDefault`. A
+   list cut at 200 entries is reported incomplete. No configuration body, other
    model field, entitlement or account fact is returned or kept; nothing is
    cached, written, signed in or started. The command refuses when the active
    home, its class or generation differs, before or after the reads.
@@ -1676,7 +1682,12 @@ model is offered as **Use ‹name›** only when that server provider is the cho
 conversation provider. When the configuration names no provider, the App does
 not take it to be the built-in one: for the built-in route only, the person may
 still choose **Use ‹name› (provider not confirmed)**, under a note that the App
-cannot confirm the list belongs to that route. A list for another provider, a
+cannot confirm the list belongs to that route (parent decision, 2026-11-03:
+keep this explicit, labelled choice; runtime owner review accepted it). Start
+re-checks only that the built-in OpenAI provider is not redefined
+(`access_provider` classification); it does not confirm the model is offered
+on that route, and if it is not, Codex reports an error when the conversation
+starts or its first turn runs. A list for another provider, a
 disagreeing configuration, a local provider with an unnamed or different server
 provider, a stale list (home, generation or project changed, or a newer read)
 and a failed or malformed reply offer no model choice and point to Advanced. An
@@ -1690,7 +1701,9 @@ narrowing, paging ends) and the fixture test
 `model_catalog_lists_the_server_providers_models_at_a_press_and_keeps_no_configuration`
 (exact wire reads, no configuration text in the result, journal, client requests
 or snapshot, disagreement/null/error cases, paging, another generation sends
-nothing), plus `app/tests/model-choice.test.mjs` with a controlled IPC peer
+nothing; an invented secret in a `config/read` error, a malformed `config/read`
+result and a `model/list` error appears in none of the returned view, journal,
+client requests or snapshot, while a delegation read's error is unchanged), plus `app/tests/model-choice.test.mjs` with a controlled IPC peer
 (route → read → explicit choice → Start sends exactly that choice; other
 provider, unconfirmed, stale, failed, wrong-generation and incomplete cases; the
 key home's route). Run with `cargo test --lib model_catalog` from

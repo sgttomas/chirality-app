@@ -80,7 +80,7 @@ pub(crate) fn collect(mut page: impl FnMut(Option<String>) -> Result<Value, Stri
         }
     }
     if !finished { limits.push(format!("model list incomplete: more models not read after {MODEL_PAGES} pages")); }
-    if skipped > 0 { limits.push(format!("{skipped} further listed models not shown (at most {MAX_MODELS})")); }
+    if skipped > 0 { limits.push(format!("model list incomplete: {skipped} further listed models not shown (at most {MAX_MODELS})")); }
     (models, limits)
 }
 
@@ -91,9 +91,9 @@ pub(crate) fn view(generation: &Value, provider: Result<Option<String>, String>,
     let mut out = json!({"state":if models.is_empty() && !complete {"unavailable"} else {"observed"},"generation":generation,
         "models":models,"complete":complete,"limits":limits,"readAt":read_at,"standing":STANDING});
     match provider {
-        Ok(Some(name)) => out["serverProvider"] = json!(name),
-        Ok(None) => { out["serverProvider"] = Value::Null; out["providerLimit"] = json!("the app-server's configuration names no provider; the list is not matched to any conversation provider"); }
-        Err(cause) => { out["serverProvider"] = Value::Null; out["providerLimit"] = json!(format!("provider not established: {cause}")); }
+        Ok(Some(name)) => { out["serverProvider"] = json!(name); out["serverProviderState"] = json!("named"); }
+        Ok(None) => { out["serverProvider"] = Value::Null; out["serverProviderState"] = json!("unnamed"); out["providerLimit"] = json!("the app-server's configuration names no provider; the list is not matched to any conversation provider"); }
+        Err(cause) => { out["serverProvider"] = Value::Null; out["serverProviderState"] = json!("not-established"); out["providerLimit"] = json!(format!("provider not established: {cause}")); }
     }
     out
 }
@@ -101,7 +101,7 @@ pub(crate) fn view(generation: &Value, provider: Result<Option<String>, String>,
 /// A press that read nothing.
 pub(crate) fn refused(generation: &Value, cause: &str, read_at: &str) -> Value {
     json!({"state":"unavailable","generation":generation,"models":[],"complete":false,"limits":[cause],"readAt":read_at,
-        "serverProvider":Value::Null,"providerLimit":"not read","standing":STANDING})
+        "serverProvider":Value::Null,"serverProviderState":"not-read","providerLimit":"not read","standing":STANDING})
 }
 
 #[cfg(test)]
@@ -143,7 +143,7 @@ mod tests {
         assert_eq!(seen, vec![None, Some("2".to_string())]);
         assert_eq!(models.len(), 2); assert!(limits.is_empty());
         let v = view(&json!({"g":1}), Ok(Some("openai".into())), (models, limits), "t");
-        assert_eq!(v["state"], "observed"); assert_eq!(v["complete"], true); assert_eq!(v["serverProvider"], "openai");
+        assert_eq!(v["state"], "observed"); assert_eq!(v["complete"], true); assert_eq!(v["serverProvider"], "openai"); assert_eq!(v["serverProviderState"], "named");
         assert!(!v.to_string().contains("secret-ish") && !v.to_string().contains("private text"));
 
         let mut n = 0;
@@ -160,9 +160,13 @@ mod tests {
         assert_eq!(k, MODEL_PAGES); assert!(limits.iter().any(|l| l.contains("more models not read after 20 pages")));
         let many: Vec<Value> = (0..MAX_MODELS + 5).map(|i| entry(&format!("m{i}"))).collect();
         let (models, limits) = collect(|_| Ok(json!({"data":many,"nextCursor":null})));
-        assert_eq!(models.len(), MAX_MODELS); assert!(limits.iter().any(|l| l.starts_with("5 further listed models not shown")));
+        assert_eq!(models.len(), MAX_MODELS); assert!(limits.iter().any(|l| l == "model list incomplete: 5 further listed models not shown (at most 200)"), "{limits:?}");
+        let capped = view(&json!(1), Ok(Some("openai".into())), (models, limits), "t");
+        assert_eq!(capped["complete"], false, "a capped list is not the whole list"); assert_eq!(capped["state"], "observed"); assert_eq!(capped["models"].as_array().unwrap().len(), MAX_MODELS);
         let (models, limits) = collect(|_| Err("model/list not sent: the reading's time limit was reached".into()));
         let v = view(&json!(1), Err("x".into()), (models, limits), "t");
-        assert_eq!(v["state"], "unavailable"); assert_eq!(v["providerLimit"], "provider not established: x");
+        assert_eq!(v["state"], "unavailable"); assert_eq!(v["providerLimit"], "provider not established: x"); assert_eq!(v["serverProviderState"], "not-established");
+        assert_eq!(view(&json!(1), Ok(None), (vec![], vec![]), "t")["serverProviderState"], "unnamed");
+        assert_eq!(refused(&json!(1), "c", "t")["serverProviderState"], "not-read");
     }
 }

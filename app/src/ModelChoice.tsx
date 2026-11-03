@@ -6,24 +6,25 @@ const text = (value: Json): string => value === null || value === undefined ? ""
  * entry requires the reported built-in `openai` provider). */
 export const BUILT_IN_PROVIDER = "openai";
 export const CLOUD_ENTRIES = ["chatgpt-account", "api-key"];
-/** The host's own wording when the app-server's configuration names no provider. */
-export const NO_PROVIDER_LIMIT = "the app-server's configuration names no provider; the list is not matched to any conversation provider";
+/** The host's reading of the app-server's own provider. */
+export const PROVIDER_STATES = ["named", "unnamed", "not-established", "not-read"];
 
 /** Whether a listed model may be chosen for the current choice, and how. */
 export function modelMatch(packet: Json, modelProvider: string, entryId: string): "confirmed" | "unconfirmed" | "none" {
   const server = typeof packet?.serverProvider === "string" ? packet.serverProvider : null;
   if (!modelProvider) return "none";
-  if (server !== null) return server === modelProvider ? "confirmed" : "none";
+  if (packet?.serverProviderState === "named") return server !== null && server === modelProvider ? "confirmed" : "none";
   // A null provider is never taken as the built-in one; the person may still
   // deliberately use a reported ID for the built-in route, marked unconfirmed.
-  return packet?.providerLimit === NO_PROVIDER_LIMIT && modelProvider === BUILT_IN_PROVIDER && CLOUD_ENTRIES.includes(entryId) ? "unconfirmed" : "none";
+  return packet?.serverProviderState === "unnamed" && modelProvider === BUILT_IN_PROVIDER && CLOUD_ENTRIES.includes(entryId) ? "unconfirmed" : "none";
 }
 
 /** Valid packets only; anything else is treated as unavailable. */
 export function validModelPacket(packet: Json, generation: Json, modeHomeClass: string): boolean {
   return !!packet && (packet.state === "observed" || packet.state === "unavailable") && packet.modeHomeClass === modeHomeClass
     && JSON.stringify(packet.generation) === JSON.stringify(generation) && Array.isArray(packet.models) && Array.isArray(packet.limits)
-    && (packet.serverProvider === null || typeof packet.serverProvider === "string") && typeof packet.complete === "boolean"
+    && PROVIDER_STATES.includes(packet.serverProviderState) && (packet.serverProviderState === "named" ? typeof packet.serverProvider === "string" && packet.serverProvider !== "" : packet.serverProvider === null)
+    && typeof packet.complete === "boolean"
     && packet.models.every((row: Json) => ["id", "model", "displayName", "description"].every(key => typeof row?.[key] === "string") && typeof row.isDefault === "boolean" && row.model !== "");
 }
 
@@ -61,7 +62,7 @@ export function AvailableModels({ packet, current, reading, message, model, mode
       {packet.providerLimit && <p role="note"><small>{text(packet.providerLimit)}.</small></p>}
       {!modelProvider ? <p role="note">Choose how this conversation connects first; then choose a model.</p>
         : match === "none" ? <p role="note">This list isn't for this conversation's provider (<code>{modelProvider}</code>{server ? <>; the list is for <code>{server}</code></> : ""}). Enter that provider's model ID under “Advanced: enter IDs yourself”.</p>
-        : match === "unconfirmed" ? <p role="note">Codex's configuration doesn't name its provider, so the App can't confirm these models are for the built-in OpenAI route. You can still choose one; Start checks the configuration again.</p> : null}
+        : match === "unconfirmed" ? <p role="note">Codex's configuration doesn't name its provider, so the App can't confirm these models are for the built-in OpenAI route. You can still choose one. Start re-checks that the built-in OpenAI route is configured; it doesn't confirm this model is offered on it — if it isn't, Codex reports an error when the conversation starts or its first turn runs.</p> : null}
       {rows.length === 0 ? <p>{packet.complete ? "Codex reported no models." : "No models could be read."}</p>
         : <ul aria-label="Models Codex reports">{rows.map((row: Json) => <li key={row.id}>
           <strong>{text(row.displayName)}</strong> <code>{text(row.model)}</code>{row.isDefault ? " · Codex's default" : ""}{row.model === model ? " · chosen" : ""}
