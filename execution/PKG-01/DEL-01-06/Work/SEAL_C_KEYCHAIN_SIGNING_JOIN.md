@@ -297,3 +297,19 @@ It preserves Rust menus and ordinary UI/Accessibility routes while denying
 webview menu-object construction/mutation. It is neither universal agent/human
 parity nor a grant for person-reserved acts. It changes no signing or keychain
 permission and requires no immediate new owner act in this source lane.
+
+## Source selection admitted (2026-11-03)
+
+The runtime selection is now in source, as recorded in
+[SEAL_C_KEYCHAIN_TRANSITION.md](../../DEL-01-04/Work/SEAL_C_KEYCHAIN_TRANSITION.md#source-selection-admitted-2026-11-03):
+`com.chirality.app` / `8A7JL35U4S` / `com.chirality.app.v4.capture-seal` /
+`installation-keyring` / `8A7JL35U4S.com.chirality.app` / explicit first
+enrollment. For packaging, the App's main executable is signed with exactly
+`com.apple.application-identifier = 8A7JL35U4S.com.chirality.app` and
+`com.apple.developer.team-identifier = 8A7JL35U4S`. The owner's profile is
+embedded at `Contents/embedded.provisionprofile`, with private original SHA-256
+`5eccea61c989e499f738376cd843fe55c0c6ba6a6ad5ca86af074acdef965165`. The profile's
+`8A7JL35U4S.*` group allowlist is not signed. Codex supplier executables keep
+their stock signatures under Option B. Activation needs the publisher-selected
+build, signing and notarization, then S4 and the SC-3 witness, each authorized
+separately.

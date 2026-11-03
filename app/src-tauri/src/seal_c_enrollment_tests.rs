@@ -33,10 +33,10 @@ fn run<I>(
     coordinate(&question, key, quit, prepare, confirm, window, consume)
 }
 #[test]
-fn seal_enrollment_none_hides_and_rejects_dispatch_without_preparation() {
+fn seal_enrollment_unselected_publisher_hides_and_rejects_dispatch_without_preparation() {
     assert!(menu_entry().is_none());
     assert!(!provider::enrollment_compiled_available());
-    dispatch_if_configured(|| panic!("None must not resolve a window, spawn a worker or prepare"));
+    dispatch_if_configured(|| panic!("an unselected publisher build must not resolve a window, spawn a worker or prepare"));
 }
 #[test]
 fn seal_enrollment_question_holds_no_key_lock_and_consumes_same_intent_once() {
