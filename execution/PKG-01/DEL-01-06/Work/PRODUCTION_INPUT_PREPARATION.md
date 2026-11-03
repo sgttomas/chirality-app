@@ -136,7 +136,34 @@ notarization, launch, enrollment or download occurred.
   byte-join consistency, not signature, OS acceptance, S4, native or qualification
   evidence.
 
-Signing, notarization, stapling and the installed witness remain owner acts.
+### Owner-authorized signing (2026-11-03)
+
+The owner authorized signing only ("Proceed with signing.", relayed by Agent 0).
+Signing ran on a copy-on-write copy whose identity was first verified as `bc38496b…`.
+The unsigned candidate is retained unchanged. The record is
+[owner-signing.json](selected-production-build/f664ee1d-caec11a00be3/owner-signing.json).
+
+- **One bundle signature.** Running `codesign --options runtime --timestamp --entitlements`
+  with the selected Developer ID identity (SHA-1 `C7F11142…DEEF`) on
+  `Contents/MacOS/chirality-app-v4` signed the whole bundle. The second, outer-App
+  command was refused as "already signed". `--force` was not used, so the first
+  signature stands, and `--deep` was never used for signing.
+- **Signed App** identity `b3dd4145…`, executable `49f61681…`, CDHash `e1bf4644…`:
+  - hardened runtime, sealed resources (106 files), secure timestamp, team `8A7JL35U4S`;
+  - designated requirement with the same clauses as the compiled publisher requirement;
+  - `codesign --verify --deep --strict` valid; signed entitlements exactly the
+    application identifier and team; embedded profile `5eccea61` sealed at 0644.
+- **Delta from unsigned:** only the main executable changed and
+  `_CodeSignature/CodeResources` was added. FP-1(b): the supplier `codex/` tree
+  equals the vendor tree in bytes and modes, and its executables keep their stock
+  signatures. Gatekeeper reports "Unnotarized Developer ID", as expected.
+- **Signed DMG** `Chirality-App-v4-4.0.0-f664ee1d-b3dd4145.dmg`, 156,974,677 B: SHA-256
+  `80c88913…` before signing and `1a962e3a…` after. Its signature verifies, and the
+  contained App identity equals `b3dd4145…`.
+
+Notarization, stapling, launch, installation, enrollment and publication have not
+occurred. The notary profile name is unresolved. The signed App `b3dd4145…` and DMG
+`1a962e3a…` are the subjects for those later steps.
 
 The next production subject requires the actual owner identifier/team and
 settled signer/keychain inputs, then a separately identified production build,
