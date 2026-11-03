@@ -291,11 +291,18 @@ above:
 - the complete `runtime/distribution/s1-*` publications;
 - an AppData name and metadata listing in which `account-homes` itself is pruned,
   so it is never read;
-- fixture hashes.
+- a content manifest of the invented fixtures.
 
 Its safeguards:
 
-- It refuses symlinks anywhere along each copied path.
+- It refuses symlinks along every path before any traversal, stat, hash or copy.
+  That covers the output root, the fixture root, the marker directory, capture,
+  act and distribution directories, and every member of the installed App.
+- Copied trees and manifests also refuse special files and names containing
+  newlines.
+- Any traversal, stat or hash failure fails the step; no digest is produced after
+  an error.
+- The mounted DMG App is read only through `spctl` and `xattr`.
 - It never overwrites.
 - It never reads the keychain.
 - Output is 0700/0600 under a root that it creates and checks: owned by the user,
@@ -317,10 +324,14 @@ owner, group, times and extended attributes. Its digest must equal
 `ae04bcaaba7c3eb7ec77248cd2302d5449c3421f2e2b353e1b4e2d7e69b14f6a`, computed by
 the helper's `manifest` mode on the retained signed App directory. Deep strict
 verification and the cdhash bind the same content to the signature. Quarantine
-and ownership are recorded separately. The packaging lane accepted this in place of an
+and ownership are recorded separately. If a Finder copy changes any permission
+bit, c1 stops. There is no automatic chmod and no baseline replacement. The
+packaging lane accepted this in place of an
 installed v2 value (see below).
 
-Assurance so far: fake-home checks only. They covered:
+Assurance so far: fake-home checks only, now repeatable as
+[`test_signed_witness_collect.py`](test_signed_witness_collect.py) (8 tests,
+passing). They covered:
 
 - administrator refusal;
 - output modes;
@@ -330,7 +341,9 @@ Assurance so far: fake-home checks only. They covered:
 - path preservation;
 - no overwrite;
 - the single-account ACL;
-- directory symlinks refused before traversal;
+- directory symlinks refused before traversal, including the fixture root and the
+  marker directory;
+- manifest refusal of newline names, FIFOs and unreadable files;
 - a quarantined clone passing the content check, and one added file changing
   the digest.
 

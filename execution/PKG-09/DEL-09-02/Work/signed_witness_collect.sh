@@ -26,6 +26,7 @@ CONTENT=ae04bcaaba7c3eb7ec77248cd2302d5449c3421f2e2b353e1b4e2d7e69b14f6a
 ENTITLEMENTS='<dict><key>com.apple.application-identifier</key><string>8A7JL35U4S.com.chirality.app</string><key>com.apple.developer.team-identifier</key><string>8A7JL35U4S</string></dict>'
 
 die() { echo "refused: $*" >&2; exit 2; }
+NL=$(printf '\n_'); NL=${NL%_}
 statf() { if [ -e "$1" ] || [ -L "$1" ]; then stat -f '%N type=%HT mode=%Sp inode=%i links=%l size=%z mtime=%Sm' -t '%Y-%m-%dT%H:%M:%S%z' "$1"; else echo "$1 absent"; fi; }
 nolink() { # refuse a symlink at $1 or any ancestor up to $HOME
   _nl=$1
@@ -36,6 +37,7 @@ nolink() { # refuse a symlink at $1 or any ancestor up to $HOME
   done; }
 root_ok() {
   [ -d "$OUT" ] && [ ! -L "$OUT" ] || die "output root $OUT missing; run prepare first"
+  nolink "$OUT"
   [ "$(stat -f %u "$OUT")" = "$(id -u)" ] || die "output root not owned by this user"
   [ "$(stat -f %Lp "$OUT")" = 700 ] || die "output root is not mode 0700"; }
 stage() { root_ok; [ ! -e "$OUT/$1" ] || die "$OUT/$1 already exists"; mkdir "$OUT/$1"; D="$OUT/$1"
@@ -45,16 +47,37 @@ copyrel() { # copyrel SRC: copy one regular file to $D/appdata/<path relative to
   nolink "$1"; [ -f "$1" ] || die "not a regular file: $1"
   rel=${1#"$APPDATA"/}; dst="$D/appdata/$rel"; [ ! -e "$dst" ] || die "collision at $dst"
   mkdir -p "$(dirname "$dst")"; cp "$1" "$dst"; }
-copytree() { # copytree DIR: every regular file under DIR; refuses any symlink inside
-  nolink "$1"; [ -z "$(find "$1" -type l -print -quit)" ] || die "symlink inside $1"
+plain_tree() { # refuse symlinks, special files and newline names inside DIR (checked status)
+  nolink "$1"
+  _x=$(find "$1" -type l -print -quit) || die "cannot traverse $1"; [ -z "$_x" ] || die "symlink inside $1"
+  _x=$(find "$1" ! -type f ! -type d -print -quit) || die "cannot traverse $1"; [ -z "$_x" ] || die "special file inside $1"
+  _x=$(find "$1" -name "*$NL*" -print -quit) || die "cannot traverse $1"; [ -z "$_x" ] || die "newline in a name inside $1"; }
+copytree() { # copytree DIR: every regular file under DIR
+  plain_tree "$1"
   find "$1" -type f > "$D/.list"
   while IFS= read -r f; do copyrel "$f"; done < "$D/.list"
   rm "$D/.list"; }
-content() { # content-structure manifest: path, type, mode, file SHA-256 or link target; no owner, times or xattrs
-  (cd "$1" && find . | LC_ALL=C sort | while IFS= read -r q; do
-    if [ -L "$q" ]; then echo "l $(stat -f %Lp "$q") $q -> $(readlink "$q")"
-    elif [ -d "$q" ]; then echo "d $(stat -f %Lp "$q") $q"
-    else echo "f $(stat -f %Lp "$q") $(shasum -a 256 < "$q" | cut -d' ' -f1) $q"; fi; done); }
+content() { # content-structure manifest of DIR: path, type, mode, file SHA-256 or link target;
+  # no owner, times or xattrs. Never follows links; any traversal/stat/hash error fails.
+  ( set -e
+    cd "$1"
+    _x=$(find . ! -type f ! -type d ! -type l -print -quit); [ -z "$_x" ] || { echo "refused: special file in $1" >&2; exit 2; }
+    _x=$(find . -name "*$NL*" -print -quit); [ -z "$_x" ] || { echo "refused: newline in a name in $1" >&2; exit 2; }
+    L=$(mktemp -d "${TMPDIR:-/tmp}/witness-manifest.XXXXXX"); trap 'rm -rf "$L"' EXIT
+    find . > "$L/raw"; LC_ALL=C sort -o "$L/sorted" "$L/raw"
+    while IFS= read -r q; do
+      m=$(stat -f %Lp "$q") || exit 2
+      case $m in ''|*[!0-7]*) echo "refused: unreadable mode for $q" >&2; exit 2 ;; esac
+      if [ -L "$q" ]; then t=$(readlink "$q") || exit 2; echo "l $m $q -> $t"
+      elif [ -d "$q" ]; then echo "d $m $q"
+      else
+        [ -r "$q" ] || { echo "refused: unreadable $q" >&2; exit 2; }
+        h=$(shasum -a 256 < "$q") || exit 2; h=${h%% *}
+        case $h in *[!0-9a-f]*) h= ;; esac
+        [ ${#h} -eq 64 ] || { echo "refused: hash failed for $q" >&2; exit 2; }
+        echo "f $m $h $q"
+      fi
+    done < "$L/sorted" ); }
 check() { # check NAME STATUS(0 pass)
   if [ "$2" -eq 0 ]; then echo "PASS $1" >> "$D/gate.txt"; else echo "STOP $1" >> "$D/gate.txt"; G=1; fi; }
 
@@ -65,6 +88,7 @@ prepare)
   [ ! -e "$APPDATA" ] || die "App data already exists"
   [ ! -e "$SHARED" ] && [ ! -e "$HOME/ChiralityV4Fixtures" ] || die "fixtures already exist"
   [ ! -e "$OUT" ] && [ ! -L "$OUT" ] || die "output root $OUT already exists"
+  nolink "$(dirname "$OUT")"
   mkdir "$OUT"; mkdir "$OUT/recording"
   umask 022
   mkdir -p "$SHARED/skills" "$PROJECT"
@@ -89,7 +113,8 @@ c1)
   xattr -l "$DMG" > "$D/dmg-xattr-l.txt" 2>&1 || true
   r=0; spctl -a -vv -t exec "$MOUNTED" > "$D/mounted-spctl.txt" 2>&1 || r=1; check mounted-gatekeeper "$r"
   xattr -p com.apple.quarantine "$MOUNTED" > "$D/mounted-quarantine.txt" 2>&1 || true
-  nolink "$APP"
+  [ -d "$APP" ] || die "installed App not found at $APP"
+  plain_tree "$APP"   # no symlink, special file or odd name anywhere in the App before member reads
   echo "$APP" > "$D/installed-path.txt"
   r=0; xattr -p com.apple.quarantine "$APP" > "$D/installed-quarantine.txt" 2>&1 || r=1; check installed-quarantine "$r"
   xattr -l "$APP" > "$D/installed-xattr-l.txt" 2>&1 || true
@@ -110,8 +135,11 @@ c1)
   shasum -a 256 "$APP/Contents/embedded.provisionprofile" > "$D/installed-profile-sha256.txt" 2>&1 || true
   r=0; grep -q "^$PROFILE_SHA " "$D/installed-profile-sha256.txt" || r=1; check installed-embedded-profile "$r"
   stat -f '%N owner=%Su group=%Sg mode=%Sp' "$APP" > "$D/installed-ownership.txt"
-  content "$APP" > "$D/installed-content.txt" 2>&1 || true
-  r=0; [ "$(shasum -a 256 < "$D/installed-content.txt" | cut -d' ' -f1)" = "$CONTENT" ] || r=1; check installed-content-structure "$r"
+  r=0
+  if content "$APP" > "$D/installed-content.txt" 2> "$D/installed-content.err"; then
+    h=$(shasum -a 256 < "$D/installed-content.txt"); [ "${h%% *}" = "$CONTENT" ] || r=1
+  else r=1; fi
+  check installed-content-structure "$r"
   shasum -a 256 "$APP/Contents/MacOS/chirality-app-v4" > "$D/installed-exe-sha256.txt" 2>&1 || true
   r=0; grep -q "^$EXE_SHA " "$D/installed-exe-sha256.txt" || r=1; check installed-executable "$r"
   /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist" > "$D/installed-version.txt" 2>&1 || true
@@ -123,6 +151,7 @@ c2|c3|c4)
   stage "$1"
   nolink "$APPDATA"
   K="$APPDATA/capture-seal-keychain"
+  for x in "$K" "$APPDATA/capture-seal"; do if [ -e "$x" ] || [ -L "$x" ]; then nolink "$x"; fi; done
   { statf "$K"; statf "$K/continuity.s1.json"; statf "$APPDATA/capture-seal"; } > "$D/marker-stat.txt"
   if [ -f "$K/continuity.s1.json" ] || [ -L "$K/continuity.s1.json" ]; then copyrel "$K/continuity.s1.json"; fi
   [ -e "$APPDATA/records/projects" ] && nolink "$APPDATA/records/projects"
@@ -140,8 +169,12 @@ c2|c3|c4)
       [ -d "$s" ] || [ -L "$s" ] || continue; copytree "$s"
     done
     # Names and metadata only. account-homes is pruned itself, so it is never read.
-    (cd "$APPDATA" && { find . -path ./account-homes -prune -o -print | sort | while IFS= read -r p; do statf "$p"; done; statf ./account-homes; }) > "$D/appdata-metadata.txt"
-    (cd "$HOME/ChiralityV4Fixtures" && find . -type f -print0 | xargs -0 shasum -a 256) > "$D/fixture-sha256.txt"
+    (cd "$APPDATA" && find . -path ./account-homes -prune -o -print) > "$D/.meta"
+    LC_ALL=C sort -o "$D/.meta" "$D/.meta"
+    (cd "$APPDATA" && while IFS= read -r p; do statf "$p"; done < "$D/.meta"; statf ./account-homes) > "$D/appdata-metadata.txt"
+    rm "$D/.meta"
+    plain_tree "$HOME/ChiralityV4Fixtures"
+    content "$HOME/ChiralityV4Fixtures" > "$D/fixture-manifest.txt" || die "fixture manifest failed"
   fi
   manifest ;;
 handoff)
@@ -150,6 +183,10 @@ handoff)
   find "$OUT" -type d -exec chmod +a "user:$A allow list,search,readattr,readextattr,readsecurity" {} +
   find "$OUT" -type f -exec chmod +a "user:$A allow read,readattr,readextattr,readsecurity" {} +
   echo "Granted read access to $A only, on $OUT" ;;
-manifest) [ -d "${2:-}" ] || die "give an App path"; content "$2" | shasum -a 256 | cut -d' ' -f1 ;;
+manifest)
+  [ -d "${2:-}" ] || die "give an App path"
+  T=$(mktemp "${TMPDIR:-/tmp}/witness-manifest-out.XXXXXX")
+  content "$2" > "$T" || { rm -f "$T"; die "manifest failed"; }
+  h=$(shasum -a 256 < "$T"); rm -f "$T"; echo "${h%% *}" ;;
 *) echo "usage: $0 prepare | c1 <dmg> | c2 | c3 | c4 | handoff <account> | manifest <app>" >&2; exit 64 ;;
 esac
