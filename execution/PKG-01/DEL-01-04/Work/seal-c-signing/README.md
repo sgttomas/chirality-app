@@ -196,6 +196,11 @@ SC-5 records that no supported invocation exists. AAC §6.3 makes rotation a hos
 function not offered in the interface, and `rotate()` has only test callers, so
 a signed rotation witness waits for an owner-chosen clause or host policy. It is
 not replaced by IPC, CLI, debug entries or relabelled tests.
+For 4.0.0 the owner chose to leave rotation unavailable (2026-11-02, option C3).
+Production rotation is not invocable, signed SC-5 is not run (blocked), and
+rotation supplies no revocation or key-compromise response. This is an accepted
+release limitation, not an SC-5 pass or a waiver of the other witnesses, and it
+sets no policy for later versions.
 The sequence is data, not a shell script or automated runner. Existing packaging
 owns Option B, signing/notary/install/FP operations; native qualification remains
 its separate undertaking.

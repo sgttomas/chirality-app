@@ -51,7 +51,8 @@
       "requires": ["explicit rotation/failure-injection scope", "exact original and post-rotation subject"],
       "retain": ["old/new key IDs and marker states", "actual captures and verification results", "one-add/retained-prior-item evidence without secret contents", "cache invalidation and concurrent Verify/Seal outcomes"],
       "on_failure": "No overwrite/delete/reset. Missing historical key affects that historical verification; missing current key refuses new sealing; pending-only first enrollment stays unavailable.",
-      "invocation_status": "Blocked: no supported invocation exists. capture_seal::rotate() has only test callers, and AAC section 6.3 says rotation is a host function not offered in the interface. A signed-subject witness needs an owner-chosen clause change or host policy first; no IPC/CLI/debug entry or test relabelling substitutes."
+      "invocation_status": "Blocked: no supported invocation exists. capture_seal::rotate() has only test callers, and AAC section 6.3 says rotation is a host function not offered in the interface. A signed-subject witness needs an owner-chosen clause change or host policy first; no IPC/CLI/debug entry or test relabelling substitutes.",
+      "release_disposition_4_0_0": "Owner disposition for 4.0.0 (2026-11-02): 'leave it unavailable for 4.0.0.' Option C3 is selected: no native rotation menu, automatic trigger, IPC, CLI or backdoor; the existing host-only source function and AAC section 6.3's no-interface clause are kept. Accepted release limitation: production rotation is not invocable; the signed SC-5 witness is not run (blocked); rotation supplies no revocation or key-compromise response, because earlier keys stay held. This is a scoped disposition, not an SC-5 pass, not a waiver of enrollment, SC-3, SC-4 or other keychain witnesses, and not a policy for later versions."
     },
     {
       "id": "SC-6",

@@ -212,6 +212,26 @@ Provider/final-admission unwind is reported as outcome-unknown/not-retried insid
 a boundary that preserves the shared key_setup lock from poisoning; existing
 Quit logic is unchanged and real native/signing evidence remains separate.
 
+## Owner rotation disposition for 4.0.0 (2026-11-02)
+
+Agent 0 explained the options to the owner: a native-menu rotation action, which
+would need an AAC §6.3 clause change, or leaving rotation unavailable. Agent 0
+also explained that earlier keys stay held, so rotation does not revoke a
+compromised key, and that the signed SC-5 witness is blocked without an
+invocation. The owner said: "leave it unavailable for 4.0.0." Option C3 is
+selected. No native rotation menu, automatic trigger, IPC, CLI or backdoor is
+added. The host-only `capture_seal::rotate()` source function and AAC §6.3's
+"host function, not offered in the interface" clause are unchanged.
+
+**Owner-accepted 4.0.0 release limitation:** production rotation is not invocable.
+The signed SC-5 rotation witness is not run (blocked). Rotation supplies no
+revocation or key-compromise response. This is a scoped disposition. It is not an
+SC-5 pass. It does not waive enrollment, the SC-3 or SC-4 witnesses, or other
+keychain evidence. It selects no policy for later versions.
+`KEYCHAIN_SELECTION=None` and the enrollment and signing permissions are
+unchanged. Packaging carries this limit into the release limitations for the
+candidate.
+
 ## Current owner identity and v4-focused testing correction (2026-11-02)
 
 The owner selected **production `com.chirality.app`**, retaining the existing App
