@@ -272,7 +272,7 @@ export function WorkflowDraftsList({ data, workspace, pointerLimits, conversatio
       result => update(result === undefined ? { compared: null, compareError: "Compare did not complete; see the message below." } : { compared: result }),
       error => update({ compared: null, compareError: String(error) }));
   };
-  return <section aria-label="Workflow drafts">
+  return <section id="workflow-drafts" aria-label="Workflow drafts">
     <h3>Workflow drafts</h3>
     <p>Drafts are folders under <code>.chirality/workflow-drafts/</code> of the open library. A draft has no workflow identity: a trial mirrors a run of its content but is never a run, and only a registered revision runs.</p>
     <button disabled={busy || !workspace} onClick={() => { void act("workflow_open_project_library", {}); }}>Open this App project’s workflow library</button>{" "}
