@@ -30,6 +30,7 @@ import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealW
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
 import { RunWorkflowGuide } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
+import { AccessRouteChoice, AvailableModels, modelMatch, validModelPacket } from "./ModelChoice";
 /** One App-composed message for the person to edit and send; never sent by the App. */
 export type ComposerOffer = { sequence: number; threadKey: string; text: string };
 import { DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
@@ -1326,6 +1327,44 @@ export function App() {
     && providerObservation.source === providerSource(host) && providerObservation.epoch === chooserHome.current.epoch
     && providerObservation.sequence === providerReadSequence.current
     && providerObservation.packet.scope.readRevision === host?.configuredProviderReadRevision;
+  // DEL-01-05 model discovery: read only at the person's press, bound to the
+  // home, generation and project it was read for and to this chooser epoch.
+  const modelReadSequence = useRef(0);
+  const modelReadPending = useRef(false);
+  const [modelReading, setModelReading] = useState(false);
+  const [modelObservation, setModelObservation] = useState<{ packet: Json; source: string; epoch: number; sequence: number } | null>(null);
+  const [modelObservationMessage, setModelObservationMessage] = useState("");
+  const modelObservationCurrent = !!modelObservation && host?.state === "ready" && !host?.generationClosed
+    && modelObservation.source === providerSource(host) && modelObservation.epoch === chooserHome.current.epoch
+    && modelObservation.sequence === modelReadSequence.current;
+  const readAvailableModels = async () => {
+    const original = currentHost.current;
+    const mode = original?.homeRouting?.activeModeHomeClass;
+    if (modelReadPending.current || startPendingRef.current || homePendingRef.current || original?.state !== "ready" || original?.generationClosed
+      || !(mode === "account" || mode === "api-key")) return;
+    const source = providerSource(original), epoch = chooserHome.current.epoch, sequence = ++modelReadSequence.current;
+    const current = () => sequence === modelReadSequence.current && epoch === chooserHome.current.epoch && source === providerSource(currentHost.current)
+      && currentHost.current?.state === "ready" && !currentHost.current?.generationClosed && !homePendingRef.current;
+    modelReadPending.current = true; setModelReading(true); setModelObservation(null); setModelObservationMessage("");
+    try {
+      const packet: Json = await invoke("read_available_models", { generation: original.generation, modeHomeClass: mode });
+      if (!current()) return;
+      if (!validModelPacket(packet, original.generation, mode)) throw Error("the reply was not a model list for this Codex source");
+      setModelObservation({ packet, source, epoch, sequence });
+    } catch (error) {
+      if (current()) setModelObservationMessage(`Model list unavailable: ${error instanceof Error ? error.message : String(error)}. You can still enter a model ID under “Advanced: enter IDs yourself”.`);
+    } finally {
+      modelReadPending.current = false; setModelReading(false);
+    }
+  };
+  const chooseListedModel = (row: Json) => {
+    const shown = modelObservation;
+    if (!shown || !modelObservationCurrent || modelReadPending.current || startPendingRef.current || homePendingRef.current) return;
+    if (!shown.packet.models.some((entry: Json) => entry.id === row.id && entry.model === row.model)) return;
+    const choice = choiceRef.current;
+    if (modelMatch(shown.packet, choice.modelProvider, choice.entryId) === "none") return;
+    reviseChoice({ model: row.model });
+  };
   const endpointSourceCurrent = (editor: Json) => !!editor && editor.source === providerSource(currentHost.current)
     && editor.epoch === chooserHome.current.epoch && currentHost.current?.state === "ready" && !currentHost.current?.generationClosed
     && currentHost.current?.homeRouting?.activeModeHomeClass === "account" && !homePendingRef.current && !startPendingRef.current;
@@ -2012,9 +2051,10 @@ export function App() {
         </p>}</div>
         <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model, provider, access entry and role — start explicitly" open={host?.state !== "ready" || !(host?.threads?.length) ? true : undefined}>
           <h2>New conversation</h2>
-          <div className="workspace-start-fields"><p>
-            <ModelProviderFields model={model} modelProvider={modelProvider} setModel={model => reviseChoice({ model })} setModelProvider={modelProvider => reviseChoice({ modelProvider })}/>
-          </p>
+          <div className="workspace-start-fields">
+          <h3>1. How it connects</h3>
+          <AccessRouteChoice homeClass={homeClass} modelProvider={modelProvider} entryId={entryId} disabled={startPending || homePending || providerReading || endpointBusy}
+            choose={route => reviseChoice(route)}/>
           <div aria-label="Configured local providers">
             <button disabled={host?.state !== "ready" || host?.generationClosed || homeClass !== "account" || providerReading || startPending || homePending || endpointBusy}
               onClick={readConfiguredProviders}>Read configured local providers</button>
@@ -2066,8 +2106,15 @@ export function App() {
             </section>}
             {(rowChoiceStale || (providerObservation && !providerObservationCurrent)) && <p role="status">Configured provider observation superseded or source unavailable. Read again, or explicitly enter a manual provider and access entry. Start always reads current configuration again.</p>}
           </div>
+          <h3>2. Model</h3>
+          <AvailableModels packet={modelObservation?.packet ?? null} current={modelObservationCurrent} reading={modelReading} message={modelObservationMessage}
+            model={model} modelProvider={modelProvider} entryId={entryId} read={() => { void readAvailableModels(); }} choose={chooseListedModel}
+            disabled={host?.state !== "ready" || !!host?.generationClosed || !(homeClass === "account" || homeClass === "api-key") || startPending || homePending || endpointBusy}/>
+          <details className="workflow-stage"><summary>Advanced: enter IDs yourself</summary>
+          <p><ModelProviderFields model={model} modelProvider={modelProvider} setModel={model => reviseChoice({ model })} setModelProvider={modelProvider => reviseChoice({ modelProvider })}/></p>
           <p><label>Access entry <select value={entryId} onChange={e => reviseChoice({ entryId: e.target.value })}><option value="">No entry selected</option>{startEntries(host).map(entry => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></label></p>
-          <p>Choose a model, provider and entry for this new conversation in the selected home. Switching homes never transfers an existing conversation.</p>
+          </details>
+          <p>Choose how this conversation connects and a model, then a role. Switching homes never transfers an existing conversation.</p>
           <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>
           <p><small>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}.</small></p></div>
           <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose an access entry for the current home."}</p>

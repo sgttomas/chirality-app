@@ -94,6 +94,7 @@ mod historical_run_learning;
 mod workflow_learning_pointers;
 pub(crate) mod host_tick;
 pub(crate) mod delegation_availability;
+pub(crate) mod model_catalog;
 pub(crate) mod execution_compatibility;
 pub(crate) mod a15_native;
 pub mod schema_validation;
@@ -1663,6 +1664,23 @@ fn ordinary_send_text(home: &runtime_session::HomeSession, workflows: &std::sync
         |generation, thread, text| home.host.turn_start_ordinary_text(generation, thread, text, mode, model))
 }
 
+/// DEL-01-05 model discovery for a new conversation, at the person's press:
+/// only the currently selected source of the named mode, re-checked after the
+/// reads; a changed source refuses rather than answering for another.
+#[tauri::command(async)]
+fn read_available_models(state: State<'_, AppState>, generation: Value, mode_home_class: String) -> Result<Value, String> {
+    let refused = || "Model list unavailable: the selected Codex source changed; nothing was chosen".to_owned();
+    let home = state.homes.lock().unwrap().active();
+    let class = match mode_home_class.as_str() { "account" => home_resources::HomeClass::Account, "api-key" => home_resources::HomeClass::ApiKey, _ => return Err(refused()) };
+    if home.class() != class || home.host.snapshot()["generation"] != generation { return Err(refused()); }
+    state.validate_home_source(&home).map_err(|_| refused())?;
+    let mut view = home.host.model_catalog_read(&generation);
+    state.validate_home_source(&home).map_err(|_| refused())?;
+    if !Arc::ptr_eq(&state.homes.lock().unwrap().active(), &home) || home.host.snapshot()["generation"] != generation { return Err(refused()); }
+    view["modeHomeClass"] = json!(mode_home_class);
+    Ok(view)
+}
+
 /// EX-2/EX-3 availability read for the plan-mode element.
 #[tauri::command(async)]
 fn collaboration_modes_read(state: State<'_, AppState>, generation: Value) -> Result<Value, String> {
@@ -2811,7 +2829,7 @@ pub fn run() {
             continuation_context_action,
             history_select,
             conversation_send_text,
-            collaboration_modes_read,
+            collaboration_modes_read, read_available_models,
             conversation_steer_text,
             conversation_interrupt,
             continue_as_begin,

@@ -83,9 +83,9 @@ export function DailyWorkspace({ children }: { children: ReactNode }) {
       .workspace-heading { display:flex; align-items:center; gap:16px; justify-content:space-between; margin-bottom:16px; }
       .workspace-heading p { color:var(--workspace-muted); margin:0; font-size:.88rem; }
       .workspace-nav { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:8px 20px; padding:10px 0; background:var(--ground); border-bottom:1px solid var(--workspace-line); margin-bottom:18px; font-size:.9rem; }
-      .workspace-start-fields { display:flex; flex-wrap:wrap; align-items:end; gap:10px 18px; }
       .workspace-start-fields>* { min-width:0; max-width:100%; }
-      .workspace-start-fields p { margin:0; }
+      .workspace-start-fields h3 { margin:16px 0 6px; font-family:var(--font-display); }
+      .workspace-start-fields [aria-label="Available models"] li { margin:8px 0; }
       .workspace-primary { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
       .workspace-primary-column { min-width:0; padding:18px; border-top:1px solid var(--workspace-line); background:var(--surface); }
       .workspace-primary-column>section { min-width:0; }

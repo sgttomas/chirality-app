@@ -605,9 +605,11 @@ impl AppRuntimeCustody {
 /// One delegation reading's whole wait (NPTD §7.1; the trial tick's reads
 /// of later homes wait behind it).
 pub const DELEGATION_READ_BUDGET: Duration = Duration::from_secs(15);
-/// The reads delegation availability makes (NPTD §7.1). No other part of the
-/// App sends them. Their result bodies are neither journalled nor kept as
-/// request evidence once the reading has taken its fields.
+/// The reads delegation availability makes (NPTD §7.1); model discovery
+/// (`model_catalog_read`) is their only other sender. Their result bodies are
+/// neither journalled nor kept as request evidence once the read has taken
+/// its fields; a model-discovery reply also loses its error detail
+/// (`catalog_withheld`).
 const DELEGATION_READ_METHODS: [&str; 3] = ["model/list", "config/read", "modelProvider/capabilities/read"];
 /// What is kept of a delegation read's reply: its id and outcome, and an
 /// error as Codex sent it; never the result body.
@@ -619,6 +621,26 @@ fn delegation_withheld(frame: &Value) -> Value {
     kept
 }
 const DELEGATION_RESULT_WITHHELD: &str = "delegation-availability read (NPTD §7.1): the result body is not kept; the reading keeps only the fields it uses";
+/// The initiator name that marks a model-discovery request.
+const MODEL_CATALOG_INITIATOR: &str = "model-catalog-read";
+/// A model-discovery reply as kept: `delegation_withheld`, with any error
+/// reduced to its numeric code. Native configuration errors can quote
+/// configuration or credential values, so neither their message nor data is kept.
+fn catalog_withheld(frame: &Value) -> Value {
+    let mut kept = delegation_withheld(frame);
+    if let Some(error) = frame.get("error") {
+        kept["error"] = error["code"].as_i64().map(|code| json!({"code":code})).unwrap_or_else(|| json!({}));
+        kept["errorWithheld"] = json!("model discovery: native error detail is not kept");
+    }
+    kept
+}
+/// A model-discovery request's client record keeps a native error's code only.
+fn catalog_record(mut record: Value) -> Value {
+    if record["initiator"]["name"] == MODEL_CATALOG_INITIATOR && record["error"].is_object() {
+        record["error"] = json!({"code":record["error"]["code"],"message":"model discovery: native error detail is not kept"});
+    }
+    record
+}
 /// Whether a kept reply is a delegation read's reduced form (`delegation_withheld`).
 fn is_delegation_withheld(response: &Value) -> bool { response.get("resultWithheld").and_then(Value::as_str) == Some(DELEGATION_RESULT_WITHHELD) }
 /// The outcome a kept reply shows: a result or an error. A reduced delegation
@@ -2056,7 +2078,7 @@ impl Host {
         let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let mut record=e.observation_base.clone();let response=e.response.clone();let response_position=e.response_position;if let Some(position)=e.attempt_position{record["sendPosition"]=json!(position);}
         match write_result {
             Ok(())=> {i.source_requests.get_mut(&key).unwrap().written=true;record["writeResult"]=json!("written");record["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
-                match Self::completed_client_response(&mut record,response.as_ref(),response_position){Ok(())=>i.client_requests[idx]=record,Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
+                match Self::completed_client_response(&mut record,response.as_ref(),response_position){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
                 if !closed&&method=="turn/start"&&response.is_some(){if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}
             }
             Err(error)=> {i.pending.remove(&key);i.turn_request_threads.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();
@@ -3388,6 +3410,72 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         }
         signals
     }
+    /// DEL-01-05 model discovery at the person's press (`model_catalog`): the
+    /// app-server's own provider from `config/read` with no folder and at its
+    /// own folder, then `model/list` without hidden models. Reads only, with the
+    /// delegation read's waits; afterwards each request's evidence keeps its
+    /// outcome only, as replies to these methods are journalled. Nothing is
+    /// kept in the host: the result answers only this press.
+    pub fn model_catalog_read(&self, generation: &Value) -> Value {
+        const WAIT: Duration = Duration::from_secs(10);
+        let read_at = crate::util::now_rfc3339();
+        let server_cwd = {
+            let i = self.inner.0.lock().unwrap();
+            if i.generation != *generation || i.state != "ready" { return crate::model_catalog::refused(generation, "Codex is not ready in this generation; nothing was read", &read_at); }
+            i.server_cwd.clone()
+        };
+        let deadline = std::time::Instant::now() + DELEGATION_READ_BUDGET;
+        let silent = std::cell::Cell::new(false);
+        let sent = std::cell::RefCell::new(Vec::<String>::new());
+        let read = |method: &str, params: Value, schema: &str| -> Result<Value, String> {
+            if silent.get() { return Err(format!("{method} not sent: an earlier read of this press got no response")); }
+            let wait = deadline.saturating_duration_since(std::time::Instant::now()).min(WAIT);
+            if wait.is_zero() { return Err(format!("{method} not sent: the read's time limit was reached")); }
+            // Only fixed wording leaves this read: native errors and schema
+            // findings can quote configuration, so neither is passed on.
+            let request = self.request_begin_scoped(method, params, json!({"kind":"person-directed","name":MODEL_CATALOG_INITIATOR}), false, Some(generation))
+                .map_err(|_| format!("{method} not sent in this Codex generation"))?;
+            sent.borrow_mut().push(request.request_id().to_string());
+            let response = self.wait_source_response(&request, wait).map_err(|e| {
+                let silence = e.contains("within the wait limit");
+                if silence { silent.set(true); }
+                self.delegation_wait_ended(&request);
+                if silence { format!("{method}: no response within the wait limit") } else { format!("{method}: the reply could not be read") }
+            })?;
+            if let Some(error) = response.get("error") {
+                return Err(match error["code"].as_i64() { Some(code) => format!("{method} answered with an error (code {code})"), None => format!("{method} answered with an error") });
+            }
+            let result = response.get("result").cloned().ok_or_else(|| format!("{method} returned no result"))?;
+            Self::validate_native_result(schema, &result).map_err(|_| format!("{method} returned a result of an unexpected shape"))?;
+            Ok(result)
+        };
+        let config_at = |cwd: Option<&str>| {
+            let mut params = json!({"includeLayers":false});
+            if let Some(cwd) = cwd { params["cwd"] = json!(cwd); }
+            read("config/read", params, "ConfigReadResponse")
+        };
+        let provider = match server_cwd.as_deref() {
+            None => Err("the app-server's working folder is not known to this App".to_owned()),
+            Some(own) => { let bare = config_at(None); crate::model_catalog::server_provider(bare, config_at(Some(own))) }
+        };
+        let models = crate::model_catalog::collect(|cursor| {
+            let mut params = json!({"includeHidden":false});
+            if let Some(c) = cursor { params["cursor"] = json!(c); }
+            read("model/list", params, "ModelListResponse")
+        });
+        let receivers: Vec<_> = {
+            let i = self.inner.0.lock().unwrap();
+            sent.borrow().iter().filter_map(|id| i.source_requests.get(id).map(|e| Arc::clone(&e.request.receiver))).collect()
+        };
+        for receiver in receivers { while receiver.lock().unwrap().try_recv().is_ok() {} }
+        let mut i = self.inner.0.lock().unwrap();
+        for id in sent.borrow().iter() {
+            if let Some(e) = i.source_requests.get_mut(id) {
+                if let Some(frame) = e.response.as_ref() { e.response = Some(catalog_withheld(frame)); }
+            }
+        }
+        crate::model_catalog::view(generation, provider, models, &read_at)
+    }
     /// The loaded conversations of the current generation the host tick reads
     /// (at most `limit`): those whose model, provider and folder have no
     /// reading yet (read once, when the conversation's model is known), and
@@ -3714,6 +3802,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let child_event=parsed.as_ref().and_then(|frame|NativeChildStart::capture(generation,frame));
         let mut i = self.inner.0.lock().unwrap();
         let correlated_method=parsed.as_ref().and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).and_then(|e|e.request.frame["method"].as_str()).map(str::to_owned);
+        let catalog_reply=parsed.as_ref().and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation)
+            .is_some_and(|e|i.client_requests.get(e.index).is_some_and(|r|r["initiator"]["name"]==MODEL_CATALOG_INITIATOR));
+        let withhold=|frame:&Value| if catalog_reply { catalog_withheld(frame) } else { delegation_withheld(frame) };
         let safe_reply_id=parsed.as_ref().filter(|f|f.get("method").is_none()).and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).map(|e|e.request.request_id().clone());
         let possible_original_account=parsed.as_ref().filter(|f|f.get("method").is_none()).and_then(|f|f.get("id")).and_then(Value::as_str).is_some_and(|id|i.source_requests.values().any(|e|e.request.generation==*generation&&auth_rpc::account_method(e.request.frame["method"].as_str().unwrap_or(""))&&e.request.request_id().to_string()==id));
         // Unsupported auth request framing can echo private control material in its ID.
@@ -3752,7 +3843,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         // catalogues, whole configurations) are never journalled.
         let delegation_reply = correlated_method.as_deref().is_some_and(|m| DELEGATION_READ_METHODS.contains(&m)) && frame.get("method").is_none();
         if &i.generation != generation || i.server_requests.is_closed(generation) {
-            let journalled = if delegation_reply&&!private_config { delegation_withheld(&frame) } else { frame };
+            let journalled = if delegation_reply&&!private_config { withhold(&frame) } else { frame };
             i.journal.push(json!({"generation":generation,"class":"closed-generation-frame","frame":journalled,"sourceProjection":projection_label}));return;
         }
         i.receipt_position+=1;let pos=i.receipt_position;let gen=i.generation.clone();
@@ -3830,7 +3921,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 let deferred=!i.client_requests[idx].is_object()||i.source_requests.get(&key).is_some_and(|e|e.write_attempt_in_progress);
                 if !deferred {
                     let mut record=i.client_requests[idx].clone();
-                    match Self::completed_client_response(&mut record,Some(&frame),Some(pos)){Ok(())=>i.client_requests[idx]=record,Err(error)=>if let Some(e)=i.source_requests.get_mut(&key){e.source_limit=Some(error)}}
+                    match Self::completed_client_response(&mut record,Some(&frame),Some(pos)){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>if let Some(e)=i.source_requests.get_mut(&key){e.source_limit=Some(error)}}
                 }
                 if !deferred&&i.client_requests[idx]["method"] == "turn/start" {
                     if let Some((source_gen, thread, sent_after_receipt)) = i.turn_request_threads.remove(&key) {
@@ -3848,7 +3939,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 // until the reading takes its fields (`delegation_signals_read`).
                 let waiting_ended = i.client_requests[idx]["waitingEnded"] == true || i.source_requests.get(&key).is_some_and(|e| e.observation_base["waitingEnded"] == true);
                 // Nobody waits on the channel then either: it holds the reduced form too.
-                let kept = if private_config {frame.clone()} else if delegation_reply && waiting_ended { delegation_withheld(&frame) } else { frame.clone() };
+                let kept = if private_config {frame.clone()} else if delegation_reply && waiting_ended { withhold(&frame) } else { frame.clone() };
                 // Only the matching, still-pending private write reply can bind
                 // this fact. A reply first received after closure/detachment
                 // cannot acquire the original pipe's receipt standing. No raw
@@ -3860,7 +3951,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 Self::stop_request_response(&mut i, &gen, &frame);
                 let _ = tx.send(if private_config&&!waiting_ended{private_config_frame.unwrap()}else{kept});
                 // Responses are also journaled, with their metadata beside the native frame (H6).
-                let journalled = if delegation_reply&&!private_config { delegation_withheld(&frame) } else { frame.clone() };
+                let journalled = if delegation_reply&&!private_config { withhold(&frame) } else { frame.clone() };
                 let entry = json!({"generation": gen, "position": pos, "class": class, "frame": journalled,"sourceProjection":projection_label});
                 if i.state == "handshaking" { i.held.push(entry); } else { Self::publish_native_frame(&mut i, &entry); i.journal.push(entry); }
                 let attachment_source = i.source_requests.get(&key).filter(|e|e.attachment.is_some()).map(|e|e.request.clone());
@@ -3872,7 +3963,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             // Uncorrelated response: surfaced, never dropped (§5). A reply to a
             // delegation read no longer pending (its write failed) is surfaced
             // as its outcome only.
-            let journalled = if delegation_reply&&!private_config { delegation_withheld(&frame) } else { frame };
+            let journalled = if delegation_reply&&!private_config { withhold(&frame) } else { frame };
             let entry = json!({"generation": gen, "position": pos, "class": "uncorrelated-response", "frame": journalled,"sourceProjection":projection_label});
             if i.state == "handshaking" { i.held.push(entry); } else { Self::publish_native_frame(&mut i, &entry); i.journal.push(entry); }
             return;

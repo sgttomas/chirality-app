@@ -8199,6 +8199,8 @@ for line in sys.stdin:
  elif method=='collaborationMode/list':result={'data':[{'name':'Plan','mode':'plan'},{'name':'Default','mode':'default'}]}
  elif method=='model/list':
   # NPTD §7.1 signal 1: each model's multiAgentVersion from 'mav-<model>' (default v2; 'absent' unlisted; 'null').
+  if mode('catalog-secret')=='models-error':
+   emit({'id':f['id'],'error':{'code':-32011,'message':'refused near INVENTED_CATALOG_SECRET_7731','data':{'token':'INVENTED_CATALOG_SECRET_7731'}}});continue
   if mode('models-mode')=='error':
    emit({'id':f['id'],'error':{'code':-32000,'message':'fixture model/list refused'}});continue
   if mode('models-mode')=='stall':
@@ -8217,6 +8219,10 @@ for line in sys.stdin:
   m=mode('config-multi-agent')
   if m=='error':
    emit({'id':f['id'],'error':{'code':-32000,'message':'fixture config/read refused'}});continue
+  if mode('catalog-secret')=='config-error':
+   emit({'id':f['id'],'error':{'code':-32012,'message':'bad key INVENTED_CATALOG_SECRET_7731 in config'}});continue
+  if mode('catalog-secret')=='config-shape':
+   emit({'id':f['id'],'result':{'config':'INVENTED_CATALOG_SECRET_7731','origins':{}}});continue
   # The provider by where config/read resolves: no folder, the server's own folder, or another (a conversation's project).
   where=f['params'].get('cwd')
   which='bare' if where is None else ('server' if os.path.realpath(where)==os.path.realpath(os.getcwd()) else 'folder')
@@ -9537,7 +9543,7 @@ for line in sys.stdin:
         assert!(item_reads(&peer)+peer.wire().iter().filter(|f|f["method"]=="thread/turns/list").count()>reads,"the child's own item is new activity");
     }
     // ---- Delegation availability (NPTD §7.1; R19-5: read at run time in the host) ----
-    const DELEGATION_MODES:[&str;9]=["models-mode","mav-fixture-model","mav-other-model","config-multi-agent","config-provider","config-provider-bare","config-provider-server","config-provider-folder","namespace-tools"];
+    const DELEGATION_MODES:[&str;10]=["catalog-secret","models-mode","mav-fixture-model","mav-other-model","config-multi-agent","config-provider","config-provider-bare","config-provider-server","config-provider-folder","namespace-tools"];
     fn delegation_reading(peer:&Peer,thread:&str)->Value{
         crate::delegation_availability::evaluate(Some(&peer.home.host.delegation_signals_read(&peer.generation,thread,json!({"kind":"person-directed"}))))
     }
@@ -9581,6 +9587,65 @@ for line in sys.stdin:
         assert_eq!(r["reading"],"not established");assert!(r["reason"].as_str().unwrap().contains("not loaded"));
         // Nothing of the configuration but features.multi_agent is kept.
         assert!(!serde_json::to_string(&peer.home.host.delegation_readings()).unwrap().contains("fixture private configuration text"));
+    }
+    #[test]
+    fn model_catalog_lists_the_server_providers_models_at_a_press_and_keeps_no_configuration(){
+        let peer=Peer::new();
+        let read=|g:&Value|peer.home.host.model_catalog_read(g);
+        let lists=||peer.wire().iter().filter(|f|f["method"]=="model/list").count();
+        let setup=peer.wire().len();
+        let v=read(&peer.generation);
+        assert_eq!(v["state"],"observed","{v}");assert_eq!(v["complete"],true);assert_eq!(v["serverProvider"],"fixture-provider");
+        assert_eq!(v["models"],json!([{"id":"fixture-model","model":"fixture-model","displayName":"fixture-model","description":"fixture","isDefault":true},
+            {"id":"other-model","model":"other-model","displayName":"other-model","description":"fixture","isDefault":false}]));
+        let wire=peer.wire().split_off(setup);
+        assert_eq!(wire.iter().map(|f|f["method"].as_str().unwrap_or("").to_owned()).collect::<Vec<_>>(),["config/read","config/read","model/list"],"exactly the press's reads: {wire:?}");
+        assert_eq!(wire.iter().rev().find(|f|f["method"]=="model/list").unwrap()["params"],json!({"includeHidden":false}));
+        let configs:Vec<_>=wire.iter().filter(|f|f["method"]=="config/read").map(|f|f["params"]["cwd"].clone()).collect();
+        assert_eq!(configs.len(),2);assert!(configs[0].is_null()&&configs[1].is_string(),"no folder, then the server's own: {configs:?}");
+        for kept in [v.to_string(),serde_json::to_string(&peer.home.host.journal()).unwrap(),serde_json::to_string(&peer.home.host.client_requests()).unwrap(),peer.home.host.snapshot().to_string()] {
+            assert!(!kept.contains("fixture private configuration text"),"no configuration body is returned or kept");
+        }
+        assert!(peer.home.host.delegation_readings().is_empty(),"a press keeps no reading");
+        // The two provider readings must agree; a null provider matches nothing and is not inferred.
+        for (name,value,cause) in [("config-provider-server","other","fixture-provider without a folder and other at its own folder; neither is chosen"),
+            ("config-provider","none","names no provider"),("config-multi-agent","error","config/read answered with an error")]{
+            reset_delegation(&peer);peer.set_mode(name,value);
+            let v=read(&peer.generation);
+            assert!(v["serverProvider"].is_null(),"{name}={value}: {v}");
+            assert!(v["providerLimit"].as_str().unwrap().contains(cause),"{name}={value}: {v}");
+            assert_eq!(v["models"].as_array().unwrap().len(),2,"the list itself is still shown, unmatched");
+        }
+        // Paging and early ends keep what was read, marked incomplete.
+        reset_delegation(&peer);peer.set_mode("models-mode","paged");
+        let v=read(&peer.generation);assert_eq!(v["complete"],true);assert_eq!(v["models"].as_array().unwrap().len(),2);
+        for (mode,limit) in [("error","model list incomplete: model/list answered with an error"),("emptycursor","empty page cursor")]{
+            reset_delegation(&peer);peer.set_mode("models-mode",mode);
+            let v=read(&peer.generation);assert_eq!(v["complete"],false,"{mode}");assert_eq!(v["state"],"unavailable","{mode}: nothing listed");
+            assert!(v["limits"].as_array().unwrap().iter().any(|l|l.as_str().unwrap().contains(limit)),"{mode}: {v}");
+        }
+        // Native errors and malformed results can quote configuration: none of it
+        // reaches the returned view, the journal, the request evidence or the snapshot.
+        for (value,expect) in [("config-error","config/read answered with an error (code -32012)"),("config-shape","config/read returned a result of an unexpected shape"),
+            ("models-error","model/list answered with an error (code -32011)")]{
+            reset_delegation(&peer);peer.set_mode("catalog-secret",value);
+            let v=read(&peer.generation);
+            assert!(v.to_string().contains(expect),"{value}: {v}");
+            for (place,kept) in [("view",v.to_string()),("journal",serde_json::to_string(&peer.home.host.journal()).unwrap()),("client requests",serde_json::to_string(&peer.home.host.client_requests()).unwrap()),("snapshot",peer.home.host.snapshot().to_string())] {
+                let at=kept.find("INVENTED_CATALOG_SECRET_7731");
+                assert!(at.is_none(),"{value}: the secret is not kept in the {place}: {}",at.map(|a|kept[a.saturating_sub(300)..(a+60).min(kept.len())].to_owned()).unwrap_or_default());
+            }
+            let kept=peer.home.host.journal().into_iter().filter(|e|e["frame"]["errorWithheld"].is_string()).count();
+            if value!="config-shape" { assert!(kept>=1,"{value}: the error is journalled as its code only"); }
+        }
+        // Delegation reads keep their existing reduced form, error included.
+        reset_delegation(&peer);peer.set_mode("models-mode","error");
+        delegation_reading(&peer,"thread");
+        assert!(serde_json::to_string(&peer.home.host.journal()).unwrap().contains("fixture model/list refused"),"delegation semantics unchanged");
+        // A generation that is not current reads nothing.
+        reset_delegation(&peer);let before=lists();
+        let mut stale=peer.generation.clone();stale["spawnCounter"]=json!(99);
+        let v=read(&stale);assert_eq!(v["state"],"unavailable");assert_eq!(lists(),before,"nothing sent for another generation");
     }
     #[test]
     fn delegation_is_read_per_conversation_model_and_per_home_once_on_the_tick(){

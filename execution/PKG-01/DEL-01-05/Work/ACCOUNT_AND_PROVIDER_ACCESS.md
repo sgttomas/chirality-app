@@ -1641,6 +1641,83 @@ not change native runtime, account or provider settings. Mounted App checks in
 `app/tests/conversation-panel.test.mjs` cover the consuming path; they establish
 renderer behavior with synthetic native replies, not provider qualification.
 
+### Explicit route and model discovery for a new conversation
+
+Owner direction of 2026-11-03 (DEL-02-02 `Work/PUBLICATION_JOURNEYS.md`)
+requires the journeys to work without an agent translating engineering
+controls; the Start form previously required typing a model identifier and a
+provider identifier. The form now offers, in this order:
+
+1. **How it connects.** One explicit route button for the active home's
+   built-in cloud entry — "Use my ChatGPT account (built-in OpenAI)" in the
+   account home, "Use this home's API key (built-in OpenAI)" in the key home —
+   which sets provider `openai` (the built-in provider a cloud entry requires,
+   `access_provider`) and that entry. In the account home the existing configured
+   local provider read and its "Choose provider ‹id›" remain the local route.
+   Nothing is chosen until the person presses.
+2. **Model.** "Read available models" calls the new `read_available_models`
+   (`model_catalog`, `Host::model_catalog_read`) for the active home's current
+   generation only. The host sends `config/read` with no folder and at the
+   app-server's own folder, then `model/list` with `includeHidden:false`
+   following `nextCursor` (at most 20 pages, 200 entries), under the delegation
+   read's waits. Native error text and schema findings can quote configuration
+   or credentials, so none leaves the read: its causes are fixed wording (not
+   sent, no response, error code, unexpected shape). Its replies are journalled
+   and kept as request evidence in outcome-only form, an error reduced to its
+   numeric code (`catalog_withheld`), and its client records keep the error code
+   only (`catalog_record`); delegation reads keep their existing reduction. It
+   returns the server provider with a typed `serverProviderState` (`named`,
+   `unnamed`, `not-established`, `not-read`) and each visible model's `id`,
+   `model`, `displayName`, a 300-character `description` and `isDefault`. A
+   list cut at 200 entries is reported incomplete. No configuration body, other
+   model field, entitlement or account fact is returned or kept; nothing is
+   cached, written, signed in or started. The command refuses when the active
+   home, its class or generation differs, before or after the reads.
+3. **Advanced: enter IDs yourself.** The original model, provider and access
+   entry fields, unchanged, as the fallback.
+
+At the 0.160.0 pin `model/list` takes no provider and answers for the
+app-server's own provider (runtime owner confirmation, 2026-11-03). A listed
+model is offered as **Use ‹name›** only when that server provider is the chosen
+conversation provider. When the configuration names no provider, the App does
+not take it to be the built-in one: for the built-in route only, the person may
+still choose **Use ‹name› (provider not confirmed)**, under a note that the App
+cannot confirm the list belongs to that route (parent decision, 2026-11-03:
+keep this explicit, labelled choice; runtime owner review accepted it). Start
+re-checks only that the built-in OpenAI provider is not redefined
+(`access_provider` classification); it does not confirm the model is offered
+on that route, and if it is not, Codex reports an error when the conversation
+starts or its first turn runs. A list for another provider, a
+disagreeing configuration, a local provider with an unnamed or different server
+provider, a stale list (home, generation or project changed, or a newer read)
+and a failed or malformed reply offer no model choice and point to Advanced. An
+incomplete list says so with the host's limit. Codex's reported default is
+labelled, never preselected. Start's existing admission and fresh configuration
+checks are unchanged, and a listed model is described as the supplier's reported
+availability, not entitlement.
+
+Checks: `model_catalog::tests` (agreement, no default inference, field
+narrowing, paging ends) and the fixture test
+`model_catalog_lists_the_server_providers_models_at_a_press_and_keeps_no_configuration`
+(exact wire reads, no configuration text in the result, journal, client requests
+or snapshot, disagreement/null/error cases, paging, another generation sends
+nothing; an invented secret in a `config/read` error, a malformed `config/read`
+result and a `model/list` error appears in none of the returned view, journal,
+client requests or snapshot, while a delegation read's error is unchanged), plus `app/tests/model-choice.test.mjs` with a controlled IPC peer
+(route → read → explicit choice → Start sends exactly that choice; other
+provider, unconfirmed, stale, failed, wrong-generation and incomplete cases; the
+key home's route). Run with `cargo test --lib model_catalog` from
+`app/src-tauri/` and `node --test tests/model-choice.test.mjs` from `app/`; CI
+runs both. No supplier, model, sign-in or network was exercised.
+
+**Mode limits that remain.** Whether a real account configuration names its
+provider, and so whether account users see confirmed or unconfirmed choices, is
+not established at the pin from available source (the pinned Codex source is
+not available offline). A configured local provider's models are listed only
+when the app-server's own provider is that local provider; otherwise its model
+is entered under Advanced. The list says nothing about whether the account may
+use a model; Start or the first turn reports that.
+
 ## UNRESOLVED
 
 Closed in v0.2: U-A1 (DECISION-L L-1 A), U-A3 (OBS-2 O-6 M1), U-A11
