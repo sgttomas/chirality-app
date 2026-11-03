@@ -1116,7 +1116,10 @@ busy or the shown workflow source/generation differs from the host's.
 Checked by `app/tests/run-journey.test.mjs` with controlled host views (exact
 command arguments, every reading including unknown versus refused starts and
 each end cause, stale retained clicks dispatching nothing, the completed-report
-path, project/library folder separation and both bundled standings) and the existing mounted-App suites. This is a source-level
+path, project/library folder separation and both bundled standings; run
+directly with `node --test tests/run-journey.test.mjs` from `app/`, and in CI by
+the "Workflow and fleet presentation" step. `app/package.json` is unchanged:
+the notice basis pins it, so the test is not added to `npm test`) and the existing mounted-App suites. This is a source-level
 increment: no supplier, model, native App, person act or candidate journey was
 exercised, and J1 remains open until observed on an identified candidate.
 
@@ -1165,8 +1168,19 @@ The studio now offers **Make a workflow from your work** after Run a workflow:
   are library files that persist across quit/reopen and that reading a past
   conversation in History does not continue it.
 
+The guide also offers the draft list's own trial and review commands for its
+named draft (`workflow_trial_prepare` delegated with the guide's conversation,
+or clean; `workflow_review_draft`), with DraftRow's arguments, try/review limits
+and delegation reading, and opens that draft's pending trial messages through
+the studio's existing source-checked Open (a clean trial points to the global
+new-trial composer). With no library open, its next step opens one first, so a
+returning person sees unfinished drafts before choosing a conversation.
+
 Every host-changing control uses the same busy/stale-source guard as Run a
-workflow. Checked by `app/tests/make-journey.test.mjs` (name rule, exact folder
+workflow. Checked by `app/tests/make-journey.test.mjs` (run directly with
+`node --test tests/make-journey.test.mjs` from `app/`, and in CI by the
+"Workflow and fleet presentation" step; `app/package.json` stays at the
+pinned notice basis) (name rule, exact folder
 and request text, no command or send on compose, each draft state's next step
 without an early registration claim, unfinished-draft return, stale and
 no-library cases) with controlled host views. No supplier, model, native App,
