@@ -10,6 +10,9 @@ installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {RunWorkflowGuide, runReading} = loadSrc('RunJourney');
+const UNKNOWN = {state:'native workflow-text send outcome unknown; original source retained', limit:'reply lost'};
+const REFUSED = {state:'native workflow-text turn/start refused by Codex; original source retained', limit:'invented refusal'};
+const NOT_CONFIRMED = 'start not confirmed (turn refused or outcome unknown); not opened, not live';
 
 const raw = JSON.parse(readFileSync(new URL('../src-tauri/resources/workflow_role/workflow-declaration.valid.example.json', import.meta.url), 'utf8'));
 const cats = ['expected_inputs','required_tools','checkpoints','returned_outputs','returned_evidence'];
@@ -23,6 +26,8 @@ const PREPARED = 'prepared; not a run until its start turn is observed';
 
 function host(over = {}) {
   return {state:'ready', generation:g, workflowRoot:{context:{sourceRef:'src', generation:g}},
+    currentAppProjectContext:{reference:'/invented/work-project', sourceCaption:'configured App directory', standing:'s'}, currentAppProjectContextLimit:null,
+    attachmentSelections:{launchAppProjectObservation:{source:'explicit App launch CHIRALITY_WORKSPACE', nativeRoot:path('/invented/work-project'), associationStanding:'a'}},
     threads:[{threadId:'T1', generation:g, model:'invented-model', status:{type:'idle'}}, {threadId:'T2', generation:g, model:'invented-model', status:{type:'idle'}}],
     serverRequests:[], ...over};
 }
@@ -63,13 +68,24 @@ test('run readings keep waiting, working, failed, interrupted-start and finished
     threads:[{threadId:'T2', generation:g, status:{type:'active'}}]})).tone, 'working', 'another conversation\'s request is not this run\'s question');
   assert.equal(runReading({conversation:'T1', source:'s', lifecycle:{state:OPEN}}, host({serverRequests:[{state:'answered', nativeParameters:{threadId:'T1'}}]})).tone, 'idle');
   assert.equal(runReading({conversation:'T1', source:'s', lifecycle:{state:OPEN}}, host({threads:[{threadId:'T1', generation:g, status:{type:'systemError'}}]})).tone, 'failed');
-  assert.equal(runReading({conversation:'T1', lifecycle:{state:'start not confirmed (turn refused or outcome unknown); not opened, not live'}}, host()).tone, 'failed');
+  const refused = runReading({conversation:'T1', lifecycle:{state:NOT_CONFIRMED}, status:REFUSED}, host());
+  assert.equal(refused.tone, 'failed'); assert.match(refused.detail, /did not run.*invented refusal.*prepare it again/);
+  for (const status of [UNKNOWN, {state:'native workflow-text send not started; original records retained', sent:'not observed', limit:'x'}, {}]) {
+    const unknown = runReading({conversation:'T1', lifecycle:{state:NOT_CONFIRMED}, status}, host());
+    assert.equal(unknown.tone, 'uncertain', JSON.stringify(status)); assert.match(unknown.detail, /may have run\. The App will not resend it/);
+    assert.doesNotMatch(unknown.detail, /did not run|prepare/i, 'an unknown outcome never claims nothing ran or suggests a resend');
+  }
   const sent = runReading({conversation:'T1', source:'sent', lifecycle:{state:PREPARED}}, host());
   assert.equal(sent.title, 'Starting', 'a send acknowledgment is not a started or completed run');
   assert.equal(runReading({conversation:'T1', lifecycle:{state:PREPARED}, status:{sent:false, state:'WR pre-send publication failed; nothing sent', limit:'disk full'}}, host()).title, 'Not started');
   assert.equal(runReading({conversation:'T1', lifecycle:{state:PREPARED}, status:{sent:false}}, host()).title, 'Ready to start');
   const done = runReading({conversation:'T1', source:'s', lifecycle:{state:'ended by the person', end:{cause:'completed'}}}, host());
-  assert.equal(done.tone, 'done'); assert.match(done.detail, /completed/);
+  assert.equal(done.tone, 'done'); assert.equal(done.title, 'Ended as completed'); assert.match(done.detail, /has not checked the work/);
+  for (const [cause, title] of [['ended by the person','Ended by you'], ['ended to start other-flow','Ended to start another workflow'], ['invalid','Ended'], [undefined,'Ended']]) {
+    const ended = runReading({conversation:'T1', source:'s', lifecycle:{state:'ended by the person', end:cause === undefined ? null : {cause}}}, host());
+    assert.equal(ended.tone, 'ended', String(cause)); assert.equal(ended.title, title);
+    assert.match(ended.detail, /does not say the work is complete/); assert.doesNotMatch(ended.title, /complete|finish/i, 'a plain end is never completed');
+  }
   for (const reading of [sent]) assert.doesNotMatch(reading.title + reading.detail, /finished|completed/i);
 });
 
@@ -110,7 +126,11 @@ test('an existing registered workflow is found, chosen for a conversation and pr
   await ui.press('Start the run');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_send_run', args:{runRef:'run-1'}});
   const results = region(ui.c, 'Where the results go').textContent;
-  assert.match(results, /report-file — reports\/spacing\.md in \/invented\/project: The written report/);
+  assert.match(results, /report-file — declared path reports\/spacing\.md: The written report/);
+  const guide = region(ui.c, 'Run a workflow').textContent;
+  assert.match(guide, /Project folder: \/invented\/work-project/);
+  assert.doesNotMatch(results, /\/invented\/project/, 'the opened library folder is never presented as the results location');
+  assert.match(guide, /hasn't checked that any of them exist/);
 });
 
 test('an open run reports questions, offers End this run and refuses a second prepare; a finished run says so', async () => {
@@ -119,10 +139,16 @@ test('an open run reports questions, offers End this run and refuses a second pr
   assert.match(region(ui.c, 'Run progress').textContent, /Waiting for your answer/);
   assert.equal(props(button(ui.c, 'Prepare this run')).disabled, true, 'an open run is not prepared again from the guide');
   assert.ok(all(region(ui.c, 'Run progress'), 'a').some(a => a.getAttribute('href') === '#conversation'));
+  assert.equal(button(ui.c, 'End as completed, on the agent\'s report'), undefined, 'no completed end without the host\'s finished offer');
   await ui.press('End this run');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_end_run', args:{runRef:'run-1', finishedReport:null}});
+  const message = {threadId:'T1', turnId:'turn-9', itemId:'m'};
+  await ui.rerender({data:data({selections:selected(), runs:[open], offers:[{message, finished:{run:'run-1', statement:'Workflow finished: project:resolve-spacing'}}, {message:{threadId:'T1'}, finished:{run:'run-other', statement:'x'}}]})});
+  assert.match(region(ui.c, 'Agent finished report').textContent, /The agent wrote “Workflow finished: project:resolve-spacing”/);
+  await ui.press('End as completed, on the agent\'s report');
+  assert.deepEqual(ui.calls.at(-1), {command:'workflow_end_run', args:{runRef:'run-1', finishedReport:message}}, 'the existing completed path carries the host\'s exact report message');
   await ui.rerender({host:host(), data:data({selections:selected(), runs:[{...open, lifecycle:{state:'ended by the person', end:{cause:'completed'}}}]})});
-  assert.match(region(ui.c, 'Run progress').textContent, /Finished\..*completed/);
+  assert.match(region(ui.c, 'Run progress').textContent, /Ended as completed\./);
   assert.equal(button(ui.c, 'End this run'), undefined);
   assert.equal(props(button(ui.c, 'Prepare this run')).disabled, false, 'after the end a new run may be prepared');
   const other = {...open, reference:'run-x', conversation:'T2'};
@@ -139,8 +165,12 @@ test('an unregistered library entry is reviewed singly; the bundled candidate is
   await ui.press('Look for other workflows in this library');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_library_entries_refresh', args:{libraryRef:'lib:project'}});
   const guide = region(ui.c, 'Run a workflow');
-  assert.match(guide.textContent, /Included with the App: coordinated-knowledge-work\. This build can't run it directly yet \(production bundle candidate; not a published release\)/);
+  assert.match(guide.textContent, /Included with the App: coordinated-knowledge-work\. This build can't run it directly: production bundle candidate; not a published release\./);
   assert.equal(all(guide, 'button').some(b => b.textContent.includes('coordinated-knowledge-work')), false);
+  await ui.rerender({data:data({productionCatalog:{standing:'released', entries:[{name:'coordinated-knowledge-work', revision:'bundled-rev-0123456789', runnable:true, runLimit:null}]}})});
+  await ui.press('Use coordinated-knowledge-work (included with the App)');
+  assert.deepEqual(ui.calls.at(-1), {command:'workflow_select_production_bundle', args:{name:'coordinated-knowledge-work'}}, 'a host-runnable bundled entry uses the existing bundled selection');
+  await ui.rerender({data:data()});
   await ui.rerender({data:data({selections:selected(false)})});
   assert.match(region(ui.c, 'Run a workflow').textContent, /Next: resolve-spacing can't run: not registered/);
   assert.equal(props(button(ui.c, 'Prepare this run')).disabled, true);
@@ -151,7 +181,35 @@ test('an unregistered library entry is reviewed singly; the bundled candidate is
 test('a stale workflow source disables every guide command', async () => {
   const ui = await mount({thread:'T1', host:host({workflowRoot:{context:{sourceRef:'other', generation:g}}}), data:data({selections:selected()})});
   assert.match(region(ui.c, 'Run a workflow').textContent, /Next: The workflow view is out of date/);
-  for (const label of ['Reload this project\'s workflows', 'Use resolve-spacing', 'Review draft-free-entry for first use…', 'Look for other workflows in this library', 'Prepare this run'])
-    assert.equal(props(button(ui.c, label)).disabled, true, label);
-  assert.deepEqual(ui.calls, []);
+  const labels = ['Reload this project\'s workflows', 'Use resolve-spacing', 'Review draft-free-entry for first use…', 'Look for other workflows in this library', 'Prepare this run'];
+  const stale = host({workflowRoot:{context:{sourceRef:'other', generation:g}}});
+  const prepared = {reference:'run-p', conversation:'T1', home:'account', workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{sent:false}};
+  const open = {reference:'run-o', conversation:'T1', home:'account', source:'s', lifecycle:{state:OPEN}, status:{}};
+  const clickAll = async list => { for (const label of list) { const node = button(ui.c, label); assert.ok(node, label); assert.equal(props(node).disabled, true, label);
+    await React.act(async () => props(node).onClick()); } };
+  await clickAll(labels);
+  await ui.rerender({host:stale, data:data({selections:selected(), runs:[prepared]})}); await clickAll(['Start the run']);
+  await ui.rerender({host:stale, data:data({selections:selected(), runs:[open], offers:[{message:{threadId:'T1'}, finished:{run:'run-o', statement:'s'}}]})}); await clickAll(['End this run', 'End as completed, on the agent\'s report']);
+  assert.equal(props(all(ui.c, 'select')[0]).disabled, true, 'the conversation choice follows the same guard');
+  assert.deepEqual(ui.calls, [], 'a retained click on a stale control dispatches nothing');
+});
+
+test('an unknown start outcome is not resent without the person reading the conversation; a definite refusal may be prepared again', async () => {
+  const unknown = {reference:'run-u', conversation:'T1', home:'account', source:'src', lifecycle:{state:NOT_CONFIRMED}, status:UNKNOWN};
+  const ui = await mount({thread:'T1', host:host(), data:data({selections:selected(), runs:[unknown]})});
+  assert.match(region(ui.c, 'Run a workflow').textContent, /Next: Read the conversation: the last start's outcome is unknown and it may have run\./);
+  assert.match(region(ui.c, 'Run progress').textContent, /Start not confirmed — outcome unknown/);
+  assert.ok(all(region(ui.c, 'Run progress'), 'a').some(a => a.getAttribute('href') === '#conversation'));
+  const prepare = button(ui.c, 'Prepare this run'); assert.equal(props(prepare).disabled, true);
+  await React.act(async () => props(prepare).onClick()); assert.deepEqual(ui.calls, []);
+  const ack = all(ui.c, 'input').find(node => props(node)?.type === 'checkbox');
+  await React.act(async () => props(ack).onChange({target:{checked:true}}));
+  await ui.press('Prepare this run');
+  assert.equal(ui.calls.at(-1).command, 'workflow_prepare_run', 'only after the explicit acknowledgement');
+  await ui.rerender({data:data({selections:selected(), runs:[unknown, {...unknown, reference:'run-u2'}]})});
+  assert.equal(props(button(ui.c, 'Prepare this run')).disabled, true, 'the acknowledgement named the earlier run only');
+  await ui.rerender({data:data({selections:selected(), runs:[{...unknown, status:REFUSED}]})});
+  assert.equal(all(ui.c, 'input').some(node => props(node)?.type === 'checkbox'), false);
+  assert.equal(props(button(ui.c, 'Prepare this run')).disabled, false);
+  assert.match(region(ui.c, 'Run progress').textContent, /Codex refused to start the run/);
 });
