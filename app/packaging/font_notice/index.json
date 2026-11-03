@@ -1,0 +1,164 @@
+{
+  "format": "font-notice/1",
+  "scope": "IBM Plex WOFF2 files bundled by the App frontend from app/src/fonts and their retained OFL text; exact bytes and the fonts' own name-table declarations, not a legal conclusion",
+  "source": {
+    "repository": "https://github.com/sgttomas/chirality",
+    "revision": "485051eac923c759238948a54cd7bb094eee4899",
+    "path": "projects/chirality-app-dev/frontend/src/fonts",
+    "added_by_commit": "f29b27a1fbf1c9a3b770923b2b74567b62f0c038",
+    "declared_upstream": "@fontsource/ibm-plex-{sans,serif,mono} 5.3.0 npm tarballs (commit message)",
+    "declared_upstream_verified": false
+  },
+  "license": {
+    "path": "app/src/fonts/LICENSE-IBM-Plex-OFL.txt",
+    "size_bytes": 4429,
+    "sha256": "d0283623ef57e722fd0eb688a8041589670c608ab780cd3612d06ba6f153d3fd",
+    "git_blob_sha1": "2ae8ef3cc4a742c2ac6046175e04704fc5e2b58e",
+    "title": "SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007",
+    "header_copyright": "Copyright 2019 IBM Corp. All rights reserved. IBMPlexSans-Italic[wdth,wght].ttf: Copyright 2019 IBM Corp. All rights reserved."
+  },
+  "fonts": [
+    {
+      "path": "app/src/fonts/ibm-plex-mono-latin-400-normal.woff2",
+      "size_bytes": 14708,
+      "sha256": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7",
+      "git_blob_sha1": "0804aaff92260b5359330f63e05b9ac25ccabeee",
+      "name_table": {
+        "copyright": "Copyright 2017 IBM Corp. All rights reserved.",
+        "family": "IBM Plex Mono",
+        "subfamily": "Regular",
+        "version": "Version 2.3",
+        "license_url": "http://scripts.sil.org/OFL"
+      }
+    },
+    {
+      "path": "app/src/fonts/ibm-plex-mono-latin-500-normal.woff2",
+      "size_bytes": 14888,
+      "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+      "git_blob_sha1": "090f82f7ec7997047324e07650865305a099969a",
+      "name_table": {
+        "copyright": "Copyright 2017 IBM Corp. All rights reserved.",
+        "family": "IBM Plex Mono Medium",
+        "subfamily": "Regular",
+        "version": "Version 2.3",
+        "license_url": "http://scripts.sil.org/OFL"
+      }
+    },
+    {
+      "path": "app/src/fonts/ibm-plex-sans-latin-400-italic.woff2",
+      "size_bytes": 24356,
+      "sha256": "6de912e531b6c98084f1b2d5e5a91bad77be4e68bc4e396e43c46fc435e5f3d9",
+      "git_blob_sha1": "cf026fe3494a9f603ab51c522853c24529f3d40b",
+      "name_table": {
+        "copyright": "Copyright 2019 IBM Corp. All rights reserved.",
+        "family": "IBM Plex Sans",
+        "subfamily": "Italic",
+        "version": "Version 3.201",
+        "license_url": "http://scripts.sil.org/OFL"
+      }
+    },
+    {
+      "path": "app/src/fonts/ibm-plex-sans-latin-400-normal.woff2",
+      "size_bytes": 22588,
+      "sha256": "3b646991d30055a93a4ecc499713d4347953a74a947ecab435ab72070cbdab0e",
+      "git_blob_sha1": "f0ee65dd7f3ed64dc8d674e5c6007a0e7761bd57",
+      "name_table": {
+        "copyright": "Copyright 2019 IBM Corp. All rights reserved.",
+        "family": "IBM Plex Sans",
+        "subfamily": "Regular",
+        "version": "Version 3.201",
+        "license_url": "http://scripts.sil.org/OFL"
+      }
+    },
+    {
+      "path": "app/src/fonts/ibm-plex-sans-latin-500-normal.woff2",
+      "size_bytes": 24184,
+      "sha256": "0717336fb31fcdcde4b8deb3675bb4a0f7f6d484864afcd6751ac29975962203",
+      "git_blob_sha1": "6d5527eef47ace16b08cf9932050b83858995e62",
+      "name_table": {
+        "copyright": "Copyright 2019 IBM Corp. All rights reserved.",
+        "family": "IBM Plex Sans Medium",
+        "subfamily": "Regular",
+        "version": "Version 3.201",
+        "license_url": "http://scripts.sil.org/OFL"
+      }
+    },
+    {
+      "path": "app/src/fonts/ibm-plex-sans-latin-600-normal.woff2",
+      "size_bytes": 24252,
+      "sha256": "8960851d691c054ed38e259bdcf1a6190d157b4203ed5bb32c632a863fb8ec2f",
+      "git_blob_sha1": "08c0d5adcbdd87d740ed91568f9836134c84bdfb",
+      "name_table": {
+        "copyright": "Copyright 2019 IBM Corp. All rights reserved.",
+        "family": "IBM Plex Sans SemiBold",
+        "subfamily": "Regular",
+        "version": "Version 3.201",
+        "license_url": "http://scripts.sil.org/OFL"
+      }
+    },
+    {
+      "path": "app/src/fonts/ibm-plex-sans-latin-700-normal.woff2",
+      "size_bytes": 22832,
+      "sha256": "42e7b0c143c19df9d99fd896e76b48f846edf0902d200bc29796b34d12c33aa7",
+      "git_blob_sha1": "953f94fa178e8ca69a8894c2c9d1325b3a15c150",
+      "name_table": {
+        "copyright": "Copyright 2019 IBM Corp. All rights reserved.",
+        "family": "IBM Plex Sans",
+        "subfamily": "Bold",
+        "version": "Version 3.201",
+        "license_url": "http://scripts.sil.org/OFL"
+      }
+    },
+    {
+      "path": "app/src/fonts/ibm-plex-serif-latin-400-italic.woff2",
+      "size_bytes": 20900,
+      "sha256": "d3f861b1ca55e50ca94de4c1756cb0d67c73de615172adf6b5b2078d939c723a",
+      "git_blob_sha1": "79bcab08cc7e61dfbafcc1569256771be57f616e",
+      "name_table": {
+        "copyright": "Copyright 2020 IBM Corp. All rights reserved.",
+        "family": "IBM Plex Serif",
+        "subfamily": "Italic",
+        "version": "Version 2.6",
+        "license_url": "http://scripts.sil.org/OFL"
+      }
+    },
+    {
+      "path": "app/src/fonts/ibm-plex-serif-latin-400-normal.woff2",
+      "size_bytes": 19580,
+      "sha256": "cb2c5eee2c0a43ff30d2365407c7bc8b20e3bd90720a4a64102ba0b328022a02",
+      "git_blob_sha1": "dfe0ebe194a8bd317223ec340919a0099654b2a5",
+      "name_table": {
+        "copyright": "Copyright 2020 IBM Corp. All rights reserved.",
+        "family": "IBM Plex Serif",
+        "subfamily": "Regular",
+        "version": "Version 2.6",
+        "license_url": "http://scripts.sil.org/OFL"
+      }
+    },
+    {
+      "path": "app/src/fonts/ibm-plex-serif-latin-600-normal.woff2",
+      "size_bytes": 20516,
+      "sha256": "e279e4f8baa0d4634d98868092f2198ae0dcd9e142c935822c385b9843352a9b",
+      "git_blob_sha1": "c39282b8ceb69b113b8d6c47f18b369f2298bb80",
+      "name_table": {
+        "copyright": "Copyright 2020 IBM Corp. All rights reserved.",
+        "family": "IBM Plex Serif SemiBold",
+        "subfamily": "Regular",
+        "version": "Version 2.6",
+        "license_url": "http://scripts.sil.org/OFL"
+      }
+    }
+  ],
+  "copyright_notices": [
+    "Copyright 2017 IBM Corp. All rights reserved.",
+    "Copyright 2019 IBM Corp. All rights reserved.",
+    "Copyright 2020 IBM Corp. All rights reserved."
+  ],
+  "limits": [
+    "The retained OFL text's header names only the 2019 IBM Plex Sans copyright; the 2017 Mono and 2020 Serif notices come from each font's own name table and are listed here",
+    "Correspondence to the declared @fontsource 5.3.0 tarballs is not verified; no tarball is available locally and none was downloaded",
+    "No Reserved Font Name appears in the shipped name tables or retained text; this records strings, not a licensing determination",
+    "The frontend build also embeds these fonts and the license in the App executable; this index is the bundle-visible notice copy",
+    "Not complete third-party coverage, release approval or legal advice"
+  ]
+}

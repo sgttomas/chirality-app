@@ -131,6 +131,7 @@ code_paths:
 - app/packaging/terms/**
 - app/src-tauri/src/desktop_startup.rs
 - app/packaging/notices/**
+- app/packaging/font_notice/**
 - app/packaging/unsigned/tauri.notices.conf.json
 checks:
 - app/tests/supplier_notice_observations_test.py
@@ -145,3 +146,5 @@ checks:
 - app/src-tauri/tests/attested_reference_packaging.rs
 - app/packaging/notices/check.py
 - app/tests/notice_resources_test.py
+- app/packaging/font_notice/check.py
+- app/tests/font_notice_test.py

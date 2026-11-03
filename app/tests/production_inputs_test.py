@@ -16,9 +16,9 @@ class ProductionInputs(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name).resolve()
         self.source = self.root / 'source'
-        for relative in ('app/src-tauri/resources', 'app/packaging/unsigned', 'app/packaging/notices', 'app/packaging/sqlite_notice', 'app/src-tauri/schemas'):
+        for relative in ('app/src-tauri/resources', 'app/packaging/unsigned', 'app/packaging/notices', 'app/packaging/sqlite_notice', 'app/packaging/font_notice', 'app/src/fonts', 'app/src-tauri/schemas'):
             shutil.copytree(ROOT / relative, self.source / relative)
-        for relative in ('app/package-lock.json', 'app/src-tauri/Cargo.lock', 'app/src-tauri/Cargo.toml', 'app/src-tauri/tauri.conf.json'):
+        for relative in ('app/package-lock.json', 'app/src-tauri/Cargo.lock', 'app/src-tauri/Cargo.toml', 'app/src-tauri/tauri.conf.json', 'app/src/workspace.css', 'app/index.html'):
             shutil.copyfile(ROOT / relative, self.source / relative)
         self.vendor = self.root / 'vendor'; self.vendor.mkdir()
         for name in ('bin', 'codex-path', 'codex-resources'): (self.vendor / name).mkdir()
@@ -90,18 +90,19 @@ class ProductionInputs(unittest.TestCase):
         dest=set(config['bundle']['resources'].values())
         self.assertIn('codex/',dest);self.assertIn('third-party-notices/index.json',dest)
         self.assertIn('third-party-notices/sqlite-preparation/sqlite3-source-header.txt',dest)
+        self.assertIn('third-party-notices/fonts/index.json',dest);self.assertIn('third-party-notices/fonts/LICENSE-IBM-Plex-OFL.txt',dest)
         self.assertIn('distribution-reference/build-selection.s2.json',dest)
         self.assertNotIn('--debug',recipe['argv']);self.assertIn('--no-sign',recipe['argv'])
         self.assertNotIn('CHIRALITY_PUBLISHER_SELECTION',recipe['environment'])
         self.assertIn('CHIRALITY_PUBLISHER_SELECTION',recipe['unset_environment'])
-        self.assertEqual(len(config['bundle']['resources']),50)
-        self.assertEqual(len(dest),50)
+        self.assertEqual(len(config['bundle']['resources']),52)
+        self.assertEqual(len(dest),52)
         self.assertFalse(recipe['inherit_environment'])
         self.assertIn('CARGO_TARGET_DIR',recipe['required_environment'])
         self.assertNotIn('RUSTFLAGS',recipe['environment_allowlist'])
         self.assertEqual(module.check_plan(self.output)['files'],result['files'])
         account=json.loads((self.output/'input-inventory.json').read_text())
-        self.assertEqual(len(account['tool_sha256']),3)
+        self.assertEqual(len(account['tool_sha256']),4)
         self.assertTrue(account['jsonschema_version'])
         self.assertFalse(result['build_executed']);self.assertFalse(result['signing_executed']);self.assertFalse(result['package_complete'])
     def test_explicit_invented_publisher_input_binds_identifier_and_recipe(self):
@@ -230,6 +231,15 @@ class ProductionInputs(unittest.TestCase):
     def test_missing_mapped_notice_refuses_before_output(self):
         (self.source/'app/packaging/notices/index.json').unlink()
         with self.assertRaises(FileNotFoundError):self.run_plan()
+        self.assertFalse(self.output.exists())
+    def test_stale_or_unindexed_font_notice_refuses_before_output(self):
+        fonts=self.source/'app/src/fonts'
+        (fonts/'invented-extra.woff2').write_bytes(b'INVENTED font bytes')
+        with self.assertRaises(ValueError):self.run_plan()
+        self.assertFalse(self.output.exists())
+        (fonts/'invented-extra.woff2').unlink()
+        license=fonts/'LICENSE-IBM-Plex-OFL.txt';license.write_bytes(license.read_bytes()+b'modified')
+        with self.assertRaises(ValueError):self.run_plan()
         self.assertFalse(self.output.exists())
 
 if __name__=='__main__':unittest.main()
