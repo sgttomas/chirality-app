@@ -192,7 +192,8 @@ request.
    - Double-click the DMG in Downloads. Make a folder `Applications` in the test
      user's home and drag **Chirality App v4** into it. Do not use `/Applications`.
 4. **Gate.** Run `sh "$C" c1 ~/Downloads/Chirality-App-v4-4.0.0-f664ee1d-b3dd4145.dmg`.
-   It must end with **Gate passed**. On **STOP**, do not launch; tell the agent.
+   It must end with **Gate passed**. On **STOP** or **refused**, do not launch;
+   tell the agent.
    Eject the DMG.
 5. **Record.** Press ⇧⌘5 ▸ Options ▸ Save to ▸ Other Location… and choose
    `/Users/Shared/chirality-v4-witness-out/recording`. Then Record Entire Screen.
@@ -296,12 +297,14 @@ above:
 Its safeguards:
 
 - It refuses symlinks along every path before any traversal, stat, hash or copy.
-  That covers the output root, the fixture root, the marker directory, capture,
-  act and distribution directories, and every member of the installed App.
+  That covers the output root, the given DMG, the AppData root, the fixture root,
+  the marker directory, the capture, act and distribution directories, every
+  member of the installed App, and the `manifest` root.
 - Copied trees and manifests also refuse special files and names containing
   newlines.
-- Any traversal, stat or hash failure fails the step; no digest is produced after
-  an error.
+- Every traversal, temporary-file, sort, stat and hash step is checked
+  explicitly, so a failure gives exit 2 and no digest. This does not rely on
+  `set -e`, which is suppressed when callers test a function.
 - The mounted DMG App is read only through `spctl` and `xattr`.
 - It never overwrites.
 - It never reads the keychain.
@@ -309,7 +312,10 @@ Its safeguards:
   mode 0700, not a symlink.
 - After c4, `handoff` grants read access to exactly one named account through
   ACLs.
-- c1 exits 3 with STOP on any failed gate.
+- c1 has two failure outcomes, and either means do not launch:
+  - exit 3 records each failed check as STOP in `gate.txt`;
+  - exit 2 ("refused") stops at an unsafe or unreadable path before the gate
+    finishes, leaving partial evidence in `c1/`.
 
 **Installed-copy comparison.** Bundle-tree v2 `b3dd4145` remains the identity
 of the signed package. The DMG's contained App was recorded with that identity.
@@ -329,23 +335,24 @@ bit, c1 stops. There is no automatic chmod and no baseline replacement. The
 packaging lane accepted this in place of an
 installed v2 value (see below).
 
-Assurance so far: fake-home checks only, now repeatable as
-[`test_signed_witness_collect.py`](test_signed_witness_collect.py) (8 tests,
-passing). They covered:
+Assurance so far: fake-home checks only, repeatable as
+[`test_signed_witness_collect.py`](test_signed_witness_collect.py). Its 12 tests
+pass, run in task scratch. They cover:
 
-- administrator refusal;
-- output modes;
-- the STOP exit;
-- symlink refusal;
-- that `account-homes` (made mode 000) is never read;
-- path preservation;
-- no overwrite;
-- the single-account ACL;
-- directory symlinks refused before traversal, including the fixture root and the
-  marker directory;
-- manifest refusal of newline names, FIFOs and unreadable files;
-- a quarantined clone passing the content check, and one added file changing
-  the digest.
+- administrator refusal, the private 0700 root and no rerun of `prepare`;
+- c2–c4 allowlist copies, 0600 modes and no overwrite;
+- `account-homes` (made mode 000) never read;
+- refusal of symlinks at the fixture root, the marker directory, the capture
+  directory and the given DMG;
+- manifest refusal of newline names, FIFOs, unreadable files, unreadable
+  directories and a symlinked root;
+- manifest failure when `find` or `sort` fails;
+- digest change on content change;
+- `handoff` granting exactly one named account and refusing an unknown one.
+
+When the retained candidate is present, one more test runs c1 on a quarantined
+clone. There, every check passes except DMG quarantine and the mount, and an
+added symlink in the App is refused.
 
 c1 also ran against an APFS clone of the signed App and the real DMG. The DMG
 digest, the deep strict check, notarized Gatekeeper, cdhash, identifier, team,

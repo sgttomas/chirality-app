@@ -54,30 +54,39 @@ plain_tree() { # refuse symlinks, special files and newline names inside DIR (ch
   _x=$(find "$1" -name "*$NL*" -print -quit) || die "cannot traverse $1"; [ -z "$_x" ] || die "newline in a name inside $1"; }
 copytree() { # copytree DIR: every regular file under DIR
   plain_tree "$1"
-  find "$1" -type f > "$D/.list"
+  find "$1" -type f > "$D/.list" || die "cannot traverse $1"
   while IFS= read -r f; do copyrel "$f"; done < "$D/.list"
   rm "$D/.list"; }
 content() { # content-structure manifest of DIR: path, type, mode, file SHA-256 or link target;
-  # no owner, times or xattrs. Never follows links; any traversal/stat/hash error fails.
-  ( set -e
-    cd "$1"
-    _x=$(find . ! -type f ! -type d ! -type l -print -quit); [ -z "$_x" ] || { echo "refused: special file in $1" >&2; exit 2; }
-    _x=$(find . -name "*$NL*" -print -quit); [ -z "$_x" ] || { echo "refused: newline in a name in $1" >&2; exit 2; }
-    L=$(mktemp -d "${TMPDIR:-/tmp}/witness-manifest.XXXXXX"); trap 'rm -rf "$L"' EXIT
-    find . > "$L/raw"; LC_ALL=C sort -o "$L/sorted" "$L/raw"
+  # no owner, times or xattrs. Never follows links. Every step is checked explicitly
+  # (errexit is suppressed when callers use if/||), so any failure exits 2 with no digest.
+  ( nolink "$1"
+    cd "$1" || exit 2
+    _x=$(find . ! -type f ! -type d ! -type l -print -quit) || { echo "refused: cannot traverse $1" >&2; exit 2; }
+    [ -z "$_x" ] || { echo "refused: special file in $1" >&2; exit 2; }
+    _x=$(find . -name "*$NL*" -print -quit) || { echo "refused: cannot traverse $1" >&2; exit 2; }
+    [ -z "$_x" ] || { echo "refused: newline in a name in $1" >&2; exit 2; }
+    L=$(mktemp -d "${TMPDIR:-/tmp}/witness-manifest.XXXXXX") || exit 2
+    [ -n "$L" ] && [ -d "$L" ] || exit 2
+    trap 'rm -rf "$L"' EXIT
+    find . > "$L/raw" || { echo "refused: cannot traverse $1" >&2; exit 2; }
+    LC_ALL=C sort -o "$L/sorted" "$L/raw" || exit 2
     while IFS= read -r q; do
       m=$(stat -f %Lp "$q") || exit 2
       case $m in ''|*[!0-7]*) echo "refused: unreadable mode for $q" >&2; exit 2 ;; esac
-      if [ -L "$q" ]; then t=$(readlink "$q") || exit 2; echo "l $m $q -> $t"
-      elif [ -d "$q" ]; then echo "d $m $q"
+      if [ -L "$q" ]; then t=$(readlink "$q") || exit 2; echo "l $m $q -> $t" || exit 2
+      elif [ -d "$q" ]; then
+        [ -r "$q" ] && [ -x "$q" ] || { echo "refused: unreadable directory $q" >&2; exit 2; }
+        echo "d $m $q" || exit 2
       else
         [ -r "$q" ] || { echo "refused: unreadable $q" >&2; exit 2; }
         h=$(shasum -a 256 < "$q") || exit 2; h=${h%% *}
         case $h in *[!0-9a-f]*) h= ;; esac
         [ ${#h} -eq 64 ] || { echo "refused: hash failed for $q" >&2; exit 2; }
-        echo "f $m $h $q"
+        echo "f $m $h $q" || exit 2
       fi
-    done < "$L/sorted" ); }
+    done < "$L/sorted" || exit 2
+    exit 0 ); }
 check() { # check NAME STATUS(0 pass)
   if [ "$2" -eq 0 ]; then echo "PASS $1" >> "$D/gate.txt"; else echo "STOP $1" >> "$D/gate.txt"; G=1; fi; }
 
@@ -105,6 +114,7 @@ prepare)
   echo "Do not open or edit these files before the test ends." ;;
 c1)
   DMG="${2:-}"; [ -f "$DMG" ] || die "give the downloaded DMG path"
+  nolink "$DMG"; nolink "$APPDATA"
   stage c1; G=0
   { sw_vers; statf "$APPDATA"; } > "$D/system.txt" 2>&1
   shasum -a 256 "$DMG" > "$D/dmg-sha256.txt"
@@ -185,6 +195,7 @@ handoff)
   echo "Granted read access to $A only, on $OUT" ;;
 manifest)
   [ -d "${2:-}" ] || die "give an App path"
+  nolink "$2"
   T=$(mktemp "${TMPDIR:-/tmp}/witness-manifest-out.XXXXXX")
   content "$2" > "$T" || { rm -f "$T"; die "manifest failed"; }
   h=$(shasum -a 256 < "$T"); rm -f "$T"; echo "${h%% *}" ;;

@@ -1,6 +1,8 @@
 """Fake-HOME regressions for signed_witness_collect.sh (no App, keychain, mount or account).
 
-Run: python3 -m unittest execution/PKG-09/DEL-09-02/Work/test_signed_witness_collect.py
+Run: WITNESS_TEST_TMP=$(mktemp -d /Users/ryan/dev/chirality-t3/scratch/app-witness-tests-XXXXXXXX) \
+       python3 -m unittest execution/PKG-09/DEL-09-02/Work/test_signed_witness_collect.py
+Without WITNESS_TEST_TMP the tests use /Users/ryan/dev/chirality-t3/scratch, or skip if absent.
 """
 import os
 import shutil
@@ -13,11 +15,14 @@ HELPER = Path(__file__).with_name('signed_witness_collect.sh')
 SIGNED = Path('/Users/ryan/dev/chirality-t3/scratch/app-signed-candidate-8DnXAldk/Chirality App v4.app')
 DMG = SIGNED.parent / 'Chirality-App-v4-4.0.0-f664ee1d-b3dd4145.dmg'
 APPDATA_REL = 'Library/Application Support/com.chirality.app'
+SCRATCH = os.environ.get('WITNESS_TEST_TMP') or '/Users/ryan/dev/chirality-t3/scratch'
 
 
 class Helper(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(dir=os.environ.get('WITNESS_TEST_TMP'))).resolve()
+        if not os.path.isdir(SCRATCH):
+            self.skipTest('task scratch not present; set WITNESS_TEST_TMP')
+        self.tmp = Path(tempfile.mkdtemp(prefix='witness-test-', dir=SCRATCH)).resolve()
         self.home = self.tmp / 'home'
         self.home.mkdir()
         self.out = self.tmp / 'out'
@@ -110,6 +115,54 @@ class Helper(unittest.TestCase):
         self.assertEqual(r.returncode, 2)
         self.assertEqual(r.stdout.strip(), '')
         (tree / 'a').chmod(0o644)
+
+    def test_manifest_refuses_unreadable_directory_and_symlinked_root(self):
+        tree = self.tmp / 'tree'
+        (tree / 'sub').mkdir(parents=True)
+        (tree / 'sub/hidden').write_text('a')
+        (tree / 'sub').chmod(0o000)
+        r = self.run_('manifest', str(tree))
+        self.assertEqual(r.returncode, 2)
+        self.assertEqual(r.stdout.strip(), '')
+        (tree / 'sub').chmod(0o755)
+        link = self.tmp / 'link'
+        link.symlink_to(tree)
+        self.assertEqual(self.run_('manifest', str(link)).returncode, 2)
+
+    def test_manifest_fails_when_find_or_sort_fails(self):
+        tree = self.tmp / 'tree'
+        tree.mkdir()
+        (tree / 'a').write_text('a')
+        for tool in ('find', 'sort'):
+            shim = self.tmp / f'shim-{tool}'
+            shim.mkdir()
+            (shim / tool).write_text('#!/bin/sh\nexit 1\n')
+            (shim / tool).chmod(0o755)
+            env = dict(self.env, PATH=f'{shim}:{os.environ["PATH"]}')
+            r = subprocess.run(['sh', str(self.na), 'manifest', str(tree)], env=env, capture_output=True, text=True)
+            self.assertEqual(r.returncode, 2, tool)
+            self.assertEqual(r.stdout.strip(), '', tool)
+
+    def test_c1_refuses_symlinked_dmg(self):
+        self.assertEqual(self.run_('prepare').returncode, 0)
+        real = self.tmp / 'real.dmg'
+        real.write_text('x')
+        (self.home / 'Downloads').mkdir()
+        link = self.home / 'Downloads/linked.dmg'
+        link.symlink_to(real)
+        self.assertEqual(self.run_('c1', str(link)).returncode, 2)
+        self.assertFalse((self.out / 'c1').exists())
+
+    def test_handoff_grants_one_named_account(self):
+        self.prepared()
+        self.assertEqual(self.run_('c2').returncode, 0)
+        me = subprocess.run(['id', '-un'], capture_output=True, text=True).stdout.strip()
+        self.assertEqual(self.run_('handoff', 'no-such-account-x9').returncode, 2)
+        self.assertEqual(self.run_('handoff', me).returncode, 0)
+        for p in (self.out, self.out / 'c2/who.txt'):
+            acl = subprocess.run(['ls', '-led', str(p)], capture_output=True, text=True).stdout
+            self.assertIn(f'user:{me} allow', acl)
+            self.assertEqual(acl.count(' allow '), 1)
 
     def test_manifest_detects_content_change(self):
         tree = self.tmp / 'tree'
