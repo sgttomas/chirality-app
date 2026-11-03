@@ -58,6 +58,20 @@ input plan and native debug candidate retain their own source identities.
 incidental linker ad-hoc signature is unqualified compiler output, not a publisher
 selection or installed-integrity witness.
 
+A same-ID selected-production input plan was then prepared from source
+`c1dd9a47577bd32d7f25e62a61f062cf6b3895e1` (tree `7e61899c…70ee`) with the closed
+publisher input (SHA-256 `63a77b96…8f4e`) and the original upstream notice
+supplement. It is retained at
+`/Users/ryan/dev/chirality-t3/scratch/app-selected-production-plan-ram3f93n/plan`
+(PLAN_COMPLETE SHA-256 `080a0b58…5fa1`, 52 resource mappings; `check_plan` passes).
+Its own notice index did not match that source's `Cargo.toml`, because of a
+dev-only `tauri` `test` feature addition. Notice basis `4e942918…` and the
+[rederived supplement](supplier-notice-associations/approved-receipt-20261102/rederived-4e942918/README.md)
+reconcile that change. The ram3f93n plan stays preserved as a plan-only record
+with that limit. It is not build-ready: a build needs a new plan from source
+containing the repair, with `--upstream-notices` naming the rederived supplement.
+No build, signing, launch or enrollment occurred.
+
 The next production subject requires the actual owner identifier/team and
 settled signer/keychain inputs, then a separately identified production build,
 signing/notarisation and quarantined installed witness. This unsigned input-test

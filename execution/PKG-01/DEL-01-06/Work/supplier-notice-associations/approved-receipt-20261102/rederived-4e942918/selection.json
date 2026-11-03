@@ -1,0 +1,12 @@
+{
+  "basis": "Exact upstream LICENSE.md explicitly covers these five crates: objc2/block2/objc2-foundation MIT; other crates including objc2-app-kit/dispatch2 offer Zlib OR Apache-2.0 OR MIT. Select this unmodified licensing overview and SDK caveat as supplementary notice only; linked full license terms, copyright coverage and Apple SDK implications remain unresolved. No alternative license elected.",
+  "components": [
+    "objc2",
+    "block2",
+    "objc2-foundation",
+    "objc2-app-kit",
+    "dispatch2"
+  ],
+  "format": "upstream-notice-selection/1",
+  "plan_sha256": "07c320381e2bc0b197d1571754fa01015ff9dd3f79f3bc9cb874df97392cb6e1"
+}
