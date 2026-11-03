@@ -3,6 +3,7 @@
 # Run ONLY inside the dedicated test user's own Terminal, after owner approval.
 #   prepare        : create the private output root and invented fixtures; refuses if present
 #   c1 DMG         : pre-launch gate (DMG, mounted App, installed App); read-only; nonzero = STOP
+#   manifest APP   : print the content-structure manifest digest of APP (preparation aid)
 #   c2             : after the pre-enrollment capture, before enrollment; read-only
 #   c3             : after the sealed capture, before Quit; read-only
 #   c4             : after the final Quit: allowlisted evidence copy; read-only on sources
@@ -20,18 +21,18 @@ OUT="${CHIRALITY_WITNESS_OUT:-/Users/Shared/chirality-v4-witness-out}"
 DMG_SHA=34ab566132e059d3e51885c87907898238ba95421c88d1303d535d19eafcf26e
 EXE_SHA=49f61681ad2b985ef98cc56b01b3f63e2ff4baaad7ec711550453976d5ae43e6
 CDHASH=e1bf4644f66389011964e99cec43fc853b6b4158
-IDENTITY=chirality.app.bundle-tree.sha256/v2:b3dd4145779e711a0169c08b2f1757eace19e38e08effe03a18c5bef986b5fb8
+PROFILE_SHA=5eccea61c989e499f738376cd843fe55c0c6ba6a6ad5ca86af074acdef965165
+CONTENT=ae04bcaaba7c3eb7ec77248cd2302d5449c3421f2e2b353e1b4e2d7e69b14f6a
 ENTITLEMENTS='<dict><key>com.apple.application-identifier</key><string>8A7JL35U4S.com.chirality.app</string><key>com.apple.developer.team-identifier</key><string>8A7JL35U4S</string></dict>'
-TOOLS=$(cd "$(dirname "$0")" && pwd -P)
 
 die() { echo "refused: $*" >&2; exit 2; }
 statf() { if [ -e "$1" ] || [ -L "$1" ]; then stat -f '%N type=%HT mode=%Sp inode=%i links=%l size=%z mtime=%Sm' -t '%Y-%m-%dT%H:%M:%S%z' "$1"; else echo "$1 absent"; fi; }
 nolink() { # refuse a symlink at $1 or any ancestor up to $HOME
-  p=$1
+  _nl=$1
   while :; do
-    [ -L "$p" ] && die "symlink at $p"
-    if [ "$p" = "$HOME" ] || [ "$p" = / ]; then break; fi
-    p=$(dirname "$p")
+    [ -L "$_nl" ] && die "symlink at $_nl"
+    if [ "$_nl" = "$HOME" ] || [ "$_nl" = / ]; then break; fi
+    _nl=$(dirname "$_nl")
   done; }
 root_ok() {
   [ -d "$OUT" ] && [ ! -L "$OUT" ] || die "output root $OUT missing; run prepare first"
@@ -49,6 +50,11 @@ copytree() { # copytree DIR: every regular file under DIR; refuses any symlink i
   find "$1" -type f > "$D/.list"
   while IFS= read -r f; do copyrel "$f"; done < "$D/.list"
   rm "$D/.list"; }
+content() { # content-structure manifest: path, type, mode, file SHA-256 or link target; no owner, times or xattrs
+  (cd "$1" && find . | LC_ALL=C sort | while IFS= read -r q; do
+    if [ -L "$q" ]; then echo "l $(stat -f %Lp "$q") $q -> $(readlink "$q")"
+    elif [ -d "$q" ]; then echo "d $(stat -f %Lp "$q") $q"
+    else echo "f $(stat -f %Lp "$q") $(shasum -a 256 < "$q" | cut -d' ' -f1) $q"; fi; done); }
 check() { # check NAME STATUS(0 pass)
   if [ "$2" -eq 0 ]; then echo "PASS $1" >> "$D/gate.txt"; else echo "STOP $1" >> "$D/gate.txt"; G=1; fi; }
 
@@ -101,8 +107,11 @@ c1)
     codesign -dv "$APP/Contents/Resources/codex/$f" > "$o" 2>&1 || true
     r=0; grep -qx "Identifier=$want" "$o" || r=1; check "supplier-$(basename "$f")-stock" "$r"
   done
-  python3 -I "$TOOLS/identify.py" inventory "$APP" > "$D/installed-identity.json" 2>&1 || true
-  r=0; grep -qF "\"build_identity\": \"$IDENTITY\"" "$D/installed-identity.json" || r=1; check installed-bundle-tree-v2 "$r"
+  shasum -a 256 "$APP/Contents/embedded.provisionprofile" > "$D/installed-profile-sha256.txt" 2>&1 || true
+  r=0; grep -q "^$PROFILE_SHA " "$D/installed-profile-sha256.txt" || r=1; check installed-embedded-profile "$r"
+  stat -f '%N owner=%Su group=%Sg mode=%Sp' "$APP" > "$D/installed-ownership.txt"
+  content "$APP" > "$D/installed-content.txt" 2>&1 || true
+  r=0; [ "$(shasum -a 256 < "$D/installed-content.txt" | cut -d' ' -f1)" = "$CONTENT" ] || r=1; check installed-content-structure "$r"
   shasum -a 256 "$APP/Contents/MacOS/chirality-app-v4" > "$D/installed-exe-sha256.txt" 2>&1 || true
   r=0; grep -q "^$EXE_SHA " "$D/installed-exe-sha256.txt" || r=1; check installed-executable "$r"
   /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist" > "$D/installed-version.txt" 2>&1 || true
@@ -116,14 +125,17 @@ c2|c3|c4)
   K="$APPDATA/capture-seal-keychain"
   { statf "$K"; statf "$K/continuity.s1.json"; statf "$APPDATA/capture-seal"; } > "$D/marker-stat.txt"
   if [ -f "$K/continuity.s1.json" ] || [ -L "$K/continuity.s1.json" ]; then copyrel "$K/continuity.s1.json"; fi
+  [ -e "$APPDATA/records/projects" ] && nolink "$APPDATA/records/projects"
   for p in "$APPDATA"/records/projects/*; do
     [ -d "$p" ] || [ -L "$p" ] || continue
+    nolink "$p"; for x in captures acts; do if [ -e "$p/$x" ] || [ -L "$p/$x" ]; then nolink "$p/$x"; fi; done
     for f in "$p"/captures/*.json "$p"/acts/*.jsonl; do
       [ -f "$f" ] || [ -L "$f" ] || continue; copyrel "$f"
     done
   done
   if [ "$1" = c4 ]; then
     if [ -f "$APPDATA/desktop-startup/request.json" ]; then copyrel "$APPDATA/desktop-startup/request.json"; fi
+    [ -e "$APPDATA/runtime/distribution" ] && nolink "$APPDATA/runtime/distribution"
     for s in "$APPDATA"/runtime/distribution/s1-*; do
       [ -d "$s" ] || [ -L "$s" ] || continue; copytree "$s"
     done
@@ -138,5 +150,6 @@ handoff)
   find "$OUT" -type d -exec chmod +a "user:$A allow list,search,readattr,readextattr,readsecurity" {} +
   find "$OUT" -type f -exec chmod +a "user:$A allow read,readattr,readextattr,readsecurity" {} +
   echo "Granted read access to $A only, on $OUT" ;;
-*) echo "usage: $0 prepare | c1 <dmg> | c2 | c3 | c4 | handoff <account>" >&2; exit 64 ;;
+manifest) [ -d "${2:-}" ] || die "give an App path"; content "$2" | shasum -a 256 | cut -d' ' -f1 ;;
+*) echo "usage: $0 prepare | c1 <dmg> | c2 | c3 | c4 | handoff <account> | manifest <app>" >&2; exit 64 ;;
 esac

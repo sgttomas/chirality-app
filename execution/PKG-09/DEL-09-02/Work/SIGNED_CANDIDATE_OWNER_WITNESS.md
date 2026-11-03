@@ -122,7 +122,8 @@ A4 capture, enrollment and verification:
 - **Where captures land:** `records/projects/<key>/captures/<id>.json`. Act lines
   go to `acts/*.jsonl`. The capture binds the file's SHA-256, not its content.
 - **Before enrollment:**
-  - Sealing returns without a keychain operation or marker (`capture_seal_keychain.rs:610-614`).
+  - Sealing first establishes publisher and S4 authority, then returns before
+    any keychain operation or marker (`capture_seal_keychain.rs:164-175,610-614,931-937`).
   - The capture records "capture not sealed (SEAL-C keychain continuity not
     enrolled; …)" (`act_control_file.rs:390-395`).
 - **Enrollment:**
@@ -170,20 +171,20 @@ test user. "Agent:" lines run in the owner's own session, after approval. Only
 Q1 is offered for quarantine. A synthetic `xattr` route is not part of this
 request.
 
-Shorthand used below: `C=/Users/Shared/chirality-v4-witness-tools/signed_witness_collect.sh`.
-
 1. **Create the user.** System Settings ▸ Users & Groups ▸ Add User: Standard,
    `Chirality V4 Test` / `chiralityv4test` or the owner's choice, with a private
    password. Switch to it. In Setup Assistant, skip the Apple Account and iCloud.
 2. **Agent stages the tools and the download.**
-   - The agent copies `signed_witness_collect.sh` and `identify.py` from the
-     approved PR head into `/Users/Shared/chirality-v4-witness-tools/` (0755
-     directory, 0644 files) and prints their SHA-256s.
+   - The agent copies `signed_witness_collect.sh` from the approved PR head into
+     `/Users/Shared/chirality-v4-witness-tools/` (0755 directory, 0644 file) and
+     prints its SHA-256.
    - It clones the DMG into a fresh scratch directory, checks `34ab5661…26e`,
      and serves only that directory on `http://127.0.0.1:8765/`.
 3. **Download and install.** Do this in the test user.
-   - Check the tools by running `shasum -a 256 /Users/Shared/chirality-v4-witness-tools/*`
-     in Terminal and comparing with the agent's values.
+   - In Terminal, first run
+     `C=/Users/Shared/chirality-v4-witness-tools/signed_witness_collect.sh`, then
+     `shasum -a 256 "$C"`, and compare with the agent's value. If you open a new
+     Terminal window later, run the `C=` line again.
    - In Safari, open `http://127.0.0.1:8765/` and download the DMG. Tell the
      agent, which stops the server.
    - In Terminal, run `sh "$C" prepare`. It creates the private evidence folder
@@ -221,10 +222,13 @@ Shorthand used below: `C=/Users/Shared/chirality-v4-witness-tools/signed_witness
     prepared installation." If any keychain or password prompt appears, choose
     Deny or Cancel, and stop.
 11. **After enrollment.**
-    - Repeat step 9 with `check-2.txt` and Purpose `after enrollment`.
-    - The expanded `check-2.txt` row must show no "not verified here" line and
-      must show `"captureCorrespondence": true`. Otherwise stop.
-    - Run `sh "$C" c3`.
+    - In **Files and standing acts**, set Purpose `after enrollment`. Press
+      **Select file and freeze preview…**, pick `check-2.txt`, then **Review native
+      act / decline / cancel…** ▸ **mark checked**.
+    - Press **Read file-act log and current content** and expand the `check-2.txt`
+      row. It must show no "not verified here" line and must show
+      `"captureCorrespondence": true`. Otherwise stop.
+    - Run `sh "$C" c3`. Do not run `c2` again.
 12. **Close and reopen.** Close the window with the red button. Click the running
     **Chirality App v4** Dock tile, the only Chirality tile in this Dock (its name
     shows on hover). The same workspace returns.
@@ -254,7 +258,7 @@ All files listed are under `/Users/Shared/chirality-v4-witness-out/`.
 | W-1 mounted Gatekeeper | `c1/mounted-spctl.txt` | command output | blocked; a refusal is a failure |
 | W-2 install path (per-user `~/Applications`, a recorded deviation), installed quarantine, first-launch Gatekeeper | `c1/installed-path.txt`, `installed-quarantine.txt`, `installed-xattr-l.txt`; recording | command output + display | blocked; a refusal is a failure |
 | W-2 translocation component | `c4/appdata/runtime/distribution/s1-*/.chirality-s1/installed.json` | App file | inconclusive |
-| W-6 installed signature, exact entitlements, cdhash, stock supplier identifiers, bundle-tree v2 `b3dd4145` | `c1/installed-*.txt`, `installed-entitlements.plist`, `supplier-*.txt`, `installed-identity.json`; `gate.txt` | command output | blocked |
+| W-6 installed signature, exact entitlements, cdhash, embedded profile `5eccea61`, stock supplier identifiers, installed content and structure | `c1/installed-*.txt`, `installed-entitlements.plist`, `installed-profile-sha256.txt`, `supplier-*.txt`, `installed-content.txt`, `installed-ownership.txt`; `gate.txt` | command output | blocked |
 | W-3/W-4/W-5 version, Codex verified, supplier ready | `c1/installed-version.txt`; `c4` distribution publications; Host diagnostics on the recording | file + display | failed or blocked as observed |
 | Setup saved, then Quit, then relaunch at `saved-request` | recording; `c4/appdata/desktop-startup/request.json`, `appdata-metadata.txt` | display + file | failed or blocked as observed |
 | S4 publication closure | `c4/appdata/runtime/distribution/s1-*/`, the complete App-written publications (selected reference members plus `.chirality-s1/{observed,installed,preflight,transport,lifecycle}.json`) | App files | no App export exists |
@@ -300,6 +304,22 @@ Its safeguards:
   ACLs.
 - c1 exits 3 with STOP on any failed gate.
 
+**Installed-copy comparison.** Bundle-tree v2 `b3dd4145` remains the identity
+of the signed package. The DMG's contained App was recorded with that identity.
+v2 also binds ownership and refuses extended attributes outside its allowlist
+(`identify.py`). A correctly quarantined copy owned by the test user therefore
+cannot be expected to reproduce it, so v2 is neither recomputed nor redefined
+here.
+
+c1 instead checks a separate **content-and-structure manifest**. It covers every
+path, its type and permission bits, file SHA-256s and link targets. It excludes
+owner, group, times and extended attributes. Its digest must equal
+`ae04bcaaba7c3eb7ec77248cd2302d5449c3421f2e2b353e1b4e2d7e69b14f6a`, computed by
+the helper's `manifest` mode on the retained signed App directory. Deep strict
+verification and the cdhash bind the same content to the signature. Quarantine
+and ownership are recorded separately. The packaging lane is asked to accept this
+in place of an installed v2 value.
+
 Assurance so far: fake-home checks only. They covered:
 
 - administrator refusal;
@@ -309,12 +329,15 @@ Assurance so far: fake-home checks only. They covered:
 - that `account-homes` (made mode 000) is never read;
 - path preservation;
 - no overwrite;
-- the single-account ACL.
+- the single-account ACL;
+- directory symlinks refused before traversal;
+- a quarantined clone passing the content check, and one added file changing
+  the digest.
 
 c1 also ran against an APFS clone of the signed App and the real DMG. The DMG
 digest, the deep strict check, notarized Gatekeeper, cdhash, identifier, team,
-exact entitlements, the four stock supplier identifiers, bundle tree
-`b3dd4145`, the executable and version 4.0.0 all passed. Quarantine and the
+exact entitlements, embedded profile, the four stock supplier identifiers,
+content and structure, executable and version 4.0.0 all passed. Quarantine and the
 mounted checks stopped, as expected for a local, unmounted copy.
 
 Disclosure: Gatekeeper and codesign output contains the certificate holder's
@@ -336,10 +359,38 @@ The account-home names and project paths it contains refer only to the test user
     `58463a02`, requirement `86d40090`, and the DMG digests `1a962e3a` (pre-staple)
     and `34ab5661` (stapled).
   - It requires no additional install, launch, account or enrollment permission.
-- **Runtime (SEAL-C SC-3) and W-3/W-4/W-5:** confirmation that the c2/c3/c4
-  marker, capture and display evidence meets SC-3 is **requested and pending**.
-  The owner is not asked to approve execution until that confirmation is recorded
-  here.
+- **Runtime / SEAL-C** (<t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:72b0bb46c6645f2fd7155deab7d5ff1fa5b3b56a4e77151178a0e322c1e906ae>),
+  2026-11-03, read-only at `f664ee1d`: **confirmed** that c2/c3/c4 plus the
+  recording meet SC-3's retain list. No owner step changes. It also confirmed
+  the source reading above, with one precision:
+  - Pre-enrollment sealing first builds publisher and S4 authority
+    (`capture_seal_keychain.rs:164-175`). It then returns "SEAL-C keychain
+    continuity not enrolled; not verified here" for the absent directory
+    (`:931-937`) before any keychain call.
+  - Any other c2 reason is SC-3 blocked or failed at that cause.
+
+  The analysis-time joins it requires, all from files already collected:
+  - **J1:** the c2 limit text is exactly that "not enrolled" reason, and c2
+    stats show `capture-seal-keychain/` and `capture-seal/` absent.
+  - **J2:** the c3 marker has format `capture-seal-keychain-continuity.s1`,
+    exactly one committed key, `pending` null, and `scope_sha256`
+    `f076bd22f90843aab58b83253b452ce81f1d0f02d2cda1706e9cf63f378975c4`.
+  - **J3:** the `check-2` seal key ID equals the marker's committed key, and the
+    `check-2` capture bytes are identical from c3 to c4.
+  - **J4:** the `check-1` capture bytes are identical across c2, c3 and c4, and
+    stay unsealed.
+  - **J5:** the c3 and c4 markers are identical in bytes, inode and mtime. This
+    is App-level evidence, not an OS trace.
+  - **J6:** the c4 S4 `installed.json` names the same signed App (cdhash and
+    path) as c1.
+
+  The embedded-profile check (`5eccea61`) was added to c1 at its suggestion.
+  The prompts that matter on the recording are at enrollment, at the `check-2`
+  seal, and at the restart verification. SC-4 and SC-5 remain uncovered. W-3,
+  W-4 and W-5 stay with this lane.
+- **Packaging, W-6 installed-copy comparison:** asked to accept the
+  content-and-structure manifest above in place of an installed bundle-tree v2
+  value.
 
 ## Exceptional recovery (owner decides at the time; nothing is pre-authorized)
 
@@ -379,11 +430,12 @@ candidate.
 
 ## Owner decisions requested
 
-These are presented only after runtime confirmation is recorded.
+Runtime confirmation is recorded. Packaging's acceptance of the installed-copy
+comparison is pending.
 
 1. Create the standard test user (the owner's act).
 2. Approve the Q1 transfer: a loopback-only Safari download from a short-lived
-   agent server, plus the agent staging the two tools in
+   agent server, plus the agent staging the helper in
    `/Users/Shared/chirality-v4-witness-tools/`.
 3. Approve steps 1–14. They include one real keychain enrollment in the test
    user, the screen recording, the collector runs and the final single-account
