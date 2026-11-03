@@ -73,3 +73,12 @@ The next candidate must account for the frontend lane's exact ten IBM Plex
 WOFF2 assets and OFL license from its WORKSPACE_SETUP_PRESENTATION.md table.
 They are a separate font notice/resource subject, not covered by the eleven
 supplier-source receipts. No historical inventory is relabelled.
+
+Reconciled in [`app/packaging/font_notice/`](../../../../app/packaging/font_notice/README.md).
+All eleven files are Git-blob identical to v3 at Root `485051ea`. The index records
+each font's own name-table copyright (Mono 2017, Sans 2019, Serif 2020 IBM Corp.)
+and OFL licence URL. That supplies the Mono and Serif notices the retained OFL
+header omits. Production input preparation now refuses a stale font index and maps
+the index and OFL text to `third-party-notices/fonts/`. The declared
+`@fontsource` 5.3.0 upstream remains unverified offline. Plans prepared before
+this change, including `AcP2w3vq`, do not carry the font notice.

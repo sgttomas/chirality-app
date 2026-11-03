@@ -45,7 +45,8 @@ Outputs, in a new private directory:
 
 - `tauri.package-inputs.conf.json`: 4.0.0, minimum15.0, App-only target, signing
   identity null, existing P2/P3 + twelve attested-reference mappings + bounded
-  direct notices + separate SQLite source-input resources + complete vendor P1.
+  direct notices + separate SQLite source-input resources + the IBM Plex font
+  notice (`third-party-notices/fonts/`, refused if its index is stale) + complete vendor P1.
 - `input-inventory.json`: exact selected resources/files/vendor hashes and modes,
   declared source revision, all three loaded tool-module hashes and jsonschema
   version, with limits. The source
