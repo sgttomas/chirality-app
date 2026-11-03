@@ -17,7 +17,7 @@ concretely. Source facts are cited at the exact signed source `f664ee1d`.
 | Recorded standing | Signed, notarized (`430e7461-…`, Accepted) and stapled. Gatekeeper accepted the DMG and the mounted App (read-only mount, no launch). |
 
 The facts come from the [owner signing record](../../../PKG-01/DEL-01-06/Work/selected-production-build/f664ee1d-caec11a00be3/owner-signing.json)
-and the scratch `notarization-record.json`. The build is publisher
+and the [notarization record](../../../PKG-01/DEL-01-06/Work/selected-production-build/f664ee1d-caec11a00be3/notarization.json). The build is publisher
 `selected-production`, and the keychain selection is compiled.
 
 This is a new subject. Candidate `1f67d3822b-8c83d74ae3ce`, the `j58087z7` and
