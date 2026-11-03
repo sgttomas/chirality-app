@@ -192,8 +192,8 @@ request.
    - Double-click the DMG in Downloads. Make a folder `Applications` in the test
      user's home and drag **Chirality App v4** into it. Do not use `/Applications`.
 4. **Gate.** Run `sh "$C" c1 ~/Downloads/Chirality-App-v4-4.0.0-f664ee1d-b3dd4145.dmg`.
-   It must end with **Gate passed**. On **STOP** or **refused**, do not launch;
-   tell the agent.
+   It must end with `OK: Gate passed…`. On **STOP** or **refused**, do not
+   launch; tell the agent.
    Eject the DMG.
 5. **Record.** Press ⇧⌘5 ▸ Options ▸ Save to ▸ Other Location… and choose
    `/Users/Shared/chirality-v4-witness-out/recording`. Then Record Entire Screen.
@@ -243,8 +243,8 @@ request.
     <owner account>`, which gives only the owner's own account read access to
     the evidence folder. Tell the agent.
 
-A helper step succeeded only if it ends with `wrote …` (or **Gate passed** for
-c1). Any other ending, including `refused`, STOP or an error, means stop. If
+A helper command succeeded only if its last line starts with `OK:`. Any other
+ending, including `refused`, STOP or an error, means stop. If
 anything else appears, such as a hang or an unexpected dialog, also
 stop. Tell the agent. Do not retry, grant, override, force-quit or log out
 unless the owner separately decides on an exceptional recovery (below). A
@@ -289,7 +289,8 @@ above:
 
 - the c1 command outputs;
 - the marker and `capture-seal` stats;
-- captures and act logs, at their AppData-relative paths;
+- captures (including `captures/pending/`) and act logs, at their
+  AppData-relative paths;
 - `request.json`;
 - the complete `runtime/distribution/s1-*` publications;
 - an AppData name and metadata listing in which `account-homes` itself is pruned,
@@ -302,19 +303,25 @@ Its safeguards:
   output root, the given DMG, the AppData root, the fixture root, the marker
   directory, the records, capture, act, startup and distribution directories,
   every member of the installed App, and the `manifest` root.
-- An existing evidence directory that cannot be read or searched is refused,
-  never reported as absent.
+- Every existing ancestor of an evidence path must be searchable, and every
+  existing evidence directory must be readable, so an inaccessible path is
+  refused rather than reported absent. c2–c4 also require AppData to exist.
+- In evidence locations, any existing entry of an unexpected type is refused, not
+  skipped: a FIFO or other special file, a symlink (including a dangling one), or
+  a non-directory where a directory is expected. Only genuinely absent paths and
+  unmatched patterns are treated as absent.
 - The AppData metadata listing records names with `lstat` only. A symlink there
   is listed as a link, not refused or followed.
 - Copied trees and manifests also refuse special files and names containing
   newlines.
 - In the content manifest and the per-checkpoint `MANIFEST.sha256`, every
   traversal, temporary-file, sort, stat and hash step is checked explicitly. A
-  failure gives exit 2 and no digest or `wrote` line. This does not rely on
+  failure gives exit 2 and no digest or `OK:` line. This does not rely on
   `set -e`, which is suppressed when callers test a function.
 - Elsewhere (metadata listing, `handoff`, outer temporary files) a failing system
-  command ends the run with a nonzero status, not always 2. Only exit 0 with
-  `wrote …` or **Gate passed** counts as success.
+  command ends the run with a nonzero status, not always 2.
+- Success is exit 0 with a final line starting `OK:`. Every command (`prepare`,
+  c1–c4, `handoff`) prints that line only on success.
 - The mounted DMG App is read only through `spctl` and `xattr`.
 - It never overwrites.
 - It never reads the keychain.
@@ -347,8 +354,9 @@ packaging lane accepted this in place of an
 installed v2 value (see below).
 
 Assurance so far: fake-home checks only, repeatable as
-[`test_signed_witness_collect.py`](test_signed_witness_collect.py). Its 14 tests
-pass in task scratch, including the conditional signed-clone test. They cover:
+[`test_signed_witness_collect.py`](test_signed_witness_collect.py). Its 19
+tests pass in task scratch, including the conditional signed-clone test. They
+cover:
 
 - administrator refusal, the private 0700 root and no rerun of `prepare`;
 - c2–c4 allowlist copies, 0600 modes and no overwrite;
@@ -358,8 +366,14 @@ pass in task scratch, including the conditional signed-clone test. They cover:
 - manifest refusal of newline names, FIFOs, unreadable files, unreadable
   directories and a symlinked root;
 - manifest failure when `find` or `sort` fails;
-- unreadable capture and marker directories refused rather than reported absent;
-- c3 failing, with no `wrote` line, when evidence-manifest enumeration fails;
+- unreadable capture and marker directories, and an unreadable `~/Library`
+  ancestor, refused rather than reported absent;
+- refusal of a FIFO capture, a dangling `request.json` symlink and a
+  non-directory publication entry;
+- collection of pending captures;
+- c2 refusing when AppData is missing;
+- the `OK:` final line on successful `prepare`, c2 and `handoff`;
+- c3 failing, with no `OK:` line, when evidence-manifest enumeration fails;
 - digest change on content change;
 - `handoff` granting exactly one named account and refusing an unknown one.
 

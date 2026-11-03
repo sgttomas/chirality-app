@@ -32,6 +32,7 @@ nolink() { # refuse a symlink at $1 or any ancestor up to $HOME
   _nl=$1
   while :; do
     [ -L "$_nl" ] && die "symlink at $_nl"
+    if [ -d "$_nl" ] && [ ! -x "$_nl" ]; then die "unsearchable directory $_nl"; fi
     if [ "$_nl" = "$HOME" ] || [ "$_nl" = / ]; then break; fi
     _nl=$(dirname "$_nl")
   done; }
@@ -50,10 +51,13 @@ manifest() { # checked list, then checked hashes; any failure is a refusal, neve
     while IFS= read -r f; do shasum -a 256 "$f" >> MANIFEST.sha256 || exit 2; done < .mlist || exit 2
     rm .mlist || exit 2 ) || die "evidence manifest failed in $D"
   echo "wrote $D"; }
-dir_ok() { # an existing evidence directory must be a real, readable, searchable directory
+dir_ok() { # an existing evidence directory must be a real, readable, searchable directory.
+  # nolink first: every existing ancestor must be searchable, so -e below is reliable.
+  nolink "$1"
   if [ -e "$1" ] || [ -L "$1" ]; then
-    nolink "$1"; [ -d "$1" ] && [ -r "$1" ] && [ -x "$1" ] || die "unreadable evidence directory $1"
+    [ -d "$1" ] && [ -r "$1" ] && [ -x "$1" ] || die "unreadable evidence directory $1"
   fi; }
+present() { [ -e "$1" ] || [ -L "$1" ]; } # exists in any form; unmatched globs are absent
 copyrel() { # copyrel SRC: copy one regular file to $D/appdata/<path relative to APPDATA>
   nolink "$1"; [ -f "$1" ] || die "not a regular file: $1"
   rel=${1#"$APPDATA"/}; dst="$D/appdata/$rel"; [ ! -e "$dst" ] || die "collision at $dst"
@@ -122,7 +126,8 @@ prepare)
   echo "  Shared AGENTS.md        $SHARED/AGENTS.md"
   echo "  Shared skills directory $SHARED/skills"
   echo "  Project directory       $PROJECT"
-  echo "Do not open or edit these files before the test ends." ;;
+  echo "Do not open or edit these files before the test ends."
+  echo "OK: prepare complete" ;;
 c1)
   DMG="${2:-}"; [ -f "$DMG" ] || die "give the downloaded DMG path"
   nolink "$DMG"; nolink "$APPDATA"
@@ -167,29 +172,31 @@ c1)
   r=0; grep -qx '4.0.0' "$D/installed-version.txt" || r=1; check installed-version-4.0.0 "$r"
   manifest; cat "$D/gate.txt"
   [ "$G" -eq 0 ] || { echo "STOP: do not launch. Tell the agent." >&2; exit 3; }
-  echo "Gate passed: eject the DMG and continue." ;;
+  echo "OK: Gate passed: eject the DMG and continue." ;;
 c2|c3|c4)
+  nolink "$APPDATA"; [ -d "$APPDATA" ] || die "App data not found (has the App run?)"
   stage "$1"
-  nolink "$APPDATA"
   K="$APPDATA/capture-seal-keychain"
   dir_ok "$APPDATA"; dir_ok "$K"
   for x in "$APPDATA/capture-seal"; do if [ -e "$x" ] || [ -L "$x" ]; then nolink "$x"; fi; done
   { statf "$K"; statf "$K/continuity.s1.json"; statf "$APPDATA/capture-seal"; } > "$D/marker-stat.txt"
-  if [ -f "$K/continuity.s1.json" ] || [ -L "$K/continuity.s1.json" ]; then copyrel "$K/continuity.s1.json"; fi
+  if present "$K/continuity.s1.json"; then copyrel "$K/continuity.s1.json"; fi
   dir_ok "$APPDATA/records"; dir_ok "$APPDATA/records/projects"
   for p in "$APPDATA"/records/projects/*; do
-    [ -d "$p" ] || [ -L "$p" ] || continue
-    dir_ok "$p"; dir_ok "$p/captures"; dir_ok "$p/acts"
-    for f in "$p"/captures/*.json "$p"/acts/*.jsonl; do
-      [ -f "$f" ] || [ -L "$f" ] || continue; copyrel "$f"
+    present "$p" || continue
+    [ -d "$p" ] && [ ! -L "$p" ] || die "unexpected non-directory $p"
+    dir_ok "$p"; dir_ok "$p/captures"; dir_ok "$p/captures/pending"; dir_ok "$p/acts"
+    for f in "$p"/captures/*.json "$p"/captures/pending/*.json "$p"/acts/*.jsonl; do
+      present "$f" || continue; copyrel "$f"   # copyrel refuses links and non-regular files
     done
   done
   if [ "$1" = c4 ]; then
     dir_ok "$APPDATA/desktop-startup"
-    if [ -f "$APPDATA/desktop-startup/request.json" ]; then copyrel "$APPDATA/desktop-startup/request.json"; fi
+    if present "$APPDATA/desktop-startup/request.json"; then copyrel "$APPDATA/desktop-startup/request.json"; fi
     dir_ok "$APPDATA/runtime"; dir_ok "$APPDATA/runtime/distribution"
     for s in "$APPDATA"/runtime/distribution/s1-*; do
-      [ -d "$s" ] || [ -L "$s" ] || continue; copytree "$s"
+      present "$s" || continue
+      [ -d "$s" ] && [ ! -L "$s" ] || die "unexpected non-directory $s"; copytree "$s"
     done
     # Names and metadata only. account-homes is pruned itself, so it is never read.
     (cd "$APPDATA" && find . -path ./account-homes -prune -o -print) > "$D/.meta"
@@ -199,13 +206,13 @@ c2|c3|c4)
     plain_tree "$HOME/ChiralityV4Fixtures"
     content "$HOME/ChiralityV4Fixtures" > "$D/fixture-manifest.txt" || die "fixture manifest failed"
   fi
-  manifest ;;
+  manifest; echo "OK: $1 complete" ;;
 handoff)
   A="${2:-}"; [ -n "$A" ] && id -u "$A" >/dev/null 2>&1 || die "give the receiving account name"
   root_ok
   find "$OUT" -type d -exec chmod +a "user:$A allow list,search,readattr,readextattr,readsecurity" {} +
   find "$OUT" -type f -exec chmod +a "user:$A allow read,readattr,readextattr,readsecurity" {} +
-  echo "Granted read access to $A only, on $OUT" ;;
+  echo "OK: handoff complete: read access granted to $A only, on $OUT" ;;
 manifest)
   [ -d "${2:-}" ] || die "give an App path"
   nolink "$2"

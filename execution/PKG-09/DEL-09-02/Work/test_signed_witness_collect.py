@@ -43,6 +43,9 @@ class Helper(unittest.TestCase):
 
     def prepared(self):
         self.assertEqual(self.run_('prepare').returncode, 0)
+        self.prepared_after_prepare()
+
+    def prepared_after_prepare(self):
         (self.appdata / 'records/projects/k1/captures').mkdir(parents=True)
         (self.appdata / 'records/projects/k1/captures/c.json').write_text('{}')
         (self.appdata / 'runtime/distribution/s1-a/.chirality-s1').mkdir(parents=True)
@@ -188,6 +191,52 @@ class Helper(unittest.TestCase):
         r = subprocess.run(['sh', str(self.na), 'c3'], env=env, capture_output=True, text=True)
         self.assertNotEqual(r.returncode, 0)
         self.assertNotIn('wrote', r.stdout)
+        self.assertNotIn('OK:', r.stdout)
+
+    def test_unreadable_ancestor_is_refused_not_absent(self):
+        self.prepared()
+        lib = self.home / 'Library'
+        lib.chmod(0o000)
+        r = self.run_('c2')
+        lib.chmod(0o755)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertNotIn('OK:', r.stdout)
+
+    def test_unexpected_evidence_types_are_refused_not_skipped(self):
+        self.prepared()
+        fifo = self.appdata / 'records/projects/k1/captures/failed.json'
+        os.mkfifo(fifo)
+        self.assertNotEqual(self.run_('c3').returncode, 0)
+        fifo.unlink()
+        (self.appdata / 'desktop-startup').mkdir()
+        (self.appdata / 'desktop-startup/request.json').symlink_to(self.tmp / 'missing')
+        self.assertNotEqual(self.run_('c4').returncode, 0)
+        (self.appdata / 'desktop-startup/request.json').unlink()
+        (self.appdata / 'runtime/distribution/s1-file').write_text('x')
+        shutil.rmtree(self.out / 'c4')
+        self.assertNotEqual(self.run_('c4').returncode, 0)
+
+    def test_pending_captures_are_collected(self):
+        self.prepared()
+        pend = self.appdata / 'records/projects/k1/captures/pending'
+        pend.mkdir()
+        (pend / 'p.json').write_text('{}')
+        self.assertEqual(self.run_('c2').returncode, 0)
+        self.assertTrue((self.out / 'c2/appdata/records/projects/k1/captures/pending/p.json').is_file())
+
+    def test_every_successful_command_ends_with_ok_line(self):
+        r = self.run_('prepare')
+        self.assertEqual(r.stdout.strip().splitlines()[-1], 'OK: prepare complete')
+        self.prepared_after_prepare()
+        r = self.run_('c2')
+        self.assertEqual(r.stdout.strip().splitlines()[-1], 'OK: c2 complete')
+        me = subprocess.run(['id', '-un'], capture_output=True, text=True).stdout.strip()
+        r = self.run_('handoff', me)
+        self.assertTrue(r.stdout.strip().splitlines()[-1].startswith('OK: handoff complete'))
+
+    def test_checkpoint_requires_app_data(self):
+        self.assertEqual(self.run_('prepare').returncode, 0)
+        self.assertNotEqual(self.run_('c2').returncode, 0)
 
     def test_manifest_detects_content_change(self):
         tree = self.tmp / 'tree'
