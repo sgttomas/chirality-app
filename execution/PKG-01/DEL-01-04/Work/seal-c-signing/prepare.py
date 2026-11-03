@@ -89,14 +89,22 @@ def metadata_entitlements(profile, certificate, publisher, namespace, at):
     if grants is not None:
         require(isinstance(grants, list) and any(pattern_allows(g, group) for g in grants),
                 'profile metadata does not grant the exact own-App access group')
+    # The request, not the profile's allowlist shape, selects the route. Null is
+    # the default own-App route: no keychain-access-groups is signed even when the
+    # profile allowlist (for example PREFIX.*) would permit one. An explicit
+    # own-App group asks for a one-element signed list and needs an actual grant.
+    explicit = namespace['access_group'] is not None
+    require(not explicit or grants is not None,
+            'explicit own-App group list requires a profile group grant; null selects the default route')
     certificates = profile.get('DeveloperCertificates')
     require(isinstance(certificates, list) and certificates and all(isinstance(c, bytes) and c for c in certificates)
             and (certificate is None or certificate in certificates),
             'selected public certificate is not among profile-authorized certificate bytes')
     proposed = {APP_ID: app_id, TEAM: team}
     # SecItem's documented default group is the application identifier when no
-    # keychain-access-groups entitlement is signed. No cross-App sharing needed.
-    if grants is not None: proposed[GROUPS] = [group]
+    # keychain-access-groups entitlement is signed. No cross-App sharing needed;
+    # a wildcard allowlist entry is never copied into the proposal.
+    if explicit: proposed[GROUPS] = [group]
     return proposed
 
 

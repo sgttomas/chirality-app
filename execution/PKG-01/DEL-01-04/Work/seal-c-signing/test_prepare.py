@@ -71,7 +71,10 @@ class Preparation(unittest.TestCase):
     def test_profile_backed_proposal_uses_prefix_not_team_and_never_grants_authority(self):
         result = self.run_plan(); self.assertFalse(result['activation_authorized'])
         ent = plistlib.loads((self.output / 'entitlements.proposed.plist').read_bytes())
-        self.assertEqual(ent[subject.GROUPS], ['PREFIX0001.' + self.publisher['production_bundle_identifier']])
+        # The profile allowlist grants PREFIX0001.*, but the null request selects
+        # the default route: no keychain-access-groups list, never the wildcard.
+        self.assertEqual(set(ent), {subject.APP_ID, subject.TEAM})
+        self.assertEqual(ent[subject.APP_ID], 'PREFIX0001.' + self.publisher['production_bundle_identifier'])
         self.assertNotIn('com.apple.security.cs.allow-jit', ent)
         self.assertNotIn('com.apple.security.get-task-allow', ent)
         report = json.loads((self.output / 'signing-plan.json').read_bytes())
@@ -95,6 +98,20 @@ class Preparation(unittest.TestCase):
         self.assertEqual(report['namespace_proposal']['access_group'], proposal[subject.APP_ID])
         self.assertEqual(report['group_route'], 'default-application-identifier-group')
         self.assertFalse(report['keychain_activation_authorized'])
+
+    def test_explicit_own_app_group_needs_grant_and_signs_only_that_group(self):
+        group = 'PREFIX0001.' + self.publisher['production_bundle_identifier']
+        self.request['namespace']['access_group'] = group
+        self.run_plan()
+        proposal = plistlib.loads((self.output / 'entitlements.proposed.plist').read_bytes())
+        self.assertEqual(proposal[subject.GROUPS], [group])
+        report = json.loads((self.output / 'signing-plan.json').read_text())
+        self.assertEqual(report['group_route'], 'explicit-own-app-group')
+        self.assertEqual(report['namespace_proposal']['access_group'], group)
+        del self.profile['Entitlements'][subject.GROUPS]; self.changed_profile()
+        self.args['output'] = self.root / 'output-explicit-no-grant'
+        with self.assertRaises(ValueError): self.run_plan()
+        self.assertFalse(self.args['output'].exists())
 
     def test_missing_profile_or_certificate_reports_exact_gap_without_plist(self):
         for field in ('profile_plist', 'profile_cms', 'signer_certificate'):
