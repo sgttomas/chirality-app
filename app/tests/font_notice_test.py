@@ -1,6 +1,7 @@
 """Bundled IBM Plex notice index; local bytes only, no network, build or font execution."""
 import importlib.util
 import json
+import re
 from pathlib import Path
 import shutil
 import tempfile
@@ -63,6 +64,42 @@ class FontNotice(unittest.TestCase):
         self.setUp()
         self.edit('app/index.html', lambda s: s.replace('rel="license"', 'rel="stylesheet"'))
         with self.assertRaisesRegex(ValueError, 'no longer links'): f.check(self.root)
+
+    def test_case_comment_and_extensionless_remote_font_faces_refuse(self):
+        for extra in ('@font-face {font-family: Extra; src: URL("https://example.invalid/font");}',
+                      '@font-face/**/ {font-family: Extra; src: url("https://example.invalid/font");}',
+                      '@FONT-FACE{font-family:Extra;src:url(./fonts/ibm-plex-mono-latin-400-normal.woff2)}',
+                      '@import url("https://example.invalid/fonts.css");'):
+            with self.subTest(extra=extra):
+                self.setUp(); self.edit('app/src/workspace.css', lambda s: s + '\n' + extra + '\n')
+                with self.assertRaises(ValueError): f.check(self.root)
+
+    def test_commented_out_font_face_is_not_counted(self):
+        self.edit('app/src/workspace.css', lambda s: s.replace(
+            '@font-face { font-family: "IBM Plex Mono"; src: url("./fonts/ibm-plex-mono-latin-500-normal.woff2")',
+            '/* @font-face { font-family: "IBM Plex Mono"; src: url("./fonts/ibm-plex-mono-latin-500-normal.woff2") */ @font-face { font-family: "IBM Plex Mono"; src: url("./fonts/ibm-plex-mono-latin-500-normal.woff2")'))
+        f.check(self.root)
+        self.edit('app/src/workspace.css', lambda s: re.sub(r'@font-face \{ font-family: "IBM Plex Mono"; src: url\("\./fonts/ibm-plex-mono-latin-500-normal\.woff2"\)[^}]*\}', '', s, count=1))
+        with self.assertRaisesRegex(ValueError, '@font-face sources differ'): f.check(self.root)
+
+    def test_fonts_declared_in_other_frontend_sources_refuse(self):
+        for name, text in (('app/src/other.css', '@font-face{font-family:X;src:url(./x.woff2)}'),
+                           ('app/src/inject.ts', 'new FontFace("X", "url(https://example.invalid/x)");'),
+                           ('app/src/nested/theme.css', '.x{src:url("data.ttf")}')):
+            with self.subTest(name=name):
+                self.setUp(); target = self.root / name; target.parent.mkdir(parents=True, exist_ok=True); target.write_text(text)
+                with self.assertRaisesRegex(ValueError, 'outside'): f.check(self.root)
+
+    def test_commented_out_or_duplicated_license_link_refuses(self):
+        link = f.LICENSE_LINK
+        self.edit('app/index.html', lambda s: s.replace(link, '<!-- ' + link + ' -->'))
+        with self.assertRaisesRegex(ValueError, 'no longer links'): f.check(self.root)
+        self.setUp(); self.edit('app/index.html', lambda s: s.replace(link, link + link))
+        with self.assertRaisesRegex(ValueError, 'no longer links'): f.check(self.root)
+
+    def test_base128_overflow_refuses(self):
+        with self.assertRaisesRegex(ValueError, 'invalid WOFF2 length'): f.base128(bytes.fromhex('9080808000'), 0)
+        self.assertEqual(f.base128(bytes.fromhex('8fffffff7f'), 0), (0xFFFFFFFF, 5))
 
     def test_index_shape_provenance_and_notice_list_refuse(self):
         for change, message in ((lambda v: v.update(extra=True), 'shape'),

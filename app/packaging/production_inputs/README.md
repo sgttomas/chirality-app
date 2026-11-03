@@ -48,7 +48,8 @@ Outputs, in a new private directory:
   direct notices + separate SQLite source-input resources + the IBM Plex font
   notice (`third-party-notices/fonts/`, refused if its index is stale) + complete vendor P1.
 - `input-inventory.json`: exact selected resources/files/vendor hashes and modes,
-  declared source revision, all three loaded tool-module hashes and jsonschema
+  declared source revision, every loaded tool-module hash (four, or five with an
+  upstream supplement) and jsonschema
   version, with limits. The source
   revision is a caller claim; actual export provenance is separately checked.
 - `build-recipe.json`: argv array and allowlisted build inputs, explicit offline/

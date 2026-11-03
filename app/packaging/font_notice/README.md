@@ -37,9 +37,14 @@ PYTHONDONTWRITEBYTECODE=1 python3 app/tests/font_notice_test.py
 ```
 
 The default check is pure Python. It refuses changed, missing, linked or extra
-files in `app/src/fonts/`; `@font-face` sources in `app/src/workspace.css` that
-differ from the indexed fonts; remote font sources; and loss of the entry HTML's
-licence link. `--name-tables` also decodes each WOFF2 `name` table with Node's
+files in `app/src/fonts/`. After stripping comments and matching keywords
+case-insensitively, it requires the `@font-face` sources in
+`app/src/workspace.css` to equal the indexed fonts exactly, so remote or
+extensionless sources refuse. It refuses `@import`, font references outside those
+rules, and any `@font-face`, `FontFace(` or font-file reference in other frontend
+sources (`app/index.html` and CSS/HTML/JS/TS under `app/src`). It requires exactly
+one active licence link in the entry HTML. This is a lexical check, not a CSS
+engine. `--name-tables` also decodes each WOFF2 `name` table with Node's
 built-in Brotli and compares the recorded strings. No font data is executed.
 
 `production_inputs/prepare.py` runs the default check against the selected source.

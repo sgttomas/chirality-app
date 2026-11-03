@@ -79,13 +79,38 @@ def check(root=ROOT):
     present = {p.name for p in (root / FONT_DIR).iterdir()}
     require(present == set(names) | {PurePosixPath(license['path']).name}, 'unindexed or missing file in ' + FONT_DIR)
     require(index['copyright_notices'] == sorted({f['name_table']['copyright'] for f in fonts}), 'copyright notice list differs')
-    css = (root / CSS).read_text()
-    faces = re.findall(r'@font-face\s*\{[^}]*\}', css)
-    used = [m for face in faces for m in re.findall(r'url\(\s*["\']?([^"\')]+)["\']?\s*\)', face)]
-    require(sorted(used) == sorted('./fonts/' + n for n in names), 'frontend @font-face sources differ from indexed fonts')
-    require(not re.search(r'@import[^;]*fonts\.|https?://[^)"\']*\.(woff2?|ttf|otf)', css), 'remote or imported font source refused')
-    require(LICENSE_LINK in (root / HTML).read_text(), 'frontend entry no longer links the retained font license')
+    check_frontend_sources(root, names)
     return index
+
+
+FONT_REFERENCE = re.compile(r'@font-face|\bFontFace\s*\(|\.(?:woff2?|ttf|otf|eot)\b', re.IGNORECASE)
+SOURCE_SUFFIXES = {'.css', '.html', '.js', '.jsx', '.mjs', '.ts', '.tsx'}
+
+
+def strip_comments(text, html=False):
+    text = re.sub(r'/\*.*?\*/', ' ', text, flags=re.DOTALL)
+    return re.sub(r'<!--.*?-->', ' ', text, flags=re.DOTALL) if html else text
+
+
+def check_frontend_sources(root, names):
+    """Lexical scope check (not a CSS engine): only workspace.css may declare fonts, exactly the indexed set."""
+    css = strip_comments((root / CSS).read_text())
+    faces = re.findall(r'@font-face\s*\{([^}]*)\}', css, flags=re.IGNORECASE)
+    require(len(faces) == len(re.findall(r'@font-face', css, flags=re.IGNORECASE)), 'unparsed @font-face rule refused')
+    used = [u.strip() for face in faces for u in re.findall(r'url\(\s*["\']?([^"\')]+)["\']?\s*\)', face, flags=re.IGNORECASE)]
+    require(sorted(used) == sorted('./fonts/' + n for n in names), 'frontend @font-face sources differ from indexed fonts')
+    outside = re.sub(r'@font-face\s*\{[^}]*\}', ' ', css, flags=re.IGNORECASE)
+    require(not FONT_REFERENCE.search(outside) and not re.search(r'@import', outside, flags=re.IGNORECASE),
+            'font reference or import outside indexed @font-face rules refused')
+    for path in sorted([root / HTML, *(root / 'app/src').rglob('*')]):
+        relative = path.relative_to(root).as_posix()
+        if relative == CSS or relative.startswith(FONT_DIR + '/') or path.suffix not in SOURCE_SUFFIXES or not path.is_file():
+            continue
+        text = path.read_text()
+        text = strip_comments(text, html=path.suffix == '.html') if path.suffix in ('.css', '.html') else text
+        require(not FONT_REFERENCE.search(text), 'font source outside ' + CSS + ' refused: ' + relative)
+    html = strip_comments((root / HTML).read_text(), html=True)
+    require(html.count(LICENSE_LINK) == 1, 'frontend entry no longer links the retained font license')
 
 
 def brotli_decompress(data):
@@ -99,7 +124,7 @@ def base128(data, i):
     value = 0
     for n in range(5):
         byte = data[i]; i += 1
-        require(not (n == 0 and byte == 0x80), 'invalid WOFF2 length')
+        require(not (n == 0 and byte == 0x80) and not value & 0xFE000000, 'invalid WOFF2 length')
         value = (value << 7) | (byte & 0x7f)
         if not byte & 0x80:
             return value, i
