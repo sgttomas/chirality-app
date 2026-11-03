@@ -98,9 +98,11 @@ S4 and readiness (`hosting_successor.rs:286-320`; `installed_custody.rs:56-131`)
     `DailyWorkspace.tsx:42`).
   - On refusal, the text reads "production refused after complete tree equals
     selected reference: …", with banner "Codex could not stay connected".
-- **Files:** `runtime/distribution/s1-<opaque>/.chirality-s1/` holds
-  `observed.json`, `installed.json`, `preflight.json` and `transport.json`. A
-  later folder holds `lifecycle.json` (`distribution_store_s1.rs:204-256`).
+- **Files:** each publication `runtime/distribution/s1-<opaque>/` holds the
+  selected reference members plus `.chirality-s1/` with `observed.json`,
+  `installed.json`, `preflight.json` and `transport.json`. The transport file
+  lists every closure entry. A later publication holds `lifecycle.json`
+  (`distribution_store_s1.rs:7-11,142-157,225-256`).
 - **No export:** the App has no export of these. `hosting_s4_export.rs` is
   test-only.
 
@@ -162,65 +164,106 @@ Window and Quit:
 
 ## Owner-facing sequence
 
-This takes about 25 minutes of the owner's time. Every App act is the owner's
-own act. The agent does not log in as, automate, or receive the password of the
-test user. "Agent:" lines run in the owner's own session, after approval.
+This takes about 30 minutes of the owner's time. Every App act is the owner's
+own act. The agent never logs in as, automates or receives the password of the
+test user. "Agent:" lines run in the owner's own session, after approval. Only
+Q1 is offered for quarantine. A synthetic `xattr` route is not part of this
+request.
+
+Shorthand used below: `C=/Users/Shared/chirality-v4-witness-tools/signed_witness_collect.sh`.
 
 1. **Create the user.** System Settings ▸ Users & Groups ▸ Add User: Standard,
-   name `Chirality V4 Test` / `chiralityv4test` or the owner's choice, with a
-   private password. Switch to the user. In Setup Assistant, skip the Apple
-   Account and iCloud.
-2. **Get the DMG (Q1).**
-   - Agent: serve only a clone of the DMG on `127.0.0.1` and give the URL.
-   - Owner: in Safari, download it. Then double-click it to mount it, and drag
-     the App into the test user's own `Applications` folder (create it if
-     missing), not `/Applications`.
-   - Agent: stop the server.
-3. **Run two commands.** In the test user's Terminal, run the two lines the agent
-   gives. They run `signed_witness_collect.sh prepare`, which creates the invented
-   fixtures and prints the paths, and `… c1 ~/Downloads/<dmg>`, which records the
-   pre-launch facts. Eject the DMG. Start a full-screen recording (⇧⌘5) into
-   `/Users/Shared`.
-4. **First launch.** Double-click **Chirality App v4** in that `Applications`
-   folder, never Spotlight or Launchpad, and answer **Open** to Gatekeeper.
-5. **Set up.** Complete Desktop setup with the printed paths and the only
-   supplier option, then confirm **Prepare home and save for next launch**.
-   Press ⌘Q; the App should exit with no question.
-6. **Relaunch** the same way. Wait for "Codex is connected".
-7. **Mark checked, before enrollment.** Mark `check-1.txt` checked (Scope `witness`,
-   Purpose `pre-enrollment`). Press **Read file-act log and current content**.
-   Run the `c2` command.
-8. **Enroll.** App menu ▸ **Prepare capture sealing…** ▸ **Prepare capture
-   sealing**. If any keychain or password prompt appears, choose Deny or Cancel
-   and stop here.
-9. **Mark checked, after enrollment.** Mark `check-2.txt` checked (Purpose
-   `after enrollment`) and press **Read…** again. Run the `c3` command.
-10. **Close and reopen.** Close the window with the red button. Click the running
-    **Chirality App v4** Dock tile; its name shows on hover, and it is the only
-    Chirality tile in this fresh user's Dock. The same workspace returns.
-11. **Quit, relaunch, verify, quit.** ⌘Q. Relaunch, wait for "Codex is
-    connected", press **Read…**, then ⌘Q again. Run the `c4` command. Stop the
-    recording and tell the agent.
+   `Chirality V4 Test` / `chiralityv4test` or the owner's choice, with a private
+   password. Switch to it. In Setup Assistant, skip the Apple Account and iCloud.
+2. **Agent stages the tools and the download.**
+   - The agent copies `signed_witness_collect.sh` and `identify.py` from the
+     approved PR head into `/Users/Shared/chirality-v4-witness-tools/` (0755
+     directory, 0644 files) and prints their SHA-256s.
+   - It clones the DMG into a fresh scratch directory, checks `34ab5661…26e`,
+     and serves only that directory on `http://127.0.0.1:8765/`.
+3. **Download and install.** Do this in the test user.
+   - Check the tools by running `shasum -a 256 /Users/Shared/chirality-v4-witness-tools/*`
+     in Terminal and comparing with the agent's values.
+   - In Safari, open `http://127.0.0.1:8765/` and download the DMG. Tell the
+     agent, which stops the server.
+   - In Terminal, run `sh "$C" prepare`. It creates the private evidence folder
+     and the invented fixtures, and prints the setup paths.
+   - Double-click the DMG in Downloads. Make a folder `Applications` in the test
+     user's home and drag **Chirality App v4** into it. Do not use `/Applications`.
+4. **Gate.** Run `sh "$C" c1 ~/Downloads/Chirality-App-v4-4.0.0-f664ee1d-b3dd4145.dmg`.
+   It must end with **Gate passed**. On **STOP**, do not launch; tell the agent.
+   Eject the DMG.
+5. **Record.** Press ⇧⌘5 ▸ Options ▸ Save to ▸ Other Location… and choose
+   `/Users/Shared/chirality-v4-witness-out/recording`. Then Record Entire Screen.
+6. **First launch.** Double-click **Chirality App v4** in the test user's
+   `Applications` folder, never Spotlight or Launchpad. Answer **Open** to
+   Gatekeeper. "Setup needed" appears.
+7. **Set up.** Use **Prepare a new account home**, the four paths printed by
+   `prepare`, and the only supplier option. Then **Review setup effects** ▸
+   **Prepare home and save for next launch**, and the same button in the native
+   dialog. Press ⌘Q; the App exits with no question.
+8. **Relaunch** the same way. Wait for "Codex is connected". Open **Host
+   diagnostics** so that "State: ready … codex-cli 0.160.0" and "Supplier
+   standing: verified-pin" are on screen for a few seconds. If Codex does not
+   connect, stop.
+9. **Before enrollment.**
+   - Open **Files and standing acts**. Set Kind `mark checked`, Scope `witness`
+     and Purpose `pre-enrollment`.
+   - Press **Select file and freeze preview…** and pick `check-1.txt`. Then press
+     **Review native act / decline / cancel…** ▸ **mark checked**.
+   - Press **Read file-act log and current content** and expand **Source,
+     content identities and correction relations** on the `check-1.txt` row. Its
+     lines include "capture has no App seal … not verified here".
+   - Run `sh "$C" c2`.
+10. **Enroll.** App menu ▸ **Prepare capture sealing…**. The dialog shows
+    "Committed and pending key IDs: none observed". Choose **Prepare capture
+    sealing**; the notice reads "Capture sealing check completed for the
+    prepared installation." If any keychain or password prompt appears, choose
+    Deny or Cancel, and stop.
+11. **After enrollment.**
+    - Repeat step 9 with `check-2.txt` and Purpose `after enrollment`.
+    - The expanded `check-2.txt` row must show no "not verified here" line and
+      must show `"captureCorrespondence": true`. Otherwise stop.
+    - Run `sh "$C" c3`.
+12. **Close and reopen.** Close the window with the red button. Click the running
+    **Chirality App v4** Dock tile, the only Chirality tile in this Dock (its name
+    shows on hover). The same workspace returns.
+13. **Restart and verify.**
+    - Press ⌘Q (it exits with no question). Relaunch as in step 6 and wait for
+      "Codex is connected", with Host diagnostics open.
+    - Press **Read…** and expand the same `check-2.txt` row: same `captureId`, no
+      "not verified here", `captureCorrespondence` true, and no prompt.
+    - Press ⌘Q.
+14. **Finish.** Run `sh "$C" c4`, then stop the recording. Run `sh "$C" handoff
+    <owner account>`, which gives only the owner's own account read access to
+    the evidence folder. Tell the agent.
 
 If anything else appears, such as a refusal, a hang or an unexpected dialog,
-stop. Note it and tell the agent. Do not retry, grant, override, force-quit or
-log out unless the owner separately decides on an exceptional recovery (below).
+stop. Tell the agent. Do not retry, grant, override, force-quit or log out
+unless the owner separately decides on an exceptional recovery (below). A
+refused checkpoint command leaves its partial folder in place. It is never
+rerun over that folder.
 
 ## Internal evidence checklist
 
-| Item | Source | Kind | Missing means |
+All files listed are under `/Users/Shared/chirality-v4-witness-out/`.
+
+| Item | Evidence | Kind | If missing or failed |
 |---|---|---|---|
-| Installer quarantine and SHA | c1 `dmg.txt` | command output | blocked |
-| Mounted and installed Gatekeeper, installed quarantine, signature, entitlements, cdhash | c1 `mounted.txt`, `installed.txt` | command output | blocked; a refusal is a failure |
-| First-launch Gatekeeper dialog | recording | displayed only | inconclusive |
-| Setup saved, then Quit, then relaunch at `saved-request` | recording; c4 `request.json`, `appdata-metadata.txt` | display + file | failed or blocked as observed |
-| S4 observation, custody and supplier ready handshake | c4 `distribution/*/{observed,installed,preflight,transport,lifecycle}.json`; display "ready"/"verified-pin" | App files + display | no export exists; packaging confirms sufficiency |
-| SC-3 pre-enrollment capture is unsealed, with no marker or `capture-seal` directory | c2 capture without `seal` and with the limit; c2 `marker-stat.txt` shows both absent | App files | failed |
-| One enrollment, committed marker | c3 `continuity.s1.json` (one key, `pending` null) | App file | failed or unknown |
-| Sealed capture verifies, before and after restart | captures with `seal`; recorded **Read…** rows | file + display | failed |
-| No second add across restart | c3 vs c4 marker: identical bytes, inode, mtime | App file only | inconclusive |
+| W-0 installer digest and quarantine | `c1/dmg-sha256.txt`, `dmg-quarantine.txt`, `dmg-xattr-l.txt`; `gate.txt` | command output | blocked |
+| W-1 mounted Gatekeeper | `c1/mounted-spctl.txt` | command output | blocked; a refusal is a failure |
+| W-2 install path (per-user `~/Applications`, a recorded deviation), installed quarantine, first-launch Gatekeeper | `c1/installed-path.txt`, `installed-quarantine.txt`, `installed-xattr-l.txt`; recording | command output + display | blocked; a refusal is a failure |
+| W-2 translocation component | `c4/appdata/runtime/distribution/s1-*/.chirality-s1/installed.json` | App file | inconclusive |
+| W-6 installed signature, exact entitlements, cdhash, stock supplier identifiers, bundle-tree v2 `b3dd4145` | `c1/installed-*.txt`, `installed-entitlements.plist`, `supplier-*.txt`, `installed-identity.json`; `gate.txt` | command output | blocked |
+| W-3/W-4/W-5 version, Codex verified, supplier ready | `c1/installed-version.txt`; `c4` distribution publications; Host diagnostics on the recording | file + display | failed or blocked as observed |
+| Setup saved, then Quit, then relaunch at `saved-request` | recording; `c4/appdata/desktop-startup/request.json`, `appdata-metadata.txt` | display + file | failed or blocked as observed |
+| S4 publication closure | `c4/appdata/runtime/distribution/s1-*/`, the complete App-written publications (selected reference members plus `.chirality-s1/{observed,installed,preflight,transport,lifecycle}.json`) | App files | no App export exists |
+| SC-3 pre-enrollment: capture unsealed; no marker and no `capture-seal` directory | `c2/appdata/records/projects/*/captures/*.json` (no `seal`, with the limit); `c2/marker-stat.txt` | App files | failed |
+| One enrollment, committed marker | `c3/appdata/capture-seal-keychain/continuity.s1.json` (one key, `pending` null) | App file | failed or unknown |
+| The same sealed capture verifies before and after restart | `c3`/`c4` capture with `seal`; recorded expanded rows | file + display | failed |
+| No second add across restart | `c3` vs `c4` marker: identical bytes, inode and mtime | App file only | inconclusive |
 | No keychain prompt | recording | display only | inconclusive |
-| Window hide and reopen; Quit with no question; App and supplier exit | recording; agent's read-only census, if approved | display + process listing | as observed |
+| Window hide and reopen; Quit with no question; App and supplier exit | recording; the agent's read-only census, if approved | display + process listing | as observed |
 
 Claim limits:
 
@@ -232,22 +275,71 @@ Claim limits:
   proves the absence of escape.
 - **Unrecorded outcome.** Enrollment success is visible only on screen.
 
-The collector copies **only** these items:
+### Collector
 
-- the marker and the `capture-seal` existence check;
-- the captures and act logs;
+[`signed_witness_collect.sh`](signed_witness_collect.sh) copies only the items
+above:
+
+- the c1 command outputs;
+- the marker and `capture-seal` stats;
+- captures and act logs, at their AppData-relative paths;
 - `request.json`;
-- the five named distribution files;
-- an AppData name and metadata listing that stops at `account-homes/`;
+- the complete `runtime/distribution/s1-*` publications;
+- an AppData name and metadata listing in which `account-homes` itself is pruned,
+  so it is never read;
 - fixture hashes.
 
-It never enters `account-homes/` (the Codex home), never reads the keychain, and
-copies no fixture contents or other runtime files. All of it stays in private
-scratch until the agent's disclosure review. `transport.json` and
-`preflight.json` contents have not been reviewed yet. Nothing from it is
-committed or published before that review. The packaging owner must confirm that
-these files can feed `packaged-s4-binding/1`, and the runtime owner that they
-meet SC-3, **before** execution. No sufficiency is claimed here.
+Its safeguards:
+
+- It refuses symlinks anywhere along each copied path.
+- It never overwrites.
+- It never reads the keychain.
+- Output is 0700/0600 under a root that it creates and checks: owned by the user,
+  mode 0700, not a symlink.
+- After c4, `handoff` grants read access to exactly one named account through
+  ACLs.
+- c1 exits 3 with STOP on any failed gate.
+
+Assurance so far: fake-home checks only. They covered:
+
+- administrator refusal;
+- output modes;
+- the STOP exit;
+- symlink refusal;
+- that `account-homes` (made mode 000) is never read;
+- path preservation;
+- no overwrite;
+- the single-account ACL.
+
+c1 also ran against an APFS clone of the signed App and the real DMG. The DMG
+digest, the deep strict check, notarized Gatekeeper, cdhash, identifier, team,
+exact entitlements, the four stock supplier identifiers, bundle tree
+`b3dd4145`, the executable and version 4.0.0 all passed. Quarantine and the
+mounted checks stopped, as expected for a local, unmounted copy.
+
+Disclosure: Gatekeeper and codesign output contains the certificate holder's
+name. Any repository record redacts it as
+`origin=Developer ID Application: <name> (8A7JL35U4S)`, as packaging records do.
+Evidence otherwise stays in private scratch until the agent's disclosure review.
+The account-home names and project paths it contains refer only to the test user.
+
+## Consumer confirmation (before the owner is asked to approve)
+
+- **Packaging** (<t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:29a4e14ac4c1423f4ccd20d7605000caf9a5b6d9030c967d51875cd09021e07f>),
+  2026-11-03:
+  - It matched the subject: DMG `34ab5661…`, App `b3dd4145`, executable
+    `49f61681`, cdhash `e1bf4644`.
+  - It specified the W-0, W-1, W-2, W-6 and S4-join observations, which c1/c4
+    now collect.
+  - It accepts per-user `~/Applications` as a recorded W-2 deviation.
+  - It joins the publications to package identity `b3dd4145`, publisher binding
+    `58463a02`, requirement `86d40090`, and the DMG digests `1a962e3a` (pre-staple)
+    and `34ab5661` (stapled).
+  - It requires no additional install, launch, account or enrollment permission.
+- **Runtime (SEAL-C SC-3) and W-3/W-4/W-5:** confirmation that the c2/c3/c4
+  marker, capture and display evidence meets SC-3 is **requested and pending**.
+  The owner is not asked to approve execution until that confirmation is recorded
+  here.
 
 ## Exceptional recovery (owner decides at the time; nothing is pre-authorized)
 
@@ -287,11 +379,13 @@ candidate.
 
 ## Owner decisions requested
 
+These are presented only after runtime confirmation is recorded.
+
 1. Create the standard test user (the owner's act).
-2. Choose the quarantine transfer:
-   - **Q1 (recommended):** a loopback-only Safari download, with a short-lived
-     agent server.
-   - **Q2:** an `xattr` attribute written by the test user, recorded as synthetic.
-3. Approve steps 1–11, including one real keychain enrollment in the test user,
-   the screen recording, the collector runs, and optionally the agent's
-   read-only `ps` census of the test user's processes.
+2. Approve the Q1 transfer: a loopback-only Safari download from a short-lived
+   agent server, plus the agent staging the two tools in
+   `/Users/Shared/chirality-v4-witness-tools/`.
+3. Approve steps 1–14. They include one real keychain enrollment in the test
+   user, the screen recording, the collector runs and the final single-account
+   handoff. Optionally, approve the agent's read-only `ps` census of the test
+   user's processes.
