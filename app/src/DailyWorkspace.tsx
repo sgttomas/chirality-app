@@ -25,7 +25,7 @@ export function revealWorkspaceTarget(id: string, focus = false): void {
   }
   target?.scrollIntoView?.({ block: "start" });
 }
-const targets = new Set(["conversation", "workflow-studio", "workspace-start", "workspace-connection", "workspace-tools", "workspace-history", "file-acts", "other-requests"]);
+const targets = new Set(["run-workflow", "desktop-setup", "workflow-reviews", "conversation", "workflow-studio", "workspace-start", "workspace-connection", "workspace-tools", "workspace-history", "file-acts", "other-requests"]);
 function revealLink(event: MouseEvent<HTMLElement>): void {
   for (let node = event.target as HTMLElement | null; node && node !== event.currentTarget; node = node.parentNode as HTMLElement | null) {
     const href = node.tagName === "A" ? node.getAttribute("href") : null;
@@ -121,6 +121,19 @@ export function DailyWorkspace({ children }: { children: ReactNode }) {
       .setup-guidance { color:var(--ink-soft); }
       .setup-state { border-left:3px solid var(--accent); padding:4px 16px; margin:14px 0; }
       .setup-effects { background:var(--surface); padding:16px; margin:16px 0; border:1px solid var(--rule-strong); }
+      .setup-explainer { margin:14px 0; }
+      .setup-explainer li { margin:6px 0; }
+      .run-journey { border-top:3px solid var(--accent); padding-top:14px; }
+      .run-journey-next { border-left:3px solid var(--accent); padding:4px 12px; }
+      .run-journey-steps { padding-left:22px; margin:8px 0; }
+      .run-journey-steps>li { padding:6px 0 10px; border-bottom:1px solid var(--workspace-line); }
+      .run-journey-steps h3 { margin:4px 0; font-family:var(--font-display); }
+      .run-journey-steps label { display:block; }
+      .run-journey-steps textarea { width:100%; }
+      .run-journey-state { padding:4px 12px; border-left:3px solid var(--rule-strong); }
+      .run-journey-waiting { border-left-color:var(--accent); }
+      .run-journey-failed { border-left-color:var(--danger); }
+      .run-journey-done { border-left-color:var(--cta); }
       .setup-diagnostics { margin-top:20px; color:var(--ink-soft); font-size:.88rem; }
       @media (max-width:720px) { .setup-steps { grid-template-columns:minmax(0,1fr); gap:0; } }
       @media (max-width:1000px) { .workspace-primary { grid-template-columns:minmax(0,1fr); } .workspace-heading { align-items:start; flex-direction:column; gap:3px; } }
