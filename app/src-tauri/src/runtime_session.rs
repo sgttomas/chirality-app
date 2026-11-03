@@ -9583,6 +9583,47 @@ for line in sys.stdin:
         assert!(!serde_json::to_string(&peer.home.host.delegation_readings()).unwrap().contains("fixture private configuration text"));
     }
     #[test]
+    fn model_catalog_lists_the_server_providers_models_at_a_press_and_keeps_no_configuration(){
+        let peer=Peer::new();
+        let read=|g:&Value|peer.home.host.model_catalog_read(g);
+        let lists=||peer.wire().iter().filter(|f|f["method"]=="model/list").count();
+        let setup=peer.wire().len();
+        let v=read(&peer.generation);
+        assert_eq!(v["state"],"observed","{v}");assert_eq!(v["complete"],true);assert_eq!(v["serverProvider"],"fixture-provider");
+        assert_eq!(v["models"],json!([{"id":"fixture-model","model":"fixture-model","displayName":"fixture-model","description":"fixture","isDefault":true},
+            {"id":"other-model","model":"other-model","displayName":"other-model","description":"fixture","isDefault":false}]));
+        let wire=peer.wire().split_off(setup);
+        assert_eq!(wire.iter().map(|f|f["method"].as_str().unwrap_or("").to_owned()).collect::<Vec<_>>(),["config/read","config/read","model/list"],"exactly the press's reads: {wire:?}");
+        assert_eq!(wire.iter().rev().find(|f|f["method"]=="model/list").unwrap()["params"],json!({"includeHidden":false}));
+        let configs:Vec<_>=wire.iter().filter(|f|f["method"]=="config/read").map(|f|f["params"]["cwd"].clone()).collect();
+        assert_eq!(configs.len(),2);assert!(configs[0].is_null()&&configs[1].is_string(),"no folder, then the server's own: {configs:?}");
+        for kept in [v.to_string(),serde_json::to_string(&peer.home.host.journal()).unwrap(),serde_json::to_string(&peer.home.host.client_requests()).unwrap(),peer.home.host.snapshot().to_string()] {
+            assert!(!kept.contains("fixture private configuration text"),"no configuration body is returned or kept");
+        }
+        assert!(peer.home.host.delegation_readings().is_empty(),"a press keeps no reading");
+        // The two provider readings must agree; a null provider matches nothing and is not inferred.
+        for (name,value,cause) in [("config-provider-server","other","fixture-provider without a folder and other at its own folder; neither is chosen"),
+            ("config-provider","none","names no provider"),("config-multi-agent","error","config/read answered with an error")]{
+            reset_delegation(&peer);peer.set_mode(name,value);
+            let v=read(&peer.generation);
+            assert!(v["serverProvider"].is_null(),"{name}={value}: {v}");
+            assert!(v["providerLimit"].as_str().unwrap().contains(cause),"{name}={value}: {v}");
+            assert_eq!(v["models"].as_array().unwrap().len(),2,"the list itself is still shown, unmatched");
+        }
+        // Paging and early ends keep what was read, marked incomplete.
+        reset_delegation(&peer);peer.set_mode("models-mode","paged");
+        let v=read(&peer.generation);assert_eq!(v["complete"],true);assert_eq!(v["models"].as_array().unwrap().len(),2);
+        for (mode,limit) in [("error","model list incomplete: model/list answered with an error"),("emptycursor","empty page cursor")]{
+            reset_delegation(&peer);peer.set_mode("models-mode",mode);
+            let v=read(&peer.generation);assert_eq!(v["complete"],false,"{mode}");assert_eq!(v["state"],"unavailable","{mode}: nothing listed");
+            assert!(v["limits"].as_array().unwrap().iter().any(|l|l.as_str().unwrap().contains(limit)),"{mode}: {v}");
+        }
+        // A generation that is not current reads nothing.
+        reset_delegation(&peer);let before=lists();
+        let mut stale=peer.generation.clone();stale["spawnCounter"]=json!(99);
+        let v=read(&stale);assert_eq!(v["state"],"unavailable");assert_eq!(lists(),before,"nothing sent for another generation");
+    }
+    #[test]
     fn delegation_is_read_per_conversation_model_and_per_home_once_on_the_tick(){
         let a=Peer::new();let b=Peer::new();
         let cfg=a.home.host_config.as_ref().unwrap().clone();

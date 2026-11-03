@@ -476,7 +476,12 @@ test('daily workspace keeps A/C/B/D, exact composer, chooser, global draft and l
 
 for(const state of ['absent','ready'])test(`first use with Codex ${state} exposes choices and a real access/start route without supplier calls`,async()=>{
  await mounted({initialize:false,beforeMount:account=>{account.state=state;account.generation=state==='absent'?null:g;account.workflowRoot.context.generation=account.generation;account.threads=[];}},async ui=>{
-  const start=byId(ui.c,'workspace-start');assert.ok(displayed(start));for(const label of ['Model ','Configured Codex provider '])assert.ok(displayed(labelled(start,'input',label)));assert.ok(displayed(labelled(start,'select','Access entry ')));assert.ok(displayed(button(start,'Start thread')));
+  const start=byId(ui.c,'workspace-start');assert.ok(displayed(start));
+  for(const label of ['How this conversation connects','Available models'])assert.ok(displayed(region(start,label)),label);
+  assert.ok(displayed(button(start,'Read available models')));assert.ok(displayed(button(start,'Start thread')));
+  const advanced=start.querySelectorAll(e=>e.localName==='details'&&e.childNodes.some(n=>n.localName==='summary'&&n.textContent==='Advanced: enter IDs yourself'))[0];assert.ok(advanced,'manual IDs remain available');
+  for(const label of ['Model ','Configured Codex provider '])assert.ok(advanced.contains(labelled(start,'input',label)),label);assert.ok(advanced.contains(labelled(start,'select','Access entry ')));
+  assert.equal(displayed(labelled(start,'input','Model ')),false,'manual IDs are an advanced fallback, not the first-use route');
   const connection=byId(ui.c,'workspace-connection');if(state==='absent'){assert.equal(disclosureOpen(connection),true,'connection setup is exposed before Codex is ready');assert.ok(displayed(button(ui.c,'Start Codex')));}
   const before=ui.calls.length;await toggleDisclosure(ui.c,'workspace-connection',false);assert.equal(disclosureOpen(connection),false);await followWorkspaceLink(ui.c,'Set up access or start Codex');assert.equal(disclosureOpen(connection),true);assert.ok(displayed(button(ui.c,'Start Codex')));assert.equal(ui.calls.length,before,'setup navigation never starts a supplier');
  });

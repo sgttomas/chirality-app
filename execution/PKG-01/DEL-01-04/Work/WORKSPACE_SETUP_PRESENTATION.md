@@ -343,3 +343,17 @@ reveals the conversation. The offer never sends, never changes model, mode,
 attachments or steering, and adds no IPC; Send keeps its existing readiness,
 single-submission and outcome behavior. Checked by `app/tests/make-journey.test.mjs`
 against the mounted `ConversationPanel`.
+
+## New conversation: route, model list, advanced IDs
+
+The New conversation section now reads as **1. How it connects** (an explicit
+built-in route button for the active home, beside the existing configured
+local-provider read and choice), **2. Model** ("Read available models", the
+reported list with display names, IDs, descriptions, a "Codex's default" label
+and explicit "Use ‹name›" choices), and **Advanced: enter IDs yourself** holding
+the unchanged model, provider and access-entry fields. Meaning, native read and
+choice rules are in DEL-01-05 `ACCOUNT_AND_PROVIDER_ACCESS.md` ("Explicit route
+and model discovery for a new conversation"). Role choice, the choice summary,
+Start and its disabled conditions are unchanged. The first-use mounted check in
+`app/tests/prepared-message-navigation.test.mjs` now expects the route and model
+list to be shown and the manual IDs to sit in the closed Advanced disclosure.

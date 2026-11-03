@@ -3388,6 +3388,66 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         }
         signals
     }
+    /// DEL-01-05 model discovery at the person's press (`model_catalog`): the
+    /// app-server's own provider from `config/read` with no folder and at its
+    /// own folder, then `model/list` without hidden models. Reads only, with the
+    /// delegation read's waits; afterwards each request's evidence keeps its
+    /// outcome only, as replies to these methods are journalled. Nothing is
+    /// kept in the host: the result answers only this press.
+    pub fn model_catalog_read(&self, generation: &Value) -> Value {
+        const WAIT: Duration = Duration::from_secs(10);
+        let read_at = crate::util::now_rfc3339();
+        let server_cwd = {
+            let i = self.inner.0.lock().unwrap();
+            if i.generation != *generation || i.state != "ready" { return crate::model_catalog::refused(generation, "Codex is not ready in this generation; nothing was read", &read_at); }
+            i.server_cwd.clone()
+        };
+        let deadline = std::time::Instant::now() + DELEGATION_READ_BUDGET;
+        let silent = std::cell::Cell::new(false);
+        let sent = std::cell::RefCell::new(Vec::<String>::new());
+        let read = |method: &str, params: Value, schema: &str| -> Result<Value, String> {
+            if silent.get() { return Err(format!("{method} not sent: an earlier read of this press got no response")); }
+            let wait = deadline.saturating_duration_since(std::time::Instant::now()).min(WAIT);
+            if wait.is_zero() { return Err(format!("{method} not sent: the read's time limit was reached")); }
+            let request = self.request_begin_scoped(method, params, json!({"kind":"person-directed","name":"model-catalog-read"}), false, Some(generation))?;
+            sent.borrow_mut().push(request.request_id().to_string());
+            let response = self.wait_source_response(&request, wait).map_err(|e| {
+                if e.contains("within the wait limit") { silent.set(true); }
+                self.delegation_wait_ended(&request);
+                e
+            })?;
+            if let Some(error) = response.get("error") { return Err(format!("{method} answered with an error: {error}")); }
+            let result = response.get("result").cloned().ok_or_else(|| format!("{method} returned no result"))?;
+            Self::validate_native_result(schema, &result)?;
+            Ok(result)
+        };
+        let config_at = |cwd: Option<&str>| {
+            let mut params = json!({"includeLayers":false});
+            if let Some(cwd) = cwd { params["cwd"] = json!(cwd); }
+            read("config/read", params, "ConfigReadResponse")
+        };
+        let provider = match server_cwd.as_deref() {
+            None => Err("the app-server's working folder is not known to this App".to_owned()),
+            Some(own) => { let bare = config_at(None); crate::model_catalog::server_provider(bare, config_at(Some(own))) }
+        };
+        let models = crate::model_catalog::collect(|cursor| {
+            let mut params = json!({"includeHidden":false});
+            if let Some(c) = cursor { params["cursor"] = json!(c); }
+            read("model/list", params, "ModelListResponse")
+        });
+        let receivers: Vec<_> = {
+            let i = self.inner.0.lock().unwrap();
+            sent.borrow().iter().filter_map(|id| i.source_requests.get(id).map(|e| Arc::clone(&e.request.receiver))).collect()
+        };
+        for receiver in receivers { while receiver.lock().unwrap().try_recv().is_ok() {} }
+        let mut i = self.inner.0.lock().unwrap();
+        for id in sent.borrow().iter() {
+            if let Some(e) = i.source_requests.get_mut(id) {
+                if let Some(frame) = e.response.as_ref() { e.response = Some(delegation_withheld(frame)); }
+            }
+        }
+        crate::model_catalog::view(generation, provider, models, &read_at)
+    }
     /// The loaded conversations of the current generation the host tick reads
     /// (at most `limit`): those whose model, provider and folder have no
     /// reading yet (read once, when the conversation's model is known), and
