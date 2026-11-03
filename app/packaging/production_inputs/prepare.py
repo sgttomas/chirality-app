@@ -1,11 +1,14 @@
 """Prepare exact unsigned release-build inputs; never build, sign or launch."""
 import argparse
+import datetime
 import importlib.util
 import importlib.metadata
 import json
 import os
 from pathlib import Path
+import plistlib
 import re
+import xml.parsers.expat
 
 from jsonschema import Draft202012Validator
 
@@ -63,8 +66,96 @@ def check_plan(output):
     return marker
 
 
+SIGNED_DATA_OID = bytes.fromhex('2a864886f70d010702')
+DATA_OID = bytes.fromhex('2a864886f70d010701')
+
+
+def der(raw, offset):
+    """One definite-length DER element: (tag, content start, end). Indefinite/long tags refused."""
+    require(offset + 2 <= len(raw), 'truncated DER element')
+    tag, first = raw[offset], raw[offset + 1]
+    require(tag & 0x1f != 0x1f and first != 0x80, 'unsupported DER tag or indefinite length')
+    start = offset + 2
+    if first & 0x80:
+        count = first & 0x7f
+        require(1 <= count <= 4 and start + count <= len(raw), 'invalid DER length')
+        length = int.from_bytes(raw[start:start + count], 'big'); start += count
+        require(length >= 0x80 and raw[offset + 2] != 0, 'non-minimal DER length')
+    else:
+        length = first
+    require(start + length <= len(raw), 'DER element exceeds envelope')
+    return tag, start, start + length
+
+
+def profile_content(raw):
+    """Structural CMS SignedData path to its single encapsulated plist; no signature/authentication check."""
+    tag, start, end = der(raw, 0)
+    require(tag == 0x30 and end == len(raw), 'profile must be exactly one DER ContentInfo')
+    tag, oid_start, oid_end = der(raw, start)
+    require(tag == 0x06 and raw[oid_start:oid_end] == SIGNED_DATA_OID, 'profile is not CMS SignedData')
+    tag, explicit, explicit_end = der(raw, oid_end)
+    require(tag == 0xa0 and explicit_end == end, 'invalid SignedData wrapper')
+    tag, signed, signed_end = der(raw, explicit)
+    require(tag == 0x30 and signed_end == explicit_end, 'invalid SignedData')
+    tag, _, cursor = der(raw, signed)
+    require(tag == 0x02, 'SignedData version missing')
+    tag, _, cursor = der(raw, cursor)
+    require(tag == 0x31, 'SignedData digest algorithms missing')
+    tag, encap, encap_end = der(raw, cursor)
+    require(tag == 0x30, 'encapsulated content missing')
+    tag, oid_start, oid_end = der(raw, encap)
+    require(tag == 0x06 and raw[oid_start:oid_end] == DATA_OID, 'encapsulated content is not id-data')
+    tag, wrapper, wrapper_end = der(raw, oid_end)
+    require(tag == 0xa0 and wrapper_end == encap_end, 'encapsulated content wrapper invalid')
+    tag, content, content_end = der(raw, wrapper)
+    require(tag == 0x04 and content_end == wrapper_end, 'encapsulated content must be one primitive OCTET STRING')
+    return raw[content:content_end]
+
+
+class UniquePlistDict(dict):
+    def __setitem__(self, key, value):
+        require(key not in self, 'duplicate profile dictionary key')
+        super().__setitem__(key, value)
+
+
+def profile_consistency(raw, expected_sha256, selected, now=None):
+    """Consistency only: exact bytes and encapsulated grants match the publisher input. Not CMS authentication."""
+    require(isinstance(expected_sha256, str) and re.fullmatch('[0-9a-f]{64}', expected_sha256) is not None
+            and sha(raw) == expected_sha256, 'provisioning profile bytes differ from selected digest')
+    require(0 < len(raw) <= 1024 * 1024, 'provisioning profile size out of bounds')
+    content = profile_content(raw)
+    require(content.lstrip().startswith(b'<?xml'), 'encapsulated content is not an XML property list')
+    try:
+        profile = plistlib.loads(content, fmt=plistlib.FMT_XML, dict_type=UniquePlistDict)
+    except (plistlib.InvalidFileException, xml.parsers.expat.ExpatError) as error:
+        raise ValueError('encapsulated profile content is not exactly one property list') from error
+    require(isinstance(profile, dict), 'profile property list must be a dictionary')
+    team, identifier = selected['developer_id_team_identifier'], selected['production_bundle_identifier']
+    prefixes = profile.get('ApplicationIdentifierPrefix')
+    require(isinstance(prefixes, list) and len(prefixes) == 1 and isinstance(prefixes[0], str), 'one profile AppIdentifierPrefix required')
+    entitlements = profile.get('Entitlements')
+    require(isinstance(entitlements, dict), 'profile entitlement grants absent')
+    require(profile.get('Platform') == ['OSX'] and profile.get('ProvisionsAllDevices') is True
+            and not profile.get('ProvisionedDevices'), 'macOS Developer ID distribution profile required')
+    require(profile.get('TeamIdentifier') == [team] and entitlements.get('com.apple.developer.team-identifier') == team,
+            'profile team differs from publisher input')
+    require(entitlements.get('com.apple.application-identifier') == prefixes[0] + '.' + identifier,
+            'profile does not grant the selected application identifier')
+    require(not entitlements.get('get-task-allow') and not entitlements.get('com.apple.security.get-task-allow'),
+            'development profile grant refused')
+    creation, expiry = profile.get('CreationDate'), profile.get('ExpirationDate')
+    checked = now or datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None, microsecond=0)
+    require(isinstance(creation, datetime.datetime) and isinstance(expiry, datetime.datetime) and creation <= checked < expiry,
+            'profile not valid at preparation time')
+    return {'sha256': expected_sha256, 'size': len(raw), 'uuid': profile.get('UUID'),
+            'application_identifier': entitlements['com.apple.application-identifier'],
+            'expiration': expiry.isoformat() + 'Z', 'validity_checked_at': checked.isoformat() + 'Z',
+            'destination': 'Contents/embedded.provisionprofile',
+            'standing': 'structural CMS content and metadata consistency only; signature/Apple authentication is a separate intake; placement unverified until build'}
+
 def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
-            test_identifier=None, publisher_input=None, publisher_sha256=None, upstream_notices=None):
+            test_identifier=None, publisher_input=None, publisher_sha256=None, upstream_notices=None,
+            provisioning_profile=None, provisioning_profile_sha256=None):
     source_root, vendor, output = map(inventory.anchored, (source_root, vendor, output))
     require(not os.path.lexists(source_root / '.git'), 'source must be a disposable frozen export, not a checkout')
     require('*' not in str(vendor), 'glob characters in vendor source refused')
@@ -102,6 +193,15 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
         require(not identifier.startswith('dev.chirality.app-v4.package-test.'), 'test namespace cannot select production inputs')
         mode, product = 'selected-production-inputs', 'Chirality App v4'
         publisher_ref = {'path': str(inventory.anchored(publisher_input)), 'sha256': publisher_sha256}
+    profile_ref = None
+    if provisioning_profile is not None or provisioning_profile_sha256 is not None:
+        require(publisher_ref is not None, 'test mode cannot embed a production provisioning profile')
+        profile_path = inventory.anchored(provisioning_profile)
+        require(not ancestors(profile_path.parent).intersection({identity(source_root), identity(vendor)}),
+                'private provisioning profile must be outside source and vendor')
+        profile_raw = read(profile_path)
+        profile_ref = profile_consistency(profile_raw, provisioning_profile_sha256, selected)
+        profile_ref['path'] = str(profile_path)
     app = source_root / 'app'
     resources = {}
     for name in ('tauri.attested-reference.conf.json', 'tauri.notices.conf.json'):
@@ -198,6 +298,9 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
     config = {'productName': product, 'version': '4.0.0', 'identifier': identifier,
               'bundle': {'active': True, 'targets': ['app'], 'resources': resources,
                          'macOS': {'minimumSystemVersion': '15.0', 'signingIdentity': None}}}
+    if profile_ref:
+        # Tauri copies macOS.files relative to Contents/; placement is verified only by a later build inventory.
+        config['bundle']['macOS']['files'] = {'embedded.provisionprofile': profile_ref['path']}
     env = {'CARGO_NET_OFFLINE': 'true', 'NPM_CONFIG_OFFLINE': 'true', 'CARGO_BUILD_JOBS': '2', 'MACOSX_DEPLOYMENT_TARGET': '15.0'}
     if publisher_ref:
         env.update(CHIRALITY_PUBLISHER_SELECTION='production-v1', CHIRALITY_PUBLISHER_INPUT_FILE=publisher_ref['path'],
@@ -239,6 +342,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
                    'stock cache selection does not qualify supplier pin', 'no signed package, S4 installed observation, OS qualification or release',
                    'four supplier notice/source associations and transitive completeness remain unresolved']}
         if supplement is not None: account['upstream_notice_supplement'] = supplement
+        if profile_ref: account['provisioning_profile'] = profile_ref
         completed = {}
         for name, value in [('tauri.package-inputs.conf.json', config), ('build-recipe.json', recipe), ('input-inventory.json', account)]:
             raw = (json.dumps(value, indent=2) + '\n').encode()
@@ -269,6 +373,8 @@ if __name__ == '__main__':
     parser.add_argument('--publisher-input')
     parser.add_argument('--publisher-sha256')
     parser.add_argument('--upstream-notices', help='Explicit completed upstream notice supplement; default omitted')
+    parser.add_argument('--provisioning-profile', help='Private Developer ID profile embedded at Contents/; production only')
+    parser.add_argument('--provisioning-profile-sha256')
     args = vars(parser.parse_args())
     try:
         print(json.dumps(prepare(**args), indent=2))
