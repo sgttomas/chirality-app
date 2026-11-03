@@ -329,3 +329,13 @@ allow web content to request the question. A separate native affirmative choice
 and all provider checks remain required; no direct SEAL-C IPC authority is added.
 The current None gate rejects dispatch. Any capability narrowing is a separate
 reserved decision before real activation.
+
+## Rotation evidence disposition for 4.0.0 (2026-11-02)
+
+The signed-stage evidence list above includes rotation and history continuity.
+For 4.0.0 the owner chose to leave rotation unavailable. The disposition and the
+accepted release limitation are recorded in
+[SEAL_C_KEYCHAIN_SIGNING_JOIN.md](../../DEL-01-06/Work/SEAL_C_KEYCHAIN_SIGNING_JOIN.md#owner-rotation-disposition-for-400-2026-11-02).
+The rotation provider semantics and mock tests are unchanged. History continuity
+across restart is still witnessed through SC-3, and the other signed-stage
+evidence is unchanged.
