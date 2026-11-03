@@ -114,6 +114,18 @@ Source keys below are repository-local evidence locators. The author return reco
 [C1]: https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md
 [Q1]: https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md
 
+## Bundled run admission reconciliation (2026-11-03)
+
+[Work/BUNDLED_RUN_ADMISSION.md](Work/BUNDLED_RUN_ADMISSION.md) (BUNDLED-RUN-01)
+implements WR LS-5/TT-1/TX-1 for exactly one subject. That subject is Agent 0's
+selected pinned production `coordinated-knowledge-work` package, run from this
+App's own installed resources without A15. It supports J1 of
+[Work/PUBLICATION_JOURNEYS.md](Work/PUBLICATION_JOURNEYS.md). REQ-004/AC-004
+origin identity, registration and every acceptance criterion are unchanged.
+Holding copies, development and other candidate subjects still never run. No
+published release or qualification is claimed; the candidate-bound J1
+observation remains open.
+
 ## Output and Evaluation Matrix
 
 | Output | Objective refs | Requirement/claim refs | Acceptance refs | Verification refs | Evidence expectation |

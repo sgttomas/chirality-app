@@ -4476,14 +4476,13 @@ struct WorkflowSelectionState {
     replaces: Option<String>,
 }
 /// WR TT-1 (SETTLED) and TX-1: only registered (LS-1), bundled (LS-5), host-listed
-/// (LS-6) or shipped-held (LS-8) revisions are composed and run. The App holds no
-/// bundled/host/shipped capability yet, so only an actual hot registered revision
-/// runs here. Development evidence is never laundered into a selection (WP-6; WR TT-1/TX-1).
-fn run_admission(selection: &crate::workflow_workspace::Selection) -> Result<(), String> {
-    match selection.admission() {
-        crate::workflow_workspace::SelectionAdmission::RegisteredRevision => Ok(()),
-        other => Err(format!("Selected workflow is not runnable ({}): WR TT-1/TX-1 compose and run only registered (LS-1), bundled (LS-5), host-listed (LS-6) or shipped-held (LS-8) revisions. Register a reviewed copy (draft, review, A15) and select that registered revision. Nothing prepared, recorded or sent (WR TT-1/TX-1).", other.standing())),
-    }
+/// (LS-6) or shipped-held (LS-8) revisions are composed and run. An actual hot
+/// registered revision runs, and so does the one closed LS-5 subject
+/// (BUNDLED-RUN-01) resolved from this App's own installed resources. No host-listed
+/// or shipped-held capability exists yet. Development evidence, the embedded copy,
+/// library holding copies and any other bundle location never run (WP-6; TT-1/TX-1).
+fn not_runnable(standing: &str) -> String {
+    format!("Selected workflow is not runnable ({standing}): WR TT-1/TX-1 compose and run only registered (LS-1), bundled (LS-5), host-listed (LS-6) or shipped-held (LS-8) revisions. Register a reviewed copy (draft, review, A15) and select that registered revision. Nothing prepared, recorded or sent (WR TT-1/TX-1).")
 }
 pub(crate) struct WorkflowRootSession {
     after_run_end: crate::after_run_end::Observer,
@@ -4566,6 +4565,37 @@ impl Default for WorkflowRootSession {
     }
 }
 impl WorkflowRootSession {
+    /// WR TT-1/TX-1 run admission (see `not_runnable`). A registered revision held
+    /// in this process runs. A production bundle runs only as the closed LS-5
+    /// subject (`ProductionCatalog::bundled_run_admission`) whose bundle root is
+    /// exactly this App's installed workflow resources; bytes and location are
+    /// rechecked by `verify_store` at prepare and send.
+    fn run_admission(&self, selection: &crate::workflow_workspace::Selection) -> Result<(), String> {
+        use crate::workflow_workspace::{production_catalog::ProductionCatalog, SelectionAdmission};
+        match selection.admission() {
+            SelectionAdmission::RegisteredRevision => Ok(()),
+            SelectionAdmission::ProductionBundle { .. } => ProductionCatalog::bundled_run_admission(selection)
+                .map(|_| ())
+                .map_err(|e| if e.contains("(WR LS-5)") { format!("{e}; nothing prepared, recorded or sent") } else { not_runnable(selection.admission().standing()) }),
+            other => Err(not_runnable(other.standing())),
+        }
+    }
+    /// Native startup only: records `resource_dir()/workflows` once per process
+    /// in the catalog (BUNDLED-RUN-01). A different later root is refused, so no
+    /// caller can re-point bundled admission.
+    pub(crate) fn configure_installed_bundle(&mut self, root: std::path::PathBuf) -> Result<(), String> {
+        crate::workflow_workspace::development_catalog::record_installed_root(root)
+    }
+    /// The production catalog entry as the run guide reads it: runnable only when
+    /// this App's installed bundle currently resolves the closed LS-5 subject.
+    fn production_entry_admission(&self, catalog: &crate::workflow_workspace::production_catalog::ProductionCatalog) -> Result<(), String> {
+        let root = crate::workflow_workspace::development_catalog::installed_root()
+            .ok_or_else(|| self.run_admission(&catalog.select_embedded()).err().unwrap_or_default())?;
+        let resolved = catalog
+            .select_bundle_package(&root, &catalog.identity().name)
+            .map_err(|e| format!("This App's included workflow could not be verified: {e}. Nothing can be selected or run from it (WR LS-5)"))?;
+        self.run_admission(resolved.selection())
+    }
     pub(crate) fn retention_ready(&self)->Result<(),String>{
         if self.after_run_end.has_pending(){return Err("After-run-end observations still have pending records; wait for recording before closing project records".into());}
         for run in self.runs.values(){let run=run.try_lock().map_err(|_|"A workflow operation is pending; settle it before closing project records")?;
@@ -4573,7 +4603,7 @@ impl WorkflowRootSession {
         Ok(())
     }
     fn selection_view(&self, s: &WorkflowSelectionState) -> Value {
-        json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err(),"selectedAt":s.selected_at,"replaces":s.replaces,"newerRevision":self.newer_revision_view(s),"runnable":run_admission(&s.selection).is_ok(),"runLimit":run_admission(&s.selection).err(),
+        json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err(),"selectedAt":s.selected_at,"replaces":s.replaces,"newerRevision":self.newer_revision_view(s),"runnable":self.run_admission(&s.selection).is_ok(),"runLimit":self.run_admission(&s.selection).err(),
                 // NIR §9 PD-1 / AS §4 OV-1: the declared part, read from the selected revision's own bytes, for the run panel.
                 "declaration":s.selection.snapshot().declaration().map(|d|json!(d)).unwrap_or_else(|error|json!({"unavailable":error}))})
     }
@@ -4608,11 +4638,13 @@ impl WorkflowRootSession {
         let production_catalog = match crate::workflow_workspace::production_catalog::ProductionCatalog::load() {
             Ok(catalog) => {
                 let identity = catalog.identity();
+                let admission = self.production_entry_admission(&catalog);
                 json!({"standing":crate::workflow_workspace::production_catalog::PRODUCTION_STANDING,
                     "entries":[{"name":identity.name,"revision":identity.revision,
                         "origin":identity.origin,"sourceRoot":identity.source_root,
                         "revisionMethod":identity.revision_method,"identity":identity,
-                        "runnable":false,"runLimit":run_admission(&catalog.select_embedded()).err()}]})
+                        "runnable":admission.is_ok(),"runLimit":admission.err(),
+                        "bundledStanding":crate::workflow_workspace::production_catalog::BUNDLED_STANDING}]})
             },
             Err(error) => json!({"standing":"candidate catalog unavailable","entries":[],"limit":error}),
         };
@@ -4627,7 +4659,7 @@ impl WorkflowRootSession {
             "endedAfterRelaunch":self.reopened_ends_view(),
             "drafts":self.active_library.as_deref().map(|l|self.drafts_view(l)),
             "trialPointerLimits":self.trials.limits().iter().cloned().chain(self.trial_mark_limits()).collect::<Vec<_>>(),
-            "limit":"actual hot registrations may run; development and production bundle candidate selections are shown, never run (TT-1/TX-1); runs open and end only by their recorded lifecycle; compatibility is advisory; no cold file authority or model adoption claim"})
+            "limit":"actual hot registrations and the App's own included LS-5 workflow may run; development, library-held and other production bundle candidate selections are shown, never run (TT-1/TX-1); runs open and end only by their recorded lifecycle; compatibility is advisory; no cold file authority or model adoption claim"})
     }
     /// Startup wiring (lib.rs setup): the App user-data root for App-kept draft bases.
     pub fn set_app_user_data(&mut self, data: std::path::PathBuf) {
@@ -4738,9 +4770,13 @@ impl WorkflowRootSession {
         });
         Ok(self.choice_result(chat))
     }
-    /// Native caller resolves App resource_dir/workflows. This records an explicit
-    /// candidate selection only; CC-WR-PKG-CANDIDATE-01 is not adopted admission.
+    /// Native caller resolves App resource_dir/workflows. Only this App's recorded
+    /// installed resources are resolved (BUNDLED-RUN-01); run admission is
+    /// `run_admission`'s, rechecked at prepare and send.
     pub fn select_production_bundle(&mut self, chat: Option<&crate::workflow_selection::Chat>, root: std::path::PathBuf, name: &str) -> Result<Value, String> {
+        if crate::workflow_workspace::development_catalog::installed_root().as_ref() != Some(&root) {
+            return Err("Not this App's installed workflow resources; nothing selected (WR LS-5)".into());
+        }
         let catalog = crate::workflow_workspace::production_catalog::ProductionCatalog::load()?;
         let resolved = catalog.select_bundle_package(&root, name)?;
         resolved.verify_current()?;
@@ -4905,7 +4941,7 @@ impl WorkflowRootSession {
     /// selection by the person replaces and cites. A candidate selection that
     /// can never run (TT-1) is not cited; the registered selection it replaced is.
     fn replaced(&self, chat: &crate::workflow_selection::Chat) -> Option<String> {
-        self.selected.get(chat).and_then(|s| match run_admission(&s.selection) {
+        self.selected.get(chat).and_then(|s| match self.run_admission(&s.selection) {
             Ok(()) => Some(s.reference.clone()),
             Err(_) => s.replaces.clone(),
         })
@@ -4935,7 +4971,7 @@ impl WorkflowRootSession {
     /// WR SL-2: "newer revision ‹n› available" beside a registered selection, as
     /// the slot's ledger reads now. Display only: it never changes the selection (SL-4).
     fn newer_revision_view(&self, selected: &WorkflowSelectionState) -> Value {
-        if run_admission(&selected.selection).is_err() {
+        if self.run_admission(&selected.selection).is_err() {
             return Value::Null;
         }
         let identity = selected.selection.identity();
@@ -5158,7 +5194,7 @@ impl WorkflowRootSession {
         current_conversation(&home.host.snapshot(), generation, thread)?;
         let chat = crate::workflow_selection::Chat::in_home(&home, thread);
         let selected = self.selected.get(&chat).ok_or("No actual closed workflow selection in this chat")?;
-        run_admission(&selected.selection)?;
+        self.run_admission(&selected.selection)?;
         // WP-1: only the explicitly opened App project owns WR records; no
         // source-root, library, cwd or user-data fallback.
         let project_root = project
@@ -5201,13 +5237,21 @@ impl WorkflowRootSession {
         let home_folder = std::env::var_os("HOME")
             .map(std::path::PathBuf::from)
             .filter(|p| p.is_absolute());
-        let files = crate::workflow_workspace::files_folder(
-            selected.selection.snapshot(),
-            selected.selection.identity(),
-            &selected.package,
-            &project_root,
-            home_folder.as_deref(),
-        )
+        // TX-7 (c): a bundled revision inside the App bundle is always supplied
+        // as a project copy, wherever the App is installed (even under the
+        // project or the home folder); no App-bundle path reaches the agent.
+        let bundled = matches!(selected.selection.admission(), crate::workflow_workspace::SelectionAdmission::ProductionBundle { .. });
+        let files = if bundled {
+            crate::workflow_workspace::bundled_files_folder(selected.selection.snapshot(), selected.selection.identity(), &project_root)
+        } else {
+            crate::workflow_workspace::files_folder(
+                selected.selection.snapshot(),
+                selected.selection.identity(),
+                &selected.package,
+                &project_root,
+                home_folder.as_deref(),
+            )
+        }
         .map_err(|e| format!("{e}; the workflow run is not prepared or sent"))?;
         let prepared = crate::workflow_workspace::PreparedRunText::start(
             &selected.selection,
@@ -5553,7 +5597,7 @@ impl WorkflowRootSession {
         let successor = {
             let chat = crate::workflow_selection::Chat::in_home(&home, thread);
             let selected = self.selected.get(&chat).ok_or("No actual closed workflow selection in this chat")?;
-            run_admission(&selected.selection)?;
+            self.run_admission(&selected.selection)?;
             selected.selection.identity().name.clone()
         };
         let run = self.conversation_run(live)?;
@@ -8288,16 +8332,8 @@ for line in sys.stdin:
         let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","text".into(),peer.project()).unwrap();let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();run.send().unwrap();let original=run.source.as_ref().unwrap().request_ref().to_owned();
         peer.home.host.stop_scoped(&peer.generation,"fixture","source loss").unwrap();assert!(run.check_native_supply().is_err());assert!(run.send().is_err());assert_eq!(run.source.as_ref().unwrap().request_ref(),original);assert_eq!(run.status["adoption"],"unknown");
     }
-    // P-2 candidate mechanics are connected to the actual Root selection path;
-    // a valid native-shaped conversation does not grant workflow admission.
-    fn p2_candidate_bundle(fixture: &Fixture) -> PathBuf {
-        let catalog = crate::workflow_workspace::production_catalog::ProductionCatalog::load().unwrap();
-        let root = fixture.root.join("production-bundle");
-        std::fs::create_dir(&root).unwrap();
-        std::fs::write(root.join("MANIFEST.json"), catalog.manifest()).unwrap();
-        catalog.select_embedded().snapshot().publish_new(&root.join(catalog.identity().name.as_str())).unwrap();
-        root
-    }
+    // P-2 candidate mechanics: library holding copies and development selections
+    // stay non-runnable; a native-shaped conversation does not grant admission.
     fn p2_candidate_refuses_without_effects(root: &mut WorkflowRootSession, peer: &Peer) {
         let before_wire = peer.wire();
         let before_records = peer.fixture.rs_entries();
@@ -8317,26 +8353,152 @@ for line in sys.stdin:
         assert_eq!(crate::records_store::existing(&peer.fixture.root, "runs").exists(), before_record_directory, "no record directory created");
         assert_eq!(peer.turn_starts(), 0);
     }
+    /// BUNDLED-RUN-01 fixture: an installed-resources-shaped `workflows/` root
+    /// outside the project, as the App's own `resource_dir()/workflows` is.
+    struct InstalledBundle(PathBuf);
+    impl InstalledBundle {
+        fn new() -> Self {
+            Self::under(&std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("installed-resources-").unwrap()))
+        }
+        /// `<base>/workflows`, e.g. an App installed beneath the opened project.
+        fn under(base: &std::path::Path) -> Self {
+            let catalog = crate::workflow_workspace::production_catalog::ProductionCatalog::load().unwrap();
+            let root = base.join("workflows");
+            std::fs::create_dir_all(&root).unwrap();
+            std::fs::write(root.join("MANIFEST.json"), catalog.manifest()).unwrap();
+            catalog.select_embedded().snapshot().publish_new(&root.join(catalog.identity().name.as_str())).unwrap();
+            Self(root)
+        }
+    }
+    impl Drop for InstalledBundle {
+        fn drop(&mut self) { let _ = std::fs::remove_dir_all(self.0.parent().unwrap()); }
+    }
+    const BUNDLED: &str = "coordinated-knowledge-work";
+    fn no_effects(root: &WorkflowRootSession, peer: &Peer, wire: usize, wr: &[String], rs: &[Value]) {
+        assert!(root.runs.is_empty() && root.conversations.is_empty());
+        assert_eq!(peer.turn_starts(), wire, "no turn dispatched");
+        assert_eq!(peer.fixture.wr_files(), wr, "no WR record written");
+        assert_eq!(peer.fixture.rs_entries(), rs, "no RS record written");
+    }
+    // WR LS-5 / TT-1: the bundled workflow is selectable only from this App's own
+    // installed resources, recorded once by native startup. A byte-identical bundle
+    // elsewhere is a caller-provided location and is refused; no rebinding.
     #[test]
-    fn p2_root_candidate_bundle_selection_is_visible_but_prepare_has_no_effects() {
+    fn bundled_ls5_requires_this_apps_installed_resources() {
         let peer = Peer::new();
-        let bundle = p2_candidate_bundle(&peer.fixture);
+        let installed = InstalledBundle::new();
+        let elsewhere = InstalledBundle::new();
+        let chat = crate::workflow_selection::Chat::in_home(&peer.home, "thread");
         let mut root = WorkflowRootSession::default();
-        let view = root.select_production_bundle(Some(&crate::workflow_selection::Chat::in_home(&peer.home,"thread")),bundle.clone(), "coordinated-knowledge-work").unwrap();
-        let entry = &view["productionCatalog"]["entries"][0];
-        assert_eq!(entry["identity"], view["choice"]["identity"]);
+        let entry = root.snapshot()["productionCatalog"]["entries"][0].clone();
         assert_eq!(entry["runnable"], false);
-        assert_eq!(view["choice"]["standing"], crate::workflow_workspace::production_catalog::PRODUCTION_STANDING);
-        assert_eq!(view["choice"]["runnable"], false);
-        assert!(view["choice"]["currentLimit"].is_null());
-        p2_candidate_refuses_without_effects(&mut root, &peer);
-        // Same-named development content is not silently substituted on failure.
-        let selected = view["choice"]["reference"].clone();
-        std::fs::write(bundle.join("MANIFEST.json"), b"{}").unwrap();
-        assert!(root.select_production_bundle(None,bundle, "coordinated-knowledge-work").is_err());
-        assert_eq!(root.fixture_snapshot()["selection"]["reference"], selected);
-        assert!(root.fixture_snapshot()["selection"]["currentLimit"].as_str().unwrap().contains("manifest differs"));
-        p2_candidate_refuses_without_effects(&mut root, &peer);
+        assert!(entry["runLimit"].as_str().unwrap().contains("production bundle candidate"), "{entry}");
+        let refused = root.select_production_bundle(Some(&chat), installed.0.clone(), BUNDLED).unwrap_err();
+        assert!(refused.contains("Not this App's installed workflow resources"), "{refused}");
+        root.configure_installed_bundle(installed.0.clone()).unwrap();
+        root.configure_installed_bundle(installed.0.clone()).expect("the same root again is not a rebinding");
+        assert!(root.configure_installed_bundle(elsewhere.0.clone()).is_err(), "no rebinding");
+        let refused = root.select_production_bundle(Some(&chat), elsewhere.0.clone(), BUNDLED).unwrap_err();
+        assert!(refused.contains("Not this App's installed workflow resources"), "{refused}");
+        assert!(root.selected.is_empty(), "nothing selected");
+        let entry = root.snapshot()["productionCatalog"]["entries"][0].clone();
+        assert_eq!(entry["runnable"], true, "{entry}");
+        assert!(entry["runLimit"].is_null());
+        assert!(root.select_production_bundle(Some(&chat), installed.0.clone(), "other-name").is_err());
+    }
+    // J1 / WR LS-5, TX-1, TX-7 (c): the exact selected bundled subject runs
+    // without A15 through the existing guarded prepare/send lifecycle. Its
+    // records say bundled, and its other files reach the agent as a project
+    // supply copy, never as a path into the App bundle.
+    #[test]
+    fn bundled_ls5_selection_prepares_and_sends_through_the_guarded_lifecycle() {
+        let peer = Peer::new();
+        let installed = InstalledBundle::new();
+        let chat = crate::workflow_selection::Chat::in_home(&peer.home, "thread");
+        let mut root = WorkflowRootSession::default();
+        root.configure_installed_bundle(installed.0.clone()).unwrap();
+        let view = root.select_production_bundle(Some(&chat), installed.0.clone(), BUNDLED).unwrap();
+        let choice = &view["choice"];
+        assert_eq!(choice["runnable"], true, "{choice}");
+        assert!(choice["runLimit"].is_null() && choice["currentLimit"].is_null(), "{choice}");
+        assert_eq!(choice["standing"], crate::workflow_workspace::production_catalog::BUNDLED_STANDING);
+        assert_eq!(choice["identity"]["origin"], "bundled");
+        assert_eq!(choice["identity"]["revision"], crate::workflow_workspace::production_catalog::SELECTED_BUNDLED_REVISION);
+        let reference = root.prepare_run(peer.home.clone(), &peer.generation, "thread", "use the included workflow".into(), peer.project()).unwrap();
+        root.runs[&reference].clone().lock().unwrap().send().unwrap();
+        assert_eq!(root.runs[&reference].lock().unwrap().lifecycle, RunLifecycle::Open);
+        let start = last_turn_start(&peer);
+        let text = start["params"]["input"][0]["text"].as_str().unwrap().to_owned();
+        assert!(text.contains("<<<chirality-workflow coordinated-knowledge-work@3730d84debb5 begin>>>"), "{text}");
+        assert!(text.contains(".chirality/workflow-supply/coordinated-knowledge-work/"), "TX-7 (c) supply copy named: {text}");
+        assert!(!text.contains(installed.0.to_str().unwrap()), "no App-bundle path reaches the agent");
+        assert_eq!(start["params"]["input"][1]["text"], "use the included workflow");
+        assert!(peer.fixture.root.join(".chirality/workflow-supply/coordinated-knowledge-work").is_dir());
+        let run = root.runs[&reference].lock().unwrap();
+        let project = crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+        let selection = project.resolve(run.view(&reference)["publication"]["selection"].as_str().unwrap()).unwrap();
+        let body = selection.body();
+        assert_eq!(body["standing"], "bundled");
+        assert_eq!(body["identity"]["origin"], "bundled");
+        assert_eq!(body["identity"]["source_root"], crate::workflow_workspace::production_catalog::RELEASE_SUBJECT);
+        assert_eq!(body["identity"]["revision"], crate::workflow_workspace::production_catalog::SELECTED_BUNDLED_REVISION);
+        assert_eq!(body["holding_library"], installed.0.to_str().unwrap());
+        assert_eq!(body["selected_by"], "the person (App interface)");
+        // After relaunch, a fresh process ends the bundled run from its records.
+        drop(run);
+        let mut fresh = WorkflowRootSession::default();
+        drop(root);
+        fresh.end_recorded_run(&peer.fixture.root, &reference, "thread", false, None).unwrap();
+        assert_eq!(rs_for(&peer, &reference).last().unwrap()["kind"], "run_ended");
+    }
+    // TX-7 (c): an App installed beneath the opened project still supplies the
+    // bundled revision's other files as a project supply copy, never as a
+    // project-relative path into the App bundle.
+    #[test]
+    fn bundled_ls5_inside_the_project_still_uses_a_supply_copy() {
+        let peer = Peer::new();
+        let installed = InstalledBundle::under(&peer.fixture.root.join("Apps/Chirality App v4.app/Contents/Resources"));
+        let chat = crate::workflow_selection::Chat::in_home(&peer.home, "thread");
+        let mut root = WorkflowRootSession::default();
+        root.configure_installed_bundle(installed.0.clone()).unwrap();
+        root.select_production_bundle(Some(&chat), installed.0.clone(), BUNDLED).unwrap();
+        let reference = root.prepare_run(peer.home.clone(), &peer.generation, "thread", "text".into(), peer.project()).unwrap();
+        root.runs[&reference].clone().lock().unwrap().send().unwrap();
+        let text = last_turn_start(&peer)["params"]["input"][0]["text"].as_str().unwrap().to_owned();
+        assert!(text.contains(".chirality/workflow-supply/coordinated-knowledge-work/"), "{text}");
+        assert!(!text.contains("Chirality App v4.app"), "no App-bundle path: {text}");
+    }
+    // WR SL-4 / LS-5: bytes and location are rechecked at prepare and at send.
+    // A changed installed package or manifest refuses with no effects, and the
+    // catalog entry stops offering the workflow.
+    #[test]
+    fn bundled_ls5_mutation_after_selection_refuses_prepare_and_send_without_effects() {
+        let peer = Peer::new();
+        let installed = InstalledBundle::new();
+        let chat = crate::workflow_selection::Chat::in_home(&peer.home, "thread");
+        let mut root = WorkflowRootSession::default();
+        root.configure_installed_bundle(installed.0.clone()).unwrap();
+        root.select_production_bundle(Some(&chat), installed.0.clone(), BUNDLED).unwrap();
+        let (wire, wr, rs) = (peer.turn_starts(), peer.fixture.wr_files(), peer.fixture.rs_entries());
+        let notes = installed.0.join(BUNDLED).join("REVIEW-NOTES.md");
+        let kept = std::fs::read(&notes).unwrap();
+        std::fs::write(&notes, b"edited inside the installed App").unwrap();
+        let refused = root.prepare_run(peer.home.clone(), &peer.generation, "thread", "text".into(), peer.project()).unwrap_err();
+        assert!(refused.contains("revision not verified"), "{refused}");
+        no_effects(&root, &peer, wire, &wr, &rs);
+        let entry = root.snapshot()["productionCatalog"]["entries"][0].clone();
+        assert_eq!(entry["runnable"], false);
+        assert!(entry["runLimit"].as_str().unwrap().contains("could not be verified"), "{entry}");
+        std::fs::write(&notes, &kept).unwrap();
+        let reference = root.prepare_run(peer.home.clone(), &peer.generation, "thread", "text".into(), peer.project()).unwrap();
+        let (wr, rs) = (peer.fixture.wr_files(), peer.fixture.rs_entries());
+        let manifest = installed.0.join("MANIFEST.json");
+        std::fs::write(&manifest, b"{}").unwrap();
+        let refused = root.runs[&reference].clone().lock().unwrap().send().unwrap_err();
+        assert!(refused.contains("manifest differs"), "{refused}");
+        assert_eq!(peer.turn_starts(), wire, "nothing sent");
+        assert_eq!(peer.fixture.wr_files(), wr, "no selection_record or run_text published");
+        assert_eq!(peer.fixture.rs_entries(), rs, "no RS record written");
     }
     #[test]
     fn p2_root_candidate_copy_uses_open_library_and_preserves_refusal_after_mutation() {

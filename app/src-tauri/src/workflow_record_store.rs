@@ -966,6 +966,10 @@ impl PublishedSupplyCheck {
 #[derive(Debug)]
 pub struct PreparedRunPublication {
     prepared: PreparedRunText,
+    /// The admitted typed selection, kept so every publication attempt (first
+    /// and retry) rechecks location, manifest and bytes, and for a bundled run
+    /// its closed LS-5 admission, immediately before records are written.
+    admitted: Selection,
     selection: PendingRecord,
     text: PendingRecord,
 }
@@ -984,13 +988,21 @@ impl PreparedRunPublication {
         selected_at: &str,
         prepared_at: &str,
     ) -> Result<Self, String> {
-        if !matches!(
-            selection.admission(),
-            SelectionAdmission::RegisteredRevision
-        ) || selection.identity() != &prepared.workflow
-            || selection.admission() != prepared.admission()
-        {
-            return Err("registered typed selection required; development evidence cannot become registered".into());
+        let selection_source = selection;
+        // WR selection_record standing: a registered revision, or the closed LS-5
+        // bundled subject (BUNDLED-RUN-01). Every other admission is refused here
+        // even if a caller bypassed the session's run admission.
+        let standing = match selection.admission() {
+            SelectionAdmission::RegisteredRevision => "registered",
+            SelectionAdmission::ProductionBundle { .. }
+                if super::production_catalog::ProductionCatalog::bundled_run_admission(selection).is_ok() =>
+            {
+                "bundled"
+            }
+            _ => return Err("registered or admitted bundled typed selection required; development or candidate evidence cannot become a run".into()),
+        };
+        if selection.identity() != &prepared.workflow || selection.admission() != prepared.admission() {
+            return Err("registered or admitted bundled typed selection required; development or candidate evidence cannot become a run".into());
         }
         selection.verify_store(&prepared.scope.revision_store)?;
         if prepared.record["text_identity"] != super::exact_text_identity(prepared.text())
@@ -998,7 +1010,7 @@ impl PreparedRunPublication {
         {
             return Err("prepared text changed".into());
         }
-        let body = json!({"record_kind":"selection_record","selection_id":prepared.scope.selection_ref,"identity":selection.identity(),"holding_library":prepared.scope.holding_library,"standing":"registered","selected_by":"the person (App interface)","how":"explicit","conversation":prepared.scope.conversation,"selected_at":selected_at});
+        let body = json!({"record_kind":"selection_record","selection_id":prepared.scope.selection_ref,"identity":selection.identity(),"holding_library":prepared.scope.holding_library,"standing":standing,"selected_by":"the person (App interface)","how":"explicit","conversation":prepared.scope.conversation,"selected_at":selected_at});
         // WR PR-4: a confirmed agent proposal is recorded as such, citing the proposal.
         let mut body = body;
         if let Some(proposal) = prepared.proposal() {
@@ -1026,6 +1038,7 @@ impl PreparedRunPublication {
         )?;
         Ok(Self {
             prepared,
+            admitted: selection_source.clone(),
             selection,
             text,
         })
@@ -1048,6 +1061,12 @@ impl PreparedRunPublication {
                 != self.prepared.record["workflow_file"]["content"]
         {
             return Err("linked workflow revision no longer resolves exactly".into());
+        }
+        // Full location/manifest recheck, and for a bundled run its closed LS-5
+        // admission, on every attempt (BUNDLED-RUN-01).
+        self.admitted.verify_store(&self.prepared.scope.revision_store)?;
+        if matches!(self.admitted.admission(), SelectionAdmission::ProductionBundle { .. }) {
+            super::production_catalog::ProductionCatalog::bundled_run_admission(&self.admitted)?;
         }
         let selection = project.publish(&self.selection)?;
         let text = project.publish(&self.text)?;
@@ -1216,8 +1235,10 @@ impl PreparedEndPublication {
             .ok_or("the current Codex generation of this home is not established")?;
         let (text, record) = super::end_notice_parts(&workflow, run, conversation, reason)?;
         let notice = PreparedRunText {
-            // The run started only from a registered revision (run_admission);
-            // nothing here admits, selects or sends a workflow.
+            // Internal label only: the run started from an admitted selection
+            // (a registered revision or the closed LS-5 bundled subject). The
+            // recorded selection_record keeps its own standing; this notice
+            // admits, selects, registers or sends no workflow.
             admission: SelectionAdmission::RegisteredRevision,
             scope: super::RunScope {
                 run: run.to_owned(),

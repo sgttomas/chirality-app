@@ -117,6 +117,62 @@ const PRODUCTION_WORKFLOW: &[u8] =
 const PRODUCTION_NOTES: &[u8] =
     include_bytes!("../resources/production_workflows/coordinated-knowledge-work/REVIEW-NOTES.md");
 
+/// WR LS-5 closed bundled-run subject (DEL-02-02 BUNDLED-RUN-01, 2026-11-03).
+/// Agent 0 selected this exact pinned production manifest and package revision as
+/// the first bundled workflow input of App v4. Only this subject, resolved from
+/// this App's own installed resources, runs without A15. Changing either the
+/// compiled manifest or package bytes requires a reviewed change here. These
+/// constants claim no published release, shipped history or qualification.
+pub const SELECTED_BUNDLED_MANIFEST_SHA256: &str =
+    "5eb8ab6d6259c47ef8d270597d9323f0399e2f668ff2defc37159faa05f71dc3";
+pub const SELECTED_BUNDLED_REVISION: &str =
+    "3730d84debb5d77582a0c26211a5f380cdb1a44c7e26eeb537f334db43fdd881";
+/// Standing of the admitted LS-5 selection. The candidate build itself is still
+/// not a published release; that standing stays with the manifest.
+pub const BUNDLED_STANDING: &str =
+    "bundled with this App build (WR LS-5); runs without A15; this build is a release candidate, not a published release";
+
+/// BUNDLED-RUN-01: this App's own installed workflow resources
+/// (`resource_dir()/workflows`), recorded once per process by native startup.
+/// It is the only bundle root an LS-5 run may come from, checked by
+/// `bundled_run_admission` at selection, prepare, publication and send. Never a
+/// caller, renderer or record path.
+#[cfg(not(test))]
+static INSTALLED_ROOT: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+#[cfg(test)]
+thread_local! {
+    static TEST_INSTALLED_ROOT: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) };
+}
+/// Native startup only. A second, different root is refused (no rebinding).
+/// Test builds record per test thread instead of process-wide.
+pub(crate) fn record_installed_root(root: PathBuf) -> Result<(), String> {
+    #[cfg(test)]
+    return TEST_INSTALLED_ROOT.with(|held| {
+        let mut held = held.borrow_mut();
+        match held.as_ref() {
+            Some(existing) if *existing != root => Err("installed workflow resources already recorded; no rebinding".into()),
+            _ => {
+                *held = Some(root);
+                Ok(())
+            }
+        }
+    });
+    #[cfg(not(test))]
+    {
+        let held = INSTALLED_ROOT.get_or_init(|| root.clone());
+        if *held != root {
+            return Err("installed workflow resources already recorded; no rebinding".into());
+        }
+        Ok(())
+    }
+}
+pub(crate) fn installed_root() -> Option<PathBuf> {
+    #[cfg(test)]
+    return TEST_INSTALLED_ROOT.with(|held| held.borrow().clone());
+    #[cfg(not(test))]
+    INSTALLED_ROOT.get().cloned()
+}
+
 pub struct ProductionCatalog {
     selection: Selection,
 }
@@ -174,6 +230,39 @@ impl ProductionCatalog {
     }
     pub fn manifest(&self) -> &'static [u8] {
         MANIFEST
+    }
+
+    /// WR LS-5 / TT-1 / TX-1: the closed bundled-run admission. Admits only the
+    /// selected subject above, resolved by `select_bundle_package` from exactly
+    /// this App's recorded installed root (never the embedded copy, a library
+    /// holding copy, a copy at another root, a development or registered
+    /// selection). Bytes and location are rechecked at use by `verify_store`;
+    /// this check alone grants no file authority.
+    pub fn bundled_run_admission(selection: &Selection) -> Result<&Path, String> {
+        let SelectionAdmission::ProductionBundle {
+            manifest_sha256,
+            release_subject,
+            holding_library: None,
+            bundle_root: Some(root),
+        } = &selection.admission
+        else {
+            return Err("not a selection resolved from this App's installed bundle".into());
+        };
+        let catalog = Self::load()?;
+        if crate::util::sha256_hex(MANIFEST) != SELECTED_BUNDLED_MANIFEST_SHA256
+            || manifest_sha256 != SELECTED_BUNDLED_MANIFEST_SHA256
+            || release_subject != RELEASE_SUBJECT
+            || &selection.identity != catalog.identity()
+            || selection.identity.revision != SELECTED_BUNDLED_REVISION
+            || selection.snapshot.revision != SELECTED_BUNDLED_REVISION
+        {
+            return Err("bundled subject is not the selected App v4 bundled workflow input".into());
+        }
+        match installed_root() {
+            Some(installed) if installed.as_path() == root.as_path() => Ok(root),
+            Some(_) => Err("This bundled workflow was not resolved from this App's installed resources (WR LS-5)".into()),
+            None => Err("This App's installed workflow resources are not known in this process (WR LS-5)".into()),
+        }
     }
 
     /// Native wiring supplies App resource_dir/workflows, never a person-minted manifest.
