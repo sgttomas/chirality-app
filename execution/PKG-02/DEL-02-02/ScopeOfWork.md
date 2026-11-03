@@ -40,6 +40,12 @@ The accepted Group3 decision changes the standing of the frozen decomposition de
 - **OUT-003** — TEST: local creation/revision/registration/reuse and collision fixtures, with candidate-bound results for the complete workflow-making join and truthful review/registration presentation. Covers SOW-002, SOW-046, SOW-047, SOW-048, SOW-049, SOW-050 and SOW-127; supports OBJ-001, OBJ-002 and OBJ-003. This evidence is supplied to the independent examiner under CLM-005. [B2; E1 V4-EXM-10]
 - **OUT-004** — DOC: native interaction receiving and optional catalog-reuse decisions, naming the actual supplying/receiving owners, content and execution identity boundaries, open means, and local evidence required at their joins. Covers SOW-002 and SOW-127; supports OBJ-001 and OBJ-002. Preserve required behavior whether prior code is reused, adapted or replaced. [CLM-001; CLM-002; CLM-003; A1 §3; C1]
 
+The owner's 2026-11-03 publication clarification requires both the existing-workflow
+run and the create/trial/register/reuse journey before 4.0.0 ships, in that order
+of implementation. [PUBLICATION_JOURNEYS.md](Work/PUBLICATION_JOURNEYS.md)
+records their finish conditions and current open standing within OUT-001/002/003;
+no acceptance criterion or dependency condition is removed or marked satisfied.
+
 The outputs state the deliverable's commitments, not completion claims. Current implementation and receiving limits are described in [Design/WORKSPACE_AND_REGISTRATION.md](Work/WORKSPACE_AND_REGISTRATION.md), especially §§3, 4.2, 12, 16.8 and Current implementation conditions. Neither this contract's presence nor its local checks establish joined candidate qualification.
 
 ## Completion and Reliance Basis — Epistemology
