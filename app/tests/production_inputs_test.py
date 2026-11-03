@@ -115,6 +115,49 @@ class ProductionInputs(unittest.TestCase):
         self.assertEqual(recipe['environment']['CHIRALITY_PUBLISHER_SELECTION'],'production-v1')
         self.assertNotIn(data['production_bundle_identifier'],json.dumps(result))
         self.assertNotIn(data['developer_id_team_identifier'],json.dumps(result))
+    def profile_file(self, **changes):
+        import datetime, plistlib
+        value={'UUID':'INVENTED-PROFILE','Platform':['OSX'],'ProvisionsAllDevices':True,'TeamIdentifier':['EXAMPLE001'],
+               'ApplicationIdentifierPrefix':['PREFIX0001'],'CreationDate':datetime.datetime(2026,1,1),'ExpirationDate':datetime.datetime(2027,1,1),
+               'Entitlements':{'com.apple.application-identifier':'PREFIX0001.invalid.example.chirality-v4','com.apple.developer.team-identifier':'EXAMPLE001'}}
+        value.update(changes)
+        folder=self.root/'private-profile';folder.mkdir(exist_ok=True)
+        path=folder/'invented.provisionprofile'
+        path.write_bytes(b'\x30\x82INVENTED CMS ENVELOPE; NOT APPLE-SIGNED '+plistlib.dumps(value)+b'\x00signature')
+        return path
+    def production(self, profile=None, profile_sha=None):
+        path=self.publisher_file()
+        kw=dict(test_identifier=None,publisher_input=path,publisher_sha256=module.sha(path.read_bytes()))
+        if profile is not None: kw.update(provisioning_profile=profile,provisioning_profile_sha256=profile_sha or module.sha(profile.read_bytes()))
+        return kw
+    def test_selected_profile_is_embedded_at_contents_with_consistency_record(self):
+        profile=self.profile_file()
+        result=self.run_plan(**self.production(profile))
+        config=json.loads((self.output/'tauri.package-inputs.conf.json').read_text())
+        self.assertEqual(config['bundle']['macOS']['files'],{'embedded.provisionprofile':str(profile)})
+        self.assertIsNone(config['bundle']['macOS']['signingIdentity'])
+        account=json.loads((self.output/'input-inventory.json').read_text())['provisioning_profile']
+        self.assertEqual(account['sha256'],module.sha(profile.read_bytes()))
+        self.assertEqual(account['application_identifier'],'PREFIX0001.invalid.example.chirality-v4')
+        self.assertIn('separate intake', account['standing']);self.assertIn('unverified until build', account['standing']);self.assertNotIn('EXAMPLE001',json.dumps(result))
+        self.assertNotIn(str(profile),json.dumps(config['bundle']['resources']))
+    def test_profile_refuses_test_mode_wrong_digest_and_inconsistent_grants(self):
+        profile=self.profile_file()
+        with self.assertRaisesRegex(ValueError,'test mode'):self.run_plan(provisioning_profile=profile,provisioning_profile_sha256=module.sha(profile.read_bytes()))
+        with self.assertRaisesRegex(ValueError,'selected digest'):self.run_plan(**self.production(profile,'0'*64))
+        for changes,message in (({'TeamIdentifier':['OTHER00001']},'team'),
+                                ({'Entitlements':{'com.apple.application-identifier':'PREFIX0001.other.app','com.apple.developer.team-identifier':'EXAMPLE001'}},'application identifier'),
+                                ({'Platform':['iOS']},'macOS'),({'ProvisionedDevices':['device']},'macOS'),
+                                ({'Entitlements':{'com.apple.application-identifier':'PREFIX0001.invalid.example.chirality-v4','com.apple.developer.team-identifier':'EXAMPLE001','get-task-allow':True}},'development')):
+            with self.subTest(message=message):
+                profile=self.profile_file(**changes)
+                with self.assertRaisesRegex(ValueError,message):self.run_plan(**self.production(profile))
+        self.assertFalse(self.output.exists())
+    def test_profile_inside_source_or_vendor_refuses(self):
+        for folder in (self.source,self.vendor):
+            path=folder/'p.provisionprofile';path.write_bytes(self.profile_file().read_bytes())
+            with self.subTest(folder=folder),self.assertRaisesRegex(ValueError,'outside source and vendor'):self.run_plan(**self.production(path))
+            path.unlink()
     def test_missing_or_ambiguous_identity_refuses(self):
         for changes in ({'test_identifier':None},{'test_identifier':'invalid.example.production'},
                         {'publisher_input':self.root/'missing'},{'publisher_sha256':'0'*64}):
