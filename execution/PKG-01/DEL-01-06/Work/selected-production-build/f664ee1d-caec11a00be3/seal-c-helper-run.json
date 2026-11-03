@@ -62,7 +62,33 @@
   "profile_cms_independently_verified": "openssl cms -verify against system-store Apple Root CA b0b1730e\u2026f024 (separate intake)",
   "independent_publisher_digest": null,
   "limits": [
-    "the remaining metadata gap is the independently selected trusted publisher binding digest; no trust digest was supplied by this run",
-    "no signing, SecItem, enrollment or activation"
-  ]
+    "static byte-join consistency with an explicitly selected trust input; not signature, OS acceptance, S4, native behaviour or qualification",
+    "no signing, notarization, SecItem, enrollment or activation"
+  ],
+  "trusted_publisher_selection": {
+    "selected_by": "App Agent 0, explicit selection 2026-11-03 after independently hashing the actual OUT_DIR binding",
+    "trusted_publisher_binding_sha256": "58463a0240c7912f841ea2aaf80a4da396d1ba8c05234533621ed3398ebd5e19",
+    "scope": {
+      "candidate": "app-selected-candidate-7ou43x2n",
+      "normalized_bundle_identity": "chirality.app.bundle-tree.sha256/v2:bc38496b6ccff29c7e7512c8ab7499cd14037224e846b9deefedb03d31c2eb63",
+      "executable_sha256": "df5b12ccee10caa0225c20bbe7404e176952f7219b84fbff09540f802a20ff3f"
+    },
+    "checked_by_agent0": [
+      "com.chirality.app / team 8A7JL35U4S",
+      "release 4.0.0 aarch64 distribution-successor",
+      "selected input 63a77b96",
+      "effective config 1000cf87",
+      "entitlements 7c86aed9 directly verified"
+    ],
+    "not": "general self-trust of arbitrary future build output"
+  },
+  "trusted_run": {
+    "metadata_state": "consistent-profile-proposal",
+    "metadata_gaps": [],
+    "publisher_closure": "consistent-exact-byte-joins",
+    "group_route": "default-application-identifier-group",
+    "entitlements_proposed_sha256": "7c86aed9fe6f9ef56c2f42066672f387f3db931248e1cce6b85cb3dd590a3787",
+    "signing_plan_sha256": "9836582b71f32a91f7cc4fdd7fb3a51a56073481dc1bd7791bc533ff7365841b",
+    "activation_gaps_remaining": true
+  }
 }

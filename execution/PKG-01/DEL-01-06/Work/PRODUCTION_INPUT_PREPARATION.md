@@ -127,10 +127,14 @@ notarization, launch, enrollment or download occurred.
   publisher byte join passed, including an effective configuration reconstructed
   from the source config and plan overlay, whose canonical digest equals the
   binding's `1000cf87…`. The proposed entitlements (`7c86aed9…`) are exactly the
-  application identifier and team. The only open metadata item is an
-  independently selected trusted publisher binding digest. A run that supplies
-  this build's own `58463a02…` is consistent, but that becomes an independent
-  trust selection only when Agent 0 adopts it for this candidate.
+  application identifier and team.
+- **Trusted publisher binding:** Agent 0 independently hashed the actual binding
+  and explicitly selected `58463a02…` as the trusted publisher binding for this
+  candidate only (normalized identity `bc38496b…`, executable `df5b12cc…`). It is
+  not general trust of future build output. Rerun with that trust input, the helper
+  reports `consistent-profile-proposal` with no metadata gaps. This is static
+  byte-join consistency, not signature, OS acceptance, S4, native or qualification
+  evidence.
 
 Signing, notarization, stapling and the installed witness remain owner acts.
 
