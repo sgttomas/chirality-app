@@ -1462,15 +1462,20 @@ fn thread_start(
     role: Option<role_supply::Role>,
     preselected: Option<bool>,
     continue_as: Option<String>,
+    generation: Value,
 ) -> Result<Value, String> {
-    start_conversation(&app, &state, model, model_provider, entry_id, &mode_home_class, role, continue_as, preselected)
+    start_conversation(&app, &state, &generation, model, model_provider, entry_id, &mode_home_class, role, continue_as, preselected)
 }
 /// A new conversation as `thread_start` starts it (ROLE T-2): also the start of
 /// a clean trial's conversation (WR FT-4), which passes no `continue_as`.
+/// `generation` is the full source the person's choice was bound to at press
+/// (New conversation, Continue as, clean trial). It binds the start to that
+/// home and generation before any effect; nothing is recaptured.
 #[allow(clippy::too_many_arguments)]
 fn start_conversation(
     app: &tauri::AppHandle,
     state: &AppState,
+    generation: &Value,
     model: String,
     model_provider: String,
     entry_id: String,
@@ -1480,11 +1485,21 @@ fn start_conversation(
     preselected: Option<bool>,
 ) -> Result<Value, String> {
     let supply_ref=util::opaque_id("sup:")?;
-    let home=home_class(mode_home_class).and_then(|class|state.homes.lock().unwrap().entry(class));
-    let generation=home.as_ref().map(|home|home.host.snapshot()["generation"].clone()).unwrap_or(Value::Null);
+    // An unknown class or absent home keeps its existing refusal observation.
+    // A different, replaced, closed or incomplete source is refused before any
+    // effect or record: no endpoint, role, provider or start state changes, and
+    // nothing is recorded under another generation.
+    let home=match home_class(mode_home_class).and_then(|class|state.homes.lock().unwrap().entry(class).map(|_|class)) {
+        Ok(class)=>Ok(state.homes.lock().unwrap().start_source(class,generation)?),
+        Err(error)=>Err(error),
+    };
+    let generation=if home.is_ok(){generation.clone()}else{Value::Null};
     let mut dispatch_invoked=false;
     let mut resolved_continued_from=None;
-    let result=start_conversation_inner(app,state,model,model_provider,entry_id,mode_home_class,role,continue_as,preselected,&supply_ref,&mut dispatch_invoked,&mut resolved_continued_from);
+    let result=match &home {
+        Ok(bound)=>start_conversation_inner(app,state,bound.clone(),&generation,model,model_provider,entry_id,role,continue_as,preselected,&supply_ref,&mut dispatch_invoked,&mut resolved_continued_from),
+        Err(error)=>Err(error.clone()),
+    };
     if let Err(reason)=&result {
         if !dispatch_invoked {
             let mut history=runtime_session::HistorySession::default();history.configure_role_log_source(state.role_log.clone());
@@ -1496,9 +1511,8 @@ fn start_conversation(
     result
 }
 #[allow(clippy::too_many_arguments)]
-fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,model_provider:String,entry_id:String,mode_home_class:&str,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
+fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runtime_session::HomeSession>,generation:&Value,model:String,model_provider:String,entry_id:String,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
     invalidate_endpoint_edits(state)?;
-    let home = state.homes.lock().unwrap().entry(home_class(mode_home_class)?)?;
     home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
     // NIR CA-1/CA-3, ROLE CA-3: a "Continue as" start is an ordinary new start
     // with its own role composition; it only records its relation to the source.
@@ -1527,7 +1541,10 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,m
         }
     };
     composition.verify()?;
-    let generation = home.host.snapshot()["generation"].clone();
+    // The bound source, never the current one: the provider reading, role
+    // preparation and dispatch all carry it, and the Host refuses any request
+    // whose generation has changed or closed.
+    let generation = generation.clone();
     let mut provider_admission=home.host.provider_admission_read(&generation,&cwd,&entry_id,&model_provider,&model)?;
     if let Ok(set)=&*state.home_bootstrap.lock().unwrap(){
         if let Ok(Some(link))=set.child_role_config_link(home.class(),home.host_config.as_ref().map_err(Clone::clone)?){home.host.role_config_link(&mut provider_admission,link);}
@@ -1545,6 +1562,9 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,model:String,m
     selection.choose(&entry_id, &model_provider, &model, false)?;
     selection.start_params(&generation, home.class().as_str(), false)?;
     let recovery_home = selection.recovery_home();
+    // A source change during preparation is refused before the claim publishes
+    // Starting (the Host would also refuse the dispatch).
+    runtime_session::check_start_source(&home, &generation)?;
     // Serialize the claim; fallible no-effect preparation completes before
     // either shared state publishes Starting. Transport waits hold no slot lock.
     let supply_ref = {
@@ -2078,11 +2098,13 @@ fn workflow_trial_send(state:State<'_,AppState>,reference:String,generation:Valu
 /// with the role and model the person chose (no handoff, no `continuedFrom`),
 /// then its first turn carries the trial text first and the person's text.
 #[tauri::command(async)]
-fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,mode_home_class:String,role:Option<role_supply::Role>,person_text:String)->Result<Value,SendRefusal>{
-    let home=state.homes.lock().unwrap().entry(home_class(&mode_home_class).map_err(SendRefusal::kept)?).map_err(SendRefusal::kept)?;
-    runtime_session::trial_flows::start_clean_trial(&state.workflows,&reference,
-        ||start_conversation(&app,&state,model,model_provider,entry_id,&mode_home_class,role,None,None),
-        |generation,thread|runtime_session::trial_flows::send_trial(&state.workflows,&home,&reference,generation,thread,&person_text))
+#[allow(clippy::too_many_arguments)]
+fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,mode_home_class:String,role:Option<role_supply::Role>,person_text:String,generation:Value)->Result<Value,SendRefusal>{
+    let class=home_class(&mode_home_class).map_err(SendRefusal::kept)?;
+    // The source is bound before the trial's begin step: a mismatch keeps the pre-fill.
+    runtime_session::trial_flows::start_bound_clean_trial(&state.workflows,&state.homes,class,&generation,&reference,
+        |_|start_conversation(&app,&state,&generation,model,model_provider,entry_id,&mode_home_class,role,None,None),
+        |home,started,thread|runtime_session::trial_flows::send_trial(&state.workflows,home,&reference,started,thread,&person_text))
 }
 fn trial_home(state:&AppState,reference:&str)->Result<Arc<runtime_session::HomeSession>,String>{
     let entries=state.homes.lock().unwrap().entries();
