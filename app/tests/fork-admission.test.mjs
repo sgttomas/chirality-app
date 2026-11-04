@@ -42,7 +42,7 @@ async function mounted(options,check) {
    if(options.refreshFails)statusFailure=true;return options.fork?options.fork(result):result;
   }
   if(command==='thread_start'){
-   assert.deepEqual(args,{...choice,modeHomeClass:'account',role:null,preselected:false});
+   assert.deepEqual(args,{...choice,modeHomeClass:'account',generation:g,role:null,preselected:false});
    if(options.start)return options.start(args);const row=thread('new-choice',g,args.role);homes.account.threads.push(row);
    return {id:91,startGeneration:g,result:{thread:{id:row.threadId},model:'fixture-model',modelProvider:'fixture-provider'},roleSupplyRecord:{state:'not-confirmed'}};
   }

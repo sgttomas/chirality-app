@@ -94,8 +94,8 @@ test('the clean trial panel offers the conversation roles and a model, and stays
   buttons(cleanView(clean(),choice({model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',role:'HELPS_HUMANS'}),s.act),'Send')[0].props.onClick();
   buttons(cleanView(clean(),choice({model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account'}),s.act),'Send')[0].props.onClick();
   assert.deepEqual(s.calls,[
-    ['workflow_trial_start_clean',{reference:'trial:7',model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',modeHomeClass:'account',role:'HELPS_HUMANS',personText:'my inputs'}],
-    ['workflow_trial_start_clean',{reference:'trial:7',model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',modeHomeClass:'account',role:null,personText:'my inputs'}]]);
+    ['workflow_trial_start_clean',{reference:'trial:7',model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',modeHomeClass:'account',generation:null,role:'HELPS_HUMANS',personText:'my inputs'}],
+    ['workflow_trial_start_clean',{reference:'trial:7',model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',modeHomeClass:'account',generation:null,role:null,personText:'my inputs'}]]);
 });
 
 test('a clean trial whose conversation started but whose message was not sent is retried in that conversation',()=>{

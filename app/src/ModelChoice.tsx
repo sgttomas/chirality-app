@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
@@ -29,8 +31,8 @@ export function validModelPacket(packet: Json, generation: Json, modeHomeClass: 
 }
 
 /** How a new conversation connects: an explicit choice of an existing access route. */
-export function AccessRouteChoice({ homeClass, modelProvider, entryId, disabled, choose }: {
-  homeClass: string | null; modelProvider: string; entryId: string; disabled: boolean; choose: (route: { modelProvider: string; entryId: string }) => void;
+export function AccessRouteChoice({ homeClass, modelProvider, entryId, disabled, choose, localHint }: {
+  homeClass: string | null; modelProvider: string; entryId: string; disabled: boolean; choose: (route: { modelProvider: string; entryId: string }) => void; localHint?: string;
 }) {
   const builtIn = homeClass === "api-key" ? { entryId: "api-key", label: "Use this home's API key (built-in OpenAI)" }
     : homeClass === "account" ? { entryId: "chatgpt-account", label: "Use my ChatGPT account (built-in OpenAI)" } : null;
@@ -38,7 +40,7 @@ export function AccessRouteChoice({ homeClass, modelProvider, entryId, disabled,
   return <div aria-label="How this conversation connects">
     {builtIn ? <p><button disabled={disabled || !!chosen} aria-pressed={!!chosen} onClick={() => choose({ modelProvider: BUILT_IN_PROVIDER, entryId: builtIn.entryId })}>{builtIn.label}</button>{chosen ? " — chosen" : ""}</p>
       : <p>Choose the account or API-key home under Connection &amp; access first.</p>}
-    {homeClass === "account" && <p><small>Or use a local model server: read the configured local providers below and choose one.</small></p>}
+    {homeClass === "account" && <p><small>{localHint ?? "Or use a local model server: read the configured local providers below and choose one."}</small></p>}
     {entryId === "local-provider" && modelProvider && <p>Connects through configured local provider <code>{modelProvider}</code>.</p>}
   </div>;
 }
@@ -74,4 +76,81 @@ export function AvailableModels({ packet, current, reading, message, model, mode
       <p><small>{text(packet.standing)}</small></p>
     </div>}
   </div>;
+}
+
+export type ModelRoute = { model: string; modelProvider: string; entryId: string };
+export const NO_MODEL_ROUTE: ModelRoute = { model: "", modelProvider: "", entryId: "" };
+const chosenAny = (route: ModelRoute) => !!(route.model || route.modelProvider || route.entryId);
+
+/** A model chooser bound to one composer (its owner), the home class and the
+ * full Codex generation it was made for. Any change of that source starts a new
+ * binding: the earlier choice and model list no longer count (and are shown as
+ * out of date), so a stale choice can't be sent. The composer's text is not
+ * held here and is kept. The list is read only at the person's press. */
+/** What a press may use: the choice and the exact source it was made for. */
+export type BoundRoute = { route: ModelRoute; generation: Json; modeHomeClass: string | null };
+export type BoundModelChoice = {
+  route: ModelRoute; stale: boolean; revise: (patch: Partial<ModelRoute>) => void;
+  packet: Json | null; current: boolean; reading: boolean; message: string; read: () => void; choose: (row: Json) => void;
+  /** At a press: the choice this render showed and the home and generation it
+   * was made for, only while that render's binding, choice and source are still
+   * the latest, the composer is mounted and its source ready; else null. */
+  bound: () => BoundRoute | null;
+};
+type Held = { epoch: number; route: ModelRoute; generation: Json; modeHomeClass: string | null };
+type Observation = { packet: Json; epoch: number; sequence: number };
+export function useBoundModelChoice({ owner, homeClass, generation, ready }: { owner: string; homeClass: string | null | undefined; generation: Json; ready: boolean }): BoundModelChoice {
+  const key = JSON.stringify([owner, homeClass ?? null, generation ?? null]);
+  const seen = useRef({ key, epoch: 0 });
+  if (seen.current.key !== key) seen.current = { key, epoch: seen.current.epoch + 1 };
+  // Every callback below keeps the epoch, choice and list of the render that
+  // made it and acts only while they are still the latest: a control from an
+  // earlier render never becomes valid again after a newer source or choice.
+  const epoch = seen.current.epoch;
+  const source = useRef({ homeClass, generation, ready }); source.current = { homeClass, generation, ready };
+  const [held, setHeld] = useState<Held>({ epoch, route: NO_MODEL_ROUTE, generation: generation ?? null, modeHomeClass: homeClass ?? null });
+  const heldRef = useRef(held); heldRef.current = held;
+  const sequence = useRef(0);
+  const pending = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; sequence.current++; }; }, []);
+  const [observation, setObservation] = useState<Observation | null>(null);
+  const observationRef = useRef(observation); observationRef.current = observation;
+  const [reading, setReading] = useState(false);
+  const [message, setMessage] = useState<{ epoch: number; text: string } | null>(null);
+  const route = held.epoch === epoch ? held.route : NO_MODEL_ROUTE;
+  const current = !!observation && ready && observation.epoch === epoch && observation.sequence === sequence.current;
+  const live = () => mounted.current && source.current.ready && epoch === seen.current.epoch;
+  const revise = (patch: Partial<ModelRoute>) => {
+    if (!mounted.current || epoch !== seen.current.epoch) return;
+    const made = { generation: source.current.generation ?? null, modeHomeClass: source.current.homeClass ?? null };
+    setHeld(previous => seen.current.epoch !== epoch ? previous
+      : { epoch, ...made, route: { ...(previous.epoch === epoch ? previous.route : NO_MODEL_ROUTE), ...patch } });
+  };
+  const read = () => {
+    const { homeClass: mode, generation: original } = source.current;
+    if (pending.current || !live() || !(mode === "account" || mode === "api-key")) return;
+    const at = epoch, number = ++sequence.current;
+    const still = () => mounted.current && number === sequence.current && at === seen.current.epoch;
+    pending.current = true; setReading(true); setObservation(null); setMessage(null);
+    void Promise.resolve().then(() => invoke("read_available_models", { generation: original, modeHomeClass: mode })).then((packet: Json) => {
+      if (!still()) return;
+      if (!validModelPacket(packet, original, mode)) throw Error("the reply was not a model list for this Codex source");
+      setObservation({ packet, epoch: at, sequence: number });
+    }).catch(error => {
+      if (still()) setMessage({ epoch: at, text: `Model list unavailable: ${error instanceof Error ? error.message : String(error)}. You can still enter a model ID under “Advanced: enter IDs yourself”.` });
+    }).finally(() => { pending.current = false; if (mounted.current) setReading(false); });
+  };
+  const choose = (row: Json) => {
+    const shown = observation;
+    if (!shown || !live() || pending.current || observationRef.current !== shown || shown.epoch !== epoch || shown.sequence !== sequence.current
+      || heldRef.current !== held || held.epoch !== epoch) return;
+    if (!list(shown.packet.models).some((entry: Json) => entry.id === row?.id && entry.model === row?.model)) return;
+    if (modelMatch(shown.packet, held.route.modelProvider, held.route.entryId) === "none") return;
+    revise({ model: row.model });
+  };
+  const bound = () => live() && heldRef.current === held && held.epoch === epoch
+    ? { route: held.route, generation: held.generation, modeHomeClass: held.modeHomeClass } : null;
+  return { route, stale: held.epoch !== epoch && chosenAny(held.route), revise, packet: observation?.packet ?? null, current, reading,
+    message: message && message.epoch === epoch ? message.text : "", read, choose, bound };
 }
