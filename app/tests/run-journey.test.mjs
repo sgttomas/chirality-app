@@ -307,6 +307,8 @@ test('Results orders this conversation\'s runs only by the host\'s preparationOr
   assert.match(region(ui.c, 'Runs in this conversation').textContent, /The App doesn't know these runs' order/);
   assert.match(region(ui.c, 'Run progress')?.textContent ?? region(ui.c, 'Run a workflow').textContent, /several runs, and the App can't tell which one is the latest|several runs whose order the App can't tell/);
   assert.equal(props(button(ui.c, 'Prepare this run')).disabled, true, 'an open run among them still holds a new preparation');
+  await ui.rerender({data:data({selections:selected(), runs:[runRow({reference:'run-y'}), runRow({reference:'run-u', lifecycle:{state:NOT_CONFIRMED}, status:UNKNOWN})]})});
+  assert.match(region(ui.c, 'Run a workflow').textContent, /Next: Read the conversation: a start here has an unknown outcome and may have run; the App can't tell which run is latest\./, 'no "last start" claim without an order');
   assert.equal(ui.calls.filter(call => call.command).length, 0, 'finding results issues nothing');
 });
 
