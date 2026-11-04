@@ -200,3 +200,37 @@ test('with App navigation, an invalid draft shows its conversation instead of a 
   assert.deepEqual(ui.opened, [{shown:'T1'}]);
   assert.deepEqual(ui.calls, []); assert.deepEqual(ui.offers, []);
 });
+
+test('the guide shows the draft\'s trials and brings one back to its conversation with the draft list\'s command, then opens the prepared results', async () => {
+  const trials = [
+    {reference:'t1', sequence:1, kind:'delegated', time:'2026-11-04 10:00', authoringConversation:{generation:g, threadId:'T1'}, broughtBack:[{time:'2026-11-04 10:30', to:{generation:g, threadId:'T1'}}]},
+    {reference:'t2', sequence:2, kind:'clean', time:'2026-11-04 11:00', authoringConversation:{generation:g, threadId:'T1'}, trialConversation:{generation:g, threadId:'T2'}, broughtBack:[]},
+    {reference:'t3', sequence:3, kind:'clean', time:'2026-11-04 11:30', trialConversation:{generation:g, threadId:'T9'}, live:true, broughtBack:[]},
+    {kind:'earlier attachment trial', content:{value:'abc'}},
+  ];
+  const draft = {name:'spacing-check', state:'draft', trials};
+  const ui = await mount({host:host(), data:data({drafts:{drafts:[draft]}})});
+  await ui.name('spacing-check');
+  const shown = () => region(ui.c, 'Trials of this draft').textContent;
+  assert.match(shown(), /^Trials so farTrial 3 · in a fresh conversation \(a conversation that isn't loaded now\)/, 'latest first; an unloaded conversation is said so');
+  assert.match(shown(), /Trial 2 · in a fresh conversation \(.+\) · 2026-11-04 11:00Not brought back yet\./);
+  assert.match(shown(), /Trial 1 · with the agent in .+ · 2026-11-04 10:00Brought back to .+\./);
+  assert.doesNotMatch(shown(), /attachment/);
+  assert.equal(props(button(ui.c, 'Bring trial 2 back')).disabled, true, 'no conversation chosen, no bring-back');
+  await ui.choose(key('T1'));
+  const bring = all(ui.c, 'button').find(node => node.textContent.startsWith('Bring trial 2 back to '));
+  assert.ok(bring); assert.equal(props(bring).disabled, false);
+  const before = ui.calls.length;
+  await React.act(async () => props(bring).onClick());
+  assert.deepEqual(ui.calls.slice(before), [{command:'workflow_trial_bring_back', args:{reference:'t2', generation:g, threadId:'T1', includeNative:false}}], 'exactly the draft list\'s command; nothing is sent');
+  const live = all(ui.c, 'button').find(node => node.textContent.startsWith('Bring trial 3 back'));
+  assert.equal(props(live).disabled, true); assert.match(shown(), /waits until no turn is live/);
+  const feedback = {id:'bb-1', trial:'t2', sequence:2, draftName:'spacing-check', target:{generation:g, threadId:'T1'}, prompt:'Here is how trial 2 went', transcript:'…', textIdentity:{value:'aa'}, includeNative:false, shortenings:[]};
+  await ui.rerender({host:host({homeRouting:{activeModeHomeClass:'account'}, workflowRoot:{context:{sourceRef:'src', generation:g}, pendingBringBacks:[feedback, {...feedback, id:'bb-other', draftName:'other-draft'}]}})});
+  assert.match(shown(), /Trial 2's results are ready to send in .+\./);
+  assert.equal(all(ui.c, 'button').filter(node => node.textContent.startsWith('Read and send trial')).length, 1, 'another draft\'s results are not offered here');
+  const calls = ui.calls.length;
+  await ui.press('Read and send trial 2\'s results');
+  assert.equal(ui.opened.at(-1).kind, 'bring-back'); assert.equal(ui.opened.at(-1).pending.id, 'bb-1');
+  assert.equal(ui.calls.length, calls, 'opening issues no command and sends nothing');
+});

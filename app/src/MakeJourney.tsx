@@ -50,6 +50,41 @@ function DraftActions({ draft, chosen, host, canAct, act, openPreparedMessage }:
     {prepared.map(item => <p key={item.identity}>Trial {text(item.pending?.sequence)} is ready to send.{" "}
       {item.kind === "clean" ? <a href={`#${cleanTrialAnchor(item.pending?.reference)}`}>Read and send it in the new-trial message box</a>
         : openPreparedMessage && <button disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>Read and send trial {text(item.pending?.sequence)}</button>}</p>)}
+    <DraftTrials draft={draft} chosen={chosen} host={host} canAct={canAct} perform={perform} openPreparedMessage={openPreparedMessage}/>
+  </div>;
+}
+
+/** A listed conversation reference in the person's words, or that it isn't loaded. */
+const conversationWords = (host: Json, ref: Json): string => {
+  const row = list(host?.threads).find((t: Json) => t?.threadId === ref?.threadId && same(t?.generation, ref?.generation));
+  return row ? conversationLabel(host, row) : ref?.threadId ? "a conversation that isn't loaded now" : "not started";
+};
+
+/**
+ * The draft's trials as the draft list reads them (TT-4), and bringing one back
+ * to the guide's conversation with the draft list's own command and arguments
+ * (TT-10/TT-11). Bringing back only pre-fills a message; it is sent from the
+ * conversation, and nothing here sends, registers or checks anything.
+ */
+function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage }: { draft: Json; chosen: Json; host: Json; canAct: boolean; perform: (command: string, args: Record<string, unknown>) => void; openPreparedMessage?: (item: PreparedMessage) => void }) {
+  const trials = list(draft.trials).filter((trial: Json) => trial?.kind === "clean" || trial?.kind === "delegated");
+  const feedback = preparedMessages(host).filter(item => item.kind === "bring-back" && item.pending?.draftName === draft.name);
+  if (!trials.length && !feedback.length) return null;
+  return <div aria-label="Trials of this draft">
+    <h4>Trials so far</h4>
+    {trials.length > 0 && <ul>{[...trials].reverse().map((trial: Json) => {
+      const n = text(trial.sequence), brought = list(trial.broughtBack);
+      const limit = trial.live ? "Bringing it back waits until no turn is live in the trial." : trial.sourceLimit ? text(trial.sourceLimit) : !chosen ? "Choose the conversation where you did the work to bring it back there." : null;
+      return <li key={text(trial.reference)} aria-label={`Trial ${n} of ${text(draft.name)}`}>
+        <strong>Trial {n}</strong> · {trial.kind === "clean" ? <>in a fresh conversation ({conversationWords(host, trial.trialConversation)})</> : <>with the agent in {conversationWords(host, trial.authoringConversation)}</>}{trial.time ? <> · {text(trial.time)}</> : null}
+        <br/><small>{brought.length ? `Brought back to ${brought.map((b: Json) => conversationWords(host, b.to)).join(", ")}.` : "Not brought back yet."}</small>
+        <br/><button disabled={!canAct || limit !== null} onClick={() => { if (chosen && limit === null) perform("workflow_trial_bring_back", { reference: trial.reference, generation: chosen.generation, threadId: chosen.threadId, includeNative: false }); }}>{chosen ? `Bring trial ${n} back to ${conversationLabel(host, chosen)}` : `Bring trial ${n} back`}</button>
+        {limit && <small> {limit}</small>}
+      </li>;
+    })}</ul>}
+    {feedback.map(item => <p key={item.identity}>Trial {text(item.pending?.sequence)}'s results are ready to send in {conversationWords(host, item.owner)}.{" "}
+      {openPreparedMessage && <button disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>Read and send trial {text(item.pending?.sequence)}'s results</button>}</p>)}
+    <p><small>Bringing a trial back pre-fills a message with its transcript for the agent to assess against the draft; you read and send it. To include native items or choose another conversation, use the draft list in the workflow studio. When a trial went well, review the draft for registration.</small></p>
   </div>;
 }
 
