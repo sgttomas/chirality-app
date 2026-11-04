@@ -393,7 +393,7 @@ test('unavailable project/library context is explicit and never inferred from av
 
 test('clean composer context stays global and library inspection works before a native generation exists',async()=>{
  await mounted({trials:[pending({kind:'clean'})]},async ui=>{
-  assert.match(ownerIn(region(ui.c,'New trial conversation').parentNode),/global clean composer; no conversation render owner/);assert.equal(button(ui.c,'View prepared message in conversation B'),undefined);
+  assert.match(ownerIn(region(ui.c,'New trial conversation').parentNode),/This trial starts its own new conversation; it isn't sent in an existing one\./);assert.equal(button(ui.c,'View prepared message in conversation B'),undefined);
   ui.account.state='absent';ui.account.generation=null;ui.account.workflowRoot.context.generation=null;ui.account.threads=[];await ui.poll();assert.equal(await ui.pickWorkflowChat(''),false);await ui.press('Use No chat — inspect library content');
   assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);assert.match(contextText(ui.c,'Operational conversation viewed'),/Unavailable/);assert.ok(working(ui.c).textContent.includes(fixedProject));assert.ok(working(ui.c).textContent.includes(libraryPath));
  });

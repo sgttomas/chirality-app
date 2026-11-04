@@ -358,6 +358,21 @@ Start and its disabled conditions are unchanged. The first-use mounted check in
 `app/tests/prepared-message-navigation.test.mjs` now expects the route and model
 list to be shown and the manual IDs to sit in the closed Advanced disclosure.
 
+The clean trial composer ("New trial conversation") and the Continue as panel
+now present the same connection and model steps, with manual IDs under
+Advanced. A change of home or generation keeps their unsent text and asks for
+the choice again (DEL-01-05, "The same choice for a clean trial and Continue
+as"). Above a clean trial's composer, the internal custody line ("Original
+composer owner: global clean composer; no conversation render owner"), here and
+in the studio's prepared-message list, now reads "This trial starts its own new
+conversation; it isn't sent in an existing one." The trial reference and the
+fact that no existing conversation owns the composer stay under an "Exact
+scope" disclosure. The Make guide's "Read and send it in the new-trial message
+box" link goes to that trial's own composer (an exact per-reference anchor),
+not the top of the Conversation view, so focus lands in the composer. The
+rendered baseline and finding are the native qualification owner's (main
+`98722981`).
+
 ## First use: a focused welcome while setup is required
 
 The owner's first use of signed candidate `fe811788` ("I don't understand what

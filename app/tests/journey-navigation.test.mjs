@@ -50,3 +50,43 @@ test('Answer in the conversation selects the run conversation and reveals its re
     idle.assertClean(c);
   } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
 });
+
+test('the ready trial link lands inside the clean trial composer, which says in plain words where it goes', async () => {
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  const previous = {getElementById:document.getElementById, setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval};
+  document.getElementById = id => c.querySelectorAll(n => n.getAttribute('id') === id)[0] ?? null;
+  globalThis.setInterval = () => 0; globalThis.clearInterval = () => {};
+  const {cleanTrialAnchor} = loadSrc('TrialComposer');
+  const clean = {reference:'trial:clean-1', sequence:1, kind:'clean', draftName:'spacing-check', location:'project', card:'trial 1 of draft spacing-check', text:'[Chirality] Workflow trial 1', textIdentity:{value:'aa'}, bytes:28,
+    message:'Inputs for this trial: …', authoring:null, cleanConversation:null, delegation:null, runInForce:null, draftChanged:null, workFolder:'.chirality/workflow-trials/w1', state:'pre-filled', limit:null};
+  const withTrial = {...host, workflowRoot:{...host.workflowRoot, pendingTrials:[clean]}};
+  const calls = [];
+  const idle = installIdleNativeWaiting(async command => {
+    calls.push(command);
+    if (command === 'host_status') return structuredClone(withTrial);
+    if (command === 'decision_view') return {rows:[]};
+    if (command === 'native_confirmation_content') return [];
+    assert.fail(`Unexpected IPC: ${command}`);
+  });
+  try {
+    await React.act(async () => root.render(React.createElement(App)));
+    const anchor = cleanTrialAnchor('trial:clean-1');
+    const panel = c.querySelectorAll(n => n.getAttribute('id') === anchor)[0];
+    assert.ok(panel, 'the clean composer has its own place');
+    assert.equal(panel.getAttribute('aria-label'), 'New trial conversation');
+    const owner = c.querySelectorAll(n => n.getAttribute('aria-label') === 'Original composer owner')[0].textContent;
+    assert.match(owner, /^This trial starts its own new conversation; it isn't sent in an existing one\./);
+    assert.match(owner, /Exact scopeTrial reference trial:clean-1\./, 'the exact scope stays under details');
+    assert.doesNotMatch(c.textContent, /global clean composer|render owner/);
+    const main = c.querySelectorAll(n => n.localName === 'main')[0];
+    const link = document.createElement('a'); link.setAttribute('href', `#${anchor}`); main.appendChild(link);
+    let prevented = false;
+    await React.act(async () => props(main).onClick({target:link, currentTarget:main, preventDefault:() => { prevented = true; }}));
+    assert.equal(prevented, true);
+    const active = nodes(c, 'a').filter(a => a.getAttribute('aria-current') === 'page').map(a => a.textContent);
+    assert.deepEqual(active, ['Conversation'], 'the Conversation view is shown');
+    assert.equal(panel.getAttribute('tabindex'), '-1', 'focus lands on the composer itself, not the conversation select above it');
+    main.removeChild(link);
+    assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content'].includes(cmd)), [], 'following the link issues no action');
+  } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
+});

@@ -184,6 +184,8 @@ test('a listed draft is tried and reviewed with the draft list\'s own commands a
   await ui.rerender({host:withPending, data:data({drafts:{drafts:[{name:'spacing-check', state:'draft'}]}})});
   const ready = region(ui.c, 'Try or review this draft').textContent;
   assert.match(ready, /Trial 1 is ready to send/); assert.match(ready, /Trial 2 is ready to send\. Read and send it in the new-trial message box/);
+  const {cleanTrialAnchor} = loadSrc('TrialComposer');
+  assert.equal(region(ui.c, 'Try or review this draft').querySelectorAll(n => n.localName === 'a').find(a => a.textContent === 'Read and send it in the new-trial message box').getAttribute('href'), `#${cleanTrialAnchor('p2')}`, 'the link goes to that trial\'s own composer');
   assert.doesNotMatch(ready, /Trial 3/, 'another draft\'s trial is not offered here');
   const before = ui.calls.length;
   await ui.press('Read and send trial 1');

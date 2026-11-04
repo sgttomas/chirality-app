@@ -2,6 +2,7 @@ import { useState } from "react";
 import { conversationLabel, nativePathText } from "./presentation";
 import { draftStateWords } from "./WorkflowDrafts";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
+import { cleanTrialAnchor } from "./TrialComposer";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 type Act = (command: string, args: Record<string, unknown>) => Promise<Json>;
@@ -47,7 +48,7 @@ function DraftActions({ draft, chosen, host, canAct, act, openPreparedMessage }:
     {draft.tryLimit && <p role="note"><small>{text(draft.tryLimit)}</small></p>}
     {draft.reviewLimit && <p role="note"><small>{text(draft.reviewLimit)}</small></p>}
     {prepared.map(item => <p key={item.identity}>Trial {text(item.pending?.sequence)} is ready to send.{" "}
-      {item.kind === "clean" ? <a href="#conversation">Read and send it in the new-trial message box</a>
+      {item.kind === "clean" ? <a href={`#${cleanTrialAnchor(item.pending?.reference)}`}>Read and send it in the new-trial message box</a>
         : openPreparedMessage && <button disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>Read and send trial {text(item.pending?.sequence)}</button>}</p>)}
   </div>;
 }
