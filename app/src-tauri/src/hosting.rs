@@ -1984,6 +1984,9 @@ impl Host {
         let mut i = self.inner.0.lock().unwrap();
         if let Some(write)=endpoint_write {write.check(self,&i)?;}
         if cce_intent.is_some() && i.cce_offer.is_some(){return Err("one offered start per generation; no replacement".into())}
+        // A request bound to a replaced generation records nothing: it is never
+        // attributed to the replacement, even one still starting.
+        if expected_generation.is_some_and(|g|g!=&i.generation) {return Err(format!("refused-not-sent: {method} generation changed before request registration"));}
         let ok_state = if handshake {i.state=="handshaking"} else {i.state=="ready"};
         if !ok_state {
             let gen=i.generation.clone();i.client_requests.push(json!({"recordKind":"client-request","generation":gen,"requestIdentity":null,"method":method,"initiator":initiator,"writeResult":"not-attempted","outcome":"refused-not-sent","refusalReason":"not-ready"}));
@@ -4480,6 +4483,27 @@ mod additive_guidance_transport_tests {
             assert_eq!(run.outbound["method"],"thread/start");assert_eq!(run.outbound["params"],Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap());assert_eq!(response,run.native_response);
             let thread=&run.snapshot["threads"][0];assert_eq!(thread["generation"],run.generation);assert_eq!(thread["supplierStanding"],"unverified-development");assert_eq!(thread["requestedDestination"]["model"],"chosen-model");assert_eq!(thread["reportedDestination"]["model"],"reported-model");assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
         }
+    }
+    // A request bound to G1 after a restart into G2 that is not ready yet is
+    // refused with no client-request record attributed to G2; a request of the
+    // current generation keeps its own not-ready refusal record.
+    #[test]
+    fn a_request_for_a_replaced_generation_records_nothing_while_the_replacement_starts() {
+        let host=Host::new();let old=json!({"appSession":"s","home":"h","spawnCounter":1});let current=json!({"appSession":"s","home":"h","spawnCounter":2});
+        for state in ["handshaking","starting","stopped","ready"] {
+            {let mut i=host.inner.0.lock().unwrap();i.state=state.into();i.generation=current.clone();}
+            let error=host.request_inner_scoped("thread/start",json!({"model":"m","modelProvider":"p"}),json!({"kind":"person-directed"}),Duration::from_secs(1),false,Some(&old)).unwrap_err();
+            assert!(error.contains("generation changed before request registration"),"{state}: {error}");
+            let error=host.thread_start_with_guidance_dispatch(&old,"/invented","m","p","exact guidance").err().unwrap();
+            assert!(error.contains("generation changed before request registration"),"{state}: {error}");
+            assert_eq!(host.snapshot()["clientRequests"],json!([]),"{state}: nothing recorded under the replacement");
+            assert_eq!(host.inner.0.lock().unwrap().send_position,0);
+        }
+        {host.inner.0.lock().unwrap().state="handshaking".into();}
+        let error=host.request_inner_scoped("thread/start",json!({"model":"m","modelProvider":"p"}),json!({"kind":"person-directed"}),Duration::from_secs(1),false,Some(&current)).unwrap_err();
+        assert!(error.contains("not-ready"),"{error}");
+        let records=host.snapshot()["clientRequests"].clone();
+        assert_eq!((records.as_array().unwrap().len(),&records[0]["generation"],&records[0]["refusalReason"]),(1,&current,&json!("not-ready")));
     }
     #[test]
     fn scoped_start_refuses_replaced_registration_and_keeps_write_failure_unknown() {
