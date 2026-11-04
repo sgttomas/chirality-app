@@ -188,6 +188,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
     : chosen.runnable !== true ? `${text(chosen.identity?.name)} can't run: ${text(chosen.runLimit)}`
     : unresolvedStart && checkedRun !== holdKey ? (latest ? "Read the conversation: the last start's outcome is unknown and it may have run."
       : "Read the conversation: a start here has an unknown outcome and may have run; the App can't tell which run is latest.")
+    : orderUnknown && inProgress ? "A run in this conversation is still open, and the App can't tell which run is latest; follow or end it from Results or the workflow studio before preparing another."
     : !latest || starts(latest.lifecycle?.state, "ended") || starts(latest.lifecycle?.state, "start not confirmed") ? "Describe what the workflow should work on, then prepare the run."
     : prepared ? "Check your inputs, then start the run." : orderUnknown ? "This conversation has several runs whose order the App can't tell; see each under Results." : reading?.title ?? "";
   return <section id="run-workflow" className="workflow-stage run-journey" aria-label="Run a workflow" aria-busy={busy}>
