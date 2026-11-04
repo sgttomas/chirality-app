@@ -1798,13 +1798,21 @@ such a change. Its prepared-message identity is its reference and pre-fill,
 not the home, generation or home source, because the host's trial desk keeps
 the pre-fill App-wide. Delegated and bring-back composers keep their full
 scope. The native after-pass on the first head found the earlier,
-generation-scoped identity remounting the composer and losing the edit. The
-start commands themselves are
-unchanged. `workflow_trial_start_clean` and `thread_start` (Continue as) take
-the home class but no generation, as New conversation's Start does, so the
-generation binding is the App's. Native trial and continuation admission,
-retry of a started-but-unsent clean trial, and the handoff send/unknown
-outcome are unchanged.
+generation-scoped identity remounting the composer and losing the edit. When #117
+landed, the start commands took the home class but no generation, so the
+generation binding was the App's alone. #117 also sends the bound full
+`generation` at all three starts: New conversation, Continue as and the clean
+trial.
+
+Since #118, native `thread_start` and `workflow_trial_start_clean` **require**
+that generation and bind the start to it. They refuse a different, replaced or
+closed source before any effect, and record nothing under another generation.
+The clean trial's pre-effect refusal keeps the pre-fill when one is pending. See
+[NATIVE_START_SOURCE_BINDING.md](NATIVE_START_SOURCE_BINDING.md).
+
+New conversation's model choice stays home-class bound (#110), and the
+generation it sends is the one current at press. Retry of a started-but-unsent
+clean trial and the handoff send/unknown outcome are unchanged.
 
 Every chooser control keeps the binding, choice and model list of the render
 that made it. It acts only while those are still the latest, the composer is

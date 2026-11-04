@@ -182,6 +182,14 @@ them.
 
 No second review round was run.
 
+## Reconciliation after #117
+
+#117 merged as main `d968d643`. Its account in
+[ACCOUNT_AND_PROVIDER_ACCESS.md](ACCOUNT_AND_PROVIDER_ACCESS.md) had said the
+start commands take no generation, so the binding was the App's. That sentence
+now records it as the state when #117 landed, with this clause's native binding
+after it. No other #117 wording claimed the absence of native binding.
+
 ## Integration order
 
 The frontend lane's PR #117 emits `generation` first. The current native code
