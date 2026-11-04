@@ -1343,6 +1343,32 @@ isn't available. The review area states these two statuses in plain words,
 with the complete reported status under details. The review content, the
 confirmation and A15 are unchanged.
 
+**Returning to a draft (J2, 2026-11-04).** These close the native J2
+returning-draft baseline facts on `9efa17a7`, taken after a synthetic
+relaunch with cold trial links and old conversations not loaded:
+- **R1.** "Continue ‹draft›" in Unfinished drafts still only fills the name.
+  Once that commit shows the draft, the guide scrolls its current step (the
+  Draft status) into view and focuses it, but only while the same library
+  and draft are still the ones shown.
+- **R2.** A saved conversation ID on a trial row (a bare string) offers "Look
+  for it in History". That shows History and fills its local search with the
+  ID. The search reads nothing. No history read, row selection, home change,
+  admission or Continue happens until the person does it there. History says
+  it is only a search, and that the conversation may be in another home: if
+  it isn't listed, choose that home under Connection & access and read its
+  history. The Unfinished drafts note now separates reading a conversation
+  in History from the explicit Continue there.
+- **R3.** A trial whose saved link can't establish its original source (its
+  `sourceLimit`) gives the available next actions first: "This saved trial
+  can't be brought back here. Try the draft again in a fresh conversation
+  above, or look at the earlier conversation in History." The exact host
+  reason stays under Why. Bring stays disabled, and the source proof is
+  unchanged.
+
+Checked by `app/tests/make-journey.test.mjs` and
+`app/tests/journey-navigation.test.mjs`, using the producer's cold-trial row
+shape and the real `sourceLimit` text. Each change is mutation-checked.
+
 Every host-changing control uses the same busy/stale-source guard as Run a
 workflow. Checked by `app/tests/make-journey.test.mjs` (run directly with
 `node --test tests/make-journey.test.mjs` from `app/`, and in CI by the
