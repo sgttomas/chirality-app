@@ -93,7 +93,7 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
     assert.equal(props(start).disabled, false);
     await React.act(async () => {await props(start).onClick();});
     assert.deepEqual(calls.filter(call => call.command === 'thread_start'), [{command: 'thread_start', args: {
-      model: 'chosen-model', modelProvider: 'openai', entryId: 'chatgpt-account', modeHomeClass: 'account', role: 'HELP_HUMAN', preselected: true,
+      model: 'chosen-model', modelProvider: 'openai', entryId: 'chatgpt-account', modeHomeClass: 'account', generation: g, role: 'HELP_HUMAN', preselected: true,
     }}], 'one person-initiated start with the chosen configuration');
     assert.ok(calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content', 'thread_start'].includes(call.command)), 'Start never sends composer text or retries');
     assert.equal(props(elements(conversation(), 'textarea')[0]).value, draft, 'unsent composer retained');
