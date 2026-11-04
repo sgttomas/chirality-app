@@ -568,3 +568,61 @@ start/fork/resume and source-bound name notifications), 28 maintained Node
 history/workflow-journey tests passed with zero skips, and TypeScript checking
 passed. The Rust run used one shared slot, jobs 2, offline cached dependencies,
 a private copied target and a fresh scratch Codex home. No GUI or model ran.
+
+## Unconfirmed ordinary sends and History Continue landing (J2, 2026-11-04)
+
+The native J2 baseline (main `9248a36e`) found two gaps:
+- An ordinary send with an unknown outcome looked like a refusal. Text was
+  kept and Send stayed enabled, so one press could duplicate a turn that may
+  have been sent.
+- History Continue admitted the stored conversation but left the History view
+  showing, with focus on the page. The kept draft's new destination was named
+  only by a raw ID in the readiness line.
+
+**Unconfirmed sends.** An ordinary send counts as acknowledged only when the
+native reply is present. Any error, or a missing (`undefined`/`null`) reply,
+is unconfirmed. The host's message is never parsed and no failure is treated
+as a definite refusal. Only an acknowledgement clears the submitted text and
+model choice; otherwise the text is kept. The unconfirmed send is kept for
+this window with its exact text, mode, model, full conversation identity and
+the host's message as reported.
+
+The conversation panel lists every unconfirmed send by where it went: "this
+conversation" only for the same conversation in the same generation,
+otherwise its label or its ID "in a Codex session that isn't loaded now".
+When the conversation shown has the same ID after a Codex restart or home
+change, a plain line says that sending to it is held too, without making the
+earlier destination this one.
+
+While a send is unconfirmed, every ordinary send to the same conversation ID
+is refused at the press: Send text and the plan/default controls (shared
+`sendText`), including retained controls. Edits, navigation, a source change
+and observer failures don't lift the hold. A different conversation doesn't
+inherit it. Only "I've read that conversation — allow sending again" lifts
+it. That sends nothing and keeps the record. The acknowledgement enables a
+fresh press only. Each Send and plan/default control keeps the intent its
+render showed: conversation view, text edit, model choice and the count of
+unconfirmed attempts. It acts only while all of these are current, so a
+control captured before a failed attempt, or before a newer conversation,
+text, model or Codex session, issues nothing. The readiness line names the
+destination by its conversation label.
+
+**History Continue.** Once History Continue admission is confirmed (by the
+existing source-checked History path, unchanged), the App selects the
+admitted conversation, shows the Conversation view, scrolls its message box
+into view and focuses it. Nothing scrolls the section back to the top
+afterwards; the native after-pass on `7add592a` found that move. The notice
+names the conversation and says nothing was sent. A new unconfirmed send for
+the shown conversation takes the focus once.
+
+Ordinary text stays one global draft. Typing records which conversation it
+was written for, and so does every insertion the App makes: a request put
+into an empty draft, or one the person explicitly chose to replace it with.
+When that differs from the conversation shown, a note says the text is kept
+and where it now goes if sent. Unsent text is never overwritten.
+
+Checked by `app/tests/ordinary-send-hold.test.mjs` and
+`app/tests/history-continue-navigation.test.mjs`. Each guard is
+mutation-checked: the press-time hold, a missing reply, the reveal, and the
+composer focus. No native, DTO or error change. Backend errors are unchanged
+and #118 stays native binding only.

@@ -32,6 +32,7 @@ function viewOf(target: HTMLElement | null): string | null {
 /** Reveal an existing target; it changes no source, choice or host state.
  * A target in another task view first makes that view visible. */
 export function revealWorkspaceTarget(id: string, focus = false): void {
+  if (typeof document?.getElementById !== "function") return;
   const target = document.getElementById(id);
   const view = viewOf(target);
   if (view && activateView) activateView(view);
