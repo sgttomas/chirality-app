@@ -133,8 +133,10 @@ fn parent_authorized_stock_native_bundled_workflow_fixture() -> Result<(), Strin
     // A fresh private Codex home: the App's local-provider literal plus the
     // home's own approval/sandbox choice (the App sends neither). Codex's own
     // seatbelt cannot nest inside the parent's localhost-only sandbox
-    // (`sandbox_apply: Operation not permitted`), so the outer profile, which
-    // confines writes to the owned scratch, is the boundary here.
+    // (`sandbox_apply: Operation not permitted`), so the parent's outer profile
+    // is the boundary here: loopback-only network, no owner `~/.codex`, and
+    // writes denied under `$HOME` except the owned scratch. It does not restrict
+    // writes outside `$HOME`. No production guard is changed.
     std::fs::write(codex_home.join("config.toml"), format!(
         "model = \"{MODEL}\"\nmodel_provider = \"{PROVIDER}\"\napproval_policy = \"never\"\nsandbox_mode = \"danger-full-access\"\n\n[model_providers.{PROVIDER}]\nname = \"Chirality workflow fixture\"\nbase_url = \"{}\"\nwire_api = \"responses\"\nrequires_openai_auth = false\n",
         fixture.base_url())).unwrap();

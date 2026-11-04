@@ -61,8 +61,29 @@ The test is `runtime_session::workflow_root_tests::real_backend_fixture_tests::p
   - no owner `~/.codex` reads or writes;
   - writes denied under `$HOME` except the owned scratch.
 
-  Codex's own tool sandbox is therefore **not** exercised.
+  The profile does **not** restrict writes outside `$HOME`; there they are
+  limited only by ordinary file permissions. Codex's own tool sandbox and
+  approval flow are therefore **not** exercised, and no production guard was
+  changed.
 - **Run.** Under that profile, with `env -i`, a 180 s alarm and `t3_slot`.
+- **Retained profile.** It stays outside the repository at
+  `chirality-t3/scratch/app-workflow-backend-fixture-TvyUbFBZ/network.sb`, SHA-256
+  `70117bbb439d7256ad71a9616612a5e0645805f40d884c3479ff5329c41654c0`. The same
+  folder keeps the run logs `run1.log`…`run7.log` and `greeting.log`. Its exact
+  text, with the home folder written here as `$HOME` and the scratch root as
+  `$SCRATCH`, is:
+
+  ```
+  (version 1)
+  (allow default)
+  (deny network*)
+  (allow network-outbound (remote ip "localhost:*"))
+  (allow network-inbound (local ip "localhost:*"))
+  (deny file-read* (subpath "$HOME/.codex"))
+  (deny file-write* (subpath "$HOME"))
+  (allow file-write* (subpath "$SCRATCH"))
+  (deny file-write* (subpath "$HOME/.codex"))
+  ```
 
 ## Joined path and assertions
 
@@ -176,7 +197,9 @@ with `#[path]`, and the workflow test with `include!`; there is no product use.
 
 - The model replies, the finished line and the person's end are synthetic.
   Useful work, completion quality and model behaviour are not established.
-- Codex's own tool sandbox and approval flow are not exercised (see above).
+- Codex's own tool sandbox and approval flow are not exercised: the test home
+  uses `danger-full-access` and `approval_policy = "never"`. The outer profile
+  restricts writes only under `$HOME` (see above).
 - The test binds a test resources root, not a signed candidate's
   `Contents/Resources/workflows`.
 - The frontend, GUI first screen, an ordinary launch and any real local model
