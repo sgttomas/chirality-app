@@ -193,6 +193,64 @@ with `#[path]`, and the workflow test with `include!`; there is no product use.
   existing `cfg(test)` records-store placement (`chirality-test-records-<pid>`)
   is created under the run's `TMPDIR`, which is inside the owned scratch.
 
+## End notice and fresh-process join (follow-on, branch `app/real-backend-end-notice`)
+
+The same gated test continues past the end, using the same scripted model side.
+Step 2 is one scripted reply that repeats for each later ordinary message.
+- **Run-text check.** Before the end, the home's own history owner selects the
+  conversation, as the history panel does. `check_native_supply` compares the
+  run text with the real native pages; the result is `verified`.
+- **End notice.**
+  - The end reports `endNotice: pending: the next ordinary turn in this
+    conversation carries it`.
+  - The first ordinary message goes through the production `ordinary_send_text`,
+    the `conversation_send_text` path. It returns `end notice and the person's
+    text sent once`.
+  - After it, no notice is pending (`send_with_pending_notice` is `None`).
+  - A second ordinary message carries the person's text only.
+  - The run stays `Ended`, and no finished offer is shown for it.
+  - `check_end_notice_supply` reports `verified`, with R3 `recorded`.
+- **Records.**
+  - **RS.** The run's log reads `run_opened`, `model_turn`, `model_turn`,
+    `supplied_guidance` (run text), `run_ended` (`completed`), and then only
+    `supplied_guidance` with form `workflow run end notice (turn text)`.
+  - **WR.** It holds `selection_record`, two `run_text` (run text and end notice)
+    and two `supply_check`.
+- **History.** Three native turns, each holding a user message and the scripted
+  reply:
+  1. the run text and the person's text;
+  2. the end notice first, then the follow-up. The notice starts
+     `[Chirality] Workflow run ended:`, names the run and ends `No workflow is in
+     force.`;
+  3. the second follow-up only.
+
+  The fixture saw exactly 4 Responses requests. The notice first reached the
+  model with the follow-up, in requests 3–4 but not 1–2.
+- **Fresh process.** After a normal stop, a new `Host` starts over the same Codex
+  home and project, giving a new generation, and a new `WorkflowRootSession`
+  holds no run.
+  - `end_recorded_run` on the ended run is refused.
+  - `observe_ended_runs` and the repeat end add no RS or WR record.
+  - The new generation's `NativeHistory` reads the same three turns with the same
+    user texts.
+  - Normal stop leaves 0 surviving descendants.
+
+### Observed runs (2026-11-04)
+
+- **Source.** `558ea694` (#116 head) plus this branch, with the same stock binary
+  `112fae7a…`. This evidence is separate from #116's.
+- **Results.** Two consecutive passes, 5.96 s and 6.45 s.
+- **Profile.** The same profile text as above, with this scratch root. It is
+  retained at
+  `chirality-t3/scratch/app-workflow-end-notice-UhybcNYk/network.sb`, SHA-256
+  `d73ed32eeacac4d99ba7c4af0cde84b6ada487628c10a28c1665879bcee5c1aa`, beside the
+  logs `run1.log` and `run2.log`.
+- **Cleanup.** No Codex process and no fixture scratch remained.
+
+These are scripted synthetic facts. The notice and the follow-ups are not
+evidence that a model read or acted on them. The fresh process is a new Host
+and Root in the same test process, not an App relaunch.
+
 ## Limits
 
 - The model replies, the finished line and the person's end are synthetic.
