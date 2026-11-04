@@ -599,17 +599,27 @@ is refused at the press: Send text and the plan/default controls (shared
 `sendText`), including retained controls. Edits, navigation, a source change
 and observer failures don't lift the hold. A different conversation doesn't
 inherit it. Only "I've read that conversation — allow sending again" lifts
-it. That sends nothing and keeps the record. The readiness line names the
+it. That sends nothing and keeps the record. The acknowledgement enables a
+fresh press only. Each Send and plan/default control keeps the intent its
+render showed: conversation view, text edit, model choice and the count of
+unconfirmed attempts. It acts only while all of these are current, so a
+control captured before a failed attempt, or before a newer conversation,
+text, model or Codex session, issues nothing. The readiness line names the
 destination by its conversation label.
 
 **History Continue.** Once History Continue admission is confirmed (by the
 existing source-checked History path, unchanged), the App selects the
 admitted conversation, shows the Conversation view, scrolls its message box
 into view and focuses it. Nothing scrolls the section back to the top
-afterwards; the native after-pass on `7add592a` found that move. A new
-unconfirmed send for the shown conversation takes the focus once. The notice names the conversation and says nothing was sent. Ordinary
-text stays one global draft. When it was written while another conversation
-was shown, a note says it is kept and where it now goes if sent.
+afterwards; the native after-pass on `7add592a` found that move. The notice
+names the conversation and says nothing was sent. A new unconfirmed send for
+the shown conversation takes the focus once.
+
+Ordinary text stays one global draft. Typing records which conversation it
+was written for, and so does every insertion the App makes: a request put
+into an empty draft, or one the person explicitly chose to replace it with.
+When that differs from the conversation shown, a note says the text is kept
+and where it now goes if sent. Unsent text is never overwritten.
 
 Checked by `app/tests/ordinary-send-hold.test.mjs` and
 `app/tests/history-continue-navigation.test.mjs`. Each guard is
