@@ -476,3 +476,34 @@ always-visible confirmation content; `workflow-action-result.test.mjs` locates
 the studio by its section. Not observed: native window, VoiceOver, real dialogs
 (the native dev-App run of `a6fbc9a8` and an unresolved blank-window startup
 observation are with the native and runtime owners).
+
+### Native development-App observations of the first-use welcome (2026-11-04)
+
+The native qualification lane ran an automated dev build of PR #111 head
+`a6fbc9a8` (full note: DEL-09-02 `Work/DEV_APP_NATIVE_OBSERVATIONS_20261104.md`,
+PR #112). These are development-test facts, not acceptance.
+
+Observed working: window title "Chirality"; the welcome renders with its three
+numbered steps and "Start with new settings (recommended)" preselected; "Review
+setup" stays disabled until a project choice is made; the accessibility tree
+reads h1, the three h2 steps, buttons, a labelled radio group, Review and the
+Technical details disclosure in order (AX structure, not VoiceOver); "Choose
+project folder…" opens a native sheet parented to the window with the message
+"Choose the project for the next App launch"; Cancel returns cleanly with
+nothing chosen; Quit with the sheet open exits normally; no App data is written
+before confirmation. The web area was still named "Chirality App v4" on that
+build; `26a01ff9` sets the page title to "Chirality".
+
+Not observed: a picker selection; the native confirmation statement and its
+actions; "You're set up", the `shared-settings/settings-*` and `account-homes`
+results and their modes; quit and reopen into the workspace; and the J1/J2 task
+views and navigation of `623a6b8e`/`26a01ff9`, which were not launched natively.
+Those remain unrun native product cases; the browser renders above are evidence
+only for what they show.
+
+Open observation, cause not isolated: when the App was launched inactive under
+fully covering windows, the welcome painted at about 3 s and the same window was
+blank by about 8 s, with no accessibility window exposed (runs 2–8); activation
+attempts did not activate it. The GUI loop was closed at this capability limit.
+No source bug is claimed or excluded, and no presentation workaround was made;
+any cause belongs to the runtime owner's diagnosis.
