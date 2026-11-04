@@ -357,3 +357,158 @@ and model discovery for a new conversation"). Role choice, the choice summary,
 Start and its disabled conditions are unchanged. The first-use mounted check in
 `app/tests/prepared-message-navigation.test.mjs` now expects the route and model
 list to be shown and the manual IDs to sit in the closed Advanced disclosure.
+
+## First use: a focused welcome while setup is required
+
+The owner's first use of signed candidate `fe811788` ("I don't understand what
+I'm looking at?") showed the full workspace with nine equal links, a window
+titled "walking skeleton", and setup asking for an explicit action, three raw
+shared paths, a project mode and a single-option supplier, beside unavailable
+keep-account diagnostics.
+
+While `desktopSetup.launch.state` is `setup-required`, the App now shows only
+**Welcome to Chirality** (`app/src/FirstUse.tsx`); the workspace stays mounted
+but hidden, the native-confirmation content stays visible and the waiting
+bridge stays mounted. The welcome asks, in order:
+
+1. **Your project folder** — "Choose project folder…" (native picker) or
+   "Continue without a project".
+2. **Codex settings** — "Start with new settings" (recommended; DEL-01-05 "First-use
+   setup with new App-owned settings") or "Use my existing Codex settings",
+   which then shows three Choose…/path fields for the existing files. "Keep my
+   current sign-in and settings" appears only when the host reports it
+   available.
+3. **Review and confirm** — "Review setup" shows the host's own effects;
+   "‹host action›…" opens the native confirmation; "Change my choices" or
+   Escape discards only the local review. A cancelled dialog keeps the choices.
+
+Once saved, the welcome says to quit (⌘Q) and reopen, then sign in under
+Connection & access and start a conversation. Launch state, App data, the
+included Codex, an unavailable keep-account reason and resource limits are
+under **Technical details**. No model, provider, sign-in, keychain or network
+is chosen or touched. The ordinary Desktop setup panel (shown once admitted)
+no longer has a supplier selector — the included Codex is fixed and named — and
+no longer advises typing a path that does not exist. The window title is
+"Chirality" (`tauri.conf.json`); the development product name and identifier
+are unchanged, and the supplier `clientInfo` title is not user-visible and is
+unchanged.
+
+Checks: three mounted tests in `app/tests/desktop-setup.test.mjs` with the
+executed Rust packets (new-settings journey with exact IPC; no-project,
+existing-settings, cancel and change; the mounted App showing only the welcome
+while setup is required and the workspace once admitted) plus the updated
+existing setup tests. No native window, AX, layout or person act is observed.
+
+### Local rendered self-test of the welcome (owner steer, 2026-11-03)
+
+The owner asked for substantially more of our own testing before involving
+them, with signed rebuilds reserved for when their direction is needed. The
+welcome was therefore rendered from the production bundle (`vite build`) in
+the locally cached headless Chromium, driven over the DevTools protocol at
+1100×800 (the App window) and 480×860. A synthetic IPC peer answered with the
+packets the executed Rust producer `mounted_setup_packets` emitted; the native
+picker and confirmation were simulated (immediate synthetic results, marked as
+such), so no real dialog, home, settings, model or sign-in was involved. Flows
+captured privately in scratch: first screen, project chosen, new-settings
+review, saved, saved with details; existing-settings route and review;
+dialog cancelled; save error.
+
+Found and fixed in the same change: the review was dominated by long internal
+paths (the new-settings effects are now plain statements, with the exact
+locations in a host-supplied `locations` list under "Exact locations"; the
+native statement still names every path); after saving, the intro still said
+"First, choose…" (now only the next action shows); the existing-settings path
+fields truncated the chosen paths (now wide enough). Paths elsewhere in effects
+render in a quieter wrapping style. No horizontal overflow, unhandled IPC or raw
+diagnostic outside Technical details was observed at either size.
+
+Observed limits: the existing-settings route still reviews the host's original
+technical effects (shared with the admitted Desktop setup panel); a focus ring
+frames the review heading and messages after programmatic focus; fonts, macOS
+window chrome, VoiceOver and the real native dialogs were not observed. This
+rendered check is local evidence for the next development App test, not native
+qualification or owner acceptance.
+
+## Task views instead of one long page (Agent 0 decision, 2026-11-04)
+
+The rendered self-test measured the admitted workspace at about 14–16k px:
+every guide, the whole workflow studio, the conversation and every secondary
+panel rendered inline. Agent 0 decided to address this now. The workspace
+now shows one task view at a time from a small navigation — **Run a workflow**,
+**Make a workflow**, **Conversation**, **History**, **Settings & tools** — with
+`aria-current` on the active view. Every view stays mounted; an inactive view
+is only `hidden`, so unsent text, exact selections, pending composers, offers
+and review bindings survive switching. The detailed workflow studio is a
+collapsed **Advanced: workflow studio** disclosure after the guides in both
+workflow views. New conversation sits in the Conversation view; provider
+administration, Desktop setup, connection, files, records, connectors and
+diagnostics are in Settings & tools; History and recovery has its own view.
+The waiting-request overview, requests outside the selected conversation, the
+act control and native-confirmation content stay above the views, visible in
+every view. No IPC, persistence, consent or authority changed.
+
+Navigation that crosses views — Answer/Show the conversation, Put the request
+in the conversation, prepared-message Open — sets its view in the same update
+as its own state, so the following reveal finds its target visible; any other
+reveal of a target in a hidden view first makes that view visible
+(`registerWorkspaceViews`). Nav links point at the destination itself
+(`#conversation`, `#workspace-history`, `#workspace-tools` or the guide), so a
+link still opens and focuses it.
+
+Conversation labels in the guides and the conversation chooser use a title or
+preview only when the host row supplies one (live host rows currently carry
+neither; the supplier's `Thread.name`/`preview` and `thread/name/set` exist at
+0.160.0 but are not received into these rows), otherwise a session-local
+"Conversation N" with the model second; the option value is unchanged and the
+exact ID is under "Exact conversation ID". Nothing is persisted or invented.
+The page title is "Chirality", matching the window title (native observation
+of the web-area name).
+
+Rendered self-test (production bundle, cached headless Chromium, real
+`selected_chain` host status and draft row, labelled synthetic states) at
+1100×800 and 480×860: each view measures about 0.8–2.1k px; unsent composer
+text survives Conversation → Run → History → Conversation; Answer in the
+conversation, Put the request and trial Open each land in the Conversation view
+on their target; no horizontal overflow. Mounted tests in
+`prepared-message-navigation.test.mjs` now reach controls through the
+navigation as a person would and check hidden-but-mounted retention and
+always-visible confirmation content; `workflow-action-result.test.mjs` locates
+the studio by its section. Not observed: native window, VoiceOver, real dialogs
+(the native dev-App run of `a6fbc9a8` and an unresolved blank-window startup
+observation are with the native and runtime owners).
+
+### Native development-App observations of the first-use welcome (2026-11-04)
+
+The native qualification lane ran an automated dev build of PR #111 head
+`a6fbc9a8` (full note: DEL-09-02 `Work/DEV_APP_NATIVE_OBSERVATIONS_20261104.md`,
+PR #112). These are development-test facts, not acceptance.
+
+Observed working: window title "Chirality"; the welcome renders with its three
+numbered steps and "Start with new settings (recommended)" preselected; "Review
+setup" stays disabled until a project choice is made; the accessibility tree
+reads h1, the three h2 steps, buttons, a labelled radio group, Review and the
+Technical details disclosure in order (AX structure, not VoiceOver); "Choose
+project folder…" opens a native sheet parented to the window with the message
+"Choose the project for the next App launch"; Cancel returns cleanly with
+nothing chosen; Quit with the sheet open exits normally; no App data is written
+before confirmation. The web area was still named "Chirality App v4" on that
+build; `26a01ff9` sets the page title to "Chirality".
+
+Not observed: a picker selection; the native confirmation statement and its
+actions; "You're set up", the `shared-settings/settings-*` and `account-homes`
+results and their modes; quit and reopen into the workspace; and the J1/J2 task
+views and navigation of `623a6b8e`/`26a01ff9`, which were not launched natively.
+Those remain unrun native product cases; the browser renders above are evidence
+only for what they show.
+
+Open observation, cause not isolated (per run, as corrected in PR #112 at
+`570160da`): in runs 5, 6 and 7 the welcome painted and the same window later
+went blank (run 5: painted at about 3 s, blank by about 8 s, no input); in runs
+2, 3 and 8 only the later blank state was captured, not the transition; the
+main render of run 4 was not observed. Full occlusion by other windows was
+measured in runs 7 and 8 only. No accessibility window was exposed in the
+blank state; Dock-tile activation was accepted without activating the App, and
+the run-7 title-bar click was skipped, not performed. The GUI loop was closed at
+this capability limit.
+No source bug is claimed or excluded, and no presentation workaround was made;
+any cause belongs to the runtime owner's diagnosis.

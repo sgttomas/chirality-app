@@ -37,7 +37,6 @@ async function explicitInputs(c, project='none') {
   for (const [i,label] of ['Shared config.toml','Shared AGENTS.md','Shared skills directory'].entries()) await change(field(c,label),textPath(packet.inputs.shared[i]));
   await change(field(c,'Project on next launch'),project);
   if(project==='chosen') await change(field(c,'Next project directory'),textPath(packet.inputs.project));
-  await change(field(c,'Supplier for next launch'),packet.initial.supplier.selection);
 }
 async function mountedPanel(view, handler, check) {
   const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
@@ -50,13 +49,16 @@ async function mountedPanel(view, handler, check) {
 test('empty native setup shows explicit choices and never requests supplier/account/model defaults',async()=>{
   await mountedPanel(packet.initial,()=>assert.fail('no IPC on render'),async(c,calls)=>{
     assert.equal(props(region(c,'Desktop setup')).open,true);
-    for(const label of ['Desktop setup action','Shared config.toml','Shared AGENTS.md','Shared skills directory','Project on next launch','Supplier for next launch']) assert.equal(props(field(c,label)).value,'');
+    for(const label of ['Desktop setup action','Shared config.toml','Shared AGENTS.md','Shared skills directory','Project on next launch']) assert.equal(props(field(c,label)).value,'');
+    assert.equal(field(c,'Supplier for next launch'),undefined,'the production supplier is fixed; no sole-option selector');
+    assert.match(c.textContent,/Codex: the copy included with this App\./);
     assert.equal(props(button(c,'Review setup effects')).disabled,true);
     assert.equal(button(c,'Prepare home and save for next launch'),undefined);
     assert.match(c.textContent,/imports no credentials/);
     assert.match(c.textContent,new RegExp(packet.initial.supplier.path.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
     assert.match(c.textContent,/not authenticated qualification/);
-    assert.equal(nodes(region(c,'Desktop setup inputs'),'select').length,3,'action, project and supplier only; no model/provider/role choice');
+    assert.equal(nodes(region(c,'Desktop setup inputs'),'select').length,2,'action and project only; no supplier/model/provider/role choice');
+    assert.doesNotMatch(c.textContent,/does not exist yet|type where it should be/,'no guidance to type a nonexistent path');
     assert.deepEqual(calls,[]);
   });
 });
@@ -236,7 +238,7 @@ test('setup explains incomplete choices, focuses real preview and edit returns w
     for(const words of [/new, empty folder for its Codex sign-in/,/doesn't copy or reuse sign-ins/,/links to them rather than copying/,/project folder \(optional\)/,/quit and open the App again/])assert.match(needs,words);
     assert.equal(props(button(c,'Review setup effects'))['aria-describedby'],'desktop-setup-next-step');
     assert.deepEqual(nodes(c,'legend').map(n=>n.textContent),['1. Sign-in and shared settings','2. Project and Codex']);
-    await change(field(c,'Desktop setup action'),'new');assert.match(guidance(c).textContent,/all three shared locations/);
+    await change(field(c,'Desktop setup action'),'new');assert.match(guidance(c).textContent,/Choose your config.toml, AGENTS.md and skills folder/);
     await explicitInputs(c);assert.match(guidance(c).textContent,/ready to review/);
     await press(c,'Review setup effects');assert.equal(focused.at(-1).textContent,'Review before saving');
     const savedPath=props(field(c,'Shared config.toml')).value;
@@ -282,7 +284,6 @@ test('failed review is announced, retains inputs and retries only on explicit ac
   },async(c,calls)=>{
     await explicitInputs(c);await press(c,'Review setup effects');
     assert.equal(props(focused.at(-1)).role,'alert');assert.match(focused.at(-1).textContent,/source is unavailable/);
-    assert.equal(props(field(c,'Supplier for next launch')).value,packet.initial.supplier.selection);
     assert.equal(calls.length,1);assert.equal(region(c,'Desktop setup effects'),undefined);
     await press(c,'Review setup effects');assert.equal(calls.length,2);assert.ok(region(c,'Desktop setup effects'));
   });
@@ -306,3 +307,85 @@ test('Escape leaves only local review; picker cancel preserves choices and nativ
     assert.equal(props(field(c,'Shared config.toml')).value,path);
   });
 });
+
+// First use: the focused welcome over the actual native packets (new App-owned
+// settings preview and saved state from the executed Rust producer).
+const {FirstUseSetup}=loadSrc('FirstUse');
+async function mountedWelcome(view, handler, check) {
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const previous=window.__TAURI_INTERNALS__;const calls=[];
+  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{calls.push({command,args:structuredClone(args)});return handler(command,args);}};
+  try { await React.act(()=>root.render(React.createElement(FirstUseSetup,{view}))); await check(c,calls); }
+  finally { await React.act(()=>root.unmount());document.body.removeChild(c);window.__TAURI_INTERNALS__=previous; }
+}
+test('first use: choose a project, start with new App-owned settings, review the host effects and confirm',async()=>{
+  const next=packet.newSettings;
+  await mountedWelcome(packet.initial,(command,args)=>{
+    if(command==='desktop_setup_pick'){assert.deepEqual(args,{kind:'project'});return {displayPath:textPath(next.project),nativePath:next.project};}
+    if(command==='desktop_setup_new_settings_preview'){assert.deepEqual(args,{projectPath:next.project},'only the chosen project; no settings, home or supplier nomination');return next.preview;}
+    if(command==='desktop_setup_prepare'){assert.deepEqual(args,{previewToken:next.preview.token});return next.saved;}
+    assert.fail(command);
+  },async(c,calls)=>{
+    const welcome=region(c,'Welcome');assert.match(welcome.textContent,/Welcome to Chirality/);
+    assert.equal(nodes(c,'select').length,0,'no technical drop-downs on first use');
+    assert.equal(field(c,'Your config.toml'),undefined,'paths only appear for existing settings');
+    assert.doesNotMatch(c.textContent,/Keep my current sign-in/,'an unavailable keep-account route is not offered');
+    assert.doesNotMatch(c.textContent.replace(/Technical details[^]*$/,''),/Retaining an account requires|owner-use development|walking skeleton/,'diagnostics stay in technical details');
+    assert.match(guidance2(c).textContent,/Choose the folder you want to work in/);
+    assert.equal(props(button(c,'Review setup')).disabled,true);
+    await press(c,'Choose project folder…');
+    assert.match(welcome.textContent,new RegExp('Chosen: '+textPath(next.project).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+    assert.match(guidance2(c).textContent,/Ready to review\. Nothing is created or saved until you confirm/);
+    await press(c,'Review setup');
+    const effects=region(c,'What setup will do').textContent;
+    for(const effect of next.preview.effects)assert.ok(effects.includes(effect),effect);
+    assert.match(effects,/Create a new settings folder for this App/);assert.match(effects,/No other Codex settings, home or credential is read, imported or changed/);
+    await press(c,'Create settings and save for next launch…');
+    assert.match(region(c,'Setup saved').textContent,/quit Chirality \(⌘Q\) and open it again.*sign in to Codex under Connection & access/);
+    assert.deepEqual(calls.map(call=>call.command),['desktop_setup_pick','desktop_setup_new_settings_preview','desktop_setup_prepare']);
+  });
+});
+test('first use: no project, existing settings route, cancel and change keep choices and never save',async()=>{
+  await mountedWelcome(packet.initial,(command,args)=>{
+    if(command==='desktop_setup_preview'){assert.deepEqual(args,{sharedPaths:packet.inputs.shared,projectPath:null,supplierSelection:packet.initial.supplier.selection});return packet.preview;}
+    if(command==='desktop_setup_prepare')return {state:'cancelled; no setup paths or saved request changed'};
+    assert.fail(command);
+  },async(c,calls)=>{
+    await press(c,'Continue without a project');
+    assert.match(region(c,'Welcome').textContent,/No project for now/);
+    const existing=nodes(c,'input').find(n=>props(n).type==='radio'&&n.parentNode.textContent.startsWith(' Use my existing Codex settings'));
+    await React.act(()=>props(existing).onChange());
+    assert.equal(props(button(c,'Review setup')).disabled,true,'existing settings need all three');
+    for(const [i,label] of ['Your config.toml','Your AGENTS.md','Your skills folder'].entries())await change(field(c,label),textPath(packet.inputs.shared[i]));
+    await press(c,'Review setup');assert.ok(region(c,'What setup will do'));
+    await press(c,'Prepare home and save for next launch…');
+    assert.match(c.textContent,/Not saved — you cancelled in the dialog\. Your choices are still here\./);
+    assert.equal(region(c,'Setup saved'),undefined);
+    assert.equal(props(field(c,'Your config.toml')).value,textPath(packet.inputs.shared[0]));
+    await press(c,'Review setup');await press(c,'Change my choices');assert.equal(region(c,'What setup will do'),undefined);
+    assert.deepEqual(calls.map(call=>call.command),['desktop_setup_preview','desktop_setup_prepare','desktop_setup_preview']);
+  });
+});
+test('the mounted App shows only the welcome while setup is required and keeps confirmation content visible',async()=>{
+  const host={state:'setup-required',generation:null,threads:[],desktopSetup:packet.initial,roleLimits:{account:{roles:[]}}};
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const timers=new Map();let timer=0;const previous={setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval};
+  globalThis.setInterval=(fn,ms)=>{const id=++timer;timers.set(id,{fn,ms});return id;};globalThis.clearInterval=id=>timers.delete(id);
+  const idle=installIdleNativeWaiting(async(command)=>{
+    if(command==='host_status')return structuredClone(host);if(command==='decision_view')return {rows:[]};if(command==='native_confirmation_content')return [];
+    assert.fail(`Unexpected IPC: ${command}`);
+  });
+  const hiddenUp=node=>{for(let n=node;n;n=n.parentNode)if(props(n)?.hidden)return true;return false;};
+  try {
+    await React.act(()=>root.render(React.createElement(App)));
+    assert.ok(region(c,'Welcome'));assert.equal(hiddenUp(region(c,'Welcome')),false);
+    for(const label of ['Workspace navigation','Workspace connection status','Run a workflow'])assert.equal(hiddenUp(region(c,label)),true,label);
+    assert.equal(hiddenUp(region(c,'Content named by an open native confirmation')),false,'native confirmation content stays visible');
+    host.state='ready';host.desktopSetup={...packet.retained.initial};host.generation={appSession:'s',home:'h',spawnCounter:1};
+    await React.act(async()=>{for(const t of timers.values())await t.fn();});
+    assert.equal(region(c,'Welcome'),undefined,'once admitted, the workspace returns');
+    assert.equal(hiddenUp(region(c,'Workspace navigation')),false);
+    idle.assertClean(c);
+  } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
+});
+const guidance2=c=>c.querySelectorAll(n=>n.getAttribute('id')==='first-use-next')[0];
