@@ -604,8 +604,10 @@ destination by its conversation label.
 
 **History Continue.** Once History Continue admission is confirmed (by the
 existing source-checked History path, unchanged), the App selects the
-admitted conversation, shows the Conversation view and focuses its message
-box. The notice names the conversation and says nothing was sent. Ordinary
+admitted conversation, shows the Conversation view, scrolls its message box
+into view and focuses it. Nothing scrolls the section back to the top
+afterwards; the native after-pass on `7add592a` found that move. A new
+unconfirmed send for the shown conversation takes the focus once. The notice names the conversation and says nothing was sent. Ordinary
 text stays one global draft. When it was written while another conversation
 was shown, a note says it is kept and where it now goes if sent.
 

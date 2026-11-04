@@ -277,7 +277,14 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
   const [heldOffer, setHeldOffer] = useState<ComposerOffer | null>(null);
   const handledOffer = useRef(0);
   // A navigation that admitted this conversation (History Continue) lands in its message box.
-  useEffect(() => { if (focusComposer) composerField.current?.focus?.({ preventScroll: false }); }, [focusComposer]);
+  useEffect(() => {
+    if (!focusComposer) return;
+    composerField.current?.scrollIntoView?.({ block: "center" });
+    composerField.current?.focus?.({ preventScroll: true });
+  }, [focusComposer]);
+  // A new unconfirmed send for the shown conversation takes the focus once, so
+  // keyboard and screen-reader users land on why Send is held.
+  const announcedUnconfirmed = useRef(new Set<number>());
   useEffect(() => {
     if (!composerOffer || handledOffer.current === composerOffer.sequence || composerOffer.threadKey !== threadKey) return;
     handledOffer.current = composerOffer.sequence;
@@ -369,7 +376,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
       const sameSource = shownHere && JSON.stringify(row.request.generation) === JSON.stringify(selected.generation);
       const loaded = currentThreads.find((t: Json) => t.threadId === row.request.threadId && JSON.stringify(t.generation) === JSON.stringify(row.request.generation));
       const destination = sameSource ? "this conversation" : loaded ? conversationLabel(host, loaded) : `conversation ${row.request.threadId} in a Codex session that isn't loaded now`;
-      return <div key={row.id} role={row.acknowledged ? "note" : "alert"}>
+      return <div key={row.id} role={row.acknowledged ? "note" : "alert"} tabIndex={-1} ref={node => { if (node && shownHere && !announcedUnconfirmed.current.has(row.id)) { announcedUnconfirmed.current.add(row.id); node.focus?.({ preventScroll: false }); } }}>
         <p><strong>Your message to {destination} may have been sent.</strong> The App couldn't confirm it, so it isn't resent and its text was not cleared.{row.acknowledged ? " You've said you read that conversation; sending there again is allowed." : " Sending to that conversation again is held until you've read it."}</p>
         {shownHere && !sameSource && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so sending to it is held too; that doesn't make the earlier destination this one.</small></p>}
         {!row.acknowledged && <p><button onClick={() => setUnconfirmed(rows => rows.map(r => r.id === row.id ? { ...r, acknowledged: true } : r))}>I've read that conversation — allow sending again</button> <small>Sends nothing; this record stays.</small></p>}
@@ -1647,11 +1654,10 @@ export function App() {
   };
   useEffect(() => {
     if (!conversationReveal) return;
-    if (conversationReveal.target === "ordinary-composer-text") {
-      // The message box keeps its own tab order: reveal the view; the panel focuses its own field.
-      revealWorkspaceTarget("conversation");
-      return;
-    }
+    // The message box: showView already made the Conversation view current, and
+    // the panel scrolls to and focuses its own field. Scrolling to the section's
+    // top here would move the focused box out of view.
+    if (conversationReveal.target === "ordinary-composer-text") return;
     revealWorkspaceTarget(document.getElementById?.(conversationReveal.target) ? conversationReveal.target : "conversation", true);
   }, [conversationReveal]);
   // History Continue admitted this exact conversation (source-checked there):

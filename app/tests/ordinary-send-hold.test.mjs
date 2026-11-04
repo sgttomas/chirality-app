@@ -39,8 +39,11 @@ test('an unacknowledged ordinary send keeps its text, holds that conversation fo
   await mounted((args, n) => { if (n === 1) throw 'invented: no response from Codex'; return {id:1, result:{turn:{id:'t'}}}; }, async ui => {
     await ui.type('Please summarise the report');
     const retained = props(ui.send()).onClick;
-    await React.act(async () => { retained(); }); await ui.settle();
+    const proto = Object.getPrototypeOf(document.createElement('div')); const focused = []; const previousFocus = proto.focus;
+    proto.focus = function () { focused.push(this); };
+    try { await React.act(async () => { retained(); }); await ui.settle(); } finally { proto.focus = previousFocus; }
     assert.equal(ui.sends.length, 1);
+    assert.equal(focused.at(-1)?.getAttribute('role'), 'alert', 'the new unconfirmed record takes the focus');
     assert.equal(props(ui.field()).value, 'Please summarise the report', 'the text is not cleared without a native acknowledgement');
     assert.match(ui.notices().textContent, /Your message to this conversation may have been sent\..*isn't resent and its text was not cleared.*held until you've read it.*Please summarise the report.*Reported: invented: no response from Codex/);
     assert.equal(props(ui.send()).disabled, true, 'Send is held');

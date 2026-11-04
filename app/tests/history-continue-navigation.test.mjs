@@ -222,18 +222,20 @@ test('queued duplicate Continue presses dispatch only the original native reques
 // destination named only by a raw ID. Now the admitted conversation is shown,
 // its message box is focused, and the kept text says where it goes.
 test('an admitted Continue shows the Conversation view with its message box focused and says where the kept text goes',async()=>{
- const proto=Object.getPrototypeOf(document.createElement('textarea'));const focused=[];const previousFocus=proto.focus;proto.focus=function(){focused.push(this);};
+ const proto=Object.getPrototypeOf(document.createElement('textarea'));const focused=[],scrolled=[];const previousFocus=proto.focus,previousScroll=proto.scrollIntoView;proto.focus=function(){focused.push(this);};proto.scrollIntoView=function(){scrolled.push(this);};
  try{
   await mounted({},async ui=>{
-   await ui.press('Continue selected conversation');
+   const previousLookup=document.getElementById;document.getElementById=id=>ui.c.querySelectorAll(n=>n.getAttribute('id')===id)[0]??null;
+   try{await ui.press('Continue selected conversation');}finally{document.getElementById=previousLookup;}
    assert.equal(ui.selected(),key('stored'));
    const active=ui.c.querySelectorAll(n=>n.localName==='a'&&n.getAttribute('aria-current')==='page').map(n=>n.textContent);
    assert.deepEqual(active,['Conversation'],'the Conversation view is shown');
    assert.equal(focused.at(-1)?.getAttribute('id'),'ordinary-composer-text','its message box has the focus');
+   assert.equal(scrolled.at(-1)?.getAttribute('id'),'ordinary-composer-text','and is the last thing scrolled into view, so it is on screen');
    assert.match(ui.c.textContent,/Continue admission confirmed; opened Conversation \d[^.]*in Conversation\. Nothing was sent\./,'the notice names the conversation in the person\'s words');
    const note=ui.c.querySelectorAll(n=>n.getAttribute('aria-label')==='Where your text goes')[0];
    assert.ok(note,'the kept text says where it now goes');
    assert.match(note.textContent,/written while another conversation was shown\. It is kept; if you send it now it goes to Conversation/);
   });
- }finally{proto.focus=previousFocus;}
+ }finally{proto.focus=previousFocus;proto.scrollIntoView=previousScroll;}
 });
