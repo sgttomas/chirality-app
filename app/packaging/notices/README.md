@@ -85,13 +85,16 @@ CI exception is supplied.
 
 ## Transitive runtime inventory
 
-`transitive.py` records the shipped macOS arm64 runtime graph beyond the direct
-index. `generate` runs an offline `cargo tree` with the release features
+`transitive.py` records the macOS arm64 dependency input graph beyond the
+direct index. `generate` runs an offline `cargo tree` with the release features
 (normal edges, no proc-macros, `aarch64-apple-darwin`) against a prepared Cargo
-home, and reads every exact locked archive. It records licence/notice members,
-the received objc2 upstream text where its revision and README link match, and
-every missing text with its upstream locator. npm runtime packages are recorded
-from the lock, with installed-tree notice digests.
+home and reads every exact locked archive. That graph is what Cargo selects for
+the target and features; it is not an observation of final linked contents.
+The index records licence/notice members, the received objc2 upstream text
+where its revision and README link match, and every missing text with its
+upstream locator. npm runtime packages are recomputed from `package-lock.json`;
+the three direct packages reuse the direct index's archive-verified texts, and
+`scheduler` is recorded from the installed tree only, explicitly unverified.
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/transitive.py check
@@ -99,6 +102,13 @@ PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/transitive.py check --ca
 PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/transitive.py generate --cargo-home /absolute/prepared-cargo-home --node-modules /absolute/prepared/node_modules
 ```
 
-The default check needs no Cargo and fails closed when the manifests or locks
-change. This is a preparation inventory, not bundled coverage or a licensing
-determination. See `execution/PKG-01/DEL-01-06/Work/SHIPPED_NOTICE_COVERAGE.md`.
+The default check needs no Cargo, so it cannot re-resolve the graph. It fails
+closed when the manifests or locks change, when rows no longer match the
+generation receipt's member-set digests, when a crate row contradicts
+`Cargo.lock` (version, checksum or registry/path source kind) or is unreachable
+from the workspace root through lock edges, when the npm rows differ from the
+recomputed lock closure, or when a received-text row names anything other than
+the one allowed retained file and a known revision-to-blob association. A
+rebound receipt that drops a selected crate passes the Cargo-free check; only
+`check --cargo-home` re-resolves the exact member set. This is a preparation
+inventory, not bundled coverage or a licensing determination. See `execution/PKG-01/DEL-01-06/Work/SHIPPED_NOTICE_COVERAGE.md`.

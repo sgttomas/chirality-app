@@ -8,63 +8,115 @@ which a later build must still verify. No licence election, legal approval,
 supplier pin qualification or "complete compliance" claim is made here.
 The earlier [direct-runtime account](CACHED_SHIPPED_NOTICE_INPUTS.md) and the
 [supplier association investigation](supplier-notice-associations/README.md)
-remain the record of their own dates.
+remain the record of their own dates. The 2026-11-04 repair of the index checks
+is described below. The manifests and locks are unchanged through main
+`f9dd4ef7`, and the regenerated member set equals the original one.
 
-## App: actual runtime dependency graph
+## App: target/feature-selected dependency input graph
 
 [`app/packaging/notices/transitive.py`](../../../../app/packaging/notices/transitive.py)
-derives the shipped Rust graph with an offline `cargo tree`. It uses the release
-recipe's features (`custom-protocol,distribution-successor`), target
+derives the Rust dependency **input** graph with an offline `cargo tree`. It uses
+the release recipe's features (`custom-protocol,distribution-successor`), target
 `aarch64-apple-darwin`, and `--edges normal,no-proc-macro`. That excludes
-build-dependencies, dev-dependencies and proc-macros, which run at compile time
-and are not shipped, and drops other-platform crates. The prepared Cargo home
-holds every locked archive; each archive's SHA-256 equals its `Cargo.lock`
-checksum. The committed [transitive-index.json](../../../../app/packaging/notices/transitive-index.json)
-records each crate's declared licence, exact root licence/notice members
-(size and SHA-256), bundled native-source paths and upstream VCS locators.
+build-dependencies, dev-dependencies and proc-macros, which run at compile time,
+and drops other-platform crates. The result is what Cargo selects to compile for
+that target and feature set. It is not an observation of the final linked or
+shipped contents; dead-code elimination and linking are not examined. The
+prepared Cargo home holds every locked archive, and each archive's SHA-256
+equals its `Cargo.lock` checksum. The committed
+[transitive-index.json](../../../../app/packaging/notices/transitive-index.json)
+records each crate's declared licence, its exact root licence/notice members
+(size and SHA-256), its native-source paths and its upstream VCS locators. It
+also records a generation receipt: the exact command, the Cargo version and
+canonical member-set digests (cargo `dd7a3d7c…`, npm `9ddedcc0…`).
 
-| Runtime piece | Count | Text standing |
+| Input-graph piece | Count | Text standing |
 |---|---:|---|
 | Rust crates, registry | 192 | 173 with licence/notice files inside the exact locked archive |
-| objc2-family crates | 7 of the 192 | Covered by the received objc2 `LICENSE.md` (blob `540ae4c8`): same VCS revisions, README links `../../LICENSE.md`. This adds `objc2-core-foundation` and `objc2-web-kit` to the five already associated |
+| objc2-family crates | 7 of the 192 | Associated with the received objc2 `LICENSE.md` (blob `540ae4c8`): same VCS revisions, and the READMEs link `../../LICENSE.md`. This adds `objc2-core-foundation` and `objc2-web-kit` to the five already associated |
 | Rust crates with no text | 12 of the 192 | Missing; see the remaining edges below |
-| npm runtime packages | 4 | `@tauri-apps/api`, `react`, `react-dom` and transitive `scheduler` 0.27.0. Texts are taken from the prepared installed tree only; lock tarballs are not re-verified here |
+| npm runtime, direct | 3 | `@tauri-apps/api` 2.11.0, `react` and `react-dom` 19.2.7. These reuse the direct index's existing provenance: four licence files matched against the exact locked tarballs in [CACHED_SHIPPED_NOTICE_INPUTS](CACHED_SHIPPED_NOTICE_INPUTS.md). `check` requires unchanged versions, integrity and text digests (`0d542e0c`/`9dd42ea9`, `da6d3703`) |
+| npm runtime, transitive | 1 | `scheduler` 0.27.0, reached through `react-dom`. Its `LICENSE` digest (`da6d3703`) comes from the prepared installed tree only. It stays **unverified**: no lock tarball for it is held locally |
 
-The direct index (22 components) remains a subset; `check` enforces that. The
-only compiled-in native source is SQLite via `libsqlite3-sys` (its own prepared
-[notice](../../../../app/packaging/sqlite_notice/README.md)). The `.c` files in
-`fancy-regex` (`tests/oniguruma/`) and `walkdir` (`compare/nftw.c`) are test and
-benchmark sources, not built. Fonts are covered by the
-[font notice](../../../../app/packaging/font_notice/README.md). The default
-`check` needs no Cargo and fails closed whenever the manifests or locks move;
-regenerate with
+How far each check reaches:
+
+- **Cargo-free `check` (CI).** This check cannot re-resolve the graph. It fails
+  closed when any of these hold:
+  - the manifests or locks move;
+  - the rows no longer reproduce the receipt's member-set digests (a dropped,
+    added or altered row);
+  - a row contradicts `Cargo.lock` in version, checksum or registry/path source
+    kind (only the workspace package may be `path`);
+  - a row is unreachable from the workspace root through lock edges;
+  - the npm rows differ from the closure recomputed from `package-lock.json`
+    (dependencies and required peers, flat lookups only; nested, optional,
+    bundled or missing lookups refuse);
+  - a received-text row names anything but the one allowed retained file and a
+    known revision-to-blob association. Both are checked before the file is
+    opened.
+- **What it cannot catch.** Lock edges cover every dependency kind and platform.
+  A row dropped *together with* a rebound receipt therefore still passes the
+  Cargo-free check.
+- **`check --cargo-home <prepared>`** re-resolves the exact member set offline
+  and re-reads every archive. It is reproducible only with the same lock, the
+  same features and target, and a Cargo whose resolver gives the same selection
+  (the receipt records the version used).
+
+The direct index (22 components) remains a subset; `check` enforces that. By
+crate source and build reasoning, not binary observation, the only native code
+in the input graph that a build compiles is SQLite, through `libsqlite3-sys`
+with its bundled feature (its own prepared
+[notice](../../../../app/packaging/sqlite_notice/README.md)). The archive also
+carries `sqlcipher/` and a wasm32 VFS source that this feature and target selection does not
+build. The `.c` files in `fancy-regex` (`tests/oniguruma/`) and `walkdir`
+(`compare/nftw.c`) are test and benchmark sources. Fonts are covered by the
+[font notice](../../../../app/packaging/font_notice/README.md). Regenerate with
 `python3 app/packaging/notices/transitive.py generate --cargo-home <prepared> --node-modules <prepared>`.
 
-## Supplier binaries: what the shipped bytes contain
+## Supplier binaries: marker observations, not content determinations
 
-Read-only byte searches of the four retained 0.160.0 subjects are recorded in
+Read-only regex byte searches of the four retained 0.160.0 subjects are recorded
+with counts and first offsets in
 [binary-component-observations-20261104.json](supplier-notice-associations/binary-component-observations-20261104.json).
-These are clues with offsets, not byte joins.
+A marker present is a concrete clue. A marker absent shows only that this exact
+byte pattern does not occur. It does not show that the corresponding code is
+absent, because code can be compressed, stripped or renamed. These are not byte
+joins.
 
-- **Main `codex`** (`112fae7a…`): the bundled skill samples `skill-creator` and
-  `skill-installer` are embedded, together with two copies of the full Apache
-  2.0 text. That is consistent with their `LICENSE.txt` files at the commit
-  (11,358 B, blob `d6456956…`). `imagegen` and `openai-docs` are not embedded.
-  - bubblewrap's C code is absent. There is no usage text; `bwrap` appears only
-    as option tokens. The vendored `codex-rs/vendor/bubblewrap` (LGPL `COPYING`
-    25,383 B) is Linux-only and does not apply to this macOS binary.
-  - `wezterm` appears only as a terminal name.
+- **Main `codex`** (`112fae7a…`).
+  - **Present:**
+    - `name: skill-creator` (1 hit at 186,397,252) and `name: skill-installer`
+      (1 at 186,451,022);
+    - `APPENDIX: How to apply the Apache License` (2 at 186,194,686);
+    - `bwrap` (9 at 182,781,768).
+
+    The embedded skill samples are consistent with their `LICENSE.txt` files at
+    the commit (11,358 B, blob `d6456956…`).
+  - **Absent (exact patterns only):**
+    - `name: imagegen` and `name: openai-docs` (0 each);
+    - `usage: %s \[OPTIONS|--unshare-user|bubblewrap\.c` (0);
+    - `v8::internal` and `icudt\d+l` (0 each).
+  - **Separate source/target reasoning, not a binary observation.** The vendored
+    `codex-rs/vendor/bubblewrap` (LGPL `COPYING` 25,383 B) is built for Linux
+    targets. Whether any of it reaches this macOS binary is not established by
+    the absent markers, and remains a supplier-source question.
+  - `wezterm` appears as a terminal name.
   - Root `LICENSE`/`NOTICE` at the declared commit `a956835d` are exactly
-    available locally (10,926 B `d17f227e…` and 242 B `9d71575e…`); this edge
-    was already established.
-- **`codex-code-mode-host`** (`679eedae…`) statically contains:
-  - V8 through the `v8` crate 150.4.0 (source paths `v8-150.4.0/src/`, 63 `v8::internal` strings);
-  - ICU 77 data (`icudt77l`) with "Unicode, Inc. and others" terms strings;
-  - Chromium's libc++ (2,311 `NSt4__Cr` symbols).
+    available locally (10,926 B `d17f227e…` and 242 B `9d71575e…`); this edge was
+    already established.
+- **`codex-code-mode-host`** (`679eedae…`). **Present:**
+  - `v8::internal` (63 at 37,797,617);
+  - `v8-150\.4\.0/src/` (18 at 37,561,974);
+  - `icudt77l` (2,330 at 37,720,709);
+  - `Unicode, Inc\. and others\. License & terms of use` (52 at 38,417,719);
+  - `NSt4__Cr` (2,311 at 50,167,573).
 
-  This adds concrete notice obligations: the V8 BSD-3-Clause terms, ICU (the
-  Unicode licence), libc++/libc++abi (Apache-2.0 WITH LLVM-exception), and the
-  `v8` crate's own licence. None of those texts is local.
+  These are concrete clues that V8 through the `v8` crate 150.4.0, ICU 77 data
+  and Chromium's libc++ namespace are present. They name **potential** notice
+  edges: the V8 terms, ICU/Unicode terms, libc++/libc++abi, and the `v8` crate's
+  own licence. They are not an independently complete static-link or licence
+  determination, nor an exact binary-to-source join. None of those texts is
+  local.
 - **`rg`** and **`zsh`**: unchanged from the
   [four-file receipt](supplier-notice-associations/approved-receipt-20261102-four/SCOPE.md).
   The release selectors are resolved; the byte joins and licence texts are not.
@@ -83,17 +135,19 @@ No retrieval is authorized by this account. Each item names the exact input;
    - `madsmtm/objc2@8d214f54` (objc2-encode, objc2-exception-helper);
    - `open-i18n/rust-unic@58786053` and `@8a6ce830` (the five unic crates);
    - `Nugine/simd@d74c030d` (uuid-simd, vsimd).
-2. **npm texts.** Re-verifying the four installed texts needs the four lock
-   tarballs (integrity known, size unknown), or an explicit acceptance of the
-   prepared installed tree.
+2. **npm `scheduler` 0.27.0 only.** The three direct packages already have
+   archive-verified texts. Verifying `scheduler`'s text needs its one lock
+   tarball (integrity `sha512-eNv+WrVb…`, size not established locally). Until
+   then it stays explicitly unverified.
 3. **Main and code-mode-host Rust dependencies.** These need `codex-rs/Cargo.lock`
    at `a956835d` (406,552 B, blob `19885ae9…`) plus the 160 workspace
    `Cargo.toml` manifests (178,197 B in total). Those resolve the linked macOS set;
    the dependency archives' count and size follow only from that set.
    The alternative is a supplier-provided third-party notice or attestation for
    0.160.0.
-4. **code-mode-host V8 stack.** This needs the `v8` 150.4.0 crate's licence files
-   and V8/ICU/libc++ terms (size unknown). The commit's
+4. **code-mode-host V8 stack (potential edges from the clues above).** This
+   needs the `v8` 150.4.0 crate's licence files and the V8/ICU/libc++ terms
+   (size unknown), plus confirmation of what is actually linked. The commit's
    `third_party/v8/rusty_v8_150_4_0_release_manifests.sha256` (1,040 B) identifies
    the prebuilt inputs. The host **byte join** still needs the release asset
    `codex-code-mode-host-aarch64-apple-darwin.tar.gz` (23,825,926 B,

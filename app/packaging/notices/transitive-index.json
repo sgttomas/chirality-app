@@ -1,5 +1,5 @@
 {
- "format": "chirality.app.transitive-runtime-notices/1",
+ "format": "chirality.app.transitive-runtime-notices/2",
  "target": "aarch64-apple-darwin",
  "features": "custom-protocol,distribution-successor",
  "edges": "normal,no-proc-macro",
@@ -9,7 +9,31 @@
   "app/package.json": "c2d6936e8f9c829165d1eedc0e2e81481dd481c99dbe4de278ecf333853497ac",
   "app/package-lock.json": "1392f7926e008f71e103e91734b1a9e0e40477c68865ea482aa885954a3d25fa"
  },
- "scope": "shipped runtime graph for the selected release features; build/dev/proc-macro crates excluded; preparation inventory, not bundled coverage, licence election or legal approval",
+ "generation": {
+  "command": [
+   "cargo",
+   "tree",
+   "--offline",
+   "--locked",
+   "--target",
+   "aarch64-apple-darwin",
+   "--edges",
+   "normal,no-proc-macro",
+   "--features",
+   "custom-protocol,distribution-successor",
+   "--prefix",
+   "none",
+   "--format",
+   "{p}|{l}"
+  ],
+  "cargo_version": "cargo 1.97.1 (c980f4866 2026-06-30)",
+  "member_set_sha256": {
+   "cargo": "dd7a3d7c274b310f849de6452604af95cc63c09c12397421ba845f44801a7cc1",
+   "npm": "9ddedcc0740f324c3132325a9e52b0d65792c0789f261c54ff649dd348d49443"
+  },
+  "limit": "consistency binding of the generated member set; only `check --cargo-home` re-resolves it"
+ },
+ "scope": "target/feature-selected dependency input graph (build/dev/proc-macro and other-platform crates excluded); not an observation of linked contents, bundled coverage, licence election or legal approval",
  "cargo": [
   {
    "package": "adler2",
@@ -294,6 +318,7 @@
    "native_source_paths": [],
    "text": {
     "kind": "received-upstream-text",
+    "repository": "https://github.com/madsmtm/objc2",
     "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
     "vcs_revision": "b4167b582b2f75f9a1be75495c41b765344fd03c",
@@ -853,6 +878,7 @@
    "native_source_paths": [],
    "text": {
     "kind": "received-upstream-text",
+    "repository": "https://github.com/madsmtm/objc2",
     "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
     "vcs_revision": "8852b424193ca41602281b3d7540d7c8ed51e49a",
@@ -2263,6 +2289,7 @@
    "native_source_paths": [],
    "text": {
     "kind": "received-upstream-text",
+    "repository": "https://github.com/madsmtm/objc2",
     "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
     "vcs_revision": "8852b424193ca41602281b3d7540d7c8ed51e49a",
@@ -2279,6 +2306,7 @@
    "native_source_paths": [],
    "text": {
     "kind": "received-upstream-text",
+    "repository": "https://github.com/madsmtm/objc2",
     "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
     "vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
@@ -2295,6 +2323,7 @@
    "native_source_paths": [],
    "text": {
     "kind": "received-upstream-text",
+    "repository": "https://github.com/madsmtm/objc2",
     "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
     "vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
@@ -2341,6 +2370,7 @@
    "native_source_paths": [],
    "text": {
     "kind": "received-upstream-text",
+    "repository": "https://github.com/madsmtm/objc2",
     "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
     "vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
@@ -2357,6 +2387,7 @@
    "native_source_paths": [],
    "text": {
     "kind": "received-upstream-text",
+    "repository": "https://github.com/madsmtm/objc2",
     "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
     "vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
@@ -3652,7 +3683,7 @@
    "native_source_paths": [],
    "text": {
     "kind": "missing",
-    "repository": "https://github.com/open-i18n/rust-unic/",
+    "repository": "https://github.com/open-i18n/rust-unic",
     "vcs_revision": "5878605364af97a3358368a6eaef02104af2e016",
     "path_in_vcs": null
    }
@@ -3667,7 +3698,7 @@
    "native_source_paths": [],
    "text": {
     "kind": "missing",
-    "repository": "https://github.com/open-i18n/rust-unic/",
+    "repository": "https://github.com/open-i18n/rust-unic",
     "vcs_revision": "5878605364af97a3358368a6eaef02104af2e016",
     "path_in_vcs": null
    }
@@ -3682,7 +3713,7 @@
    "native_source_paths": [],
    "text": {
     "kind": "missing",
-    "repository": "https://github.com/open-i18n/rust-unic/",
+    "repository": "https://github.com/open-i18n/rust-unic",
     "vcs_revision": "5878605364af97a3358368a6eaef02104af2e016",
     "path_in_vcs": null
    }
@@ -3697,7 +3728,7 @@
    "native_source_paths": [],
    "text": {
     "kind": "missing",
-    "repository": "https://github.com/open-i18n/rust-unic/",
+    "repository": "https://github.com/open-i18n/rust-unic",
     "vcs_revision": "8a6ce83063d90b91ae2ce59eddb803edd393fca9",
     "path_in_vcs": null
    }
@@ -3712,7 +3743,7 @@
    "native_source_paths": [],
    "text": {
     "kind": "missing",
-    "repository": "https://github.com/open-i18n/rust-unic/",
+    "repository": "https://github.com/open-i18n/rust-unic",
     "vcs_revision": "5878605364af97a3358368a6eaef02104af2e016",
     "path_in_vcs": null
    }
@@ -4153,69 +4184,54 @@
   {
    "package": "@tauri-apps/api",
    "version": "2.11.0",
-   "declared_license": "Apache-2.0 OR MIT",
    "integrity": "sha512-7CinYODhky9lmO23xHnUFv0Xt43fbtWMyxZcLcRBlFkcgXKuEirBvHpmtJ89YMhyeGcq20Wuc47Fa4XjyniywA==",
-   "installed_notice_files": [
-    {
-     "file": "LICENSE_APACHE-2.0",
-     "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
-    },
-    {
-     "file": "LICENSE_MIT",
-     "sha256": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d"
-    }
-   ],
+   "declared_license": "Apache-2.0 OR MIT",
    "text": {
-    "kind": "installed-tree-only",
-    "limit": "installed copy; lock tarball integrity not re-verified here"
+    "kind": "direct-index-archive",
+    "notices": [
+     "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+     "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d"
+    ]
    }
   },
   {
    "package": "react",
    "version": "19.2.7",
-   "declared_license": "MIT",
    "integrity": "sha512-HNe9WslTbXmFK8o8cmwgAeJFSBvt1bPdHCVKtaaV+WlAN36mpT4hcRpwbf3fY56ar2oIXzsBpOAiIRHAdY0OlQ==",
-   "installed_notice_files": [
-    {
-     "file": "LICENSE",
-     "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
-    }
-   ],
+   "declared_license": "MIT",
    "text": {
-    "kind": "installed-tree-only",
-    "limit": "installed copy; lock tarball integrity not re-verified here"
+    "kind": "direct-index-archive",
+    "notices": [
+     "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+    ]
    }
   },
   {
    "package": "react-dom",
    "version": "19.2.7",
-   "declared_license": "MIT",
    "integrity": "sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ==",
-   "installed_notice_files": [
-    {
-     "file": "LICENSE",
-     "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
-    }
-   ],
+   "declared_license": "MIT",
    "text": {
-    "kind": "installed-tree-only",
-    "limit": "installed copy; lock tarball integrity not re-verified here"
+    "kind": "direct-index-archive",
+    "notices": [
+     "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+    ]
    }
   },
   {
    "package": "scheduler",
    "version": "0.27.0",
-   "declared_license": "MIT",
    "integrity": "sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==",
-   "installed_notice_files": [
-    {
-     "file": "LICENSE",
-     "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
-    }
-   ],
+   "declared_license": "MIT",
    "text": {
     "kind": "installed-tree-only",
-    "limit": "installed copy; lock tarball integrity not re-verified here"
+    "installed_notice_files": [
+     {
+      "file": "LICENSE",
+      "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+     }
+    ],
+    "limit": "unverified: installed copy only; lock tarball not available locally"
    }
   }
  ]
