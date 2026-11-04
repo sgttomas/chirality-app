@@ -1,5 +1,13 @@
 # Undertaking controls and practice feedback — conventions over existing records
 
+
+For current development, use App `AGENTS.md` and `loop/LOOP_INIT.md`, with the
+[current source disposition](../../DEL-10-01/Work/EXECUTION_BASIS.md#current-change-and-recovery-sources).
+Root retirement revision `047da79894bc5631dca564a30113f2cd26ec7ae1` removes its
+change workflow and project-only change skill; no successor method is selected.
+The definition-run account below retains its original source identities and
+observations, without reinstating historical record duties for current work.
+
 - **Contribution:** DEL-10-02/UC-v0.2. It supersedes UC-v0.1 (`e25fbe9b…`,
   committed at `d0e88a52f1`), repaired for RV3-UC1 under R23-46 and R23-47
   (see "Changes"). It serves OUT-001 (§2, §3, §8), OUT-002 (§4) and OUT-003

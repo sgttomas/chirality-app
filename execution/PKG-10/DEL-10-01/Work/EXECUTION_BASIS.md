@@ -16,6 +16,27 @@ where their original Coordination inputs still exist. Current guidance shapes
 practice without changing the product's accepted output obligations.
 
 
+### Current change and recovery sources
+
+Root's owner-approved retirement at
+[`047da79894bc5631dca564a30113f2cd26ec7ae1`](https://github.com/sgttomas/chirality/commit/047da79894bc5631dca564a30113f2cd26ec7ae1)
+removes `workflows/change` and `.agents/skills/chirality-change/SKILL.md`.
+Surviving Root Git conventions are in its `AGENTS.md`; exceptional custody and
+recovery detail is in `docs/MAINTENANCE_RECOVERY.md`. App development follows
+this repository's `AGENTS.md`, `loop/LOOP_INIT.md`, authorized briefs and Git
+conventions. Consulting those shared sources imports no Root-only duties or
+standing Git grant. `reflect-on-work` is not a change/Git successor and is not
+selected here.
+
+Earlier selected source bytes remain recoverable at Root
+`8d0c5d1a19eec865a8a92750cb3de590d04f9c02` and their recorded revisions.
+Historical manifests, prototype inputs and the packaged instruction SOURCE_MAP
+retain their original hashes and meanings. The SOURCE_MAP's change-skill read
+was explicitly for the change/review boundary, not product instructions; current
+product code does not load that removed Root path. This factual source-pointer
+update changes no product commitments, lifecycle decisions or packaged inputs.
+
+
 - **Contribution:** DEL-10-01/EB-v0.4. It supersedes EB-v0.3 (sha256
   `e9f7e9a6100f805d1bfd992bc681056d3ef68b21c203750d69b1a3def6f904ee`,
   committed at `d0e88a52f1`; RV3: READY, addendum 2), which superseded

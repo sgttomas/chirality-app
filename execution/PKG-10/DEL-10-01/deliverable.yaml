@@ -59,8 +59,11 @@ needs:
 - from: external:ROOT-REPOSITORY-INSTRUCTIONS
   condition: Use current repository practice for the manual application account, limited to relevant
     practice and actual receiving use. It is carried by the repository-relative AGENTS.md, agents/AGENT_*.md,
-    tools/deliverables/README.md, .agents/skills/chirality-change/SKILL.md and the loop entry
-    projects/chirality-app-v4/loop/LOOP_INIT.md. Identify the resolved revision where exact content matters.
+    tools/deliverables/README.md and the App loop entry loop/LOOP_INIT.md. Root revision
+    047da79894bc5631dca564a30113f2cd26ec7ae1 retires workflows/change and the Root-only chirality-change
+    skill; consult Root AGENTS.md and docs/MAINTENANCE_RECOVERY.md for surviving Root conventions and
+    exceptional recovery reasoning, under App-local AGENTS.md authority. Root-only duties and Git grants
+    do not transfer; no successor method is selected. Identify the resolved revision where exact content matters.
     Earlier manual editions and hashes, including the Agent User Manual retired by the owner on 2026-10-23,
     remain the inputs of their historical runs.
   evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
