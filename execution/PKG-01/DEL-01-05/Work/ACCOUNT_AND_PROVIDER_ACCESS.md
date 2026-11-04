@@ -1798,13 +1798,21 @@ such a change. Its prepared-message identity is its reference and pre-fill,
 not the home, generation or home source, because the host's trial desk keeps
 the pre-fill App-wide. Delegated and bring-back composers keep their full
 scope. The native after-pass on the first head found the earlier,
-generation-scoped identity remounting the composer and losing the edit. The
-start commands themselves are
-unchanged. `workflow_trial_start_clean` and `thread_start` (Continue as) take
-the home class but no generation, as New conversation's Start does, so the
-generation binding is the App's. Native trial and continuation admission,
-retry of a started-but-unsent clean trial, and the handoff send/unknown
-outcome are unchanged.
+generation-scoped identity remounting the composer and losing the edit. When #117
+landed, the start commands took the home class but no generation, so the
+generation binding was the App's alone. #117 also sends the bound full
+`generation` at all three starts: New conversation, Continue as and the clean
+trial.
+
+Since #118, native `thread_start` and `workflow_trial_start_clean` **require**
+that generation and bind the start to it. They refuse a different, replaced or
+closed source before any effect, and record nothing under another generation.
+The clean trial's pre-effect refusal keeps the pre-fill when one is pending. See
+[NATIVE_START_SOURCE_BINDING.md](NATIVE_START_SOURCE_BINDING.md).
+
+New conversation's model choice stays home-class bound (#110), and the
+generation it sends is the one current at press. Retry of a started-but-unsent
+clean trial and the handoff send/unknown outcome are unchanged.
 
 Every chooser control keeps the binding, choice and model list of the render
 that made it. It acts only while those are still the latest, the composer is
@@ -1826,16 +1834,24 @@ the press and across model or role edits, until the conversation shows as
 started (the host's own `started` view) or the person presses "I've checked —
 let me start again". Nothing is sent or retried on its own.
 
-**Generation at the native boundary (staged).** The three start commands now
-also carry `generation`:
+**Generation at the native boundary.** The three start commands carry
+`generation`:
 - `thread_start` for Continue as and `workflow_trial_start_clean` send the full
   generation object the bound choice was made for.
 - New conversation's `thread_start` sends the generation of the host view
-  current at the press. Its choice is bound to the home, not the generation;
-  its model list is bound to the generation.
-The current native receiver ignores the key. Native admission that requires
-it and binds the start to that generation is the runtime owner's separate
-follow-up. Until that lands, the generation binding is the App's only.
+  current at the press. Its model *choice* is bound to the home, not the
+  generation (#110); its model *list* is bound to the generation.
+
+*Historical (#117 staging):* when #117 landed, the native receiver ignored the
+key, so the generation binding was the App's only. Native admission was the
+runtime owner's separate follow-up.
+
+*Current (#118):* native `thread_start` and `workflow_trial_start_clean`
+require `generation`. They bind the start to the home of the named class
+running exactly that generation, and refuse a different, replaced or closed
+source before any effect, recording nothing under another generation. For New
+conversation, native binds the generation it sends; that does not make its model
+choice generation-bound. See [NATIVE_START_SOURCE_BINDING.md](NATIVE_START_SOURCE_BINDING.md).
 
 Checks: `app/tests/trial-continue-model-choice.test.mjs` (mounted composers,
 controlled IPC peer; mutation-checked against the press and late-reply guards)
