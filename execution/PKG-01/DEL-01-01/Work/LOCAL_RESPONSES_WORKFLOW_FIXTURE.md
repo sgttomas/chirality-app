@@ -276,6 +276,83 @@ the scripted fixture. No model received or acted on them, and no inference
 occurred. The fresh process is a new Host
 and Root in the same test process, not an App relaunch.
 
+## Clean trial and Bring back join (follow-on, branch `app/real-backend-trial-bring-back`)
+
+A second test in the same file joins J2's clean trial to the real backend. It is
+`parent_authorized_stock_native_clean_trial_bring_back_fixture`, behind its own
+gate `CHIRALITY_RUN_NATIVE_BACKEND_SMOKE=parent-authorized-0160-local-trial-bring-back-fixture`.
+It uses the same stock binary, the same shared loopback fixture and the same
+fresh `0700` Codex home literal and parent boundary. Only the two model replies
+are scripted.
+
+- **Draft.** In the owned project library: development copy, then library, then
+  draft. The draft's `WORKFLOW.md` gains one invented line. It is **not**
+  reviewed or registered, and no A15 is used.
+- **Try in a fresh conversation.**
+  - `prepare_trial("clean", …)` is pressed with an actual authoring conversation
+    (A) selected. Its trial text carries the invented line.
+  - `trial_flows::start_clean_trial` starts the trial's own conversation (T)
+    from an **actual Host `thread/start` response**. The test's start closure
+    calls the Host directly, because the `lib.rs` `start_conversation` needs the
+    Tauri `AppHandle`.
+  - `send_trial` then sends the trial text first and the person's inputs
+    second.
+  - The Host gained exactly one conversation, and T ≠ A.
+- **Trial results.**
+  - **Link.** The trial link is `clean`; its conversation is T and its
+    authoring conversation is A. Its `turn` is T's acknowledged native turn.
+    `trial_conversation(T)` names the trial.
+  - **History.** T's native history has one turn: exactly the trial text, then
+    the inputs, then the scripted reply.
+  - **Read.** The production trial tick read the trial once, with fidelity
+    `verbatim`.
+- **No run, registration or completed-work claim.** No RS `run_opened` or
+  `run_ended`, no WR `selection_record` or `run_text`, no run or review in the
+  Root, and no offer.
+- **Bring back (pre-filled only).**
+  - `bring_back_with_homes(…, trial, …, A)` returns a pending transcript. It
+    starts `[Chirality] Trial 1 of draft …` and contains the trial's inputs and
+    reply as read from native history.
+  - Before Send: A has no turn, the fixture received no request, and there is no
+    `brought back` observation, either in memory or in a reopened link store.
+- **Explicit send.**
+  - `send_bring_back(…, A, …)` returns the `brought back` observation, with
+    target A. Its `turn` equals A's acknowledged native turn.
+  - A's native history has one turn: the person's text, then the exact
+    transcript, then the scripted reply. T gained nothing.
+  - There is exactly one `brought back` observation, and a second send is
+    refused because nothing is left pre-filled.
+- **Fixture traffic.** Exactly 2 Responses requests: first the trial (invented
+  line, no transcript), then the authoring turn (the transcript plus the
+  person's text).
+- **Stop.** Normal stop with 0 surviving descendants.
+
+**Provenance.**
+- **Source.** The trial's link names T and its native turn.
+- **Target.** The brought-back observation names A and its own acknowledged
+  turn.
+- **Not exercised.** The test does not reopen the trial through saved bare IDs.
+  The cold, after-relaunch Bring back path (`restart_source::Proof`) and source
+  rebinding are not exercised here.
+
+### Observed run (2026-11-04)
+
+- **Source.** `2601f6c1`: #120's head `f8d441c1` plus this test.
+- **Run.** One recorded pass, 3.75 s, with stock binary `112fae7a…`.
+- **Profile.** Same text as above with this scratch root. It is retained at
+  `chirality-t3/scratch/app-trial-bring-back-0JzE1m0C/network.sb`, SHA-256
+  `15a41292c0cec0b3bd0dafd9a42436a58ff5ebb5627b3fc984c32ed613e37624`, beside `run2.log`.
+- **Pre-source run.** `run1.log` is an earlier pass (2.47 s) of the same test
+  before a warning-only `mut` removal, so it is not the recorded source.
+- **Checks.**
+  - Without the gate, the test refuses before executing.
+  - The existing `clean_trial` and `bring_back` unit tests pass, 19/19.
+  - No Codex process and no fixture scratch remained.
+
+These are scripted synthetic facts. Try, Send and Bring back are the test's
+calls, not a person's. No model received the trial or the transcript, and no
+inference occurred. This is not J2, human or native qualification.
+
 ## Limits
 
 - The model replies, the finished line and the person's end are synthetic.
