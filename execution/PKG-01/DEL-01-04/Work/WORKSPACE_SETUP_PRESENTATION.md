@@ -501,9 +501,14 @@ views and navigation of `623a6b8e`/`26a01ff9`, which were not launched natively.
 Those remain unrun native product cases; the browser renders above are evidence
 only for what they show.
 
-Open observation, cause not isolated: when the App was launched inactive under
-fully covering windows, the welcome painted at about 3 s and the same window was
-blank by about 8 s, with no accessibility window exposed (runs 2–8); activation
-attempts did not activate it. The GUI loop was closed at this capability limit.
+Open observation, cause not isolated (per run, as corrected in PR #112 at
+`570160da`): in runs 5, 6 and 7 the welcome painted and the same window later
+went blank (run 5: painted at about 3 s, blank by about 8 s, no input); in runs
+2, 3 and 8 only the later blank state was captured, not the transition; the
+main render of run 4 was not observed. Full occlusion by other windows was
+measured in runs 7 and 8 only. No accessibility window was exposed in the
+blank state; Dock-tile activation was accepted without activating the App, and
+the run-7 title-bar click was skipped, not performed. The GUI loop was closed at
+this capability limit.
 No source bug is claimed or excluded, and no presentation workaround was made;
 any cause belongs to the runtime owner's diagnosis.
