@@ -16,7 +16,7 @@ const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProp
 const nodes = (c, tag) => c.querySelectorAll(node => node.localName === tag);
 const button = (c, label) => nodes(c, 'button').find(node => node.textContent === label);
 const thread = id => ({generation:g, threadId:id, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:null}, roleRelation:{kind:'start'}, futureGuidanceNotices:[]});
-const open = {reference:'run-1', conversation:'T2', home:'account', source:'sent', workflow:{name:'invented-flow', origin:'project', revision:'r'}, lifecycle:{state:"open (live); only the person's explicit end ends it"}, status:{}};
+const open = {reference:'run-1', conversation:'T2', home:'account', generation:g, source:'sent', workflow:{name:'invented-flow', origin:'project', revision:'r'}, lifecycle:{state:"open (live); only the person's explicit end ends it"}, status:{}};
 const host = {state:'ready', generation:g, threads:[thread('T1'), thread('T2')], roleLimits:{account:{roles:[]}}, homeRouting:{activeModeHomeClass:'account'},
   serverRequests:[{recordKind:'server-request-entry', generation:g, requestIdentity:'q1', method:'item/tool/requestUserInput', classification:'known-answerable', originClass:'person-input',
     nativeParameters:{threadId:'T2', turnId:'t', itemId:'i', isBlocking:false, questions:[{id:'q', header:'Scope', question:'Which folder?', isOther:false, isSecret:false, options:[{label:'reports/', description:'Reports'}]}]},

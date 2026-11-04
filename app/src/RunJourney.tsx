@@ -33,6 +33,21 @@ const text = (value: Json): string => value === null || value === undefined ? ""
 const starts = (value: Json, prefix: string) => typeof value === "string" && value.startsWith(prefix);
 const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
 
+/** Runs of ONE home and conversation by the host's `preparationOrder` (its
+ * position in that conversation's run list), highest first. Rows without it
+ * stay in the host's order, unsorted, as order not known. */
+export function orderRuns(runs: Json[]): { ordered: Json[]; unordered: Json[] } {
+  const has = (run: Json) => Number.isInteger(run?.preparationOrder) && run.preparationOrder >= 0;
+  return { ordered: runs.filter(has).sort((a, b) => b.preparationOrder - a.preparationOrder), unordered: runs.filter(run => !has(run)) };
+}
+/** The recorded workflow's full source identity equals the chosen one's (name, origin, source root and kind as supplied); incomplete is no match. */
+const sameWorkflowFamily = (recorded: Json, chosen: Json): boolean => {
+  const fields = ["name", "origin", "source_root"];
+  const recordedRoot = recorded?.source_root ?? recorded?.sourceRoot, chosenRoot = chosen?.source_root ?? chosen?.sourceRoot;
+  if (fields.some(key => typeof (key === "source_root" ? recordedRoot : recorded?.[key]) !== "string" || typeof (key === "source_root" ? chosenRoot : chosen?.[key]) !== "string")) return false;
+  if (typeof recorded?.kind === "string" && typeof chosen?.kind === "string" && recorded.kind !== chosen.kind) return false;
+  return recorded.name === chosen.name && recorded.origin === chosen.origin && recordedRoot === chosenRoot;
+};
 /** One reading of a run, from the host's own lifecycle/status fields. */
 export type RunReading = { tone: "idle" | "working" | "waiting" | "failed" | "uncertain" | "ended" | "done"; title: string; detail: string };
 /** Only Codex's definite refusal establishes that the start did not happen. */
@@ -75,6 +90,20 @@ const INPUT_KIND: Record<string, string> = { host_read: "read by Codex from the 
  * studio's detailed controls, through the same `act`, with no new default,
  * selection, registration or filesystem write.
  */
+/** One run under Results. Navigation only for a run of the exact current source; others are read only. */
+function RunResult({ run, host, loaded, showConversation }: { run: Json; host: Json; loaded: boolean; showConversation?: (threadId: string, target?: string) => void }) {
+  const reading = runReading(run, host);
+  const outputs = declaredRows(list(run?.compatibility).find((c: Json) => c?.preparation?.declaration)?.preparation?.declaration, "returned_outputs");
+  return <li aria-label={`Run ${text(run.reference)}`}>
+    <strong>{text(run.workflow?.name) || "Workflow run"}</strong>{run.workflow?.revision ? <> (<code title={text(run.workflow.revision)}>{text(run.workflow.revision).slice(0, 12)}…</code>)</> : null} · {reading.title}.
+    {outputs.length > 0 && <> It declares: {outputs.map((output: Json, index: number) => <span key={index}>{index ? "; " : ""}<strong>{text(output.name)}</strong>{output.path ? <> (<code>{text(output.path)}</code>)</> : null}</span>)}.</>}
+    <br/><small>The agent reports its results in the conversation; the App hasn't checked them.</small>{" "}
+    {!loaded ? <small>Its conversation isn't loaded in this Codex session; find it in History.</small>
+      : showConversation ? <button onClick={() => showConversation(run.conversation)}>Show the conversation</button> : <a href="#conversation">Go to the conversation</a>}{" "}
+    <a href={`#${runEvidenceAnchor(run.reference)}`}>Open this run's recorded evidence (in the workflow studio, under Make a workflow)</a>
+  </li>;
+}
+
 export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, text: personText, setText, outcome, showConversation }: {
   data: Json; host: Json; thread: string; chooseThread: (thread: string) => void; act: Act; busy: boolean;
   text: string; setText: (text: string) => void; outcome?: { command: string; message: string; failed?: boolean; settled?: boolean } | null;
@@ -109,14 +138,24 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
   const selection = thread ? chatWorkflow(data, data?.context?.sourceRef, thread) : undefined;
   const chosen = selection && selection.state !== "not-selected" ? selection : null;
   const chosenSequence = chosen ? registered.find((row: Json) => row.name === chosen.identity?.name && row.revision === chosen.identity?.revision)?.sequence : undefined;
-  const runs = list(data?.runs).filter((run: Json) => run.conversation === thread && run.home === host?.generation?.home);
-  const latest = runs.at(-1);
-  const prepared = latest && !latest.source && starts(latest?.lifecycle?.state, "prepared") ? latest : null;
+  // This conversation's runs: the exact current generation, home and thread. A
+  // run from an earlier Codex session with the same thread ID is not current.
+  const runs = list(data?.runs).filter((run: Json) => run.conversation === thread && run.home === host?.generation?.home && same(run.generation, host?.generation));
+  // The host's runs are an unordered map; only its preparationOrder (local to
+  // one home and conversation) orders them. Without it for every run, no
+  // latest run is chosen and nothing is sorted.
+  const order = orderRuns(runs);
+  const latest = order.unordered.length === 0 ? order.ordered[0] : runs.length === 1 ? runs[0] : undefined;
+  const orderUnknown = !latest && runs.length > 1;
+  const preparedUnsent = runs.filter((run: Json) => !run.source && starts(run?.lifecycle?.state, "prepared"));
+  const prepared = latest ? (!latest.source && starts(latest?.lifecycle?.state, "prepared") ? latest : null) : preparedUnsent.length === 1 ? preparedUnsent[0] : null;
   const reading = latest ? runReading(latest, host) : null;
   // An open run, or one sent and not yet opened, is ended or followed from the studio, not re-prepared here.
-  const unresolvedStart = !!latest && starts(latest.lifecycle?.state, "start not confirmed") && !startRefused(latest);
+  const unresolved = (latest ? [latest] : runs).filter((run: Json) => starts(run.lifecycle?.state, "start not confirmed") && !startRefused(run));
+  const unresolvedStart = unresolved.length > 0;
+  const holdKey = unresolved.map((run: Json) => text(run.reference)).join("\n");
   const finishedOffer = latest && starts(latest.lifecycle?.state, "open") ? list(data?.offers).find((offer: Json) => offer?.finished?.run === latest.reference) : undefined;
-  const inProgress = !!latest && (starts(latest.lifecycle?.state, "open") || (!!latest.source && starts(latest.lifecycle?.state, "prepared")));
+  const inProgress = (latest ? [latest] : runs).some((run: Json) => starts(run.lifecycle?.state, "open") || (!!run.source && starts(run.lifecycle?.state, "prepared")));
   const declaration = list(latest?.compatibility).find((c: Json) => c?.preparation?.declaration)?.preparation?.declaration ?? chosen?.declaration;
   const inputs = declaredRows(declaration, "expected_inputs");
   const outputs = declaredRows(declaration, "returned_outputs");
@@ -129,12 +168,15 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
   const result = outcome ? guideResultWords(outcome) : null;
   // Runs that started in this conversation, newest first (a prepared, unsent one is not a run yet).
   const sent = (run: Json) => !(starts(run?.lifecycle?.state, "prepared") && !run.source);
-  const resultRuns = [...runs].filter(sent).reverse();
-  // With no conversation chosen (e.g. after Codex restarted), runs of this home
-  // whose conversation isn't loaded now are still findable, as not loaded.
-  const unloadedRuns = thread ? [] : list(data?.runs).filter((run: Json) => run.home === host?.generation?.home && sent(run)
-    && !conversations.some((row: Json) => row.threadId === run.conversation)).reverse();
-  const recordedRuns = chosen ? list(data?.reopened?.runs).filter((run: Json) => run?.workflow?.name === chosen.identity?.name && run?.workflow?.origin === chosen.identity?.origin
+  const resultOrder = orderRuns(runs.filter(sent));
+  // Runs of this home that are not current here: another generation (even with
+  // the same thread ID) or a conversation not loaded now. Read only, grouped by
+  // their conversation; orders are never compared across groups.
+  const loadedHere = (run: Json) => same(run.generation, host?.generation) && conversations.some((row: Json) => row.threadId === run.conversation);
+  const earlier = list(data?.runs).filter((run: Json) => run.home === host?.generation?.home && sent(run) && !loadedHere(run) && (!thread || run.conversation === thread));
+  const earlierGroups: { conversation: string; runs: { ordered: Json[]; unordered: Json[] } }[] = [];
+  for (const run of earlier) { const key = text(run.conversation); if (!earlierGroups.some(g => g.conversation === key)) earlierGroups.push({ conversation: key, runs: orderRuns(earlier.filter((r: Json) => text(r.conversation) === key)) }); }
+  const recordedRuns = chosen ? list(data?.reopened?.runs).filter((run: Json) => sameWorkflowFamily(run?.workflow, chosen.identity)
     && !list(data?.runs).some((live: Json) => live.reference === run.run)) : [];
   const sameName = (name: Json) => registered.filter((row: Json) => row.name === name).length > 1;
   const newer = chosen?.newerRevision;
@@ -144,9 +186,9 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
     : !thread ? conversations.length ? "Choose the conversation that will run the workflow." : "Start a conversation first, then choose it here."
     : !chosen ? registered.some((row: Json) => row.selectable === true) || bundled.some((entry: Json) => entry.runnable === true) ? "Choose a workflow to use." : "No workflow here is ready to use yet. Review one below, or open another library in the workflow studio."
     : chosen.runnable !== true ? `${text(chosen.identity?.name)} can't run: ${text(chosen.runLimit)}`
-    : unresolvedStart && checkedRun !== latest.reference ? "Read the conversation: the last start's outcome is unknown and it may have run."
+    : unresolvedStart && checkedRun !== holdKey ? "Read the conversation: the last start's outcome is unknown and it may have run."
     : !latest || starts(latest.lifecycle?.state, "ended") || starts(latest.lifecycle?.state, "start not confirmed") ? "Describe what the workflow should work on, then prepare the run."
-    : prepared ? "Check your inputs, then start the run." : reading?.title ?? "";
+    : prepared ? "Check your inputs, then start the run." : orderUnknown ? "This conversation has several runs whose order the App can't tell; see each under Results." : reading?.title ?? "";
   return <section id="run-workflow" className="workflow-stage run-journey" aria-label="Run a workflow" aria-busy={busy}>
     <h2>Run a workflow</h2>
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {step}</p>
@@ -199,10 +241,10 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         <p><small>Name any files in the project folder that it should use. This text goes with the workflow's own instructions in one starting message.</small></p>
       </li>
       <li><h3>Start</h3>
-        {!prepared ? <>{unresolvedStart && <p><label><input type="checkbox" checked={checkedRun === latest.reference} disabled={!canAct} onChange={event => setCheckedRun(event.target.checked ? latest.reference : null)}/> I read the conversation and want to prepare a new run anyway</label>
+        {!prepared ? <>{unresolvedStart && <p><label><input type="checkbox" checked={checkedRun === holdKey} disabled={!canAct} onChange={event => setCheckedRun(event.target.checked ? holdKey : null)}/> I read the conversation and want to prepare a new run anyway</label>
             <small>The earlier start may have run; a new run sends the workflow again.</small></p>}
-          <button className="setup-primary" disabled={!canAct || !ready || !thread || chosen?.runnable !== true || inProgress || (unresolvedStart && checkedRun !== latest.reference)}
-          onClick={() => { if (!unresolvedStart || checkedRun === latest.reference) performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start"); }}>Prepare this run</button></>
+          <button className="setup-primary" disabled={!canAct || !ready || !thread || chosen?.runnable !== true || inProgress || (unresolvedStart && checkedRun !== holdKey)}
+          onClick={() => { if (!unresolvedStart || checkedRun === holdKey) performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start"); }}>Prepare this run</button></>
           : <><p>Prepared {text(prepared.workflow?.name)} with your text. Nothing has been sent yet.</p>
             <button ref={startButton} className="setup-primary" disabled={!canAct || !ready} onClick={() => performThen("workflow_send_run", { runRef: prepared.reference }, "progress")}>Start the run</button></>}
         <p><small>Preparing composes the starting message from the chosen revision; nothing is sent. Starting records the run and sends that message once — if recording fails, nothing is sent.</small></p>
@@ -217,27 +259,24 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
             <button disabled={!canAct} onClick={() => perform("workflow_end_run", { runRef: latest.reference, finishedReport: finishedOffer.message })}>End as completed, on the agent's report</button></p>}
           {starts(latest.lifecycle?.state, "open") && <p><button disabled={!canAct} onClick={() => perform("workflow_end_run", { runRef: latest.reference, finishedReport: null })}>End this run</button>{" "}
             <small>Ending here records that you ended it — not that it completed. To stop only Codex's current step, use Stop in the conversation; the run stays open.</small></p>}
-        </div> : <p>No run in this conversation yet.</p>}
+        </div> : orderUnknown ? <p role="status">This conversation has several runs, and the App can't tell which one is the latest. Each is listed under Results.</p> : <p>No run in this conversation yet.</p>}
         {result && <div role="status" aria-label="Run a workflow — last result"><p>{result.words}</p>
           {result.detail && <details><summary>What the App reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{result.detail}</pre></details>}</div>}
       </li>
       <li><h3>Results</h3>
-        {unloadedRuns.length > 0 && <p>Earlier runs whose conversation isn't loaded in this Codex session:</p>}
-        {(resultRuns.length > 0 || unloadedRuns.length > 0) && <ul aria-label={resultRuns.length ? "Runs in this conversation" : "Runs whose conversation isn't loaded"}>{(resultRuns.length ? resultRuns : unloadedRuns).map((run: Json) => {
-          const runReadingNow = runReading(run, host);
-          const runOutputs = declaredRows(list(run?.compatibility).find((c: Json) => c?.preparation?.declaration)?.preparation?.declaration, "returned_outputs");
-          return <li key={text(run.reference)} aria-label={`Run ${text(run.reference)}`}>
-            <strong>{text(run.workflow?.name) || "Workflow run"}</strong>{run.workflow?.revision ? <> (<code title={text(run.workflow.revision)}>{text(run.workflow.revision).slice(0, 12)}…</code>)</> : null} · {runReadingNow.title}.
-            {runOutputs.length > 0 && <> It declares: {runOutputs.map((output: Json, index: number) => <span key={index}>{index ? "; " : ""}<strong>{text(output.name)}</strong>{output.path ? <> (<code>{text(output.path)}</code>)</> : null}</span>)}.</>}
-            <br/><small>The agent reports its results in the conversation; the App hasn't checked them.</small>{" "}
-            {!conversations.some((row: Json) => row.threadId === run.conversation) ? <small>Its conversation isn't loaded in this Codex session; find it in History.</small>
-              : showConversation ? <button onClick={() => showConversation(run.conversation)}>Show the conversation</button> : <a href="#conversation">Go to the conversation</a>}{" "}
-            <a href={`#${runEvidenceAnchor(run.reference)}`}>Open this run's recorded evidence (in the workflow studio, under Make a workflow)</a>
-          </li>;
-        })}</ul>}
+        {(resultOrder.ordered.length + resultOrder.unordered.length) > 0 && <ul aria-label="Runs in this conversation">
+          {resultOrder.ordered.map((run: Json) => <RunResult key={text(run.reference)} run={run} host={host} loaded showConversation={showConversation}/>)}
+          {resultOrder.unordered.length > 0 && <li><small>{resultOrder.ordered.length ? "These runs' order isn't known:" : resultOrder.unordered.length > 1 ? "The App doesn't know these runs' order:" : ""}</small></li>}
+          {resultOrder.unordered.map((run: Json) => <RunResult key={text(run.reference)} run={run} host={host} loaded showConversation={showConversation}/>)}
+        </ul>}
+        {earlierGroups.length > 0 && <div aria-label="Runs whose conversation isn't loaded">
+          <p>{thread ? "Earlier runs with this conversation ID, from a Codex session that isn't loaded now:" : "Earlier runs whose conversation isn't loaded in this Codex session:"}</p>
+          {earlierGroups.map(group => <div key={group.conversation}><p><small>Recorded conversation <code>{group.conversation}</code>{group.runs.unordered.length > 1 || (group.runs.unordered.length && group.runs.ordered.length) ? " (order of some runs isn't known)" : ""}</small></p>
+            <ul>{[...group.runs.ordered, ...group.runs.unordered].map((run: Json) => <RunResult key={text(run.reference)} run={run} host={host} loaded={false} showConversation={showConversation}/>)}</ul></div>)}
+        </div>}
         {recordedRuns.length > 0 && <div aria-label="Recorded runs of this workflow">
           <p>Recorded runs of {text(chosen?.identity?.name)} from the project's records (read only; not live in this session):</p>
-          <ul>{recordedRuns.map((run: Json) => <li key={text(run.run)}>{text(run.run)} · {text(run.state)} · recorded conversation <code>{text(run.conversation) || "not recorded"}</code></li>)}</ul>
+          <ul>{recordedRuns.map((run: Json) => <li key={text(run.run)}>{text(run.run)}{run.workflow?.revision ? <> · revision <code title={text(run.workflow.revision)}>{text(run.workflow.revision).slice(0, 12)}…</code></> : null} · {text(run.state)} · recorded conversation <code>{text(run.conversation) || "not recorded"}</code></li>)}</ul>
         </div>}
         {outputs.length > 0 ? <ul aria-label="Where the results go">{outputs.map((output: Json, index: number) => <li key={index}>
           <strong>{text(output.name)}</strong>{output.path ? <> — declared path <code>{text(output.path)}</code></> : ""}{output.meaning ? `: ${text(output.meaning)}` : ""}</li>)}</ul>

@@ -1098,31 +1098,44 @@ already worked in the native baseline and is unchanged.
 
 **Finding results (J1, 2026-11-04).** The guide's Results step used to list
 only the workflow's declared outputs. It now also lists this conversation's
-runs, newest first. A prepared run that was never sent is not a run, so it is
-left out. Each entry gives the run's workflow and revision, its plain reading
-("Ended as completed", "Ended by you", open, not confirmed) and the outputs it
-declares, with their paths. It also says that the agent reports results in
-the conversation and that the App hasn't checked them.
+runs.
 
-Each entry offers "Show the conversation", which selects and reveals it. If
-that conversation isn't loaded in this Codex session, the entry says so and
-points to History. It also offers "Open this run's recorded evidence (in the
-workflow studio, under Make a workflow)", an exact per-run anchor to that
-run's existing studio panel, where its checkpoint arrivals, acts and output
-evidence are shown. The label names that tab because the link leaves the Run
-guide's tab.
+A run counts as current here only when its `generation`, `home` and thread
+all exactly match the current Codex source and the chosen conversation. A
+prepared run that was never sent is not listed. The host's runs come from an
+unordered map, so the guide uses no array position. It orders runs only by
+the host's `preparationOrder`. That is the run's 0-based position in that
+one home and conversation's run list, not a timestamp. It is read-only
+display metadata from the runtime owner's separate producer, which
+integrates first, and orders are never compared across conversations or
+homes.
 
-After Codex restarts, the guide's conversation choice resets. With no
-conversation chosen, runs of this home whose conversation isn't loaded are
-listed as "Earlier runs whose conversation isn't loaded in this Codex
-session". Each says to find its conversation in History, and none offers
-navigation.
+The same order picks the guide's current run (progress, prepared, an
+unknown start). With one run, that run is current. With several runs and any
+of them unordered, no latest run is chosen. The guide says it can't tell
+which is latest and lists the runs without sorting them. Prepare stays held
+while any of them is open or unresolved.
 
-After "Reopen recorded workflow runs", runs of the chosen workflow found in
-the project's records are listed as recorded and read only, with their saved
-conversation ID. They are never offered as live, and a run that is still
-live is not repeated. No result is claimed to exist, no file is read, and no
-command or DTO is added.
+Each entry gives the run's workflow and revision, its plain reading and its
+declared outputs with paths. It says the agent reports results in the
+conversation and that the App hasn't checked them. It offers:
+- "Show the conversation", for a current run only;
+- "Open this run's recorded evidence (in the workflow studio, under Make a
+  workflow)", an exact per-run anchor to its studio panel.
+
+Runs of this home from another Codex session, or whose conversation isn't
+loaded, are read only. That includes a run whose thread ID matches the
+current conversation. These runs are grouped by their recorded conversation,
+each says "find it in History", and none offers navigation. The chat choice
+still resets on a generation change.
+
+After "Reopen recorded workflow runs", recorded runs are listed only when
+the workflow's full source identity matches the chosen one: name, origin,
+source root, and kind where both are supplied. An incomplete source is no
+match. Each recorded run is labelled with its revision, its saved
+conversation ID is shown without navigation, and a run that is still live
+is not repeated. No result is claimed to exist, no file is read, and no
+command is added.
 
 - **Workflow.** Selectable registered revisions are offered as "Use ‹name›";
   others show the host's label. The chosen workflow is named with its origin,
