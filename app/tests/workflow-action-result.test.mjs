@@ -45,7 +45,8 @@ function actualPacket() {
   assert.deepEqual(value.nativeResult.base,value.source.closedBase);
   packet = freeze(value);return packet;
 }
-const panelIn = container => nodes(container,'h2').find(node => node.textContent === 'Workflow selection and native registration').parentNode;
+// The whole studio section: its detailed controls sit in the Advanced disclosure; the action response follows it.
+const panelIn = container => container.querySelectorAll(node => node.getAttribute('aria-label') === 'Workflow studio controls')[0];
 const createButton = container => nodes(panelIn(container),'button').find(node => node.textContent === 'Create draft from inspected content');
 const resultText = container => labelled(panelIn(container),'Workflow command result')?.textContent ?? '';
 const limits = container => panelIn(container).querySelectorAll(node => node.getAttribute('aria-label') === 'Workflow observation limit').map(node => node.textContent);

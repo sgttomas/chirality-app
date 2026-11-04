@@ -1641,6 +1641,59 @@ not change native runtime, account or provider settings. Mounted App checks in
 `app/tests/conversation-panel.test.mjs` cover the consuming path; they establish
 renderer behavior with synthetic native replies, not provider qualification.
 
+### First-use setup with new App-owned settings
+
+The owner's first use of signed candidate `fe811788` showed the setup asking
+for three raw shared paths and a single-option supplier choice, which a first
+user cannot answer. Setup now offers, while the launch needs setup, a route
+that needs no existing Codex files:
+
+- `desktop_setup_new_settings_preview {projectPath}` plans a new App-owned
+  settings leaf `‹App data›/shared-settings/settings-‹opaque›/` with
+  `config.toml`, `AGENTS.md` and `skills/`, and a new account home in
+  `account-homes/` linked to them, through the existing new-home preview and
+  relationship checks (the leaf is outside every protected App-data domain and
+  the project). The preview creates nothing.
+- The existing `desktop_setup_prepare`, after the same native confirmation
+  (action "Create settings and save for next launch", statement naming the
+  settings folder, the home and that no other Codex settings, home or
+  credential is read, imported or changed), creates the leaf (0700) and the two
+  empty files (0600, create-only, single link) and the empty `skills/` folder
+  (0700), then prepares the home and links and saves the pending request bound
+  to the created objects. Every creation is relative to a held directory handle
+  opened without following links (`mkdirat`/`openat` with `O_NOFOLLOW`,
+  `O_EXCL` for files), so a directory swapped for a symlink makes setup fail
+  rather than write elsewhere. The saved identities come from the creation
+  handles, which stay open until the request is written; the paths must still
+  name exactly those objects right after creation and again immediately before
+  the request is published, or nothing is saved (independent review of PR #111,
+  2026-11-03). An existing path at a reviewed target is never adopted
+  or overwritten: the prepare refuses and creates no home. A failure leaves only
+  what was created inside the new leaf. No `~/.codex` or other location is
+  discovered, read or written; the supplier is the included Codex.
+
+Relation to K-1 (ACCOUNT_HOME_DECISION_RECORD): the mechanism is unchanged —
+the App home still links `config.toml`, `AGENTS.md` and `skills/` — but on
+this route the link targets are new App-owned files rather than the person's
+existing Codex files, so the App does not see the person's other Codex
+settings until they choose "Use my existing Codex settings" (the original
+shared route, still offered and visible). Agent 0 decided (2026-11-03) that
+first use recommends "Start with new settings" behind the explicit reviewed
+native confirmation; this is default guidance, not adoption, import or a
+change to credential custody, and K-1's shared route remains the way to use
+existing settings.
+
+Checks: `desktop_startup::tests::new_settings_creation_refuses_directory_swaps_and_replaced_files`
+(the settings directory or new leaf swapped for a symlink to an outside folder,
+and `config.toml` replaced after creation or just before publication: each
+refuses, writes nothing outside App data, saves no request, and does not adopt
+or overwrite the replacement), `desktop_startup::tests::new_settings_are_created_only_at_confirmed_prepare_inside_the_app_data`
+(review creates nothing; created objects, modes and links; nothing outside App
+data changes; the next launch admits the request; a planted target is not
+adopted or overwritten and no home is created) and the packet producer
+`mounted_setup_packets`, whose new-settings preview and saved packets drive the
+mounted first-use tests in `app/tests/desktop-setup.test.mjs`.
+
 ### Explicit route and model discovery for a new conversation
 
 Owner direction of 2026-11-03 (DEL-02-02 `Work/PUBLICATION_JOURNEYS.md`)

@@ -11,7 +11,7 @@
   },
   "app": {
     "windows": [
-      { "title": "Chirality App v4 — walking skeleton", "width": 1100, "height": 800 }
+      { "title": "Chirality", "width": 1100, "height": 800 }
     ],
     "security": { "csp": null }
   },
