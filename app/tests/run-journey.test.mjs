@@ -299,7 +299,7 @@ test('Results lists this conversation\'s runs newest first with their reading, d
   assert.deepEqual(order, ['Run run-2', 'Run run-1'], 'newest first; another conversation\'s run and an unsent preparation are not listed');
   assert.match(region(ui.c, 'Run run-1').textContent, /resolve-spacing \(rev-1-012345…\) · Ended as completed\..*It declares: .*report-file \(reports\/spacing\.md\)\..*the App hasn't checked them/);
   assert.match(region(ui.c, 'Run run-2').textContent, /Ended by you\./);
-  const evidence = all(region(ui.c, 'Run run-1'), 'a').find(node => node.textContent === 'Open this run\'s recorded evidence');
+  const evidence = all(region(ui.c, 'Run run-1'), 'a').find(node => node.textContent === 'Open this run\'s recorded evidence (in the workflow studio, under Make a workflow)');
   assert.equal(evidence.getAttribute('href'), `#${runEvidenceAnchor('run-1')}`);
   await React.act(async () => props(button(region(ui.c, 'Run run-1'), 'Show the conversation')).onClick());
   assert.deepEqual(ui.shown.at(-1), ['T1', undefined]);
@@ -307,4 +307,17 @@ test('Results lists this conversation\'s runs newest first with their reading, d
   assert.match(recorded, /rec-1 · ended · recorded conversation thread-old/);
   assert.doesNotMatch(recorded, /rec-2|run-1/, 'another workflow\'s and a live run\'s records are not repeated');
   assert.equal(ui.calls.filter(call => call.command).length, 0, 'finding results issues nothing');
+});
+
+test('after Codex restarts and the run\'s conversation is not loaded, its runs stay findable as not loaded', async () => {
+  const g2 = {...g, spawnCounter:2};
+  const runs = [{reference:'run-1', conversation:'T1', home:'account', source:'s', workflow:{name:'resolve-spacing', origin:'project', revision:'rev-1-0123456789ab'}, lifecycle:{state:'ended', end:{cause:'completed'}}},
+    {reference:'run-other-home', conversation:'T9', home:'api-key', source:'s', workflow:{name:'resolve-spacing'}, lifecycle:{state:'ended', end:{cause:'completed'}}}];
+  const restarted = host({generation:g2, workflowRoot:{context:{sourceRef:'src', generation:g2}}, threads:[{threadId:'T5', generation:g2, model:'invented-model', status:{type:'idle'}}]});
+  const ui = await mount({host:restarted, data:data({context:{sourceRef:'src', generation:g2}, runs}), navigate:true});
+  const unloaded = region(ui.c, 'Runs whose conversation isn\'t loaded');
+  assert.ok(unloaded, 'the earlier run is still listed');
+  assert.match(region(ui.c, 'Run run-1').textContent, /Ended as completed\..*Its conversation isn't loaded in this Codex session; find it in History\./);
+  assert.equal(button(region(ui.c, 'Run run-1'), 'Show the conversation'), undefined, 'no navigation to a conversation that isn\'t loaded');
+  assert.equal(region(ui.c, 'Run run-other-home'), undefined, 'another home\'s run is not listed');
 });

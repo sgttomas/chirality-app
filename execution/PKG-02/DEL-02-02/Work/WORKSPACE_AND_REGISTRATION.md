@@ -1106,9 +1106,17 @@ the conversation and that the App hasn't checked them.
 
 Each entry offers "Show the conversation", which selects and reveals it. If
 that conversation isn't loaded in this Codex session, the entry says so and
-points to History. It also offers "Open this run's recorded evidence", an
-exact per-run anchor to that run's existing studio panel, where its
-checkpoint arrivals, acts and output evidence are shown.
+points to History. It also offers "Open this run's recorded evidence (in the
+workflow studio, under Make a workflow)", an exact per-run anchor to that
+run's existing studio panel, where its checkpoint arrivals, acts and output
+evidence are shown. The label names that tab because the link leaves the Run
+guide's tab.
+
+After Codex restarts, the guide's conversation choice resets. With no
+conversation chosen, runs of this home whose conversation isn't loaded are
+listed as "Earlier runs whose conversation isn't loaded in this Codex
+session". Each says to find its conversation in History, and none offers
+navigation.
 
 After "Reopen recorded workflow runs", runs of the chosen workflow found in
 the project's records are listed as recorded and read only, with their saved

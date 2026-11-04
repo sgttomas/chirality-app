@@ -128,7 +128,12 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
   });
   const result = outcome ? guideResultWords(outcome) : null;
   // Runs that started in this conversation, newest first (a prepared, unsent one is not a run yet).
-  const resultRuns = [...runs].filter((run: Json) => !(starts(run?.lifecycle?.state, "prepared") && !run.source)).reverse();
+  const sent = (run: Json) => !(starts(run?.lifecycle?.state, "prepared") && !run.source);
+  const resultRuns = [...runs].filter(sent).reverse();
+  // With no conversation chosen (e.g. after Codex restarted), runs of this home
+  // whose conversation isn't loaded now are still findable, as not loaded.
+  const unloadedRuns = thread ? [] : list(data?.runs).filter((run: Json) => run.home === host?.generation?.home && sent(run)
+    && !conversations.some((row: Json) => row.threadId === run.conversation)).reverse();
   const recordedRuns = chosen ? list(data?.reopened?.runs).filter((run: Json) => run?.workflow?.name === chosen.identity?.name && run?.workflow?.origin === chosen.identity?.origin
     && !list(data?.runs).some((live: Json) => live.reference === run.run)) : [];
   const sameName = (name: Json) => registered.filter((row: Json) => row.name === name).length > 1;
@@ -217,7 +222,8 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
           {result.detail && <details><summary>What the App reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{result.detail}</pre></details>}</div>}
       </li>
       <li><h3>Results</h3>
-        {resultRuns.length > 0 && <ul aria-label="Runs in this conversation">{resultRuns.map((run: Json) => {
+        {unloadedRuns.length > 0 && <p>Earlier runs whose conversation isn't loaded in this Codex session:</p>}
+        {(resultRuns.length > 0 || unloadedRuns.length > 0) && <ul aria-label={resultRuns.length ? "Runs in this conversation" : "Runs whose conversation isn't loaded"}>{(resultRuns.length ? resultRuns : unloadedRuns).map((run: Json) => {
           const runReadingNow = runReading(run, host);
           const runOutputs = declaredRows(list(run?.compatibility).find((c: Json) => c?.preparation?.declaration)?.preparation?.declaration, "returned_outputs");
           return <li key={text(run.reference)} aria-label={`Run ${text(run.reference)}`}>
@@ -226,7 +232,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
             <br/><small>The agent reports its results in the conversation; the App hasn't checked them.</small>{" "}
             {!conversations.some((row: Json) => row.threadId === run.conversation) ? <small>Its conversation isn't loaded in this Codex session; find it in History.</small>
               : showConversation ? <button onClick={() => showConversation(run.conversation)}>Show the conversation</button> : <a href="#conversation">Go to the conversation</a>}{" "}
-            <a href={`#${runEvidenceAnchor(run.reference)}`}>Open this run's recorded evidence</a>
+            <a href={`#${runEvidenceAnchor(run.reference)}`}>Open this run's recorded evidence (in the workflow studio, under Make a workflow)</a>
           </li>;
         })}</ul>}
         {recordedRuns.length > 0 && <div aria-label="Recorded runs of this workflow">
