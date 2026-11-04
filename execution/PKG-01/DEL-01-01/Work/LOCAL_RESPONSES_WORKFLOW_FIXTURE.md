@@ -259,6 +259,17 @@ Step 2 is one scripted reply that repeats for each later ordinary message.
   `d73ed32eeacac4d99ba7c4af0cde84b6ada487628c10a28c1665879bcee5c1aa`, beside the
   logs `run1.log` and `run2.log`.
 - **Cleanup.** No Codex process and no fixture scratch remained.
+- **Assertion-repair rerun.** One focused gated rerun on `ee3ad9fa`, which is
+  `055a9edc` merged normally with #116's `b355e8f5`. It used the same binary
+  and the same retained profile (`d73ed32e…`), in the same scratch folder as
+  `run3.log`. It passed in 5.45 s and confirmed:
+  - the exact RS and WR counts above;
+  - the fresh session's `Ended {the person, completed}` reading with 0 read
+    limits;
+  - the repeat end refused with its specific message;
+  - 0 new records and 3 history turns.
+
+  The earlier two runs keep their own source, `0aaf7f14`.
 
 These are scripted synthetic facts. The notice and the follow-ups reached only
 the scripted fixture. No model received or acted on them, and no inference
