@@ -81,3 +81,70 @@ test('a send that resolves without a result is not an acknowledgement: nothing i
     assert.doesNotMatch(ui.c.textContent, /Native turn\/start response received/, 'no acknowledgement is claimed');
   });
 });
+
+// Parent source review of #123 1f54e4ab: a Send captured before an unconfirmed
+// attempt (or before a newer conversation, text or model) must never send, even
+// after the acknowledgement; only a fresh press of the current view does.
+test('a Send captured before the unconfirmed attempt or a newer choice issues nothing after the acknowledgement; a fresh press sends the current text once', async () => {
+  await mounted((args, n) => { if (n === 1) throw 'invented: no reply'; return {id:n}; }, async ui => {
+    await ui.type('text one for A');
+    const capturedA = props(ui.send()).onClick;
+    await React.act(async () => { capturedA(); }); await ui.settle();
+    assert.equal(ui.sends.length, 1);
+    await ui.render({threadKey:JSON.stringify([g, 'thread-b'])});
+    await ui.type('text two for B');
+    await React.act(async () => { props(button(ui.notices(), 'I\'ve read that conversation — allow sending again')).onClick(); });
+    await React.act(async () => { capturedA(); }); await ui.settle();
+    assert.equal(ui.sends.length, 1, 'the captured A control issues nothing after the acknowledgement and a new choice');
+    await ui.render({threadKey:JSON.stringify([g, 'thread-a'])});
+    await React.act(async () => { capturedA(); }); await ui.settle();
+    assert.equal(ui.sends.length, 1, 'not even with A shown again');
+    await React.act(async () => { props(ui.send()).onClick(); }); await ui.settle();
+    assert.equal(ui.sends.length, 2, 'a fresh press sends once');
+    assert.deepEqual([ui.sends[1][1], ui.sends[1][2]], ['thread-a', 'text two for B'], 'with the current conversation and current text');
+  });
+  await mounted((args, n) => { if (n === 1) throw 'invented: no reply'; return {id:n}; }, async ui => {
+    await ui.type('before the restart');
+    const captured = props(ui.send()).onClick;
+    await React.act(async () => { captured(); }); await ui.settle();
+    await ui.render({host:hostFor(g2), threadKey:JSON.stringify([g2, 'thread-a'])});
+    await React.act(async () => { props(button(ui.notices(), 'I\'ve read that conversation — allow sending again')).onClick(); });
+    await React.act(async () => { captured(); }); await ui.settle();
+    assert.equal(ui.sends.length, 1, 'a control from the earlier Codex session issues nothing');
+    await React.act(async () => { props(ui.send()).onClick(); }); await ui.settle();
+    assert.equal(ui.sends.length, 2);
+    assert.deepEqual(ui.sends[1][0], g2, 'the fresh press uses the current generation');
+  });
+});
+
+test('a request the App puts into the draft, or that replaces it, records where it was written, so moving to another conversation says where it goes', async () => {
+  await mounted(() => ({id:1}), async ui => {
+    await ui.render({composerOffer:{sequence:1, threadKey:JSON.stringify([g, 'thread-a']), text:'Please turn this into a workflow draft'}});
+    assert.equal(props(ui.field()).value, 'Please turn this into a workflow draft');
+    const note = () => ui.c.querySelectorAll(node => node.getAttribute('aria-label') === 'Where your text goes')[0];
+    assert.equal(note(), undefined, 'written for the conversation shown');
+    await ui.render({threadKey:JSON.stringify([g, 'thread-b'])});
+    assert.match(note().textContent, /written while another conversation was shown\. It is kept; if you send it now it goes to Conversation 2 · invented-model\./);
+    // An offer for B while B's draft is kept, then the explicit replacement.
+    await ui.render({composerOffer:{sequence:2, threadKey:JSON.stringify([g, 'thread-b']), text:'The request for B'}});
+    assert.equal(props(ui.field()).value, 'Please turn this into a workflow draft', 'unsent text is not overwritten');
+    await React.act(async () => { props(button(ui.c, 'Replace my text with the request')).onClick(); });
+    assert.equal(props(ui.field()).value, 'The request for B');
+    assert.equal(note(), undefined, 'the replacement belongs to the conversation shown');
+    await ui.render({threadKey:JSON.stringify([g, 'thread-a'])});
+    assert.match(note().textContent, /it goes to Conversation 1 · invented-model/, 'after moving, the note names the real destination');
+  });
+});
+
+test('with nothing else changed, a Send captured before an unconfirmed attempt still issues nothing after the acknowledgement', async () => {
+  await mounted((args, n) => { if (n === 1) throw 'invented: no reply'; return {id:n}; }, async ui => {
+    await ui.type('same text');
+    const captured = props(ui.send()).onClick;
+    await React.act(async () => { captured(); }); await ui.settle();
+    await React.act(async () => { props(button(ui.notices(), 'I\'ve read that conversation — allow sending again')).onClick(); });
+    await React.act(async () => { captured(); }); await ui.settle();
+    assert.equal(ui.sends.length, 1, 'the acknowledgement enables a fresh press, not the earlier control');
+    await React.act(async () => { props(ui.send()).onClick(); }); await ui.settle();
+    assert.equal(ui.sends.length, 2);
+  });
+});

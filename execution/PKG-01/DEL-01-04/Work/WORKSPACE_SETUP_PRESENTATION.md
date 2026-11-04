@@ -616,4 +616,3 @@ Checked by `app/tests/ordinary-send-hold.test.mjs` and
 mutation-checked: the press-time hold, a missing reply, the reveal, and the
 composer focus. No native, DTO or error change. Backend errors are unchanged
 and #118 stays native binding only.
-

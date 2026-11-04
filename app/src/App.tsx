@@ -108,6 +108,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
   const [unconfirmed, setUnconfirmedState] = useState<UnconfirmedSend[]>([]);
   const unconfirmedRef = useRef<UnconfirmedSend[]>([]);
   const unconfirmedSequence = useRef(0);
+  const modelRevisionRef = useRef(0);
   const setUnconfirmed = (update: (rows: UnconfirmedSend[]) => UnconfirmedSend[]) => { unconfirmedRef.current = update(unconfirmedRef.current); setUnconfirmedState(unconfirmedRef.current); };
   const heldSend = (threadId: string | undefined) => !!threadId && unconfirmedRef.current.some(row => !row.acknowledged && row.request.threadId === threadId);
   // The draft is one global text; say where it goes when it was written for another conversation.
@@ -142,8 +143,18 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
   const steering = (host?.steeringTargets ?? []).find((row: Json) => selected && JSON.stringify(row.generation) === generationKey && row.threadId === selected.threadId);
   const steeringTarget = steering?.target && JSON.stringify(steering.target.generation) === generationKey && steering.target.threadId === selected?.threadId ? steering.target : null;
   const alreadyRequested = (host?.turnInterruptRequests ?? []).some((request: Json) => live && JSON.stringify(request.binding?.generation) === generationKey && request.binding?.threadId === live.threadId && request.binding?.turnId === live.turnId && (request.clientRequest?.outcome === "response-observed-result" || (request.clientRequest?.outcome === "pending" && request.clientRequest?.writeResult === "written")));
+  // The send intent this render shows: its conversation view, text edit, model
+  // choice and the unconfirmed attempts so far. A Send or plan/default control
+  // acts only while all are still current, so a control captured before a
+  // failed attempt or a newer choice never sends (even after an acknowledgement).
+  const sendBinding = { owner: ordinaryView.current.owner, epoch: ordinaryView.current.epoch, textRevision: textRevision.current, modelRevision: ordinaryModel.revision, attempts: unconfirmedSequence.current };
+  modelRevisionRef.current = ordinaryModel.revision;
   const sendText = async (mode?: "plan" | "default") => {
     if (!selected || !text || busy || turnActionPending.current || !sourceReady) return;
+    if (ordinaryView.current.owner !== sendBinding.owner || ordinaryView.current.epoch !== sendBinding.epoch || !ordinaryView.current.ready
+      || textRevision.current !== sendBinding.textRevision || modelRevisionRef.current !== sendBinding.modelRevision || unconfirmedSequence.current !== sendBinding.attempts) {
+      setError("Not sent: that Send belonged to an earlier view of the conversation, text or model. Check them and press Send again."); return;
+    }
     // Shared by Send text and the plan/default controls; a retained control can't bypass it.
     if (heldSend(selected.threadId)) { setError("Not sent: an earlier message to this conversation wasn't confirmed and may have been sent. Read the conversation, then confirm below before sending again."); return; }
     const request: OrdinaryTextRequest = { generation: { ...selected.generation }, threadId: selected.threadId, text,
@@ -288,7 +299,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
   useEffect(() => {
     if (!composerOffer || handledOffer.current === composerOffer.sequence || composerOffer.threadKey !== threadKey) return;
     handledOffer.current = composerOffer.sequence;
-    if (text === "") { textRevision.current += 1; setText(composerOffer.text); setHeldOffer(null); }
+    if (text === "") { textRevision.current += 1; textWrittenFor.current = composerOffer.threadKey; setText(composerOffer.text); setHeldOffer(null); }
     else setHeldOffer(composerOffer);
     // Reveal the message box itself: with a conversation selected it sits
     // below the role and activity sections.
@@ -369,7 +380,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     {!sourceReady && <p><a href="#workspace-connection">Open connection controls</a></p>}
     {sourceReady && !selected && <p><a href="#workspace-start">Choose a new conversation</a>{" · "}<a href="#workspace-history">Find a past conversation</a></p>}
     {heldOffer && heldOffer.threadKey === threadKey && <p role="status" aria-label="Prepared workflow request">A workflow-draft request is ready for this conversation. Your unsent text is kept.{" "}
-      <button disabled={!!busy} onClick={() => { textRevision.current += 1; setText(heldOffer.text); setHeldOffer(null); }}>Replace my text with the request</button>{" "}
+      <button disabled={!!busy} onClick={() => { textRevision.current += 1; textWrittenFor.current = heldOffer.threadKey; setText(heldOffer.text); setHeldOffer(null); }}>Replace my text with the request</button>{" "}
       <button onClick={() => setHeldOffer(null)}>Discard the request</button></p>}
     {unconfirmed.length > 0 && <div aria-label="Unconfirmed messages">{unconfirmed.map(row => {
       const shownHere = !!selected && row.request.threadId === selected.threadId;
