@@ -301,17 +301,18 @@ export function ConversationPanel({ composerOffer, host, threadKey, setThreadKey
       fork={() => { void forkSelected(); }} />}
     {selected && <ContinuationContext key={`prior-work:${JSON.stringify([selected.generation, selected.threadId, selected.resumeRequestRef])}`} host={host} thread={selected} />}
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
-    {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} busy={!!busy} ready={host?.state === "ready"}
+    {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} homeClass={host?.homeRouting?.activeModeHomeClass ?? null} generation={host?.generation ?? null} busy={!!busy} ready={host?.state === "ready"}
       start={choice => { void roleAct("starting the new conversation", "thread_start", { ...choice, modeHomeClass: host?.homeRouting?.activeModeHomeClass, role: handoff.targetRole ?? null, preselected: false, continueAs: handoff.id }); }}
       send={draft => handoffSend ? handoffSend(handoff.id, draft) : Promise.resolve({ state: "unknown", reason: "The original handoff sender is unavailable." })}
       read={handoffRead ? () => handoffRead(handoff.id) : undefined}
       open={() => { const started = handoff.started; if (started) setThreadKey(JSON.stringify([started.generation, started.threadId])); }}
       dismiss={() => { void roleAct("closing the handoff", "continue_as_dismiss", { id: handoff.id }); }} />)}
     {prepared.map(item => <div key={item.identity} ref={node => { if (node) preparedNodes.current.set(item.identity, node); else preparedNodes.current.delete(item.identity); }} hidden={item.kind === "delegated" ? !composers.delegated.includes(item.pending) : item.kind === "bring-back" ? !composers.bringBacks.includes(item.pending) : false}>
-      {item.kind === "clean" ? <p aria-label="Original composer owner">Original composer owner: global clean composer; no conversation render owner.</p>
+      {item.kind === "clean" ? <div aria-label="Original composer owner"><p>This trial starts its own new conversation; it isn't sent in an existing one.</p>
+        <details><summary>Exact scope</summary><p><small>Trial reference <code>{item.pending?.reference ?? "not reported"}</code>. Its composer belongs to no existing conversation; Send starts the new conversation with the connection and model you choose.</small></p></details></div>
         : <ConversationContext label="Original composer owner" host={host} reference={item.owner} workflow limit={preparedMessageLimit(host, item)} />}
       {item.kind === "clean" ? <CleanTrialPanel pending={item.pending} roleSet={host?.roleSet} limits={host?.roleLimits} entries={startEntries(host)}
-        modeHomeClass={host?.homeRouting?.activeModeHomeClass} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />
+        modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />
         : item.kind === "delegated" ? <DelegatedTrialComposer pending={item.pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />
         : <BringBackComposer pending={item.pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />}
     </div>)}
@@ -985,7 +986,8 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
       runs={[...(data?.runs??[]),...(data?.reopened?.runs??[])]} pending={data?.pendingTrials} busy={busy} act={action}/>
     {openPreparedMessage && preparedMessages(host).map(item => <div key={item.identity}>
       <small>{item.kind !== "bring-back" ? `Trial ${item.pending.sequence} of draft ${item.pending.draftName}` : item.pending.trial ? "Trial feedback" : "Run feedback"} · prepared message.</small>{" "}
-      {item.kind === "clean" ? <p aria-label="Original composer owner">Original composer owner: global clean composer; no conversation render owner.</p>
+      {item.kind === "clean" ? <div aria-label="Original composer owner"><p>This trial starts its own new conversation; it isn't sent in an existing one.</p>
+        <details><summary>Exact scope</summary><p><small>Trial reference <code>{item.pending?.reference ?? "not reported"}</code>. Its composer belongs to no existing conversation; Send starts the new conversation with the connection and model you choose.</small></p></details></div>
         : <><ConversationContext label="Original composer owner" host={host} reference={item.owner} workflow limit={preparedMessageLimit(host, item)} />
           <button onClick={() => openPreparedMessage(item)}>View prepared message in conversation {item.owner?.threadId ?? "unavailable"}</button></>}
     </div>)}

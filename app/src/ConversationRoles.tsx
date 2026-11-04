@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { EXACT_TEXT } from "./exactText";
+import { AccessRouteChoice, AvailableModels, useBoundModelChoice, type BoundModelChoice } from "./ModelChoice";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // Conversation roles (DEL-01-04 NIR §5.4 ST-5/ST-6, §5.8 CA-1…CA-4; DEL-02-04
@@ -276,6 +277,27 @@ export function ModelProviderFields({ model, modelProvider, setModel, setModelPr
   </>;
 }
 
+/** How a new conversation connects and which model it uses, for a composer
+ * that starts one (a clean trial, Continue as): the explicit access route, the
+ * models Codex reports read at the person's press, and the manual IDs under
+ * Advanced. Nothing is preselected; nothing here starts or sends. */
+export function ConnectionAndModel({ homeClass, chooser, entries, disabled }: {
+  homeClass: string | null; chooser: BoundModelChoice; entries: { value: string; label: string }[]; disabled: boolean;
+}) {
+  const { route, revise } = chooser;
+  return <div aria-label="Connection and model">
+    {chooser.stale && <p role="status">Codex, the home or its generation changed since you chose. Your text is kept; choose how it connects and its model again.</p>}
+    <AccessRouteChoice homeClass={homeClass} modelProvider={route.modelProvider} entryId={route.entryId} disabled={disabled} choose={revise}
+      localHint="Or use a local model server: enter its configured provider under “Advanced: enter IDs yourself”." />
+    <AvailableModels packet={chooser.packet} current={chooser.current} reading={chooser.reading} message={chooser.message}
+      model={route.model} modelProvider={route.modelProvider} entryId={route.entryId} disabled={disabled} read={chooser.read} choose={chooser.choose} />
+    <details><summary>Advanced: enter IDs yourself</summary>
+      <p><ModelProviderFields model={route.model} modelProvider={route.modelProvider} setModel={model => revise({ model })} setModelProvider={modelProvider => revise({ modelProvider })} /></p>
+      <p><label>Access entry <select value={route.entryId} disabled={disabled} onChange={e => revise({ entryId: e.target.value })}><option value="">No entry selected</option>{entries.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}</select></label></p>
+    </details>
+  </div>;
+}
+
 /** The handoff message's send state. "sent" only after the send resolved
  * with a result; a refusal or error keeps the draft and allows another try. */
 export type SendState = { state: "unsent" | "sending" | "sent" | "failed"; failure?: string; detail?: string; prefillKept?: boolean };
@@ -324,13 +346,24 @@ export function HandoffSendStatus({ outcome }: { outcome: HandoffSendOutcome }) 
 /** CA-2, CA-3: one open handoff. The draft is editable and unsent; the new
  * conversation starts with no model chosen; its first message is sent only
  * when the person sends it. */
-export function ContinueAsPanel({ handoff, entries, busy, ready, start, send, read, open, dismiss }: {
-  handoff: Json; entries: { value: string; label: string }[]; busy: boolean; ready: boolean;
+export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy, ready, start, send, read, open, dismiss }: {
+  handoff: Json; entries: { value: string; label: string }[]; homeClass?: string | null; generation?: Json; busy: boolean; ready: boolean;
   start: (choice: StartChoice) => void; send: (text: string) => Promise<HandoffSendOutcome>; read?: () => Promise<HandoffSendOutcome>; open: () => void; dismiss: () => void;
 }) {
   const [draft, setDraft] = useState<string>(text(handoff?.draftText));
   const [seededFrom, setSeededFrom] = useState<string>(text(handoff?.draft?.state));
-  const [choice, setChoice] = useState<StartChoice>({ model: "", modelProvider: "", entryId: "" });
+  const chooser = useBoundModelChoice({ owner: `continue-as:${text(handoff?.id)}`, homeClass: homeClass ?? null, generation: generation ?? null, ready });
+  const choice: StartChoice = chooser.route;
+  const [startRefusal, setStartRefusal] = useState("");
+  const startChosen = () => {
+    const route = chooser.bound();
+    if (!route || route.model !== choice.model || route.modelProvider !== choice.modelProvider || route.entryId !== choice.entryId) {
+      setStartRefusal("Not started: the connection and model were chosen for an earlier Codex source. Your handoff message is kept; choose again.");
+      return;
+    }
+    setStartRefusal("");
+    start(route);
+  };
   const [sending, setSending] = useState<HandoffSendOutcome>(() => handoff?.sendOutcome ? handoffOutcome(handoff.sendOutcome) : { state: "unsent" });
   const [reading, setReading] = useState(false);
   const pressed = useRef(!["unsent", "not-attempted"].includes(sending.state));
@@ -374,13 +407,12 @@ export function ContinueAsPanel({ handoff, entries, busy, ready, start, send, re
     <p>Source conversation: {text(handoff?.sourceThread)} ({text(handoff?.sourceRoleLabel)}); it keeps its role. {text(handoff?.draft?.reading)}</p>
     <label>Handoff message {blocked ? "(original draft retained)" : "(editable; not sent)"} <textarea value={draft} disabled={busy || blocked || text(handoff?.draft?.state) === "waiting"} onChange={e => setDraft(e.target.value)} rows={6} style={{ display: "block", width: "100%" }} /></label>
     {!started && <div>
-      <p>The new conversation starts with no model selected; choose one.</p>
-      <ModelProviderFields model={choice.model} modelProvider={choice.modelProvider}
-        setModel={model => setChoice({ ...choice, model })} setModelProvider={modelProvider => setChoice({ ...choice, modelProvider })} />{" "}
-      <label>Access entry <select value={choice.entryId} onChange={e => setChoice({ ...choice, entryId: e.target.value })}><option value="">No entry selected</option>{entries.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}</select></label>
-      <p><button disabled={busy || !ready || !choice.model.trim() || !choice.modelProvider.trim() || !choice.entryId} onClick={() => start(choice)}>Start new conversation as {target}</button>{" "}
+      <p>The new conversation starts with no model selected; choose how it connects and its model.</p>
+      <ConnectionAndModel homeClass={homeClass ?? null} chooser={chooser} entries={entries} disabled={busy || !ready} />
+      <p><button disabled={busy || !ready || !choice.model.trim() || !choice.modelProvider.trim() || !choice.entryId} onClick={startChosen}>Start new conversation as {target}</button>{" "}
         <button disabled={busy} onClick={dismiss}>Close without starting</button></p>
       {(!choice.model.trim() || !choice.modelProvider.trim()) && <p><small>Not started — no model selected.</small></p>}
+      {startRefusal && <p role="alert">{startRefusal}</p>}
     </div>}
     {started && <div>
       <p>New conversation {text(started.threadId)} started with {target}.{!blocked && " Nothing has been sent to it."}</p>

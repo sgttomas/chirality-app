@@ -102,7 +102,7 @@ test('Continue as: an editable unsent draft, no model chosen, nothing sent until
   const html=h(ContinueAsPanel,{handoff,entries,busy:false,ready:true,start:noop,send:noop,open:noop,dismiss:noop});
   assert.ok(html.includes('Handoff from conversation thread (role HELP_HUMAN).\n\nThe summary.</textarea>'));
   assert.ok(html.includes('it keeps its role'));
-  assert.ok(html.includes('The new conversation starts with no model selected; choose one.')&&html.includes('Not started — no model selected.'));
+  assert.ok(html.includes('The new conversation starts with no model selected; choose how it connects and its model.')&&html.includes('Not started — no model selected.'));
   assert.ok(/<button disabled="">Start new conversation as WORKING_ITEMS<\/button>/.test(html),'no start without a model');
   assert.ok(!html.includes('Send this message'),'nothing can be sent before the new conversation exists');
   const started=h(ContinueAsPanel,{handoff:{...handoff,started:{threadId:'thread-2',generation:g}},entries,busy:false,ready:true,start:noop,send:noop,open:noop,dismiss:noop});

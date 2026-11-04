@@ -1771,6 +1771,40 @@ when the app-server's own provider is that local provider; otherwise its model
 is entered under Advanced. The list says nothing about whether the account may
 use a model; Start or the first turn reports that.
 
+### The same choice for a clean trial and Continue as (2026-11-04)
+
+A clean trial ("Try it in a fresh conversation", DEL-02-02 TT-3b) and Continue
+as (ROLE §3.3) each start a new conversation, and their composers previously
+offered only the raw model, provider and access-entry fields, so Send or Start
+stayed disabled until IDs were typed (native rendered baseline at main
+`98722981`). Both now show the same three steps as New conversation (shared
+`ConnectionAndModel`): the explicit built-in route button for the active home,
+"Read available models" with the same `read_available_models` call, packet
+validation and "Use ‹name›" / "(provider not confirmed)" rules, and the
+unchanged manual fields under "Advanced: enter IDs yourself" (a local provider
+is entered there; these composers do not read configured local providers).
+Nothing is preselected and nothing is read, started or sent until the person
+presses.
+
+Each composer's choice is its own (`useBoundModelChoice`), bound to that
+composer (the pending trial's reference or the handoff's id), the active home
+class and the full generation it was made for. When any of these changes, the
+earlier route, model and list stop counting: the list shows as out of date, the
+composer says the source changed and asks for the choice again, and Send or
+Start is disabled. The composer's unsent text is kept. A press from before
+the change, or a model list that arrives after it, is refused or ignored; such
+a press starts nothing and says so. The start commands themselves are
+unchanged. `workflow_trial_start_clean` and `thread_start` (Continue as) take
+the home class but no generation, as New conversation's Start does, so the
+generation binding is the App's. Native trial and continuation admission,
+retry of a started-but-unsent clean trial, and the handoff send/unknown
+outcome are unchanged.
+
+Checks: `app/tests/trial-continue-model-choice.test.mjs` (mounted composers,
+controlled IPC peer; mutation-checked against the press and late-reply guards)
+and the updated `trials`, `conversation-roles` and
+`prepared-message-navigation` tests. CI runs them.
+
 ## UNRESOLVED
 
 Closed in v0.2: U-A1 (DECISION-L L-1 A), U-A3 (OBS-2 O-6 M1), U-A11
