@@ -193,6 +193,89 @@ with `#[path]`, and the workflow test with `include!`; there is no product use.
   existing `cfg(test)` records-store placement (`chirality-test-records-<pid>`)
   is created under the run's `TMPDIR`, which is inside the owned scratch.
 
+## End notice and fresh-process join (follow-on, branch `app/real-backend-end-notice`)
+
+The same gated test continues past the end, using the same scripted model side.
+Step 2 is one scripted reply that repeats for each later ordinary message.
+- **Run-text check.** Before the end, the home's own history owner selects the
+  conversation, as the history panel does. `check_native_supply` compares the
+  run text with the real native pages; the result is `verified`.
+- **End notice.**
+  - The end reports `endNotice: pending: the next ordinary turn in this
+    conversation carries it`.
+  - The first ordinary message goes through the production `ordinary_send_text`,
+    the `conversation_send_text` path. It returns `end notice and the person's
+    text sent once`.
+  - After it, no notice is pending (`send_with_pending_notice` is `None`).
+  - A second ordinary message carries the person's text only.
+  - The run stays `Ended`, and no finished offer is shown for it.
+  - `check_end_notice_supply` reports `verified`, with R3 `recorded`.
+- **Records.** The counts are asserted exactly.
+  - **RS.** The run's log is exactly `run_opened`, `model_turn`, `model_turn`,
+    `supplied_guidance` (the run text's R3), `run_ended` (`completed`), and
+    `supplied_guidance`. The last is the one entry after the end: the end
+    notice's R3, form `workflow run end notice (turn text)`.
+  - **WR.** It holds exactly 1 `selection_record`, 2 `run_text` (the run start
+    and the end notice) and 2 `supply_check`. Each supply check is cited by
+    exactly one R3.
+- **History.** Three native turns, each holding a user message and the scripted
+  reply:
+  1. the run text and the person's text;
+  2. the end notice first, then the follow-up. The notice starts
+     `[Chirality] Workflow run ended:`, names the run and ends `No workflow is in
+     force.`;
+  3. the second follow-up only.
+
+  The fixture saw exactly 4 Responses requests. The notice text first appeared
+  in the **scripted fixture's** request 3, with the follow-up. Request 4 carries
+  it again only as replayed conversation history, which is not a second supply.
+  No model received it and no inference occurred.
+- **Fresh process.** After a normal stop, a new `Host` starts over the same Codex
+  home and project, giving a new generation, and a new `WorkflowRootSession`
+  holds no run.
+  - **Records read.** The existing records reader, `records::supply::read_project_runs`,
+    reads the ended run with no read limits:
+    - its conversation is the thread;
+    - its lifecycle is `Ended {stopped_by: "the person", cause: "completed"}`;
+    - its workflow is `bundled` / `coordinated-knowledge-work` / `3730d84d…`;
+    - nothing is live, or possibly live, in the conversation.
+  - **Repeat end.** `end_recorded_run` on the ended run is refused with "The
+    record does not show this run open, or in an unknown state, in this
+    conversation; nothing recorded".
+  - **No new records.** The repeat end and `observe_ended_runs` add no RS or WR
+    record.
+  - **History.** The new generation's `NativeHistory` reads the same three turns
+    with the same user texts.
+  - **Stop.** Normal stop leaves 0 surviving descendants.
+
+### Observed runs (2026-11-04)
+
+- **Source.** `558ea694` (#116 head) plus this branch, with the same stock binary
+  `112fae7a…`. This evidence is separate from #116's.
+- **Results.** Two consecutive passes, 5.96 s and 6.45 s.
+- **Profile.** The same profile text as above, with this scratch root. It is
+  retained at
+  `chirality-t3/scratch/app-workflow-end-notice-UhybcNYk/network.sb`, SHA-256
+  `d73ed32eeacac4d99ba7c4af0cde84b6ada487628c10a28c1665879bcee5c1aa`, beside the
+  logs `run1.log` and `run2.log`.
+- **Cleanup.** No Codex process and no fixture scratch remained.
+- **Assertion-repair rerun.** One focused gated rerun on `ee3ad9fa`, which is
+  `055a9edc` merged normally with #116's `b355e8f5`. It used the same binary
+  and the same retained profile (`d73ed32e…`), in the same scratch folder as
+  `run3.log`. It passed in 5.45 s and confirmed:
+  - the exact RS and WR counts above;
+  - the fresh session's `Ended {the person, completed}` reading with 0 read
+    limits;
+  - the repeat end refused with its specific message;
+  - 0 new records and 3 history turns.
+
+  The earlier two runs keep their own source, `0aaf7f14`.
+
+These are scripted synthetic facts. The notice and the follow-ups reached only
+the scripted fixture. No model received or acted on them, and no inference
+occurred. The fresh process is a new Host
+and Root in the same test process, not an App relaunch.
+
 ## Limits
 
 - The model replies, the finished line and the person's end are synthetic.
