@@ -1551,11 +1551,23 @@ impl DesktopSetup {
         )?;
         let data = self.data.as_ref().map_err(Clone::clone)?.clone();
         let mut source_refs = preview.source_refs;
+        let mut created = None;
         if let PreviewKind::NewSettings { settings } = &preview.kind {
-            create_settings(&data, settings, &preview.shared)?;
-            // Bind the saved request to the files actually created.
-            source_refs = [&preview.shared.config_toml, &preview.shared.global_agents_md, &preview.shared.skills]
+            let made = create_settings(&data, settings, &preview.shared)?;
+            // Bind the saved request to the objects actually created: the
+            // identities come from the held handles, and the path reading
+            // must agree with them (no new baseline from a replacement).
+            let objects = made.verify(&data, settings)?;
+            let mut refs: [Reference; 3] = [&preview.shared.config_toml, &preview.shared.global_agents_md, &preview.shared.skills]
                 .map(|p| Reference::observe(p)).into_iter().collect::<Result<Vec<_>, _>>()?.try_into().unwrap();
+            for (reference, object) in refs.iter_mut().zip(objects) {
+                if reference.object.as_ref() != Some(&object) {
+                    return Err("a new settings file was replaced after it was created; nothing was saved".into());
+                }
+                reference.object = Some(object);
+            }
+            source_refs = refs;
+            created = Some((made, settings.clone()));
         }
         protected_directory(&data.join("account-homes"))?;
         // Reserve a NEW directory atomically: OwnedHomePlan's create-only links
@@ -1584,15 +1596,82 @@ impl DesktopSetup {
         };
         self.validate(&requested)?;
         self.recheck_storage()?;
+        // Custody runs through publication: the created objects are re-proved
+        // immediately before the request naming them is written.
+        if let Some((made, settings)) = &created {
+            settings_hook("before-publish");
+            let objects = made.verify(&data, settings)?;
+            if requested.shared.iter().zip(objects.iter()).any(|(r, o)| r.object.as_ref() != Some(o)) {
+                return Err("a new settings file was replaced before saving; nothing was saved".into());
+            }
+        }
         write_profile(&data.join(PROFILE), &requested)?;
+        drop(created);
         self.pending = json!({"state":"saved-for-next-launch","accountHome":preview.account.display().to_string(),"project":preview.project.as_ref().map(|p|p.display().to_string()),"resources":observed.resources.iter().map(|r|json!({"name":r.name,"state":format!("{:?}",r.state),"limit":r.limit})).collect::<Vec<_>>(),"standing":"Pending request only; the current workspace, homes, records, attachments, recovery, choices and prepared messages are unchanged"});
         Ok(self.view())
     }
 }
-/// Create the new App-owned settings leaf and its three empty targets,
-/// create-only (an existing path is never adopted or overwritten), private to
-/// this user. A failure leaves only what was created inside the new leaf.
-fn create_settings(data: &Path, settings: &Path, shared: &SharedResourceTargets) -> Result<(), String> {
+#[cfg(test)]
+thread_local! {
+    /// Deterministic interleavings for the new-settings regression tests.
+    static SETTINGS_HOOK: std::cell::RefCell<Option<Box<dyn FnMut(&str)>>> = std::cell::RefCell::new(None);
+}
+fn settings_hook(_at: &str) {
+    #[cfg(test)]
+    SETTINGS_HOOK.with(|hook| if let Some(hook) = hook.borrow_mut().as_mut() { hook(_at) });
+}
+/// The created settings, held open from creation through publication, with
+/// the identities taken from those handles (never from a later path read).
+struct CreatedSettings {
+    parent: File,
+    leaf: File,
+    objects: [(PathBuf, File); 3],
+}
+impl CreatedSettings {
+    /// Each path must still name exactly the object created through the held
+    /// handles, with no symlink on the way; otherwise nothing is published.
+    fn verify(&self, data: &Path, settings: &Path) -> Result<[ObjectRef; 3], String> {
+        let same = |path: &Path, held: &File, what: &str| -> Result<ObjectRef, String> {
+            storage::check_path(path)?;
+            let at = std::fs::symlink_metadata(path).map_err(|e| format!("{what} is no longer present: {e}"))?;
+            let own = held.metadata().map_err(|e| format!("{what} handle unavailable: {e}"))?;
+            if at.file_type().is_symlink() || ObjectRef::of(&at) != ObjectRef::of(&own) {
+                return Err(format!("{what} was replaced after it was created; nothing was saved"));
+            }
+            Ok(ObjectRef::of(&own))
+        };
+        same(&data.join(SETTINGS), &self.parent, "the App settings directory")?;
+        same(settings, &self.leaf, "the new settings folder")?;
+        let refs = self.objects.each_ref().map(|(path, held)| same(path, held, "a new settings file or folder"));
+        let [a, b, c] = refs;
+        Ok([a?, b?, c?])
+    }
+}
+fn c_name(name: &str) -> Result<std::ffi::CString, String> {
+    std::ffi::CString::new(name).map_err(|_| "settings name contains NUL".to_owned())
+}
+fn open_dir_at(parent: &File, name: &str) -> Result<File, String> {
+    use std::os::fd::FromRawFd;
+    let fd = unsafe { libc::openat(parent.as_raw_fd(), c_name(name)?.as_ptr(), libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC) };
+    if fd < 0 { return Err(format!("{name} could not be opened without following links: {}", std::io::Error::last_os_error())); }
+    Ok(unsafe { File::from_raw_fd(fd) })
+}
+fn private_dir(file: &File, what: &str) -> Result<(), String> {
+    let meta = file.metadata().map_err(|e| e.to_string())?;
+    if !meta.is_dir() || meta.uid() != unsafe { libc::geteuid() } || meta.mode() & 0o077 != 0 {
+        return Err(format!("{what} must be a private directory owned by this user"));
+    }
+    Ok(())
+}
+/// Create the new App-owned settings leaf and its three empty targets. Every
+/// creation is relative to a held directory handle opened without following
+/// links, create-only (an existing entry is never adopted or overwritten),
+/// private to this user; a replaced directory or symlink makes it fail rather
+/// than write elsewhere. A failure leaves only what was created inside the
+/// new leaf.
+fn create_settings(data: &Path, settings: &Path, shared: &SharedResourceTargets) -> Result<CreatedSettings, String> {
+    use std::os::fd::FromRawFd;
+    let leaf = settings.file_name().and_then(|n| n.to_str()).ok_or("new settings leaf name unavailable")?;
     if settings.parent() != Some(data.join(SETTINGS).as_path())
         || shared.config_toml != settings.join("config.toml")
         || shared.global_agents_md != settings.join("AGENTS.md")
@@ -1601,18 +1680,39 @@ fn create_settings(data: &Path, settings: &Path, shared: &SharedResourceTargets)
         return Err("new settings must be the reviewed App-owned leaf".into());
     }
     protected_directory(&data.join(SETTINGS))?;
-    std::fs::DirBuilder::new().mode(0o700).create(settings)
-        .map_err(|e| format!("new settings folder was not created; existing settings are never adopted: {e}"))?;
-    storage::sync_dir(&data.join(SETTINGS))?;
-    for file in [&shared.config_toml, &shared.global_agents_md] {
-        let created = std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(file)
-            .map_err(|e| format!("new settings file was not created: {}: {e}", file.display()))?;
-        created.sync_all().map_err(|e| format!("new settings file not persisted: {e}"))?;
+    settings_hook("after-parent-check");
+    let parent = OpenOptions::new().read(true)
+        .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(data.join(SETTINGS))
+        .map_err(|e| format!("the App settings directory could not be opened without following links: {e}"))?;
+    private_dir(&parent, "the App settings directory")?;
+    if unsafe { libc::mkdirat(parent.as_raw_fd(), c_name(leaf)?.as_ptr(), 0o700) } != 0 {
+        return Err(format!("new settings folder was not created; existing settings are never adopted: {}", std::io::Error::last_os_error()));
     }
-    std::fs::DirBuilder::new().mode(0o700).create(&shared.skills)
-        .map_err(|e| format!("new skills folder was not created: {e}"))?;
-    storage::sync_dir(settings)?;
-    Ok(())
+    settings_hook("after-leaf-create");
+    let leaf_dir = open_dir_at(&parent, leaf)?;
+    private_dir(&leaf_dir, "the new settings folder")?;
+    let file_at = |name: &str| -> Result<File, String> {
+        let fd = unsafe { libc::openat(leaf_dir.as_raw_fd(), c_name(name)?.as_ptr(), libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_NOFOLLOW | libc::O_CLOEXEC, 0o600 as libc::c_uint) };
+        if fd < 0 { return Err(format!("new settings file {name} was not created: {}", std::io::Error::last_os_error())); }
+        let file = unsafe { File::from_raw_fd(fd) };
+        file.sync_all().map_err(|e| format!("new settings file not persisted: {e}"))?;
+        Ok(file)
+    };
+    let config = file_at("config.toml")?;
+    let agents = file_at("AGENTS.md")?;
+    if unsafe { libc::mkdirat(leaf_dir.as_raw_fd(), c_name("skills")?.as_ptr(), 0o700) } != 0 {
+        return Err(format!("new skills folder was not created: {}", std::io::Error::last_os_error()));
+    }
+    let skills = open_dir_at(&leaf_dir, "skills")?;
+    private_dir(&skills, "the new skills folder")?;
+    leaf_dir.sync_all().map_err(|e| format!("new settings folder not persisted: {e}"))?;
+    parent.sync_all().map_err(|e| format!("App settings directory not persisted: {e}"))?;
+    let created = CreatedSettings { parent, leaf: leaf_dir,
+        objects: [(shared.config_toml.clone(), config), (shared.global_agents_md.clone(), agents), (shared.skills.clone(), skills)] };
+    settings_hook("after-create");
+    created.verify(data, settings)?;
+    Ok(created)
 }
 fn resource_view(plan: &OwnedHomePlan) -> Result<Value, String> {
     let o = plan.inspect()?;
@@ -5850,6 +5950,54 @@ mod tests {
         assert_eq!(std::fs::read(settings.join("config.toml")).unwrap(), b"invented existing settings");
         assert!(!PathBuf::from(preview["accountHome"].as_str().unwrap()).exists(), "no home without its settings");
         assert!(setup.view()["pending"].is_null() || setup.view()["pending"]["state"] != "saved-for-next-launch");
+    }
+
+    /// Review finding (PR #111): a same-user swap of a directory or a created
+    /// file at each step must neither write outside App data nor publish a
+    /// request naming a replacement.
+    #[test]
+    fn new_settings_creation_refuses_directory_swaps_and_replaced_files() {
+        fn run(step: &'static str, act: fn(&Path, &Path, &Path)) -> (String, PathBuf, Fixture) {
+            let f = Fixture::new();
+            let outside = f.root.join("outside-target");
+            std::fs::create_dir(&outside).unwrap();
+            let mut setup = f.setup();
+            let launch = setup.resolve(None, true, || panic!("setup has no probe"));
+            setup.admit_root(launch, Ok(f.data.clone()));
+            let preview = setup.preview_new_settings(None).unwrap();
+            let settings = PathBuf::from(preview["settings"].as_str().unwrap());
+            let (data, leaf, out) = (f.data.clone(), settings.clone(), outside.clone());
+            SETTINGS_HOOK.with(|h| *h.borrow_mut() = Some(Box::new(move |at| if at == step { act(&data, &leaf, &out); })));
+            let result = setup.prepare_and_save(preview["token"].as_str().unwrap());
+            SETTINGS_HOOK.with(|h| *h.borrow_mut() = None);
+            let error = result.unwrap_err();
+            assert_eq!(std::fs::read_dir(&outside).unwrap().count(), 0, "{step}: nothing is written outside App data");
+            assert!(!f.data.join(PROFILE).exists(), "{step}: no request is saved");
+            (error, settings, f)
+        }
+        let (error, _, _) = run("after-parent-check", |data, _, out| {
+            std::fs::rename(data.join(SETTINGS), data.join("moved-settings")).unwrap();
+            std::os::unix::fs::symlink(out, data.join(SETTINGS)).unwrap();
+        });
+        assert!(error.contains("without following links"), "{error}");
+        let (error, _, _) = run("after-leaf-create", |_, leaf, out| {
+            std::fs::rename(leaf, leaf.with_extension("moved")).unwrap();
+            std::os::unix::fs::symlink(out, leaf).unwrap();
+        });
+        assert!(error.contains("without following links"), "{error}");
+        for step in ["after-create", "before-publish"] {
+            let (error, settings, _kept) = run(step, |_, leaf, _| {
+                std::fs::remove_file(leaf.join("config.toml")).unwrap();
+                std::fs::write(leaf.join("config.toml"), b"invented replacement settings").unwrap();
+            });
+            assert!(error.contains("replaced"), "{step}: {error}");
+            assert_eq!(std::fs::read(settings.join("config.toml")).unwrap(), b"invented replacement settings", "{step}: the replacement is not adopted or overwritten");
+        }
+        let (error, _, _) = run("before-publish", |data, _, out| {
+            std::fs::rename(data.join(SETTINGS), data.join("moved-settings")).unwrap();
+            std::os::unix::fs::symlink(out, data.join(SETTINGS)).unwrap();
+        });
+        assert!(error.contains("symlink") || error.contains("replaced"), "{error}");
     }
 
     #[test]

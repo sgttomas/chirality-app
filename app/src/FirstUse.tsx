@@ -111,7 +111,7 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
       <li><h2>Codex settings</h2>
         <fieldset disabled={busy} className="first-use-routes"><legend className="visually-plain">How Codex is set up for this App</legend>
           <label><input type="radio" name="first-use-route" checked={route === "new"} onChange={() => { changed(); setRoute("new"); }}/> <strong>Start with new settings</strong> (recommended)
-            <br/><small>The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Nothing outside it is read or changed.</small></label>
+            <br/><small>The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.</small></label>
           <label><input type="radio" name="first-use-route" checked={route === "existing"} onChange={() => { changed(); setRoute("existing"); }}/> <strong>Use my existing Codex settings</strong>
             <br/><small>For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in.</small></label>
           {keepAvailable && <label><input type="radio" name="first-use-route" checked={route === "keep"} onChange={() => { changed(); setRoute("keep"); }}/> <strong>Keep my current sign-in and settings</strong>; change only the project</label>}

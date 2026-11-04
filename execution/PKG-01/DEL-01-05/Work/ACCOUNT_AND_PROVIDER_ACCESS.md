@@ -1660,7 +1660,14 @@ that needs no existing Codex files:
   credential is read, imported or changed), creates the leaf (0700) and the two
   empty files (0600, create-only, single link) and the empty `skills/` folder
   (0700), then prepares the home and links and saves the pending request bound
-  to the created objects. An existing path at a reviewed target is never adopted
+  to the created objects. Every creation is relative to a held directory handle
+  opened without following links (`mkdirat`/`openat` with `O_NOFOLLOW`,
+  `O_EXCL` for files), so a directory swapped for a symlink makes setup fail
+  rather than write elsewhere. The saved identities come from the creation
+  handles, which stay open until the request is written; the paths must still
+  name exactly those objects right after creation and again immediately before
+  the request is published, or nothing is saved (independent review of PR #111,
+  2026-11-03). An existing path at a reviewed target is never adopted
   or overwritten: the prepare refuses and creates no home. A failure leaves only
   what was created inside the new leaf. No `~/.codex` or other location is
   discovered, read or written; the supplier is the included Codex.
@@ -1670,10 +1677,17 @@ the App home still links `config.toml`, `AGENTS.md` and `skills/` — but on
 this route the link targets are new App-owned files rather than the person's
 existing Codex files, so the App does not see the person's other Codex
 settings until they choose "Use my existing Codex settings" (the original
-shared route, still offered). Which route is presented as recommended is a
-product presentation choice returned to Agent 0 and the owner.
+shared route, still offered and visible). Agent 0 decided (2026-11-03) that
+first use recommends "Start with new settings" behind the explicit reviewed
+native confirmation; this is default guidance, not adoption, import or a
+change to credential custody, and K-1's shared route remains the way to use
+existing settings.
 
-Checks: `desktop_startup::tests::new_settings_are_created_only_at_confirmed_prepare_inside_the_app_data`
+Checks: `desktop_startup::tests::new_settings_creation_refuses_directory_swaps_and_replaced_files`
+(the settings directory or new leaf swapped for a symlink to an outside folder,
+and `config.toml` replaced after creation or just before publication: each
+refuses, writes nothing outside App data, saves no request, and does not adopt
+or overwrite the replacement), `desktop_startup::tests::new_settings_are_created_only_at_confirmed_prepare_inside_the_app_data`
 (review creates nothing; created objects, modes and links; nothing outside App
 data changes; the next launch admits the request; a planted target is not
 adopted or overwritten and no home is created) and the packet producer
