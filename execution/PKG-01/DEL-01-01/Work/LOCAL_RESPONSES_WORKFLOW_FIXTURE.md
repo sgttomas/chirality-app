@@ -353,6 +353,32 @@ These are scripted synthetic facts. Try, Send and Bring back are the test's
 calls, not a person's. No model received the trial or the transcript, and no
 inference occurred. This is not J2, human or native qualification.
 
+## Integration runs with #118's Host request reorder (2026-11-04)
+
+#118 changed the Host so that a request carrying a replaced expected generation
+is refused before the not-ready branch. That change is merged into main
+`b31733d5`. Each join above was run **once** more, on its actual head after
+adopting that main, with no source change. The setup was the same retained
+profile and scratch, the same parent boundary, the same stock binary
+`112fae7a…` and fresh scratch Codex homes. The earlier subjects above keep their
+own sources.
+
+| Join | Head | Profile | Result | Log (SHA-256) |
+|---|---|---|---|---|
+| End notice and fresh process | `e2865f0a` (#120) | `app-workflow-end-notice-UhybcNYk/network.sb` `d73ed32e…` | 1/1 pass, 7.32 s | `run4-e2865f0a.log` (`77b015f528a66e595bf5808e22f2297553150f5fb5ba3e655895b9553acad954`) |
+| Clean trial and Bring back | `74767f34` (#121) | `app-trial-bring-back-0JzE1m0C/network.sb` `15a41292…` | 1/1 pass, 3.33 s | `run3-74767f34.log` (`c043bbdab5d758b01b84cf400c6025bcc398bc937ea0efb2d7866e218381ac15`) |
+
+Both runs held their existing assertions:
+- **End-notice join.** RS and WR counts exact, and the fresh session's `Ended
+  {the person, completed}` with 0 read limits, 0 new records and 3 turns.
+- **Trial join.** The trial started from an actual Host `thread/start`, in its
+  own conversation, with a native link turn and fidelity `verbatim`. Bring back
+  stayed pre-filled only, and the `brought back` observation was bound to the
+  authoring conversation's turn.
+
+Both runs ended with 0 surviving descendants. The scripted, no-model, no-person,
+not-native-qualification and Codex-sandbox limits above are unchanged.
+
 ## Limits
 
 - The model replies, the finished line and the person's end are synthetic.
