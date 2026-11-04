@@ -152,6 +152,16 @@ recheck the manifest, and a supply copy was not forced inside the project.
 - The existing holding-copy, development and registered-revision tests are
   unchanged.
 
+## Real-backend join (2026-11-04)
+
+The same admission path now also runs against the real stock Codex 0.160
+app-server, with a deterministic loopback Responses fixture as its scripted model
+side. It goes from select through prepare, supply copy, send, one real native tool
+execution, the finished offer, an end with cause `completed`, and WR/RS and
+history read-back. See DEL-01-01's
+[LOCAL_RESPONSES_WORKFLOW_FIXTURE.md](../../../PKG-01/DEL-01-01/Work/LOCAL_RESPONSES_WORKFLOW_FIXTURE.md).
+It is opt-in and synthetic. It is not the DEL-09-02 observation below.
+
 ## Limits and remaining observation
 
 These are source fixtures. The owner-visible J1 journey on an identified candidate

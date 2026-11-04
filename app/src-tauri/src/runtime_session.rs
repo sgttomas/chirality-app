@@ -8017,6 +8017,7 @@ mod workflow_root_tests {
     mod proposal_disclosure_tests { use super::*; include!("workflow_proposal_disclosure_tests.rs"); }
     mod selected_chain_disclosure_tests { use super::*; include!("workflow_selected_chain_disclosure_tests.rs"); }
     mod action_result_tests { use super::*; include!("workflow_action_result_tests.rs"); }
+    mod real_backend_fixture_tests { use super::*; include!("workflow_real_backend_fixture_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })

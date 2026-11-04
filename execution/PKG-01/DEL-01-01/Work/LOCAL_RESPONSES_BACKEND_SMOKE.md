@@ -98,6 +98,14 @@ inputs and other assertions are unchanged.
 - **Cleanup.** Normal stop with 0 surviving descendants. The scratch root was
   removed, and no Codex process remained.
 
+## Later change
+
+The fixture now lives in `app/src-tauri/tests/support/responses_fixture.rs`, so
+that [LOCAL_RESPONSES_WORKFLOW_FIXTURE.md](LOCAL_RESPONSES_WORKFLOW_FIXTURE.md)
+can share it. This route's script is its one canned message, and its prompt
+fact is now read as `markers.prompt`. The route was re-run on 2026-11-04 on
+`98722981` plus that branch: `ok`, 3.58 s.
+
 ## Limits
 
 These are deterministic fixture results only. Compatibility with any real local
