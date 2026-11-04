@@ -1176,18 +1176,33 @@ the studio's existing source-checked Open (a clean trial points to the global
 new-trial composer). With no library open, its next step opens one first, so a
 returning person sees unfinished drafts before choosing a conversation.
 
-After a trial, the guide also shows that draft's trials (2026-11-04, J2). It
-lists them latest first, as the draft list reads them (TT-4): each trial's
-kind, its conversation in the person's words (or that the conversation isn't
-loaded now), its time, and whether it was brought back. "Bring trial ‹n› back
-to ‹conversation›" uses the draft list's own `workflow_trial_bring_back` with
-the guide's conversation and `includeNative: false`. It is held while a trial
-turn is live, when the host reports a source limit, or before a conversation
-is chosen. The native-items option and any other target stay in the draft
-list. A prepared results message for that draft ("Trial ‹n›'s results are
-ready to send") opens through the same source-checked Open; nothing is sent
-from the guide. The guide then points to Review for registration. Checked in
-`app/tests/make-journey.test.mjs`.
+After a trial, the guide also shows that draft's trials (2026-11-04, J2), in
+the host's order. TT-4's listing, `trials_for_draft`, is newest first. Each
+row shows the trial's kind and time, its conversation and whether it was
+brought back. The conversation fields are read in their actual shapes:
+- A clean trial's conversation and a brought-back target are saved IDs. They
+  are shown as "a recorded conversation (‹ID›)" and never matched against the
+  current session.
+- An authoring conversation is named by its label only when the host supplies
+  the hot `{generation, threadId}` source. Otherwise it is shown as recorded.
+- Only an absent conversation reads "not started".
+
+"Bring trial ‹n› back to ‹conversation›" uses the draft list's own
+`workflow_trial_bring_back` with the guide's conversation and `includeNative:
+false`. It is held while a trial turn is live, when the host reports a source
+limit, or before a conversation is chosen. The native-items option and any
+other target stay in the draft list.
+
+The host's prepared results messages are App-wide, and another library can
+hold a draft with the same name. So a results message is offered as "Trial
+‹n›'s results are ready to send" only when its `trial` is one of this draft's
+own listed trial references. It opens through the same source-checked Open,
+and nothing is sent from the guide. The guide then points to Review for
+registration.
+
+Checked in `app/tests/make-journey.test.mjs` with producer-shaped rows:
+newest-first order, saved bare IDs, a hot authoring tuple, and foreign results
+from a same-name draft. Each check was mutation-checked.
 
 Every host-changing control uses the same busy/stale-source guard as Run a
 workflow. Checked by `app/tests/make-journey.test.mjs` (run directly with

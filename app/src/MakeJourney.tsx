@@ -54,35 +54,46 @@ function DraftActions({ draft, chosen, host, canAct, act, openPreparedMessage }:
   </div>;
 }
 
-/** A listed conversation reference in the person's words, or that it isn't loaded. */
-const conversationWords = (host: Json, ref: Json): string => {
-  const row = list(host?.threads).find((t: Json) => t?.threadId === ref?.threadId && same(t?.generation, ref?.generation));
-  return row ? conversationLabel(host, row) : ref?.threadId ? "a conversation that isn't loaded now" : "not started";
-};
+/** A conversation as a trial row carries it. A tuple `{generation, threadId}` is
+ * a live source the host proved; a bare ID is a saved label and is never
+ * matched against the current session. */
+function ConversationRef({ host, refValue, none }: { host: Json; refValue: Json; none: string }) {
+  if (typeof refValue === "string" && refValue) return <>a recorded conversation <small>(<code>{refValue}</code>)</small></>;
+  if (refValue && typeof refValue === "object" && typeof refValue.threadId === "string" && refValue.threadId) {
+    const row = list(host?.threads).find((t: Json) => t?.threadId === refValue.threadId && same(t?.generation, refValue.generation) && same(t?.generation, host?.generation));
+    return row ? <>{conversationLabel(host, row)}</> : <>a conversation that isn't loaded now</>;
+  }
+  return <>{none}</>;
+}
 
 /**
- * The draft's trials as the draft list reads them (TT-4), and bringing one back
- * to the guide's conversation with the draft list's own command and arguments
- * (TT-10/TT-11). Bringing back only pre-fills a message; it is sent from the
- * conversation, and nothing here sends, registers or checks anything.
+ * The draft's trials as the host lists them (TT-4; newest first), and bringing
+ * one back to the guide's conversation with the draft list's own command and
+ * arguments (TT-10/TT-11). Bringing back only pre-fills a message; it is sent
+ * from the conversation, and nothing here sends, registers or checks anything.
  */
 function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage }: { draft: Json; chosen: Json; host: Json; canAct: boolean; perform: (command: string, args: Record<string, unknown>) => void; openPreparedMessage?: (item: PreparedMessage) => void }) {
-  const trials = list(draft.trials).filter((trial: Json) => trial?.kind === "clean" || trial?.kind === "delegated");
-  const feedback = preparedMessages(host).filter(item => item.kind === "bring-back" && item.pending?.draftName === draft.name);
+  const trials = list(draft.trials).filter((trial: Json) => (trial?.kind === "clean" || trial?.kind === "delegated") && typeof trial?.reference === "string" && trial.reference);
+  // Results belong to this draft only through its own trial references: the
+  // host's bring-backs are App-wide, and another library may hold a same-name draft.
+  const references = new Set(trials.map((trial: Json) => trial.reference));
+  const feedback = preparedMessages(host).filter(item => item.kind === "bring-back" && references.has(item.pending?.trial) && item.pending?.draftName === draft.name);
   if (!trials.length && !feedback.length) return null;
   return <div aria-label="Trials of this draft">
     <h4>Trials so far</h4>
-    {trials.length > 0 && <ul>{[...trials].reverse().map((trial: Json) => {
+    {trials.length > 0 && <ul>{trials.map((trial: Json) => {
       const n = text(trial.sequence), brought = list(trial.broughtBack);
       const limit = trial.live ? "Bringing it back waits until no turn is live in the trial." : trial.sourceLimit ? text(trial.sourceLimit) : !chosen ? "Choose the conversation where you did the work to bring it back there." : null;
       return <li key={text(trial.reference)} aria-label={`Trial ${n} of ${text(draft.name)}`}>
-        <strong>Trial {n}</strong> · {trial.kind === "clean" ? <>in a fresh conversation ({conversationWords(host, trial.trialConversation)})</> : <>with the agent in {conversationWords(host, trial.authoringConversation)}</>}{trial.time ? <> · {text(trial.time)}</> : null}
-        <br/><small>{brought.length ? `Brought back to ${brought.map((b: Json) => conversationWords(host, b.to)).join(", ")}.` : "Not brought back yet."}</small>
+        <strong>Trial {n}</strong> · {trial.kind === "clean"
+          ? <>in a fresh conversation (<ConversationRef host={host} refValue={trial.trialConversation} none="not started"/>)</>
+          : <>with the agent in <ConversationRef host={host} refValue={trial.authoringConversation} none="no recorded conversation"/></>}{trial.time ? <> · {text(trial.time)}</> : null}
+        <br/><small>{brought.length ? <>Brought back {brought.length === 1 ? "once" : `${brought.length} times`}, to {brought.map((b: Json, i: number) => <span key={i}>{i ? ", " : ""}<ConversationRef host={host} refValue={b?.to} none="a conversation not recorded"/></span>)}.</> : "Not brought back yet."}</small>
         <br/><button disabled={!canAct || limit !== null} onClick={() => { if (chosen && limit === null) perform("workflow_trial_bring_back", { reference: trial.reference, generation: chosen.generation, threadId: chosen.threadId, includeNative: false }); }}>{chosen ? `Bring trial ${n} back to ${conversationLabel(host, chosen)}` : `Bring trial ${n} back`}</button>
         {limit && <small> {limit}</small>}
       </li>;
     })}</ul>}
-    {feedback.map(item => <p key={item.identity}>Trial {text(item.pending?.sequence)}'s results are ready to send in {conversationWords(host, item.owner)}.{" "}
+    {feedback.map(item => <p key={item.identity}>Trial {text(item.pending?.sequence)}'s results are ready to send in <ConversationRef host={host} refValue={item.owner} none="its conversation"/>.{" "}
       {openPreparedMessage && <button disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>Read and send trial {text(item.pending?.sequence)}'s results</button>}</p>)}
     <p><small>Bringing a trial back pre-fills a message with its transcript for the agent to assess against the draft; you read and send it. To include native items or choose another conversation, use the draft list in the workflow studio. When a trial went well, review the draft for registration.</small></p>
   </div>;

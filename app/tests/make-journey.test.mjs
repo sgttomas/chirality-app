@@ -201,34 +201,52 @@ test('with App navigation, an invalid draft shows its conversation instead of a 
   assert.deepEqual(ui.calls, []); assert.deepEqual(ui.offers, []);
 });
 
-test('the guide shows the draft\'s trials and brings one back to its conversation with the draft list\'s command, then opens the prepared results', async () => {
-  const trials = [
-    {reference:'t1', sequence:1, kind:'delegated', time:'2026-11-04 10:00', authoringConversation:{generation:g, threadId:'T1'}, broughtBack:[{time:'2026-11-04 10:30', to:{generation:g, threadId:'T1'}}]},
-    {reference:'t2', sequence:2, kind:'clean', time:'2026-11-04 11:00', authoringConversation:{generation:g, threadId:'T1'}, trialConversation:{generation:g, threadId:'T2'}, broughtBack:[]},
-    {reference:'t3', sequence:3, kind:'clean', time:'2026-11-04 11:30', trialConversation:{generation:g, threadId:'T9'}, live:true, broughtBack:[]},
-    {kind:'earlier attachment trial', content:{value:'abc'}},
-  ];
-  const draft = {name:'spacing-check', state:'draft', trials};
+// Rows as the host lists them: workflow_trials.rs trials_for_draft (newest
+// first; clean `trialConversation` and `broughtBack[].to` are saved bare IDs)
+// and trial_flows.rs trial_rows (`authoringConversation` becomes a tuple only
+// with a hot source proof, else stays the saved ID with `authoringSourceLimit`).
+const row = over => ({kind:'clean', content:{value:'c'}, version:'current', subAgent:null, fidelity:{state:'not checked', limits:['no fidelity reading yet']}, broughtBack:[], link:{}, standing:'s',
+  authoringConversation:'thread-authoring', authoringSourceLimit:'Original authoring source is not established by this saved trial link; choose a current target', sourceLimit:null, ...over});
+const producerTrials = [
+  row({reference:'trial:lib-a:4', sequence:4, time:'2026-11-04 12:00', trialConversation:null}),
+  row({reference:'trial:lib-a:3', sequence:3, time:'2026-11-04 11:30', trialConversation:'thread-clean-3', live:true}),
+  row({reference:'trial:lib-a:2', sequence:2, time:'2026-11-04 11:00', trialConversation:'thread-clean-2', broughtBack:[{time:'2026-11-04 11:10', to:'thread-authoring'}]}),
+  row({reference:'trial:lib-a:1', sequence:1, kind:'delegated', time:'2026-11-04 10:00', trialConversation:null, subAgent:{state:'sub-agent not linked'},
+    authoringConversation:{generation:g, threadId:'T1'}, authoringSourceLimit:null, broughtBack:[{time:'2026-11-04 10:30', to:'thread-authoring'}, {time:'2026-11-04 10:40', to:'T1'}]}),
+  {kind:'earlier attachment trial', content:{value:'abc'}, version:'earlier', conversation:'old', time:'t', link:{}},
+];
+
+test('the guide shows the draft\'s trials in host order with saved conversations as recorded, and brings one back with the draft list\'s command', async () => {
+  const draft = {name:'spacing-check', state:'draft', trials:producerTrials};
   const ui = await mount({host:host(), data:data({drafts:{drafts:[draft]}})});
   await ui.name('spacing-check');
   const shown = () => region(ui.c, 'Trials of this draft').textContent;
-  assert.match(shown(), /^Trials so farTrial 3 · in a fresh conversation \(a conversation that isn't loaded now\)/, 'latest first; an unloaded conversation is said so');
-  assert.match(shown(), /Trial 2 · in a fresh conversation \(.+\) · 2026-11-04 11:00Not brought back yet\./);
-  assert.match(shown(), /Trial 1 · with the agent in .+ · 2026-11-04 10:00Brought back to .+\./);
-  assert.doesNotMatch(shown(), /attachment/);
-  assert.equal(props(button(ui.c, 'Bring trial 2 back')).disabled, true, 'no conversation chosen, no bring-back');
+  const order = [...shown().matchAll(/Trial (\d) ·/g)].map(m => m[1]);
+  assert.deepEqual(order, ['4', '3', '2', '1'], 'the host\'s newest-first order is kept');
+  assert.match(shown(), /Trial 4 · in a fresh conversation \(not started\)/, 'only an absent conversation is "not started"');
+  assert.match(shown(), /Trial 2 · in a fresh conversation \(a recorded conversation \(thread-clean-2\)\) · 2026-11-04 11:00Brought back once, to a recorded conversation \(thread-authoring\)\./, 'saved bare IDs are recorded conversations, never "not started"');
+  assert.match(shown(), /Trial 1 · with the agent in Conversation 1 · invented-model · 2026-11-04 10:00Brought back 2 times, to a recorded conversation \(thread-authoring\), a recorded conversation \(T1\)\./, 'a hot authoring tuple is labelled; a saved brought-back ID is not resolved against this session');
+  assert.doesNotMatch(shown(), /attachment|Brought back to not started/);
+  assert.equal(props(all(ui.c, 'button').find(node => node.textContent === 'Bring trial 2 back')).disabled, true, 'no conversation chosen, no bring-back');
   await ui.choose(key('T1'));
   const bring = all(ui.c, 'button').find(node => node.textContent.startsWith('Bring trial 2 back to '));
   assert.ok(bring); assert.equal(props(bring).disabled, false);
   const before = ui.calls.length;
   await React.act(async () => props(bring).onClick());
-  assert.deepEqual(ui.calls.slice(before), [{command:'workflow_trial_bring_back', args:{reference:'t2', generation:g, threadId:'T1', includeNative:false}}], 'exactly the draft list\'s command; nothing is sent');
-  const live = all(ui.c, 'button').find(node => node.textContent.startsWith('Bring trial 3 back'));
-  assert.equal(props(live).disabled, true); assert.match(shown(), /waits until no turn is live/);
-  const feedback = {id:'bb-1', trial:'t2', sequence:2, draftName:'spacing-check', target:{generation:g, threadId:'T1'}, prompt:'Here is how trial 2 went', transcript:'…', textIdentity:{value:'aa'}, includeNative:false, shortenings:[]};
-  await ui.rerender({host:host({homeRouting:{activeModeHomeClass:'account'}, workflowRoot:{context:{sourceRef:'src', generation:g}, pendingBringBacks:[feedback, {...feedback, id:'bb-other', draftName:'other-draft'}]}})});
-  assert.match(shown(), /Trial 2's results are ready to send in .+\./);
-  assert.equal(all(ui.c, 'button').filter(node => node.textContent.startsWith('Read and send trial')).length, 1, 'another draft\'s results are not offered here');
+  assert.deepEqual(ui.calls.slice(before), [{command:'workflow_trial_bring_back', args:{reference:'trial:lib-a:2', generation:g, threadId:'T1', includeNative:false}}], 'exactly the draft list\'s command; nothing is sent');
+  assert.equal(props(all(ui.c, 'button').find(node => node.textContent.startsWith('Bring trial 3 back'))).disabled, true); assert.match(shown(), /waits until no turn is live/);
+});
+
+test('only this draft\'s own trial results are offered; a same-name draft in another library is not', async () => {
+  const draft = {name:'spacing-check', state:'draft', trials:producerTrials};
+  const feedback = over => ({id:'bb-1', trial:'trial:lib-a:2', run:null, sequence:2, draftName:'spacing-check', target:{generation:g, threadId:'T1'}, source:{kind:'clean'}, prompt:'Here is how trial 2 went', transcript:'…', card:'c', textIdentity:{value:'aa'}, includeNative:false, shortenings:[], ...over});
+  const pendingBringBacks = [feedback(), feedback({id:'bb-foreign', trial:'trial:lib-b:2', sequence:2}), feedback({id:'bb-other-name', trial:'trial:lib-a:9', draftName:'other-draft', sequence:9})];
+  const ui = await mount({host:host({homeRouting:{activeModeHomeClass:'account'}, workflowRoot:{context:{sourceRef:'src', generation:g}, pendingBringBacks}}), data:data({drafts:{drafts:[draft]}})});
+  await ui.name('spacing-check');
+  await ui.choose(key('T1'));
+  const shown = region(ui.c, 'Trials of this draft').textContent;
+  assert.equal([...shown.matchAll(/results are ready to send/g)].length, 1, 'the same-name draft\'s results from another library are not this draft\'s');
+  assert.match(shown, /Trial 2's results are ready to send in .+invented-model/);
   const calls = ui.calls.length;
   await ui.press('Read and send trial 2\'s results');
   assert.equal(ui.opened.at(-1).kind, 'bring-back'); assert.equal(ui.opened.at(-1).pending.id, 'bb-1');
