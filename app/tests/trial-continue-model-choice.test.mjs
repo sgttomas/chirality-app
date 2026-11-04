@@ -543,3 +543,25 @@ test('in the App, an unconfirmed run bring-back is acknowledged from its own not
     assert.equal(find(view())[0].props.disabled, false, 'the run bring-back is allowed again');
   });
 });
+
+test('in the App, a null send result that leaves the pre-fill visible is not shown as sent, keeps the edited text and holds further sends', async () => {
+  await mountBringBacks(bbRoot([bbRow()]), async command => {
+    if (command === 'workflow_bring_back_send') return null;
+    throw Error(`unexpected ${command}`);
+  }, async ui => {
+    await ui.select('T1');
+    const composer = () => region(ui.c, 'Bring back composer');
+    const field = () => nodes(composer(), 'textarea')[0];
+    await React.act(async () => { props(field()).onChange({target:{value:'Edited prompt for trial 2'}}); });
+    const send = props(button(composer(), 'Send')).onClick;
+    await React.act(async () => { send(); }); await ui.settle();
+    assert.ok(composer(), 'the pre-fill is still shown');
+    assert.doesNotMatch(composer().textContent, /Transcript sent/, 'no success words for a missing result');
+    assert.match(composer().textContent, /Not confirmed: the host did not report the send's outcome/);
+    assert.equal(props(field()).value, 'Edited prompt for trial 2', 'the edited text is kept');
+    assert.match(region(ui.c, 'Bring-back send not confirmed').textContent, /Reported: The host did not report the send's outcome\./);
+    await React.act(async () => { props(button(composer(), 'Send')).onClick(); }); await ui.settle();
+    await React.act(async () => { send(); }); await ui.settle();
+    assert.equal(ui.calls.filter(call => call.command === 'workflow_bring_back_send').length, 1, 'neither Send nor a retained callback issues another send while held');
+  });
+});

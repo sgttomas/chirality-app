@@ -67,7 +67,8 @@ export function pressSend(act: TrialAct, command: string, args: Record<string, u
   let call: Promise<unknown>;
   try { call = Promise.resolve(act(command, args)); } catch (error) { call = Promise.reject(error); }
   void call.then(
-    result => setOutcome(result === undefined ? { state: "failed", failure: "The host did not report the send's outcome; see the App message." } : { state: "sent", detail: sentWords(result) }),
+    // A missing result (undefined or null) is never a send: no success words.
+    result => setOutcome(result === undefined || result === null ? { state: "failed", failure: "Not confirmed: the host did not report the send's outcome, so it may or may not have been sent." } : { state: "sent", detail: sentWords(result) }),
     error => setOutcome({ state: "failed", failure: hostMessage(error), prefillKept: prefillKept(error) }));
 }
 

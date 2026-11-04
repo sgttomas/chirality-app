@@ -1208,7 +1208,8 @@ from a same-name draft. Each check was mutation-checked.
 `workflow_bring_back_send` without `prefillKept: true` withdraws the pre-fill.
 That covers an unknown outcome, a transcript sent without its observation
 written, and a lost pre-fill. A send that resolves without a reported outcome
-counts the same way. Before the call, the App captures the original attempt:
+(undefined or null) counts the same way. The composer never shows success
+words for it; it says "Not confirmed" and keeps the edited text. Before the call, the App captures the original attempt:
 trial or run reference, prepared-message id, workflow source, home and full
 generation, target conversation, and the person's text. If the send is
 unconfirmed, the App keeps that attempt for the life of the window
