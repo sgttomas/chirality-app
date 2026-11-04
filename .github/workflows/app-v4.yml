@@ -138,7 +138,7 @@ jobs:
       - name: Workflow and fleet presentation
         run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs
       - name: Native history and conversation presentation
-        run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs
+        run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs tests/trial-continue-model-choice.test.mjs
 
   sources-packaging:
     name: Schemas, successor feature, packaging and examination
@@ -285,7 +285,7 @@ jobs:
       - name: Workflow and fleet presentation
         run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs
       - name: Native history and conversation presentation
-        run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs
+        run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs tests/trial-continue-model-choice.test.mjs
       - name: Node schemas and presentation with mandatory supplier
         run: |
           test -x "$CHIRALITY_CODEX_BIN"

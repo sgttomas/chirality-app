@@ -22,7 +22,14 @@ export function preparedMessages(host: Json): PreparedMessage[] {
     const binding = kind === "bring-back"
       ? [pending?.trial, pending?.run, pending?.source, pending?.textIdentity, pending?.transcript, pending?.prompt, pending?.includeNative]
       : [pending?.draftName, pending?.location, pending?.content, pending?.textIdentity, pending?.text, pending?.message, pending?.workFolder, pending?.authoring];
-    return { kind, id, owner, pending, identity: JSON.stringify(canonical([scope, kind, id, owner, binding])) };
+    // A clean composer has no conversation owner, and the host's trial desk
+    // (one per App, across homes) keeps its pre-fill. Its connection and model
+    // are bound to the current home and generation by its own chooser
+    // (ModelChoice), so a home, generation or home-source change must keep
+    // its unsent inputs: it is identified by its reference and pre-fill only.
+    // Delegated and bring-back composers keep their full scope.
+    const scoped = kind === "clean" ? null : scope;
+    return { kind, id, owner, pending, identity: JSON.stringify(canonical([scoped, kind, id, owner, binding])) };
   };
   return [...list(root?.pendingTrials).filter(p => p?.kind === "delegated" || p?.kind === "clean").map(p => make(p.kind, p)),
     ...list(root?.pendingBringBacks).map(p => make("bring-back", p))];
