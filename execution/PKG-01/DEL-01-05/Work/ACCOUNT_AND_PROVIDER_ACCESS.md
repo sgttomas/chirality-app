@@ -1793,7 +1793,13 @@ earlier route, model and list stop counting: the list shows as out of date, the
 composer says the source changed and asks for the choice again, and Send or
 Start is disabled. The composer's unsent text is kept. A press from before
 the change, or a model list that arrives after it, is refused or ignored; such
-a press starts nothing and says so. The start commands themselves are
+a press starts nothing and says so. The clean composer stays mounted through
+such a change. Its prepared-message identity is its reference and pre-fill,
+not the home, generation or home source, because the host's trial desk keeps
+the pre-fill App-wide. Delegated and bring-back composers keep their full
+scope. The native after-pass on the first head found the earlier,
+generation-scoped identity remounting the composer and losing the edit. The
+start commands themselves are
 unchanged. `workflow_trial_start_clean` and `thread_start` (Continue as) take
 the home class but no generation, as New conversation's Start does, so the
 generation binding is the App's. Native trial and continuation admission,

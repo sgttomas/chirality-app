@@ -176,3 +176,52 @@ test('Continue as chooses a route and reported model, keeps the edited handoff a
     assert.equal(props(labelled(ui.c, 'textarea', 'Handoff message')).value, 'Edited handoff');
   });
 });
+
+// The transition the native rendered after-pass found (PR #117 head c64e81a3):
+// in the App, a generation change (and a home change) must not remount the
+// clean composer, so its edited inputs stay and the stale choice is named.
+test('in the App, a generation or home change keeps the clean trial composer and its edited inputs, and names the stale choice', async () => {
+  const {App} = loadSrc('App');
+  const {preparedMessages} = loadSrc('preparedMessages');
+  const status = (generation, mode = 'account', sourceRef = 'workflow-home:a') => ({state:'ready', generation, homeRouting:{activeModeHomeClass:mode}, threads:[], roleLimits:{account:{roles:[]}, 'api-key':{roles:[]}}, roleSet,
+    workflowRoot:{context:{sourceRef, generation}, projectLibraryAvailable:true, activeLibrary:null, libraries:[], selections:[], runs:[], drafts:{drafts:[]}, pendingTrials:[pending()]}});
+  assert.equal(preparedMessages(status(g))[0].identity, preparedMessages(status(g2, 'api-key', 'workflow-home:b'))[0].identity, 'the clean composer keeps its identity across home and generation');
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c); const acts = [];
+  let snapshot = status(g);
+  const idle = installIdleNativeWaiting(async (command, args) => {
+    if (command === 'host_status') return structuredClone(snapshot);
+    if (command === 'decision_view') return {rows:[]};
+    if (command === 'native_confirmation_content') return [];
+    if (command === 'read_available_models') return packet({generation:args.generation, serverProvider:null, serverProviderState:'unnamed', providerLimit:'the app-server\'s configuration names no provider'});
+    acts.push(command); throw Error(`unexpected ${command}`);
+  });
+  const intervals = new Map(), previous = {setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval, getElementById:document.getElementById}; let timer = 0;
+  globalThis.setInterval = fn => { intervals.set(++timer, fn); return timer; }; globalThis.clearInterval = id => intervals.delete(id);
+  document.getElementById = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null;
+  const refresh = () => React.act(async () => { for (const fn of intervals.values()) await fn(); });
+  const panel = () => region(c, 'New trial conversation');
+  const press = async label => React.act(async () => { const node = button(panel(), label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, label); await props(node).onClick(); });
+  const inputs = () => labelled(panel(), 'textarea', 'Inputs for this trial');
+  try {
+    await React.act(async () => root.render(React.createElement(App)));
+    await press('Use my ChatGPT account (built-in OpenAI)');
+    await press('Read available models'); await React.act(async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); });
+    await press('Use Model A (provider not confirmed)');
+    await React.act(async () => { props(inputs()).onChange({target:{value:'EDITED before generation change'}}); });
+    const before = panel();
+    snapshot = status(g2); await refresh();
+    assert.equal(panel(), before, 'the same composer stays mounted');
+    assert.equal(props(inputs()).value, 'EDITED before generation change', 'the edited inputs are kept');
+    assert.match(panel().textContent, /Codex, the home or its generation changed since you chose\. Your text is kept/);
+    assert.match(panel().textContent, /This model list is out of date/);
+    assert.equal(!!props(button(panel(), 'Send')).disabled, true);
+    snapshot = status({...g2, home:'api-key'}, 'api-key', 'workflow-home:b'); await refresh();
+    assert.equal(panel(), before, 'a home change keeps it too');
+    assert.equal(props(inputs()).value, 'EDITED before generation change');
+    assert.ok(button(panel(), 'Use this home\'s API key (built-in OpenAI)'), 'the new home offers its own route');
+    assert.deepEqual(acts, [], 'nothing was started or sent');
+  } finally {
+    const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);
+    globalThis.setInterval = previous.setInterval; globalThis.clearInterval = previous.clearInterval; document.getElementById = previous.getElementById;
+  }
+});
