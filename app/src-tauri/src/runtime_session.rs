@@ -2697,6 +2697,19 @@ impl HomeSession {
         json!({"modeHomeClass":self.class.as_str(),"observations":sources.iter().map(|source|self.host.account_rpc_observation(source).unwrap_or_else(|error|json!({"limit":error,"source":source.evidence()}))).collect::<Vec<_>>(),"limit":"native source facts; credential validity and actor identity are not inferred"})
     }
 }
+/// A new start's bound source is still current: `home` runs exactly
+/// `generation` (home, App session and spawn counter), ready and not closed.
+/// Checked when the start is bound and again before it is claimed.
+pub(crate) fn check_start_source(home: &HomeSession, generation: &Value) -> Result<(), String> {
+    let current = home.host.snapshot();
+    if current["generation"] != *generation {
+        return Err("The selected Codex home changed since you chose it (a different or replaced source); nothing started. Read models again or choose again".into());
+    }
+    if current["state"] != "ready" || current["generationClosed"] != false {
+        return Err("The selected Codex home is not running that source now (closed or not ready); nothing started".into());
+    }
+    Ok(())
+}
 /// Read the explicitly selected actual source with an independent window
 /// cursor. No active-home fallback, receipt acknowledgment or native dispatch.
 pub(crate) fn observe_home(homes: &std::sync::Mutex<HomeRouter>, source: &Value, cursor: &Value, after: u64) -> Value {
@@ -2785,6 +2798,22 @@ impl HomeRouter {
             );
         }
         Ok(matches[0].clone())
+    }
+    /// The source of a person-directed new start (New conversation, Continue as,
+    /// a clean trial): the full generation the person's choice was bound to at
+    /// press, and its home class. That class's home must currently run exactly
+    /// that generation, ready and open. Nothing is recaptured and there is no
+    /// fallback to a replacement or another home.
+    pub(crate) fn start_source(
+        &self,
+        class: crate::home_resources::HomeClass,
+        generation: &Value,
+    ) -> Result<std::sync::Arc<HomeSession>, String> {
+        crate::recovery::generation_ref(generation)
+            .map_err(|_| "The start names no complete Codex home source (full generation required); nothing started".to_string())?;
+        let home = self.entry(class)?;
+        check_start_source(&home, generation)?;
+        Ok(home)
     }
     pub fn entries(&self) -> Vec<std::sync::Arc<HomeSession>> {
         let mut entries = vec![self.account.clone()];
@@ -8017,6 +8046,7 @@ mod workflow_root_tests {
     mod proposal_disclosure_tests { use super::*; include!("workflow_proposal_disclosure_tests.rs"); }
     mod selected_chain_disclosure_tests { use super::*; include!("workflow_selected_chain_disclosure_tests.rs"); }
     mod action_result_tests { use super::*; include!("workflow_action_result_tests.rs"); }
+    mod start_source_binding_tests { use super::*; include!("start_source_binding_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })

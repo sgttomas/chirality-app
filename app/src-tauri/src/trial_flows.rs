@@ -123,6 +123,22 @@ pub(crate) fn trial_again(root: &Mutex<WorkflowRootSession>, reference: &str, ho
 /// still have reached Codex, so the pre-fill is withdrawn (a second press
 /// cannot start a second conversation). The trial conversation's generation
 /// is the one the start result reports, and `send` sends the trial message there.
+/// WR FT-4 bound to its source: the clean trial's new conversation starts only
+/// in the home and full generation the person's choice was bound to at press.
+/// A different, replaced or closed source is refused before the trial's begin
+/// step, so the pre-fill is kept and nothing starts.
+pub(crate) fn start_bound_clean_trial(
+    root: &Mutex<WorkflowRootSession>,
+    homes: &Mutex<super::HomeRouter>,
+    class: crate::home_resources::HomeClass,
+    generation: &Value,
+    reference: &str,
+    start: impl FnOnce(&std::sync::Arc<HomeSession>) -> Result<Value, String>,
+    send: impl FnOnce(&std::sync::Arc<HomeSession>, &Value, &str) -> Result<Value, SendRefusal>,
+) -> Result<Value, SendRefusal> {
+    let home = homes.lock().unwrap().start_source(class, generation).map_err(SendRefusal::kept)?;
+    start_clean_trial(root, reference, || start(&home), |started, thread| send(&home, started, thread))
+}
 pub(crate) fn start_clean_trial(
     root: &Mutex<WorkflowRootSession>,
     reference: &str,
