@@ -390,3 +390,52 @@ test('a clean pre-fill with the same reference but changed content does not inhe
     globalThis.setInterval = previous.setInterval; globalThis.clearInterval = previous.clearInterval; document.getElementById = previous.getElementById;
   }
 });
+
+// Native J2 finding on #119 head dd47ee35: an unconfirmed bring-back send
+// withdraws its pre-fill, so its composer and outcome vanished and the Make
+// guide offered a blind second bring-back. The App now keeps that fact.
+test('in the App, an unconfirmed bring-back send is named in its conversation and holds the guide\'s next bring-back', async () => {
+  const {App} = loadSrc('App');
+  const thread = id => ({generation:g, threadId:id, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:null}, roleRelation:{kind:'start'}, futureGuidanceNotices:[]});
+  const trial = {reference:'trial:lib-a:2', sequence:2, kind:'clean', content:{value:'c'}, version:'current', trialConversation:'thread-clean-2', authoringConversation:'thread-authoring', authoringSourceLimit:'saved', sourceLimit:null, broughtBack:[], time:'t', link:{}, standing:'s', fidelity:{}};
+  const bringBack = {id:'bb-1', trial:'trial:lib-a:2', run:null, sequence:2, draftName:'spacing-check', target:{generation:g, threadId:'T1'}, source:{kind:'clean'}, prompt:'Here is how trial 2 went', transcript:'…', card:'transcript of trial 2', textIdentity:{value:'aa'}, bytes:10, includeNative:false, shortenings:[]};
+  const root0 = pending => ({context:{sourceRef:'src', generation:g}, projectLibraryAvailable:true, activeLibrary:'lib:project', libraries:[{reference:'lib:project', origin:'project', root:{encoding:'unix_bytes', bytes:[...new TextEncoder().encode('/invented/project')]}, registered:[]}],
+    selections:[], runs:[], drafts:{drafts:[{name:'spacing-check', state:'draft', trials:[trial]}]}, pendingTrials:[], pendingBringBacks:pending});
+  let snapshot = {state:'ready', generation:g, homeRouting:{activeModeHomeClass:'account'}, threads:[thread('T1')], roleLimits:{account:{roles:[]}, 'api-key':{roles:[]}}, roleSet, workflowRoot:root0([bringBack])};
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c); const sends = [];
+  const idle = installIdleNativeWaiting(async (command, args) => {
+    if (command === 'host_status') return structuredClone(snapshot);
+    if (command === 'decision_view') return {rows:[]};
+    if (command === 'native_confirmation_content') return [];
+    if (command === 'workflow_bring_back_send') { sends.push(structuredClone(args)); snapshot = {...snapshot, workflowRoot:root0([])};
+      throw {message:'invented: no reply. The send\'s outcome is not established; nothing is recorded or resent', prefillKept:false}; }
+    throw Error(`unexpected ${command}`);
+  });
+  const previous = {setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval, getElementById:document.getElementById};
+  globalThis.setInterval = () => 0; globalThis.clearInterval = () => {};
+  document.getElementById = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null;
+  const settle = () => React.act(async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); });
+  const byId = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0];
+  try {
+    await React.act(async () => root.render(React.createElement(App)));
+    await React.act(async () => { props(nodes(byId('conversation'), 'select')[0]).onChange({target:{value:JSON.stringify([g, 'T1'])}}); });
+    const composer = region(c, 'Bring back composer');
+    assert.ok(composer, 'the prepared results composer is in its conversation');
+    await React.act(async () => { props(button(composer, 'Send')).onClick(); }); await settle();
+    assert.equal(sends.length, 1);
+    assert.equal(region(c, 'Bring back composer'), undefined, 'the host withdrew the pre-fill');
+    const notice = region(c, 'Bring-back send not confirmed');
+    assert.ok(notice, 'the conversation names the unconfirmed send');
+    assert.match(notice.textContent, /Trial 2's results may have been sent to this conversation\..*nothing is resent.*held until you've checked.*Your message: Here is how trial 2 went.*Reported: .*not established/);
+    const guide = region(c, 'Make a workflow from your work');
+    await React.act(async () => { props(nodes(guide, 'select')[0]).onChange({target:{value:JSON.stringify([g, 'T1'])}}); });
+    await React.act(async () => { props(nodes(guide, 'input')[0]).onChange({target:{value:'spacing-check'}}); });
+    assert.ok(region(c, 'Trial 2 results may have been sent'), 'the guide names it too');
+    const bring = nodes(guide, 'button').find(node => node.textContent.startsWith('Bring trial 2 back'));
+    assert.equal(!!props(bring).disabled, true, 'no blind second bring-back');
+    assert.equal(sends.length, 1, 'nothing is resent');
+  } finally {
+    const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);
+    globalThis.setInterval = previous.setInterval; globalThis.clearInterval = previous.clearInterval; document.getElementById = previous.getElementById;
+  }
+});

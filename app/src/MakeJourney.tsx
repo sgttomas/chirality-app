@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { conversationLabel, nativePathText } from "./presentation";
 import { draftStateWords } from "./WorkflowDrafts";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { cleanTrialAnchor } from "./TrialComposer";
+import { acknowledgeBringBackDoubt, beginBringBack, bringBackDoubtsFor, bringBackHeld, endBringBack, resolvedByRecord, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 type Act = (command: string, args: Record<string, unknown>) => Promise<Json>;
@@ -38,6 +39,10 @@ export function draftRequestText(folder: string, name: string): string {
 function DraftActions({ draft, chosen, host, canAct, act, openPreparedMessage }: { draft: Json; chosen: Json; host: Json; canAct: boolean; act: Act; openPreparedMessage?: (item: PreparedMessage) => void }) {
   const delegationMissing = chosen?.delegation?.reading === "missing";
   const perform = (command: string, args: Record<string, unknown>) => { if (canAct) void act(command, args); };
+  const performed = (command: string, args: Record<string, unknown>): Promise<unknown> => {
+    if (!canAct) return Promise.resolve();
+    try { return Promise.resolve(act(command, args)).catch(() => undefined); } catch { return Promise.resolve(); }
+  };
   const prepared = preparedMessages(host).filter(item => item.kind !== "bring-back" && item.pending?.draftName === draft.name);
   return <div aria-label="Try or review this draft">
     {!delegationMissing && <><button disabled={!canAct || !chosen || !!draft.tryLimit} onClick={() => perform("workflow_trial_prepare", { name: draft.name, kind: "delegated", generation: chosen?.generation, threadId: chosen?.threadId })}>Try it with the agent in this conversation</button>{" "}</>}
@@ -50,7 +55,7 @@ function DraftActions({ draft, chosen, host, canAct, act, openPreparedMessage }:
     {prepared.map(item => <p key={item.identity}>Trial {text(item.pending?.sequence)} is ready to send.{" "}
       {item.kind === "clean" ? <a href={`#${cleanTrialAnchor(item.pending?.reference)}`}>Read and send it in the new-trial message box</a>
         : openPreparedMessage && <button disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>Read and send trial {text(item.pending?.sequence)}</button>}</p>)}
-    <DraftTrials draft={draft} chosen={chosen} host={host} canAct={canAct} perform={perform} openPreparedMessage={openPreparedMessage}/>
+    <DraftTrials draft={draft} chosen={chosen} host={host} canAct={canAct} perform={performed} openPreparedMessage={openPreparedMessage}/>
   </div>;
 }
 
@@ -66,38 +71,115 @@ function ConversationRef({ host, refValue, none }: { host: Json; refValue: Json;
   return <>{none}</>;
 }
 
+const sameTarget = (a: Json, b: Json) => same([a?.generation ?? null, a?.threadId ?? null], [b?.generation ?? null, b?.threadId ?? null]);
+/** This draft's own listed trials (references the host gave it). */
+const ownTrials = (draft: Json): Json[] => list(draft?.trials).filter((trial: Json) => (trial?.kind === "clean" || trial?.kind === "delegated") && typeof trial?.reference === "string" && trial.reference);
+/** Prepared results messages for this draft's own trials. Bring-backs are App-wide, and another library may hold a same-name draft. */
+const ownResults = (draft: Json, host: Json): PreparedMessage[] => {
+  const references = new Set(ownTrials(draft).map((trial: Json) => trial.reference));
+  return preparedMessages(host).filter(item => item.kind === "bring-back" && references.has(item.pending?.trial) && item.pending?.draftName === draft?.name);
+};
+/** Doubts that still hold for this draft's trials. */
+const heldDoubts = (draft: Json, doubts: BringBackDoubt[]) => ownTrials(draft).flatMap((trial: Json) =>
+  bringBackDoubtsFor("trial", trial.reference, doubts).filter(doubt => !doubt.acknowledged && !resolvedByRecord(doubt, list(trial.broughtBack).length)));
+
 /**
  * The draft's trials as the host lists them (TT-4; newest first), and bringing
  * one back to the guide's conversation with the draft list's own command and
  * arguments (TT-10/TT-11). Bringing back only pre-fills a message; it is sent
  * from the conversation, and nothing here sends, registers or checks anything.
+ * A trial already prepared for this conversation opens its existing message;
+ * a send the host couldn't confirm holds it until the host records it or the
+ * person says they checked (bringBackDoubts).
  */
-function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage }: { draft: Json; chosen: Json; host: Json; canAct: boolean; perform: (command: string, args: Record<string, unknown>) => void; openPreparedMessage?: (item: PreparedMessage) => void }) {
-  const trials = list(draft.trials).filter((trial: Json) => (trial?.kind === "clean" || trial?.kind === "delegated") && typeof trial?.reference === "string" && trial.reference);
-  // Results belong to this draft only through its own trial references: the
-  // host's bring-backs are App-wide, and another library may hold a same-name draft.
-  const references = new Set(trials.map((trial: Json) => trial.reference));
-  const feedback = preparedMessages(host).filter(item => item.kind === "bring-back" && references.has(item.pending?.trial) && item.pending?.draftName === draft.name);
+function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage }: { draft: Json; chosen: Json; host: Json; canAct: boolean; perform: (command: string, args: Record<string, unknown>) => Promise<unknown>; openPreparedMessage?: (item: PreparedMessage) => void }) {
+  const doubts = useBringBackDoubts();
+  const trials = ownTrials(draft);
+  const feedback = ownResults(draft, host);
+  // A new results message after this guide's Bring press takes the focus once
+  // it is committed, so the person lands on what to do next.
+  const pressed = useRef<string | null>(null);
+  const seen = useRef(new Set(feedback.map(item => item.identity)));
+  const buttons = useRef(new Map<string, HTMLButtonElement>());
+  useEffect(() => {
+    const fresh = feedback.find(item => !seen.current.has(item.identity) && item.pending?.trial === pressed.current);
+    for (const item of feedback) seen.current.add(item.identity);
+    if (fresh) { pressed.current = null; buttons.current.get(fresh.identity)?.focus?.(); }
+  });
   if (!trials.length && !feedback.length) return null;
+  const target = chosen ? { generation: chosen.generation, threadId: chosen.threadId } : null;
+  const bring = (trial: Json) => {
+    if (!target || !canAct) return;
+    const brought = list(trial.broughtBack).length;
+    // Read at the press, not from this render: an earlier control can't lift a hold.
+    if (bringBackHeld("trial", trial.reference, target, brought)) return;
+    const key = JSON.stringify(["trial", trial.reference, target]);
+    if (!beginBringBack(key)) return;
+    pressed.current = trial.reference;
+    void perform("workflow_trial_bring_back", { reference: trial.reference, generation: target.generation, threadId: target.threadId, includeNative: false }).finally(() => endBringBack(key));
+  };
   return <div aria-label="Trials of this draft">
     <h4>Trials so far</h4>
     {trials.length > 0 && <ul>{trials.map((trial: Json) => {
       const n = text(trial.sequence), brought = list(trial.broughtBack);
-      const limit = trial.live ? "Bringing it back waits until no turn is live in the trial." : trial.sourceLimit ? text(trial.sourceLimit) : !chosen ? "Choose the conversation where you did the work to bring it back there." : null;
+      const mine = bringBackDoubtsFor("trial", trial.reference, doubts).filter(doubt => !resolvedByRecord(doubt, brought.length));
+      const held = target ? mine.find(doubt => !doubt.acknowledged && sameTarget(doubt.target, target)) : undefined;
+      const existing = target ? feedback.find(item => item.pending?.trial === trial.reference && sameTarget(item.pending?.target, target) && item.pending?.includeNative !== true) : undefined;
+      const limit = held ? "Check that conversation first." : trial.live ? "Bringing it back waits until no turn is live in the trial."
+        : trial.sourceLimit ? text(trial.sourceLimit) : !chosen ? "Choose the conversation where you did the work to bring it back there." : null;
       return <li key={text(trial.reference)} aria-label={`Trial ${n} of ${text(draft.name)}`}>
         <strong>Trial {n}</strong> · {trial.kind === "clean"
           ? <>in a fresh conversation (<ConversationRef host={host} refValue={trial.trialConversation} none="not started"/>)</>
           : <>with the agent in <ConversationRef host={host} refValue={trial.authoringConversation} none="no recorded conversation"/></>}{trial.time ? <> · {text(trial.time)}</> : null}
         <br/><small>{brought.length ? <>Brought back {brought.length === 1 ? "once" : `${brought.length} times`}, to {brought.map((b: Json, i: number) => <span key={i}>{i ? ", " : ""}<ConversationRef host={host} refValue={b?.to} none="a conversation not recorded"/></span>)}.</> : "Not brought back yet."}</small>
-        <br/><button disabled={!canAct || limit !== null} onClick={() => { if (chosen && limit === null) perform("workflow_trial_bring_back", { reference: trial.reference, generation: chosen.generation, threadId: chosen.threadId, includeNative: false }); }}>{chosen ? `Bring trial ${n} back to ${conversationLabel(host, chosen)}` : `Bring trial ${n} back`}</button>
-        {limit && <small> {limit}</small>}
+        {mine.map(doubt => <div key={doubt.preparedId} role={doubt.acknowledged ? "note" : "alert"} aria-label={`Trial ${n} results may have been sent`}>
+          <p><strong>Trial {n}'s results may already have been sent</strong> to <ConversationRef host={host} refValue={doubt.target} none="its conversation"/>: the App couldn't confirm the send, and the prepared message was withdrawn.{doubt.acknowledged ? " You said you checked that conversation." : " Bringing it back there again could send the transcript twice."}</p>
+          {!doubt.acknowledged && <p><button disabled={!canAct} onClick={() => acknowledgeBringBackDoubt(doubt)}>I've checked — let me bring it back again</button></p>}
+          <details><summary>Your message and what was reported</summary><p><small>Your message: {doubt.personText || "(empty)"}</small></p><p><small>Reported: {doubt.message}</small></p></details>
+        </div>)}
+        <br/>{existing && !held
+          ? <button disabled={!openPreparedMessage || preparedMessageLimit(host, existing) !== null} onClick={() => openPreparedMessage?.(existing)}>Read and send trial {n}'s prepared results</button>
+          : <button disabled={!canAct || limit !== null} onClick={() => bring(trial)}>{chosen ? `Bring trial ${n} back to ${conversationLabel(host, chosen)}` : `Bring trial ${n} back`}</button>}
+        {existing && !held ? <small> Its results are already prepared for this conversation.</small> : limit && <small> {limit}</small>}
       </li>;
     })}</ul>}
-    {feedback.map(item => <p key={item.identity}>Trial {text(item.pending?.sequence)}'s results are ready to send in <ConversationRef host={host} refValue={item.owner} none="its conversation"/>.{" "}
-      {openPreparedMessage && <button disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>Read and send trial {text(item.pending?.sequence)}'s results</button>}</p>)}
+    <div aria-live="polite">{feedback.map(item => <p key={item.identity}>Trial {text(item.pending?.sequence)}'s results are ready to send in <ConversationRef host={host} refValue={item.owner} none="its conversation"/>.{" "}
+      {openPreparedMessage && <button ref={node => { if (node) buttons.current.set(item.identity, node); else buttons.current.delete(item.identity); }} disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>Read and send trial {text(item.pending?.sequence)}'s results</button>}</p>)}</div>
     <p><small>Bringing a trial back pre-fills a message with its transcript for the agent to assess against the draft; you read and send it. To include native items or choose another conversation, use the draft list in the workflow studio. When a trial went well, review the draft for registration.</small></p>
   </div>;
 }
+
+/** The registration review that belongs to this draft, by the review's own identity. */
+type ReviewRow = { reference: string; status: Json; names: string[] };
+const DISMISSED = "native confirmation dismissed; no capture/registration";
+const UNAVAILABLE = "native review/capture unavailable; original owner state retained";
+
+/**
+ * The draft's actual next step: an unconfirmed bring-back, prepared messages,
+ * then the registration review's own state (never inferred from the draft
+ * state alone), then the draft state.
+ */
+function draftStep(draft: Json, data: Json, host: Json, doubts: BringBackDoubt[], review: ReviewRow | null): { words: string; href: string; link: string } {
+  if (draft?.state === "not valid" || draft?.state === "registered, unchanged since" || draft?.state === "removed") return nextFor(draft);
+  const doubt = heldDoubts(draft, doubts)[0];
+  if (doubt) return { words: `Check whether trial ${text(doubt.sequence)}'s results arrived in the conversation before bringing it back again.`, href: "#conversation", link: "Go to the conversation" };
+  const results = ownResults(draft, host)[0];
+  if (results) return { words: `Read and send trial ${text(results.pending?.sequence)}'s results in the conversation, then review the draft.`, href: "#conversation", link: "Go to the conversation" };
+  const trial = preparedMessages(host).find(item => item.kind !== "bring-back" && item.pending?.draftName === draft?.name);
+  if (trial) return { words: `Read and send trial ${text(trial.pending?.sequence)} in the conversation.`, href: trial.kind === "clean" ? `#${cleanTrialAnchor(trial.pending?.reference)}` : "#conversation", link: "Go to the trial message" };
+  if (review) {
+    const state = review.status?.state;
+    if (review.status?.presentation && review.reference === data?.activeReview)
+      return { words: "A review is open. Read it and confirm registration in the App's dialog — or close it to keep working.", href: "#workflow-reviews", link: "Open the review" };
+    if (state === DISMISSED) return { words: "You cancelled the App's confirmation, so nothing was registered. To register it, look for drafts again and review it again.", href: "#workflow-reviews", link: "See the review" };
+    if (state === UNAVAILABLE) return { words: `The review or its confirmation became unavailable, so registration did not complete${review.status?.limit ? ` (${text(review.status.limit)})` : ""}. The original attempt is kept: continue it from the review, or review the draft again.`, href: "#workflow-reviews", link: "Open the review" };
+    if (review.status?.presentation) return { words: "That review is no longer the current one, so it can't be confirmed from here. Review the draft again.", href: "#workflow-reviews", link: "See the review" };
+  }
+  if (draft?.state === "under review") return { words: "A review was started, but its confirmation isn't available here now. Open the review to see its state.", href: "#workflow-reviews", link: "Open the review" };
+  return nextFor(draft);
+}
+
+const EXISTING = "an existing draft continues below";
 
 function nextFor(draft: Json): { words: string; href: string; link: string } {
   switch (draft?.state) {
@@ -121,6 +203,16 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
   data: Json; host: Json; act: Act; busy: boolean; offerComposer: (threadKey: string, text: string) => void; openPreparedMessage?: (item: PreparedMessage) => void;
   showConversation?: (threadId: string, target?: string) => void;
 }) {
+  const doubts = useBringBackDoubts();
+  // A review names its workflows only while its presentation is shown; keep the
+  // names it was seen with so a later dismissed or unavailable status still
+  // belongs to its own draft (this window only).
+  const reviewNames = useRef(new Map<string, string[]>());
+  const reviews: ReviewRow[] = list(data?.reviews).filter((row: Json) => typeof row?.reference === "string").map((row: Json) => {
+    const names = list(row.status?.presentation?.entries).map((entry: Json) => entry?.identity?.name).filter((name: Json) => typeof name === "string");
+    if (names.length) reviewNames.current.set(row.reference, names);
+    return { reference: row.reference, status: row.status, names: reviewNames.current.get(row.reference) ?? [] };
+  });
   const [conversation, setConversation] = useState("");
   const [name, setName] = useState("");
   const sourceCurrent = !!data?.context?.sourceRef && host?.workflowRoot?.context?.sourceRef === data.context.sourceRef && same(data.context.generation, host?.generation);
@@ -143,13 +235,18 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
     : root === null ? "The opened library's folder can't be shown, so the App can't name where the draft goes."
     : !trimmed ? "Name the workflow: lowercase letters and digits, words joined by hyphens."
     : !valid ? "Use lowercase letters and digits only, words joined by single hyphens, at most 64 characters."
-    : existingDraft ? `A draft named ${trimmed} already exists. Continue it below instead of asking for a new one.`
+    : existingDraft ? EXISTING
     : registeredSame ? `A workflow named ${trimmed} is already registered in this library; a new draft with that name would be refused. Choose another name, or refine ${trimmed} from the workflow studio.`
     : null;
   const folder = root !== null && valid ? draftFolder(root, trimmed) : null;
+  // An existing draft blocks a new request, but its own next step is what to do now.
+  const ownReviews = existingDraft ? reviews.filter(row => row.names.includes(existingDraft.name)) : [];
+  const review = ownReviews.find(row => row.reference === data?.activeReview) ?? ownReviews.at(-1) ?? null;
+  const step = existingDraft ? draftStep(existingDraft, data, host, doubts, review) : null;
+  const nextLine = blocked === EXISTING && step ? `${trimmed}: ${step.words}` : blocked;
   return <section id="make-workflow" className="workflow-stage run-journey" aria-label="Make a workflow from your work" aria-busy={busy}>
     <h2>Make a workflow from your work</h2>
-    <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {blocked ?? "Put the request in the conversation, read it, and send it when you're happy with it."}</p>
+    <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {nextLine ?? "Put the request in the conversation, read it, and send it when you're happy with it."}</p>
     <ol className="run-journey-steps">
       <li><h3>Where you did the work</h3>
         {conversations.length ? <label>Conversation with the work <select value={conversation} disabled={!canAct} onChange={event => setConversation(event.target.value)}>
@@ -173,7 +270,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
       </li>
       <li><h3>Find, try and register it</h3>
         <button disabled={!canAct || !active} onClick={() => { if (canAct && active) void act("workflow_observe_drafts", {}); }}>Look for drafts in this library</button>
-        {existingDraft ? (() => { const next = nextFor(existingDraft); return <div className="run-journey-state" aria-label="Draft status">
+        {existingDraft && step ? (() => { const next = step; return <div className="run-journey-state" aria-label="Draft status">
           <p role="status"><strong>{trimmed}</strong>: {draftStateWords(existingDraft.state, existingDraft.content)}.</p>
           {list(existingDraft.findings).length > 0 && <ul aria-label="What to fix">{list(existingDraft.findings).map((finding: Json) => <li key={text(finding)}>{text(finding)}</li>)}</ul>}
           <p>{next.words} {next.href === "#conversation" && showConversation && chosen

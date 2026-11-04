@@ -1204,6 +1204,48 @@ Checked in `app/tests/make-journey.test.mjs` with producer-shaped rows:
 newest-first order, saved bare IDs, a hot authoring tuple, and foreign results
 from a same-name draft. Each check was mutation-checked.
 
+**Unconfirmed bring-back sends (UI lifetime).** A refusal of
+`workflow_bring_back_send` without `prefillKept: true` withdraws the pre-fill.
+That covers an unknown outcome, a transcript sent without its observation
+written, and a lost pre-fill. Before the call, the App captures the original
+attempt: trial or run reference, prepared-message id, workflow source, home
+and generation, target conversation, and the person's text. If the refusal
+comes, it keeps that attempt for the life of the window (`bringBackDoubts`).
+- The conversation shows "results may have been sent to this conversation",
+  with the person's message and the host's message as given.
+- Bringing the same trial or run back to the same conversation is refused at
+  the press in the Make guide, the studio draft list and the run bring-back,
+  including from controls rendered earlier.
+- Only the host's own record (the trial's brought-back count rising) or the
+  person's explicit "I've checked — let me bring it back again" lifts the
+  hold. Neither starts anything, and the original outcome stays shown.
+- The host's message is never parsed. This is not native, relaunch or global
+  deduplication.
+
+**One prepared message per conversation.** A trial already prepared for the
+same conversation and options offers "Read and send trial ‹n›'s prepared
+results", which opens the existing message, instead of making another. A
+synchronous press guard covers double presses; a distinct conversation stays
+allowed. After Bring, the new results button takes focus. After Read and send,
+the composer's message takes focus once the source-checked Open has shown it.
+
+**The guide's Next.** The top Next is the draft's actual step: an unconfirmed
+send, prepared results, a prepared trial, then the registration review's own
+state, then the draft state. The review belongs to the draft by its
+presentation's workflow names, kept for the window once seen.
+- **Current presentation:** "confirm in the App's dialog".
+- **Dismissed** (`native confirmation dismissed; no capture/registration`):
+  nothing was registered; review again.
+- **Unavailable** (`native review/capture unavailable; original owner state
+  retained`): registration did not complete, with the host's limit. The
+  original attempt is kept; continue it from the review, or review again.
+- **Retained, not current:** it can't be confirmed from here.
+
+A draft observed "under review" with no current review says the confirmation
+isn't available. The review area states these two statuses in plain words,
+with the complete reported status under details. The review content, the
+confirmation and A15 are unchanged.
+
 Every host-changing control uses the same busy/stale-source guard as Run a
 workflow. Checked by `app/tests/make-journey.test.mjs` (run directly with
 `node --test tests/make-journey.test.mjs` from `app/`, and in CI by the

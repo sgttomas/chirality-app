@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { isRecordedRun, runLearningLimit } from "./RunPanel";
 import { ConversationSelect, conversationKey, conversationName, findConversation } from "./TrialComposer";
 import { ConversationContext, conversationFromKey } from "./WorkflowContext";
+import { beginBringBack, bringBackHeld, endBringBack } from "./bringBackDoubts";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // The workflow draft list and its trials (DEL-02-02 WR §5.1, §5.5, §6 SQ-D,
@@ -113,7 +114,7 @@ function TrialSourceMetadata({ metadata }: { metadata: Json }) {
 }
 
 /** TT-4: one listed trial, with its help actions (TT-11). */
-export function TrialRow({ trial, conversations, busy, act, state, update }: { trial: Json; conversations: Json[]; busy: boolean; act: DraftAct; state: DraftsState; update: Update }) {
+export function TrialRow({ trial, conversations, bringBacks = [], busy, act, state, update }: { trial: Json; conversations: Json[]; bringBacks?: Json[]; busy: boolean; act: DraftAct; state: DraftsState; update: Update }) {
   if (trial?.kind === "earlier attachment trial") return <li>Earlier attachment trial · content {short(trial.content?.value)} ({text(trial.version)}) · conversation {conversationName(trial.conversation)} · {text(trial.time)}</li>;
   const reference = text(trial.reference);
   const side = trialSide(reference);
@@ -123,6 +124,20 @@ export function TrialRow({ trial, conversations, busy, act, state, update }: { t
   const chosen = list(conversations).find((c: Json) => conversationKey(c) === target) ?? null;
   const includeNative = state.bbNative[reference] ?? false;
   const fidelity = trial.fidelity ?? {};
+  const destination = chosen ? { generation: chosen.generation, threadId: chosen.threadId } : null;
+  const brought = list(trial.broughtBack).length;
+  // A send the host couldn't confirm holds this trial for that conversation
+  // (bringBackDoubts); an identical prepared message is read and sent instead.
+  const doubt = destination ? bringBackHeld("trial", reference, destination, brought) : null;
+  const prepared = destination ? list(bringBacks).find((b: Json) => b?.trial === reference && JSON.stringify([b?.destination?.generation ?? null, b?.destination?.threadId ?? null]) === JSON.stringify([destination.generation ?? null, destination.threadId ?? null]) && !!b?.includeNative === includeNative) : undefined;
+  const bringBack = () => {
+    if (!destination || bringBackHeld("trial", reference, destination, brought)) return;
+    const key = JSON.stringify(["trial", reference, destination]);
+    if (!beginBringBack(key)) return;
+    let call: Promise<unknown>;
+    try { call = Promise.resolve(act("workflow_trial_bring_back", { reference, generation: destination.generation, threadId: destination.threadId, includeNative })); } catch (error) { call = Promise.reject(error); }
+    void call.catch(() => undefined).finally(() => endBringBack(key));
+  };
   return <li aria-label={`Trial ${text(trial.sequence)}`}>
     <label><input type="checkbox" checked={ticked} disabled={busy} onChange={() => update({ chosen: ticked ? state.chosen.filter(c => c !== side) : [...state.chosen, side] })} /> Compare</label>{" "}
     <b>Trial {text(trial.sequence)}</b> · {trial.kind === "clean" ? "clean (fresh conversation)" : "delegated (with the authoring agent)"} · {text(trial.time)}
@@ -141,14 +156,16 @@ export function TrialRow({ trial, conversations, busy, act, state, update }: { t
         : <><button disabled={busy} onClick={() => { void act("workflow_trial_read", { reference }); }}>Read again</button>{" "}</>}
       <ConversationSelect label="Bring back to" conversations={conversations} value={target} setValue={key => update({ bbTarget: { ...state.bbTarget, [reference]: key } })} disabled={busy} />{" "}
       <label><input type="checkbox" checked={includeNative} disabled={busy} onChange={e => update({ bbNative: { ...state.bbNative, [reference]: e.target.checked } })} /> include native items</label>{" "}
-      <button disabled={busy || !!trial.live || !chosen || !!trial.sourceLimit} onClick={() => { void act("workflow_trial_bring_back", { reference, generation: chosen?.generation, threadId: chosen?.threadId, includeNative }); }}>Bring trial back</button>
+      <button disabled={busy || !!trial.live || !chosen || !!trial.sourceLimit || !!doubt || !!prepared} onClick={bringBack}>Bring trial back</button>
+      {doubt && <small> Its last send to that conversation wasn't confirmed and may have arrived; check it, then confirm in the Make a workflow guide or the conversation before bringing it back again.</small>}
+      {prepared && !doubt && <small> Its results are already prepared for that conversation; read and send them there.</small>}
       {trial.live && <small> Bring trial back waits until no turn is live.</small>}
       {trial.sourceLimit && <small> {text(trial.sourceLimit)}</small>}
     </div>
   </li>;
 }
 
-export function DraftRow({ draft, authoring, conversations = [], pending = [], busy, act, state = initialDraftsState, update = () => undefined }: { draft: Json; authoring: Json | null; conversations?: Json[]; pending?: Json[]; busy: boolean; act: DraftAct; state?: DraftsState; update?: Update }) {
+export function DraftRow({ draft, authoring, conversations = [], pending = [], bringBacks = [], busy, act, state = initialDraftsState, update = () => undefined }: { draft: Json; authoring: Json | null; conversations?: Json[]; pending?: Json[]; bringBacks?: Json[]; busy: boolean; act: DraftAct; state?: DraftsState; update?: Update }) {
   const trials = list(draft.trials);
   const mine = list(pending).filter((p: Json) => p?.draftName === draft.name);
   // NPTD §7.1 as the host read it for the authoring conversation: missing
@@ -176,7 +193,7 @@ export function DraftRow({ draft, authoring, conversations = [], pending = [], b
     <div><button disabled={busy || !!draft.reviewLimit} onClick={() => { void act("workflow_review_draft", { name: draft.name }); }}>Review for registration…</button>
       <small> Opens the review of exactly the listed content. Registering is your separate A15 act through the native confirmation.</small></div>
     {draft.reviewLimit && <p role="note">{text(draft.reviewLimit)}</p>}
-    {trials.length > 0 && <ul aria-label="Trials">{trials.map((t: Json, i: number) => <TrialRow key={text(t.reference) || `${text(t.time)}:${i}`} trial={t} conversations={conversations} busy={busy} act={act} state={state} update={update} />)}</ul>}
+    {trials.length > 0 && <ul aria-label="Trials">{trials.map((t: Json, i: number) => <TrialRow key={text(t.reference) || `${text(t.time)}:${i}`} trial={t} conversations={conversations} bringBacks={bringBacks} busy={busy} act={act} state={state} update={update} />)}</ul>}
   </article>;
 }
 
@@ -289,7 +306,7 @@ export function WorkflowDraftsList({ data, workspace, pointerLimits, conversatio
     {data?.limit && <p role="note">{text(data.limit)}</p>}
     {limits.length > 0 && <ul role="alert" aria-label="Draft workspace limits">{limits.map(l => <li key={l}>{l}</li>)}</ul>}
     {data && !data.state && drafts.length === 0 && !data.limit && <p>No drafts in this library.</p>}
-    {drafts.map(draft => <DraftRow key={text(draft.name)} draft={draft} authoring={authoring} conversations={conversations} pending={pending} busy={busy} act={act} state={state} update={update} />)}
+    {drafts.map(draft => <DraftRow key={text(draft.name)} draft={draft} authoring={authoring} conversations={conversations} pending={pending} bringBacks={contextHost?.workflowRoot?.pendingBringBacks} busy={busy} act={act} state={state} update={update} />)}
     {(anyTrials || sides.length > 0) && <div aria-label="Compare trials">
       <h4>Compare</h4>
       <p><small>Tick two trials, or one trial and a run of the same workflow slot, then Compare. It shows them side by side with the difference between their versions; it scores and judges nothing.</small></p>

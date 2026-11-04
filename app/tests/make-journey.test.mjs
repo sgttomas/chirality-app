@@ -30,7 +30,7 @@ const next = c => region(c, 'Make a workflow from your work').textContent.match(
 async function mount(view) {
   const c = document.createElement('div'); const root = createRoot(c); const calls = []; const offers = [];
   const opened = [];
-  const render = () => root.render(React.createElement(MakeWorkflowGuide, {data:view.data, host:view.host, busy:!!view.busy,
+  const render = () => root.render(React.createElement(MakeWorkflowGuide, {data:view.data, host:view.host, busy:!!view.busy, uncertainBringBacks:view.uncertain ?? [], acknowledgeBringBack:trial => (view.acknowledged ??= []).push(trial),
     act:async (command, args) => { calls.push({command, args}); }, offerComposer:(threadKey, text) => offers.push({threadKey, text}), openPreparedMessage:item => opened.push(item),
     showConversation:view.navigate ? id => opened.push({shown:id}) : undefined}));
   await React.act(async () => render());
@@ -73,7 +73,7 @@ test('each draft state names its own next step; registration is never claimed be
   const cases = [
     [{state:'not valid', findings:['HY-2: front-matter name "x" differs from the folder name "spacing-check"']}, /not valid for registration.*HY-2.*Ask the agent to fix the findings/, '#conversation'],
     [{state:'draft'}, /draft — not registered.*Only your confirmation registers it/, '#workflow-drafts'],
-    [{state:'under review', content:{value:'abcdef0123456789'}}, /under review.*confirm registration in the App's dialog/, '#workflow-reviews'],
+    [{state:'under review', content:{value:'abcdef0123456789'}}, /under review.*A review was started, but its confirmation isn't available here now/, '#workflow-reviews'],
     [{state:'changed since review'}, /changed since review.*Review again before registering/, '#workflow-drafts'],
     [{state:'registered, unchanged since'}, /registered, unchanged since.*use it from Run a workflow/, '#run-workflow'],
   ];
@@ -82,7 +82,9 @@ test('each draft state names its own next step; registration is never claimed be
     const status = region(ui.c, 'Draft status');
     assert.match(status.textContent, words, draft.state); assert.ok(all(status, 'a').some(a => a.getAttribute('href') === href), `${draft.state} → ${href}`);
     if (draft.state !== 'registered, unchanged since') assert.doesNotMatch(status.textContent, /Registered\. You can now use it/, draft.state);
-    assert.match(next(ui.c), /A draft named spacing-check already exists\. Continue it below/);
+    const step = next(ui.c).trim();
+    assert.ok(step.startsWith('spacing-check: '), `the top Next names the draft's own step (${draft.state})`);
+    assert.ok(status.textContent.includes(step.slice('spacing-check: '.length)), `the top Next is the draft's current step, not a stale one (${draft.state})`);
     assert.equal(props(button(ui.c, 'Put the request in the conversation')).disabled, true, 'an existing draft is continued, not requested again');
   }
 });
@@ -251,4 +253,91 @@ test('only this draft\'s own trial results are offered; a same-name draft in ano
   await ui.press('Read and send trial 2\'s results');
   assert.equal(ui.opened.at(-1).kind, 'bring-back'); assert.equal(ui.opened.at(-1).pending.id, 'bb-1');
   assert.equal(ui.calls.length, calls, 'opening issues no command and sends nothing');
+});
+
+const doubtsModule = loadSrc('bringBackDoubts');
+const results = over => ({id:'bb-1', trial:'trial:lib-a:2', run:null, sequence:2, draftName:'spacing-check', target:{generation:g, threadId:'T1'}, source:{kind:'clean'}, prompt:'p', transcript:'…', card:'c', textIdentity:{value:'aa'}, includeNative:false, shortenings:[], ...over});
+const doubt = over => ({kind:'trial', ref:'trial:lib-a:2', sequence:2, draftName:'spacing-check', preparedId:'bb-1', source:{sourceRef:'src', modeHomeClass:'account', generation:g},
+  target:{generation:g, threadId:'T1'}, personText:'My edited prompt for trial 2', message:'invented: The transcript was sent (turn t) but its brought-back observation could not be written. Nothing is resent', brought:1, acknowledged:false, ...over});
+
+test('an identical prepared bring-back is opened instead of made again, a double press makes one, and the new results take focus', async () => {
+  doubtsModule.resetBringBackDoubts();
+  const proto = Object.getPrototypeOf(document.createElement('button')); const focused = []; const previousFocus = proto.focus;
+  proto.focus = function () { focused.push(this); };
+  try {
+    const draft = {name:'spacing-check', state:'draft', trials:producerTrials};
+    const ui = await mount({host:host({homeRouting:{activeModeHomeClass:'account'}}), data:data({drafts:{drafts:[draft]}})});
+    await ui.name('spacing-check'); await ui.choose(key('T1'));
+    const bring = n => all(ui.c, 'button').find(node => node.textContent.startsWith(`Bring trial ${n} back`));
+    const onClick = props(bring(2)).onClick;
+    const before = ui.calls.length;
+    await React.act(async () => { onClick(); onClick(); });
+    assert.equal(ui.calls.slice(before).filter(call => call.command === 'workflow_trial_bring_back').length, 1, 'a double press makes one bring-back');
+    await ui.rerender({host:host({homeRouting:{activeModeHomeClass:'account'}, workflowRoot:{context:{sourceRef:'src', generation:g}, pendingBringBacks:[results()]}})});
+    assert.equal(focused.at(-1)?.textContent, 'Read and send trial 2\'s results', 'the new results message takes the focus');
+    assert.equal(bring(2), undefined, 'no second pre-fill for the same conversation');
+    assert.match(region(ui.c, 'Trial 2 of spacing-check').textContent, /Its results are already prepared for this conversation/);
+    const calls = ui.calls.length;
+    await ui.press('Read and send trial 2\'s prepared results');
+    assert.equal(ui.opened.at(-1).pending.id, 'bb-1', 'the existing prepared message is opened'); assert.equal(ui.calls.length, calls, 'nothing new is made or sent');
+    await ui.rerender({host:host({homeRouting:{activeModeHomeClass:'account'}, workflowRoot:{context:{sourceRef:'src', generation:g}, pendingBringBacks:[results({target:{generation:g, threadId:'T2'}})]}})});
+    assert.ok(bring(2), 'results prepared for another conversation do not forbid a distinct bring-back here');
+  } finally { proto.focus = previousFocus; doubtsModule.resetBringBackDoubts(); }
+});
+
+test('an unconfirmed bring-back send holds that trial and conversation in the guide and the studio until checked or recorded, and keeps the original outcome', async () => {
+  doubtsModule.resetBringBackDoubts();
+  const draft = {name:'spacing-check', state:'draft', trials:producerTrials};
+  const view = {host:host({homeRouting:{activeModeHomeClass:'account'}}), data:data({drafts:{drafts:[draft]}})};
+  const ui = await mount(view);
+  await ui.name('spacing-check'); await ui.choose(key('T1'));
+  const bring = n => all(ui.c, 'button').find(node => node.textContent.startsWith(`Bring trial ${n} back`));
+  const earlierBring = props(bring(2)).onClick;
+  await React.act(async () => doubtsModule.noteBringBackDoubt(doubt()));
+  const alert = region(ui.c, 'Trial 2 results may have been sent');
+  assert.ok(alert); assert.equal(alert.getAttribute('role'), 'alert');
+  assert.match(alert.textContent, /Trial 2's results may already have been sent to .+invented-model.+could send the transcript twice\..*Your message: My edited prompt for trial 2.*Reported: .*observation could not be written/);
+  assert.equal(props(bring(2)).disabled, true, 'held: no blind second bring-back');
+  assert.match(next(ui.c), /spacing-check: Check whether trial 2's results arrived in the conversation before bringing it back again/, 'the top Next is the actual step');
+  const before = ui.calls.length;
+  await React.act(async () => { earlierBring(); });
+  assert.equal(ui.calls.length, before, 'a control from before the doubt cannot bring it back');
+  // The studio's draft list shares the hold for that trial and conversation.
+  const {TrialRow} = loadSrc('WorkflowDrafts');
+  const studioCalls = [];
+  const studio = TrialRow({trial:producerTrials[2], conversations:[{threadId:'T1', generation:g, model:'m'}], busy:false, act:(command, args) => { studioCalls.push({command, args}); }, state:{chosen:[], bbTarget:{'trial:lib-a:2':key('T1')}, bbNative:{}}, update:() => {}});
+  const find = (node, out = []) => { if (Array.isArray(node)) { node.forEach(n => find(n, out)); return out; } if (!node || typeof node !== 'object') return out; if (node.type === 'button') out.push(node); find(node.props?.children, out); return out; };
+  const studioBring = find(studio).find(node => [].concat(node.props.children).join('') === 'Bring trial back');
+  assert.equal(studioBring.props.disabled, true); studioBring.props.onClick();
+  assert.deepEqual(studioCalls, [], 'the studio refuses at the press too');
+  await ui.rerender({});
+  assert.equal(props(bring(2)).disabled, true, 'a view or text change does not lift the hold');
+  await ui.press('I\'ve checked — let me bring it back again');
+  assert.equal(ui.calls.length, before, 'acknowledging starts nothing');
+  assert.equal(props(bring(2)).disabled, false, 'the explicit acknowledgement lifts the hold');
+  assert.match(region(ui.c, 'Trial 2 results may have been sent').textContent, /You said you checked that conversation\..*Your message: My edited prompt/, 'the original outcome stays shown');
+  // A new doubt; the host's own record of the bring-back resolves it.
+  await React.act(async () => doubtsModule.noteBringBackDoubt(doubt({preparedId:'bb-2'})));
+  assert.equal(props(bring(2)).disabled, true);
+  const recorded = producerTrials.map(row => row.reference === 'trial:lib-a:2' ? {...row, broughtBack:[...row.broughtBack, {time:'later', to:'T1'}]} : row);
+  await ui.rerender({data:data({drafts:{drafts:[{...draft, trials:recorded}]}})});
+  assert.equal(region(ui.c, 'Trial 2 results may have been sent'), undefined, 'a recorded bring-back is the host\'s evidence');
+  assert.equal(props(bring(2)).disabled, false);
+  doubtsModule.resetBringBackDoubts();
+});
+
+test('registration guidance follows the review\'s own identity and status, never the draft state alone', async () => {
+  doubtsModule.resetBringBackDoubts();
+  const presentation = {entries:[{identity:{name:'spacing-check'}, disposition:'new'}]};
+  const ui = await mount({host:host(), data:data({activeReview:'review:1', reviews:[{reference:'review:1', status:{state:'reviewed', presentation}}], drafts:{drafts:[{name:'spacing-check', state:'under review'}]}})});
+  await ui.name('spacing-check'); await ui.choose(key('T1'));
+  assert.match(next(ui.c), /A review is open\. Read it and confirm registration in the App's dialog/, 'the review is current and shown');
+  await ui.rerender({data:data({activeReview:'review:1', reviews:[{reference:'review:1', status:{state:'native confirmation dismissed; no capture/registration'}}], drafts:{drafts:[{name:'spacing-check', state:'under review'}]}})});
+  assert.match(next(ui.c), /You cancelled the App's confirmation, so nothing was registered/, 'a dismissed confirmation is said so even while the draft observation is cached');
+  assert.doesNotMatch(region(ui.c, 'Draft status').textContent, /confirm registration in the App's dialog/);
+  await ui.rerender({data:data({activeReview:'review:1', reviews:[{reference:'review:1', status:{state:'native review/capture unavailable; original owner state retained', limit:'invented capture limit', registration:'not completed; no fabricated receipt or retry'}}], drafts:{drafts:[{name:'spacing-check', state:'under review'}]}})});
+  assert.match(next(ui.c), /registration did not complete \(invented capture limit\)\. The original attempt is kept: continue it from the review, or review the draft again/);
+  assert.doesNotMatch(region(ui.c, 'Draft status').textContent, /confirm registration in the App's dialog|Registered/);
+  await ui.rerender({data:data({activeReview:'review:2', reviews:[{reference:'review:1', status:{state:'reviewed', presentation}}, {reference:'review:2', status:{state:'reviewed', presentation:{entries:[{identity:{name:'other-draft'}}]}}}], drafts:{drafts:[{name:'spacing-check', state:'under review'}]}})});
+  assert.match(next(ui.c), /That review is no longer the current one, so it can't be confirmed from here/, 'another draft\'s current review does not stand for this one');
 });
