@@ -125,6 +125,7 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
       const mine = bringBackDoubtsFor("trial", trial.reference, doubts);
       const held = target ? mine.find(doubt => !doubt.acknowledged && doubtDestination(doubt, target) !== "other") : undefined;
       const existing = target ? feedback.find(item => item.pending?.trial === trial.reference && sameTarget(item.pending?.target, target) && item.pending?.includeNative !== true) : undefined;
+      const existingBlock = existing ? bringBackSendBlock(existing.pending, existing.pending?.target, doubts) : null;
       const limit = held ? "Check that conversation first." : trial.live ? "Bringing it back waits until no turn is live in the trial."
         : trial.sourceLimit ? text(trial.sourceLimit) : !chosen ? "Choose the conversation where you did the work to bring it back there." : null;
       return <li key={text(trial.reference)} aria-label={`Trial ${n} of ${text(draft.name)}`}>
@@ -140,9 +141,11 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
             <p><small>Original destination: conversation <code>{text(doubt.target.threadId)}</code> in Codex session {text(doubt.target.generation?.spawnCounter)} of the {text(doubt.source.modeHomeClass)} home.</small></p></details>
         </div>)}
         <br/>{existing && !held
-          ? <button disabled={!openPreparedMessage || preparedMessageLimit(host, existing) !== null} onClick={() => openPreparedMessage?.(existing)}>{bringBackSendBlock(existing.pending, existing.pending?.target, doubts) ? `Open trial ${n}'s prepared results to read or remove` : `Read and send trial ${n}'s prepared results`}</button>
-          : <button disabled={!canAct || limit !== null} onClick={() => bring(trial)}>{chosen ? `Bring trial ${n} back to ${conversationLabel(host, chosen)}` : `Bring trial ${n} back`}</button>}
-        {existing && !held ? <small> Its results are already prepared for this conversation.</small> : limit && <small> {limit}</small>}
+          ? (existingBlock
+            // The results line below already offers this held copy; the row only says where it is.
+            ? <small>Its results are prepared for this conversation but held, so they aren't sent again; see below.</small>
+            : <><button disabled={!openPreparedMessage || preparedMessageLimit(host, existing) !== null} onClick={() => openPreparedMessage?.(existing)}>Read and send trial {n}'s prepared results</button><small> Its results are already prepared for this conversation.</small></>)
+          : <><button disabled={!canAct || limit !== null} onClick={() => bring(trial)}>{chosen ? `Bring trial ${n} back to ${conversationLabel(host, chosen)}` : `Bring trial ${n} back`}</button>{limit && <small> {limit}</small>}</>}
       </li>;
     })}</ul>}
     <div aria-live="polite">{feedback.map(item => {

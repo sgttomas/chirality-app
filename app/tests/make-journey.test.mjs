@@ -407,6 +407,9 @@ test('a prepared copy whose send is held is offered for reading or removing, nev
   await React.act(async () => { doubtsModule.acknowledgeBringBackDoubt(doubtsModule.bringBackDoubtsFor('trial', 'trial:lib-a:2')[0]); });
   assert.match(shown(), /prepared in .+, but sending them is held/, 'that attempted copy stays held after the acknowledgement');
   assert.match(next(ui.c), /Trial 2's prepared results are held and not sent again; after reading the conversation, remove that copy/);
+  assert.equal(all(ui.c, 'button').filter(node => node.textContent === 'Open trial 2\'s prepared results to read or remove').length, 1, 'one control for one held copy');
+  assert.match(region(ui.c, 'Trial 2 of spacing-check').textContent, /Its results are prepared for this conversation but held, so they aren't sent again; see below\./);
+  assert.doesNotMatch(region(ui.c, 'Trial 2 of spacing-check').textContent, /already prepared for this conversation\./);
   const calls = ui.calls.length;
   await ui.press('Open trial 2\'s prepared results to read or remove');
   assert.equal(ui.opened.at(-1).pending.id, 'bb-1'); assert.equal(ui.calls.length, calls, 'opening issues nothing');
