@@ -67,7 +67,13 @@ export function runReading(run: Json, host: Json): RunReading {
     return { tone: "uncertain", title: "Start not confirmed — outcome unknown", detail: `The App could not confirm whether Codex received the starting message${status.limit ? ` (${text(status.limit)})` : ""}. It may have run. The App will not resend it. Read the conversation before deciding what to do.` };
   }
   if (starts(lifecycle, "open")) {
-    const waiting = hostRequests(host).filter((request: Json) => requestThread(request) === run.conversation && request.state === "outstanding").length;
+    // Live activity belongs to this run only when the run is of the exact
+    // current source (generation and home). A run recorded open in an earlier
+    // Codex session keeps its lifecycle, but a same-ID thread or request now
+    // is not its activity.
+    if (!same(run?.generation, host?.generation) || run?.home !== host?.generation?.home)
+      return { tone: "idle", title: "Open in an earlier Codex session", detail: "This run was recorded open in a Codex session that isn't the current one, so the App can't see what it is doing now. Find its conversation in History." };
+    const waiting = hostRequests(host).filter((request: Json) => requestThread(request) === run.conversation && request.state === "outstanding" && (request.generation === undefined || same(request.generation, run.generation))).length;
     if (waiting > 0) return { tone: "waiting", title: "Waiting for your answer", detail: `Codex is asking ${waiting === 1 ? "a question or approval" : `${waiting} questions or approvals`} in the conversation. Nothing continues until you answer there.` };
     const thread = list(host?.threads).find((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation));
     if (thread?.status?.type === "active") return { tone: "working", title: "Working", detail: "Codex is working on this run. Follow its progress in the conversation." };

@@ -64,11 +64,11 @@ async function mount(view) {
 
 test('run readings keep waiting, working, failed, interrupted-start and finished distinct', () => {
   const h = host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}]});
-  assert.equal(runReading({conversation:'T1', source:'s', lifecycle:{state:OPEN}}, h).tone, 'waiting');
-  assert.equal(runReading({conversation:'T2', source:'s', lifecycle:{state:OPEN}}, host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}],
+  assert.equal(runReading({conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}}, h).tone, 'waiting');
+  assert.equal(runReading({conversation:'T2', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}}, host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}],
     threads:[{threadId:'T2', generation:g, status:{type:'active'}}]})).tone, 'working', 'another conversation\'s request is not this run\'s question');
-  assert.equal(runReading({conversation:'T1', source:'s', lifecycle:{state:OPEN}}, host({serverRequests:[{state:'answered', nativeParameters:{threadId:'T1'}}]})).tone, 'idle');
-  assert.equal(runReading({conversation:'T1', source:'s', lifecycle:{state:OPEN}}, host({threads:[{threadId:'T1', generation:g, status:{type:'systemError'}}]})).tone, 'failed');
+  assert.equal(runReading({conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}}, host({serverRequests:[{state:'answered', nativeParameters:{threadId:'T1'}}]})).tone, 'idle');
+  assert.equal(runReading({conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}}, host({threads:[{threadId:'T1', generation:g, status:{type:'systemError'}}]})).tone, 'failed');
   const refused = runReading({conversation:'T1', lifecycle:{state:NOT_CONFIRMED}, status:REFUSED}, host());
   assert.equal(refused.tone, 'failed'); assert.match(refused.detail, /did not run.*invented refusal.*prepare it again/);
   for (const status of [UNKNOWN, {state:'native workflow-text send not started; original records retained', sent:'not observed', limit:'x'}, {}]) {
@@ -348,4 +348,19 @@ test('after Codex restarts and the run\'s conversation is not loaded, its runs s
   assert.match(region(ui.c, 'Run run-1').textContent, /Ended as completed\..*Its conversation isn't loaded in this Codex session; find it in History\./);
   assert.equal(button(region(ui.c, 'Run run-1'), 'Show the conversation'), undefined, 'no navigation to a conversation that isn\'t loaded');
   assert.equal(region(ui.c, 'Run run-other-home'), undefined, 'another home\'s run is not listed');
+});
+
+test('an open run from an earlier Codex session never takes a same-ID conversation\'s current activity', () => {
+  const g2 = {...g, spawnCounter:2};
+  const oldOpen = {reference:'run-old', conversation:'same-id', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}};
+  const working = host({generation:g2, threads:[{threadId:'same-id', generation:g2, status:{type:'active'}}]});
+  const reading = runReading(oldOpen, working);
+  assert.equal(reading.title, 'Open in an earlier Codex session');
+  assert.doesNotMatch(reading.detail, /Codex is working on this run/, 'G2\'s active same-ID thread is not this run\'s work');
+  const waiting = host({generation:g2, threads:[{threadId:'same-id', generation:g2, status:{type:'idle'}}], serverRequests:[{generation:g2, state:'outstanding', nativeParameters:{threadId:'same-id'}}]});
+  assert.equal(runReading(oldOpen, waiting).title, 'Open in an earlier Codex session', 'G2\'s waiting request is not this run\'s question');
+  assert.equal(runReading({...oldOpen, home:'api-key'}, host({threads:[{threadId:'same-id', generation:g, status:{type:'active'}}]})).title, 'Open in an earlier Codex session', 'another home\'s run is not current either');
+  assert.equal(runReading({...oldOpen, generation:g2}, working).tone, 'working', 'the exact current source still reads its activity');
+  const ended = runReading({...oldOpen, lifecycle:{state:'ended', end:{cause:'completed'}}}, working);
+  assert.equal(ended.title, 'Ended as completed', 'historical lifecycle stays readable');
 });
