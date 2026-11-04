@@ -1347,9 +1347,11 @@ confirmation and A15 are unchanged.
 returning-draft baseline facts on `9efa17a7`, taken after a synthetic
 relaunch with cold trial links and old conversations not loaded:
 - **R1.** "Continue ‹draft›" in Unfinished drafts still only fills the name.
-  Once that commit shows the draft, the guide scrolls its current step (the
-  Draft status) into view and focuses it, but only while the same library
-  and draft are still the ones shown.
+  Once that commit shows the draft, the guide scrolls its current step's
+  first line (the draft's state line) to the top of the view and focuses
+  it, but only while the same library and draft are still the ones shown.
+  The status region can be taller than the window, which is why it lands on
+  the first line.
 - **R2.** A saved conversation ID on a trial row (a bare string) offers "Look
   for it in History". That shows History and fills its local search with the
   ID. The search reads nothing. No history read, row selection, home change,

@@ -224,7 +224,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
   // Continue <draft> moves the person to its current step once it is shown,
   // only while the same library and draft are still the ones shown.
   const revealDraft = useRef<{ library: Json; name: string } | null>(null);
-  const draftStatus = useRef<HTMLDivElement>(null);
+  const draftStatus = useRef<HTMLParagraphElement>(null);
   const [revealRequest, setRevealRequest] = useState(0);
   const doubts = useBringBackDoubts();
   // A review names its library and workflows only while its presentation is
@@ -278,7 +278,8 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
     if (!wanted || !revealRequest) return;
     revealDraft.current = null;
     if (wanted.library !== (data?.activeLibrary ?? null) || existingDraft?.name !== wanted.name || trimmed !== wanted.name) return;
-    draftStatus.current?.scrollIntoView?.({ block: "center" });
+    // The status region can be taller than the window: land on its first line.
+    draftStatus.current?.scrollIntoView?.({ block: "start" });
     draftStatus.current?.focus?.({ preventScroll: true });
   }, [revealRequest]); // eslint-disable-line react-hooks/exhaustive-deps
   return <section id="make-workflow" className="workflow-stage run-journey" aria-label="Make a workflow from your work" aria-busy={busy}>
@@ -307,8 +308,8 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
       </li>
       <li><h3>Find, try and register it</h3>
         <button disabled={!canAct || !active} onClick={() => { if (canAct && active) void act("workflow_observe_drafts", {}); }}>Look for drafts in this library</button>
-        {existingDraft && step ? (() => { const next = step; return <div ref={draftStatus} tabIndex={-1} className="run-journey-state" aria-label="Draft status">
-          <p role="status"><strong>{trimmed}</strong>: {draftStateWords(existingDraft.state, existingDraft.content)}.</p>
+        {existingDraft && step ? (() => { const next = step; return <div className="run-journey-state" aria-label="Draft status">
+          <p ref={draftStatus} tabIndex={-1} role="status" aria-label="Draft state"><strong>{trimmed}</strong>: {draftStateWords(existingDraft.state, existingDraft.content)}.</p>
           {list(existingDraft.findings).length > 0 && <ul aria-label="What to fix">{list(existingDraft.findings).map((finding: Json) => <li key={text(finding)}>{text(finding)}</li>)}</ul>}
           <p>{next.words} {next.href === "#conversation" && showConversation && chosen
             ? <button onClick={() => showConversation(chosen.threadId)}>Show the conversation</button>

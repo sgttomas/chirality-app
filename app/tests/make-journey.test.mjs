@@ -430,7 +430,8 @@ test('returning to a draft: Continue lands on its current step, a saved conversa
     const ui = await mount(view);
     assert.match(region(ui.c, 'Unfinished drafts').textContent, /Reading one there only shows it; to keep working in it, press Continue there, which is a separate step\./);
     await ui.press('Continue spacing-check');
-    assert.equal(focused.at(-1)?.getAttribute('aria-label'), 'Draft status', 'Continue lands on the draft\'s current step');
+    assert.equal(focused.at(-1)?.getAttribute('aria-label'), 'Draft state', 'Continue lands on the draft\'s state line, the first line of its current step');
+    assert.match(focused.at(-1)?.textContent ?? '', /^spacing-check: draft/);
     await ui.choose(key('T1'));
     const row = region(ui.c, 'Trial 2 of spacing-check');
     assert.match(row.textContent, /This saved trial can't be brought back here\. Try the draft again in a fresh conversation above, or look at the earlier conversation in History\./);
