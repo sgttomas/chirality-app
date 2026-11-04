@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ModelProviderFields, RoleChoice, type SendState, type StartChoice } from "./ConversationRoles";
+import { ConnectionAndModel, RoleChoice, type SendState, type StartChoice } from "./ConversationRoles";
+import { useBoundModelChoice, type BoundModelChoice, type ModelRoute } from "./ModelChoice";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // Trial and bring-back composers (DEL-02-02 WR §4.2 TT-3a, TT-3b, TT-10; §6
@@ -137,19 +138,33 @@ export function DelegatedTrialComposer({ pending, conversations, busy, ready, ac
 }
 
 export type CleanChoice = StartChoice & { role: string; roleTouched: boolean };
+/** The clean trial composer's own place, so a link lands inside it. Exact:
+ * the reference's UTF-16 code units in hex. */
+export const cleanTrialAnchor = (reference: Json): string => `new-trial-${Array.from(text(reference), c => c.charCodeAt(0).toString(16).padStart(4, "0")).join("")}`;
 
 /** TT-3b, SQ-FT FT-3/FT-4: a new trial conversation, like Continue as but
  * without a handoff turn. Its role and model are the person's; it starts and
  * the trial message is sent only when the person presses Send. */
-export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHomeClass, choice, setChoice, message, setMessage, outcome, setOutcome, busy, ready, act }: {
+export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHomeClass, choice, setChoice, chooser, message, setMessage, outcome, setOutcome, busy, ready, act }: {
   pending: Json; roleSet: Json; limits: Json; entries: { value: string; label: string }[]; modeHomeClass: Json;
-  choice: CleanChoice; setChoice: (c: CleanChoice) => void; message: string; setMessage: (m: string) => void;
+  choice: CleanChoice; setChoice: (c: CleanChoice) => void; chooser?: BoundModelChoice; message: string; setMessage: (m: string) => void;
   outcome: SendState; setOutcome: (o: SendState) => void; busy: boolean; ready: boolean; act: TrialAct;
 }) {
   const started = pending?.cleanConversation && pending?.state === "started; trial message not sent" ? pending.cleanConversation : null;
   const sent = outcome.state === "sending" || outcome.state === "sent";
   const noModel = !choice.model.trim() || !choice.modelProvider.trim();
-  return <section aria-label="New trial conversation" style={{ border: "1px solid #888", padding: 8, margin: "8px 0" }}>
+  const models = chooser ?? fixedModelChoice(choice, route => setChoice({ ...choice, ...route }));
+  const startClean = () => {
+    const binding = models.bound(), route = binding?.route;
+    if (!binding || !route || route.model !== choice.model || route.modelProvider !== choice.modelProvider || route.entryId !== choice.entryId) {
+      setOutcome({ state: "failed", failure: "Not started: the connection and model you pressed for are no longer the current choice (Codex, the home or the choice changed). Your inputs are kept; choose again." });
+      return;
+    }
+    // `generation` is the one the choice was made for. The current native
+    // receiver ignores it; a native follow-up will require it at admission.
+    pressSend(act, "workflow_trial_start_clean", { reference: pending?.reference, model: route.model, modelProvider: route.modelProvider, entryId: route.entryId, modeHomeClass: binding.modeHomeClass ?? modeHomeClass, generation: binding.generation, role: choice.role === "" ? null : choice.role, personText: message }, setOutcome, result => cleanSentWords(result?.thread?.threadId ?? result?.conversation?.threadId ?? "not named by the host"));
+  };
+  return <section id={cleanTrialAnchor(pending?.reference)} aria-label="New trial conversation" style={{ border: "1px solid #888", padding: 8, margin: "8px 0" }}>
     <h3>New trial conversation: trial {text(pending?.sequence)} of draft {text(pending?.draftName)}</h3>
     <p><small>Optional: a clean trial is shown, not required. It is a new conversation with the role and model you choose and nothing but the trial text and your inputs.</small></p>
     <TrialCard pending={pending} busy={busy || sent} act={act} />
@@ -161,11 +176,9 @@ export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHom
     </div> : <div>
       <RoleChoice group={`clean-trial-role:${text(pending?.reference)}`} roleSet={roleSet} limits={limits} role={choice.role} preselected={!choice.roleTouched && !!choice.role && choice.role === roleSet?.defaultRole}
         setRole={role => setChoice({ ...choice, role, roleTouched: true })} />
-      <p>The new conversation starts with no model selected; choose one.</p>
-      <ModelProviderFields model={choice.model} modelProvider={choice.modelProvider}
-        setModel={model => setChoice({ ...choice, model })} setModelProvider={modelProvider => setChoice({ ...choice, modelProvider })} />{" "}
-      <label>Access entry <select value={choice.entryId} onChange={e => setChoice({ ...choice, entryId: e.target.value })}><option value="">No entry selected</option>{entries.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}</select></label>
-      <p><button disabled={busy || !ready || noModel || !choice.entryId || sent} onClick={() => pressSend(act, "workflow_trial_start_clean", { reference: pending?.reference, model: choice.model, modelProvider: choice.modelProvider, entryId: choice.entryId, modeHomeClass, role: choice.role === "" ? null : choice.role, personText: message }, setOutcome, result => cleanSentWords(result?.thread?.threadId ?? result?.conversation?.threadId ?? "not named by the host"))}>Send</button>
+      <p>The new conversation starts with no model selected; choose how it connects and its model.</p>
+      <ConnectionAndModel homeClass={typeof modeHomeClass === "string" ? modeHomeClass : null} chooser={models} entries={entries} disabled={busy || !ready || sent} />
+      <p><button disabled={busy || !ready || noModel || !choice.entryId || sent} onClick={startClean}>Send</button>
         <small> Starts the new conversation, then sends the trial text and your inputs once.</small></p>
       {noModel && <p><small>Not started — no model selected.</small></p>}
     </div>}
@@ -173,11 +186,20 @@ export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHom
   </section>;
 }
 
-export function CleanTrialPanel({ pending, roleSet, limits, entries, modeHomeClass, busy, ready, act }: { pending: Json; roleSet: Json; limits: Json; entries: { value: string; label: string }[]; modeHomeClass: Json; busy: boolean; ready: boolean; act: TrialAct }) {
-  const [choice, setChoice] = useState<CleanChoice>({ model: "", modelProvider: "", entryId: "", role: roleSet?.available ? text(roleSet.defaultRole) : "", roleTouched: false });
+/** A chooser with no model list, for a view given its choice directly. */
+export function fixedModelChoice(route: ModelRoute, revise: (patch: Partial<ModelRoute>) => void): BoundModelChoice {
+  const value = { model: route.model, modelProvider: route.modelProvider, entryId: route.entryId };
+  return { route: value, stale: false, revise, packet: null, current: false, reading: false, message: "", read: () => {}, choose: () => {}, bound: () => ({ route: value, generation: null, modeHomeClass: null }) };
+}
+
+export function CleanTrialPanel({ pending, roleSet, limits, entries, modeHomeClass, generation, busy, ready, act }: { pending: Json; roleSet: Json; limits: Json; entries: { value: string; label: string }[]; modeHomeClass: Json; generation?: Json; busy: boolean; ready: boolean; act: TrialAct }) {
+  const chooser = useBoundModelChoice({ owner: `clean-trial:${text(pending?.reference)}`, homeClass: typeof modeHomeClass === "string" ? modeHomeClass : null, generation: generation ?? null, ready });
+  const [role, setRole] = useState({ role: roleSet?.available ? text(roleSet.defaultRole) : "", roleTouched: false });
+  const choice: CleanChoice = { ...chooser.route, ...role };
+  const setChoice = (next: CleanChoice) => setRole({ role: next.role, roleTouched: next.roleTouched });
   const [message, setMessage] = useState<string>(text(pending?.message));
   const [outcome, setOutcome] = useState<SendState>({ state: "unsent" });
-  return <CleanTrialPanelView pending={pending} roleSet={roleSet} limits={limits} entries={entries} modeHomeClass={modeHomeClass} choice={choice} setChoice={setChoice}
+  return <CleanTrialPanelView pending={pending} roleSet={roleSet} limits={limits} entries={entries} modeHomeClass={modeHomeClass} choice={choice} setChoice={setChoice} chooser={chooser}
     message={message} setMessage={setMessage} outcome={outcome} setOutcome={setOutcome} busy={busy} ready={ready} act={act} />;
 }
 
