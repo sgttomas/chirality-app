@@ -402,3 +402,227 @@ fn parent_authorized_stock_native_bundled_workflow_fixture() -> Result<(), Strin
     }));
     Ok(())
 }
+
+const TRIAL_GATE: &str = "parent-authorized-0160-local-trial-bring-back-fixture";
+const TRIAL_DRAFT: &str = "coordinated-knowledge-work";
+const INVENTED_LINE: &str = "Invented fixture draft line: summarize the synthetic inputs in one sentence.";
+const TRIAL_INPUTS: &str = "Inputs for this trial: synthetic fixture inputs (no model).";
+const TRIAL_REPLY: &str = "Synthetic fixture reply (scripted, not a model) inside the clean trial.";
+const BACK_TEXT: &str = "Synthetic fixture (no model): here is how trial 1 went.";
+const BACK_REPLY: &str = "Synthetic fixture reply (scripted, not a model) in the authoring conversation.";
+
+/// J2 clean trial against the real stock Codex 0.160 app-server: an invented
+/// draft (no registration), the trial's own new native conversation started by
+/// an actual Host `thread/start`, the trial message through `send_trial`, the
+/// trial read from native history, Bring back pre-filled in the authoring
+/// conversation, then the person's explicit send of it. Only the model replies
+/// are scripted (loopback Responses fixture). Not model, human, J2 or native
+/// qualification.
+#[test]
+#[ignore = "Parent only: explicit local trial/bring-back fixture opt-in; stock Codex, loopback fixture, no model, credential or owner home"]
+fn parent_authorized_stock_native_clean_trial_bring_back_fixture() -> Result<(), String> {
+    if std::env::var("CHIRALITY_RUN_NATIVE_BACKEND_SMOKE").ok().as_deref() != Some(TRIAL_GATE) {
+        return Err("Parent local trial fixture opt-in absent; nothing executed".into());
+    }
+    let binary = PathBuf::from(std::env::var("CHIRALITY_NATIVE_SMOKE_BIN").map_err(|_| "stock binary path absent")?);
+    if !binary.is_absolute() {
+        return Err("stock binary path must be absolute".into());
+    }
+    let base = std::fs::canonicalize(std::env::temp_dir()).unwrap();
+    let owned = Owned { root: base.join(crate::util::opaque_id("trial-backend-fixture-")?), host: Arc::new(Host::new()), later: Mutex::new(None) };
+    private_dir(&owned.root);
+    let project = owned.root.join("project");
+    let codex_home = owned.root.join("codex-home");
+    let app_data = owned.root.join("app-data");
+    std::fs::create_dir(&project).unwrap();
+    private_dir(&codex_home);
+    std::fs::create_dir(&app_data).unwrap();
+    let mktemp = std::process::Command::new("/usr/bin/mktemp").arg("-d").arg(owned.root.join("version-probe-XXXXXX")).output().unwrap();
+    assert!(mktemp.status.success());
+    let probe_home = PathBuf::from(String::from_utf8(mktemp.stdout).unwrap().trim_end_matches('\n'));
+
+    let fixture = ResponsesFixture::start(
+        vec![vec![responses_fixture::message("msg_fixture_trial", TRIAL_REPLY)], vec![responses_fixture::message("msg_fixture_back", BACK_REPLY)]],
+        vec![("invented", INVENTED_LINE.to_string()), ("inputs", TRIAL_INPUTS.to_string()), ("transcript", format!("[Chirality] Trial 1 of draft {TRIAL_DRAFT} @ ")), ("back", BACK_TEXT.to_string())],
+    )?;
+    // The same fresh private Codex home and parent boundary as the run fixture.
+    std::fs::write(codex_home.join("config.toml"), format!(
+        "model = \"{MODEL}\"\nmodel_provider = \"{PROVIDER}\"\napproval_policy = \"never\"\nsandbox_mode = \"danger-full-access\"\n\n[model_providers.{PROVIDER}]\nname = \"Chirality workflow fixture\"\nbase_url = \"{}\"\nwire_api = \"responses\"\nrequires_openai_auth = false\n",
+        fixture.base_url())).unwrap();
+    let mut cfg = HostConfig::new(binary, codex_home, probe_home, project.clone());
+    cfg.expected_sha256 = Some(BINARY_SHA.into());
+    cfg.allow_unverified_dev = true;
+    cfg.wait_limit = Duration::from_secs(15);
+    let ready = owned.host.start(&cfg, "trial-backend-fixture")?;
+    assert_eq!(ready["versionIdentity"]["observedVersionLabel"], "codex-cli 0.160.0");
+    let generation = owned.host.snapshot()["generation"].clone();
+    let instructions = app_data.join("instructions");
+    super::seed_instructions(&instructions)?;
+    let composition = super::compose_role(&instructions, Some(crate::role_supply::Role::HELP_HUMAN))?;
+    let cwd = project.to_str().unwrap().to_owned();
+    // The authoring conversation (A): an actual native conversation.
+    let authoring = owned.host.thread_start_with_guidance(&cwd, MODEL, PROVIDER, &composition.text)?["result"]["thread"]["id"].as_str().ok_or("authoring thread absent")?.to_owned();
+    let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, owned.host.clone(), Ok(cfg))?);
+    let home_id = generation["home"].as_str().unwrap().to_owned();
+
+    // An invented valid draft in the owned project library; nothing registered.
+    let package = project.join(crate::workflow_workspace::development_catalog::NAME);
+    std::fs::create_dir(&package).unwrap();
+    for (name, bytes) in crate::workflow_workspace::development_catalog::DevelopmentCatalog::load()?.select_embedded().snapshot().files() {
+        std::fs::write(package.join(name), bytes).unwrap();
+    }
+    let mut root = WorkflowRootSession::default();
+    root.select_development_copy(None, package.clone())?;
+    let control = Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project))));
+    root.open_library(project.clone(), "project", Some(&project), control)?;
+    root.create_selected_draft(None, TRIAL_DRAFT)?;
+    let draft = project.join(".chirality/workflow-drafts").join(TRIAL_DRAFT).join("WORKFLOW.md");
+    let mut text = std::fs::read_to_string(&draft).unwrap();
+    text.push_str(&format!("\n{INVENTED_LINE}\n"));
+    std::fs::write(&draft, text).unwrap();
+    root.set_app_user_data(app_data.clone());
+    root.observe_drafts(&json!([]))?;
+    assert!(root.reviews.is_empty(), "no review or registration");
+
+    // Try in a fresh conversation (TT-3b): pre-filled only.
+    let view = root.prepare_trial("clean", TRIAL_DRAFT, Some((&generation, &authoring)), Some(&home), Some(&project))?;
+    let reference = view["reference"].as_str().ok_or("no trial reference")?.to_owned();
+    let trial_text = view["text"].as_str().ok_or("no trial text")?.to_owned();
+    assert!(trial_text.contains(INVENTED_LINE), "the trial carries the invented draft");
+    let workflows = Mutex::new(root);
+    let starts_before = owned.host.snapshot()["threads"].as_array().map(Vec::len).unwrap_or(0);
+    // The production clean start: the new conversation comes from an actual
+    // Host thread/start response; then the trial message (send_trial).
+    let sent = trial_flows::start_clean_trial(&workflows, &reference,
+        || {
+            let response = owned.host.thread_start_with_guidance(&cwd, MODEL, PROVIDER, &composition.text)?;
+            Ok(json!({"startGeneration":generation,"result":response["result"]}))
+        },
+        |g, thread| trial_flows::send_trial(&workflows, &home, &reference, g, thread, TRIAL_INPUTS))
+        .map_err(|e| e.message)?;
+    let trial = sent["conversation"]["threadId"].as_str().ok_or("no trial conversation")?.to_owned();
+    assert_ne!(trial, authoring, "the trial is its own conversation");
+    assert_eq!(sent["conversation"]["generation"], generation);
+    assert_eq!(owned.host.snapshot()["threads"].as_array().map(Vec::len).unwrap_or(0), starts_before + 1, "one new native conversation");
+
+    // Observe with the production record and trial ticks until a conversation
+    // has `n` turns, the newest at its native terminal.
+    let mut reads = Vec::new();
+    let wait = |thread: &str, n: usize, reads: &mut Vec<Value>| -> Result<Value, String> {
+        let deadline = Instant::now() + Duration::from_secs(60);
+        loop {
+            crate::host_tick::tick_home(&home, &workflows);
+            reads.extend(crate::host_tick::trial_tick_home(&home, &workflows));
+            let turns: Vec<Value> = owned.host.snapshot()["conversationTurns"].as_array().into_iter().flatten()
+                .filter(|t| t["generation"] == generation && t["threadId"] == thread).cloned().collect();
+            assert!(turns.len() <= n, "no duplicate send in {thread}: {} turns", turns.len());
+            if turns.len() == n && turns.iter().all(|t| t["terminalEventObserved"] == true) {
+                return Ok(turns[n - 1].clone());
+            }
+            if Instant::now() >= deadline {
+                return Err(format!("native terminal wait deadline exceeded in {thread}"));
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        }
+    };
+    let trial_turn = wait(&trial, 1, &mut reads)?;
+    assert_eq!(trial_turn["nativeTurn"]["status"], "completed");
+    for _ in 0..20 {
+        if !reads.is_empty() { break; }
+        reads.extend(crate::host_tick::trial_tick_home(&home, &workflows));
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    let trial_turn_id = trial_turn["turnId"].as_str().unwrap().to_owned();
+
+    // The trial link: clean, its own conversation, the authoring conversation
+    // as its source of Try, the native turn the host acknowledged.
+    let links = crate::workflow_workspace::registration::drafts::TrialLinks::open(&app_data);
+    let link = links.link(&reference).ok_or("no trial link")?.clone();
+    assert_eq!((link["trial"]["kind"].as_str(), link["conversation"].as_str(), link["trial"]["authoring_conversation"].as_str()), (Some("clean"), Some(trial.as_str()), Some(authoring.as_str())));
+    assert_eq!(link["trial"]["turn"], trial_turn_id.as_str(), "the link names the acknowledged native turn");
+    assert_eq!(workflows.lock().unwrap().trial_conversation(&trial), Some((reference.clone(), false)));
+
+    // Native history of the trial: one turn, the exact trial text then the
+    // person's inputs, and the scripted reply.
+    let trial_history = history_items(&owned.host, &generation, &home_id, &trial);
+    assert_eq!(trial_history.len(), 1, "one trial turn (no duplicate send)");
+    assert_eq!(user_texts(&trial_history[0].1), [trial_text.clone(), TRIAL_INPUTS.to_string()]);
+    assert!(trial_history[0].1.iter().any(|i| i["type"] == "agentMessage" && i["text"] == TRIAL_REPLY));
+    let fidelity: Vec<Value> = reads.iter().map(|r| r["fidelity"]["state"].clone()).collect();
+    assert_eq!(fidelity, [json!("verbatim")], "the trial was read once from native history: {}", json!(reads));
+
+    // The trial opens no run, selects nothing and claims no completed work.
+    let (rs, rs_limits) = crate::storage::read_all(&project);
+    assert!(rs_limits.is_empty(), "{rs_limits:?}");
+    assert!(!rs.iter().any(|e| e["kind"] == "run_opened" || e["kind"] == "run_ended"), "no run recorded");
+    let wr = crate::records::supply::read_project_supply(&crate::workflow_workspace::publication::ProjectRecords::open(&project)?);
+    assert!(wr["records"].as_array().into_iter().flatten().all(|r| r["kind"] != "selection_record" && r["kind"] != "run_text"), "{wr}");
+    {
+        let root = workflows.lock().unwrap();
+        assert!(root.runs.is_empty() && root.reviews.is_empty(), "no run and no review/registration");
+        let view = crate::host_tick::receive_view(&home);
+        assert!(root.offers(&view).as_array().unwrap().is_empty(), "no offer from the trial conversation");
+    }
+
+    // Bring back into the authoring conversation: pre-filled only.
+    let responses_before = fixture.requests().iter().filter(|r| r["answered"] == "sse").count();
+    let pending = trial_flows::bring_back_with_homes(&workflows, &[home.clone()], Some(&project), &home, Some(&reference), None, &generation, &authoring, false)?;
+    let id = pending["id"].as_str().ok_or("no bring-back id")?.to_owned();
+    let transcript = {
+        let root = workflows.lock().unwrap();
+        let mut status = root.snapshot();
+        root.decorate_status(&mut status, &json!({}));
+        let row = status["pendingBringBacks"].as_array().into_iter().flatten().find(|b| b["id"] == id.as_str()).cloned().ok_or("no pending bring-back row")?;
+        row["transcript"].as_str().ok_or("no transcript")?.to_owned()
+    };
+    assert!(transcript.starts_with(&format!("[Chirality] Trial 1 of draft {TRIAL_DRAFT} @ ")), "{transcript}");
+    assert!(transcript.contains(TRIAL_REPLY) && transcript.contains(TRIAL_INPUTS), "the transcript is the trial's native history: {transcript}");
+    assert!(owned.host.snapshot()["conversationTurns"].as_array().into_iter().flatten().all(|t| t["threadId"] != authoring.as_str()), "nothing sent to the authoring conversation yet");
+    assert_eq!(fixture.requests().iter().filter(|r| r["answered"] == "sse").count(), responses_before, "no model request from Bring back");
+    assert!(links.observations(&reference).iter().all(|o| o["observation"] != "brought back"));
+    let reopened = crate::workflow_workspace::registration::drafts::TrialLinks::open(&app_data);
+    assert!(reopened.observations(&reference).iter().all(|o| o["observation"] != "brought back"), "no brought-back observation before the send");
+
+    // The person's explicit send: the brought-back observation follows Codex's
+    // acknowledgment of that turn.
+    let back = trial_flows::send_bring_back(&workflows, &home, &id, &generation, &authoring, BACK_TEXT).map_err(|e| e.message)?;
+    assert_eq!((back["observation"]["observation"].as_str(), back["observation"]["target_conversation"].as_str()), (Some("brought back"), Some(authoring.as_str())));
+    let back_turn = wait(&authoring, 1, &mut reads)?;
+    assert_eq!(back_turn["nativeTurn"]["status"], "completed");
+    assert_eq!(back["turn"], back_turn["turnId"], "the observation is bound to the acknowledged native turn");
+    let authoring_history = history_items(&owned.host, &generation, &home_id, &authoring);
+    assert_eq!(authoring_history.len(), 1, "one authoring turn (no duplicate send)");
+    assert_eq!(user_texts(&authoring_history[0].1), [BACK_TEXT.to_string(), transcript.clone()]);
+    assert!(authoring_history[0].1.iter().any(|i| i["type"] == "agentMessage" && i["text"] == BACK_REPLY));
+    assert_eq!(history_items(&owned.host, &generation, &home_id, &trial).len(), 1, "the trial conversation gained nothing");
+    let observed = crate::workflow_workspace::registration::drafts::TrialLinks::open(&app_data).observations(&reference);
+    assert_eq!(observed.iter().filter(|o| o["observation"] == "brought back").count(), 1);
+    assert!(trial_flows::send_bring_back(&workflows, &home, &id, &generation, &authoring, BACK_TEXT).is_err(), "sent once; nothing pre-filled remains");
+    let (rs_after, _) = crate::storage::read_all(&project);
+    assert!(!rs_after.iter().any(|e| e["kind"] == "run_opened"), "still no run");
+
+    // The fixture: one trial request (invented draft + inputs, no transcript),
+    // then one authoring request (the transcript + the person's text).
+    let requests = fixture.requests();
+    let responses: Vec<&Value> = requests.iter().filter(|r| r["answered"] == "sse").collect();
+    assert!(requests.iter().all(|r| r["loopbackPeer"] == true && r["parsed"] == true));
+    assert_eq!(responses.len(), 2, "{}", json!(responses.iter().map(|r| &r["markers"]).collect::<Vec<_>>()));
+    assert_eq!((&responses[0]["markers"]["invented"], &responses[0]["markers"]["transcript"]), (&json!(true), &json!(false)));
+    assert_eq!((&responses[1]["markers"]["transcript"], &responses[1]["markers"]["back"]), (&json!(true), &json!(true)));
+
+    owned.host.stop("trial-backend-fixture", "trial fixture finished")?;
+    assert_eq!(owned.host.snapshot()["lifecycle"].as_array().and_then(|v| v.last()).map(|e| e["descendants"]["surviving"].clone()), Some(json!(0)));
+    drop(fixture);
+    println!("{}", json!({
+        "probe":"real-backend-clean-trial-bring-back-fixture",
+        "standing":"stock Codex 0.160 with a deterministic loopback Responses fixture; model replies SCRIPTED SYNTHETIC; Try, Send and Bring back are the test's calls; not inference, model, human, J2 or native qualification",
+        "supplier":ready["versionIdentity"]["observedVersionLabel"],
+        "draft":{"name":TRIAL_DRAFT,"invented":true,"registered":false},
+        "trial":{"kind":link["trial"]["kind"],"ownConversation":true,"nativeStart":"actual Host thread/start","linkTurnIsNative":true,"turns":trial_history.len(),"fidelity":fidelity},
+        "noRun":{"rs":rs.iter().map(|e| e["kind"].clone()).collect::<Vec<_>>(),"offers":0},
+        "bringBack":{"prefilledOnly":true,"sent":back["observation"]["observation"],"targetIsAuthoring":true,"turnBound":true,"authoringTurns":authoring_history.len()},
+        "fixture":{"responsesRequests":responses.len(),"otherRequests":requests.iter().filter(|r| r["answered"] != "sse").count()},
+        "cleanup":{"descendantsSurviving":0}
+    }));
+    Ok(())
+}
