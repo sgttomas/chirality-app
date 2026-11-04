@@ -2418,7 +2418,7 @@ impl Host {
         if history.generation()!=generation||history.home()!=dispatch.query.home()||i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("Continue admission belongs to foreign/stale/closed generation".into());}
         let native=&candidate["native"];if !matches!(native["status"]["type"].as_str(),Some("idle"|"active"))||native["canAcceptDirectInput"]==false||native["id"]!=dispatch.query.params()["threadId"] {return Err("native thread cannot accept direct input".into());}
         if i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==native["id"]) {return Err("thread already operationally admitted in generation".into());}
-        let result=&response["result"];let row=json!({"generation":generation,"threadId":native["id"],"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()});i.threads.push(row.clone());
+        let result=&response["result"];let row=json!({"generation":generation,"threadId":native["id"],"name":native.get("name").and_then(Value::as_str),"preview":native.get("preview").and_then(Value::as_str),"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()});i.threads.push(row.clone());
         // Admission is already established. Context preparation/read failure must
         // never revoke it, change role/CCE state or make Continue wait on history.
         let thread=native["id"].as_str().unwrap();
@@ -2480,7 +2480,7 @@ impl Host {
         if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("thread/fork result belongs to a closed or replaced generation; native response retained".into());}
         if i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("forked thread already operationally admitted in generation".into());}
         let standing=i.supplier_standing.clone();let result=&response["result"];
-        let row=json!({"generation":generation,"threadId":t.get("id"),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()});
+        let row=json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()});
         // Stock Codex retains the dynamic tool in a fork. Admit its calls only
         // after the correlated fork of a source offered it in this generation.
         // The capability still checks the fork's observed cwd on every read.
@@ -2853,7 +2853,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 if let Some(receipt) = receipt { i.records_receipts.push((generation.clone(), receipt.thread.clone(), receipt)); }
             }
         }
-        let standing=i.supplier_standing.clone();i.threads.push(json!({"generation":generation,"threadId":t.get("id"),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}));Ok(())
+        let standing=i.supplier_standing.clone();i.threads.push(json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}));Ok(())
     }
 
     /// Plain text only, with complete native text input; all thread settings
@@ -3902,6 +3902,17 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if (class == "server-request"&&private_auth_reply.is_none()) || (class == "notification" && frame["method"] == "serverRequest/resolved") {
             Self::persist_requests(&mut i);
         }
+        // Names are native display metadata only. A notification never admits
+        // a conversation or changes its role, destination or continuation.
+        if class == "notification" && frame["method"] == "thread/name/updated"
+            && Self::validate_native_result("ThreadNameUpdatedNotification", &frame["params"]).is_ok()
+        {
+            if let Some(name) = frame["params"].get("threadName").filter(|v| v.is_string() || v.is_null()) {
+                for thread in i.threads.iter_mut().filter(|t| t["generation"] == gen && t["threadId"] == frame["params"]["threadId"]) {
+                    thread["name"] = name.clone();
+                }
+            }
+        }
         if class == "notification" && matches!(frame["method"].as_str(), Some("turn/started" | "turn/completed")) {
             if let Some(thread) = frame["params"]["threadId"].as_str() {
                 Self::remember_turn(&mut i, &gen, thread, &frame["params"]["turn"], frame["method"].as_str().unwrap(), pos);
@@ -4900,6 +4911,75 @@ mod conversation_transport_tests {
         worker.join().expect("history peer worker panicked");
         result.expect("history fixture exchange failed")
     }
+    #[test]
+    fn conversation_descriptions_survive_start_fork_and_resume() {
+        let host = host();
+        let mut native = history_resume("idle", true);
+        native["thread"]["id"] = json!("started");
+        native["thread"]["name"] = json!("Office move");
+        native["thread"]["preview"] = json!("Plan the office move");
+        let (started, _) = exchange(&host, Some(json!({"result":native})), vec![], ||
+            host.thread_start_with_guidance("/invented", "chosen", "configured", "original guidance"));
+        assert!(started.is_ok(), "{started:?}");
+        let started = host.snapshot()["threads"].as_array().unwrap().iter()
+            .find(|t| t["threadId"] == "started").unwrap().clone();
+        assert_eq!(started["name"], "Office move");
+        assert_eq!(started["preview"], "Plan the office move");
+
+        let mut native = history_resume("idle", true);
+        native["thread"]["id"] = json!("forked");
+        native["thread"]["forkedFromId"] = json!("started");
+        native["thread"]["name"] = json!("Move alternatives");
+        native["thread"]["preview"] = json!("Compare two schedules");
+        let (forked, _) = exchange(&host, Some(json!({"result":native})), vec![], || {
+            let request = host.thread_fork_dispatch(&g(), "started")?;
+            host.source_request_wait(&request, Duration::from_secs(2))?;
+            host.thread_fork_finish(&request)
+        });
+        let forked = forked.unwrap();
+        assert_eq!(forked["name"], "Move alternatives");
+        assert_eq!(forked["preview"], "Compare two schedules");
+        assert_eq!(forked["forkedFrom"]["threadId"], "started");
+
+        let mut view = history_selected();
+        let query = view.continue_query().unwrap();
+        let mut native = history_resume("idle", true);
+        native["thread"]["name"] = json!("Notes to actions");
+        native["thread"]["preview"] = json!("Turn meeting notes into actions");
+        let (receipt, evidence, _) = history_exchange(&host, &query, Some(json!({"result":native})));
+        view.receive(&query, "conversation-home", &g(), &evidence["response"]["result"]).unwrap();
+        let resumed = host.history_admit_resume(&view, &receipt).unwrap();
+        assert_eq!(resumed["name"], "Notes to actions");
+        assert_eq!(resumed["preview"], "Turn meeting notes into actions");
+        assert_eq!(resumed["nativeResumeObserved"], true);
+    }
+
+    #[test]
+    fn conversation_name_events_update_only_current_admitted_display_metadata() {
+        let host = host();
+        {
+            let mut i = host.inner.0.lock().unwrap();
+            i.threads[0]["name"] = json!("Original name");
+            i.threads[0]["preview"] = json!("Original preview");
+        }
+        let notify = |generation: &Value, params: Value| host.on_line(
+            &serde_json::to_vec(&json!({"method":"thread/name/updated", "params":params})).unwrap(), generation);
+        notify(&g(), json!({"threadId":"thread", "threadName":"Renamed work"}));
+        assert_eq!(host.snapshot()["threads"][0]["name"], "Renamed work");
+        let current = host.snapshot()["threads"].clone();
+        notify(&g(), json!({"threadId":"thread"}));
+        notify(&g(), json!({"threadId":"thread", "threadName":{"role":"invented"}}));
+        notify(&g(), json!({"threadId":"unknown", "threadName":"Not admitted"}));
+        let mut stale = g(); stale["spawnCounter"] = json!(99);
+        notify(&stale, json!({"threadId":"thread", "threadName":"Wrong source"}));
+        assert_eq!(host.snapshot()["threads"], current);
+        notify(&g(), json!({"threadId":"thread", "threadName":null}));
+        let mut expected = current;
+        expected[0]["name"] = Value::Null;
+        assert_eq!(host.snapshot()["threads"], expected);
+        assert!(host.client_requests().is_empty(), "display notifications send nothing");
+    }
+
     #[test]
     fn history_bridge_scripted_reply_after_wait_uses_completed_source_evidence() {
         let host = host(); let mut view = history_selected(); let query = view.read_metadata().unwrap();

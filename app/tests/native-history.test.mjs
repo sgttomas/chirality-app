@@ -447,3 +447,24 @@ test('history list loading and errors are visible without replay, resume or lost
   assert.equal(props(button(ui.c,'Read stored conversations')).disabled,true);
  });
 });
+
+
+test('history discovery uses native names before previews and retains exact IDs for selection', async () => {
+  await mountedHistoryBrowser(async ui => {
+    ui.host.nativeHistory.threads[0].native.name = 'Office move';
+    ui.host.nativeHistory.threads[1].native.name = 'Notes to actions';
+    await ui.show();
+    const option = id => ui.chooser().querySelectorAll(n => n.localName === 'option' && n.getAttribute('value') === id)[0];
+    assert.match(option('stored').textContent, /^Office move · notLoaded$/);
+    assert.match(option('other-É').textContent, /^Notes to actions · idle$/);
+    assert.doesNotMatch(option('other-É').textContent, /other-É/);
+    await ui.search('NOTES TO ACTIONS');
+    assert.match(ui.c.textContent, /1 matching of 2 received/);
+    assert.equal(props(ui.chooser()).value, 'stored', 'search never replaces the selected work');
+    assert.match(option('stored').textContent, /Office move.*selected.*outside this search/);
+    assert.deepEqual(ui.calls, [], 'display and search issue no native command');
+    await React.act(() => props(ui.chooser()).onChange({target:{value:'other-É'}}));
+    assert.deepEqual(ui.calls, [{command:'history_select',args:{generation,selectionEpoch:3,threadId:'other-É'}}]);
+    assert.match(ui.c.textContent, /Conversation ID: stored/);
+  });
+});
