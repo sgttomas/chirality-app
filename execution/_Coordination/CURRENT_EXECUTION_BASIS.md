@@ -2,8 +2,8 @@
 
 ## Current release pathway
 
-Updated 2026-11-03 against integrated main
-`9670f7349618086a32a5f9ae16655964a0c28a63`. HELP_HUMAN/Agent 0 owns purpose,
+Updated 2026-11-04 against integrated main
+`b289928f4a8f8764f327f4d84cc65b3a48abadd7`. HELP_HUMAN/Agent 0 owns purpose,
 cross-front sequencing,
 review of returns, final App integration and continuity with the owner.
 This is the current execution account; requirements and acceptance remain in
@@ -29,22 +29,43 @@ existing owner data without importing, resetting or resealing it. See
 [V4 test subject](../PKG-01/DEL-01-06/Work/V4_TEST_SUBJECT.md).
 The eleven approved source-text downloads and the later four approved files have
 been received; source receipts do not close the remaining notice associations.
-Candidate source `f664ee1d`, signed App `b3dd4145`, and stapled DMG `34ab5661`
-have completed signing, notarization and static Gatekeeper assessment. The
-[packaging record](../PKG-01/DEL-01-06/Work/PRODUCTION_INPUT_PREPARATION.md)
-retains their exact identities and limits. The owner selected testing in the
-normal account; the installed copy was launched by exact path after the legacy
-runtime was unloaded with permission. Setup completion, native workflow results,
-enrollment, installed S4 and public release are not established by that launch.
+Retained production subjects include source `f664ee1d` / signed App `b3dd4145`
+/ DMG `34ab5661`, and the later source `fe811788` / signed App `dc703a30`
+/ stapled DMG `aa0bf06b`. Signing, notarization and static Gatekeeper checks
+passed for those subjects. The normal-account installed copy is the latter;
+its private installation/signing records and earlier copies remain retained.
+Those results do not establish the newer product source, full journeys,
+installed S4, enrollment or release.
 
-The owner reports that this candidate still presents a walking skeleton and
-has directed continued product work. Both running an existing workflow and
-creating/trialling/saving/reusing one
-are required before 4.0.0 ships. Running an existing workflow comes first; the
-authoring journey is not deferred. These usable journeys are the next product
-milestones, before another final packaging cycle. The bounded
-[publication punchlist](PUBLICATION_PUNCHLIST.md) indexes deliverable-owned
-results and finish conditions; it changes no acceptance requirement or hold.
+The owner's latest steer treats this as early product development: do
+substantially more testing independently, use local development builds, and
+bring a runnable app to the owner when a concrete product decision needs their
+firsthand opinion. Repeating signing/notarization for every development repair
+is deferred. Both required standalone journeys remain in scope before 4.0.0:
+run an existing workflow to useful completion, then create/trial/register/reuse
+one and resume unfinished work without translating engineering controls.
+
+PRs #107–#111 integrated guided workflow use/authoring, closed bundled-workflow
+admission, explicit model discovery, a focused first-use screen and persistent
+mounted task views. Rendered self-tests found and repaired actual navigation
+and layout failures. The current local dev App is source `26a01ff9`, whose App
+source equals #111's integrated source (later changes are test/documentation
+only). It has a separate development identifier and disposable data; it has not
+completed native product cases. The
+[native observation account](../PKG-09/DEL-09-02/Work/DEV_APP_NATIVE_OBSERVATIONS_20261104.md)
+records the earlier `a6fbc9a8` observations and desktop activation/occlusion
+capability limit. That GUI loop is closed; cause and product behavior once
+visible/active remain unresolved. The
+[real-backend loopback result](../PKG-01/DEL-01-01/Work/LOCAL_RESPONSES_BACKEND_SMOKE.md)
+exercises stock Codex plus Host/history/cleanup without model inference or
+credentials. Neither result closes the complete journeys.
+
+Agent 0 is directly repairing the next concrete return-to-work gap: retain
+native conversation names/previews and make them usable in History discovery.
+SWB resource concurrence is supporting coordination, not App product progress
+or completion of the joined SWBPIPE journey. The bounded
+[publication punchlist](PUBLICATION_PUNCHLIST.md) indexes the remaining
+owning-deliverable results and changes no acceptance requirement or hold.
 The owner selected v3's overall visual form as the UI reference and gave
 Agent 0 discretion over functional and interactive components. T3 Code may
 inform interactions; its implementation is not presumed transferable. This
@@ -81,22 +102,24 @@ acceptance, signing/account acts, replacement and public release still reserved.
 Current Type 1 assignments are:
 
 - **Product UI and examination consumer adoption:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:dfd5f3387f3d829609ad20116fc248c584aecf045d0fd2268b5674b536a95b92>.
-  PRs #84/#86/#87/#88/#89 delivered setup/history/workflow presentation and
-  submission repairs. They did not complete product usability. This lane is
-  active again for task-oriented setup and daily workspace presentation, with
-  retained host authority and no hidden persistence/permission changes.
+  PRs #84/#86/#87/#88/#89 and #107/#108/#110/#111 delivered the presentation,
+  first-use, model-choice and task-navigation increments. The lane retains
+  delivery context; Agent 0 directly owns the current conversation-discovery
+  repair. Neither source integration nor rendered fixtures completes usability.
   [Product readiness reconciliation](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md)
   distinguishes implemented slices from the still-open user journey. Agent 0
   owns shared design and integration; owner acceptance remains reserved.
 - **Native desktop qualification:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:22359dd2b3895ab8526f6413ce3500b18c9dfe3ce3973194a3a0e3f66f724f66>.
-  Current owner-test subject is signed `b3dd4145`, source `f664ee1d`, installed
-  in the owner's `~/Applications`. PR #104 supplies the earlier standard-user
-  procedure; PR #105 proposes the normal-account adaptation. Preparation and
-  exact-path launch are not a completed witness. No quarantine is present on
-  this local copy; no downloaded first-launch assessment is claimed. Native
-  journeys, interruption/recovery and the three access modes remain open.
-  Historical `1f67d3822b-8c83d74ae3ce`, failed attempts, `795` state and held
-  `zootd3ob` remain preserved; no unattended harness is resumed by this plan.
+  The normal-account retained signed subject is `dc703a30` (`fe811788`).
+  Independent development testing uses separate-ID unsigned debug Apps. The
+  `a6fbc9a8` native observations are integrated in #112; source `26a01ff9` has
+  rendered checks but its native product cases remain unrun. GUI automation
+  cannot activate/uncover the test App on this desktop, so the probe loop is
+  closed. Native qualification, recovery and access-mode evidence remain open.
+  #105 is retained as the historical signed-witness proposal, not a current
+  collector gate. No quarantine is present on the local installed copy; no
+  downloaded first-launch assessment is claimed. Historical candidates and
+  held `zootd3ob` remain preserved; no old unattended harness is resumed.
 - **macOS distribution readiness:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:29a4e14ac4c1423f4ccd20d7605000caf9a5b6d9030c967d51875cd09021e07f>.
   Own package inputs, notices, supplier provenance and final distribution
   assembly. PRs #92/#94/#96/#97/#99/#101/#102/#103 retain the current assembly,

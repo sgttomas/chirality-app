@@ -512,3 +512,44 @@ the run-7 title-bar click was skipped, not performed. The GUI loop was closed at
 this capability limit.
 No source bug is claimed or excluded, and no presentation workaround was made;
 any cause belongs to the runtime owner's diagnosis.
+
+
+## Recognizable conversations when returning to work, 2026-11-04
+
+The current native 0.160.0 Thread schema supplies `name` and `preview`, but the
+App's start/fork/resume rows discarded both. The existing live chooser therefore
+fell back to a session-local ordinal even when native descriptive metadata was
+available. History kept the native fields, but searched only previews/IDs and
+put the technical ID first in its chooser. That is a concrete J1/J2 discovery
+gap: returning to work should not require matching opaque conversation IDs.
+
+The native host now retains supplied string names/previews when a conversation
+is admitted by start, fork or resume. A valid `thread/name/updated` notification
+updates only the name of an already admitted conversation in its own generation.
+An explicit null clears it; an omitted/invalid name, unknown thread or old
+source does not replace current display metadata or admit a thread. Preview,
+role, model, destination and continuation authority remain unchanged by that
+notification. No new RPC, automatic read, local title store or naming operation
+is introduced.
+
+History searches received names as well as previews and IDs. The list and
+inspection heading prefer a native name, then its preview, with a plain fallback
+when neither is supplied. Exact IDs remain in option values and source details;
+filtering still preserves the selected conversation and never resumes it.
+Read-only inspection and explicit Continue retain their existing native source
+and resume-admission checks.
+
+Verification covers descriptive metadata through genuine scripted start, fork
+and resume exchanges; current/old-source name notifications; and mounted
+History search/selection without an implicit command or continuation. Existing
+workflow-label/navigation checks are reused. These are source and fixture
+results, not a native UI, real-model, complete J1/J2 or release pass. ScopeOfWork
+acceptance criteria and dependency conditions retain their meaning; this
+repairs their presentation/hosting input without changing authority or
+advancing acceptance.
+
+Focused verification for this increment: 2 Rust host tests passed (scripted
+start/fork/resume and source-bound name notifications), 28 maintained Node
+history/workflow-journey tests passed with zero skips, and TypeScript checking
+passed. The Rust run used one shared slot, jobs 2, offline cached dependencies,
+a private copied target and a fresh scratch Codex home. No GUI or model ran.

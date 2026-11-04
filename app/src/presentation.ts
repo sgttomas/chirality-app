@@ -187,10 +187,14 @@ export function suppliedSummary(run: Json): string {
  * generation's conversations, never an invented title. The model is
  * secondary; the exact identity stays in the option value and details.
  */
-export function conversationLabel(host: Json, row: Json): string {
+export function conversationTitle(row: Json, fallback = "Conversation"): string {
   const supplied = [row?.name, row?.preview].find(value => typeof value === "string" && value.trim());
+  return supplied ? (supplied.trim().length > 48 ? `${supplied.trim().slice(0, 47)}…` : supplied.trim()) : fallback;
+}
+
+export function conversationLabel(host: Json, row: Json): string {
   const current = (Array.isArray(host?.threads) ? host.threads : []).filter((t: Json) => JSON.stringify(t?.generation) === JSON.stringify(row?.generation));
   const ordinal = current.findIndex((t: Json) => t?.threadId === row?.threadId) + 1;
-  const title = supplied ? (supplied.trim().length > 48 ? `${supplied.trim().slice(0, 47)}…` : supplied.trim()) : ordinal > 0 ? `Conversation ${ordinal}` : "Conversation";
+  const title = conversationTitle(row, ordinal > 0 ? `Conversation ${ordinal}` : "Conversation");
   return `${title} · ${row?.model ?? "model not reported"}`;
 }

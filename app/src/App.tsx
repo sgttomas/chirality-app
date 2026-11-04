@@ -35,7 +35,7 @@ import { MakeWorkflowGuide } from "./MakeJourney";
 import { AccessRouteChoice, AvailableModels, modelMatch, validModelPacket } from "./ModelChoice";
 /** One App-composed message for the person to edit and send; never sent by the App. */
 export type ComposerOffer = { sequence: number; threadKey: string; text: string };
-import { DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView, conversationLabel } from "./presentation";
+import { conversationTitle, DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView, conversationLabel } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -412,9 +412,10 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
   useEffect(() => { setSearch(""); }, [searchSource]);
   const received = (history?.threads ?? []) as Json[];
   const query = search.trim().toLocaleLowerCase();
-  const matches = received.filter(row => [row.native.id, row.native.preview].some(value => typeof value === "string" && value.toLocaleLowerCase().includes(query)));
+  const matches = received.filter(row => [row.native.name, row.native.id, row.native.preview].some(value => typeof value === "string" && value.toLocaleLowerCase().includes(query)));
   const outsideFilter = !!selected?.threadId && !matches.some(row => row.native.id === selected.threadId);
   const retainedSelection = outsideFilter ? received.find(row => row.native.id === selected.threadId) : null;
+  const selectedDescription = received.find(row => row.native.id === selected?.threadId)?.native ?? selected?.metadata?.thread;
   const guidance = !available ? "Connect to the selected Codex home to read stored conversations."
     : busy ? progress : !selected ? "Read stored conversations, then choose one to inspect. Reading does not open it for new messages."
     : "Read turns to inspect prior work. Use Continue only when you want to open this conversation for new messages.";
@@ -575,16 +576,17 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
       <label>Find in received conversations <input ref={searchInput} type="search" aria-describedby="history-search-count" value={search} onChange={event => setSearch(event.target.value)} /></label>
       <button disabled={!search} onClick={() => { setSearch(""); searchInput.current?.focus?.(); }}>Clear search</button>
     </div>
-    <p id="history-search-count" className="history-hint" role="status">{matches.length} matching of {received.length} received conversations. Search checks these IDs and previews only; it does not fetch other pages.</p>
+    <p id="history-search-count" className="history-hint" role="status">{matches.length} matching of {received.length} received conversations. Search checks received names, previews and IDs only; it does not fetch other pages.</p>
     {received.length === 0 && <p>{history?.listPage ? "No conversation rows are available from the received list. Other pages or homes may contain more." : "No conversations have been received here yet. Select Read stored conversations to request a page."}</p>}
     {query && matches.length === 0 && received.length > 0 && <p>No received conversation matches. Clear the search or explicitly read another page.</p>}
-    <p><label>Stored conversation <select aria-describedby="history-guidance history-search-count" value={selected?.threadId ?? ""} disabled={!available || busy} onChange={e => select(e.target.value)}><option value="">Select a received conversation</option>{matches.map((row: Json) => <option key={row.native.id} value={row.native.id}>{row.native.id} · {row.native.status?.type ?? "status not reported"} · {row.native.preview || "empty preview"}</option>)}{outsideFilter && <option value={selected.threadId}>{selected.threadId} · selected{retainedSelection ? " — outside this search" : " — not in the received list"}</option>}</select></label></p>
+    <p><label>Stored conversation <select aria-describedby="history-guidance history-search-count" value={selected?.threadId ?? ""} disabled={!available || busy} onChange={e => select(e.target.value)}><option value="">Select a received conversation</option>{matches.map((row: Json) => <option key={row.native.id} value={row.native.id}>{conversationTitle(row.native, "Untitled conversation")} · {row.native.status?.type ?? "status not reported"}</option>)}{outsideFilter && <option value={selected.threadId}>{conversationTitle(retainedSelection?.native ?? selectedDescription, "Selected conversation")} · selected{retainedSelection ? " — outside this search" : " — not in the received list"}</option>}</select></label></p>
     {outsideFilter && <p>The selected conversation stays selected. Filtering does not change which conversation you inspect or continue.</p>}
     {history?.listError && <p role="alert">The conversation list could not be refreshed. Received rows are retained observations, not a successful refresh. See History dispatch and pending/error evidence below for the source error.</p>}
     </div>
     {selected && <>
-      <h3>Inspect selected conversation: {selected.threadId}</h3>
+      <h3>Inspect selected conversation: {conversationTitle(selectedDescription, "Untitled conversation")}</h3>
       <details><summary>Conversation source and role details</summary>
+      <p>Conversation ID: <code>{selected.threadId}</code>.</p>
       <p>History state: {selected.state}. App role in force: {JSON.stringify(selected.appRole)}. Native agentRole: {JSON.stringify(selected.metadata?.thread?.agentRole === undefined ? { state: "not reported" } : selected.metadata.thread.agentRole)}.</p></details>
       {(selected.futureGuidanceNotices ?? []).map((notice: Json) => <p key={notice.path}>{notice.path}: {notice.kind === "not-read" ? `current guidance not compared (${notice.reason})` : notice.reason}; new conversations use the current guidance. This conversation retains its original role.</p>)}
       <button disabled={!available || busy} onClick={() => run("metadata")}>Read metadata</button>{" "}
