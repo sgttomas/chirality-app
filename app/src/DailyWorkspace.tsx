@@ -55,6 +55,7 @@ function revealLink(event: MouseEvent<HTMLElement>): void {
     const href = node.tagName === "A" ? node.getAttribute("href") : null;
     if (href?.startsWith("#") && targets.has(href.slice(1))) { event.preventDefault?.(); revealWorkspaceTarget(href.slice(1), true); return; }
     // A clean trial's own composer; if it isn't shown, its conversation view.
+    if (href?.startsWith("#run-evidence-")) { event.preventDefault?.(); revealWorkspaceTarget(document.getElementById(href.slice(1)) ? href.slice(1) : "workflow-studio", true); return; }
     if (href?.startsWith("#new-trial-")) { event.preventDefault?.(); revealWorkspaceTarget(document.getElementById(href.slice(1)) ? href.slice(1) : "conversation", true); return; }
   }
 }

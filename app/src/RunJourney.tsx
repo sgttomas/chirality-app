@@ -25,6 +25,8 @@ export function guideResultWords(outcome: { command: string; message: string; fa
 }
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
+/** A run's own place in the workflow studio, so a link lands on its recorded evidence. Exact: the reference's UTF-16 code units in hex. */
+export const runEvidenceAnchor = (reference: Json): string => `run-evidence-${Array.from(typeof reference === "string" ? reference : "", c => c.charCodeAt(0).toString(16).padStart(4, "0")).join("")}`;
 type Act = (command: string, args: Record<string, unknown>) => Promise<Json>;
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
@@ -125,6 +127,10 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
     else if (landing === "progress" && progressNode.current) { progressNode.current.focus?.(); setLanding(null); }
   });
   const result = outcome ? guideResultWords(outcome) : null;
+  // Runs that started in this conversation, newest first (a prepared, unsent one is not a run yet).
+  const resultRuns = [...runs].filter((run: Json) => !(starts(run?.lifecycle?.state, "prepared") && !run.source)).reverse();
+  const recordedRuns = chosen ? list(data?.reopened?.runs).filter((run: Json) => run?.workflow?.name === chosen.identity?.name && run?.workflow?.origin === chosen.identity?.origin
+    && !list(data?.runs).some((live: Json) => live.reference === run.run)) : [];
   const sameName = (name: Json) => registered.filter((row: Json) => row.name === name).length > 1;
   const newer = chosen?.newerRevision;
   const step = !ready ? "Connect Codex first: open Connection & access and start Codex."
@@ -211,6 +217,22 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
           {result.detail && <details><summary>What the App reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{result.detail}</pre></details>}</div>}
       </li>
       <li><h3>Results</h3>
+        {resultRuns.length > 0 && <ul aria-label="Runs in this conversation">{resultRuns.map((run: Json) => {
+          const runReadingNow = runReading(run, host);
+          const runOutputs = declaredRows(list(run?.compatibility).find((c: Json) => c?.preparation?.declaration)?.preparation?.declaration, "returned_outputs");
+          return <li key={text(run.reference)} aria-label={`Run ${text(run.reference)}`}>
+            <strong>{text(run.workflow?.name) || "Workflow run"}</strong>{run.workflow?.revision ? <> (<code title={text(run.workflow.revision)}>{text(run.workflow.revision).slice(0, 12)}…</code>)</> : null} · {runReadingNow.title}.
+            {runOutputs.length > 0 && <> It declares: {runOutputs.map((output: Json, index: number) => <span key={index}>{index ? "; " : ""}<strong>{text(output.name)}</strong>{output.path ? <> (<code>{text(output.path)}</code>)</> : null}</span>)}.</>}
+            <br/><small>The agent reports its results in the conversation; the App hasn't checked them.</small>{" "}
+            {!conversations.some((row: Json) => row.threadId === run.conversation) ? <small>Its conversation isn't loaded in this Codex session; find it in History.</small>
+              : showConversation ? <button onClick={() => showConversation(run.conversation)}>Show the conversation</button> : <a href="#conversation">Go to the conversation</a>}{" "}
+            <a href={`#${runEvidenceAnchor(run.reference)}`}>Open this run's recorded evidence</a>
+          </li>;
+        })}</ul>}
+        {recordedRuns.length > 0 && <div aria-label="Recorded runs of this workflow">
+          <p>Recorded runs of {text(chosen?.identity?.name)} from the project's records (read only; not live in this session):</p>
+          <ul>{recordedRuns.map((run: Json) => <li key={text(run.run)}>{text(run.run)} · {text(run.state)} · recorded conversation <code>{text(run.conversation) || "not recorded"}</code></li>)}</ul>
+        </div>}
         {outputs.length > 0 ? <ul aria-label="Where the results go">{outputs.map((output: Json, index: number) => <li key={index}>
           <strong>{text(output.name)}</strong>{output.path ? <> — declared path <code>{text(output.path)}</code></> : ""}{output.meaning ? `: ${text(output.meaning)}` : ""}</li>)}</ul>
           : <p>{chosen ? "This workflow doesn't declare where its results go; the agent reports them in the conversation." : "Choose a workflow to see what it produces."}</p>}

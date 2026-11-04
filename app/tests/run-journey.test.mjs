@@ -282,3 +282,29 @@ test('after Prepare the Start button has the focus, and after Start the run prog
     assert.equal(focused.at(-1)?.getAttribute('aria-label'), 'Run progress', 'Start lands on the run progress');
   } finally { proto.focus = previous; }
 });
+
+test('Results lists this conversation\'s runs newest first with their reading, declared outputs and where to find them; recorded runs are read only', async () => {
+  const {runEvidenceAnchor} = loadSrc('RunJourney');
+  const compatibility = [{preparation:{declaration}}];
+  const runs = [
+    {reference:'run-1', conversation:'T1', home:'account', source:'s', workflow:{name:'resolve-spacing', origin:'project', revision:'rev-1-0123456789ab'}, compatibility, lifecycle:{state:'ended', end:{cause:'completed'}}},
+    {reference:'run-2', conversation:'T1', home:'account', source:'s', workflow:{name:'resolve-spacing', origin:'project', revision:'rev-2-abcdef0123456789'}, compatibility, lifecycle:{state:'ended', end:{cause:'ended by the person'}}},
+    {reference:'run-other', conversation:'T2', home:'account', source:'s', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}},
+    {reference:'run-3', conversation:'T1', home:'account', workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}},
+  ];
+  const reopened = {standing:'s', runs:[{run:'rec-1', conversation:'thread-old', state:'ended', workflow:{name:'resolve-spacing', origin:'project', revision:'r'}}, {run:'rec-2', conversation:'x', state:'ended', workflow:{name:'other', origin:'project'}}, {run:'run-1', conversation:'T1', state:'ended', workflow:{name:'resolve-spacing', origin:'project'}}]};
+  const ui = await mount({host:host(), data:data({selections:selected(), runs, reopened}), thread:'T1', navigate:true});
+  const list = region(ui.c, 'Runs in this conversation');
+  const order = list.querySelectorAll(node => node.localName === 'li' && (node.getAttribute('aria-label') ?? '').startsWith('Run ')).map(node => node.getAttribute('aria-label'));
+  assert.deepEqual(order, ['Run run-2', 'Run run-1'], 'newest first; another conversation\'s run and an unsent preparation are not listed');
+  assert.match(region(ui.c, 'Run run-1').textContent, /resolve-spacing \(rev-1-012345…\) · Ended as completed\..*It declares: .*report-file \(reports\/spacing\.md\)\..*the App hasn't checked them/);
+  assert.match(region(ui.c, 'Run run-2').textContent, /Ended by you\./);
+  const evidence = all(region(ui.c, 'Run run-1'), 'a').find(node => node.textContent === 'Open this run\'s recorded evidence');
+  assert.equal(evidence.getAttribute('href'), `#${runEvidenceAnchor('run-1')}`);
+  await React.act(async () => props(button(region(ui.c, 'Run run-1'), 'Show the conversation')).onClick());
+  assert.deepEqual(ui.shown.at(-1), ['T1', undefined]);
+  const recorded = region(ui.c, 'Recorded runs of this workflow').textContent;
+  assert.match(recorded, /rec-1 · ended · recorded conversation thread-old/);
+  assert.doesNotMatch(recorded, /rec-2|run-1/, 'another workflow\'s and a live run\'s records are not repeated');
+  assert.equal(ui.calls.filter(call => call.command).length, 0, 'finding results issues nothing');
+});

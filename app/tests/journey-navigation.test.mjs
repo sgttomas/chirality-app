@@ -90,3 +90,34 @@ test('the ready trial link lands inside the clean trial composer, which says in 
     assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content'].includes(cmd)), [], 'following the link issues no action');
   } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
 });
+
+test('a run\'s "recorded evidence" link lands on that run in the workflow studio', async () => {
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  const previous = {getElementById:document.getElementById, setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval};
+  document.getElementById = id => c.querySelectorAll(n => n.getAttribute('id') === id)[0] ?? null;
+  globalThis.setInterval = () => 0; globalThis.clearInterval = () => {};
+  const {runEvidenceAnchor} = loadSrc('RunJourney');
+  const idle = installIdleNativeWaiting(async command => {
+    if (command === 'host_status') return structuredClone(host);
+    if (command === 'decision_view') return {rows:[]};
+    if (command === 'native_confirmation_content') return [];
+    assert.fail(`Unexpected IPC: ${command}`);
+  });
+  try {
+    await React.act(async () => root.render(React.createElement(App)));
+    const anchor = runEvidenceAnchor('run-1');
+    const article = c.querySelectorAll(n => n.getAttribute('id') === anchor)[0];
+    assert.ok(article, 'the studio\'s run article has its own place');
+    assert.match(article.textContent, /run-1/);
+    const main = c.querySelectorAll(n => n.localName === 'main')[0];
+    const link = document.createElement('a'); link.setAttribute('href', `#${anchor}`); main.appendChild(link);
+    let prevented = false;
+    await React.act(async () => props(main).onClick({target:link, currentTarget:main, preventDefault:() => { prevented = true; }}));
+    assert.equal(prevented, true);
+    assert.equal(article.getAttribute('tabindex'), '-1', 'focus lands on that run');
+    const view = article; let owner = null;
+    for (let node = view; node; node = node.parentNode) { const v = node.getAttribute?.('data-workspace-view'); if (v) { owner = node; break; } }
+    assert.ok(owner && !owner.hidden, 'its view is shown');
+    main.removeChild(link);
+  } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
+});

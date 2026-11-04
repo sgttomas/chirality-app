@@ -1096,6 +1096,26 @@ says the copy is prepared but held, with the same reason as its Send
 that state. This is the residual carried from #119. Reuse with new inputs
 already worked in the native baseline and is unchanged.
 
+**Finding results (J1, 2026-11-04).** The guide's Results step used to list
+only the workflow's declared outputs. It now also lists this conversation's
+runs, newest first. A prepared run that was never sent is not a run, so it is
+left out. Each entry gives the run's workflow and revision, its plain reading
+("Ended as completed", "Ended by you", open, not confirmed) and the outputs it
+declares, with their paths. It also says that the agent reports results in
+the conversation and that the App hasn't checked them.
+
+Each entry offers "Show the conversation", which selects and reveals it. If
+that conversation isn't loaded in this Codex session, the entry says so and
+points to History. It also offers "Open this run's recorded evidence", an
+exact per-run anchor to that run's existing studio panel, where its
+checkpoint arrivals, acts and output evidence are shown.
+
+After "Reopen recorded workflow runs", runs of the chosen workflow found in
+the project's records are listed as recorded and read only, with their saved
+conversation ID. They are never offered as live, and a run that is still
+live is not repeated. No result is claimed to exist, no file is read, and no
+command or DTO is added.
+
 - **Workflow.** Selectable registered revisions are offered as "Use ‹name›";
   others show the host's label. The chosen workflow is named with its origin,
   registered revision number and content-identity prefix. Unregistered library
