@@ -1192,6 +1192,13 @@ of an unfinished authoring conversation after reopening still uses History's
 existing continuation; the guide does not reopen it. Reuse with new inputs is
 J1's Run a workflow path on the registered revision.
 
+**Task views (2026-11-04).** Run a workflow and Make a workflow are now their
+own views, each followed by the collapsed **Advanced: workflow studio**; the
+conversation, history and settings are separate views (DEL-01-04 "Task views
+instead of one long page"). Cross-view guide actions land on their target in
+the Conversation view. This supersedes the observed-limit note below about
+the page height and the studio following the guides.
+
 **Rendered self-test of the J1/J2 guides (owner steer, 2026-11-03/04).** Per
 the owner's direction to test substantially ourselves before involving them,
 the production bundle was rendered in the locally cached headless Chromium over

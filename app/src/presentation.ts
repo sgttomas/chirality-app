@@ -180,3 +180,17 @@ export function suppliedSummary(run: Json): string {
   }
   return run?.status?.supplied ?? "see checks";
 }
+
+/**
+ * A person-facing conversation label. A title or preview the host actually
+ * supplied is used; otherwise a session-local ordinal among the current
+ * generation's conversations, never an invented title. The model is
+ * secondary; the exact identity stays in the option value and details.
+ */
+export function conversationLabel(host: Json, row: Json): string {
+  const supplied = [row?.name, row?.preview].find(value => typeof value === "string" && value.trim());
+  const current = (Array.isArray(host?.threads) ? host.threads : []).filter((t: Json) => JSON.stringify(t?.generation) === JSON.stringify(row?.generation));
+  const ordinal = current.findIndex((t: Json) => t?.threadId === row?.threadId) + 1;
+  const title = supplied ? (supplied.trim().length > 48 ? `${supplied.trim().slice(0, 47)}…` : supplied.trim()) : ordinal > 0 ? `Conversation ${ordinal}` : "Conversation";
+  return `${title} · ${row?.model ?? "model not reported"}`;
+}

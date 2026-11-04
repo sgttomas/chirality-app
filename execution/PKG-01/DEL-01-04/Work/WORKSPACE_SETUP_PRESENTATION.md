@@ -428,3 +428,51 @@ frames the review heading and messages after programmatic focus; fonts, macOS
 window chrome, VoiceOver and the real native dialogs were not observed. This
 rendered check is local evidence for the next development App test, not native
 qualification or owner acceptance.
+
+## Task views instead of one long page (Agent 0 decision, 2026-11-04)
+
+The rendered self-test measured the admitted workspace at about 14–16k px:
+every guide, the whole workflow studio, the conversation and every secondary
+panel rendered inline. Agent 0 decided to address this now. The workspace
+now shows one task view at a time from a small navigation — **Run a workflow**,
+**Make a workflow**, **Conversation**, **History**, **Settings & tools** — with
+`aria-current` on the active view. Every view stays mounted; an inactive view
+is only `hidden`, so unsent text, exact selections, pending composers, offers
+and review bindings survive switching. The detailed workflow studio is a
+collapsed **Advanced: workflow studio** disclosure after the guides in both
+workflow views. New conversation sits in the Conversation view; provider
+administration, Desktop setup, connection, files, records, connectors and
+diagnostics are in Settings & tools; History and recovery has its own view.
+The waiting-request overview, requests outside the selected conversation, the
+act control and native-confirmation content stay above the views, visible in
+every view. No IPC, persistence, consent or authority changed.
+
+Navigation that crosses views — Answer/Show the conversation, Put the request
+in the conversation, prepared-message Open — sets its view in the same update
+as its own state, so the following reveal finds its target visible; any other
+reveal of a target in a hidden view first makes that view visible
+(`registerWorkspaceViews`). Nav links point at the destination itself
+(`#conversation`, `#workspace-history`, `#workspace-tools` or the guide), so a
+link still opens and focuses it.
+
+Conversation labels in the guides and the conversation chooser use a title or
+preview only when the host row supplies one (live host rows currently carry
+neither; the supplier's `Thread.name`/`preview` and `thread/name/set` exist at
+0.160.0 but are not received into these rows), otherwise a session-local
+"Conversation N" with the model second; the option value is unchanged and the
+exact ID is under "Exact conversation ID". Nothing is persisted or invented.
+The page title is "Chirality", matching the window title (native observation
+of the web-area name).
+
+Rendered self-test (production bundle, cached headless Chromium, real
+`selected_chain` host status and draft row, labelled synthetic states) at
+1100×800 and 480×860: each view measures about 0.8–2.1k px; unsent composer
+text survives Conversation → Run → History → Conversation; Answer in the
+conversation, Put the request and trial Open each land in the Conversation view
+on their target; no horizontal overflow. Mounted tests in
+`prepared-message-navigation.test.mjs` now reach controls through the
+navigation as a person would and check hidden-but-mounted retention and
+always-visible confirmation content; `workflow-action-result.test.mjs` locates
+the studio by its section. Not observed: native window, VoiceOver, real dialogs
+(the native dev-App run of `a6fbc9a8` and an unresolved blank-window startup
+observation are with the native and runtime owners).

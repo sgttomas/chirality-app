@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { nativePathText } from "./presentation";
+import { conversationLabel, nativePathText } from "./presentation";
 import { draftStateWords } from "./WorkflowDrafts";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 
@@ -107,8 +107,9 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
       <li><h3>Where you did the work</h3>
         {conversations.length ? <label>Conversation with the work <select value={conversation} disabled={!canAct} onChange={event => setConversation(event.target.value)}>
           <option value="">Choose a conversation</option>
-          {conversations.map((row: Json) => { const key = JSON.stringify([row.generation, row.threadId]); return <option key={key} value={key}>{row.preview ? `${text(row.preview).slice(0, 48)} · ` : ""}{row.model ?? "model not reported"} · {row.threadId}</option>; })}
+          {conversations.map((row: Json) => { const key = JSON.stringify([row.generation, row.threadId]); return <option key={key} value={key}>{conversationLabel(host, row)}</option>; })}
         </select></label> : <p>No conversation in this session yet. <a href="#workspace-start">Start one</a> and do the work there first.</p>}
+        {chosen && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{chosen.threadId}</code></details>}
       </li>
       <li><h3>Where the draft goes</h3>
         {active ? <p>{text(active.origin) || "Opened"} workflow library{root !== null ? <> in <code>{root}</code></> : ""}. Drafts are kept in its <code>.chirality/workflow-drafts</code> folder until you register them.</p>

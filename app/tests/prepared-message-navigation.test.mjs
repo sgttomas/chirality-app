@@ -97,8 +97,14 @@ async function mounted(options,check){
   if(props(select).value===value)return false;
   await change(select,value);return true;
  };
+ // Like a person, reach a control in another task view through the workspace
+ // navigation first; this never unhides a hidden composer or disclosure owner.
+ const viewOf=e=>{for(let n=e;n;n=n.parentNode){const v=n.getAttribute?.('data-workspace-view');if(v)return v;}return null;};
+ const navigate=v=>{const a=elements(elements(c,'nav')[0],'a').find(e=>({run:'Run a workflow',make:'Make a workflow',conversation:'Conversation',history:'History',settings:'Settings & tools'})[v]===e.textContent);assert.ok(a,`view ${v}`);const main=elements(c,'main')[0];props(main).onClick({target:a,currentTarget:main,preventDefault(){}});};
  const press=async(label,within=c)=>React.act(()=>{
-  const e=button(within,label);assert.ok(e,label);assert.equal(!!props(e).disabled,false,label);
+  let e=button(within,label);
+  if(!e){const hidden=elements(within,'button').find(b=>b.textContent===label);const v=hidden&&viewOf(hidden);if(v){navigate(v);e=button(within,label);}}
+  assert.ok(e,label);assert.equal(!!props(e).disabled,false,label);
   // Expose an existing control through its native disclosure before pressing
   // it. This never reveals a composer's hidden foreign render owner.
   for(let parent=e.parentNode;parent;parent=parent.parentNode)if(parent.localName==='details'&&parent.getAttribute('class')==='workspace-disclosure')parent.open=true;
@@ -124,7 +130,9 @@ async function mounted(options,check){
    await choose('A');await change(labelled(conversation(c),'textarea','Text '),ordinary);
    await pickWorkflowChat('C');await change(labelled(c,'select','Authoring conversation '),key('B'));
   }
-  await check({c,calls,account,other,selected,choose,change,pickWorkflowChat,press,poll,composer,assertIndependent,editChoice,model,track,
+  // The person is working in the conversation view.
+  await React.act(()=>navigate('conversation'));
+  await check({c,calls,account,other,selected,choose,change,pickWorkflowChat,press,poll,composer,assertIndependent,editChoice,model,track,navigate:v=>React.act(()=>navigate(v)),
    gate:()=>{const gate=deferred();nextRead=gate;return gate;},fail:()=>{failRead=true;},snapshot,
    open:(id='B')=>press(`View prepared message in conversation ${id}`)});
   idle.assertClean(c);assert.deepEqual(unexpected,[]);
@@ -254,7 +262,7 @@ for(const[name,mutate]of Object.entries({
 });
 
 test('stale captured click refuses a retired pending item before reading or navigating',async()=>{
- await mounted({},async ui=>{const click=props(button(ui.c,'View prepared message in conversation B')).onClick;changes.removed(ui.account);await ui.poll();const before=ui.calls.length;await React.act(()=>click());assert.equal(ui.selected(),key('A'));assert.match(ui.c.textContent,/original prepared message is missing/);assert.deepEqual(ui.calls.slice(before),[]);});
+ await mounted({},async ui=>{await ui.navigate('make');const click=props(button(ui.c,'View prepared message in conversation B')).onClick;changes.removed(ui.account);await ui.poll();const before=ui.calls.length;await React.act(()=>click());assert.equal(ui.selected(),key('A'));assert.match(ui.c.textContent,/original prepared message is missing/);assert.deepEqual(ui.calls.slice(before),[]);});
 });
 
 test('new same bare ID in another home and generation does not inherit original composer edits',async()=>{
@@ -457,14 +465,18 @@ async function followWorkspaceLink(c,label){
 
 test('daily workspace keeps A/C/B/D, exact composer, chooser, global draft and late outcomes through secondary disclosures and Open',async()=>{
  const send=deferred();await mounted({send:()=>send.promise},async ui=>{
-  await followWorkspaceLink(ui.c,'New conversation');assert.equal(disclosureOpen(byId(ui.c,'workspace-start')),true);await ui.editChoice('Unsent new-conversation model');await toggleDisclosure(ui.c,'workspace-start',false);await ui.choose('B');const original=ui.composer();await ui.change(elements(original,'textarea')[0],'Edited daily-workspace message');await ui.change(labelled(original,'select','Send to '),key('D'));await ui.choose('A');
+  await followWorkspaceLink(ui.c,'Choose a new conversation');assert.equal(disclosureOpen(byId(ui.c,'workspace-start')),true);await ui.editChoice('Unsent new-conversation model');await toggleDisclosure(ui.c,'workspace-start',false);await ui.choose('B');const original=ui.composer();await ui.change(elements(original,'textarea')[0],'Edited daily-workspace message');await ui.change(labelled(original,'select','Send to '),key('D'));await ui.choose('A');
   const review=region(ui.c,'Content named by an open native confirmation');const tools=byId(ui.c,'workspace-tools');assert.ok(tools);const panels=tools.querySelectorAll(e=>e.localName==='details'&&e.getAttribute('class')==='workspace-disclosure');assert.ok(panels.length);
   const filePanel=byId(ui.c,'file-acts');const name=elements(byId(ui.c,'workspace-evidence'),'input').find(e=>e.parentNode.textContent.startsWith('Your name on acts'));
   await toggleDisclosure(ui.c,'workspace-files',true);const scope=labelled(filePanel,'input','Scope ');await ui.change(scope,'Unsent file-review scope');
   await toggleDisclosure(ui.c,'workspace-evidence',true);await ui.change(name,'Unsent local name');const before=ui.calls.length;
   for(const panel of panels){await toggleDisclosure(ui.c,panel.getAttribute('id'),true);await toggleDisclosure(ui.c,panel.getAttribute('id'),false);}
   assert.equal(ui.calls.length,before,'disclosure navigation performs no RPC');assert.equal(ui.composer(),original);assert.equal(byId(ui.c,'file-acts'),filePanel);assert.equal(props(scope).value,'Unsent file-review scope','the secondary child retains its own local state');assert.equal(props(name).value,'Unsent local name');assert.equal(ui.model(),'Unsent new-conversation model');ui.assertIndependent();assert.ok(displayed(review),'native confirmation is outside secondary disclosures');
-  await followWorkspaceLink(ui.c,'More tools');await toggleDisclosure(ui.c,'workspace-records',true);
+  // Task views: leaving the conversation hides it without unmounting anything.
+  await followWorkspaceLink(ui.c,'Run a workflow');assert.equal(displayed(original),false);assert.ok(displayed(region(ui.c,'Run a workflow')));
+  assert.equal(ui.composer(),original,'the hidden composer stays mounted');assert.equal(props(elements(original,'textarea')[0]).value,'Edited daily-workspace message');
+  assert.ok(displayed(review),'native confirmation content stays visible in every view');
+  await followWorkspaceLink(ui.c,'Settings & tools');await toggleDisclosure(ui.c,'workspace-records',true);assert.equal(displayed(byId(ui.c,'workspace-start')),false);
   const reveal=[];original.parentNode.scrollIntoView=()=>{assert.ok(displayed(original));reveal.push(original);};await ui.open();
   assert.deepEqual(reveal,[original]);assert.equal(ui.selected(),key('B'));assert.equal(ui.composer(),original);assert.equal(props(elements(original,'textarea')[0]).value,'Edited daily-workspace message');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));ui.assertIndependent();
   await ui.press('Send',original);assert.match(original.textContent,/Sending; waiting/);const pendingCalls=ui.calls.length;
@@ -490,7 +502,8 @@ for(const state of ['absent','ready'])test(`first use with Codex ${state} expose
 test('file-act anchors reveal the same mounted secondary panel with no command or source selection',async()=>{
  await mounted({},async ui=>{
   const panel=byId(ui.c,'file-acts');assert.ok(panel);const disclosure=byId(ui.c,'workspace-files');assert.equal(disclosureOpen(disclosure),false);const before=ui.calls.length;
-  await followWorkspaceLink(ui.c,'Review a workspace draft file for a separate standing act');assert.equal(disclosureOpen(disclosure),true);assert.equal(byId(ui.c,'file-acts'),panel);assert.equal(ui.calls.length,before);ui.assertIndependent();
+  await followWorkspaceLink(ui.c,'Make a workflow');await toggleDisclosure(ui.c,'workflow-studio',true);
+  await followWorkspaceLink(ui.c,'Review a workspace draft file for a separate standing act');assert.equal(disclosureOpen(disclosure),true);assert.ok(displayed(panel),'the link shows the settings view that holds the panel');assert.equal(byId(ui.c,'file-acts'),panel);assert.equal(ui.calls.length,before);ui.assertIndependent();
  });
 });
 
@@ -528,8 +541,8 @@ test('workspace links reveal and focus existing destinations without changing ch
   const connection=byId(ui.c,'workspace-connection');const summary=connection.childNodes.find(n=>n.localName==='summary');
   const focused=[];summary.focus=()=>focused.push(summary);
   await toggleDisclosure(ui.c,'workspace-connection',false);
-  const before=ui.calls.length;await followWorkspaceLink(ui.c,'Connection & access');
-  assert.equal(disclosureOpen(connection),true);assert.deepEqual(focused,[summary]);
+  const before=ui.calls.length;await toggleDisclosure(ui.c,'workspace-start',true);await followWorkspaceLink(ui.c,'Set up access or start Codex');
+  assert.equal(disclosureOpen(connection),true);assert.deepEqual(focused,[summary]);assert.ok(displayed(connection),'the settings view is shown');
   const target=byId(ui.c,'conversation');target.focus=()=>focused.push(target);
   await followWorkspaceLink(ui.c,'Conversation');assert.equal(focused.at(-1),target);assert.equal(target.getAttribute('tabindex'),'-1');
   assert.equal(ui.calls.length,before);ui.assertIndependent();

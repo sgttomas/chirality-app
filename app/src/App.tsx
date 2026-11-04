@@ -26,7 +26,8 @@ import { WorkflowRegistrationReview } from "./WorkflowRegistrationReview";
 import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, conversationKey, findConversation, hostMessage } from "./TrialComposer";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { ConversationContext, ProjectLibraryContext, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
-import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget } from "./DailyWorkspace";
+import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, registerWorkspaceViews, WORKSPACE_VIEWS } from "./DailyWorkspace";
+import { flushSync } from "react-dom";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
 import { FirstUseSetup } from "./FirstUse";
 import { RunWorkflowGuide } from "./RunJourney";
@@ -34,7 +35,7 @@ import { MakeWorkflowGuide } from "./MakeJourney";
 import { AccessRouteChoice, AvailableModels, modelMatch, validModelPacket } from "./ModelChoice";
 /** One App-composed message for the person to edit and send; never sent by the App. */
 export type ComposerOffer = { sequence: number; threadKey: string; text: string };
-import { DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView } from "./presentation";
+import { DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView, conversationLabel } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -291,8 +292,9 @@ export function ConversationPanel({ composerOffer, host, threadKey, setThreadKey
     <h2>Conversation text and turn control</h2>
     <label>Current-generation conversation <select disabled={!!ownBusy} value={threadKey} onChange={e => { setThreadKey(e.target.value); setTurnId(""); setError(""); }}>
       <option value="">Select a conversation</option>
-      {currentThreads.map((thread: Json) => <option key={JSON.stringify([thread.generation, thread.threadId])} value={JSON.stringify([thread.generation, thread.threadId])}>{thread.threadId} · {thread.model ?? "model not reported"} via {thread.modelProvider ?? "provider not reported"}</option>)}
+      {currentThreads.map((thread: Json) => <option key={JSON.stringify([thread.generation, thread.threadId])} value={JSON.stringify([thread.generation, thread.threadId])}>{conversationLabel(host, thread)} via {thread.modelProvider ?? "provider not reported"}</option>)}
     </select></label>
+    {selected && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{selected.threadId}</code></details>}
     {selected && <RoleHeader key={`role-header:${JSON.stringify([selected.generation, selected.threadId])}`} thread={selected} limits={host?.roleLimits} busy={!!busy || forkBusy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
       readSupplyHistory={() => invoke("role_supply_history", { generation: selected.generation, thread: selected.threadId })}
       continueAs={role => { void roleAct("asking for a handoff summary", "continue_as_begin", { generation: selected.generation, threadId: selected.threadId, role }); }}
@@ -834,7 +836,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
   </section>;
 }
 
-export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation }:{ showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
+export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view }:{ view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
   const [name,setName]=useState("");
   const [revision,setRevision]=useState("");
   const [thread,setThread]=useState("");
@@ -931,9 +933,17 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     : "Ready to create a draft from the displayed content in the opened library. This does not register or run it.";
   return <section aria-label="Workflow studio controls" aria-busy={busy}>
     {busy && <p role="status" aria-live="polite">{progress} No automatic retry.</p>}
+    <div id="view-run" data-workspace-view="run" hidden={view !== undefined && view !== "run"}>
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
       outcome={outcome ? { command: outcome.relation.command, message: outcome.message } : null} showConversation={showConversation}/>
+    </div>
+    <div id="view-make" data-workspace-view="make" hidden={view !== undefined && view !== "make"}>
     {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation}/>}
+    </div>
+    {/* The detailed studio follows the guides, collapsed, in both workflow views. */}
+    <details id="workflow-studio" className="workspace-disclosure workspace-advanced" data-workspace-view="make" open={view === undefined ? true : undefined}>
+    <summary><strong>Advanced: workflow studio</strong><span>Every selection, library, draft, trial, review, registration and run control in detail</span></summary>
+    <div className="workspace-disclosure-content">
     <h2>Workflow selection and native registration</h2>
     <p>Make a new workflow or change one: choose content and a library, create a named draft, then try and review it before registration.</p>
     <a href="#file-acts">Review a workspace draft file for a separate standing act</a>
@@ -1053,6 +1063,8 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
       <p>Selection and run text are recorded before sending; if recording fails nothing is sent. A run opens when its start turn is observed and ends only when the person ends it: an interrupt, stop, quit, failed or completed turn, or an agent's "Workflow finished" line does not end it. Ending here records "ended by the person"; when the agent writes its "Workflow finished" line, the conversation offers End run beneath that message, which records cause "completed". After an end, the next message in this conversation (text, a plan or default mode turn, an attachment-bearing turn or a Continue-as request) carries the end notice first, once. Load/select this conversation and its received turn in native History before checking.</p>
       </>}
     </article>;})}
+    </div>
+    </details>
     {outcome&&<div aria-label="Workflow action response">
       <p>Original workflow action: <code>{outcome.relation.command}</code> · source <code>{outcome.relation.source?.sourceRef??"not supplied"}</code>. Response and observation limits belong to this request.</p>
       {outcome.message&&<p role="status" aria-label="Workflow command result" style={{whiteSpace:"pre-wrap"}}>{outcome.message}</p>}
@@ -1552,6 +1564,17 @@ export function App() {
   const threadChoiceRevision = useRef(0);
   const activityNavigationRef = useRef<NativeActivityHandle>(null);
   const setThreadKey = (key: string) => { threadChoiceRevision.current++; updateThreadKey(key); };
+  // Task views (DailyWorkspace): one visible at a time, all mounted. An intent
+  // that navigates sets its view in the same update as its own state, so the
+  // reveal that follows finds its target visible.
+  const [taskView, setTaskView] = useState<string>("run");
+  const taskViewRef = useRef(taskView);
+  const showView = (next: string) => { taskViewRef.current = next; setTaskView(next); };
+  useEffect(() => registerWorkspaceViews(next => {
+    if (taskViewRef.current === next) return;
+    taskViewRef.current = next;
+    flushSync(() => setTaskView(next));
+  }), []);
   const [composerOffer, setComposerOffer] = useState<ComposerOffer | null>(null);
   const composerOfferSequence = useRef(0);
   // A guide's "show the conversation": the person's explicit navigation selects
@@ -1563,13 +1586,14 @@ export function App() {
     const row = (currentHost.current?.threads ?? []).find((t: Json) => t.threadId === threadId && JSON.stringify(t.generation) === JSON.stringify(currentHost.current?.generation));
     if (!row) return;
     setThreadKey(JSON.stringify([row.generation, row.threadId]));
+    showView("conversation");
     conversationRevealSequence.current += 1;
     setConversationReveal({ sequence: conversationRevealSequence.current, target });
   };
   useEffect(() => {
     if (conversationReveal) revealWorkspaceTarget(document.getElementById?.(conversationReveal.target) ? conversationReveal.target : "conversation", true);
   }, [conversationReveal]);
-  const offerComposer = (key: string, text: string) => { setThreadKey(key); composerOfferSequence.current += 1; setComposerOffer({ sequence: composerOfferSequence.current, threadKey: key, text }); };
+  const offerComposer = (key: string, text: string) => { setThreadKey(key); showView("conversation"); composerOfferSequence.current += 1; setComposerOffer({ sequence: composerOfferSequence.current, threadKey: key, text }); };
   const forkSequence = useRef(0);
   const forkInFlight = useRef(false);
   const [pendingFork, setPendingFork] = useState<ForkNavigation | null>(null);
@@ -1623,6 +1647,7 @@ export function App() {
             else refuse("The exact composer reveal was superseded or is no longer available.");
           }
         } };
+      showView("conversation");
       setPreparedReveal(reveal);
     } catch (error) { refuse(`The original view refresh failed: ${String(error)}. Open again from a current view.`); }
     finally { if (preparedNavigation.current === ticket) preparedNavigation.current = null; }
@@ -2025,10 +2050,9 @@ export function App() {
         <div hidden={setupRequired}>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
         <nav className="workspace-nav" aria-label="Workspace navigation">
-          <a href="#run-workflow">Run a workflow</a><a href="#make-workflow">Make a workflow</a><a href="#conversation">Conversation</a><a href="#workflow-studio">Workflow studio</a><a href="#workspace-history">History</a><a href="#workspace-start">New conversation</a><a href="#workspace-connection">Connection &amp; access</a><a href="#workspace-tools">More tools</a><a href="#other-requests">Waiting requests</a>
+          {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
         <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed}/>
-        <DesktopSetupPanel view={host?.desktopSetup}/>
         </div>
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
@@ -2077,6 +2101,7 @@ export function App() {
           source {trialObservation.relation.source.sourceRef ?? "unavailable"}; home {trialObservation.relation.source.modeHomeClass ?? "unavailable"}; generation {JSON.stringify(trialObservation.relation.source.generation)};
           requested target {JSON.stringify(trialObservation.relation.target)}): {trialObservation.limit}. The original command outcome is unchanged.
         </p>}</div>
+        <div id="view-conversation" data-workspace-view="conversation" className="workspace-view" hidden={taskView !== "conversation"}>
         <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model, provider, access entry and role — start explicitly" open={host?.state !== "ready" || !(host?.threads?.length) ? true : undefined}>
           <h2>New conversation</h2>
           <div className="workspace-start-fields">
@@ -2198,20 +2223,26 @@ export function App() {
       }}/>
             </WorkspaceDisclosure>
           </div>
-          <div id="workflow-studio" className="workspace-primary-column" aria-label="Workflow studio">
-            <WorkflowRootPanel showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => invoke<Json>(command, args)} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
+        </div>
+        </div>
+        <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={taskView !== "run" && taskView !== "make"}>
+          <div className="workspace-primary-column" aria-label="Workflow studio">
+            <WorkflowRootPanel view={taskView} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => invoke<Json>(command, args)} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}
           </div>
         </div>
-        <section id="workspace-tools" className="workspace-tools" aria-label="Workspace tools">
-          <h2>Workspace tools</h2>
+        <div id="view-history" data-workspace-view="history" className="workspace-view workspace-view-narrow" hidden={taskView !== "history"}>
+          <WorkspaceDisclosure id="workspace-history" title="History and recovery" description="Read prior conversations and inspect recovery custody" open>
+            <RecoveryCustodyPanel key={JSON.stringify([host?.homeRouting?.activeModeHomeClass, host?.generation])} modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null} nativeHistoryGeneration={host?.nativeHistory?.generation ?? null} read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })} readRequests={(cursor: Json) => invoke("read_recovery_request_history", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, cursor: cursor ?? null })} retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })}/>
+        <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} captureContinueNavigation={captureContinueNavigation}/>
+          </WorkspaceDisclosure>
+        </div>
+        <section id="workspace-tools" data-workspace-view="settings" className="workspace-tools workspace-view workspace-view-narrow" aria-label="Workspace tools" hidden={taskView !== "settings"}>
+          <h2>Settings &amp; tools</h2>
+          <DesktopSetupPanel view={host?.desktopSetup}/>
           <WorkspaceDisclosure id="workspace-connection" title="Connection and access" description="Home, sign-in, provider setup and Codex controls" open={host?.state !== "ready" ? true : undefined}>
             <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{ ...host?.homeResources, namespaceProtection: host?.nativeNamespaces, keyAdmission: host?.keyNamespaceAdmission }} generation={host?.generation} navigating={homePending} act={async (command, args) => { await homeAction(command, args); }}/>
   <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }}/>
-          </WorkspaceDisclosure>
-          <WorkspaceDisclosure id="workspace-history" title="History and recovery" description="Read prior conversations and inspect recovery custody">
-            <RecoveryCustodyPanel key={JSON.stringify([host?.homeRouting?.activeModeHomeClass, host?.generation])} modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null} nativeHistoryGeneration={host?.nativeHistory?.generation ?? null} read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })} readRequests={(cursor: Json) => invoke("read_recovery_request_history", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, cursor: cursor ?? null })} retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })}/>
-        <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} captureContinueNavigation={captureContinueNavigation}/>
           </WorkspaceDisclosure>
           <WorkspaceDisclosure id="workspace-files" title="Files and standing acts" description="Review a saved App-side output and its original act context">
             <FileActPanel command={(name, args) => invoke(name, args)} controlRef={fileActPanel} onBusyChange={setFileActBusy}/>

@@ -230,3 +230,14 @@ test("with App navigation, the run's conversation is shown — its requests when
   assert.deepEqual(ui.shown.at(-1), ['T2', 'conversation']);
   assert.deepEqual(ui.calls, [], 'navigation issues no host command');
 });
+
+test('conversation labels use a supplied title or preview, otherwise a session-local ordinal, never an invented title', () => {
+  const {conversationLabel} = loadSrc('presentation');
+  const other = {...g, spawnCounter:2};
+  const view = {threads:[{threadId:'T1', generation:g, model:'m'}, {threadId:'old', generation:other, model:'m'}, {threadId:'T2', generation:g, model:'m2', preview:'Summarise the spacing notes'}, {threadId:'T3', generation:g, name:'Spacing review', preview:'ignored'}]};
+  assert.equal(conversationLabel(view, view.threads[0]), 'Conversation 1 · m');
+  assert.equal(conversationLabel(view, view.threads[2]), 'Summarise the spacing notes · m2');
+  assert.equal(conversationLabel(view, view.threads[3]), 'Spacing review · model not reported');
+  assert.equal(conversationLabel(view, {threadId:'T9', generation:g}), 'Conversation · model not reported', 'an unknown row gets no fabricated number');
+  assert.match(conversationLabel(view, {...view.threads[2], preview:'x'.repeat(80)}), /^x{47}… · m2$/);
+});

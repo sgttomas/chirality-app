@@ -1,4 +1,4 @@
-import { nativePathText } from "./presentation";
+import { conversationLabel, nativePathText } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
 import { chatWorkflow } from "./workflowSelection";
 import { appProjectFolder } from "./WorkflowContext";
@@ -115,8 +115,9 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
       <li><h3>Conversation</h3>
         {conversations.length ? <label>Conversation to run it in <select value={thread} disabled={!canAct} onChange={event => chooseThread(event.target.value)}>
           <option value="">Choose a conversation</option>
-          {conversations.map((row: Json) => <option key={row.threadId} value={row.threadId}>{row.preview ? `${text(row.preview).slice(0, 48)} · ` : ""}{row.model ?? "model not reported"} · {row.threadId}</option>)}
+          {conversations.map((row: Json) => <option key={row.threadId} value={row.threadId}>{conversationLabel(host, row)}</option>)}
         </select></label> : <p>No conversation in this session yet. <a href="#workspace-start">Start a new conversation</a>, then choose it here.</p>}
+        {thread && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{thread}</code></details>}
         <p><small>The workflow runs inside this conversation; you answer its questions there.</small></p>
       </li>
       <li><h3>Workflow</h3>
