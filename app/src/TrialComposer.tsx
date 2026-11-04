@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ConnectionAndModel, RoleChoice, type SendState, type StartChoice } from "./ConversationRoles";
 import { useBoundModelChoice, type BoundModelChoice, type ModelRoute } from "./ModelChoice";
+import { bringBackSendBlock, useBringBackDoubts } from "./bringBackDoubts";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // Trial and bring-back composers (DEL-02-02 WR §4.2 TT-3a, TT-3b, TT-10; §6
@@ -214,9 +215,11 @@ export function bringBackTitle(pending: Json): string {
 }
 
 /** TT-10, SQ-BB BB-4/BB-5: a transcript pre-filled in the target conversation. */
-export function BringBackComposerView({ pending, conversations, prompt, setPrompt, target, setTarget, outcome, setOutcome, busy, ready, act }: {
+export function BringBackComposerView({ pending, conversations, prompt, setPrompt, target, setTarget, outcome, setOutcome, busy, ready, act, sendBlock = null }: {
   pending: Json; conversations: Json[]; prompt: string; setPrompt: (p: string) => void; target: string; setTarget: (key: string) => void;
   outcome: SendState; setOutcome: (o: SendState) => void; busy: boolean; ready: boolean; act: TrialAct;
+  /** Why Send is held now (bringBackSendBlock); the dispatch guard is the boundary. */
+  sendBlock?: string | null;
 }) {
   const chosen = list(conversations).find((c: Json) => conversationKey(c) === target) ?? null;
   const sent = outcome.state === "sending" || outcome.state === "sent";
@@ -234,7 +237,8 @@ export function BringBackComposerView({ pending, conversations, prompt, setPromp
         <button disabled={busy || sent} onClick={() => { void Promise.resolve(act("workflow_bring_back_cancel", { id: pending?.id })).catch(() => undefined); }}>Remove</button></p>
     </div>
     <p><ConversationSelect label="Send to" conversations={conversations} value={target} setValue={setTarget} disabled={busy || sent} />{" "}
-      <button disabled={busy || !ready || !chosen || sent} onClick={() => pressSend(act, "workflow_bring_back_send", { id: pending?.id, generation: chosen?.generation, threadId: chosen?.threadId, personText: prompt }, setOutcome, () => bringBackSentWords(chosen?.threadId))}>Send</button></p>
+      <button disabled={busy || !ready || !chosen || sent || !!sendBlock} onClick={() => pressSend(act, "workflow_bring_back_send", { id: pending?.id, generation: chosen?.generation, threadId: chosen?.threadId, personText: prompt }, setOutcome, () => bringBackSentWords(chosen?.threadId))}>Send</button></p>
+    {sendBlock && <p role="note">Send is held: {sendBlock}</p>}
     <p><small>Send to is this message's destination; changing it does not move the original composer.</small></p>
     <TrialSendOutcome outcome={outcome} />
   </section>;
@@ -244,7 +248,11 @@ export function BringBackComposer({ pending, conversations, busy, ready, act }: 
   const [prompt, setPrompt] = useState<string>(text(pending?.prompt));
   const [target, setTarget] = useState<string>(conversationKey(findConversation(conversations, pending?.target)));
   const [outcome, setOutcome] = useState<SendState>({ state: "unsent" });
-  return <BringBackComposerView pending={pending} conversations={conversations} prompt={prompt} setPrompt={setPrompt} target={target} setTarget={setTarget} outcome={outcome} setOutcome={setOutcome} busy={busy} ready={ready} act={act} />;
+  // Rendered from the current doubts, so Send's state agrees with the dispatch guard.
+  const doubts = useBringBackDoubts();
+  const chosen = list(conversations).find((c: Json) => conversationKey(c) === target) ?? null;
+  const sendBlock = chosen ? bringBackSendBlock(pending, { generation: chosen.generation, threadId: chosen.threadId }, doubts) : null;
+  return <BringBackComposerView pending={pending} conversations={conversations} prompt={prompt} setPrompt={setPrompt} target={target} setTarget={setTarget} outcome={outcome} setOutcome={setOutcome} busy={busy} ready={ready} act={act} sendBlock={sendBlock} />;
 }
 
 /** Which pending composers belong in the selected conversation's panel. */

@@ -81,19 +81,28 @@ export function bringBackRefusal(command: string, args: Record<string, unknown>,
     return null;
   }
   if (command === "workflow_bring_back_send") {
-    // A retained Send of a message whose send was unconfirmed (and withdrawn) is never repeated.
-    if (doubts.some(doubt => doubt.preparedId === String(args.id))) return "Not sent: this message's earlier send wasn't confirmed and may have arrived; it was withdrawn and is not sent again.";
-    const row = pending.find(entry => entry?.id === args.id);
-    const kind = typeof row?.trial === "string" && row.trial ? "trial" : typeof row?.run === "string" && row.run ? "run" : null;
-    if (!kind) return null;
-    const ref = kind === "trial" ? row.trial : row.run;
-    if (bringBackHeld(kind, ref, target)) return "Not sent: an earlier send of these results to this conversation wasn't confirmed and may have arrived. Read the conversation, then confirm you checked.";
-    if (inFlight.has(sendKey(kind, ref, target))) return "Not sent: these results are being sent to this conversation now.";
-    return null;
+    const block = bringBackSendBlock(pending.find(entry => entry?.id === args.id) ?? { id: args.id }, target);
+    return block ? `Not sent: ${block}` : null;
   }
   return null;
 }
 /** One send of a trial's or run's results to one conversation ID at a time. */
+/**
+ * Why one prepared message can't be sent to `target` now, or null. The same
+ * rule backs the composer's disabled Send (rendered from the store) and the
+ * dispatch guard (read at the press). A copy whose own send was unconfirmed is
+ * never sent again, even after an acknowledgement; another copy of the same
+ * results to the same conversation ID waits for the acknowledgement.
+ */
+export function bringBackSendBlock(row: Json, target: Json, list = doubts): string | null {
+  if (list.some(doubt => doubt.preparedId === String(row?.id))) return "this copy's earlier send wasn't confirmed and may have arrived, so it is not sent again. After reading the conversation, remove it and bring the results back again if you still need to.";
+  const kind = typeof row?.trial === "string" && row.trial ? "trial" : typeof row?.run === "string" && row.run ? "run" : null;
+  if (!kind) return null;
+  const ref = kind === "trial" ? row.trial : row.run;
+  if (list.some(doubt => doubt.kind === kind && doubt.ref === ref && sameConversationId(doubt.target, target) && !doubt.acknowledged)) return "an earlier send of these results to this conversation wasn't confirmed and may have arrived. Read the conversation, then confirm you checked before sending.";
+  if (inFlight.has(sendKey(kind, ref, target))) return "these results are being sent to this conversation now.";
+  return null;
+}
 export const sendKey = (kind: "trial" | "run", ref: string, target: Json) => JSON.stringify(["send", kind, ref, target?.threadId ?? null]);
 
 /** A synchronous guard for one press until its command settles. */

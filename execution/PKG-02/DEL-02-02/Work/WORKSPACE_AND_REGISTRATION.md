@@ -1209,7 +1209,14 @@ from a same-name draft. Each check was mutation-checked.
 That covers an unknown outcome, a transcript sent without its observation
 written, and a lost pre-fill. A send that resolves without a reported outcome
 (undefined or null) counts the same way. The composer never shows success
-words for it; it says "Not confirmed" and keeps the edited text. Before the call, the App captures the original attempt:
+words for it; it says "Not confirmed" and keeps the edited text. Notices say
+the prepared message was withdrawn only when its exact id is no longer in the
+host's current pending view. Otherwise they say it is still listed but that
+copy is not sent again. The composer's Send is disabled with the same reason
+the dispatch guard gives (`bringBackSendBlock`), rendered from the current
+doubts. A copy whose own send was unconfirmed stays unsendable even after an
+acknowledgement. After reading the conversation, the person removes it and
+brings the results back again; nothing is removed or sent automatically. Before the call, the App captures the original attempt:
 trial or run reference, prepared-message id, workflow source, home and full
 generation, target conversation, and the person's text. If the send is
 unconfirmed, the App keeps that attempt for the life of the window
