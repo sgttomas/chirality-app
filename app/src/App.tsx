@@ -96,6 +96,7 @@ export function ConversationPanel({ composerOffer, host, threadKey, setThreadKey
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
   const textRevision = useRef(0);
+  const composerField = useRef<HTMLTextAreaElement>(null);
   const [ordinaryModel, setOrdinaryModel] = useState({ owner: "", value: "", revision: 0 });
   const [ordinaryOutcome, setOrdinaryOutcome] = useState<OrdinaryTextOutcome | null>(null);
   // One synchronous owner across ordinary turn controls, before React renders busy.
@@ -249,7 +250,11 @@ export function ConversationPanel({ composerOffer, host, threadKey, setThreadKey
     handledOffer.current = composerOffer.sequence;
     if (text === "") { textRevision.current += 1; setText(composerOffer.text); setHeldOffer(null); }
     else setHeldOffer(composerOffer);
-    revealWorkspaceTarget("conversation", true);
+    // Reveal the message box itself: with a conversation selected it sits
+    // below the role and activity sections.
+    revealWorkspaceTarget("conversation");
+    composerField.current?.scrollIntoView?.({ block: "center" });
+    composerField.current?.focus?.({ preventScroll: true });
   }, [composerOffer, threadKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const handledReveal = useRef(0);
   useEffect(() => {
@@ -312,7 +317,7 @@ export function ConversationPanel({ composerOffer, host, threadKey, setThreadKey
       trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation}
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
       renderOffer={offer => <RunOffer offer={offer} generation={host?.generation} ready={host?.state === "ready"} busy={offerBusy} act={offerAct} />} />
-    {selected && <div aria-label="Requests from Codex in this conversation">
+    {selected && <div id="conversation-requests" aria-label="Requests from Codex in this conversation">
       <h3>Requests from Codex in this conversation ({requests.filter(answerable).length} waiting)</h3>
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
       {ordered.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} observation={replyObservations?.[requestScopeKey(request)]} />)}
@@ -323,7 +328,7 @@ export function ConversationPanel({ composerOffer, host, threadKey, setThreadKey
     {heldOffer && heldOffer.threadKey === threadKey && <p role="status" aria-label="Prepared workflow request">A workflow-draft request is ready for this conversation. Your unsent text is kept.{" "}
       <button disabled={!!busy} onClick={() => { textRevision.current += 1; setText(heldOffer.text); setHeldOffer(null); }}>Replace my text with the request</button>{" "}
       <button onClick={() => setHeldOffer(null)}>Discard the request</button></p>}
-    <p><label>Text <textarea aria-describedby="ordinary-send-readiness" disabled={!!busy} value={text} onChange={e => { textRevision.current += 1; setText(e.target.value); }} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
+    <p><label>Text <textarea ref={composerField} aria-describedby="ordinary-send-readiness" disabled={!!busy} value={text} onChange={e => { textRevision.current += 1; setText(e.target.value); }} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
     <p><label>Optional model identifier for next ordinary text turn <input {...EXACT_TEXT} disabled={!selected || !!busy} value={ordinaryModelValue}
       onChange={e => setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, revision: current.revision + 1 }))} aria-describedby="ordinary-model-help" /></label></p>
     <p id="ordinary-model-help">Applies to Send text and the plan/default text controls below. Empty keeps the existing native model choice. An explicit identifier overrides the model for this turn and subsequent native turns; clearing this field does not revert it. Attachment, steering and prepared-message sends do not use this field.</p>
@@ -829,7 +834,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
   </section>;
 }
 
-export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer }:{ offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
+export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation }:{ showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
   const [name,setName]=useState("");
   const [revision,setRevision]=useState("");
   const [thread,setThread]=useState("");
@@ -927,8 +932,8 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
   return <section aria-label="Workflow studio controls" aria-busy={busy}>
     {busy && <p role="status" aria-live="polite">{progress} No automatic retry.</p>}
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
-      outcome={outcome ? { command: outcome.relation.command, message: outcome.message } : null}/>
-    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage}/>}
+      outcome={outcome ? { command: outcome.relation.command, message: outcome.message } : null} showConversation={showConversation}/>
+    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation}/>}
     <h2>Workflow selection and native registration</h2>
     <p>Make a new workflow or change one: choose content and a library, create a named draft, then try and review it before registration.</p>
     <a href="#file-acts">Review a workspace draft file for a separate standing act</a>
@@ -1549,6 +1554,21 @@ export function App() {
   const setThreadKey = (key: string) => { threadChoiceRevision.current++; updateThreadKey(key); };
   const [composerOffer, setComposerOffer] = useState<ComposerOffer | null>(null);
   const composerOfferSequence = useRef(0);
+  // A guide's "show the conversation": the person's explicit navigation selects
+  // that conversation of the current generation, then reveals the target after
+  // the selection has rendered. It answers, sends or resumes nothing.
+  const [conversationReveal, setConversationReveal] = useState<{ sequence: number; target: string } | null>(null);
+  const conversationRevealSequence = useRef(0);
+  const showConversation = (threadId: string, target = "conversation") => {
+    const row = (currentHost.current?.threads ?? []).find((t: Json) => t.threadId === threadId && JSON.stringify(t.generation) === JSON.stringify(currentHost.current?.generation));
+    if (!row) return;
+    setThreadKey(JSON.stringify([row.generation, row.threadId]));
+    conversationRevealSequence.current += 1;
+    setConversationReveal({ sequence: conversationRevealSequence.current, target });
+  };
+  useEffect(() => {
+    if (conversationReveal) revealWorkspaceTarget(document.getElementById?.(conversationReveal.target) ? conversationReveal.target : "conversation", true);
+  }, [conversationReveal]);
   const offerComposer = (key: string, text: string) => { setThreadKey(key); composerOfferSequence.current += 1; setComposerOffer({ sequence: composerOfferSequence.current, threadKey: key, text }); };
   const forkSequence = useRef(0);
   const forkInFlight = useRef(false);
@@ -2179,7 +2199,7 @@ export function App() {
             </WorkspaceDisclosure>
           </div>
           <div id="workflow-studio" className="workspace-primary-column" aria-label="Workflow studio">
-            <WorkflowRootPanel offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => invoke<Json>(command, args)} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
+            <WorkflowRootPanel showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => invoke<Json>(command, args)} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}
           </div>
         </div>

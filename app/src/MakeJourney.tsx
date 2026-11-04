@@ -70,8 +70,9 @@ function nextFor(draft: Json): { words: string; href: string; link: string } {
  * `workflow_observe_drafts`; trial, review and registration stay in the
  * existing draft list and review, where only the person's act registers.
  */
-export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPreparedMessage }: {
+export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPreparedMessage, showConversation }: {
   data: Json; host: Json; act: Act; busy: boolean; offerComposer: (threadKey: string, text: string) => void; openPreparedMessage?: (item: PreparedMessage) => void;
+  showConversation?: (threadId: string, target?: string) => void;
 }) {
   const [conversation, setConversation] = useState("");
   const [name, setName] = useState("");
@@ -127,7 +128,9 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
         {existingDraft ? (() => { const next = nextFor(existingDraft); return <div className="run-journey-state" aria-label="Draft status">
           <p role="status"><strong>{trimmed}</strong>: {draftStateWords(existingDraft.state, existingDraft.content)}.</p>
           {list(existingDraft.findings).length > 0 && <ul aria-label="What to fix">{list(existingDraft.findings).map((finding: Json) => <li key={text(finding)}>{text(finding)}</li>)}</ul>}
-          <p>{next.words} <a href={next.href}>{next.link}</a></p>
+          <p>{next.words} {next.href === "#conversation" && showConversation && chosen
+            ? <button onClick={() => showConversation(chosen.threadId)}>Show the conversation</button>
+            : <a href={next.href}>{next.link}</a>}</p>
           {(existingDraft.state === "draft" || existingDraft.state === "changed since review") && <DraftActions draft={existingDraft} chosen={chosen} host={host} canAct={canAct} act={act} openPreparedMessage={openPreparedMessage}/>}
         </div>; })() : trimmed && valid && active ? <p>No draft named {trimmed} has been seen yet. After the agent writes it, look for drafts.</p> : null}
       </li>

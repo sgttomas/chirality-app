@@ -1192,6 +1192,41 @@ of an unfinished authoring conversation after reopening still uses History's
 existing continuation; the guide does not reopen it. Reuse with new inputs is
 J1's Run a workflow path on the registered revision.
 
+**Rendered self-test of the J1/J2 guides (owner steer, 2026-11-03/04).** Per
+the owner's direction to test substantially ourselves before involving them,
+the production bundle was rendered in the locally cached headless Chromium over
+the DevTools protocol at 1100×800 and 480×860. The base host status is the
+executed Rust producer `selected_chain_actual_status_reports_b_before_the_ordinary_choice`
+(two conversations, an open run, a registered selectable workflow in an opened
+project library, runnable selections), and the draft row is the executed
+`workflow_action_actual_create_result_precedes_explicit_draft_observation`
+packet. Every other state — Codex working, a waiting question, a system error,
+an agent finished offer, an ended run, an unknown start, a draft under review or
+registered, a pending delegated trial — and every command result are synthetic
+mutations, labelled in the fixture. No supplier, model, sign-in, native dialog
+or person act was involved.
+
+Demonstrated failures fixed: (1) "Go to the conversation" only scrolled to the
+conversation panel, which shows the operational conversation — a separate choice
+from the guide's run conversation — so a waiting question could stay out of
+sight; the guides now offer **Answer in the conversation** (waiting) or **Show
+the conversation**, which select the run's own conversation and reveal its
+requests or the panel, issuing no command (`app/tests/journey-navigation.test.mjs`
+mounts the App and checks the selection, reveal and no IPC). (2) "Put the request
+in the conversation" left the view at the panel top while the message box sat
+below the role and activity sections; the composer offer now scrolls to and
+focuses the message box. (3) A not-runnable bundled entry showed the host's raw
+TT-1/TX-1/LS reasoning inline; it now says plainly that this build can't run it,
+with the host's reason under **Why**. (4) The chosen revision was still offered
+as "Use …"; it now reads "— chosen".
+
+Observed limits, not changed here: conversations are labelled by model and ID
+(the host supplies no title or preview); the conversation column carries long
+technical guidance and the whole workspace is about 14–16k px tall at desktop
+width; the Workflow studio's detailed controls follow the guides. These
+rendered checks are local evidence for the development App test, not native
+qualification, J1/J2 completion or owner acceptance.
+
 **Read-only workflow working context.** The workflow controls show the host's
 fixed `currentAppProjectContext` and its limit separately from the opened
 workflow library. The existing launch observation supplies a readable native

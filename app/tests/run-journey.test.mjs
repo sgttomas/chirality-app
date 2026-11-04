@@ -52,11 +52,12 @@ const region = (c, label) => c.querySelectorAll(node => node.getAttribute('aria-
 
 async function mount(view) {
   const c = document.createElement('div'); const root = createRoot(c); const calls = []; let thread = view.thread ?? ''; let text = '';
-  const render = () => root.render(React.createElement(RunWorkflowGuide, {data:view.data, host:view.host, thread, busy:false, text,
+  const shown = [];
+  const render = () => root.render(React.createElement(RunWorkflowGuide, {data:view.data, host:view.host, thread, busy:false, text, showConversation:view.navigate ? (id, target) => shown.push([id, target]) : undefined,
     chooseThread:value => { thread = value; calls.push({choose:value}); render(); }, setText:value => { text = value; render(); },
     act:async (command, args) => { calls.push({command, args}); }, outcome:view.outcome ?? null}));
   await React.act(async () => render());
-  return {c, calls, press:async label => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, `${label} enabled`); await React.act(async () => props(node).onClick()); },
+  return {c, calls, shown, press:async label => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, `${label} enabled`); await React.act(async () => props(node).onClick()); },
     type:async value => { const area = all(c, 'textarea')[0]; await React.act(async () => props(area).onChange({target:{value}})); },
     rerender:async next => { Object.assign(view, next); await React.act(async () => render()); }};
 }
@@ -165,7 +166,9 @@ test('an unregistered library entry is reviewed singly; the bundled candidate is
   await ui.press('Look for other workflows in this library');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_library_entries_refresh', args:{libraryRef:'lib:project'}});
   const guide = region(ui.c, 'Run a workflow');
-  assert.match(guide.textContent, /Included with the App: coordinated-knowledge-work\. This build can't run it directly: production bundle candidate; not a published release\./);
+  assert.match(guide.textContent, /Included with the App: coordinated-knowledge-work\. This build can't run it directly; you can inspect it in the workflow studio\./);
+  const why = all(guide, 'details').find(d => d.textContent.startsWith('Why'));
+  assert.match(why.textContent, /production bundle candidate; not a published release/, 'the host reason stays available under Why');
   assert.equal(all(guide, 'button').some(b => b.textContent.includes('coordinated-knowledge-work')), false);
   await ui.rerender({data:data({productionCatalog:{standing:'released', entries:[{name:'coordinated-knowledge-work', revision:'bundled-rev-0123456789', runnable:true, runLimit:null}]}})});
   await ui.press('Use coordinated-knowledge-work (included with the App)');
@@ -181,7 +184,9 @@ test('an unregistered library entry is reviewed singly; the bundled candidate is
 test('a stale workflow source disables every guide command', async () => {
   const ui = await mount({thread:'T1', host:host({workflowRoot:{context:{sourceRef:'other', generation:g}}}), data:data({selections:selected()})});
   assert.match(region(ui.c, 'Run a workflow').textContent, /Next: The workflow view is out of date/);
-  const labels = ['Reload this project\'s workflows', 'Use resolve-spacing', 'Review draft-free-entry for first use…', 'Look for other workflows in this library', 'Prepare this run'];
+  assert.match(region(ui.c, 'Workflows ready to use').textContent, /resolve-spacing · revision 2 — chosen/);
+  assert.equal(button(ui.c, 'Use resolve-spacing'), undefined, 'the chosen revision is not offered again');
+  const labels = ['Reload this project\'s workflows', 'Review draft-free-entry for first use…', 'Look for other workflows in this library', 'Prepare this run'];
   const stale = host({workflowRoot:{context:{sourceRef:'other', generation:g}}});
   const prepared = {reference:'run-p', conversation:'T1', home:'account', workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{sent:false}};
   const open = {reference:'run-o', conversation:'T1', home:'account', source:'s', lifecycle:{state:OPEN}, status:{}};
@@ -212,4 +217,16 @@ test('an unknown start outcome is not resent without the person reading the conv
   assert.equal(all(ui.c, 'input').some(node => props(node)?.type === 'checkbox'), false);
   assert.equal(props(button(ui.c, 'Prepare this run')).disabled, false);
   assert.match(region(ui.c, 'Run progress').textContent, /Codex refused to start the run/);
+});
+
+test("with App navigation, the run's conversation is shown — its requests when Codex is waiting — and nothing is sent", async () => {
+  const open = {reference:'run-1', conversation:'T2', home:'account', source:'sent', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}, status:{}};
+  const ui = await mount({navigate:true, thread:'T2', host:host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T2'}}]}), data:data({selections:selected(), runs:[open]})});
+  assert.equal(all(region(ui.c, 'Run progress'), 'a').length, 0, 'no bare scroll link that could show another conversation');
+  await ui.press('Answer in the conversation');
+  assert.deepEqual(ui.shown, [['T2', 'conversation-requests']]);
+  await ui.rerender({host:host()});
+  await ui.press('Show the conversation');
+  assert.deepEqual(ui.shown.at(-1), ['T2', 'conversation']);
+  assert.deepEqual(ui.calls, [], 'navigation issues no host command');
 });
