@@ -3,7 +3,7 @@
 ## Current release pathway
 
 Updated 2026-11-04 against integrated main
-`b289928f4a8f8764f327f4d84cc65b3a48abadd7`. HELP_HUMAN/Agent 0 owns purpose,
+`9872298110074a0885399f675c91d7af06a27628`. HELP_HUMAN/Agent 0 owns purpose,
 cross-front sequencing,
 review of returns, final App integration and continuity with the owner.
 This is the current execution account; requirements and acceptance remain in
@@ -48,10 +48,10 @@ one and resume unfinished work without translating engineering controls.
 PRs #107–#111 integrated guided workflow use/authoring, closed bundled-workflow
 admission, explicit model discovery, a focused first-use screen and persistent
 mounted task views. Rendered self-tests found and repaired actual navigation
-and layout failures. The current local dev App is source `26a01ff9`, whose App
-source equals #111's integrated source (later changes are test/documentation
-only). It has a separate development identifier and disposable data; it has not
-completed native product cases. The
+and layout failures. PR #114 then retained native conversation names/previews
+through start, fork and resume and made History search/display them. The current
+local development App is built from main `98722981`, with a separate development
+identifier and disposable data; it has not completed native product cases. The
 [native observation account](../PKG-09/DEL-09-02/Work/DEV_APP_NATIVE_OBSERVATIONS_20261104.md)
 records the earlier `a6fbc9a8` observations and desktop activation/occlusion
 capability limit. That GUI loop is closed; cause and product behavior once
@@ -60,9 +60,13 @@ visible/active remain unresolved. The
 exercises stock Codex plus Host/history/cleanup without model inference or
 credentials. Neither result closes the complete journeys.
 
-Agent 0 is directly repairing the next concrete return-to-work gap: retain
-native conversation names/previews and make them usable in History discovery.
-SWB resource concurrence is supporting coordination, not App product progress
+The next owned product results are explicit model choice in fresh trials and
+Continue as (the product manager), a joined bundled-workflow backend fixture
+(the runtime manager), and the focused before/after P2 functional result
+(the examination manager). The rendered baseline already demonstrates that the
+fresh-trial and Continue-as routes require raw model/provider IDs; #110 had
+fixed only New conversation. The following increments stay within the two
+agreed journey finish conditions. SWB resource concurrence is supporting coordination, not App product progress
 or completion of the joined SWBPIPE journey. The bounded
 [publication punchlist](PUBLICATION_PUNCHLIST.md) indexes the remaining
 owning-deliverable results and changes no acceptance requirement or hold.
@@ -95,6 +99,58 @@ criterion 17 uses criterion 1's full reference system. The App's older local
 model/recovery/network criteria need explicit reconciliation to current owner
 direction; a component pass does not silently satisfy or replace them.
 
+### Agent 0 continuity toward publication
+
+Owner correction, 2026-11-04: App delivery repeatedly became idle after a local
+increment while Agent 0 continued answering other-project resource messages.
+The correction applies the selected shared HELP_HUMAN and WORKING_ITEMS roles
+and coordinated-knowledge-work method, consulted from `/Users/ryan/dev/chirality`
+at `35273905a90ee6c1032a7f49db2236ed19371029`. It changes no product commitment,
+shared method, packaged instruction source or host permission.
+
+HELP_HUMAN owns purpose, alignment, continuity and the fit of the whole result.
+Type 1 managers own bounded undertakings through implementation, repairs and
+integration; they are not retired when one TASK or PR completes. The following
+controls apply that responsibility to the existing publication push:
+
+1. **Start from the unfinished product result.** Use the owning deliverables and
+   punchlist to identify the next useful result. Assess the actual runnable App,
+   implementation and evidence at their source identities. PR/test/build counts
+   and available managers are not the publication objective.
+2. **Maintain delivery ownership.** Each manager has a journey contribution and
+   a concrete current increment, with its input, boundary, return route and finish
+   condition. Ordinary next increments within that undertaking may continue
+   without another permission round; changed commitments, shared interfaces
+   outside the assignment and reserved owner acts still return to their owner.
+   Keep at most four useful App lanes; activity alone justifies no assignment.
+3. **Consume every return.** Agent 0 inspects the actual artifact and decides:
+   integrate, repair a demonstrated defect, or resolve a precise input/choice.
+   Then connect the consumed result to the next unfinished journey result and
+   its owner. A merged patch cannot silently end an unfinished undertaking.
+4. **Make waits explicit and observable.** Use the actual T3 completion return
+   route and PR check wakeups for active waits. Inspect the last useful result
+   and operation before diagnosing a stall; a roster or a sent brief does not
+   prove work is active. Remove unnecessary permission waits and continue
+   unaffected work when one test surface is unavailable. No perpetual polling
+   or new monitoring framework is introduced here.
+5. **Account for continuity before ending a work turn.** Identify the active
+   result, any genuine wait and what releases it, and the next owner/result.
+   If all App owners are idle while an authorized publication result remains,
+   assign the next useful increment or explain the exact external/owner choice
+   that prevents it. Do not leave an open journey in a generic 'next is testing'
+   state or let resource coordination replace App delivery.
+6. **Bring the owner an informed decision.** Independently develop and test what
+   can be tested with local builds and disposable data. When product direction
+   needs firsthand judgment, supply a runnable build and the specific issue and
+   consequences. Preserve unrun/failed/limited standing. Owner product acceptance
+   and public release remain separate actual decisions on an identified subject.
+
+The roster below records responsibility, not live thread state. The authoritative
+behavior/evidence stays in deliverables; the punchlist constrains completion.
+Active execution and current waits must be checked through the host's actual
+returns and artifacts. SWB resource requests are handled briefly and within
+scope, followed by resumption of the App result already underway.
+
 ### Delivery ownership and next results
 
 The owner clarified that Agent 0 carries the work through publication, with
@@ -104,8 +160,10 @@ Current Type 1 assignments are:
 - **Product UI and examination consumer adoption:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:dfd5f3387f3d829609ad20116fc248c584aecf045d0fd2268b5674b536a95b92>.
   PRs #84/#86/#87/#88/#89 and #107/#108/#110/#111 delivered the presentation,
   first-use, model-choice and task-navigation increments. The lane retains
-  delivery context; Agent 0 directly owns the current conversation-discovery
-  repair. Neither source integration nor rendered fixtures completes usability.
+  delivery ownership of the usable frontend journeys. #114's conversation
+  discovery repair is integrated. The next increment removes raw model/provider
+  requirements from fresh trials and Continue as using the existing chooser.
+  Neither source integration nor rendered fixtures completes usability.
   [Product readiness reconciliation](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md)
   distinguishes implemented slices from the still-open user journey. Agent 0
   owns shared design and integration; owner acceptance remains reserved.
@@ -115,7 +173,10 @@ Current Type 1 assignments are:
   `a6fbc9a8` native observations are integrated in #112; source `26a01ff9` has
   rendered checks but its native product cases remain unrun. GUI automation
   cannot activate/uncover the test App on this desktop, so the probe loop is
-  closed. Native qualification, recovery and access-mode evidence remain open.
+  closed. This owner now carries the focused rendered P2 before/after test on
+  the product manager's exact source, including keyboard/focus, edited-text
+  retention and source changes. Native qualification, recovery and access-mode
+  evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
   collector gate. No quarantine is present on the local installed copy; no
   downloaded first-launch assessment is claimed. Historical candidates and
@@ -129,6 +190,10 @@ Current Type 1 assignments are:
   notarization, not transfer of old results. No repeat acceptance of the approved
   OpenAI terms is required; the distribution decision remains `not_made`.
 - **Installed supplier integrity and SEAL-C:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:72b0bb46c6645f2fd7155deab7d5ff1fa5b3b56a4e77151178a0e322c1e906ae>.
+  The next development result is the actual bundled-workflow lifecycle through
+  stock Codex and the production backend against the deterministic loopback
+  fixture, building on #113's greeting/history/cleanup result. It must retain
+  synthetic-model limits and cannot close useful-model/native qualification.
   PRs #93/#98/#100 selected and wired the actual profile/default own-App route.
   Candidate `b3dd4145` has compiled publisher binding `58463a02` and selected
   keychain namespace, with signed app-id/team entitlements. Static joins passed;
