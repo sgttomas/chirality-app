@@ -22,7 +22,6 @@ export function DesktopSetupPanel({ view }: { view?: DesktopSetupView | null }) 
   const [mode, setMode] = useState("");
   const [projectMode, setProjectMode] = useState("");
   const [project, setProject] = useState<Location | null>(null);
-  const [supplier, setSupplier] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [saved, setSaved] = useState<DesktopSetupView | null>(null);
   const [message, setMessage] = useState("");
@@ -67,7 +66,8 @@ export function DesktopSetupPanel({ view }: { view?: DesktopSetupView | null }) 
       }) : await invoke<Preview>("desktop_setup_preview", {
         sharedPaths: paths.map(p => p?.nativePath),
         projectPath: projectMode === "chosen" ? project?.nativePath : null,
-        supplierSelection: supplier,
+        // The production supplier is fixed: the Codex included with this App.
+        supplierSelection: shown.supplier.selection,
       });
       if (mounted.current && original === revision.current) setPreview(result);
     } catch (error) { if (mounted.current) { setFailed(true); setMessage(String(error)); } }
@@ -85,13 +85,12 @@ export function DesktopSetupPanel({ view }: { view?: DesktopSetupView | null }) 
     finally { finish(); }
   };
   const editChoices = () => { if (pending.current) return; changed(); reviewButton.current?.focus?.(); };
-  const ready = !busy && (mode === "retain" ? shown.retainProject?.available === true : mode === "new" && paths.every(p => !!p?.displayPath) && supplier !== "") && (projectMode === "none" || (projectMode === "chosen" && !!project?.displayPath));
+  const ready = !busy && (mode === "retain" ? shown.retainProject?.available === true : mode === "new" && paths.every(p => !!p?.displayPath)) && (projectMode === "none" || (projectMode === "chosen" && !!project?.displayPath));
   const nextStep = busy ? progress : !mode ? "Choose first-time setup, or keep your current sign-in and change only the project."
     : mode === "retain" && !shown.retainProject?.available ? "Keeping this account is unavailable. See the reason below."
-    : mode === "new" && paths.some(p => !p?.displayPath) ? "Choose all three shared locations. You can also enter an absolute path."
+    : mode === "new" && paths.some(p => !p?.displayPath) ? "Choose your config.toml, AGENTS.md and skills folder, or type each full path."
     : !projectMode ? "Choose a project for the next launch, or choose No project."
     : projectMode === "chosen" && !project?.displayPath ? "Choose the project directory."
-    : mode === "new" && !supplier ? "Choose the Codex that the App will start."
     : "Your choices are ready to review. Nothing is saved until you confirm.";
   return <details id="desktop-setup" className="workspace-disclosure" open={shown.launch.state === "setup-required"} aria-label="Desktop setup">
     <summary><strong>Desktop setup</strong><span>{shown.launch.state === "setup-required" ? "Choose explicit inputs before Codex can start" : "Changes apply on the next launch"}</span></summary>
@@ -104,7 +103,7 @@ export function DesktopSetupPanel({ view }: { view?: DesktopSetupView | null }) 
         <p>To work, the App needs:</p>
         <ul>
           <li><strong>Its own sign-in folder.</strong> On first use the App creates a new, empty folder for its Codex sign-in. It doesn't copy or reuse sign-ins from other Codex tools; you sign in under Connection &amp; access after reopening.</li>
-          <li><strong>Your Codex settings, instructions and skills.</strong> Point to the <code>config.toml</code>, <code>AGENTS.md</code> and skills folder you use with Codex. The App links to them rather than copying, so your other Codex tools see the same files. If one doesn't exist yet, type where it should be.</li>
+          <li><strong>Your Codex settings, instructions and skills.</strong> Point to the <code>config.toml</code>, <code>AGENTS.md</code> and skills folder you use with Codex. The App links to them rather than copying, so your other Codex tools see the same files.</li>
           <li><strong>A project folder (optional).</strong> The folder you want to work in. Its workflows are kept in its <code>.chirality</code> folder and runs write their results there. Without one you can still converse, and open a workflow library by hand.</li>
         </ul>
         <p>After you confirm, quit and open the App again. Your current window keeps working until then.</p>
@@ -117,7 +116,7 @@ export function DesktopSetupPanel({ view }: { view?: DesktopSetupView | null }) 
         <option value="">Choose explicitly</option><option value="new">First-time setup: new sign-in folder and shared settings</option><option value="retain" disabled={!shown.retainProject?.available}>Keep my current sign-in; change only the project</option>
       </select></label></p>
       {!shown.retainProject?.available && <p>Keep-account project change unavailable: {shown.retainProject?.reason ?? "No currently admitted saved-desktop account"}</p>}
-      {mode === "retain" ? <p>{shown.retainProject?.available ? `Keep the currently admitted account home ${shown.retainProject.accountHome}.` : "The retained-source project choice is currently unavailable."} Choose only its project for the next launch. No home, link or credential is created or migrated; shared references and supplier remain unchanged.</p> : <p>Prepare a new App-owned account home. Choose each shared reference explicitly; enter an absolute path when its target does not exist yet. Setup checks paths and metadata only. It imports no credentials and never adopts an existing home.</p>}
+      {mode === "retain" ? <p>{shown.retainProject?.available ? `Keep the currently admitted account home ${shown.retainProject.accountHome}.` : "The retained-source project choice is currently unavailable."} Choose only its project for the next launch. No home, link or credential is created or migrated; shared references and supplier remain unchanged.</p> : <p>Prepare a new App-owned account home linked to your existing settings. Choose each one explicitly. Setup checks paths and metadata only. It imports no credentials and never adopts an existing home.</p>}
       {mode !== "retain" && (["Shared config.toml", "Shared AGENTS.md", "Shared skills directory"] as const).map((label, index) => <div className="setup-field" key={label}>
         <label>{label} <input aria-label={label} value={paths[index]?.displayPath ?? ""} disabled={busy} onChange={event => setPath(index, typedLocation(event.target.value))}/></label>{" "}
         <button disabled={busy} onClick={() => pick(["config", "agents", "skills"][index], index)}>Browse {label}</button>
@@ -128,9 +127,7 @@ export function DesktopSetupPanel({ view }: { view?: DesktopSetupView | null }) 
         <option value="">Choose explicitly</option><option value="none">No project for now</option><option value="chosen">Choose a project folder</option>
       </select></label></p>
       {projectMode === "chosen" && <p><label>Next project directory <input aria-label="Next project directory" disabled={busy} value={project?.displayPath ?? ""} onChange={event => { changed(); setProject(typedLocation(event.target.value)); }}/></label>{" "}<button disabled={busy} onClick={() => pick("project")}>Browse next project</button></p>}
-      {mode !== "retain" && <p><label>Supplier for next launch <select aria-label="Supplier for next launch" disabled={busy} value={supplier} onChange={event => { changed(); setSupplier(event.target.value); }}>
-        <option value="">Choose explicitly</option><option value={shown.supplier.selection}>Codex included with the App (development build, not yet qualified)</option>
-      </select></label></p>}
+      {mode !== "retain" && <p>Codex: the copy included with this App.</p>}
       </fieldset>
       </div>
       <div className="setup-actions">

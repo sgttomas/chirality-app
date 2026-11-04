@@ -28,6 +28,7 @@ import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./
 import { ConversationContext, ProjectLibraryContext, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget } from "./DailyWorkspace";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
+import { FirstUseSetup } from "./FirstUse";
 import { RunWorkflowGuide } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { AccessRouteChoice, AvailableModels, modelMatch, validModelPacket } from "./ModelChoice";
@@ -1996,13 +1997,19 @@ export function App() {
   };
 
   const outsideRequests = hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread);
+  // First use: while the launch needs setup, a focused welcome replaces the
+  // workspace, whose controls cannot work yet. Everything stays mounted.
+  const setupRequired = host?.desktopSetup?.launch?.state === "setup-required";
   return (<DailyWorkspace>
+        {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
+        <div hidden={setupRequired}>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
         <nav className="workspace-nav" aria-label="Workspace navigation">
           <a href="#run-workflow">Run a workflow</a><a href="#make-workflow">Make a workflow</a><a href="#conversation">Conversation</a><a href="#workflow-studio">Workflow studio</a><a href="#workspace-history">History</a><a href="#workspace-start">New conversation</a><a href="#workspace-connection">Connection &amp; access</a><a href="#workspace-tools">More tools</a><a href="#other-requests">Waiting requests</a>
         </nav>
         <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed}/>
         <DesktopSetupPanel view={host?.desktopSetup}/>
+        </div>
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
           const revision = threadChoiceRevision.current;
@@ -2021,8 +2028,9 @@ export function App() {
               await openRequests(group);
           };
       }}/>
-        <WaitingRequestsIndicator overview={host?.waitingRequests} busy={homePending} open={group => { void openRequests(group); }}/>
+        <div hidden={setupRequired}><WaitingRequestsIndicator overview={host?.waitingRequests} busy={homePending} open={group => { void openRequests(group); }}/></div>
         <NativeConfirmationContent />
+        <div hidden={setupRequired}>
         {offer && (<section style={{ border: "1px solid #888", padding: 8 }}>
             <h2>Act control: {offer.wording} ({offer.actKind})</h2>
             <p>
@@ -2259,5 +2267,6 @@ export function App() {
         </section>
           </WorkspaceDisclosure>
         </section>
+        </div>
       </DailyWorkspace>);
 }

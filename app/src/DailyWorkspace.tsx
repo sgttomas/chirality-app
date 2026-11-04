@@ -121,6 +121,16 @@ export function DailyWorkspace({ children }: { children: ReactNode }) {
       .setup-guidance { color:var(--ink-soft); }
       .setup-state { border-left:3px solid var(--accent); padding:4px 16px; margin:14px 0; }
       .setup-effects { background:var(--surface); padding:16px; margin:16px 0; border:1px solid var(--rule-strong); }
+      .first-use { max-width:760px; margin:24px auto 48px; }
+      .first-use h1 { font-size:2rem; margin-bottom:8px; }
+      .first-use-lead { color:var(--ink-soft); font-size:1.02rem; }
+      .first-use-steps { padding-left:22px; }
+      .first-use-steps>li { border-top:1px solid var(--rule); padding:14px 0 18px; }
+      .first-use-steps h2 { margin:0 0 6px; }
+      .first-use-routes { border:0; padding:0; margin:8px 0; }
+      .first-use-routes label { display:block; margin:10px 0; }
+      .first-use-routes .visually-plain { padding:0; font-weight:400; color:var(--ink-soft); }
+      .first-use-saved { border-left:3px solid var(--cta); padding:6px 16px; margin:18px 0; }
       .setup-explainer { margin:14px 0; }
       .setup-explainer li { margin:6px 0; }
       .run-journey { border-top:3px solid var(--accent); padding-top:14px; }

@@ -357,3 +357,44 @@ and model discovery for a new conversation"). Role choice, the choice summary,
 Start and its disabled conditions are unchanged. The first-use mounted check in
 `app/tests/prepared-message-navigation.test.mjs` now expects the route and model
 list to be shown and the manual IDs to sit in the closed Advanced disclosure.
+
+## First use: a focused welcome while setup is required
+
+The owner's first use of signed candidate `fe811788` ("I don't understand what
+I'm looking at?") showed the full workspace with nine equal links, a window
+titled "walking skeleton", and setup asking for an explicit action, three raw
+shared paths, a project mode and a single-option supplier, beside unavailable
+keep-account diagnostics.
+
+While `desktopSetup.launch.state` is `setup-required`, the App now shows only
+**Welcome to Chirality** (`app/src/FirstUse.tsx`); the workspace stays mounted
+but hidden, the native-confirmation content stays visible and the waiting
+bridge stays mounted. The welcome asks, in order:
+
+1. **Your project folder** — "Choose project folder…" (native picker) or
+   "Continue without a project".
+2. **Codex settings** — "Start with new settings" (recommended; DEL-01-05 "First-use
+   setup with new App-owned settings") or "Use my existing Codex settings",
+   which then shows three Choose…/path fields for the existing files. "Keep my
+   current sign-in and settings" appears only when the host reports it
+   available.
+3. **Review and confirm** — "Review setup" shows the host's own effects;
+   "‹host action›…" opens the native confirmation; "Change my choices" or
+   Escape discards only the local review. A cancelled dialog keeps the choices.
+
+Once saved, the welcome says to quit (⌘Q) and reopen, then sign in under
+Connection & access and start a conversation. Launch state, App data, the
+included Codex, an unavailable keep-account reason and resource limits are
+under **Technical details**. No model, provider, sign-in, keychain or network
+is chosen or touched. The ordinary Desktop setup panel (shown once admitted)
+no longer has a supplier selector — the included Codex is fixed and named — and
+no longer advises typing a path that does not exist. The window title is
+"Chirality" (`tauri.conf.json`); the development product name and identifier
+are unchanged, and the supplier `clientInfo` title is not user-visible and is
+unchanged.
+
+Checks: three mounted tests in `app/tests/desktop-setup.test.mjs` with the
+executed Rust packets (new-settings journey with exact IPC; no-project,
+existing-settings, cancel and change; the mounted App showing only the welcome
+while setup is required and the workspace once admitted) plus the updated
+existing setup tests. No native window, AX, layout or person act is observed.

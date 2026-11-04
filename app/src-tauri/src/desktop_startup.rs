@@ -25,6 +25,9 @@ use std::{
 const PROFILE: &str = "desktop-startup/request.json";
 const LIMIT: u64 = 64 * 1024;
 const SUPPLIER: &str = "bundled-owner-use-development";
+/// App-owned settings created only by the explicit new-settings setup: a new
+/// leaf per setup, beside (never inside) the protected App-data domains.
+const SETTINGS: &str = "shared-settings";
 
 /// Same lossless tagged native path representation used by attachments. Display
 /// strings are presentation only; native picker paths never round-trip through them.
@@ -644,6 +647,9 @@ impl Launch {
 
 enum PreviewKind {
     NewHome,
+    /// A new home whose three link targets are new, empty App-owned files and
+    /// folder created at the confirmed prepare, in `settings` only.
+    NewSettings { settings: PathBuf },
     RetainProject {
         admission: Arc<AdmittedDesktop>,
         request: RequestedInputs,
@@ -1397,6 +1403,7 @@ impl DesktopSetup {
             .ok_or("Setup preview changed; review the effects again")?;
         Ok(match preview.kind {
             PreviewKind::NewHome => "Prepare home and save for next launch",
+            PreviewKind::NewSettings { .. } => "Create settings and save for next launch",
             PreviewKind::RetainProject { .. } => "Save project for next launch",
         })
     }
@@ -1410,10 +1417,41 @@ impl DesktopSetup {
             self.check_retained(admission)?;
             return Ok(format!("Retain the currently admitted App-owned account directory: {}\nProject on next launch: {}\nKeep its exact shared references and supplier selection.\nCreate no home, link or credential; no re-preparation or relink.\nSave a pending project request only. Current workspace, account/home, records, attachments, recovery, model choices and prepared messages stay unchanged. No automatic quit/restart/login/conversation.", preview.account.display(), preview.project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"explicitly absent".into())));
         }
+        if let PreviewKind::NewSettings { settings } = &preview.kind {
+            return Ok(format!("Create NEW App-owned settings folder: {}\nwith an empty config.toml, an empty AGENTS.md and an empty skills folder.\nCreate NEW App-owned account directory: {}\nLink its config.toml, AGENTS.md and skills to those new settings.\nRead, import or change no other Codex settings, home or credential.\nProject for next launch: {}\nSave a private pending request in {}.\nCodex: the copy included with this App ({SUPPLIER}).\nThe current workspace, homes, account/model choices, records and prepared messages stay unchanged. No automatic quit/restart/login/conversation.",settings.display(),preview.account.display(),preview.project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"none".into()),self.data.as_ref().map_err(Clone::clone)?.join(PROFILE).display()));
+        }
         Ok(format!("Create NEW App-owned account directory: {}\nCreate links (no content copy or credential import):\nconfig.toml → {}\nAGENTS.md → {}\nskills → {}\nProject for next launch: {}\nSave a private pending request in {}.\nSupplier: {} ({SUPPLIER}); unqualified owner-use development.\nThe current workspace, homes, account/model choices, records and prepared messages stay unchanged. No automatic quit/restart/login/conversation.",preview.account.display(),preview.shared.config_toml.display(),preview.shared.global_agents_md.display(),preview.shared.skills.display(),preview.project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"explicitly absent".into()),self.data.as_ref().map_err(Clone::clone)?.join(PROFILE).display(),self.resources.as_ref().map_err(Clone::clone)?.join("codex/bin/codex").display()))
     }
     /// Paths originate in explicit person input or a native picker. This preview
     /// performs metadata/path validation only; no filesystem creation or save.
+    /// First-use route: plan a new App-owned settings folder with empty
+    /// `config.toml`, `AGENTS.md` and `skills/`, and a new home linked to them.
+    /// Metadata/path validation only; nothing is created until the confirmed
+    /// `prepare_and_save`. No other Codex settings or home is read.
+    pub fn preview_new_settings(&mut self, project: Option<PathBuf>) -> Result<Value, String> {
+        self.config_epoch = None;
+        let data = self.data.as_ref().map_err(Clone::clone)?.clone();
+        let settings = data.join(SETTINGS).join(crate::util::opaque_id("settings-")?);
+        if settings.exists() {
+            return Err("new settings folder already exists; existing settings are never adopted".into());
+        }
+        let targets = [settings.join("config.toml"), settings.join("AGENTS.md"), settings.join("skills")];
+        let mut effects = self.preview(targets, project, SUPPLIER)?;
+        let preview = self.preview.as_mut().ok_or("setup preview unavailable")?;
+        preview.kind = PreviewKind::NewSettings { settings: settings.clone() };
+        effects["kind"] = json!("new-settings");
+        effects["affirmative"] = json!("Create settings and save for next launch");
+        effects["settings"] = json!(settings.display().to_string());
+        effects["effects"] = json!([
+            format!("Create a new settings folder for this App: {}", settings.display()),
+            "In it, create an empty config.toml, an empty AGENTS.md and an empty skills folder",
+            format!("Create a new sign-in folder linked to those settings: {}", preview.account.display()),
+            format!("Project when you next open the App: {}", preview.project.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "none".into())),
+            "Save the choices privately for the next launch",
+        ]);
+        effects["standing"] = json!("Nothing is created until you confirm. No other Codex settings, home or credential is read, imported or changed.");
+        Ok(effects)
+    }
     pub fn preview(
         &mut self,
         shared: [PathBuf; 3],
@@ -1512,6 +1550,13 @@ impl DesktopSetup {
             preview.project.as_deref(),
         )?;
         let data = self.data.as_ref().map_err(Clone::clone)?.clone();
+        let mut source_refs = preview.source_refs;
+        if let PreviewKind::NewSettings { settings } = &preview.kind {
+            create_settings(&data, settings, &preview.shared)?;
+            // Bind the saved request to the files actually created.
+            source_refs = [&preview.shared.config_toml, &preview.shared.global_agents_md, &preview.shared.skills]
+                .map(|p| Reference::observe(p)).into_iter().collect::<Result<Vec<_>, _>>()?.try_into().unwrap();
+        }
         protected_directory(&data.join("account-homes"))?;
         // Reserve a NEW directory atomically: OwnedHomePlan's create-only links
         // must never turn setup into implicit adoption of a pre-existing home.
@@ -1534,7 +1579,7 @@ impl DesktopSetup {
             supplier: SUPPLIER.into(),
             app_data: Reference::observe(&data)?,
             account: Reference::observe(&preview.account)?,
-            shared: preview.source_refs,
+            shared: source_refs,
             project: preview.project_ref,
         };
         self.validate(&requested)?;
@@ -1543,6 +1588,31 @@ impl DesktopSetup {
         self.pending = json!({"state":"saved-for-next-launch","accountHome":preview.account.display().to_string(),"project":preview.project.as_ref().map(|p|p.display().to_string()),"resources":observed.resources.iter().map(|r|json!({"name":r.name,"state":format!("{:?}",r.state),"limit":r.limit})).collect::<Vec<_>>(),"standing":"Pending request only; the current workspace, homes, records, attachments, recovery, choices and prepared messages are unchanged"});
         Ok(self.view())
     }
+}
+/// Create the new App-owned settings leaf and its three empty targets,
+/// create-only (an existing path is never adopted or overwritten), private to
+/// this user. A failure leaves only what was created inside the new leaf.
+fn create_settings(data: &Path, settings: &Path, shared: &SharedResourceTargets) -> Result<(), String> {
+    if settings.parent() != Some(data.join(SETTINGS).as_path())
+        || shared.config_toml != settings.join("config.toml")
+        || shared.global_agents_md != settings.join("AGENTS.md")
+        || shared.skills != settings.join("skills")
+    {
+        return Err("new settings must be the reviewed App-owned leaf".into());
+    }
+    protected_directory(&data.join(SETTINGS))?;
+    std::fs::DirBuilder::new().mode(0o700).create(settings)
+        .map_err(|e| format!("new settings folder was not created; existing settings are never adopted: {e}"))?;
+    storage::sync_dir(&data.join(SETTINGS))?;
+    for file in [&shared.config_toml, &shared.global_agents_md] {
+        let created = std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(file)
+            .map_err(|e| format!("new settings file was not created: {}: {e}", file.display()))?;
+        created.sync_all().map_err(|e| format!("new settings file not persisted: {e}"))?;
+    }
+    std::fs::DirBuilder::new().mode(0o700).create(&shared.skills)
+        .map_err(|e| format!("new skills folder was not created: {e}"))?;
+    storage::sync_dir(settings)?;
+    Ok(())
 }
 fn resource_view(plan: &OwnedHomePlan) -> Result<Value, String> {
     let o = plan.inspect()?;
@@ -5711,11 +5781,75 @@ mod tests {
         let none_saved = fresh_q
             .prepare_and_save(none_preview["token"].as_str().unwrap())
             .unwrap();
+        let fresh_use = Fixture::new();
+        let mut first = fresh_use.setup();
+        let launch = first.resolve(None, true, || panic!("setup has no probe"));
+        first.admit_root(launch, Ok(fresh_use.data.clone()));
+        let new_settings_preview = first.preview_new_settings(Some(fresh_use.project.clone())).unwrap();
+        let new_settings_saved = first.prepare_and_save(new_settings_preview["token"].as_str().unwrap()).unwrap();
         let retained = json!({"initial":retain_initial,"preview":retain_preview,"saved":retain_saved,"conflict":conflict,"supersededError":superseded,"freshQ":q_view,"nonePreview":none_preview,"noneSaved":none_saved,"project":native_path_identity(&q),"currentProject":native_path_identity(&keep.project)});
         println!(
             "DESKTOP_SETUP_PACKETS={}",
-            json!({"retained":retained,"initial":initial,"preview":preview,"saved":saved,"busy":busy,"fresh":fresh_view,"resourceLimits":resource_limits,"environment":environment.view(),"inputs":{"shared":f.shared.each_ref().map(|p|native_path_identity(p)),"project":native_path_identity(&f.project)}})
+            json!({"newSettings":{"preview":new_settings_preview,"saved":new_settings_saved,"project":native_path_identity(&fresh_use.project)},"retained":retained,"initial":initial,"preview":preview,"saved":saved,"busy":busy,"fresh":fresh_view,"resourceLimits":resource_limits,"environment":environment.view(),"inputs":{"shared":f.shared.each_ref().map(|p|native_path_identity(p)),"project":native_path_identity(&f.project)}})
         );
+    }
+
+    /// First use with new App-owned settings: nothing exists after review; the
+    /// confirmed prepare creates only the new settings leaf, the new home and
+    /// the pending request, which the next launch admits.
+    #[test]
+    fn new_settings_are_created_only_at_confirmed_prepare_inside_the_app_data() {
+        use std::os::unix::fs::PermissionsExt;
+        let f = Fixture::new();
+        let outside = |root: &Path| -> Vec<PathBuf> {
+            fn walk(at: &Path, skip: &Path, out: &mut Vec<PathBuf>) { for e in std::fs::read_dir(at).unwrap() { let p = e.unwrap().path(); if p.starts_with(skip) { continue; } out.push(p.clone()); if p.is_dir() && !p.is_symlink() { walk(&p, skip, out); } } }
+            let mut out = vec![]; walk(root, &f.data, &mut out); out.sort(); out
+        };
+        let before = outside(&f.root);
+        let mut setup = f.setup();
+        let launch = setup.resolve(None, true, || panic!("setup has no probe"));
+        setup.admit_root(launch, Ok(f.data.clone()));
+        let preview = setup.preview_new_settings(Some(f.project.clone())).unwrap();
+        let settings = PathBuf::from(preview["settings"].as_str().unwrap());
+        let account = PathBuf::from(preview["accountHome"].as_str().unwrap());
+        assert_eq!(preview["kind"], "new-settings");
+        assert_eq!(settings.parent().unwrap(), f.data.join(SETTINGS));
+        assert!(!settings.exists() && !account.exists(), "review creates nothing");
+        assert!(setup.preview_statement(preview["token"].as_str().unwrap()).unwrap().contains("Read, import or change no other Codex settings, home or credential"));
+        assert_eq!(setup.preview_action(preview["token"].as_str().unwrap()).unwrap(), "Create settings and save for next launch");
+        let saved = setup.prepare_and_save(preview["token"].as_str().unwrap()).unwrap();
+        assert_eq!(saved["pending"]["state"], "saved-for-next-launch", "{saved}");
+        for (name, dir) in [("config.toml", false), ("AGENTS.md", false), ("skills", true)] {
+            let target = settings.join(name);
+            let meta = std::fs::symlink_metadata(&target).unwrap();
+            assert_eq!(meta.is_dir(), dir, "{name}"); assert!(!meta.file_type().is_symlink());
+            assert_eq!(meta.permissions().mode() & 0o777, if dir { 0o700 } else { 0o600 }, "{name}");
+            if dir { assert_eq!(std::fs::read_dir(&target).unwrap().count(), 0); } else { assert_eq!(meta.len(), 0); assert_eq!(meta.nlink(), 1); }
+            assert_eq!(location(&account.join(name)).unwrap(), location(&target).unwrap(), "{name}: the home links to the new settings");
+        }
+        assert_eq!(std::fs::symlink_metadata(&settings).unwrap().permissions().mode() & 0o777, 0o700);
+        assert_eq!(outside(&f.root), before, "nothing outside the App data is created or changed");
+        drop(setup);
+        let mut next = f.setup();
+        let launch = f.resolve(&mut next);
+        assert!(next.admit_root(launch, Ok(f.data.clone())).allow_operational, "the next launch admits the saved request");
+
+        // A path created at a reviewed target before confirmation is never adopted or overwritten.
+        let g = Fixture::new();
+        let mut setup = g.setup();
+        let launch = setup.resolve(None, true, || panic!("setup has no probe"));
+        setup.admit_root(launch, Ok(g.data.clone()));
+        let preview = setup.preview_new_settings(None).unwrap();
+        assert!(preview["project"].is_null());
+        let settings = PathBuf::from(preview["settings"].as_str().unwrap());
+        protected_directory(settings.parent().unwrap()).unwrap();
+        std::fs::DirBuilder::new().mode(0o700).create(&settings).unwrap();
+        std::fs::write(settings.join("config.toml"), b"invented existing settings").unwrap();
+        let refused = setup.prepare_and_save(preview["token"].as_str().unwrap()).unwrap_err();
+        assert!(refused.contains("never adopted"), "{refused}");
+        assert_eq!(std::fs::read(settings.join("config.toml")).unwrap(), b"invented existing settings");
+        assert!(!PathBuf::from(preview["accountHome"].as_str().unwrap()).exists(), "no home without its settings");
+        assert!(setup.view()["pending"].is_null() || setup.view()["pending"]["state"] != "saved-for-next-launch");
     }
 
     #[test]
