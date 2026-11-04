@@ -126,7 +126,8 @@ pub(crate) fn trial_again(root: &Mutex<WorkflowRootSession>, reference: &str, ho
 /// WR FT-4 bound to its source: the clean trial's new conversation starts only
 /// in the home and full generation the person's choice was bound to at press.
 /// A different, replaced or closed source is refused before the trial's begin
-/// step, so the pre-fill is kept and nothing starts.
+/// step, so nothing starts or changes; the refusal reports the pre-fill as kept
+/// only when it is actually pending and not already being started.
 pub(crate) fn start_bound_clean_trial(
     root: &Mutex<WorkflowRootSession>,
     homes: &Mutex<super::HomeRouter>,
@@ -136,7 +137,16 @@ pub(crate) fn start_bound_clean_trial(
     start: impl FnOnce(&std::sync::Arc<HomeSession>) -> Result<Value, String>,
     send: impl FnOnce(&std::sync::Arc<HomeSession>, &Value, &str) -> Result<Value, SendRefusal>,
 ) -> Result<Value, SendRefusal> {
-    let home = homes.lock().unwrap().start_source(class, generation).map_err(SendRefusal::kept)?;
+    let bound = homes.lock().unwrap().start_source(class, generation);
+    let home = match bound {
+        Ok(home) => home,
+        Err(message) => {
+            // Read only: an absent, withdrawn, consumed or in-flight trial has no
+            // pre-fill this press could send again.
+            let prefill_kept = root.lock().unwrap().trial_desk.pending.get(reference).is_some_and(|p| !p.in_flight);
+            return Err(SendRefusal { message, prefill_kept });
+        }
+    };
     start_clean_trial(root, reference, || start(&home), |started, thread| send(&home, started, thread))
 }
 pub(crate) fn start_clean_trial(

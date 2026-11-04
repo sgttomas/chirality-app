@@ -65,10 +65,20 @@ native source-binding path.
   the existing pre-dispatch path, whose role observation names the bound
   generation, never the replacement. If the source changes after the claim, the
   Host's own refusal and the existing uncertain-start handling apply unchanged.
+- **Host attribution.** A request carrying an expected generation that is no
+  longer the Host's current one is refused **before** the Host's not-ready
+  branch. So a request bound to G1 records nothing, even when it arrives during
+  a restart into a G2 that is still starting. Previously it appended a
+  `client-request` not-ready refusal under G2 (review finding P2).
+
+  A request of the current generation that is not ready keeps its existing
+  not-ready record. A closed current generation keeps its existing order.
 - **Clean trial.** `trial_flows::start_bound_clean_trial` binds the source
-  **before** the trial's begin step, so a mismatch is a `SendRefusal` with
-  `prefillKept: true`: the pre-fill and the person's inputs stay, and nothing
-  starts. The start then runs through `start_conversation` with the same
+  **before** the trial's begin step, so a mismatch is refused and nothing starts
+  or changes. The refusal reports `prefillKept: true` only when the trial is
+  actually pending and not already being started, and that state is only read.
+  An absent, withdrawn, consumed or in-flight reference reports
+  `prefillKept: false` (review finding P3). The start then runs through `start_conversation` with the same
   generation, which rechecks it. If the source changes in the remaining window
   between binding and the start, the existing failed-start handling applies: the
   pre-fill is withdrawn and "Try again" is shown.
@@ -101,13 +111,35 @@ them.
   - a Host dispatch carrying the original generation is refused with no
     `thread/start`;
   - after a stop, the last generation is refused.
+- `a_source_replaced_after_binding_is_refused_before_dispatch_and_records_nothing_under_the_replacement`:
+  - the source binds while current, then Codex is replaced;
+  - the pre-claim recheck and a Host dispatch carrying the bound generation are
+    both refused;
+  - no `thread/start` is sent, and no `thread/start` client-request record is
+    attributed to the replacement.
+- `hosting::…::a_request_for_a_replaced_generation_records_nothing_while_the_replacement_starts`:
+  - a G1-bound `thread/start` reaches a Host already on G2, in states
+    `handshaking`, `starting`, `stopped` and `ready`;
+  - both through the scoped request and through
+    `thread_start_with_guidance_dispatch`, it is refused with no client-request
+    record and no write;
+  - a current-generation request that is not ready keeps exactly one not-ready
+    record under its own generation.
 - `a_clean_trial_with_a_changed_source_is_refused_before_its_begin_and_keeps_the_prefill`:
   - a replaced source is refused with the pre-fill kept, and with no start, send
     or RS record;
+  - an absent reference, and a trial whose start is already in flight, report
+    no pre-fill kept, and the in-flight start is left as it was;
   - a class with no source is refused the same way;
-  - the matching source starts the trial in the bound home and sends once.
-- **Mutation check.** Removing the source check from `start_source` fails all
-  three tests.
+  - with the matching source, the bound home is handed to the start and the
+    send, and one turn is sent. The start response is **scripted** in this
+    test, so native start admission is covered by the Host tests above, not
+    here.
+- **Mutation checks.**
+  - Removing the source check from `start_source` failed all three original
+    tests.
+  - Reverting the Host reorder fails the Host test.
+  - Reporting `prefillKept: true` unconditionally fails the clean-trial test.
 - **Affected regressions.** The `trial`, `continue_as`, `start`, `role_supply`,
   `home` and `router` filters ran 315 tests in one parallel run
   (`--test-threads=2`, `TMPDIR` inside the scratch under `$HOME`). 311 passed and
@@ -126,6 +158,29 @@ them.
 - **Not tested.** `lib.rs` commands are not unit-tested (no `AppState` harness).
   Their wiring is reviewed instead. No GUI, native launch, model or credential was
   used.
+
+- **Full lib suite after the review repairs.** One parallel run of the whole lib
+  suite (`--test-threads=2`, `TMPDIR` outside `$HOME`, `t3_slot`): 2048 tests,
+  2031 passed, 12 ignored, 5 failed. The five were:
+  - `checkpoint_recorder::…compact_snapshot_keeps_exact_records_decline_content_order_and_public_file_view`;
+  - `fleet_records::…fleet_reader_preserves_an_already_opened_store_identity_without_repairing_it`;
+  - `records_retention::…records_retention_disposed_unlinked_project_never_falls_back_when_store_becomes_unavailable`;
+  - `runtime_session::…after_end_file_lapse_concurrent_source_refresh_keeps_only_bounded_rows_and_reuses_them`;
+  - `runtime_session::…recorder_write_failure_is_visible_and_written_late_with_its_limit`.
+
+  Each passed when rerun alone on the same build. This shows no observed
+  regression. It does not prove the cause of the parallel failures.
+
+## Independent review (Astra MEDIUM, `c8a285b0`, static only)
+
+| Finding | Repair |
+|---|---|
+| **P2.** A G1-bound request during a restart into a not-ready G2 recorded a not-ready refusal under G2. | The generation mismatch is checked before the not-ready branch (`hosting.rs`), and a Host regression test covers it. |
+| **P3.** An early clean-trial refusal claimed `prefillKept: true` for absent, consumed or in-flight trials. | The flag is read from the trial's actual pending and in-flight state, and the absent and in-flight cases are tested. |
+| **Evidence.** The matching-source test scripts the start response. | This account says so, and native admission is covered by the Host tests. |
+| **Evidence.** No test replaced the source *between* binding and dispatch. | The new after-binding test and the non-ready replacement Host test cover it. |
+
+No second review round was run.
 
 ## Integration order
 

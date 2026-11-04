@@ -83,6 +83,25 @@ fn a_new_start_binds_only_the_exact_current_source_of_its_home_class() {
     assert_eq!((thread_starts(&account), starts_in(&key.cwd)), starts, "no thread/start on any refusal");
 }
 
+// Replacement BETWEEN a successful binding and dispatch: the pre-claim recheck
+// and the Host both refuse the bound source, and nothing is sent or recorded
+// under the replacement.
+#[test]
+fn a_source_replaced_after_binding_is_refused_before_dispatch_and_records_nothing_under_the_replacement() {
+    let peer = Peer::new();
+    let homes = routed(&peer, None);
+    let bound = peer.generation.clone();
+    let home = homes.lock().unwrap().start_source(HomeClass::Account, &bound).ok().expect("bound while current");
+    let replacement = replaced(&peer);
+    let starts = thread_starts(&peer);
+    let recorded = |g: &Value| home.host.snapshot()["clientRequests"].as_array().unwrap().iter().filter(|r| r["generation"] == *g && r["method"] == "thread/start").count();
+    let before = recorded(&replacement);
+    assert!(check_start_source(&home, &bound).unwrap_err().contains("changed since you chose it"));
+    let cwd = peer.fixture.root.to_string_lossy().into_owned();
+    assert!(home.host.thread_start_with_guidance_dispatch(&bound, &cwd, "fixture-model", "fixture-provider", "role").err().unwrap().contains("generation changed"));
+    assert_eq!(thread_starts(&peer), starts, "no thread/start");
+    assert_eq!(recorded(&replacement), before, "no thread/start record attributed to the replacement");
+}
 #[test]
 fn a_replaced_or_closed_source_is_refused_and_never_recaptured() {
     let peer = Peer::new();
@@ -122,11 +141,26 @@ fn a_clean_trial_with_a_changed_source_is_refused_before_its_begin_and_keeps_the
     assert!(refused.prefill_kept && refused.contains("changed since you chose it"), "{refused}");
     assert!(pending_refs(&root).contains(&reference), "the pre-fill is kept");
     assert_eq!((thread_starts(&peer), peer.turn_starts(), peer.fixture.rs_entries()), (starts, turns, rs), "no native start, send or record");
+    // Prefill standing comes from the trial itself: an absent reference or a
+    // trial already being started reports no pre-fill to send again, and the
+    // refusal changes neither.
+    let absent = trial_flows::start_bound_clean_trial(&root, &homes, HomeClass::Account, &chosen, "trial:absent",
+        |_| panic!("no start"), |_, _, _| panic!("nothing is sent")).err().unwrap();
+    assert!(!absent.prefill_kept, "{absent}");
+    let busy = root.lock().unwrap().prepare_trial("clean", DRAFT, None, Some(&peer.home), peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+    root.lock().unwrap().begin_clean_start(&busy).unwrap();
+    let in_flight = trial_flows::start_bound_clean_trial(&root, &homes, HomeClass::Account, &chosen, &busy,
+        |_| panic!("no start"), |_, _, _| panic!("nothing is sent")).err().unwrap();
+    assert!(!in_flight.prefill_kept && in_flight.contains("changed since you chose it"), "{in_flight}");
+    assert!(root.lock().unwrap().begin_clean_start(&busy).is_err(), "the in-flight start was left as it was");
+    root.lock().unwrap().withdraw_clean_start(&busy);
     // A class with no source is refused the same way.
     assert!(trial_flows::start_bound_clean_trial(&root, &homes, HomeClass::ApiKey, &replacement, &reference,
         |_| panic!("no start"), |_, _, _| panic!("nothing is sent")).err().unwrap().prefill_kept);
-    // The matching source starts the trial in the bound home (the refusals
-    // left no begin step in flight, so this press is not refused as one).
+    // The matching source hands the bound home to the start and the send (the
+    // start response is scripted here; native start admission is covered by
+    // the Host tests). The refusals left no begin step in flight, so this press
+    // is not refused as one.
     let mut started_in = None;
     let sent = trial_flows::start_bound_clean_trial(&root, &homes, HomeClass::Account, &replacement, &reference,
         |home| { started_in = Some(home.clone()); Ok(json!({"startGeneration":replacement,"result":{"thread":{"id":"thread"}}})) },
