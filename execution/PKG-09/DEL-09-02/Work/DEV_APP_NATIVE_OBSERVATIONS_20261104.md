@@ -21,7 +21,10 @@ product exoneration is claimed.
   folder before its initial location was restricted to scratch. No owner file
   contents were read. Later walks were restricted to App windows or named
   controls; retained private picker captures include scratch contents and
-  sidebar volume names. No filenames or captures are published here.
+  sidebar volume names. A sandbox spot-check also attempted
+  `cat ~/.codex/config.toml` under the explicit deny rule: it was denied
+  (exit 1), its output was discarded, and no configuration bytes were read.
+  No filenames or captures are published here.
 - **Launch routes:**
   - Runs 1–5: a launchd job running `t3_slot`, then `sandbox-exec` with
     `deny network*` (localhost only, `~/.codex` denied), then a `perl` alarm.
@@ -39,7 +42,7 @@ product exoneration is claimed.
 |---|---|
 | 1 | The first-use window is titled "Chirality" and shows the new welcome: three numbered steps, with "Start with new settings (recommended)" preselected. "Review setup" is disabled until a project choice is made. The accessibility structure reads in a coherent order: heading level 1, then three level-2 sections, the project buttons, a labelled radio group, Review setup, and a "Technical details" disclosure. This is the accessibility tree, not a VoiceOver run. The web area is named "Chirality App v4" while the window is titled "Chirality". |
 | 1 | "Choose project folder…" opens the native picker as a sheet attached to the window, with the message "Choose the project for the next App launch". Cancelling returns to an unchanged welcome with nothing chosen. Quit while the sheet is open exits normally. Before confirmation, no AppData exists for the dev ID; WebKit creates its own cache and data folders. |
-| 2 | A blank dark main window was observed at least 20 s after launch, inactive, with no reachable web area. Its earlier paint state was not captured. |
+| 2 | A blank dark main window was captured at about 14 s after launch and remained blank at about 20 s, inactive, with no reachable web area. Its earlier paint state was not captured. |
 | 3 | The main window was blank at 6.7 s and 9.9 s, with zero reachable AX windows. Setting AXFrontmost returned success but did not activate the App. Its earlier paint state was not captured. |
 | 4 | The 1100×800 main window was on screen at 3 s and 8 s; AXWindows exposed one window. The captures selected a different, offscreen 500×500 window, so rendering of the main window is **unobserved**. Those captures are retained with that limitation. |
 | 5 | The same uniquely selected main window painted the welcome at about 3 s and was blank by about 8 s, with no intervening input. It remained inactive and exposed no AX window or web area, even while painted. |
@@ -49,7 +52,7 @@ product exoneration is claimed.
 
 Dark main-window captures from the properly selected windows in runs 2, 3,
 5, 6, 7 and 8 were reported byte-identical (77,655 bytes). The corresponding
-rendered captures in runs 5 and 6 were reported byte-identical (335,288 bytes).
+rendered captures in runs 5, 6 and 7 were reported byte-identical (335,288 bytes).
 These comparisons do not supply the missing observations in other runs.
 Every run ended through the App's own Quit menu item. No Codex supplier was
 spawned, and AppData for this dev ID remained absent throughout.
