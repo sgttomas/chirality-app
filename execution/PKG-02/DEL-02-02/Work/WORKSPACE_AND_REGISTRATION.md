@@ -1207,32 +1207,57 @@ from a same-name draft. Each check was mutation-checked.
 **Unconfirmed bring-back sends (UI lifetime).** A refusal of
 `workflow_bring_back_send` without `prefillKept: true` withdraws the pre-fill.
 That covers an unknown outcome, a transcript sent without its observation
-written, and a lost pre-fill. Before the call, the App captures the original
-attempt: trial or run reference, prepared-message id, workflow source, home
-and generation, target conversation, and the person's text. If the refusal
-comes, it keeps that attempt for the life of the window (`bringBackDoubts`).
-- The conversation shows "results may have been sent to this conversation",
-  with the person's message and the host's message as given.
-- Bringing the same trial or run back to the same conversation is refused at
-  the press in the Make guide, the studio draft list and the run bring-back,
-  including from controls rendered earlier.
-- Only the host's own record (the trial's brought-back count rising) or the
-  person's explicit "I've checked — let me bring it back again" lifts the
-  hold. Neither starts anything, and the original outcome stays shown.
-- The host's message is never parsed. This is not native, relaunch or global
-  deduplication.
+written, and a lost pre-fill. A send that resolves without a reported outcome
+counts the same way. Before the call, the App captures the original attempt:
+trial or run reference, prepared-message id, workflow source, home and full
+generation, target conversation, and the person's text. If the send is
+unconfirmed, the App keeps that attempt for the life of the window
+(`bringBackDoubts`).
+
+The conversation panel lists each such send by where it actually went. It
+says "this conversation" only for the same conversation in the same
+generation. Otherwise it gives the conversation's label, or its ID "in a
+Codex session that isn't loaded now". It is never relabelled as a send to
+the conversation shown now. Each entry shows the person's message, the
+host's message as given and the original destination. A source change never
+erases it.
+
+Every preparation (`workflow_trial_bring_back`, `workflow_run_bring_back`)
+and every send of the same trial or run to the same recorded conversation ID
+is refused at dispatch, against the host's current view, whichever control
+pressed. That holds in the Make guide, the studio draft list, run
+bring-back, every prepared composer and retained callbacks. It also holds
+after a Codex restart or home change: an ID match only blocks a blind retry,
+and the row says so in plain words. A different, explicitly chosen
+conversation ID is not held. A retained Send of the withdrawn message is
+never repeated.
+
+Only the person's explicit acknowledgement lifts the hold: "I've checked —
+let me bring it back again" in the guide, or "I've checked this
+conversation — allow bringing it back again" in the conversation, which is
+there for trials and runs. A later brought-back row is not taken as
+evidence. Its `to` is a saved ID that correlates with no original request or
+generation, and a record for another conversation is not a record for this
+one. Acknowledging starts nothing, and the original outcome stays shown.
+The host's message is never parsed. This is not native, relaunch or global
+deduplication.
 
 **One prepared message per conversation.** A trial already prepared for the
 same conversation and options offers "Read and send trial ‹n›'s prepared
-results", which opens the existing message, instead of making another. A
-synchronous press guard covers double presses; a distinct conversation stays
-allowed. After Bring, the new results button takes focus. After Read and send,
+results", which opens the existing message, instead of making another. The
+studio reads the host's pending rows by their `target`. A synchronous press
+guard covers double presses, and the dispatch guard refuses a retained
+control once the preparation is published. A distinct conversation or option
+stays allowed. After Bring, the new results button takes focus. After Read and send,
 the composer's message takes focus once the source-checked Open has shown it.
 
 **The guide's Next.** The top Next is the draft's actual step: an unconfirmed
 send, prepared results, a prepared trial, then the registration review's own
-state, then the draft state. The review belongs to the draft by its
-presentation's workflow names, kept for the window once seen.
+state, then the draft state. Reviews are App-wide and outlive a library
+switch. A review belongs to the draft only by the full identity its
+presentation showed: library root, origin, source root and workflow names,
+kept for the window once seen. All of these must match the active library and
+the draft; a same-name review from another library never guides it.
 - **Current presentation:** "confirm in the App's dialog".
 - **Dismissed** (`native confirmation dismissed; no capture/registration`):
   nothing was registered; review again.

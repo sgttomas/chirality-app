@@ -285,7 +285,7 @@ test('an identical prepared bring-back is opened instead of made again, a double
   } finally { proto.focus = previousFocus; doubtsModule.resetBringBackDoubts(); }
 });
 
-test('an unconfirmed bring-back send holds that trial and conversation in the guide and the studio until checked or recorded, and keeps the original outcome', async () => {
+test('an unconfirmed bring-back send holds that trial and conversation ID in the guide and the studio until checked, across a restart or home change, and keeps the original outcome', async () => {
   doubtsModule.resetBringBackDoubts();
   const draft = {name:'spacing-check', state:'draft', trials:producerTrials};
   const view = {host:host({homeRouting:{activeModeHomeClass:'account'}}), data:data({drafts:{drafts:[draft]}})};
@@ -294,41 +294,76 @@ test('an unconfirmed bring-back send holds that trial and conversation in the gu
   const bring = n => all(ui.c, 'button').find(node => node.textContent.startsWith(`Bring trial ${n} back`));
   const earlierBring = props(bring(2)).onClick;
   await React.act(async () => doubtsModule.noteBringBackDoubt(doubt()));
-  const alert = region(ui.c, 'Trial 2 results may have been sent');
-  assert.ok(alert); assert.equal(alert.getAttribute('role'), 'alert');
-  assert.match(alert.textContent, /Trial 2's results may already have been sent to .+invented-model.+could send the transcript twice\..*Your message: My edited prompt for trial 2.*Reported: .*observation could not be written/);
+  const alert = () => region(ui.c, 'Trial 2 results may have been sent');
+  assert.ok(alert()); assert.equal(alert().getAttribute('role'), 'alert');
+  assert.match(alert().textContent, /Trial 2's results may already have been sent to .+invented-model.+could send the transcript twice\..*Your message: My edited prompt for trial 2.*Reported: .*observation could not be written.*Original destination: conversation T1/);
   assert.equal(props(bring(2)).disabled, true, 'held: no blind second bring-back');
   assert.match(next(ui.c), /spacing-check: Check whether trial 2's results arrived in the conversation before bringing it back again/, 'the top Next is the actual step');
   const before = ui.calls.length;
   await React.act(async () => { earlierBring(); });
   assert.equal(ui.calls.length, before, 'a control from before the doubt cannot bring it back');
-  // The studio's draft list shares the hold for that trial and conversation.
+  // A later bring-back recorded to ANOTHER conversation is no evidence for this one.
+  const toB = producerTrials.map(row => row.reference === 'trial:lib-a:2' ? {...row, broughtBack:[...row.broughtBack, {time:'later', to:'T2'}]} : row);
+  await ui.rerender({data:data({drafts:{drafts:[{...draft, trials:toB}]}})});
+  assert.equal(props(bring(2)).disabled, true, 'A stays held after a record for B');
+  // Even a record naming the same bare ID is not this send's receipt.
+  const toA = producerTrials.map(row => row.reference === 'trial:lib-a:2' ? {...row, broughtBack:[...row.broughtBack, {time:'later', to:'T1'}]} : row);
+  await ui.rerender({data:data({drafts:{drafts:[{...draft, trials:toA}]}})});
+  assert.equal(props(bring(2)).disabled, true, 'no count or bare-ID record releases the hold');
+  // A Codex restart (same home) and a home change keep the hold for the same conversation ID.
+  for (const generation of [{...g, spawnCounter:2}, {...g, home:'api-key', spawnCounter:5}]) {
+    await ui.rerender({host:host({generation, homeRouting:{activeModeHomeClass:generation.home === 'api-key' ? 'api-key' : 'account'}, workflowRoot:{context:{sourceRef:'src', generation}},
+      threads:[{threadId:'T1', generation, model:'invented-model'}, {threadId:'T2', generation, model:'invented-model'}]}), data:data({context:{sourceRef:'src', generation}, drafts:{drafts:[draft]}})});
+    await ui.choose(JSON.stringify([generation, 'T1']));
+    assert.ok(alert(), 'a source change does not erase the record');
+    assert.match(alert().textContent, /sent to a conversation that isn't loaded now.*Codex or the home has changed since that send\. The conversation chosen now has the same ID \(T1\), so bringing trial 2 back to it is held until you've checked\. That doesn't make the earlier destination this one\./);
+    assert.equal(props(bring(2)).disabled, true, `held for the same conversation ID after ${generation.home === 'api-key' ? 'a home change' : 'a restart'}`);
+    await ui.choose(JSON.stringify([generation, 'T2']));
+    assert.equal(props(bring(2)).disabled, false, 'a different, explicitly chosen conversation is not held');
+    await ui.choose(JSON.stringify([generation, 'T1']));
+  }
+  // The studio's draft list shares the hold, and reads the host's pending rows by their `target`.
   const {TrialRow} = loadSrc('WorkflowDrafts');
   const studioCalls = [];
-  const studio = TrialRow({trial:producerTrials[2], conversations:[{threadId:'T1', generation:g, model:'m'}], busy:false, act:(command, args) => { studioCalls.push({command, args}); }, state:{chosen:[], bbTarget:{'trial:lib-a:2':key('T1')}, bbNative:{}}, update:() => {}});
+  const studioRow = (over = {}) => TrialRow({trial:producerTrials[2], conversations:[{threadId:'T1', generation:g, model:'m'}, {threadId:'T2', generation:g, model:'m'}], busy:false, act:(command, args) => { studioCalls.push({command, args}); },
+    state:{chosen:[], bbTarget:{'trial:lib-a:2':key('T1')}, bbNative:{}}, update:() => {}, ...over});
   const find = (node, out = []) => { if (Array.isArray(node)) { node.forEach(n => find(n, out)); return out; } if (!node || typeof node !== 'object') return out; if (node.type === 'button') out.push(node); find(node.props?.children, out); return out; };
-  const studioBring = find(studio).find(node => [].concat(node.props.children).join('') === 'Bring trial back');
-  assert.equal(studioBring.props.disabled, true); studioBring.props.onClick();
+  const studioBring = tree => find(tree).find(node => [].concat(node.props.children).join('') === 'Bring trial back');
+  assert.equal(studioBring(studioRow()).props.disabled, true); studioBring(studioRow()).props.onClick();
   assert.deepEqual(studioCalls, [], 'the studio refuses at the press too');
-  await ui.rerender({});
-  assert.equal(props(bring(2)).disabled, true, 'a view or text change does not lift the hold');
   await ui.press('I\'ve checked — let me bring it back again');
   assert.equal(ui.calls.length, before, 'acknowledging starts nothing');
-  assert.equal(props(bring(2)).disabled, false, 'the explicit acknowledgement lifts the hold');
-  assert.match(region(ui.c, 'Trial 2 results may have been sent').textContent, /You said you checked that conversation\..*Your message: My edited prompt/, 'the original outcome stays shown');
-  // A new doubt; the host's own record of the bring-back resolves it.
-  await React.act(async () => doubtsModule.noteBringBackDoubt(doubt({preparedId:'bb-2'})));
-  assert.equal(props(bring(2)).disabled, true);
-  const recorded = producerTrials.map(row => row.reference === 'trial:lib-a:2' ? {...row, broughtBack:[...row.broughtBack, {time:'later', to:'T1'}]} : row);
-  await ui.rerender({data:data({drafts:{drafts:[{...draft, trials:recorded}]}})});
-  assert.equal(region(ui.c, 'Trial 2 results may have been sent'), undefined, 'a recorded bring-back is the host\'s evidence');
-  assert.equal(props(bring(2)).disabled, false);
+  assert.equal(props(bring(2)).disabled, false, 'only the explicit acknowledgement lifts the hold');
+  assert.match(alert().textContent, /You said you checked that conversation\..*Your message: My edited prompt/, 'the original outcome stays shown');
+  const pendingHere = {id:'bb-guide', trial:'trial:lib-a:2', run:null, sequence:2, draftName:'spacing-check', target:{generation:g, threadId:'T1'}, includeNative:false};
+  assert.equal(studioBring(studioRow({bringBacks:[pendingHere]})).props.disabled, true, 'a result the guide prepared for T1 disables the studio\'s identical bring-back');
+  assert.equal(studioBring(studioRow({bringBacks:[{...pendingHere, target:{generation:g, threadId:'T2'}}]})).props.disabled, false, 'a result for another conversation does not');
+  doubtsModule.resetBringBackDoubts();
+});
+
+test('the dispatch guard reads the host\'s current view: a published identical preparation, a held doubt or a send in flight issues nothing', () => {
+  doubtsModule.resetBringBackDoubts();
+  const {bringBackRefusal, beginBringBack, endBringBack, sendKey} = doubtsModule;
+  const current = pending => ({workflowRoot:{pendingBringBacks:pending}});
+  const prepare = {reference:'trial:lib-a:2', generation:g, threadId:'T1', includeNative:false};
+  assert.equal(bringBackRefusal('workflow_trial_bring_back', prepare, current([])), null);
+  assert.match(bringBackRefusal('workflow_trial_bring_back', prepare, current([results({id:'bb-1'})])), /already prepared for that conversation/, 'a retained Bring after the preparation was published');
+  assert.equal(bringBackRefusal('workflow_trial_bring_back', {...prepare, includeNative:true}, current([results({id:'bb-1'})])), null, 'different options are a distinct intent');
+  assert.equal(bringBackRefusal('workflow_run_bring_back', {runRef:'run-1', generation:g, threadId:'T1', includeNative:false}, current([results({id:'bb-r', trial:null, run:'run-1'})])) !== null, true);
+  const two = current([results({id:'bb-1'}), results({id:'bb-2'})]);
+  assert.equal(beginBringBack(sendKey('trial', 'trial:lib-a:2', {generation:g, threadId:'T1'})), true);
+  assert.match(bringBackRefusal('workflow_bring_back_send', {id:'bb-2', generation:g, threadId:'T1'}, two), /being sent to this conversation now/, 'a second composer while the first is in flight');
+  endBringBack(sendKey('trial', 'trial:lib-a:2', {generation:g, threadId:'T1'}));
+  doubtsModule.noteBringBackDoubt(doubt({preparedId:'bb-1', target:{generation:g, threadId:'T1'}}));
+  assert.match(bringBackRefusal('workflow_bring_back_send', {id:'bb-2', generation:g, threadId:'T1'}, two), /wasn't confirmed and may have arrived/, 'the second composer after the first one\'s unknown outcome');
+  assert.match(bringBackRefusal('workflow_bring_back_send', {id:'bb-2', generation:{...g, spawnCounter:2}, threadId:'T1'}, two), /wasn't confirmed/, 'the same conversation ID after a restart');
+  assert.equal(bringBackRefusal('workflow_bring_back_send', {id:'bb-2', generation:g, threadId:'T2'}, two), null, 'another conversation');
   doubtsModule.resetBringBackDoubts();
 });
 
 test('registration guidance follows the review\'s own identity and status, never the draft state alone', async () => {
   doubtsModule.resetBringBackDoubts();
-  const presentation = {entries:[{identity:{name:'spacing-check'}, disposition:'new'}]};
+  const presentation = {library:'/invented/project', origin:'project', entries:[{identity:{name:'spacing-check'}, disposition:'new'}]};
   const ui = await mount({host:host(), data:data({activeReview:'review:1', reviews:[{reference:'review:1', status:{state:'reviewed', presentation}}], drafts:{drafts:[{name:'spacing-check', state:'under review'}]}})});
   await ui.name('spacing-check'); await ui.choose(key('T1'));
   assert.match(next(ui.c), /A review is open\. Read it and confirm registration in the App's dialog/, 'the review is current and shown');
@@ -338,6 +373,22 @@ test('registration guidance follows the review\'s own identity and status, never
   await ui.rerender({data:data({activeReview:'review:1', reviews:[{reference:'review:1', status:{state:'native review/capture unavailable; original owner state retained', limit:'invented capture limit', registration:'not completed; no fabricated receipt or retry'}}], drafts:{drafts:[{name:'spacing-check', state:'under review'}]}})});
   assert.match(next(ui.c), /registration did not complete \(invented capture limit\)\. The original attempt is kept: continue it from the review, or review the draft again/);
   assert.doesNotMatch(region(ui.c, 'Draft status').textContent, /confirm registration in the App's dialog|Registered/);
-  await ui.rerender({data:data({activeReview:'review:2', reviews:[{reference:'review:1', status:{state:'reviewed', presentation}}, {reference:'review:2', status:{state:'reviewed', presentation:{entries:[{identity:{name:'other-draft'}}]}}}], drafts:{drafts:[{name:'spacing-check', state:'under review'}]}})});
+  await ui.rerender({data:data({activeReview:'review:2', reviews:[{reference:'review:1', status:{state:'reviewed', presentation}}, {reference:'review:2', status:{state:'reviewed', presentation:{library:'/invented/project', origin:'project', entries:[{identity:{name:'other-draft'}}]}}}], drafts:{drafts:[{name:'spacing-check', state:'under review'}]}})});
   assert.match(next(ui.c), /That review is no longer the current one, so it can't be confirmed from here/, 'another draft\'s current review does not stand for this one');
+});
+
+test('a review from another library never guides a same-name draft after switching libraries', async () => {
+  const presentation = (library, origin = 'project') => ({review_ref:'r', library, origin, source_root:'src-root', entries:[{identity:{name:'spacing-check', origin, source_root:'src-root'}, disposition:'new'}]});
+  const libA = {reference:'lib:project', origin:'project', root:path('/invented/project'), sourceRoot:'src-root', registered:[]};
+  const libB = {reference:'lib:other', origin:'project', root:path('/invented/other'), sourceRoot:'src-root', registered:[]};
+  const draft = {name:'spacing-check', state:'draft'};
+  const ui = await mount({host:host(), data:data({libraries:[libA, libB], activeLibrary:'lib:project', activeReview:'review:a', reviews:[{reference:'review:a', status:{state:'reviewed', presentation:presentation('/invented/project')}}], drafts:{drafts:[{...draft, state:'under review'}]}})});
+  await ui.name('spacing-check'); await ui.choose(key('T1'));
+  assert.match(next(ui.c), /A review is open\. Read it and confirm registration/, 'library A\'s review guides library A\'s draft');
+  for (const status of [{state:'reviewed', presentation:presentation('/invented/project')}, {state:'native confirmation dismissed; no capture/registration'}, {state:'native review/capture unavailable; original owner state retained', limit:'x'}]) {
+    await ui.rerender({data:data({libraries:[libA, libB], activeLibrary:'lib:other', activeReview:'review:a', reviews:[{reference:'review:a', status}], drafts:{drafts:[draft]}})});
+    const shown = region(ui.c, 'Draft status').textContent;
+    assert.doesNotMatch(shown, /A review is open|You cancelled|became unavailable|See the review|Open the review/, `library B's same-name draft is not guided by A's review (${status.state})`);
+    assert.match(next(ui.c), /spacing-check: Optionally try it/);
+  }
 });

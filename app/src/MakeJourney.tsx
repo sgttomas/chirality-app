@@ -3,7 +3,7 @@ import { conversationLabel, nativePathText } from "./presentation";
 import { draftStateWords } from "./WorkflowDrafts";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { cleanTrialAnchor } from "./TrialComposer";
-import { acknowledgeBringBackDoubt, beginBringBack, bringBackDoubtsFor, bringBackHeld, endBringBack, resolvedByRecord, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
+import { acknowledgeBringBackDoubt, beginBringBack, bringBackDoubtsFor, bringBackHeld, doubtDestination, endBringBack, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 type Act = (command: string, args: Record<string, unknown>) => Promise<Json>;
@@ -81,7 +81,7 @@ const ownResults = (draft: Json, host: Json): PreparedMessage[] => {
 };
 /** Doubts that still hold for this draft's trials. */
 const heldDoubts = (draft: Json, doubts: BringBackDoubt[]) => ownTrials(draft).flatMap((trial: Json) =>
-  bringBackDoubtsFor("trial", trial.reference, doubts).filter(doubt => !doubt.acknowledged && !resolvedByRecord(doubt, list(trial.broughtBack).length)));
+  bringBackDoubtsFor("trial", trial.reference, doubts).filter(doubt => !doubt.acknowledged));
 
 /**
  * The draft's trials as the host lists them (TT-4; newest first), and bringing
@@ -110,9 +110,9 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
   const target = chosen ? { generation: chosen.generation, threadId: chosen.threadId } : null;
   const bring = (trial: Json) => {
     if (!target || !canAct) return;
-    const brought = list(trial.broughtBack).length;
-    // Read at the press, not from this render: an earlier control can't lift a hold.
-    if (bringBackHeld("trial", trial.reference, target, brought)) return;
+    // Read at the press, not from this render: an earlier control can't lift a
+    // hold. The App's dispatch guard rechecks the host's current view as well.
+    if (bringBackHeld("trial", trial.reference, target)) return;
     const key = JSON.stringify(["trial", trial.reference, target]);
     if (!beginBringBack(key)) return;
     pressed.current = trial.reference;
@@ -122,8 +122,8 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
     <h4>Trials so far</h4>
     {trials.length > 0 && <ul>{trials.map((trial: Json) => {
       const n = text(trial.sequence), brought = list(trial.broughtBack);
-      const mine = bringBackDoubtsFor("trial", trial.reference, doubts).filter(doubt => !resolvedByRecord(doubt, brought.length));
-      const held = target ? mine.find(doubt => !doubt.acknowledged && sameTarget(doubt.target, target)) : undefined;
+      const mine = bringBackDoubtsFor("trial", trial.reference, doubts);
+      const held = target ? mine.find(doubt => !doubt.acknowledged && doubtDestination(doubt, target) !== "other") : undefined;
       const existing = target ? feedback.find(item => item.pending?.trial === trial.reference && sameTarget(item.pending?.target, target) && item.pending?.includeNative !== true) : undefined;
       const limit = held ? "Check that conversation first." : trial.live ? "Bringing it back waits until no turn is live in the trial."
         : trial.sourceLimit ? text(trial.sourceLimit) : !chosen ? "Choose the conversation where you did the work to bring it back there." : null;
@@ -134,8 +134,10 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
         <br/><small>{brought.length ? <>Brought back {brought.length === 1 ? "once" : `${brought.length} times`}, to {brought.map((b: Json, i: number) => <span key={i}>{i ? ", " : ""}<ConversationRef host={host} refValue={b?.to} none="a conversation not recorded"/></span>)}.</> : "Not brought back yet."}</small>
         {mine.map(doubt => <div key={doubt.preparedId} role={doubt.acknowledged ? "note" : "alert"} aria-label={`Trial ${n} results may have been sent`}>
           <p><strong>Trial {n}'s results may already have been sent</strong> to <ConversationRef host={host} refValue={doubt.target} none="its conversation"/>: the App couldn't confirm the send, and the prepared message was withdrawn.{doubt.acknowledged ? " You said you checked that conversation." : " Bringing it back there again could send the transcript twice."}</p>
+          {target && doubtDestination(doubt, target) === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation chosen now has the same ID ({text(target.threadId)}), so bringing trial {n} back to it {doubt.acknowledged ? "is allowed again" : "is held until you've checked"}. That doesn't make the earlier destination this one.</small></p>}
           {!doubt.acknowledged && <p><button disabled={!canAct} onClick={() => acknowledgeBringBackDoubt(doubt)}>I've checked — let me bring it back again</button></p>}
-          <details><summary>Your message and what was reported</summary><p><small>Your message: {doubt.personText || "(empty)"}</small></p><p><small>Reported: {doubt.message}</small></p></details>
+          <details><summary>Your message and what was reported</summary><p><small>Your message: {doubt.personText || "(empty)"}</small></p><p><small>Reported: {doubt.message}</small></p>
+            <p><small>Original destination: conversation <code>{text(doubt.target.threadId)}</code> in Codex session {text(doubt.target.generation?.spawnCounter)} of the {text(doubt.source.modeHomeClass)} home.</small></p></details>
         </div>)}
         <br/>{existing && !held
           ? <button disabled={!openPreparedMessage || preparedMessageLimit(host, existing) !== null} onClick={() => openPreparedMessage?.(existing)}>Read and send trial {n}'s prepared results</button>
@@ -150,7 +152,8 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
 }
 
 /** The registration review that belongs to this draft, by the review's own identity. */
-type ReviewRow = { reference: string; status: Json; names: string[] };
+type ReviewIdentity = { names: string[]; root: Json; origin: Json; sourceRoot: Json };
+type ReviewRow = { reference: string; status: Json; identity: ReviewIdentity | null };
 const DISMISSED = "native confirmation dismissed; no capture/registration";
 const UNAVAILABLE = "native review/capture unavailable; original owner state retained";
 
@@ -204,14 +207,18 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
   showConversation?: (threadId: string, target?: string) => void;
 }) {
   const doubts = useBringBackDoubts();
-  // A review names its workflows only while its presentation is shown; keep the
-  // names it was seen with so a later dismissed or unavailable status still
-  // belongs to its own draft (this window only).
-  const reviewNames = useRef(new Map<string, string[]>());
+  // A review names its library and workflows only while its presentation is
+  // shown. Reviews are App-wide and outlive a library switch, so keep the full
+  // identity it was seen with (library root, origin, source root and workflow
+  // names): a later dismissed or unavailable status still belongs to its own
+  // library's draft, never to a same-name draft elsewhere (this window only).
+  const reviewIdentities = useRef(new Map<string, ReviewIdentity>());
   const reviews: ReviewRow[] = list(data?.reviews).filter((row: Json) => typeof row?.reference === "string").map((row: Json) => {
-    const names = list(row.status?.presentation?.entries).map((entry: Json) => entry?.identity?.name).filter((name: Json) => typeof name === "string");
-    if (names.length) reviewNames.current.set(row.reference, names);
-    return { reference: row.reference, status: row.status, names: reviewNames.current.get(row.reference) ?? [] };
+    const presentation = row.status?.presentation;
+    const names = list(presentation?.entries).map((entry: Json) => entry?.identity?.name).filter((name: Json) => typeof name === "string");
+    if (presentation && names.length && typeof presentation.library === "string")
+      reviewIdentities.current.set(row.reference, { names, root: presentation.library, origin: presentation.origin ?? null, sourceRoot: presentation.source_root ?? null });
+    return { reference: row.reference, status: row.status, identity: reviewIdentities.current.get(row.reference) ?? null };
   });
   const [conversation, setConversation] = useState("");
   const [name, setName] = useState("");
@@ -240,7 +247,9 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
     : null;
   const folder = root !== null && valid ? draftFolder(root, trimmed) : null;
   // An existing draft blocks a new request, but its own next step is what to do now.
-  const ownReviews = existingDraft ? reviews.filter(row => row.names.includes(existingDraft.name)) : [];
+  const activeRoot = nativePathText(active?.root);
+  const ownReviews = existingDraft && activeRoot !== null ? reviews.filter(row => !!row.identity && row.identity.names.includes(existingDraft.name)
+    && row.identity.root === activeRoot && same(row.identity.origin, active?.origin ?? null) && same(row.identity.sourceRoot, active?.sourceRoot ?? null)) : [];
   const review = ownReviews.find(row => row.reference === data?.activeReview) ?? ownReviews.at(-1) ?? null;
   const step = existingDraft ? draftStep(existingDraft, data, host, doubts, review) : null;
   const nextLine = blocked === EXISTING && step ? `${trimmed}: ${step.words}` : blocked;

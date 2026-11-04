@@ -125,13 +125,12 @@ export function TrialRow({ trial, conversations, bringBacks = [], busy, act, sta
   const includeNative = state.bbNative[reference] ?? false;
   const fidelity = trial.fidelity ?? {};
   const destination = chosen ? { generation: chosen.generation, threadId: chosen.threadId } : null;
-  const brought = list(trial.broughtBack).length;
   // A send the host couldn't confirm holds this trial for that conversation
   // (bringBackDoubts); an identical prepared message is read and sent instead.
-  const doubt = destination ? bringBackHeld("trial", reference, destination, brought) : null;
-  const prepared = destination ? list(bringBacks).find((b: Json) => b?.trial === reference && JSON.stringify([b?.destination?.generation ?? null, b?.destination?.threadId ?? null]) === JSON.stringify([destination.generation ?? null, destination.threadId ?? null]) && !!b?.includeNative === includeNative) : undefined;
+  const doubt = destination ? bringBackHeld("trial", reference, destination) : null;
+  const prepared = destination ? list(bringBacks).find((b: Json) => b?.trial === reference && JSON.stringify([b?.target?.generation ?? null, b?.target?.threadId ?? null]) === JSON.stringify([destination.generation ?? null, destination.threadId ?? null]) && !!b?.includeNative === includeNative) : undefined;
   const bringBack = () => {
-    if (!destination || bringBackHeld("trial", reference, destination, brought)) return;
+    if (!destination || bringBackHeld("trial", reference, destination)) return;
     const key = JSON.stringify(["trial", reference, destination]);
     if (!beginBringBack(key)) return;
     let call: Promise<unknown>;

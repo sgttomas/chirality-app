@@ -439,3 +439,107 @@ test('in the App, an unconfirmed bring-back send is named in its conversation an
     globalThis.setInterval = previous.setInterval; globalThis.clearInterval = previous.clearInterval; document.getElementById = previous.getElementById;
   }
 });
+
+// Parent source review of #119 f280a050 and the native after-pass: the guard is
+// read against the host's current view at dispatch, a missing result is an
+// unconfirmed one, and a run's doubt is acknowledged from its own notice.
+async function mountBringBacks(initialRoot, handler, check) {
+  const {App} = loadSrc('App');
+  const thread = id => ({generation:g, threadId:id, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:null}, roleRelation:{kind:'start'}, futureGuidanceNotices:[]});
+  const state = {snapshot:{state:'ready', generation:g, homeRouting:{activeModeHomeClass:'account'}, threads:[thread('T1'), thread('T2')], roleLimits:{account:{roles:[]}, 'api-key':{roles:[]}}, roleSet, workflowRoot:initialRoot}};
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c); const calls = [];
+  const idle = installIdleNativeWaiting(async (command, args) => {
+    if (command === 'host_status') return structuredClone(state.snapshot);
+    if (['decision_view'].includes(command)) return {rows:[]};
+    if (command === 'native_confirmation_content') return [];
+    calls.push({command, args:structuredClone(args)});
+    return handler(command, args, state);
+  });
+  const previous = {setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval, getElementById:document.getElementById};
+  globalThis.setInterval = () => 0; globalThis.clearInterval = () => {};
+  document.getElementById = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null;
+  const settle = () => React.act(async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); });
+  const byId = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0];
+  const ui = {c, calls, state, settle, select:async id => React.act(async () => { props(nodes(byId('conversation'), 'select')[0]).onChange({target:{value:JSON.stringify([g, id])}}); })};
+  try { await React.act(async () => root.render(React.createElement(App))); await check(ui); }
+  finally {
+    const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);
+    globalThis.setInterval = previous.setInterval; globalThis.clearInterval = previous.clearInterval; document.getElementById = previous.getElementById;
+  }
+}
+const bbTrial = {reference:'trial:lib-a:2', sequence:2, kind:'clean', content:{value:'c'}, version:'current', trialConversation:'thread-clean-2', authoringConversation:'thread-authoring', authoringSourceLimit:'saved', sourceLimit:null, broughtBack:[], time:'t', link:{}, standing:'s', fidelity:{}};
+const bbRow = over => ({id:'bb-1', trial:'trial:lib-a:2', run:null, sequence:2, draftName:'spacing-check', target:{generation:g, threadId:'T1'}, source:{kind:'clean'}, prompt:'Here is how trial 2 went', transcript:'…', card:'transcript of trial 2', textIdentity:{value:'aa'}, bytes:10, includeNative:false, shortenings:[], ...over});
+const bbRoot = pending => ({context:{sourceRef:'src', generation:g}, projectLibraryAvailable:true, activeLibrary:'lib:project', libraries:[{reference:'lib:project', origin:'project', root:{encoding:'unix_bytes', bytes:[...new TextEncoder().encode('/invented/project')]}, registered:[]}],
+  selections:[], runs:[], drafts:{drafts:[{name:'spacing-check', state:'draft', trials:[bbTrial]}]}, pendingTrials:[], pendingBringBacks:pending});
+
+test('in the App, two prepared composers for the same trial and conversation: after the first send is unconfirmed, the second Send and a retained first Send issue nothing', async () => {
+  await mountBringBacks(bbRoot([bbRow(), bbRow({id:'bb-2', prompt:'Second composer'})]), async (command, args, state) => {
+    if (command === 'workflow_bring_back_send') { state.snapshot = {...state.snapshot, workflowRoot:bbRoot(state.snapshot.workflowRoot.pendingBringBacks.filter(row => row.id !== args.id))};
+      throw {message:'invented: no reply. The send\'s outcome is not established; nothing is recorded or resent', prefillKept:false}; }
+    throw Error(`unexpected ${command}`);
+  }, async ui => {
+    await ui.select('T1');
+    const composers = () => ui.c.querySelectorAll(node => node.getAttribute('aria-label') === 'Bring back composer');
+    assert.equal(composers().length, 2);
+    const firstSend = props(button(composers()[0], 'Send')).onClick;
+    await React.act(async () => { firstSend(); }); await ui.settle();
+    assert.equal(ui.calls.filter(call => call.command === 'workflow_bring_back_send').length, 1);
+    assert.equal(composers().length, 1, 'the host withdrew the first pre-fill');
+    await React.act(async () => { props(button(composers()[0], 'Send')).onClick(); }); await ui.settle();
+    await React.act(async () => { firstSend(); }); await ui.settle();
+    assert.equal(ui.calls.filter(call => call.command === 'workflow_bring_back_send').length, 1, 'neither the second composer nor a retained Send issues IPC');
+    assert.match(composers()[0].textContent, /Not sent: an earlier send of these results to this conversation wasn't confirmed/);
+  });
+});
+
+test('in the App, a send that resolves without a reported outcome is held as unconfirmed', async () => {
+  await mountBringBacks(bbRoot([bbRow()]), async (command, args, state) => {
+    if (command === 'workflow_bring_back_send') { state.snapshot = {...state.snapshot, workflowRoot:bbRoot([])}; return null; }
+    throw Error(`unexpected ${command}`);
+  }, async ui => {
+    await ui.select('T1');
+    await React.act(async () => { props(button(region(ui.c, 'Bring back composer'), 'Send')).onClick(); }); await ui.settle();
+    assert.match(region(ui.c, 'Bring-back send not confirmed').textContent, /may have been sent to this conversation.*Reported: The host did not report the send's outcome\./);
+  });
+});
+
+test('in the App, a retained guide Bring after its preparation was published issues nothing more', async () => {
+  await mountBringBacks(bbRoot([]), async (command, args, state) => {
+    if (command === 'workflow_trial_bring_back') { state.snapshot = {...state.snapshot, workflowRoot:bbRoot([bbRow({id:'bb-new'})])}; return {state:'pre-filled'}; }
+    if (command === 'workflow_observe_drafts') return {};
+    throw Error(`unexpected ${command}`);
+  }, async ui => {
+    const guide = region(ui.c, 'Make a workflow from your work');
+    await React.act(async () => { props(nodes(guide, 'select')[0]).onChange({target:{value:JSON.stringify([g, 'T1'])}}); });
+    await React.act(async () => { props(nodes(guide, 'input')[0]).onChange({target:{value:'spacing-check'}}); });
+    const retained = props(nodes(guide, 'button').find(node => node.textContent.startsWith('Bring trial 2 back'))).onClick;
+    await React.act(async () => { retained(); }); await ui.settle();
+    assert.equal(ui.calls.filter(call => call.command === 'workflow_trial_bring_back').length, 1);
+    await React.act(async () => { retained(); }); await ui.settle();
+    assert.equal(ui.calls.filter(call => call.command === 'workflow_trial_bring_back').length, 1, 'the published identical preparation refuses the retained control at dispatch');
+    assert.ok(nodes(guide, 'button').find(node => node.textContent === 'Read and send trial 2\'s prepared results'));
+  });
+});
+
+test('in the App, an unconfirmed run bring-back is acknowledged from its own notice, which starts nothing and keeps the record', async () => {
+  const {RunBringBackView} = loadSrc('RunPanel');
+  const run = {reference:'run-1', run:'run-1'};
+  const runRow = bbRow({id:'bb-run', trial:null, run:'run-1', sequence:null, draftName:null});
+  await mountBringBacks(bbRoot([runRow]), async (command, args, state) => {
+    if (command === 'workflow_bring_back_send') { state.snapshot = {...state.snapshot, workflowRoot:bbRoot([])}; throw {message:'invented run send unknown', prefillKept:false}; }
+    throw Error(`unexpected ${command}`);
+  }, async ui => {
+    await ui.select('T1');
+    await React.act(async () => { props(button(region(ui.c, 'Bring back composer'), 'Send')).onClick(); }); await ui.settle();
+    const notice = () => region(ui.c, 'Bring-back send not confirmed');
+    assert.match(notice().textContent, /The run's results may have been sent to this conversation\..*held until you've checked/);
+    const view = () => RunBringBackView({run, conversations:[{threadId:'T1', generation:g, model:'m'}], target:JSON.stringify([g, 'T1']), setTarget:() => {}, includeNative:false, setIncludeNative:() => {}, busy:false, act:() => assert.fail('held')});
+    const find = (node, out = []) => { if (Array.isArray(node)) { node.forEach(n => find(n, out)); return out; } if (!node || typeof node !== 'object') return out; if (node.type === 'button') out.push(node); find(node.props?.children, out); return out; };
+    assert.equal(find(view())[0].props.disabled, true, 'the run bring-back is held');
+    const before = ui.calls.length;
+    await React.act(async () => { props(button(notice(), 'I\'ve checked this conversation — allow bringing it back again')).onClick(); });
+    assert.equal(ui.calls.length, before, 'acknowledging starts nothing');
+    assert.match(notice().textContent, /You've said you checked.*Reported: invented run send unknown/, 'the original outcome stays');
+    assert.equal(find(view())[0].props.disabled, false, 'the run bring-back is allowed again');
+  });
+});

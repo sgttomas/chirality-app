@@ -32,7 +32,7 @@ import { DesktopSetupPanel } from "./DesktopSetupPanel";
 import { FirstUseSetup } from "./FirstUse";
 import { RunWorkflowGuide } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
-import { noteBringBackDoubt, resetBringBackDoubts, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
+import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 import { AccessRouteChoice, AvailableModels, modelMatch, validModelPacket } from "./ModelChoice";
 /** One App-composed message for the person to edit and send; never sent by the App. */
 export type ComposerOffer = { sequence: number; threadKey: string; text: string };
@@ -327,11 +327,20 @@ export function ConversationPanel({ startAct, composerOffer, host, threadKey, se
       read={handoffRead ? () => handoffRead(handoff.id) : undefined}
       open={() => { const started = handoff.started; if (started) setThreadKey(JSON.stringify([started.generation, started.threadId])); }}
       dismiss={() => { void roleAct("closing the handoff", "continue_as_dismiss", { id: handoff.id }); }} />)}
-    {doubts.filter(row => row.target?.threadId === selected?.threadId && JSON.stringify(row.target?.generation) === JSON.stringify(selected?.generation)).map(row => {
+    {[...doubts].sort((a, b) => Number(doubtDestination(b, selected) !== "other") - Number(doubtDestination(a, selected) !== "other")).map(row => {
       const id = `${row.kind}:${row.ref}:${row.preparedId}`;
-      return <div key={`doubt:${id}`} role="alert" tabIndex={-1} ref={node => { if (node && !announcedDoubt.current.has(id)) { announcedDoubt.current.add(id); node.focus?.({ preventScroll: false }); } }} aria-label="Bring-back send not confirmed">
-        <p><strong>{row.kind === "trial" ? `Trial ${String(row.sequence ?? "")}'s` : "The run's"} results may have been sent to this conversation.</strong> The App couldn't confirm the send, and the prepared message was withdrawn, so nothing is resent. Read the conversation to see whether it arrived.{row.acknowledged ? " You've said you checked; bringing it back again is allowed." : " Bringing it back here again is held until you've checked."}</p>
-        <details><summary>Your message and what was reported</summary><p><small>Your message: {row.personText || "(empty)"}</small></p><p><small>Reported: {row.message}</small></p></details>
+      // Every unconfirmed send stays reachable here, whichever conversation is
+      // shown; it is described by where it actually went, never relabelled.
+      const where = doubtDestination(row, selected);
+      const what = row.kind === "trial" ? `Trial ${String(row.sequence ?? "")}'s` : "The run's";
+      const loaded = (host?.threads ?? []).find((t: Json) => t?.threadId === row.target?.threadId && JSON.stringify(t?.generation) === JSON.stringify(row.target?.generation) && JSON.stringify(t?.generation) === JSON.stringify(host?.generation));
+      const destination = where === "same" ? "this conversation" : loaded ? conversationLabel(host, loaded) : `conversation ${String(row.target?.threadId ?? "")} in a Codex session that isn't loaded now`;
+      return <div key={`doubt:${id}`} role={row.acknowledged ? "note" : "alert"} tabIndex={-1} ref={node => { if (node && where === "same" && !announcedDoubt.current.has(id)) { announcedDoubt.current.add(id); node.focus?.({ preventScroll: false }); } }} aria-label="Bring-back send not confirmed">
+        <p><strong>{what} results may have been sent to {destination}.</strong> The App couldn't confirm the send, and the prepared message was withdrawn, so nothing is resent. Read that conversation to see whether it arrived.{row.acknowledged ? " You've said you checked; bringing it back there again is allowed." : " Bringing it back there again is held until you've checked."}</p>
+        {where === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so bringing these results back to it is held too; that doesn't make the earlier destination this one.</small></p>}
+        {!row.acknowledged && <p><button onClick={() => acknowledgeBringBackDoubt(row)}>I've checked this conversation — allow bringing it back again</button> <small>Starts nothing; this record stays.</small></p>}
+        <details><summary>Your message and what was reported</summary><p><small>Your message: {row.personText || "(empty)"}</small></p><p><small>Reported: {row.message}</small></p>
+          <p><small>Original destination: conversation <code>{String(row.target?.threadId ?? "")}</code> in Codex session {String(row.target?.generation?.spawnCounter ?? "not reported")} of the {String(row.source?.modeHomeClass ?? "unreported")} home.</small></p></details>
       </div>;
     })}
     {prepared.map(item => <div key={item.identity} ref={node => { if (node) preparedNodes.current.set(item.identity, node); else preparedNodes.current.delete(item.identity); }} hidden={item.kind === "delegated" ? !composers.delegated.includes(item.pending) : item.kind === "bring-back" ? !composers.bringBacks.includes(item.pending) : false}>
@@ -2028,11 +2037,9 @@ export function App() {
     const kind = typeof pending?.trial === "string" && pending.trial ? "trial" : typeof pending?.run === "string" && pending.run ? "run" : null;
     if (!kind) return null;
     const ref = kind === "trial" ? pending.trial : pending.run;
-    const row = (source?.workflowRoot?.drafts?.drafts ?? []).flatMap((draft: Json) => Array.isArray(draft?.trials) ? draft.trials : []).find((trial: Json) => trial?.reference === ref);
     return { kind, ref, sequence: pending.sequence ?? null, draftName: pending.draftName ?? null, preparedId: String(args.id),
       source: structuredClone({ sourceRef: source?.workflowRoot?.context?.sourceRef ?? null, modeHomeClass: source?.homeRouting?.activeModeHomeClass ?? null, generation: source?.generation ?? null }),
-      target: structuredClone({ generation: args.generation ?? null, threadId: args.threadId ?? null }), personText: String(args.personText ?? ""),
-      brought: Array.isArray(row?.broughtBack) ? row.broughtBack.length : 0 };
+      target: structuredClone({ generation: args.generation ?? null, threadId: args.threadId ?? null }), personText: String(args.personText ?? "") };
   };
   // As runAct, but a host error rejects with the host's message (trial sends show it as given).
   const trialRunAct: RunAct = async (command, args) => {
@@ -2043,14 +2050,23 @@ export function App() {
       source: structuredClone({ sourceRef: source?.workflowRoot?.context?.sourceRef ?? null, modeHomeClass: source?.homeRouting?.activeModeHomeClass ?? null, generation: source?.generation ?? null }),
       reference: args.reference ?? args.id ?? null,
       target: structuredClone({ generation: args.generation ?? null, threadId: args.threadId ?? null }) };
+    // Every bring-back send is checked against the host's current view first:
+    // a held doubt or a send of the same results in flight issues nothing.
+    const refusal = bringBackRefusal(command, args, source);
+    if (refusal) throw Error(refusal);
     setTrialObservation({ relation, limit: null });
     const bringBack = command === "workflow_bring_back_send" ? captureBringBackSend(source, args) : null;
+    const flight = bringBack ? sendKey(bringBack.kind, bringBack.ref, bringBack.target) : null;
+    if (flight && !beginBringBack(flight)) throw Error("Not sent: these results are being sent to this conversation now.");
     try {
       const result = await invoke(command, args);
+      // A send that resolves without a reported outcome is not a confirmed one.
+      if (bringBack && (result === undefined || result === null)) noteBringBackDoubt({ ...bringBack, message: "The host did not report the send's outcome.", acknowledged: false });
       setMessage(`${command}: ${result === undefined ? "The host did not report an outcome." : JSON.stringify(result).slice(0, 600)}`);
       return result;
     } catch (e) { setMessage(`${command}: ${String(e)}`); if (bringBack && !prefillKept(e)) noteBringBackDoubt({ ...bringBack, message: hostMessage(e), acknowledged: false }); throw e; }
     finally {
+      if (flight) endBringBack(flight);
       try { await refresh(); }
       catch (error) { setTrialObservation(previous => previous?.relation === relation ? { relation, limit: String(error) } : previous); }
     }
@@ -2291,7 +2307,7 @@ export function App() {
         </div>
         <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={taskView !== "run" && taskView !== "make"}>
           <div className="workspace-primary-column" aria-label="Workflow studio">
-            <WorkflowRootPanel view={taskView} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => invoke<Json>(command, args)} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
+            <WorkflowRootPanel view={taskView} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}
           </div>
         </div>
