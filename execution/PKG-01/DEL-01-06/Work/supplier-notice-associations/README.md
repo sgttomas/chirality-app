@@ -119,3 +119,13 @@ in [approved-receipt-20261102-four](approved-receipt-20261102-four/SCOPE.md).
 
 Byte joins to the retained binaries, the selected archives and the rg/PCRE2/zsh
 licence texts remain open, as stated there.
+
+## Component observations, 2026-11-04
+
+[binary-component-observations-20261104.json](binary-component-observations-20261104.json)
+records read-only marker counts and offsets in the main and code-mode-host bytes:
+- the code-mode host contains V8 (`v8` crate 150.4.0), ICU 77 and Chromium libc++;
+- the main binary embeds the `skill-creator` and `skill-installer` samples with the Apache 2.0 text;
+- bubblewrap code is absent from the macOS main binary.
+
+The remaining edges and exact inputs are in [SHIPPED_NOTICE_COVERAGE.md](../SHIPPED_NOTICE_COVERAGE.md).

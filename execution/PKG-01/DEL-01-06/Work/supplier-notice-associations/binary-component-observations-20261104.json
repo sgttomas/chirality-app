@@ -1,0 +1,73 @@
+{
+ "format": "supplier-binary-component-observations/1",
+ "observed": "2026-11-04",
+ "method": "read-only regex byte search of retained vendor files; nothing executed; strings are clues, not byte joins",
+ "subjects": {
+  "bin/codex": {
+   "sha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+   "markers": {
+    "embedded skill-creator SKILL.md": {
+     "count": 1,
+     "first_offset": 186397252
+    },
+    "embedded skill-installer SKILL.md": {
+     "count": 1,
+     "first_offset": 186451022
+    },
+    "embedded imagegen SKILL.md": {
+     "count": 0,
+     "first_offset": null
+    },
+    "embedded openai-docs SKILL.md": {
+     "count": 0,
+     "first_offset": null
+    },
+    "Apache-2.0 full text (appendix)": {
+     "count": 2,
+     "first_offset": 186194686
+    },
+    "bubblewrap C usage/text": {
+     "count": 0,
+     "first_offset": null
+    },
+    "bwrap token": {
+     "count": 9,
+     "first_offset": 182781768
+    },
+    "V8": {
+     "count": 0,
+     "first_offset": null
+    },
+    "ICU data": {
+     "count": 0,
+     "first_offset": null
+    }
+   }
+  },
+  "bin/codex-code-mode-host": {
+   "sha256": "679eedaea70529aa1cffc9bc0a0788c186412663544fa76c09d63b57f383a65a",
+   "markers": {
+    "V8 internals": {
+     "count": 63,
+     "first_offset": 37797617
+    },
+    "v8 crate 150.4.0 source path": {
+     "count": 18,
+     "first_offset": 37561974
+    },
+    "ICU 77 data": {
+     "count": 2330,
+     "first_offset": 37720709
+    },
+    "ICU copyright/terms": {
+     "count": 52,
+     "first_offset": 38417719
+    },
+    "Chromium libc++ namespace": {
+     "count": 2311,
+     "first_offset": 50167573
+    }
+   }
+  }
+ }
+}

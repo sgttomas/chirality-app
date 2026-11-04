@@ -82,3 +82,23 @@ bytes and indexed archive digest are preserved. The full contribution's
 whitespace check reports that one source-text EOF exception; excluding only
 that exact asset leaves the code/docs/index diff clean. No broad attributes or
 CI exception is supplied.
+
+## Transitive runtime inventory
+
+`transitive.py` records the shipped macOS arm64 runtime graph beyond the direct
+index. `generate` runs an offline `cargo tree` with the release features
+(normal edges, no proc-macros, `aarch64-apple-darwin`) against a prepared Cargo
+home, and reads every exact locked archive. It records licence/notice members,
+the received objc2 upstream text where its revision and README link match, and
+every missing text with its upstream locator. npm runtime packages are recorded
+from the lock, with installed-tree notice digests.
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/transitive.py check
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/transitive.py check --cargo-home /absolute/prepared-cargo-home
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/transitive.py generate --cargo-home /absolute/prepared-cargo-home --node-modules /absolute/prepared/node_modules
+```
+
+The default check needs no Cargo and fails closed when the manifests or locks
+change. This is a preparation inventory, not bundled coverage or a licensing
+determination. See `execution/PKG-01/DEL-01-06/Work/SHIPPED_NOTICE_COVERAGE.md`.

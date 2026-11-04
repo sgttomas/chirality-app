@@ -1,5 +1,10 @@
 # Bounded cached notice/source map — preparation only
 
+2026-11-04 update: the current P6 coverage, including the actual transitive
+runtime graph (192 crates and 4 npm packages) and the supplier-binary component
+findings, is in [SHIPPED_NOTICE_COVERAGE.md](SHIPPED_NOTICE_COVERAGE.md). This
+dated map keeps its original subject.
+
 2026-10-29. Inventory subject is retained candidate `795362874d-a391547a5c5d`, App source
 `795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98`; no candidate, stock supplier or
 PR15 evidence was changed. This is a factual input/placement map, not complete
