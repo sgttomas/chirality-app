@@ -216,3 +216,24 @@ for(const mismatch of ['revision','query','row-ref','row-generation','eligibilit
 test('queued duplicate Continue presses dispatch only the original native request',async()=>{
  const commandGate=deferred();await mounted({commandGate},async ui=>{const click=props(button(ui.c,'Continue selected conversation')).onClick;await React.act(()=>{ui.track(click());ui.track(click());});assert.equal(ui.calls.filter(c=>c.command==='history_action'&&c.args.action==='continue').length,1);await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('stored'));});
 });
+
+// Native J2 baseline (main 9248a36e): admission switched the chooser but left
+// the History view showing, focus on body, and the kept draft's new
+// destination named only by a raw ID. Now the admitted conversation is shown,
+// its message box is focused, and the kept text says where it goes.
+test('an admitted Continue shows the Conversation view with its message box focused and says where the kept text goes',async()=>{
+ const proto=Object.getPrototypeOf(document.createElement('textarea'));const focused=[];const previousFocus=proto.focus;proto.focus=function(){focused.push(this);};
+ try{
+  await mounted({},async ui=>{
+   await ui.press('Continue selected conversation');
+   assert.equal(ui.selected(),key('stored'));
+   const active=ui.c.querySelectorAll(n=>n.localName==='a'&&n.getAttribute('aria-current')==='page').map(n=>n.textContent);
+   assert.deepEqual(active,['Conversation'],'the Conversation view is shown');
+   assert.equal(focused.at(-1)?.getAttribute('id'),'ordinary-composer-text','its message box has the focus');
+   assert.match(ui.c.textContent,/Continue admission confirmed; opened Conversation \d[^.]*in Conversation\. Nothing was sent\./,'the notice names the conversation in the person\'s words');
+   const note=ui.c.querySelectorAll(n=>n.getAttribute('aria-label')==='Where your text goes')[0];
+   assert.ok(note,'the kept text says where it now goes');
+   assert.match(note.textContent,/written while another conversation was shown\. It is kept; if you send it now it goes to Conversation/);
+  });
+ }finally{proto.focus=previousFocus;}
+});

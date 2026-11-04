@@ -799,7 +799,7 @@ test('ordinary send explains disconnected, unselected, empty and ready states wi
  await withReadinessPanel(async ui=>{
   assert.match(ui.byId('ordinary-send-readiness').textContent,/Write a message/);
   await change(elements(ui.c,'textarea')[0],'Retained ordinary draft');
-  assert.match(ui.byId('ordinary-send-readiness').textContent,/Ready to send text to thread-a/);
+  assert.match(ui.byId('ordinary-send-readiness').textContent,/Ready to send text to Conversation 1 · model not reported\./,'the destination is named in the person\'s words');
   assert.equal(props(button(ui.c,'Send text'))['aria-describedby'],'ordinary-send-readiness');
   ui.choose('');await ui.show();assert.match(ui.byId('ordinary-send-readiness').textContent,/Choose a current conversation/);
   assert.equal(props(button(ui.c,'Send text')).disabled,true);
