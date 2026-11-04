@@ -10,7 +10,10 @@ Neither a checked row nor this document supplies owner acceptance or release.
 release-packaging cycle. Use a runnable local build for specific owner product
 judgments. #111's first-use/task views, #112's limited native observations and
 #113's real-backend loopback result are integrated. Both complete journeys
-remain open; the existing local dev App matches the product source of #111.
+remain open. #114's recognizable conversation discovery is integrated, and the
+current local dev App is built from main `98722981`. The owning roles retain
+journey delivery beyond individual PRs; live activity is established from actual
+host returns, not this document's roster.
 
 ## Audit of the previous release list
 
@@ -33,8 +36,8 @@ public distribution; and the owner decision packet. That list was not completed.
 
 | ID | Result and finish condition | Standing / next action | Owning deliverables and delivery owner |
 |---|---|---|---|
-| P1 | Set up a project, select an existing workflow, supply inputs, run it to completion and find the results without agent interpretation of engineering controls. | OPEN; guided use, bundled admission, model choice and first use are integrated. Rendered flows are checked; useful completion remains unobserved. Repair recognizable conversation discovery next, then observe the complete journey. | [J1](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j1--use-an-existing-workflow), DEL-02-02 with DEL-01-04/05; product manager, Agent 0 integration. |
-| P2 | Do useful work, create/trial/review/register a reusable workflow, return to unfinished work and later run the saved workflow with new inputs. | OPEN; authoring/trial/return guides and task navigation are integrated. Actual create/register/resume/reuse remains unobserved; must finish before 4.0.0. | [J2](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j2--create-save-return-and-reuse), DEL-02-02; product manager, native examiner. |
+| P1 | Set up a project, select an existing workflow, supply inputs, run it to completion and find the results without agent interpretation of engineering controls. | OPEN; guided use, bundled admission, model choice, first use and recognizable conversation discovery are integrated. Next: join the actual bundled workflow prepare/send/end/records path with the real backend fixture, then establish useful completion on the applicable candidate. A deterministic fixture does not establish inference. | [J1](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j1--use-an-existing-workflow), DEL-02-02 with DEL-01-04/05; product manager, Agent 0 integration. |
+| P2 | Do useful work, create/trial/review/register a reusable workflow, return to unfinished work and later run the saved workflow with new inputs. | OPEN; authoring/trial/return guides and task navigation are integrated. Next: remove raw model/provider IDs from fresh trials and Continue as, and verify the changed P2 flow at desktop/narrow sizes. Actual create/register/resume/reuse remains unobserved and is required before 4.0.0. | [J2](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j2--create-save-return-and-reuse), DEL-02-02; product manager, native examiner. |
 | P3 | Applicable candidate-bound request/approval, cancellation, interruption/recovery, close/reopen/Quit and three access-mode results, with failures repaired or explicitly returned for owner disposition. | OPEN; #112 records limited native observations and a closed GUI-automation capability limit. #113 proves the real backend with a loopback fixture, without inference. Complete candidate/recovery/access results remain owed. | [Standalone qualification](../PKG-09/DEL-09-02/Work/STANDALONE_QUALIFICATION.md), DEL-01-01/02/03/04/05; native manager. |
 | P4 | Actual installed S4/supplier custody and applicable SEAL-C enrollment/continuity evidence joined to the candidate. | OPEN; static joins are complete for b3dd4145, real installed/native results are not. Enrollment remains a concrete owner act. Rotation unavailable/SC-5 blocked is the accepted 4.0.0 limitation, not a pass. | [Signing join](../PKG-01/DEL-01-06/Work/SEAL_C_KEYCHAIN_SIGNING_JOIN.md), DEL-01-04/06 and DEL-09-02; runtime and packaging managers. |
 | P5 | Joined live SWBPIPE workflow with actual host/model/configuration, controlled application, outcomes and attributable person acceptance, plus applicable lifecycle/recovery evidence. | OPEN; component results do not close it. App Agent 0 coordinates with SWBPIPE Agent 0; no SWB implementation authority transfers here. | [Local host qualification](../PKG-09/DEL-09-07/Work/LOCAL_HOST_QUALIFICATION.md); examination consumer and external SWB owner. |
@@ -62,3 +65,10 @@ If it changes the publication commitment or adds a new gate, bring the choice
 to the owner. Improvements beyond the agreed result stay outside this push.
 A stalled row names the next useful result and who can produce it; Agent 0
 checks actual delivery rather than treating a dispatched brief as progress.
+
+
+Agent 0 consumes each increment against its row's finish condition and retains
+an explicit next useful result/owner. Managers may carry ordinary follow-on work
+within their bounded undertaking; an idle lane does not become active merely
+because it is listed here. If progress needs a real owner/external decision,
+Agent 0 presents that exact dependency with a concrete reviewable basis.
