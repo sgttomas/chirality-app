@@ -4,7 +4,14 @@ import type { DesktopSetupView } from "./DesktopSetupPanel";
 
 type NativePath = { encoding: "unix_bytes"; bytes: number[] };
 type Location = { displayPath: string; nativePath: NativePath };
-type Preview = { token: string; kind: string; affirmative: string; effects: string[]; standing: string };
+type Preview = { token: string; kind: string; affirmative: string; effects: string[]; standing: string; locations?: Array<{ name: string; path: string }> };
+/** Effect text with any absolute path shown as a quieter, wrapping path. */
+const Effect = ({ text }: { text: string }) => {
+  const at = text.search(/(^|[\s:→])\//);
+  if (at < 0) return <>{text}</>;
+  const cut = text[at] === "/" ? at : at + 1;
+  return <>{text.slice(0, cut)}<code className="first-use-path">{text.slice(cut)}</code></>;
+};
 const typedLocation = (text: string): Location => ({ displayPath: text, nativePath: { encoding: "unix_bytes", bytes: Array.from(new TextEncoder().encode(text)) } });
 const SHARED = [
   { label: "Your config.toml", kind: "config" },
@@ -93,12 +100,12 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
 
   return <section className="first-use" aria-label="Welcome" aria-busy={busy}>
     <h1>Welcome to Chirality</h1>
-    <p className="first-use-lead">Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again. First, choose a project folder and how Codex is set up. Your choices take effect when you next open the App.</p>
+    <p className="first-use-lead">Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again.{shown.pending ? "" : " First, choose a project folder and how Codex is set up. Your choices take effect when you next open the App."}</p>
     {shown.custodyProblem && <p role="alert">Setup can't continue: {shown.custodyProblem}</p>}
     {shown.pending ? <div className="first-use-saved" role="status" aria-label="Setup saved">
       <h2>You're set up</h2>
       <p><strong>Next: quit Chirality (⌘Q) and open it again.</strong> Then sign in to Codex under Connection &amp; access, and start a conversation.</p>
-      <p>Project: {shown.pending.project ?? "none"}.</p>
+      <p>Project: {shown.pending.project ? <code className="first-use-path">{shown.pending.project}</code> : "none"}</p>
     </div> : <>
     <ol className="first-use-steps">
       <li><h2>Your project folder</h2>
@@ -128,7 +135,9 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
         <button className="setup-primary" disabled={!ready} aria-describedby="first-use-next" onClick={() => { void review(); }}>Review setup</button>
         {preview && <div className="setup-effects" aria-label="What setup will do" onKeyDown={event => { if (event.key === "Escape" && !pending.current) { event.preventDefault(); changed(); } }}>
           <h3 tabIndex={-1} ref={effectsHeading}>What setup will do</h3>
-          <ul>{preview.effects.map(effect => <li key={effect}>{effect}</li>)}</ul>
+          <ul>{preview.effects.map(effect => <li key={effect}><Effect text={effect}/></li>)}</ul>
+          {preview.locations && preview.locations.length > 0 && <details><summary>Exact locations</summary>
+            <dl>{preview.locations.map(location => <div key={location.name}><dt>{location.name}</dt><dd><code className="first-use-path">{location.path}</code></dd></div>)}</dl></details>}
           <p>{preview.standing}</p>
           <p><button className="setup-primary" disabled={busy} onClick={() => { void confirm(); }}>{preview.affirmative}…</button>{" "}
             <button disabled={busy} onClick={changed}>Change my choices</button></p>

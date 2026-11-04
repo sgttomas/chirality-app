@@ -131,6 +131,9 @@ export function DailyWorkspace({ children }: { children: ReactNode }) {
       .first-use-routes label { display:block; margin:10px 0; }
       .first-use-routes .visually-plain { padding:0; font-weight:400; color:var(--ink-soft); }
       .first-use-saved { border-left:3px solid var(--cta); padding:6px 16px; margin:18px 0; }
+      .first-use-path { font-family:var(--font-code); font-size:.82rem; color:var(--ink-soft); overflow-wrap:anywhere; }
+      .first-use [aria-label="Your existing Codex settings"] input { width:min(100%, 30rem); }
+      .first-use [aria-label="Your existing Codex settings"] label { display:inline-flex; flex-wrap:wrap; gap:4px 8px; align-items:center; max-width:100%; }
       .setup-explainer { margin:14px 0; }
       .setup-explainer li { margin:6px 0; }
       .run-journey { border-top:3px solid var(--accent); padding-top:14px; }

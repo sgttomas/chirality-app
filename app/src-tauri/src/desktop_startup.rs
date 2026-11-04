@@ -1442,12 +1442,19 @@ impl DesktopSetup {
         effects["kind"] = json!("new-settings");
         effects["affirmative"] = json!("Create settings and save for next launch");
         effects["settings"] = json!(settings.display().to_string());
+        // Plain effects for review; the exact internal locations are listed
+        // separately and are also named in the native confirmation statement.
         effects["effects"] = json!([
-            format!("Create a new settings folder for this App: {}", settings.display()),
+            "Create a new settings folder for this App, inside its data folder",
             "In it, create an empty config.toml, an empty AGENTS.md and an empty skills folder",
-            format!("Create a new sign-in folder linked to those settings: {}", preview.account.display()),
+            "Create a new sign-in folder for this App, linked to those settings",
             format!("Project when you next open the App: {}", preview.project.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "none".into())),
-            "Save the choices privately for the next launch",
+            "Save these choices privately for the next launch",
+        ]);
+        effects["locations"] = json!([
+            {"name":"Settings folder","path":settings.display().to_string()},
+            {"name":"Sign-in folder","path":preview.account.display().to_string()},
+            {"name":"Saved choices","path":data.join(PROFILE).display().to_string()},
         ]);
         effects["standing"] = json!("Nothing is created until you confirm. No other Codex settings, home or credential is read, imported or changed.");
         Ok(effects)
@@ -5913,6 +5920,11 @@ mod tests {
         let settings = PathBuf::from(preview["settings"].as_str().unwrap());
         let account = PathBuf::from(preview["accountHome"].as_str().unwrap());
         assert_eq!(preview["kind"], "new-settings");
+        assert!(preview["effects"].as_array().unwrap().iter().all(|e| !e.as_str().unwrap().contains(f.data.to_str().unwrap())), "review effects name no internal path");
+        assert_eq!(preview["locations"][0]["path"], settings.display().to_string());
+        assert_eq!(preview["locations"][1]["path"], preview["accountHome"]);
+        let statement = setup.preview_statement(preview["token"].as_str().unwrap()).unwrap();
+        assert!(statement.contains(&settings.display().to_string()) && statement.contains(preview["accountHome"].as_str().unwrap()), "the native statement still names the exact locations");
         assert_eq!(settings.parent().unwrap(), f.data.join(SETTINGS));
         assert!(!settings.exists() && !account.exists(), "review creates nothing");
         assert!(setup.preview_statement(preview["token"].as_str().unwrap()).unwrap().contains("Read, import or change no other Codex settings, home or credential"));

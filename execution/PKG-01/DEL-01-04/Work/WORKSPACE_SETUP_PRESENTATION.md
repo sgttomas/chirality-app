@@ -398,3 +398,33 @@ executed Rust packets (new-settings journey with exact IPC; no-project,
 existing-settings, cancel and change; the mounted App showing only the welcome
 while setup is required and the workspace once admitted) plus the updated
 existing setup tests. No native window, AX, layout or person act is observed.
+
+### Local rendered self-test of the welcome (owner steer, 2026-11-03)
+
+The owner asked for substantially more of our own testing before involving
+them, with signed rebuilds reserved for when their direction is needed. The
+welcome was therefore rendered from the production bundle (`vite build`) in
+the locally cached headless Chromium, driven over the DevTools protocol at
+1100×800 (the App window) and 480×860. A synthetic IPC peer answered with the
+packets the executed Rust producer `mounted_setup_packets` emitted; the native
+picker and confirmation were simulated (immediate synthetic results, marked as
+such), so no real dialog, home, settings, model or sign-in was involved. Flows
+captured privately in scratch: first screen, project chosen, new-settings
+review, saved, saved with details; existing-settings route and review;
+dialog cancelled; save error.
+
+Found and fixed in the same change: the review was dominated by long internal
+paths (the new-settings effects are now plain statements, with the exact
+locations in a host-supplied `locations` list under "Exact locations"; the
+native statement still names every path); after saving, the intro still said
+"First, choose…" (now only the next action shows); the existing-settings path
+fields truncated the chosen paths (now wide enough). Paths elsewhere in effects
+render in a quieter wrapping style. No horizontal overflow, unhandled IPC or raw
+diagnostic outside Technical details was observed at either size.
+
+Observed limits: the existing-settings route still reviews the host's original
+technical effects (shared with the admitted Desktop setup panel); a focus ring
+frames the review heading and messages after programmatic focus; fonts, macOS
+window chrome, VoiceOver and the real native dialogs were not observed. This
+rendered check is local evidence for the next development App test, not native
+qualification or owner acceptance.
