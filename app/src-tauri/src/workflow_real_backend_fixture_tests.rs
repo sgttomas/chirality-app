@@ -288,21 +288,23 @@ fn parent_authorized_stock_native_bundled_workflow_fixture() -> Result<(), Strin
     let rs: Vec<Value> = rs.into_iter().filter(|e| e["runId"] == reference.as_str()).collect();
     let rs_kinds: Vec<Value> = rs.iter().map(|e| e["kind"].clone()).collect();
     assert_eq!(rs.iter().filter(|e| e["kind"] == "run_opened").count(), 1);
-    assert_eq!(rs_kinds.first(), Some(&json!("run_opened")));
-    let ended_at = rs_kinds.iter().position(|k| k == "run_ended").ok_or("no run_ended")?;
-    // After the end, the run's log gains only the notice's R3 (and its check).
-    let after: Vec<&Value> = rs[ended_at + 1..].iter().collect();
-    assert!(after.iter().all(|e| e["kind"] == "supplied_guidance"), "{rs_kinds:?}");
-    assert!(after.iter().any(|e| e["body"]["supplyForm"] == "workflow run end notice (turn text)"), "{rs_kinds:?}");
+    // Exactly the run's own entries: the run text's R3 before the end, and after
+    // it exactly one entry, the end notice's R3.
+    assert_eq!(rs_kinds, ["run_opened", "model_turn", "model_turn", "supplied_guidance", "run_ended", "supplied_guidance"], "{rs_kinds:?}");
+    let notice_r3: Vec<&Value> = rs.iter().filter(|e| e["body"]["supplyForm"] == "workflow run end notice (turn text)").collect();
+    assert_eq!(notice_r3.len(), 1, "one end-notice R3");
+    assert_eq!(notice_r3[0]["recordId"], rs[5]["recordId"], "the notice R3 is the only entry after run_ended");
     // The included package declares no checkpoints, so the tool's file change
     // is no checkpoint arrival (EXEC §2.4 records declared checkpoints only).
     assert!(!rs_kinds.contains(&json!("checkpoint_arrival")), "{rs_kinds:?}");
     let mut wr_set: Vec<String> = wr_kinds.iter().map(|k| k.as_str().unwrap_or("").to_owned()).collect();
     wr_set.sort(); // references are opaque, listed by name
-    for kind in ["run_text", "selection_record", "supply_check"] {
-        assert!(wr_set.iter().any(|k| k == kind), "{wr_set:?}");
+    // Exactly: one selection record; two run texts (run start and end notice);
+    // two supply checks, each cited by exactly one R3.
+    assert_eq!(wr_set, ["run_text", "run_text", "selection_record", "supply_check", "supply_check"], "{wr_set:?}");
+    for check in supply["records"].as_array().into_iter().flatten().filter(|r| r["kind"] == "supply_check") {
+        assert_eq!(check["r3"].as_array().map(Vec::len), Some(1), "one R3 per supply check: {check}");
     }
-    assert_eq!(wr_set.len(), wr_kinds.len());
     let end = rs.iter().filter(|e| e["kind"] == "run_ended").collect::<Vec<_>>();
     assert_eq!(end.len(), 1);
     assert_eq!(end[0]["body"]["cause"], "completed");
@@ -361,9 +363,18 @@ fn parent_authorized_stock_native_bundled_workflow_fixture() -> Result<(), Strin
     assert_ne!(later_generation, generation, "a new generation");
     let rs_before = crate::storage::read_all(&project).0;
     let wr_before = crate::records::supply::read_project_supply(&crate::workflow_workspace::publication::ProjectRecords::open(&project)?);
+    // The new session reads the ended run through the records API alone.
+    let reopened = crate::records::supply::read_project_runs(&crate::workflow_workspace::publication::ProjectRecords::open(&project)?, &[]);
+    assert!(reopened.limits.is_empty(), "{:?}", reopened.limits);
+    let recorded = reopened.runs.iter().find(|r| r.run == reference).ok_or("the ended run is not in the project's records")?;
+    assert_eq!(recorded.conversation.as_deref(), Some(thread.as_str()));
+    assert_eq!(recorded.lifecycle, crate::records::supply::RecordedLifecycle::Ended { stopped_by: "the person".into(), cause: "completed".into() });
+    assert_eq!((recorded.workflow["origin"].as_str(), recorded.workflow["name"].as_str(), recorded.workflow["revision"].as_str()),
+        (Some("bundled"), Some(BUNDLED), Some(crate::workflow_workspace::production_catalog::SELECTED_BUNDLED_REVISION)));
+    assert!(reopened.live_in(&thread).is_empty() && reopened.possibly_live_in(&thread).is_empty(), "nothing live in the conversation");
     let mut fresh = WorkflowRootSession::default();
-    let repeat = fresh.end_recorded_run(&project, &reference, &thread, false, None);
-    assert!(repeat.is_err(), "an ended run is not ended again: {repeat:?}");
+    let repeat = fresh.end_recorded_run(&project, &reference, &thread, false, None).err().ok_or("an ended run was ended again")?;
+    assert!(repeat.contains("does not show this run open") && repeat.ends_with("nothing recorded"), "{repeat}");
     fresh.observe_ended_runs(&project);
     assert_eq!(crate::storage::read_all(&project).0, rs_before, "no RS record from the fresh process");
     let wr_after = crate::records::supply::read_project_supply(&crate::workflow_workspace::publication::ProjectRecords::open(&project)?);
@@ -383,7 +394,7 @@ fn parent_authorized_stock_native_bundled_workflow_fixture() -> Result<(), Strin
         "tool":{"offered":offered,"scripted":"exec_command carrying a fixed apply_patch heredoc (function_call)","fileWrittenByCodex":TOOL_PATH,"historyItem":change["type"],"resultReturned":true},
         "end":{"cause":end[0]["body"]["cause"],"statement":run_view["finishedReport"]["statement"],"result":ended},
         "endNotice":{"carriedBy":"the first ordinary message after the end","state":follow["state"],"check":notice_check["state"],"r3":notice_check["r3"]["state"],"laterTurnsWithNotice":0,"lifecycleAfter":"Ended"},
-        "freshProcess":{"newGeneration":true,"repeatEnd":"refused","newRecords":0,"historyTurns":later_history.len()},
+        "freshProcess":{"newGeneration":true,"recordedLifecycle":format!("{:?}",recorded.lifecycle),"readLimits":0,"repeatEnd":repeat,"newRecords":0,"historyTurns":later_history.len()},
         "records":{"wr":wr_kinds,"rs":rs_kinds},
         "historyItems":history.iter().map(|(_, items)| items.iter().map(|i| i["type"].clone()).collect::<Vec<_>>()).collect::<Vec<_>>(),
         "fixture":{"responsesRequests":responses.len(),"otherRequests":requests.iter().filter(|r| r["answered"] != "sse").map(|r| json!({"method":r["method"],"path":r["path"]})).collect::<Vec<_>>()},

@@ -210,12 +210,14 @@ Step 2 is one scripted reply that repeats for each later ordinary message.
   - A second ordinary message carries the person's text only.
   - The run stays `Ended`, and no finished offer is shown for it.
   - `check_end_notice_supply` reports `verified`, with R3 `recorded`.
-- **Records.**
-  - **RS.** The run's log reads `run_opened`, `model_turn`, `model_turn`,
-    `supplied_guidance` (run text), `run_ended` (`completed`), and then only
-    `supplied_guidance` with form `workflow run end notice (turn text)`.
-  - **WR.** It holds `selection_record`, two `run_text` (run text and end notice)
-    and two `supply_check`.
+- **Records.** The counts are asserted exactly.
+  - **RS.** The run's log is exactly `run_opened`, `model_turn`, `model_turn`,
+    `supplied_guidance` (the run text's R3), `run_ended` (`completed`), and
+    `supplied_guidance`. The last is the one entry after the end: the end
+    notice's R3, form `workflow run end notice (turn text)`.
+  - **WR.** It holds exactly 1 `selection_record`, 2 `run_text` (the run start
+    and the end notice) and 2 `supply_check`. Each supply check is cited by
+    exactly one R3.
 - **History.** Three native turns, each holding a user message and the scripted
   reply:
   1. the run text and the person's text;
@@ -224,16 +226,27 @@ Step 2 is one scripted reply that repeats for each later ordinary message.
      force.`;
   3. the second follow-up only.
 
-  The fixture saw exactly 4 Responses requests. The notice first reached the
-  model with the follow-up, in requests 3–4 but not 1–2.
+  The fixture saw exactly 4 Responses requests. The notice text first appeared
+  in the **scripted fixture's** request 3, with the follow-up. Request 4 carries
+  it again only as replayed conversation history, which is not a second supply.
+  No model received it and no inference occurred.
 - **Fresh process.** After a normal stop, a new `Host` starts over the same Codex
   home and project, giving a new generation, and a new `WorkflowRootSession`
   holds no run.
-  - `end_recorded_run` on the ended run is refused.
-  - `observe_ended_runs` and the repeat end add no RS or WR record.
-  - The new generation's `NativeHistory` reads the same three turns with the same
-    user texts.
-  - Normal stop leaves 0 surviving descendants.
+  - **Records read.** The existing records reader, `records::supply::read_project_runs`,
+    reads the ended run with no read limits:
+    - its conversation is the thread;
+    - its lifecycle is `Ended {stopped_by: "the person", cause: "completed"}`;
+    - its workflow is `bundled` / `coordinated-knowledge-work` / `3730d84d…`;
+    - nothing is live, or possibly live, in the conversation.
+  - **Repeat end.** `end_recorded_run` on the ended run is refused with "The
+    record does not show this run open, or in an unknown state, in this
+    conversation; nothing recorded".
+  - **No new records.** The repeat end and `observe_ended_runs` add no RS or WR
+    record.
+  - **History.** The new generation's `NativeHistory` reads the same three turns
+    with the same user texts.
+  - **Stop.** Normal stop leaves 0 surviving descendants.
 
 ### Observed runs (2026-11-04)
 
@@ -247,8 +260,9 @@ Step 2 is one scripted reply that repeats for each later ordinary message.
   logs `run1.log` and `run2.log`.
 - **Cleanup.** No Codex process and no fixture scratch remained.
 
-These are scripted synthetic facts. The notice and the follow-ups are not
-evidence that a model read or acted on them. The fresh process is a new Host
+These are scripted synthetic facts. The notice and the follow-ups reached only
+the scripted fixture. No model received or acted on them, and no inference
+occurred. The fresh process is a new Host
 and Root in the same test process, not an App relaunch.
 
 ## Limits
