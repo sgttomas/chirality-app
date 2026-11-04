@@ -186,9 +186,15 @@ No second review round was run.
 
 #117 merged as main `d968d643`. Its account in
 [ACCOUNT_AND_PROVIDER_ACCESS.md](ACCOUNT_AND_PROVIDER_ACCESS.md) had said the
-start commands take no generation, so the binding was the App's. That sentence
-now records it as the state when #117 landed, with this clause's native binding
-after it. No other #117 wording claimed the absence of native binding.
+start commands take no generation, so the binding was the App's, in two places:
+- the trial and Continue as paragraph;
+- the "Generation at the native boundary (staged)" paragraph, which said that
+  the native receiver ignores the key and that the binding is the App's only.
+
+Both now record that as the state when #117 landed, followed by this clause's
+native binding. The per-composer generation mapping is kept, and New
+conversation's model choice stays described as home-bound, not
+generation-bound.
 
 ## Integration order
 
