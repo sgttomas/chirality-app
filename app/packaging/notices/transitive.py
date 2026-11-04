@@ -40,7 +40,7 @@ OBJC2_METADATA = WORK + '/macos-runtime-license-metadata.json'
 RECEIVED_TEXTS = {'https://github.com/madsmtm/objc2': WORK + '/approved-receipt-20261102/sources/objc2/LICENSE.md'}
 NOTICE_NAME = re.compile(r'^(licen[cs]e|copying|notice|copyright|unlicense)', re.I)
 NATIVE = re.compile(r'\.(c|cc|cpp|cxx|h|hpp|S|s|asm)$')
-TEXT_KINDS = {'archive-member', 'received-upstream-text', 'missing', 'direct-index-archive', 'installed-tree-only'}
+NPM_TEXT_KINDS = {'missing', 'direct-index-archive', 'installed-tree-only'}
 
 
 def sha(raw):
@@ -264,7 +264,7 @@ def check(index_path=INDEX, repo=REPO, cargo_home=None):
     direct = json.loads((HERE / 'index.json').read_bytes())['components']
     direct_npm = {c['package']: c for c in direct if c['ecosystem'] == 'npm'}
     for row in index['npm']:
-        require(row['text']['kind'] in TEXT_KINDS, 'unknown npm text kind')
+        require(row['text']['kind'] in NPM_TEXT_KINDS, 'unknown npm text kind')
         if row['text']['kind'] == 'direct-index-archive':
             component = direct_npm.get(row['package'])
             require(component and component['version'] == row['version'] and component['source']['integrity'] == row['integrity']

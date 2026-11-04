@@ -76,6 +76,16 @@ class Transitive(unittest.TestCase):
         self.setUp(); self.value['npm'][0]['integrity'] = 'sha512-' + 'A' * 86 + '=='; self.write(rebind=True)
         self.refuses('package-lock')
 
+    def test_cargo_text_kinds_cannot_hide_unverified_npm_packages(self):
+        for package in ('scheduler', 'react'):
+            row = next(e for e in self.value['npm'] if e['package'] == package)
+            original = row['text']
+            for kind in ('archive-member', 'received-upstream-text'):
+                with self.subTest(package=package, kind=kind):
+                    row['text'] = {'kind': kind}; self.write()
+                    self.refuses('unknown npm text kind')
+            row['text'] = original
+
     def test_unsupported_npm_lock_lookup_refuses(self):
         lock = json.loads((ROOT / 'app/package-lock.json').read_text())
         repo = Path(self.tmp.name) / 'repo'; (repo / 'app').mkdir(parents=True)

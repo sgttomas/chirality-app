@@ -73,6 +73,17 @@ build. The `.c` files in `fancy-regex` (`tests/oniguruma/`) and `walkdir`
 [font notice](../../../../app/packaging/font_notice/README.md). Regenerate with
 `python3 app/packaging/notices/transitive.py generate --cargo-home <prepared> --node-modules <prepared>`.
 
+Agent 0's provenance inspection reproduced the earlier corrupt-index cases and
+confirmed their refusals on `e2dec838`. It also found that the npm check accepted
+the Cargo-only `archive-member` and `received-upstream-text` labels, which could
+hide `scheduler` from the unverified list without establishing archive provenance.
+The npm check now accepts only its own three text kinds. A regression first
+failed for both Cargo labels on `scheduler` and `react`, then passed with the
+restriction. The inventory and retained texts are unchanged; `scheduler` remains
+unverified and P6 remains open. All 58 notice tests pass, including 13 transitive
+cases. Both the default check and the offline prepared-Cargo-home check pass;
+the latter independently reproduces the member set and archive notice members.
+
 ## Supplier binaries: marker observations, not content determinations
 
 Read-only regex byte searches of the four retained 0.160.0 subjects are recorded
