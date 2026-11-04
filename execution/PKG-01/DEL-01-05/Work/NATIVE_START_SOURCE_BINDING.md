@@ -23,11 +23,11 @@ native source-binding path.
 - **Clean trial and Continue as.** Both send the generation that
   `useBoundModelChoice` bound at press. For Continue as, that is the home the new
   conversation starts in, not the source conversation's home.
-- **New conversation.** It sends the latest host view's generation at the press.
-  Its choice stays bound to the home-class epoch, as in #110. Whether to bind
-  that choice to the generation as well is a frontend decision reserved to
-  Agent 0. The native side refuses a start whose generation changed before
-  dispatch either way.
+- **New conversation.** It sends the latest host view's full generation at the
+  press. Its model choice stays bound to the home-class epoch, as in #110, and is
+  **not** generation-bound. Agent 0 decided on 2026-11-04 to keep this for this
+  increment, with no frontend clearing or reselection. The native side binds the
+  start to the generation sent and refuses one that changed before dispatch.
 
 ## Native rule (source)
 
@@ -74,10 +74,11 @@ native source-binding path.
   pre-fill is withdrawn and "Try again" is shown.
 - **Unchanged.** The response shape, `startGeneration`, refusal messages as
   strings, retained receipts and uncertain-start handling.
-  - **Refusal type.** The frontend offered to release Continue as's hold for a
-    typed pre-dispatch refusal, e.g. `{message, started:false}`. That would
-    change the interface and is not part of this clause. Without it, the
-    frontend keeps holding such a refusal as it holds an unknown outcome.
+  - **Refusal type.** Agent 0 decided on 2026-11-04 to keep string errors, with
+    no typed pre-dispatch refusal. The frontend keeps Continue as's
+    conservative hold: a refusal is held as an unknown outcome is, until the
+    person's existing separate acknowledgement. The clean trial's pre-effect
+    refusal keeps `prefillKept: true`.
 
 ## Checks
 
@@ -108,13 +109,20 @@ them.
 - **Mutation check.** Removing the source check from `start_source` fails all
   three tests.
 - **Affected regressions.** The `trial`, `continue_as`, `start`, `role_supply`,
-  `home` and `router` filters ran 315 tests; 311 passed. All four failures are
-  environment-only:
-  - Three `historical_learning` tests fail only under parallel load and pass
-    serially.
-  - `run_start_files_line_names_a_usable_folder_or_refuses_the_start` fails only
-    when `TMPDIR` is under `$HOME`, where the run text abbreviates `~/`. It passes
-    with `TMPDIR` outside `$HOME`.
+  `home` and `router` filters ran 315 tests in one parallel run
+  (`--test-threads=2`, `TMPDIR` inside the scratch under `$HOME`). 311 passed and
+  4 failed:
+  - three `historical_learning` tests;
+  - `run_start_files_line_names_a_usable_folder_or_refuses_the_start`.
+
+  Reruns of the same build:
+  - **Serially**, all `historical_learning` tests passed.
+  - **With `TMPDIR` outside `$HOME`**, the files-line test passed. It had failed
+    on a `~/`-abbreviated folder in the run text.
+  - **A focused rerun** after the final wiring change passed 22/22.
+
+  These comparisons show no observed regression. They do not prove the cause of
+  the initial failures.
 - **Not tested.** `lib.rs` commands are not unit-tested (no `AppState` harness).
   Their wiring is reviewed instead. No GUI, native launch, model or credential was
   used.
