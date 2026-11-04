@@ -1127,7 +1127,12 @@ Runs of this home from another Codex session, or whose conversation isn't
 loaded, are read only. That includes a run whose thread ID matches the
 current conversation. These runs are grouped by their recorded conversation,
 each says "find it in History", and none offers navigation. The chat choice
-still resets on a generation change.
+still resets on a generation change. An open run's reading uses current
+activity only when the run matches the current Codex source exactly: the
+conversation's status and waiting requests are read only if its generation
+and home match. A run recorded open in an earlier session reads "Open in an
+earlier Codex session" and never takes a same-ID conversation's activity.
+Its recorded lifecycle stays readable.
 
 After "Reopen recorded workflow runs", recorded runs are listed only when
 the workflow's full source identity matches the chosen one: name, origin,
