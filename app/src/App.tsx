@@ -23,7 +23,7 @@ import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { LastCleanTrialLine, WorkflowDraftsView } from "./WorkflowDrafts";
 import { LibraryEntries } from "./LibraryEntries";
 import { WorkflowRegistrationReview } from "./WorkflowRegistrationReview";
-import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, conversationKey, findConversation, hostMessage } from "./TrialComposer";
+import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, conversationKey, findConversation, hostMessage, prefillKept } from "./TrialComposer";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { ConversationContext, ProjectLibraryContext, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, registerWorkspaceViews, WORKSPACE_VIEWS } from "./DailyWorkspace";
@@ -32,6 +32,7 @@ import { DesktopSetupPanel } from "./DesktopSetupPanel";
 import { FirstUseSetup } from "./FirstUse";
 import { RunWorkflowGuide } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
+import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 import { AccessRouteChoice, AvailableModels, modelMatch, validModelPacket } from "./ModelChoice";
 /** One App-composed message for the person to edit and send; never sent by the App. */
 export type ComposerOffer = { sequence: number; threadKey: string; text: string };
@@ -283,6 +284,8 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
   const composers = composersFor(workflowRoot, selected);
   const prepared = preparedMessages(host);
   const preparedNodes = useRef(new Map<string, HTMLDivElement>());
+  const announcedDoubt = useRef(new Set<string>());
+  const doubts = useBringBackDoubts();
   // An offered request fills only an empty composer of its own conversation; unsent
   // text is never replaced without the person's press, and nothing is sent.
   const [heldOffer, setHeldOffer] = useState<ComposerOffer | null>(null);
@@ -317,7 +320,14 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
       && preparedMessageLimit(host, item) === null && preparedReveal.isCurrent();
     // Refs identify the exact original composer after React has unhidden it.
     // No transcript-bearing DOM ID or later poll can repeat this reveal.
-    if (shown) node.scrollIntoView?.({ block: "start" });
+    if (shown) {
+      node.scrollIntoView?.({ block: "start" });
+      // Land on the composer's message itself, ready to read and edit.
+      let field: HTMLElement | null = null;
+      try { field = typeof node.querySelector === "function" ? node.querySelector("textarea") : null; } catch { field = null; }
+      if (!field) node.setAttribute("tabindex", "-1");
+      (field ?? node).focus?.({ preventScroll: true });
+    }
     preparedReveal.finish(shown);
   }, [preparedReveal, host, threadKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const trialConversation = (workflowRoot?.trialConversations ?? []).find((row: Json) => selected && row?.threadId === selected.threadId);
@@ -358,6 +368,24 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
       read={handoffRead ? () => handoffRead(handoff.id) : undefined}
       open={() => { const started = handoff.started; if (started) setThreadKey(JSON.stringify([started.generation, started.threadId])); }}
       dismiss={() => { void roleAct("closing the handoff", "continue_as_dismiss", { id: handoff.id }); }} />)}
+    {[...doubts].sort((a, b) => Number(doubtDestination(b, selected) !== "other") - Number(doubtDestination(a, selected) !== "other")).map(row => {
+      const id = `${row.kind}:${row.ref}:${row.preparedId}`;
+      // Every unconfirmed send stays reachable here, whichever conversation is
+      // shown; it is described by where it actually went, never relabelled.
+      const where = doubtDestination(row, selected);
+      const what = row.kind === "trial" ? `Trial ${String(row.sequence ?? "")}'s` : "The run's";
+      const loaded = (host?.threads ?? []).find((t: Json) => t?.threadId === row.target?.threadId && JSON.stringify(t?.generation) === JSON.stringify(row.target?.generation) && JSON.stringify(t?.generation) === JSON.stringify(host?.generation));
+      const destination = where === "same" ? "this conversation" : loaded ? conversationLabel(host, loaded) : `conversation ${String(row.target?.threadId ?? "")} in a Codex session that isn't loaded now`;
+      return <div key={`doubt:${id}`} role={row.acknowledged ? "note" : "alert"} tabIndex={-1} ref={node => { if (node && where === "same" && !announcedDoubt.current.has(id)) { announcedDoubt.current.add(id); node.focus?.({ preventScroll: false }); } }} aria-label="Bring-back send not confirmed">
+        <p><strong>{what} results may have been sent to {destination}.</strong> The App couldn't confirm the send. {(host?.workflowRoot?.pendingBringBacks ?? []).some((pending: Json) => pending?.id === row.preparedId)
+          ? "Its prepared message is still listed, but that copy is not sent again; after reading the conversation you can remove it."
+          : "The prepared message was withdrawn, so nothing is resent."} Read that conversation to see whether it arrived.{row.acknowledged ? " You've said you checked; bringing it back there again is allowed." : " Bringing it back there again is held until you've checked."}</p>
+        {where === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so bringing these results back to it is held too; that doesn't make the earlier destination this one.</small></p>}
+        {!row.acknowledged && <p><button onClick={() => acknowledgeBringBackDoubt(row)}>I've checked this conversation — allow bringing it back again</button> <small>Starts nothing; this record stays.</small></p>}
+        <details><summary>Your message and what was reported</summary><p><small>Your message: {row.personText || "(empty)"}</small></p><p><small>Reported: {row.message}</small></p>
+          <p><small>Original destination: conversation <code>{String(row.target?.threadId ?? "")}</code> in Codex session {String(row.target?.generation?.spawnCounter ?? "not reported")} of the {String(row.source?.modeHomeClass ?? "unreported")} home.</small></p></details>
+      </div>;
+    })}
     {prepared.map(item => <div key={item.identity} ref={node => { if (node) preparedNodes.current.set(item.identity, node); else preparedNodes.current.delete(item.identity); }} hidden={item.kind === "delegated" ? !composers.delegated.includes(item.pending) : item.kind === "bring-back" ? !composers.bringBacks.includes(item.pending) : false}>
       {item.kind === "clean" ? <div aria-label="Original composer owner"><p>This trial starts its own new conversation; it isn't sent in an existing one.</p>
         <details><summary>Exact scope</summary><p><small>Trial reference <code>{item.pending?.reference ?? "not reported"}</code>. Its composer belongs to no existing conversation; Send starts the new conversation with the connection and model you choose.</small></p></details></div>
@@ -1079,7 +1107,11 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
         {typeof review.status.state === "string" && <p>Review state: {review.status.state}</p>}
         <WorkflowRegistrationReview presentation={review.status.presentation} />
         <details><summary>Complete reported review status (diagnostic JSON)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(review.status),null,2)}</pre></details>
-      </> : <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(review.status??review),null,2)}</pre>}
+      </> : <>
+        {review.status?.state==="native confirmation dismissed; no capture/registration"&&<p role="status">You cancelled the App's confirmation, so nothing was captured or registered. Review the draft again to register it.</p>}
+        {review.status?.state==="native review/capture unavailable; original owner state retained"&&<p role="status">The review or its confirmation became unavailable, so registration did not complete and no receipt was made{typeof review.status?.limit==="string"?`: ${review.status.limit}`:""}. The original attempt is kept: you can continue it below, or review the draft again.</p>}
+        <details open={!["native confirmation dismissed; no capture/registration","native review/capture unavailable; original owner state retained"].includes(review.status?.state)}><summary>Complete reported review status</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(review.status??review),null,2)}</pre></details>
+      </>}
       <LastCleanTrialLine line={review.lastCleanTrial} busy={busy} act={action}/>
       <button disabled={busy} onClick={()=>action("workflow_continue_registration",{reviewRef:review.reference})}>Continue original captured registration</button>
       <ReviewSelectButtons review={review} libraries={data?.libraries??[]} busy={busy} chatAvailable={chatAvailable} act={action}/>
@@ -2069,6 +2101,20 @@ export function App() {
     } catch (e) { setMessage(`${command}: ${String(e)}`); throw e; }
     finally { await refresh(); }
   };
+  // A bring-back send the host could not confirm withdraws its pre-fill, so its
+  // composer and outcome would disappear. Its original attempt (trial or run,
+  // prepared message, source, target and text) is captured before the call and
+  // kept for this window (bringBackDoubts), so no entry point offers a blind second one.
+  useEffect(() => () => resetBringBackDoubts(), []);
+  const captureBringBackSend = (source: Json, args: Record<string, unknown>): Omit<BringBackDoubt, "message" | "acknowledged"> | null => {
+    const pending = (source?.workflowRoot?.pendingBringBacks ?? []).find((row: Json) => row?.id === args.id);
+    const kind = typeof pending?.trial === "string" && pending.trial ? "trial" : typeof pending?.run === "string" && pending.run ? "run" : null;
+    if (!kind) return null;
+    const ref = kind === "trial" ? pending.trial : pending.run;
+    return { kind, ref, sequence: pending.sequence ?? null, draftName: pending.draftName ?? null, preparedId: String(args.id),
+      source: structuredClone({ sourceRef: source?.workflowRoot?.context?.sourceRef ?? null, modeHomeClass: source?.homeRouting?.activeModeHomeClass ?? null, generation: source?.generation ?? null }),
+      target: structuredClone({ generation: args.generation ?? null, threadId: args.threadId ?? null }), personText: String(args.personText ?? "") };
+  };
   // As runAct, but a host error rejects with the host's message (trial sends show it as given).
   const trialRunAct: RunAct = async (command, args) => {
     // Observer limits belong to this original trial attempt, independently of
@@ -2078,13 +2124,23 @@ export function App() {
       source: structuredClone({ sourceRef: source?.workflowRoot?.context?.sourceRef ?? null, modeHomeClass: source?.homeRouting?.activeModeHomeClass ?? null, generation: source?.generation ?? null }),
       reference: args.reference ?? args.id ?? null,
       target: structuredClone({ generation: args.generation ?? null, threadId: args.threadId ?? null }) };
+    // Every bring-back send is checked against the host's current view first:
+    // a held doubt or a send of the same results in flight issues nothing.
+    const refusal = bringBackRefusal(command, args, source);
+    if (refusal) throw Error(refusal);
     setTrialObservation({ relation, limit: null });
+    const bringBack = command === "workflow_bring_back_send" ? captureBringBackSend(source, args) : null;
+    const flight = bringBack ? sendKey(bringBack.kind, bringBack.ref, bringBack.target) : null;
+    if (flight && !beginBringBack(flight)) throw Error("Not sent: these results are being sent to this conversation now.");
     try {
       const result = await invoke(command, args);
+      // A send that resolves without a reported outcome is not a confirmed one.
+      if (bringBack && (result === undefined || result === null)) noteBringBackDoubt({ ...bringBack, message: "The host did not report the send's outcome.", acknowledged: false });
       setMessage(`${command}: ${result === undefined ? "The host did not report an outcome." : JSON.stringify(result).slice(0, 600)}`);
       return result;
-    } catch (e) { setMessage(`${command}: ${String(e)}`); throw e; }
+    } catch (e) { setMessage(`${command}: ${String(e)}`); if (bringBack && !prefillKept(e)) noteBringBackDoubt({ ...bringBack, message: hostMessage(e), acknowledged: false }); throw e; }
     finally {
+      if (flight) endBringBack(flight);
       try { await refresh(); }
       catch (error) { setTrialObservation(previous => previous?.relation === relation ? { relation, limit: String(error) } : previous); }
     }
@@ -2325,7 +2381,7 @@ export function App() {
         </div>
         <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={taskView !== "run" && taskView !== "make"}>
           <div className="workspace-primary-column" aria-label="Workflow studio">
-            <WorkflowRootPanel view={taskView} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => invoke<Json>(command, args)} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
+            <WorkflowRootPanel view={taskView} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}
           </div>
         </div>
