@@ -241,3 +241,44 @@ test('conversation labels use a supplied title or preview, otherwise a session-l
   assert.equal(conversationLabel(view, {threadId:'T9', generation:g}), 'Conversation · model not reported', 'an unknown row gets no fabricated number');
   assert.match(conversationLabel(view, {...view.threads[2], preview:'x'.repeat(80)}), /^x{47}… · m2$/);
 });
+
+// Native J1 baseline facts (main 9248a36e): the last-result line showed raw
+// host JSON, a newer registered revision was noted only in the studio, Use
+// labels hid the revision, and focus fell to the page after Prepare and Start.
+test('the last result is in words with the reply under details, a newer revision is offered here, and revisions are told apart', async () => {
+  const twoRevisions = data({libraries:[{...data().libraries[0], registered:[
+    {name:'resolve-spacing', sequence:2, revision:'rev-2-abcdef0123456789', label:'registered — selectable', selectable:true},
+    {name:'resolve-spacing', sequence:3, revision:'rev-3-abcdef0123456789', label:'registered — selectable', selectable:true}]}]});
+  const newer = {notice:'Revision 3 of resolve-spacing is registered', revision:'rev-3-abcdef0123456789', selectable:true, offered:'Use revision 3 in this conversation'};
+  const view = {host:host(), data:{...twoRevisions, selections:[{...selected()[0], selection:{...selected()[0].selection, newerRevision:newer}}]}, thread:'T1',
+    outcome:{command:'workflow_select_listed', message:'{"state":"selected","reference":"sel-1"}', failed:false, settled:true}};
+  const ui = await mount(view);
+  const last = region(ui.c, 'Run a workflow — last result');
+  assert.match(last.textContent, /^Chose the workflow for this conversation\.What the App reported\{"state":"selected"/, 'words first; the exact reply under details');
+  assert.equal(all(last, 'p')[0].textContent, 'Chose the workflow for this conversation.');
+  await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: invented refusal text', failed:true, settled:true}});
+  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text");
+  await ui.rerender({outcome:{command:'workflow_send_run', message:'', failed:false, settled:false}});
+  assert.equal(region(ui.c, 'Run a workflow — last result'), undefined, 'nothing is claimed before the result arrives');
+  const note = region(ui.c, 'Newer revision for this conversation');
+  assert.match(note.textContent, /A newer revision of resolve-spacing is registered \(Revision 3 of resolve-spacing is registered\)\. This conversation keeps using the one shown above until you choose the newer one\./);
+  await ui.press('Use revision 3 in this conversation');
+  assert.deepEqual(ui.calls.at(-1), {command:'workflow_follow_newer_revision', args:{selectionRef:'sel-1', revision:'rev-3-abcdef0123456789'}});
+  assert.ok(button(ui.c, 'Use resolve-spacing revision 3'), 'same-name rows name their revision');
+});
+
+test('after Prepare the Start button has the focus, and after Start the run progress', async () => {
+  const proto = Object.getPrototypeOf(document.createElement('div')); const focused = []; const previous = proto.focus;
+  proto.focus = function () { focused.push(this); };
+  try {
+    const view = {host:host(), data:data({selections:selected()}), thread:'T1'};
+    const ui = await mount(view);
+    await ui.type('Fix the spacing in reports/');
+    await ui.press('Prepare this run');
+    await ui.rerender({data:data({selections:selected(), runs:[{reference:'run-1', conversation:'T1', home:'account', workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}}]})});
+    assert.equal(focused.at(-1)?.textContent, 'Start the run', 'Prepare lands on Start');
+    await ui.press('Start the run');
+    await ui.rerender({data:data({selections:selected(), runs:[{reference:'run-1', conversation:'T1', home:'account', source:'s', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}}]})});
+    assert.equal(focused.at(-1)?.getAttribute('aria-label'), 'Run progress', 'Start lands on the run progress');
+  } finally { proto.focus = previous; }
+});

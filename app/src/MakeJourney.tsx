@@ -3,7 +3,7 @@ import { conversationLabel, nativePathText } from "./presentation";
 import { draftStateWords } from "./WorkflowDrafts";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { cleanTrialAnchor } from "./TrialComposer";
-import { acknowledgeBringBackDoubt, beginBringBack, bringBackDoubtsFor, bringBackHeld, doubtDestination, endBringBack, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
+import { acknowledgeBringBackDoubt, beginBringBack, bringBackDoubtsFor, bringBackHeld, bringBackSendBlock, doubtDestination, endBringBack, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 type Act = (command: string, args: Record<string, unknown>) => Promise<Json>;
@@ -140,13 +140,20 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
             <p><small>Original destination: conversation <code>{text(doubt.target.threadId)}</code> in Codex session {text(doubt.target.generation?.spawnCounter)} of the {text(doubt.source.modeHomeClass)} home.</small></p></details>
         </div>)}
         <br/>{existing && !held
-          ? <button disabled={!openPreparedMessage || preparedMessageLimit(host, existing) !== null} onClick={() => openPreparedMessage?.(existing)}>Read and send trial {n}'s prepared results</button>
+          ? <button disabled={!openPreparedMessage || preparedMessageLimit(host, existing) !== null} onClick={() => openPreparedMessage?.(existing)}>{bringBackSendBlock(existing.pending, existing.pending?.target, doubts) ? `Open trial ${n}'s prepared results to read or remove` : `Read and send trial ${n}'s prepared results`}</button>
           : <button disabled={!canAct || limit !== null} onClick={() => bring(trial)}>{chosen ? `Bring trial ${n} back to ${conversationLabel(host, chosen)}` : `Bring trial ${n} back`}</button>}
         {existing && !held ? <small> Its results are already prepared for this conversation.</small> : limit && <small> {limit}</small>}
       </li>;
     })}</ul>}
-    <div aria-live="polite">{feedback.map(item => <p key={item.identity}>Trial {text(item.pending?.sequence)}'s results are ready to send in <ConversationRef host={host} refValue={item.owner} none="its conversation"/>.{" "}
-      {openPreparedMessage && <button ref={node => { if (node) buttons.current.set(item.identity, node); else buttons.current.delete(item.identity); }} disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>Read and send trial {text(item.pending?.sequence)}'s results</button>}</p>)}</div>
+    <div aria-live="polite">{feedback.map(item => {
+      // A copy the dispatch guard holds is prepared, not ready to send (same rule as its Send).
+      const block = bringBackSendBlock(item.pending, item.pending?.target, doubts);
+      const n = text(item.pending?.sequence);
+      return <p key={item.identity}>{block
+        ? <>Trial {n}'s results are prepared in <ConversationRef host={host} refValue={item.owner} none="its conversation"/>, but sending them is held: {block}</>
+        : <>Trial {n}'s results are ready to send in <ConversationRef host={host} refValue={item.owner} none="its conversation"/>.</>}{" "}
+        {openPreparedMessage && <button ref={node => { if (node) buttons.current.set(item.identity, node); else buttons.current.delete(item.identity); }} disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>{block ? `Open trial ${n}'s prepared results to read or remove` : `Read and send trial ${n}'s results`}</button>}</p>;
+    })}</div>
     <p><small>Bringing a trial back pre-fills a message with its transcript for the agent to assess against the draft; you read and send it. To include native items or choose another conversation, use the draft list in the workflow studio. When a trial went well, review the draft for registration.</small></p>
   </div>;
 }
@@ -167,7 +174,9 @@ function draftStep(draft: Json, data: Json, host: Json, doubts: BringBackDoubt[]
   const doubt = heldDoubts(draft, doubts)[0];
   if (doubt) return { words: `Check whether trial ${text(doubt.sequence)}'s results arrived in the conversation before bringing it back again.`, href: "#conversation", link: "Go to the conversation" };
   const results = ownResults(draft, host)[0];
-  if (results) return { words: `Read and send trial ${text(results.pending?.sequence)}'s results in the conversation, then review the draft.`, href: "#conversation", link: "Go to the conversation" };
+  if (results) return bringBackSendBlock(results.pending, results.pending?.target, doubts)
+    ? { words: `Trial ${text(results.pending?.sequence)}'s prepared results are held and not sent again; after reading the conversation, remove that copy and bring the trial back if you still need to.`, href: "#conversation", link: "Go to the conversation" }
+    : { words: `Read and send trial ${text(results.pending?.sequence)}'s results in the conversation, then review the draft.`, href: "#conversation", link: "Go to the conversation" };
   const trial = preparedMessages(host).find(item => item.kind !== "bring-back" && item.pending?.draftName === draft?.name);
   if (trial) return { words: `Read and send trial ${text(trial.pending?.sequence)} in the conversation.`, href: trial.kind === "clean" ? `#${cleanTrialAnchor(trial.pending?.reference)}` : "#conversation", link: "Go to the trial message" };
   if (review) {

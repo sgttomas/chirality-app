@@ -899,7 +899,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
   const [busy,setBusy]=useState(false);
   const pendingAction = useRef(false);
   const [progress, setProgress] = useState("");
-  const [outcome,setOutcome]=useState<{relation:{command:string;source:Json;request:Record<string,unknown>};message:string;limits:string[]}>();
+  const [outcome,setOutcome]=useState<{relation:{command:string;source:Json;request:Record<string,unknown>};message:string;limits:string[];failed?:boolean;settled?:boolean}>();
   // Native results and later observation limits belong to the original press.
   // Children receive the unchanged native value, including pre-fill results.
   const action=async(command:string,args:Record<string,unknown>):Promise<Json>=>{
@@ -926,7 +926,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     }
     try{
       const result=await act(command,request);
-      setOutcome(old=>old?.relation===relation?{...old,message:workflowActionMessage(command,result)}:old);
+      setOutcome(old=>old?.relation===relation?{...old,message:workflowActionMessage(command,result),failed:false,settled:true}:old);
       await observe(command);
       // SQ-D D-2 stays one original-context read even if the view refresh failed.
       if(command==="workflow_create_draft"||command==="workflow_refine_registered"){
@@ -937,7 +937,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
         }catch(error){limit(`Draft observation (workflow_observe_drafts) after ${command} failed: ${String(error)}. The original command response is retained as reported.`);}
       }
       return result;
-    }catch(error){setOutcome(old=>old?.relation===relation?{...old,message:String(error)}:old);return undefined;}
+    }catch(error){setOutcome(old=>old?.relation===relation?{...old,message:String(error),failed:true,settled:true}:old);return undefined;}
     finally{pendingAction.current=false;setBusy(false);setProgress("");}
   };
   const conversations:Json[]=(host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation));
@@ -976,7 +976,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     {busy && <p role="status" aria-live="polite">{progress} No automatic retry.</p>}
     <div id="view-run" data-workspace-view="run" hidden={view !== undefined && view !== "run"}>
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
-      outcome={outcome ? { command: outcome.relation.command, message: outcome.message } : null} showConversation={showConversation}/>
+      outcome={outcome ? { command: outcome.relation.command, message: outcome.message, failed: outcome.failed === true, settled: outcome.settled === true } : null} showConversation={showConversation}/>
     </div>
     <div id="view-make" data-workspace-view="make" hidden={view !== undefined && view !== "make"}>
     {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation}/>}

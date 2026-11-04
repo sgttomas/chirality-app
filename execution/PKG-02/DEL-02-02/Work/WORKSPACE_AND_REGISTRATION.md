@@ -1073,6 +1073,29 @@ conversation choice, Start, both End controls and bundled Use) passes one guard:
 it is disabled, and a retained click dispatches nothing, while the studio is
 busy or the shown workflow source/generation differs from the host's.
 
+**Guide labels and results (2026-11-04).** These close the native J1 baseline
+facts on main `9248a36e`:
+- **Last result.** It now reads in words: "Chose the workflow for this
+  conversation.", "Start requested; see Progress for what happened.", and so
+  on. A failure reads "Couldn't ‹action›: ‹host message›". The exact reply
+  stays under "What the App reported", and nothing is claimed before the
+  result has settled.
+- **Newer revision.** When the host reports one (`selection.newerRevision`),
+  the guide says the conversation keeps using the revision shown until the
+  person chooses the newer one. It offers the host's own follow button
+  (`workflow_follow_newer_revision {selectionRef, revision}`), or the host's
+  limit.
+- **Revision labels.** Same-name rows name their revision ("Use ‹name›
+  revision ‹n›").
+- **Focus.** After Prepare, focus lands on Start the run. After Start, it
+  lands on Run progress.
+
+The Make guide also no longer calls a held prepared copy "ready to send". It
+says the copy is prepared but held, with the same reason as its Send
+(`bringBackSendBlock`), offers "Open … to read or remove", and its Next names
+that state. This is the residual carried from #119. Reuse with new inputs
+already worked in the native baseline and is unchanged.
+
 - **Workflow.** Selectable registered revisions are offered as "Use ‹name›";
   others show the host's label. The chosen workflow is named with its origin,
   registered revision number and content-identity prefix. Unregistered library
