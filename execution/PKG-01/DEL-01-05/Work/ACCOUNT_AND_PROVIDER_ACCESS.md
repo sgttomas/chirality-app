@@ -1806,6 +1806,37 @@ generation binding is the App's. Native trial and continuation admission,
 retry of a started-but-unsent clean trial, and the handoff send/unknown
 outcome are unchanged.
 
+Every chooser control keeps the binding, choice and model list of the render
+that made it. It acts only while those are still the latest, the composer is
+mounted and its source is ready, so a Use, Read, route or Start/Send control
+from an earlier render never becomes valid again. That holds even after the
+same choice is made on a new generation, or after a second list read in the
+same generation. A clean pre-fill keeps its identity across a home or
+generation change only while its reference and immutable pre-fill (draft,
+location, content, text, message, work folder, authoring) are the same. A
+changed pre-fill under the same reference starts from its own message.
+
+**Start outcome (Continue as).** A Continue as start the host rejects is shown
+in its own panel next to Start: "The new conversation wasn't confirmed as
+started", with the edited handoff kept and the host's message and the
+command under "What was reported". A rejection is not read for whether Codex
+started the conversation, so a missing, timed-out or unknown outcome is never
+treated as a refusal. Start stays held, including for a control from before
+the press and across model or role edits, until the conversation shows as
+started (the host's own `started` view) or the person presses "I've checked —
+let me start again". Nothing is sent or retried on its own.
+
+**Generation at the native boundary (staged).** The three start commands now
+also carry `generation`:
+- `thread_start` for Continue as and `workflow_trial_start_clean` send the full
+  generation object the bound choice was made for.
+- New conversation's `thread_start` sends the generation of the host view
+  current at the press. Its choice is bound to the home, not the generation;
+  its model list is bound to the generation.
+The current native receiver ignores the key. Native admission that requires
+it and binds the start to that generation is the runtime owner's separate
+follow-up. Until that lands, the generation binding is the App's only.
+
 Checks: `app/tests/trial-continue-model-choice.test.mjs` (mounted composers,
 controlled IPC peer; mutation-checked against the press and late-reply guards)
 and the updated `trials`, `conversation-roles` and

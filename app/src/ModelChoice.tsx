@@ -87,37 +87,50 @@ const chosenAny = (route: ModelRoute) => !!(route.model || route.modelProvider |
  * binding: the earlier choice and model list no longer count (and are shown as
  * out of date), so a stale choice can't be sent. The composer's text is not
  * held here and is kept. The list is read only at the person's press. */
+/** What a press may use: the choice and the exact source it was made for. */
+export type BoundRoute = { route: ModelRoute; generation: Json; modeHomeClass: string | null };
 export type BoundModelChoice = {
   route: ModelRoute; stale: boolean; revise: (patch: Partial<ModelRoute>) => void;
   packet: Json | null; current: boolean; reading: boolean; message: string; read: () => void; choose: (row: Json) => void;
-  /** At a press: the choice if it is still bound to the latest source, else null. */
-  bound: () => ModelRoute | null;
+  /** At a press: the choice this render showed and the home and generation it
+   * was made for, only while that render's binding, choice and source are still
+   * the latest, the composer is mounted and its source ready; else null. */
+  bound: () => BoundRoute | null;
 };
+type Held = { epoch: number; route: ModelRoute; generation: Json; modeHomeClass: string | null };
+type Observation = { packet: Json; epoch: number; sequence: number };
 export function useBoundModelChoice({ owner, homeClass, generation, ready }: { owner: string; homeClass: string | null | undefined; generation: Json; ready: boolean }): BoundModelChoice {
   const key = JSON.stringify([owner, homeClass ?? null, generation ?? null]);
   const seen = useRef({ key, epoch: 0 });
   if (seen.current.key !== key) seen.current = { key, epoch: seen.current.epoch + 1 };
+  // Every callback below keeps the epoch, choice and list of the render that
+  // made it and acts only while they are still the latest: a control from an
+  // earlier render never becomes valid again after a newer source or choice.
   const epoch = seen.current.epoch;
   const source = useRef({ homeClass, generation, ready }); source.current = { homeClass, generation, ready };
-  const [held, setHeld] = useState<{ epoch: number; route: ModelRoute }>({ epoch, route: NO_MODEL_ROUTE });
+  const [held, setHeld] = useState<Held>({ epoch, route: NO_MODEL_ROUTE, generation: generation ?? null, modeHomeClass: homeClass ?? null });
   const heldRef = useRef(held); heldRef.current = held;
   const sequence = useRef(0);
   const pending = useRef(false);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; sequence.current++; }; }, []);
-  const [observation, setObservation] = useState<{ packet: Json; epoch: number; sequence: number } | null>(null);
+  const [observation, setObservation] = useState<Observation | null>(null);
+  const observationRef = useRef(observation); observationRef.current = observation;
   const [reading, setReading] = useState(false);
   const [message, setMessage] = useState<{ epoch: number; text: string } | null>(null);
   const route = held.epoch === epoch ? held.route : NO_MODEL_ROUTE;
   const current = !!observation && ready && observation.epoch === epoch && observation.sequence === sequence.current;
-  const revise = (patch: Partial<ModelRoute>) => setHeld(previous => {
-    const now = seen.current.epoch;
-    return { epoch: now, route: { ...(previous.epoch === now ? previous.route : NO_MODEL_ROUTE), ...patch } };
-  });
+  const live = () => mounted.current && source.current.ready && epoch === seen.current.epoch;
+  const revise = (patch: Partial<ModelRoute>) => {
+    if (!mounted.current || epoch !== seen.current.epoch) return;
+    const made = { generation: source.current.generation ?? null, modeHomeClass: source.current.homeClass ?? null };
+    setHeld(previous => seen.current.epoch !== epoch ? previous
+      : { epoch, ...made, route: { ...(previous.epoch === epoch ? previous.route : NO_MODEL_ROUTE), ...patch } });
+  };
   const read = () => {
-    const { homeClass: mode, generation: original, ready: live } = source.current;
-    if (pending.current || !live || !(mode === "account" || mode === "api-key")) return;
-    const at = seen.current.epoch, number = ++sequence.current;
+    const { homeClass: mode, generation: original } = source.current;
+    if (pending.current || !live() || !(mode === "account" || mode === "api-key")) return;
+    const at = epoch, number = ++sequence.current;
     const still = () => mounted.current && number === sequence.current && at === seen.current.epoch;
     pending.current = true; setReading(true); setObservation(null); setMessage(null);
     void Promise.resolve().then(() => invoke("read_available_models", { generation: original, modeHomeClass: mode })).then((packet: Json) => {
@@ -129,16 +142,15 @@ export function useBoundModelChoice({ owner, homeClass, generation, ready }: { o
     }).finally(() => { pending.current = false; if (mounted.current) setReading(false); });
   };
   const choose = (row: Json) => {
-    const shown = observation, now = heldRef.current;
-    if (!shown || !current || pending.current || now.epoch !== seen.current.epoch) return;
+    const shown = observation;
+    if (!shown || !live() || pending.current || observationRef.current !== shown || shown.epoch !== epoch || shown.sequence !== sequence.current
+      || heldRef.current !== held || held.epoch !== epoch) return;
     if (!list(shown.packet.models).some((entry: Json) => entry.id === row?.id && entry.model === row?.model)) return;
-    if (modelMatch(shown.packet, now.route.modelProvider, now.route.entryId) === "none") return;
+    if (modelMatch(shown.packet, held.route.modelProvider, held.route.entryId) === "none") return;
     revise({ model: row.model });
   };
-  const bound = () => {
-    const now = heldRef.current;
-    return source.current.ready && now.epoch === seen.current.epoch ? now.route : null;
-  };
+  const bound = () => live() && heldRef.current === held && held.epoch === epoch
+    ? { route: held.route, generation: held.generation, modeHomeClass: held.modeHomeClass } : null;
   return { route, stale: held.epoch !== epoch && chosenAny(held.route), revise, packet: observation?.packet ?? null, current, reading,
     message: message && message.epoch === epoch ? message.text : "", read, choose, bound };
 }

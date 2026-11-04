@@ -155,12 +155,14 @@ export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHom
   const noModel = !choice.model.trim() || !choice.modelProvider.trim();
   const models = chooser ?? fixedModelChoice(choice, route => setChoice({ ...choice, ...route }));
   const startClean = () => {
-    const route = models.bound();
-    if (!route || route.model !== choice.model || route.modelProvider !== choice.modelProvider || route.entryId !== choice.entryId) {
-      setOutcome({ state: "failed", failure: "Not started: the connection and model were chosen for an earlier Codex source. Your inputs are kept; choose again." });
+    const binding = models.bound(), route = binding?.route;
+    if (!binding || !route || route.model !== choice.model || route.modelProvider !== choice.modelProvider || route.entryId !== choice.entryId) {
+      setOutcome({ state: "failed", failure: "Not started: the connection and model you pressed for are no longer the current choice (Codex, the home or the choice changed). Your inputs are kept; choose again." });
       return;
     }
-    pressSend(act, "workflow_trial_start_clean", { reference: pending?.reference, model: route.model, modelProvider: route.modelProvider, entryId: route.entryId, modeHomeClass, role: choice.role === "" ? null : choice.role, personText: message }, setOutcome, result => cleanSentWords(result?.thread?.threadId ?? result?.conversation?.threadId ?? "not named by the host"));
+    // `generation` is the one the choice was made for. The current native
+    // receiver ignores it; a native follow-up will require it at admission.
+    pressSend(act, "workflow_trial_start_clean", { reference: pending?.reference, model: route.model, modelProvider: route.modelProvider, entryId: route.entryId, modeHomeClass: binding.modeHomeClass ?? modeHomeClass, generation: binding.generation, role: choice.role === "" ? null : choice.role, personText: message }, setOutcome, result => cleanSentWords(result?.thread?.threadId ?? result?.conversation?.threadId ?? "not named by the host"));
   };
   return <section id={cleanTrialAnchor(pending?.reference)} aria-label="New trial conversation" style={{ border: "1px solid #888", padding: 8, margin: "8px 0" }}>
     <h3>New trial conversation: trial {text(pending?.sequence)} of draft {text(pending?.draftName)}</h3>
@@ -187,7 +189,7 @@ export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHom
 /** A chooser with no model list, for a view given its choice directly. */
 export function fixedModelChoice(route: ModelRoute, revise: (patch: Partial<ModelRoute>) => void): BoundModelChoice {
   const value = { model: route.model, modelProvider: route.modelProvider, entryId: route.entryId };
-  return { route: value, stale: false, revise, packet: null, current: false, reading: false, message: "", read: () => {}, choose: () => {}, bound: () => value };
+  return { route: value, stale: false, revise, packet: null, current: false, reading: false, message: "", read: () => {}, choose: () => {}, bound: () => ({ route: value, generation: null, modeHomeClass: null }) };
 }
 
 export function CleanTrialPanel({ pending, roleSet, limits, entries, modeHomeClass, generation, busy, ready, act }: { pending: Json; roleSet: Json; limits: Json; entries: { value: string; label: string }[]; modeHomeClass: Json; generation?: Json; busy: boolean; ready: boolean; act: TrialAct }) {
