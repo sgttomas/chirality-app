@@ -31,7 +31,8 @@ async function mount(view) {
   const c = document.createElement('div'); const root = createRoot(c); const calls = []; const offers = [];
   const opened = [];
   const render = () => root.render(React.createElement(MakeWorkflowGuide, {data:view.data, host:view.host, busy:!!view.busy,
-    act:async (command, args) => { calls.push({command, args}); }, offerComposer:(threadKey, text) => offers.push({threadKey, text}), openPreparedMessage:item => opened.push(item)}));
+    act:async (command, args) => { calls.push({command, args}); }, offerComposer:(threadKey, text) => offers.push({threadKey, text}), openPreparedMessage:item => opened.push(item),
+    showConversation:view.navigate ? id => opened.push({shown:id}) : undefined}));
   await React.act(async () => render());
   return {c, calls, offers, opened, rerender:async next => { Object.assign(view, next); await React.act(async () => render()); },
     choose:async value => React.act(async () => props(all(c, 'select')[0]).onChange({target:{value}})),
@@ -188,4 +189,12 @@ test('a listed draft is tried and reviewed with the draft list\'s own commands a
   await ui.press('Read and send trial 1');
   assert.equal(ui.opened.length, 1); assert.equal(ui.opened[0].kind, 'delegated'); assert.equal(ui.opened[0].pending.reference, 'p1');
   assert.equal(ui.calls.length, before, 'opening a prepared trial issues no command and sends nothing');
+});
+
+test('with App navigation, an invalid draft shows its conversation instead of a bare scroll link', async () => {
+  const ui = await mount({navigate:true, host:host(), data:data({drafts:{drafts:[{name:'spacing-check', state:'not valid', findings:['HY-1: no WORKFLOW.md']}]}})});
+  await ui.choose(key('T1')); await ui.name('spacing-check');
+  await ui.press('Show the conversation');
+  assert.deepEqual(ui.opened, [{shown:'T1'}]);
+  assert.deepEqual(ui.calls, []); assert.deepEqual(ui.offers, []);
 });

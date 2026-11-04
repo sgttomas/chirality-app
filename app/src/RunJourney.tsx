@@ -1,4 +1,4 @@
-import { nativePathText } from "./presentation";
+import { conversationLabel, nativePathText } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
 import { chatWorkflow } from "./workflowSelection";
 import { appProjectFolder } from "./WorkflowContext";
@@ -53,9 +53,10 @@ const INPUT_KIND: Record<string, string> = { host_read: "read by Codex from the 
  * studio's detailed controls, through the same `act`, with no new default,
  * selection, registration or filesystem write.
  */
-export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, text: personText, setText, outcome }: {
+export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, text: personText, setText, outcome, showConversation }: {
   data: Json; host: Json; thread: string; chooseThread: (thread: string) => void; act: Act; busy: boolean;
   text: string; setText: (text: string) => void; outcome?: { command: string; message: string } | null;
+  showConversation?: (threadId: string, target?: string) => void;
 }) {
   // The unknown-start acknowledgement names one run; a later run starts unacknowledged.
   const [checkedRun, setCheckedRun] = useState<string | null>(null);
@@ -114,14 +115,15 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
       <li><h3>Conversation</h3>
         {conversations.length ? <label>Conversation to run it in <select value={thread} disabled={!canAct} onChange={event => chooseThread(event.target.value)}>
           <option value="">Choose a conversation</option>
-          {conversations.map((row: Json) => <option key={row.threadId} value={row.threadId}>{row.preview ? `${text(row.preview).slice(0, 48)} · ` : ""}{row.model ?? "model not reported"} · {row.threadId}</option>)}
+          {conversations.map((row: Json) => <option key={row.threadId} value={row.threadId}>{conversationLabel(host, row)}</option>)}
         </select></label> : <p>No conversation in this session yet. <a href="#workspace-start">Start a new conversation</a>, then choose it here.</p>}
+        {thread && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{thread}</code></details>}
         <p><small>The workflow runs inside this conversation; you answer its questions there.</small></p>
       </li>
       <li><h3>Workflow</h3>
         {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {text(chosen.identity?.origin)} library, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : ""}<code title={text(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosen.runnable === true ? "Ready to run." : `Can't run: ${text(chosen.runLimit)}`}</p>}
         {active && registered.length > 0 && <ul aria-label="Workflows ready to use">{registered.map((row: Json) => <li key={`${row.name}@${row.revision}`}>
-          <strong>{text(row.name)}</strong> · revision {text(row.sequence)}{row.selectable === true
+          <strong>{text(row.name)}</strong> · revision {text(row.sequence)}{chosen && chosen.identity?.name === row.name && chosen.identity?.revision === row.revision ? <> — chosen</> : row.selectable === true
             ? <> <button disabled={!canAct || !thread} onClick={() => perform("workflow_select_listed", { libraryRef: active.reference, name: row.name, revision: row.revision })}>Use {text(row.name)}</button></>
             : <> — {text(row.label)}</>}
         </li>)}</ul>}
@@ -137,7 +139,8 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         {bundled.map((entry: Json) => entry.runnable === true
           ? <p key={entry.name}>Included with the App: <strong>{text(entry.name)}</strong>{entry.revision ? <> (<code>{text(entry.revision).slice(0, 12)}…</code>)</> : ""}.{" "}
             <button disabled={!canAct || !thread} onClick={() => perform("workflow_select_production_bundle", { name: entry.name })}>Use {text(entry.name)} (included with the App)</button></p>
-          : <p key={entry.name} role="note">Included with the App: <strong>{text(entry.name)}</strong>. This build can't run it directly: {text(entry.runLimit) || text(data?.productionCatalog?.standing) || "the host reports it as not runnable"}. You can inspect it in the workflow studio.</p>)}
+          : <div key={entry.name} role="note"><p>Included with the App: <strong>{text(entry.name)}</strong>. This build can't run it directly; you can inspect it in the workflow studio.</p>
+            <details><summary>Why</summary><p>{text(entry.runLimit) || text(data?.productionCatalog?.standing) || "The App reports it as not runnable."}</p></details></div>)}
       </li>
       <li><h3>Inputs</h3>
         {inputs.length > 0 ? <ul aria-label="What this workflow needs">{inputs.map((input: Json, index: number) => <li key={index}>
@@ -158,7 +161,9 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
       <li><h3>Progress</h3>
         {reading ? <div className={`run-journey-state run-journey-${reading.tone}`} aria-label="Run progress">
           <p role="status"><strong>{reading.title}.</strong> {reading.detail}</p>
-          {(starts(latest.lifecycle?.state, "open") || reading.tone === "uncertain") && <p><a href="#conversation">Go to the conversation</a></p>}
+          {(starts(latest.lifecycle?.state, "open") || reading.tone === "uncertain") && <p>{showConversation
+            ? <button onClick={() => showConversation(latest.conversation, reading.tone === "waiting" ? "conversation-requests" : "conversation")}>{reading.tone === "waiting" ? "Answer in the conversation" : "Show the conversation"}</button>
+            : <a href="#conversation">Go to the conversation</a>}</p>}
           {finishedOffer && <p aria-label="Agent finished report"><strong>The agent wrote “{text(finishedOffer.finished.statement)}”.</strong> This is the agent's statement.{" "}
             <button disabled={!canAct} onClick={() => perform("workflow_end_run", { runRef: latest.reference, finishedReport: finishedOffer.message })}>End as completed, on the agent's report</button></p>}
           {starts(latest.lifecycle?.state, "open") && <p><button disabled={!canAct} onClick={() => perform("workflow_end_run", { runRef: latest.reference, finishedReport: null })}>End this run</button>{" "}

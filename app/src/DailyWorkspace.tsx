@@ -8,9 +8,33 @@ export function WorkspaceDisclosure({ id, title, description, open, children }: 
   </details>;
 }
 
-/** Reveal an existing target; it changes no source, choice or host state. */
+/** Task views. Every view stays mounted; an inactive view is only hidden. */
+export const WORKSPACE_VIEWS = [
+  { id: "run", label: "Run a workflow", target: "view-run" },
+  { id: "make", label: "Make a workflow", target: "view-make" },
+  { id: "conversation", label: "Conversation", target: "conversation" },
+  { id: "history", label: "History", target: "workspace-history" },
+  { id: "settings", label: "Settings & tools", target: "workspace-tools" },
+] as const;
+let activateView: ((view: string) => void) | null = null;
+/** The App registers how a reveal shows the view that holds its target. */
+export function registerWorkspaceViews(activate: (view: string) => void): () => void {
+  activateView = activate;
+  return () => { if (activateView === activate) activateView = null; };
+}
+function viewOf(target: HTMLElement | null): string | null {
+  for (let node: HTMLElement | null = target; node; node = node.parentNode as HTMLElement | null) {
+    const view = node.getAttribute?.("data-workspace-view");
+    if (view) return view;
+  }
+  return null;
+}
+/** Reveal an existing target; it changes no source, choice or host state.
+ * A target in another task view first makes that view visible. */
 export function revealWorkspaceTarget(id: string, focus = false): void {
   const target = document.getElementById(id);
+  const view = viewOf(target);
+  if (view && activateView) activateView(view);
   for (let node: HTMLElement | null = target; node; node = node.parentNode as HTMLElement | null) {
     if (node.tagName === "DETAILS") (node as HTMLDetailsElement).open = true;
   }
@@ -25,7 +49,7 @@ export function revealWorkspaceTarget(id: string, focus = false): void {
   }
   target?.scrollIntoView?.({ block: "start" });
 }
-const targets = new Set(["run-workflow", "make-workflow", "workflow-drafts", "desktop-setup", "workflow-reviews", "conversation", "workflow-studio", "workspace-start", "workspace-connection", "workspace-tools", "workspace-history", "file-acts", "other-requests"]);
+const targets = new Set(["view-run", "view-make", "run-workflow", "make-workflow", "workflow-drafts", "desktop-setup", "workflow-reviews", "conversation", "workflow-studio", "workspace-start", "workspace-connection", "workspace-tools", "workspace-history", "file-acts", "other-requests"]);
 function revealLink(event: MouseEvent<HTMLElement>): void {
   for (let node = event.target as HTMLElement | null; node && node !== event.currentTarget; node = node.parentNode as HTMLElement | null) {
     const href = node.tagName === "A" ? node.getAttribute("href") : null;
@@ -82,11 +106,17 @@ export function DailyWorkspace({ children }: { children: ReactNode }) {
       .workspace-connection-status span { color:var(--ink-soft); }
       .workspace-heading { display:flex; align-items:center; gap:16px; justify-content:space-between; margin-bottom:16px; }
       .workspace-heading p { color:var(--workspace-muted); margin:0; font-size:.88rem; }
-      .workspace-nav { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:8px 20px; padding:10px 0; background:var(--ground); border-bottom:1px solid var(--workspace-line); margin-bottom:18px; font-size:.9rem; }
+      .workspace-nav { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:6px 6px; padding:10px 0; background:var(--ground); border-bottom:1px solid var(--workspace-line); margin-bottom:18px; font-size:.95rem; }
+      .workspace-nav a { text-decoration:none; color:var(--ink); padding:6px 12px; border-radius:6px; border:1px solid transparent; }
+      .workspace-nav a:hover { border-color:var(--rule-strong); }
+      .workspace-nav a[aria-current="page"] { background:var(--cta); color:var(--cta-ink); }
+      .workspace-view { min-width:0; }
+      .workspace-view-narrow { max-width:980px; }
+      .workspace-advanced { margin-top:24px; }
       .workspace-start-fields>* { min-width:0; max-width:100%; }
       .workspace-start-fields h3 { margin:16px 0 6px; font-family:var(--font-display); }
       .workspace-start-fields [aria-label="Available models"] li { margin:8px 0; }
-      .workspace-primary { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
+      .workspace-primary { display:block; }
       .workspace-primary-column { min-width:0; padding:18px; border-top:1px solid var(--workspace-line); background:var(--surface); }
       .workspace-primary-column>section { min-width:0; }
       .workspace-primary-column [aria-label="Workflow working context"] { background:var(--surface); border-left:3px solid var(--accent); padding:10px 12px; margin:12px 0; font-size:.85rem; }
@@ -121,6 +151,19 @@ export function DailyWorkspace({ children }: { children: ReactNode }) {
       .setup-guidance { color:var(--ink-soft); }
       .setup-state { border-left:3px solid var(--accent); padding:4px 16px; margin:14px 0; }
       .setup-effects { background:var(--surface); padding:16px; margin:16px 0; border:1px solid var(--rule-strong); }
+      .first-use { max-width:760px; margin:24px auto 48px; }
+      .first-use h1 { font-size:2rem; margin-bottom:8px; }
+      .first-use-lead { color:var(--ink-soft); font-size:1.02rem; }
+      .first-use-steps { padding-left:22px; }
+      .first-use-steps>li { border-top:1px solid var(--rule); padding:14px 0 18px; }
+      .first-use-steps h2 { margin:0 0 6px; }
+      .first-use-routes { border:0; padding:0; margin:8px 0; }
+      .first-use-routes label { display:block; margin:10px 0; }
+      .first-use-routes .visually-plain { padding:0; font-weight:400; color:var(--ink-soft); }
+      .first-use-saved { border-left:3px solid var(--cta); padding:6px 16px; margin:18px 0; }
+      .first-use-path { font-family:var(--font-code); font-size:.82rem; color:var(--ink-soft); overflow-wrap:anywhere; }
+      .first-use [aria-label="Your existing Codex settings"] input { width:min(100%, 30rem); }
+      .first-use [aria-label="Your existing Codex settings"] label { display:inline-flex; flex-wrap:wrap; gap:4px 8px; align-items:center; max-width:100%; }
       .setup-explainer { margin:14px 0; }
       .setup-explainer li { margin:6px 0; }
       .run-journey { border-top:3px solid var(--accent); padding-top:14px; }
@@ -136,7 +179,7 @@ export function DailyWorkspace({ children }: { children: ReactNode }) {
       .run-journey-done { border-left-color:var(--cta); }
       .setup-diagnostics { margin-top:20px; color:var(--ink-soft); font-size:.88rem; }
       @media (max-width:720px) { .setup-steps { grid-template-columns:minmax(0,1fr); gap:0; } }
-      @media (max-width:1000px) { .workspace-primary { grid-template-columns:minmax(0,1fr); } .workspace-heading { align-items:start; flex-direction:column; gap:3px; } }
+      @media (max-width:1000px) { .workspace-heading { align-items:start; flex-direction:column; gap:3px; } }
       @media (max-width:560px) { .daily-workspace { --workspace-reveal-gap:116px; } .workspace-primary-column { padding:12px; } .workspace-disclosure>summary span { display:block; margin:3px 0 0 17px; } .workspace-nav { gap:6px 14px; font-size:.82rem; } }
     `}</style>
     {children}

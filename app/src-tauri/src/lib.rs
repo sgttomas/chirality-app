@@ -652,6 +652,15 @@ fn desktop_setup_preview(state: State<'_, AppState>, shared_paths: [Value; 3], p
     let result = controller.try_lock().map_err(|_|"Desktop setup busy; retry explicitly")?.preview([config?, agents?, skills?], project_path.map(desktop_startup::explicit_path).transpose()?, &supplier_selection);
     result
 }
+/// First-use setup with new App-owned settings: plan only; the confirmed
+/// `desktop_setup_prepare` creates the settings, home and links.
+#[tauri::command(async)]
+fn desktop_setup_new_settings_preview(state: State<'_, AppState>, project_path: Option<Value>) -> Result<Value, String> {
+    let controller = desktop_controller(&state)?;
+    let result = controller.try_lock().map_err(|_|"Desktop setup busy; retry explicitly")?
+        .preview_new_settings(project_path.map(desktop_startup::explicit_path).transpose()?);
+    result
+}
 #[tauri::command(async)]
 fn desktop_setup_project_preview(state: State<'_, AppState>, project_path: Option<Value>) -> Result<Value, String> {
     let controller = desktop_controller(&state)?;
@@ -2791,7 +2800,7 @@ pub fn run() {
         // DEF-1: closing or reloading a window is not a stop (HOSTING §4.5); no window
         // event touches the child.
         .invoke_handler(tauri::generate_handler![
-            desktop_setup_pick, desktop_setup_preview, desktop_setup_project_preview, desktop_setup_prepare,
+            desktop_setup_pick, desktop_setup_preview, desktop_setup_new_settings_preview, desktop_setup_project_preview, desktop_setup_prepare,
             file_act_select, file_act_open_arrival, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read, file_act_observe_lapses, file_act_retry_lapses,
             read_recovery_custody,
             read_recovery_request_history,
