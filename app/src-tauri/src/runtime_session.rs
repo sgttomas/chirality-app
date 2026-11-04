@@ -4652,7 +4652,14 @@ impl WorkflowRootSession {
             "inspection":self.inspected.as_ref().map(|s|self.selection_view(s)),
             "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root,"reconciliation":l.owner.try_lock().map(|o|json!(o.reconciliation())).unwrap_or(Value::Null),"registered":l.owner.try_lock().map(|o|o.registered_listing()).unwrap_or(Value::Null),"registrationEvidence":l.owner.try_lock().map(|o|o.registration_evidence()).unwrap_or(Value::Null),"entryListing":self.library_entries.get(&l.reference).map(|entries|entries.view()).unwrap_or_else(||json!({"state":"not observed","entries":[],"limits":[],"standing":"Refresh library entries to observe this library"}))})).collect::<Vec<_>>(),"activeLibrary":self.active_library,"activeReview":self.active_review,
             "reviews":self.reviews.iter().map(|(id,review)|match review.try_lock(){Ok(review)=>json!({"reference":id,"status":review.status}),Err(_)=>json!({"reference":id,"state":"original native review interaction pending"})}).collect::<Vec<_>>(),
-            "runs":self.runs.iter().map(|(id,run)|match run.try_lock(){Ok(run)=>self.after_run_end.decorate(id,run.view(id)),Err(_)=>json!({"reference":id,"state":"original run operation pending"})}).collect::<Vec<_>>(),
+            "runs":self.runs.iter().map(|(id,run)|{
+                let (mut row,scope)=match run.try_lock(){
+                    Ok(run)=>{let scope=run.prepared().scope();(self.after_run_end.decorate(id,run.view(id)),Some((scope.home.clone(),scope.conversation.clone())))},
+                    Err(_)=>(json!({"reference":id,"state":"original run operation pending"}),None),
+                };
+                row["preparationOrder"]=self.preparation_order(id,scope.as_ref().map(|(h,c)|(h.as_str(),c.as_str())));
+                row
+            }).collect::<Vec<_>>(),
             "afterRunEnd":self.after_run_end.view(),
             "reopened":self.reopened,
             "restartLimits":self.restart_limits,
@@ -5526,6 +5533,25 @@ impl WorkflowRootSession {
             .iter()
             .find(|(b, a)| conversation.contains(b) || conversation.contains(a))
             .map(|(b, a)| held_step_reason(a, b))
+    }
+    /// Display metadata only: `reference`'s 0-based position among the runs
+    /// prepared by this Root in one (home, conversation), in preparation order
+    /// (the maintained `conversations` vector). It is not a time and is not
+    /// comparable across conversations, homes or App processes; it grants
+    /// nothing. Null unless exactly one vector holds the reference once and,
+    /// when the run's own scope is readable, that vector is its scope's.
+    fn preparation_order(&self, reference: &str, scope: Option<(&str, &str)>) -> Value {
+        let mut holders = self.conversations.iter().filter(|(_, references)| references.iter().any(|r| r == reference));
+        let (Some((key, references)), None) = (holders.next(), holders.next()) else {
+            return Value::Null;
+        };
+        if references.iter().filter(|r| r.as_str() == reference).count() != 1 {
+            return Value::Null;
+        }
+        if scope.is_some_and(|(home, conversation)| key.0 != home || key.1 != conversation) {
+            return Value::Null;
+        }
+        references.iter().position(|r| r == reference).map_or(Value::Null, |position| json!(position))
     }
     /// All runs prepared in this process in the conversation of `run`.
     fn conversation_of(&self, run: &str) -> Vec<String> {
@@ -8017,6 +8043,7 @@ mod workflow_root_tests {
     mod proposal_disclosure_tests { use super::*; include!("workflow_proposal_disclosure_tests.rs"); }
     mod selected_chain_disclosure_tests { use super::*; include!("workflow_selected_chain_disclosure_tests.rs"); }
     mod action_result_tests { use super::*; include!("workflow_action_result_tests.rs"); }
+    mod run_preparation_order_tests { use super::*; include!("run_preparation_order_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })
