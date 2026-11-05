@@ -76,6 +76,10 @@ class FakeIO:
         self.events.append('original-main')
         return 'main-original'
 
+    def startup_facts(self):
+        return {'root_count': 1, 'self_reference_count': 0, 'match_count': 1,
+                'transient_return_category': 'ready'}
+
     def same(self, a, b):
         return a == b
 
@@ -863,3 +867,161 @@ class ReceiptIdentityIsolationTests(unittest.TestCase):
         self.assertEqual(sessions[0].identity, original)
         self.assertEqual(result['original'], original)
         self.assertTrue(result['original_absent'])
+
+
+class StartupGateTests(unittest.TestCase):
+    def fixture(self, arrive_at=6, failure=None):
+        now = [0.0]; io = FakeIO(now); observations = []
+        facts = {'root_count': None, 'self_reference_count': None, 'match_count': None,
+                 'transient_return_category': 'refused'}
+        def original_main(subject, deadline):
+            observations.append(now[0])
+            if failure == 'wrong-window':
+                raise Refusal('actual initial main title differs')
+            if failure == 'identity':
+                io.wrong = True
+                raise Refusal('original birth changed')
+            if failure == 'cutoff':
+                now[0] = 110
+            if failure == 'slow':
+                now[0] = 21
+            if now[0] < arrive_at:
+                facts.update(root_count=0, self_reference_count=0, match_count=0,
+                             transient_return_category='empty')
+                raise NotReady('initial main not exposed', category='empty')
+            facts.update(root_count=1, self_reference_count=0, match_count=1,
+                         transient_return_category='ready')
+            return 'main-original'
+        io.original_main = original_main
+        io.startup_facts = lambda: dict(facts)
+        records = []
+        runner = StageA(S, io, clock=lambda: now[0], sleep=lambda n: now.__setitem__(0, now[0] + n),
+                        record=lambda k, v: records.append((k, v)))
+        return runner, io, now, records, observations
+
+    def test_main_after_old_three_seconds_gets_its_own_gate_then_unchanged_content_budget(self):
+        runner, io, now, records, observations = self.fixture(arrive_at=6)
+        result = runner.run()
+        self.assertTrue(result['setup_saved'])
+        self.assertEqual(observations, [0, 2, 4, 6])
+        startup = [v for k, v in records if k == 'startup-window-read']
+        content = [v for k, v in records if k == 'content-read']
+        self.assertEqual(startup[-1]['elapsed'], 6)
+        self.assertGreaterEqual(content[0]['at'], 6)
+        self.assertLessEqual(len(content), 3)
+        self.assertLessEqual(content[-1]['at'] - content[0]['at'], 5)
+        self.assertEqual(io.events.count('press:Choose project folder…'), 1)
+        self.assertEqual(io.events.count('terminate-original'), 1)
+        self.assertEqual(runner.main, 'main-original')
+
+    def test_never_arriving_main_exhausts_only_ten_readonly_samples_and_cleans_up(self):
+        runner, io, now, records, observations = self.fixture(arrive_at=1000)
+        result = runner.run()
+        self.assertEqual(len(observations), 10)
+        self.assertLessEqual(result['cleanup_started'], 20)
+        self.assertFalse(any(k == 'content-read' for k, v in records))
+        self.assertFalse(any(x.startswith('press:') or x == 'enter-exact-path' for x in io.events))
+        self.assertEqual(io.events.count('terminate-original'), 1)
+        self.assertTrue(result['original_absent'])
+        self.assertFalse(result['setup_saved'])
+
+    def test_wrong_window_or_identity_does_not_spend_waits_or_issue_setup_input(self):
+        for failure in ('wrong-window', 'identity'):
+            with self.subTest(failure=failure):
+                runner, io, now, records, observations = self.fixture(failure=failure)
+                result = runner.run()
+                self.assertEqual(observations, [0])
+                self.assertEqual(result['cleanup_started'], 0)
+                self.assertFalse(any(x.startswith('press:') for x in io.events))
+                self.assertFalse(any(k == 'content-read' for k, v in records))
+                if failure == 'identity':
+                    self.assertNotIn('terminate-original', io.events)
+                    self.assertTrue(result['slot_must_remain_held'])
+
+    def test_late_or_work_cutoff_sample_never_promotes_main_and_starts_prebound_cleanup(self):
+        for failure, expected in (('slow', 21), ('cutoff', 110)):
+            with self.subTest(failure=failure):
+                runner, io, now, records, observations = self.fixture(arrive_at=0, failure=failure)
+                result = runner.run()
+                self.assertEqual(result['cleanup_started'], expected)
+                self.assertTrue(result['cleanup_within_reserved_interval'])
+                self.assertFalse(any(k == 'content-read' for k, v in records))
+                self.assertEqual(io.events.count('terminate-original'), 1)
+                self.assertFalse(result['setup_saved'])
+
+    def test_startup_receipts_contain_only_counts_category_elapsed_and_original_pid(self):
+        runner, io, now, records, observations = self.fixture(arrive_at=4)
+        runner.run()
+        receipts = [v for k, v in records if k == 'startup-window-read']
+        expected = {'pid', 'observation', 'elapsed', 'root_count', 'self_reference_count',
+                    'match_count', 'transient_return_category'}
+        self.assertTrue(receipts)
+        for value in receipts:
+            self.assertEqual(set(value), expected)
+            self.assertEqual(value['pid'], 17)
+            self.assertNotIn('title', value)
+            self.assertNotIn('text', value)
+
+    def test_bound_main_is_not_discovered_again_when_content_is_not_ready(self):
+        runner, io, now, records, observations = self.fixture(arrive_at=0)
+        io.failure = 'missing-main'  # fake content branch unavailable after capture
+        result = runner.run()
+        self.assertEqual(observations, [0])
+        self.assertEqual(runner.main, 'main-original')
+        self.assertEqual(io.calls, 3)
+        self.assertFalse(result['setup_saved'])
+
+
+class NativeStartupFactTests(unittest.TestCase):
+    def fixture(self, roots, titles=None, owners=None, transient=None):
+        titles = titles or {'main': 'Chirality', 'replacement': 'Chirality', 'wrong': 'Unexpected private title'}
+        owners = owners or {}
+        reads = []
+        class Backend:
+            def owner(self, ref): return 0, owners.get(ref, 17)
+            def equal(self, a, b): return a == b
+            def attribute(self, ref, name):
+                reads.append((ref, name))
+                if transient is not None and name == transient[0]:
+                    return {'return_code': transient[1], 'type': {'name': 'null'}, 'value': None}, []
+                if name == 'AXWindows':
+                    return {'return_code': 0, 'type': {'name': 'CFArray'}, 'value': None}, roots
+                text = 'AXApplication' if ref == 'app' else 'AXWindow'
+                value = text if name == 'AXRole' else titles.get(ref)
+                return {'return_code': 0, 'type': {'name': 'CFString'}, 'value': value}, []
+        ax = NativeAX.__new__(NativeAX); ax.b = Backend(); ax.pid = 17; ax.app = 'app'; ax.main = None
+        ax.check = lambda: None
+        return ax, reads
+
+    def test_empty_self_only_and_transient_samples_preserve_unknown_vs_zero_counts(self):
+        for roots, category in (([], 'empty'), (['app', 'app'], 'self_only')):
+            ax, reads = self.fixture(roots)
+            with self.assertRaises(NotReady): ax.initial_main('Chirality')
+            self.assertEqual(ax.initial_facts, {'root_count': len(roots), 'self_reference_count': len(roots),
+                                               'match_count': 0, 'transient_return_category': category})
+            self.assertIsNone(ax.main)
+        for code, category in ((-25204, 'cannot_complete'), (-25212, 'no_value')):
+            ax, reads = self.fixture([], transient=('AXWindows', code))
+            with self.assertRaises(NotReady): ax.initial_main('Chirality')
+            self.assertEqual(ax.initial_facts, {'root_count': None, 'self_reference_count': None,
+                                               'match_count': None, 'transient_return_category': category})
+
+    def test_foreign_owner_wrong_title_or_extra_window_refuses_immediately_without_raw_receipts(self):
+        for roots, owners in ((['foreign'], {'foreign': 99}), (['wrong'], {}), (['main', 'replacement'], {})):
+            ax, reads = self.fixture(roots, owners=owners)
+            with self.assertRaises(Refusal): ax.initial_main('Chirality')
+            self.assertEqual(ax.initial_facts['transient_return_category'], 'refused')
+            self.assertIsNone(ax.main)
+            self.assertNotIn('Unexpected private title', repr(ax.initial_facts))
+            if owners:
+                self.assertNotIn(('foreign', 'AXRole'), reads)
+                self.assertNotIn(('foreign', 'AXTitle'), reads)
+
+    def test_unique_main_is_captured_once_and_replacement_is_not_adopted(self):
+        roots = ['main']; ax, reads = self.fixture(roots)
+        self.assertEqual(ax.initial_main('Chirality'), 'main')
+        self.assertEqual(ax.initial_facts, {'root_count': 1, 'self_reference_count': 0,
+                                           'match_count': 1, 'transient_return_category': 'ready'})
+        roots[:] = ['replacement']
+        with self.assertRaises(Refusal): ax.initial_main('Chirality')
+        self.assertEqual(ax.main, 'main')

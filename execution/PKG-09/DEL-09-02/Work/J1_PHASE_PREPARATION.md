@@ -1,8 +1,10 @@
 # Offline J1 Stage A phase-aware controller preparation
 
-This is the selected preparation after the two actual observations recorded in
-J1_AGENT_FIRST_USE_20261105.md. The new source has not operated an App. All executed
-controller/helper bytes and receipts remain at their original private paths.
+This began as the selected preparation after the first two actual observations.
+The repaired integrated v3 and separately selected frozen PR136 v4 have since
+each operated one App instance, with zero setup input; see attempts3/4 in
+[the actual account](J1_AGENT_FIRST_USE_20261105.md). All executed controller/helper
+bytes and receipts remain at their original private paths and identities.
 No product source, native confirmation, credential policy, frontend coordination
 paragraph or packaged candidate is changed. The retained product source remains
 eaf5d057; implementation changes in this preparation belong to the test controller.
@@ -14,7 +16,9 @@ import and has no automatic native CLI. A future reviewed runner calls
 run_prepared with the exact reviewed Subject/preflight and the included private_journal evidence
 writer under ordinary t3_slot admission. It uses exclusive0600 records with
 file/directory fsync, including repeated phase observations in sequence. It is not an IPC/control endpoint or a
-shared automation framework. No native launch is selected by this PR.
+shared automation framework. Source preparation alone selects no native launch;
+Agent0's subsequent exact-version selections and their limits are recorded in
+the actual account.
 
 Original binding is full kernel PID/parent/UID/realUID/birth/executable plus PGID
 and executable SHA256, preserved throughout. Subject bundle/development ID/data
@@ -204,3 +208,38 @@ so the maintained native CI cohort runs these cases without a workflow change.
 That original filename/Work-reference adjustment did not change controller or
 test bytes. The later v3 repair does; the frozen v2 export and FINAL_HEAD mapping
 remain historical inputs, not a receipt for the repaired bytes.
+
+
+## v4 correction: initial-main discovery precedes WebKit content readiness
+
+After the exact merged b1f0317a method was used once (PID96500, attempt account
+above), Agent0 selected this bounded OFFLINE correction. v3 consumed its3
+content-read attempts while initial_main still refused; only the final message,
+not actual root counts, was retained. It cannot establish a permanent absence
+or timing/permission cause. No new native run is performed here.
+
+StageA.startup now samples initial main at most10 times within20s, clipped to
+work_end. It records safe counts/category/elapsed/original PID and only waits
+for empty, self-only, AX cannot-complete or no-value states. Extra windows,
+wrong owner/identity/title and actual unexpected structures remain immediate
+refusals. NativeAX captures one unique original main and refuses replacement.
+NativeSession reuses the same original AX application reader during discovery;
+content ready() no longer calls original_main. Only after capture does the
+unchanged3-read/5s content window begin. Overall180s/work cutoff110s and prebound
+normal termination remain unchanged; these are cooperative budgets.
+
+No activation/focus/control workaround or broad discovery/logging was added.
+Startup counts remain null when unavailable. Unknown/malformed fact shapes
+refuse. This small test-readiness correction leaves authentic reviewed manifest
+checks, normal termination, setup/native confirmation/input provenance and
+original-birth-aware finalization unchanged. Agent0 will inspect the exact diff
+and choose any next live operation; no additional review delegate is created.
+
+Agent0 subsequently directly inspected and selected frozen PR136 headf9059685
+for one pre-merge development attempt. Nine retained startup samples over
+0.233–18.052s each recorded root1/self1/match0/self_only; no original main or
+WebKit content phase was admitted and no setup input occurred. Prebound normal
+termination and observed original-process absence closed that instance in
+20.713761s with no overrun. This does not identify the self-reference's cause or
+qualify setup/path entry/recovery. The method stayed immutable through cleanup;
+only its actual account and narrow coordination text are added afterward.

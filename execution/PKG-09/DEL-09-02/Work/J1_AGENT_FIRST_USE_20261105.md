@@ -1,4 +1,4 @@
-# J1 Stage A: two agent-operated development attempts and offline preparation
+# J1 Stage A: agent-operated development attempts and method account
 
 The owner superseded the manual-first-use plan with agent-operated development
 checks. This observation uses the App already launched by Agent0 at
@@ -225,3 +225,278 @@ The maintained mocked suite grows to43 cases. Details and the remaining
 cooperative-timing/unobserved-native-path limits are in J1_PHASE_PREPARATION.md.
 No new App/supplier launch, model/auth, native input or candidate change occurred.
 The two actual attempt outcomes and all their original bytes above are unchanged.
+
+
+## Attempt 3: exact merged repaired run_prepared, PID96500
+
+Agent0 selected one actual agent-operated Stage A attempt only after #135's
+review repairs/CI/integration. The manager normally fast-forwarded its clean
+branch to main9713584813c72f9011a01fcf5a09a147d60c12ac. Controller/test/owning
+Work bytes matched checked headb1f0317a61e94d3db6f51a8112b8d2a92cbfc975 and
+FINAL_REPAIR_HEAD.json; the pinned identity/AX reader matched that commit too.
+No completed tests or reviews were rerun and no live controller was patched.
+The earlier frozen v2 exports were not used. The historical independent reports
+remain changes-requested at their actual subjects; repaired integration does
+not relabel those reviews as clean.
+
+Controller SHA256:
+506583d51f323af916051b66cd8444cdf26e00fe0224075d728eef100d6195b0.
+Test SHA256:
+dba854599b1bea228171a629c58c86d5fc6b781769aa39c29da5c398dae29674.
+Reader SHA256:
+fd37834b301f138963cdfe76f8bf3a146aea373b99ab2c994546ff73c939af19.
+The AUTHENTIC preflight-corrected.json SHA256 was verified before use:
+56116108ab21e1499d0e4c6f53381449f970232c3bcf7972e8b8bd94d45ee6fa.
+Its existing dictionary was passed unchanged into run_prepared, with its reviewed
+packet member checks and exact invented session/project. No replacement receipt.
+
+Only a small entry.py and private evidence journal were prepared. Entry SHA256:
+fe87a0bef96ca1d5179381b59edabc302e6608265a6abf4cc21b11bc94bdf27e.
+Evidence root:app-j1-stage-a-_i48c648/merged-phase-attempt-mt9agg67 in shared
+scratch. The entry directly calls the exact merged inert module's run_prepared;
+no subclassing, patched IO, private DOM/IPC, fabricated picker result or
+confirmation was used. Runner Codex/temp homes were fresh scratch. The App used
+the same approved /usr/bin/open -n LaunchServices route without App --env or
+HOME/CODEX_HOME overrides; actual App environment values were not inspected.
+
+Under ordinary slot2, START20:48:52UTC runner96494, admission verified executable,
+reviewed packet/project, actual state and route-key absence. AppData/request were
+absent; WebKit/Caches/Preferences present were preserved. One open-n launched
+original PID/PGID96500, UID/realUID501, parent1, birth1793911732.795193
+(20:48:52.795193UTC), exact retained eaf5d057 executable/hash. Admission and new
+identity were relayed immediately to Agent0. Cleanup's original process/AppKit
+correspondence was bound before attempting AX setup.
+
+Actual outcome: **FAILED before setup input**. The exact result is
+`Refusal('bounded content readiness unavailable: initial main not exposed')`.
+No content-read receipt was emitted: the initial main guard did not admit a
+window before the bounded readiness attempt ended. The merged source returns
+that message for empty or application-self-only initial roots; no per-root raw
+observations/counts were retained here, so the result does not distinguish
+those representations or prove that no native window existed/painted. It does
+not repeat attempt2's observed7→57 content result and does not establish an
+App, permission, OS or timing cause. No additional live query or retry followed.
+
+Actions is an empty list. No picker press/path entry/selection, new-settings
+press, write preview, native question, confirmation or save occurred. There was
+no unknown UI dispatch. Conditional native picker path entry remains unobserved.
+No activation, global input, coordinates, screenshots, unrelated discovery,
+auth files, supplier/model/account RPC/network or Stage B was used. Scoped
+supplier checks recorded no unexpected startup; that is not full settlement
+proof. Owner welcome visibility from attempt1 is not attributed to this launch.
+
+Prebound cleanup ran without a parent round trip at3.099636709s, within the
+reserved interval. One normal NSRunningApplication terminate() BOOL returned
+true; actual original-process absence was separately observed. The controller
+reported3.494197584s elapsed/0 overrun, and run_prepared's detached final closure
+reported3.499310792s/0 overrun, initial_held=false, slot_must_remain_held=false,
+no evidence errors and no unknown launch outcome. Wrapper END20:48:56UTC rc1
+followed closure. The slot was held continuously from before launch through
+actual original absence. The driver/session87467 returned1 because setup failed;
+that is not the App's exit code.
+
+The manager corroborated PID96500 and runner96494 absent at20:49:33.738335UTC
+(exact ps returned1 with no rows), retaining START/END lines and the observation
+in closure-corroboration.json. Agent0 received the actual closure immediately
+for its independent check/SWB relay. LaunchServices owns the App: exit status
+and Child wait/reap are unavailable. Autonomous normal termination is native
+cleanup evidence for this exact instance, not App-menu Quit, setup success,
+recovery qualification or an all-conditions closure guarantee. The configured
+180/110s limits remain cooperative; no clean bound beyond this actual3.5s run
+is inferred.
+
+Post-state presence check at20:50:30.595117UTC found AppData and pending request
+still absent; reviewed project BRIEF/CSV hashes still match. No state reset or
+opaque/auth contents read. Prior observations, signed subjects, packet and all
+executed controllers/helpers/results stay unchanged. J1/J2, actual setup/save,
+useful-model work and native/publication qualification remain open. No source
+fix is demonstrated by the initial-main refusal alone; Agent0 owns next method
+selection, and no automatic relaunch or owner-operated fallback is selected.
+
+Exact private receipts in merged-phase-attempt-mt9agg67:
+- entry-preparation.json: merged/reviewed/hash/input checks;
+- events/001-admitted through010-entry-return: actual method journal;
+- closure-corroboration.json and post-state.json: manager observations;
+- RESULT.json SHA256:
+  f4bbb6e28eab17ce5a7b4be1c9f296db166b3c74670a2be8adaff6ef23369822;
+- events/010-entry-return.json SHA256:
+  2d6de04aff6cb87ffb2ee2cbdfd8726bb2be581011e70396ea4781a43c338cf0;
+- events/009-final-closure.json SHA256:
+  ecbc007d0753cf597ff41ec850bb9844304b3b86514a1feafff8524bcc029ca5;
+- SHA256SUMS file SHA256:
+  5a34352282ba3ca59cc4df18a109f765b54656038fea43de9d545b7d28262dcf.
+
+This outcome account updates only the narrow native/result portions of
+CURRENT_EXECUTION_BASIS and PUBLICATION_PUNCHLIST under Agent0's assignment.
+The integrated frontend coordination paragraphs and product/controller source
+are untouched. Existing dependency/acceptance conditions remain open; this is
+new scoped evidence under the existing DEL09-02 commitments, not a change to
+ScopeOfWork or deliverable dependency meaning.
+
+
+## Offline correction after attempt 3: separate initial main and WebKit budgets
+
+Agent0 selected a small read-only test-readiness correction, not another live
+operation. The integrated b1f0317a method's ready() tried original_main inside
+the same3-observation/5s content budget. The actual selected run ended around
+3.1s before admitting a main, and retained only the final NotReady message and
+cleanup/result/closure facts. There are no historical startup root/self/match
+counts or per-sample categories to recover from that run. Its source implies
+empty or self-only roots at the last NotReady path; that is not a new raw
+observation, permanent absence, permission/timing cause or App exoneration.
+
+The new controller v4 adds initial-main discovery before content readiness:
+up to20s/at most10 observations (2s nominal spacing), always clipped to the same
+110s work cutoff. Only empty, self-only and existing AX cannot-complete/no-value
+NotReady categories wait. Wrong owner/full original identity, wrong actual
+window title, unexpected extra/unrelated windows and unknown shapes refuse
+immediately. The unique original main is captured once; later content/phase
+operations never rediscover or substitute it. The existing max3 content reads/
+max5s budget then starts separately. No activation, focus/attribute writes,
+keys, coordinates, capture, private IPC or new control input is introduced by
+this correction.
+
+Startup-window-read receipts are limited to original PID, observation index,
+elapsed time, root count, application-self count, exact-main match count and a
+fixed return category. Counts are null when the call did not provide them,
+not fabricated zeroes. Categories are ready, empty, self_only, cannot_complete,
+no_value or refused; no arbitrary titles/text, windows/menu dump, folder/sidebar/
+Recent Items or other-app data is logged. Native owner checks still precede
+content reads and full identity checks bracket even NotReady samples. Receipt
+callbacks receive count primitives, not the retained main/identity object.
+
+54 focused mocked cases pass (the previous45 plus9 readiness cases). New cases
+exercise a main arriving at6s, ten empty samples with no input, late samples,
+wrong identity/window, cutoff cleanup at110s, native empty/self/transient count
+categories, unknown vs zero counts, wrong-owner no-content reads and rejecting
+a replacement main after capture. Content's independent budget and no-input-
+before-main/WebArea behavior are checked. Slow OS calls remain cooperative;
+no all-conditions timing or closure guarantee is claimed. Cleanup/normal
+termination, authentic caller receipt, setup/confirmation provenance and slot
+custody code are unchanged; no broad suite/build or native attempt is run.
+
+The same isolated outcome PR carries this small source/test correction and the
+narrow execution-basis/punchlist account from main97135848. Agent0 inspects the
+concrete diff and owns integration and the next live-method selection. This
+preparation tests a delayed-start hypothesis; it does not assert its cause or
+select another launch. Historical attempts, reviews and frozen sources remain
+at their actual identities. No new delegate or owner test task was created.
+
+## Attempt 4: selected frozen PR136 startup method, PID7521
+
+After directly inspecting exact head
+f905968517d8705992411cc05b977e8f6df6be6d and its54-pass mocked log, Agent0
+selected one pre-merge development attempt while hosted CI continued. This was
+the frozen PR136 method, **not integrated main**. Product source remained
+eaf5d057afb82c28a928a5e347ad5749dd5adc96 and executable SHA256 remained
+b98a30fe2dccba062e35a0c02896b67c4441f2b987016f091ea41e6f56caf4fc.
+No build, product change, live patch or automatic retry occurred.
+
+The private source copies matched the selected commit before entry and after
+closure. Controller SHA256:
+4d9b6f22f756e6604bbb97e19d66cebf5f4761987bc0b322fe8e5bb1058a3940;
+test SHA256:
+81456fbe2537e3312fded909628b136175a00efd93b4308ef82dfd0029f3c62a;
+reader SHA256:
+fd37834b301f138963cdfe76f8bf3a146aea373b99ab2c994546ff73c939af19.
+The authentic original preflight receipt SHA256 was still
+56116108ab21e1499d0e4c6f53381449f970232c3bcf7972e8b8bd94d45ee6fa.
+Its dictionary, reviewed manifest sets and exact invented packet/session/project
+were used unchanged. No replacement receipt or fabricated picker/confirmation.
+
+Evidence root:
+/Users/ryan/dev/chirality-t3/scratch/app-j1-stage-a-_i48c648/pr136-frozen-attempt-pj71zakq.
+The small retained entry.py (SHA256
+b6c8317036cbc50278cfc958272a2b57d6f2dba5bda26d1e1ae292d37c9e2061)
+called the frozen inert module's run_prepared with private_journal. Fresh scratch
+Codex/temp homes applied to the runner only. The App used the unchanged approved
+LaunchServices open-n route, without injected HOME/CODEX_HOME or App environment
+overrides. Admission rechecked executable/packet/project hashes, AppData absence,
+actual development state and route-variable absence; caches/preferences were
+preserved, not erased to manufacture freshness.
+
+Ordinary slot2 START21:08:21UTC, runner7515, preceded the one launch. Admission
+was reported at21:08:21.559620UTC. New original PID/PGID7521, parent1,
+UID/realUID501, kernel birth1793912901.577243 and exact executable were reported
+at21:08:21.601744UTC. Prebound normal-termination correspondence was established
+at21:08:21.651024UTC before setup observation. Admission/new identity and later
+process/wrapper closure were relayed to Agent0 through the existing T3 route.
+
+Actual outcome: **FAILED before setup input**, with
+`Refusal('bounded startup main readiness unavailable')`. The startup gate retained
+exactly nine safe observations; each belongs to original PID7521:
+
+| Observation | Elapsed seconds | Roots | Application self-references | Main matches | Category |
+|---|---:|---:|---:|---:|---|
+| 1 | 0.233018 | 1 | 1 | 0 | self_only |
+| 2 | 2.469197 | 1 | 1 | 0 | self_only |
+| 3 | 4.693239 | 1 | 1 | 0 | self_only |
+| 4 | 6.931658 | 1 | 1 | 0 | self_only |
+| 5 | 9.157255 | 1 | 1 | 0 | self_only |
+| 6 | 11.384942 | 1 | 1 | 0 | self_only |
+| 7 | 13.593086 | 1 | 1 | 0 | self_only |
+| 8 | 15.823317 | 1 | 1 | 0 | self_only |
+| 9 | 18.052406 | 1 | 1 | 0 | self_only |
+
+These are the actual retained counts/categories, not a reconstruction of
+attempt3. No main was admitted; the independent WebKit content gate never
+started. No content tree, broad window/menu dump, arbitrary text, file/sidebar/
+Recent Items or other-app data was collected. The longer gate did not expose
+the expected main in this attempt. It does not establish permanent absence,
+a timing/permission/OS cause, genuine OS self-reference versus reader behavior,
+or an App defect/exoneration. No further live diagnosis followed.
+
+Actions remained empty: zero picker/path/new-settings/preview/native-question/
+confirmation/save inputs and no unknown UI dispatch. Conditional flat picker
+path entry remains unobserved. Setup_saved, flow_complete, J1_complete and
+qualification are false. All execution is agent-attributed; the earlier owner
+welcome report is not a witness for this instance. No activation, focus, keys,
+coordinates, capture, private DOM/IPC, auth files, supplier/model/network or
+Stage B was used. No unexpected-supplier event was recorded; this is not a
+supplier-settlement claim.
+
+Prebound cleanup began at20.310061958s without a parent round trip. One normal
+NSRunningApplication terminate request returned BOOL=true; original-process
+absence was separately observed. The result records20.708400417s/0 overrun;
+detached final closure records20.713760792s/0 overrun at21:08:42.149726UTC,
+initial_held=false, slot_must_remain_held=false, no unknown launch outcome and no
+evidence errors. Wrapper END21:08:42UTC rc1 followed that observation; the slot
+remained held continuously from before open-n through original-birth absence.
+The failed setup determines the runner's rc1. App exit status and wait/reap
+remain unavailable for the LaunchServices-owned process. This is exact-instance
+normal-termination/absence evidence, not an App-menu Quit, setup success or an
+all-conditions recovery guarantee. The180/110s timing limits remain cooperative.
+
+Exact-PID checks at21:10:36.816072UTC corroborated both7521 and runner7515 absent
+and retained the raw START/END lines. Presence-only post-state at
+21:12:27.977375UTC found AppData and desktop-startup/request.json absent;
+WebKit/Caches/Preferences present, HTTPStorages/SavedState absent. Reviewed packet
+member sets/hashes, exact project, executable and frozen/repository controller/
+test/reader hashes still matched. No opaque state/auth contents were read or
+reset. Original evidence and all earlier attempts/reports remain unchanged.
+
+Retained evidence includes source/, entry-preparation.json, entry.py,
+events/001-admitted through019-entry-return, post_attempt.py/post-state.json,
+corroborated-process-wrapper-closure.json, RESULT.json and SHA256SUMS:
+
+- raw events/017-result.json SHA256:
+  e283fa6b56b826cea429c15bd56451cc843a7fad917c75f3badc1babb2379c14;
+- events/018-final-closure.json SHA256:
+  0ee4a9847e289c1dee79dc88ac1328479af61448dc004b2ae71636d0da9e730f;
+- events/019-entry-return.json SHA256:
+  d87bdf8e099131e23550285fc36969f71b12951d72351e03d6e1644b41821b78;
+- closure corroboration SHA256:
+  d1d6d39bcedf93142226dcc3896a8a62a7ffb03b49b8d00c6793c4042b4c1df3;
+- reconciled RESULT.json SHA256:
+  0761c5d1678a915961b091b1f24b726b75d02fc9011e3594f42e792dca21114b;
+- SHA256SUMS file SHA256:
+  9aa8fe0828d822536fefd4abf8d3b36a9a03dd27047b3ff7b12598db5479fd62.
+
+The post-closure addition to PR136 reconciles this actual account and only the
+affected current-basis/punchlist text. Frozen controller/test/reader and product
+bytes are unchanged. Documentation/evidence/deliverables/diff checks are run;
+the already-passing54 mocked cases are not rerun for this account. Native setup,
+J1/J2, model work and publication qualification remain open. Agent0 owns
+integration and the next useful method selection; no new launch or owner test
+task follows from this failed attempt. Existing ScopeOfWork/dependency meanings
+are unchanged.
