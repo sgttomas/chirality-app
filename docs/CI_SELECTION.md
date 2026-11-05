@@ -2,7 +2,7 @@
 
 `harness` remains the required check on every PR. Repository checks always run:
 deliverable structure and utility tests, selection regressions, and the existing
-conflict, credential and private-term checks. The workflow itself has no PR path
+conflict and credential checks. The workflow itself has no PR path
 filter. This standalone repository does not execute SWBPIPE checks.
 
 ## Change selection
@@ -70,8 +70,8 @@ and package setup in hosted CI retain their existing versions. Local checks use
 offline caches by default. A fresh clone needs the documented toolchains and
 dependencies, not a sibling Chirality checkout.
 
-Credential/conflict checks are retained. Same-repository PRs require the
-`PRIVATE_TERMS` repository secret; its value is private and never committed.
+Credential/conflict checks are retained. The private-term check and its
+validator were removed by owner direction on 2026-11-05.
 
 The PR `sources-packaging` job explicitly runs `installed_custody::tests` and
 `hosting::successor::tests::installed_s4` with `distribution-successor` enabled.

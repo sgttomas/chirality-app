@@ -40,18 +40,13 @@ jobs:
           python -m pytest -q tools/deliverables/test_cli.py
           python -m pytest -q tools/ci/test_selection.py
           python -m pytest -q tools/test_run_recorded_prototype.py
-      - name: Conflict, credential and private-term checks
+      - name: Conflict and credential checks
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-          PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
-          TERMS_REQUIRED: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           if ! git rev-parse --verify --quiet "${BASE}^{commit}" >/dev/null; then BASE=HEAD^1; fi
           python tools/validation/validate_conflict_markers.py --base "$BASE" --head HEAD
           python tools/validation/validate_run_record_leaks.py --base "$BASE" --head HEAD
-          REQUIRE=()
-          if [ "$TERMS_REQUIRED" = true ]; then REQUIRE=(--require-terms); fi
-          python tools/validation/validate_private_terms.py --base "$BASE" --head HEAD "${REQUIRE[@]}"
   app-v4:
     needs: repository-checks
     if: needs.repository-checks.outputs.run_product == 'true'
