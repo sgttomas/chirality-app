@@ -148,3 +148,5 @@ checks:
 - app/tests/notice_resources_test.py
 - app/packaging/font_notice/check.py
 - app/tests/font_notice_test.py
+- app/packaging/notices/transitive.py
+- app/tests/notice_transitive_test.py
