@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import ts from 'typescript';
-import {parse,nodes,text,stringLiterals,elements,attribute} from './support/source-ast.mjs';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
@@ -56,12 +55,9 @@ test('fork and continued-from relations are shown as relations; nothing changes 
   const cont=header(thread({roleRelation:{kind:'continued-from',from:{sourceThread:'thread-a',sourceRole:{standing:'app-observed',role:'WORKING_ITEMS',supply_ref:'sup:a'}}}}));
   assert.ok(cont.includes('Continues conversation thread-a (its role: WORKING_ITEMS); a relation only: no history was carried.'));
   // The App offers no control that changes a started conversation's role.
-  const files=parse('App.tsx','ConversationRoles.tsx');
-  const literals=stringLiterals(files);
-  assert.ok(literals.includes('continue_as_begin')&&literals.includes('conversation_fork'),'continuing and forking are the only role-relation commands');
-  const carried=nodes(files,node=>ts.isPropertyAssignment(node)&&node.name.getText()==='continueAs').map(text);
-  assert.ok(carried.some(t=>/^continueAs:\s*handoff\.id$/.test(t)),'a continued conversation names its handoff');
-  const app=files.map(file=>file.text).join('');
+  // Continue as and fork are exercised through their commands in
+  // conversation-panel, fork-admission and trial-continue-model-choice tests.
+  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8')+readFileSync(new URL('../src/ConversationRoles.tsx',import.meta.url),'utf8');
   assert.ok(!/thread\/settings\/update|developer_instructions|setRole\(selected/.test(app));
 });
 
@@ -151,11 +147,8 @@ test('model and provider are exact strings: no capitalisation, autocorrect, spel
   assert.equal(panel.length,2);
   assert.ok(panel.every(exact),panel.join('\n'));
   // The start display uses the same fields; no other model or provider input exists.
-  const [appFile,rolesFile]=parse('App.tsx','ConversationRoles.tsx');
-  const app=appFile.text,roles=rolesFile.text;
-  const fields=elements([appFile],'ModelProviderFields');
-  assert.ok(fields.some(el=>attribute(el,'model')==='model'&&attribute(el,'modelProvider')==='modelProvider'),'the start display binds the shared fields');
-  assert.equal(((app+roles).match(/<input [^>]*value=\{(model|modelProvider)\}/g)??[]).length,2,'only the shared fields bind model and provider');
+  // In the App, the start display's model and provider fields are exercised in
+  // conversation-panel.test.mjs; Continue as uses them in trial-continue-model-choice.
 });
 
 test('the header shows the host’s trial header and the trials started here (TT-3b, TT-4)',()=>{
