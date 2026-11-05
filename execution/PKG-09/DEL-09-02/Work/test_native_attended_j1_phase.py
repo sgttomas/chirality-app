@@ -820,3 +820,46 @@ class ReviewedPacketAdmissionTests(unittest.TestCase):
                 parent.assert_not_called()
             for rows in (reviewed[:-1], reviewed + [dict(reviewed[0])]):
                 with self.assertRaises(Refusal): checked_packet(packet, rows)
+
+
+class ReceiptIdentityIsolationTests(unittest.TestCase):
+    def test_held_and_late_receipts_cannot_rebind_the_original_or_release_it_early(self):
+        original = {'pid': 17, 'start_sec': 10, 'start_usec': 20}
+        for changed in ('held', 'late-absence'):
+            with self.subTest(receipt=changed):
+                closed = [False]; observed = []
+                def record(kind, value):
+                    if kind == changed:
+                        value['identity']['pid'] = 99
+                        value['identity']['start_sec'] = 999
+                session = NativeSession(S, {}, record, sleep=lambda _: closed.__setitem__(0, True))
+                session.identity = dict(original)
+                def absent(identity):
+                    observed.append(dict(identity))
+                    return identity['pid'] != 17 or closed[0]
+                session.absent = absent
+                session.hold_until_absent({'slot_must_remain_held': True})
+                self.assertTrue(closed[0], 'the original stayed held until its own absence')
+                self.assertEqual(session.identity, original)
+                self.assertTrue(all(identity == original for identity in observed))
+
+    def test_final_closure_receipt_cannot_rewrite_retained_or_returned_original(self):
+        import j1_stage_a_phase as module
+        original = {'pid': 17, 'start_sec': 10, 'start_usec': 20}
+        sessions = []
+        class Session(NativeSession):
+            def __init__(self, *args):
+                super().__init__(*args)
+                self.identity = dict(original)
+                sessions.append(self)
+            def absent(self, identity): return identity == original
+        def record(kind, value):
+            if kind == 'final-closure':
+                value['original']['pid'] = 99
+                value['original']['start_sec'] = 999
+        with patch.object(module, 'NativeSession', Session), \
+             patch.object(module.StageA, 'run', return_value={'slot_must_remain_held': False}):
+            result = run_prepared(S, {}, record)
+        self.assertEqual(sessions[0].identity, original)
+        self.assertEqual(result['original'], original)
+        self.assertTrue(result['original_absent'])

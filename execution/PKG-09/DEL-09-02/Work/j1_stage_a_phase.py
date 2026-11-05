@@ -935,7 +935,7 @@ class NativeSession:
         if not result['slot_must_remain_held']:
             return
         try:
-            self.record('held', {'identity': self.identity, 'no_more_input': True})
+            self.record('held', {'identity': deepcopy(self.identity), 'no_more_input': True})
         except BaseException:
             pass  # evidence failure cannot release a possibly live development App
         if self.identity is None:
@@ -951,7 +951,7 @@ class NativeSession:
                 except BaseException:
                     pass  # a failed observation is not process absence
                 self.sleep(1)
-        self.record('late-absence', {'identity': self.identity, 'at': self.clock(), 'not_a_deadline_release': True})
+        self.record('late-absence', {'identity': deepcopy(self.identity), 'at': self.clock(), 'not_a_deadline_release': True})
 
 
 def run_prepared(subject, preflight, record, clock=time.monotonic, sleep=time.sleep):
@@ -982,11 +982,11 @@ def run_prepared(subject, preflight, record, clock=time.monotonic, sleep=time.sl
                 require(io.absent(io.identity), 'slot entry cannot return without original absence')
                 origin = getattr(controller, 'started_at', entered)
                 end = getattr(controller, 'end', origin + 180)
-                closure = {'original': io.identity, 'original_absent': True,
+                closure = {'original': deepcopy(io.identity), 'original_absent': True,
                            'final_elapsed': clock() - origin, 'final_overrun': max(0, clock() - end),
                            'exit_status': None, 'exit_status_limit': 'LaunchServices-owned; no wait/reap status',
                            'initial_held': held['slot_must_remain_held']}
-                record('final-closure', closure)
+                record('final-closure', deepcopy(closure))
                 if result is not None:
                     result = dict(result, **closure, slot_must_remain_held=False)
         finally:

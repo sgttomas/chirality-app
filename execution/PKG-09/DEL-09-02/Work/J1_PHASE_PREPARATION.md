@@ -157,6 +157,23 @@ with that symlinked TMPDIR. Before/after logs and exact commands are retained in
 app-pr135-ci-temp-alias-mjepzl1q. This fixes test portability, not native behavior,
 and supplies no new App execution or independent review of a different controller.
 
+The targeted re-check of4a865b51 confirmed the six repair paths, and found one
+remaining callback alias in held/late/final-closure receipts plus the temp-path
+fixture issue above (11/12 requested cases passed at that old subject). Agent0
+detached every remaining original-identity receipt and the returned closure,
+with two regression cases exercising the actual hold/finalizer paths against
+a mutating callback. Those cases require the original to remain held until its
+own absence and preserve its PID/birth in retained and returned facts. This small
+follow-up is parent-verified; neither prior report is relabelled clean on new
+bytes. The maintained focused suite now has45 cases. No further delegate or
+native attempt was started for this correction. The caller must still supply
+the authentic reviewed Subject/preflight; the controller does not authenticate
+a replacement caller-provided receipt or constitute signed attestation.
+All45 focused cases and the full178-test native-attended cohort pass under the
+owned symlinked TMPDIR; deliverables reports errors=[] and diff check passes.
+Exact commands, source hashes and logs: app-pr135-ci-temp-alias-mjepzl1q,
+identity-repair-checks.json and the matching *-identity-final.log files.
+
 Deliverables/diff checks and the exact prepared source manifest accompany the
 PR return. Agent0, not this manager, will commission the one independent review
 of this concrete version before any new live launch. The actual two attempts
