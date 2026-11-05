@@ -392,3 +392,26 @@ test('a review from another library never guides a same-name draft after switchi
     assert.match(next(ui.c), /spacing-check: Optionally try it/);
   }
 });
+
+test('a prepared copy whose send is held is offered for reading or removing, never as ready to send', async () => {
+  doubtsModule.resetBringBackDoubts();
+  const draft = {name:'spacing-check', state:'draft', trials:producerTrials};
+  const ui = await mount({host:host({homeRouting:{activeModeHomeClass:'account'}, workflowRoot:{context:{sourceRef:'src', generation:g}, pendingBringBacks:[results()]}}), data:data({drafts:{drafts:[draft]}})});
+  await ui.name('spacing-check'); await ui.choose(key('T1'));
+  const shown = () => region(ui.c, 'Trials of this draft').textContent;
+  assert.match(shown(), /Trial 2's results are ready to send in/);
+  await React.act(async () => doubtsModule.noteBringBackDoubt(doubt({preparedId:'bb-1'})));
+  assert.doesNotMatch(shown(), /ready to send/, 'a held copy is not "ready to send"');
+  assert.match(shown(), /Trial 2's results are prepared in .+, but sending them is held: this copy's earlier send wasn't confirmed and may have arrived, so it is not sent again\./);
+  assert.ok(button(ui.c, 'Open trial 2\'s prepared results to read or remove'));
+  await React.act(async () => { doubtsModule.acknowledgeBringBackDoubt(doubtsModule.bringBackDoubtsFor('trial', 'trial:lib-a:2')[0]); });
+  assert.match(shown(), /prepared in .+, but sending them is held/, 'that attempted copy stays held after the acknowledgement');
+  assert.match(next(ui.c), /Trial 2's prepared results are held and not sent again; after reading the conversation, remove that copy/);
+  assert.equal(all(ui.c, 'button').filter(node => node.textContent === 'Open trial 2\'s prepared results to read or remove').length, 1, 'one control for one held copy');
+  assert.match(region(ui.c, 'Trial 2 of spacing-check').textContent, /Its results are prepared for this conversation but held, so they aren't sent again; see below\./);
+  assert.doesNotMatch(region(ui.c, 'Trial 2 of spacing-check').textContent, /already prepared for this conversation\./);
+  const calls = ui.calls.length;
+  await ui.press('Open trial 2\'s prepared results to read or remove');
+  assert.equal(ui.opened.at(-1).pending.id, 'bb-1'); assert.equal(ui.calls.length, calls, 'opening issues nothing');
+  doubtsModule.resetBringBackDoubts();
+});
