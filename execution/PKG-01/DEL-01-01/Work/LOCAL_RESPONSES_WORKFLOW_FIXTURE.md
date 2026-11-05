@@ -193,6 +193,192 @@ with `#[path]`, and the workflow test with `include!`; there is no product use.
   existing `cfg(test)` records-store placement (`chirality-test-records-<pid>`)
   is created under the run's `TMPDIR`, which is inside the owned scratch.
 
+## End notice and fresh-process join (follow-on, branch `app/real-backend-end-notice`)
+
+The same gated test continues past the end, using the same scripted model side.
+Step 2 is one scripted reply that repeats for each later ordinary message.
+- **Run-text check.** Before the end, the home's own history owner selects the
+  conversation, as the history panel does. `check_native_supply` compares the
+  run text with the real native pages; the result is `verified`.
+- **End notice.**
+  - The end reports `endNotice: pending: the next ordinary turn in this
+    conversation carries it`.
+  - The first ordinary message goes through the production `ordinary_send_text`,
+    the `conversation_send_text` path. It returns `end notice and the person's
+    text sent once`.
+  - After it, no notice is pending (`send_with_pending_notice` is `None`).
+  - A second ordinary message carries the person's text only.
+  - The run stays `Ended`, and no finished offer is shown for it.
+  - `check_end_notice_supply` reports `verified`, with R3 `recorded`.
+- **Records.** The counts are asserted exactly.
+  - **RS.** The run's log is exactly `run_opened`, `model_turn`, `model_turn`,
+    `supplied_guidance` (the run text's R3), `run_ended` (`completed`), and
+    `supplied_guidance`. The last is the one entry after the end: the end
+    notice's R3, form `workflow run end notice (turn text)`.
+  - **WR.** It holds exactly 1 `selection_record`, 2 `run_text` (the run start
+    and the end notice) and 2 `supply_check`. Each supply check is cited by
+    exactly one R3.
+- **History.** Three native turns, each holding a user message and the scripted
+  reply:
+  1. the run text and the person's text;
+  2. the end notice first, then the follow-up. The notice starts
+     `[Chirality] Workflow run ended:`, names the run and ends `No workflow is in
+     force.`;
+  3. the second follow-up only.
+
+  The fixture saw exactly 4 Responses requests. The notice text first appeared
+  in the **scripted fixture's** request 3, with the follow-up. Request 4 carries
+  it again only as replayed conversation history, which is not a second supply.
+  No model received it and no inference occurred.
+- **Fresh process.** After a normal stop, a new `Host` starts over the same Codex
+  home and project, giving a new generation, and a new `WorkflowRootSession`
+  holds no run.
+  - **Records read.** The existing records reader, `records::supply::read_project_runs`,
+    reads the ended run with no read limits:
+    - its conversation is the thread;
+    - its lifecycle is `Ended {stopped_by: "the person", cause: "completed"}`;
+    - its workflow is `bundled` / `coordinated-knowledge-work` / `3730d84d…`;
+    - nothing is live, or possibly live, in the conversation.
+  - **Repeat end.** `end_recorded_run` on the ended run is refused with "The
+    record does not show this run open, or in an unknown state, in this
+    conversation; nothing recorded".
+  - **No new records.** The repeat end and `observe_ended_runs` add no RS or WR
+    record.
+  - **History.** The new generation's `NativeHistory` reads the same three turns
+    with the same user texts.
+  - **Stop.** Normal stop leaves 0 surviving descendants.
+
+### Observed runs (2026-11-04)
+
+- **Source.** `558ea694` (#116 head) plus this branch, with the same stock binary
+  `112fae7a…`. This evidence is separate from #116's.
+- **Results.** Two consecutive passes, 5.96 s and 6.45 s.
+- **Profile.** The same profile text as above, with this scratch root. It is
+  retained at
+  `chirality-t3/scratch/app-workflow-end-notice-UhybcNYk/network.sb`, SHA-256
+  `d73ed32eeacac4d99ba7c4af0cde84b6ada487628c10a28c1665879bcee5c1aa`, beside the
+  logs `run1.log` and `run2.log`.
+- **Cleanup.** No Codex process and no fixture scratch remained.
+- **Assertion-repair rerun.** One focused gated rerun on `ee3ad9fa`, which is
+  `055a9edc` merged normally with #116's `b355e8f5`. It used the same binary
+  and the same retained profile (`d73ed32e…`), in the same scratch folder as
+  `run3.log`. It passed in 5.45 s and confirmed:
+  - the exact RS and WR counts above;
+  - the fresh session's `Ended {the person, completed}` reading with 0 read
+    limits;
+  - the repeat end refused with its specific message;
+  - 0 new records and 3 history turns.
+
+  The earlier two runs keep their own source, `0aaf7f14`.
+
+These are scripted synthetic facts. The notice and the follow-ups reached only
+the scripted fixture. No model received or acted on them, and no inference
+occurred. The fresh process is a new Host
+and Root in the same test process, not an App relaunch.
+
+## Clean trial and Bring back join (follow-on, branch `app/real-backend-trial-bring-back`)
+
+A second test in the same file joins J2's clean trial to the real backend. It is
+`parent_authorized_stock_native_clean_trial_bring_back_fixture`, behind its own
+gate `CHIRALITY_RUN_NATIVE_BACKEND_SMOKE=parent-authorized-0160-local-trial-bring-back-fixture`.
+It uses the same stock binary, the same shared loopback fixture and the same
+fresh `0700` Codex home literal and parent boundary. Only the two model replies
+are scripted.
+
+- **Draft.** In the owned project library: development copy, then library, then
+  draft. The draft's `WORKFLOW.md` gains one invented line. It is **not**
+  reviewed or registered, and no A15 is used.
+- **Try in a fresh conversation.**
+  - `prepare_trial("clean", …)` is pressed with an actual authoring conversation
+    (A) selected. Its trial text carries the invented line.
+  - `trial_flows::start_clean_trial` starts the trial's own conversation (T)
+    from an **actual Host `thread/start` response**. The test's start closure
+    calls the Host directly, because the `lib.rs` `start_conversation` needs the
+    Tauri `AppHandle`.
+  - `send_trial` then sends the trial text first and the person's inputs
+    second.
+  - The Host gained exactly one conversation, and T ≠ A.
+- **Trial results.**
+  - **Link.** The trial link is `clean`; its conversation is T and its
+    authoring conversation is A. Its `turn` is T's acknowledged native turn.
+    `trial_conversation(T)` names the trial.
+  - **History.** T's native history has one turn: exactly the trial text, then
+    the inputs, then the scripted reply.
+  - **Read.** The production trial tick read the trial once, with fidelity
+    `verbatim`.
+- **No run, registration or completed-work claim.** No RS `run_opened` or
+  `run_ended`, no WR `selection_record` or `run_text`, no run or review in the
+  Root, and no offer.
+- **Bring back (pre-filled only).**
+  - `bring_back_with_homes(…, trial, …, A)` returns a pending transcript. It
+    starts `[Chirality] Trial 1 of draft …` and contains the trial's inputs and
+    reply as read from native history.
+  - Before Send: A has no turn, the fixture received no request, and there is no
+    `brought back` observation, either in memory or in a reopened link store.
+- **Explicit send.**
+  - `send_bring_back(…, A, …)` returns the `brought back` observation, with
+    target A. Its `turn` equals A's acknowledged native turn.
+  - A's native history has one turn: the person's text, then the exact
+    transcript, then the scripted reply. T gained nothing.
+  - There is exactly one `brought back` observation, and a second send is
+    refused because nothing is left pre-filled.
+- **Fixture traffic.** Exactly 2 Responses requests: first the trial (invented
+  line, no transcript), then the authoring turn (the transcript plus the
+  person's text).
+- **Stop.** Normal stop with 0 surviving descendants.
+
+**Provenance.**
+- **Source.** The trial's link names T and its native turn.
+- **Target.** The brought-back observation names A and its own acknowledged
+  turn.
+- **Not exercised.** The test does not reopen the trial through saved bare IDs.
+  The cold, after-relaunch Bring back path (`restart_source::Proof`) and source
+  rebinding are not exercised here.
+
+### Observed run (2026-11-04)
+
+- **Source.** `2601f6c1`: #120's head `f8d441c1` plus this test.
+- **Run.** One recorded pass, 3.75 s, with stock binary `112fae7a…`.
+- **Profile.** Same text as above with this scratch root. It is retained at
+  `chirality-t3/scratch/app-trial-bring-back-0JzE1m0C/network.sb`, SHA-256
+  `15a41292c0cec0b3bd0dafd9a42436a58ff5ebb5627b3fc984c32ed613e37624`, beside `run2.log`.
+- **Pre-source run.** `run1.log` is an earlier pass (2.47 s) of the same test
+  before a warning-only `mut` removal, so it is not the recorded source.
+- **Checks.**
+  - Without the gate, the test refuses before executing.
+  - The existing `clean_trial` and `bring_back` unit tests pass, 19/19.
+  - No Codex process and no fixture scratch remained.
+
+These are scripted synthetic facts. Try, Send and Bring back are the test's
+calls, not a person's. No model received the trial or the transcript, and no
+inference occurred. This is not J2, human or native qualification.
+
+## Integration runs with #118's Host request reorder (2026-11-04)
+
+#118 changed the Host so that a request carrying a replaced expected generation
+is refused before the not-ready branch. That change is merged into main
+`b31733d5`. Each join above was run **once** more, on its actual head after
+adopting that main, with no source change. The setup was the same retained
+profile and scratch, the same parent boundary, the same stock binary
+`112fae7a…` and fresh scratch Codex homes. The earlier subjects above keep their
+own sources.
+
+| Join | Head | Profile | Result | Log (SHA-256) |
+|---|---|---|---|---|
+| End notice and fresh process | `e2865f0a` (#120) | `app-workflow-end-notice-UhybcNYk/network.sb` `d73ed32e…` | 1/1 pass, 7.32 s | `run4-e2865f0a.log` (`77b015f528a66e595bf5808e22f2297553150f5fb5ba3e655895b9553acad954`) |
+| Clean trial and Bring back | `74767f34` (#121) | `app-trial-bring-back-0JzE1m0C/network.sb` `15a41292…` | 1/1 pass, 3.33 s | `run3-74767f34.log` (`c043bbdab5d758b01b84cf400c6025bcc398bc937ea0efb2d7866e218381ac15`) |
+
+Both runs held their existing assertions:
+- **End-notice join.** RS and WR counts exact, and the fresh session's `Ended
+  {the person, completed}` with 0 read limits, 0 new records and 3 turns.
+- **Trial join.** The trial started from an actual Host `thread/start`, in its
+  own conversation, with a native link turn and fidelity `verbatim`. Bring back
+  stayed pre-filled only, and the `brought back` observation was bound to the
+  authoring conversation's turn.
+
+Both runs ended with 0 surviving descendants. The scripted, no-model, no-person,
+not-native-qualification and Codex-sandbox limits above are unchanged.
+
 ## Limits
 
 - The model replies, the finished line and the person's end are synthetic.

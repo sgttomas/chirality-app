@@ -1073,6 +1073,75 @@ conversation choice, Start, both End controls and bundled Use) passes one guard:
 it is disabled, and a retained click dispatches nothing, while the studio is
 busy or the shown workflow source/generation differs from the host's.
 
+**Guide labels and results (2026-11-04).** These close the native J1 baseline
+facts on main `9248a36e`:
+- **Last result.** It now reads in words: "Chose the workflow for this
+  conversation.", "Start requested; see Progress for what happened.", and so
+  on. A failure reads "Couldn't ‹action›: ‹host message›". The exact reply
+  stays under "What the App reported", and nothing is claimed before the
+  result has settled.
+- **Newer revision.** When the host reports one (`selection.newerRevision`),
+  the guide says the conversation keeps using the revision shown until the
+  person chooses the newer one. It offers the host's own follow button
+  (`workflow_follow_newer_revision {selectionRef, revision}`), or the host's
+  limit.
+- **Revision labels.** Same-name rows name their revision ("Use ‹name›
+  revision ‹n›").
+- **Focus.** After Prepare, focus lands on Start the run. After Start, it
+  lands on Run progress.
+
+The Make guide also no longer calls a held prepared copy "ready to send". It
+says the copy is prepared but held, with the same reason as its Send
+(`bringBackSendBlock`), offers "Open … to read or remove", and its Next names
+that state. This is the residual carried from #119. Reuse with new inputs
+already worked in the native baseline and is unchanged.
+
+**Finding results (J1, 2026-11-04).** The guide's Results step used to list
+only the workflow's declared outputs. It now also lists this conversation's
+runs.
+
+A run counts as current here only when its `generation`, `home` and thread
+all exactly match the current Codex source and the chosen conversation. A
+prepared run that was never sent is not listed. The host's runs come from an
+unordered map, so the guide uses no array position. It orders runs only by
+the host's `preparationOrder`. That is the run's 0-based position in that
+one home and conversation's run list, not a timestamp. It is read-only
+display metadata from the runtime owner's separate producer, which
+integrates first, and orders are never compared across conversations or
+homes.
+
+The same order picks the guide's current run (progress, prepared, an
+unknown start). With one run, that run is current. With several runs and any
+of them unordered, no latest run is chosen. The guide says it can't tell
+which is latest and lists the runs without sorting them. Prepare stays held
+while any of them is open or unresolved.
+
+Each entry gives the run's workflow and revision, its plain reading and its
+declared outputs with paths. It says the agent reports results in the
+conversation and that the App hasn't checked them. It offers:
+- "Show the conversation", for a current run only;
+- "Open this run's recorded evidence (in the workflow studio, under Make a
+  workflow)", an exact per-run anchor to its studio panel.
+
+Runs of this home from another Codex session, or whose conversation isn't
+loaded, are read only. That includes a run whose thread ID matches the
+current conversation. These runs are grouped by their recorded conversation,
+each says "find it in History", and none offers navigation. The chat choice
+still resets on a generation change. An open run's reading uses current
+activity only when the run matches the current Codex source exactly: the
+conversation's status and waiting requests are read only if its generation
+and home match. A run recorded open in an earlier session reads "Open in an
+earlier Codex session" and never takes a same-ID conversation's activity.
+Its recorded lifecycle stays readable.
+
+After "Reopen recorded workflow runs", recorded runs are listed only when
+the workflow's full source identity matches the chosen one: name, origin,
+source root, and kind where both are supplied. An incomplete source is no
+match. Each recorded run is labelled with its revision, its saved
+conversation ID is shown without navigation, and a run that is still live
+is not repeated. No result is claimed to exist, no file is read, and no
+command is added.
+
 - **Workflow.** Selectable registered revisions are offered as "Use ‹name›";
   others show the host's label. The chosen workflow is named with its origin,
   registered revision number and content-identity prefix. Unregistered library
@@ -1175,6 +1244,137 @@ and delegation reading, and opens that draft's pending trial messages through
 the studio's existing source-checked Open (a clean trial points to the global
 new-trial composer). With no library open, its next step opens one first, so a
 returning person sees unfinished drafts before choosing a conversation.
+
+After a trial, the guide also shows that draft's trials (2026-11-04, J2), in
+the host's order. TT-4's listing, `trials_for_draft`, is newest first. Each
+row shows the trial's kind and time, its conversation and whether it was
+brought back. The conversation fields are read in their actual shapes:
+- A clean trial's conversation and a brought-back target are saved IDs. They
+  are shown as "a recorded conversation (‹ID›)" and never matched against the
+  current session.
+- An authoring conversation is named by its label only when the host supplies
+  the hot `{generation, threadId}` source. Otherwise it is shown as recorded.
+- Only an absent conversation reads "not started".
+
+"Bring trial ‹n› back to ‹conversation›" uses the draft list's own
+`workflow_trial_bring_back` with the guide's conversation and `includeNative:
+false`. It is held while a trial turn is live, when the host reports a source
+limit, or before a conversation is chosen. The native-items option and any
+other target stay in the draft list.
+
+The host's prepared results messages are App-wide, and another library can
+hold a draft with the same name. So a results message is offered as "Trial
+‹n›'s results are ready to send" only when its `trial` is one of this draft's
+own listed trial references. It opens through the same source-checked Open,
+and nothing is sent from the guide. The guide then points to Review for
+registration.
+
+Checked in `app/tests/make-journey.test.mjs` with producer-shaped rows:
+newest-first order, saved bare IDs, a hot authoring tuple, and foreign results
+from a same-name draft. Each check was mutation-checked.
+
+**Unconfirmed bring-back sends (UI lifetime).** A refusal of
+`workflow_bring_back_send` without `prefillKept: true` withdraws the pre-fill.
+That covers an unknown outcome, a transcript sent without its observation
+written, and a lost pre-fill. A send that resolves without a reported outcome
+(undefined or null) counts the same way. The composer never shows success
+words for it; it says "Not confirmed" and keeps the edited text. Notices say
+the prepared message was withdrawn only when its exact id is no longer in the
+host's current pending view. Otherwise they say it is still listed but that
+copy is not sent again. The composer's Send is disabled with the same reason
+the dispatch guard gives (`bringBackSendBlock`), rendered from the current
+doubts. A copy whose own send was unconfirmed stays unsendable even after an
+acknowledgement. After reading the conversation, the person removes it and
+brings the results back again; nothing is removed or sent automatically. Before the call, the App captures the original attempt:
+trial or run reference, prepared-message id, workflow source, home and full
+generation, target conversation, and the person's text. If the send is
+unconfirmed, the App keeps that attempt for the life of the window
+(`bringBackDoubts`).
+
+The conversation panel lists each such send by where it actually went. It
+says "this conversation" only for the same conversation in the same
+generation. Otherwise it gives the conversation's label, or its ID "in a
+Codex session that isn't loaded now". It is never relabelled as a send to
+the conversation shown now. Each entry shows the person's message, the
+host's message as given and the original destination. A source change never
+erases it.
+
+Every preparation (`workflow_trial_bring_back`, `workflow_run_bring_back`)
+and every send of the same trial or run to the same recorded conversation ID
+is refused at dispatch, against the host's current view, whichever control
+pressed. That holds in the Make guide, the studio draft list, run
+bring-back, every prepared composer and retained callbacks. It also holds
+after a Codex restart or home change: an ID match only blocks a blind retry,
+and the row says so in plain words. A different, explicitly chosen
+conversation ID is not held. A retained Send of the withdrawn message is
+never repeated.
+
+Only the person's explicit acknowledgement lifts the hold: "I've checked —
+let me bring it back again" in the guide, or "I've checked this
+conversation — allow bringing it back again" in the conversation, which is
+there for trials and runs. A later brought-back row is not taken as
+evidence. Its `to` is a saved ID that correlates with no original request or
+generation, and a record for another conversation is not a record for this
+one. Acknowledging starts nothing, and the original outcome stays shown.
+The host's message is never parsed. This is not native, relaunch or global
+deduplication.
+
+**One prepared message per conversation.** A trial already prepared for the
+same conversation and options offers "Read and send trial ‹n›'s prepared
+results", which opens the existing message, instead of making another. The
+studio reads the host's pending rows by their `target`. A synchronous press
+guard covers double presses, and the dispatch guard refuses a retained
+control once the preparation is published. A distinct conversation or option
+stays allowed. After Bring, the new results button takes focus. After Read and send,
+the composer's message takes focus once the source-checked Open has shown it.
+
+**The guide's Next.** The top Next is the draft's actual step: an unconfirmed
+send, prepared results, a prepared trial, then the registration review's own
+state, then the draft state. Reviews are App-wide and outlive a library
+switch. A review belongs to the draft only by the full identity its
+presentation showed: library root, origin, source root and workflow names,
+kept for the window once seen. All of these must match the active library and
+the draft; a same-name review from another library never guides it.
+- **Current presentation:** "confirm in the App's dialog".
+- **Dismissed** (`native confirmation dismissed; no capture/registration`):
+  nothing was registered; review again.
+- **Unavailable** (`native review/capture unavailable; original owner state
+  retained`): registration did not complete, with the host's limit. The
+  original attempt is kept; continue it from the review, or review again.
+- **Retained, not current:** it can't be confirmed from here.
+
+A draft observed "under review" with no current review says the confirmation
+isn't available. The review area states these two statuses in plain words,
+with the complete reported status under details. The review content, the
+confirmation and A15 are unchanged.
+
+**Returning to a draft (J2, 2026-11-04).** These close the native J2
+returning-draft baseline facts on `9efa17a7`, taken after a synthetic
+relaunch with cold trial links and old conversations not loaded:
+- **R1.** "Continue ‹draft›" in Unfinished drafts still only fills the name.
+  Once that commit shows the draft, the guide scrolls its current step's
+  first line (the draft's state line) to the top of the view and focuses
+  it, but only while the same library and draft are still the ones shown.
+  The status region can be taller than the window, which is why it lands on
+  the first line.
+- **R2.** A saved conversation ID on a trial row (a bare string) offers "Look
+  for it in History". That shows History and fills its local search with the
+  ID. The search reads nothing. No history read, row selection, home change,
+  admission or Continue happens until the person does it there. History says
+  it is only a search, and that the conversation may be in another home: if
+  it isn't listed, choose that home under Connection & access and read its
+  history. The Unfinished drafts note now separates reading a conversation
+  in History from the explicit Continue there.
+- **R3.** A trial whose saved link can't establish its original source (its
+  `sourceLimit`) gives the available next actions first: "This saved trial
+  can't be brought back here. Try the draft again in a fresh conversation
+  above, or look at the earlier conversation in History." The exact host
+  reason stays under Why. Bring stays disabled, and the source proof is
+  unchanged.
+
+Checked by `app/tests/make-journey.test.mjs` and
+`app/tests/journey-navigation.test.mjs`, using the producer's cold-trial row
+shape and the real `sourceLimit` text. Each change is mutation-checked.
 
 Every host-changing control uses the same busy/stale-source guard as Run a
 workflow. Checked by `app/tests/make-journey.test.mjs` (run directly with

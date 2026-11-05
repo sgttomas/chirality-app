@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { beginBringBack, bringBackHeld, endBringBack } from "./bringBackDoubts";
 import { ConversationSelect, conversationKey, conversationReference, findConversation } from "./TrialComposer";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -464,10 +465,20 @@ export function RunBringBackView({ run, conversations, target, setTarget, includ
 }) {
   const chosen = list(conversations).find((c: Json) => conversationKey(c) === target) ?? null;
   const limit = runLearningLimit(run, "bringBack");
+  const doubt = chosen ? bringBackHeld("run", text(run?.reference ?? run?.run), { generation: chosen.generation, threadId: chosen.threadId }) : null;
   return <div aria-label="Bring a real run back">
     <ConversationSelect label="Bring back to" conversations={conversations} value={target} setValue={setTarget} disabled={busy} />{" "}
     <label><input type="checkbox" checked={includeNative} disabled={busy} onChange={e => setIncludeNative(e.target.checked)} /> include native items</label>{" "}
-    <button disabled={busy || !chosen || !!limit} onClick={() => { void act("workflow_run_bring_back", { runRef: run?.reference ?? run?.run, generation: chosen?.generation, threadId: chosen?.threadId, includeNative }); }}>Bring a real run back to authoring</button>
+    <button disabled={busy || !chosen || !!limit || !!doubt} onClick={() => {
+      const runRef = run?.reference ?? run?.run;
+      if (!chosen || bringBackHeld("run", text(runRef), { generation: chosen.generation, threadId: chosen.threadId })) return;
+      const key = JSON.stringify(["run", runRef, chosen.generation, chosen.threadId]);
+      if (!beginBringBack(key)) return;
+      let call: Promise<unknown>;
+      try { call = Promise.resolve(act("workflow_run_bring_back", { runRef, generation: chosen.generation, threadId: chosen.threadId, includeNative })); } catch (error) { call = Promise.reject(error); }
+      void call.catch(() => undefined).finally(() => endBringBack(key));
+    }}>Bring a real run back to authoring</button>
+    {doubt && <p role="note">This run's last results sent to that conversation weren't confirmed and may have arrived. Read that conversation first; bringing it back there again is held.</p>}
     {isRecordedRun(run) && <p><small>Recorded evidence (unsigned). {text(run?.learning?.standing) || "Current execution and original supply are not established here."}</small></p>}
     {isRecordedRun(run) && !limit && <p><small>The recorded history is checked when you request the transcript.</small></p>}
     {limit && <p role="note">Bring back is unavailable: {limit}</p>}
