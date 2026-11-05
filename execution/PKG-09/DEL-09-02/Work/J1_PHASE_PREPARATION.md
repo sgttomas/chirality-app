@@ -18,7 +18,10 @@ shared automation framework. No native launch is selected by this PR.
 
 Original binding is full kernel PID/parent/UID/realUID/birth/executable plus PGID
 and executable SHA256, preserved throughout. Subject bundle/development ID/data
-root/project must match the reviewed receipt; all packet/project hashes and
+root/project must match the reviewed receipt; exact manifest member sets and
+member digests are compared with its reviewed manifest_checks before opening
+member paths. Regenerating local manifests cannot rebind the reviewed case. All
+packet/project hashes and
 actual state/route-key presence are checked before a single open-n. WebKit/cache
 state is recorded as found; AppData/setup present means stop without launch.
 The existing fixed identity/AX reader is loaded from exact pinned bytes; a
@@ -42,7 +45,7 @@ references or foreign owners stop input. Missing/transient values have bounded
 read-only observation; no focus setters or mechanism cycling. Phase/control and
 parent-chain checks repeat immediately before actual input.
 
-Content readiness remains at most3 reads within5s. The whole attempt is180s;
+Content readiness remains at most3 reads within5s. The configured allowance is180s;
 setup cutoff110s leaves70s nominal cleanup/absence reserve. After each ordinary
 operation, the cutoff is rechecked. Any setup or provenance error begins cleanup
 immediately. The mocked cutoff case starts cleanup at110s without a parent round
@@ -55,6 +58,13 @@ termination refuses/has unknown outcome or the App remains live, the result is
 held/failed; the future slot finalizer retains the wrapper until actual absence.
 Unknown launch with no original identity cannot be relabelled closed from a
 transient empty lookup. Evidence/observation failure cannot release a live App.
+Cleanup receipts are best effort: a write error is retained in the returned
+evidence_errors and cannot suppress the sole identity-validated normal request.
+Such an evidence gap prevents a successful flow claim. Launch becomes pending
+only at the actual dispatch boundary, after its intent was written; a failed
+pre-dispatch receipt is not an unknown launched process. Original-process absence
+uses kernel birth as well as numeric PID: a replacement birth proves the original
+gone without targeting the replacement; an unavailable observation stays held.
 
 ## Picker capability: prepared guard, still not a native observation
 
@@ -73,10 +83,15 @@ It does not create these controls or inject a picker result. Setting AXValue on
 that proven text field is ordinary scoped text input; no AXFrontmost/AXFocused
 write is used. No global-key navigation or filename/sidebar exploration exists.
 
-AXTable/Outline/Browser/List/Menu/PopUp subtrees and combobox suggestion/history
-children are excluded before traversal, so owner folder contents, Recent Items,
-other menus/apps and path-history rows are not enumerated. Unknown search fields
-are not written. If the safe picker subtree exposes neither supported path entry
+The conditional supported picker schema is a flat panel of direct controls.
+AXTable/Outline/Browser/List/Menu/PopUp children are skipped without traversal.
+Unclassified groups/scroll areas refuse the phase before descendant text reads;
+the reader does not search arbitrary containers for a useful control. Static text
+and control-history children are never read. Only direct admitted control labels
+are read, never unknown control values. After exact path entry/readback, a direct
+AXPathControl must expose that exact current-directory value before Open. This
+schema is unobserved on the retained native picker and may refuse it entirely.
+Unknown search fields are not written. If the safe picker exposes neither supported path entry
 nor a named action to it, NATIVE_PATH_ENTRY_UNAVAILABLE is the concrete limit:
 no path is sent and the prepared normal-termination cleanup runs. There is no
 honest full native setup-readiness claim until that actual capability is observed.
@@ -90,8 +105,12 @@ The new-settings radio/project/review controls are the actual labels from the
 retained57-node observation. The preview must expose all3 distinct destinations
 under the exact development AppData, with Saved choices equal to
 desktop-startup/request.json.
-The native related question must name the same project/data source and exact
-Leave/Create/Cancel button set. Only the real affirmative button authorizes the
+The native related question must contain the full retained new-settings effects
+text, with the exact three reviewed destinations/project and exact
+Leave/Create/Cancel button set. Abbreviated/digest-only questions are unsupported
+and refused. The statement/root/target are rechecked before dispatch; changing
+text on the same button does not preserve authority. Project readbacks use whole
+lines rather than prefix/substring matches. Only the real affirmative button authorizes the
 normal host prepare call. No product token, native question or IPC check is
 bypassed. Native UI result is followed by the actual generated pending request.
 
@@ -103,7 +122,7 @@ request; never an auth file or existing owner Codex/App state.
 
 ## Focused verification and handoff
 
-31 focused tests pass through normal shared-wrapper admission with a fresh
+The initial 31 focused tests passed through normal shared-wrapper admission with a fresh
 scratch Codex home. All OS effects are mocked. They cover successful phase flow;
 related/nested picker relationships; wrong owner/main or ambiguous targets;
 scalar reference/array distinction; lazy/transient/missing values; stale control
@@ -113,6 +132,21 @@ cleanup beginning at cutoff; separate late closure without changing initial fail
 no repeat; and a slot finalizer that holds across controller/recording failure.
 The no-file-list/history test raises if a private child is visited. Tests are
 preparation evidence, not native picker, confirmation, save or cleanup success.
+
+Agent0's independent review at exact head3d9fb116 returned changes requested:
+receipt failures could skip termination, a pre-dispatch failure could hold an
+unlaunched slot, confirmation provenance/readback was weak, regenerated manifests
+could rebind the case, generic picker containers were read before filtering,
+and PID reuse could hold for a replacement process. The additive v3 repair
+addresses those six findings in this PR. The maintained suite now has43 tests,
+including the review's failure scenarios, an actual NativeSession admission
+path stopped before native loading, receipt failure at both cleanup sites,
+unknown launch dispatch, same-button statement changes at the actual press
+boundary, private text behind unclassified containers, replacement birth and a
+slow operation that produces a failed overrun. All OS effects remain mocked.
+The original exact-version review is not relabelled as a clean review of v3.
+Private focused log: app-pr135-repair-checks-k0rbj7zf/focused.log (initial repair
+run); final checked commands/results are retained with the PR repair return.
 
 Deliverables/diff checks and the exact prepared source manifest accompany the
 PR return. Agent0, not this manager, will commission the one independent review
@@ -127,8 +161,9 @@ Preparation is based on main3f6f7e858147ff07fb1ff9c56e61b88d184d1e7b by normal
 fast-forward reconciliation of the isolated contribution branch. Frontend
 coordination and product/package/lock bytes are untouched by this contribution.
 Current manager/settings: codex-hub/gpt-6.1-sol, reasoningEffort=xhigh,
-serviceTier=default. No Type2 was created; Agent0 owns the next independent
-exact-version review. Historical reviews/models retain their actual standing.
+serviceTier=default. The initial manager preparation created no Type2. Agent0
+commissioned the independent exact-version review described above and owns the
+repair/integration disposition. Historical reviews/models retain their actual standing.
 
 The retained phase-aware preparation contains the exact controller, tests, pinned
 reader, reviewed input/subject references and a manifest with their SHA256s.
@@ -140,4 +175,6 @@ capability remains the explicit unresolved observation above.
 
 The focused test file uses the existing test_native_attended*.py discovery name
 so the maintained native CI cohort runs these cases without a workflow change.
-This filename/Work-reference adjustment does not change controller or test bytes.
+That original filename/Work-reference adjustment did not change controller or
+test bytes. The later v3 repair does; the frozen v2 export and FINAL_HEAD mapping
+remain historical inputs, not a receipt for the repaired bytes.

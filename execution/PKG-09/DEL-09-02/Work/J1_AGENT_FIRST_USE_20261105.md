@@ -210,3 +210,18 @@ packaged resources or the retained development candidate. No further native
 launch, model/auth, source build or owner-operated regression is authorized.
 Agent0 will commission one independent exact-version code/method review before
 any future live selection. No new delegate was created for this preparation.
+
+## Independent review and controller repairs (no new native attempt)
+
+Agent0 commissioned one Codex-Hub gpt-6.1-sol/xhigh/standard review of exact
+3d9fb116c22779d317f1fcb1b2e2b65e0a3be1df. Its 31 mocked checks passed, but six
+supplemental failure scenarios established controller defects. The review
+requested changes; passing hosted CI did not resolve them. Agent0's additive
+repair protects cleanup from receipt errors, distinguishes known undispatched
+launches, binds full confirmation effects to reviewed destinations, anchors
+packet members to the reviewed receipt, refuses unknown picker structures before
+text reads, and treats a replacement kernel birth as original-process absence.
+The maintained mocked suite grows to43 cases. Details and the remaining
+cooperative-timing/unobserved-native-path limits are in J1_PHASE_PREPARATION.md.
+No new App/supplier launch, model/auth, native input or candidate change occurred.
+The two actual attempt outcomes and all their original bytes above are unchanged.

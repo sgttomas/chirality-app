@@ -7,10 +7,31 @@ import unittest
 from unittest.mock import patch
 
 from j1_stage_a_phase import (Subject, Control, View, StageA, NativeAX, NativeSession,
-                              NotReady, Refusal, phase_root, checked_locations, normal_terminate, run_prepared, checked_pending, private_journal)
+                              NotReady, Refusal, phase_root, checked_locations, normal_terminate, run_prepared, checked_pending, private_journal,
+                              checked_packet)
 
 S = Subject('retained-source', '/invented/Test.app', 'dev.invented.test', '/invented/Test.app/Contents/MacOS/app',
             'a' * 64, '/invented/packet/session/project', '/invented/Library/Application Support/dev.invented.test')
+
+LOCATIONS = {'Settings folder': S.app_data + '/settings/one',
+             'Sign-in folder': S.app_data + '/account-homes/one',
+             'Saved choices': S.app_data + '/desktop-startup/request.json'}
+
+# Constructed golden question from eaf5d057 DesktopSetup::preview_statement;
+# deliberately independent of the controller's expected-statement builder.
+QUESTION = (
+    'Desktop setup — next launch only\n'
+    f"Create NEW App-owned settings folder: {LOCATIONS['Settings folder']}\n"
+    'with an empty config.toml, an empty AGENTS.md and an empty skills folder.\n'
+    f"Create NEW App-owned account directory: {LOCATIONS['Sign-in folder']}\n"
+    'Link its config.toml, AGENTS.md and skills to those new settings.\n'
+    'Read, import or change no other Codex settings, home or credential.\n'
+    f'Project for next launch: {S.project}\n'
+    f"Save a private pending request in {LOCATIONS['Saved choices']}.\n"
+    'Codex: the copy included with this App (bundled-owner-use-development).\n'
+    'The current workspace, homes, account/model choices, records and prepared messages stay unchanged. '
+    'No automatic quit/restart/login/conversation.'
+)
 
 
 def c(label, role='AXButton', enabled=True, value=None, writable=False, ref=None):
@@ -89,7 +110,7 @@ class FakeIO:
             controls = [c('Leave setup unchanged'), c('Create settings and save for next launch'), c('Cancel')]
             if self.failure == 'question':
                 controls[1] = c('Different action')
-            return View(main, 'confirmation-related', controls, 'Desktop setup ' + S.project + ' ' + S.app_data)
+            return View(main, 'confirmation-related', controls, QUESTION)
         if phase == 'saved':
             return View(main, main, [], "You're set up", True)
         raise AssertionError(phase)
@@ -598,3 +619,204 @@ class FinalPreparationRegressionTests(unittest.TestCase):
         ax.b = Backend(); ax.pid = 17
         for _ in range(5): self.assertEqual(ax.value('owned', 'AXTitle'), 'owned text')
         self.assertEqual(len(checks), 2)
+
+
+class ReviewRepairTests(unittest.TestCase):
+    def test_cleanup_intent_receipt_failure_still_dispatches_and_reports_evidence_gap(self):
+        now = [0.0]; io = FakeIO(now)
+        def record(kind, value):
+            if kind == 'cleanup-intent': raise OSError('invented ENOSPC')
+        result = StageA(S, io, clock=lambda: now[0],
+                        sleep=lambda n: now.__setitem__(0, now[0] + n), record=record).run()
+        self.assertEqual(io.events.count('terminate-original'), 1)
+        self.assertTrue(result['original_absent'])
+        self.assertFalse(result['flow_complete'])
+        self.assertEqual(result['evidence_errors'][0]['record'], 'cleanup-intent')
+
+    def test_native_cleanup_receipt_errors_cannot_suppress_or_repeat_request(self):
+        for failed in ('normal-terminate-intent', 'normal-terminate-result'):
+            with self.subTest(failed=failed):
+                identity, kit, events = CleanupCorrespondenceTests().fixture()
+                def record(kind, value):
+                    if kind == failed: raise OSError('invented receipt failure')
+                session = NativeSession(S, {}, record)
+                session.backend = object(); session.appkit = kit; session.check = lambda got: None
+                self.assertTrue(session.normal_terminate(identity, S))
+                self.assertEqual(events.count('terminate'), 1)
+                self.assertEqual(session.evidence_errors[0]['record'], failed)
+                with self.assertRaises(Refusal): session.normal_terminate(identity, S)
+                self.assertEqual(events.count('terminate'), 1)
+
+    def test_failed_launch_intent_is_known_undispatched_but_dispatch_timeout_is_unknown(self):
+        import subprocess
+        def failed(*args): raise OSError('invented launch-intent write failure')
+        session = NativeSession(S, {}, failed)
+        with patch('subprocess.run') as dispatch:
+            with self.assertRaises(OSError): session.launch_once(S)
+        dispatch.assert_not_called()
+        self.assertFalse(session.launch_unknown())
+        session = NativeSession(S, {}, lambda *a: None)
+        with patch('subprocess.run', side_effect=subprocess.TimeoutExpired('open', 5)) as dispatch:
+            with self.assertRaises(subprocess.TimeoutExpired): session.launch_once(S)
+            with self.assertRaises(Refusal): session.launch_once(S)
+        self.assertEqual(dispatch.call_count, 1)
+        self.assertTrue(session.launch_unknown())
+
+    def test_changed_confirmation_destinations_or_abbreviation_never_receive_affirmative(self):
+        for change in ('settings', 'account', 'abbreviated'):
+            with self.subTest(change=change):
+                now = [0.0]; io = FakeIO(now); observe = io.observe
+                def altered(main, phase, deadline):
+                    view = observe(main, phase, deadline)
+                    if phase == 'confirmation':
+                        if change == 'abbreviated': view.text = 'Desktop setup\n' + S.project + '\n' + S.app_data
+                        else:
+                            key = 'Settings folder' if change == 'settings' else 'Sign-in folder'
+                            view.text = view.text.replace(LOCATIONS[key], LOCATIONS[key] + '-different')
+                    return view
+                io.observe = altered
+                result = StageA(S, io, clock=lambda: now[0], sleep=lambda n: now.__setitem__(0, now[0] + n)).run()
+                self.assertFalse(result['setup_saved'])
+                self.assertNotIn('press:Create settings and save for next launch', io.events)
+                self.assertEqual(io.events.count('terminate-original'), 1)
+
+    def test_same_button_cannot_revalidate_a_changed_native_statement(self):
+        ax = NativeAX.__new__(NativeAX)
+        ax.last_phase = 'confirmation'; ax.same = lambda a, b: a == b
+        button = c('Create settings and save for next launch')
+        previous = View('main', 'question', [button], 'reviewed full statement')
+        ax.observe = lambda *args: View('main', 'question', [button], 'changed full statement')
+        with self.assertRaisesRegex(Refusal, 'content changed'):
+            ax.revalidate(previous, button, 10)
+
+    def test_statement_is_checked_again_at_actual_press_boundary(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        ax = NativeAX.__new__(NativeAX)
+        button = c('Create settings and save for next launch')
+        ax.last_phase = 'confirmation'; ax.main = 'main'; ax.same = lambda a, b: a == b
+        ax.last_view = View('main', 'question', [button], 'reviewed full statement')
+        ax.observe = lambda *args: View('main', 'question', [button], 'changed just before dispatch')
+        ax.clock = lambda: 0; ax.check = lambda: None; ax._bound_target = lambda *a: None
+        def actions(ref, out): out._obj.value = 1; return 0
+        dispatch = Mock(return_value=0)
+        ax.b = SimpleNamespace(a=SimpleNamespace(AXUIElementCopyActionNames=actions,
+                                                AXUIElementPerformAction=dispatch), held=[],
+                               scalar=lambda x: 'AXPress', array=lambda *a: [1], string=lambda x: x)
+        with self.assertRaisesRegex(Refusal, 'statement changed'):
+            ax.press(button, 10)
+        dispatch.assert_not_called()
+
+    def test_project_prefix_does_not_authorize_review(self):
+        now = [0.0]; io = FakeIO(now); observe = io.observe
+        def altered(main, phase, deadline):
+            view = observe(main, phase, deadline)
+            if phase == 'main' and io.selected: view.text = S.project + '-different'
+            return view
+        io.observe = altered
+        result = StageA(S, io, clock=lambda: now[0], sleep=lambda n: now.__setitem__(0, now[0] + n)).run()
+        self.assertFalse(result['setup_saved'])
+        self.assertNotIn('press:Review setup', io.events)
+
+    def test_unknown_picker_container_refuses_before_any_content_read(self):
+        for role in ('AXGroup', 'AXScrollArea'):
+            with self.subTest(role=role):
+                ax = NativeAX.__new__(NativeAX); ax.clock = lambda: 0; ax.same = lambda a, b: a == b
+                ax.role = lambda ref: {'panel': 'AXSheet', 'unknown': role, 'open': 'AXButton'}[ref]
+                reads = []
+                def value(ref, name):
+                    reads.append((ref, name))
+                    if ref == 'panel' and name == 'AXChildren': return ['open', 'unknown']
+                    raise AssertionError('unclassified content must not be read')
+                ax.value = value
+                with self.assertRaisesRegex(Refusal, 'unclassified picker structure'):
+                    ax._controls('panel', True, 10)
+                self.assertEqual(reads, [('panel', 'AXChildren')])
+
+    def test_flat_picker_reads_no_static_text_or_path_history(self):
+        ax = NativeAX.__new__(NativeAX); ax.clock = lambda: 0; ax.same = lambda a, b: a == b
+        ax.project = S.project; ax.path_entry_verified = True
+        roles = {'panel': 'AXSheet', 'open': 'AXButton', 'private': 'AXStaticText', 'directory': 'AXPathControl'}
+        ax.role = lambda ref: roles[ref]
+        def value(ref, name):
+            if ref == 'panel' and name == 'AXChildren': return ['private', 'directory', 'open']
+            if ref == 'directory' and name == 'AXValue': return S.project
+            if ref == 'open' and name == 'AXTitle': return 'Open'
+            if ref == 'open' and name == 'AXEnabled': return True
+            raise AssertionError('private content or control descendants read')
+        ax.value = value
+        controls, text, _ = ax._controls('panel', True, 10)
+        self.assertEqual(text, S.project)
+        self.assertEqual([x.label for x in controls], ['Open'])
+
+    def test_pid_reuse_proves_original_absent_without_targeting_replacement(self):
+        from types import SimpleNamespace
+        identity = {'pid': 17, 'start_sec': 10, 'start_usec': 20}
+        session = NativeSession(S, {}, lambda *a: None)
+        occupied = SimpleNamespace(returncode=0, stdout='17 /invented/replacement\n')
+        with patch('subprocess.run', return_value=occupied):
+            session.process_birth = lambda pid: (10, 20)
+            self.assertFalse(session.absent(identity))
+            session.process_birth = lambda pid: (11, 20)
+            self.assertTrue(session.absent(identity))
+            session.process_birth = lambda pid: (_ for _ in ()).throw(OSError('unknown'))
+            self.assertFalse(session.absent(identity))
+        with patch('subprocess.run', return_value=SimpleNamespace(returncode=1, stdout='')):
+            self.assertTrue(session.absent(identity))
+        with patch('subprocess.run', return_value=SimpleNamespace(returncode=1, stdout='', stderr='observation denied')):
+            self.assertFalse(session.absent(identity))
+        self.assertFalse(session.termination_used)
+
+    def test_slow_operation_records_failed_overrun_not_a_hard_deadline_pass(self):
+        now = [0.0]; io = FakeIO(now); observe = io.observe
+        def delayed(main, phase, deadline):
+            view = observe(main, phase, deadline)
+            if phase == 'picker': now[0] = 185
+            return view
+        io.observe = delayed
+        result = StageA(S, io, clock=lambda: now[0], sleep=lambda n: now.__setitem__(0, now[0] + n)).run()
+        self.assertEqual(result['cleanup_started'], 185)
+        self.assertEqual(result['overrun'], 5)
+        self.assertFalse(result['flow_complete'])
+
+
+class ReviewedPacketAdmissionTests(unittest.TestCase):
+    def test_changed_case_with_regenerated_manifests_fails_before_native_preparation(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); packet = root / 'packet'; project = packet / 'session/project'
+            project.mkdir(parents=True)
+            (project / 'BRIEF.md').write_text('reviewed invented task')
+            (packet / 'README.md').write_text('invented packet')
+            def manifest(name, members):
+                rows = []
+                for member in members:
+                    digest = hashlib.sha256((packet / member).read_bytes()).hexdigest()
+                    rows.append({'manifest': name, 'path': member, 'sha256': digest})
+                (packet / name).write_text(''.join(row['sha256'] + '  ' + row['path'] + '\n' for row in rows))
+                return rows
+            def regenerate():
+                case = manifest('case-manifest.sha256', ['session/project/BRIEF.md'])
+                return manifest('PACKET.sha256', ['README.md', 'case-manifest.sha256']) + case
+            reviewed = regenerate()
+            checked_packet(packet, reviewed)
+            exe = root / 'Test.app/Contents/MacOS/app'; exe.parent.mkdir(parents=True); exe.write_bytes(b'invented executable')
+            subject = replace(S, bundle=str(root / 'Test.app'), executable=str(exe),
+                              executable_sha256=hashlib.sha256(exe.read_bytes()).hexdigest(),
+                              project=str(project), app_data=str(root / 'home/Library/Application Support' / S.identifier))
+            preflight = {'source': subject.source, 'bundle': subject.bundle, 'identifier': subject.identifier,
+                         'executable': subject.executable, 'executable_sha256': subject.executable_sha256,
+                         'packet': str(packet), 'development_state': [], 'manifest_checks': reviewed}
+            with patch.object(Path, 'home', return_value=root / 'home'), \
+                 patch('subprocess.check_output', side_effect=RuntimeError('mock parent checkpoint')) as parent:
+                with self.assertRaisesRegex(RuntimeError, 'parent checkpoint'):
+                    NativeSession(subject, preflight, lambda *a: None).admit(subject)
+                parent.assert_called_once()
+            (project / 'BRIEF.md').write_text('changed case')
+            regenerate()
+            with patch.object(Path, 'home', return_value=root / 'home'), patch('subprocess.check_output') as parent:
+                with self.assertRaisesRegex(Refusal, 'manifest differs'):
+                    NativeSession(subject, preflight, lambda *a: None).admit(subject)
+                parent.assert_not_called()
+            for rows in (reviewed[:-1], reviewed + [dict(reviewed[0])]):
+                with self.assertRaises(Refusal): checked_packet(packet, rows)

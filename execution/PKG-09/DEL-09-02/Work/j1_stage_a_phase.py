@@ -1,4 +1,4 @@
-"""Prepared J1 Stage A controller v2. Importing this module performs no OS/UI work.
+"""Prepared J1 Stage A controller v3. Importing this module performs no OS/UI work.
 
 One exact development App, retained main, related picker/confirmation phases,
 and prebound normal AppKit termination. No CLI/native run is selected by this PR.
@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 import time
+from copy import deepcopy
 
 
 class Refusal(RuntimeError):
@@ -23,6 +24,63 @@ class NotReady(Refusal):
 def require(ok, why):
     if not ok:
         raise Refusal(why)
+
+
+def cleanup_receipt(record, kind, value, errors):
+    """Evidence failure never suppresses an identity-validated cleanup request."""
+    try:
+        record(kind, deepcopy(value))
+    except BaseException as error:
+        errors.append({'record': kind, 'error': repr(error)})
+
+
+def setup_effects(subject, locations):
+    """Full eaf5d057 DesktopSetup::preview_statement for new settings only."""
+    checked_locations(locations, subject)
+    return (
+        f"Create NEW App-owned settings folder: {locations['Settings folder']}\n"
+        "with an empty config.toml, an empty AGENTS.md and an empty skills folder.\n"
+        f"Create NEW App-owned account directory: {locations['Sign-in folder']}\n"
+        "Link its config.toml, AGENTS.md and skills to those new settings.\n"
+        "Read, import or change no other Codex settings, home or credential.\n"
+        f"Project for next launch: {subject.project}\n"
+        f"Save a private pending request in {locations['Saved choices']}.\n"
+        "Codex: the copy included with this App (bundled-owner-use-development).\n"
+        "The current workspace, homes, account/model choices, records and prepared messages stay unchanged. "
+        "No automatic quit/restart/login/conversation."
+    )
+
+
+def checked_question(view, subject, locations):
+    title, separator, body = view.text.partition('\n')
+    require(separator and title in ('Desktop setup — next launch only', 'Desktop setup')
+            and body == setup_effects(subject, locations),
+            'native full effects differ from reviewed project/destinations; abbreviated questions unsupported')
+
+
+def checked_packet(packet, reviewed):
+    """Compare members to the reviewed receipt BEFORE opening their paths."""
+    expected = {}
+    for row in reviewed:
+        manifest, name = row['manifest'], row['path']
+        require(manifest in ('PACKET.sha256', 'case-manifest.sha256'), 'unreviewed manifest')
+        require(name not in expected.setdefault(manifest, {}), 'duplicate reviewed member')
+        expected[manifest][name] = row['sha256']
+    require(set(expected) == {'PACKET.sha256', 'case-manifest.sha256'}
+            and all(expected.values()), 'reviewed packet member sets unavailable')
+    for manifest in ('PACKET.sha256', 'case-manifest.sha256'):
+        actual = {}
+        for line in (packet / manifest).read_text().splitlines():
+            digest, name = line.split(None, 1)
+            name = name.strip().lstrip('*')
+            require(name not in actual, 'duplicate packet member')
+            actual[name] = digest
+        require(actual == expected[manifest], 'packet manifest differs from reviewed receipt')
+        for name, digest in actual.items():
+            path = packet / name
+            require(path.resolve().is_relative_to(packet.resolve())
+                    and hashlib.sha256(path.read_bytes()).hexdigest() == digest,
+                    'reviewed packet/project changed')
 
 
 @dataclass(frozen=True)
@@ -276,10 +334,10 @@ class StageA:
         picker = self.observe('picker')
         self.press(picker, picker.one('Go'), 'native Go to exact project')
         picker = self.observe('picker')
-        require(self.subject.project in picker.text, 'picker does not expose selected exact directory')
+        require(self.subject.project in picker.text.splitlines(), 'picker does not expose selected exact directory')
         self.press(picker, picker.one('Open'), 'native Open exact project')
         view = self.observe('main')
-        require(self.subject.project in view.text, 'project selection not shown by App')
+        require(self.subject.project in view.text.splitlines(), 'exact project selection not shown by App')
         return view
 
     def setup(self):
@@ -300,8 +358,7 @@ class StageA:
         self.record('verified-write-locations', {'locations': view.locations, 'project': self.subject.project})
         self.press(view, view.one('Create settings and save for next launch…'), 'request native confirmation')
         question = self.observe('confirmation')
-        require(self.subject.project in question.text and self.subject.app_data in question.text
-                and 'Desktop setup' in question.text, 'native statement does not bind project/write source')
+        checked_question(question, self.subject, reviewed_locations)
         names = {c.label for c in question.controls if c.role == 'AXButton' and c.enabled}
         require(names == {'Leave setup unchanged', 'Create settings and save for next launch', 'Cancel'},
                 'native confirmation button set differs')
@@ -320,6 +377,7 @@ class StageA:
         self.end, self.work_end = start + self.TOTAL, start + self.WORK
         result = {'actor': 'agent', 'source': self.subject.source, 'setup_saved': False,
                   'J1_complete': False, 'qualification': False, 'launches': 0}
+        evidence_errors = []
         try:
             self.io.admit(self.subject)  # cleanup capability is prepared here too
             require(self.clock() < self.work_end, 'admission consumed setup budget')
@@ -338,27 +396,37 @@ class StageA:
                 self.cleanup_attempted = True
                 result['cleanup_started'] = self.clock() - start
                 result['cleanup_within_reserved_interval'] = self.clock() <= self.end - 60
-                self.record('cleanup-intent', {'at': self.clock(), 'original': self.identity,
-                                               'mechanism': 'normal NSRunningApplication terminate',
-                                               'no_parent_roundtrip': True})
+                cleanup_receipt(self.record, 'cleanup-intent',
+                                {'at': self.clock(), 'original': self.identity,
+                                 'mechanism': 'normal NSRunningApplication terminate',
+                                 'no_parent_roundtrip': True}, evidence_errors)
                 try:
                     # Does not use main/menu/title/picker or ask parent for input.
                     self.io.check(self.identity)
                     result['terminate_BOOL'] = self.io.normal_terminate(self.identity, self.subject)
                 except BaseException as error:
                     result['cleanup_error'] = repr(error)
-                while self.clock() < self.end and not self.io.absent(self.identity):
-                    self.sleep(min(.2, max(0, self.end - self.clock())))
-                result['original_absent'] = self.io.absent(self.identity)
+                try:
+                    while self.clock() < self.end and not self.io.absent(self.identity):
+                        self.sleep(min(.2, max(0, self.end - self.clock())))
+                    result['original_absent'] = self.io.absent(self.identity)
+                except BaseException as error:
+                    result['original_absent'] = False
+                    result['absence_error'] = repr(error)
             else:
                 result['original_absent'] = not self.io.launch_unknown()
             result.update(elapsed=self.clock() - start, overrun=max(0, self.clock() - self.end),
                           actions=list(self.acts), slot_must_remain_held=not result['original_absent'],
                           launch_outcome_unknown=self.identity is None and self.io.launch_unknown())
+            evidence_errors.extend(getattr(self.io, 'evidence_errors', []))
+            result['evidence_errors'] = evidence_errors
             result['flow_complete'] = (result['setup_saved'] and result['original_absent']
                                        and result.get('terminate_BOOL') is True and result['overrun'] == 0
-                                       and not result.get('setup_error') and not result.get('cleanup_error'))
-            self.record('result', result)
+                                       and not result.get('setup_error') and not result.get('cleanup_error')
+                                       and not evidence_errors)
+            cleanup_receipt(self.record, 'result', result, evidence_errors)
+            if evidence_errors:
+                result['flow_complete'] = False
         return result
 
 
@@ -429,6 +497,8 @@ class NativeAX:
         return self.main
 
     def _controls(self, root, picker, deadline):
+        if picker:
+            return self._picker_controls(root, deadline)
         stack, seen, controls, text, webarea = [(root, 0)], [], [], [], False
         while stack:
             require(self.clock() < deadline and len(seen) < 500, 'phase AX walk budget')
@@ -443,22 +513,48 @@ class NativeAX:
             webarea |= role == 'AXWebArea'
             if role in ('AXButton', 'AXRadioButton', 'AXDisclosureTriangle', 'AXTextField', 'AXComboBox'):
                 title = self.value(ref, 'AXTitle') or self.value(ref, 'AXDescription') or ''
-                value = self.value(ref, 'AXValue') if not picker or title in ('Go to the folder:', 'Go to folder:') else None
-                writable = False
-                if picker and role in ('AXTextField', 'AXComboBox') and title in ('Go to the folder:', 'Go to folder:'):
-                    writable = self._settable(ref)
-                controls.append(Control(ref, role, title, self.value(ref, 'AXEnabled') is True, value, writable))
+                value = self.value(ref, 'AXValue')
+                controls.append(Control(ref, role, title, self.value(ref, 'AXEnabled') is True, value, False))
             elif role in ('AXStaticText', 'AXHeading'):
                 value = self.value(ref, 'AXValue') or self.value(ref, 'AXTitle') or ''
-                if isinstance(value, str) and (not picker or value == self.project):
+                if isinstance(value, str):
                     text.append(value)
-            if picker and role in ('AXTextField', 'AXComboBox'):
-                continue  # do not enumerate path history/completion suggestions
             children = self.value(ref, 'AXChildren')
             if children is not None:
                 require(isinstance(children, list) and len(children) <= 80, 'phase child bound')
                 stack.extend((child, depth + 1) for child in reversed(children))
         return controls, '\n'.join(text), webarea
+
+    def _picker_controls(self, root, deadline):
+        # Conditional supported schema: direct panel controls only. No generic
+        # group/scroll-area discovery and no static-text/file/history values.
+        # An unknown structure refuses before any descendant content is read.
+        require(self.role(root) in ('AXSheet', 'AXDialog', 'AXWindow'), 'picker root role differs')
+        children = self.refs(root, 'AXChildren', optional=False)
+        typed = [(ref, self.role(ref)) for ref in children]
+        admitted = {'AXButton', 'AXTextField', 'AXComboBox', 'AXPathControl', 'AXStaticText'}
+        require(all(role in admitted or role in self.EXCLUDED for _, role in typed),
+                'NATIVE_PATH_ENTRY_UNAVAILABLE: unclassified picker structure')
+        controls, paths = [], []
+        for ref, role in typed:
+            require(self.clock() < deadline, 'picker control budget')
+            if role in self.EXCLUDED or role == 'AXStaticText':
+                continue
+            if role == 'AXPathControl':
+                if getattr(self, 'path_entry_verified', False):
+                    value = self.value(ref, 'AXValue')
+                    require(isinstance(value, str) and value == self.project,
+                            'NATIVE_PATH_ENTRY_UNAVAILABLE: exact current directory not exposed')
+                    paths.append(value)
+                continue  # never inspect breadcrumb/history children
+            title = self.value(ref, 'AXTitle') or self.value(ref, 'AXDescription') or ''
+            allowed = (('Go', 'Open', 'Cancel', 'Go to Folder…', 'Go to folder…') if role == 'AXButton'
+                       else ('Go to the folder:', 'Go to folder:'))
+            if title not in allowed:
+                continue  # control metadata only; never its value/children
+            writable = role in ('AXTextField', 'AXComboBox') and self._settable(ref)
+            controls.append(Control(ref, role, title, self.value(ref, 'AXEnabled') is True, None, writable))
+        return controls, '\n'.join(paths), False
 
     def observe(self, main, phase, deadline):
         self.check()
@@ -481,7 +577,8 @@ class NativeAX:
         self.check()
         require(self.clock() < deadline, 'phase observation returned late')
         self.last_phase, self.last_root, self.end = phase, root, deadline
-        return View(main, root, controls, text, webarea, locations)
+        self.last_view = View(main, root, controls, text, webarea, locations)
+        return self.last_view
 
     def _settable(self, ref):
         fn = self.b.a.AXUIElementIsAttributeSettable
@@ -494,6 +591,9 @@ class NativeAX:
         phase = self.last_phase
         current = self.observe(view.main, phase, deadline)
         require(self.same(current.root, view.root), 'phase root changed before action')
+        if phase in ('preview', 'confirmation'):
+            require(current.text == view.text and current.locations == view.locations,
+                    'reviewed phase content changed before action')
         found = [c for c in current.controls if self.same(c.ref, control.ref) and c.role == control.role
                  and c.label == control.label and c.enabled]
         require(len(found) == 1, 'phase target changed')
@@ -530,6 +630,13 @@ class NativeAX:
         require('AXPress' in [self.b.scalar(x) for x in self.b.array(value.value, 12)], 'AXPress unsupported')
         self.check()
         require(self.clock() < deadline, 'phase cutoff before press')
+        if self.last_phase == 'confirmation':
+            previous = self.last_view
+            current = self.observe(self.main, 'confirmation', deadline)
+            require(self.same(previous.root, current.root) and previous.text == current.text,
+                    'native statement changed immediately before affirmative')
+            require(any(self.same(c.ref, control.ref) and c.label == control.label and c.enabled
+                        for c in current.controls), 'native affirmative changed')
         fn = self.b.a.AXUIElementPerformAction
         fn.restype, fn.argtypes = C.c_int, [C.c_void_p, C.c_void_p]
         return fn(control.ref, self.b.string('AXPress'))
@@ -545,22 +652,27 @@ class NativeAX:
         return fn(control.ref, self.b.string('AXValue'), self.b.string(path))
 
     def read_value(self, control):
-        return self.value(control.ref, 'AXValue')
+        value = self.value(control.ref, 'AXValue')
+        if control.label in ('Go to the folder:', 'Go to folder:') and value == self.project:
+            self.path_entry_verified = True
+        return value
 
 
-def normal_terminate(backend, identity, subject, record, appkit, check):
+def normal_terminate(backend, identity, subject, record, appkit, check, evidence_errors=None):
     """Concrete one-request cleanup. appkit is the narrow AppKit adapter below.
 
     No AX/main/title dependency. Identity and AppKit correspondence precede the
     single selector; an unknown return is consumed, never retried.
     """
+    evidence_errors = [] if evidence_errors is None else evidence_errors
     check(identity)
     with appkit.target(identity['pid']) as target:
         actual = appkit.describe(target)
         require(actual == {'pid': identity['pid'], 'bundle_identifier': subject.identifier,
                            'executable': subject.executable}, 'AppKit target correspondence differs')
         check(identity)
-        record('normal-terminate-intent', {'identity': identity, 'AppKit': actual, 'actor': 'agent'})
+        cleanup_receipt(record, 'normal-terminate-intent',
+                        {'identity': identity, 'AppKit': actual, 'actor': 'agent'}, evidence_errors)
         rc, error = None, None
         try:
             check(identity)
@@ -570,7 +682,8 @@ def normal_terminate(backend, identity, subject, record, appkit, check):
             error = repr(exc)
             raise
         finally:
-            record('normal-terminate-result', {'BOOL': rc, 'error': error, 'effect_proved': False})
+            cleanup_receipt(record, 'normal-terminate-result',
+                            {'BOOL': rc, 'error': error, 'effect_proved': False}, evidence_errors)
 
 class AppKit:
     """Exact-PID normal termination only; no activate/forceTerminate selector."""
@@ -646,6 +759,7 @@ class NativeSession:
         self.clock, self.sleep = clock, sleep
         self.identity, self.ax, self.backend, self.appkit = None, None, None, None
         self.pending_launch, self.launched, self.termination_used = False, False, False
+        self.evidence_errors = []
 
     def admit(self, subject):
         import subprocess
@@ -662,12 +776,7 @@ class NativeSession:
         state = [{'path': row['path'], 'present': os.path.lexists(row['path'])}
                  for row in self.preflight['development_state']]
         packet = Path(self.preflight['packet'])
-        for manifest in ('PACKET.sha256', 'case-manifest.sha256'):
-            for line in (packet / manifest).read_text().splitlines():
-                digest, name = line.split(None, 1)
-                path = packet / name.strip().lstrip('*')
-                require(path.resolve().is_relative_to(packet.resolve()) and hashlib.sha256(path.read_bytes()).hexdigest() == digest,
-                        'packet/project changed')
+        checked_packet(packet, self.preflight['manifest_checks'])
         parent = subprocess.check_output(['/bin/ps', '-p', str(os.getppid()), '-o', 'command='], text=True, timeout=2)
         require('/Users/ryan/dev/chirality-t3/tools/t3_slot_run.sh' in parent, 'ordinary slot parent unavailable')
         # Prepare both cleanup APIs before launching: a load/signature failure
@@ -684,6 +793,7 @@ class NativeSession:
                 require(inner.kind(element)['name'] == 'AXUIElement', 'invalid AX object')
                 require(inner.a.AXUIElementSetMessagingTimeout(element, .2) == 0, 'AX timeout unavailable')
         self.backend, self.appkit = Bounded(), AppKit()
+        self.bsd_type = diagnostic.Bsd
         trusted = self.backend.a.AXIsProcessTrusted
         trusted.restype, trusted.argtypes = C.c_bool, []
         require(trusted(), 'AX trust unavailable; no permission prompt')
@@ -708,8 +818,8 @@ class NativeSession:
     def launch_once(self, subject):
         import subprocess
         require(not self.launched and not self.pending_launch, 'one launch only')
-        self.pending_launch = True
         self.record('launch-intent', {'argv': ['/usr/bin/open', '-n', subject.bundle], 'source': subject.source})
+        self.pending_launch = True  # only the actual dispatch boundary can be unknown
         result = subprocess.run(['/usr/bin/open', '-n', subject.bundle], capture_output=True, text=True, timeout=5)
         require(result.returncode == 0, 'open failed/unknown launch outcome')
         pids = []
@@ -722,17 +832,17 @@ class NativeSession:
         identity = self.backend.identity(pids[0])
         require(identity['executable'] == subject.executable and identity['uid'] == identity['ruid'] == os.getuid()
                 and os.getpgid(identity['pid']) == identity['pid'], 'new original process differs')
-        self.identity = identity  # retain before any subsequent fallible work
+        self.identity = dict(identity)  # keep the original separate from receipt callbacks
         self.launched, self.pending_launch = True, False
-        self.record('launched', {'identity': identity, 'source': subject.source})
-        return identity
+        self.record('launched', {'identity': dict(identity), 'source': subject.source})
+        return dict(identity)
 
     def bind_cleanup(self, identity, subject):
         self.check(identity)
         with self.appkit.target(identity['pid']) as target:
             require(self.appkit.describe(target) == {'pid': identity['pid'], 'bundle_identifier': subject.identifier,
                                                     'executable': subject.executable}, 'initial cleanup correspondence differs')
-        self.record('cleanup-bound', {'identity': identity, 'mechanism': 'normal terminate', 'no_AX_dependency': True})
+        self.record('cleanup-bound', {'identity': dict(identity), 'mechanism': 'normal terminate', 'no_AX_dependency': True})
 
     def check(self, identity):
         require(identity is not None and self.identity == identity, 'original binding missing')
@@ -790,13 +900,31 @@ class NativeSession:
     def normal_terminate(self, identity, subject):
         require(not self.termination_used, 'normal terminate already consumed')
         self.termination_used = True
-        return normal_terminate(self.backend, identity, subject, self.record, self.appkit, self.check)
+        return normal_terminate(self.backend, identity, subject, self.record, self.appkit, self.check,
+                                self.evidence_errors)
+
+    def process_birth(self, pid):
+        # Birth-only observation does not impose the original process's UID or
+        # executable on a replacement. It never authorizes input to that PID.
+        info = self.bsd_type()
+        size = C.sizeof(info)
+        require(size == 136 and self.backend.p.proc_pidinfo(pid, 3, 0, C.byref(info), size) == size
+                and info.pid == pid, 'kernel birth observation unavailable')
+        return (int(info.start_sec), int(info.start_usec))
 
     def absent(self, identity):
         import subprocess
         result = subprocess.run(['/bin/ps', '-p', str(identity['pid']), '-o', 'pid=,lstart=,comm='],
                                 capture_output=True, text=True, timeout=2)
-        return result.returncode == 1 and not result.stdout.strip()
+        if result.returncode == 1:
+            return not result.stdout.strip() and not getattr(result, 'stderr', '').strip()
+        if result.returncode != 0:
+            return False
+        try:
+            expected = (identity['start_sec'], identity['start_usec'])
+            return self.process_birth(identity['pid']) != expected
+        except BaseException:
+            return False  # unknown is held, never treated as original absence
 
     def launch_unknown(self):
         return self.pending_launch or self.identity is not None
