@@ -73,8 +73,10 @@ after a relaunch.
 
 ## Not established
 
-- **Open residual:** the "ready to send" label for the held copy. It is fixed in
-  #124 and is not yet merged. It is recorded here and not waived.
+- **Residual, later repaired:** the "ready to send" label for the held copy was
+  open when #119 was integrated (main `f96e4252`). It was repaired by #124:
+  rendered at `f1a76e98` and `824e60f3`, and merged as main `2d584803`. See
+  `RENDERER_RUN_GUIDE_LABELS_20261104.md`. It was never waived.
 - **Not rendered:** a later guard on `runReading` belongs to #125 and was tested
   only in its source.
 - Any real Codex turn, model, native A15 dialog or window behaviour.
