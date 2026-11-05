@@ -204,3 +204,29 @@ so the maintained native CI cohort runs these cases without a workflow change.
 That original filename/Work-reference adjustment did not change controller or
 test bytes. The later v3 repair does; the frozen v2 export and FINAL_HEAD mapping
 remain historical inputs, not a receipt for the repaired bytes.
+
+
+## v4 correction: initial-main discovery precedes WebKit content readiness
+
+After the exact merged b1f0317a method was used once (PID96500, attempt account
+above), Agent0 selected this bounded OFFLINE correction. v3 consumed its3
+content-read attempts while initial_main still refused; only the final message,
+not actual root counts, was retained. It cannot establish a permanent absence
+or timing/permission cause. No new native run is performed here.
+
+StageA.startup now samples initial main at most10 times within20s, clipped to
+work_end. It records safe counts/category/elapsed/original PID and only waits
+for empty, self-only, AX cannot-complete or no-value states. Extra windows,
+wrong owner/identity/title and actual unexpected structures remain immediate
+refusals. NativeAX captures one unique original main and refuses replacement.
+NativeSession reuses the same original AX application reader during discovery;
+content ready() no longer calls original_main. Only after capture does the
+unchanged3-read/5s content window begin. Overall180s/work cutoff110s and prebound
+normal termination remain unchanged; these are cooperative budgets.
+
+No activation/focus/control workaround or broad discovery/logging was added.
+Startup counts remain null when unavailable. Unknown/malformed fact shapes
+refuse. This small test-readiness correction leaves authentic reviewed manifest
+checks, normal termination, setup/native confirmation/input provenance and
+original-birth-aware finalization unchanged. Agent0 will inspect the exact diff
+and choose any next live operation; no additional review delegate is created.

@@ -216,6 +216,18 @@ Current Type 1 assignments are:
   not a new native render or completed journey. Native owns the 2026-11-05
   first-use attempt and its next agent-operated capability option; no owner
   setup, picker or regression execution is requested.
+  The latest [agent first-use account](../PKG-09/DEL-09-02/Work/J1_AGENT_FIRST_USE_20261105.md#attempt-3-exact-merged-repaired-run_prepared-pid96500)
+  records one use of integrated #135/main `97135848` against the unchanged
+  `eaf5d057` development App. It refused initial-main readiness before any setup
+  input; prebound normal termination and original-process absence completed
+  autonomously in 3.50 s with no overrun. Setup/save and the conditional native
+  picker path remain unobserved. This is exact-instance cleanup evidence, with
+  no LaunchServices exit-code/reap, useful-model or qualification inference.
+  A bounded source/test correction now separates initial-main discovery
+  (up to20 s/10 read-only samples) from the existing WebKit3-read/5 s gate and
+  retains only safe startup counts/categories. It is offline preparation;
+  delayed start is a hypothesis, not a diagnosed cause or a new native result.
+  Agent 0 owns the next method selection; no automatic retry is selected.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current

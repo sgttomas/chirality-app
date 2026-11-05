@@ -1,4 +1,4 @@
-"""Prepared J1 Stage A controller v3. Importing this module performs no OS/UI work.
+"""Prepared J1 Stage A controller v4. Importing this module performs no OS/UI work.
 
 One exact development App, retained main, related picker/confirmation phases,
 and prebound normal AppKit termination. No CLI/native run is selected by this PR.
@@ -18,7 +18,9 @@ class Refusal(RuntimeError):
 
 
 class NotReady(Refusal):
-    pass
+    def __init__(self, message, category=None):
+        super().__init__(message)
+        self.category = category
 
 
 def require(ok, why):
@@ -219,6 +221,9 @@ def checked_pending(value, subject, locations):
 class StageA:
     TOTAL = 180
     WORK = 110
+    STARTUP_SECONDS = 20
+    STARTUP_READS = 10
+    STARTUP_SPACING = 2
     READY_SECONDS = 5
     READY_READS = 3
 
@@ -273,7 +278,53 @@ class StageA:
         require(rc == 0, 'unknown/refused dispatch; no repeat: ' + purpose)
         self.work()
 
+    def startup(self):
+        require(self.main is None, 'initial main already captured')
+        started = self.clock()
+        end = min(self.work_end, started + self.STARTUP_SECONDS)
+        waiting = {'empty', 'self_only', 'cannot_complete', 'no_value'}
+        for index in range(self.STARTUP_READS):
+            self.work()
+            if self.clock() >= end:
+                break
+            main, problem = None, None
+            try:
+                main = self.io.original_main(self.subject, end)
+                self.io.check(self.identity)
+            except BaseException as error:
+                problem = error
+            facts = dict(self.io.startup_facts())
+            require(set(facts) == {'root_count', 'self_reference_count', 'match_count',
+                                   'transient_return_category'}, 'unsafe startup fact schema')
+            require(all(value is None or type(value) is int and 0 <= value <= 12
+                        for key, value in facts.items() if key != 'transient_return_category'),
+                    'startup count unavailable/invalid')
+            require(facts['transient_return_category'] in waiting | {'ready', 'refused'},
+                    'unclassified startup category')
+            if problem is not None and not isinstance(problem, NotReady):
+                facts['transient_return_category'] = 'refused'
+            self.record('startup-window-read', {'pid': self.identity['pid'], 'observation': index + 1,
+                                                'elapsed': self.clock() - started, **facts})
+            if problem is not None:
+                if not isinstance(problem, NotReady):
+                    raise problem
+                require(facts['transient_return_category'] in waiting,
+                        'initial main refusal is not a waitable state')
+            if self.clock() >= end:
+                break  # a late observation never promotes readiness
+            self.work()
+            if main is not None:
+                require(facts['transient_return_category'] == 'ready'
+                        and facts['root_count'] == facts['match_count'] == 1
+                        and facts['self_reference_count'] == 0, 'initial main binding not proven')
+                self.main = main  # exactly one capture; content never reselects it
+                return
+            if index < self.STARTUP_READS - 1:
+                self.sleep(min(self.STARTUP_SPACING, max(0, end - self.clock())))
+        raise Refusal('bounded startup main readiness unavailable')
+
     def ready(self):
+        require(self.main is not None, 'content readiness requires captured original main')
         end = min(self.work_end, self.clock() + self.READY_SECONDS)
         last = None
         for index in range(self.READY_READS):
@@ -281,8 +332,6 @@ class StageA:
             if self.clock() >= end:
                 break
             try:
-                if self.main is None:
-                    self.main = self.io.original_main(self.subject, end)
                 view = self.io.observe(self.main, 'main', end)
                 self.io.check(self.identity)
                 require(self.io.same(view.main, self.main), 'main replaced during readiness')
@@ -341,6 +390,7 @@ class StageA:
         return view
 
     def setup(self):
+        self.startup()
         view = self.project(self.ready())
         radio = view.one('Start with new settings', ('AXRadioButton',), prefix=True)
         if radio.value not in (True, 1, 1.0):
@@ -458,7 +508,8 @@ class NativeAX:
         require(rc == 0 and owner == self.pid, 'AX reference is not original-App owned')
         row, refs = self.b.attribute(ref, name)
         if row['return_code'] in (-25204, -25212):
-            raise NotReady('transient AX value: ' + name + '/' + str(row['return_code']))
+            raise NotReady('transient AX value: ' + name + '/' + str(row['return_code']),
+                           category='cannot_complete' if row['return_code'] == -25204 else 'no_value')
         if row['return_code'] == -25205:
             return None
         require(row['return_code'] == 0, 'AX read refused: ' + name + '/' + str(row['return_code']))
@@ -485,16 +536,34 @@ class NativeAX:
         return value
 
     def initial_main(self, title):
-        self.check()
-        roots = self.refs(self.app, 'AXWindows', optional=False)
-        matches = [r for r in roots if not self.same(r, self.app) and self.role(r) == 'AXWindow'
-                   and self.value(r, 'AXTitle') == title]
-        if not roots or all(self.same(r, self.app) for r in roots):
-            raise NotReady('initial main not exposed')
-        require(len(matches) == 1 and len(roots) == 1, 'unique initial main unavailable')
-        self.main = matches[0]
-        self.check()
-        return self.main
+        self.initial_facts = {'root_count': None, 'self_reference_count': None,
+                              'match_count': None, 'transient_return_category': 'refused'}
+        try:
+            self.check()
+            roots = self.refs(self.app, 'AXWindows', optional=False)
+            self.initial_facts['root_count'] = len(roots)
+            self_count = sum(self.same(ref, self.app) for ref in roots)
+            self.initial_facts['self_reference_count'] = self_count
+            if not roots or self_count == len(roots):
+                category = 'empty' if not roots else 'self_only'
+                self.initial_facts.update(match_count=0, transient_return_category=category)
+                raise NotReady('initial main not exposed', category=category)
+            require(len(roots) == 1, 'unexpected extra initial App window')
+            main = roots[0]
+            require(self.role(main) == 'AXWindow', 'initial main role differs')
+            matches = int(self.value(main, 'AXTitle') == title)
+            self.initial_facts['match_count'] = matches
+            require(matches == 1, 'actual initial main title differs')
+            require(self.main is None or self.same(main, self.main), 'captured main cannot be replaced')
+            self.check()
+            self.main = main
+            self.initial_facts['transient_return_category'] = 'ready'
+            return self.main
+        except NotReady as error:
+            if error.category in ('cannot_complete', 'no_value'):
+                self.initial_facts['transient_return_category'] = error.category
+            self.check()  # bind even a partial/not-ready sample to the original
+            raise
 
     def _controls(self, root, picker, deadline):
         if picker:
@@ -865,8 +934,14 @@ class NativeSession:
         return False
 
     def original_main(self, subject, deadline):
-        self.ax = NativeAX(self.backend, self.identity['pid'], lambda: self.check(self.identity), self.clock, project=subject.project)
+        if self.ax is None:
+            self.ax = NativeAX(self.backend, self.identity['pid'], lambda: self.check(self.identity), self.clock, project=subject.project)
         return self.ax.initial_main(subject.main_title)
+
+    def startup_facts(self):
+        return dict(getattr(self.ax, 'initial_facts', {
+            'root_count': None, 'self_reference_count': None, 'match_count': None,
+            'transient_return_category': 'refused'}))
 
     def same(self, left, right):
         return self.backend.equal(left, right)
