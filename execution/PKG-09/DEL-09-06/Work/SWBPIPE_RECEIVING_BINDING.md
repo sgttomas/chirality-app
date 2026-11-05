@@ -25,7 +25,7 @@ then-current activation gaps. The v3 account names the remaining live inputs.
 This subsequent receiving update preserves the merged host basis below. It
 receives committed fixture evidence, not a product-profile merge or activation.
 At host `cc436e9fcf5a96e6a0d79336497817de129f1a5e`,
-[`agent-libinfo-elimination.md`](https://github.com/sgttomas/chirality/blob/cc436e9fcf5a96e6a0d79336497817de129f1a5e/projects/chirality-piping/execution/PKG-16/DEL-16-06/Design/agent-libinfo-elimination.md)
+`agent-libinfo-elimination.md` (`sgttomas/chirality@cc436e9fcf5a96e6a0d79336497817de129f1a5e:projects/chirality-piping/execution/PKG-16/DEL-16-06/Design/agent-libinfo-elimination.md`)
 has SHA256 `7edb2afec07e39c55f76e7b63638c08aab3892046c5e70840d3928b8a0c71361`.
 It records the following distinct observations and dispositions:
 
@@ -86,11 +86,11 @@ They equal the existing receiving pin `c48efef77bbb799f3ebe902eb213a88330a5994e`
 no repin or repeated catalog/schema suite is warranted. The App origin remains
 `64aad707acd1d409f3d255381fc597e2ee74e7a4d048aadc5382414d63c64f8c`.
 
-The committed [local witness account](https://github.com/sgttomas/chirality/blob/3a4fa55369be67940b4d1de707b2bad8159dc0bd/projects/chirality-piping/execution/PKG-16/DEL-16-06/Design/agent-local-witness.md)
+The committed local witness account (`sgttomas/chirality@3a4fa55369be67940b4d1de707b2bad8159dc0bd:projects/chirality-piping/execution/PKG-16/DEL-16-06/Design/agent-local-witness.md`)
 (SHA256 `b3923ac169543472405f8314c604c3b382558ad3ff31d925a47889805dad19cc`)
 reports one actual local-model `swbpipe_read_model_summary` call with invented
 host-generated handle/count returned in the model's follow-up. Its
-[`agent-witness-pin.json`](https://github.com/sgttomas/chirality/blob/3a4fa55369be67940b4d1de707b2bad8159dc0bd/projects/chirality-piping/execution/PKG-16/DEL-16-06/Design/agent-witness-pin.json)
+`agent-witness-pin.json` (`sgttomas/chirality@3a4fa55369be67940b4d1de707b2bad8159dc0bd:projects/chirality-piping/execution/PKG-16/DEL-16-06/Design/agent-witness-pin.json`)
 (SHA256 `c4f096777262711a3e38a4691988362a1ac955f07d32400249efba848915550b`)
 binds official stock Codex 0.160.0, oMLX 0.6.4/build 2529 and
 `mlx-community/Qwen3.6-35B-A3B-8bit`, including archive/binary/model digests,
@@ -200,7 +200,7 @@ That final catalog's hash is checked by the receiving test before evaluation.
 At the v2 receiving checkpoint, the counterpart reported twelve expanded
 standalone schemas, passing lint and independent review confirming the commitment
 wording at ce6729f3. Agent 0 wording confirmation was requested through
-[draft PR #1736](https://github.com/sgttomas/chirality/pull/1736).
+draft PR #1736 (`sgttomas/chirality PR #1736`).
 That checkpoint was a received review account, not an App independent permissions
 review, merge, confirmation or runtime adoption. Subsequent merges are bound in
 the current basis above. No interface objection remained to the resolved slice.

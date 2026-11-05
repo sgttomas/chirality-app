@@ -31,7 +31,7 @@ needs a named reviewed successor; never silently change the meaning of an old ID
 ## Precisely selected method and precedence
 
 For this S1 cohort only, select these clauses of the
-[original DISTRIBUTION_IDENTITY.md](https://github.com/sgttomas/chirality/blob/d8f6ec059bb40b54229d07b5cd433cca83511577/projects/chirality-app-v4/execution/PKG-01_Native%20App%20and%20third-party%20harness%20integration/1_Working/DEL-01-01_Stock%20Codex%20hosting%20and%20supplier%20contract/Design/DISTRIBUTION_IDENTITY.md)
+original DISTRIBUTION_IDENTITY.md (`sgttomas/chirality@d8f6ec059bb40b54229d07b5cd433cca83511577:projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-01_Stock Codex hosting and supplier contract/Design/DISTRIBUTION_IDENTITY.md`)
 (SHA-256 `d51c1130f5a1356fcc2a6100f1486e8ee3a0728de59f4fe69d4ac6a1580e5290`).
 That identity resolves to the pre-flattening supplier text, not today's sibling
 file. Link and condition-pointer repairs in the current sibling do not renew
