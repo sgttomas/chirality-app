@@ -64,11 +64,11 @@ async function mount(view) {
 
 test('run readings keep waiting, working, failed, interrupted-start and finished distinct', () => {
   const h = host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}]});
-  assert.equal(runReading({conversation:'T1', source:'s', lifecycle:{state:OPEN}}, h).tone, 'waiting');
-  assert.equal(runReading({conversation:'T2', source:'s', lifecycle:{state:OPEN}}, host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}],
+  assert.equal(runReading({conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}}, h).tone, 'waiting');
+  assert.equal(runReading({conversation:'T2', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}}, host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}],
     threads:[{threadId:'T2', generation:g, status:{type:'active'}}]})).tone, 'working', 'another conversation\'s request is not this run\'s question');
-  assert.equal(runReading({conversation:'T1', source:'s', lifecycle:{state:OPEN}}, host({serverRequests:[{state:'answered', nativeParameters:{threadId:'T1'}}]})).tone, 'idle');
-  assert.equal(runReading({conversation:'T1', source:'s', lifecycle:{state:OPEN}}, host({threads:[{threadId:'T1', generation:g, status:{type:'systemError'}}]})).tone, 'failed');
+  assert.equal(runReading({conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}}, host({serverRequests:[{state:'answered', nativeParameters:{threadId:'T1'}}]})).tone, 'idle');
+  assert.equal(runReading({conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}}, host({threads:[{threadId:'T1', generation:g, status:{type:'systemError'}}]})).tone, 'failed');
   const refused = runReading({conversation:'T1', lifecycle:{state:NOT_CONFIRMED}, status:REFUSED}, host());
   assert.equal(refused.tone, 'failed'); assert.match(refused.detail, /did not run.*invented refusal.*prepare it again/);
   for (const status of [UNKNOWN, {state:'native workflow-text send not started; original records retained', sent:'not observed', limit:'x'}, {}]) {
@@ -120,7 +120,7 @@ test('an existing registered workflow is found, chosen for a conversation and pr
   await ui.type('Use the invented north wing spacing limit of 3 m.');
   await ui.press('Prepare this run');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_prepare_run', args:{generation:g, threadId:'T1', personText:'Use the invented north wing spacing limit of 3 m.'}});
-  const prepared = {reference:'run-1', conversation:'T1', home:'account', workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{sent:false}, compatibility:[{preparation:{declaration}}]};
+  const prepared = {reference:'run-1', conversation:'T1', home:'account', generation:g, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{sent:false}, compatibility:[{preparation:{declaration}}]};
   await ui.rerender({data:data({selections:selected(), runs:[prepared]})});
   assert.equal(button(ui.c, 'Prepare this run'), undefined);
   assert.match(region(ui.c, 'Run progress').textContent, /Ready to start/);
@@ -135,7 +135,7 @@ test('an existing registered workflow is found, chosen for a conversation and pr
 });
 
 test('an open run reports questions, offers End this run and refuses a second prepare; a finished run says so', async () => {
-  const open = {reference:'run-1', conversation:'T1', home:'account', source:'sent', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}, status:{}};
+  const open = {reference:'run-1', conversation:'T1', home:'account', generation:g, source:'sent', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}, status:{}};
   const ui = await mount({thread:'T1', host:host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}]}), data:data({selections:selected(), runs:[open]})});
   assert.match(region(ui.c, 'Run progress').textContent, /Waiting for your answer/);
   assert.equal(props(button(ui.c, 'Prepare this run')).disabled, true, 'an open run is not prepared again from the guide');
@@ -188,8 +188,8 @@ test('a stale workflow source disables every guide command', async () => {
   assert.equal(button(ui.c, 'Use resolve-spacing'), undefined, 'the chosen revision is not offered again');
   const labels = ['Reload this project\'s workflows', 'Review draft-free-entry for first use…', 'Look for other workflows in this library', 'Prepare this run'];
   const stale = host({workflowRoot:{context:{sourceRef:'other', generation:g}}});
-  const prepared = {reference:'run-p', conversation:'T1', home:'account', workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{sent:false}};
-  const open = {reference:'run-o', conversation:'T1', home:'account', source:'s', lifecycle:{state:OPEN}, status:{}};
+  const prepared = {reference:'run-p', conversation:'T1', home:'account', generation:g, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{sent:false}};
+  const open = {reference:'run-o', conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}, status:{}};
   const clickAll = async list => { for (const label of list) { const node = button(ui.c, label); assert.ok(node, label); assert.equal(props(node).disabled, true, label);
     await React.act(async () => props(node).onClick()); } };
   await clickAll(labels);
@@ -200,7 +200,7 @@ test('a stale workflow source disables every guide command', async () => {
 });
 
 test('an unknown start outcome is not resent without the person reading the conversation; a definite refusal may be prepared again', async () => {
-  const unknown = {reference:'run-u', conversation:'T1', home:'account', source:'src', lifecycle:{state:NOT_CONFIRMED}, status:UNKNOWN};
+  const unknown = {reference:'run-u', conversation:'T1', home:'account', generation:g, source:'src', lifecycle:{state:NOT_CONFIRMED}, status:UNKNOWN};
   const ui = await mount({thread:'T1', host:host(), data:data({selections:selected(), runs:[unknown]})});
   assert.match(region(ui.c, 'Run a workflow').textContent, /Next: Read the conversation: the last start's outcome is unknown and it may have run\./);
   assert.match(region(ui.c, 'Run progress').textContent, /Start not confirmed — outcome unknown/);
@@ -220,7 +220,7 @@ test('an unknown start outcome is not resent without the person reading the conv
 });
 
 test("with App navigation, the run's conversation is shown — its requests when Codex is waiting — and nothing is sent", async () => {
-  const open = {reference:'run-1', conversation:'T2', home:'account', source:'sent', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}, status:{}};
+  const open = {reference:'run-1', conversation:'T2', home:'account', generation:g, source:'sent', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}, status:{}};
   const ui = await mount({navigate:true, thread:'T2', host:host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T2'}}]}), data:data({selections:selected(), runs:[open]})});
   assert.equal(all(region(ui.c, 'Run progress'), 'a').length, 0, 'no bare scroll link that could show another conversation');
   await ui.press('Answer in the conversation');
@@ -240,4 +240,127 @@ test('conversation labels use a supplied title or preview, otherwise a session-l
   assert.equal(conversationLabel(view, view.threads[3]), 'Spacing review · model not reported');
   assert.equal(conversationLabel(view, {threadId:'T9', generation:g}), 'Conversation · model not reported', 'an unknown row gets no fabricated number');
   assert.match(conversationLabel(view, {...view.threads[2], preview:'x'.repeat(80)}), /^x{47}… · m2$/);
+});
+
+// Native J1 baseline facts (main 9248a36e): the last-result line showed raw
+// host JSON, a newer registered revision was noted only in the studio, Use
+// labels hid the revision, and focus fell to the page after Prepare and Start.
+test('the last result is in words with the reply under details, a newer revision is offered here, and revisions are told apart', async () => {
+  const twoRevisions = data({libraries:[{...data().libraries[0], registered:[
+    {name:'resolve-spacing', sequence:2, revision:'rev-2-abcdef0123456789', label:'registered — selectable', selectable:true},
+    {name:'resolve-spacing', sequence:3, revision:'rev-3-abcdef0123456789', label:'registered — selectable', selectable:true}]}]});
+  const newer = {notice:'Revision 3 of resolve-spacing is registered', revision:'rev-3-abcdef0123456789', selectable:true, offered:'Use revision 3 in this conversation'};
+  const view = {host:host(), data:{...twoRevisions, selections:[{...selected()[0], selection:{...selected()[0].selection, newerRevision:newer}}]}, thread:'T1',
+    outcome:{command:'workflow_select_listed', message:'{"state":"selected","reference":"sel-1"}', failed:false, settled:true}};
+  const ui = await mount(view);
+  const last = region(ui.c, 'Run a workflow — last result');
+  assert.match(last.textContent, /^Chose the workflow for this conversation\.What the App reported\{"state":"selected"/, 'words first; the exact reply under details');
+  assert.equal(all(last, 'p')[0].textContent, 'Chose the workflow for this conversation.');
+  await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: invented refusal text', failed:true, settled:true}});
+  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text");
+  await ui.rerender({outcome:{command:'workflow_send_run', message:'', failed:false, settled:false}});
+  assert.equal(region(ui.c, 'Run a workflow — last result'), undefined, 'nothing is claimed before the result arrives');
+  const note = region(ui.c, 'Newer revision for this conversation');
+  assert.match(note.textContent, /A newer revision of resolve-spacing is registered \(Revision 3 of resolve-spacing is registered\)\. This conversation keeps using the one shown above until you choose the newer one\./);
+  await ui.press('Use revision 3 in this conversation');
+  assert.deepEqual(ui.calls.at(-1), {command:'workflow_follow_newer_revision', args:{selectionRef:'sel-1', revision:'rev-3-abcdef0123456789'}});
+  assert.ok(button(ui.c, 'Use resolve-spacing revision 3'), 'same-name rows name their revision');
+});
+
+test('after Prepare the Start button has the focus, and after Start the run progress', async () => {
+  const proto = Object.getPrototypeOf(document.createElement('div')); const focused = []; const previous = proto.focus;
+  proto.focus = function () { focused.push(this); };
+  try {
+    const view = {host:host(), data:data({selections:selected()}), thread:'T1'};
+    const ui = await mount(view);
+    await ui.type('Fix the spacing in reports/');
+    await ui.press('Prepare this run');
+    await ui.rerender({data:data({selections:selected(), runs:[{reference:'run-1', conversation:'T1', home:'account', generation:g, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}}]})});
+    assert.equal(focused.at(-1)?.textContent, 'Start the run', 'Prepare lands on Start');
+    await ui.press('Start the run');
+    await ui.rerender({data:data({selections:selected(), runs:[{reference:'run-1', conversation:'T1', home:'account', generation:g, source:'s', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}}]})});
+    assert.equal(focused.at(-1)?.getAttribute('aria-label'), 'Run progress', 'Start lands on the run progress');
+  } finally { proto.focus = previous; }
+});
+
+// Rows as runtime_session's run view gives them (generation, home, conversation,
+// workflow{origin,name,revision,sourceRoot}); the host's runs are a map, so the
+// array order is scrambled here on purpose, and order comes only from
+// preparationOrder (local to one home and conversation).
+const runRow = over => ({reference:'run', conversation:'T1', home:'account', generation:g, source:'s', turn:'t', compatibility:[{preparation:{declaration}}],
+  workflow:{name:'resolve-spacing', origin:'project', revision:'rev-1-0123456789ab', sourceRoot:'project'}, lifecycle:{state:'ended', end:{cause:'completed'}}, ...over});
+test('Results orders this conversation\'s runs only by the host\'s preparationOrder, never by array position, and says when order is not known', async () => {
+  const {runEvidenceAnchor} = loadSrc('RunJourney');
+  const ordered = [runRow({reference:'run-b', preparationOrder:1, lifecycle:{state:'ended', end:{cause:'ended by the person'}}}), runRow({reference:'run-c', preparationOrder:2, lifecycle:{state:'ended', end:{cause:'completed'}}}),
+    runRow({reference:'run-a', preparationOrder:0}), runRow({reference:'run-other', conversation:'T2', preparationOrder:5}), runRow({reference:'run-prep', preparationOrder:3, source:undefined, lifecycle:{state:PREPARED}})];
+  const ui = await mount({host:host(), data:data({selections:selected(), runs:ordered}), thread:'T1', navigate:true});
+  const labels = () => region(ui.c, 'Runs in this conversation').querySelectorAll(node => node.localName === 'li' && (node.getAttribute('aria-label') ?? '').startsWith('Run ')).map(node => node.getAttribute('aria-label'));
+  assert.deepEqual(labels(), ['Run run-c', 'Run run-b', 'Run run-a'], 'highest preparationOrder first, whatever the array order');
+  assert.match(region(ui.c, 'Run progress').textContent, /Ready to start/, 'the current run is the highest order (the prepared one), not the last array row');
+  assert.match(region(ui.c, 'Run run-c').textContent, /resolve-spacing \(rev-1-012345…\) · Ended as completed\..*It declares: .*report-file \(reports\/spacing\.md\)\..*the App hasn't checked them/);
+  assert.equal(all(region(ui.c, 'Run run-c'), 'a').find(node => node.textContent.startsWith('Open this run\'s recorded evidence')).getAttribute('href'), `#${runEvidenceAnchor('run-c')}`);
+  await React.act(async () => props(button(region(ui.c, 'Run run-c'), 'Show the conversation')).onClick());
+  assert.deepEqual(ui.shown.at(-1), ['T1', undefined]);
+  // Without the field, nothing is sorted and no latest run is chosen.
+  await ui.rerender({data:data({selections:selected(), runs:[runRow({reference:'run-y'}), runRow({reference:'run-x', lifecycle:{state:OPEN}})]})});
+  assert.deepEqual(labels(), ['Run run-y', 'Run run-x'], 'the host\'s order is kept, unsorted');
+  assert.match(region(ui.c, 'Runs in this conversation').textContent, /The App doesn't know these runs' order/);
+  assert.match(region(ui.c, 'Run progress')?.textContent ?? region(ui.c, 'Run a workflow').textContent, /several runs, and the App can't tell which one is the latest|several runs whose order the App can't tell/);
+  assert.equal(props(button(ui.c, 'Prepare this run')).disabled, true, 'an open run among them still holds a new preparation');
+  assert.match(region(ui.c, 'Run a workflow').textContent, /Next: A run in this conversation is still open, and the App can't tell which run is latest/, 'Next does not offer a preparation that is held');
+  await ui.rerender({data:data({selections:selected(), runs:[runRow({reference:'run-y'}), runRow({reference:'run-u', lifecycle:{state:NOT_CONFIRMED}, status:UNKNOWN})]})});
+  assert.match(region(ui.c, 'Run a workflow').textContent, /Next: Read the conversation: a start here has an unknown outcome and may have run; the App can't tell which run is latest\./, 'no "last start" claim without an order');
+  assert.equal(ui.calls.filter(call => call.command).length, 0, 'finding results issues nothing');
+});
+
+test('a run from an earlier Codex session with the same thread ID is never current; recorded runs match the full workflow source', async () => {
+  const g1 = g, g2 = {...g, spawnCounter:2};
+  const restarted = host({generation:g2, workflowRoot:{context:{sourceRef:'src', generation:g2}}, threads:[{threadId:'T1', generation:g2, model:'invented-model', status:{type:'idle'}}]});
+  const runs = [runRow({reference:'run-old', generation:g1, preparationOrder:0}), runRow({reference:'run-new', generation:g2, preparationOrder:1}), runRow({reference:'run-key-home', home:'api-key', generation:{...g2, home:'api-key'}})];
+  const sel = [{sourceRef:'src', threadId:'T1', selection:{...selected()[0].selection, identity:{kind:'registered', name:'resolve-spacing', origin:'project', source_root:'project', revision:'rev-2-abcdef0123456789'}}}];
+  const reopened = {standing:'s', runs:[
+    {run:'rec-same', conversation:'thread-old', state:'ended', workflow:{kind:'registered', name:'resolve-spacing', origin:'project', source_root:'project', revision:'rev-0-aaaaaaaaaaaa'}},
+    {run:'rec-other-root', conversation:'x', state:'ended', workflow:{kind:'registered', name:'resolve-spacing', origin:'project', source_root:'other-project', revision:'r'}},
+    {run:'rec-no-root', conversation:'y', state:'ended', workflow:{name:'resolve-spacing', origin:'project', revision:'r'}},
+    {run:'run-new', conversation:'T1', state:'open', workflow:{kind:'registered', name:'resolve-spacing', origin:'project', source_root:'project'}}]};
+  const ui = await mount({host:restarted, data:data({context:{sourceRef:'src', generation:g2}, selections:sel, runs, reopened}), thread:'T1', navigate:true});
+  const current = region(ui.c, 'Runs in this conversation');
+  assert.ok(current.querySelectorAll(node => node.getAttribute('aria-label') === 'Run run-new')[0], 'the current-session run is current');
+  assert.equal(current.querySelectorAll(node => node.getAttribute('aria-label') === 'Run run-old')[0], undefined, 'the earlier session\'s run is not current');
+  const earlier = region(ui.c, 'Runs whose conversation isn\'t loaded');
+  assert.match(earlier.textContent, /Earlier runs with this conversation ID, from a Codex session that isn't loaded now:Recorded conversation T1/);
+  assert.match(region(ui.c, 'Run run-old').textContent, /find it in History/);
+  assert.equal(button(region(ui.c, 'Run run-old'), 'Show the conversation'), undefined, 'no navigation into the same-ID current conversation');
+  assert.equal(region(ui.c, 'Run run-key-home'), undefined, 'another home\'s run is not listed');
+  const recorded = region(ui.c, 'Recorded runs of this workflow').textContent;
+  assert.match(recorded, /rec-same · revision rev-0-aaaaaa… · ended · recorded conversation thread-old/);
+  assert.doesNotMatch(recorded, /rec-other-root|rec-no-root|run-new/, 'another source root, an incomplete source and a live run are not this family');
+});
+
+test('after Codex restarts and the run\'s conversation is not loaded, its runs stay findable as not loaded', async () => {
+  const g2 = {...g, spawnCounter:2};
+  const runs = [{reference:'run-1', conversation:'T1', home:'account', generation:g, source:'s', workflow:{name:'resolve-spacing', origin:'project', revision:'rev-1-0123456789ab'}, lifecycle:{state:'ended', end:{cause:'completed'}}},
+    {reference:'run-other-home', conversation:'T9', home:'api-key', source:'s', workflow:{name:'resolve-spacing'}, lifecycle:{state:'ended', end:{cause:'completed'}}}];
+  const restarted = host({generation:g2, workflowRoot:{context:{sourceRef:'src', generation:g2}}, threads:[{threadId:'T5', generation:g2, model:'invented-model', status:{type:'idle'}}]});
+  const ui = await mount({host:restarted, data:data({context:{sourceRef:'src', generation:g2}, runs}), navigate:true});
+  const unloaded = region(ui.c, 'Runs whose conversation isn\'t loaded');
+  assert.ok(unloaded, 'the earlier run is still listed');
+  assert.match(region(ui.c, 'Run run-1').textContent, /Ended as completed\..*Its conversation isn't loaded in this Codex session; find it in History\./);
+  assert.equal(button(region(ui.c, 'Run run-1'), 'Show the conversation'), undefined, 'no navigation to a conversation that isn\'t loaded');
+  assert.equal(region(ui.c, 'Run run-other-home'), undefined, 'another home\'s run is not listed');
+});
+
+test('an open run from an earlier Codex session never takes a same-ID conversation\'s current activity', () => {
+  const g2 = {...g, spawnCounter:2};
+  const oldOpen = {reference:'run-old', conversation:'same-id', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}};
+  const working = host({generation:g2, threads:[{threadId:'same-id', generation:g2, status:{type:'active'}}]});
+  const reading = runReading(oldOpen, working);
+  assert.equal(reading.title, 'Open in an earlier Codex session');
+  assert.doesNotMatch(reading.detail, /Codex is working on this run/, 'G2\'s active same-ID thread is not this run\'s work');
+  const waiting = host({generation:g2, threads:[{threadId:'same-id', generation:g2, status:{type:'idle'}}], serverRequests:[{generation:g2, state:'outstanding', nativeParameters:{threadId:'same-id'}}]});
+  assert.equal(runReading(oldOpen, waiting).title, 'Open in an earlier Codex session', 'G2\'s waiting request is not this run\'s question');
+  assert.equal(runReading({...oldOpen, home:'api-key'}, host({threads:[{threadId:'same-id', generation:g, status:{type:'active'}}]})).title, 'Open in an earlier Codex session', 'another home\'s run is not current either');
+  assert.equal(runReading({...oldOpen, generation:g2}, working).tone, 'working', 'the exact current source still reads its activity');
+  const ended = runReading({...oldOpen, lifecycle:{state:'ended', end:{cause:'completed'}}}, working);
+  assert.equal(ended.title, 'Ended as completed', 'historical lifecycle stays readable');
 });

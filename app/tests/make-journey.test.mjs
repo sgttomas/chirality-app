@@ -30,7 +30,7 @@ const next = c => region(c, 'Make a workflow from your work').textContent.match(
 async function mount(view) {
   const c = document.createElement('div'); const root = createRoot(c); const calls = []; const offers = [];
   const opened = [];
-  const render = () => root.render(React.createElement(MakeWorkflowGuide, {data:view.data, host:view.host, busy:!!view.busy, uncertainBringBacks:view.uncertain ?? [], acknowledgeBringBack:trial => (view.acknowledged ??= []).push(trial),
+  const render = () => root.render(React.createElement(MakeWorkflowGuide, {data:view.data, host:view.host, busy:!!view.busy, uncertainBringBacks:view.uncertain ?? [], acknowledgeBringBack:trial => (view.acknowledged ??= []).push(trial), findInHistory:hint => (view.hints ??= []).push(hint),
     act:async (command, args) => { calls.push({command, args}); }, offerComposer:(threadKey, text) => offers.push({threadKey, text}), openPreparedMessage:item => opened.push(item),
     showConversation:view.navigate ? id => opened.push({shown:id}) : undefined}));
   await React.act(async () => render());
@@ -94,7 +94,7 @@ test('unfinished drafts are listed for return after reopening and Continue only 
   const ui = await mount({host:host(), data:data({drafts:{drafts}})});
   const list = region(ui.c, 'Unfinished drafts').textContent;
   assert.match(list, /half-done/); assert.match(list, /needs-fix/); assert.doesNotMatch(list, /finished-one|gone/);
-  assert.match(list, /still here after you quit and reopen the App.*reading one there doesn't continue it/);
+  assert.match(list, /still here after you quit and reopen the App.*Reading one there only shows it; to keep working in it, press Continue there, which is a separate step/);
   await ui.press('Continue needs-fix');
   assert.equal(props(all(ui.c, 'input')[0]).value, 'needs-fix');
   assert.match(region(ui.c, 'Draft status').textContent, /HY-1: no WORKFLOW\.md/);
@@ -226,7 +226,7 @@ test('the guide shows the draft\'s trials in host order with saved conversations
   const order = [...shown().matchAll(/Trial (\d) ·/g)].map(m => m[1]);
   assert.deepEqual(order, ['4', '3', '2', '1'], 'the host\'s newest-first order is kept');
   assert.match(shown(), /Trial 4 · in a fresh conversation \(not started\)/, 'only an absent conversation is "not started"');
-  assert.match(shown(), /Trial 2 · in a fresh conversation \(a recorded conversation \(thread-clean-2\)\) · 2026-11-04 11:00Brought back once, to a recorded conversation \(thread-authoring\)\./, 'saved bare IDs are recorded conversations, never "not started"');
+  assert.match(shown(), /Trial 2 · in a fresh conversation \(a recorded conversation \(thread-clean-2\) Look for it in History\) · 2026-11-04 11:00Brought back once, to a recorded conversation \(thread-authoring\)\./, 'saved bare IDs are recorded conversations, never "not started"');
   assert.match(shown(), /Trial 1 · with the agent in Conversation 1 · invented-model · 2026-11-04 10:00Brought back 2 times, to a recorded conversation \(thread-authoring\), a recorded conversation \(T1\)\./, 'a hot authoring tuple is labelled; a saved brought-back ID is not resolved against this session');
   assert.doesNotMatch(shown(), /attachment|Brought back to not started/);
   assert.equal(props(all(ui.c, 'button').find(node => node.textContent === 'Bring trial 2 back')).disabled, true, 'no conversation chosen, no bring-back');
@@ -391,4 +391,56 @@ test('a review from another library never guides a same-name draft after switchi
     assert.doesNotMatch(shown, /A review is open|You cancelled|became unavailable|See the review|Open the review/, `library B's same-name draft is not guided by A's review (${status.state})`);
     assert.match(next(ui.c), /spacing-check: Optionally try it/);
   }
+});
+
+test('a prepared copy whose send is held is offered for reading or removing, never as ready to send', async () => {
+  doubtsModule.resetBringBackDoubts();
+  const draft = {name:'spacing-check', state:'draft', trials:producerTrials};
+  const ui = await mount({host:host({homeRouting:{activeModeHomeClass:'account'}, workflowRoot:{context:{sourceRef:'src', generation:g}, pendingBringBacks:[results()]}}), data:data({drafts:{drafts:[draft]}})});
+  await ui.name('spacing-check'); await ui.choose(key('T1'));
+  const shown = () => region(ui.c, 'Trials of this draft').textContent;
+  assert.match(shown(), /Trial 2's results are ready to send in/);
+  await React.act(async () => doubtsModule.noteBringBackDoubt(doubt({preparedId:'bb-1'})));
+  assert.doesNotMatch(shown(), /ready to send/, 'a held copy is not "ready to send"');
+  assert.match(shown(), /Trial 2's results are prepared in .+, but sending them is held: this copy's earlier send wasn't confirmed and may have arrived, so it is not sent again\./);
+  assert.ok(button(ui.c, 'Open trial 2\'s prepared results to read or remove'));
+  await React.act(async () => { doubtsModule.acknowledgeBringBackDoubt(doubtsModule.bringBackDoubtsFor('trial', 'trial:lib-a:2')[0]); });
+  assert.match(shown(), /prepared in .+, but sending them is held/, 'that attempted copy stays held after the acknowledgement');
+  assert.match(next(ui.c), /Trial 2's prepared results are held and not sent again; after reading the conversation, remove that copy/);
+  assert.equal(all(ui.c, 'button').filter(node => node.textContent === 'Open trial 2\'s prepared results to read or remove').length, 1, 'one control for one held copy');
+  assert.match(region(ui.c, 'Trial 2 of spacing-check').textContent, /Its results are prepared for this conversation but held, so they aren't sent again; see below\./);
+  assert.doesNotMatch(region(ui.c, 'Trial 2 of spacing-check').textContent, /already prepared for this conversation\./);
+  const calls = ui.calls.length;
+  await ui.press('Open trial 2\'s prepared results to read or remove');
+  assert.equal(ui.opened.at(-1).pending.id, 'bb-1'); assert.equal(ui.calls.length, calls, 'opening issues nothing');
+  doubtsModule.resetBringBackDoubts();
+});
+
+// Native J2 returning-draft baseline (9efa17a7, synthetic relaunch: trial links
+// cold with the real sourceLimit, old conversations not loaded).
+const COLD = 'Original trial source is not established by this saved trial link; no native history read';
+test('returning to a draft: Continue lands on its current step, a saved conversation is only a History search hint, and a cold trial names the available actions', async () => {
+  doubtsModule.resetBringBackDoubts();
+  const proto = Object.getPrototypeOf(document.createElement('div')); const focused = []; const previousFocus = proto.focus;
+  proto.focus = function () { focused.push(this); };
+  try {
+    const cold = producerTrials.slice(0, 4).map(row => ({...row, sourceLimit:COLD, live:false}));
+    const draft = {name:'spacing-check', state:'draft', trials:cold};
+    const view = {host:host(), data:data({drafts:{drafts:[draft]}})};
+    const ui = await mount(view);
+    assert.match(region(ui.c, 'Unfinished drafts').textContent, /Reading one there only shows it; to keep working in it, press Continue there, which is a separate step\./);
+    await ui.press('Continue spacing-check');
+    assert.equal(focused.at(-1)?.getAttribute('aria-label'), 'Draft state', 'Continue lands on the draft\'s state line, the first line of its current step');
+    assert.match(focused.at(-1)?.textContent ?? '', /^spacing-check: draft/);
+    await ui.choose(key('T1'));
+    const row = region(ui.c, 'Trial 2 of spacing-check');
+    assert.match(row.textContent, /This saved trial can't be brought back here\. Try the draft again in a fresh conversation above, or look at the earlier conversation in History\./);
+    assert.match(row.textContent, new RegExp(`Why${COLD.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`), 'the exact host reason stays under Why');
+    assert.equal(props(all(row, 'button').find(node => node.textContent.startsWith('Bring trial 2 back'))).disabled, true, 'the saved link is not made live');
+    const before = ui.calls.length;
+    await React.act(async () => props(all(row, 'button').find(node => node.textContent === 'Look for it in History')).onClick());
+    assert.deepEqual(view.hints, ['thread-clean-2'], 'the saved ID goes to History as a search hint only');
+    assert.equal(ui.calls.length, before, 'nothing is read, chosen or continued');
+    assert.ok(button(ui.c, 'Try it in a fresh conversation'), 'the fresh trial is the available action');
+  } finally { proto.focus = previousFocus; }
 });
