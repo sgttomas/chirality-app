@@ -952,6 +952,13 @@ npm test
 (cd src-tauri && cargo test --offline --locked)
 ```
 
+The Rust tests share process-wide state (the configured records store,
+environment variables and other statics) and do not pass on parallel libtest
+threads. `app/.cargo/config.toml` therefore sets `RUST_TEST_THREADS=1` for cargo
+run from `app/` or `app/src-tauri/`; an explicit `RUST_TEST_THREADS` or
+`--test-threads` still wins. Cargo reads that file from the working directory,
+so run cargo from those folders rather than from the repository root.
+
 The focused `node --test tests/file-act-panel.test.mjs` check runs offline Rust
 file-act fixtures with `CHIRALITY_SKIP_CODEX=1` and consumes their actual cold
 history and pending-save DTOs. `CHIRALITY_FILE_ACT_LAPSE_DTO_LOG` may point to
