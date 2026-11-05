@@ -1,8 +1,8 @@
 {
   "format": "pre-run-form-pins.v1-terms-successor-1",
   "sources": {
-    "app/examination/standalone/pre_run_inputs.py": "f2479cbe611171e697d5f2066218e8396d84ddcbb8e998de9dd30d7f391e9d08",
-    "app/examination/standalone/pre_run_inputs.terms-v1.pins.json": "66f535320d54de74ee0d31e96661996b7a3a6a3ee784e39b355fc952f74bd314"
+    "app/examination/standalone/pre_run_inputs.py": "a8ccb1de34be8fa7bfa44edc2bc91208849ac0465e9002960b944f2f4f272984",
+    "app/examination/standalone/pre_run_inputs.terms-v1.pins.json": "e19c9f9d57d0c8c0f7637afe38e6d95956e06677e9d6b440c11e9458f631115d"
   },
   "documentary_selection": {
     "method": "selected-documentary-source-condition/v3-terms",

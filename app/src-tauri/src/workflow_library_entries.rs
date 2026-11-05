@@ -237,7 +237,6 @@ impl EntryListing {
                 "Frozen in-place review differs from chosen listed content; refresh entries".into(),
             );
         }
-        drop(current);
         self.validate(owner, library, listing, refs)?;
         let mut sources = vec![(
             owner.root.clone(),

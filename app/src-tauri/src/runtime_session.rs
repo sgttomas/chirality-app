@@ -8114,7 +8114,7 @@ mod workflow_root_tests {
                 let mut owner_guard=control.lock().unwrap();let owner=owner_guard.as_mut().unwrap();
                 owner.a15_confirmation_text(offer,&current,&actor,&context).unwrap();owner.present_a15(offer).unwrap();
                 let event=crate::a15_native::ConfirmedA15Event::synthetic_for_test(offer.id().into(),owner.frozen_a15_offer_digest(offer).unwrap().clone(),actor,context);
-                let result=owner.confirm_a15_after_native_event(offer,event,&current).unwrap();drop(current);drop(owner_guard);
+                let result=owner.confirm_a15_after_native_event(offer,event,&current).unwrap();drop(owner_guard);
                 review.attempted_native=true;review.accept_result(result).unwrap();
                 review.registered.values().next().unwrap().identity().revision.clone()};
             root.select_hot_registered_copy(&root.fixture_chat(),&reference,&revision).unwrap();
@@ -8141,7 +8141,7 @@ mod workflow_root_tests {
         let mut owner_guard=control.lock().unwrap();let owner=owner_guard.as_mut().unwrap();
         owner.a15_confirmation_text(offer,&current,&actor,&context).unwrap();owner.present_a15(offer).unwrap();
         let event=crate::a15_native::ConfirmedA15Event::synthetic_for_test(offer.id().into(),owner.frozen_a15_offer_digest(offer).unwrap().clone(),actor,context);
-        let result=owner.confirm_a15_after_native_event(offer,event,&current).unwrap();drop(current);drop(owner_guard);
+        let result=owner.confirm_a15_after_native_event(offer,event,&current).unwrap();drop(owner_guard);
         review.attempted_native=true;review.accept_result(result).unwrap();
         let revision=review.registered.values().next().unwrap().identity().revision.clone();
         assert_eq!(review.status["entries"][0]["state"],"registered");drop(review);

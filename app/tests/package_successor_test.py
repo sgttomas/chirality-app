@@ -282,6 +282,7 @@ class PackageSuccessor(unittest.TestCase):
         report = self.f.check()
         with tempfile.TemporaryDirectory() as other:
             stage = Path(other).resolve()
+            (stage / 'AGENTS.md').write_text('Replay root marker; its bytes are not a dependency.\n')
             for name in report['source_dependencies']:
                 target = stage / name; target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(ROOT / name, target)

@@ -9,7 +9,23 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
-PINS_SHA256 = 'd673b1adb7880bc49274d502c76664908cf1ba9fc8597d23f6f905aab04df0dc'
+# Generated digests; re-derive with `python3 app/examination/repin.py` (examination/README.md).
+PIN_LOCK_PATH = ROOT / 'app/examination/pins.lock.json'
+
+
+def locked_digest(section, path):
+    """The pin lock's digest for path, or None when the lock is unreadable or lacks it.
+
+    None never equals a digest, so the reader's own check refuses through its usual report.
+    """
+    try:
+        value = json.loads(PIN_LOCK_PATH.read_bytes())[section][path]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return value if isinstance(value, str) else None
+
+
+PINS_SHA256 = locked_digest('current', 'app/examination/native_forms/pre_run_form.terms-v1.pins.json')
 
 
 def consumer():

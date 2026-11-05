@@ -5,7 +5,23 @@ import json
 from pathlib import Path
 
 METHOD = 'selected-documentary-source-condition/v3-terms'
-PROJECTION_SHA256 = 'd6da34b98a37ed5549d73c90374a4c5f99fc279bb758735d79e1d9aa10ffcfaf'
+# Generated digests; re-derive with `python3 app/examination/repin.py` (examination/README.md).
+PIN_LOCK_PATH = Path(__file__).resolve().parents[1] / 'pins.lock.json'
+
+
+def locked_digest(section, path):
+    """The pin lock's digest for path, or None when the lock is unreadable or lacks it.
+
+    None never equals a digest, so the reader's own check refuses through its usual report.
+    """
+    try:
+        value = json.loads(PIN_LOCK_PATH.read_bytes())[section][path]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return value if isinstance(value, str) else None
+
+
+PROJECTION_SHA256 = locked_digest('current', 'app/examination/documentary_condition.py')
 
 
 def require(condition, message):

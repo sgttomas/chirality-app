@@ -517,7 +517,7 @@ fn unreadable_source_is_a_limit_and_cache_fallback_never_establishes_absence() {
     let root = scratch();
     let log = crate::storage::project_log(&root, None, "unreadable-source").unwrap();
     let entry = append(&log, "evidence_limit", &APP_WRITER, body(1)).unwrap();
-    std::fs::set_permissions(&log, std::fs::Permissions::from_mode(0)).unwrap();
+    std::fs::set_permissions(&log, std::fs::Permissions::from_mode(0o000)).unwrap();
     if std::fs::File::open(&log).is_ok() {
         // Elevated test runners can bypass mode bits; they cannot witness this case.
         std::fs::set_permissions(&log, std::fs::Permissions::from_mode(0o600)).unwrap();

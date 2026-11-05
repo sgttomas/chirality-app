@@ -24,7 +24,33 @@ def deliverable_path(root, relative):
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = 'a685520af653ca2ecdfe26ddbdd23ffbcb6368f0624eb41c4a15564c8bd49144'
+# Generated digests; re-derive with `python3 app/examination/repin.py` (examination/README.md).
+PIN_LOCK_PATH = PROJECT / 'app/examination/pins.lock.json'
+
+
+def locked_digest(section, path):
+    """The pin lock's digest for path, or None when the lock is unreadable or lacks it.
+
+    None never equals a digest, so the reader's own check refuses through its usual report.
+    """
+    try:
+        value = json.loads(PIN_LOCK_PATH.read_bytes())[section][path]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return value if isinstance(value, str) else None
+
+
+PINS_SHA256 = locked_digest('current', 'app/examination/sq_receiving/pins.packages-v1.json')
+
+
+def _lock_bytes():
+    try:
+        return PIN_LOCK_PATH.read_bytes()
+    except OSError:
+        return b''
+
+
+PIN_LOCK_BYTES = _lock_bytes()
 
 
 def sha(data):
@@ -116,6 +142,8 @@ class Receiver:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
             (root / 'reader-pins.json').write_text(json.dumps(self.pins))
+            # Snapshot readers verify their profiles against the same generated lock.
+            (root / 'app/examination/pins.lock.json').write_bytes(PIN_LOCK_BYTES)
             (root / 'receiving-configuration.json').write_bytes(configuration_bytes)
             job = subprocess.run([sys.executable, '-B', str(root / 'app/examination/sq_receiving/worker_packages.py'),
                                   str(Path(selection).absolute()), digest,

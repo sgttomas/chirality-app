@@ -1171,7 +1171,13 @@ PYTHONDONTWRITEBYTECODE=1 python3 examination/check.py validate result tests/gro
 
 The Python suite is separate from `npm test`. See
 [the examination tool instructions](examination/README.md) for package-link
-arguments, supported rules and remaining M1/M2/M3 work. The current Group B graph
+arguments, supported rules and remaining M1/M2/M3 work.
+
+Examination source pins are generated. After a reviewed change to a pinned
+source, run `python3 app/examination/repin.py` from the repository root and
+commit the re-derived profiles and `app/examination/pins.lock.json`; CI runs
+`--check` and fails when pins and sources disagree. See
+[Source pins](examination/README.md#source-pins). The current Group B graph
 is `execution/_Coordination/WorkGraphs/APP-V4-GROUP-B-20261008/WORK_GRAPH.md`
 relative to the project.
 

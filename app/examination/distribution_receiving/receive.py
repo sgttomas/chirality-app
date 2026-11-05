@@ -20,12 +20,30 @@ from referencing import Registry
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
+# Generated digests; re-derive with `python3 app/examination/repin.py` (examination/README.md).
+PIN_LOCK_PATH = PROJECT / 'app/examination/pins.lock.json'
+
+
+def locked_digest(section, path):
+    """The pin lock's digest for path, or None when the lock is unreadable or lacks it.
+
+    None never equals a digest, so the reader's own check refuses through its usual report.
+    """
+    try:
+        value = json.loads(PIN_LOCK_PATH.read_bytes())[section][path]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return value if isinstance(value, str) else None
+
+
+# Retained historical receipts: immutable anchors that never change. The lock's
+# frozen section must equal them (checked here and by repin.py --check).
 PINS_SHA256 = 'd7e404a4820b69d55c6c3b58bc9f36c8860557414982f41b02cff5a4bec4b3d9'
+BUILD_SELECTION_PINS_SHA256 = '1cead3fe1e12259a2b11a0bddd71d407b40c9d85b02001609845a1aa4479ad71'
 COHORTS = {
     'stop-admission': ('pins.stop-admission-lt09-v1.json', PINS_SHA256,
                        'pins.lt12-combined-lt09-v1.json'),
-    'build-selection': ('pins.build-selection-lt09-v1.json',
-                        '1cead3fe1e12259a2b11a0bddd71d407b40c9d85b02001609845a1aa4479ad71',
+    'build-selection': ('pins.build-selection-lt09-v1.json', BUILD_SELECTION_PINS_SHA256,
                         'pins.stop-admission-lt09-v1.json'),
 }
 FORMAT = 'group-b-s1-reader-exchange.v1'
@@ -36,7 +54,7 @@ CURRENT_INPUTS = (
     *(f'app/src-tauri/resources/distribution-successor/{name}.schema.json'
       for name in ('observed-verification.s1', 'lifecycle-event.s1', 'distribution-closure-transport.s3')),
 )
-INPUTS_SHA256 = 'e06d8ed0900fa11d9f78f2735d67de8891f40ac3a723e206f96ad99f1098751f'
+INPUTS_SHA256 = locked_digest('current', 'app/examination/distribution_receiving/inputs.json')
 LIMITS = [
     'Exact exported file correspondence only; native S1 semantics are not reexecuted.',
     'Serialized readback is a producer report, not authenticated history or a native-held reference capability.',
@@ -165,6 +183,8 @@ class Receiver:
     def __init__(self, cohort='stop-admission'):
         require(cohort in COHORTS, 'unsupported receiving cohort')
         pins_name, pins_sha, predecessor_name = COHORTS[cohort]
+        require(locked_digest('frozen', 'app/examination/distribution_receiving/' + pins_name) == pins_sha,
+                'historical receipt anchor and pin lock disagree')
         raw = read_file(HERE / pins_name)
         require(sha(raw) == pins_sha, 'receiver pins changed')
         self.pins = parse(raw)

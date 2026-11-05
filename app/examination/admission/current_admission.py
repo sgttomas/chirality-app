@@ -13,11 +13,25 @@ HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
 PROFILE = 'current-v1'
 MANIFEST = HERE / 'sources.current-v1.json'
-MANIFEST_SHA256 = '4606dbc82a3eb8c526575070263c0d590eaa2c96cdf1f557a148cd16ef637811'
-DEPENDENCIES = {
-    'admission_check.py': 'bd9a8ef07bdf0c848f8ba09e14b8c3ef977a7a52140c26e5a58f1cf83e7167cf',
-    'admission_rules.py': 'b6cb783561cade47855431f0be33190d8fe287a9f5ff05a2da5bbc7953e694a5',
-}
+# Generated digests; re-derive with `python3 app/examination/repin.py` (examination/README.md).
+PIN_LOCK_PATH = PROJECT / 'app/examination/pins.lock.json'
+
+
+def locked_digest(section, path):
+    """The pin lock's digest for path, or None when the lock is unreadable or lacks it.
+
+    None never equals a digest, so the reader's own check refuses through its usual report.
+    """
+    try:
+        value = json.loads(PIN_LOCK_PATH.read_bytes())[section][path]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return value if isinstance(value, str) else None
+
+
+MANIFEST_SHA256 = locked_digest('current', 'app/examination/admission/sources.current-v1.json')
+DEPENDENCIES = {name: locked_digest('current', 'app/examination/admission/' + name)
+                for name in ('admission_check.py', 'admission_rules.py')}
 LIMITS = [
     'Explicit current full-document source correspondence and unchanged EXP-v0.2 file/rule/join checks only.',
     'Existing records retain their original subjects and support revisions; current source selection does not establish producer use.',

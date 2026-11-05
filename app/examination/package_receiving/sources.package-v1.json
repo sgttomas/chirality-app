@@ -3,7 +3,6 @@
   "producer_format": "packaged-s4-binding/1",
   "producer_report": "packaged-s4-check/1",
   "producer_sources": [
-    "AGENTS.md",
     "app/packaging/static_distribution/check.py",
     "app/packaging/static_distribution/sources.json",
     "app/packaging/successor/check.py",
@@ -41,12 +40,11 @@
     "execution/PKG-01/DEL-01-06/Work/terms-position-v1/schema.json"
   ],
   "sources": {
-    "AGENTS.md": "c03808ae477172695e1f68598d582984bfe2cf4b1697dd25ecd98cd0f8a19b39",
-    "app/examination/support_identity/canonical-pins.terms-v1.json": "0e33fb86969ff1a1b44512bab0f845f21764372beb5e09b265c6b9dd5efc30b9",
-    "app/examination/support_identity/canonical.py": "f1eb9a692d70a13c7b91d7d5d3c38cc3699bf3c4b1158528ce5a731ad04123dd",
+    "app/examination/support_identity/canonical-pins.terms-v1.json": "b824461a0966445704d9505da04e577c228287a7a92df9b5f157c4dfbea6987c",
+    "app/examination/support_identity/canonical.py": "7f5288b984fc853a117c4dd50b6577fa46a04fc16dc7bced03b1aec88650a41f",
     "app/packaging/static_distribution/check.py": "4e8f5589890f0098f44d6ef7fde247d0ff1c2dc00b1e46db00a8895a9b8d7584",
     "app/packaging/static_distribution/sources.json": "ae41f2c248e81998aca92577786ce3bbb8e2b5a008b5d89ea36b4037412d577e",
-    "app/packaging/successor/check.py": "332e3ea79cece9d1872bfb5b2ffea65ad007a8841941bf5af71f3f8b369997e7",
+    "app/packaging/successor/check.py": "192684234a686cc476e2c1c42286ba318e26bfed2ec3a412519d6854116efac4",
     "app/packaging/terms/check.py": "0a35adf5f8218b9abe3f968e244cc799ec8bb95776fbf2961e1fe488b4f04e4f",
     "app/src-tauri/Cargo.lock": "c21ce295ae7a31ff136501df5c6ba93b95c6b881b9e2d090c7bb36016ac85ca2",
     "app/src-tauri/Cargo.toml": "32aeb2faacc2f8ec31a1d11aa617ff75fc83cced085fe1299a15cde64e4a3638",
