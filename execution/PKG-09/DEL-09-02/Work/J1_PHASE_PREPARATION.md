@@ -1,8 +1,10 @@
 # Offline J1 Stage A phase-aware controller preparation
 
-This is the selected preparation after the two actual observations recorded in
-J1_AGENT_FIRST_USE_20261105.md. The new source has not operated an App. All executed
-controller/helper bytes and receipts remain at their original private paths.
+This began as the selected preparation after the first two actual observations.
+The repaired integrated v3 and separately selected frozen PR136 v4 have since
+each operated one App instance, with zero setup input; see attempts3/4 in
+[the actual account](J1_AGENT_FIRST_USE_20261105.md). All executed controller/helper
+bytes and receipts remain at their original private paths and identities.
 No product source, native confirmation, credential policy, frontend coordination
 paragraph or packaged candidate is changed. The retained product source remains
 eaf5d057; implementation changes in this preparation belong to the test controller.
@@ -14,7 +16,9 @@ import and has no automatic native CLI. A future reviewed runner calls
 run_prepared with the exact reviewed Subject/preflight and the included private_journal evidence
 writer under ordinary t3_slot admission. It uses exclusive0600 records with
 file/directory fsync, including repeated phase observations in sequence. It is not an IPC/control endpoint or a
-shared automation framework. No native launch is selected by this PR.
+shared automation framework. Source preparation alone selects no native launch;
+Agent0's subsequent exact-version selections and their limits are recorded in
+the actual account.
 
 Original binding is full kernel PID/parent/UID/realUID/birth/executable plus PGID
 and executable SHA256, preserved throughout. Subject bundle/development ID/data
@@ -230,3 +234,12 @@ refuse. This small test-readiness correction leaves authentic reviewed manifest
 checks, normal termination, setup/native confirmation/input provenance and
 original-birth-aware finalization unchanged. Agent0 will inspect the exact diff
 and choose any next live operation; no additional review delegate is created.
+
+Agent0 subsequently directly inspected and selected frozen PR136 headf9059685
+for one pre-merge development attempt. Nine retained startup samples over
+0.233–18.052s each recorded root1/self1/match0/self_only; no original main or
+WebKit content phase was admitted and no setup input occurred. Prebound normal
+termination and observed original-process absence closed that instance in
+20.713761s with no overrun. This does not identify the self-reference's cause or
+qualify setup/path entry/recovery. The method stayed immutable through cleanup;
+only its actual account and narrow coordination text are added afterward.

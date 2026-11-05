@@ -216,18 +216,21 @@ Current Type 1 assignments are:
   not a new native render or completed journey. Native owns the 2026-11-05
   first-use attempt and its next agent-operated capability option; no owner
   setup, picker or regression execution is requested.
-  The latest [agent first-use account](../PKG-09/DEL-09-02/Work/J1_AGENT_FIRST_USE_20261105.md#attempt-3-exact-merged-repaired-run_prepared-pid96500)
-  records one use of integrated #135/main `97135848` against the unchanged
-  `eaf5d057` development App. It refused initial-main readiness before any setup
-  input; prebound normal termination and original-process absence completed
-  autonomously in 3.50 s with no overrun. Setup/save and the conditional native
-  picker path remain unobserved. This is exact-instance cleanup evidence, with
-  no LaunchServices exit-code/reap, useful-model or qualification inference.
-  A bounded source/test correction now separates initial-main discovery
-  (up to20 s/10 read-only samples) from the existing WebKit3-read/5 s gate and
-  retains only safe startup counts/categories. It is offline preparation;
-  delayed start is a hypothesis, not a diagnosed cause or a new native result.
-  Agent 0 owns the next method selection; no automatic retry is selected.
+  The [agent first-use account](../PKG-09/DEL-09-02/Work/J1_AGENT_FIRST_USE_20261105.md#attempt-4-selected-frozen-pr136-startup-method-pid7521)
+  preserves #135/main `97135848`'s zero-input refusal and3.50 s autonomous
+  cleanup, then Agent 0's separately selected pre-merge #136/f9059685 attempt
+  against the unchanged `eaf5d057` development App. #136 separates initial-main
+  discovery (20 s/10 observations) from WebKit's3-read/5 s gate. Its nine actual
+  samples over0.233–18.052 s each recorded root1/self1/match0/self_only; no main,
+  WebKit content or setup input was admitted. Prebound normal termination and
+  verified original-process absence completed in20.71 s without overrun; the
+  ordinary wrapper ended rc1 after closure. AppData/request remain absent.
+  The method was frozen through cleanup and is not described as integrated
+  main. Setup/save and conditional picker path entry remain unobserved. These
+  are exact-instance cleanup/readiness facts, with no LaunchServices exit/reap,
+  useful-model, qualification or timing/OS/permission/reader-cause inference.
+  Agent 0 owns integration and next method selection; no automatic retry or
+  owner-operated setup is selected.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
