@@ -97,7 +97,7 @@ fn connector_source_descriptor_symlink_fifo_permissions_and_path_changes() {
         }
         std::thread::sleep(std::time::Duration::from_millis(10));
     }
-    fs::set_permissions(&p, fs::Permissions::from_mode(0)).unwrap();
+    fs::set_permissions(&p, fs::Permissions::from_mode(0o000)).unwrap();
     assert!(root.read(&p).is_err());
     fs::set_permissions(&p, fs::Permissions::from_mode(0o600)).unwrap();
     assert!(root

@@ -1241,7 +1241,6 @@ mod tests {
         ac.present_a15(&new_offer).unwrap();
         let HotA15Result::Recorded(receipt) = ac.confirm_a15_after_native_event(&new_offer, event(&new_offer,digest,actor,context), &current).unwrap()
             else { panic!("old settled custody must not hold the new native capture") };
-        drop(current);
         let mut second = next.begin_hot_registration(receipt).unwrap();
         assert!(matches!(second.advance()[0], crate::workflow_workspace::registration::EntryOutcome::Registered { .. }));
         assert_eq!(ac.native_captures.len(), 2);
@@ -1305,7 +1304,6 @@ mod tests {
             assert!(text.contains("not a check that the workflow can run here"), "{text}");
             assert!(text.contains("Cancel closes without an act"), "{text}");
             assert!(text.contains("Accessibility"), "{text}");
-            drop(current);
             std::fs::remove_dir_all(root).unwrap();
         }
     }
@@ -1648,7 +1646,6 @@ mod tests {
         assert_eq!(receipt.witness.original_capture["installation"]["verification"], "unverified");
         assert!(receipt.witness.original_capture["evidenceLimits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("installation attribution unavailable")));
         assert_eq!(receipt.witness.durable_record["body"], a15_body(&receipt.witness.original_capture));
-        drop(current);
         let mut attempt = session.begin_hot_registration(receipt).unwrap();
         let outcomes = attempt.advance();
         assert!(matches!(&outcomes[0], crate::workflow_workspace::registration::EntryOutcome::Registered { .. }));

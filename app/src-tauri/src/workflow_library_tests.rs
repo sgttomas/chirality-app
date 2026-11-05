@@ -460,7 +460,6 @@ fn j5_relaunch_reregisters_same_slot_from_persisted_app_kept_base() {
         view.ordered_bindings().next().unwrap().prior(),
         Some(first.identity())
     );
-    drop(view);
     let r = receipt(&session);
     let mut attempt = session.begin_hot_registration(r).unwrap();
     let outcomes = attempt.advance();
@@ -1621,7 +1620,6 @@ fn rf_1_refine_from_the_store_without_a_selection_including_in_place() {
         shown["base_observation"]["observed"]["source"],
         "App data folder"
     );
-    drop(view);
     let r = receipt(&review);
     let mut attempt = review.begin_hot_registration(r).unwrap();
     reconfirmed(&attempt.advance()[0]);

@@ -52,7 +52,9 @@ The App workflow runs the focused build, Rust, Node and Python checks, plus
 frozen-source regression checks. On PRs they run as three
 parallel macOS jobs sharing `.github/actions/app-v4-setup`. Each job builds
 its own artifacts. The first compiles every default-feature test target in one
-pass, replacing the separate check pass; the second rebuilds the lib test
+pass, replacing the separate check pass, then runs `cargo clippy --all-targets`
+denying only the `clippy::correctness` and `clippy::suspicious` groups (other
+lints stay warnings); the second rebuilds the lib test
 target, and the third builds the successor feature and packaging example. Each
 focused lib cohort filter sits in exactly one of two shards and still runs as
 its own serial libtest process, because some tests read process-wide state that

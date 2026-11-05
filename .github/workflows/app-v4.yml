@@ -64,6 +64,11 @@ jobs:
       - name: Compile every Rust test target once
         # Supersedes the separate `cargo check --tests` pass; later runs reuse these artifacts.
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml --tests --no-run
+      - name: Clippy correctness and suspicious lints
+        # Gates only these deny-level groups; every other lint stays a warning.
+        run: |
+          rustup component add clippy --toolchain 1.97.1
+          cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D clippy::correctness -D clippy::suspicious
       - name: Focused persistence and authority boundaries
         run: |
           cargo test --locked --manifest-path src-tauri/Cargo.toml \

@@ -319,7 +319,7 @@ fn target_links_fifo_unreadable_and_changed_binding_refuse() {
         .any(|i| i.kind == ErrorKind::UnsafeEntry));
     fs::remove_file(&target).unwrap();
     let file = store.anchor().join(&reference.relative_path);
-    fs::set_permissions(&file, fs::Permissions::from_mode(0)).unwrap();
+    fs::set_permissions(&file, fs::Permissions::from_mode(0o000)).unwrap();
     assert!(!store.discover().issues.is_empty());
     fs::set_permissions(&file, fs::Permissions::from_mode(0o600)).unwrap();
     let original = fs::read(&file).unwrap();
@@ -686,7 +686,7 @@ fn retained_temporary_and_unreadable_directory_are_not_empty_discovery() {
         .iter()
         .any(|i| i.kind == ErrorKind::TemporaryLeftover));
     assert!(!d.join(format!("{KEY}.json")).exists());
-    fs::set_permissions(&d, fs::Permissions::from_mode(0)).unwrap();
+    fs::set_permissions(&d, fs::Permissions::from_mode(0o000)).unwrap();
     let unreadable = store.discover();
     fs::set_permissions(&d, fs::Permissions::from_mode(0o700)).unwrap();
     assert!(!unreadable.enumeration_complete);

@@ -336,7 +336,6 @@ fn confirm_with_double(r: &mut WorkflowRootSession, reference: &str) -> (String,
         context,
     );
     let result = owner.confirm_a15_after_native_event(offer, event, &current).unwrap();
-    drop(current);
     drop(owner_guard);
     review.attempted_native = true;
     review.accept_result(result).unwrap();
