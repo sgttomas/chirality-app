@@ -32,7 +32,10 @@ native window or production qualification.
     confirmed, prepared but unsent. Plus runs in another conversation and another
     home.
   - **Declared `returned_outputs`.**
-  - **`reopened.runs`,** in the `record_supply` row shape.
+  - **`reopened.runs`,** in the `record_supply` row shape. The `d341f57a` and
+    `9efa17a7` passes used workflow name and origin without a source root. The
+    same-root, different-root and missing-root cases were introduced for the
+    `out-j2-125c` reference and the `ca324f2b` recheck onward.
   - **A restart,** either dropping the thread or keeping its ID.
   - **`preparationOrder` values:** these are synthetic. Only their shape follows
     #127 (`53c6853d` `runtime_session.rs`), and the array order is scrambled.
