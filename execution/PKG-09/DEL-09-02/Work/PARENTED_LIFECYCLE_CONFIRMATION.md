@@ -21,7 +21,7 @@ run marker absent and shared memguard retained; it makes no exhaustive
 supplier or detached-descendant settlement claim.
 
 Original private evidence stays in
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-i7hfdeyc`:
+`~/dev/chirality-t3/scratch/app-successor-native-B-i7hfdeyc`:
 `ready-observation.json`, `held-modal-readonly.json`,
 `cleanup-cancel-binding-refusal.json`, `owner-cancel-readback.json`,
 `cleanup-menu-action-result.json`, administrative release/result and
@@ -186,14 +186,14 @@ existing Quit tests passed offline with jobs2 and serial tests through t3_slot,
 using a private COW Cargo cache/target and fresh scratch Codex home. The new
 cohort is added once to CI shard B; 62 CI-selection tests passed. Deliverable
 structure check reported no errors. Logs are retained in
-`/Users/ryan/dev/chirality-t3/scratch/app-parented-lifecycle-9bg_3bjr`:
+`~/dev/chirality-t3/scratch/app-parented-lifecycle-9bg_3bjr`:
 `test-0.log` (6), `test-1.log` (37), `test-2.log` (18) and
 `ci-selection-pytest.log` (62). The earlier `ci-selection.log` ran zero tests
 and is not passing evidence. Those local logs did not embed a source SHA;
 formatting followed the first six-test run. The independent reviewer reran
 those six tests at exact `979ea1fd23073ecf62899f122659f3c04d4a2a70` with a
 fresh scratch home: 6/6 passed, no rebuild, log
-`/Users/ryan/dev/chirality-t3/scratch/pr68-review-PCSpTLs7/test.log`.
+`~/dev/chirality-t3/scratch/pr68-review-PCSpTLs7/test.log`.
 The other cohorts were inspected, not independently rerun.
 
 Claude Opus 5.5/high reviewed that exact product delta against `366e7a66` and

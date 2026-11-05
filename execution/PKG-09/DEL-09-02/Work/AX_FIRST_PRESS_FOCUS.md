@@ -2,7 +2,7 @@
 
 ## Actual progress and refusal, not a completed B journey
 
-[Selected evidence](../Evidence/EXP/WebKit-AX-exposure-20261101T003119Z/archive-index.json)
+Selected evidence (`execution/PKG-09/DEL-09-02/Evidence/EXP/WebKit-AX-exposure-20261101T003119Z/archive-index.json`, removed run output; recoverable from Git history at b0ba3134)
 retains64 original files and a structural summary. Four native page/protocol-related
 files remain private in scratch with recorded identities; they are not published
 wholesale. All originals remain unchanged. This is candidate fdcf608fb5-23c6c3f22f5e,
@@ -66,7 +66,7 @@ remain unchanged. Required narrow scrutiny covers this action-admission delta.
 
 ## Exact state and verification
 
-Read-only assessment `/Users/ryan/dev/chirality-t3/scratch/app-post-xz8-assessment-jf9ssimn/assessment.json`,
+Read-only assessment `~/dev/chirality-t3/scratch/app-post-xz8-assessment-jf9ssimn/assessment.json`,
 SHA112fb60f90bef4b24936eaf8a7241112b83bd21cab891f51c6c55f964157b53a;
 DB SHA769ba3b2b886ca0ddfef92bc092c0c46d6d4e6920d699134bb00c55db0ade484.
 Exactly24 schema-valid rows record8 linked empty-work quit-ended sessions; the
@@ -85,9 +85,9 @@ refusal, no repeat, and a fresh post-activation control reference, alongside the
 complete mocked native journey and existing refusal/settlement cases. These are
 source tests, not a native pass or a second operator rehearsal.
 
-Historical unrun root `/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-3wa2bzen` (superseded),
+Historical unrun root `~/dev/chirality-t3/scratch/app-successor-native-B-3wa2bzen` (superseded),
 admission SHA37679838e45e0a2db24ee5b0877ec9492b0d07fb6dcdfdc3c631a88b350f2489.
-Basis `/Users/ryan/dev/chirality-t3/scratch/app-first-press-prep-k5sgvacl/retained-v8-inputs.json`,
+Basis `~/dev/chirality-t3/scratch/app-first-press-prep-k5sgvacl/retained-v8-inputs.json`,
 SHA405759b5fc15278fa5542670ec0667ada8aa1b3893f0e5774945d53534ee4ee5.
 All23 dependency/helper/policy hashes match; no execution records. No live edits
 or subsequent launch occurred. Narrow review and exact-head CI remain pending;
@@ -106,9 +106,9 @@ A regression proves a mismatching first-press frame never reaches activation.
 Updated full boundary suite:265 tests,261 passed and4 deferred C skips. The prior
 21 legacy B regressions remain applicable; no legacy controller source changed
 with this capture-binding tightening. Historical unrun review input (now superseded):
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-537opti4`, admission
+`~/dev/chirality-t3/scratch/app-successor-native-B-537opti4`, admission
 SHA6cd04dfacfa42aa4b4deb6024da172d56660c056db3cfd59a8eaf44f71d203d3.
-Basis `/Users/ryan/dev/chirality-t3/scratch/app-first-press-final-prep-_4g97lax/retained-v8-inputs.json`,
+Basis `~/dev/chirality-t3/scratch/app-first-press-final-prep-_4g97lax/retained-v8-inputs.json`,
 SHA5a717ec01e6825806ec4905a321afae1f1f5be642d007430a6f010f446785ea9.
 All23 dependencies/helpers/policy match.3wa2bzen remains preserved but must not
 execute after the tightening. No later content/Stop/modal/Quit boundary gains an
@@ -135,9 +135,9 @@ whether any native request can be made.
 
 Updated verification:268 boundary tests ran,264 passed and4 deferred C skips;
 all21 legacy B tests passed. No new native call or App launch. Current unrun root:
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-i7hfdeyc`, admission
+`~/dev/chirality-t3/scratch/app-successor-native-B-i7hfdeyc`, admission
 SHA7034cc1fe40ae54f355461c48741281cc87e23ae9c77651547c1f03bcf6f9344.
-Basis `/Users/ryan/dev/chirality-t3/scratch/app-first-press-reviewed-prep-6lvw9hcp/retained-v8-inputs.json`,
+Basis `~/dev/chirality-t3/scratch/app-first-press-reviewed-prep-6lvw9hcp/retained-v8-inputs.json`,
 SHA43b708eca1d54474c1ee248ba84bd48890e690ded00748aa0aa91a7997c94b7e.
 The exact24-row state is unchanged;23 dependencies/helpers/policy match.
 537opti4 and3wa2bzen remain preserved and superseded. Exact-head CI remains pending.

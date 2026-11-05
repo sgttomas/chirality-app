@@ -2,7 +2,7 @@
 
 ## Actual uef3r3p2 outcome
 
-[Raw archive](../Evidence/EXP/native-focus-refusal-20261031T210205Z/archive-index.json)
+Raw archive (`execution/PKG-09/DEL-09-02/Evidence/EXP/native-focus-refusal-20261031T210205Z/archive-index.json`, removed run output; recoverable from Git history at b0ba3134)
 retains63 original top-level records, including initial-stability samples,
 verified PNGs, prompts/control, helper refusal and cleanup/resource facts.
 All originals remain byte-identical; private runtime/tmp contents were not read
@@ -71,7 +71,7 @@ transport cycling or blind launch loop is justified by this repair.
 
 ## Actual state and preparation
 
-Read-only assessment `/Users/ryan/dev/chirality-t3/scratch/app-post-uef-assessment-q6utj6s0/assessment.json`,
+Read-only assessment `~/dev/chirality-t3/scratch/app-post-uef-assessment-q6utj6s0/assessment.json`,
 SHA869a603856af65bbb1e9785127eeb22fccaed674501d8c87361a0c65728b8ae3;
 DB SHAe3865cbd97f6ef11f4cb084c349226cecf98e5ae5b0b9d1069e15cce3ed97c73.
 Eighteen schema-valid rows record six linked empty-work Quit-ended sessions;
@@ -94,9 +94,9 @@ refusal, timeout without second activation, already-frontmost no-op, late window
 change before activation, fixed selectors/options/receiver, prohibited policy
 and pool cleanup without loading native libraries. v6/slot/refusal fixtures pass.
 
-Unrun root `/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-095p183p`,
+Unrun root `~/dev/chirality-t3/scratch/app-successor-native-B-095p183p`,
 admission SHAc01af4142e01c14a7d6b0705af654924ef5eb88641cb7f5045dfeeecc3173f38.
-Basis `/Users/ryan/dev/chirality-t3/scratch/app-owned-activation-prep-tdpmtnw5/retained-v6-inputs.json`,
+Basis `~/dev/chirality-t3/scratch/app-owned-activation-prep-tdpmtnw5/retained-v6-inputs.json`,
 SHAe3744063e575220b0c989b4566e7fc3b5cc61df14ed2010be730574e5eda541a.
 All20 dependency/helper/policy hashes match; no execution records. The completed
 narrow review is recorded below; exact-head CI remains pending. Standing bounded authority covers progression after reviewed

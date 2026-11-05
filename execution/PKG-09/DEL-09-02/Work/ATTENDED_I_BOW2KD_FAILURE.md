@@ -34,7 +34,7 @@ process settlement. No B, setup action, Stop, Cancel, verified image or LT23
 was observed. Shared guard infrastructure was not stopped or modified.
 
 All private raw records remain under
-`/Users/ryan/dev/chirality-t3/scratch/app-attended-prepared-i_bow2kd`, including
+`~/dev/chirality-t3/scratch/app-attended-prepared-i_bow2kd`, including
 helper stderr/request, initial-window samples, actual result, bridge receipts,
 release intent/result, resource closure and resource-closure-corroboration.json.
 No failed preparation, candidate, namespace or evidence was reset/relabelled.

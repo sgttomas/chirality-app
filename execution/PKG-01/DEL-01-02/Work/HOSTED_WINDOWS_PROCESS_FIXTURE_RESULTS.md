@@ -170,7 +170,7 @@ checkout coverage of all bound inputs; native execution remains NOT RUN.
 [Actions run 40835385560](https://github.com/sgttomas/chirality-app/actions/runs/40835385560)
 executed source `47edcee47eb04ec3d9b5a8445115e622e652fc16` on hosted
 Windows Server 2022. The retained [result](hosted-windows-process-fixture-evidence/47edcee4/result.json)
-and [raw native trace](hosted-windows-process-fixture-evidence/47edcee4/native.stdout)
+and raw native trace (`execution/PKG-01/DEL-01-02/Work/hosted-windows-process-fixture-evidence/47edcee4/native.stdout`, removed run output; recoverable from Git history at b0ba3134)
 are exact artifact bytes. Agent 0 compared all five recorded source SHA-256s
 with that commit's blobs and both native-channel digests with the result.
 Artifact ID was 12880158540; the upload reported ZIP digest
@@ -212,7 +212,7 @@ checks are unchanged. The exact repaired candidate must now run on Windows.
 executed exact source `47953d358ce7448f10c12244fcb1402716bbe8b9`.
 Agent 0 checked all five recorded source hashes against those Git blobs and
 native-channel digests before preserving the [result](hosted-windows-process-fixture-evidence/47953d35/result.json)
-and [trace](hosted-windows-process-fixture-evidence/47953d35/native.stdout).
+and trace (`execution/PKG-01/DEL-01-02/Work/hosted-windows-process-fixture-evidence/47953d35/native.stdout`, removed run output; recoverable from Git history at b0ba3134).
 Compilation succeeded. Both P01 controls and their cleanup were observed
 again, but P02-A still refused with the leader live and EOF false. The new
 diagnostic shows stdout and stderr had the same handle value, so closing a
@@ -330,7 +330,7 @@ historical artifact's source hashes. Native CI remains NOT RUN.
 [Actions run 40841278555](https://github.com/sgttomas/chirality-app/actions/runs/40841278555)
 executed exact source `91b80351c30beb2c502fc4c77125f0b74bf097aa`.
 The [result](hosted-windows-process-fixture-evidence/91b80351/result.json) and
-[raw trace](hosted-windows-process-fixture-evidence/91b80351/native.stdout)
+raw trace (`execution/PKG-01/DEL-01-02/Work/hosted-windows-process-fixture-evidence/91b80351/native.stdout`, removed run output; recoverable from Git history at b0ba3134)
 are exact source/channel-verified artifact bytes. Compilation and both P01
 controls completed again; the overall native suite remains FAILED.
 
@@ -486,7 +486,7 @@ dependency conditions are unchanged. No VM was accessed.
 compiled and executed exact source
 `d26ecdae630b07b94b4331e4041fdce18861edcb` successfully. Agent 0 inspected
 the actual [result.json](hosted-windows-process-fixture-evidence/d26ecdae/result.json)
-and [raw trace](hosted-windows-process-fixture-evidence/d26ecdae/native.stdout),
+and raw trace (`execution/PKG-01/DEL-01-02/Work/hosted-windows-process-fixture-evidence/d26ecdae/native.stdout`, removed run output; recoverable from Git history at b0ba3134),
 verified all five source identities against committed Git blobs, checked every
 compiler/native channel length and SHA-256, and independently reapplied the
 bound verifier to the saved raw bytes. All seven downloaded artifact files are

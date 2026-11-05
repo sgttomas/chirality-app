@@ -60,7 +60,7 @@ item tests the array as the sole remaining owner, since a separate MainWindow
 copy also retains the window item. Pointer, CFIndex
 and CFTypeID widths were8 bytes. Sources, result and build record are in the
 archive's `offline-abi/`; original fixture root is
-`/Users/ryan/dev/chirality-t3/scratch/app-ax-cf-abi-nz19_vld`.
+`~/dev/chirality-t3/scratch/app-ax-cf-abi-nz19_vld`.
 The build record was written after the result and records the command/observed
 return rather than a build-start timestamp. This tests the concrete general
 libffi/CF conversion/lifetime hypothesis, not

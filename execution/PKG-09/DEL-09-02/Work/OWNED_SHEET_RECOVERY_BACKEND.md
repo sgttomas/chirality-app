@@ -133,7 +133,7 @@ no AppKit/AX/window/capture/input API. It does not establish native dismissal,
 queue timing, visibility or end-to-end cleanup.
 
 Local scratch is
-`/Users/ryan/dev/chirality-t3/scratch/app-parented-lifecycle-9bg_3bjr`;
+`~/dev/chirality-t3/scratch/app-parented-lifecycle-9bg_3bjr`;
 `bounded-review-fix-tests.log` records the repaired focused run;
 `bounded-exact-head-tests.log` and its provenance retain the earlier 7fdb470b
 11-test subject rather than being relabelled. Build/test used the

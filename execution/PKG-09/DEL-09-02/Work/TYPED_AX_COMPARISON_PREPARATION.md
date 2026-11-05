@@ -9,7 +9,7 @@ is a lower-priority residual check, not an assumed product fix or a new framewor
 ## Prioritized post-am98 state
 
 A fresh read-only projection is retained at
-`/Users/ryan/dev/chirality-t3/scratch/app-typed-ax-prep-hz419ka_/post-am98-runtime-assessment.json`.
+`~/dev/chirality-t3/scratch/app-typed-ax-prep-hz419ka_/post-am98-runtime-assessment.json`.
 It did not reuse or rewrite the three-row basis. Current App-ledger SHA256 is
 `2d09bb9af4a653c3eca7fc663f32096664f2dfd2fd1307c07fa38f12bb4b164c`.
 There are six schema-valid rows: two sessions, each start/empty-work Quit request/
@@ -140,7 +140,7 @@ Absolute source hashes fail safe if the worktree changes or disappears; they
 check disk bytes, not already-imported Python module memory.
 
 Retained earlier build (superseded for live use after protected-staging changes):
-`/Users/ryan/dev/chirality-t3/scratch/app-typed-ax-prep-hz419ka_/build-2`.
+`~/dev/chirality-t3/scratch/app-typed-ax-prep-hz419ka_/build-2`.
 Reader manifest SHA256:
 `e7c924ef662d345fb92f0ae9c4c5479a9992454b6c994c5ade3d9b2472dab4b5`;
 reader dylib SHA256:
@@ -181,7 +181,7 @@ verified below. No clean repeat review or live-ready admission is claimed.
 
 Guarded offline build3 completed with source and selected-header hashes stable
 before/after compilation. Its source digests match the final fixed files:
-`/Users/ryan/dev/chirality-t3/scratch/app-typed-ax-prep-hz419ka_/build-3`.
+`~/dev/chirality-t3/scratch/app-typed-ax-prep-hz419ka_/build-3`.
 Production manifest SHA256:
 `efde5fc5fdb1345db2fabef1180778013c5a5a27f4a5b25a1e0979ce44352bc0`;
 production library SHA256:
@@ -193,7 +193,7 @@ fixture imports contain no actual AXUIElement functions. The production dylib
 has never been loaded or invoked.
 
 Using the explicitly selected manifest hash above, staging passed without native
-loading into `/Users/ryan/dev/chirality-t3/scratch/app-typed-ax-staging-patgfy2p`.
+loading into `~/dev/chirality-t3/scratch/app-typed-ax-staging-patgfy2p`.
 The protected `typed-ax-build.json` digest is
 `a9067c5c9fe2bffc1f5da51bc56bfe902ade78fdd851fd0fb3d4acaabdc8118a`.
 The fixed-name library copy is plain owned0600. No admission.json or launch was

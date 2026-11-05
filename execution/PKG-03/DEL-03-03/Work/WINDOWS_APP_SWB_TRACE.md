@@ -8,10 +8,10 @@ it changes no commitment, receiving allocation or dependency condition.
 ## Source identity and scope
 
 App basis **`79315c26b104b534a89ed8e9b1e716f3da3440d0`**, isolated App
-worktree `/Users/ryan/.t3/worktrees/chirality-app/t3-3d8dd1d5`. All App paths
+worktree `~/.t3/worktrees/chirality-app/t3-3d8dd1d5`. All App paths
 below are relative to that revision. Peer reads use
 `git show 1560bbf7f7add4637a20572a2b0d404ef121af63:<path>` in read-only
-`/Users/ryan/.t3/worktrees/chirality/t3-514d37a1`; peer paths below are relative
+`~/.t3/worktrees/chirality/t3-514d37a1`; peer paths below are relative
 to its `projects/chirality-piping/`. Latest peer candidate
 `b78b0feac0aa1e6bbc4606597e10accc54b7eb51` adds Windows CI/design and release
 wording only (four-file diff), not a production transport join. No peer writes,

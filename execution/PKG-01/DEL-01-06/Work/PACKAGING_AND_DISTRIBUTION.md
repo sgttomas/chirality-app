@@ -585,7 +585,7 @@ descendants with the wrapper-counted processes (deduplicated, sampled once per
 second), aborting at
 shared 64 GiB, system free below 22%, or `exclusive.pending`. The root-based
 shared guard blind spot remains; fixing shared tools is outside App scope.
-The current build's [actual preparation evidence](../../../PKG-09/DEL-09-02/Evidence/EXP/795362874d-a391547a5c5d/preparation-evidence.json)
+The current build's actual preparation evidence (`execution/PKG-09/DEL-09-02/Evidence/EXP/795362874d-a391547a5c5d/preparation-evidence.json`, removed run output; recoverable from Git history at b0ba3134)
 names the omitted checkout/private-target paths, direct disclosure and explicit
 SWB clearance approving that monitor. It records the selected slot wrapper,
 allowlisted environment, jobs2 and 2,187,424 KiB sampled shared peak, with no
@@ -621,7 +621,7 @@ Native qualification supplied candidate `fdcf608fb5-23c6c3f22f5e`, built from
 `2353ab5a06096d1cffbf17cdf2ddd90354cc05c7` equals merged main
 `93ccd285a63312c861a7da47e3ab002b13c29a50`; the source identity is **not** relabelled
 to that merge. The bundle is retained under
-`/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app`.
+`~/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app`.
 Its three build-root `identified/` records are owned by native qualification;
 build, preparation and npm records are retained separately in that build root;
 the repository location is

@@ -1,13 +1,13 @@
 # Retained-state B: native window exists, AX readiness failed
 
 The single live retained-state/v1 attempt in
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma` **FAILED**
+`~/dev/chirality-t3/scratch/app-successor-native-B-am98hzma` **FAILED**
 AX readiness. It supplied a new fact: the owned main window existed on-screen
 at the diagnostic instant, while the owned AX window references resolved to
 the Application. It did not supply an initialized generation, LT23, supplier
 settlement or joined V4-EXM-10/11/12 qualification.
 
-The [archive](../Evidence/EXP/fdcf608fb5-23c6c3f22f5e/native-B-20261031T120630Z/archive-index.json)
+The archive (`execution/PKG-09/DEL-09-02/Evidence/EXP/fdcf608fb5-23c6c3f22f5e/native-B-20261031T120630Z/archive-index.json`, removed run output; recoverable from Git history at b0ba3134)
 maps 46 original files and hashes, including both invocation stages, the
 source-bound inputs, diagnostic, cleanup and an offline CF fixture. All
 originals remain retained. Archived Python/C sources are inert `.txt` evidence.

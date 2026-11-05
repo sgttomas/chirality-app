@@ -206,7 +206,7 @@ flags; do not create another cohort or convert a consistency result into release
 Current source-fixture checks: `python3 -m pytest -q
 app/tests/production_inputs_test.py` (16 tests, including actual case/firmlink
 alias refusal on this filesystem). A corrected unqualified plan is retained at
-`/Users/ryan/dev/chirality-t3/scratch/app-package-inputs-frozen-b42vohmf/plan`:
+`~/dev/chirality-t3/scratch/app-package-inputs-frozen-b42vohmf/plan`:
 config SHA `389a8e491d84fe7517f8aea483761e2dc511f1376ef0ef8f27b64c8c96fd2287`.
 It has fifty resource mappings, a validated completion marker, a disposable
 22,190,080-byte Git App export of exact `e7a21ddb9b61de8d2e8d8b27b9c69f10d03cc8f7`

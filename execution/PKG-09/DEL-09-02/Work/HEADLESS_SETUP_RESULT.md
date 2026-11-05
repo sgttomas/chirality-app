@@ -15,7 +15,7 @@ features `[]`. The retained standalone App remains the different, unsigned
 `custom-protocol` candidate `795362874d-a391547a5c5d`; the test runner is not
 a new App candidate. Actual raw output, commands, environment, Cargo artifact
 and exact source/lock hashes are in
-[the headless evidence](../Evidence/EXP/d908cbec5b-headless-setup-20261030T055603Z/result.json).
+the headless evidence (`execution/PKG-09/DEL-09-02/Evidence/EXP/d908cbec5b-headless-setup-20261030T055603Z/result.json`, removed run output; recoverable from Git history at b0ba3134).
 
 - ONE offline locked jobs2 test compilation/freshness command passed in
   87.054697 seconds; no second manual compile or broad suite was run.
@@ -45,7 +45,7 @@ The Cargo compiler-artifact records `profile.test: true`, `features: []`,
 `fresh: false`, the actual package/manifest and executable. Its hash remains
 unchanged after the focused runs. The old original-target runner has the same
 basename but different bytes/hash (`24b0fb5d…33770b2`) and was not overwritten.
-[Source qualification](../Evidence/EXP/d908cbec5b-headless-setup-20261030T055603Z/source-qualification.json)
+Source qualification (`execution/PKG-09/DEL-09-02/Evidence/EXP/d908cbec5b-headless-setup-20261030T055603Z/source-qualification.json`, removed run output; recoverable from Git history at b0ba3134)
 binds actual source files/manifests/locks and the accepted offline Cargo result;
 it claims no exhaustive audit of every transitive source cache.
 
@@ -103,7 +103,7 @@ the earlier selector automation failure into a native pass.
 
 ## Preserved failed A and current applicability
 
-[Native A raw evidence](../Evidence/EXP/795362874d-a391547a5c5d/native-A-20261030T051817Z/result.json)
+Native A raw evidence (`execution/PKG-09/DEL-09-02/Evidence/EXP/795362874d-a391547a5c5d/native-A-20261030T051817Z/result.json`, removed run output; recoverable from Git history at b0ba3134)
 and the [offline diagnosis](NATIVE_SETUP_SELECTOR_DIAGNOSIS.md) retain the failed
 assertions, partial UI states and actor correction. The original App exited/
 was reaped code 0 at 05:27:15.115511Z, before its deadline, following targeted
@@ -142,7 +142,7 @@ draft is AST-parsed only, SHA-256
 `91c9ca98d7bf8d784e2cea5cbd42d237230b9018d58f5e04e369a755d5b7720c`;
 it was never launched, is not a qualified supported tool, and closure does not
 authorize running it. Its exact unused source is also retained as
-[raw `.py.txt` evidence](../Evidence/EXP/d908cbec5b-headless-setup-20261030T055603Z/offline-native-controller-v2.py.txt),
+[raw `.py.txt` evidence](retained/offline-native-controller-v2.py.txt),
 so it is not stranded only in scratch. It was used by neither native A nor the
 headless run, and remains an unsupported draft, not a reusable invocation or
 product implementation. Raw repository evidence carries `SHA256SUMS`; cache and

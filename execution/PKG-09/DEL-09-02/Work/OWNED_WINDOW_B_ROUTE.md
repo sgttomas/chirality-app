@@ -142,9 +142,9 @@ they are source/boundary evidence, not actual GUI qualification.
 ## Historical main-only preparation (superseded)
 
 Read-only capture/preparation succeeded against the unchanged six-row assessment.
-The historical main-only basis `/Users/ryan/dev/chirality-t3/scratch/app-owned-window-prep-aqsif0fz/retained-v2-proposed-inputs.json` has SHA256
+The historical main-only basis `~/dev/chirality-t3/scratch/app-owned-window-prep-aqsif0fz/retained-v2-proposed-inputs.json` has SHA256
 `990f9ae64d51eac3ee1787de440dd16e32b7a29655dd52f64c5da4a2142eb98a`. The historical unrun attempt is
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-u3ug__xe`, admission SHA256
+`~/dev/chirality-t3/scratch/app-successor-native-B-u3ug__xe`, admission SHA256
 `8b6245534baa20881330689cf2fe863adbdfde230f237bbdb14003a25d0fabf5`. All source/helper/slot copies match.
 Earlier qs9viace,10kf7dnk andjbpa3ayx preparations remain retained but are
 superseded by source corrections; none was executed. The u3ug__xe attempt is also
@@ -212,7 +212,7 @@ account/generation and LT23 leader/descendant gates remain unchanged.
 The known source's existing sticky More tools/Connection & access links are
 allowed navigation targets; they only reveal/scroll existing sections.
 
-The [offline timing fixture](../Evidence/EXP/owned-window-ui-offline-timing-20261031T165901Z/archive-index.json)
+The offline timing fixture (`execution/PKG-09/DEL-09-02/Evidence/EXP/owned-window-ui-offline-timing-20261031T165901Z/archive-index.json`, removed run output; recoverable from Git history at b0ba3134)
 contains82 invented diagnostic lines on3 PNG pages. A blinded Type2 read the
 images at original detail and made one private0600 atomic submission, without
 reading hidden expected values. Exact comparison and the existing ready gate
@@ -250,10 +250,10 @@ capture/focus/delivery remain unobserved and are material live-disposition limit
 
 Fresh read-only admission succeeded against the unchanged exact six-row ledger,
 saved A request and post-am98 metadata. The basis is
-`/Users/ryan/dev/chirality-t3/scratch/app-owned-modal-prep-ynql8fea/retained-v2-modal-inputs.json`,
+`~/dev/chirality-t3/scratch/app-owned-modal-prep-ynql8fea/retained-v2-modal-inputs.json`,
 SHA256 `1758db00e52fa4634116420eb718e1ede23d8800281477c8ef9b22f2a312b711`.
 The new unrun root is
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-w8wyelot`,
+`~/dev/chirality-t3/scratch/app-successor-native-B-w8wyelot`,
 admission SHA256 `ac6db9a5a4424152df501daaa56e844bf72f36279a78ae37509ffd3578ae7e0c`.
 It preserves the earlier main-only preparations unchanged. No execution-start,
 actions, artifact check or slot-entry record exists in this new root. This is a
@@ -311,10 +311,10 @@ whitespace validation pass.
 
 Fresh read-only v2 preparation succeeded against the same exact six-row state.
 Current basis:
-`/Users/ryan/dev/chirality-t3/scratch/app-owned-modal-reviewed-prep-gy6xn5lu/retained-v2-modal-inputs.json`
+`~/dev/chirality-t3/scratch/app-owned-modal-reviewed-prep-gy6xn5lu/retained-v2-modal-inputs.json`
 SHA256 `536fab0747c5f16dc4c2433f8b9d3d789d7adb23f056f0dd2f6270dd11a3d9f6`.
 Current unrun attempt:
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-8w83gq78`
+`~/dev/chirality-t3/scratch/app-successor-native-B-8w83gq78`
 admission SHA256 `0e467feb15bc22b5f3d60880e35e6f6a9ab592b2d81117064dec3b570665c553`.
 All 16 dependency hashes, copied helpers and policy match current sources;
 no execution-start/actions/artifact-check/slot-entry exists. All earlier bases,

@@ -11,7 +11,7 @@ row-count adoption, mutable profile substitution or generalized admission system
 
 ## Exact binding and limits
 
-- Assessment `/Users/ryan/dev/chirality-t3/scratch/app-post-8w83-assessment-ixl8ssy7/assessment.json`,
+- Assessment `~/dev/chirality-t3/scratch/app-post-8w83-assessment-ixl8ssy7/assessment.json`,
   SHA256 `1fb324520a0c9fc94c12820fd0816e3072f8995717d81455c790611aabd5a951`.
 - App database SHA256 `763f6bff606b937a1344815d82bb413ae7b0280de233e078f79a55bdf76891ee`.
 - Original saved A request SHA256
@@ -75,9 +75,9 @@ No App, capture or native call ran. Deliverables and whitespace checks pass.
 
 ## Concrete prepared attempt
 
-Unrun root `/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji`.
+Unrun root `~/dev/chirality-t3/scratch/app-successor-native-B-7sinkdji`.
 Admission SHA256 `322645af00f1ce330be9187811a477d8791a3694005863b2df6bdf5437b41893`.
-Basis `/Users/ryan/dev/chirality-t3/scratch/app-retained-v3-prep-bd_2mr51/retained-v3-inputs.json`,
+Basis `~/dev/chirality-t3/scratch/app-retained-v3-prep-bd_2mr51/retained-v3-inputs.json`,
 SHA256 `2989210b3924deec890b45be6c3f36863addebedec5c92650a7b8182107b5c60`.
 All 17 dependency hashes, staged helpers and policy match. There is no slot-entry,
 execution-start, action or artifact-check record. Full candidate inventory and

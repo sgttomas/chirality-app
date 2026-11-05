@@ -46,7 +46,7 @@ product fix or proof the later helper will see stable geometry.
 ## Actual retained state and explicit v4 basis
 
 Read-only assessment:
-`/Users/ryan/dev/chirality-t3/scratch/app-post-7sink-assessment-l22n96br/assessment.json`,
+`~/dev/chirality-t3/scratch/app-post-7sink-assessment-l22n96br/assessment.json`,
 SHA256 `69a46005f04f8811cc30395f91a2a24e1da4d432160ad2cb9322a4c3c1bfd205`.
 Database SHA256 `4e1310052a83ac2b80abd5fe65ac4e9692a34a029b19428a6840a193cedecb47`.
 There are12 schema-valid rows: four linked start/empty-work Quit/quit-ended
@@ -85,9 +85,9 @@ opaque metadata/auth names and one-use fixed slot invocation. These are mocked/
 harmless fixtures, not GUI qualification. Deliverables/whitespace pass.
 
 Historical review-input preparation (superseded, still unrun):
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-xuin2amx`, admission
+`~/dev/chirality-t3/scratch/app-successor-native-B-xuin2amx`, admission
 SHA256 `dff37a45512cf027f7d0dba2cf3aa525e9290d80f1711c87de00e7cd537bf9fc`.
-Basis `/Users/ryan/dev/chirality-t3/scratch/app-initial-stability-prep-srtdm8o6/retained-v4-inputs.json`,
+Basis `~/dev/chirality-t3/scratch/app-initial-stability-prep-srtdm8o6/retained-v4-inputs.json`,
 SHA256 `397d7f2c3a807e5d3812acbb78a4f8d82a2432d44afa55f2dec2d4c8d8d956a0`.
 All18 dependencies, copied helpers and policy match; no execution records.
 An earlier read-only capture refused a mistyped fixed assessment path before
@@ -119,9 +119,9 @@ Updated validation:174 boundary tests ran,170 passed and4 deferred C fixtures
 skipped; all21 legacy B tests passed. Deliverables and whitespace pass. New
 read-only capture/admission succeeded against the unchanged exact12-row state.
 Current unrun attempt:
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-5kpzvvr3`, admission
+`~/dev/chirality-t3/scratch/app-successor-native-B-5kpzvvr3`, admission
 SHA256 `014c684aefb9929d963f26b028eca60fd794fa0bc8c2d6f99000c8bcf744ae34`.
-Basis `/Users/ryan/dev/chirality-t3/scratch/app-stability-reviewed-prep-_3u7anxc/retained-v4-inputs.json`,
+Basis `~/dev/chirality-t3/scratch/app-stability-reviewed-prep-_3u7anxc/retained-v4-inputs.json`,
 SHA256 `9c54b6bd0d16b13e9204fd8ce582d163adf274849785d2ba8fe36182130f3d05`.
 All18 dependency/helper/policy identities match. xuin2amx is preserved but
 superseded by these source fixes and must not execute. No live calls or launch

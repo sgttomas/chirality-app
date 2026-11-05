@@ -606,7 +606,7 @@ installed-custody, packaging or release criterion is passed by these bounded
 checks. Scope/needs and pending owner terms/acceptance decisions are unchanged.
 
 **Current development artifact (2026-10-29).** Candidate preparation
-[`795362874d-a391547a5c5d`](../Evidence/EXP/795362874d-a391547a5c5d/preparation-evidence.json)
+`795362874d-a391547a5c5d` (`execution/PKG-09/DEL-09-02/Evidence/EXP/795362874d-a391547a5c5d/preparation-evidence.json`, removed run output; recoverable from Git history at b0ba3134)
 identifies the one offline debug build of source
 `795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98`. Its unique identifier is
 `dev.chirality.app-v4.candidate.20261029-ukt5ir80`; the full v2 tree identity,

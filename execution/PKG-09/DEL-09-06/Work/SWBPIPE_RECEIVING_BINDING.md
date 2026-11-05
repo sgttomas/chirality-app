@@ -285,7 +285,7 @@ The receiving files are committed locally at these SWBPIPE paths:
 - execution/PKG-16/DEL-16-06/Design/agent-capability-catalog.json
 - execution/PKG-16/DEL-16-06/Design/embedded-agent-host.md
 
-Verified receiving checkout: /Users/ryan/dev/chirality-t3/swbpipe-appv4-host,
+Verified receiving checkout: ~/dev/chirality-t3/swbpipe-appv4-host,
 reported branch codex/swbpipe-appv4-host, exact local commit
 4d2c8254b534aed1490c02fa3db1d2aea741b52f. The App manager read both files
 directly from that Git commit, not the mutable working tree. Catalog SHA256 is

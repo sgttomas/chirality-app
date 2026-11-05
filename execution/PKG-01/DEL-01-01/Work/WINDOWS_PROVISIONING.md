@@ -86,7 +86,7 @@ new-build-guest readiness evidence.
 App basis: `36bd5d6eecbe1b835249cfce2722c0710f777c20`, branch
 `t3/windows-feasibility`. The required baseline is HEAD and the initial tree
 was clean; no baseline merge was needed. Selected instruction library:
-`/Users/ryan/dev/chirality` at `1560bbf7f7add4637a20572a2b0d404ef121af63`.
+`~/dev/chirality` at `1560bbf7f7add4637a20572a2b0d404ef121af63`.
 Consultation selects instructions, not product asset updates.
 
 The manager independently observed macOS 26.6.2 build 25G83, arm64,
@@ -108,7 +108,7 @@ lane; they are not proposed installations. Reuse existing WebView2, subject
 to a Tauri/Wry launch witness; do not reinstall it by default.
 
 SWBPIPE source is read-only checkout
-`/Users/ryan/.t3/worktrees/chirality/t3-514d37a1`, branch
+`~/.t3/worktrees/chirality/t3-514d37a1`, branch
 `codex/swbpipe-windows-feasibility`, revision
 `1560bbf7f7add4637a20572a2b0d404ef121af63`, project
 `projects/chirality-piping`. Agent 0 checked the supplied pins and committed

@@ -24,7 +24,7 @@ interface changes and no supplier, resources or production implementation change
 Inputs: clean isolated baseline `735f65d3ef58f65b6f2ed066d97de34d2ff48cb5`,
 read-only fetched main `c5b33e37832364eaa04360540ea5e31bc08a9168`, merged with
 both parents at `eb603aa30ba09a3ce8cdf0de4cc008c8c0362aa8`. Selected shared
-role/method source: `/Users/ryan/dev/chirality` at
+role/method source: `~/dev/chirality` at
 `1560bbf7f7add4637a20572a2b0d404ef121af63`,
 `agents/AGENT_WORKING_ITEMS.md`, `agents/AGENT_TASK.md`, and
 `workflows/coordinated-knowledge-work/WORKFLOW.md`. Consultation changes no
@@ -190,16 +190,16 @@ against the committed source, checked every compiler/native channel hash and
 length, and reapplied the bound verifier to the raw native bytes. All 19 artifact
 files are preserved byte-for-byte; no executable binary is committed.
 
-- [Positive](hosted-windows-p03-evidence/0aec700d/positive-native.stdout): the
+- Positive (`execution/PKG-01/DEL-01-02/Work/hosted-windows-p03-evidence/0aec700d/positive-native.stdout`, removed run output; recoverable from Git history at b0ba3134): the
   original leader exited after stdin closed, its descendant remained live
   through the fixture grace, and the current slot changed to g+1. Stop acted
   on captured g; original leader/descendant HANDLEs signaled and original Job
   active count reached zero while g+1 remained live with active count one.
   Retirement was CONFIRMED only after those observations.
-- [Wrong-slot control](hosted-windows-p03-evidence/0aec700d/wrong-slot-native.stdout):
+- Wrong-slot control (`execution/PKG-01/DEL-01-02/Work/hosted-windows-p03-evidence/0aec700d/wrong-slot-native.stdout`, removed run output; recoverable from Git history at b0ba3134):
   deliberately terminating g+1 left g's descendant live/active one and killed
   the successor. Retirement remained UNKNOWN; mechanism_pass was false.
-- [Missing-observation control](hosted-windows-p03-evidence/0aec700d/missing-observation-native.stdout):
+- Missing-observation control (`execution/PKG-01/DEL-01-02/Work/hosted-windows-p03-evidence/0aec700d/missing-observation-native.stdout`, removed run output; recoverable from Git history at b0ba3134):
   termination API success did not establish retirement when the authoritative
   Job observation was withheld. Custody remained held and retirement UNKNOWN
   until separately logged fixture cleanup; cleanup did not rewrite the outcome.

@@ -22,7 +22,7 @@ The next live B input is now the repaired successor
 the exact bindings and private-metadata checks are in
 `../Evidence/EXP/fdcf608fb5-23c6c3f22f5e/native-A-20261030T222805Z/`.
 The retained native root is
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-A-irf2swd9/`.
+`~/dev/chirality-t3/scratch/app-successor-native-A-irf2swd9/`.
 B must consume that state without rerunning A, rewriting the request or
 resetting any namespace. The original candidate's A tuple below is historical
 and remains preserved, not substituted for the successor's input.
@@ -71,7 +71,7 @@ supplier, model, credential or actual A state was used:
 | Same allowlist with fork allowed | An allowlisted Python child spawned the same binary in a new session, exited normally and was waited by its creator | Same-binary helpers are also admitted. |
 
 The first exploratory probe is retained in
-`/Users/ryan/dev/chirality-t3/scratch/app-B-spawn-policy-l1psblkl/`, including
+`~/dev/chirality-t3/scratch/app-B-spawn-policy-l1psblkl/`, including
 policy, script and result. The maintained tests reproduce and extend that
 observation with fresh temporary homes and fixed environments. All fixture
 children settled. These checks demonstrate specific policy limitations, not
@@ -147,7 +147,7 @@ subsequent repair scrutiny uses the owner's updated reviewer selection.
 
 Focused offline Rust 1.97.1 checks use a fresh scratch Codex home and cloned
 prepared cache under
-`/Users/ryan/dev/chirality-t3/scratch/app-native-custody-xwl7wbmc/`, slot admission,
+`~/dev/chirality-t3/scratch/app-native-custody-xwl7wbmc/`, slot admission,
 memguard and two build jobs. Five probe tests, 36 Quit-filter tests and the
 system-termination test passed; 12 process-group custody tests also passed.
 The successor suite passed 97 tests with four

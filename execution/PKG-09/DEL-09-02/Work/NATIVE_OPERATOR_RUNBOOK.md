@@ -80,7 +80,7 @@ No login/account/key operation was performed by this rehearsal.
 
 ## Single full rehearsal result — method decision required
 
-The [retained result](../Evidence/EXP/native-operator-method-20261031/archive-index.json)
+The retained result (`execution/PKG-09/DEL-09-02/Evidence/EXP/native-operator-method-20261031/archive-index.json`, removed run output; recoverable from Git history at b0ba3134)
 contains both actual095p183p evidence and the ONE full offline rehearsal.
 The earlier90-second excerpt exited no-op without a timing start, image read or
 control; its reservation released21:55:18Z. The replacement full fixture held the
