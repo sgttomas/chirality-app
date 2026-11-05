@@ -7,6 +7,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
+import './support/rust-prebuild.mjs';
 
 const document = installMiniDom();
 const {createRoot} = await import('react-dom/client');

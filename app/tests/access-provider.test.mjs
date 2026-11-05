@@ -13,6 +13,7 @@ import {localRequire} from './support/load-src.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
+import './support/rust-prebuild.mjs';
 const app=new URL('../',import.meta.url),out=mkdtempSync(`${tmpdir()}/access-provider-private-`);
 const document=installMiniDom();
 const {createRoot}=await import('react-dom/client');

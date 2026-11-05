@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {loadSrc} from './support/load-src.mjs';
+import './support/rust-prebuild.mjs';
 
 const {WorkflowDraftsView,WorkflowDraftsList,DraftRow,TrialRow,CompareResult,draftStateWords,attributionWords,fidelityWords,trialSide,runSide,initialDraftsState}=loadSrc('WorkflowDrafts');
 const {RunBringBack,runBringBackDefault}=loadSrc('RunPanel');

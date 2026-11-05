@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
+import './support/rust-prebuild.mjs';
 
 // Actual native resolver/prepare/save packets. The filesystem fixture is
 // invented and removed by Rust. No native App, supplier or model is launched.

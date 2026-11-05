@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {parse,elements,attribute} from './support/source-ast.mjs';
 
 // Trial and bring-back composers, the review's last clean trial line, and their
 // place in the conversation panel (WR TT-3a, TT-3b, TT-10, TT-13; OI-008: the
@@ -294,8 +295,7 @@ test('the clean trial role picker has its own radio group, apart from the Start 
   assert.deepEqual([...names],['clean-trial-role:trial:7']);
   const other=h(CleanTrialPanel,{pending:clean({reference:'trial:8'}),roleSet,limits:{},entries,modeHomeClass:'account',busy:false,ready:true,act:async()=>{}});
   assert.match(other,/name="clean-trial-role:trial:8"/,'two clean trial panels do not share a group');
-  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
-  assert.match(app,/<RoleChoice group="start-thread-role"/);
+  assert.ok(elements(parse('App.tsx'),'RoleChoice').some(el=>attribute(el,'group')==='start-thread-role'),'the Start thread picker keeps its own group');
 });
 
 test('composers appear in the conversation they belong to',()=>{
