@@ -148,6 +148,15 @@ The original exact-version review is not relabelled as a clean review of v3.
 Private focused log: app-pr135-repair-checks-k0rbj7zf/focused.log (initial repair
 run); final checked commands/results are retained with the PR repair return.
 
+Hosted CI on4a865b51 exposed a temporary-path fixture issue before its admission
+assertion: macOS's symlinked temp path differed from the resolved reviewed project.
+An owned symlinked TMPDIR reproduced that failure. Canonicalizing the fixture
+root fixes it; the controller's exact-path guard and all controller bytes are
+unchanged. The43 focused cases and full176-test native-attended cohort both pass
+with that symlinked TMPDIR. Before/after logs and exact commands are retained in
+app-pr135-ci-temp-alias-mjepzl1q. This fixes test portability, not native behavior,
+and supplies no new App execution or independent review of a different controller.
+
 Deliverables/diff checks and the exact prepared source manifest accompany the
 PR return. Agent0, not this manager, will commission the one independent review
 of this concrete version before any new live launch. The actual two attempts

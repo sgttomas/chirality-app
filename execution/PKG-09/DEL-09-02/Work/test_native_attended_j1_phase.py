@@ -784,7 +784,7 @@ class ReviewedPacketAdmissionTests(unittest.TestCase):
     def test_changed_case_with_regenerated_manifests_fails_before_native_preparation(self):
         import hashlib
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory); packet = root / 'packet'; project = packet / 'session/project'
+            root = Path(directory).resolve(); packet = root / 'packet'; project = packet / 'session/project'
             project.mkdir(parents=True)
             (project / 'BRIEF.md').write_text('reviewed invented task')
             (packet / 'README.md').write_text('invented packet')
