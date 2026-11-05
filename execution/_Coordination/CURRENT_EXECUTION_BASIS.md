@@ -2,8 +2,8 @@
 
 ## Current release pathway
 
-Updated 2026-11-04 against integrated main
-`9872298110074a0885399f675c91d7af06a27628`. HELP_HUMAN/Agent 0 owns purpose,
+Updated 2026-11-05 against integrated main
+`5ff043937ccce2e04c14e921c6c9b5f98d169edd`. HELP_HUMAN/Agent 0 owns purpose,
 cross-front sequencing,
 review of returns, final App integration and continuity with the owner.
 This is the current execution account; requirements and acceptance remain in
@@ -49,23 +49,38 @@ PRs #107–#111 integrated guided workflow use/authoring, closed bundled-workflo
 admission, explicit model discovery, a focused first-use screen and persistent
 mounted task views. Rendered self-tests found and repaired actual navigation
 and layout failures. PR #114 then retained native conversation names/previews
-through start, fork and resume and made History search/display them. The current
-local development App is built from main `98722981`, with a separate development
-identifier and disposable data; it has not completed native product cases. The
+through start, fork and resume and made History search/display them. #117,
+#119, #123, #124, #125 and #128 then integrated trial model choice, conservative
+send holds, History Continue, truthful guide labels, results finding and
+returning-draft guidance. The current
+[local development App](../PKG-09/DEL-09-02/Work/DEV_APP_PRODUCT_STACK_BUILD_20261105.md)
+is built from product main `eaf5d057`, with a fresh development identifier.
+Its supplier, instructions and workflow resources match the retained inputs;
+it has not been launched or installed. It has only a linker ad-hoc signature,
+and establishes no native product or production qualification. The
 [native observation account](../PKG-09/DEL-09-02/Work/DEV_APP_NATIVE_OBSERVATIONS_20261104.md)
 records the earlier `a6fbc9a8` observations and desktop activation/occlusion
 capability limit. That GUI loop is closed; cause and product behavior once
 visible/active remain unresolved. The
 [real-backend loopback result](../PKG-01/DEL-01-01/Work/LOCAL_RESPONSES_BACKEND_SMOKE.md)
 exercises stock Codex plus Host/history/cleanup without model inference or
-credentials. Neither result closes the complete journeys.
+credentials. #116/#120/#121 added the bundled-workflow, end-notice and clean
+trial/Bring-back joins; #118 binds native starts to the source shown at press,
+and #127 supplies local run-preparation order. The fixture replies remain
+scripted, and their actual execution subjects remain recorded in
+[the runtime account](../PKG-01/DEL-01-01/Work/LOCAL_RESPONSES_WORKFLOW_FIXTURE.md).
+Neither those joins nor the rendered checks close the complete journeys.
 
-The next owned product results are explicit model choice in fresh trials and
-Continue as (the product manager), a joined bundled-workflow backend fixture
-(the runtime manager), and the focused before/after P2 functional result
-(the examination manager). The rendered baseline already demonstrates that the
-fresh-trial and Continue-as routes require raw model/provider IDs; #110 had
-fixed only New conversation. The following increments stay within the two
+The next owned result is the runtime manager's precise qualification boundary
+joined to the identified development artifact: remaining real-model, native
+lifecycle/access and installed-custody evidence, with existing authority and
+actual missing inputs distinguished. Agent 0 reviews that return before any
+new execution. The product manager retains concrete journey repairs, and the
+examination manager's renderer accounts retain each original render subject,
+synthetic inputs and source-only limits. No default repeat fixture phase or
+closed GUI probe is resumed. #126's
+[notice input inventory](../PKG-01/DEL-01-06/Work/SHIPPED_NOTICE_COVERAGE.md)
+is integrated but P6 remains open. These results stay within the two
 agreed journey finish conditions. SWB resource concurrence is supporting coordination, not App product progress
 or completion of the joined SWBPIPE journey. The bounded
 [publication punchlist](PUBLICATION_PUNCHLIST.md) indexes the remaining
@@ -161,8 +176,9 @@ Current Type 1 assignments are:
   PRs #84/#86/#87/#88/#89 and #107/#108/#110/#111 delivered the presentation,
   first-use, model-choice and task-navigation increments. The lane retains
   delivery ownership of the usable frontend journeys. #114's conversation
-  discovery repair is integrated. The next increment removes raw model/provider
-  requirements from fresh trials and Continue as using the existing chooser.
+  discovery repair and #117's trial/Continue-as model chooser are integrated.
+  #119/#123/#124/#125/#128 add holds, History landing and the guide increments.
+  The lane retains repairs against concrete findings on the current artifact.
   Neither source integration nor rendered fixtures completes usability.
   [Product readiness reconciliation](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md)
   distinguishes implemented slices from the still-open user journey. Agent 0
@@ -173,9 +189,12 @@ Current Type 1 assignments are:
   `a6fbc9a8` native observations are integrated in #112; source `26a01ff9` has
   rendered checks but its native product cases remain unrun. GUI automation
   cannot activate/uncover the test App on this desktop, so the probe loop is
-  closed. This owner now carries the focused rendered P2 before/after test on
-  the product manager's exact source, including keyboard/focus, edited-text
-  retention and source changes. Native qualification, recovery and access-mode
+  closed. This owner completed the focused renderer checks and their
+  [per-subject accounts](../PKG-09/DEL-09-02/Work/RENDERER_GUIDE_TRIALS_BRING_BACK_20261104.md),
+  including keyboard/focus, edited-text retention and source changes. The
+  later #125 activity guard is checked by source inspection and mounted tests
+  only; #128's same-commit stale-reveal guard has no tested transition.
+  Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
   collector gate. No quarantine is present on the local installed copy; no
@@ -185,15 +204,19 @@ Current Type 1 assignments are:
   Own package inputs, notices, supplier provenance and final distribution
   assembly. PRs #92/#94/#96/#97/#99/#101/#102/#103 retain the current assembly,
   receipts, signing and notarization results. Supplier pin qualification and
-  notice gaps remain open. Preserve successful package evidence; product source
+  notice gaps remain open. #126 integrates the reviewed offline dependency
+  input inventory and explicit missing-text/source associations; this is not
+  complete shipped coverage. Preserve successful package evidence; product source
   changes require a new identified candidate and applicable final signing/
   notarization, not transfer of old results. No repeat acceptance of the approved
   OpenAI terms is required; the distribution decision remains `not_made`.
 - **Installed supplier integrity and SEAL-C:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:72b0bb46c6645f2fd7155deab7d5ff1fa5b3b56a4e77151178a0e322c1e906ae>.
-  The next development result is the actual bundled-workflow lifecycle through
-  stock Codex and the production backend against the deterministic loopback
-  fixture, building on #113's greeting/history/cleanup result. It must retain
-  synthetic-model limits and cannot close useful-model/native qualification.
+  #116/#118/#120/#121/#127 are integrated. The stock-Codex loopback joins,
+  source-bound starts and run-order producer retain their recorded subjects
+  and synthetic-model limits. The current result is documentary preparation
+  of the precise remaining qualification boundary against the new artifact,
+  including the exact existing replay path and missing route/capability inputs.
+  It authorizes no new execution and cannot close useful-model/native qualification.
   PRs #93/#98/#100 selected and wired the actual profile/default own-App route.
   Candidate `b3dd4145` has compiled publisher binding `58463a02` and selected
   keychain namespace, with signed app-id/team entitlements. Static joins passed;
