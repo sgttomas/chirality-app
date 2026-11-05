@@ -137,3 +137,7 @@ This is source preparation, not a fresh native admission or another live root.
 No current process/window/dev-state probe, model/auth, build, download or native
 trial was performed in this preparation. The actual native picker path-entry
 capability remains the explicit unresolved observation above.
+
+The focused test file uses the existing test_native_attended*.py discovery name
+so the maintained native CI cohort runs these cases without a workflow change.
+This filename/Work-reference adjustment does not change controller or test bytes.

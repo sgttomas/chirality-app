@@ -202,7 +202,7 @@ parent receipts are separate corroboration. No original result was rewritten.
 
 Agent0 selected a new retained controller version with phase-aware picker and
 confirmation binding and prebound normal termination, not another live trial.
-The source is j1_stage_a_phase.py with focused test_j1_stage_a_phase.py. The
+The source is j1_stage_a_phase.py with focused test_native_attended_j1_phase.py. The
 preparation and its remaining native capability are described in
 J1_PHASE_PREPARATION.md. This contribution changes only DEL09-02 Work and does
 not touch product/frontend coordination paragraphs, IPC, native confirmation,
