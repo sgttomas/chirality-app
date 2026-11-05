@@ -35,6 +35,8 @@ async function mount(view) {
     showConversation:view.navigate ? id => opened.push({shown:id}) : undefined}));
   await React.act(async () => render());
   return {c, calls, offers, opened, rerender:async next => { Object.assign(view, next); await React.act(async () => render()); },
+    update:next => { Object.assign(view, next); render(); },
+    close:async () => React.act(async () => root.unmount()),
     choose:async value => React.act(async () => props(all(c, 'select')[0]).onChange({target:{value}})),
     name:async value => React.act(async () => props(all(c, 'input')[0]).onChange({target:{value}})),
     press:async label => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, `${label} enabled`); await React.act(async () => props(node).onClick()); }};
@@ -443,4 +445,55 @@ test('returning to a draft: Continue lands on its current step, a saved conversa
     assert.equal(ui.calls.length, before, 'nothing is read, chosen or continued');
     assert.ok(button(ui.c, 'Try it in a fresh conversation'), 'the fresh trial is the available action');
   } finally { proto.focus = previousFocus; }
+});
+
+// Constructed same-commit transitions using the retained draft/trial shapes.
+// focus()/scrollIntoView() record calls on the mounted node; miniDOM makes no
+// claim about native keyboard events, layout, visibility or AppKit focus.
+for (const replacement of ['draft choice', 'library']) test(`a queued Continue reveal cannot land on another ${replacement} in the same commit`, async () => {
+  const proto = Object.getPrototypeOf(document.createElement('p'));
+  const original = {focus:proto.focus, scrollIntoView:proto.scrollIntoView};
+  const reveals = [];
+  proto.focus = function () { reveals.push({operation:'focus', label:this.getAttribute('aria-label'), text:this.textContent}); };
+  proto.scrollIntoView = function () { reveals.push({operation:'scroll', label:this.getAttribute('aria-label'), text:this.textContent}); };
+  const a = {name:'spacing-check', state:'draft', trials:producerTrials};
+  const b = {name:'other-draft', state:'not valid', findings:['constructed other-draft finding'], trials:[]};
+  const ui = await mount({host:host(), data:data({drafts:{drafts:[a,b]}})});
+  const before = JSON.stringify([a,b]);
+  try {
+    // Positive: the existing Continue path focuses its own status exactly once.
+    await ui.press('Continue spacing-check');
+    assert.deepEqual(reveals.map(r => r.operation), ['scroll','focus']);
+    assert.ok(reveals.every(r => r.label === 'Draft state' && r.text.startsWith('spacing-check:')));
+    reveals.length = 0;
+    const continueA = props(button(ui.c, 'Continue spacing-check')).onClick;
+    const chooseName = props(all(ui.c, 'input')[0]).onChange;
+    await React.act(async () => {
+      continueA();
+      // The reveal effect is deferred until this update commits. A later
+      // selection/host projection must win even though the old effect is due.
+      await Promise.resolve();
+      if (replacement === 'draft choice') chooseName({target:{value:'other-draft'}});
+      else ui.update({data:data({activeLibrary:'lib:replacement',
+        libraries:[{reference:'lib:replacement', origin:'user', root:path('/constructed/replacement-library'), registered:[]}],
+        drafts:{drafts:[{...a, state:'not valid', findings:['constructed replacement-library finding']}, b]}})});
+    });
+    const shown = region(ui.c, 'Draft state');
+    assert.ok(shown, 'the newly selected draft has a mounted state line');
+    assert.match(shown.textContent, replacement === 'draft choice' ? /^other-draft:/ : /^spacing-check: draft — not valid for registration\./);
+    assert.deepEqual(reveals, [], 'the stale reveal neither scrolls nor focuses the newly selected draft');
+    assert.deepEqual(ui.calls, []); assert.deepEqual(ui.offers, []); assert.deepEqual(ui.opened, []);
+    // A later ordinary observation cannot resurrect the consumed reveal.
+    await React.act(async () => ui.update({busy:false}));
+    assert.deepEqual(reveals, []);
+    await ui.press('Continue other-draft');
+    assert.deepEqual(reveals.map(r => r.operation), ['scroll','focus'], 'a fresh explicit Continue still works');
+    assert.ok(reveals.every(r => r.text.startsWith('other-draft:')));
+    assert.equal(JSON.stringify([a,b]), before, 'retained draft/trial fixtures are unchanged');
+  } finally {
+    await ui.close();
+    for (const [name, value] of Object.entries(original)) {
+      if (value === undefined) delete proto[name]; else proto[name] = value;
+    }
+  }
 });

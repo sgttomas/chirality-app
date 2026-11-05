@@ -3,7 +3,7 @@
 ## Current release pathway
 
 Updated 2026-11-05 against integrated main
-`5ff043937ccce2e04c14e921c6c9b5f98d169edd`. HELP_HUMAN/Agent 0 owns purpose,
+`0f6d8388420b5ba2bb513bb9f30fb80b65088e21`. HELP_HUMAN/Agent 0 owns purpose,
 cross-front sequencing,
 review of returns, final App integration and continuity with the owner.
 This is the current execution account; requirements and acceptance remain in
@@ -37,13 +37,17 @@ its private installation/signing records and earlier copies remain retained.
 Those results do not establish the newer product source, full journeys,
 installed S4, enrollment or release.
 
-The owner's latest steer treats this as early product development: do
-substantially more testing independently, use local development builds, and
-bring a runnable app to the owner when a concrete product decision needs their
-firsthand opinion. Repeating signing/notarization for every development repair
-is deferred. Both required standalone journeys remain in scope before 4.0.0:
-run an existing workflow to useful completion, then create/trial/register/reuse
-one and resume unfinished work without translating engineering controls.
+The owner's 2026-11-05 correction assigns development testing to the agents.
+Agent 0 carries the App to a publication-ready recommendation before the owner
+begins their testing; setup clicks, pickers and regression cases are not an
+owner-operated test plan. Ordinary focused development checks and repairs
+continue under existing authority, with unavailable capabilities reported
+precisely. Repeating signing/notarization for every development repair is
+deferred. Both required standalone journeys remain in scope before 4.0.0:
+agent-operated J1 first use, an existing workflow, useful real-model work and
+finding results; then J2 create/trial/register/reuse and return to unfinished
+work. This testing correction changes no acceptance, hold or credential/model/
+network/signing authority.
 
 PRs #107–#111 integrated guided workflow use/authoring, closed bundled-workflow
 admission, explicit model discovery, a focused first-use screen and persistent
@@ -55,9 +59,18 @@ send holds, History Continue, truthful guide labels, results finding and
 returning-draft guidance. The current
 [local development App](../PKG-09/DEL-09-02/Work/DEV_APP_PRODUCT_STACK_BUILD_20261105.md)
 is built from product main `eaf5d057`, with a fresh development identifier.
-Its supplier, instructions and workflow resources match the retained inputs;
-it has not been launched or installed. It has only a linker ad-hoc signature,
-and establishes no native product or production qualification. The
+Its supplier, instructions and workflow resources match the retained inputs.
+Agent 0 verified launch of that `eaf5d057` candidate at 18:42:37 UTC on
+2026-11-05; the owner separately confirmed that the welcome screen was visible.
+The subsequent agent attempt identified the exact App window but received only
+seven chrome AX nodes, with no AXWebArea or setup controls: zero setup,
+confirmation or save actions occurred. Normal Quit was posted once through
+the App-owned menu. Original PID 79609 was absent at 18:52:54.277 UTC and
+independently absent at 18:53:36.966 UTC. Absence supplies no exit-code or reap
+result. No supplier, Stage B or model result is established. Native owns the
+attempt's DEL-09 Work evidence and next agent-operated capability option; welcome
+visibility is not completed setup. The build has only a linker ad-hoc signature
+and establishes no production qualification. The
 [native observation account](../PKG-09/DEL-09-02/Work/DEV_APP_NATIVE_OBSERVATIONS_20261104.md)
 records the earlier `a6fbc9a8` observations and desktop activation/occlusion
 capability limit. That GUI loop is closed; cause and product behavior once
@@ -71,14 +84,17 @@ scripted, and their actual execution subjects remain recorded in
 [the runtime account](../PKG-01/DEL-01-01/Work/LOCAL_RESPONSES_WORKFLOW_FIXTURE.md).
 Neither those joins nor the rendered checks close the complete journeys.
 
-The next owned result is the runtime manager's precise qualification boundary
-joined to the identified development artifact: remaining real-model, native
-lifecycle/access and installed-custody evidence, with existing authority and
-actual missing inputs distinguished. Agent 0 reviews that return before any
-new execution. The product manager retains concrete journey repairs, and the
-examination manager's renderer accounts retain each original render subject,
-synthetic inputs and source-only limits. No default repeat fixture phase or
-closed GUI probe is resumed. #126's
+The next owned product result is agent-operated J1 on an identified applicable
+artifact. Native owns the current first-use attempt, its evidence and next
+capability option; the runtime qualification boundary is completed preparation,
+with remaining access/model/network/credential-storage choices reserved as
+applicable. Missing archive/formal identity remains a separate dependency and
+must not stall unrelated J1 preparation. Agent 0 coordinates any next execution;
+no closed GUI loop is revived by this account. The product manager retains
+concrete journey repairs. Historical renderer accounts retain each actual
+subject, constructed inputs and unrendered limits; later mounted tests have
+their own subject and confer no native or model evidence. J1 and J2 remain open.
+#126's
 [notice input inventory](../PKG-01/DEL-01-06/Work/SHIPPED_NOTICE_COVERAGE.md)
 is integrated but P6 remains open. These results stay within the two
 agreed journey finish conditions. SWB resource concurrence is supporting coordination, not App product progress
@@ -191,9 +207,15 @@ Current Type 1 assignments are:
   cannot activate/uncover the test App on this desktop, so the probe loop is
   closed. This owner completed the focused renderer checks and their
   [per-subject accounts](../PKG-09/DEL-09-02/Work/RENDERER_GUIDE_TRIALS_BRING_BACK_20261104.md),
-  including keyboard/focus, edited-text retention and source changes. The
-  later #125 activity guard is checked by source inspection and mounted tests
-  only; #128's same-commit stale-reveal guard has no tested transition.
+  including keyboard/focus, edited-text retention and source changes.
+  Historical renderer accounts leave #125's later activity guard unrendered
+  and #128's same-commit stale reveal without a tested transition at those
+  subjects. The frontend's later [mounted transition checks](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#mounted-transition-coverage-2026-11-05)
+  exercise source replacement with an open run and superseded draft reveals at
+  `0f6d8388` plus the additive tests; these are controlled React/miniDOM results,
+  not a new native render or completed journey. Native owns the 2026-11-05
+  first-use attempt and its next agent-operated capability option; no owner
+  setup, picker or regression execution is requested.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
@@ -213,9 +235,9 @@ Current Type 1 assignments are:
 - **Installed supplier integrity and SEAL-C:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:72b0bb46c6645f2fd7155deab7d5ff1fa5b3b56a4e77151178a0e322c1e906ae>.
   #116/#118/#120/#121/#127 are integrated. The stock-Codex loopback joins,
   source-bound starts and run-order producer retain their recorded subjects
-  and synthetic-model limits. The current result is documentary preparation
-  of the precise remaining qualification boundary against the new artifact,
-  including the exact existing replay path and missing route/capability inputs.
+  and synthetic-model limits. The precise remaining qualification boundary
+  against the new artifact is completed documentary preparation, including
+  the exact existing replay path and missing route/capability inputs.
   It authorizes no new execution and cannot close useful-model/native qualification.
   PRs #93/#98/#100 selected and wired the actual profile/default own-App route.
   Candidate `b3dd4145` has compiled publisher binding `58463a02` and selected
@@ -297,8 +319,13 @@ inputs; a closed assignment does not continue merely because its link remains.
 remains the return route for those existing assignments during closure, not a
 permanent identity for future project ownership. No new Agent 0 session ID or
 Windows manager assignment is implied here. Final App merges belong to the
-project Agent 0. Development-agent model, effort and service-tier settings
-come only from session steering.
+project Agent 0. All App Type 1 and Type 2 instances now use Codex-Hub
+`gpt-6.1-sol`, `reasoningEffort=xhigh`, `serviceTier=default` (standard).
+Every future delegate receives those options explicitly; no priority tier or
+unasked model substitution. Historical review/model standing remains as recorded.
+The active shared library is `/Users/ryan/dev/chirality-library`, selected source
+`2f981163d76772d3779697d9def1a9e951d978e7`; it does not repin historical product
+source `eaf5d057` or bundled instructions.
 
 ### Evidence still required for release
 
