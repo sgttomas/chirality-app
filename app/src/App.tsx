@@ -30,7 +30,7 @@ import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealW
 import { flushSync } from "react-dom";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
 import { FirstUseSetup } from "./FirstUse";
-import { RunWorkflowGuide } from "./RunJourney";
+import { RunWorkflowGuide, runEvidenceAnchor } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 import { AccessRouteChoice, AvailableModels, modelMatch, validModelPacket } from "./ModelChoice";
@@ -1142,7 +1142,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
         <button disabled={busy} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"retry"})}>{end.endNotice?.state?.startsWith("pending")?"Retry the end-notice record":"Retry saving records (never sends)"}</button>
         {end.endNotice?.state?.startsWith("pending")&&end.noticeRecordFailure&&<button disabled={busy} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"skip"})}>Send without the end notice (recorded as not supplied)</button>}</p>}
     </article>)}
-    {(data?.runs??[]).map((run:Json)=>{const next=chatWorkflow(data,data?.context?.sourceRef,run.conversation);return <article key={run.reference}><h3>{run.reference}</h3>
+    {(data?.runs??[]).map((run:Json)=>{const next=chatWorkflow(data,data?.context?.sourceRef,run.conversation);return <article key={run.reference} id={runEvidenceAnchor(run.reference)}><h3>{run.reference}</h3>
       <p>Run: {run.lifecycle?.state}{run.lifecycle?.follows?` · follows ${run.lifecycle.follows}`:""}{run.lifecycle?.end?` · ${run.lifecycle.end.cause}`:""}. Records: {run.publication?.state}. Send: {run.status?.state}{run.status?.limit?` (${run.status.limit})`:""}. Supplied: {suppliedSummary(run)}. Adoption: unknown.</p>
       {run.endNotice&&<p>End notice: {run.endNotice.state}</p>}
       {!isRecordedRun(run)&&run.endNotice?.state?.startsWith("pending")&&<p role="status">The next message in this conversation, with or without attachments or a mode, carries this end notice first, once.{run.status?.limit?` Last attempt: ${run.status.limit}`:""}

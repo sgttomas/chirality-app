@@ -16,7 +16,7 @@ const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProp
 const nodes = (c, tag) => c.querySelectorAll(node => node.localName === tag);
 const button = (c, label) => nodes(c, 'button').find(node => node.textContent === label);
 const thread = id => ({generation:g, threadId:id, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:null}, roleRelation:{kind:'start'}, futureGuidanceNotices:[]});
-const open = {reference:'run-1', conversation:'T2', home:'account', source:'sent', workflow:{name:'invented-flow', origin:'project', revision:'r'}, lifecycle:{state:"open (live); only the person's explicit end ends it"}, status:{}};
+const open = {reference:'run-1', conversation:'T2', home:'account', generation:g, source:'sent', workflow:{name:'invented-flow', origin:'project', revision:'r'}, lifecycle:{state:"open (live); only the person's explicit end ends it"}, status:{}};
 const host = {state:'ready', generation:g, threads:[thread('T1'), thread('T2')], roleLimits:{account:{roles:[]}}, homeRouting:{activeModeHomeClass:'account'},
   serverRequests:[{recordKind:'server-request-entry', generation:g, requestIdentity:'q1', method:'item/tool/requestUserInput', classification:'known-answerable', originClass:'person-input',
     nativeParameters:{threadId:'T2', turnId:'t', itemId:'i', isBlocking:false, questions:[{id:'q', header:'Scope', question:'Which folder?', isOther:false, isSecret:false, options:[{label:'reports/', description:'Reports'}]}]},
@@ -88,5 +88,36 @@ test('the ready trial link lands inside the clean trial composer, which says in 
     assert.equal(panel.getAttribute('tabindex'), '-1', 'focus lands on the composer itself, not the conversation select above it');
     main.removeChild(link);
     assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content'].includes(cmd)), [], 'following the link issues no action');
+  } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
+});
+
+test('a run\'s "recorded evidence" link lands on that run in the workflow studio', async () => {
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  const previous = {getElementById:document.getElementById, setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval};
+  document.getElementById = id => c.querySelectorAll(n => n.getAttribute('id') === id)[0] ?? null;
+  globalThis.setInterval = () => 0; globalThis.clearInterval = () => {};
+  const {runEvidenceAnchor} = loadSrc('RunJourney');
+  const idle = installIdleNativeWaiting(async command => {
+    if (command === 'host_status') return structuredClone(host);
+    if (command === 'decision_view') return {rows:[]};
+    if (command === 'native_confirmation_content') return [];
+    assert.fail(`Unexpected IPC: ${command}`);
+  });
+  try {
+    await React.act(async () => root.render(React.createElement(App)));
+    const anchor = runEvidenceAnchor('run-1');
+    const article = c.querySelectorAll(n => n.getAttribute('id') === anchor)[0];
+    assert.ok(article, 'the studio\'s run article has its own place');
+    assert.match(article.textContent, /run-1/);
+    const main = c.querySelectorAll(n => n.localName === 'main')[0];
+    const link = document.createElement('a'); link.setAttribute('href', `#${anchor}`); main.appendChild(link);
+    let prevented = false;
+    await React.act(async () => props(main).onClick({target:link, currentTarget:main, preventDefault:() => { prevented = true; }}));
+    assert.equal(prevented, true);
+    assert.equal(article.getAttribute('tabindex'), '-1', 'focus lands on that run');
+    const view = article; let owner = null;
+    for (let node = view; node; node = node.parentNode) { const v = node.getAttribute?.('data-workspace-view'); if (v) { owner = node; break; } }
+    assert.ok(owner && !owner.hidden, 'its view is shown');
+    main.removeChild(link);
   } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
 });

@@ -1096,6 +1096,52 @@ says the copy is prepared but held, with the same reason as its Send
 that state. This is the residual carried from #119. Reuse with new inputs
 already worked in the native baseline and is unchanged.
 
+**Finding results (J1, 2026-11-04).** The guide's Results step used to list
+only the workflow's declared outputs. It now also lists this conversation's
+runs.
+
+A run counts as current here only when its `generation`, `home` and thread
+all exactly match the current Codex source and the chosen conversation. A
+prepared run that was never sent is not listed. The host's runs come from an
+unordered map, so the guide uses no array position. It orders runs only by
+the host's `preparationOrder`. That is the run's 0-based position in that
+one home and conversation's run list, not a timestamp. It is read-only
+display metadata from the runtime owner's separate producer, which
+integrates first, and orders are never compared across conversations or
+homes.
+
+The same order picks the guide's current run (progress, prepared, an
+unknown start). With one run, that run is current. With several runs and any
+of them unordered, no latest run is chosen. The guide says it can't tell
+which is latest and lists the runs without sorting them. Prepare stays held
+while any of them is open or unresolved.
+
+Each entry gives the run's workflow and revision, its plain reading and its
+declared outputs with paths. It says the agent reports results in the
+conversation and that the App hasn't checked them. It offers:
+- "Show the conversation", for a current run only;
+- "Open this run's recorded evidence (in the workflow studio, under Make a
+  workflow)", an exact per-run anchor to its studio panel.
+
+Runs of this home from another Codex session, or whose conversation isn't
+loaded, are read only. That includes a run whose thread ID matches the
+current conversation. These runs are grouped by their recorded conversation,
+each says "find it in History", and none offers navigation. The chat choice
+still resets on a generation change. An open run's reading uses current
+activity only when the run matches the current Codex source exactly: the
+conversation's status and waiting requests are read only if its generation
+and home match. A run recorded open in an earlier session reads "Open in an
+earlier Codex session" and never takes a same-ID conversation's activity.
+Its recorded lifecycle stays readable.
+
+After "Reopen recorded workflow runs", recorded runs are listed only when
+the workflow's full source identity matches the chosen one: name, origin,
+source root, and kind where both are supplied. An incomplete source is no
+match. Each recorded run is labelled with its revision, its saved
+conversation ID is shown without navigation, and a run that is still live
+is not repeated. No result is claimed to exist, no file is read, and no
+command is added.
+
 - **Workflow.** Selectable registered revisions are offered as "Use ‹name›";
   others show the host's label. The chosen workflow is named with its origin,
   registered revision number and content-identity prefix. Unregistered library
