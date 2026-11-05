@@ -40,8 +40,8 @@
     "execution/PKG-01/DEL-01-06/Work/terms-position-v1/schema.json"
   ],
   "sources": {
-    "app/examination/support_identity/canonical-pins.terms-v1.json": "92b4148de2f66daca87c1b3db03438e18363f71b7893a7579b96d7057b426a2d",
-    "app/examination/support_identity/canonical.py": "952a9509c916d6f4564f3d3e57814da73c7525897a8a9f5bab233feeda97cfb1",
+    "app/examination/support_identity/canonical-pins.terms-v1.json": "b824461a0966445704d9505da04e577c228287a7a92df9b5f157c4dfbea6987c",
+    "app/examination/support_identity/canonical.py": "7f5288b984fc853a117c4dd50b6577fa46a04fc16dc7bced03b1aec88650a41f",
     "app/packaging/static_distribution/check.py": "4e8f5589890f0098f44d6ef7fde247d0ff1c2dc00b1e46db00a8895a9b8d7584",
     "app/packaging/static_distribution/sources.json": "ae41f2c248e81998aca92577786ce3bbb8e2b5a008b5d89ea36b4037412d577e",
     "app/packaging/successor/check.py": "192684234a686cc476e2c1c42286ba318e26bfed2ec3a412519d6854116efac4",

@@ -12,16 +12,32 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
 # Generated digests; re-derive with `python3 app/examination/repin.py` (examination/README.md).
-# The cohort pin files are retained historical receipts in the lock's frozen section.
-PIN_LOCK = json.loads((PROJECT / 'app/examination/pins.lock.json').read_bytes())
-PINS_SHA256 = PIN_LOCK['frozen']['app/examination/distribution_receiving/pins.stop-admission-terminal-v1.json']
+PIN_LOCK_PATH = PROJECT / 'app/examination/pins.lock.json'
+
+
+def locked_digest(section, path):
+    """The pin lock's digest for path, or None when the lock is unreadable or lacks it.
+
+    None never equals a digest, so the reader's own check refuses through its usual report.
+    """
+    try:
+        value = json.loads(PIN_LOCK_PATH.read_bytes())[section][path]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return value if isinstance(value, str) else None
+
+
+# Retained historical receipts: immutable anchors that never change. The lock's
+# frozen section must equal them (checked here and by repin.py --check).
+PINS_SHA256 = '828dd8c40a93d01606df58ebc4228c9fb80248e79025f72226c9a673813662e5'
+BUILD_SELECTION_PINS_SHA256 = 'db04fa8c7ffb1df41c5868f082e5a86e6215a34b8bcb7106a3b4366b364886c8'
 FORMAT = 'group-b-s1-terminal-reader-exchange.v1'
 ADOPTION = 'B-S4-STOP-ADMISSION-TERMINAL-v1'
 COHORTS = {
     'stop-admission': ('pins.stop-admission-terminal-v1.json', PINS_SHA256,
                        'pins.lt12-combined-terminal-v1.json'),
     'build-selection': ('pins.build-selection-terminal-v1.json',
-                        PIN_LOCK['frozen']['app/examination/distribution_receiving/pins.build-selection-terminal-v1.json'],
+                        BUILD_SELECTION_PINS_SHA256,
                         'pins.stop-admission-terminal-v1.json'),
 }
 LIMITS = [
@@ -42,7 +58,7 @@ def load(name, path, raw=None):
 
 
 # Verify the captured helper bytes before executing their definitions.
-HELPER_SHA256 = PIN_LOCK['current']['app/examination/distribution_receiving/receive.py']
+HELPER_SHA256 = locked_digest('current', 'app/examination/distribution_receiving/receive.py')
 helper_raw = (HERE / 'receive.py').read_bytes()
 if hashlib.sha256(helper_raw).hexdigest() != HELPER_SHA256:
     raise ValueError('frozen predecessor engine changed')
@@ -69,6 +85,8 @@ class TerminalReceiver:
     def __init__(self, cohort='stop-admission'):
         base.require(cohort in COHORTS, 'unsupported receiving cohort')
         pins_name, pins_sha, predecessor_name = COHORTS[cohort]
+        base.require(locked_digest('frozen', 'app/examination/distribution_receiving/' + pins_name) == pins_sha,
+                     'historical receipt anchor and pin lock disagree')
         raw = base.read_file(HERE / pins_name)
         base.require(base.sha(raw) == pins_sha, 'terminal pins changed')
         self.pins = base.parse(raw)

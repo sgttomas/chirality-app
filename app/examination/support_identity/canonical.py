@@ -28,8 +28,22 @@ def deliverable_path(root, relative):
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
 # Generated digests; re-derive with `python3 app/examination/repin.py` (examination/README.md).
-PIN_LOCK = json.loads((PROJECT / 'app/examination/pins.lock.json').read_bytes())
-PINS_SHA256 = PIN_LOCK['current']['app/examination/support_identity/canonical-pins.terms-v1.json']
+PIN_LOCK_PATH = PROJECT / 'app/examination/pins.lock.json'
+
+
+def locked_digest(section, path):
+    """The pin lock's digest for path, or None when the lock is unreadable or lacks it.
+
+    None never equals a digest, so the reader's own check refuses through its usual report.
+    """
+    try:
+        value = json.loads(PIN_LOCK_PATH.read_bytes())[section][path]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return value if isinstance(value, str) else None
+
+
+PINS_SHA256 = locked_digest('current', 'app/examination/support_identity/canonical-pins.terms-v1.json')
 METHOD = 'EXP-SUPPORT-BINDING-v1'
 PURPOSES = ('current_producer_declaration', 'historical_correspondence')
 LIMITS = [

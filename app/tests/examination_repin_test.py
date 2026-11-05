@@ -9,11 +9,19 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location('examination_repin', ROOT / 'app/examination/repin.py')
 repin = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(repin)
+
+
+def load(name, relative):
+    module_spec = importlib.util.spec_from_file_location(name, ROOT / relative)
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    return module
 
 SUPPORT = 'app/examination/support_identity/support_identity.py'
 CANONICAL_PINS = 'app/examination/support_identity/canonical-pins.terms-v1.json'
@@ -39,6 +47,7 @@ class RepinTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         lock = read_json(ROOT, repin.LOCK)
         paths = set(repin.PROFILES) | {repin.LOCK} | set(lock['current']) | set(lock['frozen'])
+        paths |= {reader for reader, _ in repin.FROZEN.values()}
         for profile in repin.PROFILES:
             paths |= {path for _, _, path in repin.slots(profile, read_json(ROOT, profile))}
         for path in paths:
@@ -92,6 +101,113 @@ class RepinTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn(PACKAGE_PROFILE + ': ' + path, output)
 
+    def write_lock(self, value):
+        (self.root / repin.LOCK).write_bytes(repin.encode(value))
+
+    def assert_check_fails(self, expected):
+        before = self.snapshot()
+        code, output = run(self.root, '--check')
+        self.assertEqual(code, 1, output)
+        self.assertIn(expected, output)
+        self.assertEqual(self.snapshot(), before)
+
+    def forge_receipt(self, root, receipt):
+        target = root / receipt
+        value = json.loads(target.read_bytes())
+        value['adoption'] = 'FORGED-HISTORICAL-ADOPTION'
+        target.write_bytes(repin.encode(value))
+        return repin.sha(target.read_bytes())
+
+    def test_forged_receipt_with_matching_lock_digest_is_refused(self):
+        for receipt in repin.FROZEN:
+            with self.subTest(receipt=receipt):
+                self.setUp()
+                digest = self.forge_receipt(self.root, receipt)
+                lock = read_json(self.root, repin.LOCK)
+                lock['frozen'][receipt] = digest
+                self.write_lock(lock)
+                self.assert_check_fails('frozen entry differs from its anchor')
+                self.assertEqual(run(self.root)[0], 1)
+
+    def test_readers_refuse_a_forged_receipt_even_with_a_matching_lock(self):
+        readers = [('distribution_receiving/receive.py', 'Receiver', 'pins.build-selection-lt09-v1.json'),
+                   ('distribution_receiving/terminal.py', 'TerminalReceiver', 'pins.build-selection-terminal-v1.json')]
+        for relative, cls, name in readers:
+            with self.subTest(reader=relative):
+                module = load('repin_forgery_' + cls, 'app/examination/' + relative)
+                here = self.root.resolve() / 'forged'  # the readers refuse linked components
+                here.mkdir(exist_ok=True)
+                source = ROOT / 'app/examination/distribution_receiving'
+                for item in source.glob('pins.*.json'):
+                    shutil.copyfile(item, here / item.name)
+                digest = self.forge_receipt(here, name)
+                lock = read_json(ROOT, repin.LOCK)
+                lock['frozen']['app/examination/distribution_receiving/' + name] = digest
+                forged_lock = here / 'pins.lock.json'
+                forged_lock.write_bytes(repin.encode(lock))
+                with patch.object(module, 'HERE', here), patch.object(module, 'PIN_LOCK_PATH', forged_lock):
+                    with self.assertRaisesRegex(ValueError, 'anchor and pin lock disagree'):
+                        getattr(module, cls)('build-selection')
+                # Without the lock edit the receipt digest itself is refused.
+                with patch.object(module, 'HERE', here):
+                    with self.assertRaisesRegex(ValueError, 'pins changed'):
+                        getattr(module, cls)('build-selection')
+
+    def test_catalog_entry_deletion_is_detected(self):
+        lock = read_json(self.root, repin.LOCK)
+        removed = repin.CURRENT[0]
+        del lock['current'][removed]
+        self.write_lock(lock)
+        self.assert_check_fails('current entry missing: ' + removed)
+        lock = read_json(ROOT, repin.LOCK)
+        removed = next(iter(repin.FROZEN))
+        del lock['frozen'][removed]
+        self.write_lock(lock)
+        self.assert_check_fails('frozen entry missing: ' + removed)
+
+    def test_empty_sections_are_detected(self):
+        lock = read_json(self.root, repin.LOCK)
+        lock['current'], lock['frozen'] = {}, {}
+        self.write_lock(lock)
+        self.assert_check_fails('current entry missing')
+        self.assert_check_fails('frozen entry missing')
+        self.assertEqual(run(self.root)[0], 1, 'frozen entries are never regenerated')
+
+    def test_malformed_digest_is_detected(self):
+        lock = read_json(self.root, repin.LOCK)
+        path = repin.CURRENT[-1]
+        lock['current'][path] = lock['current'][path].upper()
+        self.write_lock(lock)
+        self.assert_check_fails('malformed current digest: ' + path)
+
+    def test_reclassified_historical_entry_is_detected(self):
+        lock = read_json(self.root, repin.LOCK)
+        path = next(iter(repin.FROZEN))
+        lock['current'][path] = lock['frozen'].pop(path)
+        self.write_lock(lock)
+        self.assert_check_fails('historical receipt reclassified as current')
+        self.assert_check_fails('frozen entry missing: ' + path)
+
+    def test_unreadable_lock_fails_through_the_reader_report(self):
+        adapter = load('repin_lock_adapter', 'app/examination/package_receiving/adapter.py')
+        for content in (None, b'{not json', b'[]'):
+            with self.subTest(content=content):
+                lock = self.root / 'unreadable-lock.json'
+                if content is None:
+                    lock.unlink(missing_ok=True)
+                else:
+                    lock.write_bytes(content)
+                with patch.object(adapter, 'PIN_LOCK_PATH', lock):
+                    self.assertIsNone(adapter.locked_digest('current', repin.CURRENT[0]))
+        out = io.StringIO()
+        with patch.object(adapter, 'PINS_SHA256', None), contextlib.redirect_stdout(out):
+            code = adapter.main(['bind', '--request', 'r.json', '--evidence-root', '.',
+                                 '--configuration', 'c.json', '--configuration-sha256', '0' * 64])
+        self.assertEqual(code, 2)
+        report = json.loads(out.getvalue())
+        self.assertIn('source profile changed', report['input_error'])
+        self.assertFalse(report['file_checks_passed'])
+
     def test_frozen_evidence_change_fails_and_is_never_repinned(self):
         frozen = next(iter(read_json(self.root, repin.LOCK)['frozen']))
         target = self.root / frozen
@@ -124,6 +240,11 @@ class RepinTests(unittest.TestCase):
         value = read_json(self.root, repin.LOCK)
         value['current'][repin.LOCK] = '0' * 64
         (self.root / repin.LOCK).write_bytes(repin.encode(value))
+        self.assert_check_fails('unexpected current entry: ' + repin.LOCK)
+        profile = 'app/examination/distribution_receiving/inputs.json'
+        inputs = read_json(self.root, profile)
+        inputs[repin.LOCK] = '0' * 64
+        (self.root / profile).write_bytes(repin.encode(inputs))
         code, output = run(self.root, '--check')
         self.assertEqual(code, 2)
         self.assertIn('cannot itself be pinned', output)

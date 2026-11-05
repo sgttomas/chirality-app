@@ -87,10 +87,17 @@ lock. Its output, and the diff, name exactly which pinned bytes changed; that di
 is what review inspects. It changes digests only: selecting a different set of
 sources remains a reviewed edit to the profile. It leaves historical identities
 as recorded: Markdown documentary selections that fall back to frozen original
-bytes, documentary projection digests and historical provenance fields. The
-lock's `frozen` section pins retained historical receipts (the distribution
-cohort pin files); repin never rewrites it, and both modes fail if those bytes
-change. Retained original sources stay in `support_identity/frozen/`, and the
+bytes, documentary projection digests and historical provenance fields.
+
+The lock must hold exactly the entries catalogued in `repin.py` (`CURRENT` and
+`FROZEN`) with 64-character lowercase hexadecimal digests; `--check` fails on a
+missing, extra, malformed or reclassified entry. The `frozen` section mirrors
+the retained distribution cohort receipts, whose digests are anchored as
+immutable constants in `distribution_receiving/receive.py` and `terminal.py`.
+Readers and both repin modes require the lock to equal those anchors, so editing
+a receipt and its lock entry together is still refused; repin never rewrites
+them. An unreadable or incomplete lock yields no digest, so each reader refuses
+through its usual error report. Retained original sources stay in `support_identity/frozen/`, and the
 frozen v1 declaration and binding schema keep their constants in
 `support_identity/support_identity.py`.
 

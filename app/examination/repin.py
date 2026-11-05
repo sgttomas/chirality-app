@@ -11,9 +11,10 @@ digest constants the readers used to carry in their own code.
 
 Re-derivation recomputes every live entry below, repeating until profiles that
 pin other profiles agree, then refreshes the lock's `current` section. Review
-the resulting diff: it names exactly which pinned bytes changed. The lock's
-`frozen` section pins retained historical evidence; repin never rewrites it and
-both modes fail if those bytes change. Entries outside the rules below are
+the resulting diff: it names exactly which pinned bytes changed. The lock must
+hold exactly the entries in CURRENT and FROZEN below. Its `frozen` section
+mirrors historical receipt digests anchored as constants in reader code; both
+modes fail if an entry or its bytes differ from the anchor. Entries outside the rules below are
 historical identities (frozen documentary Markdown selections, projection
 digests, historical provenance) and are left as recorded.
 
@@ -21,6 +22,7 @@ This tool changes only digests. Adding or removing a pinned source, or changing
 what an examination selects, is a reviewed edit to the profile itself.
 """
 import argparse
+import ast
 import hashlib
 import json
 import os
@@ -33,6 +35,7 @@ LOCK = 'app/examination/pins.lock.json'
 LOCK_FORMAT = 'chirality-examination-pin-lock/1'
 CONDITION = 'execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v3.json'
 DIGEST = re.compile(r'(sha256:)?[0-9a-f]{64}')
+HEX64 = re.compile(r'[0-9a-f]{64}')
 
 
 class Map:
@@ -122,8 +125,51 @@ PROFILES = {
 }
 
 
+E = 'app/examination/'
+# The exact lock catalog. `current` lists every digest a reader takes from the
+# lock instead of carrying it in code; repin derives them from current bytes.
+CURRENT = (
+    E + 'admission/admission_check.py',                     # current_admission DEPENDENCIES
+    E + 'admission/admission_rules.py',                     # current_admission DEPENDENCIES
+    E + 'admission/sources.current-v1.json',                # current_admission
+    E + 'distribution_receiving/inputs.json',               # distribution receive
+    E + 'distribution_receiving/receive.py',                # distribution terminal
+    E + 'documentary_condition.py',                         # prepare, terms_condition
+    E + 'native_forms/pre_run_form.terms-v1.pins.json',     # pre_run_form
+    E + 'package_receiving/sources.package-v1.json',        # package adapter
+    E + 'sq_receiving/pins.packages-v1.json',               # SQ receive_packages
+    E + 'sq_receiving/pins.terms-v1.json',                  # SQ receive
+    E + 'standalone/pre_run_inputs.terms-v1.pins.json',     # pre_run_inputs
+    E + 'support_identity/canonical-pins.terms-v1.json',    # canonical
+)
+# `frozen` lists retained historical receipts. Their digests are anchored as
+# immutable constants in the reader code named here, never in the lock alone;
+# the lock's entries must equal those anchors and repin never rewrites them.
+FROZEN = {
+    E + 'distribution_receiving/pins.stop-admission-lt09-v1.json':
+        (E + 'distribution_receiving/receive.py', 'PINS_SHA256'),
+    E + 'distribution_receiving/pins.build-selection-lt09-v1.json':
+        (E + 'distribution_receiving/receive.py', 'BUILD_SELECTION_PINS_SHA256'),
+    E + 'distribution_receiving/pins.stop-admission-terminal-v1.json':
+        (E + 'distribution_receiving/terminal.py', 'PINS_SHA256'),
+    E + 'distribution_receiving/pins.build-selection-terminal-v1.json':
+        (E + 'distribution_receiving/terminal.py', 'BUILD_SELECTION_PINS_SHA256'),
+}
+assert not set(CURRENT) & set(FROZEN), 'a lock entry cannot be both current and frozen'
+
+
 class PinError(ValueError):
     pass
+
+
+def anchor(root, reader, name):
+    """An immutable historical digest constant from reader code."""
+    for node in ast.parse((Path(root) / reader).read_bytes()).body:
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in node.targets):
+            value = node.value
+            if isinstance(value, ast.Constant) and isinstance(value.value, str) and HEX64.fullmatch(value.value):
+                return value.value
+    raise PinError(f'missing historical anchor {name} in {reader}')
 
 
 def sha(data):
@@ -202,17 +248,49 @@ class Derivation:
             raise PinError('profiles pin each other in a cycle; repin cannot converge')
         raw = self.read(LOCK)
         lock = json.loads(raw)
-        if lock.get('format') != LOCK_FORMAT or set(lock) != {'format', 'regenerate', 'current', 'frozen'}:
+        if (not isinstance(lock, dict) or lock.get('format') != LOCK_FORMAT
+                or set(lock) != {'format', 'regenerate', 'current', 'frozen'}):
             raise PinError('unknown pin lock format')
-        self.frozen = []
-        for path, expected in lock['frozen'].items():
-            if self.digest(LOCK, path) not in (None, expected):
-                self.frozen.append(path)
-        lock['current'] = {path: self.digest(LOCK, path) or digest
-                           for path, digest in sorted(lock['current'].items())}
-        if encode(lock) != raw:
-            self.overlay[LOCK] = encode(lock)
+        self.validate_lock(lock)
+        current = lock['current'] if isinstance(lock['current'], dict) else {}
+        regenerated = dict(lock, current={path: self.digest(LOCK, path) or current.get(path)
+                                          for path in sorted(CURRENT)},
+                           frozen=dict(sorted(self.anchors.items())))
+        if encode(regenerated) != raw:
+            self.overlay[LOCK] = encode(regenerated)
         return self
+
+    def validate_lock(self, lock):
+        """Compare the lock with the catalog: exact entry sets, digest syntax and anchors."""
+        self.anchors = {path: anchor(self.root, *source) for path, source in FROZEN.items()}
+        self.lock_problems, self.frozen_problems = [], []
+        current, frozen = lock['current'], lock['frozen']
+        if not isinstance(current, dict):
+            self.lock_problems.append('current section is not an object')
+            current = {}
+        if not isinstance(frozen, dict):
+            self.frozen_problems.append('frozen section is not an object')
+            frozen = {}
+        for path in sorted(set(CURRENT) - set(current)):
+            self.lock_problems.append('current entry missing: ' + path)
+        for path in sorted(set(current) - set(CURRENT)):
+            note = ' (historical receipt reclassified as current)' if path in FROZEN else ''
+            self.lock_problems.append('unexpected current entry: ' + path + note)
+        for path, digest in sorted(current.items()):
+            if not isinstance(digest, str) or not HEX64.fullmatch(digest):
+                self.lock_problems.append('malformed current digest: ' + path)
+        for path in sorted(set(self.anchors) - set(frozen)):
+            self.frozen_problems.append('frozen entry missing: ' + path)
+        for path in sorted(set(frozen) - set(self.anchors)):
+            note = ' (current entry reclassified as frozen)' if path in CURRENT else ''
+            self.frozen_problems.append('unexpected frozen entry: ' + path + note)
+        for path, expected in sorted(self.anchors.items()):
+            reader, name = FROZEN[path]
+            if path in frozen and frozen[path] != expected:
+                self.frozen_problems.append(f'frozen entry differs from its anchor {name} in {reader}: {path}')
+            if self.digest(LOCK, path) not in (None, expected):
+                self.frozen_problems.append(
+                    f'frozen evidence changed: {path} (restore the retained bytes; repin never re-pins them)')
 
     def changes(self):
         """Pinned sources whose recorded digest differs from current bytes."""
@@ -221,7 +299,8 @@ class Derivation:
             old = json.loads((self.root / path).read_bytes())
             new = json.loads(data)
             if path == LOCK:
-                before, after = old['current'], new['current']
+                before = old['current'] if isinstance(old.get('current'), dict) else {}
+                after = new['current']
                 result += [(path, name) for name in after if before.get(name) != after[name]]
                 continue
             pairs = zip(slots(path, old), slots(path, new))
@@ -242,9 +321,11 @@ def main(argv=None, root=ROOT):
     except (PinError, OSError, ValueError, KeyError, TypeError) as error:
         print('repin: ' + str(error), file=sys.stderr)
         return 2
-    problems = derivation.missing + [
-        f'{LOCK}: frozen evidence changed: {path} (restore the retained bytes; repin never re-pins them)'
-        for path in derivation.frozen]
+    # Frozen problems are never repaired. Current-section problems fail the
+    # check; re-derivation regenerates that section from the catalog.
+    problems = derivation.missing + [LOCK + ': ' + p for p in derivation.frozen_problems]
+    if args.check:
+        problems += [LOCK + ': ' + p for p in derivation.lock_problems]
     changes = derivation.changes()
     for problem in problems:
         print('repin: ' + problem, file=sys.stderr)

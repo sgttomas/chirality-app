@@ -17,8 +17,22 @@ HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
 PROFILE = 'exp-package-s4-receiving/1'
 # Generated digests; re-derive with `python3 app/examination/repin.py` (examination/README.md).
-PIN_LOCK = json.loads((PROJECT / 'app/examination/pins.lock.json').read_bytes())
-PINS_SHA256 = PIN_LOCK['current']['app/examination/package_receiving/sources.package-v1.json']
+PIN_LOCK_PATH = PROJECT / 'app/examination/pins.lock.json'
+
+
+def locked_digest(section, path):
+    """The pin lock's digest for path, or None when the lock is unreadable or lacks it.
+
+    None never equals a digest, so the reader's own check refuses through its usual report.
+    """
+    try:
+        value = json.loads(PIN_LOCK_PATH.read_bytes())[section][path]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return value if isinstance(value, str) else None
+
+
+PINS_SHA256 = locked_digest('current', 'app/examination/package_receiving/sources.package-v1.json')
 LIMITS = [
     'Exact selected package/terms/S4 evidence consistency only; actual custody and producer use are not authenticated.',
     'The outer witness record is the EXP/SQ citation; its inner static package ID remains a separate joined identity.',
