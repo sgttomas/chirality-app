@@ -635,7 +635,16 @@ for line in sys.stdin:
         assert_eq!(out["start"]["codex"]["generation"], now["generation"]);
         let current = now["threads"].as_array().unwrap().iter().filter(|t| t["generation"] == now["generation"]).count();
         assert_eq!(current, 0, "no conversation is loaded in the new process until the person continues one");
-        assert_eq!(f.wire(), ["initialize", "initialized", "thread/start", "turn/interrupt", "initialize", "initialized"], "no thread/resume or other request after the restart");
+        // Ready follows the local initialized write, not the peer's receipt.
+        // Observe that receipt before asserting the exact no-resume sequence.
+        let deadline = Instant::now() + Duration::from_secs(3);
+        let wire = loop {
+            let wire = f.wire();
+            if wire.iter().filter(|method| method.as_str() == "initialized").count() >= 2 { break wire; }
+            assert!(Instant::now() < deadline, "peer did not receive the restarted handshake: {wire:?}");
+            std::thread::sleep(Duration::from_millis(5));
+        };
+        assert_eq!(wire, ["initialize", "initialized", "thread/start", "turn/interrupt", "initialize", "initialized"], "no thread/resume or other request after the restart");
     }
 
     #[test]
