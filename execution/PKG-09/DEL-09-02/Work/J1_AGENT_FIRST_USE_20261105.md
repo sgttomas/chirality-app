@@ -500,3 +500,114 @@ J1/J2, model work and publication qualification remain open. Agent0 owns
 integration and the next useful method selection; no new launch or owner test
 task follows from this failed attempt. Existing ScopeOfWork/dependency meanings
 are unchanged.
+
+
+## Attempt 5: integrated method in the selected available-desktop window, PID31313
+
+The owner answered “Available now” to Agent0's five-minute unlocked-desktop,
+agent-operated test-window question. Agent0 selected one Stage A attempt during
+2026-11-05T23:13:01Z–23:18:01Z; the owner performed no App actions. Availability
+is a new input, not a retrospective explanation of earlier attempts. No session
+lock query was sampled in this attempt, and no lock/permission/timing/OS/App or
+decoder cause is inferred from its result.
+
+The clean manager branch normally fast-forwarded to integrated main
+06d338c9bf0448690d116754353e8c2c807c148e. The exact controller/test/reader were
+copied into fresh owned evidence and verified against their selected hashes:
+4d9b6f22f756e6604bbb97e19d66cebf5f4761987bc0b322fe8e5bb1058a3940,
+81456fbe2537e3312fded909628b136175a00efd93b4308ef82dfd0029f3c62a,
+fd37834b301f138963cdfe76f8bf3a146aea373b99ab2c994546ff73c939af19.
+These are the same method bytes executed pre-merge in attempt4, now used at their
+integrated identity. That does not relabel attempt4. Product source remains
+eaf5d057afb82c28a928a5e347ad5749dd5adc96; executable SHA256 remains
+b98a30fe2dccba062e35a0c02896b67c4441f2b987016f091ea41e6f56caf4fc.
+
+Fresh evidence:
+/Users/ryan/dev/chirality-t3/scratch/app-j1-stage-a-_i48c648/integrated-unlocked-attempt-5zxodxl0.
+Entry SHA256:
+08ccb9629ccd39e56122904660f760f29d4cba56664e14a9d0969b2a5cd15589.
+The retained small entry directly called the unchanged run_prepared. Its sole
+additional admission constraint checked for at least185s before23:18:01Z at
+slot entry, the admitted callback and launch-intent, before dispatch. A refused
+window check could not launch. The authentic original preflight receipt
+56116108ab21e1499d0e4c6f53381449f970232c3bcf7972e8b8bd94d45ee6fa
+and its reviewed packet/member sets/exact invented session/project were used
+unchanged. No replacement receipt or altered manifest. Fresh scratch homes were
+runner-only; the App retained its approved default LaunchServices route without
+App environment overrides.
+
+Ordinary slot2 START23:14:02Z, runner31304, preceded admission at
+23:14:02.864244Z, with about238s left in the owner window. Admission verified
+exact executable/packet/project, absent AppData, actual preserved caches/
+preferences and absent route switches. One open-n launched original PID/PGID31313,
+parent1, UID/realUID501, kernel birth1793920442.881941, exact retained executable.
+The launch was reported at23:14:02.906427Z and original AppKit cleanup
+correspondence bound at23:14:02.958408Z before setup observation. Actual admission,
+new identity and closure were relayed to Agent0 through the existing T3 route.
+
+Safe startup receipts record exactly two observations of original PID31313:
+
+| Observation | Elapsed seconds | Roots | Application self-references | Main matches | Category |
+|---|---:|---:|---:|---:|---|
+| 1 | 0.182062 | null | null | null | cannot_complete |
+| 2 | 2.469835 | 1 | 0 | 1 | ready |
+
+Null means unavailable, not zero. One original main was admitted and retained
+on sample2. The independent content gate then refused with the actual result
+`Refusal('bounded content readiness unavailable: transient AX value: AXTitle/-25212')`.
+There is no successful content-read receipt. The failure does not establish
+that no WebArea existed or identify which descendant's title produced the final
+error; those details were not retained. No additional discovery or retry was
+used to fill that gap. The startup-ready observation and content failure remain
+separate facts.
+
+Actions stayed empty; there was no unknown UI dispatch, picker/path/new-settings
+input, preview, native question/confirmation or save. Setup_saved, flow_complete,
+J1_complete and qualification are false. All execution is agent-attributed;
+neither the owner availability answer nor attempt1's Welcome report is a person
+setup witness for this instance. No activation/focus cycling, global keys,
+coordinates, capture, private DOM/IPC, unrelated menu/file/history/sidebar reads,
+owner App/data/auth access, supplier/model/network/sign-in or Stage B occurred.
+No unexpected-supplier event was recorded; this is not supplier-settlement proof.
+
+Prepared cleanup started autonomously at5.524076500s, without a parent round
+trip. The single normal NSRunningApplication terminate request returned true;
+original-process absence was separately observed. Result elapsed5.902322042s;
+detached final closure at23:14:08.637222Z records5.905625459s/0 overrun,
+initial_held=false, slot_must_remain_held=false, no unknown launch outcome and no
+evidence errors. Ordinary wrapper END23:14:08Z rc1 followed observed absence;
+its slot was held continuously from before launch through original-birth closure.
+No force, signal, repeated termination or deadline/BOOL-based release was used.
+App exit status and wait/reap remain unavailable for the LaunchServices-owned
+App; wrapper rc1 is the failed setup outcome, not an App exit code. Configured
+180/110s limits remain cooperative and this one closure is not an all-conditions
+recovery guarantee.
+
+Exact-PID corroboration at23:14:23.813539Z found both31313 and runner31304 absent,
+retaining raw START/END lines. Presence-only post-state at23:15:02.322667Z found
+AppData and desktop-startup/request.json absent; WebKit/Caches/Preferences
+present, HTTPStorages/SavedState absent. Reviewed packet/project member hashes,
+executable and frozen/repository controller/test/reader hashes still matched.
+No reset or opaque/auth state read. All original evidence/subjects remain intact.
+
+Exact retained evidence includes entry-preparation.json/entry.py/source/,
+runner.log, events/001-admitted through012-entry-return,
+corroborated-process-wrapper-closure.json, post_attempt.py/post-state.json,
+RESULT.json and SHA256SUMS. Distinct raw and reconciled results are preserved:
+
+- raw events/010-result.json SHA256:
+  7bc5982602d4b9cf1a675991045b1a9197d4cff81325b144f56bcbbbbed49489;
+- events/011-final-closure.json SHA256:
+  4dce97100b9433db647653e89b4e6b6c22065c622b3a92540d1e1e409be250e8;
+- events/012-entry-return.json SHA256:
+  f7ae15fc5a8975223e2758e1511def26be06ce36739d9d7900a38a6125c43496;
+- reconciled RESULT.json SHA256:
+  48938a747d07017ffaede84e631712b5ffb19269f4cdf21f6a442b214de54862;
+- SHA256SUMS file SHA256:
+  79eeb6d15d24ebfbbc0a88560a82b072302fd5517fb89aef5a3630a6c6e2df67.
+
+This is the next actual capability result for Agent0's inspection. Conditional
+picker path entry, actual setup/save, J1/J2/useful-model work and native/publication
+qualification remain open. No source repair, new PR source change, additional
+native operation, timeout expansion or owner-operated fallback is selected.
+The outcome draft does not change ScopeOfWork or deliverable dependency meaning.
