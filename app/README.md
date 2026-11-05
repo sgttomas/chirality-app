@@ -959,6 +959,22 @@ run from `app/` or `app/src-tauri/`; an explicit `RUST_TEST_THREADS` or
 `--test-threads` still wins. Cargo reads that file from the working directory,
 so run cargo from those folders rather than from the repository root.
 
+The JavaScript tests that run Rust fixtures through `cargo test --lib` first
+build the lib test target once under a separate limit
+(`tests/support/rust-prebuild.mjs`), so their fixture time limits do not
+include a cold compile.
+
+CI also runs six presentation tests that the `npm test` list does not yet name.
+`app/package.json` is digest-pinned by the notice basis
+(`packaging/notices/index.json` and `transitive-index.json`), so adding them to
+its scripts needs a notice-basis reconciliation. Run them directly:
+
+```sh
+node --test tests/run-journey.test.mjs tests/make-journey.test.mjs \
+  tests/journey-navigation.test.mjs tests/model-choice.test.mjs \
+  tests/trial-continue-model-choice.test.mjs tests/ordinary-send-hold.test.mjs
+```
+
 The focused `node --test tests/file-act-panel.test.mjs` check runs offline Rust
 file-act fixtures with `CHIRALITY_SKIP_CODEX=1` and consumes their actual cold
 history and pending-save DTOs. `CHIRALITY_FILE_ACT_LAPSE_DTO_LOG` may point to
