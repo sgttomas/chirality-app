@@ -96,3 +96,74 @@ the first implementation increment and its reconciliation. Native qualification
 owns the observed candidate results, with owner acts reserved to the owner.
 The coordination [publication punchlist](../../../_Coordination/PUBLICATION_PUNCHLIST.md)
 only indexes this result; it is not another requirements source.
+
+## Mounted transition coverage (2026-11-05)
+
+Subject: integrated App main `0f6d8388420b5ba2bb513bb9f30fb80b65088e21`
+plus this additive test contribution. Product `RunJourney.tsx` and
+`MakeJourney.tsx` bytes are unchanged. The same-PR change is confined to the
+existing `run-journey.test.mjs` / `make-journey.test.mjs` suites and owning
+Work/current coordination reconciliation. ScopeOfWork, dependency conditions,
+product acceptance, source pins and package/lock bytes retain their meaning.
+
+The prior #125 and #128 source/mounted results did not exercise two transitions.
+The historical renderer accounts retain exactly their original subjects and
+unrendered limits:
+[run results](../../../PKG-09/DEL-09-02/Work/RENDERER_RUN_RESULTS_20261104.md)
+and [returning draft](../../../PKG-09/DEL-09-02/Work/RENDERER_RETURNING_DRAFT_20261104.md).
+This later check does not turn those observations into a render of a new subject.
+
+- **Open run and source replacement:** mount the whole Run guide with an open
+  run displaying Working. Retain that exact row while replacing, separately,
+  the spawn counter, App session and home, with active/waiting activity under
+  the same bare conversation ID. Earlier-generation rows become read-only
+  Results with “Open in an earlier Codex session”, no Show action, and a retained
+  evidence link. Another home's row is excluded from the current home's view;
+  no old run becomes current Progress or borrows the replacement request.
+  A separately constructed run of the exact new source supplies the positive
+  waiting/working control; its explicit Answer navigation targets that source's
+  conversation without a host command. The original open row is never ended,
+  rewritten or rebound. Existing direct unit checks still cover `runReading`'s
+  home check; mounted home replacement also exercises the guide's outer home
+  exclusion rather than exposing a private component solely for a test.
+- **Queued Continue and superseded reveal:** first verify that a fresh Continue
+  scrolls/focuses its own Draft state once. Before the next reveal effect can
+  commit, a constructed microtask changes the selected draft, or replaces the
+  active library with a same-name draft. The later draft's state renders, but
+  the stale reveal neither scrolls nor focuses it. A subsequent observation
+  cannot resurrect that reveal; a fresh explicit Continue still works. No
+  workflow command, conversation opening or prepared message is issued, and
+  the retained draft/trial rows remain unchanged.
+
+Inputs reuse the existing host, `runRow`, draft and `producerTrials` fixtures.
+Replacement generations/homes, current run, library, draft findings and timing
+are explicitly constructed. The retained trial rows have the existing native
+producer **shape**; no Rust producer, native History, durable relaunch, model or
+new actual trial was executed here. React is mounted through the maintained
+Node/miniDOM harness. Instrumented `focus()` and `scrollIntoView()` record the
+actual target calls, not visual positioning, OS keyboard or AX behavior.
+
+Both focused suites pass: 38 tests, zero skips, under the normal shared slot
+wrapper with fresh scratch Codex home and offline dependencies. The initial
+run had 37 passes and a new assertion that used the wrong existing user wording
+(“not valid” rather than “draft — not valid for registration”); its assertion
+was corrected, with no product-code change. Existing act-wrapping warnings from
+older trial-doubt tests remain visible in the full focused log.
+
+Mutation checks in a private source copy confirm that the new transitions fail
+when the run-generation guard is removed (two failures), when the draft-name
+stale-reveal comparison is removed (one), or when the library comparison is
+removed (one). The product checkout was not changed by those checks. Logs and
+mutated copies are retained in the named task scratch recorded in the PR.
+No broader suite, build or live renderer rerun was needed for these test-only
+changes. Independent review and checks of the final PR head are recorded with
+that PR; the test counts alone supply no native/end-to-end J1/J2 evidence.
+
+The owner's testing correction assigns development execution to agents. J1
+first use/useful real-model work/results finding is the next owned product
+result; J2 remains required before release. Native owns the current agent
+first-use attempt and exact unavailable capability. Owner testing begins after
+Agent 0's publication-ready recommendation, rather than filling our regression
+run sheet. This changes neither person-act semantics nor the separate authority
+for credentials, model/network choice, signing, existing owner data or execution
+holds. Agent 0 owns final integration and any subsequent native evidence join.

@@ -59,7 +59,8 @@ async function mount(view) {
   await React.act(async () => render());
   return {c, calls, shown, press:async label => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, `${label} enabled`); await React.act(async () => props(node).onClick()); },
     type:async value => { const area = all(c, 'textarea')[0]; await React.act(async () => props(area).onChange({target:{value}})); },
-    rerender:async next => { Object.assign(view, next); await React.act(async () => render()); }};
+    rerender:async next => { Object.assign(view, next); await React.act(async () => render()); },
+    close:async () => React.act(async () => root.unmount())};
 }
 
 test('run readings keep waiting, working, failed, interrupted-start and finished distinct', () => {
@@ -363,4 +364,54 @@ test('an open run from an earlier Codex session never takes a same-ID conversati
   assert.equal(runReading({...oldOpen, generation:g2}, working).tone, 'working', 'the exact current source still reads its activity');
   const ended = runReading({...oldOpen, lifecycle:{state:'ended', end:{cause:'completed'}}}, working);
   assert.equal(ended.title, 'Ended as completed', 'historical lifecycle stays readable');
+});
+
+// Constructed source replacements over the retained host/runRow shapes above.
+// Mount the whole guide: these are DOM readings/navigation boundaries, not
+// direct runReading calls, native history, or a newly executed producer.
+for (const [replacement, currentGeneration] of [
+  ['spawn', {...g, spawnCounter:2}],
+  ['App session', {...g, appSession:'constructed-new-session'}],
+  ['home', {...g, home:'constructed-other-home'}],
+]) test(`an open run survives ${replacement} replacement without borrowing same-ID live activity`, async () => {
+  const original = runRow({reference:'open-original', lifecycle:{state:OPEN}, preparationOrder:0});
+  const originalBytes = JSON.stringify(original);
+  const snapshot = (generation, state, requests = []) => host({generation,
+    workflowRoot:{context:{sourceRef:'src', generation}},
+    threads:[{threadId:'T1', generation, model:'invented-model', status:{type:state}}],
+    serverRequests:requests});
+  const projection = (generation, runs) => data({context:{sourceRef:'src', generation}, selections:selected(), runs});
+  const ui = await mount({thread:'T1', navigate:true, host:snapshot(g, 'active'), data:projection(g, [original])});
+  try {
+    assert.match(region(ui.c, 'Run progress').textContent, /Working/);
+    assert.match(region(ui.c, 'Run open-original').textContent, /Working/);
+    const replacementQuestion = {generation:currentGeneration, state:'outstanding', nativeParameters:{threadId:'T1'}};
+    // The open row is unchanged while both the current source and its same-ID
+    // activity are replaced. No ended result or new-run order is fabricated.
+    await ui.rerender({host:snapshot(currentGeneration, 'active', [replacementQuestion]), data:projection(currentGeneration, [original])});
+    assert.equal(region(ui.c, 'Run progress'), undefined, 'the old open row is not current progress');
+    if (replacement === 'home') {
+      assert.equal(region(ui.c, 'Run open-original'), undefined, 'the old home is not listed as this home');
+      assert.equal(region(ui.c, "Runs whose conversation isn't loaded"), undefined);
+    } else {
+      const old = region(ui.c, 'Run open-original');
+      assert.match(old.textContent, /Open in an earlier Codex session/);
+      assert.doesNotMatch(old.textContent, /Waiting for your answer|Working/);
+      assert.equal(button(old, 'Show the conversation'), undefined, 'cannot navigate into the replacement same-ID chat');
+      assert.ok(all(old, 'a').some(a => a.getAttribute('href')?.startsWith('#run-evidence-')), 'recorded evidence stays reachable');
+    }
+    assert.deepEqual(ui.calls, []); assert.deepEqual(ui.shown, [], 'replacement alone never opens or answers a conversation');
+    // Positive control: a separately constructed run of the exact new source
+    // can read that source's waiting/working states; it does not rebind old.
+    const current = runRow({reference:'open-current', generation:currentGeneration, home:currentGeneration.home, lifecycle:{state:OPEN}, preparationOrder:1});
+    await ui.rerender({data:projection(currentGeneration, [original, current])});
+    assert.match(region(ui.c, 'Run progress').textContent, /Waiting for your answer/);
+    assert.match(region(ui.c, 'Run open-current').textContent, /Waiting for your answer/);
+    await ui.press('Answer in the conversation');
+    assert.deepEqual(ui.shown, [['T1', 'conversation-requests']]);
+    await ui.rerender({host:snapshot(currentGeneration, 'active')});
+    assert.match(region(ui.c, 'Run progress').textContent, /Working/);
+    assert.equal(JSON.stringify(original), originalBytes, 'the retained open run was never ended or rewritten');
+    assert.deepEqual(ui.calls, [], 'all these readings and navigation issue no host command');
+  } finally { await ui.close(); }
 });
