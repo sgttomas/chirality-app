@@ -12,8 +12,8 @@
     "app/examination/sources.json": "07e3f54cd9698bfa74e7bc57dc3373e9a9743ebf18d277b02a0138c92c8db477",
     "app/examination/sq_receiving/worker.py": "67421a4b42d78bb79921b9f7620a473e6ee0662d66848e8c0abf1ca379fbe806",
     "app/examination/support_identity/binding.v1.schema.json": "b5e5baca25c90e53fdaf3f685f531eb84fb921ac8e31b6cb0c782ff68fd05394",
-    "app/examination/support_identity/canonical-pins.terms-v1.json": "0e33fb86969ff1a1b44512bab0f845f21764372beb5e09b265c6b9dd5efc30b9",
-    "app/examination/support_identity/canonical.py": "f1eb9a692d70a13c7b91d7d5d3c38cc3699bf3c4b1158528ce5a731ad04123dd",
+    "app/examination/support_identity/canonical-pins.terms-v1.json": "92b4148de2f66daca87c1b3db03438e18363f71b7893a7579b96d7057b426a2d",
+    "app/examination/support_identity/canonical.py": "952a9509c916d6f4564f3d3e57814da73c7525897a8a9f5bab233feeda97cfb1",
     "app/examination/support_identity/declaration.v1.json": "c41aad04875ad6059e9a20776e7d57dd27b876afc3159cc242bfa3dc6f8dfc92",
     "app/examination/support_identity/support_identity.py": "aa3cf8b228319cae8df8a21c6999c013c102622dc288fba9f4c376cd4842c90d",
     "execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md": "23c8f3a1a601135ec805645c6ee5ce4ad41f0e29c8076d9615cf218f83504e0b",
@@ -47,7 +47,7 @@
     "execution/PKG-09/DEL-09-02/Design/sq.step-map.json": "92715980d84ea32caff43c35b865db4c3d93322075f7ff92c1362109f85b50ee",
     "app/examination/documentary_condition.py": "d6da34b98a37ed5549d73c90374a4c5f99fc279bb758735d79e1d9aa10ffcfaf",
     "execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v3.json": "607f79712eadcbeed4bcc25d789fdbdeeb887c9facc3f6532301c6940c0b86e2",
-    "app/examination/support_identity/terms_condition.py": "00008b01e8341f7bb424514d6308c541b06bd15cf995d47b3242ec774042358e"
+    "app/examination/support_identity/terms_condition.py": "13695d14a7fc662d6522a5459ceac22b21920bdf1ee4293fee3b4b252e99df25"
   },
   "format": "sq-receiving-pins-terms-successor-1",
   "documentary_selection": {

@@ -16,7 +16,9 @@ from referencing import Registry
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
 PROFILE = 'exp-package-s4-receiving/1'
-PINS_SHA256 = 'da6022b194daece4db734f4246503b8b2a09cd3a140f8f1304b455be74e7f328'
+# Generated digests; re-derive with `python3 app/examination/repin.py` (examination/README.md).
+PIN_LOCK = json.loads((PROJECT / 'app/examination/pins.lock.json').read_bytes())
+PINS_SHA256 = PIN_LOCK['current']['app/examination/package_receiving/sources.package-v1.json']
 LIMITS = [
     'Exact selected package/terms/S4 evidence consistency only; actual custody and producer use are not authenticated.',
     'The outer witness record is the EXP/SQ citation; its inner static package ID remains a separate joined identity.',
@@ -92,6 +94,8 @@ class Receiver:
         # falsely make the legacy resolver select a partial Design directory.
         self.producer_snapshot = tempfile.TemporaryDirectory(prefix='exp-package-producer-')
         producer_root = Path(self.producer_snapshot.name)
+        # The legacy static reader finds its root by this file; it never reads it.
+        (producer_root / 'AGENTS.md').write_text('Package producer snapshot root marker.\n')
         for path in self.pins['producer_sources']:
             target = producer_root / path
             target.parent.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,24 @@
+{
+  "format": "chirality-examination-pin-lock/1",
+  "regenerate": "python3 app/examination/repin.py",
+  "current": {
+    "app/examination/admission/admission_check.py": "bd9a8ef07bdf0c848f8ba09e14b8c3ef977a7a52140c26e5a58f1cf83e7167cf",
+    "app/examination/admission/admission_rules.py": "b6cb783561cade47855431f0be33190d8fe287a9f5ff05a2da5bbc7953e694a5",
+    "app/examination/admission/sources.current-v1.json": "4606dbc82a3eb8c526575070263c0d590eaa2c96cdf1f557a148cd16ef637811",
+    "app/examination/distribution_receiving/inputs.json": "328229b512e261fe666dba3210018c318379977f84663ed998416d840108ab90",
+    "app/examination/distribution_receiving/receive.py": "2db0b48f56ff13db12722884df9748f852ed48686760741cb22227a2bc4bef3e",
+    "app/examination/documentary_condition.py": "d6da34b98a37ed5549d73c90374a4c5f99fc279bb758735d79e1d9aa10ffcfaf",
+    "app/examination/native_forms/pre_run_form.terms-v1.pins.json": "823e64a095bc3f755478c9ada1f93bb2e9cf9c7c627b49e034e37911ba52df95",
+    "app/examination/package_receiving/sources.package-v1.json": "3820e8a92681a92d3b072972ec923524b0f0356e0e34e43777dbe1d2c2b3e0b0",
+    "app/examination/sq_receiving/pins.packages-v1.json": "b4339cebf09cfbabc7dfbffa3e52c585bf500df5eb1005aef529313538a803aa",
+    "app/examination/sq_receiving/pins.terms-v1.json": "b0a30bbf64c708a8ad16ce04a46845b2fa553674f873308f29e268ec3fbab3d6",
+    "app/examination/standalone/pre_run_inputs.terms-v1.pins.json": "3f649c815b468e8fb782437ac9961b2c3279db54c8bf9498da630efa67c41878",
+    "app/examination/support_identity/canonical-pins.terms-v1.json": "92b4148de2f66daca87c1b3db03438e18363f71b7893a7579b96d7057b426a2d"
+  },
+  "frozen": {
+    "app/examination/distribution_receiving/pins.build-selection-lt09-v1.json": "1cead3fe1e12259a2b11a0bddd71d407b40c9d85b02001609845a1aa4479ad71",
+    "app/examination/distribution_receiving/pins.build-selection-terminal-v1.json": "db04fa8c7ffb1df41c5868f082e5a86e6215a34b8bcb7106a3b4366b364886c8",
+    "app/examination/distribution_receiving/pins.stop-admission-lt09-v1.json": "d7e404a4820b69d55c6c3b58bc9f36c8860557414982f41b02cff5a4bec4b3d9",
+    "app/examination/distribution_receiving/pins.stop-admission-terminal-v1.json": "828dd8c40a93d01606df58ebc4228c9fb80248e79025f72226c9a673813662e5"
+  }
+}

@@ -26,8 +26,12 @@ sha, parse, require = legacy.sha, legacy.parse, legacy.require
 
 
 def source_dependencies():
-    """Complete maintained offline code/schema closure; no fixture or scanner."""
-    paths = {'AGENTS.md', 'app/packaging/successor/check.py',
+    """Complete maintained offline code/schema closure; no fixture or scanner.
+
+    A replay root also needs an `AGENTS.md` file, which the legacy static reader
+    uses only to find its root. Its bytes are never read, so it is not a dependency.
+    """
+    paths = {'app/packaging/successor/check.py',
              'app/packaging/static_distribution/check.py', 'app/packaging/static_distribution/sources.json',
              'app/packaging/terms/check.py', 'execution/PKG-01/DEL-01-06/Work/terms-position-v1/schema.json',
              WORK + '/static-package-input.v2.schema.json', WORK + '/packaged-s4-binding.v1.schema.json',

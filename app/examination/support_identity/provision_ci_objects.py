@@ -30,9 +30,10 @@ def main():
     revision = constant(source, 'DOCUMENTARY_SOURCE_COMMIT')
     declaration = checked_json(HERE / 'declaration.v1.json', constant(source, 'DECLARATION_SHA256'))
     objects = dict(declaration['sources'])
-    for lock, consumer in [(HERE / 'canonical-pins.terms-v1.json', HERE / 'canonical.py'),
-                           (HERE.parent / 'sq_receiving/pins.terms-v1.json', HERE.parent / 'sq_receiving/receive.py')]:
-        pins = checked_json(lock, constant(consumer, 'PINS_SHA256'))
+    # The readers' generated pin lock (app/examination/repin.py) selects the same files.
+    pin_lock = json.loads((HERE.parent / 'pins.lock.json').read_bytes())
+    for lock in (HERE / 'canonical-pins.terms-v1.json', HERE.parent / 'sq_receiving/pins.terms-v1.json'):
+        pins = checked_json(lock, pin_lock['current'][lock.relative_to(PROJECT).as_posix()])
         for path, digest in pins['sources'].items():
             if path.endswith('.md'):
                 if path in objects and objects[path] != digest:

@@ -105,11 +105,17 @@ human acts, signatures, custody, signing/notary/installation or release.
 
 ## Generation, compatibility and remaining release evidence
 
-Run `python3 app/examination/package_receiving/generate.py` from repository root
-after integrating a changed producer/checker head. It derives the package profile,
-new SQ source pins and reader constants, and refuses collisions with the original
-SQ source selection. It does not refresh old terms, standalone, admission,
-canonical, distribution or terminal cohorts. Never hand-merge generated pins.
+After integrating a reviewed producer/checker change, run
+`python3 app/examination/repin.py` from the repository root. It re-derives the
+package profile and SQ source digests, the profiles that pin them and the
+generated reader lock `app/examination/pins.lock.json`; `--check` fails CI when
+they disagree with current bytes. Adding or removing a producer dependency is a
+reviewed edit to the profile's `producer_sources` and `sources`; repin changes
+digests only. The earlier one-time `package_receiving/generate.py` is retired
+(recoverable from Git). `AGENTS.md` is no longer a producer source: the legacy
+static reader uses it only as a root marker and never reads its bytes, so the
+receiver writes a marker into its producer snapshot instead. Never hand-merge
+generated pins.
 `app/tests/package_successor_receiving_fixtures.py` composes packaging's maintained
 synthetic generator with the existing SQ fixtures and maintained aggregation
 rule; original fixture/evidence bytes are not rewritten.

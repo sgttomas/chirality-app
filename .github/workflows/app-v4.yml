@@ -180,6 +180,7 @@ jobs:
           tests/group_b_terms_successor_test.py
           tests/group_b_admission_test.py tests/group_b_current_admission_test.py
           tests/group_b_distribution_receiving_test.py tests/group_b_terminal_receiving_test.py
+          tests/examination_repin_test.py
           && python3 -B tests/candidate_identity_test.py
       - name: Staged distribution successor
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib s2_ -- --test-threads=1

@@ -24,7 +24,9 @@ def deliverable_path(root, relative):
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = 'd6efc9e40ecd2784d424dc7031ce27a38e68865e6c8f05279927878bc4c59d89'
+# Generated digests; re-derive with `python3 app/examination/repin.py` (examination/README.md).
+PIN_LOCK_BYTES = (PROJECT / 'app/examination/pins.lock.json').read_bytes()
+PINS_SHA256 = json.loads(PIN_LOCK_BYTES)['current']['app/examination/sq_receiving/pins.terms-v1.json']
 
 
 def sha(data):
@@ -109,6 +111,8 @@ class Receiver:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
             (root / 'reader-pins.json').write_text(json.dumps(self.pins))
+            # Snapshot readers verify their profiles against the same generated lock.
+            (root / 'app/examination/pins.lock.json').write_bytes(PIN_LOCK_BYTES)
             job = subprocess.run([sys.executable, '-B', str(root / 'app/examination/sq_receiving/worker.py'),
                                   str(Path(selection).absolute()), digest],
                                  cwd=root, capture_output=True, text=True, timeout=60)

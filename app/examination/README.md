@@ -41,7 +41,8 @@ which package the writer meant, or verify the authenticity of any declared fact.
 
 `sources.json` pins the canonical schemas, criterion documents and original
 prototype rule sources. Source drift fails closed; adoption requires review and
-an intentional pin update. The maintained rules execute independently of the
+an intentional pin update (see [Source pins](#source-pins) for the maintained
+profiles). The maintained rules execute independently of the
 prototypes. Reports identify the tool, maintained rules and source manifest by
 hash. The existing EXP support fields retain their canonical meaning: in
 particular `prototype_digest` is the pinned Design prototype, not this tool.
@@ -62,3 +63,38 @@ witness, M3 native smoke, evidence capture and digest resolution, runner admissi
 independent review/change-impact support and SQ journey execution remain separate
 work. No EXP VER criterion, DEL-01-06 package qualification, DEL-09-02 scenario,
 human act, public release, or OI-011 SWB resolution follows from this tool.
+
+## Source pins
+
+Each reader verifies the files it reads against SHA-256 digests and refuses any
+unexpected change. The digests of evolving sources are generated, not hand
+maintained:
+
+- the source profiles listed in `repin.py` (`PROFILES`) record the digests of
+  the current files each reader compares, including other profiles they pin;
+- `pins.lock.json` records the digests the readers formerly hard-coded in their
+  own code (their profiles and helper sources) in its `current` section.
+
+After a reviewed, legitimate change to a pinned source, re-derive and commit:
+
+```sh
+python3 app/examination/repin.py           # from the repository root
+python3 app/examination/repin.py --check   # CI: exit 1 when pins and sources disagree
+```
+
+Repin repeats until profiles that pin other profiles agree, then refreshes the
+lock. Its output, and the diff, name exactly which pinned bytes changed; that diff
+is what review inspects. It changes digests only: selecting a different set of
+sources remains a reviewed edit to the profile. It leaves historical identities
+as recorded: Markdown documentary selections that fall back to frozen original
+bytes, documentary projection digests and historical provenance fields. The
+lock's `frozen` section pins retained historical receipts (the distribution
+cohort pin files); repin never rewrites it, and both modes fail if those bytes
+change. Retained original sources stay in `support_identity/frozen/`, and the
+frozen v1 declaration and binding schema keep their constants in
+`support_identity/support_identity.py`.
+
+Package receiving no longer pins `AGENTS.md`: the legacy static reader uses that
+file only to locate its root and never reads its bytes, so the receiver writes a
+marker into its producer snapshot. Readers that run inside a private snapshot
+(SQ receiving and pre-run inputs) copy the same lock into it.

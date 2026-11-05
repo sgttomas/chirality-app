@@ -20,12 +20,15 @@ from referencing import Registry
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-PINS_SHA256 = 'd7e404a4820b69d55c6c3b58bc9f36c8860557414982f41b02cff5a4bec4b3d9'
+# Generated digests; re-derive with `python3 app/examination/repin.py` (examination/README.md).
+# The cohort pin files are retained historical receipts in the lock's frozen section.
+PIN_LOCK = json.loads((PROJECT / 'app/examination/pins.lock.json').read_bytes())
+PINS_SHA256 = PIN_LOCK['frozen']['app/examination/distribution_receiving/pins.stop-admission-lt09-v1.json']
 COHORTS = {
     'stop-admission': ('pins.stop-admission-lt09-v1.json', PINS_SHA256,
                        'pins.lt12-combined-lt09-v1.json'),
     'build-selection': ('pins.build-selection-lt09-v1.json',
-                        '1cead3fe1e12259a2b11a0bddd71d407b40c9d85b02001609845a1aa4479ad71',
+                        PIN_LOCK['frozen']['app/examination/distribution_receiving/pins.build-selection-lt09-v1.json'],
                         'pins.stop-admission-lt09-v1.json'),
 }
 FORMAT = 'group-b-s1-reader-exchange.v1'
@@ -36,7 +39,7 @@ CURRENT_INPUTS = (
     *(f'app/src-tauri/resources/distribution-successor/{name}.schema.json'
       for name in ('observed-verification.s1', 'lifecycle-event.s1', 'distribution-closure-transport.s3')),
 )
-INPUTS_SHA256 = 'e06d8ed0900fa11d9f78f2735d67de8891f40ac3a723e206f96ad99f1098751f'
+INPUTS_SHA256 = PIN_LOCK['current']['app/examination/distribution_receiving/inputs.json']
 LIMITS = [
     'Exact exported file correspondence only; native S1 semantics are not reexecuted.',
     'Serialized readback is a producer report, not authenticated history or a native-held reference capability.',

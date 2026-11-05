@@ -60,12 +60,12 @@ correspondence remains checkable with the maintained reader. The pre-terms
 packaging text is recoverable at `6421c323` and the exact approved OLD/NEW map
 is retained in the terms proposal. No historical evidence is relabelled current.
 
-Run `python3 app/examination/support_identity/generate_terms_adoption.py` from
-the repository to regenerate the six successor pin/source files and their reader
-constants. The generator validates the exact two-version projection transition,
-checks all selected projections and terms artifacts, and only updates its named
-consumer dependency closure. Unrelated pins are copied unchanged, not refreshed.
-Run it again after an allowed helper repair. Never hand-merge generated pins.
+The one-time `support_identity/generate_terms_adoption.py`, which derived the
+six successor pin/source files from the v2 cohort, is retired (recoverable from
+Git). After an allowed helper repair, run `python3 app/examination/repin.py`: it
+re-derives the successor files' current-source digests and the generated reader
+lock, and leaves frozen documentary selections, projection digests and historical
+provenance as recorded. Never hand-merge generated pins.
 
 Focused checks cover source/authority tamper, absent/unapproved/wrong-version
 inputs, purpose/version separation, preserved historical subject, current
