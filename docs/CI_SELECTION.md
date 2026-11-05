@@ -70,6 +70,9 @@ and package setup in hosted CI retain their existing versions. Local checks use
 offline caches by default. A fresh clone needs the documented toolchains and
 dependencies, not a sibling Chirality checkout.
 
+Repository checks also run `python app/examination/repin.py --check`, which
+fails when examination source pins disagree with current bytes.
+
 Credential/conflict checks are retained. The private-term check and its
 validator were removed by owner direction on 2026-11-05.
 

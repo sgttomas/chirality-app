@@ -45,10 +45,10 @@ The wrapper's caller-specified `record_id` is the EXP/SQ package-witness citatio
 the static package. No wrapper is inserted into a legacy record or S1 runtime slot.
 
 `source_dependencies()` needs no fixture. Its closure includes all maintained
-code/schema/template/recipe inputs; AGENTS.md is solely the existing model's
-repository-root marker, not product instruction adoption. The tests stage that
-complete source and evidence closure into an offline worker without repository
-fallback. No scanner is invoked by either API.
+code/schema/template/recipe inputs. AGENTS.md is solely the existing model's
+repository-root marker, so its bytes are not a dependency (App audit #45): a
+staged root supplies a marker file instead. The tests stage that complete source
+and evidence closure into an offline worker without repository fallback. No scanner is invoked by either API.
 
 ## Fixtures, ownership and limits
 
