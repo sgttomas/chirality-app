@@ -375,10 +375,11 @@ fn reviewed_v4_seed_entry_preserves_edits_and_old_composition_new_entry_reads_ne
         std::fs::read(root.join("AGENTS.md")).unwrap(),
         COMMON_DEFAULT
     );
-    // Independent V0-INSTRUCTION-TRANCHE admitted source identities.
+    // Independent V0-INSTRUCTION-TRANCHE admitted source identities. The common
+    // guidance digest is the reviewed AGENTS.md bound in ROLE_SET_SOURCE_BINDING.json.
     assert_eq!(
         chirality_app_v4_lib::util::sha256_hex(COMMON_DEFAULT),
-        "c64305fb6cec44c448116315e8f547ab133fe4b750dc356191af893f94c19290"
+        "33560b332ca2430d872f5cba8f1013c0c10687cb009b060da0fde19f359de37e"
     );
     for role in Role::ALL {
         assert_eq!(
