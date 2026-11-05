@@ -294,8 +294,7 @@ test('the clean trial role picker has its own radio group, apart from the Start 
   assert.deepEqual([...names],['clean-trial-role:trial:7']);
   const other=h(CleanTrialPanel,{pending:clean({reference:'trial:8'}),roleSet,limits:{},entries,modeHomeClass:'account',busy:false,ready:true,act:async()=>{}});
   assert.match(other,/name="clean-trial-role:trial:8"/,'two clean trial panels do not share a group');
-  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
-  assert.match(app,/<RoleChoice group="start-thread-role"/);
+  // The App's Start thread picker group is checked mounted in conversation-panel.test.mjs.
 });
 
 test('composers appear in the conversation they belong to',()=>{

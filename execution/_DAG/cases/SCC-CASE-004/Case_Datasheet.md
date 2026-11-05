@@ -8,11 +8,11 @@ CaseState: EVIDENCE_ACCUMULATING. Actual CP1 confirms initial graph basis/candid
 
 The previously pending proposal and original source observations below are retained as history; current tracking is the confirmed account above.
 
-> **30% framing (current owner clarification):** this case characterizes unresolved work and its later/post30 route. A fully resolved DAG, completed interfaces or supplied future witness inputs are not prerequisites to the30% gate. Input-specific limitations apply only when the corresponding work needs them; no whole-Deliverable/project hold follows. Qualified initial graph-basis/version decisions and the actual30% decision remain separate. See the [recorded clarification](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/RUN_BRIEF.md#owner-clarification--30-and-unresolved-sccs).
+> **30% framing (current owner clarification):** this case characterizes unresolved work and its later/post30 route. A fully resolved DAG, completed interfaces or supplied future witness inputs are not prerequisites to the30% gate. Input-specific limitations apply only when the corresponding work needs them; no whole-Deliverable/project hold follows. Qualified initial graph-basis/version decisions and the actual30% decision remain separate. See the recorded clarification (`sgttomas/chirality@archive/pre-efficiency-cleanup-2026-10-09:projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/RUN_BRIEF.md#owner-clarification--30-and-unresolved-sccs`).
 
 - CaseState: HUMAN_RULINGS_PENDING (completed bounded inquiry; owner graph treatment unruled).
 - CASE_ID: SCC-CASE-004; originating SCC_ID: SCC-004.
-- Originating DepClosure observation: `/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149`.
+- Originating DepClosure observation: `~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_Evaluation/DepClosure/CLOSURE_APP_V4_INITIAL_2026-09-27_2149`.
 - Member node set and AFFECTED_DELIVERABLES: `DEL-03-01;DEL-03-02`.
 - Originating frozen dependency source: `c1038ae5ac5c23a30ea7d3b516cd9033cb47f77b` (historical supplied basis); then-current manifest `projects/chirality-app-v4/execution/_DAG/_Candidates/DAG-001/SOURCE_MANIFEST.sha256`, SHA256 `30a85cffb5832313be60bafd297428cca331f3e7712b2a822eae488fe924d7fc`.
 - Analyzer COMPLETE, subject FAIL with seven SCCs, 41/41 units and zero schema/orphan/declared disagreements; this case is the two-member SCC-004 and CYCLE-00004 (E01). No accepted DAG is reported by the observation.

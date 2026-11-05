@@ -841,3 +841,134 @@ test('closed sources, unobserved turns and already requested interruption explai
   assert.deepEqual(ui.calls,[]);
  });
 });
+
+// Wiring of the Codex process controls and the conversation's stop labels,
+// exercised through mounted components rather than read from source text.
+test('Stop and Restart Codex call only the asking codex_stop command for the current generation', async () => {
+  const {CodexProcessControls} = loadSrc('CodexControls');
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  const calls = [];
+  try {
+    await React.act(() => root.render(React.createElement(CodexProcessControls, {
+      host: {state: 'ready', generation: g, homeRouting: {activeModeHomeClass: 'account'}, codexStops: {outcomes: [], stopWaitLimitSeconds: 10, records: ''}},
+      busy: false, act: (command, args) => calls.push([command, args])})));
+    for (const control of elements(c, 'button')) await React.act(() => props(control).onClick());
+    assert.deepEqual(calls.filter(([command]) => command === 'codex_stop'),
+      [['codex_stop', {generation: g, restart: false}], ['codex_stop', {generation: g, restart: true}]]);
+    assert.deepEqual(calls.map(([command]) => command).sort(), ['codex_stop', 'codex_stop', 'host_start'],
+      'no control sends an unconfirmed stop');
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(c); }
+});
+
+test('conversation activity labels a turn from this home\'s stop records and the Stop Codex outcome', async () => {
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  const view = {home: g.home, generation: g, typesPin: '0.160.0', supplierStanding: 'unverified-development', limits: [],
+    items: ['t1', 't2'].map((turnId, i) => ({threadId: 'thread-a', turnId, native: {id: `m-${turnId}`, type: 'agentMessage', text: `reply ${turnId}`},
+      displayState: 'completed', observedOrder: i, standing: 'live-observed'})),
+    turns: [{id: 't1', status: 'interrupted', startedAt: 1}, {id: 't2', status: 'interrupted', startedAt: 2}],
+    turnRecords: [{threadId: 'thread-a', turnId: 't1'}, {threadId: 'thread-a', turnId: 't2'}], revisions: [], goals: {}, checklistGaps: [], descendants: []};
+  const record = {stopRequestId: 'stop:1', appSession: 's', earlierSession: false, home: 'H-acct', generation: 'gen', threadId: 'thread-a', turnId: 't1',
+    cause: 'person-interrupt', requestedAt: '2026-10-10T00:00:01Z', state: 'outcome-observed', label: 'interrupted by the person',
+    reading: 'Final status observed when the turn ended.', codexReported: 'interrupted', persistence: 'recorded in the App ledger'};
+  const outcome = {action: 'Stop Codex', state: 'stopped', generation: g, turns: [{threadId: 'thread-a', turnId: 't2', label: 'interrupted by Stop Codex', codexReported: 'interrupted'}]};
+  const show = activeModeHomeClass => React.act(() => root.render(React.createElement(ConversationPanel, {
+    host: {...host, nativeView: view, homeRouting: {activeModeHomeClass}, codexStops: {outcomes: [outcome]}, stopRequests: {records: [record], limits: []}},
+    threadKey: key('thread-a'), setThreadKey: () => {}, answer: noop, runAct: noop, send: noop, steer: noop, submitAttachments: noop, interrupt: noop, checkPlanMode: noop, codexBusy: false})));
+  const labels = () => c.querySelectorAll(element => element.localName === 'p' && element.textContent.startsWith('App label:')).map(element => element.textContent);
+  try {
+    await show('account');
+    assert.ok(labels().some(label => label.includes('interrupted by the person')), 'the recorded request of this home labels t1');
+    assert.ok(labels().some(label => label.includes('interrupted by Stop Codex')), 'the Stop Codex outcome labels t2');
+    await show('api-key');
+    assert.ok(!labels().some(label => label.includes('interrupted by the person')), 'another home\'s ledger row does not label this home\'s turn');
+    assert.ok(labels().some(label => label.includes('interrupted by Stop Codex')));
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(c); }
+});
+
+test('while Stop or Restart Codex runs, sends pause but the conversation and live turn stay selectable', async () => {
+  await withReadinessPanel(async ui => {
+    ui.setBusy(true); await ui.show();
+    assert.equal(props(button(ui.c, 'Send text')).disabled, true);
+    assert.equal(props(labelled(ui.c, 'select', 'Current-generation conversation ')).disabled, false);
+    assert.equal(props(labelled(ui.c, 'select', 'Observed live turn ')).disabled, false);
+    await change(labelled(ui.c, 'select', 'Observed live turn '), 'live-a');
+    assert.equal(props(button(ui.c, 'Interrupt selected live turn')).disabled, false);
+  });
+});
+
+test('the App pauses conversation sends for exactly the duration of Stop Codex', async () => {
+  const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
+  const calls = [], held = deferred();
+  const snapshot = {...host, threads: [thread('existing', null)], homeRouting: {activeModeHomeClass: 'account'}, codexStops: {outcomes: [], stopWaitLimitSeconds: 10, records: ''}};
+  const idle = installIdleNativeWaiting(async (command, args) => {
+    calls.push({command, args});
+    if (command === 'host_status') return snapshot;
+    if (command === 'decision_view') return {rows: []};
+    if (command === 'native_confirmation_content') return [];
+    if (command === 'codex_stop') return held.promise;
+    throw Error(`Unexpected native command: ${command}`);
+  });
+  try {
+    await React.act(async () => {root.render(React.createElement(App));});
+    const conversation = () => container.querySelectorAll(element => element.getAttribute('id') === 'conversation')[0];
+    await change(elements(conversation(), 'select')[0], key('existing'));
+    await change(elements(conversation(), 'textarea')[0], 'Kept while Codex stops');
+    assert.equal(props(button(conversation(), 'Send text')).disabled, false);
+    let pending;
+    await React.act(async () => {pending = props(button(container, 'Stop Codex…')).onClick();});
+    assert.deepEqual(calls.filter(call => call.command === 'codex_stop').map(call => call.args), [{generation: g, restart: false}]);
+    assert.equal(props(button(conversation(), 'Send text')).disabled, true, 'sends wait while Stop Codex runs');
+    await React.act(async () => {held.resolve({action: 'Stop Codex', state: 'cancelled', reading: 'kept running'}); await pending;});
+    assert.equal(props(button(conversation(), 'Send text')).disabled, false, 'sends resume when it ends');
+    assert.equal(props(elements(conversation(), 'textarea')[0]).value, 'Kept while Codex stops');
+  } finally {
+    const renderedText = container.textContent;
+    await React.act(() => root.unmount());
+    document.body.removeChild(container);
+    idle.restore(renderedText);
+  }
+});
+
+test('Continue as begins through continue_as_begin for the selected conversation and changes no role', async () => {
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  const acts = [];
+  try {
+    await React.act(() => root.render(React.createElement(ConversationPanel, {host, threadKey: key('thread-a'), setThreadKey: () => {}, answer: noop,
+      runAct: async (command, args) => { acts.push([command, args]); return {}; }, send: noop, steer: noop, submitAttachments: noop, interrupt: noop, checkPlanMode: noop, codexBusy: false})));
+    const offers = elements(c, 'button').filter(element => element.textContent.startsWith('Continue as'));
+    assert.ok(offers.length > 0, 'a Continue as control is offered');
+    await React.act(async () => { await props(offers[0]).onClick(); });
+    assert.equal(acts.length, 1);
+    assert.equal(acts[0][0], 'continue_as_begin');
+    assert.deepEqual({generation: acts[0][1].generation, threadId: acts[0][1].threadId}, {generation: g, threadId: 'thread-a'});
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(c); }
+});
+
+test('the App start display has its own role group and one shared model and provider field pair', async () => {
+  const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
+  const snapshot = {...host, threads: [], homeRouting: {activeModeHomeClass: 'account'},
+    roleSet: {available: true, defaultRole: 'HELP_HUMAN', roles: [{name: 'HELP_HUMAN', meaning: 'Alignment', default_for_new_chat: true}, {name: 'TASK', meaning: 'Bounded', default_for_new_chat: false}]}};
+  const idle = installIdleNativeWaiting(async command => {
+    if (command === 'host_status') return snapshot;
+    if (command === 'decision_view') return {rows: []};
+    if (command === 'native_confirmation_content') return [];
+    throw Error(`Unexpected native command: ${command}`);
+  });
+  try {
+    await React.act(async () => {root.render(React.createElement(App));});
+    const radios = elements(container, 'input').filter(element => props(element).type === 'radio');
+    assert.ok(radios.length >= 2);
+    assert.deepEqual([...new Set(radios.map(element => props(element).name))], ['start-thread-role'], 'the Start thread picker keeps its own group');
+    const field = label => elements(container, 'input').filter(element => element.parentNode.textContent.startsWith(label));
+    assert.equal(field('Model ').length, 1);
+    assert.equal(field('Configured Codex provider ').length, 1);
+    await change(field('Model ')[0], 'chosen-model');
+    await change(field('Configured Codex provider ')[0], 'openai');
+    assert.deepEqual([props(field('Model ')[0]).value, props(field('Configured Codex provider ')[0]).value], ['chosen-model', 'openai']);
+  } finally {
+    const renderedText = container.textContent;
+    await React.act(() => root.unmount());
+    document.body.removeChild(container);
+    idle.restore(renderedText);
+  }
+});

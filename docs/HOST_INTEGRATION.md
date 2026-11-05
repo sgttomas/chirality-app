@@ -1,7 +1,7 @@
 # Chirality v4 — Host integration
 
 **Status: post-acceptance consolidation for the accepted decomposition basis;
-independent substantive fidelity review [completed](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DEFINITION-20260926/SEED_FIDELITY_REVIEW.md).** This is the host-contract companion
+independent substantive fidelity review completed (`sgttomas/chirality@archive/pre-efficiency-cleanup-2026-10-09:projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DEFINITION-20260926/SEED_FIDELITY_REVIEW.md`).** This is the host-contract companion
 to the [PRD](PRD.md) and [architecture](ARCHITECTURE.md), prepared after the
 owner accepted composite **APP-V4-BASIS-20260926** with open matters and
 external dependencies. [PRD §0](PRD.md#0-basis-chronology-and-reading-this-set)
@@ -253,7 +253,7 @@ research/design-candidate increment must be coordinated with that owner;
 neither is claimed delivered or adopted here.
 
 The original T6 table described `2b0572fe0` and a separate live-control
-branch. It remains in the [preserved original seed][original-host] as dated
+branch. It remains in the preserved original seed (`sgttomas/chirality@archive/app-v4-pre-contract-register-retirement-20261011:projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md`) as dated
 evidence. It is not a statement of SWBPIPE's current deployment. The later
 checked source account at `e548d4cfada4d2105de6231516dc6e5fc4bd4689` establishes:
 
@@ -270,4 +270,3 @@ a targeted applicability check before implementation reliance. The v4
 replacement condition still requires the live connected journey; decomposition
 acceptance and source inspection are not substitutes for it.
 
-[original-host]: https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md

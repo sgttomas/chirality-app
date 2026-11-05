@@ -86,10 +86,10 @@ retained-Child-only; its result now also retains guard reason and sampling facts
 ## Current preparation artifacts and remaining disposition
 
 Read-only projection and versioned basis:
-`/Users/ryan/dev/chirality-t3/scratch/app-native-next-admission-35viga7p/`.
+`~/dev/chirality-t3/scratch/app-native-next-admission-35viga7p/`.
 `retained-state-v1.json` is the earlier source-bound capture, retained unchanged;
 `retained-state-v1-review.json` and unrun attempt
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-5vvrt2fy` bind the
+`~/dev/chirality-t3/scratch/app-successor-native-B-5vvrt2fy` bind the
 pre-review source. Both remain retained and are superseded for execution by the
 post-review source-bound basis/preparation recorded below.
 Preparation revalidated the retained ledger and metadata and copied runtime
@@ -114,7 +114,7 @@ credentials, model/network activity or new product commitment is inferred.
 Post-review read-only capture/prepare passed against unchanged retained state:
 `retained-state-v1-post-review.json` basis SHA256
 `e67384fd18cb311c9da01912cd68c08e83edb4af39ff5a2ccf41e105c56a04bb`; **UNRUN** attempt
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-am98hzma`, admission SHA256
+`~/dev/chirality-t3/scratch/app-successor-native-B-am98hzma`, admission SHA256
 `2ab2e22b856fb4f43c5a347baa5481f8e005ac7a5c229da2553d42370715d1c1`.
 All copied dependency bytes match. Twelve admission, twelve mocked diagnostic
 and six guard/integration tests pass. The combined slot-wrapped fixture run subsequently completed with all 47 tests

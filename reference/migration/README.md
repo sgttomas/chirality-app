@@ -64,7 +64,7 @@ App cutover completed on 2026-10-28:
 - [App import PR #6](https://github.com/sgttomas/chirality-app/pull/6) merged at
   `ca462234ae1c3e989e5c6670686c4a7545d17b2b` after required checks passed on
   `7d5ff4f39d4dcdb5ee3f88b9a52541db9b18ef80`.
-- [Root detachment PR #1715](https://github.com/sgttomas/chirality/pull/1715)
+- Root detachment PR #1715 (`sgttomas/chirality PR #1715`)
   merged at `04ba2ad72b671305382299580bcc521248ce60ae` after required checks
   passed on `382dcf0ce07411380a152846fa9288aba8df907d`.
 - Both merged trees matched their checked candidates. Existing App history and

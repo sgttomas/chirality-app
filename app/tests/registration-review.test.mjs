@@ -8,6 +8,7 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import './support/rust-prebuild.mjs';
 
 const document = installMiniDom();
 const {createRoot} = await import('react-dom/client');

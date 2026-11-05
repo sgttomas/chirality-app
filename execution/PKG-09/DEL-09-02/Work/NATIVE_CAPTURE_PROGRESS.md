@@ -2,7 +2,7 @@
 
 ## Actual 5kpzvvr3 result: capture usable, B still FAILED
 
-[Raw evidence and manifest](../Evidence/EXP/native-capture-progress-20261031T203126Z/archive-index.json)
+Raw evidence and manifest (`execution/PKG-09/DEL-09-02/Evidence/EXP/native-capture-progress-20261031T203126Z/archive-index.json`, removed run output; recoverable from Git history at b0ba3134)
 preserve all top-level attempt records plus two explicitly derived offline crop/
 provenance files. All originals remain unchanged; private runtime/tmp directories
 were not copied or read. No later repair is presented as this attempt's behavior.
@@ -66,7 +66,7 @@ Claude Opus5.5/high scrutiny before live use, not a generic input experiment.
 
 ## Exact successor state and validation
 
-Read-only assessment `/Users/ryan/dev/chirality-t3/scratch/app-post-5kp-assessment-ocxz6965/assessment.json`
+Read-only assessment `~/dev/chirality-t3/scratch/app-post-5kp-assessment-ocxz6965/assessment.json`
 SHA669ac9ce735c7d20130def98d02d9b37e522e8ce2244bdea4507f3f46b145a7f;
 App DB SHA7d41c0993f5eb2b055a56f5b0115e648a97ac08dda5074394153bab9cd75622f.
 Fifteen schema-valid rows record five linked start/empty-work Quit/quit-ended
@@ -91,9 +91,9 @@ image/effect/no-repeat/custody tests remain. v5 fixtures check exact rows, wrong
 ends/activity/linkage, hashes, sidecars, metadata/auth names and fixed one-shot
 slot entry. Ordinary fixtures are source evidence, not actual input qualification.
 
-Unrun root `/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-uef3r3p2`,
+Unrun root `~/dev/chirality-t3/scratch/app-successor-native-B-uef3r3p2`,
 admission SHA3d05cfd09735d1a6ca8ee086aec0bf7e5c84fc4a08e0263fe6413c32ba906e14.
-Basis `/Users/ryan/dev/chirality-t3/scratch/app-window-routing-prep-ltvo5tzg/retained-v5-inputs.json`,
+Basis `~/dev/chirality-t3/scratch/app-window-routing-prep-ltvo5tzg/retained-v5-inputs.json`,
 SHAdee6f40d85e923864f69d75a55016c54a854f7588c79a539390272fbe0b2a26f.
 All19 dependency/helper/policy hashes match; no execution records. Required narrow
 review and CI are pending. After parent integration, the standing bounded task

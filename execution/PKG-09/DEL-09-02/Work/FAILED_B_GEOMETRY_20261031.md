@@ -1,6 +1,6 @@
 # 7sinkdji: failed before capture on exact geometry drift
 
-B remains FAILED. The [retained archive](../Evidence/EXP/owned-window-geometry-B-20261031T194716Z/archive-index.json)
+B remains FAILED. The retained archive (`execution/PKG-09/DEL-09-02/Evidence/EXP/owned-window-geometry-B-20261031T194716Z/archive-index.json`, removed run output; recoverable from Git history at b0ba3134)
 preserves all regular top-level attempt records byte-for-byte; runtime/fallback/
 temporary directory contents remain untouched in scratch. No verified image,
 source/generation, Stop, modal, LT23 or exhaustive supplier settlement exists.

@@ -15,7 +15,7 @@ independently finishable. No production behavior changes accompany this document
 App source basis throughout: `79315c26b104b534a89ed8e9b1e716f3da3440d0`
 (including first feasibility `716a8e795968b82c42f84cf67f26ad817d64bdfe`).
 Paths below are relative to this App repository at that revision unless qualified.
-Selected instruction library: `/Users/ryan/dev/chirality`, revision
+Selected instruction library: `~/dev/chirality`, revision
 `1560bbf7f7add4637a20572a2b0d404ef121af63`, WORKING_ITEMS and
 `workflows/coordinated-knowledge-work/WORKFLOW.md`. Consultation does not adopt
 new packaged roles/workflows. The App's current supplier definition is 0.160.0;
@@ -409,7 +409,7 @@ instead of a supplier and call it qualification.
 
 ## Peer constraint and next buildable slice
 
-Read-only SWB basis: `/Users/ryan/.t3/worktrees/chirality/t3-514d37a1`,
+Read-only SWB basis: `~/.t3/worktrees/chirality/t3-514d37a1`,
 production `1560bbf7f7add4637a20572a2b0d404ef121af63`; Windows candidate
 `b78b0feac0aa1e6bbc4606597e10accc54b7eb51`. Its
 `projects/chirality-piping/execution/PKG-04/DEL-04-07/Design/memory-budget-decision.md`

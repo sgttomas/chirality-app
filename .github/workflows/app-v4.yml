@@ -3,11 +3,6 @@ name: App v4
 on:
   workflow_call:
   workflow_dispatch:
-    inputs:
-      broad_python:
-        description: Run all Python receiving cohorts, including known stale-source failures
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -75,7 +70,8 @@ jobs:
               --test attachments --test catalog_adapter --test external_trace --test swbpipe_receiving \
               --test act_storage --test recovery_startup --test access_integration \
               --test policy_standing --test decision_standing --test record_semantics --test record_relations \
-              --test native_backend_smoke --test native_history --test history_integration --test steering_integration --test decide_flow --test role_lifecycle --test attested_reference_packaging --test schema_validation --test menu_capability -- --test-threads=1
+              --test native_backend_smoke --test native_history --test history_integration --test steering_integration --test decide_flow --test role_lifecycle --test attested_reference_packaging --test schema_validation --test menu_capability \
+              --test hosting_contract --test runtime_integration -- --test-threads=1
       - name: Focused lib cohorts (shard A)
         # One process per cohort, as before: some tests read process-wide state set by others.
         run: |
@@ -183,6 +179,7 @@ jobs:
           tests/supplier_notice_observations_test.py
           tests/group_b_terms_successor_test.py
           tests/group_b_admission_test.py tests/group_b_current_admission_test.py
+          tests/group_b_distribution_receiving_test.py tests/group_b_terminal_receiving_test.py
           && python3 -B tests/candidate_identity_test.py
       - name: Staged distribution successor
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib s2_ -- --test-threads=1
@@ -291,19 +288,7 @@ jobs:
           test -x "$CHIRALITY_CODEX_BIN"
           npm test
       - name: Python receiving and custody behavior
-        env:
-          BROAD: ${{ inputs.broad_python }}
-        run: |
-          if [ "$BROAD" = true ]; then
-            python -m pytest -q tests
-          else
-            # These two historical cohorts already fail on an obsolete hosting.rs
-            # source pin. Explicit broad runs keep those failures visible.
-            echo 'Not selected: distribution and terminal historical-source cohorts (known stale hosting.rs pin).'
-            python -m pytest -q tests \
-              --ignore=tests/group_b_distribution_receiving_test.py \
-              --ignore=tests/group_b_terminal_receiving_test.py
-          fi
+        run: python -m pytest -q tests
 
   result:
     name: App v4 checks

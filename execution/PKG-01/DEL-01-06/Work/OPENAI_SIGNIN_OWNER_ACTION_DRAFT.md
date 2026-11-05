@@ -93,7 +93,7 @@ the entire page. No statement publication date was established. The response's
 Last-Modified header is recorded as HTTP metadata, not a publication date.
 The 2026-10-29 SIWC findings above were not refreshed or adopted.
 Retain the full response at
-`/Users/ryan/dev/chirality-t3/scratch/app-macos-packaging-k15ok7t8/openai-app-server.html`
+`~/dev/chirality-t3/scratch/app-macos-packaging-k15ok7t8/openai-app-server.html`
 as a named recovery input until the owner's retention is recorded or a
 replacement preserved copy is verified and its consumers release this input.
 It is an ordinary saved file, not immutable storage; its recorded digest permits

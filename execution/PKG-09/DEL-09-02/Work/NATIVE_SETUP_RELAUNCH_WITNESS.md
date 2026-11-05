@@ -32,7 +32,7 @@ outside this result.
 
 Exact original preparation bytes (SHA-256
 `b7edb0b0741cc72f7ca0fd9098e4f244117000cd106c7f227e6322fe5bb417a7`)
-are retained [with the native evidence](../Evidence/EXP/795362874d-a391547a5c5d/native-A-20261030T051817Z/original-preparation-brief.md).
+are retained with the native evidence (`execution/PKG-09/DEL-09-02/Evidence/EXP/795362874d-a391547a5c5d/native-A-20261030T051817Z/original-preparation-brief.md`, removed run output; recoverable from Git history at b0ba3134).
 
 ## Historical preparation — not a claim its superseded conditions were satisfied
 
@@ -49,7 +49,7 @@ single-build clearance grants no GUI or supplier execution for this route.
 Use only candidate `795362874d-a391547a5c5d`, built from
 `795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98`; its retained identification and
 complete inventory are under
-[`Evidence/EXP/795362874d-a391547a5c5d`](../Evidence/EXP/795362874d-a391547a5c5d/candidate-identification.json).
+`Evidence/EXP/795362874d-a391547a5c5d` (`execution/PKG-09/DEL-09-02/Evidence/EXP/795362874d-a391547a5c5d/candidate-identification.json`, removed run output; recoverable from Git history at b0ba3134).
 The bundle is:
 
 ```text
@@ -110,7 +110,7 @@ The saved route creates a fresh App-owned account at the actual Tauri data root,
 data root is:
 
 ```text
-/Users/ryan/Library/Application Support/dev.chirality.app-v4.candidate.20261029-ukt5ir80
+~/Library/Application Support/dev.chirality.app-v4.candidate.20261029-ukt5ir80
 ```
 
 This new identifier namespace is the expected non-scratch App-data write
@@ -150,7 +150,7 @@ an unexpected root, existing request or existing home stops this witness.
    and fresh probe `CODEX_HOME` values to the supplier.
 4. Proposed command prefix is `/usr/bin/sandbox-exec -f <network-denied.sb>`
    followed by the exact executable. The profile uses `(allow default)` with
-   `(deny network*)` and read/write denial for `/Users/ryan/.codex`. The local
+   `(deny network*)` and read/write denial for `~/.codex`. The local
    provider URL is a stand-in, not an allowed network exception. The binary
    exists, but **this policy and native-WebKit compatibility are unexercised**.
    Refusal or UI failure is an observed blocked/failed pilot, not grounds to

@@ -2,7 +2,7 @@
 
 B remains **FAILED**. The first isolated helper refused before screencapture;
 there is no image, source/generation witness, Stop/modal action, LT23 or supplier
-settlement claim. The [archive](../Evidence/EXP/owned-window-B-20261031T183203Z/archive-index.json)
+settlement claim. The archive (`execution/PKG-09/DEL-09-02/Evidence/EXP/owned-window-B-20261031T183203Z/archive-index.json`, removed run output; recoverable from Git history at b0ba3134)
 preserves every regular top-level attempt file byte-for-byte, including raw and
 filtered resource closure. Private runtime/fallback/temp directories remain in
 scratch without content inspection or copying.

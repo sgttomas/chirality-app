@@ -55,8 +55,9 @@ test('fork and continued-from relations are shown as relations; nothing changes 
   const cont=header(thread({roleRelation:{kind:'continued-from',from:{sourceThread:'thread-a',sourceRole:{standing:'app-observed',role:'WORKING_ITEMS',supply_ref:'sup:a'}}}}));
   assert.ok(cont.includes('Continues conversation thread-a (its role: WORKING_ITEMS); a relation only: no history was carried.'));
   // The App offers no control that changes a started conversation's role.
+  // Continue as and fork are exercised through their commands in
+  // conversation-panel, fork-admission and trial-continue-model-choice tests.
   const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8')+readFileSync(new URL('../src/ConversationRoles.tsx',import.meta.url),'utf8');
-  assert.ok(app.includes('"continue_as_begin"')&&app.includes('"conversation_fork"')&&app.includes('continueAs: handoff.id'));
   assert.ok(!/thread\/settings\/update|developer_instructions|setRole\(selected/.test(app));
 });
 
@@ -146,10 +147,8 @@ test('model and provider are exact strings: no capitalisation, autocorrect, spel
   assert.equal(panel.length,2);
   assert.ok(panel.every(exact),panel.join('\n'));
   // The start display uses the same fields; no other model or provider input exists.
-  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
-  const roles=readFileSync(new URL('../src/ConversationRoles.tsx',import.meta.url),'utf8');
-  assert.ok(app.includes('<ModelProviderFields model={model} modelProvider={modelProvider}'));
-  assert.equal(((app+roles).match(/<input [^>]*value=\{(model|modelProvider)\}/g)??[]).length,2,'only the shared fields bind model and provider');
+  // In the App, the start display's model and provider fields are exercised in
+  // conversation-panel.test.mjs; Continue as uses them in trial-continue-model-choice.
 });
 
 test('the header shows the host’s trial header and the trials started here (TT-3b, TT-4)',()=>{

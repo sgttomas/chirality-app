@@ -6,6 +6,7 @@ import {readFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import Ajv2020 from 'ajv/dist/2020.js';
+import './support/rust-prebuild.mjs';
 const app=new URL('../',import.meta.url);
 const design=new URL('../execution/PKG-01/DEL-01-01/Work/',app);
 const load=p=>JSON.parse(readFileSync(p,'utf8'));

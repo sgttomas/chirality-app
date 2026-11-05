@@ -11,8 +11,9 @@ repository manual index provides stable discovery for the management manual.
 The detailed edition/hash account below preserves the original definition run; it does not reinstate retired lifecycle, receipt or
 work-graph maintenance duties. Its frozen prototype input set remains a
 historical reproduction, not a current-manual loader. Reproduce `eb1_check.py`
-and `make_input_set.py` only in the [archived source tree](https://github.com/sgttomas/chirality/tree/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4),
-where their original Coordination inputs still exist. Current guidance shapes
+and `make_input_set.py` only in the archived source tree (`sgttomas/chirality@archive/pre-efficiency-cleanup-2026-10-09:projects/chirality-app-v4`),
+where their original Coordination inputs still exist. `eb1_check.py` only
+re-checks those documentary hashes and is not a recurring check. Current guidance shapes
 practice without changing the product's accepted output obligations.
 
 

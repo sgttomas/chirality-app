@@ -5,6 +5,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import './support/rust-prebuild.mjs';
 
 const document=installMiniDom();
 const React=(await import('react')).default;

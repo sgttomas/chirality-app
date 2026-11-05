@@ -2,11 +2,11 @@
   "standing": "local source/API-document investigation; not Windows execution or owner acceptance",
   "app_revision": "79315c26b104b534a89ed8e9b1e716f3da3440d0",
   "instruction_library": {
-    "path": "/Users/ryan/dev/chirality",
+    "path": "~/dev/chirality",
     "revision": "1560bbf7f7add4637a20572a2b0d404ef121af63"
   },
   "peer": {
-    "read_only_checkout": "/Users/ryan/.t3/worktrees/chirality/t3-514d37a1",
+    "read_only_checkout": "~/.t3/worktrees/chirality/t3-514d37a1",
     "production_revision": "1560bbf7f7add4637a20572a2b0d404ef121af63",
     "candidate_revision": "b78b0feac0aa1e6bbc4606597e10accc54b7eb51",
     "candidate_diff": "CI/design/release wording only; no production source delta"

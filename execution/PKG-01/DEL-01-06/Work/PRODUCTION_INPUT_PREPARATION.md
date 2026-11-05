@@ -25,7 +25,7 @@ export, explicit environment allowlist, exclusive private files and final
 completion marker, complete tool identities, production/test namespace separation,
 and refusal of empty/glob/colliding resource mappings. Sixteen source-fixture
 tests pass. The corrected frozen-export/durable-vendor plan is retained at
-`/Users/ryan/dev/chirality-t3/scratch/app-package-inputs-frozen-b42vohmf/plan`;
+`~/dev/chirality-t3/scratch/app-package-inputs-frozen-b42vohmf/plan`;
 its fifty resource mappings and completion hashes were checked. No App was built.
 The prior live-worktree plan at `app-package-inputs-wgel4r51` is historical only
 and must not be executed. Preserve both input accounts and reviewer inputs.
@@ -46,7 +46,7 @@ Info.plist is version 4.0.0/minimum 15.0, and the App's Mach-O declares 15.0.
 This is a declaration/build observation, not a run on that minimum OS.
 
 The bundle is retained at
-`/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/target/release/bundle/macos/Chirality App v4 (package input test hmhzn4b2).app`.
+`~/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/target/release/bundle/macos/Chirality App v4 (package input test hmhzn4b2).app`.
 It used one offline shared slot, jobs2, fresh target/home and copied prepared
 dependencies; `--no-sign` explicitly skipped signing. Generated publisher
 binding/projection are null and compiled values None. No App or supplier was
@@ -62,7 +62,7 @@ A same-ID selected-production input plan was then prepared from source
 `c1dd9a47577bd32d7f25e62a61f062cf6b3895e1` (tree `7e61899c…70ee`) with the closed
 publisher input (SHA-256 `63a77b96…8f4e`) and the original upstream notice
 supplement. It is retained at
-`/Users/ryan/dev/chirality-t3/scratch/app-selected-production-plan-ram3f93n/plan`
+`~/dev/chirality-t3/scratch/app-selected-production-plan-ram3f93n/plan`
 (PLAN_COMPLETE SHA-256 `080a0b58…5fa1`, 52 resource mappings; `check_plan` passes).
 Its own notice index did not match that source's `Cargo.toml`, because of a
 dev-only `tauri` `test` feature addition. Notice basis `4e942918…` and the
@@ -77,7 +77,7 @@ That successor plan now exists. It was prepared from merged source
 files Git-blob verified) with the same publisher input digest, the same vendor
 (manifest `327effb9…8d12`, cached stock pin 0.160.0 as a development input only)
 and `--upstream-notices` naming the rederived supplement. It is retained at
-`/Users/ryan/dev/chirality-t3/scratch/app-selected-production-plan-AcP2w3vq/plan`
+`~/dev/chirality-t3/scratch/app-selected-production-plan-AcP2w3vq/plan`
 (PLAN_COMPLETE SHA-256 `28dbd975…ad69`, 52 resource mappings; `check_plan` passes).
 The notice index matches its source, and the supplement passes `check-stage`.
 Destinations equal ram3f93n's. Content changes are only the notice index and the
@@ -93,7 +93,7 @@ as a plan-only record without it. The current plan was prepared from merged sour
 `db32e342cefde905545faba4b7e3f99e8fa3b957` (tree `5adeb641…7635`, 3,716 export
 files Git-blob verified), with the same publisher input digest, vendor and pin, and
 the rederived upstream supplement. It is retained at
-`/Users/ryan/dev/chirality-t3/scratch/app-selected-production-plan-EWqBYkw8/plan`
+`~/dev/chirality-t3/scratch/app-selected-production-plan-EWqBYkw8/plan`
 (PLAN_COMPLETE SHA-256 `96a71e49…0c1c`, 54 resource mappings; `check_plan` passes).
 The font notice check passes with all ten name tables matching. Relative to
 `AcP2w3vq`, the only additions are `third-party-notices/fonts/index.json` and the

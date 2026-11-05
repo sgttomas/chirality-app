@@ -17,14 +17,14 @@ whose bundled files/modes matched the measured authorized archive. This remains
 an unsigned, unqualified development candidate, not a supplier qualification
 pin or installed-custody issuer.
 
-The [identity record](../Evidence/EXP/fdcf608fb5-23c6c3f22f5e/candidate-identification.json)
+The identity record (`execution/PKG-09/DEL-09-02/Evidence/EXP/fdcf608fb5-23c6c3f22f5e/candidate-identification.json`, removed run output; recoverable from Git history at b0ba3134)
 binds bundle-tree v2
 `23c6c3f22f5e240440449eaa573737ef556cdac88370633e5b7886a741b6a2a3`,
 75 inventory entries including root, and source tree
 `2353ab5a06096d1cffbf17cdf2ddd90354cc05c7` (2,788 tracked files verified).
 Build invocation/configuration, source preparation, supplier acquisition and
 inventory records are retained alongside it. The build root is
-`/Users/ryan/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/`; its bundle
+`~/dev/chirality-t3/scratch/app-desktop-successor-eqxsxv4n/`; its bundle
 is `target/debug/bundle/macos/Chirality App v4 (development 20261030 eqxsxv4n).app`.
 The new identifier is `dev.chirality.app-v4.candidate.20261030-eqxsxv4n`.
 Its three declared App-data/WebKit/cache locations were absent at identification.
@@ -56,7 +56,7 @@ B remains a separately reviewed fork-admitting route with actual
 owned-process settlement and explicit detached-helper limits. No workflow,
 recovery, access-mode or personal-human-act outcome follows from the build.
 
-The [native A result](../Evidence/EXP/fdcf608fb5-23c6c3f22f5e/native-A-20261030T222805Z/result.json)
+The native A result (`execution/PKG-09/DEL-09-02/Evidence/EXP/fdcf608fb5-23c6c3f22f5e/native-A-20261030T222805Z/result.json`, removed run output; recoverable from Git history at b0ba3134)
 retains full prelaunch inventory, native snapshots, owned-window captures,
 confirmation, saved bindings, controller sources and SHA256SUMS. The agent
 confirmed the actual native setup question at 22:28:16.227 UTC. The saved
@@ -70,7 +70,7 @@ and exact-App-exec policy; the repaired supplier-settlement path is not
 qualified by this idle quit.
 
 Retain successful root
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-A-irf2swd9/` and the
+`~/dev/chirality-t3/scratch/app-successor-native-A-irf2swd9/` and the
 new saved App-data/account state as B input. Never rerun A or remove that state
 to manufacture absence. Setup and Quit were agent actions under owner
 direction, not personally performed human acts. The raw `preview.txt` retains
@@ -117,7 +117,7 @@ ScopeOfWork acceptance criterion or dependency condition is changed.
 
 Retain candidate `795362874d-a391547a5c5d`, source
 `795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98`, unsigned development standing.
-Its existing [identity](../Evidence/EXP/795362874d-a391547a5c5d/candidate-identification.json)
+Its existing identity (`execution/PKG-09/DEL-09-02/Evidence/EXP/795362874d-a391547a5c5d/candidate-identification.json`, removed run output; recoverable from Git history at b0ba3134)
 is not rewritten to current main. Independent Type 2 read-only inspection
 against `032725d32b67e117b8e1fb2b5fa9aa47b30de12e` found runtime applicability:
 Rust changes are test-only; frontend, runtime resources, build configuration
@@ -180,7 +180,7 @@ regressions exercise each finding. Original guard failure reasons survive cleanu
 
 ## Observed native result and preserved failures
 
-The [successful raw result](../Evidence/EXP/795362874d-a391547a5c5d/native-A-20261030T210048Z/result.json)
+The successful raw result (`execution/PKG-09/DEL-09-02/Evidence/EXP/795362874d-a391547a5c5d/native-A-20261030T210048Z/result.json`, removed run output; recoverable from Git history at b0ba3134)
 binds the exact controller, allowlisted App environment, sandbox, current partial
 namespace and complete artifact check. Three selections committed and remained
 stable; all four path fields were entered through native input and read back.
@@ -195,7 +195,7 @@ references for App data/account/project and ordered shared references. The
 request was owned, single-link, mode 0600, with owned mode-0700 parent; all three
 account links matched their selected shared sources. Its SHA-256 is
 `556a3b9ec7d1efce8b14bbc76e31637db40f6f866cb12f2f2c633dc751e9c547`.
-The full tuple is in [saved bindings](../Evidence/EXP/795362874d-a391547a5c5d/native-A-20261030T210048Z/saved-bindings.json).
+The full tuple is in saved bindings (`execution/PKG-09/DEL-09-02/Evidence/EXP/795362874d-a391547a5c5d/native-A-20261030T210048Z/saved-bindings.json`, removed run output; recoverable from Git history at b0ba3134).
 
 Native Command-Q was issued and the original App was reaped code 0 at
 21:00:57.059825Z. No forced termination, guard abort or logging failure occurred.
@@ -243,7 +243,7 @@ App code. The earlier failed candidate pilot and raw v2 controller are unchanged
 
 Retain the original candidate/archive/source cache and partial namespace, plus
 the successful native root
-`/Users/ryan/dev/chirality-t3/scratch/app-native-setup-d6nlkzef/` and its saved
+`~/dev/chirality-t3/scratch/app-native-setup-d6nlkzef/` and its saved
 App-data/account/request state for B. Current App data now exists legitimately;
 do not rerun phase A or remove that state to recreate its absence precondition.
 Earlier attempt roots remain as recorded in their admissions until integration

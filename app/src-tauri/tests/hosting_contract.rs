@@ -244,8 +244,12 @@ fn version_label_and_handshake_mismatches_refuse_readiness() {
     std::fs::write(&cfg.codex_bin, &original).unwrap();
     let next = host.start(&cfg, "test").unwrap();
     assert_ne!(next["generation"], failed_generation);
-    let retained: Vec<_> = host.journal().into_iter().filter(|e| e["generation"] == failed_generation && e.get("frame").is_some()).collect();
-    assert_eq!(retained, failed_frames);
+    // Observer replay is disposable and scoped to the current source: a new
+    // generation starts an empty journal, so the refused generation's frames
+    // are never replayed under, or mixed into, the next one.
+    let journal = host.journal();
+    assert!(journal.iter().all(|e| e["generation"] != failed_generation));
+    assert!(journal.iter().filter(|e| e.get("frame").is_some()).all(|e| e["generation"] == next["generation"]));
     host.stop("test", "done").unwrap();
 }
 

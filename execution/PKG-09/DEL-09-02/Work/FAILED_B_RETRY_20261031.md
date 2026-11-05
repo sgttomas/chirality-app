@@ -7,7 +7,7 @@ The App later exited normally through its native menu, and its original keeper
 performed the reviewed administrative release. Those cleanup facts do not
 supply a generation, LT-23 or supplier-settlement witness.
 
-The [archive index](../Evidence/EXP/fdcf608fb5-23c6c3f22f5e/native-B-20261031T032238Z/archive-index.json)
+The archive index (`execution/PKG-09/DEL-09-02/Evidence/EXP/fdcf608fb5-23c6c3f22f5e/native-B-20261031T032238Z/archive-index.json`, removed run output; recoverable from Git history at b0ba3134)
 maps 31 retained original files, with original and archive SHA256 identities.
 The repetitive full heartbeat is losslessly gzip-compressed; decoding reproduces
 its original bytes and digest. `SHA256SUMS` covers the archive representation.
@@ -20,7 +20,7 @@ retained. This contribution changes documentation/evidence only.
 The integrated controller/profile is from `5d0b95e9` (PR43 merge, tree equal to
 checked `01f3a902`); the App remains built from `fdcf608f`, not relabelled to the
 controller source. Fresh root:
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o`.
+`~/dev/chirality-t3/scratch/app-successor-native-B-tyms4s5o`.
 Original execution handle: `11867`. The prepared request admitted unchanged A
 AppData and the explicit retained browser metadata basis. Complete bundle-tree
 v2 inventory passed with no missing, extra or changed entries. The exact

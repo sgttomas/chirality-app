@@ -1,0 +1,8 @@
+# Applies to cargo run from app/ or app/src-tauri/ (cargo reads config from the
+# working directory upward, not from --manifest-path).
+[env]
+# The Rust tests share process-wide state: the configured records store and its
+# opened identity, environment variables and other statics. Many lib tests
+# fail when libtest runs them on parallel threads, so the default is one test
+# thread. An explicit RUST_TEST_THREADS or --test-threads still takes precedence.
+RUST_TEST_THREADS = "1"

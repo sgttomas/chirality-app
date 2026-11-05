@@ -36,7 +36,7 @@ to its consequences.
   [installation and data handling](https://chirality.ai/app#install).
 - **Issues:** [report an App issue](https://github.com/sgttomas/chirality-app/issues/new).
 
-The [released v3.0.1 desktop source](https://github.com/sgttomas/chirality/tree/485051eac923c759238948a54cd7bb094eee4899/projects/chirality-app-dev/frontend)
+The released v3.0.1 desktop source (`sgttomas/chirality@485051eac923c759238948a54cd7bb094eee4899:projects/chirality-app-dev/frontend`)
 is identified by the release notes. GitHub’s automatic source archives for that
 release contain the release repository’s framework snapshot, not the desktop
 application source.
@@ -97,9 +97,9 @@ v4 publication and replacement of v3.0.1 remain separate decisions.
 The [accepted decomposition](execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md)
 and [project DAG](execution/_DAG/_LATEST.md) retain their original decision records.
 Old setup logs, handoffs and acceptance packets are recoverable in the
-[pre-contract-register-retirement archive](https://github.com/sgttomas/chirality/tree/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4).
+pre-contract-register-retirement archive (`sgttomas/chirality@archive/app-v4-pre-contract-register-retirement-20261011:projects/chirality-app-v4`).
 Earlier AgentRuns are in the
-[pre-efficiency-cleanup archive](https://github.com/sgttomas/chirality/tree/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns).
+pre-efficiency-cleanup archive (`sgttomas/chirality@archive/pre-efficiency-cleanup-2026-10-09:projects/chirality-app-v4/execution/_Coordination/AgentRuns`).
 These sources preserve history; they do not define a standing development backlog.
 
 </details>

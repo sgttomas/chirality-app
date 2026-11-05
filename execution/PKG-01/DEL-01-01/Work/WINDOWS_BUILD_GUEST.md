@@ -132,7 +132,7 @@ existing guest disk or private exchange were searched or reused.
 ## Storage, authority and next boundary
 
 Task-owned stable inputs, the new bundle, scripts and private receipts live
-under `/Users/ryan/ChiralityBuildInputs/windows-arm64-20261029-k7yh9aim/`,
+under `~/ChiralityBuildInputs/windows-arm64-20261029-k7yh9aim/`,
 outside Git/worktrees. The directory is private to the owner. A fresh scratch Codex home was created
 for development/checks; no Codex test used `~/.codex`, sign-in or credentials.
 Initial host free space was **816,671,096,832 bytes**; free space at the final
@@ -181,7 +181,7 @@ before execution: XML `Fdd` exclusion, explicit disk boot-order assertion, and
 error-type-only uncertain-binding evidence when parsing the actual target fails.
 The complete verifier then passed; binding replacement and readback succeeded.
 
-The selected shared role/method source was `/Users/ryan/dev/chirality` at
+The selected shared role/method source was `~/dev/chirality` at
 `1560bbf7f7add4637a20572a2b0d404ef121af63`. This consultation did not update
 packaged product roles/workflows. DEL-01-01 `ScopeOfWork.md`, existing Windows
 design records and `deliverable.yaml` conditions were reconciled with this

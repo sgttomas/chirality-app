@@ -35,11 +35,7 @@ test('Stop and Restart ask first and are offered only while Codex runs',()=>{
   }
 });
 
-test('the controls call only the asking command',()=>{
-  const source=readFileSync(new URL('../src/CodexControls.tsx',import.meta.url),'utf8')+readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
-  assert.ok(!source.includes('host_stop'),'no unconfirmed stop command remains in the UI');
-  assert.ok(source.includes('act("codex_stop", { generation: host?.generation, restart: false })')&&source.includes('act("codex_stop", { generation: host?.generation, restart: true })'));
-});
+// Stop and Restart wiring is exercised in conversation-panel.test.mjs (mounted).
 
 test('the outcome shows labels from turn status and keeps the acknowledgment apart',()=>{
   const html=renderToStaticMarkup(React.createElement(StopOutcome,{outcome}));
@@ -115,30 +111,10 @@ test('stop-request records label turns first and read back after a relaunch (REC
   assert.ok(html.includes('Stop Codex record: Recorded in the App ledger before any interrupt was sent.'));
   assert.ok(html.includes('stop-request record: recorded in the App ledger'));
   assert.ok(html.includes('stop-request record: not recorded'));
-  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
-  assert.ok(app.includes('stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))'));
   // The ledger is App-wide: a row of the other home does not label this home's turn.
   assert.equal(stopLabel(undefined,'thread','t1',requests,appHome('account')).label,'interrupted by the person');
   assert.equal(stopLabel(undefined,'thread','t1',requests,appHome('api-key')),null);
   assert.equal(appHome('other'),undefined);
 });
-
-test('conversation sends are paused while Stop or Restart Codex runs',()=>{
-  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
-  // Check the actual JSX binding, independent of prop ordering/formatting.
-  // The mounted conversation suite exercises its send/interrupt behavior.
-  const source=ts.createSourceFile('App.tsx',app,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
-  const panels=[];
-  const visit=node=>{
-    if((ts.isJsxSelfClosingElement(node)||ts.isJsxOpeningElement(node))&&node.tagName.getText(source)==='ConversationPanel')panels.push(node);
-    ts.forEachChild(node,visit);
-  };
-  visit(source);assert.equal(panels.length,1);
-  const binding=panels[0].attributes.properties.find(attribute=>ts.isJsxAttribute(attribute)&&attribute.name.getText(source)==='codexBusy');
-  assert.ok(binding?.initializer&&ts.isJsxExpression(binding.initializer));
-  assert.equal(binding.initializer.expression?.getText(source),'processBusy');
-  assert.ok(app.includes('const busy = ownBusy || (codexBusy ? "Stop or Restart Codex in progress" : "");'));
-  // Interrupting stays available during a stop; only the panel's own operation blocks it.
-  assert.ok(app.includes('!live || !!ownBusy || alreadyRequested} onClick={interruptTurn}'));
-  assert.ok(app.includes('<select disabled={!!ownBusy} value={threadKey}')&&app.includes('<select disabled={!!ownBusy} value={turnId}'));
-});
+// The App's pause of sends during Stop Codex, and the interrupt and selection
+// controls that stay available, are exercised in conversation-panel.test.mjs.

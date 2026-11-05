@@ -21,7 +21,7 @@ policy. Agent 0 retains integration and reserved choices.
 
 ## Source and instruction identity
 
-Host-created worktree: `/Users/ryan/.t3/worktrees/chirality-app/t3-9009de90`.
+Host-created worktree: `~/.t3/worktrees/chirality-app/t3-9009de90`.
 Local branch: `t3/windows-fixture-process-probes`.
 Required input/base: `ec66648b36023c27f2c0e3dc3c1f655a71ca076f`, an ancestor.
 No additional checkout, push, PR, merge, release or permission change occurred.
@@ -36,7 +36,7 @@ No additional checkout, push, PR, merge, release or permission change occurred.
   Exact SHA-256 identities are in [readiness.json](windows_process_fixture_evidence/readiness.json).
   C# source remained byte-identical through both reviews and the return.
 
-Selected shared instruction library: `/Users/ryan/dev/chirality` at
+Selected shared instruction library: `~/dev/chirality` at
 `1560bbf7f7add4637a20572a2b0d404ef121af63`; active `AGENT_WORKING_ITEMS.md`
 and `workflows/coordinated-knowledge-work/WORKFLOW.md`. Reviewers read
 `AGENT_TASK.md` from that same library. This consultation neither updates
@@ -141,9 +141,9 @@ metadata invocation exited with code 0. Existing guest processes were untouched.
 
 ## Scrutiny, repairs and focused checks
 
-[Initial independent review](windows_process_fixture_evidence/review1Summary.md)
+Initial independent review (`execution/PKG-01/DEL-01-02/Work/windows_process_fixture_evidence/review1Summary.md`, removed run output; recoverable from Git history at b0ba3134)
 identified the two high blockers above and a medium missing reviewed-source
-binding. [Independent recheck](windows_process_fixture_evidence/review2Summary.md)
+binding. Independent recheck (`execution/PKG-01/DEL-01-02/Work/windows_process_fixture_evidence/review2Summary.md`, removed run output; recoverable from Git history at b0ba3134)
 confirmed native execution withholding and the unchanged harness, then found
 metadata TEMP exposure, response byte bounds, missing saved-revision binding,
 and the not-yet-created results pointer. Ordinary local repairs at `da0a2802`
@@ -196,7 +196,7 @@ an actual execution-prerequisite obstacle, not an inferred missing compiler.
 
 ### Local source, exact attempt and independent scrutiny
 
-Host-created worktree: `/Users/ryan/.t3/worktrees/chirality-app/t3-0721d905`.
+Host-created worktree: `~/.t3/worktrees/chirality-app/t3-0721d905`.
 Branch: `t3/windows-fixture-guarded-bootstrap`. Required input
 `ebf71ce713e4d71a2b32193fd360cfda3cd1dab9` remains an ancestor. All work and
 commits are local; no push, PR change, merge or permission/release action occurred.
@@ -211,11 +211,11 @@ in memory; execution never loads a `.ps1` file or overrides Restricted policy.
 
 - Initial executable-source review examined
   `21f35b693eb13f2eed4abb836da2494166a0bb16`. Its
-  [actual return](windows_process_fixture_evidence/guarded_bootstrap_review1.json)
+  actual return (`execution/PKG-01/DEL-01-02/Work/windows_process_fixture_evidence/guarded_bootstrap_review1.json`, removed run output; recoverable from Git history at b0ba3134)
   found a late controller reread after source checking, unsigned-exit conversion,
   cleanup settlement after the original deadline, and imprecise host-timeout
   wording. The manager fixed these ordinarily and obtained a new review.
-- The [second actual return](windows_process_fixture_evidence/guarded_bootstrap_review2.json)
+- The second actual return (`execution/PKG-01/DEL-01-02/Work/windows_process_fixture_evidence/guarded_bootstrap_review2.json`, removed run output; recoverable from Git history at b0ba3134)
   examined `c5e01df9d4a06fa6184841cb30d22ec539e30590` and found no source blocker
   to the one zero-file bootstrap attempt under its stated controlled-invocation
   conditions. It retained two limitations: exceptional local teardown could
@@ -234,7 +234,7 @@ in memory; execution never loads a `.ps1` file or overrides Restricted policy.
   implicit wait; the emitted watchdog checks time after every wake, including
   stop, before accepting cancellation. This source has not reached the guest.
   Its final independent source scrutiny is retained separately with the return.
-- The [third actual return](windows_process_fixture_evidence/guarded_bootstrap_review3.json)
+- The third actual return (`execution/PKG-01/DEL-01-02/Work/windows_process_fixture_evidence/guarded_bootstrap_review3.json`, removed run output; recoverable from Git history at b0ba3134)
   reviewed `c91621e0`, independently reproduced all six attempted source hashes,
   the command hash and decompressed controller Git-blob equality, and confirmed
   the failed-session/native-NOT-RUN account. It found one small remaining host

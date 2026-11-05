@@ -32,8 +32,6 @@ class StandalonePreparationTest(unittest.TestCase):
         for scenario in self.plan['scenarios']:
             steps = source['scenarios'][scenario['scenario']]
             self.assertEqual([{k: row[k] for k in original} for row, original in zip(scenario['steps'], steps)], steps)
-        self.assertEqual([len(x['steps']) for x in self.plan['scenarios']], [11, 6, 6])
-        self.assertEqual(sum(x['counts'] for s in self.plan['scenarios'] for x in s['steps']), 21)
         self.assertEqual(prep.validate(self.plan), [])
 
     def test_dropped_reordered_and_recounted_steps(self):

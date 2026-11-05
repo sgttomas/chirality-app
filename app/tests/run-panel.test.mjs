@@ -6,6 +6,7 @@ import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
+import './support/rust-prebuild.mjs';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
 const {ArrivalRecord,CheckpointGuidance,RunBringBackView,RunPanel,runBringBackDefault,DeclaredPart,SelectedWorkflow,CompatibilityAdvisory,outputStanding,StandingFacets,arrivalLabel,actLabel,RecordWriteNotice}=load('RunPanel.tsx');
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));

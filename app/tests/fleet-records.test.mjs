@@ -5,6 +5,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {loadSrc} from './support/load-src.mjs';
+import './support/rust-prebuild.mjs';
 const {FleetRecordsPanel,readFleetPacket}=loadSrc('FleetRecordsPanel');
 let packet;
 test('native selected-workspace adapter response is presented in full with provenance and limits',()=>{

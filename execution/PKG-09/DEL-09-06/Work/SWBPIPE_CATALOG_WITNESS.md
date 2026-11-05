@@ -21,7 +21,7 @@ Neither copy nor consultation updates bundled product instructions.
 
 ## Source and interface reconciliation
 
-Shared role/method source: /Users/ryan/dev/chirality, WORKING_ITEMS and
+Shared role/method source: ~/dev/chirality, WORKING_ITEMS and
 coordinated-knowledge-work, at 1560bbf7f7add4637a20572a2b0d404ef121af63.
 SWBPIPE source was consulted read-only at that same pin. Paths below are
 relative to projects/chirality-piping:

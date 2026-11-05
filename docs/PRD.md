@@ -1,9 +1,9 @@
 # Chirality v4 — Product Requirements
 
 **Status: post-acceptance consolidation for the accepted decomposition basis;
-independent substantive fidelity review [completed](https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DEFINITION-20260926/SEED_FIDELITY_REVIEW.md).** Prepared by HELPS_HUMANS after the
+independent substantive fidelity review completed (`sgttomas/chirality@archive/pre-efficiency-cleanup-2026-10-09:projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DEFINITION-20260926/SEED_FIDELITY_REVIEW.md`).** Prepared by HELPS_HUMANS after the
 owner's act recorded as **APP-V4-BASIS-20260926**. The accepted subject is the
-composite identified in the [acceptance record][B-ACCEPT], not a claim that
+composite identified in the acceptance record (`sgttomas/chirality@archive/app-v4-pre-contract-register-retirement-20261011:projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md`), not a claim that
 the human previously examined these newly consolidated bytes. Acceptance
 includes stated open matters and external dependencies; it authorizes
 proceeding with decomposition and project definition, not product implementation,
@@ -31,15 +31,15 @@ unconfirmed drafting defaults are not accepted merely by inclusion.
 
 | Source key | Source and scope |
 |---|---|
-| B-ACCEPT | [APP-V4-BASIS-20260926 acceptance][B-ACCEPT] and its composite manifest; owner act U4 permits decomposition with open matters and external dependencies. |
+| B-ACCEPT | APP-V4-BASIS-20260926 acceptance (`sgttomas/chirality@archive/app-v4-pre-contract-register-retirement-20261011:projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md`) and its composite manifest; owner act U4 permits decomposition with open matters and external dependencies. |
 | B-HTML | [Accepted decision brief][B-HTML], SHA-256 `02d38cb18041c52989d8a2a0b969e6502ce4b25eec85fb0931bbbc100c4420e8`; recommendations 01–07, with their stated qualifications. |
-| U1–U5 | [Later owner messages J–O][B-OWNER]: recommendations and SWBPIPE boundary; Domains timing/purpose; acceptance; human-relayed coordination. |
+| U1–U5 | Later owner messages J–O (`sgttomas/chirality@archive/app-v4-pre-contract-register-retirement-20261011:projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md`): recommendations and SWBPIPE boundary; Domains timing/purpose; acceptance; human-relayed coordination. |
 | A–I | Earlier renewal directions, retained through B-HTML's quoted basis: human governance, Root's conceptual role, manuals, SoWs, thesis, PEC and research. |
 | OD-nn / D-nn | Original scoped directions/choices in `../conceptual/DECISIONS.md`, including D-19 and D-20; later direction supersedes only what it addresses. |
 | X-nn / L-nn | Historical exemplars/lessons in `../conceptual/EXEMPLARS_AND_LESSONS.md`; evidence with limits, not automatic additional requirements. |
 | R-STORE | Owner directions of 2026-10-12, given in session: "We can't rely on Git for records management, that's not what it's meant for." The owner approved the records-storage recommendations then presented ("I approve your recommendations. Proceed accordingly."): append-only, grouped and hash-chained logs, a derived SQLite index and the App's recovery ledger in SQLite. The owner also asked for "the best way overall, not how to wedge yourself into rulings that may no longer be appropriate", and accepted an App-managed records store outside the project working tree "as a new direction". Revises V4-REC-02 and V4-REC-04 and adds V4-REC-06. |
 | DEC-1 D2/D3 | Existing first-increment owner rulings `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, carried by [DEL-04-01's current policy contract](../execution/PKG-04/DEL-04-01/ScopeOfWork.md#governing-values-and-decisions--axiology). D2 names the reserved act kinds and D3 settles App/host routine classifier treatment for that increment; operation-specific additions remain with OI-021. |
-| DEC-4 / DEC-5 | [Owner decisions][B-DEC45] `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4`, with its clarification (phased checkpoints; model access by OAuth sign-in or an API key, with no default), and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`, with its confirmation (host-agent network destinations); applied by scope-change amendment SCA-V4-001. |
+| DEC-4 / DEC-5 | Owner decisions (`sgttomas/chirality@archive/pre-efficiency-cleanup-2026-10-09:projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md`) `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4`, with its clarification (phased checkpoints; model access by OAuth sign-in or an API key, with no default), and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`, with its confirmation (host-agent network destinations); applied by scope-change amendment SCA-V4-001. |
 
 The original handoff's pending-answer list and `SEED_SET_PLAN.md` §3 remain
 historical. An **open detail** below is carried to its point of need; it is
@@ -537,7 +537,4 @@ historical implementation choices into mandatory v4 requirements. The
 original author's historical handoff remains available; its old pending
 acceptance position is superseded by B-ACCEPT, not erased from history.
 
-[B-ACCEPT]: https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md
 [B-HTML]: ../execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html
-[B-OWNER]: https://github.com/sgttomas/chirality/blob/archive%2Fapp-v4-pre-contract-register-retirement-20261011/projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md
-[B-DEC45]: https://github.com/sgttomas/chirality/blob/archive%2Fpre-efficiency-cleanup-2026-10-09/projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md

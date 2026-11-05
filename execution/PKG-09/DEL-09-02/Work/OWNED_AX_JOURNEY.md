@@ -100,7 +100,7 @@ they cannot fill missing AX source or manufacture qualification.
 
 ## Exact current state and preparation
 
-Read-only assessment `/Users/ryan/dev/chirality-t3/scratch/app-post-095-assessment-t2elat1e/assessment.json`,
+Read-only assessment `~/dev/chirality-t3/scratch/app-post-095-assessment-t2elat1e/assessment.json`,
 SHAebd3fb85711d54b31b19385d90314962d7823179c4e6c30fc383da283f732cdf;
 DB SHA3b1a3d6934e43143e716042b522df25789e7bae8c60fb5603a1210acb1ba2135.
 Exactly21 schema-valid rows: seven linked empty-work Quit-ended sessions; prior
@@ -116,9 +116,9 @@ descriptor/stable metadata conditions. Earlier profiles are unchanged. Current-u
 lsof is corroboration, not atomic exclusion of all possible writers. Empty recorded
 work never proves no unrecorded supplier state. No reset or arbitrary drift adoption.
 
-Historical review-input root `/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-x65j_w30` (unrun, superseded),
+Historical review-input root `~/dev/chirality-t3/scratch/app-successor-native-B-x65j_w30` (unrun, superseded),
 admission SHA5ddf78ef065c1365f051fcdf35085521db0bd1e3c9932a50a979d3aafecdfea4.
-Basis `/Users/ryan/dev/chirality-t3/scratch/app-AX-journey-prep-r0boujy_/retained-v7-inputs.json`,
+Basis `~/dev/chirality-t3/scratch/app-AX-journey-prep-r0boujy_/retained-v7-inputs.json`,
 SHAbe51a8a454f53cbad19f0ba002ee8c19df7cae3af39d9f3938281396e18542b5.
 At that historical preparation all22 dependency/helper/policy hashes matched.
 The review fixes supersede it. Earlier4ap6kwyj is retained but
@@ -164,9 +164,9 @@ and package-consumer code/check paths, and upstream CI/atomic-test hunks remain
 verbatim. No redundant product build was run for that merge.
 
 Fresh current unrun root:
-`/Users/ryan/dev/chirality-t3/scratch/app-successor-native-B-xz8ogujz`, admission
+`~/dev/chirality-t3/scratch/app-successor-native-B-xz8ogujz`, admission
 SHAaa2ba65ff4dc5ad3565523ff0614a96b049fd7e33498ab49902377be89517583.
-Basis `/Users/ryan/dev/chirality-t3/scratch/app-AX-reviewed-prep-75_2t74g/retained-v7-inputs.json`,
+Basis `~/dev/chirality-t3/scratch/app-AX-reviewed-prep-75_2t74g/retained-v7-inputs.json`,
 SHA4d4ee3f4e666cbe9de08627734d1f1124c651595f257cea22aa9b65ffab69ab9.
 The exact21-row state is unchanged;22 dependencies, helpers and policy match.
 Older4ap6kwyj/x65j_w30 preparations remain untouched and superseded, not executed.

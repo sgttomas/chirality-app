@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import './support/rust-prebuild.mjs';
 
 // The maintained actual Host/role/HomeRouter journey produces these packets.
 // No invented renderer acceptance flag or error string classifies the sender.

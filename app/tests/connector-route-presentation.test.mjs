@@ -6,6 +6,7 @@ import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
+import './support/rust-prebuild.mjs';
 const sourceUrl = new URL('../src/ConnectorRoutePanel.tsx', import.meta.url);
 const compiled = ts.transpileModule(readFileSync(sourceUrl, 'utf8'), {compilerOptions: {module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX}});
 const reconstructionUrl=new URL('../src/ConnectorReconstruction.tsx',import.meta.url);

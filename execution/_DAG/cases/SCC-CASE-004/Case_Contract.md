@@ -1,7 +1,7 @@
 # SCC-CASE-004 contribution contract
 
 Workflow: `chirality-root:bundled:workflow:scc-resolution-case`.
-ScopePath and CASE_PATH: `/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004`.
+ScopePath and CASE_PATH: `~/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-004`.
 Requested by WORKING_ITEMS `/root/renewal_research_strategy`; executing terminal TASK `/root/renewal_research_strategy/scc_case_004`.
 
 This working case organizes evidence and proposed treatments for DEL-03-01 and DEL-03-02. It is not an accepted graph, scope amendment, implementation, or snapshot. The supplied analyzer observation is usable inquiry input under SCC_BRIEF.md; no human upstream-acceptance act is inferred from the reusable method's wording. Final source-audit findings were consumed before final return and are indexed in E10.

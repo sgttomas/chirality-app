@@ -5,7 +5,7 @@ UI operation, superseding all physical/current-presence clauses in the original
 plan and the historical next-method proposal below. No personal-owner click is
 claimed. Latest closure direction starts no further native attempt; routine
 setup logic now has a proven [existing headless route](HEADLESS_SETUP_RESULT.md).
-Raw pilot evidence is [retained in this deliverable](../Evidence/EXP/795362874d-a391547a5c5d/native-A-20261030T051817Z/result.json).
+Raw pilot evidence is retained in this deliverable (`execution/PKG-09/DEL-09-02/Evidence/EXP/795362874d-a391547a5c5d/native-A-20261030T051817Z/result.json`, removed run output; recoverable from Git history at b0ba3134).
 
 Actual candidate `795362874d-a391547a5c5d`, source `795362874dd73a25cf8d9cbf8d7dc0f8fbd38a98`.
 This is an offline account of the 2026-10-30 pilot, not a new run or product
