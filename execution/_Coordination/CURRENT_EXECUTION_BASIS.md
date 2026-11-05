@@ -401,7 +401,7 @@ development uses the method reasoning in Consolidated v9 and the current
 repository practice carried by this repository's `AGENTS.md`, the shared
 library's role files in `agents/`,
 the selected workflow and the project loop entry, subject to current steering
-and product commitments. The stable [manual index](https://github.com/sgttomas/chirality/blob/main/docs/alignment-manual/README.md)
+and product commitments. The stable [manual index](https://github.com/sgttomas/chirality-library/blob/main/docs/alignment-manual/README.md)
 is the discovery entry for the management manual; its moving targets are not
 automatic adoption authority. The applicable sections and instruction files are
 also named in DEL-10-01 through DEL-10-04. Consolidated v9 resolves at

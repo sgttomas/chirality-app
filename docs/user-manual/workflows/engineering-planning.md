@@ -4,8 +4,8 @@ Use this method to prepare or revise an engineering estimate and a schedule
 that account for the same work. It connects effort, cost, technical handoffs,
 people's availability and the dates of required results.
 
-Source: [Integrated engineering estimate and schedule](https://github.com/sgttomas/chirality/blob/main/workflows/integrated-engineering-estimate-schedule/WORKFLOW.md),
-with its [detailed methods](https://github.com/sgttomas/chirality/blob/main/workflows/integrated-engineering-estimate-schedule/METHODS.md).
+Source: [Integrated engineering estimate and schedule](https://github.com/sgttomas/chirality-library/blob/main/workflows/integrated-engineering-estimate-schedule/WORKFLOW.md),
+with its [detailed methods](https://github.com/sgttomas/chirality-library/blob/main/workflows/integrated-engineering-estimate-schedule/METHODS.md).
 This is an instruction package, not a calculation program. App packaging and a
 worked numerical example remain to be verified before this guide is issued.
 

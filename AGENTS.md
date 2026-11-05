@@ -40,9 +40,9 @@ continuity and reserved choices, whatever role it entered through. Use only the
 hierarchy the undertaking needs. Managers retain ownership through repairs and
 integration; TASKs return their bounded contributions to the caller.
 
-The shared Chirality library for this workspace is `/Users/ryan/dev/chirality`.
+The shared Chirality library for this workspace is `/Users/ryan/dev/chirality-library`.
 On another machine, use an explicitly selected checkout of
-`https://github.com/sgttomas/chirality`. Resolve the shared `agents/`, `workflows/`
+`https://github.com/sgttomas/chirality-library`. Resolve the shared `agents/`, `workflows/`
 and `.agents/skills/` references in this section against that library, not this
 App repository. Load the active role's `agents/AGENT_<ROLE>.md`; other role,
 workflow and skill bodies are on demand. Roles and methods come from these local

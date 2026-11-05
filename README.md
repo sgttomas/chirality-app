@@ -41,11 +41,10 @@ is identified by the release notes. GitHub’s automatic source archives for tha
 release contain the release repository’s framework snapshot, not the desktop
 application source.
 
-App v3 is frozen and no longer developed or verified;
-[Frozen products](https://github.com/sgttomas/chirality/blob/main/projects/FROZEN.md)
-explains source recovery.
+App v3 is frozen and no longer developed or verified. Its source is archived in
+the private `sgttomas/chirality` repository.
 
-Built on [Chirality](https://github.com/sgttomas/chirality)'s principles, roles
+Built on [Chirality](https://github.com/sgttomas/chirality-library)'s principles, roles
 and workflows.
 
 ## Develop the App
@@ -59,7 +58,7 @@ targets the full public v4 release with the live embedded SWBPIPE journey.
 It identifies delivery owners, next results and the evidence still needed.
 
 Chirality makes a general agent act within and for a host application. Its
-workflow-authoring App is the exemplar. [Chirality thesis](https://github.com/sgttomas/chirality/blob/main/docs/thesis/README.md)
+workflow-authoring App is the exemplar. [Chirality thesis](https://github.com/sgttomas/chirality-library/blob/main/docs/thesis/README.md)
 develops the reasons for its form; product commitments are in the [PRD](docs/PRD.md),
 its companions and the deliverable Scopes of Work and `Work/` material.
 
