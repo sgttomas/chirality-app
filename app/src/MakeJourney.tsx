@@ -36,7 +36,7 @@ export function draftRequestText(folder: string, name: string): string {
  * DraftRow's. Prepared trial messages open through the studio's existing,
  * source-checked Open; nothing is sent.
  */
-function DraftActions({ draft, chosen, host, canAct, act, openPreparedMessage }: { draft: Json; chosen: Json; host: Json; canAct: boolean; act: Act; openPreparedMessage?: (item: PreparedMessage) => void }) {
+function DraftActions({ draft, chosen, host, canAct, act, openPreparedMessage, findInHistory }: { draft: Json; chosen: Json; host: Json; canAct: boolean; act: Act; openPreparedMessage?: (item: PreparedMessage) => void; findInHistory?: (hint: string) => void }) {
   const delegationMissing = chosen?.delegation?.reading === "missing";
   const perform = (command: string, args: Record<string, unknown>) => { if (canAct) void act(command, args); };
   const performed = (command: string, args: Record<string, unknown>): Promise<unknown> => {
@@ -55,15 +55,16 @@ function DraftActions({ draft, chosen, host, canAct, act, openPreparedMessage }:
     {prepared.map(item => <p key={item.identity}>Trial {text(item.pending?.sequence)} is ready to send.{" "}
       {item.kind === "clean" ? <a href={`#${cleanTrialAnchor(item.pending?.reference)}`}>Read and send it in the new-trial message box</a>
         : openPreparedMessage && <button disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>Read and send trial {text(item.pending?.sequence)}</button>}</p>)}
-    <DraftTrials draft={draft} chosen={chosen} host={host} canAct={canAct} perform={performed} openPreparedMessage={openPreparedMessage}/>
+    <DraftTrials draft={draft} chosen={chosen} host={host} canAct={canAct} perform={performed} openPreparedMessage={openPreparedMessage} findInHistory={findInHistory}/>
   </div>;
 }
 
 /** A conversation as a trial row carries it. A tuple `{generation, threadId}` is
  * a live source the host proved; a bare ID is a saved label and is never
  * matched against the current session. */
-function ConversationRef({ host, refValue, none }: { host: Json; refValue: Json; none: string }) {
-  if (typeof refValue === "string" && refValue) return <>a recorded conversation <small>(<code>{refValue}</code>)</small></>;
+function ConversationRef({ host, refValue, none, findInHistory }: { host: Json; refValue: Json; none: string; findInHistory?: (hint: string) => void }) {
+  // A saved bare ID is only a search hint for History: nothing is read, selected or continued here.
+  if (typeof refValue === "string" && refValue) return <>a recorded conversation <small>(<code>{refValue}</code>)</small>{findInHistory && <>{" "}<button onClick={() => findInHistory(refValue)}>Look for it in History</button></>}</>;
   if (refValue && typeof refValue === "object" && typeof refValue.threadId === "string" && refValue.threadId) {
     const row = list(host?.threads).find((t: Json) => t?.threadId === refValue.threadId && same(t?.generation, refValue.generation) && same(t?.generation, host?.generation));
     return row ? <>{conversationLabel(host, row)}</> : <>a conversation that isn't loaded now</>;
@@ -92,7 +93,7 @@ const heldDoubts = (draft: Json, doubts: BringBackDoubt[]) => ownTrials(draft).f
  * a send the host couldn't confirm holds it until the host records it or the
  * person says they checked (bringBackDoubts).
  */
-function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage }: { draft: Json; chosen: Json; host: Json; canAct: boolean; perform: (command: string, args: Record<string, unknown>) => Promise<unknown>; openPreparedMessage?: (item: PreparedMessage) => void }) {
+function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage, findInHistory }: { draft: Json; chosen: Json; host: Json; canAct: boolean; perform: (command: string, args: Record<string, unknown>) => Promise<unknown>; openPreparedMessage?: (item: PreparedMessage) => void; findInHistory?: (hint: string) => void }) {
   const doubts = useBringBackDoubts();
   const trials = ownTrials(draft);
   const feedback = ownResults(draft, host);
@@ -127,11 +128,11 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
       const existing = target ? feedback.find(item => item.pending?.trial === trial.reference && sameTarget(item.pending?.target, target) && item.pending?.includeNative !== true) : undefined;
       const existingBlock = existing ? bringBackSendBlock(existing.pending, existing.pending?.target, doubts) : null;
       const limit = held ? "Check that conversation first." : trial.live ? "Bringing it back waits until no turn is live in the trial."
-        : trial.sourceLimit ? text(trial.sourceLimit) : !chosen ? "Choose the conversation where you did the work to bring it back there." : null;
+        : trial.sourceLimit ? COLD_TRIAL : !chosen ? "Choose the conversation where you did the work to bring it back there." : null;
       return <li key={text(trial.reference)} aria-label={`Trial ${n} of ${text(draft.name)}`}>
         <strong>Trial {n}</strong> · {trial.kind === "clean"
-          ? <>in a fresh conversation (<ConversationRef host={host} refValue={trial.trialConversation} none="not started"/>)</>
-          : <>with the agent in <ConversationRef host={host} refValue={trial.authoringConversation} none="no recorded conversation"/></>}{trial.time ? <> · {text(trial.time)}</> : null}
+          ? <>in a fresh conversation (<ConversationRef host={host} refValue={trial.trialConversation} none="not started" findInHistory={findInHistory}/>)</>
+          : <>with the agent in <ConversationRef host={host} refValue={trial.authoringConversation} none="no recorded conversation" findInHistory={findInHistory}/></>}{trial.time ? <> · {text(trial.time)}</> : null}
         <br/><small>{brought.length ? <>Brought back {brought.length === 1 ? "once" : `${brought.length} times`}, to {brought.map((b: Json, i: number) => <span key={i}>{i ? ", " : ""}<ConversationRef host={host} refValue={b?.to} none="a conversation not recorded"/></span>)}.</> : "Not brought back yet."}</small>
         {mine.map(doubt => <div key={doubt.preparedId} role={doubt.acknowledged ? "note" : "alert"} aria-label={`Trial ${n} results may have been sent`}>
           <p><strong>Trial {n}'s results may already have been sent</strong> to <ConversationRef host={host} refValue={doubt.target} none="its conversation"/>: the App couldn't confirm the send{feedback.some(item => item.pending?.id === doubt.preparedId) ? ". Its prepared message is still listed, but that copy is not sent again" : ", and the prepared message was withdrawn"}.{doubt.acknowledged ? " You said you checked that conversation." : " Bringing it back there again could send the transcript twice."}</p>
@@ -145,7 +146,7 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
             // The results line below already offers this held copy; the row only says where it is.
             ? <small>Its results are prepared for this conversation but held, so they aren't sent again; see below.</small>
             : <><button disabled={!openPreparedMessage || preparedMessageLimit(host, existing) !== null} onClick={() => openPreparedMessage?.(existing)}>Read and send trial {n}'s prepared results</button><small> Its results are already prepared for this conversation.</small></>)
-          : <><button disabled={!canAct || limit !== null} onClick={() => bring(trial)}>{chosen ? `Bring trial ${n} back to ${conversationLabel(host, chosen)}` : `Bring trial ${n} back`}</button>{limit && <small> {limit}</small>}</>}
+          : <><button disabled={!canAct || limit !== null} onClick={() => bring(trial)}>{chosen ? `Bring trial ${n} back to ${conversationLabel(host, chosen)}` : `Bring trial ${n} back`}</button>{limit && <small> {limit}</small>}{limit === COLD_TRIAL && <details><summary>Why</summary><p><small>{text(trial.sourceLimit)}</small></p></details>}</>}
       </li>;
     })}</ul>}
     <div aria-live="polite">{feedback.map(item => {
@@ -195,6 +196,8 @@ function draftStep(draft: Json, data: Json, host: Json, doubts: BringBackDoubt[]
 }
 
 const EXISTING = "an existing draft continues below";
+/** A saved trial whose original source isn't established (after a relaunch): the available next actions, not just the refusal. */
+const COLD_TRIAL = "This saved trial can't be brought back here. Try the draft again in a fresh conversation above, or look at the earlier conversation in History.";
 
 function nextFor(draft: Json): { words: string; href: string; link: string } {
   switch (draft?.state) {
@@ -214,10 +217,15 @@ function nextFor(draft: Json): { words: string; href: string; link: string } {
  * `workflow_observe_drafts`; trial, review and registration stay in the
  * existing draft list and review, where only the person's act registers.
  */
-export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPreparedMessage, showConversation }: {
+export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPreparedMessage, showConversation, findInHistory }: {
   data: Json; host: Json; act: Act; busy: boolean; offerComposer: (threadKey: string, text: string) => void; openPreparedMessage?: (item: PreparedMessage) => void;
-  showConversation?: (threadId: string, target?: string) => void;
+  showConversation?: (threadId: string, target?: string) => void; findInHistory?: (hint: string) => void;
 }) {
+  // Continue <draft> moves the person to its current step once it is shown,
+  // only while the same library and draft are still the ones shown.
+  const revealDraft = useRef<{ library: Json; name: string } | null>(null);
+  const draftStatus = useRef<HTMLParagraphElement>(null);
+  const [revealRequest, setRevealRequest] = useState(0);
   const doubts = useBringBackDoubts();
   // A review names its library and workflows only while its presentation is
   // shown. Reviews are App-wide and outlive a library switch, so keep the full
@@ -265,6 +273,15 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
   const review = ownReviews.find(row => row.reference === data?.activeReview) ?? ownReviews.at(-1) ?? null;
   const step = existingDraft ? draftStep(existingDraft, data, host, doubts, review) : null;
   const nextLine = blocked === EXISTING && step ? `${trimmed}: ${step.words}` : blocked;
+  useEffect(() => {
+    const wanted = revealDraft.current;
+    if (!wanted || !revealRequest) return;
+    revealDraft.current = null;
+    if (wanted.library !== (data?.activeLibrary ?? null) || existingDraft?.name !== wanted.name || trimmed !== wanted.name) return;
+    // The status region can be taller than the window: land on its first line.
+    draftStatus.current?.scrollIntoView?.({ block: "start" });
+    draftStatus.current?.focus?.({ preventScroll: true });
+  }, [revealRequest]); // eslint-disable-line react-hooks/exhaustive-deps
   return <section id="make-workflow" className="workflow-stage run-journey" aria-label="Make a workflow from your work" aria-busy={busy}>
     <h2>Make a workflow from your work</h2>
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {nextLine ?? "Put the request in the conversation, read it, and send it when you're happy with it."}</p>
@@ -292,20 +309,20 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
       <li><h3>Find, try and register it</h3>
         <button disabled={!canAct || !active} onClick={() => { if (canAct && active) void act("workflow_observe_drafts", {}); }}>Look for drafts in this library</button>
         {existingDraft && step ? (() => { const next = step; return <div className="run-journey-state" aria-label="Draft status">
-          <p role="status"><strong>{trimmed}</strong>: {draftStateWords(existingDraft.state, existingDraft.content)}.</p>
+          <p ref={draftStatus} tabIndex={-1} role="status" aria-label="Draft state"><strong>{trimmed}</strong>: {draftStateWords(existingDraft.state, existingDraft.content)}.</p>
           {list(existingDraft.findings).length > 0 && <ul aria-label="What to fix">{list(existingDraft.findings).map((finding: Json) => <li key={text(finding)}>{text(finding)}</li>)}</ul>}
           <p>{next.words} {next.href === "#conversation" && showConversation && chosen
             ? <button onClick={() => showConversation(chosen.threadId)}>Show the conversation</button>
             : <a href={next.href}>{next.link}</a>}</p>
-          {(existingDraft.state === "draft" || existingDraft.state === "changed since review") && <DraftActions draft={existingDraft} chosen={chosen} host={host} canAct={canAct} act={act} openPreparedMessage={openPreparedMessage}/>}
+          {(existingDraft.state === "draft" || existingDraft.state === "changed since review") && <DraftActions draft={existingDraft} chosen={chosen} host={host} canAct={canAct} act={act} openPreparedMessage={openPreparedMessage} findInHistory={findInHistory}/>}
         </div>; })() : trimmed && valid && active ? <p>No draft named {trimmed} has been seen yet. After the agent writes it, look for drafts.</p> : null}
       </li>
     </ol>
     {unfinished.length > 0 && <div aria-label="Unfinished drafts">
       <h3>Unfinished drafts in this library</h3>
-      <p><small>Drafts are files in the library, so they are still here after you quit and reopen the App. Their earlier conversations are in History; reading one there doesn't continue it.</small></p>
+      <p><small>Drafts are files in the library, so they are still here after you quit and reopen the App. Their earlier conversations are in History. Reading one there only shows it; to keep working in it, press Continue there, which is a separate step.</small></p>
       <ul>{unfinished.map((draft: Json) => <li key={text(draft.name)}><strong>{text(draft.name)}</strong> — {draftStateWords(draft.state, draft.content)}{" "}
-        <button disabled={busy} onClick={() => setName(text(draft.name))}>Continue {text(draft.name)}</button></li>)}</ul>
+        <button disabled={busy} onClick={() => { setName(text(draft.name)); revealDraft.current = { library: data?.activeLibrary ?? null, name: text(draft.name) }; setRevealRequest(n => n + 1); }}>Continue {text(draft.name)}</button></li>)}</ul>
     </div>}
   </section>;
 }

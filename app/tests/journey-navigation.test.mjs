@@ -121,3 +121,36 @@ test('a run\'s "recorded evidence" link lands on that run in the workflow studio
     main.removeChild(link);
   } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
 });
+
+test('a saved trial conversation opens History with only its ID in the search: nothing is read, chosen or continued', async () => {
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  const previous = {getElementById:document.getElementById, setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval};
+  document.getElementById = id => c.querySelectorAll(n => n.getAttribute('id') === id)[0] ?? null;
+  globalThis.setInterval = () => 0; globalThis.clearInterval = () => {};
+  const cold = {reference:'trial:lib:1', sequence:1, kind:'clean', content:{value:'c'}, version:'current', trialConversation:'thread-old-trial', authoringConversation:'thread-old-authoring',
+    authoringSourceLimit:'Original authoring source is not established by this saved trial link; choose a current target', sourceLimit:'Original trial source is not established by this saved trial link; no native history read', broughtBack:[], time:'t', link:{}, standing:'s', fidelity:{}};
+  const withDraft = {...host, workflowRoot:{...host.workflowRoot, activeLibrary:'lib:project', libraries:[{reference:'lib:project', origin:'project', root:{encoding:'unix_bytes', bytes:[...new TextEncoder().encode('/invented/project')]}, registered:[]}],
+    drafts:{drafts:[{name:'spacing-check', state:'draft', trials:[cold]}]}}};
+  const calls = [];
+  const idle = installIdleNativeWaiting(async command => {
+    calls.push(command);
+    if (command === 'host_status') return structuredClone(withDraft);
+    if (command === 'decision_view') return {rows:[]};
+    if (command === 'native_confirmation_content') return [];
+    assert.fail(`Unexpected IPC: ${command}`);
+  });
+  try {
+    await React.act(async () => root.render(React.createElement(App)));
+    const guide = c.querySelectorAll(n => n.getAttribute('aria-label') === 'Make a workflow from your work')[0];
+    await React.act(async () => props(nodes(guide, 'input')[0]).onChange({target:{value:'spacing-check'}}));
+    const look = nodes(guide, 'button').find(n => n.textContent === 'Look for it in History');
+    assert.ok(look);
+    await React.act(async () => props(look).onClick());
+    const active = c.querySelectorAll(n => n.localName === 'a' && n.getAttribute('aria-current') === 'page').map(n => n.textContent);
+    assert.deepEqual(active, ['History'], 'History is shown');
+    const search = c.querySelectorAll(n => n.localName === 'input' && n.getAttribute('aria-describedby') === 'history-search-count')[0];
+    assert.equal(props(search).value, 'thread-old-trial', 'its search holds the saved ID');
+    assert.match(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Searching for a saved conversation')[0].textContent, /It is only a search: nothing is read, chosen or continued\. If it isn't among the received conversations, it may be in another home/);
+    assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content'].includes(cmd)), [], 'no history read, selection, home change or Continue');
+  } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
+});

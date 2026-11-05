@@ -483,7 +483,7 @@ type ContinueNavigationTicket = {
   operation: number; navigation: ContinueNavigation;
 };
 
-export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureContinueNavigation, openConversation }: { openConversation?: (key: string) => void;
+export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureContinueNavigation, openConversation, searchHint }: { openConversation?: (key: string) => void; searchHint?: { sequence: number; text: string } | null;
   host: Json; refresh: () => Promise<Json>; threadKey: string; setThreadKey: (key: string) => void;
   captureContinueNavigation: (generation: Json, historyCurrent: (history: Json) => boolean) => ContinueNavigation;
 }) {
@@ -505,6 +505,16 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
   const available = host?.state === "ready" && history?.state === "history-receiving" && JSON.stringify(generation) === JSON.stringify(host?.generation);
   const searchSource = JSON.stringify([history?.home, generation]);
   useEffect(() => { setSearch(""); }, [searchSource]);
+  // A saved conversation ID from elsewhere (e.g. a draft's trial) only fills
+  // the local search, which reads nothing: no history read, selection, home
+  // change or Continue happens until the person does it here.
+  const [hintShown, setHintShown] = useState("");
+  useEffect(() => {
+    if (!searchHint) return;
+    setSearch(searchHint.text); setHintShown(searchHint.text);
+    searchInput.current?.scrollIntoView?.({ block: "center" });
+    searchInput.current?.focus?.({ preventScroll: true });
+  }, [searchHint?.sequence]); // eslint-disable-line react-hooks/exhaustive-deps
   const received = (history?.threads ?? []) as Json[];
   const query = search.trim().toLocaleLowerCase();
   const matches = received.filter(row => [row.native.name, row.native.id, row.native.preview].some(value => typeof value === "string" && value.toLocaleLowerCase().includes(query)));
@@ -670,6 +680,7 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     <p>These disposable pages come from the selected native home. Reading history does not make a conversation operational. Original App role evidence remains unknown after a cold App restart.</p>
     <label>Page direction <select value={direction} disabled={busy} onChange={e => setDirection(e.target.value)}><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></label>{" "}
     <button aria-describedby="history-guidance" disabled={!available || busy} onClick={() => run("list")}>Read stored conversations</button>{" "}{pageButtons("list", history?.listPage, null, history?.listDirection ?? direction)}
+    {hintShown && search === hintShown && <p role="note" aria-label="Searching for a saved conversation">Looking for <code>{hintShown}</code>, an ID saved with an earlier trial. It is only a search: nothing is read, chosen or continued. If it isn't among the received conversations, it may be in another home; choose that home under Connection &amp; access, read its history, then search again.</p>}
     <div className="history-search">
       <label>Find in received conversations <input ref={searchInput} type="search" aria-describedby="history-search-count" value={search} onChange={event => setSearch(event.target.value)} /></label>
       <button disabled={!search} onClick={() => { setSearch(""); searchInput.current?.focus?.(); }}>Clear search</button>
@@ -936,7 +947,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
   </section>;
 }
 
-export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view }:{ view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
+export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view, findInHistory }:{ findInHistory?: (hint: string) => void; view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
   const [name,setName]=useState("");
   const [revision,setRevision]=useState("");
   const [thread,setThread]=useState("");
@@ -1038,7 +1049,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
       outcome={outcome ? { command: outcome.relation.command, message: outcome.message, failed: outcome.failed === true, settled: outcome.settled === true } : null} showConversation={showConversation}/>
     </div>
     <div id="view-make" data-workspace-view="make" hidden={view !== undefined && view !== "make"}>
-    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation}/>}
+    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation} findInHistory={findInHistory}/>}
     </div>
     {/* The detailed studio follows the guides, collapsed, in both workflow views. */}
     <details id="workflow-studio" className="workspace-disclosure workspace-advanced" data-workspace-view="make" open={view === undefined ? true : undefined}>
@@ -1703,6 +1714,9 @@ export function App() {
     if (conversationReveal.target === "ordinary-composer-text") return;
     revealWorkspaceTarget(document.getElementById?.(conversationReveal.target) ? conversationReveal.target : "conversation", true);
   }, [conversationReveal]);
+  // A saved conversation ID as a History search hint: shows History and fills its search only.
+  const [historyHint, setHistoryHint] = useState<{ sequence: number; text: string } | null>(null);
+  const findInHistory = (hint: string) => { showView("history"); setHistoryHint(previous => ({ sequence: (previous?.sequence ?? 0) + 1, text: hint })); };
   // History Continue admitted this exact conversation (source-checked there):
   // select it, show the Conversation view and focus its message box.
   const openAdmittedConversation = (key: string) => {
@@ -2381,14 +2395,14 @@ export function App() {
         </div>
         <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={taskView !== "run" && taskView !== "make"}>
           <div className="workspace-primary-column" aria-label="Workflow studio">
-            <WorkflowRootPanel view={taskView} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
+            <WorkflowRootPanel findInHistory={findInHistory} view={taskView} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}
           </div>
         </div>
         <div id="view-history" data-workspace-view="history" className="workspace-view workspace-view-narrow" hidden={taskView !== "history"}>
           <WorkspaceDisclosure id="workspace-history" title="History and recovery" description="Read prior conversations and inspect recovery custody" open>
             <RecoveryCustodyPanel key={JSON.stringify([host?.homeRouting?.activeModeHomeClass, host?.generation])} modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null} nativeHistoryGeneration={host?.nativeHistory?.generation ?? null} read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })} readRequests={(cursor: Json) => invoke("read_recovery_request_history", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, cursor: cursor ?? null })} retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })}/>
-        <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} captureContinueNavigation={captureContinueNavigation} openConversation={openAdmittedConversation}/>
+        <HistoryPanel host={host} refresh={refresh} threadKey={threadKey} setThreadKey={setThreadKey} captureContinueNavigation={captureContinueNavigation} openConversation={openAdmittedConversation} searchHint={historyHint}/>
           </WorkspaceDisclosure>
         </div>
         <section id="workspace-tools" data-workspace-view="settings" className="workspace-tools workspace-view workspace-view-narrow" aria-label="Workspace tools" hidden={taskView !== "settings"}>
