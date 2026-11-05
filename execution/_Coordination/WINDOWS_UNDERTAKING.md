@@ -92,7 +92,7 @@ Agent 0 may decide when Type 2 contributions are useful. Do not substitute
 models or settings silently if unavailable. Initially cap active implementation
 contributors at two, with at most one independent reviewer alongside them.
 
-Use `/Users/ryan/dev/chirality/workflows/coordinated-knowledge-work/WORKFLOW.md`
+Use `/Users/ryan/dev/chirality-library/workflows/coordinated-knowledge-work/WORKFLOW.md`
 and the role files selected by repository `AGENTS.md`. Each dispatch specifies
 its objective, exact input basis, allowed reads/writes, integration owner,
 review route, ordinary decisions, reserved choices and actual return mechanism.

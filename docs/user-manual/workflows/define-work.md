@@ -4,7 +4,7 @@ Use this method when a task is too vague to assign or check. Its result is a
 usable definition of the work. That may be a short brief; it need not be a new
 formal document.
 
-Source: [define-work](https://github.com/sgttomas/chirality/blob/main/workflows/define-work/WORKFLOW.md).
+Source: [define-work](https://github.com/sgttomas/chirality-library/blob/main/workflows/define-work/WORKFLOW.md).
 This guide is a draft. App packaging and the installation procedure remain to
 be verified for the release.
 
