@@ -28,6 +28,10 @@ and foreign-owner refusal, and unchanged picker list/history exclusion. No raw
 runtime dump is committed. These checks are source evidence, not a new native
 content/selection/save result. The executed v4 source and original failure remain
 unchanged in their retained evidence.
+All60 focused mocked cases and the193-test native-attended cohort pass under
+normal t3_slot admission with fresh scratch homes; deliverables errors=[] and
+diff check passes. Commands/logs are retained at app-j1-nullable-metadata-klklw28_.
+No v5 native attempt or product/candidate change was made by this correction.
 
 This began as the selected preparation after the first two actual observations.
 The repaired integrated v3 and separately selected frozen PR136 v4 have since

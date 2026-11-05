@@ -231,6 +231,16 @@ Current Type 1 assignments are:
   useful-model, qualification or timing/OS/permission/reader-cause inference.
   Agent 0 owns integration and next method selection; no automatic retry or
   owner-operated setup is selected.
+  A later [owner-available agent attempt](../PKG-09/DEL-09-02/Work/J1_AGENT_FIRST_USE_20261105.md#attempt-5-integrated-method-in-the-selected-available-desktop-window-pid31313)
+  used integrated `06d338c9` on the same product App. It captured a distinct
+  original main at2.47 s, then refused content on AXTitle/-25212 before input.
+  Autonomous cleanup/verified absence completed in5.91 s without overrun;
+  AppData/request remain absent. This establishes main capture for that instance,
+  not setup, WebKit content success or a lock/OS cause. The small v5 reader
+  correction handles absent optional metadata and the App's own first-use HTML
+  list while retaining strict native picker, source and confirmation guards.
+  Its60 mocked cases are not a native rerun. The owner availability window ended;
+  the next selected entry is prepared before requesting further availability.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
