@@ -1,4 +1,4 @@
-"""Prepared J1 Stage A controller v4. Importing this module performs no OS/UI work.
+"""Prepared J1 Stage A controller v5. Importing this module performs no OS/UI work.
 
 One exact development App, retained main, related picker/confirmation phases,
 and prebound normal AppKit termination. No CLI/native run is selected by this PR.
@@ -523,8 +523,24 @@ class NativeAX:
     def role(self, ref):
         return self.value(ref, 'AXRole')
 
+    def optional_value(self, ref, name):
+        """NoValue is absence for nullable content metadata, not readiness."""
+        require(name in ('AXTitle', 'AXDescription', 'AXValue', 'AXChildren'),
+                'structural/source attributes are not optional content metadata')
+        try:
+            return self.value(ref, name)
+        except NotReady as error:
+            if error.category == 'no_value':
+                return None
+            raise
+
     def refs(self, ref, name, optional=True):
-        value = self.value(ref, name)
+        try:
+            value = self.value(ref, name)
+        except NotReady as error:
+            if optional and error.category == 'no_value':
+                return []
+            raise
         if value is None and optional:
             return []
         require(isinstance(value, list) and len(value) <= 12, 'bounded AX reference array unavailable: ' + name)
@@ -577,18 +593,21 @@ class NativeAX:
             seen.append(ref)
             require(depth <= 18, 'phase AX depth')
             role = self.role(ref)
-            if role in self.EXCLUDED:
-                continue  # no file/sidebar/Recent Items/menu enumeration
+            if role in self.EXCLUDED - {'AXList'}:
+                continue  # other non-content collections stay excluded
+            # This is the App-owned main/preview/confirmation content branch.
+            # Its HTML list contains the first-use controls. Native picker
+            # lists remain excluded by the separate _picker_controls path.
             webarea |= role == 'AXWebArea'
             if role in ('AXButton', 'AXRadioButton', 'AXDisclosureTriangle', 'AXTextField', 'AXComboBox'):
-                title = self.value(ref, 'AXTitle') or self.value(ref, 'AXDescription') or ''
-                value = self.value(ref, 'AXValue')
+                title = self.optional_value(ref, 'AXTitle') or self.optional_value(ref, 'AXDescription') or ''
+                value = self.optional_value(ref, 'AXValue')
                 controls.append(Control(ref, role, title, self.value(ref, 'AXEnabled') is True, value, False))
             elif role in ('AXStaticText', 'AXHeading'):
-                value = self.value(ref, 'AXValue') or self.value(ref, 'AXTitle') or ''
+                value = self.optional_value(ref, 'AXValue') or self.optional_value(ref, 'AXTitle') or ''
                 if isinstance(value, str):
                     text.append(value)
-            children = self.value(ref, 'AXChildren')
+            children = self.optional_value(ref, 'AXChildren')
             if children is not None:
                 require(isinstance(children, list) and len(children) <= 80, 'phase child bound')
                 stack.extend((child, depth + 1) for child in reversed(children))
@@ -616,7 +635,7 @@ class NativeAX:
                             'NATIVE_PATH_ENTRY_UNAVAILABLE: exact current directory not exposed')
                     paths.append(value)
                 continue  # never inspect breadcrumb/history children
-            title = self.value(ref, 'AXTitle') or self.value(ref, 'AXDescription') or ''
+            title = self.optional_value(ref, 'AXTitle') or self.optional_value(ref, 'AXDescription') or ''
             allowed = (('Go', 'Open', 'Cancel', 'Go to Folder…', 'Go to folder…') if role == 'AXButton'
                        else ('Go to the folder:', 'Go to folder:'))
             if title not in allowed:
@@ -675,7 +694,7 @@ class NativeAX:
         require(self.same(current, self.last_root), 'phase changed immediately before input')
         require(self.role(control.ref) == control.role and self.value(control.ref, 'AXEnabled') is True,
                 'target role/enabled changed')
-        label = self.value(control.ref, 'AXTitle') or self.value(control.ref, 'AXDescription') or ''
+        label = self.optional_value(control.ref, 'AXTitle') or self.optional_value(control.ref, 'AXDescription') or ''
         require(label == control.label, 'target label changed')
         parent, seen = control.ref, []
         for _ in range(19):
