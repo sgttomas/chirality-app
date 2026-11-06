@@ -1,5 +1,84 @@
 # App v4 current execution basis
 
+## Owner-directed work pause — 2026-11-06
+
+The owner requested a graceful pause to free compute and attention. App development
+is paused; this direction supersedes the normal continuation/dispatch expectations
+below. The bounded closeout comprises merged
+[PR146](https://github.com/sgttomas/chirality-app/pull/146) and this pause
+reconciliation. No new App source increment,
+local test/build/probe, native/model/exclusive run, desktop-availability request
+or cross-project resource window is selected. Already-admitted work may finish
+normally; no foreign process is interrupted. After closeout, work resumes only
+on an explicit owner request, not on CI completion or another lane's return.
+
+The native, runtime, frontend and packaging lanes have been instructed to remain
+idle and preserve their existing scope and recovery inputs. No outstanding App
+native/model/exclusive GO, queue, reservation or voluntary resource deferral is
+held. All earlier App diagnostic windows are consumed/closed; the separate
+Dynamics/#155 concurrence and submission deferral were explicitly released on
+verified closure. This is an App work pause, not global resource admission or
+isolation assurance. Other projects and shared guards retain their own ownership.
+SWBPIPE has separately paused routine coordination. Suppress routine App diagnostic
+admission/closure/resource-snapshot relays to that session unless an actual shared
+obligation/conflict or the owner needs them. Fresh coordination is requested only
+after owner resume; no previous concurrence is reusable. This transfers no authority
+between the projects.
+
+### Retained result and remaining evidence
+
+PR146 merged as `d868a15ea9a7b24627bdcc21eb467d6258585b98` at 18:45:00Z on
+2026-11-06 after all applicable checks passed on reviewed controller source
+`cbdca0779f9045a9425f7f79c7e836eab1eb80b7`. Its 142 focused mocked tests,
+independent review and root corrections of the observed post-Q role exceptions
+retain their source identities; all five controller/core/test/reader blobs match
+the integrated result. No native run of this method has occurred.
+
+The selected `POSITIVE_OWNED_ROUTE_ROOT_BOUNDARY_DIAGNOSTIC_V1` is restricted to
+one fixed original-PID Go-to-folder diagnostic and bounded observation. Required
+target/focus/parent/root/alias and necessary reciprocal refs remain strict, but
+the former bounded wrapper-modal exclusion is relinquished. Wrapper/foreign/global
+modal coverage, final responder fidelity and handling remain unknown. This choice
+does not qualify path entry, setup/save, useful model work, general input or release.
+
+The latest actual native method remains frozen `89a5fe50` on product `eaf5d057` /
+executable `b98a30fe`: one picker press, then owner-mismatch refusal before any
+command. Its exact account is integrated through PR144; final original-birth
+absence was observed in 4.685059s without overrun and root separately corroborated
+the four known invocation PIDs absent. No App exit/reap or service identity was
+inferred. J1 setup/useful-model/results and J2 create/trial/register/resume/reuse,
+plus the other publication punchlist items, remain open. Product acceptance and
+release remain owner decisions; no readiness recommendation is made by this pause.
+
+### Recovery inputs and resume boundary
+
+Preserve branches/worktrees, original actual-account commits, failed/consumed
+receipts and named build/packet inputs. Do not delete them as closeout cleanup.
+The corrected private freeze is:
+
+- Root: `/Users/ryan/dev/chirality-t3/scratch/app-j1-root-boundary-corrected-staged-aaz00q6m`.
+- Exact method: `cbdca0779f9045a9425f7f79c7e836eab1eb80b7`.
+- Entry SHA256: `84a58cf9fd13b3395700126aafd806cae8af2217364776326bf4837cb160fea7`.
+- Controller SHA256: `ab48a7eb395d731e65c6edf0d839b83f0fe1581595b78b951c08558cb127c8c6`.
+- Test SHA256: `3f106a3dd1ac94d2a072412c4f4547dda57b1ef3a82f055099138c2c18f66c99`.
+- Root review: `/Users/ryan/dev/chirality-t3/scratch/app-pr146-review-_uuoh0hf`,
+  including `REVIEW_FIX_CHECKS.json`, `REVIEW_FIX_HEAD.json`, `focused-fixed.log`
+  and `CORRECTED_ENTRY_INSPECTION.json`.
+
+The five Git-object copies, inverse two-literal entry proofs, 740 preserved
+members, protected refs/accounts, authentic receipt, eleven manifest members,
+project sets and retained executable were checked. The corrected freeze remains
+UNRUN with empty event/runner directories and no selected UTC end or GO. The
+earlier `a969d213` / `nkb2lpep` freeze remains preserved UNRUN/SUPERSEDED, and all
+consumed roots remain historical evidence. No old entry/window is rearmed.
+
+On an explicit resume, read the actual PR state and this basis first; identify
+the source/artifact and remaining journey result, then refresh the relevant
+integrity/admission facts. Any native continuation needs a separately selected
+reviewed entry, fresh desktop availability and a new specific bounded GO under
+normal wrappers. No sign-in, credential/model/network/download, VM, installed-App,
+acceptance or release authority is added by resuming ordinary development.
+
 ## Current release pathway
 
 Updated 2026-11-05 against integrated main
