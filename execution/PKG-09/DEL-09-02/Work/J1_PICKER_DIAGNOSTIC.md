@@ -989,8 +989,11 @@ accepted publication or readiness. The accepted parent/focus fields are still
 written only after the existing target validation, and an array's accepted
 membership is still written only after all its returned refs pass the existing
 checks. No later item is followed after a refusal; this is not a complete census.
-Late/failed/malformed output creates no new return provenance. Readiness, routing,
-input and post-attempt selection consume none of these new evidence fields.
+Late calls, rejected return codes, scalar/container types and range lengths create
+no new return provenance. Within an otherwise accepted range container, a returned
+non-element member retains its source-call/index before the existing member-type
+veto; that record establishes no element ownership or relationship. Readiness,
+routing, input and post-attempt selection consume none of these new evidence fields.
 
 The owner trace/row also records owner_pid only when the existing GetPid call
 returns RC0 and a signed32-bit integer; other results stay null. Zero/negative
@@ -1019,8 +1022,11 @@ mocked/source evidence, not a new native diagnostic or measured timing guarantee
 Checks and exact comparison source are retained in
 /Users/ryan/dev/chirality-t3/scratch/app-j1-return-provenance-checks-q2iqvmrn
 (regression-before.log, regression-after.log, focused-final.log, checks.json,
-BEHAVIOR_AND_STATIC.json and compare_behavior.py). Independent review and hosted
-CI are integration conditions. ScopeOfWork/dependencies/acceptance and product
+BEHAVIOR_AND_STATIC.json and compare_behavior.py). Independent review of ac472eaa
+found no implementation defects and one documentation overstatement: a correctly
+shaped RC0 range can retain a non-element member's return provenance before its
+type veto. The wording above is narrowed accordingly; source/tests are unchanged.
+Hosted CI remains an integration condition. ScopeOfWork/dependencies/acceptance and product
 source remain unchanged. A new exact entry freeze/review and fresh desktop
 availability/window would be required before native use; none is selected here.
 Handling/path/setup/save/J1/J2/model/native qualification remain open.
