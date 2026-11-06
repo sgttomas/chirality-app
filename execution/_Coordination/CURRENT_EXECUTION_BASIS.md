@@ -255,9 +255,20 @@ Current Type 1 assignments are:
   cleanup/verified absence completed in3.89 s without overrun; original App and
   wrapper absence were independently corroborated. No setup/save occurred.
   The [offline evidence repair](../PKG-09/DEL-09-02/Work/J1_PICKER_DIAGNOSTIC.md#actual-frozen-c977-attempt-and-offline-binding-evidence-repair)
-  retains partial allowlisted binding facts without recovery reads;37 mocked
-  tests pass. It has not run natively. Current file/history privacy guards remain;
-  no retry, window extension or further live action is selected.
+  retains partial allowlisted binding facts without recovery reads; its37 mocked
+  cases passed before the subsequent native invocation below. Current file/history
+  privacy guards remain, with no retry or window extension selected.
+  The [subsequent frozen c7ed invocation](../PKG-09/DEL-09-02/Work/J1_PICKER_DIAGNOSTIC_AXROLE_20261106.md)
+  of that evidence repair recorded original-owned retained-main AXRole/-25204/null
+  after one picker press, before navigation allocation/post or a full snapshot.
+  Normal cleanup/verified absence completed in3.13 s without overrun; Agent0
+  independently corroborated original App/wrapper absence. This is CannotComplete
+  evidence for that read, not a cause or an explanation of earlier missing facts.
+  The new initial-only readiness method permits at most3 matching retained-main
+  role reads within the original2s phase/work deadline; every other error/ref and
+  final input check remains strict.48 mocked tests pass independently. The new
+  method and its frozen entry are reviewed preparation, not native execution;
+  another diagnostic requires separately selected fresh desktop availability.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
