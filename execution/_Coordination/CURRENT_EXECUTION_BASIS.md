@@ -278,8 +278,15 @@ Current Type 1 assignments are:
   routing passes in6s, strict2s under one8s ceiling, unchanged.2 exact-object
   timeout and unchanged110work/180total cleanup/custody.76 mocked tests pass after
   restoring prior optional-absence semantics while retaining mandatory roles and
-  actual success0 input baselines. It remains unrun; fresh repaired-entry staging/
-  inspection precedes any new window. No input retry or live GO is selected.
+  actual success0 input baselines. The [frozen96c diagnostic](../PKG-09/DEL-09-02/Work/J1_PICKER_DIAGNOSTIC.md#frozen96c-actual-initial-observation-and-unsupported-sheet-veto)
+  then completed initial binding/routing pass3, proving an owned direct AXSheet
+  and original-App focused ancestry. Strict picker AXSheets count/-25205/unknown
+  vetoed the command; no keyboard event, path or save occurred. Trace123/ref12/
+  initial-read27/owner49 stayed below caps, without late calls. Normal cleanup/
+  verified absence completed in4.65 s, no overrun; original App/wrapper absence
+  was independently corroborated. An offline proposal now examines a supported
+  positive target proof; unsupported remains unknown. No new entry/window/GO or
+  input-guard change is selected, and the actual96c entry is consumed.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current

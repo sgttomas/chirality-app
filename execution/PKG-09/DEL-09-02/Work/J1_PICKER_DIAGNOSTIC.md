@@ -518,6 +518,55 @@ Repaired source SHA256:
 ea0c2f0fb664da2946e914af192d161ce044873dee02e1b6f77fbfa89d0eba08;
 repaired test SHA256:
 2ce8c37d1b3940907a717f10bd663830492a76b2d541a8ef60090dad2219bde9.
-The original qdhdxfr7 source/entry/manifests stay unchanged and unrun. A fresh
-exact repaired entry must be staged and inspected before any separate live
-selection. No window end, input retry or GO follows from this source repair.
+The original qdhdxfr7 source/entry/manifests stay unchanged and unrun. At that
+source-review return a fresh exact repaired entry was required before any
+separate live selection; its later selected invocation is recorded below.
+No input retry or GO followed automatically from the source repair.
+
+## Frozen96c actual initial observation and unsupported-sheet veto
+
+The [detailed actual account](J1_COMMUNICATION_POLICY_ACTUAL_20261106.md) retains
+the exact receipts and limits. Agent0 verified the repaired ttt353h0 entry72f2b4bf and selected one invocation
+of frozen PRE-MERGE96c96096 in the fresh03:53:37–03:58:37Z window. Source/product
+remained96c/eaf5d057/b98a30fe. The original entry/source/manifests and all raw
+per-call records remain preserved; this invocation is consumed and closed.
+
+Actual startup admitted one original main; the content gate progressed from
+WebArea=false/3controls to WebArea=true/9controls. After one checked picker press,
+initial binding/routing completed on pass3. The first two main AXRole reads
+returned-25204/null with measured native durations0.209672s and0.200223s. The
+third pass proved a unique direct original-owned AXSheet, ordinal7, and the
+original-App focused ancestry. Main AXSheets count/-25205 remained unknown/absent
+under the restored optional semantics, never success0. App AXWindows count was1;
+the attached picker was proved through main-child/parent relations, not by
+assuming every sheet appears as an application window.
+
+Strict revalidation then refused picker ordinal7 AXSheets count/-25205 at op123,
+native duration0.000093167s and count unknown. The mandatory actual-success0
+empty-sheet baseline was unavailable. No navigation intent or keyboard event
+was posted. The fixed gesture was consumed and its three allocations released;
+down/up_attempted remained false. The incomplete retained-picker-no-command
+snapshot contains only already-collected partial facts; the stopped policy made
+no recovery query. Trace123 operations,12 CFEqual-distinct refs and initial27
+read/49 owner reservations were below the declared caps, with no late operation.
+Near-.2 main-role errors supply no causal timeout conclusion; the fast unsupported
+sheet relation is a different actual return, not an empty count.
+
+One prebound normal termination and actual original-birth absence completed in
+4.645187s without overrun; wrapper88403 slot2 END03:54:12Z rc1 followed absence.
+Agent0 independently found original88409 and wrapper88403 absent at
+03:59:18.601021Z and matched structure135/raw-result140/final-closure141 hashes.
+COMMUNICATION_ACTUAL_CLOSURE.json and ACTUAL_STRUCTURAL_PROJECTION.json remain
+in app-pr140-review-h9ps254y. No App exit/reap, path/settings/save, J1/model or
+qualification result follows. No later native window, input retry or GO is active.
+
+The veto exposed an unproved harness attribute assumption. The inspected public
+AXAttributeConstants/AXRoleConstants/AppKit accessibility headers declare AXSheet
+roles and parent/child/top-level relations, but no AXSheets declaration was found
+in those exact headers. This is limited source evidence, not a universal platform
+absence claim. Actual-25205 remains unknown, never normalized to zero. Agent0
+commissioned an offline proposal for a positive exact-target proof using published
+relations and focus ancestry, including the documented AXTopLevelUIElement if
+appropriate. No such input-guard change or implementation is selected here.
+Current source/test/ABI/cleanup bytes and their76 mocked standing are unchanged;
+only actual evidence and current-method disposition are reconciled.
