@@ -69,8 +69,16 @@ then recorded two main-role CannotComplete reads followed by AXWindow, and the
 next App AXWindows count failed-25204/count null. No chord/full snapshot or
 observed empty/over-cap count. Autonomous cleanup/verified absence5.71 s, no
 overrun; original App/wrapper absence independently corroborated. The next
-offline method review covers the binding's messaging/readiness budget; no input
-retry, new live entry/window or cause finding follows.
+offline method implementation permits four complete initial binding/routing
+passes in6s, strict2s under one8s ceiling with.2 unchanged.76 mocked tests pass
+after direct review repaired prior optional absence; mandatory roles and actual
+success0 input baselines remain strict. The repaired entry was staged and
+inspected before its separately selected invocation. The latest
+frozen96c diagnostic completed initial binding/routing pass3 with a direct owned
+AXSheet and focused ancestry, then strict picker AXSheets/-25205/unknown vetoed
+the command. No key/path/save; cleanup/verified absence4.65 s, no overrun. The
+next offline proposal assesses a supported positive target proof. No new window,
+input-guard change, retry or cause finding follows.
 The #116/#120/#121 real-backend joins and #126 notice input inventory are also
 integrated with their stated limits. The owning roles retain
 journey delivery beyond individual PRs; live activity is established from actual
@@ -97,7 +105,7 @@ public distribution; and the owner decision packet. That list was not completed.
 
 | ID | Result and finish condition | Standing / next action | Owning deliverables and delivery owner |
 |---|---|---|---|
-| P1 | Set up a project, select an existing workflow, supply inputs, run it to completion and find the results without agent interpretation of engineering controls. | OPEN; backend/guide/results-finder joins are integrated. No actual setup/save or useful-model result on eaf5d057. Latest frozen a426 diagnostic opened the picker once; main-role reads recovered on the third call, then App AXWindows count failed-25204/count null. No chord/full snapshot. Normal cleanup/verified absence5.71 s, no overrun.48 mocked tests retain their reviewed source standing; next offline method disposition covers the binding's communication budget and supported native path entry. Applicable access/model choices and useful completion are owed. Scripted replies do not establish inference. | [J1](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j1--use-an-existing-workflow), DEL-02-02 with DEL-01-04/05; product manager, Agent 0 integration. |
+| P1 | Set up a project, select an existing workflow, supply inputs, run it to completion and find the results without agent interpretation of engineering controls. | OPEN; backend/guide/results-finder joins are integrated. No actual setup/save or useful-model result on eaf5d057. Latest frozen96c diagnostic completed initial owned-picker/routing observation pass3, then strict AXSheets/-25205/unknown vetoed navigation. No chord/path/save; normal cleanup/verified absence4.65 s, no overrun.76 mocked tests retain reviewed source standing. The next offline proposal assesses a supported positive target proof; no new guard/window/GO selected. Applicable access/model choices and useful completion are owed. Scripted replies do not establish inference. | [J1](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j1--use-an-existing-workflow), DEL-02-02 with DEL-01-04/05; product manager, Agent 0 integration. |
 | P2 | Do useful work, create/trial/review/register a reusable workflow, return to unfinished work and later run the saved workflow with new inputs. | OPEN; fresh-trial/Continue-as model choice, trial/Bring-back guards, History landing and returning-draft guidance are integrated, with recorded renderer/source-test limits. The real-backend clean-trial join uses scripted replies. Actual useful create/register/resume/reuse remains unobserved and required before 4.0.0. | [J2](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j2--create-save-return-and-reuse), DEL-02-02; product manager, native examiner. |
 | P3 | Applicable candidate-bound request/approval, cancellation, interruption/recovery, close/reopen/Quit and three access-mode results, with failures repaired or explicitly returned for owner disposition. | OPEN; the native activation/occlusion loop remains closed and unresolved. Backend joins and the new build do not qualify native recovery/access. Runtime's exact remaining requirements, executable paths and input/authority boundaries are completed preparation. Native owns the linked first-use results, including #135 and frozen #136's exact-instance autonomous cleanup; initial-main/picker/setup capability and broader recovery/access remain open. Agent 0 owns next method selection; no owner regression execution or revival of the closed GUI loop is implied. | [Standalone qualification](../PKG-09/DEL-09-02/Work/STANDALONE_QUALIFICATION.md), DEL-01-01/02/03/04/05; native manager. |
 | P4 | Actual installed S4/supplier custody and applicable SEAL-C enrollment/continuity evidence joined to the candidate. | OPEN; static joins are complete for b3dd4145, real installed/native results are not. Enrollment remains a concrete owner act. Rotation unavailable/SC-5 blocked is the accepted 4.0.0 limitation, not a pass. | [Signing join](../PKG-01/DEL-01-06/Work/SEAL_C_KEYCHAIN_SIGNING_JOIN.md), DEL-01-04/06 and DEL-09-02; runtime and packaging managers. |

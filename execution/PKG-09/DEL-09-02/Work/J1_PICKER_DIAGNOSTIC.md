@@ -294,6 +294,159 @@ handling, path entry/setup/save, J1/J2/model work and qualification remain open.
 Agent0 owns direct independent source/ABI/entry scrutiny, CI/integration and any
 future fresh owner-availability/GO. No additional delegate or owner test task.
 
+## Selected common initial communication policy (new UNRUN implementation)
+
+Agent0 selected PROPOSAL.md SHA25689a913d9 from the new private design root
+app-j1-binding-messaging-proposal-zlnw3fyu. This implementation is based on
+integrated mainbb8452e12c4a1b4e642c2c8a65a60b3b34e94b7c. The preserved
+[a426 actual account](J1_INITIAL_PICKER_READINESS_ACTUAL_20261106.md) remains
+the executed subject: retained-main AXRole/-25204/null twice, then AXWindow,
+then App AXWindows count/-25204 with unknown count, no chord/full snapshot,
+observed5.705476s closure/0overrun. That finite sequence is not a diagnosis or
+new-code evidence. Actual accounts, coordination and previous branches/roots
+are unchanged by this contribution. ScopeOfWork/dependency/acceptance meanings
+remain unchanged; only this method source/test/preparation Work is changed.
+
+NativeSession's exact-reference bounded owner helper already establishes.2s
+before the direct structural calls. That timeout is retained: no new setter,
+getter, global/system-wide AX ref, missing-timeout claim or CFEqual-inheritance
+assumption. The existing reviewed owner helper is also used in the mocked tests,
+with its SetMessagingTimeout/GetPid OS functions replaced by invented effects.
+Every actual passed alias receives its own existing helper call.
+
+The explicit initial observation now consists of up to4 COMPLETE binding and
+focused-routing passes. For diagnostic start t, one fixed ceiling is
+E=min(work_end,t+8); initial R=min(t+6,E-2). Up to3 fixed.1s pauses require room
+for the pause AND a.2s read before R. Passes never reset deadlines, registries
+or capacities. Successful initial observation permanently seals the mode and
+sets strict S=min(E,work_end,now+2); refusal/exception/receipt failure also seals
+it and stops observation. The snapshot remains1s clipped to S/work_end. These
+are explicit diagnostic budget changes; original180total/110work, normal cleanup
+and original-birth held-until-absence custody remain unchanged and cooperative.
+
+Only allowlisted initial value/count/range-25204 with no usable copied output
+may end a pass and permit another. A failed count is unknown, never zero, and a
+new pass must count again before range. Failed nonnull/wrong-type copied output
+is not decoded/retried. All owner, identity, role/type, cap, timeout-setup,
+semantic/ambiguity, non-25204 and late failures are fatal. Optional absence is
+not normalized from an error into readiness or an empty-sheet baseline.
+
+Original app/main refs and full birth/UID/PGID/path/hash remain fixed. Once a
+direct, unique original-main PROJECT picker is genuinely bound, its identity
+is retained: later passes must prove the same picker. No prior successful
+property/count/role is next-pass proof. The shared32CFEqual-distinct-ref budget,
+depth3/12child privacy limits, count-before-range and private-leaf stops persist.
+The existing4-App-window limit is checked before its bounded range fetch. No
+private text/value/history/sidebar/files or raw addresses enter the collector.
+
+Initial capacities are64 structural read attempts and128 bounded-owner composite
+attempts TOTAL across passes; slots are reserved before calls. Exhausted capacity
+does not admit retry provenance probes or a pause. Trace512 operation records is
+shared across initial/strict/snapshot. Input boundary capacity is checked before
+dispatch; saturation/late calls stop planned observation. Capacity counters are
+reserved attempt slots, not completion or native-call-count proof. No budget
+reset/recovery query is used to improve a refusal.
+
+NativePosting, FixedGesture, DiagnosticStage and run_prepared ASTs remain
+identical; core/test/reader bytes remain identical. Strict pre/post-intent
+identity/owner/target/purpose/direct-parent/empty-sheet-success0/focused-ancestry/
+cutoff guards never retry. The fixed one gesture and same-original paired-up
+behavior are unchanged. No path/settings/confirmation/save/model or J1 authority.
+
+### Timing and provenance
+
+StructuralCalls now times the EXISTING FFI read, with the same symbols/signatures
+and ownership/type/range safeguards; it does not install a proxy or replace API
+functions. Native start/end/duration are captured before CF decoding/journaling.
+Returned retained CF objects are still held for release on late/error paths;
+late reads are not decoded into readiness or followed. Missing/unknown RC is
+null. CF preparation/decode and trace receipt costs are distinct from native
+duration. No extra timing probe, permission call or observation is issued.
+
+Structure separately times existing full identity/hash guards; their non-API RC
+is null. Owner duration is honestly labelled the COMPOSITE
+SetMessagingTimeout(.2)+GetPid, not GetPid-only time. NativeSession.check itself
+is untouched: cleanup and paired release use the original uninstrumented path,
+so trace caps/exceptions cannot veto them. Posting/allocation, core startup/
+content, local CF type/equality and non-trace journal timing are explicitly
+labelled uninstrumented by this trace. All costs still consume wall/work budget.
+
+Fixed API/attribute/pass/ordinal/op IDs, times, budget remaining, actual RC/late
+flags and existing redacted role/CF-type/count/relationships are the only trace
+facts. Last-observed row properties carry phase/pass/op provenance and an explicit
+not-readiness marker; a role from a previous failed pass is not current proof.
+Initial-completed-pass is null on failure. Receipt copies are detached from
+internal identity, targets, counters, trace and outcome state. Journal exception
+or lateness seals/stops observation, while core cleanup remains independent.
+
+Fast failures show only that those observed calls did not consume the full
+requested.2s. They do not prove a cause or categorically exclude benefit from a
+different timeout. Near-.2 results do not prove timeout. Late success is never
+readiness, and arbitrary native/I/O stalls still have no forced-cancellation or
+hard closure guarantee. Actual elapsed/overrun/held facts remain mandatory.
+
+### Focused mocked evidence and new frozen preparation
+
+73 mocked-OS tests pass under ordinary t3_slot/fresh scratch homes. The previous
+role-only initial assertions were explicitly replaced, and fatal initial
+routing now asserts partial binding facts rather than a recovery snapshot. The
+persistent limit is4 passes rather than3 role reads. TEST_ADAPTATION.json records
+the replaced/renamed methods; this is not a claim that all prior48 assertions are
+unchanged. Privacy/input/custody hard negatives remain, with the following actual-
+path coverage of all16 selected proposal scenarios:
+
+| Scenario family | Exercised source behavior |
+|---|---|
+| Observed prefix | Role failure/failure/role0-count failure, fourth complete binding/routing pass through actual controller; still no J1/setup claim. |
+| Moving message failures | Common typed value/count/range policy with4 passes, not attribute exceptions. |
+| Failed range | Fresh next-pass count, including changed count2→3 before range. |
+| Count null | Failed C-output0 remains unknown; no range follows. |
+| Malformed copied output | Failed nonnull/wrong-type copies and malformed successful arrays refuse without decoding into readiness. |
+| Original/picker drift | Owner/birth/app/main/candidate changes, stale refs and ambiguity refuse, no replacement. |
+| Semantic/other errors | Wrong role/type, caps, missing mandatory values, other errors and timeout-setup failure are fatal. Prior optional unsupported/NoValue absence remains absent, never a retry or successful zero count. |
+| Fast failures | Synthetic2ms calls retain RC/duration, no cause field. |
+| Wait-length failures | Synthetic199ms failures remain messaging errors with measured duration. |
+| Late work | Native success/failure/range, owner composite, CF decode, identity and receipt lateness stop further observation. |
+| Headroom/sleep | Nominal.2 call headroom, .1 pause and R/E/S limits never reset. |
+| Capacity | Read/owner/ref/trace caps are checked before calls/input; no retry probe after last read slot. |
+| CFEqual aliases | Actual call reference gets exact-object.2 setup even when logical ordinal compares equal. |
+| Strict after initial | Fresh strict failure never returns to initial mode or posts. |
+| Baseline change | Post-intent nested/ambiguous modal still refuses; snapshot stays clipped. |
+| Evidence/custody faults | Intent/trace/permanent journal faults preserve same-original up and one normal cleanup; false/unknown termination holds until late actual absence. |
+
+Native-only durations are independently checked against decode and journaling
+costs. Payload mutation cannot rebind internal counters/identity/properties or
+change returned outcome. A permanent writer failure may still raise after
+verified closure; tests assert cleanup/paired release happened rather than
+inventing a successful closing receipt. No real C/AX/App/preflight/session/event
+operation, build, broad suite or delegate occurred.
+
+Logs/checks remain in
+/Users/ryan/dev/chirality-t3/scratch/app-j1-communication-policy-checks-e1d25scn:
+focused-initial.log, focused-expanded.log, focused-after-adaptation.log,
+focused-final.log, TEST_ADAPTATION.json, deliverables.log, checks.json and
+FINAL_HEAD.json. Initial failures are retained at their actual subjects/results.
+
+Original author719de131 source SHA256, retained unrun and superseded for future
+selection by the review repair below:
+56b50d3129116368f53b5e131c021c4b7c1edc068535afcdbcec2c205046fda5;
+new test SHA256:
+276ccb50b0fa63aa2fb9d7a639410417e13f48d81bb721de17a6a8bdfa6873a7.
+Original author immutable UNRUN source/entry root, retained unchanged:
+/Users/ryan/dev/chirality-t3/scratch/app-j1-communication-policy-staged-qdhdxfr7.
+Its five copies are extracted from the exact final committed head. Entry SHA256:
+efe28af4797b6a92e25dd4942ccb4ae47637bccbaacf35b7c44697d8dae34be7.
+Only the two EXPECTED hashes differ from accepted5b7e7002, with inverse byte
+equality. Required UTC/185s/180/110/receipt/subject/journal/diagnostic semantics
+are unchanged. Authentic56116108,11 reviewed member sets/project/executable are
+verified; consumed roots untouched, events empty, no end/admission/GO/queue.
+
+This is new UNRUN code, not an improved interpretation of actual a426/c7ed/c977
+evidence. Chord/snapshot handling, path entry/setup/save, J1/J2/model/native
+qualification remain open. Agent0 owns independent source/ABI/entry review,
+coordination/CI/integration and any future specific availability/GO. No owner
+test task or live selection follows from this preparation.
+
 ## Frozen a426 actual role recovery and subsequent count refusal
 
 The [separate actual account](J1_INITIAL_PICKER_READINESS_ACTUAL_20261106.md)
@@ -324,5 +477,96 @@ The role-only wait did not establish complete native binding. Agent0 selected
 an offline, source-grounded review of a coherent AX messaging/readiness budget;
 no additional code change, live query, input retry, timeout extension or new
 window follows from this actual return. The48 mocked tests retain their a426
-subject and were not rerun for this account. Current source/test/ABI/cleanup
-bytes are unchanged. ScopeOfWork and dependency meanings remain unchanged.
+subject and were not rerun for this account. That actual-account receiving
+changed no source/test/ABI/cleanup bytes. ScopeOfWork and dependency meanings
+remain unchanged.
+
+## Direct review repair: preserve optional absence and precise timing labels
+
+Agent0 independently reran the original719de131 cohort:73 mocked tests passed.
+Source review then found that refs(optional=True) no longer used its optional
+argument: unsupported/NoValue relationships had become fatal despite their prior
+absence semantics. A valid original-owned/direct picker in App AXWindows could
+therefore be blocked by an unavailable optional main AXSheets/AXChildren relation.
+Three new mocked methods reproduced the regression (two failures/five errors).
+No actual native control absence or new native failure is inferred from them.
+
+The repair preserves optional -25205/-25212 as absent relationships/values,
+without retrying or inventing count0. Their exact errors and null counts remain
+in the trace. Mandatory roles still refuse absence, and the before/after-intent
+picker AXSheets baseline still requires actual success0 through optional=False.
+The new controller case exercises a direct owned picker found through App
+AXWindows, with unsupported/NoValue main relations: one initial pass, no sleeps,
+unchanged strict input checks and normal cleanup. Both unsupported/NoValue codes
+also refuse the mandatory baseline with zero posts.
+
+The field previously named decode_duration is now
+post_native_processing_duration: it includes CF decoding and Python result
+preparation between native return and trace finalization. Native-only time and
+journal time remain separately labelled. No call, timeout or budget changed for
+this naming correction.
+
+All76 mocked tests pass under the ordinary wrapper with fresh scratch homes.
+Logs are retained in
+/Users/ryan/dev/chirality-t3/scratch/app-pr140-review-h9ps254y:
+original-focused.log, optional-before.log and repaired-focused.log. The review
+and repair used no native API/preflight/session/App/event operation, build or
+additional delegate. Core/test/reader and the four protected posting/gesture/
+stage/finalizer ASTs remain unchanged. Scope/dependency meanings remain unchanged.
+
+Repaired source SHA256:
+ea0c2f0fb664da2946e914af192d161ce044873dee02e1b6f77fbfa89d0eba08;
+repaired test SHA256:
+2ce8c37d1b3940907a717f10bd663830492a76b2d541a8ef60090dad2219bde9.
+The original qdhdxfr7 source/entry/manifests stay unchanged and unrun. At that
+source-review return a fresh exact repaired entry was required before any
+separate live selection; its later selected invocation is recorded below.
+No input retry or GO followed automatically from the source repair.
+
+## Frozen96c actual initial observation and unsupported-sheet veto
+
+The [detailed actual account](J1_COMMUNICATION_POLICY_ACTUAL_20261106.md) retains
+the exact receipts and limits. Agent0 verified the repaired ttt353h0 entry72f2b4bf and selected one invocation
+of frozen PRE-MERGE96c96096 in the fresh03:53:37–03:58:37Z window. Source/product
+remained96c/eaf5d057/b98a30fe. The original entry/source/manifests and all raw
+per-call records remain preserved; this invocation is consumed and closed.
+
+Actual startup admitted one original main; the content gate progressed from
+WebArea=false/3controls to WebArea=true/9controls. After one checked picker press,
+initial binding/routing completed on pass3. The first two main AXRole reads
+returned-25204/null with measured native durations0.209672s and0.200223s. The
+third pass proved a unique direct original-owned AXSheet, ordinal7, and the
+original-App focused ancestry. Main AXSheets count/-25205 remained unknown/absent
+under the restored optional semantics, never success0. App AXWindows count was1;
+the attached picker was proved through main-child/parent relations, not by
+assuming every sheet appears as an application window.
+
+Strict revalidation then refused picker ordinal7 AXSheets count/-25205 at op123,
+native duration0.000093167s and count unknown. The mandatory actual-success0
+empty-sheet baseline was unavailable. No navigation intent or keyboard event
+was posted. The fixed gesture was consumed and its three allocations released;
+down/up_attempted remained false. The incomplete retained-picker-no-command
+snapshot contains only already-collected partial facts; the stopped policy made
+no recovery query. Trace123 operations,12 CFEqual-distinct refs and initial27
+read/49 owner reservations were below the declared caps, with no late operation.
+Near-.2 main-role errors supply no causal timeout conclusion; the fast unsupported
+sheet relation is a different actual return, not an empty count.
+
+One prebound normal termination and actual original-birth absence completed in
+4.645187s without overrun; wrapper88403 slot2 END03:54:12Z rc1 followed absence.
+Agent0 independently found original88409 and wrapper88403 absent at
+03:59:18.601021Z and matched structure135/raw-result140/final-closure141 hashes.
+COMMUNICATION_ACTUAL_CLOSURE.json and ACTUAL_STRUCTURAL_PROJECTION.json remain
+in app-pr140-review-h9ps254y. No App exit/reap, path/settings/save, J1/model or
+qualification result follows. No later native window, input retry or GO is active.
+
+The veto exposed an unproved harness attribute assumption. The inspected public
+AXAttributeConstants/AXRoleConstants/AppKit accessibility headers declare AXSheet
+roles and parent/child/top-level relations, but no AXSheets declaration was found
+in those exact headers. This is limited source evidence, not a universal platform
+absence claim. Actual-25205 remains unknown, never normalized to zero. Agent0
+commissioned an offline proposal for a positive exact-target proof using published
+relations and focus ancestry, including the documented AXTopLevelUIElement if
+appropriate. No such input-guard change or implementation is selected here.
+Current source/test/ABI/cleanup bytes and their76 mocked standing are unchanged;
+only actual evidence and current-method disposition are reconciled.
