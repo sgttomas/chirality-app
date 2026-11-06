@@ -152,7 +152,7 @@ class Structure:
     APIS = {'value': 'AXUIElementCopyAttributeValue', 'count': 'AXUIElementGetAttributeValueCount',
             'range': 'AXUIElementCopyAttributeValues'}
     TRACE_APIS = frozenset((*APIS.values(), 'bounded_owner_composite', 'identity_guard', 'sleep', 'input_boundary'))
-    DETAIL_KEYS = frozenset(('count', 'over_limit', 'range_start', 'requested_count', 'owner_match',
+    DETAIL_KEYS = frozenset(('count', 'over_limit', 'range_start', 'requested_count', 'owner_match', 'owner_pid',
                             'duration_scope', 'guard_completed', 'requested_sleep',
                             'read_capacity_used', 'owner_capacity_used'))
 
@@ -336,29 +336,50 @@ class Structure:
             raise
         finally:
             match = (owner == self.original['pid']) if rc == 0 else None
+            # Existing GetPid output only; never a process lookup or identity proof.
+            pid = owner if rc == 0 and type(owner) is int and -(2**31) <= owner < 2**31 else None
+            self.set_property(row, 'owner_pid', pid, token)
             self.set_property(row, 'owner_match', match, token)
             if completed and match is not True:
                 self.halt('diagnostic foreign/unknown owner')
-            self.finish(token, rc, 'pid', {'owner_match': match,
+            self.finish(token, rc, 'pid', {'owner_match': match, 'owner_pid': pid,
                         'duration_scope': 'SetMessagingTimeout(.2)+GetPid composite'},
                         row=row, raised=not completed)
 
-    def touch(self, ref):
+    def note_return(self, row, returned_by):
+        if returned_by is not None:
+            if row['first_return'] is None:
+                row['first_return'] = deepcopy(returned_by)
+            row['last_return'] = deepcopy(returned_by)
+
+    def returned_ref(self, ref, source, token, index, count=None):
+        # This reports an actual API output, not an accepted array/parent edge.
+        return self.touch(ref, {'source_ordinal': source['ordinal'], 'api': token['api'],
+                               'attribute': token['attribute'], 'phase': token['phase'],
+                               'pass': token['pass'], 'op': token['op'], 'output_index': index,
+                               'requested_count': count,
+                               'meaning': 'native-return-only-not-ownership-parent-or-readiness'})
+
+    def touch(self, ref, returned_by=None):
         self.check()
         for index, previous in enumerate(self.refs_seen):
             if self.same(ref, previous):
-                return self.rows[index]
+                row = self.rows[index]
+                self.note_return(row, returned_by)
+                return row
         self.guard(len(self.refs_seen) < 32, 'diagnostic distinct-reference cap')
         if self.mode == 'initial':
             self.guard(self.initial_owners < 128, 'diagnostic initial owner capacity')
         kind = self.b.kind(ref)['name']
         row = {'ordinal': len(self.rows), 'cf_type': kind if kind == 'AXUIElement' else 'other',
-               'owner_match': None, 'role': None, 'parent_ordinal': None, 'reads': [],
+               'owner_match': None, 'owner_pid': None, 'role': None, 'parent_ordinal': None, 'reads': [],
+               'first_return': None, 'last_return': None,
                'property_meaning': 'last_observed_only_not_readiness', 'property_provenance': {},
                'array_observations': {}}
         self.refs_seen.append(ref)
         self.rows.append(row)
         self.set_property(row, 'cf_type', row['cf_type'])
+        self.note_return(row, returned_by)  # retain output provenance BEFORE an owner/type refusal
         self.guard(kind == 'AXUIElement', 'diagnostic non-element reference')
         self.owner(ref, row)
         return row
@@ -416,7 +437,7 @@ class Structure:
         if name in ('AXParent', 'AXFocusedUIElement'):
             self.guard(kind == 'AXUIElement' and len(refs) == 1, 'diagnostic scalar-reference type')
             target = refs[0]
-            parent = self.touch(target)
+            parent = self.returned_ref(target, row, token, 0)
             field = {'AXParent':'parent_ordinal','AXFocusedUIElement':'focused_ordinal'}[name]
             self.set_property(row, field, parent['ordinal'], token)
             return target
@@ -458,10 +479,10 @@ class Structure:
         self.read_status(rc, kind, 'range', name, row)
         self.guard(kind == 'CFArray' and len(refs) == count, 'diagnostic bounded range failed')
         seen = []
-        for child in refs:
+        for index, child in enumerate(refs):
             self.guard(not any(self.same(child,old) for old in seen), 'diagnostic duplicate published reference')
             seen.append(child)
-            self.touch(child)
+            self.returned_ref(child, row, range_token, index, count)
         row['array_observations'][name] = {'members':[self.touch_ordinal(x) for x in refs], 'count':count,
                                            'count_op':count_token['op'],'range_op':range_token['op'],
                                            'phase':self.phase,'pass':self.pass_no}
