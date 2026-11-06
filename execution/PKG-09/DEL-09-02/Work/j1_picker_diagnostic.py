@@ -25,7 +25,7 @@ class StructuralReadFailure(DiagnosticStop):
     def __init__(self, api, attribute, ordinal, cf_type):
         require(api in ('value', 'count', 'range')
                 and attribute in ('AXRole', 'AXParent', 'AXModal', 'AXFocusedUIElement',
-                                  'AXTopLevelUIElement', 'AXWindows', 'AXSheets', 'AXChildren')
+                                  'AXWindows', 'AXSheets', 'AXChildren')
                 and type(ordinal) is int and 0 <= ordinal < 32
                 and cf_type in ('null', 'count'),
                 'diagnostic invalid typed read failure')
@@ -107,7 +107,7 @@ class StructuralCalls:
         self.last_cf_type = kind
         scalar, refs = None, []
         if rc == 0 and (deadline is None or self.last_native['end'] < deadline):
-            if attribute in ('AXParent', 'AXFocusedUIElement', 'AXTopLevelUIElement') and kind == 'AXUIElement':
+            if attribute in ('AXParent', 'AXFocusedUIElement') and kind == 'AXUIElement':
                 refs = [value.value]
             elif (attribute == 'AXRole' and kind == 'CFString') or (attribute == 'AXModal' and kind == 'CFBoolean'):
                 scalar = self.b.scalar(value.value)  # reviewed CF scalar conversion
@@ -145,9 +145,9 @@ KNOWN_ROLES = frozenset({
 
 class Structure:
     """One App-specific initial communication policy; strict input never retries."""
-    PROOF_MODE = 'POSITIVE_FOCUSED_TOP_LEVEL_DIAGNOSTIC_V1'
+    PROOF_MODE = 'POSITIVE_FOCUSED_ANCESTRY_DIAGNOSTIC_V1'
     MODALS = frozenset(('AXWindow', 'AXSheet', 'AXDrawer', 'AXDialog'))
-    VALUE_ATTRS = ('AXRole', 'AXParent', 'AXModal', 'AXFocusedUIElement', 'AXTopLevelUIElement')
+    VALUE_ATTRS = ('AXRole', 'AXParent', 'AXModal', 'AXFocusedUIElement')
     ARRAY_ATTRS = ('AXChildren', 'AXSheets', 'AXWindows')
     APIS = {'value': 'AXUIElementCopyAttributeValue', 'count': 'AXUIElementGetAttributeValueCount',
             'range': 'AXUIElementCopyAttributeValues'}
@@ -173,6 +173,7 @@ class Structure:
         self.pre_modal_refs, self.completed_proofs = [], []
         self.proof_count, self.intent_focus, self.intent_proof_id = 0, None, None
         self.after_intent_proof = None
+        self.initial_focus_pause_reservations = 0
 
     def halt(self, code):
         if self.stopped is None:
@@ -290,6 +291,8 @@ class Structure:
                 'work_remaining': self.work_end-self.io.clock(),
                 'initial_end_elapsed': None if self.readiness_end is None else self.readiness_end-self.started,
                 'initial_completed_pass': self.initial_completed_pass,
+                'initial_focus_pause_reservations': self.initial_focus_pause_reservations,
+                'initial_focus_pause_limit': 3, 'initial_focus_pause_requested_seconds': .2,
                 'proof_mode': self.PROOF_MODE,
                 'phase_end_elapsed': self.end-self.started,
                 'local_CF_type_and_equality_timing': 'uninstrumented',
@@ -404,18 +407,17 @@ class Structure:
         self.admit_read()
         row = self.touch(ref)
         self.owner(ref, row)
-        if name in ('AXParent', 'AXFocusedUIElement', 'AXTopLevelUIElement'):
+        if name in ('AXParent', 'AXFocusedUIElement'):
             self.guard(len(self.refs_seen) < 32, 'diagnostic scalar-reference budget exhausted')
         (value, refs), token = self.read(ref, name, 'value', row)
         rc, kind = value['return_code'], value['type']['name']
-        if not self.read_status(rc, kind, 'value', name, row, optional=name!='AXTopLevelUIElement'):
+        if not self.read_status(rc, kind, 'value', name, row, optional=True):
             return None
-        if name in ('AXParent', 'AXFocusedUIElement', 'AXTopLevelUIElement'):
+        if name in ('AXParent', 'AXFocusedUIElement'):
             self.guard(kind == 'AXUIElement' and len(refs) == 1, 'diagnostic scalar-reference type')
             target = refs[0]
             parent = self.touch(target)
-            field = {'AXParent':'parent_ordinal','AXFocusedUIElement':'focused_ordinal',
-                     'AXTopLevelUIElement':'top_level_ordinal'}[name]
+            field = {'AXParent':'parent_ordinal','AXFocusedUIElement':'focused_ordinal'}[name]
             self.set_property(row, field, parent['ordinal'], token)
             return target
         if name == 'AXRole':
@@ -535,39 +537,90 @@ class Structure:
         self.identity_check();self.check()
         return candidate
 
-    def routing(self, picker):
-        current=self.ref(self.app,'AXFocusedUIElement')
-        focused=current;seen=[];path=[];edges=[];wrappers=[]
-        self.guard(current is not None and not any(self.same(current,x) for x in (self.app,self.main,picker)),
-                   'diagnostic focused element is not a nonmodal descendant')
-        for _ in range(7):
-            role=self.role(current);path.append(current)
-            if self.same(current,picker):
-                self.guard(role=='AXSheet','diagnostic picker role changed in ancestry')
-                self.routing_path=[self.touch_ordinal(x) for x in path]
-                return {'focused':focused,'path':path,'wrappers':wrappers,
-                        'edges':edges,'focused_edge':self.edge(self.app,'focused_ordinal')}
-            self.guard(role!='unknown' and role!='AXApplication' and role not in self.MODALS,
-                       'diagnostic focused ancestry crosses unknown/modal')
-            self.guard(not any(self.same(current,x) for x in seen),'diagnostic focused ancestry cycle')
-            seen.append(current)
-            if role in ('AXGroup','AXSplitGroup'):wrappers.append(current)
-            if len(seen)>6:break
-            parent,edge=self.parent(current);edges.append(edge)
-            self.guard(parent is not None and not any(self.same(parent,x) for x in seen),
-                       'diagnostic focused ancestry missing/cyclic')
-            self.guard(not any(self.same(parent,x) for x in (self.app,self.main)),
-                       'diagnostic focused ancestry misses picker')
-            current=parent
-        self.guard(False,'diagnostic focused ancestry too deep')
+    def focused_reference(self):
+        """Initial-only availability wait; no missing ref ever proves a target."""
+        focused = self.ref(self.app, 'AXFocusedUIElement')
+        while focused is None and self.mode == 'initial' and self.picker_anchor is not None:
+            row = self.rows[self.touch_ordinal(self.app)]
+            fact = row['reads'][-1]
+            if not (fact['attribute'] == 'AXFocusedUIElement'
+                    and fact['return_code'] == -25212 and fact['cf_type'] == 'null'):
+                break
+            self.guard(self.io.project_pending is True, 'diagnostic PROJECT purpose missing')
+            self.guard(self.initial_focus_pause_reservations < 3,
+                       'diagnostic initial focus availability exhausted')
+            self.pass_capacity()  # no new guard/pause without capacity for another read
+            self.identity_check()
+            self.owner(self.picker_anchor, self.touch(self.picker_anchor))
+            self.check()
+            self.guard(self.io.clock() + .2 + .2 < self.end,
+                       'diagnostic initial focus pause headroom')
+            token = self.reserve('sleep')
+            self.initial_focus_pause_reservations += 1
+            completed = False
+            try:
+                self.io.sleep(.2)
+                completed = True
+            except BaseException:
+                self.halt('diagnostic initial focus pause failed')
+                raise
+            finally:
+                self.finish(token, details={'requested_sleep': .2}, raised=not completed)
+            self.pass_capacity()
+            self.identity_check()
+            self.owner(self.picker_anchor, self.touch(self.picker_anchor))
+            focused = self.ref(self.app, 'AXFocusedUIElement')
+        return focused
 
-    def top_level(self, focused, picker):
-        top=self.ref(focused,'AXTopLevelUIElement')  # MANDATORY, never inferred/fallback
-        self.guard(top is not None and self.same(top,picker),'diagnostic focused top-level mismatch')
-        self.guard(self.role(top)=='AXSheet','diagnostic top-level is not retained Sheet')
-        parent,parent_edge=self.parent(top)
-        self.guard(self.same(parent,self.main),'diagnostic top-level direct parent changed')
-        return {'top':top,'edge':self.edge(focused,'top_level_ordinal'),'parent_edge':parent_edge}
+    def nearest_modal(self):
+        """Observe the first modal ancestor; no shortcut or predetermined target."""
+        focused = self.focused_reference()
+        self.guard(focused is not None and not any(self.same(focused, x)
+                   for x in (self.app, self.main, self.picker_anchor)),
+                   'diagnostic focused element is not a nonmodal descendant')
+        current, seen, path, roles, edges, wrappers = focused, [], [], [], [], []
+        for links in range(7):
+            self.guard(not any(self.same(current, old) for old in seen),
+                       'diagnostic focused ancestry cycle')
+            seen.append(current)
+            role = self.role(current)
+            path.append(current)
+            row = self.rows[self.touch_ordinal(current)]
+            roles.append({'ordinal': row['ordinal'], 'role': role,
+                          **deepcopy(row['property_provenance']['role'])})
+            self.guard(role != 'unknown' and role != 'AXApplication',
+                       'diagnostic focused ancestry unknown/root role')
+            if role in self.MODALS:
+                self.guard(links > 0, 'diagnostic focused element itself is modal')
+                return {'focused': focused, 'modal': current, 'modal_role': role,
+                        'path': path, 'roles': roles, 'edges': edges, 'wrappers': wrappers,
+                        'focused_edge': self.edge(self.app, 'focused_ordinal')}
+            if role in ('AXGroup', 'AXSplitGroup'):
+                wrappers.append(current)
+            self.guard(links < 6, 'diagnostic focused ancestry too deep')
+            parent, edge = self.parent(current)
+            edges.append(edge)
+            self.guard(not any(self.same(parent, x) for x in (self.app, self.main)),
+                       'diagnostic focused ancestry misses picker')
+            current = parent
+        self.guard(False, 'diagnostic focused ancestry too deep')
+
+    def ancestry_fact(self, route):
+        """Detached ordinals and actual read ops; never internal refs or permission."""
+        return {'focused': self.touch_ordinal(route['focused']),
+                'nearest_modal': self.touch_ordinal(route['modal']),
+                'nearest_modal_role': route['modal_role'],
+                'path_ordinals': [self.touch_ordinal(x) for x in route['path']],
+                'role_observations': deepcopy(route['roles']),
+                'parent_edges': deepcopy(route['edges']),
+                'focused_edge': deepcopy(route['focused_edge'])}
+
+    def routing(self, picker):
+        route = self.nearest_modal()
+        self.guard(route['modal_role'] == 'AXSheet' and self.same(route['modal'], picker),
+                   'diagnostic first modal ancestor is not retained picker')
+        self.routing_path = [self.touch_ordinal(x) for x in route['path']]
+        return route
 
     def legacy_veto(self, picker):
         """Provider-specific negative observation, never positive authority."""
@@ -608,31 +661,27 @@ class Structure:
         self.identity_check()
         picker,publication=self.publication(expected)
         early=self.routing(picker)
-        self.top_level(early['focused'],picker)  # fail before extra child-shape discovery
         boundary=self.veto_boundary(picker,early)
         legacy=self.legacy_veto(picker)
         self.identity_check()
+        # Complete fresh ancestry follows all catalog/veto work, never cached properties.
         fresh=self.routing(picker)
         self.guard(self.same(fresh['focused'],early['focused']),'diagnostic focus changed during proof')
-        self.identity_check()
-        # Only focused/top-level confirmation follows the final identity guard: no catalog work.
-        sealed_focus=self.ref(self.app,'AXFocusedUIElement')
-        self.guard(self.same(sealed_focus,fresh['focused']),'diagnostic focus changed at final boundary')
-        sealed_top=self.top_level(sealed_focus,picker)
-        self.identity_check()  # full birth/path/hash after the final AX reads as well
+        parent,parent_edge=self.parent(picker)
+        self.guard(self.same(parent,self.main),'diagnostic nearest modal direct parent changed')
+        self.identity_check()  # full birth/path/hash after the final AX reads
         self.check()
         self.proof_count+=1
         public={'proof_id':self.proof_count,'proof_mode':self.PROOF_MODE,'phase':self.phase,'pass':self.pass_no,
                 'app':self.touch_ordinal(self.app),'main':self.touch_ordinal(self.main),
-                'picker':self.touch_ordinal(picker),'focused':self.touch_ordinal(sealed_focus),
-                'top_level':self.touch_ordinal(sealed_top['top']),
+                'picker':self.touch_ordinal(picker),'focused':self.touch_ordinal(fresh['focused']),
                 'publication':publication,'veto_boundary':boundary,'legacy_nested':legacy,
+                'nearest_modal_proof':self.ancestry_fact(fresh),
                 'ancestry_edges':deepcopy(fresh['edges']),
-                'focused_edge':self.edge(self.app,'focused_ordinal'),
-                'top_level_edge':sealed_top['edge'],'picker_parent_edge':sealed_top['parent_edge'],
+                'focused_edge':deepcopy(fresh['focused_edge']),'picker_parent_edge':parent_edge,
                 'last_observation_op':self.op_count,'semantic_handling':'unknown','readiness':False}
         self.completed_proofs.append(deepcopy(public))
-        return {'picker':picker,'focused':sealed_focus,'public':public}
+        return {'picker':picker,'focused':fresh['focused'],'public':public}
 
     def initial_picker(self):
         """Four complete initial binding+routing passes; never used by strict reads."""
@@ -735,29 +784,21 @@ class Structure:
             self.check();self.identity_check()
             self.guard(not after_post or self.same(self.command_picker,picker) and self.after_intent_proof is not None,
                        'diagnostic positive after-intent proof unavailable')
-            focused=self.ref(self.app,'AXFocusedUIElement')
-            self.guard(focused is not None and not any(self.same(focused,x) for x in (self.app,self.main,picker)),
-                       'diagnostic post focused descendant absent')
-            top=self.ref(focused,'AXTopLevelUIElement')
-            self.guard(top is not None and self.role(top)=='AXSheet','diagnostic post top-level is not Sheet')
-            if self.same(top,picker):
-                candidate=picker
-                relation={'kind':'retained-picker','top_level_edge':self.edge(focused,'top_level_ordinal')}
+            observed=self.nearest_modal()
+            candidate=observed['modal']
+            self.guard(observed['modal_role']=='AXSheet','diagnostic post nearest modal is not Sheet')
+            if self.same(candidate,picker):
+                relation={'kind':'retained-picker'}
             else:
-                self.guard(after_post,'diagnostic different top-level without command attempt')
-                relation={'kind':'positively-related-sheet','path':self.reciprocal_path(top,picker),
-                          'top_level_edge':self.edge(focused,'top_level_ordinal')}
-                candidate=top
+                self.guard(after_post,'diagnostic different modal without command attempt')
+                relation={'kind':'positively-related-sheet','path':self.reciprocal_path(candidate,picker)}
             retained,publication=self.publication(picker,None if self.same(candidate,picker) else candidate)
             self.guard(self.same(retained,picker),'diagnostic retained picker publication changed')
-            route=self.routing(candidate)  # fresh focused ancestry, not routing/handling ground truth
-            confirmed=self.ref(route['focused'],'AXTopLevelUIElement')
-            self.guard(confirmed is not None and self.same(confirmed,candidate),
-                       'diagnostic post focused top-level changed')
-            self.owner(confirmed,self.touch(confirmed))
+            route=self.nearest_modal()  # current ancestry, not event-routing/handling ground truth
+            self.guard(route['modal_role']=='AXSheet' and self.same(route['modal'],candidate),
+                       'diagnostic post nearest modal changed')
             relation.update(retained_publication=publication,
-                            focused_edge=self.edge(self.app,'focused_ordinal'),
-                            top_level_edge=self.edge(route['focused'],'top_level_ordinal'))
+                            nearest_modal_proof=self.ancestry_fact(route))
             root=candidate
             label=('retained-picker-observed-after-attempt' if after_post else 'retained-picker-observed-without-attempt') if self.same(root,picker) else 'related-sheet-observed-after-attempt'
             queue=[(root,0)];expanded=[]

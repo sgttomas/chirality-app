@@ -289,9 +289,34 @@ Current Type 1 assignments are:
   focus.TopLevel must equal the retained PROJECT AXSheet, with converging ancestry,
   publication and parent facts before/after intent. This explicitly replaces the
   diagnostic's zero-sheet prerequisite: legacy unknown stays unknown, zero is
-  not authority and known nonempty still vetoes. Exact-panel support is unobserved;
-  repaired-entry staging/inspection precedes a new window. No live GO is selected,
-  and the actual96c entry remains consumed.
+  not authority and known nonempty still vetoes.
+  The [frozen9ed actual invocation](../PKG-09/DEL-09-02/Work/J1_POSITIVE_TOP_LEVEL_ACTUAL_20261106T124309Z.md)
+  then observed standard publication/owned focused ancestry but mandatory shortcut
+  AXTopLevelUIElement returned NoValue/-25212/null before extra child observation.
+  No command, setup/save or complete target proof followed. Normal closure4.64 s,
+  zero overrun; original App and all three runner/wrappers were independently
+  found absent. This is that read's actual result, not permanent absence or cause.
+  The new primary focused-ancestry criterion implements the documented parent
+  relationship directly, always, without shortcut fallback. Source/entry review
+  and103 independent mocked tests passed; the exact account is included unchanged.
+  The [selected frozen546 invocation](../PKG-09/DEL-09-02/Work/J1_FOCUSED_ANCESTRY_ACTUAL_20261106T132809Z.md)
+  then observed publication/picker facts but App focused-ref/-25212/null, with
+  no current focused path/proof/command. Closure3.72 s/no overrun and all four
+  process absences were independently corroborated. The criterion stays unchanged:
+  a new initial-only NoValue/null focus availability wait permits at most three
+  shared0.2s pause/resamples inside the existing6s/8s/work/cap limits. Strict/input/
+  snapshot checks never wait;111 mocked tests pass. The subsequently inspected
+  [frozen aa08 invocation](../PKG-09/DEL-09-02/Work/J1_INITIAL_FOCUS_READINESS_ACTUAL_20261106T141435Z.md)
+  observed current owned focus/parent ancestry through the retained picker, then
+  stopped during bounded veto-boundary validation on ref13 owner_match=false.
+  No complete target proof, navigation intent, allocation or chord followed.
+  That ref's role/parent/identity and returned membership were not retained;
+  no foreign AX read or service-identity inference follows. Focus was available
+  on its first sample, so the new NoValue resampling path was not exercised.
+  Normal closure3.207680 s/no overrun and all four process absences were
+  independently corroborated. Exact actual bytes from aeeb7160 are included
+  unchanged. The ownership veto remains; Agent0 owns the next method review.
+  The entry/window is consumed, with no retry, live GO or reusable entry.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current

@@ -30,7 +30,7 @@ class Backend:
             1: {'role': 'AXApplication', 'AXWindows': [2], 'AXFocusedUIElement': 4},
             2: {'role': 'AXWindow', 'AXParent': 1, 'AXSheets': [3], 'AXChildren': [3]},
             3: {'role': 'AXSheet', 'AXParent': 2, 'AXChildren': [5], 'AXSheets': []},
-            4: {'role': 'AXTextField', 'AXParent': 5, 'AXTopLevelUIElement': 3},
+            4: {'role': 'AXTextField', 'AXParent': 5},
             5: {'role': 'AXGroup', 'AXParent': 3, 'AXChildren': [4, 6, 7]},
             6: {'role': 'AXButton', 'AXParent': 5, 'AXChildren': [8]},
             7: {'role': 'AXList', 'AXParent': 5, 'AXChildren': [8]},
@@ -65,12 +65,12 @@ class Backend:
         return name
     def attribute(self, ref, name):
         self.log.append(('attribute', ref, name))
-        assert name in ('AXRole', 'AXParent', 'AXModal', 'AXFocusedUIElement', 'AXTopLevelUIElement'), name
+        assert name in ('AXRole', 'AXParent', 'AXModal', 'AXFocusedUIElement'), name
         node = self.nodes[ref]
         value = node.get('role') if name == 'AXRole' else node.get(name)
         if value is None:
             return {'return_code': -25212, 'type': {'name': 'null'}, 'value': None}, []
-        if name in ('AXParent', 'AXFocusedUIElement', 'AXTopLevelUIElement'):
+        if name in ('AXParent', 'AXFocusedUIElement'):
             return {'return_code': 0, 'type': {'name': 'AXUIElement'}, 'value': None}, [value]
         return {'return_code': 0, 'type': {'name': 'CFString' if name == 'AXRole' else 'CFBoolean'}, 'value': value}, []
     def value_call(self, ref, name, out):
@@ -152,7 +152,8 @@ def context(initial=False):
 
 def observed_shape(b):
     """Invented safe roles in the observed six-child/five-link geometry, no UI text."""
-    for n in range(10,15): b.nodes[n]={'role':'AXButton','AXParent':2}
+    for n,role in zip(range(10,15),('AXGroup','AXButton','AXButton','AXButton','AXStaticText')):
+        b.nodes[n]={'role':role,'AXParent':2}
     b.nodes[2]['AXChildren']=[10,11,12,13,14,3]
     b.nodes[4].update(role='AXOutline',AXParent=20)
     b.nodes[20]={'role':'AXScrollArea','AXParent':21}
@@ -168,7 +169,7 @@ def small_positive(b):
 
 def related_after(b):
     b.nodes[9]={'role':'AXSheet','AXParent':3,'AXChildren':[10]}
-    b.nodes[10]={'role':'AXTextField','AXParent':9,'AXTopLevelUIElement':9}
+    b.nodes[10]={'role':'AXTextField','AXParent':9}
     b.nodes[3]['AXChildren']=[5,9];b.nodes[1]['AXFocusedUIElement']=10
 
 
@@ -196,47 +197,73 @@ class PositiveTargetTests(unittest.TestCase):
         self.assertEqual(proof['publication']['main_children']['members'],[s.touch_ordinal(x) for x in (10,11,12,13,14,3)])
         self.assertEqual(proof['legacy_nested']['state'],'unknown');self.assertIsNone(proof['legacy_nested']['count'])
         self.assertEqual([e['source'] for e in proof['ancestry_edges']],[s.touch_ordinal(x) for x in (4,20,21,22)])
-        self.assertEqual(proof['top_level_edge']['target'],s.touch_ordinal(3))
+        self.assertEqual(proof['nearest_modal_proof']['nearest_modal'],s.touch_ordinal(3))
         self.assertFalse(any(x[0] in ('count','range') and x[1] in (4,20) for x in b.log))
         self.assertEqual(result['label'],'retained-picker-observed-after-attempt')
 
-    def test_mandatory_top_level_always_even_legacy_zero_all_bad_outputs(self):
-        for case in ('unsupported','no_value','null','array','dictionary','foreign','window','drawer','other_sheet','missing_ref'):
-            with self.subTest(case=case):
-                s,io,b,now=context();picker=s.picker();api=Posting()
-                old=b.a.AXUIElementCopyAttributeValue.call
-                b.nodes[9]={'role':'AXSheet','AXParent':2,'owner':999 if case=='foreign' else 17}
-                if case=='drawer':b.nodes[9]['role']='AXDrawer'
-                def read(ref,name,out):
-                    if name!='AXTopLevelUIElement':return old(ref,name,out)
-                    if case in ('unsupported','no_value','null'):return {'unsupported':-25205,'no_value':-25212,'null':0}[case]
-                    target=2 if case=='window' else 99 if case=='missing_ref' else 9
-                    if case=='array':target=9000;b.arrays[target]=[3]
-                    if case=='dictionary':target=9000;b.scalars[target]=('CFDictionary','SECRET')
-                    C.cast(out,C.POINTER(C.c_void_p))[0]=target
-                    return 0
-                b.a.AXUIElementCopyAttributeValue.call=read
-                with self.assertRaises(Refusal):d.FixedGesture(api).run(s,picker,lambda *a:None)
-                self.assertEqual(api.posts,[])
-                self.assertFalse(any(x[0]=='decode-array' and x[1]==9000 for x in b.log))
-                if case=='foreign':self.assertFalse(any(x[0]=='attribute' and x[1]==9 for x in b.log))
-                self.assertNotIn('SECRET',repr(s.binding_refusal('fixed refusal')))
+    def test_primary_ancestry_never_queries_any_shortcut_regardless_of_provider_values(self):
+        for advertised in (None,3,2,{'private':'SECRET'}):
+            s,io,b,now=context(initial=True);observed_shape(b)
+            b.nodes[4]['AXTopLevelUIElement']=advertised
+            p,api,g=self.gesture(s,b);result=s.snapshot(p,True)
+            self.assertTrue(result['complete'],result['error_category']);self.assertEqual(len(api.posts),2)
+            self.assertEqual(s.PROOF_MODE,'POSITIVE_FOCUSED_ANCESTRY_DIAGNOSTIC_V1')
+            proof=s.after_intent_proof['nearest_modal_proof']
+            self.assertEqual(proof['path_ordinals'],[s.touch_ordinal(x) for x in (4,20,21,22,3)])
+            self.assertEqual(proof['nearest_modal'],s.touch_ordinal(3))
+            self.assertEqual(proof['nearest_modal_role'],'AXSheet')
+            self.assertEqual([x['role'] for x in proof['role_observations']],
+                             ['AXOutline','AXScrollArea','AXSplitGroup','AXSplitGroup','AXSheet'])
+            self.assertFalse(any(x[0]=='attribute' and x[2] in ('AXTopLevelUIElement','AXWindow','AXFocusedWindow') for x in b.log))
+            self.assertNotIn('top_level',repr(result));self.assertNotIn('SECRET',repr(result))
 
-    def test_top_level_initial_cannot_complete_can_retry_but_strict_never_does(self):
+    def test_first_intervening_modal_vetoes_before_following_it_even_legacy_zero(self):
+        for role in ('AXWindow','AXSheet','AXDrawer','AXDialog'):
+            s,io,b,now=context();p=s.picker();api=Posting()
+            b.nodes[9]={'role':role,'AXParent':5};b.nodes[4]['AXParent']=9
+            with self.assertRaises(Refusal):d.FixedGesture(api).run(s,p,lambda *a:None)
+            self.assertEqual(api.posts,[])
+            self.assertFalse(any(x[:3]==('attribute',9,'AXParent') for x in b.log))
+            self.assertFalse(any(x[:3]==('count',3,'AXChildren') for x in b.log))
+
+    def test_required_parent_role_and_focus_copies_fail_closed_even_legacy_zero(self):
+        for attribute,ref in (('AXParent',4),('AXRole',4),('AXFocusedUIElement',1)):
+            for case in ('unsupported','no_value','null','array','dictionary','foreign','missing_ref','nonnull_failed'):
+                with self.subTest(attribute=attribute,case=case):
+                    s,io,b,now=context();p=s.picker();api=Posting()
+                    old=b.a.AXUIElementCopyAttributeValue.call
+                    b.nodes[9]={'role':'AXButton','AXParent':3,'owner':999}
+                    def read(target,name,out):
+                        if (target,name)!=(ref,attribute):return old(target,name,out)
+                        if case in ('unsupported','no_value','null'):
+                            return {'unsupported':-25205,'no_value':-25212,'null':0}[case]
+                        pointer=99 if case=='missing_ref' else 9
+                        if case=='array':pointer=9000;b.arrays[pointer]=[3]
+                        if case=='dictionary':pointer=9000;b.scalars[pointer]=('CFDictionary','SECRET')
+                        C.cast(out,C.POINTER(C.c_void_p))[0]=pointer
+                        return -25212 if case=='nonnull_failed' else 0
+                    b.a.AXUIElementCopyAttributeValue.call=read
+                    with self.assertRaises(Refusal):d.FixedGesture(api).run(s,p,lambda *a:None)
+                    self.assertEqual(api.posts,[])
+                    self.assertFalse(any(x[0]=='decode-array' and x[1]==9000 for x in b.log))
+                    self.assertFalse(any(x[0]=='attribute' and x[1]==9 for x in b.log))
+                    self.assertNotIn('SECRET',repr(s.binding_refusal('fixed refusal')))
+
+    def test_required_parent_initial_cannot_complete_can_retry_but_strict_never_does(self):
         s,io,b,now=context(initial=True);small_positive(b)
         old=b.a.AXUIElementCopyAttributeValue.call;failed=[0]
         def read(ref,name,out):
-            if name=='AXTopLevelUIElement' and failed[0]==0:failed[0]+=1;return -25204
+            if (ref,name)==(4,'AXParent') and failed[0]==0:failed[0]+=1;return -25204
             return old(ref,name,out)
         b.a.AXUIElementCopyAttributeValue.call=read
         p=s.initial_picker();self.assertEqual(s.initial_completed_pass,2);self.assertAlmostEqual(now[0],.1)
         attempts=[]
         def strict(ref,name,out):
-            if name=='AXTopLevelUIElement':attempts.append(name);return -25204
+            if (ref,name)==(4,'AXParent'):attempts.append(name);return -25204
             return old(ref,name,out)
         b.a.AXUIElementCopyAttributeValue.call=strict;api=Posting()
         with self.assertRaises(Refusal):d.FixedGesture(api).run(s,p,lambda *a:None)
-        self.assertEqual(attempts,['AXTopLevelUIElement']);self.assertEqual(api.posts,[])
+        self.assertEqual(attempts,['AXParent']);self.assertEqual(api.posts,[])
 
     def test_focused_self_unknown_modal_or_changed_across_intent_never_posts(self):
         for case in ('app','main','picker','unknown','drawer','another_control'):
@@ -244,26 +271,40 @@ class PositiveTargetTests(unittest.TestCase):
             def receipt(*a):
                 if case in ('app','main','picker'):b.nodes[1]['AXFocusedUIElement']={'app':1,'main':2,'picker':3}[case]
                 elif case=='another_control':
-                    b.nodes[9]={'role':'AXButton','AXParent':5,'AXTopLevelUIElement':3}
+                    b.nodes[9]={'role':'AXButton','AXParent':5}
                     b.nodes[5]['AXChildren'].append(9);b.nodes[1]['AXFocusedUIElement']=9
                 else:b.nodes[4]['role']='SECRET unknown' if case=='unknown' else 'AXDrawer'
             with self.assertRaises(Refusal):d.FixedGesture(api).run(s,p,receipt)
             self.assertEqual(api.posts,[],case)
 
-    def test_focus_top_reconfirmation_after_catalog_and_final_identity(self):
+    def test_same_picker_cannot_be_replaced_reparented_or_foreign_across_intent(self):
+        for case in ('replacement','reparent','foreign'):
+            s,io,b,now=context();p=s.picker();api=Posting()
+            def intent(*a):
+                if case=='replacement':
+                    b.nodes[9]={'role':'AXSheet','AXParent':2,'AXChildren':[],'AXSheets':[]}
+                    b.nodes[2]['AXChildren']=[9]
+                    b.nodes[5]['AXParent']=9
+                elif case=='reparent':b.nodes[3]['AXParent']=1
+                else:b.nodes[3]['owner']=999
+            with self.assertRaises(Refusal):d.FixedGesture(api).run(s,p,intent)
+            self.assertEqual(api.posts,[],case);self.assertEqual(s.picker_anchor,3)
+            self.assertEqual(api.freed,[103,102,101])
+
+    def test_fresh_ancestry_after_catalog_work_and_full_final_identity(self):
         for point in ('legacy','final_identity'):
             s,io,b,now=context();p=s.picker();api=Posting()
             if point=='legacy':
                 old=b.a.AXUIElementGetAttributeValueCount.call
                 def count(ref,name,out):
-                    if (ref,name)==(3,'AXSheets'):b.nodes[4]['AXTopLevelUIElement']=2
+                    if (ref,name)==(3,'AXSheets'):b.nodes[4]['AXParent']=2
                     return old(ref,name,out)
                 b.a.AXUIElementGetAttributeValueCount.call=count
             else:
                 old=io.check;calls=[0]
                 def check(identity):
                     old(identity);calls[0]+=1
-                    if calls[0]==3:b.nodes[4]['AXTopLevelUIElement']=2
+                    if calls[0]==2:b.nodes[4]['AXParent']=2
                 io.check=check
             with self.assertRaises(Refusal):d.FixedGesture(api).run(s,p,lambda *a:None)
             self.assertEqual(api.posts,[])
@@ -331,25 +372,25 @@ class PositiveTargetTests(unittest.TestCase):
         def mutate(kind,value):
             seen.append(deepcopy(value))
             value['original']['pid']=999;value['positive_target_proof']['publication']['main_children']['members'].clear()
-            value['positive_target_proof']['top_level_edge']['target']=999
+            value['positive_target_proof']['nearest_modal_proof']['nearest_modal']=999
             value['proof_mode']='fabricated';value['focused_ancestry_ordinals'].clear()
         d.FixedGesture(api).run(s,p,mutate)
         self.assertEqual(len(api.posts),2);self.assertEqual(s.original,ORIGINAL)
         proof=s.completed_proofs[0];trace={e['op']:e for e in s.trace}
         self.assertEqual(proof['publication']['main_children']['members'],[s.touch_ordinal(3)])
-        for edge in (*proof['ancestry_edges'],proof['top_level_edge'],proof['picker_parent_edge']):
+        for edge in (*proof['ancestry_edges'],proof['picker_parent_edge']):
             self.assertEqual(trace[edge['op']]['ordinal'],edge['source'])
             self.assertEqual(trace[edge['op']]['return_code'],0)
         self.assertEqual(seen[0]['proof_mode'],d.Structure.PROOF_MODE)
         self.assertNotIn('pre_command_empty_sheet_relation',seen[0])
         self.assertNotIn('raw_refs',s.after_intent_proof)
 
-    def test_initial_top_late_success_or_failure_or_owner_drift_stops_no_retry(self):
+    def test_initial_parent_late_success_failure_or_owner_drift_stops_no_retry(self):
         for case in ('success','failure','owner','birth'):
             s,io,b,now=context(initial=True);small_positive(b)
             old=b.a.AXUIElementCopyAttributeValue.call;attempts=[]
             def read(ref,name,out):
-                if name=='AXTopLevelUIElement':
+                if (ref,name)==(4,'AXParent'):
                     attempts.append(name)
                     if case in ('success','failure'):now[0]=6.01
                     elif case=='owner':b.nodes[3]['owner']=999
@@ -358,16 +399,18 @@ class PositiveTargetTests(unittest.TestCase):
                 return old(ref,name,out)
             b.a.AXUIElementCopyAttributeValue.call=read
             with self.assertRaises(Refusal):s.initial_picker()
-            self.assertEqual(attempts,['AXTopLevelUIElement']);self.assertEqual(s.mode,'strict')
+            self.assertEqual(len(attempts),2 if case=='birth' else 1)
+            self.assertEqual({t['pass'] for t in s.trace if t['api']=='AXUIElementCopyAttributeValue'},{1})
+            self.assertEqual(s.mode,'strict');self.assertEqual(now[0],0 if case in ('owner','birth') else 6.01)
 
-    def test_full_identity_after_final_top_level_read_and_no_input_after_late_intent(self):
+    def test_full_identity_after_final_parent_read_and_no_input_after_late_intent(self):
         for case in ('birth','late_intent','trace_capacity'):
-            s,io,b,now=context();p=s.picker();api=Posting();tops=[0]
+            s,io,b,now=context();p=s.picker();api=Posting();parents=[0]
             old=b.a.AXUIElementCopyAttributeValue.call
             def read(ref,name,out):
-                if name=='AXTopLevelUIElement':
-                    tops[0]+=1
-                    if case=='birth' and tops[0]==4:io.identity['start_usec']+=1
+                if (ref,name)==(4,'AXParent'):
+                    parents[0]+=1
+                    if case=='birth' and parents[0]==4:io.identity['start_usec']+=1
                 return old(ref,name,out)
             b.a.AXUIElementCopyAttributeValue.call=read
             def intent(*a):
@@ -388,10 +431,16 @@ class PositiveTargetTests(unittest.TestCase):
                 if publication['range_op'] is not None:
                     self.assertEqual(trace[publication['range_op']]['requested_count'],len(publication['members']))
             for edge in (*proof['publication']['parent_edges'],*proof['veto_boundary']['parent_edges'],
-                         *proof['ancestry_edges'],proof['focused_edge'],proof['top_level_edge'],proof['picker_parent_edge']):
+                         *proof['ancestry_edges'],proof['focused_edge'],proof['picker_parent_edge']):
                 event=trace[edge['op']]
                 self.assertEqual(event['ordinal'],edge['source']);self.assertEqual(event['return_code'],0)
                 self.assertFalse(event['late']);self.assertEqual(event['pass'],edge['pass'])
+            nearest=proof['nearest_modal_proof']
+            self.assertEqual(len(nearest['parent_edges']),len(nearest['path_ordinals'])-1)
+            for role in nearest['role_observations']:
+                event=trace[role['op']]
+                self.assertEqual(event['attribute'],'AXRole');self.assertEqual(event['ordinal'],role['ordinal'])
+                self.assertEqual(event['return_code'],0);self.assertEqual(event['pass'],role['pass'])
         proofs[0]['veto_boundary']['arrays'].clear()
         self.assertTrue(s.completed_proofs[0]['veto_boundary']['arrays'])
 
@@ -407,8 +456,8 @@ class PositiveTargetTests(unittest.TestCase):
         self.assertEqual(ground_truth,[{'event':102,'receiver':'outside-retained-picker'}])
         self.assertNotIn('misrouting',repr(result));self.assertEqual(len(api.posts),2)
 
-    def test_post_related_selection_rejects_sibling_private_multiple_missing_or_wrong_top(self):
-        for case in ('sibling','missing_reciprocal','foreign','window','drawer','private','multiple','missing_top','unsupported_top','cycle','too_deep'):
+    def test_post_related_selection_rejects_sibling_private_multiple_missing_or_wrong_parent(self):
+        for case in ('sibling','missing_reciprocal','foreign','window','drawer','private','multiple','missing_parent','unsupported_parent','cycle','too_deep'):
             s,io,b,now=context();p,api,g=self.gesture(s,b);related_after(b)
             if case=='sibling':b.nodes[9]['AXParent']=2;b.nodes[3]['AXChildren']=[5]
             if case=='missing_reciprocal':b.nodes[3]['AXChildren']=[5]
@@ -422,11 +471,11 @@ class PositiveTargetTests(unittest.TestCase):
                     b.nodes[11]['AXParent']=12;b.nodes[3]['AXChildren']=[5,13]
             if case=='multiple':
                 b.nodes[11]={'role':'AXSheet','AXParent':3,'AXChildren':[]};b.nodes[3]['AXChildren'].append(11)
-            if case in ('missing_top','unsupported_top'):
-                b.nodes[10].pop('AXTopLevelUIElement')
-                if case=='unsupported_top':
+            if case in ('missing_parent','unsupported_parent'):
+                b.nodes[10].pop('AXParent')
+                if case=='unsupported_parent':
                     old=b.a.AXUIElementCopyAttributeValue.call
-                    b.a.AXUIElementCopyAttributeValue.call=lambda ref,name,out:-25205 if name=='AXTopLevelUIElement' else old(ref,name,out)
+                    b.a.AXUIElementCopyAttributeValue.call=lambda ref,name,out:-25205 if (ref,name)==(10,'AXParent') else old(ref,name,out)
             result=s.snapshot(p,True)
             self.assertFalse(result['complete'],case);self.assertIsNone(result['root_ordinal'],case)
             self.assertEqual(result['semantic_handling'],'unknown');self.assertEqual(len(api.posts),2)
@@ -446,20 +495,20 @@ class PositiveTargetTests(unittest.TestCase):
 
     def test_post_changed_focus_within_retained_picker_is_not_misrouting_claim(self):
         s,io,b,now=context();p,api,g=self.gesture(s,b)
-        b.nodes[9]={'role':'AXButton','AXParent':5,'AXTopLevelUIElement':3}
+        b.nodes[9]={'role':'AXButton','AXParent':5}
         b.nodes[5]['AXChildren'].append(9);b.nodes[1]['AXFocusedUIElement']=9
         result=s.snapshot(p,True)
         self.assertTrue(result['complete']);self.assertEqual(result['semantic_handling'],'unknown')
         self.assertNotIn('misrouting',repr(result))
 
-    def test_top_level_alias_uses_exact_ref_timeout_and_safe_ordinals(self):
+    def test_ancestry_alias_uses_exact_ref_timeout_and_safe_ordinals(self):
         s,io,b,now=context();p=s.picker();api=Posting()
-        b.nodes[23]=dict(b.nodes[3]);b.nodes[4]['AXTopLevelUIElement']=23
+        b.nodes[23]=dict(b.nodes[3]);b.nodes[5]['AXParent']=23
         b.equal=lambda a,c:(3 if a==23 else a)==(3 if c==23 else c)
         d.FixedGesture(api).run(s,p,lambda *a:None)
         self.assertEqual(len(api.posts),2);self.assertEqual(s.touch_ordinal(23),s.touch_ordinal(3))
         self.assertIn(('timeout-exact',23,.2),b.log);self.assertIn(('owner',23),b.log)
-        self.assertIn(('attribute',23,'AXParent'),b.log)
+        self.assertIn(('attribute',23,'AXRole'),b.log)
 
     def test_cross_source_cfequal_publication_deduplicates_without_timeout_inheritance(self):
         s,io,b,now=context();b.nodes[23]=dict(b.nodes[3])
@@ -472,8 +521,8 @@ class PositiveTargetTests(unittest.TestCase):
         self.assertEqual(proof['publication']['main_children']['members'],[ordinal])
         self.assertIn(('timeout-exact',23,.2),b.log)
 
-    def test_failed_nonnull_optional_copy_and_top_never_become_absence(self):
-        for attr in ('AXParent','AXTopLevelUIElement'):
+    def test_failed_nonnull_required_parent_and_focus_never_become_absence(self):
+        for attr in ('AXParent','AXFocusedUIElement'):
             s,io,b,now=context(initial=True);old=b.a.AXUIElementCopyAttributeValue.call
             def read(ref,name,out):
                 if name==attr:C.cast(out,C.POINTER(C.c_void_p))[0]=3;return -25212
@@ -501,7 +550,7 @@ class StructuralTests(unittest.TestCase):
                     self.assertFalse(any(row[:3] == ('range', 2, name) for row in b.log))
                     self.assertIsNone(s.stopped)
 
-    def test_optional_scalar_absence_does_not_remove_mandatory_role_or_top_level(self):
+    def test_optional_scalar_absence_does_not_remove_mandatory_role_or_parent(self):
         for code in (-25205, -25212):
             s, io, b, now = context()
             original = b.a.AXUIElementCopyAttributeValue.call
@@ -515,9 +564,9 @@ class StructuralTests(unittest.TestCase):
                 s.role(2)
             s, io, b, now = context(); picker = s.picker(); api = Posting()
             original_value = b.a.AXUIElementCopyAttributeValue.call
-            def no_top(ref, name, out):
-                return code if name == 'AXTopLevelUIElement' else original_value(ref, name, out)
-            b.a.AXUIElementCopyAttributeValue.call = no_top
+            def no_parent(ref, name, out):
+                return code if (ref,name) == (4,'AXParent') else original_value(ref, name, out)
+            b.a.AXUIElementCopyAttributeValue.call = no_parent
             with self.assertRaises(Refusal):
                 d.FixedGesture(api).run(s, picker, lambda *args: None)
             self.assertEqual(api.posts, [])
@@ -564,11 +613,11 @@ class StructuralTests(unittest.TestCase):
         self.assertFalse(s.snapshot(picker, False)['complete'])
         self.assertEqual(b.log,before)
 
-    def test_related_sheet_requires_actual_post_top_and_reciprocal_path(self):
+    def test_related_sheet_requires_actual_post_ancestry_and_reciprocal_path(self):
         s, io, b, now = context(); picker = s.picker()
         d.FixedGesture(Posting()).run(s, picker, lambda *args: None)
         b.nodes[9] = {'role': 'AXSheet', 'AXParent': 3, 'AXChildren': [10]}
-        b.nodes[10] = {'role': 'AXTextField', 'AXParent': 9, 'AXTopLevelUIElement': 9}
+        b.nodes[10] = {'role': 'AXTextField', 'AXParent': 9}
         b.nodes[3]['AXChildren'] = [5,9]
         b.nodes[1]['AXFocusedUIElement'] = 10
         b.nodes[3].pop('AXSheets'); b.nodes[2].pop('AXSheets')
@@ -1059,12 +1108,12 @@ class GestureTests(unittest.TestCase):
         self.assertEqual(api.posts, [])
         self.assertEqual(api.freed, [103, 102, 101])
 
-    def test_missing_top_or_intermediate_modal_prevents_dispatch(self):
-        for case in ('missing-top', 'intermediate-modal'):
+    def test_missing_parent_or_intermediate_modal_prevents_dispatch(self):
+        for case in ('missing-parent', 'intermediate-modal'):
             with self.subTest(case=case):
                 s, io, b, now = context(); picker = s.picker(); api = Posting()
-                if case == 'missing-top':
-                    b.nodes[4].pop('AXTopLevelUIElement')
+                if case == 'missing-parent':
+                    b.nodes[4].pop('AXParent')
                 else:
                     b.nodes[5]['role'] = 'AXSheet'
                 with self.assertRaises(Refusal):
@@ -1200,6 +1249,10 @@ class AdmissionAndRunTests(unittest.TestCase):
                 Control(11, 'AXButton', 'Review setup', False)], '', True)
         def record(kind, value):
             if kind == fail_record: raise OSError('invented receipt failure')
+            if (kind == 'diagnostic-call' and getattr(backend, 'fail_focus_pause_receipt', False)
+                    and value.get('api') == 'sleep' and value.get('requested_sleep') == .2):
+                backend.focus_pause_receipt_failed = True
+                raise OSError('invented focus pause receipt failure')
             if (getattr(backend,'receipt_failure_after_down',False) and getattr(backend,'down_started',False)
                     and kind==getattr(backend,'failure_after_down_kind',kind)):
                 raise OSError('invented post-down evidence failure')
@@ -1261,21 +1314,36 @@ class AdmissionAndRunTests(unittest.TestCase):
         self.assertTrue(result['diagnostic']['snapshot']['complete'])
         for key in ('setup_saved','J1_complete','qualification','flow_complete'):self.assertFalse(result[key])
 
-    def test_mandatory_top_refusal_or_intent_change_always_autonomous_cleanup(self):
-        for case in ('unsupported','foreign','changed_at_intent'):
+    def test_mandatory_parent_refusal_or_strict_drift_always_autonomous_cleanup(self):
+        for case in ('unsupported','foreign','changed_during_strict'):
             def configure(b,api,now):
                 old=b.a.AXUIElementCopyAttributeValue.call;reads=[0]
                 def read(ref,name,out):
-                    if name=='AXTopLevelUIElement':
+                    if (ref,name)==(4,'AXParent'):
                         reads[0]+=1
                         if case=='unsupported':return -25205
                         if case=='foreign':b.nodes[3]['owner']=999
-                        if case=='changed_at_intent' and reads[0]==5:b.nodes[4]['AXTopLevelUIElement']=2
+                        if case=='changed_during_strict' and reads[0]==5:b.nodes[4]['AXParent']=2
                     return old(ref,name,out)
                 b.a.AXUIElementCopyAttributeValue.call=read
             result,counts,api,b,app,records=self.full(configure=configure)
             self.assertEqual(api.posts,[],case);self.assertEqual(app.terminations,1)
             self.assertTrue(result['original_absent']);self.assertFalse(result['setup_saved'])
+
+    def test_actual_controller_selected_ancestry_has_no_shortcut_even_after_pair(self):
+        def configure(b,api,now):
+            observed_shape(b);old=b.a.AXUIElementCopyAttributeValue.call
+            def value(ref,name,out):
+                self.assertNotIn(name,('AXTopLevelUIElement','AXWindow','AXFocusedWindow'))
+                return old(ref,name,out)
+            b.a.AXUIElementCopyAttributeValue.call=value
+        result,counts,api,b,app,records=self.full(configure=configure)
+        self.assertEqual(len(api.posts),2);self.assertEqual(app.terminations,1)
+        self.assertTrue(result['original_absent']);self.assertFalse(result['setup_saved'])
+        proof=result['diagnostic']['target_proofs'][-1]
+        self.assertEqual(proof['proof_mode'],'POSITIVE_FOCUSED_ANCESTRY_DIAGNOSTIC_V1')
+        self.assertEqual(proof['nearest_modal_proof']['nearest_modal_role'],'AXSheet')
+        self.assertNotIn('top_level',repr(result['diagnostic']))
 
     def test_main_legacy_absence_is_unknown_but_standard_children_required(self):
         for code in (-25205, -25212):
@@ -1378,24 +1446,21 @@ class AdmissionAndRunTests(unittest.TestCase):
             self.assertEqual(app.terminations,1);self.assertTrue(result['original_absent'])
             self.assertFalse(any(row[0] in ('count','range') for row in b.log))
 
-    def test_missing_mandatory_top_stops_before_extra_child_boundary_reads(self):
+    def test_missing_mandatory_parent_stops_before_extra_child_boundary_reads(self):
         for code in (-25205, -25212):
             with self.subTest(code=code):
-                def configure(b, api, now):
-                    original = b.a.AXUIElementCopyAttributeValue.call
-                    def missing(ref, name, out):
-                        if ref == 4 and name == 'AXTopLevelUIElement':
-                            b.log.append(('missing-top', ref, code))
-                            return code
-                        return original(ref, name, out)
-                    b.a.AXUIElementCopyAttributeValue.call = missing
-                result, counts, api, b, app, records = self.full(configure=configure)
-                self.assertFalse(any(row[:3] == ('count', 3, 'AXChildren') for row in b.log))
-                self.assertTrue(any(row[0] == 'missing-top' for row in b.log))
-                self.assertEqual(api.posts, [])
-                self.assertEqual(app.terminations, 1)
-                self.assertTrue(result['original_absent'])
-                self.assertIsNone(result['diagnostic']['snapshot'])
+                def configure(b,api,now):
+                    original=b.a.AXUIElementCopyAttributeValue.call
+                    def missing(ref,name,out):
+                        if (ref,name)==(4,'AXParent'):
+                            b.log.append(('missing-parent',ref,code));return code
+                        return original(ref,name,out)
+                    b.a.AXUIElementCopyAttributeValue.call=missing
+                result,counts,api,b,app,records=self.full(configure=configure)
+                self.assertFalse(any(row[:3]==('count',3,'AXChildren') for row in b.log))
+                self.assertTrue(any(row[0]=='missing-parent' for row in b.log))
+                self.assertEqual(api.posts,[]);self.assertEqual(app.terminations,1)
+                self.assertTrue(result['original_absent']);self.assertIsNone(result['diagnostic']['snapshot'])
 
     def test_late_initial_read_or_sleep_starts_autonomous_cutoff_cleanup(self):
         for case in ('read','sleep'):
@@ -1515,6 +1580,133 @@ class AdmissionAndRunTests(unittest.TestCase):
         self.assertTrue(result['diagnostic']['snapshot']['complete'])
         self.assertTrue(result['diagnostic']['snapshot']['nodes'][0]['owner_match'])
         self.assertEqual(app.terminations,1)
+
+
+class FocusAvailabilityTests(unittest.TestCase):
+    full = AdmissionAndRunTests.full
+
+    def unavailable_focus(self, b, failures, code=-25212, hook=None):
+        original = b.a.AXUIElementCopyAttributeValue.call
+        calls = []
+        def read(ref, name, out):
+            if ref == 1 and name == 'AXFocusedUIElement' and len(calls) < failures:
+                calls.append((ref, name))
+                if hook: hook()
+                return code
+            return original(ref, name, out)
+        b.a.AXUIElementCopyAttributeValue.call = read
+        return calls
+
+    def test_initial_focus_novalue_then_positive_without_publication_replay(self):
+        for failures in (1, 2, 3):
+            with self.subTest(failures=failures):
+                def configure(b, api, now):
+                    observed_shape(b)
+                    self.unavailable_focus(b, failures)
+                result, counts, api, b, app, records = self.full(configure=configure)
+                self.assertEqual(b.sleep_calls, [.2] * failures)
+                self.assertEqual(len(api.posts), 2)
+                self.assertTrue(result['diagnostic']['snapshot']['complete'])
+                budget = result['diagnostic']['snapshot']['budget']
+                self.assertEqual(budget['initial_completed_pass'], 1)
+                self.assertEqual(budget['initial_focus_pause_reservations'], failures)
+                self.assertLessEqual(budget['initial_reads'], 64)
+                self.assertLessEqual(budget['initial_owner_composites'], 128)
+                self.assertEqual(app.terminations, 1)
+                self.assertTrue(result['original_absent'])
+
+    def test_persistent_initial_focus_novalue_is_bounded_and_never_posts(self):
+        def configure(b, api, now): self.unavailable_focus(b, 20)
+        result, counts, api, b, app, records = self.full(configure=configure)
+        reads = [r for n in result['diagnostic']['binding_refusal']['nodes']
+                 for r in n['reads'] if r['attribute'] == 'AXFocusedUIElement']
+        self.assertEqual([r['return_code'] for r in reads], [-25212] * 4)
+        self.assertEqual(b.sleep_calls, [.2] * 3)
+        self.assertEqual(api.posts, [])
+        self.assertEqual(app.terminations, 1)
+        self.assertTrue(result['original_absent'])
+        self.assertIsNone(result['diagnostic']['snapshot'])
+
+    def test_unsupported_initial_focus_and_strict_novalue_never_wait(self):
+        def configure(b, api, now): self.unavailable_focus(b, 20, code=-25205)
+        result, counts, api, b, app, records = self.full(configure=configure)
+        self.assertEqual(b.sleep_calls, [])
+        self.assertEqual(api.posts, [])
+        s, io, b, now = context(); self.unavailable_focus(b, 20)
+        sleeps = []; io.sleep = lambda n: sleeps.append(n)
+        with self.assertRaises(Refusal): s.nearest_modal()
+        self.assertEqual(sleeps, [])
+
+    def test_late_focus_read_or_pause_cannot_extend_initial_deadline(self):
+        for case in ('read', 'pause'):
+            with self.subTest(case=case):
+                def configure(b, api, now):
+                    self.unavailable_focus(b, 20, hook=(lambda: now.__setitem__(0, 110)) if case == 'read' else None)
+                    if case == 'pause': b.sleep_hook = lambda: now.__setitem__(0, 110)
+                result, counts, api, b, app, records = self.full(configure=configure)
+                self.assertEqual(result['cleanup_started'], 110)
+                self.assertEqual(api.posts, [])
+                self.assertEqual(app.terminations, 1)
+                self.assertEqual(b.sleep_calls, [] if case == 'read' else [.2])
+
+    def test_focus_pause_identity_or_owner_drift_stops_before_resample(self):
+        for case in ('birth', 'picker_owner'):
+            with self.subTest(case=case):
+                s, io, b, now = context(initial=True)
+                calls = self.unavailable_focus(b, 20)
+                def sleep(n):
+                    now[0] += n
+                    if case == 'birth': io.identity['start_usec'] += 1
+                    else: b.nodes[3]['owner'] = 999
+                io.sleep = sleep
+                with self.assertRaises(Refusal): s.initial_picker()
+                self.assertEqual(len(calls), 1)
+
+    def test_focus_pause_receipt_failure_still_runs_one_normal_cleanup(self):
+        def configure(b, api, now):
+            self.unavailable_focus(b, 20)
+            b.fail_focus_pause_receipt = True
+        result, counts, api, b, app, records = self.full(configure=configure)
+        self.assertTrue(b.focus_pause_receipt_failed)
+        self.assertEqual(b.sleep_calls, [.2])
+        self.assertEqual(api.posts, [])
+        self.assertEqual(app.terminations, 1)
+        self.assertTrue(result['original_absent'])
+
+    def test_focus_pause_quota_is_shared_across_initial_proof_reads(self):
+        def configure(b, api, now):
+            original = b.a.AXUIElementCopyAttributeValue.call
+            seen = [0]
+            def read(ref, name, out):
+                if ref == 1 and name == 'AXFocusedUIElement':
+                    seen[0] += 1
+                    if seen[0] in (1, 3, 4): return -25212
+                return original(ref, name, out)
+            b.a.AXUIElementCopyAttributeValue.call = read
+        result, counts, api, b, app, records = self.full(configure=configure)
+        self.assertEqual(b.sleep_calls, [.2] * 3)
+        self.assertEqual(result['diagnostic']['snapshot']['budget']['initial_focus_pause_reservations'], 3)
+        self.assertEqual(len(api.posts), 2)
+        self.assertTrue(result['original_absent'])
+
+    def test_strict_and_post_focus_novalue_do_not_gain_availability_wait(self):
+        for stage in ('strict', 'snapshot'):
+            def configure(b, api, now):
+                original = b.a.AXUIElementCopyAttributeValue.call
+                seen = [0]
+                def read(ref, name, out):
+                    if ref == 1 and name == 'AXFocusedUIElement':
+                        seen[0] += 1
+                        if (stage == 'strict' and seen[0] >= 3) or getattr(b, 'after_post', False):
+                            return -25212
+                    return original(ref, name, out)
+                b.a.AXUIElementCopyAttributeValue.call = read
+                if stage == 'snapshot': api.on_down = lambda: setattr(b, 'after_post', True)
+            result, counts, api, b, app, records = self.full(configure=configure)
+            self.assertEqual(b.sleep_calls, [])
+            self.assertEqual(len(api.posts), 0 if stage == 'strict' else 2)
+            self.assertEqual(app.terminations, 1)
+            self.assertTrue(result['original_absent'])
 
 
 class ABIOnlyTests(unittest.TestCase):

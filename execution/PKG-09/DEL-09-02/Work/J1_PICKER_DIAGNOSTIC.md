@@ -725,3 +725,245 @@ the selected proof, legacy negative veto, one-gesture semantics and timing/priva
 bounds remain as above. No native operation, build or extra delegate occurred.
 A fresh repaired source/entry freeze and inspection precede any live selection;
 the original24yk1jzs root stays unrun and is not a future invocation target.
+
+
+## Explicit selected focused-ancestry criterion — OFFLINE/UNRUN
+
+Agent0 selected POSITIVE_FOCUSED_ANCESTRY_DIAGNOSTIC_V1 after independently
+receiving the [frozen9ed actual account](J1_POSITIVE_TOP_LEVEL_ACTUAL_20261106T124309Z.md).
+This contribution starts from integrated maind74c1609fe2f3fe4ba0378c75d2aa4326ede86ae.
+The exact actual-account bytes from852508612760e28c3c448a3c4af917de217fd9ef are
+included by ordinary cherry-pick, SHA256
+eed101216a29408d2a2473b72c27f79c6aee62a21b8bcb68a59e53a7f2929d3a.
+That execution remains frozen9ed/producteaf/b98, not an execution of this new mode.
+
+Actual9ed observed publication and the owned continuous focused parent chain,
+then the first AXTopLevelUIElement read returned-25212/NoValue/null in67.416us
+native-only time. No complete target proof, gesture allocation/consumption,
+intent/chord or post-root snapshot followed. One checked picker press and normal
+cleanup closed in4.639242s with no overrun; original23079 and all three runner/
+wrapper identities were independently found absent by Agent0 at12:48:32.279291Z.
+The raw account/receipts and POSITIVE_TOP_LEVEL_ACTUAL_CLOSURE.json in
+app-pr141-review-b70j6o9_ retain those subjects. NoValue does not establish a
+permanent API absence, transience, permission, timing or OS cause. Its meaning
+and the prior positive-TopLevel criterion are preserved as historical evidence.
+
+The public AXAttributeConstants.h TopLevel contract describes the nearest parent
+of role Window/Sheet/Drawer, available by walking parent relations. Agent0 now
+selects the observed ancestry itself as primary proof in this explicit source
+mode. It is always used, regardless of what a provider might return for a
+shortcut. AXTopLevelUIElement is retired from active extraction/validation/
+trace/typed-failure allowlists, and active TopLevel proof fields are removed.
+No AXWindow/FocusedWindow/other shortcut is substituted. Old source/entry/actual
+data retain their exact identities; no existing receipt authorizes later input.
+
+The primary proof requires the SAME full original birth/UID/PGID/path/hash,
+retained App/main/picker and pending PROJECT purpose. Main must be positively
+published in original App AXWindows; exactly one ownedSheet picker must be
+published in main AXChildren, with direct parentmain. Picker need not occur in
+AppWindows. Mandatory owner/type/role/AXParent observations start from a fresh
+original-App focused element distinct from App/main/picker and known nonmodal.
+At most6 parent links reach the FIRST modal ancestor, which must be exact
+retained picker with roleSheet. An intervening Window/Sheet/Drawer/Dialog,
+unknown/foreign/cyclic/missing/wrong-type ref, modal focus itself or a path to
+App/main/another root refuses. No traversal can skip a nearer modal to reach a
+preferred picker. Only owner/type/role/parent is read along private outline/list/
+scroll/browser/path/menu/text/control ancestry; their children/values stay opaque.
+
+Initial proof and both strict sides of durable intent use current publication,
+parent/ancestry/modal-veto/identity observations, not successful cached properties.
+The focused identity and picker must stay the SAME across intent. After all
+catalog/veto work, complete focused ancestry is read freshly again, the picker
+parent is revalidated and a full original identity guard follows the final AX
+reads. Detached nearest_modal_proof records focused/nearest-modal/path ordinals,
+actual role-read ops, parent/focused edges, pass/phase/proof IDs and the fixed
+mode. It never exposes internal refs, mutable target state or counters as proof.
+Receipt mutation cannot rebind identity/properties, and receipt failure sends no
+input. Positive evidence remains bounded current AX observations, not readiness.
+
+The existing role-only veto boundary, known-modal stickiness and retained picker
+identity are preserved. Main/picker direct children and only validated focus-path
+Group/SplitGroup wrappers are admitted; private leaves, unknown and off-route
+branches are not expanded. Legacy picker AXSheets remains negative-only:
+known nonempty always vetoes, unsupported/NoValue remains unknown/null, and0 is
+not authority. Main's optional legacy relation is not a modal census. A partial
+communication failure cannot erase a known semantic contradiction or replace P.
+
+After the one fixed command attempt, fresh original-App focus is followed by
+mandatory owner/role/parent-only reads to its first modal ancestor. If retained
+picker, the snapshot observes only retained picker/effectunknown. Another owned
+Sheet Q is selected only with the existing bounded reciprocal parent AND child
+path THROUGH retained picker, which must remain positively published/direct-main.
+Window/Drawer/Dialog, sibling-under-main, unknown/foreign/ambiguous/multiple/
+missing/private relation or drift produces partial/effectunknown, with no alternate
+root. A second fresh ancestry after publication must still reach the same selected
+root. Expansion uses validated focus-path Group/SplitGroup wrappers only. Labels
+remain observed-after-attempt, never created/new/caused/Go-to-ready or a handling
+acknowledgement. Changed postfocus alone is not evidence of misrouting.
+
+All bounds remain unchanged: initial4 complete passes/6s with at most3 fixed.1
+pauses; strict2s within one fixed8s ceiling clipped to110work/180total; .2 on each
+actual ref; initial read64/owner128, diagnostic trace512/shared32 CFEqual-distinct
+refs/depth3/12children. Eligible initial no-result CannotComplete may end a pass;
+strict checks/snapshot/input never retry. Shared counters/deadlines do not reset;
+late or fatal/semantic/cap/headroom/receipt failures stop planned observations.
+CFEqual remains identity bookkeeping, not exact-object timeout inheritance.
+Native/read/post-native/owner-composite/identity/receipt timing labels retain their
+previous scopes; no stronger hard bound or timeout/causal conclusion is inferred.
+
+NativePosting/FixedGesture/DiagnosticStage/run_prepared and StructuralCalls ABI
+initializer ASTs remain identical to the base; core/test/reader bytes are unchanged.
+The existing private source/fixed CmdShiftG event pair/originalPID, consume-before-
+dispatch/no-repeat/unknown handling, full-original paired-up check and CF releases
+are unchanged. NativeSession.check is not overridden or made evidence-dependent.
+Trace/cap/journal errors cannot prevent the SAME-original paired up or autonomous
+normal termination and held-until-original-birth-absence finalizer.
+
+Focused verification:103 mocked tests PASS under the ordinary wrapper/fresh
+scratch homes; deliverables errors=[] and static/diff checks are retained in
+checks.json. No native operation was performed.
+Existing99 mocked methods are explicitly adapted: mandatory-shortcut failures
+become required parent/role/focus failures; late/drift injection and alias checks
+follow actual parent reads; post-root fixtures use observed ancestry; obsolete
+TopLevel fields become nearest-modal path/role/edge provenance. This does not
+claim all99 prior assertions unchanged. Additional actual-path cases require the
+observed six-child/five-link geometry plus two role CannotComplete returns,
+primary ancestry with missing/bogus/advertised shortcut values and no shortcut
+queries, first intervening modal fail-fast, sameP drift across intent, and actual
+controller cleanup. Protected privacy/input/custody, caps/headroom/late/evidence
+mutation, strict no-retry, postP/throughP-Q negatives, unknown dispatch/paired-up
+and false/unknown normal-termination custody coverage remain. No proof methods
+are bypassed in tests. The brief resource deferral was honored between source
+adaptation and the next authorized focused submission; release is never inferred
+from time. Logs/source/static evidence are retained at
+/Users/ryan/dev/chirality-t3/scratch/app-j1-focused-ancestry-checks-97wfg80p.
+
+The original immutable preparation root, subsequently consumed below, bound its
+exact committed source head:
+/Users/ryan/dev/chirality-t3/scratch/app-j1-focused-ancestry-staged-70cuvl95
+Diagnostic SHA256:3f6dd796f30448be95f9c6867c33e6aefa748d534a948ac90154fcbc42bd55ec
+Test SHA256:dac6e572fa02f07e2d528ec0f4f985aaf96f1af7c8a6892bb44e1c19e6779231
+Entry SHA256:542e75b598a46e098a974f23f6a396b1752977ac45b6cdd66843999b746f6fc8
+
+only two EXPECTED diagnostic/test hashes change from accepted4d9f entry, with
+inverse-byte proof. Required futureUTC/185s slot-entry/admitted/launch-intent,
+180/110/subject/authentic receipt/private journal/generic diagnostic entry
+semantics remain unchanged. Authentic56116108/11 member sets/project/eaf-b98
+executable and preserved members/account refs are statically verified. Entry
+and five Git-object copies are compiled only, never imported/executed, with
+empty events and no end/availability/GO/admission/process/queue selected here.
+
+Exact-panel observed-ancestry fidelity to the process-key responder remains an
+unproved assumption; posting is void/PID-specific/non-atomic. This proof is not
+a global empty-modal-set or handling guarantee. No native/session/preflight/App/
+event/resource discovery, path/settings/review/confirmation/save/StageB/model/
+auth/network, owner App task, build/broad suite or delegate is performed by this
+implementation. Setup/J1/J2/model/native qualification remain open. ScopeOfWork/
+dependency/acceptance meanings are unchanged. Agent0 retains independent exact
+version review, coordination/CI/integration and any later fresh availability/GO.
+No live selection follows this preparation.
+
+## Frozen546 focused-ref refusal and initial-only availability wait
+
+The [new actual account](J1_FOCUSED_ANCESTRY_ACTUAL_20261106T132809Z.md), included
+byte-identical from5003e465, records the one selected frozen PRE-MERGE54602438
+invocation in13:26:59–13:31:59Z. It observed original main/picker publication and
+one checked picker press. Original-App AXFocusedUIElement op59/pass2 then returned
+NoValue/-25212/null, native0.013892916s. There was no focused reference, parent
+path, nearest-modal proof, target proof or command; prior subjects' paths are not
+reused. The absence at that read supplies no transience/permanence/cause claim.
+
+One prebound normal termination and actual original-birth absence closed in
+3.724506s without overrun. Agent0 independently found original85777/Python85773/
+slot85771/invocation85759 absent at13:35:18.266295Z and matched all four supplied
+raw hashes. FOCUSED_ANCESTRY_ACTUAL_CLOSURE.json remains in app-pr142-review-nf0zy75z.
+No App exit/reap, setup/save, useful-model or qualification result follows.
+The70cuvl95 source/entry/preparation/raw receipts remain frozen; this invocation
+is consumed and cannot be rearmed or relabelled as later source execution.
+
+The follow-up leaves the positive ancestry/input criterion unchanged. It adds an
+explicit INITIAL-ONLY availability wait for original-App AXFocusedUIElement
+-25212/null after the original picker has already been bound. At most three
+pause/resample reservations of fixed0.2s are shared across the WHOLE initial
+phase, including both proof focus reads and all communication passes; they never
+reset. These are additional to the existing at-most-three0.1s communication-pass
+pauses, all inside the same original6s initial/fixed8s/work110/total180 ceilings.
+They add no independent interval, observation/owner/ref/trace capacity or input.
+
+Every resample uses the same original App reference, original identity/AX binding
+guards and current retained-picker ownership; every actual reference still gets
+the existing exact-object0.2 helper. Actual read/capacity/timing/null facts stay
+recorded. There is no full-publication replay or permission from previously
+successful properties: eventual strict before/after-intent proofs remain wholly
+fresh. NoValue never authorizes input. Unsupported focus, malformed/nonnull copy,
+wrong owner/identity/picker, missing role/parent, exhausted capacity/headroom,
+late call/pause/receipt or unavailable focus after the third pause stops normally.
+STRICT checks and post-attempt observation NEVER gain this wait or a retry.
+
+All111 mocked tests pass under the ordinary wrapper with scratch homes. Eight
+new methods cover one/two/three unavailable samples then a positive complete
+proof under existing caps, persistent four-read exhaustion, unsupported/strict/
+post refusals without waits, shared pause quota, late reads/pauses, original/
+picker-owner drift and failure of the actual focus-pause receipt with autonomous
+cleanup. The initial regression cohort failed against the old source; logs are
+focus-before.log, focus-after.log and focus-final.log in app-pr142-review-nf0zy75z.
+No real native/API/App operation, build or additional delegate was used in this
+offline repair. All five protected posting/gesture/session/stage/finalizer ASTs,
+the StructuralCalls ABI initializer and core/test/reader bytes remain unchanged.
+
+Current source SHA256:
+0b08ed7e41c62e7fef6e2a10ae59daa647617192c32d518d9a94607fbb1b2d48;
+current test SHA256:
+a1e77889a143db80a8e3e4e5ee40a258dff8fe6aeccffcf4361a86c512da17bc.
+At that offline return, a NEW exact-version UNRUN entry/source freeze and
+inspection was required before a later fresh window/GO. The observed546 refusal
+retains its original behavior and source standing. Scope/dependency/acceptance
+and all App/model/access authority remain unchanged.
+
+## Frozen aa08 partial ancestry and owner-mismatch refusal
+
+The [actual account](J1_INITIAL_FOCUS_READINESS_ACTUAL_20261106T141435Z.md) is
+included byte-identical from aeeb71604f861469ab43b50ba8fd77909e3f22e1, SHA256
+7908066165d9514e8e1c5c04e3e78d865b0e7a0bb92f1966eddc6c1f8961bbd6.
+Agent0 inspected the gcxbhyjw freeze before selecting one invocation in the fresh
+14:13:42–14:18:42Z available-desktop window. Actual method stays PRE-MERGE aa08;
+product stays eaf5d057/b98a30fe. The entry/window is consumed and closed.
+
+After two main-role CannotComplete responses, pass3 observed current original-owned
+focus8 Outline→9 ScrollArea→10 SplitGroup→11 SplitGroup→P7 Sheet, direct P→main1
+and standard publication. App focus op69 returned RC0/AXUIElement with native
+duration0.241293916s. The exact-object requested0.2s timeout is cooperative;
+late=false refers to the actual phase/work ceilings. The initial focus helper
+reserved no pauses: its NoValue resampling path was NOT exercised in this run.
+No cause or improvement attributable to that wait is established.
+
+During role-only veto-boundary validation, wrapper11 AXChildren count12/op101 and
+bounded range12/op103 succeeded. Ref13's owner composite op105 returned
+RC0/owner_match=false, duration0.000006250s. No role/parent/content query followed
+on that ref, and its actual PID was not retained. Validation stopped before the
+completed membership record was stored: no11→13 edge, service identity, role,
+parent or semantics is inferred from allocation order. Ref12's owner comparison
+was true, but its role/parent were also unobserved. The ownership veto remains.
+
+The initial proof did not finish: initial_completed_pass=null, target_proofs=[],
+snapshot=null, gesture unconsumed/allocated0/downfalse/upfalse. One checked
+project-picker press was the only App action before normal termination; there
+was no navigation intent or chord. Partial evidence retains14 distinct refs,
+35 initial reads/59 owner reservations/105 trace ops, with no late operation.
+
+One prebound normal termination returned BOOLtrue/effect_proved=false; actual
+original-birth absence was separately verified. Raw controller elapsed3.200360s;
+final closure3.207680s/zero overrun, exit_status=null. Wrapper END14:14:38Z rc1 is
+the diagnostic outcome. Native's14:15:29.964071Z exact checks found original1977,
+Python1915, slot1912 and invocation1879 absent; Agent0 independently corroborated
+all four absences at14:27:01.895636Z. No exit/reap result is inferred.
+
+Agent0 verified the sole-new-file/parent/account hash, all123 raw event hashes,
+entry/preparation and projection/closure bindings. Review evidence is
+INITIAL_FOCUS_ACTUAL_ACCOUNT_REVIEW.json and
+INITIAL_FOCUS_READINESS_ACTUAL_CLOSURE.json in app-pr142-review-nf0zy75z.
+The111 mocked tests retain their checked source standing; no test rerun, build,
+App/AX/process query or later phase was needed for this account integration.
+Scope/dependency/acceptance are unchanged. Setup/save, handling, J1/J2/model/native
+qualification remain open. Agent0 owns next method review; no ownership-policy
+exception, retry, new live GO or reuse of a consumed entry is selected.
