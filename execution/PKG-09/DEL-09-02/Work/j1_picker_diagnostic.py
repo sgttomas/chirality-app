@@ -232,7 +232,7 @@ class Structure:
                      native_start_elapsed=None if native is None else native['start']-self.started,
                      native_end_elapsed=None if native is None else native['end']-self.started,
                      native_duration=None if native is None else native['end']-native['start'],
-                     decode_duration=None if native is None else end-native['end'])
+                     post_native_processing_duration=None if native is None else end-native['end'])
         if details:
             event.update(details)
         if row is not None:
@@ -382,10 +382,13 @@ class Structure:
                 details = {'range_start': 0, 'requested_count': count}
             self.finish(token, rc, self.calls.last_cf_type, details, native, row, not completed)
 
-    def read_status(self, rc, kind, api, name, row):
+    def read_status(self, rc, kind, api, name, row, optional=False):
         if rc == -25204 and self.mode == 'initial' and (api == 'count' or kind == 'null'):
             raise StructuralReadFailure(api, name, row['ordinal'], 'count' if api == 'count' else 'null')
+        if optional and rc in (-25205, -25212):
+            return False  # prior optional absence, never a successful zero count
         self.guard(rc == 0, 'diagnostic structural read failed')
+        return True
 
     def value(self, ref, name):
         self.guard(name in self.VALUE_ATTRS, 'diagnostic attribute forbidden')
@@ -396,7 +399,8 @@ class Structure:
             self.guard(len(self.refs_seen) < 32, 'diagnostic scalar-reference budget exhausted')
         (value, refs), token = self.read(ref, name, 'value', row)
         rc, kind = value['return_code'], value['type']['name']
-        self.read_status(rc, kind, 'value', name, row)
+        if not self.read_status(rc, kind, 'value', name, row, optional=True):
+            return None
         if name in ('AXParent', 'AXFocusedUIElement'):
             self.guard(kind == 'AXUIElement' and len(refs) == 1, 'diagnostic scalar-reference type')
             target = refs[0]
@@ -413,7 +417,9 @@ class Structure:
         return value['value']
 
     def role(self, ref):
-        return self.value(ref, 'AXRole')
+        role = self.value(ref, 'AXRole')
+        self.guard(role is not None, 'diagnostic mandatory role absent')
+        return role
 
     def ref(self, ref, name):
         return self.value(ref, name)
@@ -424,7 +430,8 @@ class Structure:
         row = self.touch(ref)
         self.owner(ref, row)
         (rc, count), token = self.read(ref, name, 'count', row)
-        self.read_status(rc, 'count', 'count', name, row)
+        if not self.read_status(rc, 'count', 'count', name, row, optional=optional):
+            return []
         self.guard(type(count) is int and 0 <= count <= 12, 'diagnostic child/count cap or type')
         if name == 'AXWindows':
             self.guard(count <= 4, 'diagnostic App window cap')

@@ -151,6 +151,43 @@ def context(initial=False):
 
 
 class StructuralTests(unittest.TestCase):
+    def test_optional_relationship_absence_keeps_unknown_count_and_no_range(self):
+        for code in (-25205, -25212):
+            for name in ('AXSheets', 'AXChildren'):
+                with self.subTest(code=code, name=name):
+                    s, io, b, now = context()
+                    original = b.a.AXUIElementGetAttributeValueCount.call
+                    def absent(ref, attr, out):
+                        return code if (ref, attr) == (2, name) else original(ref, attr, out)
+                    b.a.AXUIElementGetAttributeValueCount.call = absent
+                    self.assertEqual(s.refs(2, name, optional=True), [])
+                    fact = s.rows[1]['reads'][-1]
+                    self.assertEqual(fact['return_code'], code)
+                    self.assertIsNone(fact['count'])
+                    self.assertFalse(any(row[:3] == ('range', 2, name) for row in b.log))
+                    self.assertIsNone(s.stopped)
+
+    def test_optional_scalar_absence_does_not_remove_mandatory_role_or_baseline(self):
+        for code in (-25205, -25212):
+            s, io, b, now = context()
+            original = b.a.AXUIElementCopyAttributeValue.call
+            def absent(ref, name, out):
+                return code if (ref, name) == (3, 'AXParent') else original(ref, name, out)
+            b.a.AXUIElementCopyAttributeValue.call = absent
+            self.assertIsNone(s.ref(3, 'AXParent'))
+            s, io, b, now = context()
+            b.a.AXUIElementCopyAttributeValue.call = lambda *args: code
+            with self.assertRaises(Refusal):
+                s.role(2)
+            s, io, b, now = context(); picker = s.picker(); api = Posting()
+            original_count = b.a.AXUIElementGetAttributeValueCount.call
+            def no_baseline(ref, name, out):
+                return code if (ref, name) == (3, 'AXSheets') else original_count(ref, name, out)
+            b.a.AXUIElementGetAttributeValueCount.call = no_baseline
+            with self.assertRaises(Refusal):
+                d.FixedGesture(api).run(s, picker, lambda *args: None)
+            self.assertEqual(api.posts, [])
+
     def test_real_bind_route_snapshot_privacy_and_range_order(self):
         structure, io, b, now = context()
         picker = structure.picker()
@@ -444,7 +481,7 @@ class CommunicationPolicyTests(unittest.TestCase):
         io.record=record
         self.assertEqual(s.role(2),'AXWindow')
         event=next(e for e in reversed(s.trace) if e['api']=='AXUIElementCopyAttributeValue')
-        self.assertAlmostEqual(event['native_duration'],.002);self.assertAlmostEqual(event['decode_duration'],.03)
+        self.assertAlmostEqual(event['native_duration'],.002);self.assertAlmostEqual(event['post_native_processing_duration'],.03)
         self.assertAlmostEqual(event['duration'],.032)
         self.assertIn('composite',next(e for e in s.trace if e['api']=='bounded_owner_composite')['duration_scope'])
         self.assertGreaterEqual(s.receipt_seconds,.08)
@@ -870,6 +907,25 @@ class AdmissionAndRunTests(unittest.TestCase):
         self.assertTrue(result['diagnostic']['snapshot']['complete'])
         self.assertEqual(len(api.posts), 2)
         self.assertIn('final-closure', [k for k,v in records])
+
+    def test_optional_main_relationship_absence_keeps_owned_picker_usable(self):
+        for code in (-25205, -25212):
+            with self.subTest(code=code):
+                def configure(b, api, now):
+                    original = b.a.AXUIElementGetAttributeValueCount.call
+                    def absent(ref, name, out):
+                        if ref == 2 and name in ('AXSheets', 'AXChildren'):
+                            return code
+                        return original(ref, name, out)
+                    b.a.AXUIElementGetAttributeValueCount.call = absent
+                result, counts, api, b, app, records = self.full(configure=configure)
+                self.assertEqual(len(api.posts), 2)
+                self.assertEqual(result['diagnostic']['snapshot']['budget']['initial_completed_pass'], 1)
+                self.assertFalse(b.sleep_calls)
+                self.assertTrue(result['diagnostic']['snapshot']['complete'])
+                self.assertTrue(result['original_absent'])
+                self.assertEqual(app.terminations, 1)
+                self.assertFalse(any(row[0] == 'range' and row[1] == 2 for row in b.log))
 
     def test_initial_binding_read_failure_retains_only_partial_safe_facts(self):
         for case in ('role', 'count', 'owner'):

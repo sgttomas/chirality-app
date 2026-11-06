@@ -403,7 +403,7 @@ path coverage of all16 selected proposal scenarios:
 | Count null | Failed C-output0 remains unknown; no range follows. |
 | Malformed copied output | Failed nonnull/wrong-type copies and malformed successful arrays refuse without decoding into readiness. |
 | Original/picker drift | Owner/birth/app/main/candidate changes, stale refs and ambiguity refuse, no replacement. |
-| Semantic/other errors | Wrong role/type, caps, unsupported/NoValue/other errors and timeout-setup failure are fatal. |
+| Semantic/other errors | Wrong role/type, caps, missing mandatory values, other errors and timeout-setup failure are fatal. Prior optional unsupported/NoValue absence remains absent, never a retry or successful zero count. |
 | Fast failures | Synthetic2ms calls retain RC/duration, no cause field. |
 | Wait-length failures | Synthetic199ms failures remain messaging errors with measured duration. |
 | Late work | Native success/failure/range, owner composite, CF decode, identity and receipt lateness stop further observation. |
@@ -427,11 +427,12 @@ focused-initial.log, focused-expanded.log, focused-after-adaptation.log,
 focused-final.log, TEST_ADAPTATION.json, deliverables.log, checks.json and
 FINAL_HEAD.json. Initial failures are retained at their actual subjects/results.
 
-New source SHA256:
+Original author719de131 source SHA256, retained unrun and superseded for future
+selection by the review repair below:
 56b50d3129116368f53b5e131c021c4b7c1edc068535afcdbcec2c205046fda5;
 new test SHA256:
 276ccb50b0fa63aa2fb9d7a639410417e13f48d81bb721de17a6a8bdfa6873a7.
-NEW immutable UNRUN source/entry root:
+Original author immutable UNRUN source/entry root, retained unchanged:
 /Users/ryan/dev/chirality-t3/scratch/app-j1-communication-policy-staged-qdhdxfr7.
 Its five copies are extracted from the exact final committed head. Entry SHA256:
 efe28af4797b6a92e25dd4942ccb4ae47637bccbaacf35b7c44697d8dae34be7.
@@ -476,5 +477,47 @@ The role-only wait did not establish complete native binding. Agent0 selected
 an offline, source-grounded review of a coherent AX messaging/readiness budget;
 no additional code change, live query, input retry, timeout extension or new
 window follows from this actual return. The48 mocked tests retain their a426
-subject and were not rerun for this account. Current source/test/ABI/cleanup
-bytes are unchanged. ScopeOfWork and dependency meanings remain unchanged.
+subject and were not rerun for this account. That actual-account receiving
+changed no source/test/ABI/cleanup bytes. ScopeOfWork and dependency meanings
+remain unchanged.
+
+## Direct review repair: preserve optional absence and precise timing labels
+
+Agent0 independently reran the original719de131 cohort:73 mocked tests passed.
+Source review then found that refs(optional=True) no longer used its optional
+argument: unsupported/NoValue relationships had become fatal despite their prior
+absence semantics. A valid original-owned/direct picker in App AXWindows could
+therefore be blocked by an unavailable optional main AXSheets/AXChildren relation.
+Three new mocked methods reproduced the regression (two failures/five errors).
+No actual native control absence or new native failure is inferred from them.
+
+The repair preserves optional -25205/-25212 as absent relationships/values,
+without retrying or inventing count0. Their exact errors and null counts remain
+in the trace. Mandatory roles still refuse absence, and the before/after-intent
+picker AXSheets baseline still requires actual success0 through optional=False.
+The new controller case exercises a direct owned picker found through App
+AXWindows, with unsupported/NoValue main relations: one initial pass, no sleeps,
+unchanged strict input checks and normal cleanup. Both unsupported/NoValue codes
+also refuse the mandatory baseline with zero posts.
+
+The field previously named decode_duration is now
+post_native_processing_duration: it includes CF decoding and Python result
+preparation between native return and trace finalization. Native-only time and
+journal time remain separately labelled. No call, timeout or budget changed for
+this naming correction.
+
+All76 mocked tests pass under the ordinary wrapper with fresh scratch homes.
+Logs are retained in
+/Users/ryan/dev/chirality-t3/scratch/app-pr140-review-h9ps254y:
+original-focused.log, optional-before.log and repaired-focused.log. The review
+and repair used no native API/preflight/session/App/event operation, build or
+additional delegate. Core/test/reader and the four protected posting/gesture/
+stage/finalizer ASTs remain unchanged. Scope/dependency meanings remain unchanged.
+
+Repaired source SHA256:
+ea0c2f0fb664da2946e914af192d161ce044873dee02e1b6f77fbfa89d0eba08;
+repaired test SHA256:
+2ce8c37d1b3940907a717f10bd663830492a76b2d541a8ef60090dad2219bde9.
+The original qdhdxfr7 source/entry/manifests stay unchanged and unrun. A fresh
+exact repaired entry must be staged and inspected before any separate live
+selection. No window end, input retry or GO follows from this source repair.

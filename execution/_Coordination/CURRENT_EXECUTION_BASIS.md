@@ -273,8 +273,13 @@ Current Type 1 assignments are:
   no navigation allocation/post or full snapshot. Normal cleanup/verified absence
   completed in5.71 s without overrun; Agent0 corroborated original App/wrapper
   absence. This finite sequence supplies no cause finding or prior-run inference.
-  The next method disposition is an offline review of the binding's messaging/
-  readiness budget. No unused live entry, input retry or new window is selected.
+  The [selected communication policy](../PKG-09/DEL-09-02/Work/J1_PICKER_DIAGNOSTIC.md#direct-review-repair-preserve-optional-absence-and-precise-timing-labels)
+  now has offline implementation/source review: four complete initial binding/
+  routing passes in6s, strict2s under one8s ceiling, unchanged.2 exact-object
+  timeout and unchanged110work/180total cleanup/custody.76 mocked tests pass after
+  restoring prior optional-absence semantics while retaining mandatory roles and
+  actual success0 input baselines. It remains unrun; fresh repaired-entry staging/
+  inspection precedes any new window. No input retry or live GO is selected.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
