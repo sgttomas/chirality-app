@@ -1018,7 +1018,7 @@ mocked/source evidence, not a new native diagnostic or measured timing guarantee
 
 Checks and exact comparison source are retained in
 /Users/ryan/dev/chirality-t3/scratch/app-j1-return-provenance-checks-q2iqvmrn
-(regression-before.log, regression-after.log, focused.log,
+(regression-before.log, regression-after.log, focused-final.log, checks.json,
 BEHAVIOR_AND_STATIC.json and compare_behavior.py). Independent review and hosted
 CI are integration conditions. ScopeOfWork/dependencies/acceptance and product
 source remain unchanged. A new exact entry freeze/review and fresh desktop
