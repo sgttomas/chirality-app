@@ -133,7 +133,7 @@ def context():
     io = SimpleNamespace(backend=backend, identity=identity, ax=SimpleNamespace(app=1, main=2),
                          clock=lambda: now[0], check=check, project_pending=True)
     io.structural_calls = d.StructuralCalls(backend)
-    return d.Structure(io, 2, 2), io, backend, now
+    return d.Structure(io, 2, 2).begin(), io, backend, now
 
 
 class StructuralTests(unittest.TestCase):
@@ -475,6 +475,61 @@ class AdmissionAndRunTests(unittest.TestCase):
         self.assertTrue(result['diagnostic']['snapshot']['complete'])
         self.assertEqual(len(api.posts), 2)
         self.assertIn('final-closure', [k for k,v in records])
+
+    def test_initial_binding_read_failure_retains_only_partial_safe_facts(self):
+        for case in ('role', 'count', 'owner'):
+            with self.subTest(case=case):
+                def configure(b, api, now):
+                    if case == 'role':
+                        original = b.a.AXUIElementCopyAttributeValue.call
+                        def value(ref, name, out):
+                            if ref == 2 and name == 'AXRole':
+                                b.log.append(('failed-role', ref))
+                                b.stopped_log = list(b.log)
+                                return -25204
+                            return original(ref, name, out)
+                        b.a.AXUIElementCopyAttributeValue = Fn(value)
+                    elif case == 'count':
+                        original = b.a.AXUIElementGetAttributeValueCount.call
+                        def count(ref, name, out):
+                            if ref == 1 and name == 'AXWindows':
+                                b.log.append(('failed-count', ref))
+                                b.stopped_log = list(b.log)
+                                return -25204
+                            return original(ref, name, out)
+                        b.a.AXUIElementGetAttributeValueCount = Fn(count)
+                    else:
+                        b.nodes[2]['owner'] = 999
+                result, counts, api, b, app, records = self.full(configure=configure)
+                partial = result['diagnostic']['binding_refusal']
+                self.assertEqual(partial['stage'], 'binding')
+                self.assertFalse(partial['complete'])
+                self.assertIsNone(result['diagnostic']['snapshot'])
+                self.assertFalse(partial['readiness'])
+                self.assertEqual(api.posts, [])
+                self.assertEqual(app.terminations, 1)
+                self.assertTrue(result['original_absent'])
+                self.assertIn('diagnostic-binding-refusal', [k for k,v in records])
+                self.assertNotIn('SECRET', repr(partial))
+                if case in ('role', 'count'):
+                    self.assertEqual(b.log, b.stopped_log)  # no recovery AX query
+                    reads = [r for node in partial['nodes'] for r in node['reads']]
+                    failed = next(r for r in reads if r['return_code'] == -25204)
+                    self.assertEqual(failed['attribute'], 'AXRole' if case == 'role' else 'AXWindows')
+                    if case == 'count':
+                        self.assertIsNone(failed['count'])
+                else:
+                    self.assertFalse(partial['nodes'][-1]['owner_match'])
+
+    def test_binding_refusal_receipt_failure_still_cleans_up(self):
+        def configure(b, api, now):
+            b.nodes[2]['owner'] = 999
+        result, counts, api, b, app, records = self.full(
+            configure=configure, fail_record='diagnostic-binding-refusal')
+        self.assertEqual(app.terminations, 1)
+        self.assertTrue(result['original_absent'])
+        self.assertEqual(api.posts, [])
+        self.assertIsNone(result['diagnostic']['snapshot'])
 
     def test_receipt_failures_do_not_skip_autonomous_cleanup(self):
         for kind in ('diagnostic-navigation-intent','diagnostic-structure','cleanup-intent','normal-terminate-intent'):

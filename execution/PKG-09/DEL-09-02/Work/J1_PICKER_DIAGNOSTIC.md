@@ -18,7 +18,7 @@ state policy, original-attempt account or current-basis/punchlist edit. DEL09-02
 ScopeOfWork/dependency/acceptance meanings are unchanged: this is scoped method
 preparation and mocked verification, not a native witness or fulfilled journey.
 
-## Implemented path, not executed
+## Diagnostic path and frozen execution subjects
 
 New j1_picker_diagnostic.py explicitly constructs DiagnosticSession and
 DiagnosticStage. DiagnosticStage inherits the unchanged core StageA.run/startup/
@@ -177,3 +177,45 @@ without App environment overrides. No staged entry, slot or native operation has
 been submitted. Agent0 owns PR integration, inspection of a fresh repaired frozen
 entry and any separate fresh owner-availability/GO. No extra delegate or owner
 test task. These historical preparation hashes do not identify the repaired code.
+
+## Actual frozen c977 attempt and offline binding-evidence repair
+
+The [owning actual account](J1_PICKER_DIAGNOSTIC_ACTUAL_20261106.md) records the
+single selected frozen PRE-MERGE c97748f7 invocation in the fresh01:03:31–01:08:31Z
+window. It used the separately inspected ry6qyuzz entry af70178f, whose only
+changes from the original entry were the two expected source/test hash literals.
+Admission/source/packet checks and the same-runner posting preflight passed.
+One original main, WebArea/9controls and one checked project-picker press were
+observed. Initial diagnostic binding then refused with the fixed category
+`diagnostic structural read failed`, before navigation intent/posting or a
+structural snapshot. No failing attribute/AX code was retained; this work does
+not reconstruct them or infer a picker/OS/App cause. Original-process closure
+completed in3.893662s with zero overrun and wrapper rc1; Agent0 independently
+verified original App46759 and wrapper46753 absent. This attempt is consumed.
+
+That actual failure exposed an evidence gap in the diagnostic, not a demonstrated
+product defect. The offline repair keeps the structural collector reachable
+before its first identity/owner read and places initial binding inside the
+existing refusal/cleanup path. A failed binding now records
+`diagnostic-binding-refusal`: only the role/owner/CF-type/return-code/count facts
+already collected before refusal, with unknown counts left null. It performs no
+recovery AX/native read, snapshot traversal or input. snapshot remains null;
+handling/readiness stay unknown/false. Routing, modal baseline, input, privacy,
+deadlines and the unchanged core cleanup/custody guards are preserved.
+
+All37 mocked tests pass under the ordinary wrapper: the35 c977 cases plus two
+new methods covering early role/count/owner failures, no post-failure AX queries,
+and cleanup despite failure to write the partial receipt. Before this repair the
+new retention test failed in all three cases because no partial record existed.
+These invented failures supply no missing attribute/AX code for the live attempt.
+Red/green logs are binding-before.log and binding-after.log in the existing
+app-pr138-review-tjhi8ayn root. No additional native operation or build occurred.
+
+Current offline diagnostic source SHA256:
+158e963919329cdfe97c6bacb07dd08e29f500a4fd6b87810b4deb641fa018ac;
+current test SHA256:
+5b1e8c35d043e942f9d834dc57c088b0b5c12ee810257d0669238d6660f63aa5.
+The c977 source/test and consumed ry6qyuzz entry remain frozen in their original
+evidence root. They do not identify this follow-up repair. A fresh exact-version
+entry and separately selected availability/GO are required for any later
+diagnostic. No retry, further live selection or window extension follows here.

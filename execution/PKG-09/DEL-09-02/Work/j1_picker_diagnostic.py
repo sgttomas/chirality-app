@@ -119,9 +119,20 @@ class Structure:
         self.end, self.refs_seen, self.rows = phase_end, [], []
         self.snapshot_used = False
         self.command_picker = None
+
+    def begin(self):
+        # Keep the collector reachable when the first identity/owner read fails.
         self.io.check(self.original)
         self.touch(self.app)
-        self.touch(main)
+        self.touch(self.main)
+        return self
+
+    def binding_refusal(self, category):
+        # Existing allowlisted facts only. No AX/native calls or recovery reads.
+        return {'stage': 'binding', 'complete': False, 'error_category': category,
+                'nodes': deepcopy(self.rows), 'distinct_refs': len(self.rows),
+                'depth_cap': 3, 'reference_cap': 32, 'child_cap': 12,
+                'semantic_handling': 'unknown', 'readiness': False}
 
     def check(self):
         require(self.io.clock() < self.end, 'diagnostic phase cutoff')
@@ -428,9 +439,11 @@ class DiagnosticSession(NativeSession):
         self.experiment_used = True
         require(self.project_pending is True, 'diagnostic project purpose missing')
         structure = Structure(self, main, min(work_end, self.clock() + 2))
-        picker = structure.picker()  # common binding without the content classifier
+        picker = None
         dispatched = False
         try:
+            structure.begin()
+            picker = structure.picker()  # common binding without the content classifier
             structure.routing(picker)
             try:
                 self.diagnostic['gesture'] = self.gesture.run(structure, picker, self.record)
@@ -442,9 +455,14 @@ class DiagnosticSession(NativeSession):
             self.diagnostic['refusal_category'] = exc.code if isinstance(exc, DiagnosticStop) else type(exc).__name__
         finally:
             self.diagnostic['gesture_state'] = self.gesture.status()
-            snapshot = structure.snapshot(picker, dispatched)
-            self.diagnostic['snapshot'] = snapshot
-            self.record('diagnostic-structure', snapshot)
+            if picker is None:
+                partial = structure.binding_refusal(self.diagnostic['refusal_category'])
+                self.diagnostic['binding_refusal'] = partial
+                self.record('diagnostic-binding-refusal', partial)
+            else:
+                snapshot = structure.snapshot(picker, dispatched)
+                self.diagnostic['snapshot'] = snapshot
+                self.record('diagnostic-structure', snapshot)
         self.record('diagnostic-outcome', deepcopy(self.diagnostic))
         return False
 
