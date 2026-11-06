@@ -18,6 +18,11 @@ held. All earlier App diagnostic windows are consumed/closed; the separate
 Dynamics/#155 concurrence and submission deferral were explicitly released on
 verified closure. This is an App work pause, not global resource admission or
 isolation assurance. Other projects and shared guards retain their own ownership.
+SWBPIPE has separately paused routine coordination. Suppress routine App diagnostic
+admission/closure/resource-snapshot relays to that session unless an actual shared
+obligation/conflict or the owner needs them. Fresh coordination is requested only
+after owner resume; no previous concurrence is reusable. This transfers no authority
+between the projects.
 
 ### Retained result and remaining evidence
 
