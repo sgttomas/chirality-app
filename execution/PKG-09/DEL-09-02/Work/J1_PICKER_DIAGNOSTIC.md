@@ -1,0 +1,146 @@
+# Explicit offline picker-navigation diagnostic
+
+Agent0 selected this diagnostic after inspecting the actual attempt6 result and
+the source-grounded proposal in retained app-j1-picker-method-npghhlza. Attempt6
+remains pre-merge552 on producteaf, with one picker press, unclassified-picker
+refusal and observed closure. Its original evidence is not changed by this work.
+This separate experiment is not a fallback in full setup, a new native selection
+or a claim that the native picker supports path entry. Root owns integration and
+must inspect this author implementation/ABI/entry before a fresh availability/GO.
+
+Base: root PR137 head032751a58a84049dec62c682fc410713f29a9001, normally
+fast-forwarded onto merged main0dc1d7f1eb0d04445b38add9c6d6a4d476299530.
+The full-setup controller j1_stage_a_phase.py (SHA256f510d9be), its testa9420fa6
+and readerfd378 remain byte-identical. No product, frontend, IPC, packaged input,
+state policy, original-attempt account or current-basis/punchlist edit. DEL09-02
+ScopeOfWork/dependency/acceptance meanings are unchanged: this is scoped method
+preparation and mocked verification, not a native witness or fulfilled journey.
+
+## Implemented path, not executed
+
+New j1_picker_diagnostic.py explicitly constructs DiagnosticSession and
+DiagnosticStage. DiagnosticStage inherits the unchanged core StageA.run/startup/
+ready/checked-press/cleanup path and overrides ONLY setup's selected experiment
+sequence. The explicit diagnostic run_prepared mirrors the checked core's
+original-birth-aware held-until-absence finalizer. It does not replace or patch
+core classes/defaults at runtime. Importing either module performs no native work.
+
+The diagnostic sequence is first-use main → one checked project-picker button
+press → bind a unique original-owned related PROJECT picker → prove original-
+app focused-element ancestry → one fixed process-targeted gesture → one bounded
+structural snapshot → existing autonomous normal termination/actual absence.
+No path write, path readback/selection, new-settings/review/affirmative/save, model,
+auth or Stage B path exists in this experiment. Its setup_saved/J1/qualification/
+flow_complete remain false even when the diagnostic protocol completes.
+
+Admission prepares the event API signatures, then calls only the same runner's
+CGPreflightPostEventAccess. False/unavailable refuses before the core can launch;
+no request/TCC/prompt fallback. The receipt binds the current posting caller PID,
+UID, interpreter path/hash and actual boolean. Agent0's separate parent preflight
+at2026-11-06T00:11:28.952Z is an earlier current-caller preparation fact, not a
+grant or this future runner's result. All existing authentic receipt, packet,
+executable, state/environment and cleanup-capability guards remain core behavior.
+
+NativePosting uses only the inspected public SDK ABI: source state signed32=-1
+(PRIVATE), ANSI_G unsigned16=0x05, keyDown C bool, event flags unsigned64=0x00120000,
+and CGEventPostToPid(signed32 originalPID,event) returning void. No global posting,
+system-wide AX ref, default/HID source, separate modifier transitions, other key,
+activation/focus setter, coordinates/capture or permission-request symbol is used.
+The source and both events must be nonnull and are released on every path;
+failure releasing one does not skip remaining releases. No native API was loaded
+or called during implementation or the mocked tests.
+
+The command is consumed before allocation/intent/first post. A failed exclusive
+journal intent sends no input. Intent includes the full original identity,
+PROJECT purpose, source/flags/key/event count, retained app/main/picker ordinals
+and focused-ancestry ordinals. Full birth/UID/PGID/path/hash, same retained app/
+main/picker, pending PROJECT purpose, routing and cutoff are rechecked after the
+intent immediately before down. The paired up occurs only while the SAME full
+original identity still holds, including after an unknown down exception; it is
+not a second command. Drift prevents up to a replacement. Void results leave
+handling unknown, and consumption forbids any second gesture.
+
+CGEventPostToPid is PID-specific, not window-specific or birth-atomic. The focused
+AX ref must belong to the original App and reach the retained picker through at
+most6 parent links; missing/foreign/cyclic/unrelated routing forbids posting.
+This is a read-only routing proof, not a foreground/attendance or focus-write
+layer. Initial main is still captured once. A safely bound picker can receive the
+one snapshot after routing refusal; no input is used to resolve ambiguity.
+
+## Snapshot privacy and limits
+
+Binding/routing and snapshot share one max32 DISTINCT AX-ref registry. Array
+counts are read before bounded range fetches; max12 children and conservative
+remaining-reference capacity are checked before copying. Unexpected scalar CF
+arrays are classified without decoding them. Every remote property checks original
+owner; full original identity/hash checks bracket the operation and precede input.
+No full child-array fetch followed by truncation is used.
+
+The one snapshot has maxdepth3, a1s cooperative deadline clipped to the existing
+2s phase/work deadline, and the existing0.2s per-element messaging limit. Only
+AXGroup/AXSplitGroup structural wrappers expand. Lists/rows/cells/scroll/browser/
+path/popup/menu/toolbar/text/control leaves and unknown roles are never followed.
+Foreign references stop the snapshot before their properties/children are read.
+Known role enum, redacted unknown, original-owner-match, structural CF type/error,
+bounded counts and CFEqual parent/relationship ordinals are the only node facts.
+No title/description/value/identifier/URL/filename/history/sidebar text, pointer
+addresses or images. These wrappers do not become production control containers;
+the original fail-closed picker content parser is untouched.
+
+After posting, only a newly proved sheet/subtree through the retained picker can
+be selected. Otherwise the unchanged picker is explicitly labelled effect-unknown/
+possibly-inline. A no-command snapshot is separately labelled as such. A new
+related subtree is structural evidence, never proof of Go-to handling or readiness.
+Ambiguity, stale/missing relations, caps, foreign owners or late calls produce a
+partial/refused snapshot. All time limits remain cooperative, not a stall/closure
+guarantee. No timeout extension or native interval is introduced.
+
+## Checks and retained preparation
+
+30 focused tests in test_native_attended_picker_diagnostic.py pass using the
+ACTUAL new admission/routing/gesture/snapshot/controller/finalizer code and
+invented OS effects only. Cases cover false/unavailable preflight→0launches;
+wrong identity/ref/purpose/ancestry/cutoff→0posts; fixed private pair/original PID;
+drift before up; unknown dispatch, intent failures and no repeat; allocation/
+flags/release failures; count/range order, prospective caps, wrong scalar arrays,
+private leaves/unknown redaction/foreign owners; partial/deadline refusal and
+autonomous cleanup, including held custody through late absence with one normal
+termination. Diagnostic path writes/save always refuse and all setup/qualification
+booleans stay false. The real ABI initializer is tested with mocked CDLL symbols;
+module import is checked with native loading forbidden. No real CG/AX API, App,
+permission/session query, event, build or broad suite was exercised.
+
+Exact command: fresh scratch CODEX_HOME/TMPDIR, ordinary t3_slot.sh,
+python3.13 -B -m unittest test_native_attended_picker_diagnostic -v from this Work
+directory. Logs remain in
+/Users/ryan/dev/chirality-t3/scratch/app-j1-picker-diagnostic-checks-ou3dpr20,
+including focused-initial.log, focused.log and focused-final.log. The existing
+core60/native193 results retain their root-owned subjects; they were not rerun
+for this separate implementation.
+
+Fresh private UNRUN source/entry root:
+/Users/ryan/dev/chirality-t3/scratch/app-j1-picker-diagnostic-staged-67ldxb8i.
+It contains exact source/test/core/reader copies, PREPARATION.json, entry.py,
+INVOCATION.md, SHA256SUMS and empty events/. The authentic56116108 receipt and
+reviewed packet/session/project member sets/hashes were checked unchanged.
+Diagnostic source SHA256:
+b77e2f9856bbb6b51510042c9d736f55c699a4fedd37272a85b61391c5f34074;
+diagnostic test SHA256:
+4f8ebfe7a6248dc34ca4847725560ebceb52ec58b3491bebf9c80602fab69361;
+entry SHA256:
+ddbb957d72a0587c31666981ce0d2c5454c2dee591d802210c22ac00eb5a016d.
+The entry loads the exact named core and explicit diagnostic module, refusing
+replacement of an existing module. It calls the new diagnostic run_prepared and
+core private_journal, not a runtime subclass/factory patch. Its only argument is
+a REQUIRED future UTC --owner-window-end; no default, guessed start or queue.
+The185s headroom guard runs at actual slot entry BEFORE module/native/preflight
+work, and again at admitted/launch-intent before dispatch. No future end is set.
+
+Entry exit0 would mean only that the selected diagnostic protocol/evidence and
+original-absence finalizer completed without errors/overrun; it would not mean
+semantic Go-to handling, saved setup, J1 or native qualification. A refusal or
+partial protocol returns1 while preserving the actual state/closure. Fresh staged
+runner homes retain the approved LaunchServices/default development-ID route
+without App environment overrides. No staged entry, slot or native operation has
+been submitted. Agent0 owns direct independent scrutiny, PR integration and any
+separate fresh owner-availability/GO. No extra delegate or owner test task.
