@@ -1078,3 +1078,74 @@ needed for receiving. Scope/dependency/acceptance remain unchanged. The next
 source-only result is an explicit boundary-policy assessment; the current owner
 veto remains and no exception, new method, invocation or availability is selected.
 Handling/path/setup/save/J1/J2/model/native qualification remain open.
+
+## Exact returned-alias admission and stricter snapshot completion — offline
+
+Independent review of the unselected root-boundary proposal found two inherited
+gaps in89a5: an actual returned CFEqual alias could supply accepted publication
+or a terminal parent edge without its own owner check, and an observed additional
+modal could leave a snapshot marked complete. The review is retained at
+/Users/ryan/dev/chirality-t3/scratch/app-j1-owned-route-independent-review-rq7r_5vj/REVIEW.md.
+These repairs strengthen the existing recursive method; they do NOT select the
+proposed root-only census or remove any wrapper observation/veto.
+
+When a successful structural return resolves to an existing CFEqual row, touch
+now invokes the existing exact-object0.2 owner composite on THAT returned object
+before scalar parent/focus evidence or accepted array membership can be written.
+This includes an AppWindows main alias that publication subsequently skips and
+aliases discarded by cross-source identity deduplication. First/latest native-
+return evidence is still retained before rejection. Ordinary local registry
+lookups add no owner check. New references retain their existing admission.
+Mismatch/unknown/setup/cap/late/receipt failures stay fatal; no role/parent/content
+follow is added on a rejected alias. No new native symbol or ABI is introduced,
+but more existing owner composites are required and consume their real budgets.
+
+Snapshot observation now rejects a known Window/Sheet/Drawer/Dialog or unknown
+role among the children it actually enumerates, before following that child's
+parent. This applies beneath both retainedP and a positively related ownedQ and
+to existing recursive snapshot expansion. The unknown-role policy is explicitly
+stricter: the role remains redacted as unknown, but snapshot completion is false.
+Required foreign refs and reciprocal ranges retain their existing fatal guards.
+No root fallback or recovery read follows a contradiction.
+
+Receipts distinguish candidate_root_ordinal from root_ordinal: the latter is
+present only with selection_complete and complete=true. Any later rejection
+leaves a partial label, no accepted root, and separately retained observed
+relation facts. Input proof records, snapshot/selection completion, attempted
+dispatch and handlingunknown keep distinct meanings. None is handling, path,
+setup/save or qualification evidence.
+
+Phase limits are unchanged and now explicit in summary receipts. Read64 and
+owner128 are initial-phase totals across all passes, without reset. Strict proofs
+do not acquire separate copies of those quotas. Trace512 and the32-reference
+registry span initial/strict/snapshot. Both strict proofs share one sealed2s
+deadline; snapshot1s clips it and the fixed8s/work110/total180 bounds. Every added
+alias admission reserves owner/trace/headroom before its native helper.
+
+127 focused mocked tests pass with normal wrappers and fresh scratch homes.
+Nine added methods reproduce main-window/terminal-parent/cross-source alias
+refusals and exact valid-alias admission, capacity/late failures, separate P/Q
+modal-or-unknown child rejection, sealed phase scopes and controller cleanup.
+The first eight regression methods failed on the old source (17 failed cases).
+Five prior methods are explicitly adapted: the unknown-role privacy fixture now
+expects partial redacted evidence, and larger recursive geometry/focus-wait
+fixtures now expect the shared trace cap rather than an incomplete success claim.
+The other113 prior methods are unchanged. TEST_ADAPTATION.json records that join.
+
+Eight full-controller mocked measurements are retained in MOCK_BUDGETS.json.
+The smaller positive fixture completes three proofs, one pair and a snapshot in
+360 shared trace operations. Invented all-owned six-child/five-link geometry,
+with or without the role-error/focus-wait prefix, completes the proofs/pair but
+hits512 during the snapshot and reports partial/no selected root. Its initial
+owner reservations are85–95, below128. The cap is not increased or reset; normal
+cleanup still runs. These are mock algorithm counts, not actual App input,
+native timing feasibility or evidence that a new criterion can fit.
+
+Evidence is in /Users/ryan/dev/chirality-t3/scratch/app-j1-alias-snapshot-checks-aifn2s7w
+(regressions-before.log, focused-first.log, focused-after-adaptation.log,
+MOCK_BUDGETS.json and TEST_ADAPTATION.json). Posting/gesture/session/stage/finalizer
+and StructuralCalls ABI code, core/test/reader bytes, input criterion and recursive
+census remain unchanged; actual returned-ref admission and snapshot semantics
+are the explicit repairs. Scope/dependency/acceptance are unchanged. Independent
+implementation scrutiny and hosted checks remain before integration. No new entry,
+App operation, retry, narrower-policy selection or live GO is authorized here.

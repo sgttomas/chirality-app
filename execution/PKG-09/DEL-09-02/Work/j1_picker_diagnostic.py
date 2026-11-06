@@ -293,6 +293,9 @@ class Structure:
                 'initial_completed_pass': self.initial_completed_pass,
                 'initial_focus_pause_reservations': self.initial_focus_pause_reservations,
                 'initial_focus_pause_limit': 3, 'initial_focus_pause_requested_seconds': .2,
+                'read_owner_capacity_scope': 'initial phase only; no reset across passes',
+                'trace_reference_capacity_scope': 'shared initial/strict/snapshot',
+                'strict_snapshot_deadline_scope': 'both strict proofs and snapshot share sealed strict end',
                 'proof_mode': self.PROOF_MODE,
                 'phase_end_elapsed': self.end-self.started,
                 'local_CF_type_and_equality_timing': 'uninstrumented',
@@ -366,6 +369,8 @@ class Structure:
             if self.same(ref, previous):
                 row = self.rows[index]
                 self.note_return(row, returned_by)
+                if returned_by is not None:
+                    self.owner(ref, row)  # actual returned object, never inherited CFEqual ownership
                 return row
         self.guard(len(self.refs_seen) < 32, 'diagnostic distinct-reference cap')
         if self.mode == 'initial':
@@ -799,7 +804,7 @@ class Structure:
         require(not self.snapshot_used,'diagnostic snapshot already consumed')
         self.snapshot_used=True;self.phase='snapshot'
         self.end=min(self.end,self.experiment_end,self.work_end,self.io.clock()+1)
-        root=None;complete=False;error=None;relation=None
+        root=None;candidate=None;complete=False;error=None;relation=None
         label='partial-observed-after-attempt' if after_post else 'partial-without-attempt'
         try:
             self.check();self.identity_check()
@@ -834,16 +839,24 @@ class Structure:
                 if depth==0 or role in ('AXGroup','AXSplitGroup'):
                     if depth>=3:continue
                     for child in self.refs(ref,'AXChildren',optional=False):
-                        child_role=self.role(child);actual,child_edge=self.parent(child)
+                        child_role=self.role(child)
+                        self.guard(child_role!='unknown','diagnostic snapshot child role unknown')
+                        self.guard(child_role not in self.MODALS,'diagnostic snapshot additional modal observed')
+                        actual,child_edge=self.parent(child)
                         self.guard(self.same(actual,ref),'diagnostic child/parent mismatch')
                         if child_role in ('AXGroup','AXSplitGroup') and any(self.same(child,x) for x in route['wrappers']):
                             queue.append((child,depth+1))
             self.identity_check();self.check();complete=True
         except BaseException as exc:
             error=exc.code if isinstance(exc,DiagnosticStop) else type(exc).__name__
+        if not complete:
+            label='partial-observed-after-attempt' if after_post else 'partial-without-attempt'
         return {'label':label,'complete':complete,'error_category':error,'proof_mode':self.PROOF_MODE,
                 'after_intent_positive_proof':deepcopy(self.after_intent_proof),
-                'root_ordinal':None if root is None else self.touch_ordinal(root),
+                'candidate_root_ordinal':None if candidate is None else self.touch_ordinal(candidate),
+                'selection_complete':complete,
+                'root_ordinal':self.touch_ordinal(root) if complete else None,
+                'relation_meaning':'observed facts only, not completed selection or handling',
                 'relation':deepcopy(relation),'nodes':deepcopy(self.rows),'distinct_refs':len(self.rows),
                 'depth_cap':3,'reference_cap':32,'child_cap':12,'semantic_handling':'unknown','readiness':False,
                 'trace':deepcopy(self.trace),'budget':self.summary(),'target_proofs':deepcopy(self.completed_proofs)}
