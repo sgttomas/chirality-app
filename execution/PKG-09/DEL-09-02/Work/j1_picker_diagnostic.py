@@ -11,7 +11,7 @@ import sys
 import time
 from copy import deepcopy
 
-from j1_stage_a_phase import (StageA, NativeSession, Refusal, phase_root)
+from j1_stage_a_phase import (StageA, NativeSession, Refusal)
 
 
 class DiagnosticStop(Refusal):
@@ -25,7 +25,7 @@ class StructuralReadFailure(DiagnosticStop):
     def __init__(self, api, attribute, ordinal, cf_type):
         require(api in ('value', 'count', 'range')
                 and attribute in ('AXRole', 'AXParent', 'AXModal', 'AXFocusedUIElement',
-                                  'AXWindows', 'AXSheets', 'AXChildren')
+                                  'AXTopLevelUIElement', 'AXWindows', 'AXSheets', 'AXChildren')
                 and type(ordinal) is int and 0 <= ordinal < 32
                 and cf_type in ('null', 'count'),
                 'diagnostic invalid typed read failure')
@@ -107,7 +107,7 @@ class StructuralCalls:
         self.last_cf_type = kind
         scalar, refs = None, []
         if rc == 0 and (deadline is None or self.last_native['end'] < deadline):
-            if attribute in ('AXParent', 'AXFocusedUIElement') and kind == 'AXUIElement':
+            if attribute in ('AXParent', 'AXFocusedUIElement', 'AXTopLevelUIElement') and kind == 'AXUIElement':
                 refs = [value.value]
             elif (attribute == 'AXRole' and kind == 'CFString') or (attribute == 'AXModal' and kind == 'CFBoolean'):
                 scalar = self.b.scalar(value.value)  # reviewed CF scalar conversion
@@ -136,7 +136,7 @@ class StructuralCalls:
 
 
 KNOWN_ROLES = frozenset({
-    'AXApplication', 'AXWindow', 'AXSheet', 'AXDialog', 'AXGroup', 'AXSplitGroup',
+    'AXApplication', 'AXWindow', 'AXSheet', 'AXDialog', 'AXDrawer', 'AXGroup', 'AXSplitGroup',
     'AXButton', 'AXTextField', 'AXComboBox', 'AXStaticText', 'AXTextArea',
     'AXTable', 'AXOutline', 'AXBrowser', 'AXList', 'AXRow', 'AXCell', 'AXScrollArea',
     'AXPathControl', 'AXPopUpButton', 'AXMenu', 'AXMenuBar', 'AXToolbar',
@@ -145,7 +145,9 @@ KNOWN_ROLES = frozenset({
 
 class Structure:
     """One App-specific initial communication policy; strict input never retries."""
-    VALUE_ATTRS = ('AXRole', 'AXParent', 'AXModal', 'AXFocusedUIElement')
+    PROOF_MODE = 'POSITIVE_FOCUSED_TOP_LEVEL_DIAGNOSTIC_V1'
+    MODALS = frozenset(('AXWindow', 'AXSheet', 'AXDrawer', 'AXDialog'))
+    VALUE_ATTRS = ('AXRole', 'AXParent', 'AXModal', 'AXFocusedUIElement', 'AXTopLevelUIElement')
     ARRAY_ATTRS = ('AXChildren', 'AXSheets', 'AXWindows')
     APIS = {'value': 'AXUIElementCopyAttributeValue', 'count': 'AXUIElementGetAttributeValueCount',
             'range': 'AXUIElementCopyAttributeValues'}
@@ -168,6 +170,9 @@ class Structure:
         self.initial_reads, self.initial_owners, self.op_count = 0, 0, 0
         self.trace, self.receipt_seconds, self.stopped = [], 0.0, None
         self.readiness_end, self.initial_completed_pass = None, None
+        self.pre_modal_refs, self.completed_proofs = [], []
+        self.proof_count, self.intent_focus, self.intent_proof_id = 0, None, None
+        self.after_intent_proof = None
 
     def halt(self, code):
         if self.stopped is None:
@@ -285,6 +290,7 @@ class Structure:
                 'work_remaining': self.work_end-self.io.clock(),
                 'initial_end_elapsed': None if self.readiness_end is None else self.readiness_end-self.started,
                 'initial_completed_pass': self.initial_completed_pass,
+                'proof_mode': self.PROOF_MODE,
                 'phase_end_elapsed': self.end-self.started,
                 'local_CF_type_and_equality_timing': 'uninstrumented',
                 'non_trace_journal_timing': 'uninstrumented; included in wall/work time',
@@ -298,7 +304,8 @@ class Structure:
                 'nodes': deepcopy(self.rows), 'distinct_refs': len(self.rows),
                 'depth_cap': 3, 'reference_cap': 32, 'child_cap': 12,
                 'semantic_handling': 'unknown', 'readiness': False,
-                'trace': deepcopy(self.trace), 'budget': self.summary()}
+                'trace': deepcopy(self.trace), 'budget': self.summary(),
+                'target_proofs': deepcopy(self.completed_proofs)}
 
     def admit_read(self):
         self.check()
@@ -344,7 +351,8 @@ class Structure:
         kind = self.b.kind(ref)['name']
         row = {'ordinal': len(self.rows), 'cf_type': kind if kind == 'AXUIElement' else 'other',
                'owner_match': None, 'role': None, 'parent_ordinal': None, 'reads': [],
-               'property_meaning': 'last_observed_only_not_readiness', 'property_provenance': {}}
+               'property_meaning': 'last_observed_only_not_readiness', 'property_provenance': {},
+               'array_observations': {}}
         self.refs_seen.append(ref)
         self.rows.append(row)
         self.set_property(row, 'cf_type', row['cf_type'])
@@ -386,6 +394,7 @@ class Structure:
         if rc == -25204 and self.mode == 'initial' and (api == 'count' or kind == 'null'):
             raise StructuralReadFailure(api, name, row['ordinal'], 'count' if api == 'count' else 'null')
         if optional and rc in (-25205, -25212):
+            self.guard(api == 'count' or kind == 'null', 'diagnostic failed copy returned nonnull output')
             return False  # prior optional absence, never a successful zero count
         self.guard(rc == 0, 'diagnostic structural read failed')
         return True
@@ -395,18 +404,19 @@ class Structure:
         self.admit_read()
         row = self.touch(ref)
         self.owner(ref, row)
-        if name in ('AXParent', 'AXFocusedUIElement'):
+        if name in ('AXParent', 'AXFocusedUIElement', 'AXTopLevelUIElement'):
             self.guard(len(self.refs_seen) < 32, 'diagnostic scalar-reference budget exhausted')
         (value, refs), token = self.read(ref, name, 'value', row)
         rc, kind = value['return_code'], value['type']['name']
-        if not self.read_status(rc, kind, 'value', name, row, optional=True):
+        if not self.read_status(rc, kind, 'value', name, row, optional=name!='AXTopLevelUIElement'):
             return None
-        if name in ('AXParent', 'AXFocusedUIElement'):
+        if name in ('AXParent', 'AXFocusedUIElement', 'AXTopLevelUIElement'):
             self.guard(kind == 'AXUIElement' and len(refs) == 1, 'diagnostic scalar-reference type')
             target = refs[0]
             parent = self.touch(target)
-            if name == 'AXParent':
-                self.set_property(row, 'parent_ordinal', parent['ordinal'], token)
+            field = {'AXParent':'parent_ordinal','AXFocusedUIElement':'focused_ordinal',
+                     'AXTopLevelUIElement':'top_level_ordinal'}[name]
+            self.set_property(row, field, parent['ordinal'], token)
             return target
         if name == 'AXRole':
             self.guard(kind == 'CFString' and isinstance(value['value'], str), 'diagnostic role type')
@@ -429,37 +439,200 @@ class Structure:
         self.admit_read()
         row = self.touch(ref)
         self.owner(ref, row)
-        (rc, count), token = self.read(ref, name, 'count', row)
+        (rc, count), count_token = self.read(ref, name, 'count', row)
         if not self.read_status(rc, 'count', 'count', name, row, optional=optional):
             return []
         self.guard(type(count) is int and 0 <= count <= 12, 'diagnostic child/count cap or type')
         if name == 'AXWindows':
             self.guard(count <= 4, 'diagnostic App window cap')
         if count == 0:
+            row['array_observations'][name] = {'members': [], 'count': 0, 'count_op': count_token['op'],
+                                               'range_op': None, 'phase': self.phase, 'pass': self.pass_no}
             return []
         self.guard(count <= 32-len(self.refs_seen), 'diagnostic prospective reference cap')
         self.admit_read()
         self.owner(ref, row)
-        (rc, kind, refs), token = self.read(ref, name, 'range', row, count)
+        (rc, kind, refs), range_token = self.read(ref, name, 'range', row, count)
         self.read_status(rc, kind, 'range', name, row)
         self.guard(kind == 'CFArray' and len(refs) == count, 'diagnostic bounded range failed')
+        seen = []
         for child in refs:
+            self.guard(not any(self.same(child,old) for old in seen), 'diagnostic duplicate published reference')
+            seen.append(child)
             self.touch(child)
+        row['array_observations'][name] = {'members':[self.touch_ordinal(x) for x in refs], 'count':count,
+                                           'count_op':count_token['op'],'range_op':range_token['op'],
+                                           'phase':self.phase,'pass':self.pass_no}
         return refs
 
+    def array_fact(self, ref, name):
+        row = self.rows[self.touch_ordinal(ref)]
+        return deepcopy(row['array_observations'][name])
+
+    def edge(self, ref, field):
+        row = self.rows[self.touch_ordinal(ref)]
+        return {'source': row['ordinal'], 'target': row[field],
+                **deepcopy(row['property_provenance'][field])}
+
+    def parent(self, ref):
+        target = self.ref(ref, 'AXParent')
+        self.guard(target is not None, 'diagnostic mandatory parent absent')
+        return target, self.edge(ref, 'parent_ordinal')
+
+    def remember_pre_modal(self, ref):
+        if self.same(ref,self.main):return
+        if not any(self.same(ref,old) for old in self.pre_modal_refs):self.pre_modal_refs.append(ref)
+        self.guard(len(self.pre_modal_refs)==1,'diagnostic additional published modal observed')
+        if self.picker_anchor is not None:
+            self.guard(self.same(ref,self.picker_anchor),'diagnostic retained picker changed')
+
+    def publication(self, expected=None, post_root=None):
+        """Actual standard memberships; AXWindows is not a sheet census."""
+        self.check()
+        self.guard(self.role(self.main)=='AXWindow','diagnostic original main role changed')
+        windows=self.refs(self.app,'AXWindows',optional=False)
+        self.guard(any(self.same(x,self.main) for x in windows),'diagnostic main not positively published')
+        children=self.refs(self.main,'AXChildren',optional=False)
+        self.guard(not any(self.same(x,self.main) or self.same(x,self.app) for x in children),
+                   'diagnostic malformed main child root')
+        union=[]
+        for ref in windows+children:
+            if not any(self.same(ref,x) for x in union):union.append(ref)
+        candidates=[];edges=[]
+        for ref in union:
+            if self.same(ref,self.main):continue
+            role=self.role(ref)
+            self.guard(role!='unknown','diagnostic unknown publication role')
+            in_children=any(self.same(ref,x) for x in children)
+            in_windows=any(self.same(ref,x) for x in windows)
+            if role in self.MODALS:
+                if post_root is not None and self.same(ref,post_root):
+                    self.guard(not in_children,'diagnostic related post sheet has wrong published parent')
+                    continue  # relation through P was independently proved, never chosen here
+                self.remember_pre_modal(ref)
+                self.guard(role=='AXSheet','diagnostic unexpected published modal role')
+                if expected is not None:self.guard(self.same(ref,expected),'diagnostic unexpected published sheet')
+                self.guard(in_children,'diagnostic picker not original-main child publication')
+                parent,edge=self.parent(ref);edges.append(edge)
+                self.guard(self.same(parent,self.main),'diagnostic picker not direct original-main child')
+                candidates.append(ref)
+            else:
+                self.guard(not in_windows,'diagnostic malformed App-window publication')
+                if in_children:
+                    parent,edge=self.parent(ref);edges.append(edge)
+                    self.guard(self.same(parent,self.main),'diagnostic main child/parent mismatch')
+        self.guard(len(candidates)==1,'diagnostic unique published PROJECT picker absent')
+        candidate=candidates[0]
+        if self.picker_anchor is None:self.picker_anchor=candidate
+        self.guard(self.same(candidate,self.picker_anchor),'diagnostic retained picker changed')
+        return candidate, {'app_windows':self.array_fact(self.app,'AXWindows'),
+                           'main_children':self.array_fact(self.main,'AXChildren'),
+                           'parent_edges':edges}
+
     def picker(self):
-        self.check()
         self.identity_check()
-        try:
-            root = phase_root(self, self.app, self.main, 'picker')
-        except StructuralReadFailure:
-            raise
-        except BaseException:
-            self.halt('diagnostic picker binding refused')
-            raise
+        candidate,_=self.publication(self.picker_anchor)
+        self.identity_check();self.check()
+        return candidate
+
+    def routing(self, picker):
+        current=self.ref(self.app,'AXFocusedUIElement')
+        focused=current;seen=[];path=[];edges=[];wrappers=[]
+        self.guard(current is not None and not any(self.same(current,x) for x in (self.app,self.main,picker)),
+                   'diagnostic focused element is not a nonmodal descendant')
+        for _ in range(7):
+            role=self.role(current);path.append(current)
+            if self.same(current,picker):
+                self.guard(role=='AXSheet','diagnostic picker role changed in ancestry')
+                self.routing_path=[self.touch_ordinal(x) for x in path]
+                return {'focused':focused,'path':path,'wrappers':wrappers,
+                        'edges':edges,'focused_edge':self.edge(self.app,'focused_ordinal')}
+            self.guard(role!='unknown' and role!='AXApplication' and role not in self.MODALS,
+                       'diagnostic focused ancestry crosses unknown/modal')
+            self.guard(not any(self.same(current,x) for x in seen),'diagnostic focused ancestry cycle')
+            seen.append(current)
+            if role in ('AXGroup','AXSplitGroup'):wrappers.append(current)
+            if len(seen)>6:break
+            parent,edge=self.parent(current);edges.append(edge)
+            self.guard(parent is not None and not any(self.same(parent,x) for x in seen),
+                       'diagnostic focused ancestry missing/cyclic')
+            self.guard(not any(self.same(parent,x) for x in (self.app,self.main)),
+                       'diagnostic focused ancestry misses picker')
+            current=parent
+        self.guard(False,'diagnostic focused ancestry too deep')
+
+    def top_level(self, focused, picker):
+        top=self.ref(focused,'AXTopLevelUIElement')  # MANDATORY, never inferred/fallback
+        self.guard(top is not None and self.same(top,picker),'diagnostic focused top-level mismatch')
+        self.guard(self.role(top)=='AXSheet','diagnostic top-level is not retained Sheet')
+        parent,parent_edge=self.parent(top)
+        self.guard(self.same(parent,self.main),'diagnostic top-level direct parent changed')
+        return {'top':top,'edge':self.edge(focused,'top_level_ordinal'),'parent_edge':parent_edge}
+
+    def legacy_veto(self, picker):
+        """Provider-specific negative observation, never positive authority."""
+        self.admit_read();row=self.touch(picker);self.owner(picker,row)
+        (rc,count),token=self.read(picker,'AXSheets','count',row)
+        if rc in (-25205,-25212):
+            return {'state':'unknown','count':None,'op':token['op']}
+        self.read_status(rc,'count','count','AXSheets',row)
+        self.guard(type(count) is int and 0<=count<=12,'diagnostic malformed legacy nested count')
+        self.guard(count==0,'diagnostic known nonempty nested relation veto')
+        return {'state':'published_zero_not_authority','count':0,'op':token['op']}
+
+    def veto_boundary(self, picker, route):
+        queue=[(picker,0)];seen=[];arrays=[];edges=[];opaque=[]
+        while queue:
+            ref,depth=queue.pop(0)
+            self.guard(not any(self.same(ref,x) for x in seen),'diagnostic boundary cycle')
+            seen.append(ref)
+            if depth>=3:continue
+            children=self.refs(ref,'AXChildren',optional=False)
+            arrays.append({'container':self.touch_ordinal(ref),'publication':self.array_fact(ref,'AXChildren')})
+            for child in children:
+                role=self.role(child)
+                self.guard(role!='unknown','diagnostic unknown veto-boundary role')
+                if role in self.MODALS:
+                    self.remember_pre_modal(child)
+                    self.guard(False,'diagnostic published nested modal veto')
+                parent,edge=self.parent(child);edges.append(edge)
+                self.guard(self.same(parent,ref),'diagnostic boundary child/parent mismatch')
+                if role in ('AXGroup','AXSplitGroup') and any(self.same(child,x) for x in route['wrappers']):
+                    queue.append((child,depth+1))
+                else:opaque.append(self.touch_ordinal(child))
+        return {'arrays':arrays,'parent_edges':edges,'opaque_ordinals':opaque,
+                'meaning':'bounded published veto boundary, not global empty-modal proof'}
+
+    def positive_proof(self, expected=None):
+        self.guard(self.io.project_pending is True,'diagnostic PROJECT purpose missing')
         self.identity_check()
+        picker,publication=self.publication(expected)
+        early=self.routing(picker)
+        boundary=self.veto_boundary(picker,early)
+        legacy=self.legacy_veto(picker)
+        self.identity_check()
+        fresh=self.routing(picker)
+        self.guard(self.same(fresh['focused'],early['focused']),'diagnostic focus changed during proof')
+        self.top_level(fresh['focused'],picker)
+        self.identity_check()
+        # Only focused/top-level confirmation follows the final identity guard: no catalog work.
+        sealed_focus=self.ref(self.app,'AXFocusedUIElement')
+        self.guard(self.same(sealed_focus,fresh['focused']),'diagnostic focus changed at final boundary')
+        sealed_top=self.top_level(sealed_focus,picker)
+        self.identity_check()  # full birth/path/hash after the final AX reads as well
         self.check()
-        return root
+        self.proof_count+=1
+        public={'proof_id':self.proof_count,'proof_mode':self.PROOF_MODE,'phase':self.phase,'pass':self.pass_no,
+                'app':self.touch_ordinal(self.app),'main':self.touch_ordinal(self.main),
+                'picker':self.touch_ordinal(picker),'focused':self.touch_ordinal(sealed_focus),
+                'top_level':self.touch_ordinal(sealed_top['top']),
+                'publication':publication,'veto_boundary':boundary,'legacy_nested':legacy,
+                'ancestry_edges':deepcopy(fresh['edges']),
+                'focused_edge':self.edge(self.app,'focused_ordinal'),
+                'top_level_edge':sealed_top['edge'],'picker_parent_edge':sealed_top['parent_edge'],
+                'last_observation_op':self.op_count,'semantic_handling':'unknown','readiness':False}
+        self.completed_proofs.append(deepcopy(public))
+        return {'picker':picker,'focused':sealed_focus,'public':public}
 
     def initial_picker(self):
         """Four complete initial binding+routing passes; never used by strict reads."""
@@ -479,14 +652,8 @@ class Structure:
                 self.owner(self.app, self.touch(self.app))
                 self.owner(self.main, self.touch(self.main))
                 try:
-                    candidate = self.picker()
-                    self.guard(self.same(self.ref(candidate,'AXParent'),self.main),
-                               'diagnostic initial picker is not direct original-main child')
-                    if self.picker_anchor is None:
-                        self.picker_anchor = candidate
-                    self.guard(self.same(candidate,self.picker_anchor), 'diagnostic original picker changed')
-                    self.routing(candidate)
-                    self.identity_check()
+                    proof = self.positive_proof(self.picker_anchor)
+                    candidate = proof['picker']
                     self.check()
                     complete = True
                     self.initial_completed_pass = attempt
@@ -515,91 +682,109 @@ class Structure:
             self.mode, self.phase, self.pass_no = 'strict', 'strict', 0
             self.end = min(self.experiment_end,self.work_end,self.io.clock()+2)
 
-    def routing(self, picker):
-        current = self.ref(self.app,'AXFocusedUIElement')
-        seen, path = [], []
-        for _ in range(7):
-            self.guard(current is not None,'diagnostic focused ancestry absent')
-            role = self.role(current)
-            path.append(self.touch_ordinal(current))
-            if self.same(current,picker):
-                self.routing_path = path
-                return path
-            self.guard(role not in ('AXWindow','AXSheet','AXDialog'),
-                       'diagnostic focused ancestry crosses another modal')
-            self.guard(not any(self.same(current,old) for old in seen),'diagnostic focused ancestry cycle')
-            seen.append(current)
-            if len(seen) <= 6:
-                current = self.ref(current,'AXParent')
-        self.guard(False,'diagnostic focused ancestry unrelated/too deep')
-
-    def recheck(self, picker):
-        self.command_picker = None
-        self.check()
-        self.guard(self.mode == 'strict' and self.io.project_pending is True
-                   and self.same(self.picker(),picker),'diagnostic project purpose/picker changed')
-        self.guard(self.same(self.ref(picker,'AXParent'),self.main),'diagnostic command requires direct original-main picker')
-        self.guard(not self.refs(picker,'AXSheets',optional=False),'diagnostic nested sheet already exposed before command')
-        self.routing(picker)
-        self.identity_check()
-        self.check()
-        # Reserve evidence capacity BEFORE allowing the fixed gesture to dispatch.
-        self.guard(self.op_count < 511,'diagnostic input trace reserve')
-        token = self.reserve('input_boundary')
+    def recheck(self, picker, after_intent=False):
+        self.command_picker=None
+        self.guard(self.mode=='strict','diagnostic positive proof is not strict')
+        proof=self.positive_proof(picker)
+        if after_intent:
+            self.guard(self.intent_focus is not None and self.same(proof['focused'],self.intent_focus),
+                       'diagnostic focused identity changed across intent')
+            self.after_intent_proof=dict(deepcopy(proof['public']), before_intent_proof_id=self.intent_proof_id)
+            self.command_picker=picker
+        else:
+            self.guard(self.intent_focus is None,'diagnostic before-intent proof already consumed')
+            self.intent_focus=proof['focused'];self.intent_proof_id=proof['public']['proof_id']
+        self.guard(self.op_count<511,'diagnostic input trace reserve')
+        token=self.reserve('input_boundary')
         self.finish(token,details={'read_capacity_used':self.initial_reads,'owner_capacity_used':self.initial_owners})
         self.check()
-        self.command_picker = picker
+        return deepcopy(proof['public'])
+
+    def reciprocal_path(self, child, picker):
+        current=child;seen=[];edges=[];arrays=[]
+        for _ in range(4):  # at most three reciprocal links through public structural wrappers
+            if self.same(current,picker):return {'parent_edges':edges,'arrays':arrays}
+            self.guard(not any(self.same(current,x) for x in seen),'diagnostic related subtree cycle')
+            self.guard(len(seen)<3,'diagnostic related path depth cap')
+            seen.append(current)
+            parent,edge=self.parent(current);edges.append(edge)
+            self.guard(parent is not None,'diagnostic related parent missing')
+            if not self.same(parent,picker):
+                self.guard(self.role(parent) in ('AXGroup','AXSplitGroup'),
+                           'diagnostic related path crosses private/unrelated root')
+            children=self.refs(parent,'AXChildren',optional=False)
+            self.guard(any(self.same(current,x) for x in children),'diagnostic related reciprocal edge absent')
+            for sibling in children:
+                role=self.role(sibling)
+                self.guard(role!='unknown','diagnostic related publication has unknown role')
+                self.guard(self.same(sibling,current) or role not in self.MODALS,
+                           'diagnostic multiple/unrelated post modal')
+                actual,sibling_edge=self.parent(sibling);edges.append(sibling_edge)
+                self.guard(self.same(actual,parent),'diagnostic related child/parent mismatch')
+            arrays.append({'container':self.touch_ordinal(parent),'publication':self.array_fact(parent,'AXChildren')})
+            current=parent
+        self.guard(False,'diagnostic related path does not reach retained picker')
 
     def snapshot(self, picker, after_post):
         require(not self.snapshot_used,'diagnostic snapshot already consumed')
-        self.snapshot_used = True
-        self.phase = 'snapshot'
-        self.end = min(self.end,self.experiment_end,self.work_end,self.io.clock()+1)
-        label = 'unchanged-picker-effect-unknown-possibly-inline' if after_post else 'retained-picker-no-command'
-        root, complete, error = picker, False, None
+        self.snapshot_used=True;self.phase='snapshot'
+        self.end=min(self.end,self.experiment_end,self.work_end,self.io.clock()+1)
+        root=None;complete=False;error=None;relation=None
+        label='partial-observed-after-attempt' if after_post else 'partial-without-attempt'
         try:
-            self.check()
-            self.guard(not after_post or self.same(self.command_picker,picker),
-                       'diagnostic pre-command empty sheet relation unavailable')
-            current = self.picker()
-            nested = self.refs(picker,'AXSheets') if after_post else []
-            self.guard(len(nested)<=1,'diagnostic ambiguous nested sheets')
-            if nested:
-                child=nested[0]
-                self.guard(self.role(child) in ('AXSheet','AXDialog') and self.same(self.ref(child,'AXParent'),picker),
-                           'diagnostic new sheet relationship differs')
-                self.guard(self.same(current,picker) or self.same(current,child),'diagnostic unexpected modal after command')
-                current=child
-            if not self.same(current,picker):
-                self.guard(after_post,'diagnostic unexpected new panel before command')
-                ancestor, seen = current, []
-                for _ in range(6):
-                    if self.same(ancestor,picker):break
-                    self.guard(not any(self.same(ancestor,old) for old in seen),'diagnostic new subtree cycle')
-                    seen.append(ancestor);ancestor=self.ref(ancestor,'AXParent')
-                    self.guard(ancestor is not None,'diagnostic new subtree relationship absent')
-                self.guard(self.same(ancestor,picker),'diagnostic new subtree not through retained picker')
-                root,label=current,'newly-exposed-related-subtree-semantics-unknown'
-            queue,expanded=[(root,0)],[]
+            self.check();self.identity_check()
+            self.guard(not after_post or self.same(self.command_picker,picker) and self.after_intent_proof is not None,
+                       'diagnostic positive after-intent proof unavailable')
+            focused=self.ref(self.app,'AXFocusedUIElement')
+            self.guard(focused is not None and not any(self.same(focused,x) for x in (self.app,self.main,picker)),
+                       'diagnostic post focused descendant absent')
+            top=self.ref(focused,'AXTopLevelUIElement')
+            self.guard(top is not None and self.role(top)=='AXSheet','diagnostic post top-level is not Sheet')
+            if self.same(top,picker):
+                candidate=picker
+                relation={'kind':'retained-picker','top_level_edge':self.edge(focused,'top_level_ordinal')}
+            else:
+                self.guard(after_post,'diagnostic different top-level without command attempt')
+                relation={'kind':'positively-related-sheet','path':self.reciprocal_path(top,picker),
+                          'top_level_edge':self.edge(focused,'top_level_ordinal')}
+                candidate=top
+            retained,publication=self.publication(picker,None if self.same(candidate,picker) else candidate)
+            self.guard(self.same(retained,picker),'diagnostic retained picker publication changed')
+            route=self.routing(candidate)  # fresh focused ancestry, not routing/handling ground truth
+            confirmed=self.ref(route['focused'],'AXTopLevelUIElement')
+            self.guard(confirmed is not None and self.same(confirmed,candidate),
+                       'diagnostic post focused top-level changed')
+            self.owner(confirmed,self.touch(confirmed))
+            relation.update(retained_publication=publication,
+                            focused_edge=self.edge(self.app,'focused_ordinal'),
+                            top_level_edge=self.edge(route['focused'],'top_level_ordinal'))
+            root=candidate
+            label=('retained-picker-observed-after-attempt' if after_post else 'retained-picker-observed-without-attempt') if self.same(root,picker) else 'related-sheet-observed-after-attempt'
+            queue=[(root,0)];expanded=[]
             while queue:
                 ref,depth=queue.pop(0)
-                self.guard(not any(self.same(ref,old) for old in expanded),'diagnostic structural cycle')
-                expanded.append(ref);role=self.role(ref);parent=self.ref(ref,'AXParent')
-                if parent is not None:self.touch(parent)
+                self.guard(not any(self.same(ref,x) for x in expanded),'diagnostic structural cycle')
+                expanded.append(ref);role=self.role(ref);parent,edge=self.parent(ref)
+                if depth==0:
+                    expected_parent=self.main if self.same(root,picker) else self.refs_seen[relation['path']['parent_edges'][0]['target']]
+                    self.guard(role=='AXSheet' and self.same(parent,expected_parent),
+                               'diagnostic selected post root role/parent drift')
                 if depth==0 or role in ('AXGroup','AXSplitGroup'):
                     if depth>=3:continue
                     for child in self.refs(ref,'AXChildren',optional=False):
-                        child_role=self.role(child)
-                        self.guard(self.same(self.ref(child,'AXParent'),ref),'diagnostic child/parent mismatch')
-                        if child_role in ('AXGroup','AXSplitGroup'):queue.append((child,depth+1))
+                        child_role=self.role(child);actual,child_edge=self.parent(child)
+                        self.guard(self.same(actual,ref),'diagnostic child/parent mismatch')
+                        if child_role in ('AXGroup','AXSplitGroup') and any(self.same(child,x) for x in route['wrappers']):
+                            queue.append((child,depth+1))
             self.identity_check();self.check();complete=True
         except BaseException as exc:
             error=exc.code if isinstance(exc,DiagnosticStop) else type(exc).__name__
-        return {'label':label,'complete':complete,'error_category':error,
-                'pre_command_empty_sheet_relation':self.same(self.command_picker,picker),
-                'root_ordinal':self.touch_ordinal(root),'nodes':deepcopy(self.rows),
-                'distinct_refs':len(self.rows),'depth_cap':3,'reference_cap':32,'child_cap':12,
-                'semantic_handling':'unknown','readiness':False,'trace':deepcopy(self.trace),'budget':self.summary()}
+        return {'label':label,'complete':complete,'error_category':error,'proof_mode':self.PROOF_MODE,
+                'after_intent_positive_proof':deepcopy(self.after_intent_proof),
+                'root_ordinal':None if root is None else self.touch_ordinal(root),
+                'relation':deepcopy(relation),'nodes':deepcopy(self.rows),'distinct_refs':len(self.rows),
+                'depth_cap':3,'reference_cap':32,'child_cap':12,'semantic_handling':'unknown','readiness':False,
+                'trace':deepcopy(self.trace),'budget':self.summary(),'target_proofs':deepcopy(self.completed_proofs)}
 
     def touch_ordinal(self, ref):
         return next((i for i,old in enumerate(self.refs_seen) if self.same(old,ref)),None)
@@ -631,17 +816,18 @@ class FixedGesture:
                 allocated.append(event)
                 self.allocated_count += 1
                 self.api.flags(event)
-            structure.recheck(picker)
+            before = structure.recheck(picker, after_intent=False)
             intent = {'original': deepcopy(structure.original), 'purpose': 'PROJECT-picker-structural-diagnostic',
                       'private_source_state': -1, 'virtual_key': 0x05, 'flags': 0x00120000,
                       'event_count': 2, 'picker_ordinal': structure.touch_ordinal(picker),
                       'app_ordinal': structure.touch_ordinal(structure.app),
                       'main_ordinal': structure.touch_ordinal(structure.main),
-                      'pre_command_empty_sheet_relation': True,
+                      'proof_mode': structure.PROOF_MODE,
+                      'positive_target_proof': deepcopy(before),
                       'focused_ancestry_ordinals': list(structure.routing_path),
                       'handling': 'unknown', 'no_repeat': True}
             record('diagnostic-navigation-intent', intent)  # failure sends no input
-            structure.recheck(picker)
+            structure.recheck(picker, after_intent=True)
             self.down_attempted = True  # void dispatch may have an unknown outcome
             try:
                 self.api.post(structure.original, allocated[1])
@@ -667,7 +853,8 @@ class DiagnosticSession(NativeSession):
     def admit(self, subject):
         self.project_pending, self.chooser_used = False, False
         self.experiment_used = False
-        self.diagnostic = {'diagnostic_only': True, 'semantic_handling': 'unknown', 'snapshot': None}
+        self.diagnostic = {'diagnostic_only': True, 'proof_mode': Structure.PROOF_MODE,
+                           'semantic_handling': 'unknown', 'snapshot': None}
         executable = Path(sys.executable).resolve()
         caller = {'pid': os.getpid(), 'uid': os.getuid(), 'executable': str(executable),
                   'sha256': hashlib.sha256(executable.read_bytes()).hexdigest()}
@@ -720,6 +907,7 @@ class DiagnosticSession(NativeSession):
             self.diagnostic['refusal_category'] = exc.code if isinstance(exc, DiagnosticStop) else type(exc).__name__
         finally:
             self.diagnostic['gesture_state'] = self.gesture.status()
+            self.diagnostic['target_proofs'] = deepcopy(structure.completed_proofs)
             if picker is None:
                 partial = structure.binding_refusal(self.diagnostic['refusal_category'])
                 self.diagnostic['binding_refusal'] = partial

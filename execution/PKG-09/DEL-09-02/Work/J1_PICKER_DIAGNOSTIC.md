@@ -570,3 +570,127 @@ relations and focus ancestry, including the documented AXTopLevelUIElement if
 appropriate. No such input-guard change or implementation is selected here.
 Current source/test/ABI/cleanup bytes and their76 mocked standing are unchanged;
 only actual evidence and current-method disposition are reconciled.
+
+
+## Selected positive focused-top-level diagnostic criterion — OFFLINE/UNRUN
+
+Agent0 selected proposal anutg9m0, PROPOSAL SHA256
+3a5e478411ae79bc3f064640b83d76a55aba467ffbbc32e833d3ef3e79332379,
+through POSITIVE_TARGET_SELECTION.json in app-pr140-review-h9ps254y. This
+contribution starts from integrated main17b825622da404560cc8efcdda4f783558fa5785.
+It explicitly replaces the diagnostic's legacy AXSheets actual-success0 input
+criterion with POSITIVE_FOCUSED_TOP_LEVEL_DIAGNOSTIC_V1. The positive criterion
+is always mandatory, including when the legacy count returns0; unsupported or
+NoValue remains unknown/null. This is source selection, never an error-selected
+fallback. A known nonempty legacy picker relation still vetoes the command.
+Historical719/96c/a426/c7ed executions and accounts retain their exact subjects;
+no prior receipt supplies the newly required TopLevel proof.
+
+Each complete proof requires original identity/birth/UID/PGID/path/hash, the same
+retained application/main and pending PROJECT purpose. The original main must
+occur in App AXWindows; exactly one owned direct AXSheet picker must occur in
+main AXChildren with a reciprocal parent edge. The picker need not occur in
+AppWindows. CFEqual deduplicates identities across sources; malformed duplicate
+members within a source, ambiguous/extra modal roots, foreign owners, wrong
+parents or root self-children refuse. A genuinely bound picker is retained,
+and a previously observed modal identity is not forgotten across partial passes.
+
+The focused ref must be a known nonmodal descendant distinct from App/main/picker.
+Owner/role/parent-only ancestry, at most6 links, must reach that picker without
+another Window/Sheet/Drawer/Dialog, unknown/foreign/cyclic/unrelated ref. The
+observed Outline→ScrollArea→SplitGroup→SplitGroup chain is admitted without
+reading private outline/scroll contents. NEW mandatory AXTopLevelUIElement must
+return RC0 and exactly one original-owned AXUIElement equal to the picker,
+roleAXSheet and fresh direct parentmain. Missing/unsupported/NoValue/null/wrong
+type/Window/Drawer/other target refuses, including with legacy0. This fixed ref
+is explicitly included in extraction, validation, trace and typed-initial-error
+allowlists. AXDrawer is veto-only, never a traversable container/control.
+
+The bounded modal veto boundary reads main/picker direct children and only
+validated focus-path Group/SplitGroup wrappers. It does not expand private
+lists/outlines/scroll/browser/row/path/popup/menu/toolbar/text/control children,
+unknown branches or off-route groups. Required unknown shape or absent required
+relation refuses. Legacy main AXSheets is not treated as a nested-picker census;
+its expected outer picker is not a nested veto. Legacy picker AXSheets count>0
+is a veto, count0 is not authority, -25205/-25212 is unknown, and other errors,
+malformed/nonnull failed copies or late results remain refusals.
+
+Proof completes initially and strictly both BEFORE and AFTER durable intent,
+using the SAME focused identity and picker across intent. Publication/veto work
+precedes fresh ancestry and TopLevel, with final focus/TopLevel reconfirmation
+and a full identity guard after final AX reads. No cached property is next-pass
+proof. Actual count/range memberships and parent/focus/TopLevel edges carry local
+ordinals and operation/pass IDs; proof IDs/mode and metadata are detached in
+intent/outcome. There are no pointers or UI text in this evidence. Last-observed
+properties remain labelled with their own provenance and never imply readiness.
+
+The single post-attempt snapshot does not depend on AXSheets. Fresh focused
+TopLevel==retained picker permits only that picker, labelled
+retained-picker-observed-after-attempt. Another ownedSheet Q is selected only
+through fresh bounded parent AND reciprocal child edges through retained picker,
+with known structural wrappers, at most3 such links, no additional published
+modal, and the retained picker still positively published/direct-main. Siblings
+under main, Window/Drawer/foreign/ambiguous/private paths, missing TopLevel or
+role/parent drift refuse selection or leave a partial report. Expansion stays
+on validated focus-path structural wrappers. Labels say observed-after-attempt,
+never created/new/caused/Go-to-ready. Changed postfocus alone does not prove
+misrouting; externally supplied invented receiver ground truth is distinct from
+AX evidence and can falsify the routing assumption in a mocked scenario.
+
+All bounds remain unchanged: initial up-to4 complete passes/6s with at most3
+fixed.1 pauses; strict2s within one fixed8s ceiling clipped to110work/180total;
+.2 exact-object owner composite; initial read64/owner128, diagnostic trace512,
+shared32 CFEqual-distinct refs, depth3 and12 children. Each actual alias still
+gets its own timeout/owner helper; equality is not timeout inheritance. Only
+initial allowlisted no-output-25204 may end a pass for another attempt under
+those shared caps. A late/cap/semantic/receipt failure seals refusal, and strict
+checks/snapshot/input never retry. A late failure in a large proof may exhaust
+shared read capacity before another complete pass; no budget resets or extra
+probe compensate for it. Native, post-native processing, owner-composite,
+identity and receipt timing labels retain their previous exact meanings.
+
+NativePosting, DiagnosticStage and run_prepared ASTs and StructuralCalls ABI
+initializer are identical to the base. FixedGesture changes only proof plumbing,
+same-focus continuity and intent metadata; normalization of those changes
+recovers its exact base AST. Consumption, allocations/private source/fixed key/
+flags/originalPID, unknown handling/no-repeat, SAME-original paired up and
+CF releases are preserved. Core/test/reader bytes are unchanged; NativeSession
+check is not overridden/instrumented. Trace/cap/journal failure after down cannot
+prevent the independent same-original up or autonomous cleanup/custody.
+
+Focused verification:98 mocked tests PASS under ordinary t3_slot/fresh scratch
+homes. Existing role-only/empty-baseline/optional-main fixtures were explicitly
+adapted: standard mainChildren is now mandatory, TopLevel is positive in valid
+fixtures, legacy absence alone is not refusal, and unknown-role privacy cases
+supply their own unknown roles. This does not claim all prior76 assertions are
+unchanged. Actual proof/routing/post/snapshot/admission/cleanup paths exercise
+the20 proposal scenarios and additional root/drift negatives, the actual
+six-child/focus-chain geometry after two CannotComplete failures, exact-ref
+aliases, caps/late calls, detached proof mutation, unknown dispatch/no-repeat,
+false/unknown termination, receipt failures and paired release after trace/cap
+failure. No proof method is bypassed. Deliverables and diff/static checks are
+retained with exact commands/hashes in
+/Users/ryan/dev/chirality-t3/scratch/app-j1-positive-top-level-checks-_gpi6iz1.
+
+Diagnostic SHA256: 0a42abf4a8494f596ed90f62187213f5231f2725479b0fc2242bbce4ce181ed9
+Test SHA256: 46c52e342bd5b67de1ced0a7454c1a8645a98ab93e05dd4f59199d6b8c192846
+The new private UNRUN root is /Users/ryan/dev/chirality-t3/scratch/app-j1-positive-top-level-staged-24yk1jzs; prospective entry SHA256
+92bde8b655d481eb9b3237e69a2027e62b3b7b87f916c64fcbfb0ad179eb265d. Its five source copies must be extracted from the final committed
+head. Only the accepted72f2 entry's two EXPECTED diagnostic/test hash literals
+change, with inverse-byte proof; required futureUTC/185s admission guards,
+180/110/receipt/subject/journal/diagnostic entry semantics remain unchanged.
+Authentic56116108 receipt,11 reviewed member sets, exact project and eaf/b98
+executable are statically verified during preparation. Events stay empty: no
+end/owner window/GO/queue/admission/process exists, and the entry is compiled
+only, never imported or executed. All consumed/superseded roots are preserved.
+
+Exact-panel TopLevel support and AX focus fidelity to the process-key responder
+remain unobserved; PID dispatch is void/non-atomic. Bounded positive observations
+are not a global empty-modal-set or routing/handling guarantee, and mocked fast
+errors do not establish a cause or categorically rule out timeout effects. No
+native query/preflight/event/App launch, build, supplier/model/auth/network,
+path/settings/review/confirmation/save/StageB or owner test was performed. This
+preparation does not establish setup/J1/J2/model/native qualification. ScopeOfWork,
+dependencies/acceptance and historical evidence meanings are unchanged; Agent0
+owns independent exact-source/ABI/entry review, CI/integration and any later
+fresh availability/GO. No live selection follows this contribution.
