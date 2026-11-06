@@ -220,7 +220,7 @@ evidence root. They do not identify this follow-up repair. A fresh exact-version
 entry and separately selected availability/GO are required for any later
 diagnostic. No retry, further live selection or window extension follows here.
 
-## Actual c7ed main-role refusal and unrun initial-binding readiness wait
+## Actual c7ed main-role refusal and initial-binding readiness wait
 
 The separate [hey8mief actual account](J1_PICKER_DIAGNOSTIC_AXROLE_20261106.md)
 preserves the next selected invocation of frozen c7edb1bf in the01:54:38–01:59:38Z
@@ -276,7 +276,7 @@ New diagnostic source SHA256:
 92a65a2f5d17cf859bcd964a7afbd3c65097941f7d8976c402efc87920a97daf;
 new test SHA256:
 c5836619f06ae586627dc2f1b1ed2ca6906a3b9e36a75ffefada56e83456f1e9.
-The new immutable UNRUN source/entry root is
+The prepared private source/entry root, subsequently consumed as recorded below, is
 /Users/ryan/dev/chirality-t3/scratch/app-j1-initial-picker-readiness-staged-0ds2dyt_.
 Its five source/test/reader copies are extracted from the exact final committed
 head, bound in PREPARATION.json/FINAL_HEAD.json. Entry SHA256:
@@ -285,10 +285,44 @@ Only the two expected diagnostic/test hashes differ from accepted8fa59a45;
 inverse replacement recovers its exact bytes. Required future UTC/185s slot-
 entry/admitted/launch-intent guards, authentic56116108 receipt/member sets,
 180/110s budget, journal, subject and diagnostic semantics remain unchanged.
-events/ is empty; no window end, admission, process, queue or GO is selected.
+At that preparation return events/ was empty; no window end, admission, process,
+queue or GO had been selected.
 
 This new wait is a bounded capability experiment, not evidence that the observed
 failure was transient or that it explains prior runs. Native chord/snapshot
 handling, path entry/setup/save, J1/J2/model work and qualification remain open.
 Agent0 owns direct independent source/ABI/entry scrutiny, CI/integration and any
 future fresh owner-availability/GO. No additional delegate or owner test task.
+
+## Frozen a426 actual role recovery and subsequent count refusal
+
+The [separate actual account](J1_INITIAL_PICKER_READINESS_ACTUAL_20261106.md)
+records the single selected frozen PRE-MERGE a42645dc invocation in the fresh
+02:18:05–02:23:05Z window. Its later coordination-only PR head retained identical
+method bytes and was not relabelled as the execution subject. The0ds2dyt_ entry
+and all original source/manifests/receipts remain preserved; this entry is now
+consumed, not an unused future invocation target.
+
+Actual startup went from empty to one original main; WebArea/9controls and one
+checked picker press were observed. Retained-main AXRole reads returned
+[-25204/null, -25204/null, 0/CFString], with final role AXWindow. The following
+application AXWindows count read returned-25204/count null. No range read or
+observed zero/over-cap count follows that failure. All recorded original-owner
+matches were true, with two distinct refs. No navigation allocation/post, modal
+baseline, picker ancestry or full snapshot was reached. This establishes the
+finite sequence in that invocation, not a messaging/timeout/OS/App cause or an
+explanation of earlier runs.
+
+Autonomous normal termination and original-birth absence completed in5.705476s
+without overrun; wrapper rc1 followed actual absence. Agent0 independently found
+original85927 and wrapper85904 absent at02:21:37.975769Z and matched the binding,
+raw-result and final-closure hashes. Its receipt is
+app-pr139-review-hcfqpg5r/INITIAL_READINESS_ACTUAL_CLOSURE.json. No App exit/reap
+status, setup/save, useful model work or J1 qualification is inferred.
+
+The role-only wait did not establish complete native binding. Agent0 selected
+an offline, source-grounded review of a coherent AX messaging/readiness budget;
+no additional code change, live query, input retry, timeout extension or new
+window follows from this actual return. The48 mocked tests retain their a426
+subject and were not rerun for this account. Current source/test/ABI/cleanup
+bytes are unchanged. ScopeOfWork and dependency meanings remain unchanged.

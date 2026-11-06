@@ -266,9 +266,15 @@ Current Type 1 assignments are:
   evidence for that read, not a cause or an explanation of earlier missing facts.
   The new initial-only readiness method permits at most3 matching retained-main
   role reads within the original2s phase/work deadline; every other error/ref and
-  final input check remains strict.48 mocked tests pass independently. The new
-  method and its frozen entry are reviewed preparation, not native execution;
-  another diagnostic requires separately selected fresh desktop availability.
+  final input check remains strict.48 mocked tests pass independently.
+  The [selected frozen a426 invocation](../PKG-09/DEL-09-02/Work/J1_INITIAL_PICKER_READINESS_ACTUAL_20261106.md)
+  then recorded two main-role CannotComplete responses followed by AXWindow,
+  and a subsequent App AXWindows count/-25204 with unknown count. It reached
+  no navigation allocation/post or full snapshot. Normal cleanup/verified absence
+  completed in5.71 s without overrun; Agent0 corroborated original App/wrapper
+  absence. This finite sequence supplies no cause finding or prior-run inference.
+  The next method disposition is an offline review of the binding's messaging/
+  readiness budget. No unused live entry, input retry or new window is selected.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
