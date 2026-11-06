@@ -831,7 +831,13 @@ class Structure:
             while queue:
                 ref,depth=queue.pop(0)
                 self.guard(not any(self.same(ref,x) for x in expanded),'diagnostic structural cycle')
-                expanded.append(ref);role=self.role(ref);parent,edge=self.parent(ref)
+                expanded.append(ref);role=self.role(ref)
+                if depth==0:
+                    self.guard(role=='AXSheet','diagnostic selected post root role/parent drift')
+                else:
+                    self.guard(role in ('AXGroup','AXSplitGroup'),
+                               'diagnostic snapshot queued wrapper role changed')
+                parent,edge=self.parent(ref)
                 if depth==0:
                     expected_parent=self.main if self.same(root,picker) else self.refs_seen[relation['path']['parent_edges'][0]['target']]
                     self.guard(role=='AXSheet' and self.same(parent,expected_parent),

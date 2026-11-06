@@ -1149,3 +1149,18 @@ census remain unchanged; actual returned-ref admission and snapshot semantics
 are the explicit repairs. Scope/dependency/acceptance are unchanged. Independent
 implementation scrutiny and hosted checks remain before integration. No new entry,
 App operation, retry, narrower-policy selection or live GO is authorized here.
+
+Independent implementation review of a1579f84 confirmed exact returned-alias
+admission and the five disclosed test adaptations, then found one remaining P2:
+a queued wrapper's freshly reread role could become modal/unknown after its
+child-enumeration check and still yield completed selection. Root reproduced14
+retainedP/relatedQ cases, including non-wrapper known roles, on that source.
+Expansion now requires Sheet for the selected root and Group/SplitGroup for a
+queued wrapper BEFORE reading its parent. Contradiction leaves partial evidence,
+selection_complete=false and no accepted root. Valid paths add no native call;
+invalid paths stop earlier. All128 focused mocked tests pass; the previously
+reviewed127 methods are unchanged and the new method exercises actual queued
+traversal. queued-drift-before.log and focused-final.log retain this correction.
+The review at app-j1-implementation-review-LQRN7I/REVIEW.md remains qualified to
+a1579f84; root's REVIEW_FIX_CHECKS.json records disposition of its one finding.
+This correction does not select the proposed narrower census or any native run.

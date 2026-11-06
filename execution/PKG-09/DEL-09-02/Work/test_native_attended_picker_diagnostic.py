@@ -395,6 +395,44 @@ class ExactReturnedAliasAndSnapshotTests(unittest.TestCase):
                 self.assertFalse(any(e[:3] == ('attribute', 11, 'AXParent') for e in b.log))
                 self.assertNotIn('SECRET', repr(result))
 
+    def test_queued_wrapper_fresh_role_drift_refuses_before_parent_follow(self):
+        for related in (False, True):
+            for role in ('AXSheet', 'AXWindow', 'AXDrawer', 'AXDialog', 'SECRET unknown', 'AXButton', 'AXScrollArea'):
+                with self.subTest(related=related, role=role):
+                    s, io, b, now = context(); picker = s.picker(); api = Posting()
+                    d.FixedGesture(api).run(s, picker, lambda *args: None)
+                    root, wrapper = picker, 5
+                    if related:
+                        related_after(b); root, wrapper = 9, 20
+                        b.nodes[20] = {'role': 'AXGroup', 'AXParent': 9, 'AXChildren': [10]}
+                        b.nodes[10]['AXParent'] = 20; b.nodes[9]['AXChildren'] = [20]
+                    ranged = b.a.AXUIElementCopyAttributeValues.call
+                    value = b.a.AXUIElementCopyAttributeValue.call
+                    state = {'armed': False, 'wrapper_roles': 0, 'drift_index': None}
+                    def ranges(ref, name, start, count, out):
+                        rc = ranged(ref, name, start, count, out)
+                        if (ref, name) == (root, 'AXChildren'): state['armed'] = True
+                        return rc
+                    def values(ref, name, out):
+                        if state['armed'] and (ref, name) == (wrapper, 'AXRole'):
+                            state['wrapper_roles'] += 1
+                            if state['wrapper_roles'] == 2:
+                                b.nodes[wrapper]['role'] = role; state['drift_index'] = len(b.log)
+                        return value(ref, name, out)
+                    b.a.AXUIElementCopyAttributeValues.call = ranges
+                    b.a.AXUIElementCopyAttributeValue.call = values
+                    result = s.snapshot(picker, True)
+                    self.assertEqual(state['wrapper_roles'], 2)
+                    self.assertFalse(result['complete']); self.assertFalse(result['selection_complete'])
+                    self.assertEqual(result['error_category'], 'diagnostic snapshot queued wrapper role changed')
+                    self.assertIsNone(result['root_ordinal'])
+                    self.assertEqual(result['candidate_root_ordinal'], s.touch_ordinal(root))
+                    self.assertEqual(result['label'], 'partial-observed-after-attempt')
+                    self.assertEqual(result['semantic_handling'], 'unknown'); self.assertEqual(len(api.posts), 2)
+                    self.assertFalse(any(e[:3] == ('attribute', wrapper, 'AXParent')
+                                         for e in b.log[state['drift_index'] + 1:]))
+                    self.assertNotIn('SECRET', repr(result))
+
     def test_initial_only_counters_and_sealed_strict_snapshot_deadline_keep_their_scope(self):
         s, io, b, now = context(initial=True)
         picker = s.initial_picker()
