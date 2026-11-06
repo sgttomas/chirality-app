@@ -1211,7 +1211,8 @@ modals may be present under an opaque wrapper, and their interference/irrelevanc
 final responder fidelity/staleness/forwarding/non-atomicity and handling remain
 UNKNOWN. No absence/benign/service inference is made. A passing target model or
 mock is not native routing, general input, setup/J1, path/settings/save/model,
-release or acceptance qualification. Root owns the reserved method/acceptance choices.
+release or acceptance qualification. Agent0 selects diagnostic methods; product
+acceptance and release remain owner decisions.
 
 Receipts have a fixed proof-mode/scope descriptor: input census roots/direct
 children, direct-selected-root snapshot observations, and NECESSARY reciprocal
@@ -1310,7 +1311,7 @@ compile-only, never imported/executed during freeze; events/new runner homesEMPT
 no UTCend/admission/process/GO/queue. No actual account or native phase is created.
 
 Only these three owning Work files change; Scope/dependency/acceptance meanings
-remain unchanged. No product/assets/reader/core/test changes, real native/AX/App/
+remain unchanged. No product/assets/reader/core or protected core-test changes, real native/AX/App/
 session/preflight/event/process query, build/broad suite, download/auth/credentials/
 model/sign-in/VM/installed-App, capture/activation/global keys/private IPC/DOM or
 owner task occurred. Root retains independent scrutiny/repairs, parent+successor

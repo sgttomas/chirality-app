@@ -326,9 +326,23 @@ Current Type 1 assignments are:
   proof, intent, allocation or chord. Normal original-birth closure4.685059 s,
   zero overrun; Agent0 separately corroborated all four invocation PIDs absent.
   Account a4c0281e is included byte-identical; root's later closure stays separate.
-  The focus resampling path again had zero reservations. The next result owed is
-  a source-grounded boundary-policy assessment; no owner exception, new method,
-  retry or live GO is selected. This new entry/window is also consumed.
+  The focus resampling path again had zero reservations. At that receiving return,
+  a source-grounded boundary-policy assessment was next; no new method or live GO
+  was then selected. This new entry/window is also consumed.
+  #145 subsequently integrated exact returned-alias owner admission and stricter
+  snapshot modal/unknown-role selection guards, with128 mocked passes. Agent0
+  explicitly selected the [owned-route/root-boundary diagnostic](../PKG-09/DEL-09-02/Work/J1_PICKER_DIAGNOSTIC.md#selected-owned-routeroot-boundary-criterion--offline-native-unrun)
+  for source implementation of the same one original-PID command only. #146
+  implements that fixed scope: AppWindows, main/picker direct children and fresh
+  owned first-modal focus ancestry, with every required actual ref/alias and
+  necessary post-Q reciprocal range still strict. Group/SplitGroup interiors are
+  opaque uniformly. The loss of bounded wrapper-modal exclusion is explicit;
+  wrapper/foreign/global modal coverage and responder fidelity/handling remain
+  unknown.139 mocked tests pass independently, including hidden-modal/interception
+  counterexamples that do not establish native permission or handling. Exact
+  a969d213 source/entry08b434ea is inspected and UNRUN; independent implementation
+  scrutiny/current CI precede integration. No fresh availability/window/GO is
+  selected. Scope/acceptance and useful-model/native qualification stay open.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
