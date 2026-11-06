@@ -1164,3 +1164,154 @@ traversal. queued-drift-before.log and focused-final.log retain this correction.
 The review at app-j1-implementation-review-LQRN7I/REVIEW.md remains qualified to
 a1579f84; root's REVIEW_FIX_CHECKS.json records disposition of its one finding.
 This correction does not select the proposed narrower census or any native run.
+
+
+## Selected owned-route/root-boundary criterion — OFFLINE, native UNRUN
+
+Agent0 explicitly selected POSITIVE_OWNED_ROUTE_ROOT_BOUNDARY_DIAGNOSTIC_V1 for
+ONLY the fixed original-PID CmdShiftG diagnostic and bounded related-structure
+observation. The assignment/current owner steer is authority; the retained
+ROOT_POLICY_SELECTION.json in app-j1-alias-snapshot-checks-aifn2s7w is decision
+evidence. Proposal87c14f6ba92229294037098d7dd36152f519bc312718ae135fa1b617fa7296d0
+records the source-grounded recommendation and its loss of assurance. This is
+an explicit fixed source policy, never a caught-error fallback or PID/ref whitelist.
+No entry/window/GO/queue or actual App action is selected by implementation.
+
+Mandatory input was PR145 exacte3e1e816f0199679f8fcd411670a792536766218, source
+6243c6385992220db3eaaf91feef74fb00e0a49ea0512bf0bb33c97684dd6369 and test
+e956f8cda6d8180b842c1b60af09f1358a27726a45c54ba19da9fcc2a28ea547.
+During authoring PR145 merged normally as mainb5a6720b6000e6c334983d80b41d07bfdca6ca73,
+with the three owning Work blobs byte-identical. This branch normally fast-forwarded
+to that main before the implementation commit; no force/reset/rebase or parent-CI
+change. The exact alias admission and fresh snapshot role/selection repairs are
+preserved. Historical actuals—including a4c0281e's owner mismatch—retain their own
+source/version/bytes and missing facts, not this new method or reconstructed data.
+
+Input census is now strictly original App AXWindows, main AXChildren and retained
+picker DIRECT AXChildren. Group/SplitGroup interiors are never enumerated for
+negative input census or illustrative snapshot, including when they are on the
+current focus route, all-owned or would have returned unknown/foreign data. The
+source fixes scope before every proof; no exception is caught/skipped and ref13/
+PID54405 has no special treatment. Every ref ACTUALLY returned in a required array
+or scalar remains strict, with fresh exact-object owner admission even for known
+CFEqual aliases before any accepted edge/membership. No ownership is inherited.
+
+Original full identity/birth/UID/PGID/path/hash, same A/M/P, pending PROJECT purpose,
+positive main/picker publication/direct P→M, known nonmodal focus F and mandatory
+owned role/parent traversal to FIRST modal exact retainedSheet within6links remain.
+Both strict proofs freshly re-establish all positive facts and root vetoes around
+durable intent, SAME F/P, complete last route/full identity after final AX reads.
+Known-modal/semantic contradictions remain sticky; initial messaging failures
+cannot erase them, replace P or create cached permission. Known nonempty legacy
+P.AXSheets still vetoes; unsupported/NoValue is unknown/null and0 is no authority.
+No new attributes, TopLevel/other shortcuts, process lookup or hidden input route.
+
+The accepted LOSS is bounded WRAPPER-modal exclusion. Owned OR foreign unqueried
+modals may be present under an opaque wrapper, and their interference/irrelevance,
+final responder fidelity/staleness/forwarding/non-atomicity and handling remain
+UNKNOWN. No absence/benign/service inference is made. A passing target model or
+mock is not native routing, general input, setup/J1, path/settings/save/model,
+release or acceptance qualification. Root owns the reserved method/acceptance choices.
+
+Receipts have a fixed proof-mode/scope descriptor: input census roots/direct
+children, direct-selected-root snapshot observations, and NECESSARY reciprocal
+ranges are separate purposes. Wrapper/foreign/global modal coverage and responder
+fidelity stayunknown. A completed positive evidence object has proof_complete=true;
+a binding refusal has false. Snapshot candidate_root_ordinal is an observed candidate,
+selection_complete/complete require all selected-root observations/guards to finish,
+root_ordinal is null on partial, and handling remainsunknown. direct_observation
+contains only an actually admitted root range with count/range provenance; it is
+null if no such range completed. No omitted descendants or accepted parent links
+are fabricated. Returned-ref evidence retains its native-return-only meaning.
+
+Post-command selection remains independent: fresh owned F2→first modalP, or another
+ownedSheetQ only through the existing bounded owned parent AND reciprocal child
+path THROUGH P, with retained P still published/direct-main. Necessary reciprocal
+arrays remain fully strict—including every returned off-path sibling and every
+actual CFEqual alias. Foreign/unknown/malformed/private/unrelated/multiple evidence
+there makes post selection partial; no alternate root or recovery query. Illustrative
+observation reads only selected-root DIRECT children and validated focus-path facts.
+Any observed modal/unknown child refuses before parent follow. Fresh root Sheet
+role is checked BEFORE parent reads. No wrappers are queued now; the old queued
+role guard remains, and all performed direct/root role observations stay guarded.
+Labels are observed-after/effectunknown, never new/created/caused/Go-ready/handling.
+
+Limits unchanged: initial4 complete passes/6s, existing max3 fixed.2 Focus-availability
+reservations and eligible initial no-result CannotComplete only; strict/snapshot
+never wait. BOTH strict proofs share one sealed<=2s; snapshot<=1s clips that SAME
+strict end/fixedE8/work110, total180 cooperative. Read64/owner128 are INITIAL-only
+shared totals, not reset per pass; trace512/shared32 CFEqual refs span all phases,
+depth3/12children and prospective guards unchanged. All actual aliases incur the
+real existing owner composite, all costs reserve/charge before observations/input,
+and late success is never permission. No timeout increase/cap raise/eviction/
+pagination or per-proof interval. No native timing promise follows from fake clocks.
+
+NativePosting/FixedGesture/DiagnosticSession/DiagnosticStage/run_prepared and the
+whole StructuralCalls AST are unchanged frome3e1, including its ABI initializer.
+Eighteen strict guard/helper ASTs are unchanged, including owner/touch/returned_ref/
+refs/scalar admission, publication, focus availability/ancestry, identity checks,
+initial sealing and strict recheck. Coref510/testa942/readerfd378 bytes unchanged;
+NativeSession.check remains uninstrumented. Same-original paired up, all CFRelease,
+one prebound normal termination and held-until-original-birth absence remain
+independent of trace/cap/journal failure. No BOOL/deadline release or exit/reap claim.
+
+Author verification:139 focused actual-path mocked methods PASS with fake OS under
+ordinary t3_slot/fresh scratch homes.116 of the input128 method ASTs are unchanged;
+12 are explicitly adapted and11 new. TEST_ADAPTATION.json lists every rename/body
+change: deeper unknown/foreign negatives move to REQUIRED direct ranges; malformed
+short output uses a mandatory count2 main array; removed queued second reads are
+not pretended to occur.14 direct-child role-drift and14 fresh-root role-drift cases
+verify performed guards before parent follow. No proof methods are stubbed/overridden
+to manufacture success. SCENARIO_COVERAGE.json maps all29 design definitions, with
+baseline parent standing and authority/empty-freeze cases labelled reused/static.
+
+M12 includes latent OWNED and FOREIGN wrapper modals: the newly selected gate can
+pass while coverage staysUNKNOWN and no descendant is queried/represented. M26
+uses external interception truth to REJECT the responder assumption while the
+driver still honestly reports handlingunknown; it adds no fabricated detector.
+Strict direct/on-path/reciprocal ownership, all aliases/unknown/type/caps/late/
+headroom/intent drift/privacy/evidence mutation/unknown dispatch and permanent
+journal/same-original-up/false-or-unknown-termination custody cases remain covered.
+
+Actual MOCKED reservations from the real full controller/proof/cleanup paths:
+
+| Fixture | Initial reads/owners/trace | Both strict proofs reads/owners/trace | Snapshot reads/owners/trace | Shared final trace / result |
+|---|---|---|---|---|
+| small positive |25/41/71|50/74/132|25/37/64|267 / complete |
+| six-child/five-ref geometry |43/73/121|86/138/232|43/69/114|467 / complete |
+| recorded role→count failure prefix |46/84/143|86/138/232|43/69/114|489 / complete |
+| three Focus resamples |46/82/142|86/138/232|43/69/114|488 / complete |
+| twelve required direct children |47/85/137|94/162/264|40/70/111|512 / honest snapshot partial |
+
+These are measured mocked reservations, not the earlier symbolic43-read estimate
+or a native timing/handling claim. Strict86 reads/138 owners in the observed geometry
+are real charges and valid because64/128 apply INITIAL only; all phases still
+share512. The larger required scope still exhausts512; no bound was evaded. Phase
+deadline offsets in MOCK_BUDGETS show one shared strict end and clipped snapshot.
+The former recursive larger fixture's512 result is preserved in parent evidence,
+not relabelled; the new fixture intentionally performs fewer scoped observations.
+
+Logs/checks/design adaptation/static evidence:
+/Users/ryan/dev/chirality-t3/scratch/app-j1-root-boundary-checks-tponwmvv
+(focused-final-metadata.log, budgets-final.log, MOCK_BUDGETS.json,
+TEST_ADAPTATION.json, SCENARIO_COVERAGE.json, STATIC_CHECKS.json,
+deliverables-final.log, diff-check.log and final checks.json).
+
+New private immutable UNRUN freeze: /Users/ryan/dev/chirality-t3/scratch/app-j1-owned-route-root-boundary-staged-nkb2lpep
+Diagnostic SHA256:589f4a7f8a4e319bb112cb29dd8ce13c4e561dfe3a69726bde3d27a43d9bb260
+Test SHA256:4190ab04320fd2aeff7d024535f0650c47bbf37fa68cce76dbcff91354a3c20e
+Prospective entry SHA256:08b434ea0d86284b236976863e0b79d71c7eebf924d384c335eeb2a10c27c01a
+Its five files come from the exact final COMMITTED Git objects. ONLY two EXPECTED
+hash literals change from acceptedyndqw0ne/a2b0 entry, with inverse byte proof;
+required futureUTC185/180/110/subject/authentic561 receipt/private journal/generic
+entry/cleanup guard flow unchanged. Original11 manifest sets/project/eaf-b98 static
+executable and consumed/superseded members/accounts are verified. Entry/sources
+compile-only, never imported/executed during freeze; events/new runner homesEMPTY,
+no UTCend/admission/process/GO/queue. No actual account or native phase is created.
+
+Only these three owning Work files change; Scope/dependency/acceptance meanings
+remain unchanged. No product/assets/reader/core/test changes, real native/AX/App/
+session/preflight/event/process query, build/broad suite, download/auth/credentials/
+model/sign-in/VM/installed-App, capture/activation/global keys/private IPC/DOM or
+owner task occurred. Root retains independent scrutiny/repairs, parent+successor
+CI/integration, exact entry inspection and EVERY later fresh availability/GO.

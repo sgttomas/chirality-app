@@ -177,21 +177,21 @@ class ReturnedReferenceEvidenceTests(unittest.TestCase):
     def test_foreign_range_ref_retains_actual_return_before_owner_refusal(self):
         s, io, b, now = context(initial=True)
         observed_shape(b)
-        b.nodes[22]['AXChildren'] = list(range(24, 36))
+        b.nodes[3]['AXChildren'] = list(range(24, 36))
         for ref in range(24, 36):
-            b.nodes[ref] = {'role': 'SECRET', 'AXParent': 22, 'owner': 999 if ref == 25 else 17}
+            b.nodes[ref] = {'role': 'SECRET', 'AXParent': 3, 'owner': 999 if ref == 25 else 17}
         with self.assertRaisesRegex(Refusal, 'foreign/unknown owner'):
             s.initial_picker()
         report = s.binding_refusal(s.stopped)
         row = report['nodes'][s.touch_ordinal(25)]
         origin = row['first_return']
-        self.assertEqual(origin['source_ordinal'], s.touch_ordinal(22))
+        self.assertEqual(origin['source_ordinal'], s.touch_ordinal(3))
         self.assertEqual((origin['attribute'], origin['output_index'], origin['requested_count']),
                          ('AXChildren', 1, 12))
         self.assertEqual(origin['meaning'], 'native-return-only-not-ownership-parent-or-readiness')
         call = next(e for e in report['trace'] if e['op'] == origin['op'])
         self.assertEqual((call['api'], call['attribute'], call['ordinal'], call['return_code']),
-                         ('AXUIElementCopyAttributeValues', 'AXChildren', s.touch_ordinal(22), 0))
+                         ('AXUIElementCopyAttributeValues', 'AXChildren', s.touch_ordinal(3), 0))
         self.assertEqual(row['owner_pid'], 999)
         self.assertFalse(row['owner_match'])
         self.assertIsNone(row['role']); self.assertIsNone(row['parent_ordinal'])
@@ -395,43 +395,38 @@ class ExactReturnedAliasAndSnapshotTests(unittest.TestCase):
                 self.assertFalse(any(e[:3] == ('attribute', 11, 'AXParent') for e in b.log))
                 self.assertNotIn('SECRET', repr(result))
 
-    def test_queued_wrapper_fresh_role_drift_refuses_before_parent_follow(self):
-        for related in (False, True):
-            for role in ('AXSheet', 'AXWindow', 'AXDrawer', 'AXDialog', 'SECRET unknown', 'AXButton', 'AXScrollArea'):
-                with self.subTest(related=related, role=role):
-                    s, io, b, now = context(); picker = s.picker(); api = Posting()
-                    d.FixedGesture(api).run(s, picker, lambda *args: None)
-                    root, wrapper = picker, 5
+    def test_direct_child_fresh_role_drift_and_uniform_no_queue(self):
+        for related in (False,True):
+            for role in ('AXSheet','AXWindow','AXDrawer','AXDialog','SECRET unknown','AXButton','AXScrollArea'):
+                with self.subTest(related=related,role=role):
+                    s,io,b,now=context();p=s.picker();api=Posting()
+                    d.FixedGesture(api).run(s,p,lambda *a:None)
+                    root,child=p,5
                     if related:
-                        related_after(b); root, wrapper = 9, 20
-                        b.nodes[20] = {'role': 'AXGroup', 'AXParent': 9, 'AXChildren': [10]}
-                        b.nodes[10]['AXParent'] = 20; b.nodes[9]['AXChildren'] = [20]
-                    ranged = b.a.AXUIElementCopyAttributeValues.call
-                    value = b.a.AXUIElementCopyAttributeValue.call
-                    state = {'armed': False, 'wrapper_roles': 0, 'drift_index': None}
-                    def ranges(ref, name, start, count, out):
-                        rc = ranged(ref, name, start, count, out)
-                        if (ref, name) == (root, 'AXChildren'): state['armed'] = True
+                        related_after(b);root,child=9,20
+                        b.nodes[20]={'role':'AXGroup','AXParent':9,'AXChildren':[10]}
+                        b.nodes[10]['AXParent']=20;b.nodes[9]['AXChildren']=[20]
+                    ranged=b.a.AXUIElementCopyAttributeValues.call;value=b.a.AXUIElementCopyAttributeValue.call
+                    state={'armed':False,'reads':0,'drift_index':None}
+                    def ranges(ref,name,start,count,out):
+                        rc=ranged(ref,name,start,count,out)
+                        if (ref,name)==(root,'AXChildren'):state['armed']=True
                         return rc
-                    def values(ref, name, out):
-                        if state['armed'] and (ref, name) == (wrapper, 'AXRole'):
-                            state['wrapper_roles'] += 1
-                            if state['wrapper_roles'] == 2:
-                                b.nodes[wrapper]['role'] = role; state['drift_index'] = len(b.log)
-                        return value(ref, name, out)
-                    b.a.AXUIElementCopyAttributeValues.call = ranges
-                    b.a.AXUIElementCopyAttributeValue.call = values
-                    result = s.snapshot(picker, True)
-                    self.assertEqual(state['wrapper_roles'], 2)
-                    self.assertFalse(result['complete']); self.assertFalse(result['selection_complete'])
-                    self.assertEqual(result['error_category'], 'diagnostic snapshot queued wrapper role changed')
-                    self.assertIsNone(result['root_ordinal'])
-                    self.assertEqual(result['candidate_root_ordinal'], s.touch_ordinal(root))
-                    self.assertEqual(result['label'], 'partial-observed-after-attempt')
-                    self.assertEqual(result['semantic_handling'], 'unknown'); self.assertEqual(len(api.posts), 2)
-                    self.assertFalse(any(e[:3] == ('attribute', wrapper, 'AXParent')
-                                         for e in b.log[state['drift_index'] + 1:]))
-                    self.assertNotIn('SECRET', repr(result))
+                    def values(ref,name,out):
+                        if state['armed'] and (ref,name)==(child,'AXRole'):
+                            state['reads']+=1;b.nodes[child]['role']=role;state['drift_index']=len(b.log)
+                        return value(ref,name,out)
+                    b.a.AXUIElementCopyAttributeValues.call=ranges;b.a.AXUIElementCopyAttributeValue.call=values
+                    result=s.snapshot(p,True);rejected=role in d.Structure.MODALS or role=='SECRET unknown'
+                    self.assertEqual(state['reads'],1)
+                    self.assertEqual(result['complete'],not rejected)
+                    self.assertEqual(result['selection_complete'],not rejected)
+                    self.assertEqual(result['semantic_handling'],'unknown');self.assertEqual(len(api.posts),2)
+                    self.assertFalse(any(e[:3]==('count',child,'AXChildren') for e in b.log))
+                    if rejected:
+                        self.assertIsNone(result['root_ordinal'])
+                        self.assertFalse(any(e[:3]==('attribute',child,'AXParent') for e in b.log[state['drift_index']+1:]))
+                    self.assertNotIn('SECRET',repr(result))
 
     def test_initial_only_counters_and_sealed_strict_snapshot_deadline_keep_their_scope(self):
         s, io, b, now = context(initial=True)
@@ -457,7 +452,7 @@ class PositiveTargetTests(unittest.TestCase):
         g.run(s,picker,record)
         return picker,api,g
 
-    def test_observed_geometry_proofs_post_but_snapshot_honestly_reaches_shared_cap(self):
+    def test_observed_geometry_completes_direct_snapshot_with_real_shared_charges(self):
         s,io,b,now=context(initial=True);observed_shape(b)
         old=b.a.AXUIElementCopyAttributeValue.call;failed=[0]
         def read(ref,name,out):
@@ -466,8 +461,8 @@ class PositiveTargetTests(unittest.TestCase):
         b.a.AXUIElementCopyAttributeValue.call=read
         picker,api,g=self.gesture(s,b)
         result=s.snapshot(picker,True)
-        self.assertFalse(result['complete']); self.assertEqual(result['error_category'],'diagnostic trace capacity')
-        self.assertFalse(result['selection_complete']); self.assertIsNone(result['root_ordinal'])
+        self.assertTrue(result['complete'],result['error_category']);self.assertTrue(result['selection_complete'])
+        self.assertEqual(result['root_ordinal'],s.touch_ordinal(picker))
         self.assertEqual(s.initial_completed_pass,3);self.assertEqual(len(api.posts),2)
         self.assertLessEqual(s.initial_reads,64);self.assertLessEqual(s.initial_owners,128)
         self.assertLessEqual(s.op_count,512);self.assertLessEqual(len(s.rows),32)
@@ -478,17 +473,17 @@ class PositiveTargetTests(unittest.TestCase):
         self.assertEqual([e['source'] for e in proof['ancestry_edges']],[s.touch_ordinal(x) for x in (4,20,21,22)])
         self.assertEqual(proof['nearest_modal_proof']['nearest_modal'],s.touch_ordinal(3))
         self.assertFalse(any(x[0] in ('count','range') and x[1] in (4,20) for x in b.log))
-        self.assertEqual(result['label'],'partial-observed-after-attempt')
-        self.assertEqual(s.op_count,512); self.assertEqual(len(s.completed_proofs),3)
+        self.assertEqual(result['label'],'retained-picker-observed-after-attempt')
+        self.assertLess(s.op_count,512);self.assertEqual(len(s.completed_proofs),3)
 
     def test_primary_ancestry_never_queries_any_shortcut_regardless_of_provider_values(self):
         for advertised in (None,3,2,{'private':'SECRET'}):
             s,io,b,now=context(initial=True);observed_shape(b)
             b.nodes[4]['AXTopLevelUIElement']=advertised
             p,api,g=self.gesture(s,b);result=s.snapshot(p,True)
-            self.assertFalse(result['complete']);self.assertEqual(result['error_category'],'diagnostic trace capacity')
+            self.assertTrue(result['complete'],result['error_category'])
             self.assertEqual(len(api.posts),2);self.assertEqual(len(s.completed_proofs),3)
-            self.assertEqual(s.PROOF_MODE,'POSITIVE_FOCUSED_ANCESTRY_DIAGNOSTIC_V1')
+            self.assertEqual(s.PROOF_MODE,'POSITIVE_OWNED_ROUTE_ROOT_BOUNDARY_DIAGNOSTIC_V1')
             proof=s.after_intent_proof['nearest_modal_proof']
             self.assertEqual(proof['path_ordinals'],[s.touch_ordinal(x) for x in (4,20,21,22,3)])
             self.assertEqual(proof['nearest_modal'],s.touch_ordinal(3))
@@ -626,8 +621,10 @@ class PositiveTargetTests(unittest.TestCase):
             if case=='unpublished_picker':b.nodes[2]['AXChildren']=[]
             if case=='self_child':b.nodes[2]['AXChildren']=[2,3]
             if case=='app_child':b.nodes[2]['AXChildren']=[1,3]
-            if case=='unknown':b.nodes[6]['role']='SECRET unknown'
-            if case=='private_unknown_group':b.nodes[7]['role']='SECRET unknown'
+            if case=='unknown':
+                b.nodes[6].update(role='SECRET unknown',AXParent=3);b.nodes[3]['AXChildren'].append(6)
+            if case=='private_unknown_group':
+                b.nodes[7].update(role='SECRET unknown',AXParent=3);b.nodes[3]['AXChildren'].append(7)
             with self.assertRaises(Refusal):
                 p=s.initial_picker();d.FixedGesture(api).run(s,p,lambda *a:None)
             self.assertEqual(api.posts,[],case);self.assertEqual(now[0],0)
@@ -858,7 +855,8 @@ class StructuralTests(unittest.TestCase):
         route = structure.routing(picker)
         self.assertEqual(route['path'], [4, 5, 3])
         self.assertEqual([e['source'] for e in route['edges']], [structure.touch_ordinal(x) for x in (4,5)])
-        b.nodes[6]['role'] = 'SECRET unknown role'
+        b.nodes[6].update(role='SECRET unknown role',AXParent=3)
+        b.nodes[3]['AXChildren'].append(6)
         result = structure.snapshot(picker, False)
         self.assertFalse(result['complete']); self.assertFalse(result['selection_complete'])
         self.assertEqual(result['error_category'], 'diagnostic snapshot child role unknown')
@@ -974,6 +972,7 @@ class StructuralTests(unittest.TestCase):
         self.assertFalse(result['complete'])
         self.assertNotIn('SECRET', repr(result))
         s, io, b, now = context(); picker = s.picker(); b.nodes[7]['owner'] = 999
+        b.nodes[3]['AXChildren'].append(7);b.nodes[7]['AXParent']=3
         result = s.snapshot(picker, False)
         self.assertFalse(result['complete'])
         self.assertFalse(any(row[0] in ('count','range','attribute') and row[1] == 7 for row in b.log))
@@ -1326,6 +1325,7 @@ class CommunicationPolicyTests(unittest.TestCase):
             with self.assertRaises(Refusal):s.initial_picker()
             self.assertFalse(any(row[0]=='range' for row in b.log));self.assertEqual(now[0],0)
         s,io,b,now=context(initial=True);original=b.a.AXUIElementCopyAttributeValues.call
+        b.nodes[9]={'role':'AXButton','AXParent':2};b.nodes[2]['AXChildren'].append(9)
         def short(ref,name,start,count,out):return original(ref,name,start,1,out)
         b.a.AXUIElementCopyAttributeValues=Fn(short);self.install(s,io,b)
         with self.assertRaises(Refusal):s.initial_picker()
@@ -1600,17 +1600,17 @@ class AdmissionAndRunTests(unittest.TestCase):
         self.assertEqual(len(api.posts), 2)
         self.assertIn('final-closure', [k for k,v in records])
 
-    def test_actual_controller_observed_geometry_cap_stays_partial_and_cleans_up(self):
+    def test_actual_controller_observed_geometry_direct_snapshot_charges_and_cleanup(self):
         def configure(b,api,now):observed_shape(b)
         result,counts,api,b,app,records=self.full(configure=configure)
         self.assertEqual(counts['launches'],1);self.assertEqual(len(api.posts),2)
         self.assertEqual(app.terminations,1);self.assertTrue(result['original_absent'])
         self.assertEqual(result['diagnostic']['proof_mode'],d.Structure.PROOF_MODE)
         self.assertEqual(len(result['diagnostic']['target_proofs']),3)
-        self.assertFalse(result['diagnostic']['snapshot']['complete'])
-        self.assertEqual(result['diagnostic']['snapshot']['error_category'],'diagnostic trace capacity')
-        self.assertEqual(result['diagnostic']['snapshot']['budget']['reserved_operations'],512)
-        self.assertFalse(result['diagnostic']['snapshot']['selection_complete'])
+        self.assertTrue(result['diagnostic']['snapshot']['complete'])
+        self.assertIsNone(result['diagnostic']['snapshot']['error_category'])
+        self.assertLess(result['diagnostic']['snapshot']['budget']['reserved_operations'],512)
+        self.assertTrue(result['diagnostic']['snapshot']['selection_complete'])
         for key in ('setup_saved','J1_complete','qualification','flow_complete'):self.assertFalse(result[key])
 
     def test_mandatory_parent_refusal_or_strict_drift_always_autonomous_cleanup(self):
@@ -1640,7 +1640,7 @@ class AdmissionAndRunTests(unittest.TestCase):
         self.assertEqual(len(api.posts),2);self.assertEqual(app.terminations,1)
         self.assertTrue(result['original_absent']);self.assertFalse(result['setup_saved'])
         proof=result['diagnostic']['target_proofs'][-1]
-        self.assertEqual(proof['proof_mode'],'POSITIVE_FOCUSED_ANCESTRY_DIAGNOSTIC_V1')
+        self.assertEqual(proof['proof_mode'],'POSITIVE_OWNED_ROUTE_ROOT_BOUNDARY_DIAGNOSTIC_V1')
         self.assertEqual(proof['nearest_modal_proof']['nearest_modal_role'],'AXSheet')
         self.assertNotIn('top_level',repr(result['diagnostic']))
 
@@ -1724,8 +1724,8 @@ class AdmissionAndRunTests(unittest.TestCase):
             with self.subTest(failure=failure):
                 def configure(b, api, now):
                     observed_shape(b)
-                    b.nodes[22]['AXChildren'] = [21, 25]
-                    b.nodes[25] = {'owner': 999, 'role': 'SECRET', 'AXParent': 22}
+                    b.nodes[3]['AXChildren'] = [22,25]
+                    b.nodes[25] = {'owner': 999, 'role': 'SECRET', 'AXParent': 3}
                 result, counts, api, b, app, records = self.full(configure=configure, fail_record=failure)
                 self.assertEqual(api.posts, []); self.assertEqual(app.terminations, 1)
                 self.assertTrue(result['original_absent']); self.assertEqual(counts['launches'], 1)
@@ -1925,10 +1925,10 @@ class FocusAvailabilityTests(unittest.TestCase):
                 result, counts, api, b, app, records = self.full(configure=configure)
                 self.assertEqual(b.sleep_calls, [.2] * failures)
                 self.assertEqual(len(api.posts), 2)
-                self.assertFalse(result['diagnostic']['snapshot']['complete'])
-                self.assertEqual(result['diagnostic']['snapshot']['error_category'], 'diagnostic trace capacity')
+                self.assertTrue(result['diagnostic']['snapshot']['complete'])
+                self.assertIsNone(result['diagnostic']['snapshot']['error_category'])
                 budget = result['diagnostic']['snapshot']['budget']
-                self.assertEqual(budget['reserved_operations'], 512)
+                self.assertLess(budget['reserved_operations'],512)
                 self.assertEqual(budget['initial_completed_pass'], 1)
                 self.assertEqual(budget['initial_focus_pause_reservations'], failures)
                 self.assertLessEqual(budget['initial_reads'], 64)
@@ -2028,6 +2028,191 @@ class FocusAvailabilityTests(unittest.TestCase):
             self.assertEqual(len(api.posts), 0 if stage == 'strict' else 2)
             self.assertEqual(app.terminations, 1)
             self.assertTrue(result['original_absent'])
+
+
+class RootBoundaryScopeTests(unittest.TestCase):
+    def run_protocol(self,configure=None,fail_record=None):
+        # Same full controller/cleanup fixture as the retained cohort; no proof replacement.
+        return AdmissionAndRunTests().full(configure=configure,fail_record=fail_record)
+
+    def test_fixed_root_scope_ignores_all_owned_foreign_and_unknown_wrapper_interiors(self):
+        for owner in (17,999,None):
+            for role in ('AXButton','AXSheet','AXWindow','AXDrawer','AXDialog','SECRET unknown'):
+                with self.subTest(owner=owner,role=role):
+                    def configure(b,api,now):
+                        observed_shape(b);b.nodes[22]['AXChildren']=list(range(24,36))
+                        for n in range(24,36):b.nodes[n]={'role':role,'owner':owner,'AXParent':22}
+                    result,counts,api,b,app,records=self.run_protocol(configure)
+                    report=result['diagnostic'];snapshot=report['snapshot']
+                    self.assertEqual(counts['launches'],1);self.assertEqual(len(api.posts),2)
+                    self.assertTrue(snapshot['complete'],snapshot['error_category'])
+                    self.assertTrue(snapshot['selection_complete']);self.assertEqual(app.terminations,1)
+                    self.assertTrue(result['original_absent']);self.assertFalse(result['setup_saved'])
+                    for proof in report['target_proofs']:
+                        self.assertTrue(proof['proof_complete'])
+                        self.assertEqual(proof['proof_mode'],'POSITIVE_OWNED_ROUTE_ROOT_BOUNDARY_DIAGNOSTIC_V1')
+                        self.assertEqual(proof['veto_boundary']['scope'],'retained_picker_direct_children_only')
+                        self.assertEqual(len(proof['veto_boundary']['arrays']),1)
+                        self.assertEqual(proof['observation_scope']['wrapper_interior_modal_coverage'],'unknown')
+                        self.assertEqual(proof['observation_scope']['foreign_modal_coverage'],'unknown')
+                        self.assertEqual(proof['observation_scope']['global_modal_coverage'],'unknown')
+                    self.assertFalse(any(e[0] in ('count','range') and e[1] in (4,20,21,22) for e in b.log))
+                    self.assertFalse(any(e[0] in ('owner','attribute','count','range') and e[1] in range(24,36) for e in b.log))
+                    self.assertFalse(any(row['owner_pid'] in (999,None) for row in snapshot['nodes']))
+                    self.assertNotIn('SECRET',repr(report));self.assertEqual(snapshot['semantic_handling'],'unknown')
+
+    def test_opaque_alias_is_unobserved_but_a_required_alias_gets_fresh_owner(self):
+        for required in (False,True):
+            s,io,b,now=context(initial=True);observed_shape(b)
+            b.nodes[25]=dict(b.nodes[4],owner=999)
+            b.equal=lambda left,right:(4 if left==25 else left)==(4 if right==25 else right)
+            if required:b.nodes[3]['AXChildren']=[22,25]
+            else:b.nodes[22]['AXChildren']=[21,25]
+            api=Posting()
+            if required:
+                with self.assertRaisesRegex(Refusal,'foreign/unknown owner'):s.initial_picker()
+                self.assertIn(('timeout-exact',25,.2),b.log);self.assertIn(('owner',25),b.log)
+                self.assertFalse(any(e[:2]==('attribute',25) for e in b.log))
+            else:
+                p=s.initial_picker();d.FixedGesture(api).run(s,p,lambda *a:None)
+                self.assertTrue(s.snapshot(p,True)['complete']);self.assertEqual(len(api.posts),2)
+                self.assertFalse(any(e[0] in ('owner','attribute','count','range') and e[1]==25 for e in b.log))
+
+    def test_every_required_direct_or_route_owner_failure_remains_fatal(self):
+        for location in ('app-window','main-child','picker-child','focus','ancestor'):
+            for owner in (999,0):
+                with self.subTest(location=location,owner=owner):
+                    def configure(b,api,now):
+                        if location=='app-window':b.nodes[2]['owner']=owner
+                        if location=='main-child':b.nodes[9]={'role':'AXButton','owner':owner,'AXParent':2};b.nodes[2]['AXChildren'].append(9)
+                        if location=='picker-child':b.nodes[9]={'role':'AXButton','owner':owner,'AXParent':3};b.nodes[3]['AXChildren'].append(9)
+                        if location=='focus':b.nodes[4]['owner']=owner
+                        if location=='ancestor':b.nodes[5]['owner']=owner
+                    result,counts,api,b,app,records=self.run_protocol(configure)
+                    self.assertEqual(api.posts,[]);self.assertEqual(app.terminations,1)
+                    self.assertTrue(result['original_absent']);self.assertFalse(result['setup_saved'])
+                    self.assertFalse(result['diagnostic']['binding_refusal']['proof_complete'])
+                    row=next(n for n in result['diagnostic']['binding_refusal']['nodes'] if n['owner_match'] is False)
+                    self.assertIsNone(row['role']);self.assertIsNone(row['parent_ordinal'])
+
+    def test_foreign_required_reciprocal_sibling_is_not_an_opacity_exception(self):
+        for owner in (999,0):
+            s,io,b,now=context();p=s.picker();api=Posting()
+            d.FixedGesture(api).run(s,p,lambda *a:None);related_after(b)
+            b.nodes[20]={'role':'AXGroup','AXParent':3,'AXChildren':[9,21]}
+            b.nodes[9]['AXParent']=20;b.nodes[3]['AXChildren']=[5,20]
+            b.nodes[21]={'role':'SECRET','owner':owner,'AXParent':20}
+            result=s.snapshot(p,True)
+            self.assertFalse(result['complete']);self.assertFalse(result['selection_complete'])
+            self.assertIsNone(result['root_ordinal']);self.assertEqual(result['error_category'],'diagnostic foreign/unknown owner')
+            self.assertEqual(len(api.posts),2)
+            self.assertFalse(any(e[0] in ('attribute','count','range') and e[1]==21 for e in b.log))
+
+    def test_necessary_owned_reciprocal_ranges_are_explicit_and_independent(self):
+        s,io,b,now=context();p=s.picker();api=Posting()
+        d.FixedGesture(api).run(s,p,lambda *a:None);related_after(b)
+        b.nodes[20]={'role':'AXGroup','AXParent':3,'AXChildren':[9]}
+        b.nodes[9]['AXParent']=20;b.nodes[3]['AXChildren']=[5,20]
+        result=s.snapshot(p,True)
+        self.assertTrue(result['complete'],result['error_category'])
+        self.assertEqual(result['relation']['path']['purpose'],'necessary_owned_reciprocal_relation')
+        self.assertTrue(all(x['purpose']=='necessary_owned_reciprocal_range' for x in result['relation']['path']['arrays']))
+        self.assertIn(('count',20,'AXChildren'),b.log)
+        self.assertEqual(result['direct_observation']['purpose'],'snapshot_selected_root_direct_observation')
+        self.assertEqual(result['direct_observation']['container'],s.touch_ordinal(9))
+        self.assertEqual(result['semantic_handling'],'unknown');self.assertEqual(len(api.posts),2)
+        self.assertEqual(result['label'],'related-sheet-observed-after-attempt')
+
+    def test_external_interception_oracle_rejects_assumption_without_fake_detector(self):
+        oracle=[]
+        def configure(b,api,now):
+            observed_shape(b)
+            b.nodes[25]={'role':'AXSheet','owner':999,'AXParent':22};b.nodes[22]['AXChildren']=[21,25]
+            api.on_down=lambda:oracle.append({'event':102,'actual_receiver':'outside-retained-picker'})
+        result,counts,api,b,app,records=self.run_protocol(configure)
+        self.assertEqual(oracle,[{'event':102,'actual_receiver':'outside-retained-picker'}])
+        self.assertEqual(len(api.posts),2);self.assertTrue(result['diagnostic']['snapshot']['complete'])
+        self.assertEqual(result['diagnostic']['semantic_handling'],'unknown')
+        self.assertFalse(result['qualification']);self.assertFalse(result['J1_complete'])
+        responder_assumption_supported=all(x['actual_receiver']=='retained-picker' for x in oracle)
+        self.assertFalse(responder_assumption_supported)  # external ground truth, unavailable to driver
+        self.assertNotIn('actual_receiver',repr(result));self.assertNotIn('misrouting',repr(result))
+        self.assertEqual(app.terminations,1);self.assertTrue(result['original_absent'])
+
+    def test_snapshot_root_fresh_role_guard_precedes_parent_even_without_queue(self):
+        for related in (False,True):
+            for role in ('AXWindow','AXDrawer','AXDialog','AXGroup','AXButton','AXScrollArea','SECRET unknown'):
+                with self.subTest(related=related,role=role):
+                    s,io,b,now=context();p=s.picker();api=Posting();d.FixedGesture(api).run(s,p,lambda *a:None)
+                    if related:related_after(b)
+                    root=9 if related else p;old=b.a.AXUIElementCopyAttributeValue.call
+                    state={'focus':0,'root_roles_after_second_focus':0,'drift_index':None}
+                    def values(ref,name,out):
+                        if (ref,name)==(1,'AXFocusedUIElement'):state['focus']+=1
+                        if state['focus']>=2 and (ref,name)==(root,'AXRole'):
+                            state['root_roles_after_second_focus']+=1
+                            if state['root_roles_after_second_focus']==2:
+                                b.nodes[root]['role']=role;state['drift_index']=len(b.log)
+                        return old(ref,name,out)
+                    b.a.AXUIElementCopyAttributeValue.call=values
+                    result=s.snapshot(p,True)
+                    self.assertEqual(state['root_roles_after_second_focus'],2)
+                    self.assertFalse(result['selection_complete']);self.assertIsNone(result['root_ordinal'])
+                    self.assertEqual(result['error_category'],'diagnostic selected post root role/parent drift')
+                    self.assertFalse(any(e[:3]==('attribute',root,'AXParent') for e in b.log[state['drift_index']+1:]))
+                    self.assertNotIn('SECRET',repr(result))
+
+    def test_root_census_role_and_owner_drift_at_intent_never_uses_old_proof(self):
+        for case in ('modal','unknown','owner','parent','picker-replace','focus-replace'):
+            s,io,b,now=context();p=s.picker();api=Posting()
+            # Mutate source facts only through the actual durable-intent callback.
+            def change(kind,payload):
+                payload['positive_target_proof']['observation_scope']['foreign_modal_coverage']='fabricated-empty'
+                if case=='modal':b.nodes[5]['role']='AXSheet'
+                if case=='unknown':b.nodes[5]['role']='SECRET'
+                if case=='owner':b.nodes[5]['owner']=999
+                if case=='parent':b.nodes[5]['AXParent']=2
+                if case=='picker-replace':
+                    b.nodes[9]={'role':'AXSheet','AXParent':2,'AXChildren':[],'AXSheets':[]};b.nodes[2]['AXChildren']=[9]
+                if case=='focus-replace':
+                    b.nodes[9]={'role':'AXButton','AXParent':5};b.nodes[1]['AXFocusedUIElement']=9
+            with self.assertRaises(Refusal):d.FixedGesture(api).run(s,p,change)
+            self.assertEqual(api.posts,[],case);self.assertEqual(api.freed,[103,102,101])
+            self.assertEqual(s.completed_proofs[0]['observation_scope']['foreign_modal_coverage'],'unknown')
+
+    def test_scope_and_direct_observation_receipts_cannot_rebind_policy(self):
+        def configure(b,api,now):b.mutate_receipts=True
+        result,counts,api,b,app,records=self.run_protocol(configure)
+        snapshot=result['diagnostic']['snapshot'];snapshot['observation_scope']['foreign_modal_coverage']='altered'
+        self.assertEqual(result['diagnostic']['target_proofs'][0]['observation_scope']['foreign_modal_coverage'],'unknown')
+        self.assertEqual(d.Structure.PROOF_MODE,'POSITIVE_OWNED_ROUTE_ROOT_BOUNDARY_DIAGNOSTIC_V1')
+        self.assertEqual(len(api.posts),2);self.assertEqual(app.terminations,1)
+
+    def test_direct_root_unknown_getpid_and_timeout_setup_failure_never_become_opaque(self):
+        for case in ('pid-error','pid-unavailable','timeout'):
+            s,io,b,now=context(initial=True)
+            if case=='timeout':b.a.AXUIElementSetMessagingTimeout.call=lambda *a:-25202
+            else:
+                old=b.a.AXUIElementGetPid.call
+                b.a.AXUIElementGetPid.call=lambda ref,out:(-25202 if case=='pid-error' else None) if ref==5 else old(ref,out)
+            with self.assertRaises(Refusal):s.initial_picker()
+            self.assertEqual(s.completed_proofs,[]);self.assertIsNone(s.initial_completed_pass)
+            self.assertEqual(now[0],0)
+
+    def test_larger_direct_required_scope_obeys_existing_caps_and_autonomous_cleanup(self):
+        def configure(b,api,now):
+            b.nodes[3]['AXChildren']=[5]+list(range(30,41))
+            for n in range(30,41):b.nodes[n]={'role':'AXButton','AXParent':3}
+        result,counts,api,b,app,records=self.run_protocol(configure)
+        report=result['diagnostic'];facts=report['snapshot'] or report['binding_refusal']
+        self.assertLessEqual(facts['budget']['reserved_operations'],512)
+        self.assertLessEqual(facts['budget']['initial_reads'],64)
+        self.assertLessEqual(facts['budget']['initial_owner_composites'],128)
+        self.assertLessEqual(facts['distinct_refs'],32)
+        self.assertFalse(facts['complete']);self.assertFalse(facts['readiness'])
+        self.assertEqual(app.terminations,1);self.assertTrue(result['original_absent'])
+        self.assertLessEqual(len(api.posts),2);self.assertFalse(result['setup_saved'])
+
 
 
 class ABIOnlyTests(unittest.TestCase):
