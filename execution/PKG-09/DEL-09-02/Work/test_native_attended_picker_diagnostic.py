@@ -173,6 +173,131 @@ def related_after(b):
     b.nodes[3]['AXChildren']=[5,9];b.nodes[1]['AXFocusedUIElement']=10
 
 
+class ReturnedReferenceEvidenceTests(unittest.TestCase):
+    def test_foreign_range_ref_retains_actual_return_before_owner_refusal(self):
+        s, io, b, now = context(initial=True)
+        observed_shape(b)
+        b.nodes[22]['AXChildren'] = list(range(24, 36))
+        for ref in range(24, 36):
+            b.nodes[ref] = {'role': 'SECRET', 'AXParent': 22, 'owner': 999 if ref == 25 else 17}
+        with self.assertRaisesRegex(Refusal, 'foreign/unknown owner'):
+            s.initial_picker()
+        report = s.binding_refusal(s.stopped)
+        row = report['nodes'][s.touch_ordinal(25)]
+        origin = row['first_return']
+        self.assertEqual(origin['source_ordinal'], s.touch_ordinal(22))
+        self.assertEqual((origin['attribute'], origin['output_index'], origin['requested_count']),
+                         ('AXChildren', 1, 12))
+        self.assertEqual(origin['meaning'], 'native-return-only-not-ownership-parent-or-readiness')
+        call = next(e for e in report['trace'] if e['op'] == origin['op'])
+        self.assertEqual((call['api'], call['attribute'], call['ordinal'], call['return_code']),
+                         ('AXUIElementCopyAttributeValues', 'AXChildren', s.touch_ordinal(22), 0))
+        self.assertEqual(row['owner_pid'], 999)
+        self.assertFalse(row['owner_match'])
+        self.assertIsNone(row['role']); self.assertIsNone(row['parent_ordinal'])
+        self.assertNotIn('AXChildren', report['nodes'][s.touch_ordinal(22)]['array_observations'])
+        self.assertIsNone(s.initial_completed_pass); self.assertEqual(report['target_proofs'], [])
+        self.assertFalse(any(e[0] in ('attribute', 'count', 'range') and e[1] == 25 for e in b.log))
+        self.assertFalse(any(e[0] == 'owner' and e[1] == 26 for e in b.log))
+        self.assertNotIn('SECRET', repr(report))
+
+    def test_foreign_scalar_ref_retains_return_without_publishing_a_proved_edge(self):
+        for name, source, target, field in (('AXFocusedUIElement', 1, 4, 'focused_ordinal'),
+                                           ('AXParent', 4, 5, 'parent_ordinal')):
+            with self.subTest(name=name):
+                s, io, b, now = context()
+                b.nodes[target]['owner'] = 999
+                with self.assertRaisesRegex(Refusal, 'foreign/unknown owner'):
+                    s.ref(source, name)
+                row = s.rows[s.touch_ordinal(target)]
+                origin = row['last_return']
+                self.assertEqual(origin['source_ordinal'], s.touch_ordinal(source))
+                self.assertEqual((origin['api'], origin['attribute'], origin['output_index'], origin['requested_count']),
+                                 ('AXUIElementCopyAttributeValue', name, 0, None))
+                self.assertIsNone(s.rows[s.touch_ordinal(source)].get(field))
+                self.assertEqual(row['owner_pid'], 999)
+                self.assertIsNone(row['role']); self.assertIsNone(row['parent_ordinal'])
+                self.assertFalse(any(e[0] in ('attribute', 'count', 'range') and e[1] == target for e in b.log))
+
+    def test_owner_pid_is_only_the_successful_existing_integer_output(self):
+        for rc, pid in ((0, 17), (0, 999), (0, 0), (0, -1), (-25202, 999),
+                        (None, 999), (0, 'SECRET'), (0, 2**40), (0, True)):
+            with self.subTest(rc=rc, pid=pid):
+                s, io, b, now = context()
+                b.owner = lambda ref: (rc, pid)
+                if rc == 0 and pid == 17:
+                    s.owner(1, s.rows[0])
+                else:
+                    with self.assertRaises(Refusal): s.owner(1, s.rows[0])
+                expected = pid if rc == 0 and type(pid) is int and -(2**31) <= pid < 2**31 else None
+                row, event = s.rows[0], s.trace[-1]
+                self.assertEqual(row['owner_pid'], expected)
+                self.assertEqual(event['owner_pid'], expected)
+                self.assertEqual(row['property_provenance']['owner_pid']['op'], event['op'])
+                self.assertNotIn('SECRET', repr(s.binding_refusal(s.stopped)))
+        s, io, b, now = context()
+        b.a.AXUIElementSetMessagingTimeout = Fn(lambda *a: -25202)
+        with self.assertRaises(Refusal): s.owner(1, s.rows[0])
+        self.assertIsNone(s.rows[0]['owner_pid']); self.assertIsNone(s.trace[-1]['owner_pid'])
+
+    def test_alias_and_repeated_returns_keep_two_bounded_detached_observations(self):
+        s, io, b, now = context()
+        s.ref(1, 'AXFocusedUIElement')
+        row = s.rows[s.touch_ordinal(4)]
+        first = deepcopy(row['first_return'])
+        b.nodes[44] = deepcopy(b.nodes[4])
+        b.equal = lambda left, right: (4 if left == 44 else left) == (4 if right == 44 else right)
+        b.nodes[1]['AXFocusedUIElement'] = 44
+        for _ in range(100): s.ref(1, 'AXFocusedUIElement')
+        self.assertEqual(row['first_return'], first)
+        self.assertGreater(row['last_return']['op'], first['op'])
+        self.assertEqual(len(s.rows), 3)
+        self.assertLessEqual(sum(r[key] is not None for r in s.rows for key in ('first_return', 'last_return')), 64)
+        s.role(44)
+        self.assertIn(('timeout-exact', 44, .2), b.log); self.assertIn(('owner', 44), b.log)
+        report = s.binding_refusal('invented-report')
+        copy = report['nodes'][row['ordinal']]
+        copy['first_return']['op'] = -1; copy['last_return']['source_ordinal'] = 31; copy['owner_pid'] = 666
+        self.assertEqual(row['first_return'], first)
+        self.assertEqual(row['last_return']['source_ordinal'], 0)
+        self.assertEqual(row['owner_pid'], 17)
+
+    def test_late_or_failed_range_has_no_return_provenance_or_foreign_follow(self):
+        for case in ('late', 'error', 'wrong-type', 'wrong-size'):
+            with self.subTest(case=case):
+                s, io, b, now = context()
+                original = b.a.AXUIElementCopyAttributeValues.call
+                def returned(ref, name, start, count, out):
+                    rc = original(ref, name, start, count, out)
+                    if case == 'late': now[0] = 2.01
+                    elif case == 'error': return -25204
+                    elif case == 'wrong-type': C.cast(out, C.POINTER(C.c_void_p))[0] = 3
+                    elif case == 'wrong-size': b.arrays[C.cast(out, C.POINTER(C.c_void_p))[0]].clear()
+                    return rc
+                b.a.AXUIElementCopyAttributeValues.call = returned
+                with self.assertRaises(Refusal): s.refs(2, 'AXChildren')
+                self.assertIsNone(s.touch_ordinal(3))
+                self.assertIsNone(s.rows[1]['last_return'])
+                self.assertNotIn('AXChildren', s.rows[1]['array_observations'])
+                self.assertFalse(any(e == ('owner', 3) for e in b.log))
+
+    def test_owner_receipt_failure_retains_local_provenance_without_more_calls(self):
+        s, io, b, now = context()
+        b.nodes[4]['owner'] = 999
+        def receipt(kind, event):
+            if event.get('owner_match') is False: raise OSError('SECRET')
+        io.record = receipt
+        with self.assertRaises(Refusal): s.ref(1, 'AXFocusedUIElement')
+        row = s.rows[s.touch_ordinal(4)]
+        self.assertEqual(row['owner_pid'], 999)
+        self.assertEqual(row['last_return']['attribute'], 'AXFocusedUIElement')
+        before = list(b.log)
+        with self.assertRaises(Refusal): s.role(4)
+        self.assertEqual(b.log, before)
+        self.assertEqual(s.completed_proofs, [])
+        self.assertNotIn('SECRET', repr(s.binding_refusal(s.stopped)))
+
+
 class PositiveTargetTests(unittest.TestCase):
     def gesture(self,s,b,record=lambda *a:None):
         api=Posting();g=d.FixedGesture(api);picker=s.initial_picker() if not s.initial_binding_used and s.experiment_end==8 else s.picker()
@@ -1420,6 +1545,26 @@ class AdmissionAndRunTests(unittest.TestCase):
         self.assertEqual(api.posts, [])
         self.assertIsNone(result['diagnostic']['snapshot'])
 
+    def test_returned_foreign_ref_still_vetoes_input_and_cleans_up_with_or_without_receipt(self):
+        for failure in (None, 'diagnostic-binding-refusal'):
+            with self.subTest(failure=failure):
+                def configure(b, api, now):
+                    observed_shape(b)
+                    b.nodes[22]['AXChildren'] = [21, 25]
+                    b.nodes[25] = {'owner': 999, 'role': 'SECRET', 'AXParent': 22}
+                result, counts, api, b, app, records = self.full(configure=configure, fail_record=failure)
+                self.assertEqual(api.posts, []); self.assertEqual(app.terminations, 1)
+                self.assertTrue(result['original_absent']); self.assertEqual(counts['launches'], 1)
+                self.assertFalse(any(e[0] in ('attribute', 'count', 'range') and e[1] == 25 for e in b.log))
+                self.assertFalse(result['setup_saved']); self.assertFalse(result['J1_complete'])
+                self.assertIsNone(result['diagnostic']['snapshot'])
+                if failure is None:
+                    partial = result['diagnostic']['binding_refusal']
+                    row = next(r for r in partial['nodes'] if r['owner_match'] is False)
+                    self.assertEqual(row['owner_pid'], 999)
+                    self.assertEqual(row['last_return']['attribute'], 'AXChildren')
+                    self.assertFalse(partial['readiness']); self.assertEqual(partial['target_proofs'], [])
+                    self.assertNotIn('SECRET', repr(partial))
     def test_initial_role_wait_uses_actual_experiment_and_original_cleanup(self):
         for failures in (1,2):
             def configure(b,api,now):CommunicationPolicyTests.fails(self,b,failures)

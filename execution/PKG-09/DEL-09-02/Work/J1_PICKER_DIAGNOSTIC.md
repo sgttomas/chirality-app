@@ -967,3 +967,66 @@ App/AX/process query or later phase was needed for this account integration.
 Scope/dependency/acceptance are unchanged. Setup/save, handling, J1/J2/model/native
 qualification remain open. Agent0 owns next method review; no ownership-policy
 exception, retry, new live GO or reuse of a consumed entry is selected.
+
+## Returned-reference provenance repair — offline, native use unrun
+
+The aa08 refusal left two missing facts: which successful API output introduced
+the owner-mismatch reference, and the PID already returned by its existing
+owner composite. This repair retains those facts without changing the target
+criterion, any ownership veto, or the native call sequence. It cannot recover
+missing aa08 evidence; that actual account and all consumed roots stay unchanged.
+
+Each CFEqual-distinct row now keeps only its first and latest observed return:
+source ordinal, API/attribute, phase/pass/op, output index and requested range
+count (null for scalar output). The record is attached before the existing
+owner/type check of a new reference. Existing aliases receive the latest-return
+record without creating another identity. At most two records per row are kept,
+bounded by the unchanged32-reference cap. No raw reference/address, UI text/value,
+file/history/sidebar content or process name/path/arguments is retained.
+
+These records explicitly mean native-return-only, not ownership, parenthood,
+accepted publication or readiness. The accepted parent/focus fields are still
+written only after the existing target validation, and an array's accepted
+membership is still written only after all its returned refs pass the existing
+checks. No later item is followed after a refusal; this is not a complete census.
+Late calls, rejected return codes, scalar/container types and range lengths create
+no new return provenance. Within an otherwise accepted range container, a returned
+non-element member retains its source-call/index before the existing member-type
+veto; that record establishes no element ownership or relationship. Readiness,
+routing, input and post-attempt selection consume none of these new evidence fields.
+
+The owner trace/row also records owner_pid only when the existing GetPid call
+returns RC0 and a signed32-bit integer; other results stay null. Zero/negative
+values are retained as returned observations and still fail the unchanged
+original-PID comparison. The PID is a local observation, not birth-bound process
+identity, a service classification, permission to query that process, or proof
+that any later process with the same PID is related. No process lookup, foreign
+role/parent/content read, timeout change, retry or input authority is added.
+
+118 focused mocked tests pass under ordinary wrappers with fresh scratch homes.
+The111 prior tests are unchanged. Seven new methods cover foreign scalar/range
+outputs and the12-item boundary, stop-before-later-ref behavior, exact PID/error
+masking, CFEqual aliases, bounded first/latest retention and detached reports,
+late/failed/malformed outputs, owner-receipt failure, zero posts and autonomous
+cleanup even if the binding-refusal receipt fails. The initial two regression
+methods failed on the prior source because the provenance fields were absent.
+
+An offline comparison against133c2f77 checks eight actual algorithm paths:
+positive gesture/snapshot, the two-role-error prefix, focus wait, scalar/range
+owner refusals, failed owner receipt, late range and exhausted read capacity.
+Mock native calls, all preexisting trace fields, budgets, outcomes, proof output
+and post counts match exactly. Six protected class/function ASTs, all ten checked
+target/selection gate ASTs and core/test/reader bytes are unchanged. This is
+mocked/source evidence, not a new native diagnostic or measured timing guarantee.
+
+Checks and exact comparison source are retained in
+/Users/ryan/dev/chirality-t3/scratch/app-j1-return-provenance-checks-q2iqvmrn
+(regression-before.log, regression-after.log, focused-final.log, checks.json,
+BEHAVIOR_AND_STATIC.json and compare_behavior.py). Independent review of ac472eaa
+found no implementation defects and one documentation overstatement: a correctly
+shaped RC0 range can retain a non-element member's return provenance before its
+type veto. The wording above is narrowed accordingly; source/tests are unchanged.
+Hosted CI remains an integration condition. ScopeOfWork/dependencies/acceptance and product
+source remain unchanged. A new exact entry freeze/review and fresh desktop
+availability/window would be required before native use; none is selected here.
+Handling/path/setup/save/J1/J2/model/native qualification remain open.
