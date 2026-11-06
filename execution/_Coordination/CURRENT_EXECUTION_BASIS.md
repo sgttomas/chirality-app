@@ -2,10 +2,11 @@
 
 ## Owner-directed work pause — 2026-11-06
 
-The owner requested a graceful pause to free compute and attention. This direction
-supersedes the normal continuation/dispatch expectations below. Agent0 is closing
-only the existing [PR146](https://github.com/sgttomas/chirality-app/pull/146)
-review/integration loop and this pause reconciliation. No new App source increment,
+The owner requested a graceful pause to free compute and attention. App development
+is paused; this direction supersedes the normal continuation/dispatch expectations
+below. The bounded closeout comprises merged
+[PR146](https://github.com/sgttomas/chirality-app/pull/146) and this pause
+reconciliation. No new App source increment,
 local test/build/probe, native/model/exclusive run, desktop-availability request
 or cross-project resource window is selected. Already-admitted work may finish
 normally; no foreign process is interrupted. After closeout, work resumes only
@@ -26,12 +27,12 @@ between the projects.
 
 ### Retained result and remaining evidence
 
-PR146 carries reviewed controller source
-`cbdca0779f9045a9425f7f79c7e836eab1eb80b7`, with 142 passing focused mocked tests,
-independent review and root corrections of the observed post-Q role exceptions.
-Its check/merge state remains recorded on that PR; a pending or failed check is
-not a completed integration. The final closeout PR description records actual
-integration state. No native run of this method has occurred.
+PR146 merged as `d868a15ea9a7b24627bdcc21eb467d6258585b98` at 18:45:00Z on
+2026-11-06 after all applicable checks passed on reviewed controller source
+`cbdca0779f9045a9425f7f79c7e836eab1eb80b7`. Its 142 focused mocked tests,
+independent review and root corrections of the observed post-Q role exceptions
+retain their source identities; all five controller/core/test/reader blobs match
+the integrated result. No native run of this method has occurred.
 
 The selected `POSITIVE_OWNED_ROUTE_ROOT_BOUNDARY_DIAGNOSTIC_V1` is restricted to
 one fixed original-PID Go-to-folder diagnostic and bounded observation. Required
