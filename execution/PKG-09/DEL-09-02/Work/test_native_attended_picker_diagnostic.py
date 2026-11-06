@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import j1_picker_diagnostic as d
 from j1_stage_a_phase import Subject, NativeSession, View, Control, Refusal
+from native_b_diagnostic import NativeBackend as ReviewedBackend
 
 S = Subject('invented-source', '/invented/App.app', 'dev.invented.test', '/invented/App.app/Contents/MacOS/app',
             'a' * 64, '/invented/packet/session/project', '/invented/app-data')
@@ -39,7 +40,9 @@ class Backend:
         self.on_count = None
         self.a = SimpleNamespace(AXUIElementGetAttributeValueCount=Fn(self.count),
                                  AXUIElementCopyAttributeValues=Fn(self.range),
-                                 AXUIElementCopyAttributeValue=Fn(self.value_call))
+                                 AXUIElementCopyAttributeValue=Fn(self.value_call),
+                                 AXUIElementSetMessagingTimeout=Fn(self.timeout),
+                                 AXUIElementGetPid=Fn(self.pid_call))
         self.closed = False
     def equal(self, a, b):
         return a == b
@@ -47,8 +50,17 @@ class Backend:
         return {'name': 'CFArray' if ref in self.arrays else
                 self.scalars[ref][0] if ref in self.scalars else 'AXUIElement' if ref in self.nodes else 'null'}
     def owner(self, ref):
+        return ReviewedBackend.owner(self,ref)  # actual reviewed helper; fake OS calls below
+    def bounded_element(self, ref):
+        d.require(self.kind(ref)['name']=='AXUIElement','invented non-element')
+        d.require(self.a.AXUIElementSetMessagingTimeout(ref,.2)==0,'invented timeout setup failed')
+    def timeout(self, ref, seconds):
+        self.log.append(('timeout-exact',ref,seconds))
+        return 0
+    def pid_call(self, ref, out):
         self.log.append(('owner', ref))
-        return 0, self.nodes[ref].get('owner', 17)
+        C.cast(out,C.POINTER(C.c_int))[0]=self.nodes[ref].get('owner',17)
+        return 0
     def string(self, name):
         return name
     def attribute(self, ref, name):
@@ -124,7 +136,7 @@ class Posting:
         self.freed.append(value)
 
 
-def context():
+def context(initial=False):
     now, backend = [0.0], Backend()
     identity = deepcopy(ORIGINAL)
     def check(value):
@@ -132,9 +144,10 @@ def context():
             raise Refusal('invented original changed')
     io = SimpleNamespace(backend=backend, identity=identity, ax=SimpleNamespace(app=1, main=2),
                          clock=lambda: now[0], check=check, project_pending=True,
-                         sleep=lambda n:now.__setitem__(0,now[0]+n))
-    io.structural_calls = d.StructuralCalls(backend)
-    return d.Structure(io, 2, 2).begin(), io, backend, now
+                         sleep=lambda n:now.__setitem__(0,now[0]+n), record=lambda *a:None)
+    io.structural_calls = d.StructuralCalls(backend,io.clock)
+    structure=d.Structure(io,2,8 if initial else 2,110)
+    return (structure if initial else structure.begin()),io,backend,now
 
 
 class StructuralTests(unittest.TestCase):
@@ -169,11 +182,13 @@ class StructuralTests(unittest.TestCase):
                 if case == 'foreign':
                     self.assertFalse(any(row[0] == 'attribute' and row[1] == 4 for row in b.log))
 
-    def test_routing_refusal_still_allows_safe_bound_picker_snapshot(self):
+    def test_fatal_routing_refusal_retains_facts_without_recovery_snapshot(self):
         s, io, b, now = context(); picker = s.picker()
         b.nodes[1].pop('AXFocusedUIElement')
         with self.assertRaises(Refusal): s.routing(picker)
-        self.assertTrue(s.snapshot(picker, False)['complete'])
+        before=list(b.log)
+        self.assertFalse(s.snapshot(picker, False)['complete'])
+        self.assertEqual(b.log,before)
 
     def test_new_related_sheet_or_unchanged_picker_only(self):
         s, io, b, now = context(); picker = s.picker()
@@ -242,7 +257,7 @@ class StructuralTests(unittest.TestCase):
     def test_range_error_records_partial_and_foreign_child_is_not_followed(self):
         s, io, b, now = context(); picker = s.picker()
         b.a.AXUIElementCopyAttributeValues = Fn(lambda *a:-25204)
-        io.structural_calls = d.StructuralCalls(b); s.calls = io.structural_calls
+        io.structural_calls = d.StructuralCalls(b,io.clock); s.calls = io.structural_calls
         result = s.snapshot(picker, False)
         self.assertFalse(result['complete'])
         self.assertNotIn('SECRET', repr(result))
@@ -268,129 +283,378 @@ class StructuralTests(unittest.TestCase):
             C.cast(out,C.POINTER(C.c_void_p))[0] = 9000
             return 0
         b.a.AXUIElementCopyAttributeValue = Fn(wrong)
-        s.calls = d.StructuralCalls(b)
+        s.calls = d.StructuralCalls(b,io.clock)
         with self.assertRaises(Refusal): s.role(3)
         self.assertFalse(any(row[0] == 'decode-array' for row in b.log))
 
 
-class InitialBindingTests(unittest.TestCase):
+class CommunicationPolicyTests(unittest.TestCase):
     def fails(self, backend, count, ref=2, attribute='AXRole', code=-25204, kind='null', hook=None):
-        original = backend.a.AXUIElementCopyAttributeValue.call
-        attempts = []
-        def read(target, name, out):
-            if target == ref and name == attribute and len(attempts) < count:
-                attempts.append((target,name)); backend.log.append(('failed-read',target,name,code))
-                if kind != 'null':
-                    backend.scalars[9000] = (kind,'not recorded UI text')
-                    C.cast(out,C.POINTER(C.c_void_p))[0] = 9000
-                if hook: hook()
+        original=backend.a.AXUIElementCopyAttributeValue.call; attempts=[]
+        def read(target,name,out):
+            if target==ref and name==attribute and len(attempts)<count:
+                attempts.append((target,name));backend.log.append(('failed-read',target,name,code))
+                if kind!='null':
+                    backend.scalars[9000]=(kind,'SECRET output never decoded')
+                    C.cast(out,C.POINTER(C.c_void_p))[0]=9000
+                if hook:hook()
                 return code
             return original(target,name,out)
-        backend.a.AXUIElementCopyAttributeValue = Fn(read)
+        backend.a.AXUIElementCopyAttributeValue=Fn(read)
         return attempts
 
-    def install(self, s, io, b):
-        io.structural_calls = d.StructuralCalls(b); s.calls = io.structural_calls
+    def install(self,s,io,b):
+        io.structural_calls=d.StructuralCalls(b,io.clock);s.calls=io.structural_calls
 
-    def test_one_or_two_cannotcomplete_then_ready_no_early_content_reads(self):
-        for failures in (1,2):
-            s,io,b,now=context(); attempts=self.fails(b,failures); self.install(s,io,b)
-            sleeps=[]
-            def sleep(n): sleeps.append(n); now[0]+=n
-            io.sleep=sleep
-            self.assertEqual(s.initial_picker(),3)
-            self.assertEqual(len(attempts),failures); self.assertEqual(sleeps,[.1]*failures)
-            self.assertEqual(s.end,2); self.assertEqual(s.main,2)
-            first_count=next(i for i,row in enumerate(b.log) if row[0]=='count')
-            self.assertFalse(any(row[0]=='attribute' and row[2]!='AXRole' for row in b.log[:first_count]))
-            facts=[r for r in s.rows[s.touch_ordinal(2)]['reads'] if r['attribute']=='AXRole']
-            self.assertEqual([r['return_code'] for r in facts],[-25204]*failures+[0])
+    def test_recorded_prefix_completes_fourth_pass_not_an_attribute_patch(self):
+        s,io,b,now=context(initial=True);original=b.a.AXUIElementCopyAttributeValue.call
+        failures=[0];count_failed=[False];sleeps=[]
+        def role(ref,name,out):
+            if ref==2 and name=='AXRole' and failures[0]<2:
+                failures[0]+=1;return -25204
+            return original(ref,name,out)
+        old_count=b.a.AXUIElementGetAttributeValueCount.call
+        def count(ref,name,out):
+            if ref==1 and name=='AXWindows' and not count_failed[0]:
+                count_failed[0]=True;return -25204
+            return old_count(ref,name,out)
+        b.a.AXUIElementCopyAttributeValue=Fn(role);b.a.AXUIElementGetAttributeValueCount=Fn(count)
+        self.install(s,io,b)
+        def sleep(n):sleeps.append(n);now[0]+=n
+        io.sleep=sleep
+        self.assertEqual(s.initial_picker(),3)
+        self.assertEqual(sleeps,[.1,.1,.1]);self.assertEqual(s.initial_completed_pass,4)
+        self.assertEqual(s.mode,'strict');self.assertEqual(s.readiness_end,6);self.assertEqual(s.experiment_end,8)
+        self.assertAlmostEqual(s.end,2.3)
+        failures=[e for e in s.trace if e['return_code']==-25204]
+        self.assertEqual([(e['pass'],e['attribute']) for e in failures],[(1,'AXRole'),(2,'AXRole'),(3,'AXWindows')])
+        self.assertEqual([r['return_code'] for r in s.rows[1]['reads'] if r['attribute']=='AXRole'],[-25204,-25204,0,0])
+        self.assertEqual(s.rows[1]['property_provenance']['role']['pass'],4)
+        self.assertTrue(all(abs(e['start_elapsed']+e['phase_remaining_before']-6)<1e-8 for e in s.trace if e['phase']=='initial'))
 
-    def test_persistent_three_retains_all_facts_and_cannot_restart(self):
-        s,io,b,now=context(); attempts=self.fails(b,10); self.install(s,io,b)
-        with self.assertRaises(d.StructuralReadFailure): s.initial_picker()
-        self.assertEqual(len(attempts),3); self.assertAlmostEqual(now[0],.2)
-        self.assertFalse(any(row[0] in ('count','range') for row in b.log))
-        self.assertEqual([r['return_code'] for r in s.rows[1]['reads'] if r['attribute']=='AXRole'],[-25204]*3)
+    def test_persistent_failure_four_passes_and_sealed_on_refusal(self):
+        s,io,b,now=context(initial=True);attempts=self.fails(b,10);self.install(s,io,b)
+        with self.assertRaises(d.StructuralReadFailure):s.initial_picker()
+        self.assertEqual(len(attempts),4);self.assertAlmostEqual(now[0],.3)
+        self.assertEqual(s.mode,'strict');self.assertIsNone(s.initial_completed_pass)
         before=list(b.log)
-        with self.assertRaises(Refusal): s.initial_picker()
+        with self.assertRaises(Refusal):s.initial_picker()
+        with self.assertRaises(Refusal):s.role(2)
         self.assertEqual(b.log,before)
+        self.assertFalse(any(row[0]=='count' for row in b.log))
 
-    def test_other_attribute_reference_code_or_type_never_retries(self):
-        cases=[(3,'AXRole',-25204,'null'),(3,'AXParent',-25204,'null'),
-               (2,'AXRole',-25202,'null'),(2,'AXRole',-25205,'null'),
-               (2,'AXRole',-25212,'null'),(2,'AXRole',-25204,'CFString'),
-               (2,'AXRole',-25204,'CFBoolean'),(2,'AXRole',-25204,'CFArray'),(2,'AXRole',0,'null')]
-        for ref,attr,code,kind in cases:
-            with self.subTest(case=(ref,attr,code,kind)):
-                s,io,b,now=context(); attempts=self.fails(b,10,ref,attr,code,kind); self.install(s,io,b)
-                sleeps=[];io.sleep=lambda n:sleeps.append(n)
-                with self.assertRaises(Refusal): s.initial_picker()
-                self.assertEqual(len(attempts),1);self.assertEqual(sleeps,[])
+    def test_moved_failure_and_failed_range_recount(self):
+        s,io,b,now=context(initial=True);original=b.a.AXUIElementCopyAttributeValue.call
+        parent_failed=[False]
+        def parent(ref,name,out):
+            if ref==3 and name=='AXParent' and not parent_failed[0]:parent_failed[0]=True;return -25204
+            return original(ref,name,out)
+        b.a.AXUIElementCopyAttributeValue=Fn(parent)
+        old_range=b.a.AXUIElementCopyAttributeValues.call;range_failed=[False]
+        def ranged(ref,name,start,count,out):
+            if ref==1 and name=='AXWindows' and not range_failed[0]:range_failed[0]=True;return -25204
+            return old_range(ref,name,start,count,out)
+        b.a.AXUIElementCopyAttributeValues=Fn(ranged);self.install(s,io,b)
+        self.assertEqual(s.initial_picker(),3)
+        self.assertEqual(s.initial_completed_pass,3)
+        events=[e for e in s.trace if e['attribute']=='AXWindows' and e['api']!='bounded_owner_composite']
+        self.assertEqual([(e['pass'],e['api']) for e in events[:4]],[(1,'AXUIElementGetAttributeValueCount'),(1,'AXUIElementCopyAttributeValues'),(2,'AXUIElementGetAttributeValueCount'),(2,'AXUIElementCopyAttributeValues')])
 
-    def test_wrong_role_owner_identity_or_axref_immediately_refuses(self):
-        for case in ('role','foreign','foreign-app','birth','app','main','stale-owner'):
-            s,io,b,now=context();sleeps=[];io.sleep=lambda n:sleeps.append(n)
-            if case=='role': b.nodes[2]['role']='AXSheet'
-            if case=='foreign': b.nodes[2]['owner']=999
-            if case=='foreign-app': b.nodes[1]['owner']=999
-            if case=='birth': io.identity['start_usec']+=1
-            if case=='app': io.ax.app=99
-            if case=='main': io.ax.main=99
-            if case=='stale-owner': b.owner=lambda ref:(-25202,0)
+    def test_failed_count_is_unknown_not_zero_and_no_range_follows(self):
+        s,io,b,now=context(initial=True)
+        old=b.a.AXUIElementGetAttributeValueCount.call
+        def count(ref,name,out):
+            if ref==1 and name=='AXWindows':C.cast(out,C.POINTER(C.c_long))[0]=0;return -25204
+            return old(ref,name,out)
+        b.a.AXUIElementGetAttributeValueCount=Fn(count);self.install(s,io,b)
+        with self.assertRaises(d.StructuralReadFailure):s.initial_picker()
+        failed=[e for e in s.trace if e['attribute']=='AXWindows' and e['api']=='AXUIElementGetAttributeValueCount']
+        self.assertEqual(len(failed),4);self.assertTrue(all(e['count'] is None for e in failed))
+        self.assertFalse(any(row[0]=='range' and row[1:3]==(1,'AXWindows') for row in b.log))
+
+    def test_nonusable_copies_other_codes_and_types_never_retry(self):
+        for code,kind in ((-25204,'CFString'),(-25204,'CFArray'),(-25202,'null'),(-25205,'null'),(-25212,'null'),(0,'null')):
+            s,io,b,now=context(initial=True);attempts=self.fails(b,10,code=code,kind=kind);self.install(s,io,b)
             with self.assertRaises(Refusal):s.initial_picker()
-            self.assertEqual(sleeps,[],case)
-            self.assertFalse(any(row[0]=='count' for row in b.log),case)
+            self.assertEqual(len(attempts),1);self.assertEqual(now[0],0);self.assertEqual(s.mode,'strict')
+            self.assertNotIn('SECRET',repr(s.trace));self.assertFalse(any(row[0]=='decode-array' for row in b.log))
 
-    def test_identity_owner_or_ref_drift_after_failed_read_prevents_sleep(self):
-        for case in ('birth','owner','ref'):
-            s,io,b,now=context();sleeps=[];io.sleep=lambda n:sleeps.append(n)
-            def drift():
-                if case=='birth':io.identity['start_usec']+=1
-                if case=='owner':b.nodes[2]['owner']=999
-                if case=='ref':io.ax.main=99
-            attempts=self.fails(b,10,hook=drift);self.install(s,io,b)
+    def test_wrong_or_drifting_original_and_semantic_failures_are_fatal(self):
+        for case in ('role','foreign','birth','main','app','ambiguous','changed-picker'):
+            s,io,b,now=context(initial=True)
+            if case=='role':b.nodes[2]['role']='AXSheet'
+            if case=='foreign':b.nodes[2]['owner']=999
+            if case=='birth':io.identity['start_usec']+=1
+            if case=='main':io.ax.main=99
+            if case=='app':io.ax.app=99
+            if case=='ambiguous':
+                b.nodes[9]={'role':'AXSheet','AXParent':2};b.nodes[1]['AXWindows'].append(9)
+            if case=='changed-picker':
+                s.picker_anchor=9
             with self.assertRaises(Refusal):s.initial_picker()
-            self.assertEqual(len(attempts),1);self.assertEqual(sleeps,[])
+            self.assertEqual(now[0],0,case);self.assertEqual(s.mode,'strict')
 
-    def test_late_read_success_or_failure_and_late_sleep_do_not_extend(self):
-        for success in (False,True):
-            s,io,b,now=context();sleeps=[];io.sleep=lambda n:sleeps.append(n)
-            original=b.a.AXUIElementCopyAttributeValue.call
-            def read(ref,name,out):
-                if ref==2 and name=='AXRole':
-                    now[0]=2.01
-                    return original(ref,name,out) if success else -25204
+    def test_candidate_retained_when_later_routing_pass_changes(self):
+        s,io,b,now=context(initial=True)
+        original=b.a.AXUIElementCopyAttributeValue.call;failed=[False]
+        def read(ref,name,out):
+            if ref==1 and name=='AXFocusedUIElement' and not failed[0]:failed[0]=True;return -25204
+            return original(ref,name,out)
+        b.a.AXUIElementCopyAttributeValue=Fn(read);self.install(s,io,b)
+        def sleep(n):
+            now[0]+=n;b.nodes[9]={'role':'AXSheet','AXParent':2,'AXChildren':[],'AXSheets':[]}
+            b.nodes[1]['AXWindows']=[2,9];b.nodes[2]['AXSheets']=[9]
+        io.sleep=sleep
+        with self.assertRaises(Refusal):s.initial_picker()
+        self.assertEqual(s.picker_anchor,3);self.assertEqual(s.mode,'strict')
+
+    def test_read_owner_trace_and_ref_caps_precede_calls(self):
+        s,io,b,now=context(initial=True);s.mode='initial';s.end=6;s.begin();b.log.clear();s.initial_reads=64
+        with self.assertRaises(Refusal):s.role(2)
+        self.assertEqual(b.log,[])
+        s,io,b,now=context(initial=True);s.mode='initial';s.end=6;s.begin();b.log.clear();s.initial_owners=128
+        with self.assertRaises(Refusal):s.owner(2,s.rows[1])
+        self.assertEqual(b.log,[])
+        s,io,b,now=context();b.log.clear();s.op_count=512
+        with self.assertRaises(Refusal):s.role(2)
+        self.assertEqual(b.log,[])
+        s,io,b,now=context()
+        for n in range(20,50):b.nodes[n]={'role':'AXButton','AXParent':3};s.touch(n)
+        b.log.clear();b.nodes[99]={'role':'AXButton','AXParent':3}
+        with self.assertRaises(Refusal):s.touch(99)
+        self.assertEqual(b.log,[])
+
+    def test_exact_cfequal_alias_owner_and_read_use_actual_call_ref(self):
+        s,io,b,now=context();b.nodes[22]=dict(b.nodes[2]);b.equal=lambda a,c:(2 if a==22 else a)==(2 if c==22 else c)
+        b.log.clear();self.assertEqual(s.role(22),'AXWindow')
+        self.assertEqual(s.touch_ordinal(22),s.touch_ordinal(2))
+        self.assertIn(('owner',22),b.log);self.assertIn(('attribute',22,'AXRole'),b.log)
+        self.assertIn(('timeout-exact',22,.2),b.log)
+        self.assertNotIn(('timeout-exact',2,.2),b.log)
+        self.assertFalse(any(row[0]=='owner' and row[1]==2 for row in b.log))
+
+    def test_native_timing_is_separate_from_decode_and_receipt(self):
+        s,io,b,now=context();original=b.a.AXUIElementCopyAttributeValue.call
+        def native(ref,name,out):now[0]+=.002;return original(ref,name,out)
+        b.a.AXUIElementCopyAttributeValue=Fn(native);self.install(s,io,b)
+        scalar=b.scalar
+        def decode(pointer):now[0]+=.03;return scalar(pointer)
+        b.scalar=decode
+        def record(kind,value):now[0]+=.04
+        io.record=record
+        self.assertEqual(s.role(2),'AXWindow')
+        event=next(e for e in reversed(s.trace) if e['api']=='AXUIElementCopyAttributeValue')
+        self.assertAlmostEqual(event['native_duration'],.002);self.assertAlmostEqual(event['decode_duration'],.03)
+        self.assertAlmostEqual(event['duration'],.032)
+        self.assertIn('composite',next(e for e in s.trace if e['api']=='bounded_owner_composite')['duration_scope'])
+        self.assertGreaterEqual(s.receipt_seconds,.08)
+
+    def test_late_native_success_failure_decode_identity_or_sleep_admits_no_more(self):
+        for case in ('success','failure','decode','identity','sleep'):
+            s,io,b,now=context(initial=True)
+            if case in ('success','failure'):
+                original=b.a.AXUIElementCopyAttributeValue.call
+                def read(ref,name,out):
+                    if ref==2 and name=='AXRole':
+                        now[0]=6.01
+                        return original(ref,name,out) if case=='success' else -25204
+                    return original(ref,name,out)
+                b.a.AXUIElementCopyAttributeValue=Fn(read);self.install(s,io,b)
+            if case=='decode':
+                old_scalar=b.scalar
+                def scalar(pointer):now[0]=6.01;return old_scalar(pointer)
+                b.scalar=scalar
+            if case=='identity':io.check=lambda value:now.__setitem__(0,6.01)
+            if case=='sleep':
+                self.fails(b,10);self.install(s,io,b);io.sleep=lambda n:now.__setitem__(0,6.01)
+            with self.assertRaises(Refusal):s.initial_picker()
+            self.assertEqual(s.mode,'strict');self.assertEqual(s.experiment_end,8)
+            before=list(b.log)
+            with self.assertRaises(Refusal):s.role(2)
+            self.assertEqual(b.log,before)
+            self.assertIsNone(s.initial_completed_pass)
+
+    def test_strict_final_failure_never_returns_to_initial_or_posts(self):
+        s,io,b,now=context(initial=True);picker=s.initial_picker();attempts=self.fails(b,10);self.install(s,io,b);api=Posting()
+        with self.assertRaises(Refusal):d.FixedGesture(api).run(s,picker,lambda *a:None)
+        self.assertEqual(len(attempts),1);self.assertEqual(api.posts,[]);self.assertEqual(now[0],0)
+        self.assertEqual(api.freed,[103,102,101]);self.assertEqual(s.mode,'strict')
+
+    def test_late_pause_and_insufficient_read_headroom_do_not_reset_R_E_S(self):
+        s,io,b,now=context(initial=True);self.fails(b,10);self.install(s,io,b)
+        now[0]=5.75
+        with self.assertRaises(Refusal):s.initial_picker()
+        self.assertEqual(s.readiness_end,6);self.assertEqual(s.experiment_end,8)
+        self.assertEqual(now[0],5.75)
+        s,io,b,now=context(initial=True);self.fails(b,10);self.install(s,io,b)
+        io.sleep=lambda n:now.__setitem__(0,6.1)
+        with self.assertRaises(Refusal):s.initial_picker()
+        self.assertEqual(s.readiness_end,6);self.assertEqual(s.experiment_end,8)
+
+    def test_receipt_mutation_cannot_rebind_identity_properties_or_counters(self):
+        s,io,b,now=context(initial=True)
+        def mutate(kind,value):value.update(op=9999,pass_=9999,ordinal=9999,return_code=0);value['owner_match']=True
+        io.record=mutate;self.assertEqual(s.initial_picker(),3)
+        self.assertEqual(s.original,ORIGINAL);self.assertTrue(all(e['op']<9999 for e in s.trace))
+        self.assertLess(s.initial_reads,64);self.assertLess(s.initial_owners,128)
+        self.assertTrue(all(r['ordinal']<32 for r in s.rows))
+
+    def test_unknown_native_RC_is_null_and_fatal(self):
+        s,io,b,now=context(initial=True);b.a.AXUIElementCopyAttributeValue=Fn(lambda *a:None);self.install(s,io,b)
+        with self.assertRaises(Refusal):s.initial_picker()
+        event=next(e for e in s.trace if e['api']=='AXUIElementCopyAttributeValue')
+        self.assertIsNone(event['return_code']);self.assertEqual(s.mode,'strict')
+
+    def test_initial_success_near_six_has_strict_two_and_snapshot_one_clipped(self):
+        s,io,b,now=context(initial=True);now[0]=5.5
+        picker=s.initial_picker();self.assertAlmostEqual(s.end,7.5);self.assertEqual(s.experiment_end,8)
+        now[0]=7.1;s.command_picker=picker;s.snapshot(picker,True)
+        self.assertLessEqual(s.end,7.5);self.assertEqual(s.mode,'strict')
+
+    def test_late_owner_and_receipt_stop_without_more_observations(self):
+        for case in ('owner','receipt'):
+            s,io,b,now=context(initial=True)
+            if case=='owner':
+                original=b.owner
+                def owner(ref):
+                    result=original(ref)
+                    if ref==2:now[0]=6.01
+                    return result
+                b.owner=owner
+            else:
+                def receipt(kind,value):
+                    if value['api']=='AXUIElementCopyAttributeValue':now[0]=6.01
+                io.record=receipt
+            with self.assertRaises(Refusal):s.initial_picker()
+            before=list(b.log)
+            with self.assertRaises(Refusal):s.role(2)
+            self.assertEqual(b.log,before);self.assertEqual(s.mode,'strict')
+            self.assertIn('late',s.stopped)
+
+    def test_guard_duration_and_missing_RC_are_honestly_labelled(self):
+        s,io,b,now=context();original=b.owner
+        def owner(ref):now[0]+=.007;return original(ref)
+        b.owner=owner;s.role(2)
+        event=next(e for e in reversed(s.trace) if e['api']=='bounded_owner_composite')
+        self.assertAlmostEqual(event['duration'],.007);self.assertIsNone(event['native_duration'])
+        self.assertEqual(event['duration_scope'],'SetMessagingTimeout(.2)+GetPid composite')
+        identity=next(e for e in s.trace if e['api']=='identity_guard')
+        self.assertIsNone(identity['return_code'])
+        self.assertIn('uninstrumented',s.summary()['cleanup_and_paired_release_identity_timing'])
+
+    def test_last_properties_from_failed_earlier_pass_are_not_current_proof(self):
+        s,io,b,now=context(initial=True);old_value=b.a.AXUIElementCopyAttributeValue.call
+        roles=[0]
+        def role(ref,name,out):
+            if ref==2 and name=='AXRole':
+                roles[0]+=1
+                if roles[0]>1:return -25204
+            return old_value(ref,name,out)
+        old_count=b.a.AXUIElementGetAttributeValueCount.call
+        def count(ref,name,out):
+            if ref==1 and name=='AXWindows':return -25204
+            return old_count(ref,name,out)
+        b.a.AXUIElementCopyAttributeValue=Fn(role);b.a.AXUIElementGetAttributeValueCount=Fn(count);self.install(s,io,b)
+        with self.assertRaises(Refusal):s.initial_picker()
+        self.assertEqual(s.rows[1]['role'],'AXWindow')
+        self.assertEqual(s.rows[1]['property_provenance']['role']['pass'],1)
+        self.assertEqual(s.rows[1]['property_meaning'],'last_observed_only_not_readiness')
+        self.assertIsNone(s.initial_completed_pass)
+        self.assertEqual([r['pass'] for r in s.rows[1]['reads'] if r['attribute']=='AXRole'],[1,2,3,4])
+
+    def test_fast_or_wait_length_failure_is_timed_without_cause_claim(self):
+        for duration in (.002,.199):
+            s,io,b,now=context(initial=True);original=b.a.AXUIElementCopyAttributeValue.call
+            def value(ref,name,out):
+                if ref==2 and name=='AXRole':now[0]+=duration;return -25204
                 return original(ref,name,out)
-            b.a.AXUIElementCopyAttributeValue=Fn(read);self.install(s,io,b)
+            b.a.AXUIElementCopyAttributeValue=Fn(value);self.install(s,io,b)
             with self.assertRaises(Refusal):s.initial_picker()
-            self.assertEqual(sleeps,[]);self.assertEqual(s.end,2)
-            self.assertFalse(any(row[0]=='count' for row in b.log))
-        s,io,b,now=context();attempts=self.fails(b,10);self.install(s,io,b)
-        io.sleep=lambda n:now.__setitem__(0,2.01)
-        with self.assertRaises(Refusal):s.initial_picker()
-        self.assertEqual(len(attempts),1);self.assertEqual(s.end,2)
+            failed=[e for e in s.trace if e['api']=='AXUIElementCopyAttributeValue']
+            self.assertEqual(len(failed),4)
+            for event in failed:
+                self.assertAlmostEqual(event['native_duration'],duration)
+                self.assertEqual(event['requested_timeout'],.2)
+                self.assertNotIn('cause',event)
 
-    def test_insufficient_sleep_headroom_and_final_recheck_are_strict(self):
-        s,io,b,now=context();attempts=self.fails(b,10);self.install(s,io,b)
-        now[0]=1.95;sleeps=[];io.sleep=lambda n:sleeps.append(n)
+    def test_nonnull_failed_range_and_timeout_setup_failure_are_fatal(self):
+        s,io,b,now=context(initial=True);b.arrays[9990]=[2,3]
+        def ranged(ref,name,start,count,out):C.cast(out,C.POINTER(C.c_void_p))[0]=9990;return -25204
+        b.a.AXUIElementCopyAttributeValues=Fn(ranged);self.install(s,io,b)
         with self.assertRaises(Refusal):s.initial_picker()
-        self.assertEqual(len(attempts),1);self.assertEqual(sleeps,[])
-        s,io,b,now=context();picker=s.initial_picker()
+        self.assertFalse(any(row[0]=='decode-array' for row in b.log));self.assertEqual(now[0],0)
+        s,io,b,now=context(initial=True);b.a.AXUIElementSetMessagingTimeout=Fn(lambda *a:-25202)
+        with self.assertRaises(Refusal):s.initial_picker()
+        self.assertFalse(any(row[0]=='attribute' for row in b.log));self.assertEqual(s.mode,'strict')
+        event=next(e for e in s.trace if e['api']=='bounded_owner_composite')
+        self.assertIsNone(event['return_code'])
+
+    def test_input_trace_reserve_refuses_before_dispatch(self):
+        s,io,b,now=context();picker=s.picker();api=Posting()
+        def intent(*a):s.op_count=511
+        with self.assertRaises(Refusal):d.FixedGesture(api).run(s,picker,intent)
+        self.assertEqual(api.posts,[]);self.assertEqual(api.freed,[103,102,101])
+
+    def test_failed_range_recounts_changed_size_before_next_range(self):
+        s,io,b,now=context(initial=True);original=b.a.AXUIElementCopyAttributeValues.call;failed=[False]
+        def ranged(ref,name,start,count,out):
+            if ref==1 and name=='AXWindows' and not failed[0]:
+                failed[0]=True;b.nodes[1]['AXWindows']=[2,3,3];return -25204
+            return original(ref,name,start,count,out)
+        b.a.AXUIElementCopyAttributeValues=Fn(ranged);self.install(s,io,b)
+        self.assertEqual(s.initial_picker(),3)
+        windows=[e for e in s.trace if e['attribute']=='AXWindows' and e['api']!='bounded_owner_composite']
+        self.assertEqual(windows[0]['count'],2);self.assertEqual(windows[1]['requested_count'],2)
+        self.assertEqual(windows[2]['count'],3);self.assertEqual(windows[3]['requested_count'],3)
+
+    def test_caps_and_malformed_success_are_semantic_not_readiness(self):
+        for size in (5,13):
+            s,io,b,now=context(initial=True);b.nodes[1]['AXWindows']=[2]*size
+            with self.assertRaises(Refusal):s.initial_picker()
+            self.assertFalse(any(row[0]=='range' for row in b.log));self.assertEqual(now[0],0)
+        s,io,b,now=context(initial=True);original=b.a.AXUIElementCopyAttributeValues.call
+        def short(ref,name,start,count,out):return original(ref,name,start,1,out)
+        b.a.AXUIElementCopyAttributeValues=Fn(short);self.install(s,io,b)
+        with self.assertRaises(Refusal):s.initial_picker()
+        self.assertEqual(now[0],0);self.assertEqual(s.mode,'strict')
+
+    def test_work_deadline_and_four_pass_limits_never_reset(self):
+        s,io,b,now=context(initial=True);s.work_end=5.5;s.experiment_end=5.5
+        self.fails(b,20);self.install(s,io,b)
+        with self.assertRaises(Refusal):s.initial_picker()
+        self.assertEqual(s.readiness_end,3.5);self.assertLessEqual(s.end,5.5)
+        self.assertTrue(all(e['phase_remaining_before']<=3.5 for e in s.trace if e['phase']=='initial'))
+
+    def test_late_native_range_does_not_decode_or_follow_returned_refs(self):
+        s,io,b,now=context(initial=True);original=b.a.AXUIElementCopyAttributeValues.call
+        def late(ref,name,start,count,out):
+            result=original(ref,name,start,count,out);now[0]=6.01;return result
+        b.a.AXUIElementCopyAttributeValues=Fn(late);self.install(s,io,b)
+        with self.assertRaises(Refusal):s.initial_picker()
+        self.assertFalse(any(row[0]=='decode-array' for row in b.log))
+        self.assertFalse(any(row==('owner',3) for row in b.log))
+        self.assertTrue(b.held)  # returned retained array is still owned for final release
+
+    def test_exhausted_read_budget_does_not_issue_retry_provenance_queries(self):
+        s,io,b,now=context(initial=True);s.initial_reads=63
         attempts=self.fails(b,10);self.install(s,io,b)
-        with self.assertRaises(d.StructuralReadFailure):s.recheck(picker)
-        self.assertEqual(len(attempts),1)
-        self.assertEqual(now[0],0)
-
-    def test_final_gesture_recheck_role_failure_never_retries_or_posts(self):
-        s,io,b,now=context();picker=s.initial_picker()
-        attempts=self.fails(b,10);self.install(s,io,b);api=Posting()
-        with self.assertRaises(d.StructuralReadFailure):d.FixedGesture(api).run(s,picker,lambda *a:None)
-        self.assertEqual(len(attempts),1);self.assertEqual(api.posts,[])
-        self.assertEqual(api.freed,[103,102,101]);self.assertEqual(now[0],0)
+        with self.assertRaises(Refusal):s.initial_picker()
+        self.assertEqual(len(attempts),1);self.assertEqual(s.initial_reads,64);self.assertEqual(now[0],0)
+        failure_index=next(i for i,row in enumerate(b.log) if row[0]=='failed-read')
+        self.assertFalse(any(row[0] in ('owner','attribute','count','range') for row in b.log[failure_index+1:]))
 
 
 class GestureTests(unittest.TestCase):
+    def test_trace_failure_or_cap_after_down_cannot_block_same_original_up(self):
+        for case in ('cap','receipt'):
+            s,io,b,now=context();picker=s.picker();api=Posting()
+            def down():
+                if case=='cap':s.op_count=512;s.halt('injected exhausted trace')
+                else:io.record=lambda *a:(_ for _ in ()).throw(OSError('injected receipt failure'))
+            api.on_down=down
+            d.FixedGesture(api).run(s,picker,lambda *a:None)
+            self.assertEqual([p[1] for p in api.posts],[102,103])
+            self.assertEqual(api.freed,[103,102,101])
     def test_preexisting_nested_sheet_never_receives_navigation(self):
         for published_in_windows in (False, True):
             with self.subTest(published_in_windows=published_in_windows):
@@ -531,6 +795,7 @@ class AdmissionAndRunTests(unittest.TestCase):
         appkit.describe = lambda t: {'pid': 17, 'bundle_identifier': S.identifier, 'executable': S.executable}
         def terminate(t):
             appkit.terminations += 1
+            if getattr(backend,'terminate_error',False):raise OSError('invented unknown normal request')
             appkit.closed = not hasattr(backend,'late_close_at')
             return appkit.closed
         appkit.terminate = terminate
@@ -555,6 +820,12 @@ class AdmissionAndRunTests(unittest.TestCase):
                 Control(11, 'AXButton', 'Review setup', False)], '', True)
         def record(kind, value):
             if kind == fail_record: raise OSError('invented receipt failure')
+            if (getattr(backend,'receipt_failure_after_down',False) and getattr(backend,'down_started',False)
+                    and kind==getattr(backend,'failure_after_down_kind',kind)):
+                raise OSError('invented post-down evidence failure')
+            if getattr(backend,'mutate_receipts',False) and kind in ('diagnostic-structure','diagnostic-binding-refusal'):
+                value['complete']=False
+                if value.get('nodes'):value['nodes'][0]['owner_match']=False
             records.append((kind, deepcopy(value)))
         def factory():
             if unavailable: raise AttributeError('invented missing API')
@@ -573,6 +844,7 @@ class AdmissionAndRunTests(unittest.TestCase):
                 'absent':lambda io,i:appkit.closed or now[0] >= getattr(backend,'late_close_at',float('inf'))}.items():
                 stack.enter_context(patch.object(NativeSession, name, fn))
             stack.enter_context(patch.object(d, 'NativePosting', factory))
+            self.last_fixture=(counts,api,backend,appkit,records)
             result = d.run_prepared(S, {}, record, lambda:now[0], sleep)
         return result, counts, api, backend, appkit, records
 
@@ -656,7 +928,7 @@ class AdmissionAndRunTests(unittest.TestCase):
 
     def test_initial_role_wait_uses_actual_experiment_and_original_cleanup(self):
         for failures in (1,2):
-            def configure(b,api,now):InitialBindingTests.fails(self,b,failures)
+            def configure(b,api,now):CommunicationPolicyTests.fails(self,b,failures)
             result,counts,api,b,app,records=self.full(configure=configure)
             self.assertEqual(b.sleep_calls,[.1]*failures)
             self.assertEqual(len(api.posts),2);self.assertEqual(app.terminations,1)
@@ -668,14 +940,14 @@ class AdmissionAndRunTests(unittest.TestCase):
             self.assertEqual(role_reads[failures],0)
             for key in ('setup_saved','J1_complete','qualification'):self.assertFalse(result[key])
 
-    def test_persistent_initial_role_and_receipt_failure_cleanup_after_three(self):
+    def test_persistent_initial_communication_and_receipt_failure_cleanup_after_four(self):
         for receipt in (None,'diagnostic-binding-refusal'):
-            def configure(b,api,now):InitialBindingTests.fails(self,b,10)
+            def configure(b,api,now):CommunicationPolicyTests.fails(self,b,10)
             result,counts,api,b,app,records=self.full(configure=configure,fail_record=receipt)
             partial=result['diagnostic']['binding_refusal']
             reads=[r for node in partial['nodes'] for r in node['reads'] if r['attribute']=='AXRole']
-            self.assertEqual([r['return_code'] for r in reads],[-25204]*3)
-            self.assertEqual(b.sleep_calls,[.1,.1]);self.assertEqual(api.posts,[])
+            self.assertEqual([r['return_code'] for r in reads],[-25204]*4)
+            self.assertEqual(b.sleep_calls,[.1,.1,.1]);self.assertEqual(api.posts,[])
             self.assertFalse(result['diagnostic']['gesture_state']['consumed'])
             self.assertEqual(app.terminations,1);self.assertTrue(result['original_absent'])
             self.assertFalse(any(row[0] in ('count','range') for row in b.log))
@@ -684,7 +956,7 @@ class AdmissionAndRunTests(unittest.TestCase):
         for case in ('read','sleep'):
             def configure(b,api,now):
                 hook=(lambda:now.__setitem__(0,110)) if case=='read' else None
-                InitialBindingTests.fails(self,b,10,hook=hook)
+                CommunicationPolicyTests.fails(self,b,10,hook=hook)
                 if case=='sleep':b.sleep_hook=lambda:now.__setitem__(0,110)
             result,counts,api,b,app,records=self.full(configure=configure)
             self.assertEqual(result['cleanup_started'],110)
@@ -701,11 +973,12 @@ class AdmissionAndRunTests(unittest.TestCase):
             self.assertTrue(result['original_absent'])
             if kind == 'diagnostic-navigation-intent': self.assertEqual(api.posts, [])
 
-    def test_routing_refusal_zero_posts_but_snapshot_and_cleanup(self):
+    def test_initial_routing_refusal_zero_posts_partial_binding_and_cleanup(self):
         def configure(b, api, now): b.nodes[1].pop('AXFocusedUIElement')
         result, counts, api, b, app, records = self.full(configure=configure)
         self.assertEqual(api.posts, [])
-        self.assertTrue(result['diagnostic']['snapshot']['complete'])
+        self.assertIsNone(result['diagnostic']['snapshot'])
+        self.assertFalse(result['diagnostic']['binding_refusal']['complete'])
         self.assertEqual(app.terminations, 1)
 
     def test_preexisting_nested_modal_zero_posts_and_autonomous_cleanup(self):
@@ -717,7 +990,8 @@ class AdmissionAndRunTests(unittest.TestCase):
         self.assertEqual(api.posts, [])
         self.assertEqual(app.terminations, 1)
         self.assertTrue(result['original_absent'])
-        self.assertEqual(result['diagnostic']['snapshot']['label'], 'retained-picker-no-command')
+        self.assertIsNone(result['diagnostic']['snapshot'])
+        self.assertFalse(result['diagnostic']['binding_refusal']['complete'])
         self.assertFalse(result['setup_saved'])
 
     def test_cutoff_after_pair_returns_partial_and_starts_cleanup(self):
@@ -744,6 +1018,58 @@ class AdmissionAndRunTests(unittest.TestCase):
         self.assertTrue(result['original_absent'])
         self.assertFalse(result['slot_must_remain_held'])
         self.assertIn('held',[k for k,v in records]); self.assertIn('late-absence',[k for k,v in records])
+
+
+    def test_recorded_prefix_actual_controller_completes_fourth_pass(self):
+        def configure(b,api,now):
+            CommunicationPolicyTests.fails(self,b,2)
+            old=b.a.AXUIElementGetAttributeValueCount.call;failed=[False]
+            def count(ref,name,out):
+                if ref==1 and name=='AXWindows' and not failed[0]:failed[0]=True;return -25204
+                return old(ref,name,out)
+            b.a.AXUIElementGetAttributeValueCount=Fn(count)
+        result,counts,api,b,app,records=self.full(configure=configure)
+        self.assertEqual(b.sleep_calls,[.1,.1,.1]);self.assertEqual(len(api.posts),2)
+        self.assertEqual(result['diagnostic']['snapshot']['budget']['initial_completed_pass'],4)
+        self.assertTrue(result['diagnostic']['snapshot']['complete']);self.assertEqual(app.terminations,1)
+        self.assertEqual(result['actions'],['open project picker'])
+        for key in ('setup_saved','J1_complete','qualification'):self.assertFalse(result[key])
+
+    def test_trace_failure_still_normal_cleanup_and_false_unknown_hold(self):
+        for unknown in (False,True):
+            def configure(b,api,now):b.late_close_at=182;b.terminate_error=unknown
+            result,counts,api,b,app,records=self.full(configure=configure,fail_record='diagnostic-call')
+            self.assertEqual(app.terminations,1);self.assertEqual(api.posts,[])
+            self.assertTrue(result['initial_held']);self.assertGreaterEqual(result['final_overrun'],2)
+            self.assertTrue(result['original_absent']);self.assertFalse(result['slot_must_remain_held'])
+            self.assertIn('held',[k for k,v in records]);self.assertIn('late-absence',[k for k,v in records])
+
+    def test_evidence_failure_after_down_preserves_up_and_cleanup(self):
+        def configure(b,api,now):
+            b.receipt_failure_after_down=True
+            b.failure_after_down_kind='diagnostic-call'
+            api.on_down=lambda:setattr(b,'down_started',True)
+        result,counts,api,b,app,records=self.full(configure=configure)
+        self.assertEqual([p[1] for p in api.posts],[102,103])
+        self.assertEqual(app.terminations,1);self.assertTrue(result['original_absent'])
+        self.assertEqual(api.freed,[103,102,101])
+
+    def test_permanent_receipt_failure_after_down_still_closes_before_raising(self):
+        def configure(b,api,now):
+            b.receipt_failure_after_down=True
+            api.on_down=lambda:setattr(b,'down_started',True)
+        with self.assertRaises(OSError):self.full(configure=configure)
+        counts,api,b,app,records=self.last_fixture
+        self.assertEqual([p[1] for p in api.posts],[102,103])
+        self.assertEqual(app.terminations,1);self.assertTrue(app.closed);self.assertTrue(b.closed)
+        self.assertEqual(api.freed,[103,102,101])
+
+    def test_snapshot_receipt_is_detached_from_internal_result(self):
+        def configure(b,api,now):b.mutate_receipts=True
+        result,counts,api,b,app,records=self.full(configure=configure)
+        self.assertTrue(result['diagnostic']['snapshot']['complete'])
+        self.assertTrue(result['diagnostic']['snapshot']['nodes'][0]['owner_match'])
+        self.assertEqual(app.terminations,1)
 
 
 class ABIOnlyTests(unittest.TestCase):
