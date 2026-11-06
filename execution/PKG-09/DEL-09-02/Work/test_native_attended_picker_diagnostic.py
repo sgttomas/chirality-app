@@ -298,13 +298,166 @@ class ReturnedReferenceEvidenceTests(unittest.TestCase):
         self.assertNotIn('SECRET', repr(s.binding_refusal(s.stopped)))
 
 
+class ExactReturnedAliasAndSnapshotTests(unittest.TestCase):
+    def alias(self, backend, actual, canonical, owner=17):
+        backend.nodes[actual] = dict(backend.nodes[canonical], owner=owner)
+        backend.equal = lambda left, right: (canonical if left == actual else left) == (canonical if right == actual else right)
+
+    def test_app_window_main_alias_cannot_inherit_retained_main_owner(self):
+        s, io, b, now = context()
+        self.alias(b, 22, 2, 999); b.nodes[1]['AXWindows'] = [22]
+        with self.assertRaisesRegex(Refusal, 'foreign/unknown owner'): s.publication()
+        self.assertIn(('timeout-exact', 22, .2), b.log); self.assertEqual(b.log[-1], ('owner', 22))
+        self.assertNotIn('AXWindows', s.rows[0]['array_observations'])
+        self.assertEqual(s.rows[1]['owner_pid'], 999)
+        self.assertEqual(s.rows[1]['last_return']['attribute'], 'AXWindows')
+
+    def test_terminal_picker_parent_alias_cannot_inherit_main_owner(self):
+        s, io, b, now = context()
+        self.alias(b, 22, 2, 999); b.nodes[3]['AXParent'] = 22
+        with self.assertRaisesRegex(Refusal, 'foreign/unknown owner'): s.publication()
+        self.assertEqual(b.log[-1], ('owner', 22))
+        self.assertIsNone(s.rows[s.touch_ordinal(3)]['parent_ordinal'])
+        self.assertEqual(s.rows[1]['last_return']['attribute'], 'AXParent')
+
+    def test_cross_source_deduplicated_alias_still_gets_its_own_admission(self):
+        s, io, b, now = context()
+        self.alias(b, 23, 3, 999)
+        b.nodes[1]['AXWindows'] = [2, 3]; b.nodes[2]['AXChildren'] = [23]
+        with self.assertRaisesRegex(Refusal, 'foreign/unknown owner'): s.publication()
+        self.assertEqual(b.log[-1], ('owner', 23))
+        self.assertNotIn('AXChildren', s.rows[1]['array_observations'])
+        self.assertEqual(s.rows[s.touch_ordinal(3)]['owner_pid'], 999)
+        self.assertFalse(any(e[:2] == ('attribute', 23) for e in b.log))
+
+    def test_valid_main_alias_is_admitted_even_when_publication_skips_its_role(self):
+        s, io, b, now = context()
+        self.alias(b, 22, 2); b.nodes[1]['AXWindows'] = [22]
+        picker, proof = s.publication()
+        self.assertEqual(picker, 3)
+        self.assertIn(('timeout-exact', 22, .2), b.log); self.assertIn(('owner', 22), b.log)
+        self.assertFalse(any(e[:2] == ('attribute', 22) for e in b.log))
+        self.assertEqual(proof['app_windows']['members'], [s.touch_ordinal(2)])
+
+    def test_returned_alias_owner_capacity_and_lateness_prevent_edge_acceptance(self):
+        for case in ('owner-cap', 'trace-cap', 'late-owner'):
+            with self.subTest(case=case):
+                s, io, b, now = context(initial=True)
+                s.mode = s.phase = 'initial'; s.end = 6; s.begin()
+                self.alias(b, 22, 2); b.nodes[1]['AXWindows'] = [22]
+                ranged = b.a.AXUIElementCopyAttributeValues.call
+                def output(*args):
+                    rc = ranged(*args)
+                    if case == 'owner-cap': s.initial_owners = 128
+                    if case == 'trace-cap': s.op_count = 512
+                    return rc
+                b.a.AXUIElementCopyAttributeValues.call = output
+                if case == 'late-owner':
+                    owner = b.owner
+                    def late(ref):
+                        value = owner(ref)
+                        if ref == 22: now[0] = 6.01
+                        return value
+                    b.owner = late
+                with self.assertRaises(Refusal): s.refs(1, 'AXWindows', optional=False)
+                self.assertNotIn('AXWindows', s.rows[0]['array_observations'])
+                self.assertEqual(s.completed_proofs, [])
+                if case != 'late-owner': self.assertNotIn(('owner', 22), b.log)
+                else: self.assertTrue(s.trace[-1]['late'])
+
+    def test_retained_picker_extra_modal_or_unknown_child_makes_snapshot_partial(self):
+        for role in ('AXSheet', 'AXWindow', 'AXDrawer', 'AXDialog', 'SECRET unknown'):
+            with self.subTest(role=role):
+                s, io, b, now = context(); picker = s.picker(); api = Posting()
+                d.FixedGesture(api).run(s, picker, lambda *args: None)
+                b.nodes[9] = {'role': role, 'AXParent': picker}
+                b.nodes[picker]['AXChildren'].append(9)
+                result = s.snapshot(picker, True)
+                self.assertFalse(result['complete']); self.assertFalse(result['selection_complete'])
+                self.assertIsNone(result['root_ordinal'])
+                self.assertEqual(result['candidate_root_ordinal'], s.touch_ordinal(picker))
+                self.assertEqual(result['semantic_handling'], 'unknown'); self.assertEqual(len(api.posts), 2)
+                self.assertFalse(any(e[:3] == ('attribute', 9, 'AXParent') for e in b.log))
+                self.assertNotIn('SECRET', repr(result))
+
+    def test_related_sheet_extra_modal_or_unknown_child_makes_snapshot_partial(self):
+        for role in ('AXSheet', 'AXWindow', 'AXDrawer', 'AXDialog', 'SECRET unknown'):
+            with self.subTest(role=role):
+                s, io, b, now = context(); picker = s.picker(); api = Posting()
+                d.FixedGesture(api).run(s, picker, lambda *args: None)
+                related_after(b)
+                b.nodes[11] = {'role': role, 'AXParent': 9}; b.nodes[9]['AXChildren'].append(11)
+                result = s.snapshot(picker, True)
+                self.assertFalse(result['complete']); self.assertFalse(result['selection_complete'])
+                self.assertIsNone(result['root_ordinal'])
+                self.assertEqual(result['candidate_root_ordinal'], s.touch_ordinal(9))
+                self.assertEqual(result['semantic_handling'], 'unknown'); self.assertEqual(len(api.posts), 2)
+                self.assertFalse(any(e[:3] == ('attribute', 11, 'AXParent') for e in b.log))
+                self.assertNotIn('SECRET', repr(result))
+
+    def test_queued_wrapper_fresh_role_drift_refuses_before_parent_follow(self):
+        for related in (False, True):
+            for role in ('AXSheet', 'AXWindow', 'AXDrawer', 'AXDialog', 'SECRET unknown', 'AXButton', 'AXScrollArea'):
+                with self.subTest(related=related, role=role):
+                    s, io, b, now = context(); picker = s.picker(); api = Posting()
+                    d.FixedGesture(api).run(s, picker, lambda *args: None)
+                    root, wrapper = picker, 5
+                    if related:
+                        related_after(b); root, wrapper = 9, 20
+                        b.nodes[20] = {'role': 'AXGroup', 'AXParent': 9, 'AXChildren': [10]}
+                        b.nodes[10]['AXParent'] = 20; b.nodes[9]['AXChildren'] = [20]
+                    ranged = b.a.AXUIElementCopyAttributeValues.call
+                    value = b.a.AXUIElementCopyAttributeValue.call
+                    state = {'armed': False, 'wrapper_roles': 0, 'drift_index': None}
+                    def ranges(ref, name, start, count, out):
+                        rc = ranged(ref, name, start, count, out)
+                        if (ref, name) == (root, 'AXChildren'): state['armed'] = True
+                        return rc
+                    def values(ref, name, out):
+                        if state['armed'] and (ref, name) == (wrapper, 'AXRole'):
+                            state['wrapper_roles'] += 1
+                            if state['wrapper_roles'] == 2:
+                                b.nodes[wrapper]['role'] = role; state['drift_index'] = len(b.log)
+                        return value(ref, name, out)
+                    b.a.AXUIElementCopyAttributeValues.call = ranges
+                    b.a.AXUIElementCopyAttributeValue.call = values
+                    result = s.snapshot(picker, True)
+                    self.assertEqual(state['wrapper_roles'], 2)
+                    self.assertFalse(result['complete']); self.assertFalse(result['selection_complete'])
+                    self.assertEqual(result['error_category'], 'diagnostic snapshot queued wrapper role changed')
+                    self.assertIsNone(result['root_ordinal'])
+                    self.assertEqual(result['candidate_root_ordinal'], s.touch_ordinal(root))
+                    self.assertEqual(result['label'], 'partial-observed-after-attempt')
+                    self.assertEqual(result['semantic_handling'], 'unknown'); self.assertEqual(len(api.posts), 2)
+                    self.assertFalse(any(e[:3] == ('attribute', wrapper, 'AXParent')
+                                         for e in b.log[state['drift_index'] + 1:]))
+                    self.assertNotIn('SECRET', repr(result))
+
+    def test_initial_only_counters_and_sealed_strict_snapshot_deadline_keep_their_scope(self):
+        s, io, b, now = context(initial=True)
+        picker = s.initial_picker()
+        initial = (s.initial_reads, s.initial_owners)
+        strict_end, initial_ops = s.end, s.op_count
+        api = Posting(); d.FixedGesture(api).run(s, picker, lambda *args: None)
+        self.assertEqual((s.initial_reads, s.initial_owners), initial)
+        self.assertEqual(s.end, strict_end); self.assertGreater(s.op_count, initial_ops)
+        before_snapshot = s.op_count
+        result = s.snapshot(picker, True)
+        self.assertTrue(result['complete'])
+        self.assertEqual((s.initial_reads, s.initial_owners), initial)
+        self.assertEqual(s.end, min(strict_end, now[0] + 1))
+        self.assertGreater(s.op_count, before_snapshot)
+        self.assertEqual([event['op'] for event in s.trace], list(range(1, s.op_count + 1)))
+        self.assertLessEqual(s.op_count, 512); self.assertEqual(len(api.posts), 2)
+
+
 class PositiveTargetTests(unittest.TestCase):
     def gesture(self,s,b,record=lambda *a:None):
         api=Posting();g=d.FixedGesture(api);picker=s.initial_picker() if not s.initial_binding_used and s.experiment_end==8 else s.picker()
         g.run(s,picker,record)
         return picker,api,g
 
-    def test_observed_publication_and_focus_geometry_full_path_under_unchanged_caps(self):
+    def test_observed_geometry_proofs_post_but_snapshot_honestly_reaches_shared_cap(self):
         s,io,b,now=context(initial=True);observed_shape(b)
         old=b.a.AXUIElementCopyAttributeValue.call;failed=[0]
         def read(ref,name,out):
@@ -313,7 +466,8 @@ class PositiveTargetTests(unittest.TestCase):
         b.a.AXUIElementCopyAttributeValue.call=read
         picker,api,g=self.gesture(s,b)
         result=s.snapshot(picker,True)
-        self.assertTrue(result['complete'],result['error_category'])
+        self.assertFalse(result['complete']); self.assertEqual(result['error_category'],'diagnostic trace capacity')
+        self.assertFalse(result['selection_complete']); self.assertIsNone(result['root_ordinal'])
         self.assertEqual(s.initial_completed_pass,3);self.assertEqual(len(api.posts),2)
         self.assertLessEqual(s.initial_reads,64);self.assertLessEqual(s.initial_owners,128)
         self.assertLessEqual(s.op_count,512);self.assertLessEqual(len(s.rows),32)
@@ -324,14 +478,16 @@ class PositiveTargetTests(unittest.TestCase):
         self.assertEqual([e['source'] for e in proof['ancestry_edges']],[s.touch_ordinal(x) for x in (4,20,21,22)])
         self.assertEqual(proof['nearest_modal_proof']['nearest_modal'],s.touch_ordinal(3))
         self.assertFalse(any(x[0] in ('count','range') and x[1] in (4,20) for x in b.log))
-        self.assertEqual(result['label'],'retained-picker-observed-after-attempt')
+        self.assertEqual(result['label'],'partial-observed-after-attempt')
+        self.assertEqual(s.op_count,512); self.assertEqual(len(s.completed_proofs),3)
 
     def test_primary_ancestry_never_queries_any_shortcut_regardless_of_provider_values(self):
         for advertised in (None,3,2,{'private':'SECRET'}):
             s,io,b,now=context(initial=True);observed_shape(b)
             b.nodes[4]['AXTopLevelUIElement']=advertised
             p,api,g=self.gesture(s,b);result=s.snapshot(p,True)
-            self.assertTrue(result['complete'],result['error_category']);self.assertEqual(len(api.posts),2)
+            self.assertFalse(result['complete']);self.assertEqual(result['error_category'],'diagnostic trace capacity')
+            self.assertEqual(len(api.posts),2);self.assertEqual(len(s.completed_proofs),3)
             self.assertEqual(s.PROOF_MODE,'POSITIVE_FOCUSED_ANCESTRY_DIAGNOSTIC_V1')
             proof=s.after_intent_proof['nearest_modal_proof']
             self.assertEqual(proof['path_ordinals'],[s.touch_ordinal(x) for x in (4,20,21,22,3)])
@@ -704,8 +860,11 @@ class StructuralTests(unittest.TestCase):
         self.assertEqual([e['source'] for e in route['edges']], [structure.touch_ordinal(x) for x in (4,5)])
         b.nodes[6]['role'] = 'SECRET unknown role'
         result = structure.snapshot(picker, False)
-        self.assertTrue(result['complete'])
-        self.assertEqual(result['label'], 'retained-picker-observed-without-attempt')
+        self.assertFalse(result['complete']); self.assertFalse(result['selection_complete'])
+        self.assertEqual(result['error_category'], 'diagnostic snapshot child role unknown')
+        self.assertIsNone(result['root_ordinal'])
+        self.assertEqual(result['candidate_root_ordinal'], structure.touch_ordinal(picker))
+        self.assertEqual(result['label'], 'partial-without-attempt')
         self.assertFalse(result['readiness'])
         self.assertNotIn('SECRET', repr(result))
         self.assertEqual(next(row for row in result['nodes'] if row['ordinal'] == structure.touch_ordinal(6))['role'], 'unknown')
@@ -1417,6 +1576,18 @@ class AdmissionAndRunTests(unittest.TestCase):
             self.assertGreater(preflight['caller']['pid'],0)
             self.assertEqual(len(preflight['caller']['sha256']),64)
 
+    def test_returned_main_alias_owner_refusal_still_cleans_up_without_input(self):
+        def configure(b, api, now):
+            b.nodes[22] = dict(b.nodes[2], owner=999)
+            b.equal = lambda left, right: (2 if left == 22 else left) == (2 if right == 22 else right)
+            b.nodes[1]['AXWindows'] = [22]
+        result, counts, api, b, app, records = self.full(configure=configure)
+        self.assertEqual(api.posts, []); self.assertEqual(app.terminations, 1)
+        self.assertTrue(result['original_absent']); self.assertEqual(counts['launches'], 1)
+        self.assertFalse(result['diagnostic']['gesture_state']['consumed'])
+        self.assertNotIn('diagnostic-navigation-intent', [kind for kind, value in records])
+        self.assertFalse(any(e[:2] == ('attribute', 22) for e in b.log))
+
     def test_actual_diagnostic_run_cleanup_and_no_readiness_promotion(self):
         result, counts, api, b, app, records = self.full()
         self.assertEqual(counts['launches'], 1)
@@ -1429,14 +1600,17 @@ class AdmissionAndRunTests(unittest.TestCase):
         self.assertEqual(len(api.posts), 2)
         self.assertIn('final-closure', [k for k,v in records])
 
-    def test_actual_controller_uses_full_positive_proof_for_observed_geometry(self):
+    def test_actual_controller_observed_geometry_cap_stays_partial_and_cleans_up(self):
         def configure(b,api,now):observed_shape(b)
         result,counts,api,b,app,records=self.full(configure=configure)
         self.assertEqual(counts['launches'],1);self.assertEqual(len(api.posts),2)
         self.assertEqual(app.terminations,1);self.assertTrue(result['original_absent'])
         self.assertEqual(result['diagnostic']['proof_mode'],d.Structure.PROOF_MODE)
         self.assertEqual(len(result['diagnostic']['target_proofs']),3)
-        self.assertTrue(result['diagnostic']['snapshot']['complete'])
+        self.assertFalse(result['diagnostic']['snapshot']['complete'])
+        self.assertEqual(result['diagnostic']['snapshot']['error_category'],'diagnostic trace capacity')
+        self.assertEqual(result['diagnostic']['snapshot']['budget']['reserved_operations'],512)
+        self.assertFalse(result['diagnostic']['snapshot']['selection_complete'])
         for key in ('setup_saved','J1_complete','qualification','flow_complete'):self.assertFalse(result[key])
 
     def test_mandatory_parent_refusal_or_strict_drift_always_autonomous_cleanup(self):
@@ -1751,8 +1925,10 @@ class FocusAvailabilityTests(unittest.TestCase):
                 result, counts, api, b, app, records = self.full(configure=configure)
                 self.assertEqual(b.sleep_calls, [.2] * failures)
                 self.assertEqual(len(api.posts), 2)
-                self.assertTrue(result['diagnostic']['snapshot']['complete'])
+                self.assertFalse(result['diagnostic']['snapshot']['complete'])
+                self.assertEqual(result['diagnostic']['snapshot']['error_category'], 'diagnostic trace capacity')
                 budget = result['diagnostic']['snapshot']['budget']
+                self.assertEqual(budget['reserved_operations'], 512)
                 self.assertEqual(budget['initial_completed_pass'], 1)
                 self.assertEqual(budget['initial_focus_pause_reservations'], failures)
                 self.assertLessEqual(budget['initial_reads'], 64)
