@@ -241,6 +241,15 @@ Current Type 1 assignments are:
   list while retaining strict native picker, source and confirmation guards.
   Its60 mocked cases are not a native rerun. The owner availability window ended;
   the next selected entry is prepared before requesting further availability.
+  Agent0 subsequently selected [frozen PR137/552445d7](../PKG-09/DEL-09-02/Work/J1_AGENT_FIRST_USE_20261105.md#attempt-6-selected-frozen-pr137-repaired-reader-pid81303)
+  in a fresh owner-available window. The agent observed the genuine main and
+  WebArea with9 controls, pressed the project picker once, then refused the
+  unclassified native picker structure before path entry. Normal cleanup and
+  original-process absence completed in2.84 s without overrun. Source/product
+  stayed frozen; AppData/request remain absent. This is native content/picker-
+  request evidence, not setup, a claim that controls are absent, or J1 closure.
+  A supported App-scoped path-entry method is being examined offline; current
+  file/history privacy guards are retained and no further live action selected.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current

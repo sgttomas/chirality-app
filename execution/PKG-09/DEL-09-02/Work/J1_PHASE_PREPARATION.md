@@ -31,7 +31,13 @@ unchanged in their retained evidence.
 All60 focused mocked cases and the193-test native-attended cohort pass under
 normal t3_slot admission with fresh scratch homes; deliverables errors=[] and
 diff check passes. Commands/logs are retained at app-j1-nullable-metadata-klklw28_.
-No v5 native attempt or product/candidate change was made by this correction.
+The source correction made no product/candidate change. Agent0 later selected
+one frozen552445d7/v5 attempt: main and WebArea with9 controls were observed,
+and one checked project-picker press returned0. The separate native picker
+parser then refused its unclassified structure before any path/selection/save.
+Autonomous cleanup/final absence completed in2.84 s without overrun. See attempt6
+in the owning account. This exercises the reader but does not establish native
+path-entry absence or setup/J1 success; no further input method is selected here.
 
 This began as the selected preparation after the first two actual observations.
 The repaired integrated v3 and separately selected frozen PR136 v4 have since
