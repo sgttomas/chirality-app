@@ -248,8 +248,16 @@ Current Type 1 assignments are:
   original-process absence completed in2.84 s without overrun. Source/product
   stayed frozen; AppData/request remain absent. This is native content/picker-
   request evidence, not setup, a claim that controls are absent, or J1 closure.
-  A supported App-scoped path-entry method is being examined offline; current
-  file/history privacy guards are retained and no further live action selected.
+  A subsequent [frozen PRE-MERGE c977 picker diagnostic](../PKG-09/DEL-09-02/Work/J1_PICKER_DIAGNOSTIC_ACTUAL_20261106.md)
+  used a fresh available-desktop window: main/WebArea9controls and one checked
+  picker press, then an initial structural-read refusal before navigation intent,
+  keyboard event or snapshot. The failing attribute/AX code is unknown. Normal
+  cleanup/verified absence completed in3.89 s without overrun; original App and
+  wrapper absence were independently corroborated. No setup/save occurred.
+  The [offline evidence repair](../PKG-09/DEL-09-02/Work/J1_PICKER_DIAGNOSTIC.md#actual-frozen-c977-attempt-and-offline-binding-evidence-repair)
+  retains partial allowlisted binding facts without recovery reads;37 mocked
+  tests pass. It has not run natively. Current file/history privacy guards remain;
+  no retry, window extension or further live action is selected.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
