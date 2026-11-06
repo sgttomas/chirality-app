@@ -284,9 +284,14 @@ Current Type 1 assignments are:
   vetoed the command; no keyboard event, path or save occurred. Trace123/ref12/
   initial-read27/owner49 stayed below caps, without late calls. Normal cleanup/
   verified absence completed in4.65 s, no overrun; original App/wrapper absence
-  was independently corroborated. An offline proposal now examines a supported
-  positive target proof; unsupported remains unknown. No new entry/window/GO or
-  input-guard change is selected, and the actual96c entry is consumed.
+  was independently corroborated. The [selected positive top-level criterion](../PKG-09/DEL-09-02/Work/J1_PICKER_DIAGNOSTIC.md#direct-review-mandatory-top-level-read-before-extra-child-observation)
+  now has offline implementation/source review and99 mocked passes. Fresh owned
+  focus.TopLevel must equal the retained PROJECT AXSheet, with converging ancestry,
+  publication and parent facts before/after intent. This explicitly replaces the
+  diagnostic's zero-sheet prerequisite: legacy unknown stays unknown, zero is
+  not authority and known nonempty still vetoes. Exact-panel support is unobserved;
+  repaired-entry staging/inspection precedes a new window. No live GO is selected,
+  and the actual96c entry remains consumed.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
