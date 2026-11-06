@@ -838,7 +838,8 @@ adaptation and the next authorized focused submission; release is never inferred
 from time. Logs/source/static evidence are retained at
 /Users/ryan/dev/chirality-t3/scratch/app-j1-focused-ancestry-checks-97wfg80p.
 
-A NEW immutable UNRUN entry/source root binds the final committed head:
+The original immutable preparation root, subsequently consumed below, bound its
+exact committed source head:
 /Users/ryan/dev/chirality-t3/scratch/app-j1-focused-ancestry-staged-70cuvl95
 Diagnostic SHA256:3f6dd796f30448be95f9c6867c33e6aefa748d534a948ac90154fcbc42bd55ec
 Test SHA256:dac6e572fa02f07e2d528ec0f4f985aaf96f1af7c8a6892bb44e1c19e6779231
@@ -861,3 +862,60 @@ implementation. Setup/J1/J2/model/native qualification remain open. ScopeOfWork/
 dependency/acceptance meanings are unchanged. Agent0 retains independent exact
 version review, coordination/CI/integration and any later fresh availability/GO.
 No live selection follows this preparation.
+
+## Frozen546 focused-ref refusal and initial-only availability wait
+
+The [new actual account](J1_FOCUSED_ANCESTRY_ACTUAL_20261106T132809Z.md), included
+byte-identical from5003e465, records the one selected frozen PRE-MERGE54602438
+invocation in13:26:59–13:31:59Z. It observed original main/picker publication and
+one checked picker press. Original-App AXFocusedUIElement op59/pass2 then returned
+NoValue/-25212/null, native0.013892916s. There was no focused reference, parent
+path, nearest-modal proof, target proof or command; prior subjects' paths are not
+reused. The absence at that read supplies no transience/permanence/cause claim.
+
+One prebound normal termination and actual original-birth absence closed in
+3.724506s without overrun. Agent0 independently found original85777/Python85773/
+slot85771/invocation85759 absent at13:35:18.266295Z and matched all four supplied
+raw hashes. FOCUSED_ANCESTRY_ACTUAL_CLOSURE.json remains in app-pr142-review-nf0zy75z.
+No App exit/reap, setup/save, useful-model or qualification result follows.
+The70cuvl95 source/entry/preparation/raw receipts remain frozen; this invocation
+is consumed and cannot be rearmed or relabelled as later source execution.
+
+The follow-up leaves the positive ancestry/input criterion unchanged. It adds an
+explicit INITIAL-ONLY availability wait for original-App AXFocusedUIElement
+-25212/null after the original picker has already been bound. At most three
+pause/resample reservations of fixed0.2s are shared across the WHOLE initial
+phase, including both proof focus reads and all communication passes; they never
+reset. These are additional to the existing at-most-three0.1s communication-pass
+pauses, all inside the same original6s initial/fixed8s/work110/total180 ceilings.
+They add no independent interval, observation/owner/ref/trace capacity or input.
+
+Every resample uses the same original App reference, original identity/AX binding
+guards and current retained-picker ownership; every actual reference still gets
+the existing exact-object0.2 helper. Actual read/capacity/timing/null facts stay
+recorded. There is no full-publication replay or permission from previously
+successful properties: eventual strict before/after-intent proofs remain wholly
+fresh. NoValue never authorizes input. Unsupported focus, malformed/nonnull copy,
+wrong owner/identity/picker, missing role/parent, exhausted capacity/headroom,
+late call/pause/receipt or unavailable focus after the third pause stops normally.
+STRICT checks and post-attempt observation NEVER gain this wait or a retry.
+
+All111 mocked tests pass under the ordinary wrapper with scratch homes. Eight
+new methods cover one/two/three unavailable samples then a positive complete
+proof under existing caps, persistent four-read exhaustion, unsupported/strict/
+post refusals without waits, shared pause quota, late reads/pauses, original/
+picker-owner drift and failure of the actual focus-pause receipt with autonomous
+cleanup. The initial regression cohort failed against the old source; logs are
+focus-before.log, focus-after.log and focus-final.log in app-pr142-review-nf0zy75z.
+No real native/API/App operation, build or additional delegate was used in this
+offline repair. All five protected posting/gesture/session/stage/finalizer ASTs,
+the StructuralCalls ABI initializer and core/test/reader bytes remain unchanged.
+
+Current source SHA256:
+0b08ed7e41c62e7fef6e2a10ae59daa647617192c32d518d9a94607fbb1b2d48;
+current test SHA256:
+a1e77889a143db80a8e3e4e5ee40a258dff8fe6aeccffcf4361a86c512da17bc.
+A NEW exact-version UNRUN entry/source freeze and inspection is required before
+any later fresh window/GO. The current availability wait is unrun; the observed
+546 refusal retains its original behavior and source standing. Scope/dependency/
+acceptance and all App/model/access authority remain unchanged.

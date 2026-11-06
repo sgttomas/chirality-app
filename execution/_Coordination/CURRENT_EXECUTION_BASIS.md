@@ -298,9 +298,16 @@ Current Type 1 assignments are:
   found absent. This is that read's actual result, not permanent absence or cause.
   The new primary focused-ancestry criterion implements the documented parent
   relationship directly, always, without shortcut fallback. Source/entry review
-  and103 independent mocked tests pass; the exact account is included unchanged.
-  The new mode is unrun and still requires a separately selected current desktop
-  window. No new live GO or reusable prior entry is selected.
+  and103 independent mocked tests passed; the exact account is included unchanged.
+  The [selected frozen546 invocation](../PKG-09/DEL-09-02/Work/J1_FOCUSED_ANCESTRY_ACTUAL_20261106T132809Z.md)
+  then observed publication/picker facts but App focused-ref/-25212/null, with
+  no current focused path/proof/command. Closure3.72 s/no overrun and all four
+  process absences were independently corroborated. The criterion stays unchanged:
+  a new initial-only NoValue/null focus availability wait permits at most three
+  shared0.2s pause/resamples inside the existing6s/8s/work/cap limits. Strict/input/
+  snapshot checks never wait;111 mocked tests pass. The wait remains unrun, with
+  fresh exact-entry staging/inspection required before a new window. No live GO
+  or reusable prior entry is selected.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current

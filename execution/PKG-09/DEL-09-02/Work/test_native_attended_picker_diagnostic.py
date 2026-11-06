@@ -1249,6 +1249,10 @@ class AdmissionAndRunTests(unittest.TestCase):
                 Control(11, 'AXButton', 'Review setup', False)], '', True)
         def record(kind, value):
             if kind == fail_record: raise OSError('invented receipt failure')
+            if (kind == 'diagnostic-call' and getattr(backend, 'fail_focus_pause_receipt', False)
+                    and value.get('api') == 'sleep' and value.get('requested_sleep') == .2):
+                backend.focus_pause_receipt_failed = True
+                raise OSError('invented focus pause receipt failure')
             if (getattr(backend,'receipt_failure_after_down',False) and getattr(backend,'down_started',False)
                     and kind==getattr(backend,'failure_after_down_kind',kind)):
                 raise OSError('invented post-down evidence failure')
@@ -1576,6 +1580,133 @@ class AdmissionAndRunTests(unittest.TestCase):
         self.assertTrue(result['diagnostic']['snapshot']['complete'])
         self.assertTrue(result['diagnostic']['snapshot']['nodes'][0]['owner_match'])
         self.assertEqual(app.terminations,1)
+
+
+class FocusAvailabilityTests(unittest.TestCase):
+    full = AdmissionAndRunTests.full
+
+    def unavailable_focus(self, b, failures, code=-25212, hook=None):
+        original = b.a.AXUIElementCopyAttributeValue.call
+        calls = []
+        def read(ref, name, out):
+            if ref == 1 and name == 'AXFocusedUIElement' and len(calls) < failures:
+                calls.append((ref, name))
+                if hook: hook()
+                return code
+            return original(ref, name, out)
+        b.a.AXUIElementCopyAttributeValue.call = read
+        return calls
+
+    def test_initial_focus_novalue_then_positive_without_publication_replay(self):
+        for failures in (1, 2, 3):
+            with self.subTest(failures=failures):
+                def configure(b, api, now):
+                    observed_shape(b)
+                    self.unavailable_focus(b, failures)
+                result, counts, api, b, app, records = self.full(configure=configure)
+                self.assertEqual(b.sleep_calls, [.2] * failures)
+                self.assertEqual(len(api.posts), 2)
+                self.assertTrue(result['diagnostic']['snapshot']['complete'])
+                budget = result['diagnostic']['snapshot']['budget']
+                self.assertEqual(budget['initial_completed_pass'], 1)
+                self.assertEqual(budget['initial_focus_pause_reservations'], failures)
+                self.assertLessEqual(budget['initial_reads'], 64)
+                self.assertLessEqual(budget['initial_owner_composites'], 128)
+                self.assertEqual(app.terminations, 1)
+                self.assertTrue(result['original_absent'])
+
+    def test_persistent_initial_focus_novalue_is_bounded_and_never_posts(self):
+        def configure(b, api, now): self.unavailable_focus(b, 20)
+        result, counts, api, b, app, records = self.full(configure=configure)
+        reads = [r for n in result['diagnostic']['binding_refusal']['nodes']
+                 for r in n['reads'] if r['attribute'] == 'AXFocusedUIElement']
+        self.assertEqual([r['return_code'] for r in reads], [-25212] * 4)
+        self.assertEqual(b.sleep_calls, [.2] * 3)
+        self.assertEqual(api.posts, [])
+        self.assertEqual(app.terminations, 1)
+        self.assertTrue(result['original_absent'])
+        self.assertIsNone(result['diagnostic']['snapshot'])
+
+    def test_unsupported_initial_focus_and_strict_novalue_never_wait(self):
+        def configure(b, api, now): self.unavailable_focus(b, 20, code=-25205)
+        result, counts, api, b, app, records = self.full(configure=configure)
+        self.assertEqual(b.sleep_calls, [])
+        self.assertEqual(api.posts, [])
+        s, io, b, now = context(); self.unavailable_focus(b, 20)
+        sleeps = []; io.sleep = lambda n: sleeps.append(n)
+        with self.assertRaises(Refusal): s.nearest_modal()
+        self.assertEqual(sleeps, [])
+
+    def test_late_focus_read_or_pause_cannot_extend_initial_deadline(self):
+        for case in ('read', 'pause'):
+            with self.subTest(case=case):
+                def configure(b, api, now):
+                    self.unavailable_focus(b, 20, hook=(lambda: now.__setitem__(0, 110)) if case == 'read' else None)
+                    if case == 'pause': b.sleep_hook = lambda: now.__setitem__(0, 110)
+                result, counts, api, b, app, records = self.full(configure=configure)
+                self.assertEqual(result['cleanup_started'], 110)
+                self.assertEqual(api.posts, [])
+                self.assertEqual(app.terminations, 1)
+                self.assertEqual(b.sleep_calls, [] if case == 'read' else [.2])
+
+    def test_focus_pause_identity_or_owner_drift_stops_before_resample(self):
+        for case in ('birth', 'picker_owner'):
+            with self.subTest(case=case):
+                s, io, b, now = context(initial=True)
+                calls = self.unavailable_focus(b, 20)
+                def sleep(n):
+                    now[0] += n
+                    if case == 'birth': io.identity['start_usec'] += 1
+                    else: b.nodes[3]['owner'] = 999
+                io.sleep = sleep
+                with self.assertRaises(Refusal): s.initial_picker()
+                self.assertEqual(len(calls), 1)
+
+    def test_focus_pause_receipt_failure_still_runs_one_normal_cleanup(self):
+        def configure(b, api, now):
+            self.unavailable_focus(b, 20)
+            b.fail_focus_pause_receipt = True
+        result, counts, api, b, app, records = self.full(configure=configure)
+        self.assertTrue(b.focus_pause_receipt_failed)
+        self.assertEqual(b.sleep_calls, [.2])
+        self.assertEqual(api.posts, [])
+        self.assertEqual(app.terminations, 1)
+        self.assertTrue(result['original_absent'])
+
+    def test_focus_pause_quota_is_shared_across_initial_proof_reads(self):
+        def configure(b, api, now):
+            original = b.a.AXUIElementCopyAttributeValue.call
+            seen = [0]
+            def read(ref, name, out):
+                if ref == 1 and name == 'AXFocusedUIElement':
+                    seen[0] += 1
+                    if seen[0] in (1, 3, 4): return -25212
+                return original(ref, name, out)
+            b.a.AXUIElementCopyAttributeValue.call = read
+        result, counts, api, b, app, records = self.full(configure=configure)
+        self.assertEqual(b.sleep_calls, [.2] * 3)
+        self.assertEqual(result['diagnostic']['snapshot']['budget']['initial_focus_pause_reservations'], 3)
+        self.assertEqual(len(api.posts), 2)
+        self.assertTrue(result['original_absent'])
+
+    def test_strict_and_post_focus_novalue_do_not_gain_availability_wait(self):
+        for stage in ('strict', 'snapshot'):
+            def configure(b, api, now):
+                original = b.a.AXUIElementCopyAttributeValue.call
+                seen = [0]
+                def read(ref, name, out):
+                    if ref == 1 and name == 'AXFocusedUIElement':
+                        seen[0] += 1
+                        if (stage == 'strict' and seen[0] >= 3) or getattr(b, 'after_post', False):
+                            return -25212
+                    return original(ref, name, out)
+                b.a.AXUIElementCopyAttributeValue.call = read
+                if stage == 'snapshot': api.on_down = lambda: setattr(b, 'after_post', True)
+            result, counts, api, b, app, records = self.full(configure=configure)
+            self.assertEqual(b.sleep_calls, [])
+            self.assertEqual(len(api.posts), 0 if stage == 'strict' else 2)
+            self.assertEqual(app.terminations, 1)
+            self.assertTrue(result['original_absent'])
 
 
 class ABIOnlyTests(unittest.TestCase):

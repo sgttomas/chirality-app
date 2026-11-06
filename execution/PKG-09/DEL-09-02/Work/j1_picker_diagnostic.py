@@ -173,6 +173,7 @@ class Structure:
         self.pre_modal_refs, self.completed_proofs = [], []
         self.proof_count, self.intent_focus, self.intent_proof_id = 0, None, None
         self.after_intent_proof = None
+        self.initial_focus_pause_reservations = 0
 
     def halt(self, code):
         if self.stopped is None:
@@ -290,6 +291,8 @@ class Structure:
                 'work_remaining': self.work_end-self.io.clock(),
                 'initial_end_elapsed': None if self.readiness_end is None else self.readiness_end-self.started,
                 'initial_completed_pass': self.initial_completed_pass,
+                'initial_focus_pause_reservations': self.initial_focus_pause_reservations,
+                'initial_focus_pause_limit': 3, 'initial_focus_pause_requested_seconds': .2,
                 'proof_mode': self.PROOF_MODE,
                 'phase_end_elapsed': self.end-self.started,
                 'local_CF_type_and_equality_timing': 'uninstrumented',
@@ -534,9 +537,44 @@ class Structure:
         self.identity_check();self.check()
         return candidate
 
+    def focused_reference(self):
+        """Initial-only availability wait; no missing ref ever proves a target."""
+        focused = self.ref(self.app, 'AXFocusedUIElement')
+        while focused is None and self.mode == 'initial' and self.picker_anchor is not None:
+            row = self.rows[self.touch_ordinal(self.app)]
+            fact = row['reads'][-1]
+            if not (fact['attribute'] == 'AXFocusedUIElement'
+                    and fact['return_code'] == -25212 and fact['cf_type'] == 'null'):
+                break
+            self.guard(self.io.project_pending is True, 'diagnostic PROJECT purpose missing')
+            self.guard(self.initial_focus_pause_reservations < 3,
+                       'diagnostic initial focus availability exhausted')
+            self.pass_capacity()  # no new guard/pause without capacity for another read
+            self.identity_check()
+            self.owner(self.picker_anchor, self.touch(self.picker_anchor))
+            self.check()
+            self.guard(self.io.clock() + .2 + .2 < self.end,
+                       'diagnostic initial focus pause headroom')
+            token = self.reserve('sleep')
+            self.initial_focus_pause_reservations += 1
+            completed = False
+            try:
+                self.io.sleep(.2)
+                completed = True
+            except BaseException:
+                self.halt('diagnostic initial focus pause failed')
+                raise
+            finally:
+                self.finish(token, details={'requested_sleep': .2}, raised=not completed)
+            self.pass_capacity()
+            self.identity_check()
+            self.owner(self.picker_anchor, self.touch(self.picker_anchor))
+            focused = self.ref(self.app, 'AXFocusedUIElement')
+        return focused
+
     def nearest_modal(self):
         """Observe the first modal ancestor; no shortcut or predetermined target."""
-        focused = self.ref(self.app, 'AXFocusedUIElement')
+        focused = self.focused_reference()
         self.guard(focused is not None and not any(self.same(focused, x)
                    for x in (self.app, self.main, self.picker_anchor)),
                    'diagnostic focused element is not a nonmodal descendant')
