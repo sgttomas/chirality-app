@@ -915,7 +915,55 @@ Current source SHA256:
 0b08ed7e41c62e7fef6e2a10ae59daa647617192c32d518d9a94607fbb1b2d48;
 current test SHA256:
 a1e77889a143db80a8e3e4e5ee40a258dff8fe6aeccffcf4361a86c512da17bc.
-A NEW exact-version UNRUN entry/source freeze and inspection is required before
-any later fresh window/GO. The current availability wait is unrun; the observed
-546 refusal retains its original behavior and source standing. Scope/dependency/
-acceptance and all App/model/access authority remain unchanged.
+At that offline return, a NEW exact-version UNRUN entry/source freeze and
+inspection was required before a later fresh window/GO. The observed546 refusal
+retains its original behavior and source standing. Scope/dependency/acceptance
+and all App/model/access authority remain unchanged.
+
+## Frozen aa08 partial ancestry and owner-mismatch refusal
+
+The [actual account](J1_INITIAL_FOCUS_READINESS_ACTUAL_20261106T141435Z.md) is
+included byte-identical from aeeb71604f861469ab43b50ba8fd77909e3f22e1, SHA256
+7908066165d9514e8e1c5c04e3e78d865b0e7a0bb92f1966eddc6c1f8961bbd6.
+Agent0 inspected the gcxbhyjw freeze before selecting one invocation in the fresh
+14:13:42–14:18:42Z available-desktop window. Actual method stays PRE-MERGE aa08;
+product stays eaf5d057/b98a30fe. The entry/window is consumed and closed.
+
+After two main-role CannotComplete responses, pass3 observed current original-owned
+focus8 Outline→9 ScrollArea→10 SplitGroup→11 SplitGroup→P7 Sheet, direct P→main1
+and standard publication. App focus op69 returned RC0/AXUIElement with native
+duration0.241293916s. The exact-object requested0.2s timeout is cooperative;
+late=false refers to the actual phase/work ceilings. The initial focus helper
+reserved no pauses: its NoValue resampling path was NOT exercised in this run.
+No cause or improvement attributable to that wait is established.
+
+During role-only veto-boundary validation, wrapper11 AXChildren count12/op101 and
+bounded range12/op103 succeeded. Ref13's owner composite op105 returned
+RC0/owner_match=false, duration0.000006250s. No role/parent/content query followed
+on that ref, and its actual PID was not retained. Validation stopped before the
+completed membership record was stored: no11→13 edge, service identity, role,
+parent or semantics is inferred from allocation order. Ref12's owner comparison
+was true, but its role/parent were also unobserved. The ownership veto remains.
+
+The initial proof did not finish: initial_completed_pass=null, target_proofs=[],
+snapshot=null, gesture unconsumed/allocated0/downfalse/upfalse. One checked
+project-picker press was the only App action before normal termination; there
+was no navigation intent or chord. Partial evidence retains14 distinct refs,
+35 initial reads/59 owner reservations/105 trace ops, with no late operation.
+
+One prebound normal termination returned BOOLtrue/effect_proved=false; actual
+original-birth absence was separately verified. Raw controller elapsed3.200360s;
+final closure3.207680s/zero overrun, exit_status=null. Wrapper END14:14:38Z rc1 is
+the diagnostic outcome. Native's14:15:29.964071Z exact checks found original1977,
+Python1915, slot1912 and invocation1879 absent; Agent0 independently corroborated
+all four absences at14:27:01.895636Z. No exit/reap result is inferred.
+
+Agent0 verified the sole-new-file/parent/account hash, all123 raw event hashes,
+entry/preparation and projection/closure bindings. Review evidence is
+INITIAL_FOCUS_ACTUAL_ACCOUNT_REVIEW.json and
+INITIAL_FOCUS_READINESS_ACTUAL_CLOSURE.json in app-pr142-review-nf0zy75z.
+The111 mocked tests retain their checked source standing; no test rerun, build,
+App/AX/process query or later phase was needed for this account integration.
+Scope/dependency/acceptance are unchanged. Setup/save, handling, J1/J2/model/native
+qualification remain open. Agent0 owns next method review; no ownership-policy
+exception, retry, new live GO or reuse of a consumed entry is selected.

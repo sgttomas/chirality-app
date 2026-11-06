@@ -305,9 +305,18 @@ Current Type 1 assignments are:
   process absences were independently corroborated. The criterion stays unchanged:
   a new initial-only NoValue/null focus availability wait permits at most three
   shared0.2s pause/resamples inside the existing6s/8s/work/cap limits. Strict/input/
-  snapshot checks never wait;111 mocked tests pass. The wait remains unrun, with
-  fresh exact-entry staging/inspection required before a new window. No live GO
-  or reusable prior entry is selected.
+  snapshot checks never wait;111 mocked tests pass. The subsequently inspected
+  [frozen aa08 invocation](../PKG-09/DEL-09-02/Work/J1_INITIAL_FOCUS_READINESS_ACTUAL_20261106T141435Z.md)
+  observed current owned focus/parent ancestry through the retained picker, then
+  stopped during bounded veto-boundary validation on ref13 owner_match=false.
+  No complete target proof, navigation intent, allocation or chord followed.
+  That ref's role/parent/identity and returned membership were not retained;
+  no foreign AX read or service-identity inference follows. Focus was available
+  on its first sample, so the new NoValue resampling path was not exercised.
+  Normal closure3.207680 s/no overrun and all four process absences were
+  independently corroborated. Exact actual bytes from aeeb7160 are included
+  unchanged. The ownership veto remains; Agent0 owns the next method review.
+  The entry/window is consumed, with no retry, live GO or reusable entry.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
