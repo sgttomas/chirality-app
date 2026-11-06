@@ -1030,3 +1030,51 @@ Hosted CI remains an integration condition. ScopeOfWork/dependencies/acceptance 
 source remain unchanged. A new exact entry freeze/review and fresh desktop
 availability/window would be required before native use; none is selected here.
 Handling/path/setup/save/J1/J2/model/native qualification remain open.
+
+## Frozen89a5 returned-reference evidence actual
+
+The [actual account](J1_RETURN_PROVENANCE_ACTUAL_20261106T155233Z.md) is received
+byte-identical from a4c0281e76fbc9b6229d531d2841ee4845085c8b, SHA256
+2f47192dccf0edcb4282823813f82c98eef20cc0b9ece14fa7dc16d9e6fa28ea.
+Executed source stays frozen89a5, entrya2b0/yndqw0ne, producteaf/b98. PR143's
+integrated792f692f has identical five blobs but is not substituted as execution
+identity. One fresh selected15:51:01–15:56:01Z window admitted this invocation
+at15:52:33.590405Z; it is consumed and closed with no retry or later phase.
+
+Startup empty→ready and two initial communication failures preceded current
+pass3 owned focus8 Outline→9 ScrollArea→10 SplitGroup→11 SplitGroup→P7 Sheet,
+direct P→main1 and publication. App focus op71 succeeded once; zero focus-pause
+reservations, so that wait branch remains unexercised. Wrapper11's bounded
+AXChildren count12/range12 succeeded. Ref13 first/latest return facts explicitly
+retain source11/API CopyAttributeValues/AXChildren/initial-pass3/op105/index1/
+requested12, with native-return-only meaning. Its existing owner composite op107
+returned RC0/owner_pid54405 versus original54128, matchfalse,6.541144us composite.
+The mismatch remains fatal. No foreign PID lookup, role/parent/content query,
+process/service identity or explanation is supplied by these facts.
+
+The new evidence establishes the returned-reference source without inferring
+AXParent or accepted completed array membership. This is an observation of this
+run; aa08's missing fields remain missing and local ordinal13 is not a cross-run
+identity. No initial complete proof, intent, allocation, chord or snapshot was
+reached. Partial evidence is107 ops/36 initial reads/60 owner reservations/14 refs,
+no late operation. The only App action before normal termination was one checked
+picker press. Input policy, caps, timing, privacy and cleanup were unchanged.
+
+One prebound normal termination returned BOOLtrue/effect_provedfalse; actual
+original-birth absence was separately verified. Final elapsed4.685059s/zero
+overrun, exit_statusnull. Current slotwrapper54122/slot3 END15:52:38Z rc1 is the
+diagnostic outcome. Native's exact four-PID absence at15:53:20.864007Z is in the
+original account. Agent0 independently found original54128/caller54124/slot54122/
+invocation54108 absent at15:54:30.047507Z. That later receiving receipt remains
+RETURN_PROVENANCE_ACTUAL_CLOSURE.json in app-j1-return-provenance-checks-q2iqvmrn;
+it was not retrofitted into the already-committed account. No App exit/reap or
+global resource-clearance inference follows.
+
+Receiving checks confirm exact parent/sole new file/account SHA, closure hashes,
+all126 raw event hashes and unchanged frozen sources/entry/manifests/587 prior
+members. ACTUAL_ACCOUNT_RECEIVING.json in the same root checks directory retains
+the hash inventory. No new tests/build/App/AX/foreign-PID/after-state query was
+needed for receiving. Scope/dependency/acceptance remain unchanged. The next
+source-only result is an explicit boundary-policy assessment; the current owner
+veto remains and no exception, new method, invocation or availability is selected.
+Handling/path/setup/save/J1/J2/model/native qualification remain open.

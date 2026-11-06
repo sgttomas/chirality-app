@@ -317,6 +317,18 @@ Current Type 1 assignments are:
   independently corroborated. Exact actual bytes from aeeb7160 are included
   unchanged. The ownership veto remains; Agent0 owns the next method review.
   The entry/window is consumed, with no retry, live GO or reusable entry.
+  The evidence-only returned-reference repair is integrated in #143 with118
+  mocked passes and independent review. Its [selected frozen89a5 invocation](../PKG-09/DEL-09-02/Work/J1_RETURN_PROVENANCE_ACTUAL_20261106T155233Z.md)
+  retained the current ref13 return from wrapper11 AXChildren range op105/index1
+  and GetPid op107 owner54405, different from original54128. This is API-output
+  provenance, not accepted membership/parenthood or service identity; no foreign
+  process or AX query followed. The same ownership veto stopped before complete
+  proof, intent, allocation or chord. Normal original-birth closure4.685059 s,
+  zero overrun; Agent0 separately corroborated all four invocation PIDs absent.
+  Account a4c0281e is included byte-identical; root's later closure stays separate.
+  The focus resampling path again had zero reservations. The next result owed is
+  a source-grounded boundary-policy assessment; no owner exception, new method,
+  retry or live GO is selected. This new entry/window is also consumed.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
