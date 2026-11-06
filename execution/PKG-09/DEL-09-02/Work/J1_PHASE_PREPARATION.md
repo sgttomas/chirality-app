@@ -1,5 +1,44 @@
 # Offline J1 Stage A phase-aware controller preparation
 
+## Nullable content metadata correction (v5)
+
+The owner-available attempt on integrated06d338c9 captured a genuine main, then
+refused before content/input on AXTitle/-25212. The SDK AXError.h defines
+kAXErrorNoValue as "The requested value or AXUIElementRef does not exist."
+The v4 content walker treated that as NotReady even for nullable control titles,
+descriptions, values and leaf children, preventing its existing label fallback.
+Separately, its picker list exclusion was also applied to the App's own HTML
+first-use AXList, hiding that form's controls. These are controller defects;
+neither proves an App handler or WebKit/OS cause.
+
+V5 uses an explicit optional-content read for those metadata fields only. NoValue
+there becomes absence; CannotComplete, foreign owner and other errors still
+refuse. Structural roots/roles, initial-main/native-question titles, parent
+relationships and post-write path values remain mandatory. Explicitly optional
+reference arrays may be empty on NoValue; required arrays still refuse.
+The owned main content walk includes HTML lists; the separate native picker
+parser still excludes list/file/history children and rejects unknown containers.
+Exact labels, enabled/parent/source checks, full statement/destination checks,
+authentic receipts and cleanup/custody logic remain in force.
+
+Six added mocked cases exercise a compact constructed first-use list with missing
+optional fields, description fallback through the actual content walker and
+target check, missing-label refusal, strict structural/path reads, CannotComplete
+and foreign-owner refusal, and unchanged picker list/history exclusion. No raw
+runtime dump is committed. These checks are source evidence, not a new native
+content/selection/save result. The executed v4 source and original failure remain
+unchanged in their retained evidence.
+All60 focused mocked cases and the193-test native-attended cohort pass under
+normal t3_slot admission with fresh scratch homes; deliverables errors=[] and
+diff check passes. Commands/logs are retained at app-j1-nullable-metadata-klklw28_.
+The source correction made no product/candidate change. Agent0 later selected
+one frozen552445d7/v5 attempt: main and WebArea with9 controls were observed,
+and one checked project-picker press returned0. The separate native picker
+parser then refused its unclassified structure before any path/selection/save.
+Autonomous cleanup/final absence completed in2.84 s without overrun. See attempt6
+in the owning account. This exercises the reader but does not establish native
+path-entry absence or setup/J1 success; no further input method is selected here.
+
 This began as the selected preparation after the first two actual observations.
 The repaired integrated v3 and separately selected frozen PR136 v4 have since
 each operated one App instance, with zero setup input; see attempts3/4 in

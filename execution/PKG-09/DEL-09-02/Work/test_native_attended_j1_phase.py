@@ -1025,3 +1025,99 @@ class NativeStartupFactTests(unittest.TestCase):
         roots[:] = ['replacement']
         with self.assertRaises(Refusal): ax.initial_main('Chirality')
         self.assertEqual(ax.main, 'main')
+
+
+class NullableContentMetadataTests(unittest.TestCase):
+    def fixture(self):
+        # Constructed OS returns over the retained first-use role/label shape.
+        # No raw runtime tree, machine paths or native input is committed here.
+        nodes = {
+            'main': {'AXRole': 'AXWindow', 'AXTitle': 'Chirality', 'AXChildren': ['web']},
+            'web': {'AXRole': 'AXWebArea', 'AXChildren': ['heading', 'steps'], 'AXParent': 'main'},
+            'heading': {'AXRole': 'AXStaticText', 'AXValue': 'Welcome to Chirality', 'AXParent': 'web'},
+            'steps': {'AXRole': 'AXList', 'AXChildren': ['project', 'settings', 'review'], 'AXParent': 'web'},
+            'project': {'AXRole': 'AXButton', 'AXDescription': 'Choose project folder…',
+                        'AXEnabled': True, 'AXParent': 'steps'},
+            'settings': {'AXRole': 'AXRadioButton', 'AXDescription': 'Start with new settings (recommended)',
+                         'AXValue': 1, 'AXEnabled': True, 'AXParent': 'steps'},
+            'review': {'AXRole': 'AXButton', 'AXTitle': 'Review setup', 'AXEnabled': False, 'AXParent': 'steps'},
+        }
+        reads, errors, owners = [], {}, {}
+        class Backend:
+            def owner(self, ref): return 0, owners.get(ref, 17)
+            def equal(self, left, right): return left == right
+            def attribute(self, ref, name):
+                reads.append((ref, name))
+                value = nodes.get(ref, {}).get(name)
+                if (ref, name) in errors or value is None:
+                    return {'return_code': errors.get((ref, name), -25212),
+                            'type': {'name': 'null'}, 'value': None}, []
+                if isinstance(value, list):
+                    return {'return_code': 0, 'type': {'name': 'CFArray'}, 'value': None}, value
+                if name == 'AXParent':
+                    return {'return_code': 0, 'type': {'name': 'AXUIElement'}, 'value': None}, [value]
+                return {'return_code': 0, 'type': {'name': 'CFString'}, 'value': value}, []
+        ax = NativeAX.__new__(NativeAX)
+        ax.b, ax.pid, ax.app, ax.main = Backend(), 17, 'app', 'main'
+        ax.clock = lambda: 0; ax.check = lambda: None
+        ax.last_root, ax.last_phase = 'main', 'main'
+        return ax, nodes, reads, errors, owners
+
+    def test_first_use_list_and_missing_optional_values_preserve_real_label_fallbacks(self):
+        ax, nodes, reads, errors, owners = self.fixture()
+        controls, text, webarea = ax._controls('main', False, 10)
+        view = View('main', 'main', controls, text, webarea)
+        self.assertTrue(webarea)
+        self.assertIn('Welcome to Chirality', text)
+        self.assertEqual(view.one('Choose project folder…').ref, 'project')
+        radio = view.one('Start with new settings', ('AXRadioButton',), prefix=True)
+        self.assertEqual(radio.value, 1)
+        self.assertFalse(view.one('Review setup', enabled=False).enabled)
+        self.assertIn(('steps', 'AXChildren'), reads, 'App HTML list is actual content')
+
+    def test_optional_absence_does_not_swallow_cannot_complete_or_foreign_owner(self):
+        ax, nodes, reads, errors, owners = self.fixture()
+        errors[('project', 'AXTitle')] = -25204
+        with self.assertRaises(NotReady) as caught: ax._controls('main', False, 10)
+        self.assertEqual(caught.exception.category, 'cannot_complete')
+        errors.clear(); reads.clear(); owners['project'] = 99
+        with self.assertRaises(Refusal): ax._controls('main', False, 10)
+        self.assertNotIn(('project', 'AXRole'), reads)
+        self.assertNotIn(('project', 'AXDescription'), reads)
+
+    def test_missing_structural_attributes_and_path_readback_remain_strict(self):
+        ax, nodes, reads, errors, owners = self.fixture()
+        for operation in (lambda: ax.value('project', 'AXTitle'),
+                          lambda: ax.role('missing'),
+                          lambda: ax.refs('app', 'AXWindows', optional=False),
+                          lambda: ax.read_value(c('Go to the folder:', 'AXTextField', ref='project'))):
+            with self.subTest(operation=operation), self.assertRaises(NotReady): operation()
+        with self.assertRaises(Refusal): ax.optional_value('project', 'AXRole')
+        self.assertEqual(ax.refs('main', 'AXSheets', optional=True), [])
+
+    def test_missing_all_labels_cannot_supply_a_requested_control(self):
+        ax, nodes, reads, errors, owners = self.fixture()
+        nodes['project'].pop('AXDescription')
+        controls, text, webarea = ax._controls('main', False, 10)
+        with self.assertRaises(Refusal): View('main', 'main', controls).one('Choose project folder…')
+
+    def test_description_label_still_needs_exact_target_and_parent_binding(self):
+        ax, nodes, reads, errors, owners = self.fixture()
+        controls, _, _ = ax._controls('main', False, 10)
+        target = next(c for c in controls if c.ref == 'project')
+        with patch('j1_stage_a_phase.phase_root', return_value='main'):
+            ax._bound_target(target, 10)
+            nodes['project']['AXDescription'] = 'different control'
+            with self.assertRaises(Refusal): ax._bound_target(target, 10)
+
+    def test_app_list_support_does_not_open_native_picker_lists_or_history(self):
+        ax, nodes, reads, errors, owners = self.fixture()
+        nodes.update({'panel': {'AXRole': 'AXSheet', 'AXChildren': ['files', 'open']},
+                      'files': {'AXRole': 'AXList', 'AXChildren': ['private-item']},
+                      'private-item': {'AXRole': 'AXStaticText', 'AXValue': 'invented private filename'},
+                      'open': {'AXRole': 'AXButton', 'AXDescription': 'Open', 'AXEnabled': True}})
+        controls, text, _ = ax._controls('panel', True, 10)
+        self.assertEqual([c.label for c in controls], ['Open'])
+        self.assertEqual(text, '')
+        self.assertNotIn(('files', 'AXChildren'), reads)
+        self.assertFalse(any(ref == 'private-item' for ref, name in reads))

@@ -37,6 +37,20 @@ Process/wrapper closure does not establish setup, an App exit code, useful-model
 work, native qualification or the self-reference's cause. #136 is not described
 as integrated main. Agent 0 owns integration and next method selection; no
 automatic retry or owner-operated setup is selected.
+The fifth agent-operated attempt, in the owner's available desktop window, used
+integrated `06d338c9`. A distinct original main was captured at2.47 s; the content
+walk then refused AXTitle/-25212 before input. Cleanup/actual absence completed
+in5.91 s without overrun and setup remains unsaved. V5 corrects nullable content
+metadata and the App-owned HTML list filter; native picker exclusions and
+confirmation/source/cleanup guards remain. Its60 mocked cases and193-case cohort
+pass, but the correction has not yet operated an App. This is a test-controller
+repair, not a product/OS cause finding or completed journey.
+A sixth attempt used separately selected frozen PR137/552445d7 in a fresh
+available-desktop window: genuine main/WebArea9controls, one project-picker
+press, then unclassified-picker refusal before path entry. Cleanup/verified
+absence2.84 s without overrun. Setup remains unsaved; the actual role structure
+does not prove native path controls absent. The next App-scoped path-entry
+method is source preparation only, preserving file/history privacy guards.
 The #116/#120/#121 real-backend joins and #126 notice input inventory are also
 integrated with their stated limits. The owning roles retain
 journey delivery beyond individual PRs; live activity is established from actual
@@ -63,7 +77,7 @@ public distribution; and the owner decision packet. That list was not completed.
 
 | ID | Result and finish condition | Standing / next action | Owning deliverables and delivery owner |
 |---|---|---|---|
-| P1 | Set up a project, select an existing workflow, supply inputs, run it to completion and find the results without agent interpretation of engineering controls. | OPEN; backend/guide/results-finder joins are integrated. No actual setup/save or useful-model result on eaf5d057. Latest: selected pre-merge #136/f9059685 retained nine startup self-only samples, refused before input and self-cleaned in20.71 s without overrun. Agent 0 inspects that concrete capability result and selects the next useful agent-operated method; applicable access/model choices and useful completion remain. Scripted replies do not establish inference. | [J1](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j1--use-an-existing-workflow), DEL-02-02 with DEL-01-04/05; product manager, Agent 0 integration. |
+| P1 | Set up a project, select an existing workflow, supply inputs, run it to completion and find the results without agent interpretation of engineering controls. | OPEN; backend/guide/results-finder joins are integrated. No actual setup/save or useful-model result on eaf5d057. Latest frozen PR137/552445d7 attempt observed main/WebArea9controls, opened the project picker once, refused unclassified path-entry structure and self-cleaned in2.84 s. The next supported App-scoped path-entry method is being prepared offline; applicable access/model choices and useful completion remain. Scripted replies do not establish inference. | [J1](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j1--use-an-existing-workflow), DEL-02-02 with DEL-01-04/05; product manager, Agent 0 integration. |
 | P2 | Do useful work, create/trial/review/register a reusable workflow, return to unfinished work and later run the saved workflow with new inputs. | OPEN; fresh-trial/Continue-as model choice, trial/Bring-back guards, History landing and returning-draft guidance are integrated, with recorded renderer/source-test limits. The real-backend clean-trial join uses scripted replies. Actual useful create/register/resume/reuse remains unobserved and required before 4.0.0. | [J2](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j2--create-save-return-and-reuse), DEL-02-02; product manager, native examiner. |
 | P3 | Applicable candidate-bound request/approval, cancellation, interruption/recovery, close/reopen/Quit and three access-mode results, with failures repaired or explicitly returned for owner disposition. | OPEN; the native activation/occlusion loop remains closed and unresolved. Backend joins and the new build do not qualify native recovery/access. Runtime's exact remaining requirements, executable paths and input/authority boundaries are completed preparation. Native owns the linked first-use results, including #135 and frozen #136's exact-instance autonomous cleanup; initial-main/picker/setup capability and broader recovery/access remain open. Agent 0 owns next method selection; no owner regression execution or revival of the closed GUI loop is implied. | [Standalone qualification](../PKG-09/DEL-09-02/Work/STANDALONE_QUALIFICATION.md), DEL-01-01/02/03/04/05; native manager. |
 | P4 | Actual installed S4/supplier custody and applicable SEAL-C enrollment/continuity evidence joined to the candidate. | OPEN; static joins are complete for b3dd4145, real installed/native results are not. Enrollment remains a concrete owner act. Rotation unavailable/SC-5 blocked is the accepted 4.0.0 limitation, not a pass. | [Signing join](../PKG-01/DEL-01-06/Work/SEAL_C_KEYCHAIN_SIGNING_JOIN.md), DEL-01-04/06 and DEL-09-02; runtime and packaging managers. |
