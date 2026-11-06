@@ -1378,6 +1378,25 @@ class AdmissionAndRunTests(unittest.TestCase):
             self.assertEqual(app.terminations,1);self.assertTrue(result['original_absent'])
             self.assertFalse(any(row[0] in ('count','range') for row in b.log))
 
+    def test_missing_mandatory_top_stops_before_extra_child_boundary_reads(self):
+        for code in (-25205, -25212):
+            with self.subTest(code=code):
+                def configure(b, api, now):
+                    original = b.a.AXUIElementCopyAttributeValue.call
+                    def missing(ref, name, out):
+                        if ref == 4 and name == 'AXTopLevelUIElement':
+                            b.log.append(('missing-top', ref, code))
+                            return code
+                        return original(ref, name, out)
+                    b.a.AXUIElementCopyAttributeValue.call = missing
+                result, counts, api, b, app, records = self.full(configure=configure)
+                self.assertFalse(any(row[:3] == ('count', 3, 'AXChildren') for row in b.log))
+                self.assertTrue(any(row[0] == 'missing-top' for row in b.log))
+                self.assertEqual(api.posts, [])
+                self.assertEqual(app.terminations, 1)
+                self.assertTrue(result['original_absent'])
+                self.assertIsNone(result['diagnostic']['snapshot'])
+
     def test_late_initial_read_or_sleep_starts_autonomous_cutoff_cleanup(self):
         for case in ('read','sleep'):
             def configure(b,api,now):

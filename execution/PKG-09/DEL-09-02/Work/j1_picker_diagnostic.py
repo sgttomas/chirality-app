@@ -608,12 +608,12 @@ class Structure:
         self.identity_check()
         picker,publication=self.publication(expected)
         early=self.routing(picker)
+        self.top_level(early['focused'],picker)  # fail before extra child-shape discovery
         boundary=self.veto_boundary(picker,early)
         legacy=self.legacy_veto(picker)
         self.identity_check()
         fresh=self.routing(picker)
         self.guard(self.same(fresh['focused'],early['focused']),'diagnostic focus changed during proof')
-        self.top_level(fresh['focused'],picker)
         self.identity_check()
         # Only focused/top-level confirmation follows the final identity guard: no catalog work.
         sealed_focus=self.ref(self.app,'AXFocusedUIElement')

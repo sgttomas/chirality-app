@@ -672,9 +672,10 @@ failure. No proof method is bypassed. Deliverables and diff/static checks are
 retained with exact commands/hashes in
 /Users/ryan/dev/chirality-t3/scratch/app-j1-positive-top-level-checks-_gpi6iz1.
 
-Diagnostic SHA256: 0a42abf4a8494f596ed90f62187213f5231f2725479b0fc2242bbce4ce181ed9
-Test SHA256: 46c52e342bd5b67de1ced0a7454c1a8645a98ab93e05dd4f59199d6b8c192846
-The new private UNRUN root is /Users/ryan/dev/chirality-t3/scratch/app-j1-positive-top-level-staged-24yk1jzs; prospective entry SHA256
+Original authora1bc5bf8 diagnostic SHA256: 0a42abf4a8494f596ed90f62187213f5231f2725479b0fc2242bbce4ce181ed9
+Original author test SHA256: 46c52e342bd5b67de1ced0a7454c1a8645a98ab93e05dd4f59199d6b8c192846
+The original private UNRUN root, retained unchanged and superseded for selection
+by the review refinement below, is /Users/ryan/dev/chirality-t3/scratch/app-j1-positive-top-level-staged-24yk1jzs; entry SHA256
 92bde8b655d481eb9b3237e69a2027e62b3b7b87f916c64fcbfb0ad179eb265d. Its five source copies must be extracted from the final committed
 head. Only the accepted72f2 entry's two EXPECTED diagnostic/test hash literals
 change, with inverse-byte proof; required futureUTC/185s admission guards,
@@ -694,3 +695,33 @@ preparation does not establish setup/J1/J2/model/native qualification. ScopeOfWo
 dependencies/acceptance and historical evidence meanings are unchanged; Agent0
 owns independent exact-source/ABI/entry review, CI/integration and any later
 fresh availability/GO. No live selection follows this contribution.
+
+## Direct review: mandatory top-level read before extra child observation
+
+Agent0 independently reran all98 original mocked tests at exacta1bc5bf8: PASS.
+Review then moved the first mandatory TopLevel lookup immediately after the early
+owned focus ancestry, before the additional veto-boundary child scan. An absent
+mandatory API now yields the smallest fixed-ref failure report without first
+exploring additional child shape. The same final fresh focused/top-level and
+full-identity checks still follow the catalog/veto work before input. No input
+criterion, call count, scope, cap, deadline or cleanup behavior changed.
+
+A new actual-controller regression exercises unsupported and NoValue TopLevel
+responses, requiring zero extra picker-child reads/posts and normal original-bound
+cleanup. It failed in both cases against byte-identical author source; with the
+refinement all99 mocked tests pass under the ordinary wrapper with scratch homes.
+The original98 hard-negative cases remain covered. Logs are retained in
+/Users/ryan/dev/chirality-t3/scratch/app-pr141-review-b70j6o9_:
+original-focused.log, early-top-before-final.log and repaired-focused-final.log.
+Draft test-placement failures are also retained separately; they are not native
+observations or evidence of a product defect.
+
+Reviewed diagnostic SHA256:
+442cfe5f01142c3b5caf8b0b3eeb4d011821c9ac8e84e3e338157e64d81ede6f;
+reviewed test SHA256:
+42824f627c548148ecea6ec9e27281b680015f9a2f569c8970e9040d5b822699.
+Core/test/reader, native posting and stage/finalizer bytes/ASTs remain unchanged;
+the selected proof, legacy negative veto, one-gesture semantics and timing/privacy
+bounds remain as above. No native operation, build or extra delegate occurred.
+A fresh repaired source/entry freeze and inspection precede any live selection;
+the original24yk1jzs root stays unrun and is not a future invocation target.
