@@ -145,7 +145,7 @@ KNOWN_ROLES = frozenset({
 
 class Structure:
     """One App-specific initial communication policy; strict input never retries."""
-    PROOF_MODE = 'POSITIVE_FOCUSED_ANCESTRY_DIAGNOSTIC_V1'
+    PROOF_MODE = 'POSITIVE_OWNED_ROUTE_ROOT_BOUNDARY_DIAGNOSTIC_V1'
     MODALS = frozenset(('AXWindow', 'AXSheet', 'AXDrawer', 'AXDialog'))
     VALUE_ATTRS = ('AXRole', 'AXParent', 'AXModal', 'AXFocusedUIElement')
     ARRAY_ATTRS = ('AXChildren', 'AXSheets', 'AXWindows')
@@ -296,7 +296,7 @@ class Structure:
                 'read_owner_capacity_scope': 'initial phase only; no reset across passes',
                 'trace_reference_capacity_scope': 'shared initial/strict/snapshot',
                 'strict_snapshot_deadline_scope': 'both strict proofs and snapshot share sealed strict end',
-                'proof_mode': self.PROOF_MODE,
+                'proof_mode': self.PROOF_MODE, 'observation_scope': self.observation_scope(),
                 'phase_end_elapsed': self.end-self.started,
                 'local_CF_type_and_equality_timing': 'uninstrumented',
                 'non_trace_journal_timing': 'uninstrumented; included in wall/work time',
@@ -305,8 +305,18 @@ class Structure:
                 'core_startup_content_timing': 'uninstrumented by this trace; existing core receipts retained',
                 'cleanup_and_paired_release_identity_timing': 'uninstrumented NativeSession.check'}
 
+    def observation_scope(self):
+        # A new detached value on every receipt; this describes coverage, never permission.
+        return {'input_census': 'App AXWindows; main and retained picker direct AXChildren',
+                'snapshot_observations': 'selected owned root direct AXChildren only',
+                'necessary_reciprocal_ranges': 'strict owned child ranges for a through-picker Q path only',
+                'wrapper_interior_modal_coverage': 'unknown',
+                'foreign_modal_coverage': 'unknown', 'global_modal_coverage': 'unknown',
+                'responder_fidelity': 'unknown', 'handling': 'unknown'}
+
     def binding_refusal(self, category):
-        return {'stage': 'binding', 'complete': False, 'error_category': category,
+        return {'stage': 'binding', 'complete': False, 'proof_complete': False, 'error_category': category,
+                'proof_mode': self.PROOF_MODE, 'observation_scope': self.observation_scope(),
                 'nodes': deepcopy(self.rows), 'distinct_refs': len(self.rows),
                 'depth_cap': 3, 'reference_cap': 32, 'child_cap': 12,
                 'semantic_handling': 'unknown', 'readiness': False,
@@ -535,6 +545,7 @@ class Structure:
             in_windows=any(self.same(ref,x) for x in windows)
             if role in self.MODALS:
                 if post_root is not None and self.same(ref,post_root):
+                    self.guard(role=='AXSheet','diagnostic related published Sheet role changed')
                     self.guard(not in_children,'diagnostic related post sheet has wrong published parent')
                     continue  # relation through P was independently proved, never chosen here
                 self.remember_pre_modal(ref)
@@ -667,7 +678,8 @@ class Structure:
             seen.append(ref)
             if depth>=3:continue
             children=self.refs(ref,'AXChildren',optional=False)
-            arrays.append({'container':self.touch_ordinal(ref),'publication':self.array_fact(ref,'AXChildren')})
+            arrays.append({'container':self.touch_ordinal(ref),'publication':self.array_fact(ref,'AXChildren'),
+                           'purpose':'input_picker_direct_census'})
             for child in children:
                 role=self.role(child)
                 self.guard(role!='unknown','diagnostic unknown veto-boundary role')
@@ -676,11 +688,11 @@ class Structure:
                     self.guard(False,'diagnostic published nested modal veto')
                 parent,edge=self.parent(child);edges.append(edge)
                 self.guard(self.same(parent,ref),'diagnostic boundary child/parent mismatch')
-                if role in ('AXGroup','AXSplitGroup') and any(self.same(child,x) for x in route['wrappers']):
-                    queue.append((child,depth+1))
-                else:opaque.append(self.touch_ordinal(child))
+                # Fixed source scope: no wrapper interior census, regardless of role/owner.
+                opaque.append(self.touch_ordinal(child))
         return {'arrays':arrays,'parent_edges':edges,'opaque_ordinals':opaque,
-                'meaning':'bounded published veto boundary, not global empty-modal proof'}
+                'scope':'retained_picker_direct_children_only',
+                'meaning':'direct-root veto only; wrapper/foreign/global modal coverage unknown'}
 
     def positive_proof(self, expected=None):
         self.guard(self.io.project_pending is True,'diagnostic PROJECT purpose missing')
@@ -698,10 +710,12 @@ class Structure:
         self.identity_check()  # full birth/path/hash after the final AX reads
         self.check()
         self.proof_count+=1
-        public={'proof_id':self.proof_count,'proof_mode':self.PROOF_MODE,'phase':self.phase,'pass':self.pass_no,
+        public={'proof_id':self.proof_count,'proof_complete':True,
+                'proof_mode':self.PROOF_MODE,'phase':self.phase,'pass':self.pass_no,
                 'app':self.touch_ordinal(self.app),'main':self.touch_ordinal(self.main),
                 'picker':self.touch_ordinal(picker),'focused':self.touch_ordinal(fresh['focused']),
                 'publication':publication,'veto_boundary':boundary,'legacy_nested':legacy,
+                'observation_scope':self.observation_scope(),
                 'nearest_modal_proof':self.ancestry_fact(fresh),
                 'ancestry_edges':deepcopy(fresh['edges']),
                 'focused_edge':deepcopy(fresh['focused_edge']),'picker_parent_edge':parent_edge,
@@ -778,7 +792,8 @@ class Structure:
     def reciprocal_path(self, child, picker):
         current=child;seen=[];edges=[];arrays=[]
         for _ in range(4):  # at most three reciprocal links through public structural wrappers
-            if self.same(current,picker):return {'parent_edges':edges,'arrays':arrays}
+            if self.same(current,picker):return {'parent_edges':edges,'arrays':arrays,
+                                                'purpose':'necessary_owned_reciprocal_relation'}
             self.guard(not any(self.same(current,x) for x in seen),'diagnostic related subtree cycle')
             self.guard(len(seen)<3,'diagnostic related path depth cap')
             seen.append(current)
@@ -792,11 +807,15 @@ class Structure:
             for sibling in children:
                 role=self.role(sibling)
                 self.guard(role!='unknown','diagnostic related publication has unknown role')
-                self.guard(self.same(sibling,current) or role not in self.MODALS,
-                           'diagnostic multiple/unrelated post modal')
+                if self.same(sibling,current):
+                    self.guard(role=='AXSheet' if self.same(current,child) else role in ('AXGroup','AXSplitGroup'),
+                               'diagnostic related path role changed')
+                else:
+                    self.guard(role not in self.MODALS,'diagnostic multiple/unrelated post modal')
                 actual,sibling_edge=self.parent(sibling);edges.append(sibling_edge)
                 self.guard(self.same(actual,parent),'diagnostic related child/parent mismatch')
-            arrays.append({'container':self.touch_ordinal(parent),'publication':self.array_fact(parent,'AXChildren')})
+            arrays.append({'container':self.touch_ordinal(parent),'publication':self.array_fact(parent,'AXChildren'),
+                           'purpose':'necessary_owned_reciprocal_range'})
             current=parent
         self.guard(False,'diagnostic related path does not reach retained picker')
 
@@ -804,7 +823,7 @@ class Structure:
         require(not self.snapshot_used,'diagnostic snapshot already consumed')
         self.snapshot_used=True;self.phase='snapshot'
         self.end=min(self.end,self.experiment_end,self.work_end,self.io.clock()+1)
-        root=None;candidate=None;complete=False;error=None;relation=None
+        root=None;candidate=None;complete=False;error=None;relation=None;direct_observation=None
         label='partial-observed-after-attempt' if after_post else 'partial-without-attempt'
         try:
             self.check();self.identity_check()
@@ -844,14 +863,17 @@ class Structure:
                                'diagnostic selected post root role/parent drift')
                 if depth==0 or role in ('AXGroup','AXSplitGroup'):
                     if depth>=3:continue
-                    for child in self.refs(ref,'AXChildren',optional=False):
+                    children=self.refs(ref,'AXChildren',optional=False)
+                    direct_observation={'container':self.touch_ordinal(ref),
+                                        'publication':self.array_fact(ref,'AXChildren'),
+                                        'purpose':'snapshot_selected_root_direct_observation'}
+                    for child in children:
                         child_role=self.role(child)
                         self.guard(child_role!='unknown','diagnostic snapshot child role unknown')
                         self.guard(child_role not in self.MODALS,'diagnostic snapshot additional modal observed')
                         actual,child_edge=self.parent(child)
                         self.guard(self.same(actual,ref),'diagnostic child/parent mismatch')
-                        if child_role in ('AXGroup','AXSplitGroup') and any(self.same(child,x) for x in route['wrappers']):
-                            queue.append((child,depth+1))
+                        # Selected-root direct observation only; never queue wrapper interiors.
             self.identity_check();self.check();complete=True
         except BaseException as exc:
             error=exc.code if isinstance(exc,DiagnosticStop) else type(exc).__name__
@@ -859,6 +881,9 @@ class Structure:
             label='partial-observed-after-attempt' if after_post else 'partial-without-attempt'
         return {'label':label,'complete':complete,'error_category':error,'proof_mode':self.PROOF_MODE,
                 'after_intent_positive_proof':deepcopy(self.after_intent_proof),
+                'observation_scope':self.observation_scope(),
+                'snapshot_census_policy':'selected_owned_root_direct_children_only',
+                'direct_observation':deepcopy(direct_observation),
                 'candidate_root_ordinal':None if candidate is None else self.touch_ordinal(candidate),
                 'selection_complete':complete,
                 'root_ordinal':self.touch_ordinal(root) if complete else None,
