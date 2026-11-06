@@ -545,6 +545,7 @@ class Structure:
             in_windows=any(self.same(ref,x) for x in windows)
             if role in self.MODALS:
                 if post_root is not None and self.same(ref,post_root):
+                    self.guard(role=='AXSheet','diagnostic related published Sheet role changed')
                     self.guard(not in_children,'diagnostic related post sheet has wrong published parent')
                     continue  # relation through P was independently proved, never chosen here
                 self.remember_pre_modal(ref)
@@ -806,8 +807,11 @@ class Structure:
             for sibling in children:
                 role=self.role(sibling)
                 self.guard(role!='unknown','diagnostic related publication has unknown role')
-                self.guard(self.same(sibling,current) or role not in self.MODALS,
-                           'diagnostic multiple/unrelated post modal')
+                if self.same(sibling,current):
+                    self.guard(role=='AXSheet' if self.same(current,child) else role in ('AXGroup','AXSplitGroup'),
+                               'diagnostic related path role changed')
+                else:
+                    self.guard(role not in self.MODALS,'diagnostic multiple/unrelated post modal')
                 actual,sibling_edge=self.parent(sibling);edges.append(sibling_edge)
                 self.guard(self.same(actual,parent),'diagnostic related child/parent mismatch')
             arrays.append({'container':self.touch_ordinal(parent),'publication':self.array_fact(parent,'AXChildren'),

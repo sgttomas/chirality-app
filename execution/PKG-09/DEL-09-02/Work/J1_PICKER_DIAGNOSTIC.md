@@ -1316,3 +1316,33 @@ session/preflight/event/process query, build/broad suite, download/auth/credenti
 model/sign-in/VM/installed-App, capture/activation/global keys/private IPC/DOM or
 owner task occurred. Root retains independent scrutiny/repairs, parent+successor
 CI/integration, exact entry inspection and EVERY later fresh availability/GO.
+
+Independent review of3c856e1c found one inherited P2 in required post-Q reciprocal
+validation: every current path node inherited Q's modal exception. A wrapper
+could be read as Group and later Sheet, yet selection completed. Root reproduced
+that and the original Q changing role then changing back. A targeted adjacent
+counterexample also showed Q's AppWindows exception accepting an observed non-
+Sheet modal before a later Sheet reread. Both are actually observed contradictions,
+not the accepted loss concerning unqueried wrapper interiors.
+
+The reciprocal exception is now limited to originalQ with roleSheet. Intermediate
+path members must be Group/SplitGroup on their existing required role reads;
+other siblings still reject every modal. Q's AppWindows publication also requires
+Sheet on that read. Contradictions refuse before the corresponding parent/further
+follow, even if a provider would subsequently change the role back. No new AX or
+process query, traversal, native symbol, cap or deadline is added; local equality/
+role validation is tightened. Initial dispatch admission and cleanup are unchanged.
+
+All142 focused mocks pass. All previously checked139 test ASTs are unchanged;
+three new methods cover26 cases, with21 failures reproduced on3c before repair.
+Coverage includes intermediate canonical/CFEqual aliases, Q's transient role and
+Q's published role. Selection stays partial/effectunknown, with no accepted root
+or repeated input. reciprocal-before.log and focused-fixed.log in
+app-pr146-review-_uuoh0hf retain the evidence; REVIEW_FIX_CHECKS.json records root's
+disposition of the external finding and adjacent reproduced defect.
+
+The originala969/08b434ea freeze remains byte-preserved, UNRUN and SUPERSEDED;
+it must not be rearmed or relabelled as this repaired source. A NEW exact committed
+five-file freeze and two-literal entry proof are required before future native
+selection. The selected root-boundary policy/accepted unknowns remain unchanged.
+No App operation, fresh availability/window/GO, qualification or owner act follows.

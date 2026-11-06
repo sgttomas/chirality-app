@@ -338,11 +338,15 @@ Current Type 1 assignments are:
   necessary post-Q reciprocal range still strict. Group/SplitGroup interiors are
   opaque uniformly. The loss of bounded wrapper-modal exclusion is explicit;
   wrapper/foreign/global modal coverage and responder fidelity/handling remain
-  unknown.139 mocked tests pass independently, including hidden-modal/interception
+  unknown. The original139 mocked tests pass independently, including hidden-modal/interception
   counterexamples that do not establish native permission or handling. Exact
-  a969d213 source/entry08b434ea is inspected and UNRUN; independent implementation
-  scrutiny/current CI precede integration. No fresh availability/window/GO is
-  selected. Scope/acceptance and useful-model/native qualification stay open.
+  a969d213 source/entry08b434ea was inspected and remains UNRUN/superseded after
+  independent review found an observed reciprocal-wrapper modal contradiction.
+  Root tightened existing post-Q role reads, including originalQ's reciprocal/
+  AppWindows Sheet requirement;142 focused mocks now pass, with no added AX or
+  process query. A new exact freeze is required; current-head CI precedes
+  integration. No fresh availability/window/GO is selected. Scope/acceptance
+  and useful-model/native qualification stay open.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current

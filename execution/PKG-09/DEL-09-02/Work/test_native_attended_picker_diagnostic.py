@@ -2108,6 +2108,98 @@ class RootBoundaryScopeTests(unittest.TestCase):
             self.assertEqual(len(api.posts),2)
             self.assertFalse(any(e[0] in ('attribute','count','range') and e[1]==21 for e in b.log))
 
+    def test_reciprocal_intermediate_fresh_role_cannot_inherit_q_modal_exception(self):
+        for alias in (False, True):
+            for role in ('AXSheet', 'AXWindow', 'AXDrawer', 'AXDialog', 'AXButton', 'AXScrollArea', 'SECRET unknown'):
+                with self.subTest(alias=alias, role=role):
+                    s, io, b, now = context(); p = s.picker(); api = Posting()
+                    d.FixedGesture(api).run(s, p, lambda *args: None); related_after(b)
+                    b.nodes[20] = {'role': 'AXGroup', 'AXParent': 3, 'AXChildren': [9]}
+                    b.nodes[9]['AXParent'] = 20; b.nodes[3]['AXChildren'] = [5, 20]
+                    bad = 21 if alias else 20
+                    if alias:
+                        b.nodes[21] = dict(b.nodes[20])
+                        b.equal = lambda left, right: (20 if left == 21 else left) == (20 if right == 21 else right)
+                        b.nodes[3]['AXChildren'] = [5, 21]
+                    ranged = b.a.AXUIElementCopyAttributeValues.call
+                    value = b.a.AXUIElementCopyAttributeValue.call
+                    state = {'armed': False, 'bad_index': None}
+                    def ranges(ref, name, start, count, out):
+                        rc = ranged(ref, name, start, count, out)
+                        if (ref, name) == (3, 'AXChildren'): state['armed'] = True
+                        return rc
+                    def values(ref, name, out):
+                        if state['armed'] and (ref, name) == (bad, 'AXRole'):
+                            b.nodes[bad]['role'] = role; state['bad_index'] = len(b.log)
+                        return value(ref, name, out)
+                    b.a.AXUIElementCopyAttributeValues.call = ranges
+                    b.a.AXUIElementCopyAttributeValue.call = values
+                    result = s.snapshot(p, True)
+                    self.assertIsNotNone(state['bad_index'])
+                    self.assertFalse(result['complete']); self.assertFalse(result['selection_complete'])
+                    self.assertIsNone(result['root_ordinal']); self.assertEqual(len(api.posts), 2)
+                    self.assertEqual(result['candidate_root_ordinal'], s.touch_ordinal(9))
+                    self.assertEqual(result['semantic_handling'], 'unknown')
+                    self.assertFalse(any(e[:3] == ('attribute', bad, 'AXParent') for e in b.log[state['bad_index'] + 1:]))
+                    self.assertNotIn('SECRET', repr(result))
+
+    def test_original_q_reciprocal_role_must_remain_sheet_even_if_it_changes_back(self):
+        for role in ('AXWindow', 'AXDrawer', 'AXDialog', 'AXGroup', 'AXButton', 'AXScrollArea', 'SECRET unknown'):
+            with self.subTest(role=role):
+                s, io, b, now = context(); p = s.picker(); api = Posting()
+                d.FixedGesture(api).run(s, p, lambda *args: None); related_after(b)
+                b.nodes[20] = {'role': 'AXGroup', 'AXParent': 3, 'AXChildren': [9]}
+                b.nodes[9]['AXParent'] = 20; b.nodes[3]['AXChildren'] = [5, 20]
+                ranged = b.a.AXUIElementCopyAttributeValues.call
+                value = b.a.AXUIElementCopyAttributeValue.call
+                state = {'armed': False, 'bad_index': None}
+                def ranges(ref, name, start, count, out):
+                    rc = ranged(ref, name, start, count, out)
+                    if (ref, name) == (20, 'AXChildren'): state['armed'] = True
+                    return rc
+                def values(ref, name, out):
+                    if state['armed'] and state['bad_index'] is None and (ref, name) == (9, 'AXRole'):
+                        state['bad_index'] = len(b.log); b.nodes[9]['role'] = role
+                        try: return value(ref, name, out)
+                        finally: b.nodes[9]['role'] = 'AXSheet'
+                    return value(ref, name, out)
+                b.a.AXUIElementCopyAttributeValues.call = ranges
+                b.a.AXUIElementCopyAttributeValue.call = values
+                result = s.snapshot(p, True)
+                self.assertIsNotNone(state['bad_index']); self.assertFalse(result['complete'])
+                self.assertFalse(result['selection_complete']); self.assertIsNone(result['root_ordinal'])
+                self.assertFalse(any(e[:3] == ('attribute', 9, 'AXParent') for e in b.log[state['bad_index'] + 1:]))
+                self.assertEqual(result['semantic_handling'], 'unknown'); self.assertEqual(len(api.posts), 2)
+                self.assertNotIn('SECRET', repr(result))
+
+    def test_related_q_publication_modal_exception_requires_sheet_on_that_read(self):
+        for role in ('AXWindow', 'AXDrawer', 'AXDialog', 'AXGroup', 'SECRET unknown'):
+            with self.subTest(role=role):
+                s, io, b, now = context(); p = s.picker(); api = Posting()
+                d.FixedGesture(api).run(s, p, lambda *args: None); related_after(b)
+                b.nodes[1]['AXWindows'] = [2, 9]
+                ranged = b.a.AXUIElementCopyAttributeValues.call
+                value = b.a.AXUIElementCopyAttributeValue.call
+                state = {'armed': False, 'bad_index': None}
+                def ranges(ref, name, start, count, out):
+                    rc = ranged(ref, name, start, count, out)
+                    if (ref, name) == (1, 'AXWindows'): state['armed'] = True
+                    return rc
+                def values(ref, name, out):
+                    if state['armed'] and state['bad_index'] is None and (ref, name) == (9, 'AXRole'):
+                        state['bad_index'] = len(b.log); b.nodes[9]['role'] = role
+                        try: return value(ref, name, out)
+                        finally: b.nodes[9]['role'] = 'AXSheet'
+                    return value(ref, name, out)
+                b.a.AXUIElementCopyAttributeValues.call = ranges
+                b.a.AXUIElementCopyAttributeValue.call = values
+                result = s.snapshot(p, True)
+                self.assertIsNotNone(state['bad_index']); self.assertFalse(result['complete'])
+                self.assertFalse(result['selection_complete']); self.assertIsNone(result['root_ordinal'])
+                self.assertEqual(result['semantic_handling'], 'unknown'); self.assertEqual(len(api.posts), 2)
+                self.assertFalse(any(e[0] in ('attribute', 'count', 'range', 'owner') for e in b.log[state['bad_index'] + 1:]))
+                self.assertNotIn('SECRET', repr(result))
+
     def test_necessary_owned_reciprocal_ranges_are_explicit_and_independent(self):
         s,io,b,now=context();p=s.picker();api=Posting()
         d.FixedGesture(api).run(s,p,lambda *a:None);related_after(b)
