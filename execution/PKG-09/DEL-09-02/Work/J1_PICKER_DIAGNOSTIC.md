@@ -725,3 +725,139 @@ the selected proof, legacy negative veto, one-gesture semantics and timing/priva
 bounds remain as above. No native operation, build or extra delegate occurred.
 A fresh repaired source/entry freeze and inspection precede any live selection;
 the original24yk1jzs root stays unrun and is not a future invocation target.
+
+
+## Explicit selected focused-ancestry criterion — OFFLINE/UNRUN
+
+Agent0 selected POSITIVE_FOCUSED_ANCESTRY_DIAGNOSTIC_V1 after independently
+receiving the [frozen9ed actual account](J1_POSITIVE_TOP_LEVEL_ACTUAL_20261106T124309Z.md).
+This contribution starts from integrated maind74c1609fe2f3fe4ba0378c75d2aa4326ede86ae.
+The exact actual-account bytes from852508612760e28c3c448a3c4af917de217fd9ef are
+included by ordinary cherry-pick, SHA256
+eed101216a29408d2a2473b72c27f79c6aee62a21b8bcb68a59e53a7f2929d3a.
+That execution remains frozen9ed/producteaf/b98, not an execution of this new mode.
+
+Actual9ed observed publication and the owned continuous focused parent chain,
+then the first AXTopLevelUIElement read returned-25212/NoValue/null in67.416us
+native-only time. No complete target proof, gesture allocation/consumption,
+intent/chord or post-root snapshot followed. One checked picker press and normal
+cleanup closed in4.639242s with no overrun; original23079 and all three runner/
+wrapper identities were independently found absent by Agent0 at12:48:32.279291Z.
+The raw account/receipts and POSITIVE_TOP_LEVEL_ACTUAL_CLOSURE.json in
+app-pr141-review-b70j6o9_ retain those subjects. NoValue does not establish a
+permanent API absence, transience, permission, timing or OS cause. Its meaning
+and the prior positive-TopLevel criterion are preserved as historical evidence.
+
+The public AXAttributeConstants.h TopLevel contract describes the nearest parent
+of role Window/Sheet/Drawer, available by walking parent relations. Agent0 now
+selects the observed ancestry itself as primary proof in this explicit source
+mode. It is always used, regardless of what a provider might return for a
+shortcut. AXTopLevelUIElement is retired from active extraction/validation/
+trace/typed-failure allowlists, and active TopLevel proof fields are removed.
+No AXWindow/FocusedWindow/other shortcut is substituted. Old source/entry/actual
+data retain their exact identities; no existing receipt authorizes later input.
+
+The primary proof requires the SAME full original birth/UID/PGID/path/hash,
+retained App/main/picker and pending PROJECT purpose. Main must be positively
+published in original App AXWindows; exactly one ownedSheet picker must be
+published in main AXChildren, with direct parentmain. Picker need not occur in
+AppWindows. Mandatory owner/type/role/AXParent observations start from a fresh
+original-App focused element distinct from App/main/picker and known nonmodal.
+At most6 parent links reach the FIRST modal ancestor, which must be exact
+retained picker with roleSheet. An intervening Window/Sheet/Drawer/Dialog,
+unknown/foreign/cyclic/missing/wrong-type ref, modal focus itself or a path to
+App/main/another root refuses. No traversal can skip a nearer modal to reach a
+preferred picker. Only owner/type/role/parent is read along private outline/list/
+scroll/browser/path/menu/text/control ancestry; their children/values stay opaque.
+
+Initial proof and both strict sides of durable intent use current publication,
+parent/ancestry/modal-veto/identity observations, not successful cached properties.
+The focused identity and picker must stay the SAME across intent. After all
+catalog/veto work, complete focused ancestry is read freshly again, the picker
+parent is revalidated and a full original identity guard follows the final AX
+reads. Detached nearest_modal_proof records focused/nearest-modal/path ordinals,
+actual role-read ops, parent/focused edges, pass/phase/proof IDs and the fixed
+mode. It never exposes internal refs, mutable target state or counters as proof.
+Receipt mutation cannot rebind identity/properties, and receipt failure sends no
+input. Positive evidence remains bounded current AX observations, not readiness.
+
+The existing role-only veto boundary, known-modal stickiness and retained picker
+identity are preserved. Main/picker direct children and only validated focus-path
+Group/SplitGroup wrappers are admitted; private leaves, unknown and off-route
+branches are not expanded. Legacy picker AXSheets remains negative-only:
+known nonempty always vetoes, unsupported/NoValue remains unknown/null, and0 is
+not authority. Main's optional legacy relation is not a modal census. A partial
+communication failure cannot erase a known semantic contradiction or replace P.
+
+After the one fixed command attempt, fresh original-App focus is followed by
+mandatory owner/role/parent-only reads to its first modal ancestor. If retained
+picker, the snapshot observes only retained picker/effectunknown. Another owned
+Sheet Q is selected only with the existing bounded reciprocal parent AND child
+path THROUGH retained picker, which must remain positively published/direct-main.
+Window/Drawer/Dialog, sibling-under-main, unknown/foreign/ambiguous/multiple/
+missing/private relation or drift produces partial/effectunknown, with no alternate
+root. A second fresh ancestry after publication must still reach the same selected
+root. Expansion uses validated focus-path Group/SplitGroup wrappers only. Labels
+remain observed-after-attempt, never created/new/caused/Go-to-ready or a handling
+acknowledgement. Changed postfocus alone is not evidence of misrouting.
+
+All bounds remain unchanged: initial4 complete passes/6s with at most3 fixed.1
+pauses; strict2s within one fixed8s ceiling clipped to110work/180total; .2 on each
+actual ref; initial read64/owner128, diagnostic trace512/shared32 CFEqual-distinct
+refs/depth3/12children. Eligible initial no-result CannotComplete may end a pass;
+strict checks/snapshot/input never retry. Shared counters/deadlines do not reset;
+late or fatal/semantic/cap/headroom/receipt failures stop planned observations.
+CFEqual remains identity bookkeeping, not exact-object timeout inheritance.
+Native/read/post-native/owner-composite/identity/receipt timing labels retain their
+previous scopes; no stronger hard bound or timeout/causal conclusion is inferred.
+
+NativePosting/FixedGesture/DiagnosticStage/run_prepared and StructuralCalls ABI
+initializer ASTs remain identical to the base; core/test/reader bytes are unchanged.
+The existing private source/fixed CmdShiftG event pair/originalPID, consume-before-
+dispatch/no-repeat/unknown handling, full-original paired-up check and CF releases
+are unchanged. NativeSession.check is not overridden or made evidence-dependent.
+Trace/cap/journal errors cannot prevent the SAME-original paired up or autonomous
+normal termination and held-until-original-birth-absence finalizer.
+
+Focused verification:103 mocked tests PASS under the ordinary wrapper/fresh
+scratch homes; deliverables errors=[] and static/diff checks are retained in
+checks.json. No native operation was performed.
+Existing99 mocked methods are explicitly adapted: mandatory-shortcut failures
+become required parent/role/focus failures; late/drift injection and alias checks
+follow actual parent reads; post-root fixtures use observed ancestry; obsolete
+TopLevel fields become nearest-modal path/role/edge provenance. This does not
+claim all99 prior assertions unchanged. Additional actual-path cases require the
+observed six-child/five-link geometry plus two role CannotComplete returns,
+primary ancestry with missing/bogus/advertised shortcut values and no shortcut
+queries, first intervening modal fail-fast, sameP drift across intent, and actual
+controller cleanup. Protected privacy/input/custody, caps/headroom/late/evidence
+mutation, strict no-retry, postP/throughP-Q negatives, unknown dispatch/paired-up
+and false/unknown normal-termination custody coverage remain. No proof methods
+are bypassed in tests. The brief resource deferral was honored between source
+adaptation and the next authorized focused submission; release is never inferred
+from time. Logs/source/static evidence are retained at
+/Users/ryan/dev/chirality-t3/scratch/app-j1-focused-ancestry-checks-97wfg80p.
+
+A NEW immutable UNRUN entry/source root binds the final committed head:
+/Users/ryan/dev/chirality-t3/scratch/app-j1-focused-ancestry-staged-70cuvl95
+Diagnostic SHA256:3f6dd796f30448be95f9c6867c33e6aefa748d534a948ac90154fcbc42bd55ec
+Test SHA256:dac6e572fa02f07e2d528ec0f4f985aaf96f1af7c8a6892bb44e1c19e6779231
+Entry SHA256:542e75b598a46e098a974f23f6a396b1752977ac45b6cdd66843999b746f6fc8
+
+only two EXPECTED diagnostic/test hashes change from accepted4d9f entry, with
+inverse-byte proof. Required futureUTC/185s slot-entry/admitted/launch-intent,
+180/110/subject/authentic receipt/private journal/generic diagnostic entry
+semantics remain unchanged. Authentic56116108/11 member sets/project/eaf-b98
+executable and preserved members/account refs are statically verified. Entry
+and five Git-object copies are compiled only, never imported/executed, with
+empty events and no end/availability/GO/admission/process/queue selected here.
+
+Exact-panel observed-ancestry fidelity to the process-key responder remains an
+unproved assumption; posting is void/PID-specific/non-atomic. This proof is not
+a global empty-modal-set or handling guarantee. No native/session/preflight/App/
+event/resource discovery, path/settings/review/confirmation/save/StageB/model/
+auth/network, owner App task, build/broad suite or delegate is performed by this
+implementation. Setup/J1/J2/model/native qualification remain open. ScopeOfWork/
+dependency/acceptance meanings are unchanged. Agent0 retains independent exact
+version review, coordination/CI/integration and any later fresh availability/GO.
+No live selection follows this preparation.
