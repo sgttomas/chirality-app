@@ -289,9 +289,18 @@ Current Type 1 assignments are:
   focus.TopLevel must equal the retained PROJECT AXSheet, with converging ancestry,
   publication and parent facts before/after intent. This explicitly replaces the
   diagnostic's zero-sheet prerequisite: legacy unknown stays unknown, zero is
-  not authority and known nonempty still vetoes. Exact-panel support is unobserved;
-  repaired-entry staging/inspection precedes a new window. No live GO is selected,
-  and the actual96c entry remains consumed.
+  not authority and known nonempty still vetoes.
+  The [frozen9ed actual invocation](../PKG-09/DEL-09-02/Work/J1_POSITIVE_TOP_LEVEL_ACTUAL_20261106T124309Z.md)
+  then observed standard publication/owned focused ancestry but mandatory shortcut
+  AXTopLevelUIElement returned NoValue/-25212/null before extra child observation.
+  No command, setup/save or complete target proof followed. Normal closure4.64 s,
+  zero overrun; original App and all three runner/wrappers were independently
+  found absent. This is that read's actual result, not permanent absence or cause.
+  The new primary focused-ancestry criterion implements the documented parent
+  relationship directly, always, without shortcut fallback. Source/entry review
+  and103 independent mocked tests pass; the exact account is included unchanged.
+  The new mode is unrun and still requires a separately selected current desktop
+  window. No new live GO or reusable prior entry is selected.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
