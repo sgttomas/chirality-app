@@ -20,6 +20,18 @@ class DiagnosticStop(Refusal):
         self.code = code  # fixed source literals only, never UI/exception text
 
 
+class StructuralReadFailure(DiagnosticStop):
+    """Typed internal CannotComplete fact, never a general retry permission."""
+    def __init__(self, attribute, ordinal, cf_type):
+        require(attribute in ('AXRole', 'AXParent', 'AXModal', 'AXFocusedUIElement')
+                and type(ordinal) is int and 0 <= ordinal < 32
+                and cf_type in ('AXUIElement', 'CFString', 'CFBoolean', 'null', 'other'),
+                'diagnostic invalid typed read failure')
+        super().__init__('diagnostic structural read failed')
+        self.attribute, self.ordinal, self.cf_type = attribute, ordinal, cf_type
+        self.return_code = -25204
+
+
 def require(ok, code):
     if not ok:
         raise DiagnosticStop(code)
@@ -119,6 +131,7 @@ class Structure:
         self.end, self.refs_seen, self.rows = phase_end, [], []
         self.snapshot_used = False
         self.command_picker = None
+        self.initial_binding_used = False
 
     def begin(self):
         # Keep the collector reachable when the first identity/owner read fails.
@@ -147,6 +160,7 @@ class Structure:
     def owner(self, ref, row):
         rc, owner = self.b.owner(ref)
         row['owner_match'] = rc == 0 and owner == self.original['pid']
+        row['reads'].append({'attribute': 'owner', 'return_code': rc, 'cf_type': 'pid'})
         require(row['owner_match'], 'diagnostic owner changed')
 
     def touch(self, ref):
@@ -177,6 +191,8 @@ class Structure:
         rc, kind = value['return_code'], value['type']['name']
         row['reads'].append({'attribute': name, 'return_code': rc,
                              'cf_type': kind if kind in ('AXUIElement', 'CFString', 'CFBoolean', 'null') else 'other'})
+        if rc == -25204:
+            raise StructuralReadFailure(name, row['ordinal'], row['reads'][-1]['cf_type'])
         require(rc in (0, -25205, -25212), 'diagnostic structural read failed')
         if rc != 0:
             return None
@@ -234,6 +250,40 @@ class Structure:
         self.io.check(self.original)
         self.check()
         return root
+
+    def initial_picker(self):
+        """Only phase_root's FIRST main AXRole read may wait, at most3 reads.
+
+        phase_root reads role(original) before any arrays/parents. After that
+        succeeds, every other read/ref/error is strict. picker() itself and all
+        final input/snapshot rechecks remain non-retrying. Never reset self.end.
+        """
+        require(not self.initial_binding_used, 'diagnostic initial binding already consumed')
+        self.initial_binding_used = True
+        for attempt in range(3):
+            self.check()
+            self.io.check(self.original)
+            self.owner(self.app, self.touch(self.app))
+            self.owner(self.main, self.touch(self.main))
+            self.check()
+            try:
+                return self.picker()
+            except StructuralReadFailure as failure:
+                self.check()  # a late failed call never earns another attempt
+                require(failure.attribute == 'AXRole' and failure.return_code == -25204
+                        and failure.cf_type == 'null'
+                        and failure.ordinal == self.touch_ordinal(self.main),
+                        'diagnostic initial role failure is not waitable')
+                if attempt == 2:
+                    raise
+                self.io.check(self.original)
+                self.owner(self.app, self.touch(self.app))
+                self.owner(self.main, self.touch(self.main))
+                self.check()
+                require(self.io.clock() + .1 < self.end, 'diagnostic initial role wait cutoff')
+                self.io.sleep(.1)
+                self.check()  # scheduler/OS lateness does not extend the phase
+        raise DiagnosticStop('diagnostic initial role attempts exhausted')
 
     def routing(self, picker):
         current = self.ref(self.app, 'AXFocusedUIElement')
@@ -443,7 +493,7 @@ class DiagnosticSession(NativeSession):
         dispatched = False
         try:
             structure.begin()
-            picker = structure.picker()  # common binding without the content classifier
+            picker = structure.initial_picker()  # initial main-role wait only; no content classifier
             structure.routing(picker)
             try:
                 self.diagnostic['gesture'] = self.gesture.run(structure, picker, self.record)

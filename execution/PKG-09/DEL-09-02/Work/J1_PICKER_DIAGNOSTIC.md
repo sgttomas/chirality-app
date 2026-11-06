@@ -219,3 +219,76 @@ The c977 source/test and consumed ry6qyuzz entry remain frozen in their original
 evidence root. They do not identify this follow-up repair. A fresh exact-version
 entry and separately selected availability/GO are required for any later
 diagnostic. No retry, further live selection or window extension follows here.
+
+## Actual c7ed main-role refusal and unrun initial-binding readiness wait
+
+The separate [hey8mief actual account](J1_PICKER_DIAGNOSTIC_AXROLE_20261106.md)
+preserves the next selected invocation of frozen c7edb1bf in the01:54:38–01:59:38Z
+window. The identical method tree had already been integrated at main2e0c64bb;
+executed source remains its exact staged c7ed identity. Same-runner posting
+preflight passed, one original main/WebArea9controls and one picker-button press
+were observed. Initial binding recorded retained-main ordinal1 AXRole/-25204/null,
+with app/main original-owner matches and two total refs. There was no navigation
+allocation/post or full snapshot. Original App42066 and wrapper42046 absence was
+verified after autonomous3.128354s closure, no overrun; Agent0 independently
+corroborated closure. Earlier c977's unrecorded attribute/code remains unknown.
+
+Agent0 then selected ONLY this new offline source change. An explicit one-shot
+Structure.initial_picker method can attempt initial phase_root binding at most3
+times under its ORIGINAL2s phase/work deadline. Core phase_root's first remote
+attribute is the retained main AXRole: only that read's actual-25204 with null
+type may wait. A typed internal StructuralReadFailure carries a fixed allowlisted
+attribute, constant CannotComplete code, structural CF-type enum and local
+ordinal. The initial method matches AXRole/-25204/null AND the retained main's
+ordinal. It never matches an exception message or arbitrary UI value.
+
+Before each attempt, original full birth/UID/PGID/path/hash, retained app/main
+CFEqual bindings and both owners are rechecked. Those checks also precede a
+possible sleep after failure. At most two fixed0.1s sleeps occur, only when the
+original deadline leaves room; late reads/sleeps refuse without resetting or
+extending it. No array/parent/private-content read precedes successful main-role
+binding. All role and owner return-code facts append to the existing collector;
+partial failure does not perform a recovery query. Persistent CannotComplete
+stops on the third read, retaining repeated exact failures and normal cleanup.
+
+No main is reselected, substituted or cached. Any wrong role/type/owner/birth/
+ref, other attribute/ref/error or cutoff refuses immediately. Structure.picker
+and all final input/snapshot rechecks remain strict and never invoke the initial
+wait. The only call-site change is the diagnostic's initial binding. NativePosting,
+StructuralCalls, FixedGesture, DiagnosticStage and run_prepared ASTs are unchanged;
+the full-setup core/test/reader bytes remain unchanged. Modal baseline, purpose,
+focused ancestry, one fixed gesture, privacy/ref caps, prebound cleanup and
+original-birth custody are preserved. No blanket CannotComplete allowance.
+
+48 focused mocked tests pass: all prior37 plus11 methods covering one/two
+matching failures then readiness, persistent3, the exact negative matrix,
+identity/owner/ref drift, wrong role, late success/failure/sleep, insufficient
+headroom, strict final gesture checks, cleanup at cutoff and partial-receipt
+failure. The tests execute the actual new source path with mocked OS effects;
+no real CG/AX/preflight/session/App/event operation, build or broad suite. New
+logs/checks are in
+/Users/ryan/dev/chirality-t3/scratch/app-j1-initial-picker-readiness-checks-_gk0yscj,
+including focused-initial.log, focused-final.log, deliverables.log and checks.json.
+The actual-account commit is preserved separately on its named branch; this
+method preparation does not turn the executed c7ed result into new-code evidence.
+
+New diagnostic source SHA256:
+92a65a2f5d17cf859bcd964a7afbd3c65097941f7d8976c402efc87920a97daf;
+new test SHA256:
+c5836619f06ae586627dc2f1b1ed2ca6906a3b9e36a75ffefada56e83456f1e9.
+The new immutable UNRUN source/entry root is
+/Users/ryan/dev/chirality-t3/scratch/app-j1-initial-picker-readiness-staged-0ds2dyt_.
+Its five source/test/reader copies are extracted from the exact final committed
+head, bound in PREPARATION.json/FINAL_HEAD.json. Entry SHA256:
+5b7e70025c9a1fd4b4f3390b876aef59947c05d063e3e54d03f180898e582751.
+Only the two expected diagnostic/test hashes differ from accepted8fa59a45;
+inverse replacement recovers its exact bytes. Required future UTC/185s slot-
+entry/admitted/launch-intent guards, authentic56116108 receipt/member sets,
+180/110s budget, journal, subject and diagnostic semantics remain unchanged.
+events/ is empty; no window end, admission, process, queue or GO is selected.
+
+This new wait is a bounded capability experiment, not evidence that the observed
+failure was transient or that it explains prior runs. Native chord/snapshot
+handling, path entry/setup/save, J1/J2/model work and qualification remain open.
+Agent0 owns direct independent source/ABI/entry scrutiny, CI/integration and any
+future fresh owner-availability/GO. No additional delegate or owner test task.
