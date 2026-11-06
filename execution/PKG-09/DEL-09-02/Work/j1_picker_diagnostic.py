@@ -118,6 +118,7 @@ class Structure:
         self.original = deepcopy(session.identity)
         self.end, self.refs_seen, self.rows = phase_end, [], []
         self.snapshot_used = False
+        self.command_picker = None
         self.io.check(self.original)
         self.touch(self.app)
         self.touch(main)
@@ -228,11 +229,13 @@ class Structure:
         seen, path = [], []
         for _ in range(7):  # focused ref plus at most six parent links
             require(current is not None, 'diagnostic focused ancestry absent')
-            self.role(current)
+            role = self.role(current)
             path.append(self.touch_ordinal(current))
             if self.same(current, picker):
                 self.routing_path = path
                 return path
+            require(role not in ('AXWindow', 'AXSheet', 'AXDialog'),
+                    'diagnostic focused ancestry crosses another modal')
             require(not any(self.same(current, old) for old in seen), 'diagnostic focused ancestry cycle')
             seen.append(current)
             if len(seen) <= 6:
@@ -240,12 +243,20 @@ class Structure:
         raise Refusal('diagnostic focused ancestry unrelated/too deep')
 
     def recheck(self, picker):
+        self.command_picker = None
         self.check()
         require(self.io.project_pending is True and self.same(self.picker(), picker),
                 'diagnostic project purpose/picker changed')
+        require(self.same(self.ref(picker, 'AXParent'), self.main),
+                'diagnostic command requires direct original-main picker')
+        # A first-observed post-command sheet is not a pre-command baseline.
+        # Missing/unsupported AXSheets cannot prove an empty published relation.
+        require(not self.refs(picker, 'AXSheets', optional=False),
+                'diagnostic nested sheet already exposed before command')
         self.routing(picker)
         self.io.check(self.original)  # final full birth/UID/PGID/path/hash bracket
         self.check()
+        self.command_picker = picker
 
     def snapshot(self, picker, after_post):
         require(not self.snapshot_used, 'diagnostic snapshot already consumed')
@@ -256,6 +267,8 @@ class Structure:
         error = None
         try:
             self.check()
+            require(not after_post or self.same(self.command_picker, picker),
+                    'diagnostic pre-command empty sheet relation unavailable')
             current = self.picker()
             nested = self.refs(picker, 'AXSheets') if after_post else []
             require(len(nested) <= 1, 'diagnostic ambiguous nested sheets')
@@ -278,7 +291,7 @@ class Structure:
                     ancestor = self.ref(ancestor, 'AXParent')
                     require(ancestor is not None, 'diagnostic new subtree relationship absent')
                 require(self.same(ancestor, picker), 'diagnostic new subtree not through retained picker')
-                root, label = current, 'new-related-subtree-semantics-unknown'
+                root, label = current, 'newly-exposed-related-subtree-semantics-unknown'
             # A direct modal can contain wrappers. Only those wrappers expand.
             queue, expanded = [(root, 0)], []
             while queue:
@@ -305,6 +318,7 @@ class Structure:
         except BaseException as exc:
             error = exc.code if isinstance(exc, DiagnosticStop) else type(exc).__name__
         return {'label': label, 'complete': complete, 'error_category': error,
+                'pre_command_empty_sheet_relation': self.same(self.command_picker, picker),
                 'root_ordinal': self.touch_ordinal(root), 'nodes': deepcopy(self.rows),
                 'distinct_refs': len(self.rows), 'depth_cap': 3, 'reference_cap': 32,
                 'child_cap': 12, 'semantic_handling': 'unknown', 'readiness': False}
@@ -345,6 +359,7 @@ class FixedGesture:
                       'event_count': 2, 'picker_ordinal': structure.touch_ordinal(picker),
                       'app_ordinal': structure.touch_ordinal(structure.app),
                       'main_ordinal': structure.touch_ordinal(structure.main),
+                      'pre_command_empty_sheet_relation': True,
                       'focused_ancestry_ordinals': list(structure.routing_path),
                       'handling': 'unknown', 'no_repeat': True}
             record('diagnostic-navigation-intent', intent)  # failure sends no input

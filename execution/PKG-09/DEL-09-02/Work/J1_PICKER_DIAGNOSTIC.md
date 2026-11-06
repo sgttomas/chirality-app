@@ -6,7 +6,9 @@ remains pre-merge552 on producteaf, with one picker press, unclassified-picker
 refusal and observed closure. Its original evidence is not changed by this work.
 This separate experiment is not a fallback in full setup, a new native selection
 or a claim that the native picker supports path entry. Root owns integration and
-must inspect this author implementation/ABI/entry before a fresh availability/GO.
+has inspected the author implementation/ABI/entry and repaired the pre-command
+modal baseline below. A fresh frozen entry must bind the repaired bytes before
+any separate fresh availability/GO; the original staged entry is not selected.
 
 Base: root PR137 head032751a58a84049dec62c682fc410713f29a9001, normally
 fast-forwarded onto merged main0dc1d7f1eb0d04445b38add9c6d6a4d476299530.
@@ -63,6 +65,10 @@ handling unknown, and consumption forbids any second gesture.
 CGEventPostToPid is PID-specific, not window-specific or birth-atomic. The focused
 AX ref must belong to the original App and reach the retained picker through at
 most6 parent links; missing/foreign/cyclic/unrelated routing forbids posting.
+No intermediate window/sheet/dialog may intervene. Immediately before the intent
+and again after its durable write, the picker must have the retained main as its
+direct AXParent and an explicitly successful AXSheets count of zero. Unsupported
+or unavailable AXSheets refuses posting; it is not treated as an empty relation.
 This is a read-only routing proof, not a foreground/attendance or focus-write
 layer. Initial main is still captured once. A safely bound picker can receive the
 one snapshot after routing refusal; no input is used to resolve ambiguity.
@@ -87,17 +93,21 @@ No title/description/value/identifier/URL/filename/history/sidebar text, pointer
 addresses or images. These wrappers do not become production control containers;
 the original fail-closed picker content parser is untouched.
 
-After posting, only a newly proved sheet/subtree through the retained picker can
-be selected. Otherwise the unchanged picker is explicitly labelled effect-unknown/
-possibly-inline. A no-command snapshot is separately labelled as such. A new
-related subtree is structural evidence, never proof of Go-to handling or readiness.
+After posting, only a newly exposed sheet/subtree through the retained picker can
+be selected, against the successful pre-command empty AXSheets baseline. This
+records a changed published AX relationship, not when the underlying panel was
+created or whether the command caused it. Without that baseline the post-command
+snapshot refuses; it cannot label a first observation as new. Otherwise the
+unchanged picker is explicitly labelled effect-unknown/possibly-inline. A
+no-command snapshot is separately labelled as such. These relations remain
+structural evidence, never proof of Go-to handling or readiness.
 Ambiguity, stale/missing relations, caps, foreign owners or late calls produce a
 partial/refused snapshot. All time limits remain cooperative, not a stall/closure
 guarantee. No timeout extension or native interval is introduced.
 
 ## Checks and retained preparation
 
-30 focused tests in test_native_attended_picker_diagnostic.py pass using the
+35 focused tests in test_native_attended_picker_diagnostic.py pass using the
 ACTUAL new admission/routing/gesture/snapshot/controller/finalizer code and
 invented OS effects only. Cases cover false/unavailable preflight→0launches;
 wrong identity/ref/purpose/ancestry/cutoff→0posts; fixed private pair/original PID;
@@ -116,9 +126,31 @@ directory. Logs remain in
 /Users/ryan/dev/chirality-t3/scratch/app-j1-picker-diagnostic-checks-ou3dpr20,
 including focused-initial.log, focused.log and focused-final.log. The existing
 core60/native193 results retain their root-owned subjects; they were not rerun
-for this separate implementation.
+for this separate implementation. The original author cohort contained30 tests.
 
-Fresh private UNRUN source/entry root:
+Agent0's direct exact8c0e467b review reproduced six failures in four new mocked
+test methods: an already exposed nested sheet could receive the command (whether
+or not also published in App windows); a sheet introduced by the intent callback,
+an unavailable AXSheets relation or an intermediate modal also allowed posting;
+and a post-command snapshot without any baseline could claim a new subtree.
+The repair adds the direct-picker/empty-sheet guards and rejects intermediate
+modals, without changing core phase binding or cleanup. A fifth added test runs
+the diagnostic controller through pre-existing-modal refusal and autonomous
+cleanup. All35 tests pass under the ordinary wrapper with fresh scratch homes.
+Red/green logs are retained in
+/Users/ryan/dev/chirality-t3/scratch/app-pr138-review-tjhi8ayn:
+reproductions-before.log and focused-after.log. No native API, posting preflight,
+App operation, build or additional delegate was used in this review/repair.
+
+Repaired diagnostic source SHA256:
+72f3f6bf7bc591139cadeed3be323b86e570e97fc6654665c4904632a88ea33a;
+repaired test SHA256:
+b97277506fbd3bc33b83aec33ab6604c1470e06dc5eeba2f4d90e7f6090dcb96.
+The original core/test/reader bytes remain unchanged. DEL09-02 declarations and
+current journey standing are unchanged; J1/J2 and native path entry remain open.
+
+Original author private UNRUN source/entry root, retained unchanged and superseded
+for future selection by the repair above:
 /Users/ryan/dev/chirality-t3/scratch/app-j1-picker-diagnostic-staged-67ldxb8i.
 It contains exact source/test/core/reader copies, PREPARATION.json, entry.py,
 INVOCATION.md, SHA256SUMS and empty events/. The authentic56116108 receipt and
@@ -142,5 +174,6 @@ semantic Go-to handling, saved setup, J1 or native qualification. A refusal or
 partial protocol returns1 while preserving the actual state/closure. Fresh staged
 runner homes retain the approved LaunchServices/default development-ID route
 without App environment overrides. No staged entry, slot or native operation has
-been submitted. Agent0 owns direct independent scrutiny, PR integration and any
-separate fresh owner-availability/GO. No extra delegate or owner test task.
+been submitted. Agent0 owns PR integration, inspection of a fresh repaired frozen
+entry and any separate fresh owner-availability/GO. No extra delegate or owner
+test task. These historical preparation hashes do not identify the repaired code.

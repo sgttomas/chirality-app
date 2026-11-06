@@ -176,12 +176,22 @@ class StructuralTests(unittest.TestCase):
 
     def test_new_related_sheet_or_unchanged_picker_only(self):
         s, io, b, now = context(); picker = s.picker()
+        d.FixedGesture(Posting()).run(s, picker, lambda *args: None)
         b.nodes[9] = {'role': 'AXSheet', 'AXParent': 3, 'AXChildren': []}
         b.nodes[3]['AXSheets'] = [9]
         result = s.snapshot(picker, True)
         self.assertTrue(result['complete'])
-        self.assertEqual(result['label'], 'new-related-subtree-semantics-unknown')
+        self.assertEqual(result['label'], 'newly-exposed-related-subtree-semantics-unknown')
+        self.assertTrue(result['pre_command_empty_sheet_relation'])
         self.assertEqual(result['semantic_handling'], 'unknown')
+
+    def test_after_post_snapshot_without_baseline_does_not_claim_newness(self):
+        s, io, b, now = context(); picker = s.picker()
+        b.nodes[9] = {'role': 'AXSheet', 'AXParent': 3, 'AXChildren': []}
+        b.nodes[3]['AXSheets'] = [9]
+        result = s.snapshot(picker, True)
+        self.assertFalse(result['complete'])
+        self.assertNotIn('newly-exposed', result['label'])
 
     def test_unrelated_or_ambiguous_windows_fail_before_post(self):
         for extra in ([9], [9, 10]):
@@ -242,6 +252,7 @@ class StructuralTests(unittest.TestCase):
 
     def test_new_sheet_ambiguity_and_parent_cycle_remain_partial(self):
         s, io, b, now = context(); picker = s.picker()
+        s.recheck(picker)
         for n in (9,10): b.nodes[n] = {'role':'AXSheet','AXParent':3,'AXChildren':[]}
         b.nodes[3]['AXSheets'] = [9,10]
         self.assertFalse(s.snapshot(picker, True)['complete'])
@@ -262,6 +273,42 @@ class StructuralTests(unittest.TestCase):
 
 
 class GestureTests(unittest.TestCase):
+    def test_preexisting_nested_sheet_never_receives_navigation(self):
+        for published_in_windows in (False, True):
+            with self.subTest(published_in_windows=published_in_windows):
+                s, io, b, now = context(); api = Posting()
+                b.nodes[9] = {'role': 'AXSheet', 'AXParent': 3, 'AXChildren': []}
+                b.nodes[3]['AXSheets'] = [9]
+                b.nodes[4]['AXParent'] = 9
+                if published_in_windows:
+                    b.nodes[1]['AXWindows'].append(9)
+                picker = s.picker()
+                with self.assertRaises(Refusal):
+                    d.FixedGesture(api).run(s, picker, lambda *args: None)
+                self.assertEqual(api.posts, [])
+
+    def test_nested_sheet_after_intent_prevents_dispatch(self):
+        s, io, b, now = context(); picker = s.picker(); api = Posting()
+        def receipt(*args):
+            b.nodes[9] = {'role': 'AXSheet', 'AXParent': 3, 'AXChildren': []}
+            b.nodes[3]['AXSheets'] = [9]
+        with self.assertRaises(Refusal):
+            d.FixedGesture(api).run(s, picker, receipt)
+        self.assertEqual(api.posts, [])
+        self.assertEqual(api.freed, [103, 102, 101])
+
+    def test_unknown_sheet_relation_or_intermediate_modal_prevents_dispatch(self):
+        for case in ('unavailable', 'intermediate-modal'):
+            with self.subTest(case=case):
+                s, io, b, now = context(); picker = s.picker(); api = Posting()
+                if case == 'unavailable':
+                    b.nodes[3].pop('AXSheets')
+                else:
+                    b.nodes[5]['role'] = 'AXSheet'
+                with self.assertRaises(Refusal):
+                    d.FixedGesture(api).run(s, picker, lambda *args: None)
+                self.assertEqual(api.posts, [])
+
     def test_private_fixed_pair_original_pid_and_release(self):
         s, io, b, now = context(); picker = s.picker(); api = Posting(); records = []
         gesture = d.FixedGesture(api)
@@ -442,6 +489,18 @@ class AdmissionAndRunTests(unittest.TestCase):
         self.assertEqual(api.posts, [])
         self.assertTrue(result['diagnostic']['snapshot']['complete'])
         self.assertEqual(app.terminations, 1)
+
+    def test_preexisting_nested_modal_zero_posts_and_autonomous_cleanup(self):
+        def configure(b, api, now):
+            b.nodes[9] = {'role': 'AXSheet', 'AXParent': 3, 'AXChildren': []}
+            b.nodes[3]['AXSheets'] = [9]
+            b.nodes[4]['AXParent'] = 9
+        result, counts, api, b, app, records = self.full(configure=configure)
+        self.assertEqual(api.posts, [])
+        self.assertEqual(app.terminations, 1)
+        self.assertTrue(result['original_absent'])
+        self.assertEqual(result['diagnostic']['snapshot']['label'], 'retained-picker-no-command')
+        self.assertFalse(result['setup_saved'])
 
     def test_cutoff_after_pair_returns_partial_and_starts_cleanup(self):
         def configure(b, api, now): api.on_down = lambda:now.__setitem__(0,110)
