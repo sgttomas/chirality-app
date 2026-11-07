@@ -56,7 +56,10 @@ class Transitive(unittest.TestCase):
 
     def test_changed_retained_received_text_refuses(self):
         repo = Path(self.tmp.name) / 'repo'
-        for rel in (*t.BASIS, t.OBJC2_METADATA, *t.RECEIVED_TEXTS.values()):
+        local = t.local_associations(ROOT)
+        manifest = json.loads((ROOT / t.LOCAL_ASSOCIATIONS).read_bytes())
+        retained = {n['retained_path'] for a in local.values() for n in a['text']['notices']}
+        for rel in (*t.BASIS, t.OBJC2_METADATA, *t.RECEIVED_TEXTS.values(), t.LOCAL_ASSOCIATIONS, manifest['proof_path'], *retained):
             (repo / rel).parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(ROOT / rel, repo / rel)
         t.check(self.index, repo)
         text = repo / t.RECEIVED_TEXTS['https://github.com/madsmtm/objc2']
@@ -80,7 +83,7 @@ class Transitive(unittest.TestCase):
         for package in ('scheduler', 'react'):
             row = next(e for e in self.value['npm'] if e['package'] == package)
             original = row['text']
-            for kind in ('archive-member', 'received-upstream-text'):
+            for kind in ('archive-member', 'received-upstream-text', 'retained-root-texts'):
                 with self.subTest(package=package, kind=kind):
                     row['text'] = {'kind': kind}; self.write()
                     self.refuses('unknown npm text kind')
@@ -127,6 +130,110 @@ class Transitive(unittest.TestCase):
         received = next(e for e in self.value['cargo'] if e['text']['kind'] == 'received-upstream-text')
         received['text']['git_blob_sha1'] = blob; self.write(rebind=True)
         self.refuses('no known received-text blob')
+
+    def test_partial_root_texts_remain_unqualified_in_summary(self):
+        index = t.check()
+        self.assertEqual(index['format'], t.FORMAT)
+        rows = [e for e in index['cargo'] if e.get('text', {}).get('kind') == 'retained-root-texts']
+        self.assertEqual(len(rows), 10)
+        summary = t.summary(index)
+        for row in rows:
+            self.assertTrue(any(item.startswith(row['package'] + ' ') for item in summary['missing_or_unverified']))
+        unic = next(e for e in rows if e['package'] == 'unic-common')
+        self.assertIsNone(unic['text']['path_in_vcs'])
+        self.assertIn('COPYRIGHT.md', unic['text']['unresolved'][0])
+        self.assertEqual([n['root_path'] for n in unic['text']['notices']], ['LICENSE-APACHE', 'LICENSE-MIT'])
+        for name in ('uuid-simd', 'vsimd'):
+            self.assertEqual(next(e for e in index['cargo'] if e['package'] == name)['text']['kind'], 'missing')
+        self.assertEqual(next(e for e in index['npm'] if e['package'] == 'scheduler')['text']['kind'], 'installed-tree-only')
+
+    def test_legacy_reader_and_explicit_join_keep_original_graph_receipt(self):
+        associations = t.local_associations(ROOT)
+        for row in self.value['cargo']:
+            selected = associations.get((row['package'], row['version']))
+            if selected is not None: row['text'] = selected['prior_locator']
+        self.value['format'] = t.LEGACY_FORMAT; self.write()
+        old = t.check(self.index)
+        self.assertEqual(sum(e.get('text', {}).get('kind') == 'missing' for e in old['cargo']), 12)
+        with mock.patch.object(t, 'cargo_runtime', side_effect=AssertionError('Cargo must not run')):
+            joined = t.associate_local(self.index)
+        self.assertEqual(joined['generation'], old['generation'])
+        self.assertEqual(joined['source_basis'], old['source_basis'])
+        self.assertEqual(t.member_digests(joined['cargo'], joined['npm']), old['generation']['member_set_sha256'])
+        self.assertEqual(joined['npm'], old['npm'])
+        self.assertEqual(joined, json.loads(t.INDEX.read_bytes()))
+        self.index.write_text(json.dumps(joined))
+        self.assertEqual(t.associate_local(self.index), joined)
+        # A legacy format cannot silently receive successor row labels.
+        joined['format'] = t.LEGACY_FORMAT; self.index.write_text(json.dumps(joined))
+        self.refuses('unknown cargo text kind')
+
+    def test_root_row_cannot_choose_path_revision_scope_or_downgrade(self):
+        for field, value in [('retained_path', '/tmp/not-an-approved-notice'), ('git_blob_sha1', '0'*40)]:
+            self.setUp()
+            row = next(e for e in self.value['cargo'] if e.get('text', {}).get('kind') == 'retained-root-texts')
+            row['text']['notices'][0][field] = value; self.write()
+            self.refuses('retained-root text association differs')
+        for mutate in (lambda row: row['text'].update(vcs_revision='0'*40),
+                       lambda row: row['text'].update(unresolved=[]),
+                       lambda row: row.update(text={'kind': 'missing'}),
+                       lambda row: row.update(declared_license='invented election')):
+            self.setUp()
+            row = next(e for e in self.value['cargo'] if e['package'] == 'unic-common')
+            mutate(row); self.write()
+            self.refuses('retained-root')
+
+    def test_unlisted_crate_cannot_inherit_root_association(self):
+        root = next(e for e in self.value['cargo'] if e.get('text', {}).get('kind') == 'retained-root-texts')
+        other = next(e for e in self.value['cargo'] if e['package'] == 'uuid-simd')
+        other['text'] = root['text']; self.write()
+        self.refuses('retained-root subject is not allowed')
+
+    def test_root_allowlist_and_text_tampering_or_links_refuse(self):
+        repo = Path(self.tmp.name) / 'repo'
+        manifest = json.loads((ROOT / t.LOCAL_ASSOCIATIONS).read_bytes())
+        paths = [t.LOCAL_ASSOCIATIONS, manifest['proof_path']]
+        paths += [n['retained_path'] for a in manifest['associations'] for n in a['text']['notices']]
+        for rel in set(paths):
+            (repo / rel).parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(ROOT / rel, repo / rel)
+        selected = t.local_associations(repo)
+        row = next(e for e in self.value['cargo'] if e['package'] == 'alloc-stdlib')
+        self.assertEqual(t.local_text(repo, row, selected), row['text'])
+        path = repo / row['text']['notices'][0]['retained_path']
+        raw = path.read_bytes(); path.write_bytes(raw + b'changed')
+        with self.assertRaisesRegex(ValueError, 'notice bytes differ'): t.local_text(repo, row, selected)
+        path.write_bytes(raw)
+        other = Path(self.tmp.name) / 'same-body'; other.write_bytes(raw)
+        path.unlink(); path.symlink_to(other)
+        with self.assertRaises((OSError, ValueError)): t.local_text(repo, row, selected)
+        path.unlink(); path.parent.rmdir()
+        path.parent.symlink_to(other.parent, target_is_directory=True)
+        with self.assertRaises((OSError, ValueError)): t.local_text(repo, row, selected)
+        registry = repo / t.LOCAL_ASSOCIATIONS
+        registry.write_bytes(registry.read_bytes() + b' ')
+        with self.assertRaisesRegex(ValueError, 'allowlist differs'): t.local_associations(repo)
+
+    def test_local_join_checks_prior_locator_before_association(self):
+        associations = t.local_associations(ROOT)
+        for row in self.value['cargo']:
+            selected = associations.get((row['package'], row['version']))
+            if selected is not None: row['text'] = selected['prior_locator']
+        self.value['format'] = t.LEGACY_FORMAT
+        next(e for e in self.value['cargo'] if e['package'] == 'alloc-stdlib')['text']['vcs_revision'] = '0'*40
+        self.write()
+        with self.assertRaisesRegex(ValueError, 'original source locator differs'): t.associate_local(self.index)
+
+    def test_local_join_refuses_forged_legacy_archive_provenance(self):
+        associations = t.local_associations(ROOT)
+        for row in self.value['cargo']:
+            selected = associations.get((row['package'], row['version']))
+            if selected is not None: row['text'] = selected['prior_locator']
+        self.value['format'] = t.LEGACY_FORMAT
+        row = next(e for e in self.value['cargo'] if e['package'] == 'alloc-stdlib')
+        row['text'] = {'kind': 'archive-member'}
+        row['notice_members'] = [{'member': 'LICENSE', 'size_bytes': 1483, 'sha256': '0' * 64}]
+        self.write()
+        with self.assertRaisesRegex(ValueError, 'original source locator differs'): t.associate_local(self.index)
 
 
 if __name__ == '__main__':
