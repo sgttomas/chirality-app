@@ -26,8 +26,8 @@ Accepted HTML decisions 01 and 07 select focused responsibility/contract
 renewal and staged coexistence. U4 expressly permits
 decomposition and project definition with open matters carried forward.
 
-The human governs the undertaking. Root hosts shared ideas, methods and
-tools; their location or historical application does not automatically give
+The human governs the undertaking. The Library hosts shared ideas, methods
+and tools; their location or historical application does not automatically give
 them v4 authority. The accepted purpose, selected method, scoped brief and
 actual host permissions guide the particular work. Historical handoff
 instructions to seek acceptance of everything again are superseded at that
@@ -58,10 +58,10 @@ scope by U4; their records remain unchanged.
 <a id="current-manual-guidance"></a>
 
 Current discovery starts at the
-[management manual](../../../docs/alignment-manual/README.md#project-management-manual)
-entry of [the manual index](../../../docs/alignment-manual/README.md).
-Current repository practice is carried by Root `AGENTS.md`, the role files in
-`agents/`, the selected workflow and the project loop entry. For forward
+[management manual](https://github.com/sgttomas/chirality-library/blob/main/docs/alignment-manual/README.md#project-management-manual)
+entry of the Library's [manual index](https://github.com/sgttomas/chirality-library/blob/main/docs/alignment-manual/README.md).
+Current repository practice is carried by this repository's `AGENTS.md`, the
+Library's role files in `agents/`, the selected workflow and the project loop entry. For forward
 development under the owner's efficiency-reset direction, the selected edition
 is Consolidated v9. The Field Book and Agent User Manual were retired by the
 owner on 2026-10-23. This guidance replaces retired development record
@@ -87,7 +87,7 @@ No claim is made that the owner examined every byte of the new prose.
 - **V4-OPS-12** **Authority and applicability.** Human direction governs;
   the accepted composite states the v4 purpose and scoped commitments;
   manuals and selected methods organize the work; SoWs and derivatives
-  develop technical commitments. Root location alone supplies no blanket
+  develop technical commitments. Library location alone supplies no blanket
   precedence over that direction. The original draft's Root-first hierarchy
   is superseded by A/C and accepted HTML 01 at this scope. Actual tool/host
   enforcement remains a separate fact; this prose grants no missing access.

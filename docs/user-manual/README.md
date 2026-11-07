@@ -45,7 +45,7 @@ you want to repeat and improve a method.
 - [Prepare an engineering estimate and schedule](workflows/engineering-planning.md):
   keep work, effort, cost and timing consistent.
 
-The last two guides cover methods in the shared Chirality repository. Their
+The last two guides cover methods in the shared Chirality Library. Their
 inclusion in this draft does not mean they are bundled or ready to run in App v4.
 The release manual must identify the actual supplied version and installation
 route for each workflow it covers.

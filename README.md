@@ -42,7 +42,7 @@ release contain the release repository’s framework snapshot, not the desktop
 application source.
 
 App v3 is frozen and no longer developed or verified. Its source is archived in
-the private `sgttomas/chirality` repository.
+the Git history of the private `sgttomas/chirality` repository (Chirality Root).
 
 Built on [Chirality](https://github.com/sgttomas/chirality-library)'s principles, roles
 and workflows.
