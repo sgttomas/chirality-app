@@ -121,7 +121,7 @@ the already-built 66d39df5 subject; no rebuild is needed. Implementation-task
 deviations (unwrapped mutation checks and deletion of a shared ignored cache)
 are recorded in the owning helper Work note, not promoted to compliant checks.
 
-### First visual session and one bounded mechanics repair
+### Visual sessions closed — native tooling stopped
 
 The owner approved a ten-minute supplier-free visual setup segment. The
 [first actual session](../PKG-09/DEL-09-02/Work/J1_VISUAL_SETUP_ACTUAL_20261107T172459Z.md)
@@ -148,8 +148,26 @@ No display catalogue or input API was added. Agent0 inspected the change and
 confirmed eighteen posting/deadline/identity/cleanup methods unchanged; the
 original core/reader bytes and current product bundle are unchanged. The
 previous independent review is reused, with no new review round. Window-image
-size, sheet composition, event handling and actual setup remain unproved until
-the final selected live segment. Test counts do not establish J1 progress.
+size, sheet composition and event handling were unproved before the final
+selected live segment. Test counts do not establish J1 progress.
+
+The [second and final actual session](../PKG-09/DEL-09-02/Work/J1_VISUAL_SETUP_FINAL_ACTUAL_20261107T182502Z.md)
+ran at18:25:02Z. Owned-window capture correctly showed the current Welcome
+screen and typed project field. One benign radio click was attempted, but
+three captured images remained byte-identical; no intended visible effect
+was established. No repeat click, key, text, path/review/save or model action
+followed. Normal original-birth absence completed in254.608177s with no
+overrun; the current wrapper ended18:29:16Z rc0. Elapsed time includes operator
+turn overhead, not a native-click timing result. No App defect is inferred.
+
+This is the second mechanics failure. The custom control-tool work and native
+attempts are STOPPED, with no third iteration, new control mechanism or fresh
+window selected. The exact actual account was committed first and preserved.
+J1 setup/save and model work remain uncompleted. A further native approach
+requires new explicit owner direction; do not default development clicks to
+the owner. The approved later ChatGPT scope is retained but unused. Library
+v2.1 operational/harness adoption proceeds under its separate assignment;
+it supplies no native/J1 evidence and changes no session preferences.
 
 The owner separately approved the proposed later stock-Codex ChatGPT scope:
 an account they choose and personally sign into, gpt-6.1-sol only if offered

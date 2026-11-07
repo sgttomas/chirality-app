@@ -7,12 +7,13 @@ Requirements, implementation meaning and evidence stay in the owning deliverable
 Neither a checked row nor this document supplies owner acceptance or release.
 
 Current J1 standing (2026-11-07): the reviewed development App includes typed
-first-use project entry. The first visual session stopped without input when
-main-display capture missed the App on another display; normal original
-closure was verified. The [actual account](../PKG-09/DEL-09-02/Work/J1_VISUAL_SETUP_ACTUAL_20261107T172459Z.md)
-preserves that result. One bounded owned-window capture repair has 41 passing
-offline cases; a final setup session still needs the repaired source and fresh
-GO. No native setup/save, useful-model result or complete J1/J2 is established.
+first-use project entry. After one capture repair, the final visual attempt
+showed the App correctly but established no visible effect from its one click.
+The [final actual account](../PKG-09/DEL-09-02/Work/J1_VISUAL_SETUP_FINAL_ACTUAL_20261107T182502Z.md)
+preserves the result and verified normal closure. Native control-tool work is
+stopped after the two-attempt limit; no third iteration is selected. Setup/save,
+useful model work and J1/J2 remain uncompleted; further native work needs a new
+owner direction. Separate Library adoption is not journey qualification.
 
 2026-11-05 owner correction: agents perform development testing; owner testing
 begins after Agent 0 recommends publication readiness. Setup, picker and
@@ -169,7 +170,7 @@ public distribution; and the owner decision packet. That list was not completed.
 
 | ID | Result and finish condition | Standing / next action | Owning deliverables and delivery owner |
 |---|---|---|---|
-| P1 | Set up a project, select an existing workflow, supply inputs, run it to completion and find the results without agent interpretation of engineering controls. | OPEN. Current reviewed build includes first-use typed project entry. The first visual session captured the wrong display and stopped without input; original closure was verified. One bounded owned-window capture repair passes41 offline cases. The final setup session needs repaired source and fresh availability/GO. Pending saved setup and useful-model work are still unobserved; source checks and helper rc0 do not establish J1 or qualification. | [J1](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j1--use-an-existing-workflow), DEL-02-02 with DEL-01-04/05; product manager, Agent 0 integration. |
+| P1 | Set up a project, select an existing workflow, supply inputs, run it to completion and find the results without agent interpretation of engineering controls. | OPEN. Current build includes typed project entry. The final visual attempt captured it, but one attempted click had no established effect. Normal closure was verified. Native tooling is stopped after two attempts and one repair; further native work needs new owner direction. Pending saved setup and useful-model work remain unobserved; tests/CI/helper rc0 do not establish J1 or qualification. | [J1](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j1--use-an-existing-workflow), DEL-02-02 with DEL-01-04/05; product manager, Agent 0 integration. |
 | P2 | Do useful work, create/trial/review/register a reusable workflow, return to unfinished work and later run the saved workflow with new inputs. | OPEN; fresh-trial/Continue-as model choice, trial/Bring-back guards, History landing and returning-draft guidance are integrated, with recorded renderer/source-test limits. The real-backend clean-trial join uses scripted replies. Actual useful create/register/resume/reuse remains unobserved and required before 4.0.0. | [J2](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j2--create-save-return-and-reuse), DEL-02-02; product manager, native examiner. |
 | P3 | Applicable candidate-bound request/approval, cancellation, interruption/recovery, close/reopen/Quit and three access-mode results, with failures repaired or explicitly returned for owner disposition. | OPEN; the native activation/occlusion loop remains closed and unresolved. Backend joins and the new build do not qualify native recovery/access. Runtime's exact remaining requirements, executable paths and input/authority boundaries are completed preparation. Native owns the linked first-use results, including #135 and frozen #136's exact-instance autonomous cleanup; initial-main/picker/setup capability and broader recovery/access remain open. Agent 0 owns next method selection; no owner regression execution or revival of the closed GUI loop is implied. | [Standalone qualification](../PKG-09/DEL-09-02/Work/STANDALONE_QUALIFICATION.md), DEL-01-01/02/03/04/05; native manager. |
 | P4 | Actual installed S4/supplier custody and applicable SEAL-C enrollment/continuity evidence joined to the candidate. | OPEN; static joins are complete for b3dd4145, real installed/native results are not. Enrollment remains a concrete owner act. Rotation unavailable/SC-5 blocked is the accepted 4.0.0 limitation, not a pass. | [Signing join](../PKG-01/DEL-01-06/Work/SEAL_C_KEYCHAIN_SIGNING_JOIN.md), DEL-01-04/06 and DEL-09-02; runtime and packaging managers. |
