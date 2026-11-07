@@ -1,6 +1,55 @@
 # App v4 current execution basis
 
-## Owner-directed work pause — 2026-11-06
+## Owner-directed resumption — 2026-11-07
+
+The owner explicitly resumed App work and changed the agent model selections.
+This direction supersedes the work pause below; its completed closeout and
+historical evidence remain intact. Fetched main is
+`a66db7ae76617c42f6513348b346d56c88f9ffd3`; PR146 and PR147 are merged and
+their applicable hosted checks passed. No old native window, GO, resource
+concurrence or desktop-availability statement is renewed by this resumption.
+
+The next publication result is J1: actual project setup, an existing workflow,
+useful real-model execution and finding its results. Native is the only lane
+with a new assignment: prepare the existing reviewed CBD / `84a58cf9` entry
+for one bounded diagnostic, without another source review, build, mock rerun
+or controller increment. Actual execution still requires fresh desktop
+availability and a separate specific Agent0 GO under normal wrappers. Other
+lanes remain idle until they receive a concrete contribution to an open
+publication result; the roster alone does not dispatch them.
+
+This capability investigation has a stop point: at most one attempt of the
+existing diagnostic after fresh GO. Record its actual account first. If it
+refuses or supplies no useful next-step observation, Agent0 must decide the
+testing route from the precise missing capability before any further
+controller repair, restaging or diagnostic. A successful diagnostic supplies
+only its observed facts; J1 requires the actual complete useful journey.
+Retain ownership, privacy, cleanup and evidence safeguards. Reports lead with
+newly demonstrated user behavior, its limits and the next useful result.
+
+The owner's model selections apply to future work:
+
+| Instance | Provider/model | Effort and options |
+|---|---|---|
+| Type 1 managers | Codex-Hub `gpt-6.1-sol` | `reasoningEffort=xhigh`, `serviceTier=default` |
+| Type 2 execution tasks | Claude-Hub `claude-opus-5-5` (Opus 5.5) | `effort=high`, `fastMode=false` |
+| Type 2 independent reviews | Codex-Hub `gpt-6.1-sol` | `reasoningEffort=xhigh`, `serviceTier=default` |
+
+Set the requested selection explicitly on every new delegate. If unavailable,
+report it rather than substitute. Existing Type 1 session selections are
+configured accordingly; historical task/model results retain their identities.
+No new top-level manager session or automatic review round is selected.
+
+SWBPIPE separately resumed v1.0 source/design work on 2026-11-07: reference-
+system static path, hydrotest mechanics design and bounded desktop MBF import.
+Its ordinary local jobs use maintained wrappers; no native/model/exclusive
+attempt or App deferral is requested. Relay actual shared conflicts when
+relevant, without routine diagnostic receipt traffic. All former concurrences
+remain consumed. No cross-project resource window or App submission deferral
+is active. App resumption adds no model/authentication/network/download, VM,
+installed-App, acceptance or publication authority.
+
+## Historical owner-directed work pause — 2026-11-06 (closed by resumption above)
 
 The owner requested a graceful pause to free compute and attention. App development
 is paused; this direction supersedes the normal continuation/dispatch expectations
@@ -529,10 +578,10 @@ inputs; a closed assignment does not continue merely because its link remains.
 remains the return route for those existing assignments during closure, not a
 permanent identity for future project ownership. No new Agent 0 session ID or
 Windows manager assignment is implied here. Final App merges belong to the
-project Agent 0. All App Type 1 and Type 2 instances now use Codex-Hub
-`gpt-6.1-sol`, `reasoningEffort=xhigh`, `serviceTier=default` (standard).
-Every future delegate receives those options explicitly; no priority tier or
-unasked model substitution. Historical review/model standing remains as recorded.
+project Agent 0. The current model selections for Type 1 managers, Type 2
+execution tasks and independent reviews are recorded in the 2026-11-07
+resumption above. The earlier all-Codex selection is superseded for future
+Type 2 execution tasks; historical review/model standing remains as recorded.
 The active shared library is `/Users/ryan/dev/chirality-library`, selected source
 `2f981163d76772d3779697d9def1a9e951d978e7`; it does not repin historical product
 source `eaf5d057` or bundled instructions.
