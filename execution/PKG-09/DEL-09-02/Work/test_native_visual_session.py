@@ -7,11 +7,13 @@ tool's hash-checked loaders; both are inert on import.
 from datetime import datetime, timedelta, timezone
 import contextlib
 import importlib.util
+import inspect
 import io as stdio
 import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -26,7 +28,16 @@ BASE = datetime(2026, 11, 7, 12, 0, 0, tzinfo=timezone.utc)
 PID = 4242
 MAIN = {'number': 7.0, 'layer': 0.0, 'bounds': {'X': 100.0, 'Y': 100.0, 'Width': 800.0, 'Height': 600.0},
         'on_screen': True, 'title_key_present': True, 'title': 'Chirality'}
-RETINA = {'display': 1, 'bounds': [0.0, 0.0, 1512.0, 982.0], 'mode_points': [1512, 982], 'mode_pixels': [3024, 1964]}
+# Actual first-session owned rows (journal 006-frame.json windows_points; numeric fixture only, no image).
+ACTUAL_OFF_MAIN = [(62478.0, [0.0, 348.0, 500.0, 500.0], None), (62477.0, [1722.0, 93.0, 1100.0, 800.0], True)] + [
+    (float(n), [1312.0, 0.0, 1920.0, 30.0], None) for n in (62476, 62475, 62474, 62473)] + [
+    (float(n), [0.0, 0.0, 1312.0, 26.0], None) for n in (62472, 62471, 62470, 62469)]
+
+
+def owned_row(number, bounds, on_screen=True, layer=0.0):
+    return {'owner': PID, 'decoded': {'number': number, 'layer': layer, 'on_screen': on_screen,
+                                      'bounds': dict(zip(('X', 'Y', 'Width', 'Height'), bounds)),
+                                      'title_key_present': False, 'title': None}}
 
 
 def subject(app_data='/invented/Library/Application Support/dev.invented.test'):
@@ -171,8 +182,8 @@ class Adapter:
     def __init__(self):
         self.pre = {'screen_capture': True, 'post_event': True, 'ax_trusted': True}
         self.front = {'correspondence': None, 'active': True, 'frontmost_pid': PID}
-        self.geo = json.loads(json.dumps(RETINA))
-        self.pixels = (3024, 1964)
+        self.pixels = (1600, 1200)  # MAIN 800x600 points at 2x
+        self.captures, self.on_capture = [], None
         self.posts, self.released, self.activations, self.allocated = [], [], 0, 0
         self.post_error_on, self.fail_event_at, self.release_error = None, None, False
         self.closed = 0
@@ -187,11 +198,12 @@ class Adapter:
                                        'executable': '/invented/Test.app/Contents/MacOS/app'}
         return value
 
-    def geometry(self):
-        return json.loads(json.dumps(self.geo))
-
-    def capture(self, number, timeout):
+    def capture(self, number, window, timeout):
         assert 0 < timeout <= nvs.CAPTURE_TIMEOUT
+        assert type(window) is int
+        self.captures.append(window)
+        if self.on_capture:
+            self.on_capture()
         return {'path': f'/private/frames/frame-{number:03d}.png', 'sha256': f'{number:064x}', 'pixels': self.pixels}
 
     def activate(self, identity, expected, before_dispatch=lambda: None):
@@ -557,38 +569,45 @@ class FramesAndInput(unittest.TestCase):
         frame = output.lines[1]
         self.assertTrue(frame['actionable'])
         self.assertEqual(frame['scale'], 2.0)
-        self.assertEqual(frame['windows_pixels'][0]['bounds'], [200.0, 200.0, 1600.0, 1200.0])
-        self.assertEqual(adapter.posts, [(PID, ('click', 200.0, 200.0, 7), True), (PID, ('click', 200.0, 200.0, 7), False)])
+        self.assertEqual(adapter.captures, [7])
+        self.assertEqual(frame['windows_capture_pixels'][0]['bounds'], [0.0, 0.0, 1600.0, 1200.0])
+        self.assertEqual(adapter.posts, [(PID, ('click', 300.0, 300.0, 7), True), (PID, ('click', 300.0, 300.0, 7), False)])
         self.assertEqual(len(adapter.released), 3)
         click = output.lines[2]
         self.assertEqual((click['dispatch'], click['handling'], click['up_attempted']), ('attempted', 'unknown', 1))
         intent = dict(journal.rows)['input-intent']
-        self.assertEqual(intent['global_point'], [200.0, 200.0])
+        self.assertEqual(intent['global_point'], [300.0, 300.0])
+        self.assertEqual(intent['window_origin_points'], [100.0, 100.0])
 
     def test_geometry_rules(self):
-        self.assertEqual(nvs.frame_geometry(RETINA, (3024, 1964))['scale'], 2.0)
-        one = {'bounds': [0, 0, 1920, 1080], 'mode_points': [1920, 1080], 'mode_pixels': [1920, 1080]}
-        self.assertEqual(nvs.frame_geometry(one, (1920, 1080))['scale'], 1.0)
-        bad = [(dict(RETINA, bounds=[10, 0, 1512, 982]), (3024, 1964)),
-               (dict(RETINA, mode_pixels=[3000, 1964]), (3000, 1964)),
-               (RETINA, (3000, 1964)),
-               (dict(RETINA, mode_points=[1500, 982]), (3024, 1964)),
-               ({'bounds': [0, 0, 1000, 1000], 'mode_points': [1000, 1000], 'mode_pixels': [1500, 1500]}, (1500, 1500)),
-               (dict(RETINA, bounds=[0, 0, float('nan'), 982]), (3024, 1964))]
-        for geometry, pixels in bad:
-            with self.assertRaises(nvs.ActionRefused):
-                nvs.frame_geometry(geometry, pixels)
+        plan = {'window_id': 7, 'bounds': [100.0, 100.0, 800.0, 600.0]}
+        self.assertEqual(nvs.window_geometry(plan, (1600, 1200))['scale'], 2.0)
+        self.assertEqual(nvs.window_geometry(plan, (800, 600))['scale'], 1.0)
+        negative = nvs.window_geometry(dict(plan, bounds=[-1440.0, -200.0, 800.0, 600.0]), (800, 600))
+        self.assertEqual(negative['origin_points'], [-1440.0, -200.0])
+        self.assertIs(negative['whole_display'], False)
+        bad = [(plan, (1700, 1300)),               # shadow/overhang included
+               (plan, (1600, 1199)),               # crop/rounding
+               (plan, (1600, 600)),                # mixed scale
+               (plan, (1200, 900)),                # 1.5x
+               (plan, (2624, 1696)),               # old main-display backing size
+               (dict(plan, bounds=[100.0, 100.0, float('nan'), 600.0]), (1600, 1200)),
+               (dict(plan, bounds=[float('inf'), 100.0, 800.0, 600.0]), (1600, 1200)),
+               (dict(plan, bounds=[100.0, 100.0, 0.0, 600.0]), (0, 1200))]
+        for p, pixels in bad:
+            with self.assertRaises(nvs.ActionRefused, msg=(p, pixels)):
+                nvs.window_geometry(p, pixels)
 
     def test_off_main_or_invalid_geometry_frame_not_actionable(self):
         session, io, adapter, journal, output, *_ = make([CAP, {'op': 'click', 'frame': 1, 'x': 400, 'y': 400}])
-        adapter.pixels = (3000, 1964)
+        adapter.pixels = (1700, 1300)  # e.g. a shadow was included
         session.run()
         self.assertFalse(output.lines[1]['actionable'])
         self.assertIn('refused', output.lines[2])
         self.assertEqual(adapter.posts, [])
 
     def test_target_outside_original_window_refused(self):
-        clicks = [(150, 150), (1900, 1500), (3024, 10), (0, 0)]
+        clicks = [(1600, 10), (10, 1200), (3024, 10), (99999, 99999)]  # capture-local pixels outside the window
         for x, y in clicks:
             session, io, adapter, journal, output, *_ = make([CAP, {'op': 'click', 'frame': 1, 'x': x, 'y': y}])
             session.run()
@@ -598,6 +617,7 @@ class FramesAndInput(unittest.TestCase):
         io.backend.rows[1]['decoded']['on_screen'] = None
         session.run()
         self.assertFalse(output.lines[1]['actionable'])
+        self.assertEqual(adapter.captures, [], 'no window -> no capture and no fallback')
         self.assertEqual(adapter.posts, [])
 
     def test_stale_replayed_old_and_changed_frames(self):
@@ -768,6 +788,158 @@ class FramesAndInput(unittest.TestCase):
         session.run()
         self.assertIn('already foreground', output.lines[2]['refused'])
         self.assertEqual(adapter.activations, 0)
+
+
+class OriginalWindowCapture(unittest.TestCase):
+    """Repair after the first actual session: capture the identified original window, not the main display."""
+
+    def frame_record(self, journal):
+        return [v for k, v in journal.rows if k == 'frame'][-1]
+
+    def test_actual_off_main_window_is_captured_and_mapped_from_its_origin(self):
+        for pixels, scale in (((2200, 1600), 2.0), ((1100, 800), 1.0)):
+            with self.subTest(pixels=pixels):
+                last = {'op': 'click', 'frame': 1, 'x': pixels[0] - 1, 'y': pixels[1] - 1}
+                session, io, adapter, journal, output, *_ = make([CAP, {'op': 'click', 'frame': 1, 'x': 0, 'y': 0},
+                                                                  CAP, last])
+                io.backend.rows = [{'owner': 999, 'decoded': None}] + [owned_row(*r) for r in ACTUAL_OFF_MAIN]
+                adapter.pixels = pixels
+                session.run()
+                frame = output.lines[1]
+                self.assertEqual(adapter.captures, [62477, 62477])
+                self.assertTrue(frame['actionable'], frame['reasons'])
+                self.assertEqual(frame['capture'], {'basis': 'original-window', 'window_id': 62477,
+                                                    'origin_points': [1722.0, 93.0], 'size_points': [1100.0, 800.0],
+                                                    'whole_display': False})
+                self.assertEqual(frame['scale'], scale)
+                local = {w['number']: w['bounds'] for w in frame['windows_capture_pixels']}
+                self.assertEqual(local[62477.0], [0.0, 0.0, float(pixels[0]), float(pixels[1])])
+                self.assertEqual(local[62472.0], [-1722.0 * scale, -93.0 * scale, 1312.0 * scale, 26.0 * scale])
+                record = self.frame_record(journal)
+                self.assertNotIn('display', record)
+                self.assertNotIn('windows_pixels', record)
+                self.assertEqual(record['windows_global_points'][1]['bounds'], [1722.0, 93.0, 1100.0, 800.0])
+                self.assertEqual(adapter.posts[0], (PID, ('click', 1722.0, 93.0, 62477), True))
+                self.assertEqual(adapter.posts[1], (PID, ('click', 1722.0, 93.0, 62477), False))
+                # the later corner click is gated on confirmation, so check the mapping directly
+                gx, gy, window = nvs.map_target(session.frames[-1], pixels[0] - 1, pixels[1] - 1)
+                self.assertEqual((gx, gy), (1722.0 + (pixels[0] - 1) / scale, 93.0 + (pixels[1] - 1) / scale))
+                self.assertEqual(window['number'], 62477.0)
+                self.assertTrue(1722.0 <= gx < 2822.0 and 93.0 <= gy < 893.0)
+
+    def test_actual_main_display_sized_png_is_not_actionable(self):
+        session, io, adapter, journal, output, *_ = make([CAP, {'op': 'click', 'frame': 1, 'x': 10, 'y': 10}])
+        io.backend.rows = [owned_row(*r) for r in ACTUAL_OFF_MAIN]
+        adapter.pixels = (2624, 1696)  # the first session's main-display backing size
+        session.run()
+        self.assertFalse(output.lines[1]['actionable'])
+        self.assertIn('exact original window bounds', ' '.join(output.lines[1]['reasons']))
+        self.assertIsNone(output.lines[1]['windows_capture_pixels'])
+        self.assertIn('not actionable', output.lines[2]['refused'])
+        self.assertEqual(adapter.posts, [])
+
+    def test_negative_origin_mapping(self):
+        session, io, adapter, journal, output, *_ = make([CAP, {'op': 'click', 'frame': 1, 'x': 100, 'y': 50}])
+        io.backend.rows = [owned_row(7.0, [-1440.0, -200.0, 800.0, 600.0])]
+        session.run()
+        self.assertTrue(output.lines[1]['actionable'])
+        self.assertEqual(adapter.posts[0], (PID, ('click', -1390.0, -175.0, 7), True))
+        self.assertEqual(dict(journal.rows)['input-intent']['global_point'], [-1390.0, -175.0])
+
+    def test_frontmost_targetable_original_window_is_selected(self):
+        session, io, adapter, journal, output, *_ = make([CAP, {'op': 'click', 'frame': 1, 'x': 0, 'y': 0}])
+        io.backend.rows = [{'owner': 999, 'decoded': None}, owned_row(11.0, [0.0, 0.0, 50.0, 50.0], None),
+                           owned_row(12.0, [0.0, 0.0, 50.0, 50.0], True, 3.0), owned_row(9.0, [300.0, 200.0, 400.0, 300.0]),
+                           owned_row(7.0, [100.0, 100.0, 800.0, 600.0])]
+        adapter.pixels = (800, 600)
+        session.run()
+        self.assertEqual(adapter.captures, [9])
+        self.assertTrue(output.lines[1]['actionable'])
+        self.assertEqual(adapter.posts[0], (PID, ('click', 300.0, 200.0, 9), True))
+        # a pixel beyond the captured window is refused even though another original window lies there
+        self.assertEqual(nvs.map_target(session.frames[-1], 799, 599)[:2], (699.5, 499.5))
+        with self.assertRaises(nvs.ActionRefused):
+            nvs.map_target(session.frames[-1], 800, 0)
+
+    def test_no_foreign_arbitrary_or_display_fallback(self):
+        for rows in ([{'owner': 999, 'decoded': None}, owned_row(7.0, [100.0, 100.0, 800.0, 600.0], None)],
+                     [{'owner': 999, 'decoded': None}, owned_row(0.0, [100.0, 100.0, 800.0, 600.0])],
+                     [owned_row(7.5, [100.0, 100.0, 800.0, 600.0])],
+                     [owned_row(True, [100.0, 100.0, 800.0, 600.0])],
+                     [owned_row(float(2 ** 32), [100.0, 100.0, 800.0, 600.0])]):
+            with self.subTest(rows=rows):
+                session, io, adapter, journal, output, *_ = make([CAP, {'op': 'click', 'frame': 1, 'x': 1, 'y': 1}])
+                io.backend.rows = rows  # the fake backend asserts no foreign row is ever decoded
+                session.run()
+                frame = output.lines[1]
+                self.assertEqual(adapter.captures, [])
+                self.assertIsNone(frame['path'])
+                self.assertIsNone(frame['capture'])
+                self.assertFalse(frame['actionable'])
+                self.assertIn('nothing captured', ' '.join(frame['reasons']))
+                self.assertEqual(adapter.posts, [])
+        for line in (b'{"op":"capture","window":62477}', b'{"op":"capture","pid":4242}',
+                     b'{"op":"click","frame":1,"x":1,"y":1,"window":62477}'):
+            with self.assertRaises(nvs.ActionRefused):
+                nvs.parse_command(line)
+
+    def test_window_change_during_capture_is_not_actionable(self):
+        def moved(io):
+            io.backend.rows[1]['decoded']['bounds']['X'] = 120.0
+
+        def gone(io):
+            io.backend.rows[1]['decoded']['on_screen'] = False
+
+        def new_front(io):
+            io.backend.rows.insert(1, owned_row(8.0, [100.0, 100.0, 800.0, 600.0]))
+
+        def resized(io):
+            io.backend.rows[1]['decoded']['bounds']['Width'] = 801.0
+        for change in (moved, gone, new_front, resized):
+            with self.subTest(change=change.__name__):
+                session, io, adapter, journal, output, *_ = make([CAP, {'op': 'click', 'frame': 1, 'x': 1, 'y': 1}])
+                adapter.on_capture = lambda: change(io)
+                session.run()
+                frame = output.lines[1]
+                self.assertEqual(adapter.captures, [7])
+                self.assertFalse(frame['actionable'])
+                self.assertIn('captured original window changed', ' '.join(frame['reasons']))
+                self.assertEqual(adapter.posts, [])
+
+    def test_imageless_frame_keeps_one_activation_route(self):
+        session, io, adapter, journal, output, *_ = make([CAP, {'op': 'activate', 'frame': 1}])
+        io.backend.rows[1]['decoded']['on_screen'] = None
+        adapter.front['active'], adapter.front['frontmost_pid'] = False, 999
+        session.run()
+        self.assertEqual(adapter.captures, [])
+        self.assertEqual(adapter.activations, 1)
+        self.assertEqual(adapter.posts, [])
+
+    def test_mac_adapter_captures_exact_window_without_shadow(self):
+        self.assertFalse(hasattr(nvs.MacVisual, 'geometry'))
+        source = inspect.getsource(nvs.MacVisual)
+        for symbol in ('CGMainDisplayID', 'CGDisplayBounds', 'CGDisplayCopyDisplayMode', "'-m'", "'-R'", "'-D'"):
+            self.assertNotIn(symbol, source)
+        png = b'\x89PNG\r\n\x1a\n' + b'\x00\x00\x00\x0dIHDR' + (2200).to_bytes(4, 'big') + (1600).to_bytes(4, 'big') + b'\x08\x06\x00\x00\x00'
+        with tempfile.TemporaryDirectory() as tmp:
+            adapter = nvs.MacVisual.__new__(nvs.MacVisual)  # no CDLL/native construction
+            adapter.frames = Path(tmp)
+            calls = []
+
+            def run(argv, **kwargs):
+                calls.append((argv, kwargs))
+                Path(argv[-1]).write_bytes(png)
+                return subprocess.CompletedProcess(argv, 0, b'', b'')
+            with mock.patch('subprocess.run', side_effect=run):
+                shot = adapter.capture(1, 62477, 5)
+                for bad in (62477.0, '62477', True, 0, -1, 2 ** 32, None):
+                    with self.assertRaises(nvs.SessionStop, msg=bad):
+                        adapter.capture(2, bad, 5)
+            path = str(Path(tmp) / 'frame-001.png')
+            self.assertEqual([c[0] for c in calls], [['/usr/sbin/screencapture', '-x', '-o', '-l', '62477', path]])
+            self.assertEqual(calls[0][1]['timeout'], 5)
+            self.assertEqual(shot, {'path': path, 'sha256': nvs.sha256(png), 'pixels': (2200, 1600)})
+            self.assertEqual(os.stat(path).st_mode & 0o777, 0o600)
 
 
 class CommandsAndSave(unittest.TestCase):

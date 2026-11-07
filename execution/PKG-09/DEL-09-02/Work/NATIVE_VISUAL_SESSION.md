@@ -1,7 +1,10 @@
 # Native visual session helper (development only)
 
-Status on 2026-11-07: **built and checked offline only. Never run.** The
-owner approved *building and offline-checking* this helper, with one
+Status on 2026-11-07 (updated): the helper at `eb488ce0` ran once; that first
+actual session stopped before any input because it captured the main display
+while the App window was on another display (`J1_VISUAL_SETUP_ACTUAL_20261107T172459Z.md`).
+The one bounded window-capture repair (last section) is **built and checked
+offline only and has never run.** Original status: the owner approved *building and offline-checking* this helper, with one
 independent review. That approval is not desktop availability, not an
 owner window and not a GO. Running `native_visual_session.py` (anything other
 than `--help`) launches the retained development App. It therefore needs its
@@ -80,8 +83,8 @@ returns one JSON line per event or response, each with `ui_seconds_left`.
 
 | op | fields | effect |
 |---|---|---|
-| `capture` | — | Checks identity, records foreground/window/display facts, runs `screencapture -x -m` to a numbered file, then records the facts again. A frame is `actionable` only if the facts did not change, the original App is foreground, its windows are visible and the geometry is unambiguous. |
-| `click` | `frame,x,y` (integer pixels) | One left down/up pair at the mapped global point, inside a visible original-App window |
+| `capture` | — | Checks identity and records foreground/window facts. It selects the frontmost on-screen layer-0 window owned by the original PID from those fresh rows and runs `screencapture -x -o -l <thatWindowID>` to a numbered file. Then it records the facts again. If no such window exists, nothing is captured; the frame is image-less and not actionable. A frame is `actionable` only if the facts did not change, the same window is still the frontmost targetable one with the same bounds, the original App is foreground and the PNG is exactly that window's bounds at 1x or 2x. |
+| `click` | `frame,x,y` (integer pixels local to the captured window image) | One left down/up pair at the mapped global point, inside the captured original-App window only |
 | `key` | `frame,key` | Only `go_to_folder` (⌘⇧G), `select_all` (⌘A) or `return` |
 | `type_project` | `frame` | Types the exact text `/Users/ryan/dev/chirality-t3/scratch/app-j1-owner-reviewed-naw71ke6/session/project` as UTF-16 Unicode events |
 | `activate` | `frame` | Activates the original `NSRunningApplication` once per session, and only when the frame shows it is not foreground |
@@ -113,22 +116,32 @@ overrun is reported as `overrun` / `owner_end_overrun`.
 
 ## Coordinates
 
-These are the frame-geometry rules:
+These are the frame-geometry rules (since the window-capture repair; the
+original main-display rules are kept in the repair section):
 
-- Capture is of the main display only (`-m`).
-- `CGDisplayBounds(CGMainDisplayID())` must have origin (0,0), and its size
-  must equal the display mode's point size.
-- The PNG pixel size must equal the mode's pixel size.
-- The scale must be the same on both axes and be exactly 1 or 2.
-- Global point = origin + pixel / scale.
-- The target must fall inside a listed on-screen layer-0 window owned by the
-  original PID (rows are filtered by owner PID before decoding). The frontmost
-  containing window, in WindowServer list order, is chosen, and its number is
-  set on the mouse event (fields 91 and 92).
+- The captured window is the first on-screen layer-0 row with sane finite
+  bounds and an exact nonzero 32-bit window number. Rows come from the reused
+  reader, which filters by original owner PID before decoding, in WindowServer
+  order. The window ID never comes from the operator, a foreign row, a fixed
+  or stale value, or a display. There is no fallback capture.
+- Capture is of that one window, without its shadow (`-l <id> -o -x`). It is
+  not a whole-display capture and no display ID is involved.
+- The PNG size divided by the window's CG point size must give the same scale
+  on both axes, exactly 1 or 2. Any other size refuses as ambiguous (for
+  example a shadow, an attached overhang, a crop or a mixed scale).
+- The window origin may be nonzero or negative. Global point = window origin +
+  capture-local pixel / scale.
+- The target must fall inside the captured window. That window's number is set
+  on the mouse event (fields 91 and 92).
+- Frame output reports `capture` (`basis: original-window`, `window_id`,
+  `origin_points`, `size_points`, `whole_display: false`). It also reports
+  `windows_capture_pixels`, which are each owned window's rectangle in pixels
+  local to the capture and may lie outside the image. The journal also keeps
+  `windows_global_points`.
 
 Anything else refuses. Before any input, the helper repeats the full original
 check (birth, UID, path, PGID and executable hash) and the supplier-child
-check. The foreground, window and display facts must still equal the frame's.
+check. The foreground and owned-window facts must still equal the frame's.
 
 ## Input and cleanup
 
@@ -136,7 +149,7 @@ Events use a private `CGEventSource`
 (`kCGEventSourceStatePrivate`) and `CGEventPostToPid` to the original PID only.
 The helper uses no clipboard, global or HID-tap posting, or private API. All
 events are allocated before the first post. After allocation and journal
-work, every new down/chunk rechecks the original, foreground, window/display
+work, every new down/chunk rechecks the original, foreground, owned-window
 facts, frame age and current UI/owner cutoff. Activation has an equivalent
 final identity/time check after AppKit preparation. Each up event follows its down event, including
 after a post error, but only after a birth re-check: an up event is never sent
@@ -180,12 +193,18 @@ intact. It is not closure evidence and not a claim about setup.
   runloop-less worker (a 0.05 s `CFRunLoopRunInMode` is attempted).
 - Whether `activateWithOptions:0` takes effect under macOS cooperative
   activation.
-- Whether `screencapture -m` and `CGMainDisplayID` always name the same display.
-- Whether the CGDisplayMode pixel size matches the capture under every scaled
-  mode.
-- The CGWindowList front-to-back order with `kCGWindowListOptionAll`, and
-  foreign overlays above the App. Overlays are visible in the frame but are
-  not detected, because foreign rows are not decoded.
+- Whether `screencapture -l <id> -o` produces exactly the window's CG bounds
+  times its backing scale on every display and scaled mode. A mismatch is
+  refused, not corrected.
+- Whether an attached sheet or panel appears as its own frontmost owned row or
+  only inside or beyond its parent's image. An overhang beyond the parent's
+  bounds is refused.
+- The CGWindowList front-to-back order with `kCGWindowListOptionAll`. Foreign
+  overlay rows are not decoded, and a window capture does not establish
+  whether the App is occluded on the desktop. Attached-window composition
+  remains a native unknown rather than an exclusion guarantee.
+- (Historical, eb488 only) main-display capture: the first actual session
+  showed that `-m` can miss the App window entirely.
 - The cost of the reused reader holding CF key strings per row until close.
 
 Screenshot and foreground facts do not prove machine isolation or guaranteed
@@ -225,3 +244,84 @@ leaked bounds between cases; the fake now deep-copies its rows. The initial
 failure and final isolated results are retained at
 `/Users/ryan/dev/chirality-t3/scratch/app-visual-review-fixes-aukewaog/`.
 No second review round, native click/type or setup trial was performed.
+
+## Window-capture repair after the first actual session (2026-11-07)
+
+**First actual facts (preserved, from the committed account `f629bf4c`, cherry-picked unchanged as `6a9df95b`).**
+Helper `eb488ce05d40dfb0d3b4175afbc7bbf49a20d4e3` ran once on the
+66d39df5/75e953fe development App. It launched original PID 38825 and
+captured one frame of the main display: 2624x1696 pixels, scale 2, global
+bounds `[0,0,1312,848]`. The only targetable owned window, 62477, was at
+global point bounds `[1722,93,1100,800]`, wholly on another display. The frame
+was still labelled actionable, because the old helper required only that some
+on-screen owned window existed. It showed another application. The operator
+sent no click, key, text or activation and quit. Cleanup began at53.859592s;
+actual original-birth absence was verified by controller elapsed54.250037s,
+with no overrun. This is not the termination call's duration. The wrapper
+ended at17:25:53Z, rc0.
+This was a capture/coordinate assumption failure. It is not an App failure
+and not evidence about input effectiveness. That window and journal are
+consumed.
+
+**Scope of this repair (the one bounded mechanics repair).**
+
+- `capture_plan` takes the frontmost targetable original-PID window from the
+  fresh reader rows of each capture. `owned_windows` now also requires an
+  exact nonzero uint32 window number.
+- `MacVisual.capture(number, window, timeout)` runs `/usr/sbin/screencapture
+  -x -o -l <window> <path>` and refuses a non-`int` or out-of-range ID before
+  any process starts.
+- `window_geometry` replaces `frame_geometry`: the window origin plus pixel
+  divided by scale, with the scale exactly 1 or 2 and equal on both axes.
+- After capture, the window must still be the same frontmost targetable
+  window with the same bounds. Otherwise the frame is not actionable.
+- `map_target` maps only into that captured window.
+- If no targetable window exists, nothing is captured. The image-less frame
+  stays usable only for the existing one-time `activate` and cannot be used
+  for `confirm_first_effect`.
+- Output metadata is capture-local and labelled as a window capture.
+- The main-display CG bindings (`CGMainDisplayID`, `CGDisplayBounds`,
+  `CGDisplayCopyDisplayMode`/mode getters/release), the `geometry()` adapter
+  method, the `display` facts and the `CGRect`/`CGSize` structs are removed.
+  There is no monitor catalogue or new API.
+- Unchanged:
+  - event creation, posting and release;
+  - `Gesture` pairing and the P1/P2 dispatch-boundary rechecks;
+  - activation time checks;
+  - the original/foreground/supplier checks;
+  - once-only normal Quit, absence and the held slot;
+  - the allowed keys and the exact project text;
+  - the subject, profile `5567d976…` and the core/reader hashes
+    (`f510d9be…`, `fd37834b…`).
+
+**Checks.** Unit, deliverables and syntax checks ran under `/Users/ryan/dev/chirality-t3/tools/t3_slot.sh`
+with a fresh scratch `CODEX_HOME`/`TMPDIR` and `python3.13 -B`. The scratch
+directory is `/Users/ryan/dev/chirality-t3/scratch/app-visual-window-capture-checks-CZt2tFxi/`.
+`unit.log` records 41 passing tests and zero failures. That is 33 earlier
+methods, with geometry expectations adapted, plus 8 new
+`OriginalWindowCapture` methods. The new methods cover:
+
+- the actual off-main shape `[1722,93,1100,800]` at 1x and 2x, mapping
+  pixel (0,0) to (1722,93) and the last pixel inside the window;
+- the actual 2624x1696 main-display PNG, which is refused;
+- a negative origin;
+- frontmost owned-window selection;
+- no foreign, arbitrary, invalid-ID or display fallback;
+- move, resize, disappearance or a new front window during capture;
+- the image-less activation route;
+- the exact `-x -o -l 62477` argv through a mocked `subprocess.run` on a
+  `MacVisual.__new__` instance.
+
+The deliverables check is logged as `deliverables.log`. No mutation campaign,
+before-repair negative run, native capture, input, App, preflight or
+process/resource probe was run. The only native-adjacent action was reading
+the installed `screencapture` usage text and man page. Edit scripts, hashes,
+a metadata-JSON read and the usage command ran directly, as did Git's diff
+check; no unit or mutation test ran outside the wrapper.
+
+**Still unproved natively.** Window-capture size and scale fidelity, sheet and
+panel representation, CGEventPostToPid handling, keyboard and Unicode
+delivery, activation, and foreground freshness. No independent review was
+done for this repair. A second live session needs this repaired source
+reviewed and committed by the parent, plus a fresh owner GO. If it also fails
+on mechanics, tooling stops.
