@@ -115,26 +115,57 @@ this profile contains no runtime absence/environment/permission claims and
 does not relabel authentic561. The one independent implementation review found
 two final-dispatch cutoff/context gaps; Agent0 repaired them directly, with
 isolated regressions failing against the reviewed source and passing on the
-fixed source. Interlocutor consultation precedes integration. Live capture/input/setup remain
-unrun and need the later separately selected session. Implementation-task
+fixed source. PR151 merged as `7c1d5a00f793426d554d9c783e0fd8abac9d16ce`
+after passing hosted CI and interlocutor consultation. Its App subtree equals
+the already-built 66d39df5 subject; no rebuild is needed. Implementation-task
 deviations (unwrapped mutation checks and deletion of a shared ignored cache)
 are recorded in the owning helper Work note, not promoted to compliant checks.
 
-The runtime owner's decision-ready J1 access account remains a proposal:
-development-agent model selections and Codex-Hub access authorize no model
-access inside the App. Supplier-free setup/save/normal Quit preparation may
-proceed within its selected scope; sign-in, saved-workspace supplier startup,
-model/catalog calls and network/account usage need a separately selected
-continuation bound to the actual artifact and home. The proposed stock-Codex
-ChatGPT route requires the owner's account/authentication act, App model,
-bounded usage/network and explicit credential-storage/settings decisions.
-File credential storage and plugins=false are proposed settings, not approved
-or proven effective. API-key and credential-free local-server alternatives
-retain their separate missing inputs. Prepare one concise decision bundle
-before continuation; use secure/native input for secrets and do not transfer
-host credentials. A time/run limit is not a monetary spend cap. Existing
-source-bound findings and invented-case expected facts retain their limits;
-no real-model J1 or custody result is established by this account.
+### First visual session and one bounded mechanics repair
+
+The owner approved a ten-minute supplier-free visual setup segment. The
+[first actual session](../PKG-09/DEL-09-02/Work/J1_VISUAL_SETUP_ACTUAL_20261107T172459Z.md)
+launched one original current development App at 17:24:59Z and captured one
+frame. Its visible App window was on another display, outside the helper's
+main-display capture. The operator sent no click, key, text or activation and
+requested normal Quit. Actual original-birth absence completed in54.250037s
+without overrun; current wrapper END was17:25:53Z rc0. Setup/J1 remain open.
+The account was committed before any repair; the window is consumed.
+
+This is the observed mechanics failure for the one permitted bounded repair:
+capture the identified original-App window and use its actual global origin,
+retaining original/foreground/frame/deadline/input/normal-cleanup safeguards.
+No new input mechanism, OCR, scrolling, broad framework or product rebuild is
+selected. One subsequent live session needs repaired source and fresh specific
+availability/GO. If it also fails on mechanics, stop tooling and return the
+observations and alternatives; no third iteration is authorized.
+
+The bounded repair is built and checked offline: 41 focused cases pass.
+Capture now selects a fresh targetable original-PID window and requests its
+image without shadow; coordinates are local to that image and map through
+the window's actual global origin, including off-main and negative origins.
+No display catalogue or input API was added. Agent0 inspected the change and
+confirmed eighteen posting/deadline/identity/cleanup methods unchanged; the
+original core/reader bytes and current product bundle are unchanged. The
+previous independent review is reused, with no new review round. Window-image
+size, sheet composition, event handling and actual setup remain unproved until
+the final selected live segment. Test counts do not establish J1 progress.
+
+The owner separately approved the proposed later stock-Codex ChatGPT scope:
+an account they choose and personally sign into, gpt-6.1-sol only if offered
+without substitution, private file credential storage and plugins=false,
+one conversation/one workflow for at most30minutes using the invented Kestrel
+Ridge case, project-only writes and stock sign-in/catalog/startup/inference
+traffic plus normal context metadata. There is no verified monetary cap,
+host-credential reuse, download or unrelated network-tool authority. The
+effective storage/settings must be established before sign-in; these choices
+are approved but not yet applied or proven effective. The owner will sign in
+when ready. The supplier-free setup segment includes none of this continuation.
+Any later continuation must bind the actual artifact/home and respect these
+conditions; credentials remain owner acts via secure/native input. Development-
+agent model settings and Codex-Hub access are not App authentication. API-key
+and credential-free local-server alternatives are not selected. No real-model
+J1 or custody result is established by this account.
 
 SWBPIPE separately resumed v1.0 source/design work on 2026-11-07: reference-
 system static path, hydrotest mechanics design and bounded desktop MBF import.

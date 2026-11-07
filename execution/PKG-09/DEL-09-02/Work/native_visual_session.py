@@ -63,7 +63,8 @@ KEYS = {'go_to_folder': (0x05, 0x120000),  # Cmd+Shift+G
         'select_all': (0x00, 0x100000),    # Cmd+A
         'return': (0x24, 0x0)}
 UTC_FORMAT = re.compile(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z')
-LIMITS = ('Screenshots and AppKit foreground facts are point-in-time observations; they do not prove machine '
+LIMITS = ('Frames request the selected original-App window, not a whole display; attached-window '
+          'composition is unproved. Frames and AppKit foreground facts are point-in-time observations and do not prove machine '
           'isolation, occlusion freedom, event routing or App handling. CGEventPostToPid is void: dispatch '
           'attempted, handling unknown. Deadlines are cooperative between native calls. Original-birth absence '
           'alone closes the session; terminate BOOL, deadlines and exit status never do.')
@@ -258,18 +259,11 @@ def png_size(raw):
     return width, height
 
 
-def frame_geometry(geometry, pixels):
-    """Map main-display capture pixels to global CG points; ambiguous geometry refuses."""
-    bounds = list(geometry['bounds'])
-    numbers = bounds + list(geometry['mode_points']) + list(geometry['mode_pixels']) + list(pixels)
-    refuse_unless(all(type(v) in (int, float) and math.isfinite(v) for v in numbers), 'display geometry invalid')
-    x, y, width, height = bounds
-    refuse_unless(x == 0 and y == 0 and width > 0 and height > 0, 'main display bounds are not global origin')
-    refuse_unless(list(geometry['mode_points']) == [width, height], 'main display bounds differ from mode points')
-    refuse_unless(list(geometry['mode_pixels']) == list(pixels), 'capture is not the main display backing size')
-    scale_x, scale_y = pixels[0] / width, pixels[1] / height
-    refuse_unless(scale_x == scale_y and scale_x in (1.0, 2.0), 'ambiguous display scale')
-    return {'bounds': bounds, 'pixels': list(pixels), 'scale': scale_x}
+def window_id(number):
+    """CGWindowID from a reader row's kCGWindowNumber, or None when not an exact nonzero uint32."""
+    if type(number) in (int, float) and math.isfinite(number) and number == int(number) and 0 < number < 2 ** 32:
+        return int(number)
+    return None
 
 
 def owned_windows(rows):
@@ -279,22 +273,60 @@ def owned_windows(rows):
         rect = [b.get('X'), b.get('Y'), b.get('Width'), b.get('Height')]
         sane = all(type(v) in (int, float) and math.isfinite(v) for v in rect) and rect[2] > 0 and rect[3] > 0
         result.append({'number': row['number'], 'layer': row['layer'], 'bounds': rect, 'on_screen': row['on_screen'],
-                       'targetable': bool(sane and row['on_screen'] is True and row['layer'] == 0)})
+                       'targetable': bool(sane and row['on_screen'] is True and row['layer'] == 0
+                                          and window_id(row['number']) is not None)})
     return result
 
 
+def capture_plan(windows):
+    """The frontmost targetable original-PID window (WindowServer order), or None. Never a fallback."""
+    for window in windows:  # rows were filtered to the original PID before decoding
+        if window['targetable']:
+            return {'window_id': window_id(window['number']), 'number': window['number'],
+                    'bounds': list(window['bounds'])}
+    return None
+
+
+def window_geometry(plan, pixels):
+    """Selected-window capture pixels -> global CG points from that window's own origin.
+
+    The PNG must be exactly the window's CG bounds at one 1x/2x scale on both axes;
+    any other size (shadow, attached overhang, crop, mixed scale) is ambiguous and refuses.
+    Origins may be nonzero or negative (any display arrangement).
+    """
+    x, y, width, height = plan['bounds']
+    numbers = [x, y, width, height, *pixels]
+    refuse_unless(len(pixels) == 2 and all(type(v) in (int, float) and math.isfinite(v) for v in numbers)
+                  and width > 0 and height > 0, 'window capture geometry invalid')
+    scale_x, scale_y = pixels[0] / width, pixels[1] / height
+    refuse_unless(scale_x == scale_y and scale_x in (1.0, 2.0),
+                  'capture size is not the exact original window bounds at one 1x/2x scale')
+    return {'basis': 'original-window', 'window_id': plan['window_id'], 'origin_points': [x, y],
+            'size_points': [width, height], 'pixels': list(pixels), 'scale': scale_x, 'whole_display': False}
+
+
+def capture_local(geometry, bounds):
+    """Global CG point rectangle -> pixel rectangle local to this window capture (may lie outside it)."""
+    s, (ox, oy) = geometry['scale'], geometry['origin_points']
+    return [(bounds[0] - ox) * s, (bounds[1] - oy) * s, bounds[2] * s, bounds[3] * s]
+
+
 def map_target(frame, x, y):
-    """Pixel -> global point inside the frontmost listed original-App window containing it."""
+    """Capture-local pixel -> global point inside the captured original-App window only."""
     geometry = frame.geometry
     refuse_unless(geometry is not None, 'frame geometry unavailable')
-    refuse_unless(0 <= x < geometry['pixels'][0] and 0 <= y < geometry['pixels'][1], 'target outside captured pixels')
-    gx = geometry['bounds'][0] + x / geometry['scale']
-    gy = geometry['bounds'][1] + y / geometry['scale']
-    for window in frame.windows:  # WindowServer order: front to back
-        wx, wy, ww, wh = window['bounds']
-        if window['targetable'] and wx <= gx < wx + ww and wy <= gy < wy + wh:
-            return gx, gy, window
-    raise ActionRefused('target outside identified visible original-App window')
+    refuse_unless(0 <= x < geometry['pixels'][0] and 0 <= y < geometry['pixels'][1],
+                  'target outside captured original window pixels')
+    gx = geometry['origin_points'][0] + x / geometry['scale']
+    gy = geometry['origin_points'][1] + y / geometry['scale']
+    plan = capture_plan(frame.windows)
+    refuse_unless(plan is not None and plan['window_id'] == geometry['window_id']
+                  and plan['bounds'] == geometry['origin_points'] + geometry['size_points'],
+                  'captured window is not the frame\'s frontmost original window')
+    wx, wy, ww, wh = plan['bounds']
+    refuse_unless(wx <= gx < wx + ww and wy <= gy < wy + wh, 'target outside captured original window')
+    window = next(w for w in frame.windows if w['targetable'])
+    return gx, gy, window
 
 
 def utf16_chunks(text, limit=UTF16_CHUNK):
@@ -373,7 +405,6 @@ class Frame:
     pixels: tuple
     geometry: object
     windows: list
-    display: dict
     foreground: bool
     actionable: bool
     reasons: list
@@ -420,8 +451,7 @@ class VisualSession:
         foreground = self.adapter.foreground(self.identity)
         stop_unless(foreground['correspondence'] == self.expected_app(), 'AppKit correspondence differs from original')
         inventory = self.window_reader.window_inventory(self.io.backend, self.identity['pid'], self.require_time)
-        return {'foreground': foreground, 'windows': owned_windows(inventory['rows']),
-                'display': self.adapter.geometry()}
+        return {'foreground': foreground, 'windows': owned_windows(inventory['rows'])}
 
     def is_foreground(self, facts):
         f = facts['foreground']
@@ -580,30 +610,41 @@ class VisualSession:
         number = len(self.frames) + 1
         self.io.check(self.identity)
         before = self.facts()
-        shot = self.adapter.capture(number, min(CAPTURE_TIMEOUT, self.ui_left()))
+        plan = capture_plan(before['windows'])  # fresh original-PID row; never operator/stale/foreign/display
+        shot = None
+        if plan is not None:
+            shot = self.adapter.capture(number, plan['window_id'], min(CAPTURE_TIMEOUT, self.ui_left()))
         self.io.check(self.identity)
         after = self.facts()
         reasons, geometry = [], None
-        try:
-            geometry = frame_geometry(after['display'], shot['pixels'])
-        except ActionRefused as refusal:
-            reasons.append(str(refusal))
+        if plan is None:
+            reasons.append('no visible original-App window; nothing captured (no display/other-window fallback)')
+        else:
+            if capture_plan(after['windows']) != plan:
+                reasons.append('captured original window changed, moved, disappeared or lost front position')
+            try:
+                geometry = window_geometry(plan, shot['pixels'])
+            except ActionRefused as refusal:
+                reasons.append(str(refusal))
         if before != after:
-            reasons.append('foreground/window/display changed during capture')
+            reasons.append('foreground/window facts changed during capture')
         foreground = self.is_foreground(after)
         if not foreground:
             reasons.append('original App is not foreground')
-        if not any(w['targetable'] for w in after['windows']):
-            reasons.append('no visible original-App window')
-        frame = Frame(number, self.clock(), shot['path'], shot['sha256'], tuple(shot['pixels']), geometry,
-                      after['windows'], after['display'], foreground, not reasons, reasons, self.inputs, facts=after)
+        frame = Frame(number, self.clock(), shot and shot['path'], shot and shot['sha256'],
+                      tuple(shot['pixels']) if shot else None, geometry, after['windows'], foreground,
+                      not reasons, reasons, self.inputs, facts=after)
         self.frames.append(frame)
-        summary = {'frame': number, 'path': frame.path, 'sha256': frame.sha256, 'pixels': list(frame.pixels),
+        capture = None if plan is None else {
+            'basis': 'original-window', 'window_id': plan['window_id'], 'origin_points': plan['bounds'][:2],
+            'size_points': plan['bounds'][2:], 'whole_display': False}
+        summary = {'frame': number, 'path': frame.path, 'sha256': frame.sha256,
+                   'pixels': list(frame.pixels) if frame.pixels else None, 'capture': capture,
                    'scale': geometry and geometry['scale'], 'foreground': foreground,
                    'actionable': frame.actionable, 'reasons': reasons,
-                   'windows_pixels': [dict(w, bounds=[v * geometry['scale'] for v in w['bounds']])
-                                      for w in frame.windows] if geometry else None}
-        self.record('frame', dict(summary, windows_points=frame.windows, display=frame.display))
+                   'windows_capture_pixels': [dict(w, bounds=capture_local(geometry, w['bounds']))
+                                              for w in frame.windows] if geometry else None}
+        self.record('frame', dict(summary, windows_global_points=frame.windows))
         return summary
 
     def current_frame(self, command, actionable=True):
@@ -620,8 +661,7 @@ class VisualSession:
         stop_unless(not self.io.supplier_started(), 'unexpected supplier start; stop session')
         now = self.facts()
         refuse_unless(self.is_foreground(now), 'original App not foreground immediately before input')
-        refuse_unless(now['windows'] == frame.windows and now['display'] == frame.display,
-                      'window/display geometry changed since frame')
+        refuse_unless(now['windows'] == frame.windows, 'window geometry changed since frame')
 
     def dispatch_check(self, frame):
         self.require_time()
@@ -669,8 +709,9 @@ class VisualSession:
         def build(frame):
             gx, gy, window = map_target(frame, command['x'], command['y'])
             return ([('click', gx, gy, int(window['number']))],
-                    {'pixel': [command['x'], command['y']], 'global_point': [gx, gy],
-                     'window_number': window['number'], 'scale': frame.geometry['scale']})
+                    {'pixel': [command['x'], command['y']], 'pixel_basis': 'local to captured original window',
+                     'global_point': [gx, gy], 'window_number': window['number'],
+                     'window_origin_points': frame.geometry['origin_points'], 'scale': frame.geometry['scale']})
         return self.input(command, 'click', build)
 
     def op_key(self, command):
@@ -710,7 +751,8 @@ class VisualSession:
         refuse_unless(self.inputs >= 1 and not self.first_confirmed, 'no unconfirmed first click')
         frame = self.frames[-1] if self.frames else None
         refuse_unless(frame is not None and command['frame'] == frame.number and frame.inputs_before >= 1
-                      and self.clock() - frame.taken <= FRAME_MAX_AGE, 'confirmation needs a fresh post-click frame')
+                      and frame.path is not None and self.clock() - frame.taken <= FRAME_MAX_AGE,
+                      'confirmation needs a fresh captured post-click frame')
         self.record('operator-first-effect', {'frame': frame.number, 'frame_sha256': frame.sha256,
                                               'actor': 'operator visual inspection', 'tool_proof': False})
         self.first_confirmed = True
@@ -749,14 +791,6 @@ class CGPoint(C.Structure):
     _fields_ = [('x', C.c_double), ('y', C.c_double)]
 
 
-class CGSize(C.Structure):
-    _fields_ = [('width', C.c_double), ('height', C.c_double)]
-
-
-class CGRect(C.Structure):
-    _fields_ = [('origin', CGPoint), ('size', CGSize)]
-
-
 class MacVisual:
     """Public macOS APIs only; constructed by a selected runtime, never on import."""
     CG = '/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics'
@@ -771,14 +805,6 @@ class MacVisual:
             (self.cg, 'CGPreflightScreenCaptureAccess', C.c_bool, []),
             (self.cg, 'CGPreflightPostEventAccess', C.c_bool, []),
             (self.ax, 'AXIsProcessTrusted', C.c_bool, []),
-            (self.cg, 'CGMainDisplayID', C.c_uint32, []),
-            (self.cg, 'CGDisplayBounds', CGRect, [C.c_uint32]),
-            (self.cg, 'CGDisplayCopyDisplayMode', C.c_void_p, [C.c_uint32]),
-            (self.cg, 'CGDisplayModeGetWidth', C.c_size_t, [C.c_void_p]),
-            (self.cg, 'CGDisplayModeGetHeight', C.c_size_t, [C.c_void_p]),
-            (self.cg, 'CGDisplayModeGetPixelWidth', C.c_size_t, [C.c_void_p]),
-            (self.cg, 'CGDisplayModeGetPixelHeight', C.c_size_t, [C.c_void_p]),
-            (self.cg, 'CGDisplayModeRelease', None, [C.c_void_p]),
             (self.cg, 'CGEventSourceCreate', C.c_void_p, [C.c_int32]),
             (self.cg, 'CGEventCreateMouseEvent', C.c_void_p, [C.c_void_p, C.c_uint32, CGPoint, C.c_uint32]),
             (self.cg, 'CGEventCreateKeyboardEvent', C.c_void_p, [C.c_void_p, C.c_uint16, C.c_bool]),
@@ -799,24 +825,14 @@ class MacVisual:
                 'post_event': bool(self.cg.CGPreflightPostEventAccess()),
                 'ax_trusted': bool(self.ax.AXIsProcessTrusted())}
 
-    def geometry(self):
-        display = self.cg.CGMainDisplayID()
-        bounds = self.cg.CGDisplayBounds(display)
-        mode = self.cg.CGDisplayCopyDisplayMode(display)
-        stop_unless(mode, 'main display mode unavailable')
-        try:
-            points = [self.cg.CGDisplayModeGetWidth(mode), self.cg.CGDisplayModeGetHeight(mode)]
-            pixels = [self.cg.CGDisplayModeGetPixelWidth(mode), self.cg.CGDisplayModeGetPixelHeight(mode)]
-        finally:
-            self.cg.CGDisplayModeRelease(mode)
-        return {'display': int(display), 'mode_points': points, 'mode_pixels': pixels,
-                'bounds': [bounds.origin.x, bounds.origin.y, bounds.size.width, bounds.size.height]}
-
-    def capture(self, number, timeout):
+    def capture(self, number, window, timeout):
+        """Capture exactly one CGWindowID chosen by the session from original-PID rows; no display mode."""
         import subprocess
+        stop_unless(type(window) is int and 0 < window < 2 ** 32, 'original window id invalid')
         path = self.frames / f'frame-{number:03d}.png'
         stop_unless(not os.path.lexists(path), 'frame path already exists')
-        result = subprocess.run(['/usr/sbin/screencapture', '-x', '-m', str(path)],
+        # -l <windowid>: that window only; -o: no window shadow; -x: no sound.
+        result = subprocess.run(['/usr/sbin/screencapture', '-x', '-o', '-l', str(window), str(path)],
                                 capture_output=True, timeout=max(0.5, timeout))
         stop_unless(result.returncode == 0, 'screencapture failed')
         info = os.lstat(path)
