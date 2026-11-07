@@ -26,12 +26,15 @@ supersede the older unsaved-setup standing below; they do not close J1/J2.
 
 Before sign-in, Agent0 applied the owner's approved file-storage and plugins-off
 choices to the newly created private config while preserving its saved-reference
-inode. The App's native login-policy view reports requirements only, not the
-effective credential-store choice/source. Sign-in remains unstarted because the
-owner's verification condition has not been established. The runtime owner is
-checking the existing supported route and, if absent, delivering the smallest
-safe effective-settings observation. No authentication or model approval is being
-requested again; the already approved scope remains unused.
+inode. The original login-policy view reports requirements only. The subsequent
+explicit effective-settings control [actually reported file storage and plugins off](../PKG-09/DEL-09-02/Work/J1_EFFECTIVE_SETTINGS_ACTUAL_20261107.md)
+with a matching User-configuration source on development subject `84a261e9`.
+Sign-in remains unstarted: hosted CI exposed an inherited model-catalog error
+redaction race, now repaired with a deterministic failing-before/passing-after
+witness. The observed 84a artifact predates that repair and is not selected for
+credential/model use. A current repaired artifact and settings read precede the
+owner's personal sign-in. No authentication/model approval is requested again;
+the already approved scope remains unused.
 
 In parallel, packaging owns substantive local-only notice/source adoption from
 already retained exact inputs. Pending acquisition choices are not supplied by

@@ -1003,8 +1003,10 @@ overwrite a newer App observation. Failed refreshes do not restore an earlier re
 snapshot of what Codex reported, not a continuous freshness guarantee,
 credential-custody witness, file/keychain effect, or plugin/network behavior.
 Offline invented-peer privacy/staleness and mounted-control regressions cover
-the projection and display; actual supplier exposure and native use remain
-unrun for this change. Existing ScopeOfWork acceptance and dependency
+the projection and display. A subsequent [native observation on source 84a261e9](../../../PKG-09/DEL-09-02/Work/J1_EFFECTIVE_SETTINGS_ACTUAL_20261107.md)
+reported `file` and plugins `false`, both from User configuration (layer 2).
+It establishes field exposure on that development subject, not actual credential
+custody or a result for a later build. Existing ScopeOfWork acceptance and dependency
 conditions remain unchanged.
 
 Independent review identified a same-source R1→R2→R1 status replay that could
@@ -1013,8 +1015,19 @@ receipt retirement and an owning refresh guard. Three mounted regressions
 reproduce that revival, an intervening revision during a delayed native read,
 and a late explicit refresh overwriting a newer App status. All three fail on
 the reviewed source; all seven focused mounted cases and TypeScript pass on the
-repair. The unchanged Rust privacy/source checks are reused. Actual supplier
-field exposure, native use and credential custody remain unproved.
+repair. The unchanged Rust setting-projection/source checks are reused.
+Credential custody remains unproved.
+
+Hosted CI on the separate notice PR exposed an inherited model-catalog error
+redaction race: a fast reply could arrive while its public client record was
+still null, causing the catalog's code-only error projection to be missed.
+Classification now uses the matching generation's registered source metadata,
+which exists before dispatch, rather than the unfinished public record. A real
+pipe-backpressure regression holds that exact publication window, injects only
+an invented error canary, and fails on the old code. The repaired five-test
+model-catalog cohort passes, including the original hosted failure. No actual
+credentials were used. The 84a native-observation artifact predates this repair
+and is not selected for sign-in/model use; a current artifact/read is required.
 
 ### 7.1 OAuth operational control and pending presentation (CC-ACCESS-OAUTH-CONTROL-CUSTODY)
 

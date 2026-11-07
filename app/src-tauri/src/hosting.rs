@@ -3811,8 +3811,10 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let child_event=parsed.as_ref().and_then(|frame|NativeChildStart::capture(generation,frame));
         let mut i = self.inner.0.lock().unwrap();
         let correlated_method=parsed.as_ref().and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).and_then(|e|e.request.frame["method"].as_str()).map(str::to_owned);
+        // The reply can beat public client-record publication. Its registered
+        // source metadata already fixes the privacy class before dispatch.
         let catalog_reply=parsed.as_ref().and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation)
-            .is_some_and(|e|i.client_requests.get(e.index).is_some_and(|r|r["initiator"]["name"]==MODEL_CATALOG_INITIATOR));
+            .is_some_and(|e|e.observation_base["initiator"]["name"]==MODEL_CATALOG_INITIATOR);
         let withhold=|frame:&Value| if catalog_reply { catalog_withheld(frame) } else { delegation_withheld(frame) };
         let safe_reply_id=parsed.as_ref().filter(|f|f.get("method").is_none()).and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).map(|e|e.request.request_id().clone());
         let possible_original_account=parsed.as_ref().filter(|f|f.get("method").is_none()).and_then(|f|f.get("id")).and_then(Value::as_str).is_some_and(|id|i.source_requests.values().any(|e|e.request.generation==*generation&&auth_rpc::account_method(e.request.frame["method"].as_str().unwrap_or(""))&&e.request.request_id().to_string()==id));
@@ -4556,6 +4558,48 @@ mod conversation_transport_tests {
             if let Some(mut frame)=response {frame["id"]=outbound["id"].clone();me.on_line(&serde_json::to_vec(&frame).unwrap(),&g());}
         });
         let result=operation();let outbound=rx.recv().unwrap();worker.join().unwrap();*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());(result,outbound)
+    }
+    #[test]
+    fn model_catalog_error_before_client_record_publication_is_redacted() {
+        let host = host();
+        let mut child = Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
+        *host.stdin.lock().unwrap() = child.stdin.take();
+        let stdout = child.stdout.take().unwrap();
+        let (first_tx, first_rx) = channel();
+        let (go_tx, go_rx) = channel();
+        let reader = std::thread::spawn(move || {
+            let mut input = BufReader::new(stdout);
+            let mut bytes = vec![0; 512];
+            input.read_exact(&mut bytes).unwrap();
+            first_tx.send(()).unwrap();
+            go_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+            input.read_until(b'\n', &mut bytes).unwrap();
+            serde_json::from_slice::<Value>(&bytes).unwrap()
+        });
+        let sender = Arc::clone(&host);
+        let writer = std::thread::spawn(move || sender.request_begin_scoped(
+            "config/read", json!({"cwd":"x".repeat(4 * 1024 * 1024),"includeLayers":false}),
+            json!({"kind":"person-directed","name":MODEL_CATALOG_INITIATOR}), false, Some(&g())));
+        first_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+        let (id, unpublished, in_progress) = {
+            let inner = host.inner.0.lock().unwrap();
+            let evidence = inner.source_requests.values().next().unwrap();
+            (evidence.request.request_id().clone(), inner.client_requests[evidence.index].is_null(), evidence.write_attempt_in_progress)
+        };
+        const SECRET: &str = "INVENTED_EARLY_CATALOG_SECRET_481";
+        host.on_line(&serde_json::to_vec(&json!({"id":id,"error":{"code":-32012,"message":SECRET,"data":{"detail":SECRET}}})).unwrap(), &g());
+        let early_journal = serde_json::to_string(&host.journal()).unwrap();
+        go_tx.send(()).unwrap();
+        let outbound = reader.join().unwrap();
+        let source = writer.join().unwrap().unwrap();
+        *host.stdin.lock().unwrap() = None;
+        assert!(child.wait().unwrap().success());
+        assert!(unpublished && in_progress, "real pipe backpressure holds the public client record unpublished");
+        assert_eq!(outbound["id"], *source.request_id());
+        assert!(!early_journal.contains(SECRET), "early catalog error detail escaped into the public journal");
+        let retained = json!({"journal":host.journal(),"clients":host.client_requests(),"snapshot":host.snapshot()}).to_string();
+        assert!(!retained.contains(SECRET));
+        assert_eq!(host.journal().last().unwrap()["frame"]["error"]["code"], -32012);
     }
     #[test]
     fn reply_close_retains_late_actual_result_and_cold_unknown() {
