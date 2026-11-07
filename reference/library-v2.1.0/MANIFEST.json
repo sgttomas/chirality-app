@@ -1,0 +1,126 @@
+{
+  "format": "chirality-app.library-partial-source/1",
+  "standing": "Partial test-source fixture for App operational/harness receiving of Library 2.1.0. Not a Library distribution, not a runnable Library suite, not packaged App product instructions and not a product role adoption.",
+  "repository": "https://github.com/sgttomas/chirality-library",
+  "tag": "library-v2.1.0",
+  "tagObject": "f199d07eae679f775f09b4217cb145259dcfe5fc",
+  "commit": "c35b7bbc463f81c1fed566c744ea49d168d29eee",
+  "comparisonBasis": {
+    "tag": "library-v2.0.0",
+    "commit": "2f981163d76772d3779697d9def1a9e951d978e7"
+  },
+  "extraction": "git cat-file blob <commit>:<path>; no release asset downloaded; no working-tree bytes used",
+  "sourceRoot": "source",
+  "files": [
+    {
+      "path": "agents/registry.json",
+      "gitMode": "100644",
+      "gitBlob": "91695767c41f86b81b094d2a99ea48e461b30a32",
+      "sha256": "e7a80028b77cd85716cb7fcd860662068768da1c497876d10ad0fc87a75ab720",
+      "bytes": 3235,
+      "sameBytesAtLibraryV2_0_0": false,
+      "readExtent": "full",
+      "use": "Role registry read by the unchanged validator and resolver"
+    },
+    {
+      "path": "agents/AGENT_HELP_HUMAN.md",
+      "gitMode": "100644",
+      "gitBlob": "ba427226b5768db36671ad8f211c59e74efb546e",
+      "sha256": "c1bd1e1fca7b9ad890b86c752be15ec5f468eb6eaa3006bbbacddcf83c67b1ad",
+      "bytes": 1770,
+      "sameBytesAtLibraryV2_0_0": true,
+      "readExtent": "full",
+      "use": "Registry instruction closure (roster and four-section check; resolver context)"
+    },
+    {
+      "path": "agents/AGENT_HELPS_HUMANS.md",
+      "gitMode": "100644",
+      "gitBlob": "2360dafa5c7095803236972885e1f1ffc93bf331",
+      "sha256": "64c2987de564832459e07eea11f4daa71f38924a58e5e6fb017100398e0fb7d2",
+      "bytes": 2293,
+      "sameBytesAtLibraryV2_0_0": true,
+      "readExtent": "full",
+      "use": "Registry instruction closure (roster and four-section check; resolver context)"
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "gitMode": "100644",
+      "gitBlob": "95d497cdc38c40c8816a16f173c2dff8bb6c096e",
+      "sha256": "ef5985782f379a6663533068bbb12637b12d3e5268860cd1c0c177cd28409e11",
+      "bytes": 2216,
+      "sameBytesAtLibraryV2_0_0": true,
+      "readExtent": "full",
+      "use": "Registry instruction closure (roster and four-section check; resolver context)"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "gitMode": "100644",
+      "gitBlob": "8c948b75a18590e49dce0387ebbb78465c24bd52",
+      "sha256": "7fd2231c227cc89895eede1ebca57a2cf607b0fe88117bc22892d14569813607",
+      "bytes": 1671,
+      "sameBytesAtLibraryV2_0_0": true,
+      "readExtent": "full",
+      "use": "Registry instruction closure (roster and four-section check; resolver context)"
+    },
+    {
+      "path": "agents/AGENT_INTERLOCUTOR.md",
+      "gitMode": "100644",
+      "gitBlob": "1ff87f1d7def8550238bbc4a0a82c30b0134e43e",
+      "sha256": "65d2d3e85c3b5c1153509e3082884882b924e6471c81d6837534f7d639881fa9",
+      "bytes": 2740,
+      "sameBytesAtLibraryV2_0_0": false,
+      "readExtent": "full",
+      "use": "Opt-in INTERLOCUTOR instruction; registry closure and resolver context"
+    },
+    {
+      "path": "tools/validation/validate_agent_instructions.py",
+      "gitMode": "100644",
+      "gitBlob": "71d0fcdbd06bd6a03871b944be1933e1adb364a3",
+      "sha256": "a7f8e07e9b10c78525a476a07a2163995c937daee4542125db8a51becd1eac12",
+      "bytes": 8043,
+      "sameBytesAtLibraryV2_0_0": false,
+      "readExtent": "full",
+      "use": "Unchanged registry/role validator executed by the App harness"
+    },
+    {
+      "path": "tools/validation/build_workflow_index.py",
+      "gitMode": "100644",
+      "gitBlob": "04cee048f717207e343be362ef6623a23155dd39",
+      "sha256": "93ab1932b31f91cb6af8be1563073f75ee21e4ad101556e03d287c813acc9017",
+      "bytes": 21870,
+      "sameBytesAtLibraryV2_0_0": false,
+      "readExtent": "full",
+      "use": "Unchanged execution-companion parser, role sets and frontmatter reader (PyYAML)"
+    },
+    {
+      "path": "tools/validation/validate_workflow_metadata.py",
+      "gitMode": "100644",
+      "gitBlob": "6843cb809af3584c96065fd6a5d58efe6eca0df9",
+      "sha256": "177fbe5b90caae464685a464a4b46524042832b5d064cfae32eaa98d79b88235",
+      "bytes": 4216,
+      "sameBytesAtLibraryV2_0_0": false,
+      "readExtent": "full",
+      "use": "Unchanged per-workflow metadata validator; imports build_workflow_index"
+    },
+    {
+      "path": "tools/validation/fixtures/method_discovery_v1.json",
+      "gitMode": "100644",
+      "gitBlob": "09f02836d3bef41c9807ce83b31dbf058b272a94",
+      "sha256": "39bf26d89c74fa2dacf0dc4f9994a3e9f83c6db81128e83cef64d5d707b883cd",
+      "bytes": 6279,
+      "sameBytesAtLibraryV2_0_0": false,
+      "readExtent": "full",
+      "use": "Unchanged Library discovery fixture; role descriptors and execution cases"
+    },
+    {
+      "path": "tools/workflow_runtime/resolve_workflow.py",
+      "gitMode": "100644",
+      "gitBlob": "c704a7ba6e18171234280f33ad35a5aa73f484ca",
+      "sha256": "76449008a7a7ae4eb9fc17e9f26228794e9172fb04c6ba5d8ea5f7e1a3c271d3",
+      "bytes": 17550,
+      "sameBytesAtLibraryV2_0_0": false,
+      "readExtent": "full",
+      "use": "Unchanged method/role resolver and write-authority binding (stdlib only on the resolve() path)"
+    }
+  ]
+}

@@ -15,6 +15,8 @@ and `make_input_set.py` only in the archived source tree (`sgttomas/chirality@ar
 where their original Coordination inputs still exist. `eb1_check.py` only
 re-checks those documentary hashes and is not a recurring check. Current guidance shapes
 practice without changing the product's accepted output obligations.
+The current shared Library edition and its receiving account are in
+[`LIBRARY_V2_1_RECEIVING.md`](LIBRARY_V2_1_RECEIVING.md).
 
 
 - **Contribution:** DEL-10-01/EB-v0.4. It supersedes EB-v0.3 (sha256
