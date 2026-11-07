@@ -12,6 +12,47 @@ remain the record of their own dates. The 2026-11-04 repair of the index checks
 is described below. The manifests and locks are unchanged through main
 `f9dd4ef7`, and the regenerated member set equals the original one.
 
+## 2026-11-07 local association successor
+
+On App main `85505f95`, ten of the twelve missing-root rows still had no
+maintained association despite previously verified local byte matches. The
+explicit `chirality.app.transitive-runtime-notices/3` successor now records
+those ten **root candidates**, with source origins and unresolved scope kept in
+its rows. Historical `/2` indexes retain their reader/meaning. The original
+Cargo/npm member-set digests, graph generation receipt, manifests and locks
+are unchanged; `transitive.py associate-local` derives only this source-text
+join from the checked earlier graph, without running Cargo.
+
+| Current preparation piece | Count | Standing |
+|---|---:|---|
+| Locked crates with archive notice members | 173 | Unchanged input-archive facts |
+| Earlier received objc2 overview associations | 7 | Unchanged; overview is not full licence terms |
+| Newly associated retained root candidates | 10 | alloc-stdlib (1), jsonschema-regex/value (2), objc2-encode/exception-helper (2), five UNIC crates (5); all remain unqualified |
+| Rows with no retained root text | 2 | uuid-simd/vsimd; outref's same-size text has a different blob |
+| scheduler | 1 npm package | Installed-copy-only text remains unverified; sole approved HEAD gave no archive size |
+
+The four already-available distinct bodies are Dropbox LICENSE (from the exact
+alloc-no-stdlib locked archive), jsonschema LICENSE, and UNIC's Apache/MIT
+texts (reused existing uuid/serde notice assets). The existing objc2 overview
+also matches the additional source revision. This is content correspondence
+through retained public root metadata, not a new upstream download or a licence
+election. Exact roots, archive/index/asset identities and limits are in the
+[local association receipt](supplier-notice-associations/retained-root-associations-20261107/README.md)
+and its `proof.json`. UNIC COPYRIGHT.md is still missing, its crate VCS paths
+are absent, and objc2's full-terms/SDK caveat remains. Every new row remains in
+`missing_or_unverified`; no row is labelled archive-provided or fully covered.
+
+The fixed association manifest is source-hash-bound before any reference is
+opened. Each new row must equal its exact package/version/archive/declared-licence
+subject and fixed root/source/bytes/scope record. Source text uses the maintained
+no-follow regular-file reader and must match size, SHA-256 and Git blob. Wrong
+paths/revisions, altered limits, unknown subjects, links and text drift refuse.
+The new source file is prepared input only: no resource overlay or built
+candidate was changed. Existing historical bundle subjects remain untouched.
+
+The dated 2026-11-04 graph findings below keep their original evidence basis;
+the current remaining-input list at the end reflects this local advance.
+
 ## App: target/feature-selected dependency input graph
 
 [`app/packaging/notices/transitive.py`](../../../../app/packaging/notices/transitive.py)
@@ -137,19 +178,26 @@ joins.
 No retrieval is authorized by this account. Each item names the exact input;
 "size unknown" means not established locally.
 
-1. **App Rust crates without text (12).** The need is each upstream
-   repository's root licence file at the crate's recorded revision. File names
-   and sizes are unknown; public tree metadata for these six repo revisions
-   would establish them before any body request:
-   - `dropbox/rust-alloc-no-stdlib@6032b6a9` (alloc-stdlib, BSD-3-Clause: copyright notice required);
-   - `Stranger6667/jsonschema@21a061d6` (jsonschema-regex/-value);
-   - `madsmtm/objc2@8d214f54` (objc2-encode, objc2-exception-helper);
-   - `open-i18n/rust-unic@58786053` and `@8a6ce830` (the five unic crates);
-   - `Nugine/simd@d74c030d` (uuid-simd, vsimd).
-2. **npm `scheduler` 0.27.0 only.** The three direct packages already have
-   archive-verified texts. Verifying `scheduler`'s text needs its one lock
-   tarball (integrity `sha512-eNv+WrVb…`, size not established locally). Until
-   then it stays explicitly unverified.
+1. **Remaining root bodies: two files, 1,670 bytes; unapproved.**
+   - `Nugine/simd@d74c030d9dc4f3cae02146d1f497ff62726ef09a/LICENSE`,
+     1,062 B, blob `2c7eabb59093ea117d73b20effdd0414f87b2af2`, for
+     uuid-simd/vsimd. The retained outref member is blob `2ca354be…`, so it
+     cannot substitute.
+   - `open-i18n/rust-unic@5878605364af97a3358368a6eaef02104af2e016/COPYRIGHT.md`,
+     608 B, blob `0322ceec0b8f15aa2d74a6173c07cc8c6f3764b3`; the same blob/size
+     appears at `8a6ce83063d90b91ae2ce59eddb803edd393fca9`. Receive once if
+     approved; retain both revision correspondences.
+   - The ten retained root candidates now have maintained byte/source
+     associations, not full applicability/coverage. UNIC's absent crate paths,
+     copyright account and the objc2 overview/full-terms/Apple-SDK caveat remain
+     explicit. None of these is a new licence election.
+2. **npm `scheduler` 0.27.0 only.** The direct package texts remain
+   archive-verified. Its lock tarball is
+   `https://registry.npmjs.org/scheduler/-/scheduler-0.27.0.tgz`, integrity
+   `sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==`.
+   The sole permitted 2026-11-05 HEAD returned 200 without Content-Length.
+   Exact archive size remains unknown; no new metadata/body request or receipt
+   has occurred. Its installed text stays unverified.
 3. **Main and code-mode-host Rust dependencies.** These need `codex-rs/Cargo.lock`
    at `a956835d` (406,552 B, blob `19885ae9…`) plus the 160 workspace
    `Cargo.toml` manifests (178,197 B in total). Those resolve the linked macOS set;

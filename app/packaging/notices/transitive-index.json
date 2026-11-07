@@ -1,5 +1,5 @@
 {
- "format": "chirality.app.transitive-runtime-notices/2",
+ "format": "chirality.app.transitive-runtime-notices/3",
  "target": "aarch64-apple-darwin",
  "features": "custom-protocol,distribution-successor",
  "edges": "normal,no-proc-macro",
@@ -141,10 +141,23 @@
    "notice_members": [],
    "native_source_paths": [],
    "text": {
-    "kind": "missing",
+    "kind": "retained-root-texts",
     "repository": "https://github.com/dropbox/rust-alloc-no-stdlib",
     "vcs_revision": "6032b6a9b20e03737135c55a0270ccffcc1438ef",
-    "path_in_vcs": "alloc-stdlib"
+    "path_in_vcs": "alloc-stdlib",
+    "metadata_response_sha256": "11972c5791ff17fb4707fa757e5d4f071e0a1b144817fd231c6db9ccd437721d",
+    "notices": [
+     {
+      "root_path": "LICENSE",
+      "retained_path": "app/packaging/notices/retained/alloc-no-stdlib-2.0.4.LICENSE",
+      "size_bytes": 1483,
+      "sha256": "c0c56f26d9c051cac4d200c34c84e7ae9aaa853e01a982a1df08b09931e518ae",
+      "git_blob_sha1": "cd496ba72eb37e83a44958358d1f89a8a28cbc15",
+      "acquisition_origin": "retained alloc-no-stdlib2.0.4 locked-archive LICENSE member"
+     }
+    ],
+    "unresolved": [],
+    "standing": "Exact retained bytes match root metadata at the crate-reported revision; applicability and full coverage are not established."
    }
   },
   {
@@ -1788,10 +1801,23 @@
    "notice_members": [],
    "native_source_paths": [],
    "text": {
-    "kind": "missing",
+    "kind": "retained-root-texts",
     "repository": "https://github.com/Stranger6667/jsonschema",
     "vcs_revision": "21a061d68984c7b1fb1aad3398a260c585ca89a9",
-    "path_in_vcs": "crates/jsonschema-regex"
+    "path_in_vcs": "crates/jsonschema-regex",
+    "metadata_response_sha256": "52cd89c8a9674b1f5b7b36f5d1f9ddfb57312f5c43f6ab5b222763306049a742",
+    "notices": [
+     {
+      "root_path": "LICENSE",
+      "retained_path": "app/packaging/notices/assets/cargo/jsonschema/0.58.5/LICENSE",
+      "size_bytes": 1075,
+      "sha256": "117829c3ca21efb132d81a44b55363d395ab8eea18526873bc828da4c0e5f038",
+      "git_blob_sha1": "20c070f6401feda6f47be1b158f4f5a4a9d14062",
+      "acquisition_origin": "existing jsonschema locked-archive notice asset"
+     }
+    ],
+    "unresolved": [],
+    "standing": "Exact retained bytes match root metadata at the crate-reported revision; applicability and full coverage are not established."
    }
   },
   {
@@ -1803,10 +1829,23 @@
    "notice_members": [],
    "native_source_paths": [],
    "text": {
-    "kind": "missing",
+    "kind": "retained-root-texts",
     "repository": "https://github.com/Stranger6667/jsonschema",
     "vcs_revision": "21a061d68984c7b1fb1aad3398a260c585ca89a9",
-    "path_in_vcs": "crates/jsonschema-value"
+    "path_in_vcs": "crates/jsonschema-value",
+    "metadata_response_sha256": "52cd89c8a9674b1f5b7b36f5d1f9ddfb57312f5c43f6ab5b222763306049a742",
+    "notices": [
+     {
+      "root_path": "LICENSE",
+      "retained_path": "app/packaging/notices/assets/cargo/jsonschema/0.58.5/LICENSE",
+      "size_bytes": 1075,
+      "sha256": "117829c3ca21efb132d81a44b55363d395ab8eea18526873bc828da4c0e5f038",
+      "git_blob_sha1": "20c070f6401feda6f47be1b158f4f5a4a9d14062",
+      "acquisition_origin": "existing jsonschema locked-archive notice asset"
+     }
+    ],
+    "unresolved": [],
+    "standing": "Exact retained bytes match root metadata at the crate-reported revision; applicability and full coverage are not established."
    }
   },
   {
@@ -2339,10 +2378,25 @@
    "notice_members": [],
    "native_source_paths": [],
    "text": {
-    "kind": "missing",
+    "kind": "retained-root-texts",
     "repository": "https://github.com/madsmtm/objc2",
     "vcs_revision": "8d214f5477365ffcbcbb7de058c86ed9a518efb7",
-    "path_in_vcs": "crates/objc2-encode"
+    "path_in_vcs": "crates/objc2-encode",
+    "metadata_response_sha256": "6b582831f53cfcfdbe4da81df09d273bd4da743bb3103574bb426c2c686a0378",
+    "notices": [
+     {
+      "root_path": "LICENSE.md",
+      "retained_path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
+      "size_bytes": 1339,
+      "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+      "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
+      "acquisition_origin": "previously received exact objc2 root overview"
+     }
+    ],
+    "unresolved": [
+     "Root file is a licensing overview, not full terms; copyright coverage and Apple SDK caveat remain unresolved."
+    ],
+    "standing": "Exact retained bytes match root metadata at the crate-reported revision; applicability and full coverage are not established."
    }
   },
   {
@@ -2354,10 +2408,25 @@
    "notice_members": [],
    "native_source_paths": [],
    "text": {
-    "kind": "missing",
+    "kind": "retained-root-texts",
     "repository": "https://github.com/madsmtm/objc2",
     "vcs_revision": "8d214f5477365ffcbcbb7de058c86ed9a518efb7",
-    "path_in_vcs": "crates/objc2-exception-helper"
+    "path_in_vcs": "crates/objc2-exception-helper",
+    "metadata_response_sha256": "6b582831f53cfcfdbe4da81df09d273bd4da743bb3103574bb426c2c686a0378",
+    "notices": [
+     {
+      "root_path": "LICENSE.md",
+      "retained_path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
+      "size_bytes": 1339,
+      "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+      "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
+      "acquisition_origin": "previously received exact objc2 root overview"
+     }
+    ],
+    "unresolved": [
+     "Root file is a licensing overview, not full terms; copyright coverage and Apple SDK caveat remain unresolved."
+    ],
+    "standing": "Exact retained bytes match root metadata at the crate-reported revision; applicability and full coverage are not established."
    }
   },
   {
@@ -3682,10 +3751,34 @@
    "notice_members": [],
    "native_source_paths": [],
    "text": {
-    "kind": "missing",
+    "kind": "retained-root-texts",
     "repository": "https://github.com/open-i18n/rust-unic",
     "vcs_revision": "5878605364af97a3358368a6eaef02104af2e016",
-    "path_in_vcs": null
+    "path_in_vcs": null,
+    "metadata_response_sha256": "61285135b4b19eb259dc6c5e107512ad182bd43211c34872eb574e869ccd219e",
+    "notices": [
+     {
+      "root_path": "LICENSE-APACHE",
+      "retained_path": "app/packaging/notices/assets/cargo/uuid/1.23.1/LICENSE-APACHE",
+      "size_bytes": 10847,
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "git_blob_sha1": "16fe87b06e802f094b3fbb0894b137bca2b16ef1",
+      "acquisition_origin": "existing uuid locked-archive notice asset"
+     },
+     {
+      "root_path": "LICENSE-MIT",
+      "retained_path": "app/packaging/notices/assets/cargo/serde/1.0.229/LICENSE-MIT",
+      "size_bytes": 1023,
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "git_blob_sha1": "31aa79387f27e730e33d871925e152e35e428031",
+      "acquisition_origin": "existing serde locked-archive notice asset"
+     }
+    ],
+    "unresolved": [
+     "COPYRIGHT.md: 608-byte root blob0322ceec0b8f15aa2d74a6173c07cc8c6f3764b3 is not received.",
+     "Crate path_in_vcs is absent; root correspondence is not complete crate-scope applicability."
+    ],
+    "standing": "Exact retained bytes match root metadata at the crate-reported revision; applicability and full coverage are not established."
    }
   },
   {
@@ -3697,10 +3790,34 @@
    "notice_members": [],
    "native_source_paths": [],
    "text": {
-    "kind": "missing",
+    "kind": "retained-root-texts",
     "repository": "https://github.com/open-i18n/rust-unic",
     "vcs_revision": "5878605364af97a3358368a6eaef02104af2e016",
-    "path_in_vcs": null
+    "path_in_vcs": null,
+    "metadata_response_sha256": "61285135b4b19eb259dc6c5e107512ad182bd43211c34872eb574e869ccd219e",
+    "notices": [
+     {
+      "root_path": "LICENSE-APACHE",
+      "retained_path": "app/packaging/notices/assets/cargo/uuid/1.23.1/LICENSE-APACHE",
+      "size_bytes": 10847,
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "git_blob_sha1": "16fe87b06e802f094b3fbb0894b137bca2b16ef1",
+      "acquisition_origin": "existing uuid locked-archive notice asset"
+     },
+     {
+      "root_path": "LICENSE-MIT",
+      "retained_path": "app/packaging/notices/assets/cargo/serde/1.0.229/LICENSE-MIT",
+      "size_bytes": 1023,
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "git_blob_sha1": "31aa79387f27e730e33d871925e152e35e428031",
+      "acquisition_origin": "existing serde locked-archive notice asset"
+     }
+    ],
+    "unresolved": [
+     "COPYRIGHT.md: 608-byte root blob0322ceec0b8f15aa2d74a6173c07cc8c6f3764b3 is not received.",
+     "Crate path_in_vcs is absent; root correspondence is not complete crate-scope applicability."
+    ],
+    "standing": "Exact retained bytes match root metadata at the crate-reported revision; applicability and full coverage are not established."
    }
   },
   {
@@ -3712,10 +3829,34 @@
    "notice_members": [],
    "native_source_paths": [],
    "text": {
-    "kind": "missing",
+    "kind": "retained-root-texts",
     "repository": "https://github.com/open-i18n/rust-unic",
     "vcs_revision": "5878605364af97a3358368a6eaef02104af2e016",
-    "path_in_vcs": null
+    "path_in_vcs": null,
+    "metadata_response_sha256": "61285135b4b19eb259dc6c5e107512ad182bd43211c34872eb574e869ccd219e",
+    "notices": [
+     {
+      "root_path": "LICENSE-APACHE",
+      "retained_path": "app/packaging/notices/assets/cargo/uuid/1.23.1/LICENSE-APACHE",
+      "size_bytes": 10847,
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "git_blob_sha1": "16fe87b06e802f094b3fbb0894b137bca2b16ef1",
+      "acquisition_origin": "existing uuid locked-archive notice asset"
+     },
+     {
+      "root_path": "LICENSE-MIT",
+      "retained_path": "app/packaging/notices/assets/cargo/serde/1.0.229/LICENSE-MIT",
+      "size_bytes": 1023,
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "git_blob_sha1": "31aa79387f27e730e33d871925e152e35e428031",
+      "acquisition_origin": "existing serde locked-archive notice asset"
+     }
+    ],
+    "unresolved": [
+     "COPYRIGHT.md: 608-byte root blob0322ceec0b8f15aa2d74a6173c07cc8c6f3764b3 is not received.",
+     "Crate path_in_vcs is absent; root correspondence is not complete crate-scope applicability."
+    ],
+    "standing": "Exact retained bytes match root metadata at the crate-reported revision; applicability and full coverage are not established."
    }
   },
   {
@@ -3727,10 +3868,34 @@
    "notice_members": [],
    "native_source_paths": [],
    "text": {
-    "kind": "missing",
+    "kind": "retained-root-texts",
     "repository": "https://github.com/open-i18n/rust-unic",
     "vcs_revision": "8a6ce83063d90b91ae2ce59eddb803edd393fca9",
-    "path_in_vcs": null
+    "path_in_vcs": null,
+    "metadata_response_sha256": "cbfd9698f4176acca9caef5fd6ad9c3e87143956d737d26e7bc15167ed70561b",
+    "notices": [
+     {
+      "root_path": "LICENSE-APACHE",
+      "retained_path": "app/packaging/notices/assets/cargo/uuid/1.23.1/LICENSE-APACHE",
+      "size_bytes": 10847,
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "git_blob_sha1": "16fe87b06e802f094b3fbb0894b137bca2b16ef1",
+      "acquisition_origin": "existing uuid locked-archive notice asset"
+     },
+     {
+      "root_path": "LICENSE-MIT",
+      "retained_path": "app/packaging/notices/assets/cargo/serde/1.0.229/LICENSE-MIT",
+      "size_bytes": 1023,
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "git_blob_sha1": "31aa79387f27e730e33d871925e152e35e428031",
+      "acquisition_origin": "existing serde locked-archive notice asset"
+     }
+    ],
+    "unresolved": [
+     "COPYRIGHT.md: 608-byte root blob0322ceec0b8f15aa2d74a6173c07cc8c6f3764b3 is not received.",
+     "Crate path_in_vcs is absent; root correspondence is not complete crate-scope applicability."
+    ],
+    "standing": "Exact retained bytes match root metadata at the crate-reported revision; applicability and full coverage are not established."
    }
   },
   {
@@ -3742,10 +3907,34 @@
    "notice_members": [],
    "native_source_paths": [],
    "text": {
-    "kind": "missing",
+    "kind": "retained-root-texts",
     "repository": "https://github.com/open-i18n/rust-unic",
     "vcs_revision": "5878605364af97a3358368a6eaef02104af2e016",
-    "path_in_vcs": null
+    "path_in_vcs": null,
+    "metadata_response_sha256": "61285135b4b19eb259dc6c5e107512ad182bd43211c34872eb574e869ccd219e",
+    "notices": [
+     {
+      "root_path": "LICENSE-APACHE",
+      "retained_path": "app/packaging/notices/assets/cargo/uuid/1.23.1/LICENSE-APACHE",
+      "size_bytes": 10847,
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "git_blob_sha1": "16fe87b06e802f094b3fbb0894b137bca2b16ef1",
+      "acquisition_origin": "existing uuid locked-archive notice asset"
+     },
+     {
+      "root_path": "LICENSE-MIT",
+      "retained_path": "app/packaging/notices/assets/cargo/serde/1.0.229/LICENSE-MIT",
+      "size_bytes": 1023,
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "git_blob_sha1": "31aa79387f27e730e33d871925e152e35e428031",
+      "acquisition_origin": "existing serde locked-archive notice asset"
+     }
+    ],
+    "unresolved": [
+     "COPYRIGHT.md: 608-byte root blob0322ceec0b8f15aa2d74a6173c07cc8c6f3764b3 is not received.",
+     "Crate path_in_vcs is absent; root correspondence is not complete crate-scope applicability."
+    ],
+    "standing": "Exact retained bytes match root metadata at the crate-reported revision; applicability and full coverage are not established."
    }
   },
   {

@@ -9,11 +9,15 @@ observation of final linked contents.
 `check` (default) needs no Cargo. It cannot re-resolve the graph; it verifies the generation
 receipt's canonical member-set digests against the rows (so dropped or added rows fail), every
 row against Cargo.lock (version, checksum, source kind), the npm runtime closure recomputed from
-package-lock.json, and received-upstream-text associations against a fixed allowlist.
+package-lock.json, and received/retained upstream-text associations against fixed source allowlists.
+`associate-local` joins retained bytes to the already checked graph without running Cargo;
+legacy /2 indexes keep their historical interpretation. New /3 rows carry explicit scope limits.
 `check --cargo-home` additionally re-resolves the graph and re-reads every archive.
 Never fetches, builds or executes dependency code.
 """
 import argparse
+import copy
+import importlib.util
 import hashlib
 import json
 import os
@@ -26,7 +30,8 @@ import tomllib
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
-FORMAT = 'chirality.app.transitive-runtime-notices/2'
+FORMAT = 'chirality.app.transitive-runtime-notices/3'
+LEGACY_FORMAT = 'chirality.app.transitive-runtime-notices/2'
 TARGET = 'aarch64-apple-darwin'
 FEATURES = 'custom-protocol,distribution-successor'
 EDGES = 'normal,no-proc-macro'
@@ -40,6 +45,10 @@ OBJC2_METADATA = WORK + '/macos-runtime-license-metadata.json'
 RECEIVED_TEXTS = {'https://github.com/madsmtm/objc2': WORK + '/approved-receipt-20261102/sources/objc2/LICENSE.md'}
 NOTICE_NAME = re.compile(r'^(licen[cs]e|copying|notice|copyright|unlicense)', re.I)
 NATIVE = re.compile(r'\.(c|cc|cpp|cxx|h|hpp|S|s|asm)$')
+LOCAL_ASSOCIATIONS = 'app/packaging/notices/retained-root-associations.json'
+LOCAL_ASSOCIATIONS_SHA256 = '7d3f1b53acee0d2aea6cd423eacf46f6d3534884034758722cccf78f27aacb5c'
+_spec = importlib.util.spec_from_file_location('transitive_notice_files', HERE / 'retained_files.py')
+files = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(files)
 NPM_TEXT_KINDS = {'missing', 'direct-index-archive', 'installed-tree-only'}
 
 
@@ -157,6 +166,53 @@ def received_text(repo, entry):
     require(git_blob(target.read_bytes()) == text['git_blob_sha1'], 'received upstream text differs')
 
 
+def local_associations(repo):
+    """Reviewed fixed associations; disk/index inputs cannot select a new source path."""
+    raw = files.transfer(Path(repo).absolute() / LOCAL_ASSOCIATIONS, retain=True)[0]
+    require(sha(raw) == LOCAL_ASSOCIATIONS_SHA256, 'retained-root allowlist differs')
+    value = files.parse(raw)
+    require(value['format'] == 'retained-root-notice-associations/1', 'unknown local association format')
+    # The proof preserves source and archive origins; it is not runtime authority.
+    proof = files.transfer(Path(repo).absolute() / value['proof_path'], retain=True)[0]
+    require(sha(proof) == value['proof_sha256'], 'retained-root proof differs')
+    return {(a['subject']['package'], a['subject']['version']): a for a in value['associations']}
+
+
+def local_text(repo, entry, associations, *, prior=False):
+    selected = associations.get((entry['package'], entry['version']))
+    if selected is None:
+        return None
+    require(all(entry.get(k) == v for k, v in selected['subject'].items()), 'retained-root crate subject differs')
+    if prior:
+        require(entry['text'] == selected['prior_locator'], 'retained-root original source locator differs')
+    else:
+        require(entry['text'] == selected['text'], 'retained-root text association differs')
+    # Paths and byte expectations are fixed by the source allowlist before any open.
+    for notice in selected['text']['notices']:
+        raw, digest, size = files.transfer(Path(repo).absolute() / notice['retained_path'], retain=True)
+        require((size, digest, git_blob(raw)) == (notice['size_bytes'], notice['sha256'], notice['git_blob_sha1']),
+                'retained-root notice bytes differ')
+    return copy.deepcopy(selected['text'])
+
+
+def associate_local(index_path=INDEX, repo=REPO):
+    """Derive only local text associations; retain the previously resolved graph and receipt.
+
+    This is not a new Cargo resolution. The checked legacy index supplies the exact
+    graph; current lock/basis/member checks still apply before and after the join.
+    """
+    index = copy.deepcopy(check(index_path, repo))
+    associations = local_associations(repo)
+    for entry in index['cargo']:
+        if (entry['package'], entry['version']) not in associations:
+            continue
+        prior = index['format'] == LEGACY_FORMAT
+        text = local_text(repo, entry, associations, prior=prior)
+        entry['text'] = text
+    index['format'] = FORMAT
+    return index
+
+
 def read_crate(path, name, version):
     with tarfile.open(path) as archive:
         prefix = f'{name}-{version}/'
@@ -186,6 +242,7 @@ def archive_path(cargo_home, name, version):
 
 def generate(cargo_home, node_modules=None, repo=REPO):
     lock, known = cargo_lock(repo), known_objc2_blobs(repo)
+    associations = local_associations(repo)
     cargo = []
     for (name, version), license in sorted(cargo_runtime(repo, cargo_home).items()):
         locked = lock[(name, version)]
@@ -206,6 +263,9 @@ def generate(cargo_home, node_modules=None, repo=REPO):
         else:
             entry['text'] = {'kind': 'missing', 'repository': repository, 'vcs_revision': revision,
                              'path_in_vcs': vcs.get('path_in_vcs')}
+        if entry['text']['kind'] == 'missing':
+            local = local_text(repo, entry, associations, prior=True)
+            if local is not None: entry['text'] = local
         cargo.append(entry)
     direct = {c['package']: c for c in json.loads((HERE / 'index.json').read_bytes())['components'] if c['ecosystem'] == 'npm'}
     npm = []
@@ -234,12 +294,13 @@ def generate(cargo_home, node_modules=None, repo=REPO):
 def check(index_path=INDEX, repo=REPO, cargo_home=None):
     index = json.loads(Path(index_path).read_bytes())
     require(set(index) == {'format', 'target', 'features', 'edges', 'source_basis', 'generation', 'scope', 'cargo', 'npm'}
-            and index['format'] == FORMAT and index['target'] == TARGET and index['features'] == FEATURES
+            and index['format'] in (FORMAT, LEGACY_FORMAT) and index['target'] == TARGET and index['features'] == FEATURES
             and index['edges'] == EDGES and index['generation']['command'] == COMMAND, 'unknown transitive index shape')
     require(index['source_basis'] == basis(repo), 'manifests/locks changed; regenerate with `transitive.py generate`')
     require(index['generation']['member_set_sha256'] == member_digests(index['cargo'], index['npm']),
             'member set differs from the generation receipt (dropped, added or altered rows)')
     lock = cargo_lock(repo)
+    associations = local_associations(repo) if index['format'] == FORMAT else {}
     seen = set()
     for entry in index['cargo']:
         key = (entry['package'], entry['version'])
@@ -252,10 +313,14 @@ def check(index_path=INDEX, repo=REPO, cargo_home=None):
             continue
         require(entry['archive_sha256'] == locked['checksum'], 'crate checksum differs from lock: ' + key[0])
         kind = entry['text']['kind']
-        require(kind in ('archive-member', 'received-upstream-text', 'missing'), 'unknown cargo text kind')
+        require(kind in ('archive-member', 'received-upstream-text', 'missing') or
+                (index['format'] == FORMAT and kind == 'retained-root-texts'), 'unknown cargo text kind')
         require((kind == 'archive-member') == bool(entry['notice_members']), 'text kind contradicts members')
         if kind == 'received-upstream-text':
             received_text(repo, entry)
+        if index['format'] == FORMAT:
+            selected = local_text(repo, entry, associations)
+            require(kind != 'retained-root-texts' or selected is not None, 'retained-root subject is not allowed')
     require(lock_reachable(repo, seen) == seen, 'crate row is unreachable from the workspace root through Cargo.lock')
     expected_npm = npm_runtime(repo)
     require([[r['package'], r['version'], r['integrity'], r['declared_license']] for r in expected_npm] ==
@@ -279,8 +344,12 @@ def check(index_path=INDEX, repo=REPO, cargo_home=None):
         for entry in (e for e in index['cargo'] if e['source'] == 'registry'):
             path = archive_path(cargo_home, entry['package'], entry['version'])
             require(sha(path.read_bytes()) == entry['archive_sha256'], 'cached archive differs: ' + entry['package'])
-            require(read_crate(path, entry['package'], entry['version'])[0] == entry['notice_members'],
-                    'archive notice members differ: ' + entry['package'])
+            notices, _, vcs, manifest, _ = read_crate(path, entry['package'], entry['version'])
+            require(notices == entry['notice_members'], 'archive notice members differ: ' + entry['package'])
+            if entry['text']['kind'] == 'retained-root-texts':
+                text = entry['text']
+                require((manifest.get('repository', '').rstrip('/'), vcs.get('git', {}).get('sha1'), vcs.get('path_in_vcs')) ==
+                        (text['repository'], text['vcs_revision'], text['path_in_vcs']), 'retained-root archive source locator differs')
     return index
 
 
@@ -291,7 +360,10 @@ def summary(index):
         kinds[e['text']['kind']] = kinds.get(e['text']['kind'], 0) + 1
     return {'cargo_runtime_crates': len(registry), 'npm_runtime_packages': len(index['npm']), 'text_kinds': kinds,
             'missing_or_unverified': [f"{e['package']} {e['version']} ({e['text']['kind']})" for e in registry + index['npm']
-                                      if e['text']['kind'] in ('missing', 'installed-tree-only')],
+                                      if e['text']['kind'] in ('missing', 'installed-tree-only', 'retained-root-texts')],
+            'retained_root_associations': [{'package': e['package'], 'version': e['version'],
+                                            'unresolved': e['text']['unresolved'], 'standing': e['text']['standing']}
+                                           for e in registry if e['text']['kind'] == 'retained-root-texts'],
             'native_source_paths': {e['package']: e['native_source_paths'] for e in registry if e['native_source_paths']},
             'member_set_sha256': index['generation']['member_set_sha256'],
             'standing': 'dependency input inventory; not linked-content observation, bundled coverage or legal approval'}
@@ -303,12 +375,18 @@ def main():
     g = sub.add_parser('generate'); g.add_argument('--cargo-home', required=True, type=Path)
     g.add_argument('--node-modules', type=Path); g.add_argument('--out', type=Path, default=INDEX)
     c = sub.add_parser('check'); c.add_argument('--cargo-home', type=Path)
+    a = sub.add_parser('associate-local'); a.add_argument('--input', type=Path, default=INDEX)
+    a.add_argument('--out', type=Path, required=True)
     args = parser.parse_args()
     try:
         if args.command == 'generate':
             index = generate(args.cargo_home, args.node_modules)
             args.out.write_text(json.dumps(index, indent=1) + '\n')
             check(args.out, cargo_home=args.cargo_home)
+        elif args.command == 'associate-local':
+            index = associate_local(args.input)
+            args.out.write_text(json.dumps(index, indent=1) + '\n')
+            check(args.out)
         else:
             index = check(cargo_home=getattr(args, 'cargo_home', None))
         print(json.dumps(summary(index), indent=1))
