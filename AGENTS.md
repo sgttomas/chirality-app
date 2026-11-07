@@ -40,7 +40,7 @@ continuity and reserved choices, whatever role it entered through. Use only the
 hierarchy the undertaking needs. Managers retain ownership through repairs and
 integration; TASKs return their bounded contributions to the caller.
 
-The shared Chirality library for this workspace is `/Users/ryan/dev/chirality-library`.
+The shared Chirality Library for this workspace is `/Users/ryan/dev/chirality-library`.
 On another machine, use an explicitly selected checkout of
 `https://github.com/sgttomas/chirality-library`. Resolve the shared `agents/`, `workflows/`
 and `.agents/skills/` references in this section against that library, not this
@@ -66,15 +66,25 @@ returns and retain responsibility for how they fit together. Scratch holds
 evidence, outputs and at most one recovery note; governing instructions remain
 in repository files and assignment briefs.
 
-This App repository owns its work, commitments and Git lifecycle. Chirality's
-Root work locality, backlog, repository-specific duties and standing Git grant
-do not transfer here. Shared-library consultation does not authorize changing
-Chirality, SWBPIPE or another consumer, and adopting a shared method does not
-expand the authorized App scope.
+This App repository owns its work, commitments and Git lifecycle. The work
+locality, backlog, repository-specific duties and standing Git grant of the
+Library or Root do not transfer here. Shared-library consultation does not
+authorize changing the Library, Root, SWBPIPE or another consumer, and adopting
+a shared method does not expand the authorized App scope.
 
-Root (the shared Chirality library), App v4 and SWBPIPE each have their own
-top-level Agent 0. When work needs another project, send that project's Agent 0
-a message in T3 Code; it owns changes in its own repository.
+The Library (`sgttomas/chirality-library`), Root (`sgttomas/chirality`,
+private), App v4 and SWBPIPE each have their own top-level Agent 0. When work
+needs another project, send that project's Agent 0 a message in T3 Code; it
+owns changes in its own repository.
+
+Root measures and improves how agents deliver work across the Chirality
+projects and hosts shared services. Its agents may evaluate App from session
+telemetry, read-only; the owner reviews every finding. Root never changes App's
+files, branches or PRs; its only action here is opening a GitHub issue for an
+owner-approved finding cleared for publication. Routine adherence checks of
+App's deliverables stay with App's Agent 0 through a Library workflow. Records
+written before 2026-11-05 use "Root" for the former combined repository that
+held the Library; its old content is in Root's Git history, not on its `main`.
 
 ## Product assets and local tools
 
