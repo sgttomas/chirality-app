@@ -5,6 +5,136 @@ use std::{
     sync::Arc,
 };
 const CANARY: &str = "INVENTED_PRIVATE_PROVIDER_CANARY_481";
+
+fn access_settings_config(store: Value, plugins: Value) -> Value {
+    let metadata = json!({"name":{"type":"user","file":format!("/invented/{CANARY}/config.toml"),"profile":CANARY},"version":CANARY});
+    let config = json!({"cli_auth_credentials_store":store,"features":{"plugins":plugins},"developer_instructions":CANARY,"model_providers":{"private":{"experimental_bearer_token":CANARY}}});
+    json!({"config":config,"origins":{"cli_auth_credentials_store":metadata,"features.plugins":metadata},
+        "layers":[{"name":metadata["name"],"version":metadata["version"],"config":config}]})
+}
+
+#[test]
+fn access_provider_access_settings_actual_projection_is_allowlisted_and_has_no_auth_or_model_calls() {
+    let mut peer = Peer::new("invented-account-home");
+    for store in ["file", "keyring", "auto", "ephemeral"] {
+        peer.answer(access_settings_config(json!(store), json!(false)));
+        let view = peer.host.effective_access_settings_read_within(&peer.g, "/invented/work", "account", Duration::from_millis(30)).unwrap();
+        assert_eq!(view["credentialStore"]["value"], store);
+        assert_eq!(view["plugins"]["value"], false);
+        assert_eq!(view["credentialStore"]["source"], json!({"state":"reported","kind":"user","layerIndex":0,"originKey":"cli_auth_credentials_store"}));
+        assert_eq!(view["scope"]["generation"], peer.g);
+        assert_eq!(view["scope"]["modeHomeClass"], "account");
+        assert_eq!(view["scope"]["readRevision"], peer.host.configured_provider_revision(&peer.g, "/invented/work"));
+        let text = view.to_string();
+        for private in [CANARY, "config.toml", "developer_instructions", "model_providers", "profile", "version"] { assert!(!text.contains(private)); }
+        let frame = peer.frame();
+        assert_eq!(frame["method"], "config/read");
+        assert_eq!(frame["params"], json!({"cwd":"/invented/work","includeLayers":true}));
+        peer.safe();
+        if store == "file" {
+            if let Some(out) = std::env::var_os("CHIRALITY_TEST_OUTPUT_DIRECTORY") {
+                std::fs::write(std::path::PathBuf::from(out).join("access-settings.json"), serde_json::to_vec(&view).unwrap()).unwrap();
+            }
+        }
+    }
+    assert_eq!(peer.host.snapshot()["clientRequests"].as_array().unwrap().len(), 4);
+    assert!(peer.host.snapshot()["clientRequests"].as_array().unwrap().iter().all(|r|r["method"]=="config/read"));
+}
+
+#[test]
+fn access_provider_access_settings_missing_null_invalid_and_layer_only_values_stay_unknown() {
+    let peer = Peer::new("invented-account-home");
+    for mode in ["missing", "null", "invalid", "layer-only"] {
+        let mut result = access_settings_config(json!("file"), json!(false));
+        result["config"] = match mode {
+            "null" => json!({"cli_auth_credentials_store":null,"features":{"plugins":null}}),
+            "invalid" => json!({"cli_auth_credentials_store":CANARY,"features":{"plugins":"false"}}),
+            _ => json!({}),
+        };
+        // A present requirement is not an effective setting; layers are not defaults.
+        result["requirements"] = json!({"cliAuthCredentialsStore":"file"});
+        peer.answer(result);
+        let view = peer.host.effective_access_settings_read_within(&peer.g, "/invented/work", "account", Duration::from_millis(30)).unwrap();
+        for field in ["credentialStore", "plugins"] {
+            assert_eq!(view[field], json!({"state":"unknown","value":null,"source":{"state":"unknown"}}));
+        }
+        peer.safe();
+    }
+}
+
+#[test]
+fn access_provider_access_settings_provenance_requires_unique_enabled_matching_origin_and_value() {
+    let peer = Peer::new("invented-account-home");
+    for mode in ["absent", "version", "value", "disabled", "duplicate", "parent"] {
+        let mut result = access_settings_config(json!("file"), json!(true));
+        match mode {
+            "absent" => result["origins"] = json!({}),
+            "version" => result["layers"][0]["version"] = json!("different"),
+            "value" => result["layers"][0]["config"] = json!({"cli_auth_credentials_store":"auto","features":{"plugins":false}}),
+            "disabled" => result["layers"][0]["disabledReason"] = json!(CANARY),
+            "duplicate" => { let duplicate=result["layers"][0].clone(); result["layers"].as_array_mut().unwrap().push(duplicate); },
+            "parent" => { result["origins"]["features"] = result["origins"]["features.plugins"].clone(); result["origins"].as_object_mut().unwrap().remove("features.plugins"); },
+            _ => unreachable!(),
+        }
+        peer.answer(result);
+        let view = peer.host.effective_access_settings_read_within(&peer.g, "/invented/work", "api-key", Duration::from_millis(30)).unwrap();
+        assert_eq!(view["credentialStore"]["value"], "file");
+        assert_eq!(view["plugins"]["value"], true);
+        if mode == "parent" { assert_eq!(view["plugins"]["source"]["originKey"], "features"); }
+        else { for field in ["credentialStore","plugins"] { assert_eq!(view[field]["source"]["state"], "unknown"); } }
+        peer.safe();
+    }
+}
+
+#[test]
+fn access_provider_access_settings_source_and_newer_read_staleness_refuse_without_other_home_fallback() {
+    let peer = Peer::new("invented-account-home");
+    let mut other = peer.g.clone(); other["home"] = json!("other-home");
+    assert!(peer.host.effective_access_settings_read_within(&other,"/invented/work","account",Duration::from_millis(1)).is_err());
+    assert!(peer.host.effective_access_settings_read_within(&peer.g,"/invented/work","probe",Duration::from_millis(1)).is_err());
+    assert!(peer.host.snapshot()["clientRequests"].as_array().unwrap().is_empty());
+    for mode in ["home", "generation", "closed", "newer-read"] {
+        *peer.host.before_provider_wait.lock().unwrap() = Some(Box::new(move |host, source| {
+            host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":access_settings_config(json!("file"),json!(false))})).unwrap(),source.generation());
+            let mut i = host.inner.0.lock().unwrap();
+            match mode {
+                "home" => i.generation["home"] = json!("other-home"),
+                "generation" => i.generation["spawnCounter"] = json!(2),
+                "closed" => i.state = "stopped".into(),
+                _ => { i.provider_read_revisions.insert("/invented/work".into(),(source.generation.clone(),"newer-private-read".into())); },
+            }
+        }));
+        assert!(peer.host.effective_access_settings_read_within(&peer.g,"/invented/work","account",Duration::from_millis(30)).is_err());
+        let mut i = peer.host.inner.0.lock().unwrap(); i.generation = peer.g.clone(); i.state = "ready".into(); drop(i);
+        peer.safe();
+    }
+}
+
+#[test]
+fn access_provider_access_settings_errors_timeouts_late_frames_and_reflections_are_private() {
+    for mode in ["error", "malformed", "timeout", "reflection"] {
+        let peer = Peer::new("invented-account-home");
+        if mode != "timeout" {
+            *peer.host.before_provider_wait.lock().unwrap() = Some(Box::new(move |host, source| {
+                let frame = match mode {
+                    "error" => json!({"id":source.request_id(),"error":{"code":-32000,"message":CANARY,"data":CANARY}}),
+                    "malformed" => json!({"id":source.request_id(),"result":{"config":CANARY,"origins":{}}}),
+                    _ => { let mut value = access_settings_config(json!("file"),json!(false)); value["config"]["model_providers"]["private"]["experimental_bearer_token"] = json!("file"); json!({"id":source.request_id(),"result":value}) },
+                };
+                host.on_line(&serde_json::to_vec(&frame).unwrap(),source.generation());
+                assert!(!source.evidence().to_string().contains(CANARY));
+            }));
+        }
+        let error = peer.host.effective_access_settings_read_within(&peer.g,"/invented/work","account",Duration::from_millis(1)).unwrap_err();
+        assert!(!error.contains(CANARY));
+        let source = peer.host.inner.0.lock().unwrap().source_requests.values().next().unwrap().request.clone();
+        peer.host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":access_settings_config(json!("file"),json!(false))})).unwrap(),&peer.g);
+        peer.host.on_line(format!("private malformed {CANARY}").as_bytes(),&peer.g);
+        peer.safe();
+        assert!(!source.evidence().to_string().contains(CANARY));
+        assert!(!json!(peer.host.journal()).to_string().contains(CANARY));
+    }
+}
 #[test]
 fn access_provider_endpoint_generic_write_cannot_mint_private_context_or_send() {
     let peer = Peer::new("invented-home");

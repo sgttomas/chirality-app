@@ -51,6 +51,7 @@ pub(super) enum PrivateConfigPurpose {
     ConfigContinuation,
     EndpointOffer,
     CreateOffer,
+    AccessSettings,
 }
 
 // Publication is deliberately stricter than private operation eligibility.
@@ -100,13 +101,13 @@ fn public_endpoint(value: &Value) -> Option<&str> {
 
 /// Ephemeral, bounded source-known reflection exclusion. Never stored on Host,
 /// serialized, hashed, or treated as an oracle for hidden/covert credentials.
-struct PrivateReflections {
+pub(super) struct PrivateReflections {
     values: Vec<String>,
     nodes: usize,
     bytes: usize,
 }
 impl PrivateReflections {
-    fn new(response: &Value) -> Result<Self, ()> {
+    pub(super) fn new(response: &Value) -> Result<Self, ()> {
         let mut set = Self {
             values: Vec::new(),
             nodes: 0,
@@ -313,7 +314,7 @@ impl PrivateReflections {
         let lower = text.to_ascii_lowercase();
         self.values.iter().any(|value| lower.contains(value))
     }
-    fn excludes_value(&self, value: &Value) -> bool {
+    pub(super) fn excludes_value(&self, value: &Value) -> bool {
         match value {
             Value::String(text) => self.excludes(text),
             Value::Object(fields) => fields.values().any(|v| self.excludes_value(v)),
@@ -750,6 +751,7 @@ impl Host {
                     PrivateConfigPurpose::ConfigContinuation => json!({"kind":"app-rule","name":"private-config-current-object-observation"}),
                     PrivateConfigPurpose::EndpointOffer => json!({"kind":"person-directed","name":"provider-endpoint-offer"}),
                     PrivateConfigPurpose::CreateOffer => json!({"kind":"person-directed","name":"provider-create-offer"}),
+                    PrivateConfigPurpose::AccessSettings => json!({"kind":"person-directed","name":"effective-access-settings-observation"}),
                 },
                 false,
                 Some(generation),

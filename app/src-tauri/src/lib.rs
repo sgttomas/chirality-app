@@ -798,6 +798,8 @@ fn host_status(state: State<'_, AppState>) -> Value {
         home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
             .map(|cwd|home.host.configured_provider_revision(&s["generation"],cwd)).unwrap_or(Value::Null)
     } else { Value::Null };
+    s["accessSettingsReadRevision"] = home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
+        .map(|cwd|home.host.configured_provider_revision(&s["generation"],cwd)).unwrap_or(Value::Null);
 
     s["currentAppProjectContextLimit"] = json!(state.project_context_limit);
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
@@ -1080,6 +1082,20 @@ fn read_home_access(state:State<'_,AppState>,generation:Value,mode_home_class:St
     let result=runtime_session::read_native_home_access(&home,&generation);
     state.validate_home_source(&home)?;
     result
+}
+
+#[tauri::command(async)]
+fn read_effective_access_settings(state:State<'_,AppState>,generation:Value,mode_home_class:String)->Result<Value,String>{
+    let refused = || "Effective access settings unavailable; original home or source changed. Private diagnostics withheld.".to_owned();
+    let home=state.homes.lock().unwrap().active();
+    if home.class().as_str()!=mode_home_class || home.host.snapshot()["generation"]!=generation {return Err(refused());}
+    state.validate_home_source(&home).map_err(|_|refused())?;
+    let cwd=home.host_config.as_ref().map_err(|_|refused())?.cwd.to_str().ok_or_else(refused)?.to_owned();
+    let view=home.host.effective_access_settings_read(&generation,&cwd,&mode_home_class)?;
+    state.validate_home_source(&home).map_err(|_|refused())?;
+    let active=state.homes.lock().unwrap().active();
+    if !Arc::ptr_eq(&active,&home) || home.host.configured_provider_revision(&generation,&cwd)!=view["scope"]["readRevision"] {return Err(refused());}
+    Ok(view)
 }
 
 #[tauri::command(async)]
@@ -2839,7 +2855,7 @@ pub fn run() {
             claim_native_waiting_intent,
             checkpoint_native_waiting_ui,
             finish_native_waiting_intent,
-            read_home_access, read_configured_providers, provider_endpoint_offer, provider_endpoint_save, provider_endpoint_discard, provider_create_offer, provider_create_save, provider_create_discard,
+            read_home_access, read_effective_access_settings, read_configured_providers, provider_endpoint_offer, provider_endpoint_save, provider_endpoint_discard, provider_create_offer, provider_create_save, provider_create_discard,
             add_api_key,
             oauth_start,oauth_present,oauth_cancel,
             logout_home,

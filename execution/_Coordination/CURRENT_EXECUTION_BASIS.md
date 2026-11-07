@@ -1,5 +1,47 @@
 # App v4 current execution basis
 
+## Publication continuation and saved setup — 2026-11-07
+
+The owner directed Agent0 to continue toward publication readiness beyond
+individual test segments. Agent0 retains the full path through J1, J2,
+applicable recovery/access and installed evidence, SWBPIPE joining, notice and
+supplier closure, final candidate assembly and the owner decision packet.
+Completed segments are checkpoints, not instructions to pause the undertaking.
+Authentication, additional access/spend, changed commitments, acceptance and
+publication remain owner acts or decisions.
+
+Native Computer Use is available in this T3 session through the already
+installed SDK. The earlier assumption that another desktop-control tool was
+necessary was incorrect. The native route read the reviewed development App's
+controls and visibly activated one disclosure; no external-agent connection was
+needed. It is development tooling, not a product dependency or App v4 control
+plane. The two custom-driver attempts remain closed and their accounts unchanged.
+
+The [actual native setup account](../PKG-09/DEL-09-02/Work/J1_NATIVE_SETUP_ACTUAL_20261107.md)
+records successful exact project entry, full preview and native confirmation,
+App-owned settings/account creation, independently verified pending save and
+normal Quit on product `66d39df5` / executable `75e953fe`. A subsequent launch
+entered the workflow workspace and connected bundled Codex. These observations
+supersede the older unsaved-setup standing below; they do not close J1/J2.
+
+Before sign-in, Agent0 applied the owner's approved file-storage and plugins-off
+choices to the newly created private config while preserving its saved-reference
+inode. The original login-policy view reports requirements only. The subsequent
+explicit effective-settings control [actually reported file storage and plugins off](../PKG-09/DEL-09-02/Work/J1_EFFECTIVE_SETTINGS_ACTUAL_20261107.md)
+with a matching User-configuration source on development subject `84a261e9`.
+Sign-in remains unstarted: hosted CI exposed an inherited model-catalog error
+redaction race, now repaired with a deterministic failing-before/passing-after
+witness. The observed 84a artifact predates that repair and is not selected for
+credential/model use. A current repaired artifact and settings read precede the
+owner's personal sign-in. No authentication/model approval is requested again;
+the already approved scope remains unused.
+
+In parallel, packaging owns substantive local-only notice/source adoption from
+already retained exact inputs. Pending acquisition choices are not supplied by
+the owner's general continuation direction. Agent0 owns the actual accounts,
+coordination reconciliation and integration of both lanes. No old native stage,
+resource concurrence, source/pin qualification or publication approval is reused.
+
 ## Owner-directed resumption — 2026-11-07
 
 The owner explicitly resumed App work and changed the agent model selections.

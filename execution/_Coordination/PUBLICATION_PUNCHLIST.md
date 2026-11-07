@@ -6,6 +6,26 @@ is from `f664ee1d`, stapled DMG `34ab5661`. This is a finite coordination index.
 Requirements, implementation meaning and evidence stay in the owning deliverables.
 Neither a checked row nor this document supplies owner acceptance or release.
 
+Current result (2026-11-07): native Computer Use now works in the existing T3
+session. The reviewed development App accepted the exact invented project,
+completed its normal preview/confirmation and saved setup; the pending request
+was independently verified and normal Quit passed. Relaunch entered the
+workspace and connected bundled Codex. The [actual account](../PKG-09/DEL-09-02/Work/J1_NATIVE_SETUP_ACTUAL_20261107.md)
+records the result and limits. The later [effective-settings observation](../PKG-09/DEL-09-02/Work/J1_EFFECTIVE_SETTINGS_ACTUAL_20261107.md)
+reported file storage and plugins off from User configuration on source84a.
+Sign-in awaits the catalog-error privacy repair's current artifact/read; that
+84a observation supplies no credential custody or later-build result.
+J1's workflow/model/results and all of J2 remain open.
+
+The owner directed continued work toward publication readiness, not a stop after
+the next segment. Agent0 owns progression across the rows below. Agents perform
+development testing; owner product testing starts after Agent0's readiness
+recommendation. The custom-driver chain remains closed. Native Computer Use is
+development tooling only; another helper/control proof is not the next result.
+
+<details>
+<summary>Historical native attempts through the custom-driver stop (superseded standing)</summary>
+
 Current J1 standing (2026-11-07): the reviewed development App includes typed
 first-use project entry. After one capture repair, the final visual attempt
 showed the App correctly but established no visible effect from its one click.
@@ -149,6 +169,8 @@ integrated with their stated limits. The owning roles retain
 journey delivery beyond individual PRs; live activity is established from actual
 host returns, not this document's roster.
 
+</details>
+
 ## Audit of the previous release list
 
 CURRENT_EXECUTION_BASIS already listed five remaining results: desktop/native
@@ -170,13 +192,13 @@ public distribution; and the owner decision packet. That list was not completed.
 
 | ID | Result and finish condition | Standing / next action | Owning deliverables and delivery owner |
 |---|---|---|---|
-| P1 | Set up a project, select an existing workflow, supply inputs, run it to completion and find the results without agent interpretation of engineering controls. | OPEN. Current build includes typed project entry. The final visual attempt captured it, but one attempted click had no established effect. Normal closure was verified. Native tooling is stopped after two attempts and one repair; further native work needs new owner direction. Pending saved setup and useful-model work remain unobserved; tests/CI/helper rc0 do not establish J1 or qualification. | [J1](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j1--use-an-existing-workflow), DEL-02-02 with DEL-01-04/05; product manager, Agent 0 integration. |
+| P1 | Set up a project, select an existing workflow, supply inputs, run it to completion and find the results without agent interpretation of engineering controls. | OPEN. Setup/save/relaunch succeeded. On84a, the App reported actual file storage/plugins off with matching source. Next: integrate the catalog-error privacy repair, receive its current artifact/read, then owner sign-in and the approved real workflow/results. No credentials/model used yet; Agent0 owns continuation. | [J1](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j1--use-an-existing-workflow), DEL-02-02 with DEL-01-04/05; product manager, Agent 0 integration. |
 | P2 | Do useful work, create/trial/review/register a reusable workflow, return to unfinished work and later run the saved workflow with new inputs. | OPEN; fresh-trial/Continue-as model choice, trial/Bring-back guards, History landing and returning-draft guidance are integrated, with recorded renderer/source-test limits. The real-backend clean-trial join uses scripted replies. Actual useful create/register/resume/reuse remains unobserved and required before 4.0.0. | [J2](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j2--create-save-return-and-reuse), DEL-02-02; product manager, native examiner. |
-| P3 | Applicable candidate-bound request/approval, cancellation, interruption/recovery, close/reopen/Quit and three access-mode results, with failures repaired or explicitly returned for owner disposition. | OPEN; the native activation/occlusion loop remains closed and unresolved. Backend joins and the new build do not qualify native recovery/access. Runtime's exact remaining requirements, executable paths and input/authority boundaries are completed preparation. Native owns the linked first-use results, including #135 and frozen #136's exact-instance autonomous cleanup; initial-main/picker/setup capability and broader recovery/access remain open. Agent 0 owns next method selection; no owner regression execution or revival of the closed GUI loop is implied. | [Standalone qualification](../PKG-09/DEL-09-02/Work/STANDALONE_QUALIFICATION.md), DEL-01-01/02/03/04/05; native manager. |
+| P3 | Applicable candidate-bound request/approval, cancellation, interruption/recovery, close/reopen/Quit and three access-mode results, with failures repaired or explicitly returned for owner disposition. | OPEN. Native first-use controls, setup/save and normal close/reopen have actual development-subject observations. Broader recovery/access and applicable final-candidate evidence remain open; no production or three-access-mode qualification follows. Preserve the stopped custom-controller history and use the working native route for meaningful journey evidence. | [Standalone qualification](../PKG-09/DEL-09-02/Work/STANDALONE_QUALIFICATION.md), DEL-01-01/02/03/04/05; native manager. |
 | P4 | Actual installed S4/supplier custody and applicable SEAL-C enrollment/continuity evidence joined to the candidate. | OPEN; static joins are complete for b3dd4145, real installed/native results are not. Enrollment remains a concrete owner act. Rotation unavailable/SC-5 blocked is the accepted 4.0.0 limitation, not a pass. | [Signing join](../PKG-01/DEL-01-06/Work/SEAL_C_KEYCHAIN_SIGNING_JOIN.md), DEL-01-04/06 and DEL-09-02; runtime and packaging managers. |
 | P5 | Joined live SWBPIPE workflow with actual host/model/configuration, controlled application, outcomes and attributable person acceptance, plus applicable lifecycle/recovery evidence. | OPEN; component results do not close it. App Agent 0 coordinates with SWBPIPE Agent 0; no SWB implementation authority transfers here. | [Local host qualification](../PKG-09/DEL-09-07/Work/LOCAL_HOST_QUALIFICATION.md); examination consumer and external SWB owner. |
-| P6 | Qualified selected supplier pin and complete applicable shipped notice/source associations, with unresolved coverage explicitly resolved before release. | OPEN; #126's reviewed offline input inventory is integrated. Twelve Rust text gaps, scheduler's unverified text and the supplier-source edges remain explicit. This is preparation, not complete bundled coverage; no acquisition or closure is authorized by the inventory. | [Shipped notice/source account](../PKG-01/DEL-01-06/Work/SHIPPED_NOTICE_COVERAGE.md), DEL-01-01 and DEL-01-06; packaging with runtime qualification inputs. |
-| P7 | Package the finished source; verify resource/profile/supplier identity, sign/notarize/staple and perform the applicable installed/quarantine witness on that final subject. | COMPLETE only for retained signing/notary substeps; final product candidate remains OPEN. The eaf5d057 development build has matching static resources and only a linker ad-hoc signature. Its first-use launch/limited agent attempt is recorded above; those observations supply no production installation or qualification. It does not replace final production or quarantine evidence. | [Production input preparation](../PKG-01/DEL-01-06/Work/PRODUCTION_INPUT_PREPARATION.md), DEL-01-06; packaging manager. |
+| P6 | Qualified selected supplier pin and complete applicable shipped notice/source associations, with unresolved coverage explicitly resolved before release. | OPEN. Packaging is advancing justified associations from already retained exact local bodies. Acquisition-dependent texts, scheduler and supplier-source gaps remain explicit; local adoption is not full bundled coverage. Downloads still need the applicable exact owner approval. | [Shipped notice/source account](../PKG-01/DEL-01-06/Work/SHIPPED_NOTICE_COVERAGE.md), DEL-01-01 and DEL-01-06; packaging with runtime qualification inputs. |
+| P7 | Package the finished source; verify resource/profile/supplier identity, sign/notarize/staple and perform the applicable installed/quarantine witness on that final subject. | COMPLETE only for retained signing/notary substeps; final product candidate remains OPEN. Development subjects66d39/84a have matching static resources and their own setup/settings observations, with ad-hoc signatures. They supply no production installation or final quarantine qualification. Final assembly follows required product fixes and supplier/notice closure. | [Production input preparation](../PKG-01/DEL-01-06/Work/PRODUCTION_INPUT_PREPARATION.md), DEL-01-06; packaging manager. |
 | P8 | Present the exact final candidate, joined results, limits and continuing obligations for the owner's publication decision and separately applicable replacement decision. | OPEN; no release authorized. Preserve existing terms applicability and distribution `not_made` until actual owner act. | [Owner packet scope](../PKG-11/DEL-11-03/ScopeOfWork.md), DEL-09-12/11-01/11-03 with DEL-01-06; Agent 0 and owner. |
 
 ## How this constrains work

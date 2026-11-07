@@ -37,6 +37,7 @@ code_paths:
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/act_control.rs
 - app/src-tauri/src/access_provider.rs
+- app/src-tauri/src/access_settings.rs
 - app/src-tauri/src/access_provider_tests.rs
 - app/src-tauri/src/hosting.rs
 - app/src-tauri/src/lib.rs
