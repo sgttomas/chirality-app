@@ -1,5 +1,13 @@
 # Native visual session helper (development only)
 
+Later disposition (2026-11-07): the repaired helper's final session captured
+the App but established no visible effect from its single click. Normal
+original closure was verified. See
+[the final actual account](J1_VISUAL_SETUP_FINAL_ACTUAL_20261107T182502Z.md).
+Both attempts and the one repair are consumed. This custom control-tool path
+is stopped; no third attempt, input-mechanism change or further helper work is
+selected. Earlier preparation/review text below retains its dated meaning.
+
 Status on 2026-11-07 (updated): the helper at `eb488ce0` ran once; that first
 actual session stopped before any input because it captured the main display
 while the App window was on another display (`J1_VISUAL_SETUP_ACTUAL_20261107T172459Z.md`).
