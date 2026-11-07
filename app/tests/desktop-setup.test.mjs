@@ -316,7 +316,7 @@ async function mountedWelcome(view, handler, check) {
   const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
   const previous=window.__TAURI_INTERNALS__;const calls=[];
   window.__TAURI_INTERNALS__={invoke:async(command,args)=>{calls.push({command,args:structuredClone(args)});return handler(command,args);}};
-  try { await React.act(()=>root.render(React.createElement(FirstUseSetup,{view}))); await check(c,calls); }
+  try { await React.act(()=>root.render(React.createElement(React.StrictMode,null,React.createElement(FirstUseSetup,{view})))); await check(c,calls); }
   finally { await React.act(()=>root.unmount());document.body.removeChild(c);window.__TAURI_INTERNALS__=previous; }
 }
 test('first use: choose a project, start with new App-owned settings, review the host effects and confirm',async()=>{
@@ -334,8 +334,9 @@ test('first use: choose a project, start with new App-owned settings, review the
     assert.doesNotMatch(c.textContent.replace(/Technical details[^]*$/,''),/Retaining an account requires|owner-use development|walking skeleton/,'diagnostics stay in technical details');
     assert.match(guidance2(c).textContent,/Choose the folder you want to work in/);
     assert.equal(props(button(c,'Review setup')).disabled,true);
-    await press(c,'Choose project folder…');
-    assert.match(welcome.textContent,new RegExp('Chosen: '+textPath(next.project).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+    assert.equal(props(field(c,'Project folder')).value,'','no project location is proposed');
+    await press(c,'Browse…');
+    assert.equal(props(field(c,'Project folder')).value,textPath(next.project));
     assert.match(guidance2(c).textContent,/Ready to review\. Nothing is created or saved until you confirm/);
     await press(c,'Review setup');
     const effects=region(c,'What setup will do').textContent;
@@ -366,6 +367,141 @@ test('first use: no project, existing settings route, cancel and change keep cho
     await press(c,'Review setup');await press(c,'Change my choices');assert.equal(region(c,'What setup will do'),undefined);
     assert.deepEqual(calls.map(call=>call.command),['desktop_setup_preview','desktop_setup_prepare','desktop_setup_preview']);
   });
+});
+// Typed project folder: the same field shows and sends one project choice.
+const projectBytes=text=>({encoding:'unix_bytes',bytes:Array.from(new TextEncoder().encode(text))});
+const routeRadio=(c,start)=>nodes(c,'input').find(n=>props(n).type==='radio'&&n.parentNode.textContent.startsWith(start));
+const typedProject='/invented/My Project ~ $HOME/日本語 é e\u0301 😀 ';
+test('first use: a typed absolute project folder reaches each route\'s existing preview exactly as typed and saves only after review',async()=>{
+  const routes=[
+    {view:packet.initial,route:null,command:'desktop_setup_new_settings_preview',args:{projectPath:projectBytes(typedProject)},preview:packet.newSettings.preview,saved:packet.newSettings.saved},
+    {view:packet.retained.initial,route:' Keep my current sign-in',command:'desktop_setup_project_preview',args:{projectPath:projectBytes(typedProject)},preview:packet.retained.preview,saved:packet.retained.saved},
+    {view:packet.initial,route:' Use my existing Codex settings',command:'desktop_setup_preview',args:{sharedPaths:packet.inputs.shared,projectPath:projectBytes(typedProject),supplierSelection:packet.initial.supplier.selection},preview:packet.preview,saved:packet.saved},
+  ];
+  for(const r of routes) await mountedWelcome(r.view,(command,args)=>{
+    if(command===r.command){assert.deepEqual(args,r.args,'typed bytes are not trimmed, expanded or resolved');return r.preview;}
+    if(command==='desktop_setup_prepare'){assert.deepEqual(args,{previewToken:r.preview.token});return r.saved;}
+    assert.fail(command);
+  },async(c,calls)=>{
+    const input=field(c,'Project folder');
+    assert.equal(input.localName,'input');assert.equal(props(input).id,'first-use-project');
+    assert.match(region(c,'Welcome').textContent,/Type or paste the folder's full path, or use Browse… to choose it/);
+    assert.equal(props(button(c,'Browse…'))['aria-label'],'Browse for project folder');
+    await change(input,typedProject);
+    assert.equal(props(field(c,'Project folder')).value,typedProject);
+    assert.equal(props(field(c,'Project folder'))['aria-invalid'],undefined);
+    if(r.route) await React.act(()=>props(routeRadio(c,r.route)).onChange());
+    if(r.command==='desktop_setup_preview') for(const [i,label] of ['Your config.toml','Your AGENTS.md','Your skills folder'].entries())await change(field(c,label),textPath(packet.inputs.shared[i]));
+    assert.match(guidance2(c).textContent,/Ready to review/);
+    await press(c,'Review setup');assert.ok(region(c,'What setup will do'));
+    await press(c,r.preview.affirmative+'…');
+    assert.ok(region(c,'Setup saved'));
+    assert.deepEqual(calls.map(call=>call.command),[r.command,'desktop_setup_prepare']);
+  });
+});
+test('first use: invalid or incomplete project text cannot be reviewed, even by a retained Review handler',async()=>{
+  await mountedWelcome(packet.initial,command=>assert.fail(`no IPC for an incomplete project: ${command}`),async(c,calls)=>{
+    await change(field(c,'Project folder'),'/invented/valid');
+    const staleReview=props(button(c,'Review setup')).onClick;
+    for(const [text,words] of [['relative/dir',/full path, starting with \//],['~/Projects',/aren't expanded or looked up/],['$HOME/work',/full path, starting with \//],[' /invented/leading-space',/full path, starting with \//],['/invented/a\0b',/cannot be used in a folder path/],['/invented/\ud800',/incomplete character/],['/invented/\udc00',/incomplete character/]]){
+      await change(field(c,'Project folder'),text);
+      assert.equal(props(field(c,'Project folder')).value,text,'the literal text stays as typed');
+      assert.equal(props(field(c,'Project folder'))['aria-invalid'],true);
+      assert.match(props(field(c,'Project folder'))['aria-describedby'],/first-use-project-problem/);
+      assert.match(region(c,'Welcome').textContent,words);
+      assert.match(guidance2(c).textContent,/Check the project folder path/);
+      assert.equal(props(button(c,'Review setup')).disabled,true);
+      await React.act(async()=>{await props(button(c,'Review setup')).onClick();});
+    }
+    await change(field(c,'Project folder'),'');
+    assert.equal(props(field(c,'Project folder'))['aria-invalid'],undefined);
+    assert.match(guidance2(c).textContent,/Choose the folder you want to work in/);
+    assert.equal(props(button(c,'Review setup')).disabled,true);
+    await React.act(async()=>{await props(button(c,'Review setup')).onClick();await staleReview();});
+    assert.deepEqual(calls,[]);
+  });
+});
+test('first use: project edits and no-project invalidate a rendered or in-flight review',async()=>{
+  const next=packet.newSettings;let checking=deferred();
+  await mountedWelcome(packet.initial,(command,args)=>{
+    if(command==='desktop_setup_new_settings_preview')return checking.promise;
+    if(command==='desktop_setup_prepare')assert.fail('no confirmation of an invalidated review');
+    assert.fail(command);
+  },async(c,calls)=>{
+    await change(field(c,'Project folder'),'/invented/first');
+    let first;await React.act(()=>{first=props(button(c,'Review setup')).onClick();});
+    assert.equal(props(field(c,'Project folder')).disabled,true);
+    await change(field(c,'Project folder'),'/invented/second');
+    await React.act(async()=>{checking.resolve(next.preview);await first;});
+    assert.equal(region(c,'What setup will do'),undefined,'a review of the earlier text is not shown');
+    assert.equal(props(field(c,'Project folder')).value,'/invented/second');
+    checking=deferred();let second;await React.act(()=>{second=props(button(c,'Review setup')).onClick();});
+    await React.act(()=>props(button(c,'Continue without a project')).onClick());
+    await React.act(async()=>{checking.resolve(next.preview);await second;});
+    assert.equal(region(c,'What setup will do'),undefined);
+    assert.match(region(c,'Welcome').textContent,/No project for now/);
+    assert.equal(props(field(c,'Project folder')).value,'');
+    checking=deferred();checking.resolve(next.preview);
+    await press(c,'Review setup');assert.ok(region(c,'What setup will do'));
+    const staleConfirm=props(button(c,next.preview.affirmative+'…')).onClick;
+    await change(field(c,'Project folder'),'/invented/third');
+    assert.equal(region(c,'What setup will do'),undefined,'editing the project discards the rendered review');
+    assert.doesNotMatch(region(c,'Welcome').textContent,/No project for now/);
+    await React.act(async()=>{await staleConfirm();});
+    assert.deepEqual(calls.map(call=>[call.command,call.args.projectPath]),[
+      ['desktop_setup_new_settings_preview',projectBytes('/invented/first')],
+      ['desktop_setup_new_settings_preview',projectBytes('/invented/second')],
+      ['desktop_setup_new_settings_preview',null],
+    ]);
+  });
+});
+test('first use: Browse cancel keeps typed text; a picked folder sends its untouched native reference until the field is edited',async()=>{
+  const native={displayPath:'Selected folder with an unreadable name',nativePath:{encoding:'unix_bytes',bytes:[47,105,110,118,47,120,255]}};
+  let picked=null;
+  await mountedWelcome(packet.initial,command=>{
+    if(command==='desktop_setup_pick')return picked;
+    if(command==='desktop_setup_new_settings_preview')return packet.newSettings.preview;
+    assert.fail(command);
+  },async(c,calls)=>{
+    await change(field(c,'Project folder'),'/invented/typed');
+    await press(c,'Browse…');
+    assert.equal(props(field(c,'Project folder')).value,'/invented/typed','cancel keeps the typed choice');
+    picked=native;await press(c,'Browse…');
+    assert.equal(props(field(c,'Project folder')).value,native.displayPath);
+    await press(c,'Review setup');assert.ok(region(c,'What setup will do'));
+    assert.equal(props(field(c,'Project folder'))['aria-invalid'],undefined,'picked display text is not validated as a typed path');
+    await change(field(c,'Project folder'),'/invented/edited');
+    assert.equal(region(c,'What setup will do'),undefined);
+    await press(c,'Review setup');
+    await press(c,'Continue without a project');picked=native;await press(c,'Browse…');
+    assert.doesNotMatch(region(c,'Welcome').textContent,/No project for now/);
+    await press(c,'Review setup');
+    const previews=calls.filter(call=>call.command==='desktop_setup_new_settings_preview').map(call=>call.args.projectPath);
+    assert.deepEqual(previews,[native.nativePath,projectBytes('/invented/edited'),native.nativePath],'the display text is never re-encoded as the picked reference');
+  });
+});
+test('first use: a later project edit or no-project supersedes an in-flight Browse',async()=>{
+  const native={displayPath:'/invented/picked',nativePath:projectBytes('/invented/picked')};
+  for(const later of ['typed','none']){
+    const picking=deferred();
+    await mountedWelcome(packet.initial,command=>{
+      if(command==='desktop_setup_pick')return picking.promise;
+      if(command==='desktop_setup_new_settings_preview')return packet.newSettings.preview;
+      assert.fail(command);
+    },async(c,calls)=>{
+      let pending;await React.act(()=>{pending=props(button(c,'Browse…')).onClick();});
+      assert.equal(props(button(c,'Review setup')).disabled,true);assert.equal(props(button(c,'Browse…')).disabled,true);
+      if(later==='typed') await change(field(c,'Project folder'),'/invented/typed-later');
+      else await React.act(()=>props(button(c,'Continue without a project')).onClick());
+      await React.act(async()=>{picking.resolve(native);await pending;});
+      assert.equal(props(field(c,'Project folder')).value,later==='typed'?'/invented/typed-later':'');
+      await press(c,'Review setup');
+      assert.deepEqual(calls,[
+        {command:'desktop_setup_pick',args:{kind:'project'}},
+        {command:'desktop_setup_new_settings_preview',args:{projectPath:later==='typed'?projectBytes('/invented/typed-later'):null}},
+      ],'the late picker result never replaces the later choice');
+    });
+  }
 });
 test('the mounted App shows only the welcome while setup is required and keeps confirmation content visible',async()=>{
   const host={state:'setup-required',generation:null,threads:[],desktopSetup:packet.initial,roleLimits:{account:{roles:[]}}};

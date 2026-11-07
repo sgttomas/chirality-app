@@ -626,3 +626,98 @@ Checked by `app/tests/ordinary-send-hold.test.mjs` and
 mutation-checked: the press-time hold, a missing reply, the reveal, and the
 composer focus. No native, DTO or error change. Backend errors are unchanged
 and #118 stays native binding only.
+
+## First use: type or paste the project folder (2026-11-07)
+
+Source basis: actual main `92649294f2481fa9a10277a2e2c5bd19049a39bd`;
+`FirstUse.tsx`, `DesktopSetupPanel.tsx` and `App.tsx` matched the retained
+`eaf5d057` product before this change. Root selected this ordinary product
+route for entering a known folder, without treating the bounded CBD picker
+diagnostic as an OS defect or permission to retry it. Its actual account and
+frozen inputs remain under root ownership.
+
+Until now, the welcome's project step offered only the native picker or
+"Continue without a project". The typed field in the admitted Desktop setup
+panel is hidden during first use. **Your project folder** now has a labelled
+**Project folder** field where a person types or pastes the folder's full path,
+with **Browse…** (the same native picker) beside it and "Continue without a
+project" below. The help line says to type or paste the full path or use
+Browse…, and that the folder's existence and use are checked at review and
+nothing is created. No location is proposed or filled in.
+
+There is one project choice: unset, no project, typed text or a picked folder.
+The field and the review payload both come from that one choice:
+- **Typed text** is sent as its exact UTF-8 bytes. It is never trimmed, and
+  `~` or `$VAR` are not expanded. Relative paths are not resolved, and nothing
+  is created.
+- **A picked folder** sends the picker's `nativePath` untouched, including
+  non-UTF-8 bytes. Its `displayPath` is only shown. Editing the field turns
+  the choice into typed text.
+- **No project** sends `null`. Typing or browsing leaves it.
+
+Locally, review needs the text to start with `/`, contain no NUL and be
+losslessly encodable as UTF-8. An incomplete surrogate is refused rather than
+silently replaced by the encoder. Otherwise
+the field is marked invalid, an inline note explains, the next-step line says
+to check the path and Review stays disabled. The literal text is never
+changed. Whether the folder exists, its type and access remain the host's
+existing preview checks.
+
+Each project edit, no-project choice, picker result or route change bumps the
+existing revision guard and discards the rendered review. Late picker and
+preview results are ignored. Review and confirmation handlers kept from an
+earlier render act only while no revision has changed. The routes and
+commands are unchanged:
+- `desktop_setup_new_settings_preview {projectPath}` for new settings;
+- `desktop_setup_project_preview {projectPath}` to keep the current sign-in;
+- `desktop_setup_preview {sharedPaths, projectPath, supplierSelection}` for
+  existing settings;
+- `desktop_setup_prepare {previewToken}` for native confirmation.
+
+Saving and the pending next-launch state are also unchanged. There is no new
+IPC, backend or native change; the field uses existing path-field typography
+and a bounded inline width, with no stylesheet or palette change.
+
+Checks: five new mounted `FirstUseSetup` tests in
+`app/tests/desktop-setup.test.mjs`, using the executed Rust
+`mounted_setup_packets` and the ordinary IPC mock. They cover:
+- typed text with spaces, non-ASCII, a literal `~` and `$HOME` inside an
+  absolute name, combining characters and an astral character reaches each
+  route's exact preview, and saves only through the reviewed token;
+- empty, relative, `~/…`, `$HOME/…`, leading-space, NUL and incomplete-surrogate
+  text never preview, even through retained handlers;
+- edits and no-project discard a rendered or in-flight review, and a stale
+  confirmation does nothing;
+- Browse cancel keeps typed text, and the picked non-UTF-8 reference is sent
+  regardless of the display;
+- a later edit or no-project supersedes an in-flight Browse.
+
+The first new-settings journey test now uses **Browse…** and the field value.
+All mounted welcome cases run under the production React StrictMode, including
+its initial effect cleanup/replay. The non-UTF-8 picker test deliberately supplies
+a display string without a leading slash; the native reference still goes
+untouched to preview. Editing that display deliberately selects typed input.
+The owner-selected implementation TASK used Claude Opus 5.5/high, fastMode
+false. Its first checked FirstUse source was SHA256
+`5c6641aa125a2ebec02168154009d4ced9663cd8d968f4ea7fccb5a028b5c3de`.
+A combined mutation of that source made three of the new tests fail: it dropped
+the stale-handler guards, re-encoded `displayPath` and removed `/`/NUL checks.
+This is a combined sensitivity result, not proof of each mutation separately.
+The manager then rejected non-lossless Unicode, strengthened the literal/picker
+cases and mounted all welcome cases under StrictMode. The final focused suite
+passed 19/19, zero failures/skips, exit 0. Deliverable structure reports 41
+deliverables and zero errors; whitespace checks pass. No broad suite or product
+build ran.
+Child logs (`run1.log`, `mutation.log`, `deliverables-check.log`) and manager
+logs are retained at `/tmp/firstuse-typed-task.xVEILh`; the strengthened result
+is `manager-final-strengthened.log`. The preceding `manager-final.log` checked
+the unchanged child result after a manager edit command used the wrong working
+directory; the edit was corrected before the strengthened run. This earlier
+log does not establish the later source. Root commissions independent review
+of the final contribution; no independent review is claimed here.
+
+This is source implementation with mounted-packet tests only. It does not
+prove the field's native accessibility exposure, actual setup on a real
+folder, model behaviour or the J1 journey. Those wait for a fresh build that
+root has reviewed and an owner GO. Scope, dependencies, acceptance and holds
+are unchanged.
