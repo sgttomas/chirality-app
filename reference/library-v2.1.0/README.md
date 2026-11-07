@@ -37,7 +37,8 @@ the App harness executes and nothing more:
 - `agents/registry.json` and the five `agents/AGENT_*.md` files it names. The
   unchanged validator requires the complete registered roster; the resolver
   fingerprints the selected role's instruction. The four original role files are
-  byte-identical to 2.0.0.
+  byte-identical to Library 2.0.0; this comparison does not identify App-authored
+  shipped role guidance.
 - `tools/validation/validate_agent_instructions.py`: registry/role validator.
 - `tools/validation/build_workflow_index.py`: execution-companion parser and role
   sets. It needs PyYAML, an existing repository-check dependency.
@@ -66,3 +67,8 @@ git -C <library-clone> cat-file blob c35b7bbc463f81c1fed566c744ea49d168d29eee:<p
 
 A later edition is received deliberately: a new directory and manifest, not
 an in-place replacement of these bytes.
+
+Later development notice `380eb2a0862984c956235d5789c135054773b60e` concerns
+an unpublished coordination-method change. It is a separate, unselected candidate;
+this receiving and its fixture remain bound to released c35. See the owning
+account for its notice-only standing.

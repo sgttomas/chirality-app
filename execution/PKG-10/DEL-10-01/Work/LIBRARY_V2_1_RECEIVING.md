@@ -165,3 +165,23 @@ manager test refinement, the focused harness again passed 38/38 (log
 `/tmp/app-lib21-scratch.BpunGI/manager-adoption.log`). The earlier 119-test
 repository run remains applicable to the unchanged existing consumers. No build,
 native or model qualification is inferred.
+
+## Later method candidate (not selected)
+
+App Agent 0 relayed Library development main
+`380eb2a0862984c956235d5789c135054773b60e` (PR9 checked `8d92051`): a later,
+unpublished coordinated-knowledge-work WORKFLOW/REVIEW-NOTES and DEL04-02 Work
+increment concerning need-based staffing/context/completion and proportionate
+recovery. This is the supplied notice only, not a substantive read or adoption
+of those bytes. The selected released edition remains `library-v2.1.0` at c35;
+its coordination method and all 11 compatibility fixture files are unchanged.
+No additional method eligibility, private Root service or App custody/safety
+waiver follows. A later method adoption requires its own source-qualified choice.
+
+The product-retention comparison was checked against actual App main
+`2b5134f61b411de7e5dc82e8b726370e77b79aee`, not inferred from an old copied
+roster. At that source, `roles.json` is SHA256
+`15fa4ca9d30f391a0b4c606b374b6255ab31bc994cf4a0a298907f786844f7d4`,
+and every packaged guidance file matches its actual source-binding digest.
+The four unchanged Library role files described above compare Library 2.0.0
+with 2.1.0; that equality is not a comparison with App-authored shipped guidance.
