@@ -13,6 +13,20 @@ const Effect = ({ text }: { text: string }) => {
   return <>{text.slice(0, cut)}<code className="first-use-path">{text.slice(cut)}</code></>;
 };
 const typedLocation = (text: string): Location => ({ displayPath: text, nativePath: { encoding: "unix_bytes", bytes: Array.from(new TextEncoder().encode(text)) } });
+/**
+ * The one project choice. The field shows and the review sends from this same
+ * value: typed text is sent exactly as typed (never trimmed, expanded,
+ * resolved or created); a picked folder keeps the picker's native reference
+ * untouched until the person edits the field, which makes it typed text.
+ */
+type ProjectChoice = { kind: "unset" } | { kind: "none" } | { kind: "typed"; text: string } | { kind: "picked"; location: Location };
+/** Local shape only; whether the folder exists and can be used is the host's review. */
+const typedProblem = (text: string) =>
+  text === "" ? null
+  : text.includes("\0") ? "This path contains a character that cannot be used in a folder path. Remove it or choose Browse…."
+  : new TextDecoder("utf-8", { ignoreBOM: true }).decode(new TextEncoder().encode(text)) !== text ? "This path contains an incomplete character. Enter or paste it again, or choose Browse…."
+  : !text.startsWith("/") ? "Use the folder's full path, starting with /. Paths such as ~/Projects or Projects/app aren't expanded or looked up."
+  : null;
 const SHARED = [
   { label: "Your config.toml", kind: "config" },
   { label: "Your AGENTS.md", kind: "agents" },
@@ -26,8 +40,7 @@ const SHARED = [
  * confirms in the native dialog. Nothing is saved, signed in or started here.
  */
 export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
-  const [project, setProject] = useState<Location | null>(null);
-  const [noProject, setNoProject] = useState(false);
+  const [project, setProject] = useState<ProjectChoice>({ kind: "unset" });
   const [route, setRoute] = useState<"new" | "existing" | "keep">("new");
   const [paths, setPaths] = useState<Array<Location | null>>([null, null, null]);
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -47,15 +60,22 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
   const begin = (text: string) => { if (pending.current) return false; pending.current = true; setBusy(true); setProgress(text); setMessage(""); setFailed(false); return true; };
   const finish = () => { pending.current = false; if (mounted.current) { setBusy(false); setProgress(""); } };
   const changed = () => { revision.current++; setPreview(null); setMessage(""); };
+  // Handlers retained from an earlier render act only while nothing has changed since.
+  const seen = revision.current;
+  const current = () => seen === revision.current;
   const fail = (error: unknown) => { if (mounted.current) { setFailed(true); setMessage(String(error)); } };
 
   const shown = { ...view, pending: saved?.pending ?? view.pending, retainProject: saved?.retainProject ?? view.retainProject };
   const keepAvailable = shown.retainProject?.available === true;
-  const projectChosen = noProject || !!project?.displayPath;
+  const noProject = project.kind === "none";
+  const projectText = project.kind === "typed" ? project.text : project.kind === "picked" ? project.location.displayPath : "";
+  const projectProblem = project.kind === "typed" ? typedProblem(project.text) : null;
+  const projectChosen = noProject || project.kind === "picked" || (project.kind === "typed" && project.text !== "" && !projectProblem);
   const routeReady = route === "new" || route === "keep" ? true : paths.every(p => !!p?.displayPath);
   const ready = !busy && !shown.custodyProblem && projectChosen && routeReady && (route !== "keep" || keepAvailable);
   const next = busy ? progress
     : shown.pending ? "Setup is saved. Quit Chirality and open it again to start working."
+    : projectProblem ? "Check the project folder path using the guidance below it."
     : !projectChosen ? "Choose the folder you want to work in, or continue without a project."
     : !routeReady ? "Choose your config.toml, AGENTS.md and skills folder, or start with new settings."
     : "Ready to review. Nothing is created or saved until you confirm.";
@@ -67,16 +87,18 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
       const selected = await invoke<Location | null>("desktop_setup_pick", { kind });
       if (mounted.current && selected && original === revision.current) {
         changed();
-        if (index === undefined) { setProject(selected); setNoProject(false); }
+        if (index === undefined) setProject({ kind: "picked", location: selected });
         else setPaths(current => current.map((p, i) => i === index ? selected : p));
       }
     } catch (error) { fail(error); }
     finally { finish(); }
   };
   const review = async () => {
-    if (!ready || !begin("Checking your choices…")) return;
+    if (!ready || !current() || !begin("Checking your choices…")) return;
     const original = revision.current;
-    const projectPath = noProject ? null : project?.nativePath ?? null;
+    const projectPath = project.kind === "picked" ? project.location.nativePath
+      : project.kind === "typed" ? typedLocation(project.text).nativePath
+      : null;
     setPreview(null);
     try {
       const result = route === "new" ? await invoke<Preview>("desktop_setup_new_settings_preview", { projectPath })
@@ -87,7 +109,7 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
     finally { finish(); }
   };
   const confirm = async () => {
-    if (!preview || !begin("Waiting for your confirmation in the App's dialog…")) return;
+    if (!preview || !current() || !begin("Waiting for your confirmation in the App's dialog…")) return;
     try {
       const result = await invoke<DesktopSetupView | { state: string }>("desktop_setup_prepare", { previewToken: preview.token });
       if (!mounted.current) return;
@@ -110,10 +132,16 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
     <ol className="first-use-steps">
       <li><h2>Your project folder</h2>
         <p>The folder you want to work in. Workflows are kept in its <code>.chirality</code> folder, and work you run there writes its results there.</p>
-        {project && !noProject && <p>Chosen: <code>{project.displayPath}</code></p>}
+        <p><label htmlFor="first-use-project">Project folder</label>{" "}
+          <input id="first-use-project" aria-label="Project folder" value={projectText} disabled={busy} spellCheck={false} autoCapitalize="off" autoCorrect="off"
+            placeholder="/full/path/to/your/project" style={{ width: "min(100%, 30rem)", fontFamily: "var(--font-code)" }}
+            aria-invalid={projectProblem ? true : undefined} aria-describedby={projectProblem ? "first-use-project-problem first-use-project-help" : "first-use-project-help"}
+            onChange={event => { changed(); setProject({ kind: "typed", text: event.target.value }); }}/>{" "}
+          <button className={projectChosen ? "" : "setup-primary"} aria-label="Browse for project folder" disabled={busy} onClick={() => { void pick("project"); }}>Browse…</button></p>
+        {projectProblem && <p id="first-use-project-problem" className="setup-guidance">{projectProblem}</p>}
+        <p id="first-use-project-help"><small>Type or paste the folder's full path, or use Browse… to choose it. Whether the folder exists and can be used is checked when you review; nothing is created.</small></p>
         {noProject && <p>No project for now. You can still have conversations, and choose a project later in Desktop setup.</p>}
-        <p><button className={projectChosen ? "" : "setup-primary"} disabled={busy} onClick={() => { void pick("project"); }}>{project ? "Choose a different folder…" : "Choose project folder…"}</button>{" "}
-          {!noProject && <button disabled={busy} onClick={() => { changed(); setNoProject(true); setProject(null); }}>Continue without a project</button>}</p>
+        {!noProject && <p><button disabled={busy} onClick={() => { changed(); setProject({ kind: "none" }); }}>Continue without a project</button></p>}
       </li>
       <li><h2>Codex settings</h2>
         <fieldset disabled={busy} className="first-use-routes"><legend className="visually-plain">How Codex is set up for this App</legend>
