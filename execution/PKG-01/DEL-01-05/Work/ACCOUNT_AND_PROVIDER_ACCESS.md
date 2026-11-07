@@ -995,15 +995,26 @@ native versions, arbitrary origin/layer data and diagnostics remain private;
 the existing response-wide sensitive-reflection exclusion also applies. Raw
 configuration stays out of public journals, request evidence and the webview.
 
-The UI discards readings on home/navigation/generation changes and hides
-them when a newer configuration read supersedes their original receipt.
-Failed refreshes do not restore an earlier reading. This is a source-bound
+The UI discards readings on home/navigation/generation changes and permanently
+retires a displayed receipt when a newer configuration read supersedes it.
+An obsolete status snapshot cannot revive it. Pending reads retain the revisions
+observed while awaiting their reply, and their explicit status refresh cannot
+overwrite a newer App observation. Failed refreshes do not restore an earlier reading. This is a source-bound
 snapshot of what Codex reported, not a continuous freshness guarantee,
 credential-custody witness, file/keychain effect, or plugin/network behavior.
 Offline invented-peer privacy/staleness and mounted-control regressions cover
 the projection and display; actual supplier exposure and native use remain
 unrun for this change. Existing ScopeOfWork acceptance and dependency
 conditions remain unchanged.
+
+Independent review identified a same-source R1→R2→R1 status replay that could
+revive a superseded receipt. Agent0 repaired it directly with irreversible
+receipt retirement and an owning refresh guard. Three mounted regressions
+reproduce that revival, an intervening revision during a delayed native read,
+and a late explicit refresh overwriting a newer App status. All three fail on
+the reviewed source; all seven focused mounted cases and TypeScript pass on the
+repair. The unchanged Rust privacy/source checks are reused. Actual supplier
+field exposure, native use and credential custody remain unproved.
 
 ### 7.1 OAuth operational control and pending presentation (CC-ACCESS-OAUTH-CONTROL-CUSTODY)
 

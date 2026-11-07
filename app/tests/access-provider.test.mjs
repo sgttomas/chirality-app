@@ -75,6 +75,17 @@ test('effective access settings retire on newer reads, home changes and replacem
   assert.doesNotMatch(c.textContent,/Credential storage: file/);
  });
 });
+test('effective access settings cannot revive after an obsolete status revision returns',async()=>{
+ await mountedSettings(async()=>structuredClone(settingsPacket),async(c,calls,update)=>{
+  await press(c,'Read effective storage and plugin settings');
+  assert.match(c.textContent,/Credential storage: file/);
+  await update({...settingsHost(),accessSettingsReadRevision:'newer-read'});
+  assert.doesNotMatch(c.textContent,/Credential storage: file/);
+  await update({...settingsHost(),accessSettingsReadRevision:settingsPacket.scope.readRevision});
+  assert.doesNotMatch(c.textContent,/Credential storage: file/,'a delayed status cannot restore the retired observation');
+  assert.equal(calls.length,1);
+ });
+});
 test('effective access settings late reply cannot survive navigation away and back or a changed source',async()=>{
  for(const change of ['home','generation','navigation']) {
   let release,pending;
@@ -90,6 +101,17 @@ test('effective access settings late reply cannot survive navigation away and ba
    assert.equal(calls.length,1);
   });
  }
+});
+test('effective access settings delayed read remembers an intervening revision',async()=>{
+ let release,pending;
+ await mountedSettings(()=>new Promise(resolve=>{release=resolve;}),async(c,calls,update)=>{
+  await React.act(()=>{pending=props(button(c,'Read effective storage and plugin settings')).onClick();});
+  await update({...settingsHost(),accessSettingsReadRevision:'newer-read'});
+  await update({...settingsHost(),accessSettingsReadRevision:settingsPacket.scope.readRevision});
+  await React.act(async()=>{release(structuredClone(settingsPacket));await pending;});
+  assert.doesNotMatch(c.textContent,/Credential storage: file/,'an old status must not erase an intervening superseding read');
+  assert.equal(calls.length,1);
+ });
 });
 test('actual refusal stays safe in current source JSON and quoted role history',()=>{
  execFileSync('cargo',['test','--offline','--locked','--lib','access_provider_actual_private_refusal_output_has_only_safe_public_consumers','--','--test-threads=1'],{cwd:new URL('src-tauri/',app),env:{...process.env,CHIRALITY_SKIP_CODEX:'1',CHIRALITY_TEST_OUTPUT_DIRECTORY:out},stdio:'inherit'});
@@ -133,7 +155,7 @@ async function mountedChooser(native, handler, check, extra={}) {
  const setSnapshot=value=>{snapshot=value;},failNextStatus=()=>{statusFailures++;};
  const idle=installIdleNativeWaiting(async(command,args)=>{
   calls.push({command,args:structuredClone(args)});
-  if(command==='host_status'){if(statusFailures){statusFailures--;throw Error('INVENTED_PRIVATE_STATUS_DIAGNOSTIC');}return structuredClone(snapshot);}
+  if(command==='host_status'){if(statusFailures){statusFailures--;throw Error('INVENTED_PRIVATE_STATUS_DIAGNOSTIC');}return handler.hostStatus ? handler.hostStatus(snapshot) : structuredClone(snapshot);}
   if(command==='decision_view')return {rows:[]};
   if(command==='native_confirmation_content')return [];
   if(command==='provider_endpoint_discard' && handler.endpointCleanup!==true)return null;
@@ -144,6 +166,30 @@ async function mountedChooser(native, handler, check, extra={}) {
  try{await React.act(()=>root.render(React.createElement(App)));await check(c,calls,{get snapshot(){return snapshot;},setSnapshot,async refresh(){await React.act(async()=>{for(const fn of intervals.values())await fn();});}});}
  finally{const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous);assert.equal(intervals.size,0);}
 }
+test('effective access settings refresh cannot overwrite a newer App status',async()=>{
+ let deferNext=false,releaseStatus;
+ const handler=async(command,args,view)=>{
+  assert.equal(command,'read_effective_access_settings');
+  view.setSnapshot({...view.snapshot,accessSettingsReadRevision:settingsPacket.scope.readRevision,configurationProblem:'OLDER_SETTINGS_STATUS_R1'});
+  return structuredClone(settingsPacket);
+ };
+ handler.hostStatus=snapshot=>{
+  const captured=structuredClone(snapshot);
+  if(deferNext){deferNext=false;return new Promise(resolve=>{releaseStatus=()=>resolve(captured);});}
+  return captured;
+ };
+ await mountedChooser({initial:settingsHost()},handler,async(c,calls,view)=>{
+  let pending;deferNext=true;
+  await React.act(()=>{pending=props(button(c,'Read effective storage and plugin settings')).onClick();});
+  assert.equal(typeof releaseStatus,'function');
+  view.setSnapshot({...view.snapshot,accessSettingsReadRevision:'newer-read',configurationProblem:'LATEST_SETTINGS_STATUS_R2'});
+  await view.refresh();
+  assert.match(c.textContent,/LATEST_SETTINGS_STATUS_R2/);
+  await React.act(async()=>{releaseStatus();await pending;});
+  assert.match(c.textContent,/LATEST_SETTINGS_STATUS_R2/,'late explicit refresh must not overwrite the newer App snapshot');
+  assert.doesNotMatch(c.textContent,/OLDER_SETTINGS_STATUS_R1|Credential storage: file/);
+ });
+});
 test('actual private Peer read reaches mounted explicit provider choice then SAME source fresh Start refuses changed configuration',async()=>{
  const native=await joinedPeer();let latest;
  try{await mountedChooser(native,async(command,args,view)=>{

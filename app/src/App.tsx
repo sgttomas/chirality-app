@@ -1224,7 +1224,7 @@ const accessSettingSources: Record<string, string> = {
   sessionFlags: "Session overrides", legacyManagedConfigTomlFromFile: "Legacy managed configuration",
   legacyManagedConfigTomlFromMdm: "Legacy managed preferences",
 };
-export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { host: Json; navigating: boolean; refresh: () => Promise<Json> }) {
+export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { host: Json; navigating: boolean; refresh: (isCurrent: () => boolean) => Promise<Json> }) {
   const scopeOf = (snapshot: Json) => JSON.stringify([snapshot?.homeRouting?.activeModeHomeClass, snapshot?.generation, snapshot?.currentAppProjectContext ?? null, snapshot?.state, snapshot?.generationClosed]);
   const context = useRef({ key: "", epoch: 0, host });
   const key = JSON.stringify([scopeOf(host), navigating]);
@@ -1232,17 +1232,27 @@ export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { ho
   context.current.host = host;
   const epoch = context.current.epoch;
   const mounted = useRef(true), sequence = useRef(0), pending = useRef(false);
+  const revisionsDuringRead = useRef(new Set<Json>());
   const [reading, setReading] = useState(false), [error, setError] = useState("");
   const [observation, setObservation] = useState<{ packet: Json; epoch: number; sequence: number } | null>(null);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; sequence.current++; }; }, []);
   const ready = host?.state === "ready" && !host?.generationClosed && !!host?.generation
     && ["account", "api-key"].includes(host?.homeRouting?.activeModeHomeClass) && !navigating;
+  if (pending.current) revisionsDuringRead.current.add(host?.accessSettingsReadRevision);
+  // Retire the receipt permanently: a delayed older host status must not make
+  // it current again after a newer read or source transition was observed.
+  if (observation?.sequence === sequence.current && (!ready || observation.epoch !== epoch
+    || observation.packet.scope.readRevision !== host?.accessSettingsReadRevision)) sequence.current++;
   const read = async () => {
     // Retained handlers and late replies cannot cross a home/source transition,
     // including a switch away and back to the same home.
     if (!ready || pending.current || context.current.epoch !== epoch || !mounted.current) return;
     const original = context.current.host, source = scopeOf(original), attempt = ++sequence.current;
-    const current = () => mounted.current && sequence.current === attempt && context.current.epoch === epoch && scopeOf(context.current.host) === source;
+    revisionsDuringRead.current = new Set([original.accessSettingsReadRevision]);
+    let expectedRevision: string | undefined;
+    const current = () => mounted.current && sequence.current === attempt && context.current.epoch === epoch && scopeOf(context.current.host) === source
+      && (expectedRevision === undefined || [...revisionsDuringRead.current, context.current.host?.accessSettingsReadRevision]
+        .every(revision => revision === original.accessSettingsReadRevision || revision === expectedRevision));
     pending.current = true; setReading(true); setError(""); setObservation(null);
     try {
       const packet: Json = await invoke("read_effective_access_settings", { generation: original.generation, modeHomeClass: original.homeRouting.activeModeHomeClass });
@@ -1250,7 +1260,9 @@ export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { ho
       if (packet?.state !== "observed" || typeof packet?.scope?.readRevision !== "string"
         || JSON.stringify(packet.scope.generation) !== JSON.stringify(original.generation)
         || packet.scope.modeHomeClass !== original.homeRouting.activeModeHomeClass) throw Error("unavailable");
-      const latest = await refresh();
+      expectedRevision = packet.scope.readRevision;
+      if (!current()) return;
+      const latest = await refresh(current);
       if (!current() || scopeOf(latest) !== source || latest?.accessSettingsReadRevision !== packet.scope.readRevision
         || (context.current.host?.accessSettingsReadRevision !== original.accessSettingsReadRevision
           && context.current.host?.accessSettingsReadRevision !== packet.scope.readRevision)) return;
@@ -1869,6 +1881,15 @@ export function App() {
     return snapshot;
   }, []);
 
+  const refreshEffectiveAccessSettings = useCallback(async (isCurrent: () => boolean) => {
+    const sourceAtRead = currentHost.current;
+    const snapshot: Json = await invoke("host_status");
+    // This explicit settings refresh cannot replace a newer App observation.
+    // Other refresh and polling behavior keeps its existing semantics.
+    if (isCurrent() && currentHost.current === sourceAtRead) setHost(snapshot);
+    return snapshot;
+  }, []);
+
   const captureContinueNavigation = (generation: Json, historyCurrent: (history: Json) => boolean): ContinueNavigation => {
     const source = JSON.stringify(generation);
     const mode = chooserHome.current.mode, epoch = chooserHome.current.epoch;
@@ -2475,7 +2496,7 @@ export function App() {
           <DesktopSetupPanel view={host?.desktopSetup}/>
           <WorkspaceDisclosure id="workspace-connection" title="Connection and access" description="Home, sign-in, provider setup and Codex controls" open={host?.state !== "ready" ? true : undefined}>
             <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{ ...host?.homeResources, namespaceProtection: host?.nativeNamespaces, keyAdmission: host?.keyNamespaceAdmission }} generation={host?.generation} navigating={homePending} act={async (command, args) => { await homeAction(command, args); }}/>
-            <EffectiveAccessSettingsPanel host={host} navigating={homePending} refresh={refresh}/>
+            <EffectiveAccessSettingsPanel host={host} navigating={homePending} refresh={refreshEffectiveAccessSettings}/>
   <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }}/>
           </WorkspaceDisclosure>
           <WorkspaceDisclosure id="workspace-files" title="Files and standing acts" description="Review a saved App-side output and its original act context">
