@@ -243,8 +243,7 @@ allocations do not assert delivered or adopted external commitments.
 
 ### 4.1 Workflows
 
-A workflow is reusable method guidance for an undertaking (former Root
-`AGENTS.md`, in Root's Git history)
+A workflow is reusable method guidance for an undertaking (Root `AGENTS.md`)
 with a small declared part the product can observe (D-03).
 
 - **V4-WF-01** A workflow is prose method guidance plus a declared part
@@ -415,8 +414,8 @@ For the owner and an agent fleet, in the Chirality App (D-09, option B).
 - **V4-CST-03** Each harness is used through its own published interface,
   unmodified and pinned to a known version; upgrades are deliberate
   (D-17; [architecture](ARCHITECTURE.md)).
-- **V4-CST-04** The human governs the undertaking. The Library hosts shared
-  ideas, methods and tools; location or historical use does not automatically make
+- **V4-CST-04** The human governs the undertaking. Root hosts shared ideas,
+  methods and tools; location or historical use does not automatically make
   them v4 authority. The three manuals are core working governance applied
   through selected methods; product technical commitments are developed in
   SoWs and derivatives. This later direction qualifies OD-10's earlier
