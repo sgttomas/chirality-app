@@ -10,22 +10,46 @@ their applicable hosted checks passed. No old native window, GO, resource
 concurrence or desktop-availability statement is renewed by this resumption.
 
 The next publication result is J1: actual project setup, an existing workflow,
-useful real-model execution and finding its results. Native is the only lane
-with a new assignment: prepare the existing reviewed CBD / `84a58cf9` entry
-for one bounded diagnostic, without another source review, build, mock rerun
-or controller increment. Actual execution still requires fresh desktop
-availability and a separate specific Agent0 GO under normal wrappers. Other
-lanes remain idle until they receive a concrete contribution to an open
-publication result; the roster alone does not dispatch them.
+useful real-model execution and finding its results. The one selected CBD /
+`84a58cf9` diagnostic has now completed and closed; its entry/window is
+consumed. The product UI lane owns the next source increment: normal typed
+project-path entry on first use, through the existing setup pipeline. Native
+and other lanes remain idle pending a concrete next assignment. Any future
+native execution requires an applicable reviewed artifact, fresh desktop
+availability and a separate specific Agent0 GO under normal wrappers.
 
-This capability investigation has a stop point: at most one attempt of the
-existing diagnostic after fresh GO. Record its actual account first. If it
-refuses or supplies no useful next-step observation, Agent0 must decide the
-testing route from the precise missing capability before any further
-controller repair, restaging or diagnostic. A successful diagnostic supplies
-only its observed facts; J1 requires the actual complete useful journey.
-Retain ownership, privacy, cleanup and evidence safeguards. Reports lead with
-newly demonstrated user behavior, its limits and the next useful result.
+The capability investigation reached its stop point after that one attempt.
+The exact actual account was committed first and is retained unchanged. No
+retry, controller repair, restaging or further picker diagnostic is selected.
+The owner questioned the long controller-development cycles and seconds of
+useful testing. Subsequent native plans must target a meaningful setup segment
+with state-based checkpoints and time for UI responses, rather than another
+isolated attribute probe. Reuse unchanged evidence and combine compatible
+account/reconciliation/product integration work. Retain ownership, privacy,
+cleanup and evidence safeguards; reports lead with demonstrated user behavior.
+
+### Actual result and selected next product route — 2026-11-07
+
+The [frozen CBD actual account](../PKG-09/DEL-09-02/Work/J1_ROOT_BOUNDARY_ACTUAL_20261107T152200Z.md)
+records one invocation at 15:22:00Z, with all three target proofs complete,
+one attempted original-PID CmdShiftG pair and a completed bounded snapshot of
+the retained picker. No related Q, path-entry field, semantic change or handling
+was established. Protocol rc0 does not close setup/save, J1 or qualification.
+Original-birth absence was verified in 6.070266s without overrun; Agent0
+separately observed the four known invocation PIDs absent at 15:23:44Z.
+Original account `bda12c21` is included unchanged by cherry-pick `65bf2408`;
+root's separate receiving receipt is not retrofitted into that account.
+
+Agent0 selected an ordinary first-use project-path input, retaining Browse.
+The later DesktopSetupPanel already accepts typed project paths but is hidden
+during first use. Reuse literal path handling and the existing backend preview,
+native confirmation and protected pending-save flow; add no hidden test setter,
+new IPC, filesystem default, automatic save or credential/model behavior.
+The product lane owns focused mounted tests and Work reconciliation; Agent0
+owns independent review and integration. Source tests do not establish native
+field exposure, readback, saved setup or a useful workflow run. A later native
+plan must cover a meaningful setup segment on the applicable reviewed artifact;
+no new build, desktop window or setup execution is selected by this account.
 
 The owner's model selections apply to future work:
 
@@ -472,9 +496,15 @@ Current Type 1 assignments are:
   independent review found an observed reciprocal-wrapper modal contradiction.
   Root tightened existing post-Q role reads, including originalQ's reciprocal/
   AppWindows Sheet requirement;142 focused mocks now pass, with no added AX or
-  process query. A new exact freeze is required; current-head CI precedes
-  integration. No fresh availability/window/GO is selected. Scope/acceptance
-  and useful-model/native qualification stay open.
+  process query. PR146 merged after current-head CI passed and its corrected
+  CBD/84a58cf9 freeze was inspected. The [2026-11-07 actual invocation](../PKG-09/DEL-09-02/Work/J1_ROOT_BOUNDARY_ACTUAL_20261107T152200Z.md)
+  then completed all target proofs, one attempted original-PID key pair and a
+  retained-picker snapshot, without establishing handling or a path-entry field.
+  Normal original-birth closure completed in6.070266s/no overrun; four known
+  invocation PIDs were independently absent. This entry/window is consumed.
+  The diagnostic chain is stopped; Agent0 selected ordinary first-use typed
+  project entry as the next product increment. No later native GO is selected.
+  Scope/acceptance and useful-model/native qualification stay open.
   Native qualification, recovery and access-mode
   evidence remain open; one unavailable surface does not end the undertaking.
   #105 is retained as the historical signed-witness proposal, not a current
