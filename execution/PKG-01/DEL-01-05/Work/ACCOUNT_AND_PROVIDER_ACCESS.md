@@ -985,7 +985,9 @@ credential files. No new sign-in gate or universal storage policy is added.
 (boolean). A missing, null, malformed or unexposed value remains unknown;
 layer-only values, requirements and written TOML supply no default. The
 0.160.0 `Config` permits additional properties but does not name either
-setting: exposing them on an actual supplier response remains to be observed.
+setting; their exposure therefore requires an actual supplier read, rather than
+inference from the schema. The dated native observation below supplies that
+read for its exact development subject only.
 
 Provenance is a fixed layer category and index, shown only when the relevant
 reported origin matches one unique enabled layer's name/version and its
