@@ -135,8 +135,10 @@ check. The foreground, window and display facts must still equal the frame's.
 Events use a private `CGEventSource`
 (`kCGEventSourceStatePrivate`) and `CGEventPostToPid` to the original PID only.
 The helper uses no clipboard, global or HID-tap posting, or private API. All
-events are allocated before the first post. The full identity check runs
-immediately before posting. Each up event follows its down event, including
+events are allocated before the first post. After allocation and journal
+work, every new down/chunk rechecks the original, foreground, window/display
+facts, frame age and current UI/owner cutoff. Activation has an equivalent
+final identity/time check after AppKit preparation. Each up event follows its down event, including
 after a post error, but only after a birth re-check: an up event is never sent
 to a possibly reused PID. Every CF object is released in `finally`, and release
 errors stop the session.
@@ -208,5 +210,18 @@ updated, Agent0 ran the same focused suite under the maintained wrapper with
 a fresh scratch home: 30 passed, zero failures, with no native operations.
 The wrapped deliverables check also passed. The checked commands/logs are in
 `/Users/ryan/dev/chirality-t3/scratch/app-native-visual-current-checks-uwi5ojt2/CHECKS.json`.
-One independent review of this exact contribution remains before integration;
-there has been no native click/type or setup trial.
+The one independent review of `64cecd469d63ae58a74648d4be4a1b692573712d`
+found two dispatch-boundary gaps: preparation could cross the cutoff, and
+visual facts could change during journaling/allocation. Agent0 repaired those
+boundaries directly. Three regression methods cover expiration during intent,
+allocation and final checks, activation preparation, foreground/window/frame
+drift and Unicode expiry after one down. An already attempted down still gets
+its original-birth-checked up; no later chunk starts after cutoff.
+
+The isolated regressions fail in thirteen scenarios against the reviewed
+source. All 33 methods then pass on the repaired source under the maintained
+wrapper, and deliverables checks pass. A shallow fake-window fixture initially
+leaked bounds between cases; the fake now deep-copies its rows. The initial
+failure and final isolated results are retained at
+`/Users/ryan/dev/chirality-t3/scratch/app-visual-review-fixes-aukewaog/`.
+No second review round, native click/type or setup trial was performed.

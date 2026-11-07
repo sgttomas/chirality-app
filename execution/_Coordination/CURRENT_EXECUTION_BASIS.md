@@ -106,14 +106,16 @@ change or model/authentication operation. Managers potentially needed before
 publication received the tooling-approval/resource guidance; their normal
 wrappers and existing scopes remain in force.
 
-The approved helper's source and focused tests are complete, with 30 passing
-wrapped offline cases. Original admission/identity/normal-cleanup source bytes
+The approved helper's source and focused tests are complete, with 33 passing
+wrapped offline cases after review repairs. Original admission/identity/normal-cleanup source bytes
 remain unchanged. Agent0 bound it to the current 66d39df5 development bundle
 through a new static profile, SHA256
 `5567d97631e281a82c2682c60f73798439534a9a54611ed11655e42e5bb6034b`;
 this profile contains no runtime absence/environment/permission claims and
-does not relabel authentic561. One independent implementation review and
-interlocutor consultation precede integration. Live capture/input/setup remain
+does not relabel authentic561. The one independent implementation review found
+two final-dispatch cutoff/context gaps; Agent0 repaired them directly, with
+isolated regressions failing against the reviewed source and passing on the
+fixed source. Interlocutor consultation precedes integration. Live capture/input/setup remain
 unrun and need the later separately selected session. Implementation-task
 deviations (unwrapped mutation checks and deletion of a shared ignored cache)
 are recorded in the owning helper Work note, not promoted to compliant checks.

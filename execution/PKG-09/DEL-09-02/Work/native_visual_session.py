@@ -336,10 +336,10 @@ class Gesture:
                     pair.append(event)
                 pairs.append(pair)
             self.state.update(pairs=len(pairs), allocated=len(allocated))
-            full_check()
             for index, (down, up) in enumerate(pairs):
                 if index:
                     birth_check()
+                full_check()  # after allocation, and before every new down/chunk
                 self.state['down_attempted'] += 1
                 self.state['dispatch'] = 'attempted'
                 try:
@@ -623,6 +623,18 @@ class VisualSession:
         refuse_unless(now['windows'] == frame.windows and now['display'] == frame.display,
                       'window/display geometry changed since frame')
 
+    def dispatch_check(self, frame):
+        self.require_time()
+        self.verify_unchanged(frame)
+        self.require_time()  # identity/window/native preparation may have crossed the cutoff
+        refuse_unless(self.clock() - frame.taken <= FRAME_MAX_AGE, 'frame too old; capture again')
+
+    def activation_check(self, frame):
+        self.require_time()
+        self.io.check(self.identity)
+        self.require_time()
+        refuse_unless(self.clock() - frame.taken <= FRAME_MAX_AGE, 'frame too old; capture again')
+
     def input(self, command, kind, build):
         """One input per fresh frame: consume, recheck original/foreground/geometry, record, post pairs."""
         refuse_unless(self.inputs < MAX_INPUTS, 'input budget exhausted')
@@ -640,7 +652,7 @@ class VisualSession:
         self.inputs += 1
         gesture, error = Gesture(self.adapter), None
         try:
-            gesture.run(self.identity['pid'], specs, lambda: self.io.check(self.identity), self.birth_check)
+            gesture.run(self.identity['pid'], specs, lambda: self.dispatch_check(frame), self.birth_check)
         except BaseException as exc:
             error = repr(exc)[:400]
             raise
@@ -682,7 +694,7 @@ class VisualSession:
         self.activated = True
         result, error = None, None
         try:
-            result = self.adapter.activate(self.identity, self.expected_app())
+            result = self.adapter.activate(self.identity, self.expected_app(), lambda: self.activation_check(frame))
         except BaseException as exc:
             error = repr(exc)[:400]
             raise
@@ -826,11 +838,12 @@ class MacVisual:
             front_pid = appkit.pidcall(front, appkit.sel(b'processIdentifier')) if front else None
         return {'correspondence': actual, 'active': active, 'frontmost_pid': front_pid}
 
-    def activate(self, identity, expected):
+    def activate(self, identity, expected, before_dispatch):
         appkit = self.io.appkit
         send = C.CFUNCTYPE(C.c_bool, C.c_void_p, C.c_void_p, C.c_ulong)(('objc_msgSend', appkit.objc))
         with appkit.target(identity['pid']) as target:
             stop_unless(appkit.describe(target) == expected, 'AppKit activation target differs')
+            before_dispatch()  # after AppKit/identity preparation, immediately before activation
             return bool(send(target, appkit.sel(b'activateWithOptions:'), 0))
 
     def source(self):

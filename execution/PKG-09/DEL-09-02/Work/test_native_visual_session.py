@@ -88,7 +88,7 @@ class Output:
 class Backend:
     """Window/identity backend for the reused reader; foreign rows decode -> failure."""
     def __init__(self):
-        self.rows = [{'owner': 999, 'decoded': None}, {'owner': PID, 'decoded': dict(MAIN)}]
+        self.rows = [{'owner': 999, 'decoded': None}, {'owner': PID, 'decoded': json.loads(json.dumps(MAIN))}]
         self.birth = dict(IDENTITY)
         self.closed = 0
 
@@ -194,7 +194,8 @@ class Adapter:
         assert 0 < timeout <= nvs.CAPTURE_TIMEOUT
         return {'path': f'/private/frames/frame-{number:03d}.png', 'sha256': f'{number:064x}', 'pixels': self.pixels}
 
-    def activate(self, identity, expected):
+    def activate(self, identity, expected, before_dispatch=lambda: None):
+        before_dispatch()
         self.activations += 1
         assert expected['pid'] == identity['pid'] == PID
         return True
@@ -433,6 +434,123 @@ class DeadlinesAndCleanup(unittest.TestCase):
 
 
 class FramesAndInput(unittest.TestCase):
+    def test_dispatch_cutoff_after_preparation(self):
+        click = {'op': 'click', 'frame': 1, 'x': 400, 'y': 400}
+        for phase, expiry in [('intent', 'ui'), ('allocation', 'ui'), ('check', 'ui'), ('intent', 'owner')]:
+            with self.subTest(phase=phase, expiry=expiry):
+                session, io, adapter, journal, output, commands, _, time = make(owner_seconds=600)
+                def late_capture():
+                    time.sleep(session.ui_left() - 2)
+                    return json.dumps(CAP).encode()
+                commands.items = [late_capture, click]
+                expired = [False]
+                def expire():
+                    if not expired[0]:
+                        expired[0] = True
+                        time.sleep(3 if expiry == 'ui' else session.owner_left() + 1)
+                if phase == 'intent':
+                    def record(kind, value):
+                        journal(kind, value)
+                        if kind == 'input-intent':
+                            expire()
+                    session.record = record
+                elif phase == 'allocation':
+                    original_event = adapter.event
+                    def event(source, spec, down):
+                        result = original_event(source, spec, down)
+                        expire()
+                        return result
+                    adapter.event = event
+                else:
+                    original_check = io.check
+                    def check(identity):
+                        original_check(identity)
+                        if adapter.allocated:
+                            expire()
+                    io.check = check
+                result = session.run()
+                self.assertTrue(expired[0])
+                self.assertEqual(adapter.posts, [], 'preparation expiry must prevent a new down')
+                self.assertIn('cutoff', result['session_error'])
+                self.assertEqual(io.terminations, 1)
+
+    def test_context_drift_during_preparation_prevents_dispatch(self):
+        click = {'op': 'click', 'frame': 1, 'x': 400, 'y': 400}
+        for phase in ('intent', 'allocation'):
+            for change in ('foreground', 'window', 'frame_age'):
+                with self.subTest(phase=phase, change=change):
+                    session, io, adapter, journal, output, commands, _, time = make([CAP, click])
+                    changed = [False]
+                    def drift():
+                        if changed[0]:
+                            return
+                        changed[0] = True
+                        if change == 'foreground':
+                            adapter.front['active'] = False
+                        elif change == 'window':
+                            io.backend.rows[1]['decoded']['bounds']['X'] = 101.0
+                        else:
+                            time.sleep(nvs.FRAME_MAX_AGE + 1)
+                    if phase == 'intent':
+                        def record(kind, value):
+                            journal(kind, value)
+                            if kind == 'input-intent':
+                                drift()
+                        session.record = record
+                    else:
+                        original_event = adapter.event
+                        def event(source, spec, down):
+                            result = original_event(source, spec, down)
+                            drift()
+                            return result
+                        adapter.event = event
+                    session.run()
+                    self.assertTrue(changed[0])
+                    self.assertEqual(adapter.posts, [], 'final visual safeguards must see preparation drift')
+                    self.assertEqual(io.terminations, 1)
+
+    def test_activation_cutoff_and_text_chunk_release(self):
+        for phase in ('intent', 'adapter'):
+            with self.subTest(activation_preparation=phase):
+                session, io, adapter, journal, output, commands, _, time = make(owner_seconds=600)
+                adapter.front['active'], adapter.front['frontmost_pid'] = False, 999
+                def late_capture():
+                    time.sleep(session.ui_left() - 2)
+                    return json.dumps(CAP).encode()
+                commands.items = [late_capture, {'op': 'activate', 'frame': 1}]
+                if phase == 'intent':
+                    def record(kind, value):
+                        journal(kind, value)
+                        if kind == 'activation-intent':
+                            time.sleep(3)
+                    session.record = record
+                else:
+                    original_activate = adapter.activate
+                    def activate(identity, expected, before_dispatch=lambda: None):
+                        time.sleep(3)
+                        return original_activate(identity, expected, before_dispatch)
+                    adapter.activate = activate
+                result = session.run()
+                self.assertEqual(adapter.activations, 0)
+                self.assertIn('cutoff', result['session_error'])
+                self.assertEqual(io.terminations, 1)
+
+        session, io, adapter, journal, output, commands, _, time = make([
+            CAP, {'op': 'click', 'frame': 1, 'x': 400, 'y': 400}, CAP,
+            {'op': 'confirm_first_effect', 'frame': 2}, {'op': 'type_project', 'frame': 2}])
+        original_post = adapter.post
+        def post(pid, event):
+            original_post(pid, event)
+            if event[0][0] == 'text' and event[1] is True:
+                time.sleep(nvs.UI_CAP + 1)
+        adapter.post = post
+        result = session.run()
+        text = [p for p in adapter.posts if p[1][0] == 'text']
+        self.assertEqual([p[2] for p in text], [True, False], 'release the attempted down, then stop new chunks')
+        self.assertIn('cutoff', result['session_error'])
+        self.assertEqual(len(adapter.released), adapter.allocated)
+        self.assertEqual(io.terminations, 1)
+
     def test_retina_capture_and_click_mapping(self):
         session, io, adapter, journal, output, *_ = make([CAP, {'op': 'click', 'frame': 1, 'x': 400, 'y': 400}])
         session.run()
