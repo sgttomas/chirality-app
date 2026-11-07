@@ -45,11 +45,23 @@ The later DesktopSetupPanel already accepts typed project paths but is hidden
 during first use. Reuse literal path handling and the existing backend preview,
 native confirmation and protected pending-save flow; add no hidden test setter,
 new IPC, filesystem default, automatic save or credential/model behavior.
-The product lane owns focused mounted tests and Work reconciliation; Agent0
-owns independent review and integration. Source tests do not establish native
-field exposure, readback, saved setup or a useful workflow run. A later native
-plan must cover a meaningful setup segment on the applicable reviewed artifact;
-no new build, desktop window or setup execution is selected by this account.
+PR150 merged as `66d39df5da20f15b0d706f6813e2a38fee02d81f` after 19 focused
+mounted checks, clean independent review, applicable hosted CI and the required
+interlocutor consultation. Its source integration does not establish native
+field exposure, readback, saved setup or a useful workflow run.
+
+One ordinary offline development build of that exact source completed in
+91.024284s, exit0. Its new development identifier is
+`dev.chirality.app-v4.candidate.20261107-75f470c7`; the executable SHA256 is
+`75e953fe235961cea186289bd6112951b1ecbbe1d203858dce8863605463b546`.
+The private build record is
+`/Users/ryan/dev/chirality-t3/scratch/app-dev-candidate-20261107-75f470c7-kr7swwbe/READY_BUNDLE.json`.
+Agent0 verified the receiving metadata, executable and Info.plist and reused
+the passing static resource/archive comparisons. This is an unrun development
+subject, not a signed production or installed qualification result. Old eaf/b98
+subjects and authentic561 remain historical, without relabeling. A fresh
+explicit receiving profile is required before visual use; no new live App
+session, setup action, supplier/model start or desktop GO is selected.
 
 The owner's model selections apply to future work:
 
@@ -63,6 +75,66 @@ Set the requested selection explicitly on every new delegate. If unavailable,
 report it rather than substitute. Existing Type 1 session selections are
 configured accordingly; historical task/model results retain their identities.
 No new top-level manager session or automatic review round is selected.
+
+### Owner-selected Agent0 interlocutor and tooling approval
+
+The owner selected a separate Type 2 interlocutor in this Agent0 session,
+using Claude-Hub Opus 5.5 (`claude-opus-5-5`, `effort=high`,
+`fastMode=false`). Its focus is helping Agent0 perform HELP_HUMAN well:
+publication objectives, effective delivery, judgment, compute and owner
+attention, and recommendations to start, stop or change work. Agent0 supplies
+concise summaries of activities, demonstrated results, limits and proposed
+decisions, and consults at least before every PR merge, with additional
+consultation when direction warrants it. Agent0 considers the advice and
+retains responsibility for decisions and explaining significant departures.
+This is strategic advice, not a duplicate implementation review or delegated
+acceptance, release or permission authority.
+If a matter has not converged after three rounds of debate, Agent0 adopts
+its own perspective, explains the rationale to the interlocutor and proceeds.
+The interlocutor may identify pertinent consequences later. Agreement does
+not require three rounds; consultation is not a veto or an indefinite wait.
+
+New tool acquisition or construction requires an explicit owner-approved
+proposal describing its purpose, bounded scope/source, required access,
+cost/resources and focused validation. The owner approved one development-only
+visual-session helper with offline checks and one independent review, and
+specified one Type 2 execution instance here in Agent0's session. That task
+uses Opus 5.5/high; independent implementation review uses GPT-6.1-sol/xhigh.
+It reuses original-App identity and normal-cleanup safeguards. Approval adds
+no live App launch, capture/input trial, setup action, download, permission
+change or model/authentication operation. Managers potentially needed before
+publication received the tooling-approval/resource guidance; their normal
+wrappers and existing scopes remain in force.
+
+The approved helper's source and focused tests are complete, with 33 passing
+wrapped offline cases after review repairs. Original admission/identity/normal-cleanup source bytes
+remain unchanged. Agent0 bound it to the current 66d39df5 development bundle
+through a new static profile, SHA256
+`5567d97631e281a82c2682c60f73798439534a9a54611ed11655e42e5bb6034b`;
+this profile contains no runtime absence/environment/permission claims and
+does not relabel authentic561. The one independent implementation review found
+two final-dispatch cutoff/context gaps; Agent0 repaired them directly, with
+isolated regressions failing against the reviewed source and passing on the
+fixed source. Interlocutor consultation precedes integration. Live capture/input/setup remain
+unrun and need the later separately selected session. Implementation-task
+deviations (unwrapped mutation checks and deletion of a shared ignored cache)
+are recorded in the owning helper Work note, not promoted to compliant checks.
+
+The runtime owner's decision-ready J1 access account remains a proposal:
+development-agent model selections and Codex-Hub access authorize no model
+access inside the App. Supplier-free setup/save/normal Quit preparation may
+proceed within its selected scope; sign-in, saved-workspace supplier startup,
+model/catalog calls and network/account usage need a separately selected
+continuation bound to the actual artifact and home. The proposed stock-Codex
+ChatGPT route requires the owner's account/authentication act, App model,
+bounded usage/network and explicit credential-storage/settings decisions.
+File credential storage and plugins=false are proposed settings, not approved
+or proven effective. API-key and credential-free local-server alternatives
+retain their separate missing inputs. Prepare one concise decision bundle
+before continuation; use secure/native input for secrets and do not transfer
+host credentials. A time/run limit is not a monetary spend cap. Existing
+source-bound findings and invented-case expected facts retain their limits;
+no real-model J1 or custody result is established by this account.
 
 SWBPIPE separately resumed v1.0 source/design work on 2026-11-07: reference-
 system static path, hydrotest mechanics design and bounded desktop MBF import.
