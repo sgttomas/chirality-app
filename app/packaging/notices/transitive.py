@@ -47,7 +47,7 @@ NOTICE_NAME = re.compile(r'^(licen[cs]e|copying|notice|copyright|unlicense)', re
 NATIVE = re.compile(r'\.(c|cc|cpp|cxx|h|hpp|S|s|asm)$')
 LOCAL_ASSOCIATIONS = 'app/packaging/notices/retained-root-associations.json'
 LOCAL_ASSOCIATIONS_SHA256 = '7d3f1b53acee0d2aea6cd423eacf46f6d3534884034758722cccf78f27aacb5c'
-_spec = importlib.util.spec_from_file_location('transitive_notice_files', REPO / 'app/packaging/static_distribution/check.py')
+_spec = importlib.util.spec_from_file_location('transitive_notice_files', HERE / 'retained_files.py')
 files = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(files)
 NPM_TEXT_KINDS = {'missing', 'direct-index-archive', 'installed-tree-only'}
 

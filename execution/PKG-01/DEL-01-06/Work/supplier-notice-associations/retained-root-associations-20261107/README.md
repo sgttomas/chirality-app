@@ -74,6 +74,22 @@ member digests, npm rows, archived source evidence, product configuration and
 resource bindings remain unchanged. No App build or bundle verification is
 claimed; actual inclusion is a later candidate-bound step.
 
+Independent review found that importing the full static-distribution checker
+also imported its optional `jsonschema` dependency, regressing the formerly
+standard-library-only transitive CLI. Agent0 repaired that boundary directly:
+`notices/retained_files.py` retains the four checked file/JSON primitives without
+loading schema-validation code. The historical checker bytes and source pin are
+unchanged. A real `-I -S` subprocess regression exercises help, check and the
+legacy-to-successor join; all three failed before the repair because jsonschema
+was unavailable. The fixed focused suite passes 21 tests and 9 subtests.
+
+The hosted packaging shard separately found two fixtures passing a macOS
+`/var` alias to the physical-path-only reader. A scratch TMPDIR alias reproduced
+both failures locally. Resolving only each newly created fixture root repairs
+the tests; reader link refusal is unchanged. All 21 tests and 9 subtests then
+pass with that alias still present. Original logs and the two failing baselines
+are retained in the root repair receipt; no full graph or Cargo run was added.
+
 ## Smallest remaining body request
 
 Only these two previously proposed bodies remain unavailable within the bounded

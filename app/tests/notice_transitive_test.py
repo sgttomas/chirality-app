@@ -3,6 +3,8 @@ import importlib.util
 import json
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -16,7 +18,10 @@ t = importlib.util.module_from_spec(spec); spec.loader.exec_module(t)
 class Transitive(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
-        self.index = Path(self.tmp.name) / 'index.json'
+        # The checked reader requires physical paths. macOS TMPDIR can include
+        # /var or another alias; resolve only our newly created fixture root.
+        self.root = Path(self.tmp.name).resolve()
+        self.index = self.root / 'index.json'
         shutil.copyfile(t.INDEX, self.index)
         self.value = json.loads(self.index.read_text())
 
@@ -33,6 +38,25 @@ class Transitive(unittest.TestCase):
         s = t.summary(index)
         self.assertGreater(s['cargo_runtime_crates'], 0)
         self.assertEqual(sum(s['text_kinds'].values()), s['cargo_runtime_crates'] + s['npm_runtime_packages'])
+
+    def test_standalone_cli_needs_no_site_packages(self):
+        legacy = json.loads(t.INDEX.read_bytes())
+        associations = t.local_associations(ROOT)
+        for row in legacy['cargo']:
+            selected = associations.get((row['package'], row['version']))
+            if selected is not None:
+                row['text'] = selected['prior_locator']
+        legacy['format'] = t.LEGACY_FORMAT
+        self.index.write_text(json.dumps(legacy))
+        output = self.root / 'joined.json'
+        commands = [['--help'], ['check'], ['associate-local', '--input', str(self.index), '--out', str(output)]]
+        for args in commands:
+            with self.subTest(command=args[0]):
+                result = subprocess.run([sys.executable, '-I', '-S', '-B', str(ROOT / 'app/packaging/notices/transitive.py'), *args],
+                                        capture_output=True, text=True, timeout=15)
+                self.assertEqual(result.returncode, 0, result.stderr)
+        if output.exists():
+            self.assertEqual(output.read_bytes(), t.INDEX.read_bytes())
 
     def test_moved_basis_refuses(self):
         self.value['source_basis']['app/src-tauri/Cargo.lock'] = '0' * 64; self.write()
@@ -55,7 +79,7 @@ class Transitive(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'contradicts'): t.check(self.index)
 
     def test_changed_retained_received_text_refuses(self):
-        repo = Path(self.tmp.name) / 'repo'
+        repo = self.root / 'repo'
         local = t.local_associations(ROOT)
         manifest = json.loads((ROOT / t.LOCAL_ASSOCIATIONS).read_bytes())
         retained = {n['retained_path'] for a in local.values() for n in a['text']['notices']}
@@ -91,7 +115,7 @@ class Transitive(unittest.TestCase):
 
     def test_unsupported_npm_lock_lookup_refuses(self):
         lock = json.loads((ROOT / 'app/package-lock.json').read_text())
-        repo = Path(self.tmp.name) / 'repo'; (repo / 'app').mkdir(parents=True)
+        repo = self.root / 'repo'; (repo / 'app').mkdir(parents=True)
         del lock['packages']['node_modules/scheduler']
         (repo / 'app/package-lock.json').write_text(json.dumps(lock))
         with self.assertRaisesRegex(ValueError, 'unsupported lookup'): t.npm_runtime(repo)
@@ -112,7 +136,7 @@ class Transitive(unittest.TestCase):
         self.refuses('unreachable')
 
     def test_received_text_reads_only_the_allowed_retained_source(self):
-        invented = Path(self.tmp.name) / 'invented-LICENSE.md'; invented.write_bytes(b'invented text\n')
+        invented = self.root / 'invented-LICENSE.md'; invented.write_bytes(b'invented text\n')
         blob = t.git_blob(invented.read_bytes())
         original = Path.read_bytes
         opened = []
@@ -190,7 +214,7 @@ class Transitive(unittest.TestCase):
         self.refuses('retained-root subject is not allowed')
 
     def test_root_allowlist_and_text_tampering_or_links_refuse(self):
-        repo = Path(self.tmp.name) / 'repo'
+        repo = self.root / 'repo'
         manifest = json.loads((ROOT / t.LOCAL_ASSOCIATIONS).read_bytes())
         paths = [t.LOCAL_ASSOCIATIONS, manifest['proof_path']]
         paths += [n['retained_path'] for a in manifest['associations'] for n in a['text']['notices']]
@@ -203,7 +227,7 @@ class Transitive(unittest.TestCase):
         raw = path.read_bytes(); path.write_bytes(raw + b'changed')
         with self.assertRaisesRegex(ValueError, 'notice bytes differ'): t.local_text(repo, row, selected)
         path.write_bytes(raw)
-        other = Path(self.tmp.name) / 'same-body'; other.write_bytes(raw)
+        other = self.root / 'same-body'; other.write_bytes(raw)
         path.unlink(); path.symlink_to(other)
         with self.assertRaises((OSError, ValueError)): t.local_text(repo, row, selected)
         path.unlink(); path.parent.rmdir()
