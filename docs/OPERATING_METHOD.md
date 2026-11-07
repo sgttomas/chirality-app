@@ -48,6 +48,11 @@ scope by U4; their records remain unchanged.
   the undertaking needs (Consolidated v9 §3.1 and §§4.1–4.2). The SWB
   Piping Designer is a domain-specific application expression of an agent with research workflows
   and tools, not an added standing role (U3).
+  *Forward operational clarification (2026-11-07):* the four roles remain this
+  consolidation's accepted basis. For development-agent practice only, the
+  selected Library 2.1.0 adds INTERLOCUTOR, an opt-in Type 2 advisor to Agent 0
+  that a session may select (`AGENTS.md`). It changes no packaged product role
+  set, product commitment or historical record.
 - **V4-OPS-04** Use Conceptual, FEED, 30%, 60%, 90% and 100% as development
   positions, not percentages of effort (Consolidated v9 ch. 7). The accepted
   composite supplies the basis for decomposition; subsequent selected-method

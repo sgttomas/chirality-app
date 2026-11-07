@@ -34,12 +34,27 @@ Do not modify `foundation/thesis/`.
 | HELPS_HUMANS | 1 | Design workflows, tools and projects with the owner |
 | WORKING_ITEMS | 1 | Own implementation, assignments and integration |
 | TASK | 2 | Execute one bounded assignment; does not delegate |
+| INTERLOCUTOR | 2 | Opt-in advice to Agent 0 on its effectiveness and direction |
 
 The agent working with the owner holds Agent 0's responsibilities for purpose,
 continuity and reserved choices, whatever role it entered through. Use only the
 hierarchy the undertaking needs. Managers retain ownership through repairs and
 integration; TASKs return their bounded contributions to the caller.
 
+INTERLOCUTOR is used only when a session selects it; it is never a direct entry
+or default role. HELP_HUMAN, HELPS_HUMANS or WORKING_ITEMS may delegate it; it
+delegates nothing. In a session that selects it, Agent 0 supplies periodic
+activity summaries and consults it at least before every PR merge. Its advice
+carries no sign-off, veto, permission or override of checks, holds or owner
+decisions. After three rounds without convergence on a matter, Agent 0 explains
+its own view and proceeds within its authority. It needs no method for its
+advisory brief; a method serves it only when that method's `compatible_roles`
+name it. Writes still need explicit brief targets and actual host permission.
+Selection, models and effort are not inferred.
+
+The selected shared Library edition is `library-v2.1.0` at
+`c35b7bbc463f81c1fed566c744ea49d168d29eee`
+(`reference/library-v2.1.0/README.md`).
 The shared Chirality Library for this workspace is `/Users/ryan/dev/chirality-library`.
 On another machine, use an explicitly selected checkout of
 `https://github.com/sgttomas/chirality-library`. Resolve the shared `agents/`, `workflows/`

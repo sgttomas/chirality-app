@@ -716,8 +716,14 @@ execution tasks and independent reviews are recorded in the 2026-11-07
 resumption above. The earlier all-Codex selection is superseded for future
 Type 2 execution tasks; historical review/model standing remains as recorded.
 The active shared library is `/Users/ryan/dev/chirality-library`, selected source
-`2f981163d76772d3779697d9def1a9e951d978e7`; it does not repin historical product
-source `eaf5d057` or bundled instructions.
+`c35b7bbc463f81c1fed566c744ea49d168d29eee` (`library-v2.1.0`), received for
+operational/harness practice by owner request on 2026-11-07
+(`reference/library-v2.1.0/README.md`;
+[DEL-10-01 account](../PKG-10/DEL-10-01/Work/LIBRARY_V2_1_RECEIVING.md)). It
+replaces the earlier selection `2f981163d76772d3779697d9def1a9e951d978e7`
+(`library-v2.0.0`) for new work; work recorded under that selection keeps it.
+Neither selection repins historical product source `eaf5d057` or bundled
+instructions.
 
 ### Evidence still required for release
 
