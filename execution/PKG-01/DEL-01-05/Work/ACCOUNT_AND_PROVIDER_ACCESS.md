@@ -969,7 +969,41 @@ outside change applies at the next child start unless observed otherwise.
 | CR-7 | The child environment carries no `OPENAI_API_KEY`, `CODEX_API_KEY` or `CODEX_ACCESS_TOKEN`. The strings name environment authentication ("auth is provided by environment"; `strings-in-binary`); that it takes precedence over the home's stored credential is `inference`, so passing one could silently change which credential a home uses |
 | CR-8 | The App never writes a credential into any configuration file or `-c` flag (sets K2-2/K2-3 aside) |
 | CR-9 | External-token login (`chatgptAuthTokens`) is not offered: the App would hold tokens. So `account/chatgptAuthTokens/refresh` stays **known-app-unsupported** with an explicit error (confirms HOSTING §6.1's row; U-20 for that kind) |
-| CR-10 | The credential store mode (`cli_auth_credentials_store`: `file`, `keyring`, `auto`, `ephemeral`) is the person's setting in the shared configuration, carried unchanged (H9); the App shows it and what it means for the App (with `ephemeral`, the App's sign-in ends with each start) |
+| CR-10 | The credential store mode (`cli_auth_credentials_store`: `file`, `keyring`, `auto`, `ephemeral`) is the person's setting in the shared configuration, carried unchanged (H9). An explicit private effective-settings read displays only the reported mode and plugins setting with bounded source metadata, or unknown. Native requirements are separate from effective configuration; neither read proves actual credential custody. When actually effective, `ephemeral` ends sign-in with the child lifetime. |
+
+### Explicit effective storage and plugin observation
+
+Connection and access offers **Read effective storage and plugin settings**.
+It sends one `config/read {includeLayers:true, cwd:<owning supplier cwd>}`
+through the existing private-config receipt machinery, only at the press,
+for the selected account or API-key home's original full generation. It does
+not start Codex, sign in, read a model catalog, write settings or inspect
+credential files. No new sign-in gate or universal storage policy is added.
+
+`access_settings.rs` projects only `config.cli_auth_credentials_store`
+(`file`, `keyring`, `auto`, `ephemeral`) and `config.features.plugins`
+(boolean). A missing, null, malformed or unexposed value remains unknown;
+layer-only values, requirements and written TOML supply no default. The
+0.160.0 `Config` permits additional properties but does not name either
+setting: exposing them on an actual supplier response remains to be observed.
+
+Provenance is a fixed layer category and index, shown only when the relevant
+reported origin matches one unique enabled layer's name/version and its
+allowlisted setting agrees with the reported effective value. The plugins
+origin may name the leaf or its enclosing `features` table. Paths, profiles,
+native versions, arbitrary origin/layer data and diagnostics remain private;
+the existing response-wide sensitive-reflection exclusion also applies. Raw
+configuration stays out of public journals, request evidence and the webview.
+
+The UI discards readings on home/navigation/generation changes and hides
+them when a newer configuration read supersedes their original receipt.
+Failed refreshes do not restore an earlier reading. This is a source-bound
+snapshot of what Codex reported, not a continuous freshness guarantee,
+credential-custody witness, file/keychain effect, or plugin/network behavior.
+Offline invented-peer privacy/staleness and mounted-control regressions cover
+the projection and display; actual supplier exposure and native use remain
+unrun for this change. Existing ScopeOfWork acceptance and dependency
+conditions remain unchanged.
 
 ### 7.1 OAuth operational control and pending presentation (CC-ACCESS-OAUTH-CONTROL-CUSTODY)
 

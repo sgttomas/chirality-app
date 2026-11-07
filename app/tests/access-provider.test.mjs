@@ -17,12 +17,80 @@ import './support/rust-prebuild.mjs';
 const app=new URL('../',import.meta.url),out=mkdtempSync(`${tmpdir()}/access-provider-private-`);
 const document=installMiniDom();
 const {createRoot}=await import('react-dom/client');
-const {App}=loadSrc('App');
+const {App,EffectiveAccessSettingsPanel}=loadSrc('App');
 after(()=>rmSync(out,{recursive:true}));
 const url=new URL('src/ConversationRoles.tsx',app),compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});
 const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
 const canary='INVENTED_PRIVATE_PROVIDER_CANARY_481';
+let settingsPacket;
+const settingsHost = () => ({state:'ready',generationClosed:false,generation:settingsPacket.scope.generation,
+ homeRouting:{activeModeHomeClass:'account'},accessSettingsReadRevision:null,currentAppProjectContext:{reference:'/invented/work'}});
+async function mountedSettings(handler,check) {
+ const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c),calls=[];
+ let host=settingsHost(),navigating=false;
+ const render=()=>root.render(React.createElement(EffectiveAccessSettingsPanel,{host,navigating,refresh:async()=>{
+  host={...host,accessSettingsReadRevision:settingsPacket.scope.readRevision};render();return structuredClone(host);
+ }}));
+ const idle=installIdleNativeWaiting(async(command,args)=>{calls.push({command,args});assert.equal(command,'read_effective_access_settings');return handler(command,args);});
+ try {await React.act(render);await check(c,calls,async(next,nav=false)=>{host=next;navigating=nav;await React.act(render);});}
+ finally {const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);}
+}
+test('effective access settings actual private Host projection reaches explicit mounted product control',async()=>{
+ execFileSync('cargo',['test','--offline','--locked','--lib','access_settings_actual_projection_is_allowlisted_and_has_no_auth_or_model_calls','--','--test-threads=1'],{cwd:new URL('src-tauri/',app),env:{...process.env,CHIRALITY_SKIP_CODEX:'1',CHIRALITY_TEST_OUTPUT_DIRECTORY:out},stdio:'inherit'});
+ settingsPacket=JSON.parse(readFileSync(`${out}/access-settings.json`,'utf8'));
+ let failure=false;
+ await mountedSettings(async()=>{if(failure)throw Error(canary);return structuredClone(settingsPacket);},async(c,calls)=>{
+  assert.equal(calls.length,0,'no automatic settings or authentication reads');
+  await press(c,'Read effective storage and plugin settings');
+  assert.deepEqual(calls[0].args,{generation:settingsPacket.scope.generation,modeHomeClass:'account'});
+  assert.match(c.textContent,/Credential storage: file/);assert.match(c.textContent,/Plugins: false/);
+  assert.match(c.textContent,/User configuration \(layer 1\)/);assert.match(c.textContent,/does not prove credential custody/);
+  assert.doesNotMatch(c.textContent,/INVENTED_PRIVATE|config.toml|developer_instructions/);
+  failure=true;await press(c,'Read effective storage and plugin settings');
+  assert.doesNotMatch(c.textContent,/Credential storage: file/);assert.match(c.textContent,/private diagnostic withheld/);assert.doesNotMatch(c.textContent,new RegExp(canary));
+ });
+});
+test('effective access settings unknown values and sources never become defaults or raw metadata',async()=>{
+ const packet=structuredClone(settingsPacket);
+ packet.credentialStore={state:'reported',value:canary,source:{state:'reported',kind:canary,layerIndex:canary}};
+ packet.plugins={state:'unknown',value:false,source:{state:'unknown',path:canary}};
+ await mountedSettings(async()=>packet,async(c)=>{
+  await press(c,'Read effective storage and plugin settings');
+  assert.match(c.textContent,/Credential storage: Unknown \/ not exposed/);assert.match(c.textContent,/Plugins: Unknown \/ not exposed/);
+  assert.match(c.textContent,/Source: Unknown \/ not established/);assert.doesNotMatch(c.textContent,new RegExp(canary));
+ });
+});
+test('effective access settings retire on newer reads, home changes and replacement generations',async()=>{
+ await mountedSettings(async()=>structuredClone(settingsPacket),async(c,calls,update)=>{
+  const old=props(button(c,'Read effective storage and plugin settings')).onClick;
+  await press(c,'Read effective storage and plugin settings');
+  await update({...settingsHost(),accessSettingsReadRevision:'newer-read'});
+  assert.doesNotMatch(c.textContent,/Credential storage: file/);
+  await update({...settingsHost(),homeRouting:{activeModeHomeClass:'api-key'}});
+  await update(settingsHost());
+  await React.act(async()=>{await old();});assert.equal(calls.length,1,'old home callback cannot make another read');
+  await press(c,'Read effective storage and plugin settings');assert.match(c.textContent,/Credential storage: file/);
+  await update({...settingsHost(),generation:{...settingsPacket.scope.generation,spawnCounter:2}});
+  assert.doesNotMatch(c.textContent,/Credential storage: file/);
+ });
+});
+test('effective access settings late reply cannot survive navigation away and back or a changed source',async()=>{
+ for(const change of ['home','generation','navigation']) {
+  let release,pending;
+  await mountedSettings(()=>new Promise(resolve=>{release=resolve;}),async(c,calls,update)=>{
+   await React.act(()=>{pending=props(button(c,'Read effective storage and plugin settings')).onClick();});
+   assert.equal(calls.length,1);
+   if(change==='home')await update({...settingsHost(),homeRouting:{activeModeHomeClass:'api-key'}});
+   else if(change==='generation')await update({...settingsHost(),generation:{...settingsPacket.scope.generation,spawnCounter:2}});
+   else await update(settingsHost(),true);
+   await update(settingsHost());
+   await React.act(async()=>{release(structuredClone(settingsPacket));await pending;});
+   assert.doesNotMatch(c.textContent,/Credential storage: file/);assert.match(c.textContent,/No current settings observation/);
+   assert.equal(calls.length,1);
+  });
+ }
+});
 test('actual refusal stays safe in current source JSON and quoted role history',()=>{
  execFileSync('cargo',['test','--offline','--locked','--lib','access_provider_actual_private_refusal_output_has_only_safe_public_consumers','--','--test-threads=1'],{cwd:new URL('src-tauri/',app),env:{...process.env,CHIRALITY_SKIP_CODEX:'1',CHIRALITY_TEST_OUTPUT_DIRECTORY:out},stdio:'inherit'});
  const packet=JSON.parse(readFileSync(`${out}/access-provider-private.json`,'utf8'));

@@ -273,6 +273,8 @@ struct Inner {
 
 #[path = "access_provider.rs"]
 mod access_provider;
+#[path = "access_settings.rs"]
+mod access_settings;
 pub(crate) use access_provider::ProviderAdmission;
 #[path = "config_resource_continuation.rs"]
 pub(crate) mod config_resource_continuation;
