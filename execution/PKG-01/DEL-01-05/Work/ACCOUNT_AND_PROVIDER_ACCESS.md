@@ -3,8 +3,10 @@
 - Contribution: DEL-01-05/ACCESS-v0.2 (supersedes DEL-01-05/ACCESS-v0.1,
   committed at `63a6e0fa47`, file sha256
   b82e40395a4a19bcd0b4e5623fd62b1040b7110ab19cb01af58b15582d447da4)
-- Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not
-  accepted. Nothing here is qualified; no App candidate exists.
+- Original v0.2 status: DRAFT DEFINITION — proposed, unsupplied, not
+  implemented, not accepted. At that time nothing was qualified and no App
+  candidate existed. Subsequent implementation conditions and their limits
+  are recorded below; this design does not establish qualification.
 - **Pass-4 closeout C2 (run `APP-V4-DESIGN-PASS-4-20261003`; R23-29 item 2; in place, no version step):** §13 gains DEP-01-05-017, the supplier-side counterpart of DEP-09-02-013 ruled in R22-7 (V22 m-7). **Re-pin (R23-5):** ScopeOfWork.md sha256 2e134b572f2676ed4fe6daa892047e21e53a637f9901cba20f482a6637f7f3d3 (SCA-V4-003 revision), was baf68c79b5b8fdf01300fc255d7cf8e433975e6275daadf67b914b4e51eca4a6. Blocks read: G-0105-01…16 (`SOW_REVISIONS_A.md` of run `APP-V4-SCA003-20261002`, sha256 42c9167a…fc07). Bearing: G-0105-02 (CLM-004: DEL-09-02 receives the account/provider inputs and focused checks), recorded by the §13 row. The other blocks carry into the ScopeOfWork what this file already designs (CLM-001, TBD-001, REQ-005: the decision record and item 6 below; REQ-002: §4; REQ-004, AC-004, VER-004: §5.4; OUT-002, REQ-010, AC-011, VER-011 and the matrix row: §8, §9; TBD-002: §10; TBD-003: item 2 below; AX-006 is the amendment reference), so none requires a change to the design text. "How this file reads the ScopeOfWork" below describes the ScopeOfWork before SCA-V4-003.
 - Produced by: node D4 of run `APP-V4-DESIGN-PASS-3-20261001` (Type 2 TASK,
   Claude Opus 5.5, high effort; does not delegate): v0.1 on 2026-10-01 at
