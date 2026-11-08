@@ -1011,13 +1011,10 @@ It establishes field exposure on that development subject, not actual credential
 custody or a result for a later build. Existing ScopeOfWork acceptance and dependency
 conditions remain unchanged.
 
-Independent review identified a same-source R1→R2→R1 status replay that could
-revive a superseded receipt. Agent0 repaired it directly with irreversible
-receipt retirement and an owning refresh guard. Three mounted regressions
-reproduce that revival, an intervening revision during a delayed native read,
-and a late explicit refresh overwriting a newer App status. All three fail on
-the reviewed source; all seven focused mounted cases and TypeScript pass on the
-repair. The unchanged Rust setting-projection/source checks are reused.
+A same-source R1→R2→R1 status replay could revive a superseded receipt.
+Irreversible receipt retirement and a refresh guard prevent that revival.
+Mounted regressions failed before repair for the replay, a revision during a
+delayed native read, and a late explicit refresh after a newer App status.
 Credential custody remains unproved.
 
 Hosted CI on the separate notice PR exposed an inherited model-catalog error
