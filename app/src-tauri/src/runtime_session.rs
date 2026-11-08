@@ -10724,6 +10724,31 @@ for line in sys.stdin:
         assert!(send_with_pending_notice(&workflows, &peer.generation, "thread", "later").is_none());
     }
 
+    #[test]
+    fn tc2_mode_turn_carries_the_end_notice_with_its_collaboration_mode_and_effort_after_reopen() {
+        for mode in [None, Some("default")] {
+            let peer = Peer::new(); let mut root = peer.registered();
+            let run = open_run(&peer, &mut root, "thread"); drop(root);
+            let mut fresh = WorkflowRootSession::default();
+            fresh.end_recorded_run(&peer.fixture.root, &run, "thread", false, Some(peer.home.clone())).unwrap();
+            assert!(fresh.reopened_end(&run).is_some());
+            let workflows = Mutex::new(fresh);
+            if mode.is_some() { peer.home.host.collaboration_modes_read(&peer.generation).unwrap(); }
+            let before = peer.turn_starts();
+            crate::ordinary_send_text_effort(&peer.home, &workflows, &peer.generation, "thread", "after reopened effort", mode, Some("reopened-choice"), Some("medium")).unwrap();
+            let frame = last_turn_start(&peer);
+            assert_eq!(peer.turn_starts(), before + 1, "one effort-bearing frame after reopening");
+            assert_eq!(frame["params"]["input"].as_array().unwrap().len(), 2);
+            assert!(frame["params"]["input"][0]["text"].as_str().unwrap().starts_with("[Chirality] Workflow run ended:"));
+            assert_eq!(frame["params"]["input"][1]["text"], "after reopened effort");
+            if mode.is_some() {
+                assert_eq!(frame["params"]["collaborationMode"]["settings"]["reasoning_effort"], "medium");
+                assert!(frame["params"].get("effort").is_none());
+            } else { assert_eq!(frame["params"]["effort"], "medium"); }
+            assert!(send_with_pending_notice(&workflows, &peer.generation, "thread", "later").is_none(), "finish consumed the notice instead of reporting a false failure");
+        }
+    }
+
     // NIR TC-2 with TC-4/TC-5: a plan/default mode turn carries the pending notice first, with
     // its collaborationMode unchanged, once; the requested mode is recorded as for any mode turn.
     // A mode refused before anything is sent leaves the notice pending and publishes nothing.

@@ -3501,6 +3501,20 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         }
         crate::model_catalog::view(generation, provider, models, &read_at)
     }
+    /// Same catalog read with its conversation-model observation checked on
+    /// both sides. Keep this boundary testable without AppState or a GUI.
+    pub(crate) fn model_catalog_read_for_conversation(&self, generation: &Value, thread: Option<&str>) -> Value {
+        let before = thread.map(|thread| self.ordinary_model_for_effort(generation, thread)).transpose();
+        let mut view = self.model_catalog_read(generation);
+        if let Some(thread) = thread {
+            let after = self.ordinary_model_for_effort(generation, thread);
+            view["conversationModel"] = match (before, after) {
+                (Ok(Some(before)), Ok(after)) if before == after => json!(after),
+                _ => Value::Null,
+            };
+        }
+        view
+    }
     /// The loaded conversations of the current generation the host tick reads
     /// (at most `limit`): those whose model, provider and folder have no
     /// reading yet (read once, when the conversation's model is known), and
@@ -4874,6 +4888,93 @@ mod conversation_transport_tests {
         assert!(params.get("effort").is_none());
         assert!(Host::apply_ordinary_effort(&mut params, None, None, Some("")).is_err());
         assert!(Host::apply_ordinary_effort(&mut params, None, None, Some("bad\neffort")).is_err());
+    }
+
+    #[test]
+    fn model_turn_effort_refusal_unknown_order_and_write_limits_are_independent_of_model() {
+        let host = host();
+        {
+            let mut i = host.inner.0.lock().unwrap();
+            i.declared_capabilities = Some(json!({"experimentalApi":true}));
+            i.collaboration_modes = json!({"generation":g(),"result":{"data":[{"name":"Plan","mode":"plan"}]}});
+            i.threads[0]["reasoningEffort"] = json!("low");
+        }
+        exchange(&host, Some(json!({"result":{"turn":turn("completed")}})), vec![], ||
+            host.turn_start_ordinary_text_effort(&g(), "thread", "choose effort only", None, None, Some("medium"))).0.unwrap();
+        let inherited = || host.collaboration_mode_element_with_effort(&g(), "thread", "plan", Some("explicit-model"), None);
+        exchange(&host, Some(json!({"error":{"code":-32600,"message":"effort refused"}})), vec![], ||
+            host.turn_start_ordinary_text_effort(&g(), "thread", "refused effort only", None, None, Some("high"))).0.unwrap_err();
+        assert_eq!(inherited().unwrap()["settings"]["reasoning_effort"], "medium", "refusal cannot replace accepted effort or restore the low thread report");
+        let mut unknown = None;
+        exchange(&host, None, vec![], || {
+            unknown = Some(host.request_begin_ordinary_effort(&g(), json!({"threadId":"thread","input":[{"type":"text","text":"unknown effort","text_elements":[]}],"effort":"high"}), false, false)?);
+            Ok(Value::Null)
+        }).0.unwrap();
+        assert!(inherited().unwrap_err().contains("requested effort context unknown"), "explicit model must not bypass unknown effort");
+        let mut omitted = turn("completed"); omitted["id"] = json!("effort-omitted");
+        exchange(&host, Some(json!({"result":{"turn":omitted}})), vec![], ||
+            host.turn_start_ordinary_text_effort(&g(), "thread", "omitted before late response", None, None, None)).0.unwrap();
+        let mut late = turn("completed"); late["id"] = json!("effort-late");
+        host.on_line(&serde_json::to_vec(&json!({"id":unknown.unwrap().request_id(),"result":{"turn":late}})).unwrap(), &g());
+        assert!(inherited().unwrap_err().contains("requested effort context unknown"), "late acceptance cannot repair native order");
+        let mut fresh = turn("completed"); fresh["id"] = json!("effort-fresh");
+        exchange(&host, Some(json!({"result":{"turn":fresh}})), vec![], ||
+            host.turn_start_ordinary_text_effort(&g(), "thread", "fresh ordered effort", None, None, Some("low"))).0.unwrap();
+        assert_eq!(inherited().unwrap()["settings"]["reasoning_effort"], "low");
+        install_broken_test_input(&host);
+        assert!(host.turn_start_ordinary_text_effort(&g(), "thread", "failed effort write", None, None, Some("high")).unwrap_err().contains("write failed"));
+        assert_eq!(host.client_requests().last().unwrap()["writeResult"], "write-failed");
+        assert!(inherited().unwrap_err().contains("requested effort context unknown"));
+    }
+
+    #[test]
+    fn model_turn_inherited_effort_rechecks_after_writer_wait_with_an_explicit_model() {
+        let host = host();
+        {
+            let mut i = host.inner.0.lock().unwrap();
+            i.declared_capabilities = Some(json!({"experimentalApi":true}));
+            i.collaboration_modes = json!({"generation":g(),"result":{"data":[{"name":"Plan","mode":"plan"}]}});
+            i.threads[0]["reasoningEffort"] = json!("medium");
+        }
+        let mut child = Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).spawn().unwrap();
+        *host.stdin.lock().unwrap() = child.stdin.take();
+        let serial = host.frame_write.lock().unwrap();
+        let before = host.client_requests().len();
+        let writes = host.inner.0.lock().unwrap().send_position;
+        let h = host.clone();
+        let pending = std::thread::spawn(move || h.turn_start_ordinary_text_effort(&g(), "thread", "queued effort text", Some("plan"), Some("explicit-model"), None));
+        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        while host.inner.0.lock().unwrap().source_requests.len() == before {
+            assert!(std::time::Instant::now() < deadline); std::thread::sleep(Duration::from_millis(2));
+        }
+        host.inner.0.lock().unwrap().threads[0]["reasoningEffort"] = json!("high");
+        drop(serial);
+        assert!(pending.join().unwrap().unwrap_err().contains("ordinary effort context changed before write"), "the model is explicit, so only the inherited effort guard can reject this change");
+        assert_eq!(host.inner.0.lock().unwrap().send_position, writes);
+        *host.stdin.lock().unwrap() = None; assert!(child.wait().unwrap().success());
+    }
+
+    #[test]
+    fn model_catalog_conversation_model_change_during_read_is_not_offered_as_current() {
+        for changed in [false, true] {
+            let host = host();
+            // This fixture has no server cwd, so the real catalog reader sends
+            // only model/list and truthfully leaves its provider unestablished.
+            let mut child = Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
+            *host.stdin.lock().unwrap() = child.stdin.take();
+            let stdout = child.stdout.take().unwrap(); let h = host.clone();
+            let reply = std::thread::spawn(move || {
+                let mut line = String::new(); BufReader::new(stdout).read_line(&mut line).unwrap();
+                let request: Value = serde_json::from_str(&line).unwrap();
+                assert_eq!(request["method"], "model/list");
+                if changed { h.inner.0.lock().unwrap().threads[0]["model"] = json!("changed-model"); }
+                h.on_line(&serde_json::to_vec(&json!({"id":request["id"],"result":{"data":[],"nextCursor":null}})).unwrap(), &g());
+            });
+            let result = host.model_catalog_read_for_conversation(&g(), Some("thread"));
+            reply.join().unwrap();
+            assert_eq!(result["conversationModel"], if changed { Value::Null } else { json!("selected") });
+            *host.stdin.lock().unwrap() = None; assert!(child.wait().unwrap().success());
+        }
     }
 
     #[test]

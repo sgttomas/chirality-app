@@ -1722,15 +1722,7 @@ fn read_available_models(state: State<'_, AppState>, generation: Value, mode_hom
     let class = match mode_home_class.as_str() { "account" => home_resources::HomeClass::Account, "api-key" => home_resources::HomeClass::ApiKey, _ => return Err(refused()) };
     if home.class() != class || home.host.snapshot()["generation"] != generation { return Err(refused()); }
     state.validate_home_source(&home).map_err(|_| refused())?;
-    let target_before = thread_id.as_deref().map(|thread| home.host.ordinary_model_for_effort(&generation, thread)).transpose();
-    let mut view = home.host.model_catalog_read(&generation);
-    if let Some(thread) = thread_id.as_deref() {
-        let after = home.host.ordinary_model_for_effort(&generation, thread);
-        view["conversationModel"] = match (target_before, after) {
-            (Ok(Some(before)), Ok(after)) if before == after => json!(after),
-            _ => Value::Null,
-        };
-    }
+    let mut view = home.host.model_catalog_read_for_conversation(&generation, thread_id.as_deref());
     state.validate_home_source(&home).map_err(|_| refused())?;
     if !Arc::ptr_eq(&state.homes.lock().unwrap().active(), &home) || home.host.snapshot()["generation"] != generation { return Err(refused()); }
     view["modeHomeClass"] = json!(mode_home_class);

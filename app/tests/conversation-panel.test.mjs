@@ -1223,3 +1223,40 @@ test('mounted ordinary chooser sends only deliberate offered effort, binds model
     assert.equal(props(button(c,'Send text')).disabled,true,'no automatic resend after unknown outcome');
   } finally {await React.act(()=>root.unmount());document.body.removeChild(c);delete window.__TAURI_INTERNALS__;}
 });
+
+
+test('delayed effort replies cannot populate another source and readiness disables retained controls', async () => {
+  const {OfferedEffortChoice} = loadSrc('ModelChoice');
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const calls=[], choices=[], replies=[];
+  const previous=window.__TAURI_INTERNALS__;
+  window.__TAURI_INTERNALS__={invoke:(command,args)=>{
+    assert.equal(command,'read_available_models');calls.push(args);
+    const held=deferred();replies.push(held);return held.promise;
+  }};
+  let current={owner:'original',threadId:'t',generation:g,homeClass:'account',modelProvider:'openai',entryId:'chatgpt-account',model:'',effort:'',disabled:false,choose:(...args)=>choices.push(args)};
+  const show=async patch=>{current={...current,...patch};await React.act(()=>root.render(React.createElement(OfferedEffortChoice,current)));};
+  const effort=()=>elements(c,'select')[0];
+  const read=()=>React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
+  try {
+    await show({});await read();const oldRead=props(button(c,'Read effort choices for this model')).onClick;
+    const replacement={...g,spawnCounter:2};
+    await show({owner:'replacement',generation:replacement});
+    await React.act(async()=>{replies[0].resolve(effortPacket);});
+    assert.equal(props(effort()).disabled,true);assert.ok(!c.textContent.includes('future-offered'),'old-source reply is discarded');
+    await read();await show({disabled:true});
+    await React.act(async()=>{replies[1].resolve({...effortPacket,generation:replacement});});
+    assert.equal(props(effort()).disabled,true,'a current reply grants no action while source is unavailable');
+    const retainedChoice=props(effort()).onChange;
+    await React.act(()=>retainedChoice({target:{value:'medium'}}));assert.equal(choices.length,0);
+    await show({disabled:false});
+    await React.act(()=>oldRead());assert.equal(calls.length,2,'original read callback stays obsolete');
+    await read();
+    const next={...g,spawnCounter:3};await show({owner:'next',generation:next});
+    await React.act(async()=>{replies[2].reject(Error('obsolete read failed'));});
+    assert.ok(!c.textContent.includes('could not be read'),'delayed old error is not attributed to the new source');
+    await React.act(()=>retainedChoice({target:{value:'medium'}}));assert.equal(choices.length,0);
+  } finally {
+    await React.act(()=>root.unmount());document.body.removeChild(c);window.__TAURI_INTERNALS__=previous;
+  }
+});
