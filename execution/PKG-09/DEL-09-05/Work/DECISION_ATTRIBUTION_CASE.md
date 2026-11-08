@@ -114,7 +114,7 @@ It also checks the lapse on a scratch copy, and the independence of an unrelated
 
 **Repairs at RV-EP (MINOR).** R-3 follows RS's actual actor record (EP-R2). Every record the check constructs as a `human_act` is validated against RS before the rules are applied, with DEL-04-03's subset validator (`prototype/minischema.py`, read-only). N-1 is now RS-valid: the requesting agent's own identity as `displayName`, with capture evidence that agrees, so only R-3 can stop it. P04-A reads the reserving basis from the package file's `reservedBy` (EP-R4, after R23-24). R-6 follows R23-25 and is exercised both ways: a later A16 supersedes, and a correction is not a new decision. The N-5 entries are non-act stand-ins, not RS-validated; their only relevant property is that they are not `human_act` entries (R-1).
 
-**Run of 2026-10-03 on the R23-24 refreeze** (macOS, Python 3, `jsonschema` 4.26; script sha256 e57359d3646031cec28444713832f9accb5c33259a864b8821ae44aa2a5229b9; observation file afc9df9d087488680a3624bb01ba88df3583ab3cb9ad98eb013b73acb6301716). Run from the deliverable folder:
+**Run of 2026-10-03 on the R23-24 refreeze** (macOS, Python 3, `jsonschema` 4.26; script sha256 e57359d3646031cec28444713832f9accb5c33259a864b8821ae44aa2a5229b9; observation file afc9df9d087488680a3624bb01ba88df3583ab3cb9ad98eb013b73acb6301716). The historical command ran from the deliverable folder:
 
 ```text
 cd "<DEL-09-05 deliverable folder>"
@@ -124,6 +124,11 @@ python3 -B Design/prototype/fw04_check.py --fixture <run>/E/fixtures/FX-DP1 \
   --rs-design <DEL-04-03 Design> --as-design <DEL-04-02 Design> \
   --criterion ScopeOfWork.md --out "$TMPDIR/fw04"
 ```
+
+The retained fixture is now at `app/tests/fixtures/FX-DP1/`; the deliverable's
+`Design/` paths are now `Work/`. The maintained script has changed since this
+run, so a new execution is a separate observation, not a reproduction of the
+historical result with the original script and inputs.
 
 **22 expectations, 0 failed.**
 - Every fixture record is valid against RS, with its CE-4 and AS references.
@@ -151,7 +156,10 @@ Earlier runs, kept as history: the first freeze of FX-DP1 (`e3c8c5ea…`) and th
 
 DEL-06-02's waiting view (`FLEET_VIEWS.md`, FV-v0.1 as changed in place on 2026-10-04, sha256 8c4e83781262d1212c5e462c5b9b2ce65c8b8c5c03fc3aaa5191b18e35a54645. Re-pinned at the tranche-2 closeout under R23-21 item 4 from `15e25a24…`. That change adds FV-10, the connector waiting cause, and reads DEL-06-01's RF-5a/5b. The labels *ready* and *ready (qualified)*, FV-4a and `readinessQualified`, which RW-1 relies on, are unchanged. FV-10 also states that satisfying a connector need is not readiness, which RW-1 does not contradict) labels a ready row either **ready** or **ready (qualified)**. The second is used while the child index holds an unassociated or orphaned child (FV-4a), with that cause listed first. No current DEL-09-05 code reads these rows: FW-04 reads only the decision records. **Rule RW-1, for the V4-EXM-13 joined witness (REQ-002's "independent ready work"; VER-002, VER-003):** wherever DEL-09-05 reads a waiting row's state, it recognizes both labels as ready (and the row's `readinessQualified` element where the view supplies it), and it keeps the qualifier and its first cause in its own observations and result records. A *ready (qualified)* row is never reported as bare *ready*, and the qualifier is never dropped when ready rows are counted or compared across a rebuild. An expected rebuilt state written for the witness names the label it expects, qualified or not.
 
-## 7. Interfaces
+## 7. Historical rehearsal interfaces
+
+These rows record the rehearsal's interface status. For current candidate
+inputs and remaining conditions, use the receiving conditions above.
 
 | With | What | Register | State |
 |---|---|---|---|
@@ -172,16 +180,3 @@ No register row is proposed.
 | The V4-EXM-13 undertaking fixture whose decision FW-04 uses | O-C, a later unit (after the early path) | Before the joined witness | FW-04 is written against the package shape only |
 | The actual person and the examiner's observation form | DEP-09-05-012; DEL-09-01 native-route form | At execution | P04-B cannot pass without them |
 | App candidate | Later undertaking | At execution | — |
-
-## Changes at repair (review RV-EP; in place, version label unchanged)
-
-| Finding | Repair |
-|---|---|
-| EP-R2 (MINOR) agent-actor rule tested a shape RS refuses | R-3 compares the actor's names with the run's agent identities and the requester. Constructed `human_act` records are RS-validated. N-1 is RS-valid |
-| EP-R3 (MINOR) stale open matters | The "EXP refrozen" row is removed. EXP-v0.2 is pinned in the header, and §7's DEL-09-01 row says "adopted" |
-| EP-R4 (NOTE) basis by a phrase in `purpose` | P04-A reads `reservedBy` from the package file (R23-24) |
-| EP-R5 (NOTE) R-6 unratified | R-6 follows O-A's R23-25 decision and is exercised both ways |
-| §6 command path (from RV-EP) | The command now runs from the deliverable folder, where `--criterion ScopeOfWork.md` resolves |
-| R23-24 refreeze | Suppliers and fixture re-pinned; rerun 22/22 |
-| FV-4a (DEL-06-02 E2-R3, from the coordinator) | §6.1 RW-1: the joined witness recognizes *ready* and *ready (qualified)* and keeps the qualifier; no current code reads waiting rows |
-| Tranche-2 closeout pins (R23-21 item 4) | ACT-POLICY v0.10→v0.11: only the label, change note and §10.3 DEL-10-03 row changed; the A16 rows are byte-identical. FV-v0.1 `15e25a24…`→`8c4e8378…`: FV-10 and RF-5a/5b were added, and FV-4a and the ready labels are unchanged. Both were re-pinned after reading the diffs. No rule here changed |

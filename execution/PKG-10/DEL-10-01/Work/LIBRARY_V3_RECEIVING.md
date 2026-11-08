@@ -1,19 +1,13 @@
 # Library 3.0.0 contributor adoption
 
-## Selection and source
-
-The owner directed this post-handoff adoption as one App PR. App pins its
-contributor instructions to released `library-v3.0.0`, commit
-`5170575f3f4c1fc51386fa5cd38c7ef9ac048b20`, rather than tracking moving main.
-The shared checkout `/Users/ryan/dev/chirality-library` was clean and both HEAD
-and the release tag resolved to that commit before reliance. Dependent results
-record that resolved revision. Source paths and fixture hashes are in
-[`reference/library-v3.0.0/`](../../../../reference/library-v3.0.0/README.md).
-The released migration notes were read first; the reported archive digest is
-recorded there without claiming an archive download or independent verification.
-
-This supersedes c35/v2.1 only for new contributor work. Earlier results,
-fixtures, accepted scope and product bindings retain their actual subjects.
+The owner selected `library-v3.0.0`, commit
+`5170575f3f4c1fc51386fa5cd38c7ef9ac048b20`, for contributor work. The
+checkout and release tag resolved to that commit. Source paths and fixture
+hashes are in [`reference/library-v3.0.0/`](../../../../reference/library-v3.0.0/README.md).
+The reported archive digest is release metadata, not an independently verified
+download. This historical selection was superseded for new reliance by
+[Library 3.1.0](LIBRARY_V3_1_RECEIVING.md); its findings and fixtures retain
+their original subjects. Accepted scope and product bindings retain their actual subjects.
 It serves DEL-10-01 OUT-001/002/003 and the existing source-selection condition;
 no ScopeOfWork commitment, maturity or dependency condition changes. Its new
 compatibility harness is declared in `deliverable.yaml`.
@@ -108,6 +102,8 @@ proof follows from this source inspection.
 
 ## Verification
 
+The initial receiving result was bound to `682212f62b312e182bcfb22a1ab6efa842a2adf4`; the later header extension was bound to `eac5c32b7c2c8221ea5bf39d4ce19d3e2ee8bf9a`.
+
 Focused checks use prepared offline Python/PyYAML/pytest under the ordinary
 slot wrapper with fresh scratch OS/Codex/temp homes. The receiving harness,
 historical fixture checks, existing deliverable/CI/prototype consumers,
@@ -177,5 +173,5 @@ headers and schema/entry/preservation regressions, plus ten instruction-generato
 tests. Deliverables again reported 41/zero errors; the neighborhood query,
 eight-file instruction freshness and examination-pin check passed. Header/body
 comparison preserved all nineteen pre-header bodies apart from the stated loop
-clarification. Extended evidence and the final exact-head receipt are in
+clarification. Extended evidence is at
 `/Users/ryan/dev/chirality-t3/scratch/app-library-v3-headers-3ual3kma/CHECK_SUMMARY.json`.

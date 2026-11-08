@@ -1371,8 +1371,8 @@ unselected. No acceptance or dependency condition is changed here.
 
 ## Verification cases
 
-Designed, **not run**. Passing them later shows definition completeness only;
-the witness itself is §8.
+These cases assess definition completeness; the joined witness is §8.
+VC-CA-10 ran as a test-double rehearsal (§8.5); the others are designed, **not run**.
 
 | Case | Design | Expected result | Serves |
 |---|---|---|---|

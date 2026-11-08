@@ -9,16 +9,17 @@ historical source records below are not rewritten. Seven tools and the separate
 16-row operation table supply offline receiving evidence only. No live Apply,
 native operation, model run or criterion17 qualification is inferred.
 
-## Current catalog receiving selection: v3
+## Catalog receiving selection: v3
 
 The [integrated catalog-v3 receiving account](SWBPIPE_CATALOG_V3_RECEIVING.md)
 selects `sgttomas/SWBPIPE@4d8cb7b0c8f101d5102813e634e23ecba29b310e`,
 canonical and packaged 61,618-byte catalogs at SHA256 `652ccc0c…`. This explicitly
-supersedes the selected catalog-v2 basis below for current receiving tests.
+superseded the catalog-v2 basis below for its receiving tests.
 It preserves original/v2 identities and records; it does not reinterpret earlier
 fixture/native observations as current host capability or qualification.
 The sections below retain their historical checkpoint subjects, including
-then-current activation gaps. The v3 account names the remaining live inputs.
+then-current activation gaps. The v3 and v4 offline receiving paths retain
+separate selections; the v3 account retains its own live-input limits.
 
 ## Current fixture admission and remaining activation boundary
 
@@ -149,8 +150,8 @@ accepted all 12 expanded input/output schemas in each catalog (24 total).
 Whitespace checks passed. No dependency installation, supplier/model/GUI run,
 heavy build or broad suite was performed.
 
-The command below preserves the historical v2 invocation. To execute that
-subject today, use the retained runner instead of the current v3-only script:
+To execute the historical v2 subject, use its retained runner with an exact
+export:
 `PYTHONPATH=app/supplier_checks python3 execution/PKG-09/DEL-09-06/Work/catalog-v2/receiving-test.py.txt --catalog <v2 export>`.
 
 To reproduce the optional receiving input, export it from any explicitly chosen
@@ -158,7 +159,7 @@ Chirality checkout containing the pinned commit, without changing that checkout:
 
     scratch_codex_home=$(mktemp -d /tmp/swbpipe-publication.XXXXXX)
     git -C "<selected Chirality checkout>" show c48efef77bbb799f3ebe902eb213a88330a5994e:projects/chirality-piping/execution/PKG-16/DEL-16-06/Design/agent-capability-catalog.json > "$scratch_codex_home/receiving-catalog.json"
-    CODEX_HOME="$scratch_codex_home" PYTHONDONTWRITEBYTECODE=1 python3 app/supplier_checks/swbpipe_receiving_test.py --catalog "$scratch_codex_home/receiving-catalog.json"
+    CODEX_HOME="$scratch_codex_home" PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=app/supplier_checks python3 execution/PKG-09/DEL-09-06/Work/catalog-v2/receiving-test.py.txt --catalog "$scratch_codex_home/receiving-catalog.json"
 
 The receiving test verifies the exact SHA256 before executing. Its input is an
 explicit export, not a mutable sibling lookup or default build/test dependency.
@@ -176,7 +177,7 @@ DEL-09-06/09-07 ScopeOfWork and deliverable.yaml conditions remain unchanged.
 This contribution supplies no standalone App external-controller implementation,
 platform qualification, acceptance, release or main-policy bypass.
 
-## Current receiving revision: v2
+## Earlier receiving revision: v2
 
 This section supersedes the v1 equality/admission account below; that account
 retains the initial receiving history.
