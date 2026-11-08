@@ -1182,7 +1182,9 @@ remaining start-up rows, so "nothing leaves the machine" is never implied.
 ## 10. API-key definition record (OUT-003, REQ-006; OI-010 stays OPEN)
 
 Supported API-key behaviour at the definition pin 0.158.0, with standing.
-Nothing here is observed live: no key has ever been used in this project.
+None of these definition-pin statements was observed live; when this definition
+was produced on 2026-10-01 and 2026-10-02, no key had ever been used in this
+project.
 
 | ID | Statement | Standing |
 |---|---|---|
