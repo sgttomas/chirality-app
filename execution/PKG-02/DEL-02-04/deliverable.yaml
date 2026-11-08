@@ -26,7 +26,9 @@ needs:
 - from: external:OI-018
   condition: Obtain the instruction distribution/adoption mechanism choice before instruction changes or
     dependent supply, retaining source/supply evidence without inventing precedence; host distribution remains
-    open with the same owners (OI-018).
+    open with the same owners (OI-018). The owner's App-local Work authoring and deterministic
+    resource-derivation selection is recorded in Work/INSTRUCTION_RESOURCE_AUTHORING.md;
+    it does not resolve portable distribution, shared allocation or consumer adoption.
   evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
 - from: DEL-02-01
   condition: App v4 DEL-02-04 receives this portable workflow/role/checkpoint contract and shared allocation
@@ -34,6 +36,25 @@ needs:
   gating: false
   evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
 code_paths:
+- execution/PKG-02/DEL-02-04/Work/INSTRUCTION_RESOURCE_AUTHORING.md
+- execution/PKG-02/DEL-02-04/Work/INSTRUCTION_RESOURCE_DERIVATION.json
+- execution/PKG-02/DEL-02-04/Work/instructions-v1/AGENTS.md
+- execution/PKG-02/DEL-02-04/Work/instructions-v1/roles.json
+- execution/PKG-02/DEL-02-04/Work/instructions-v1/ROLE_SET_SOURCE_BINDING.json
+- execution/PKG-02/DEL-02-04/Work/instructions-v1/SOURCE_MAP.json
+- execution/PKG-02/DEL-02-04/Work/instructions-v1/agents/AGENT_HELP_HUMAN.md
+- execution/PKG-02/DEL-02-04/Work/instructions-v1/agents/AGENT_HELPS_HUMANS.md
+- execution/PKG-02/DEL-02-04/Work/instructions-v1/agents/AGENT_WORKING_ITEMS.md
+- execution/PKG-02/DEL-02-04/Work/instructions-v1/agents/AGENT_TASK.md
+- tools/instruction_resources.py
+- app/src-tauri/resources/instructions/AGENTS.md
+- app/src-tauri/resources/instructions/roles.json
+- app/src-tauri/resources/instructions/ROLE_SET_SOURCE_BINDING.json
+- app/src-tauri/resources/instructions/SOURCE_MAP.json
+- app/src-tauri/resources/instructions/agents/AGENT_HELP_HUMAN.md
+- app/src-tauri/resources/instructions/agents/AGENT_HELPS_HUMANS.md
+- app/src-tauri/resources/instructions/agents/AGENT_WORKING_ITEMS.md
+- app/src-tauri/resources/instructions/agents/AGENT_TASK.md
 - app/src-tauri/src/child_roles.rs
 - app/src-tauri/src/access_provider.rs
 - app/src-tauri/src/hosting_child_roles.rs
@@ -56,6 +77,8 @@ code_paths:
 - app/src-tauri/src/role_supply.rs
 - app/src/ConversationRoles.tsx
 checks:
+- tools/instruction_resources.py
+- tools/test_instruction_resources.py
 - app/src-tauri/src/child_roles_tests.rs
 - app/src-tauri/src/native_child_guidance.rs
 - app/src-tauri/src/access_provider_tests.rs

@@ -930,6 +930,14 @@ implemented behavior and qualification limits.
 
 ## Offline build and checks
 
+Packaged product instructions are generated from the App-authored versioned
+sources in `execution/PKG-02/DEL-02-04/Work/instructions-v1/`. Edit those Work
+documents, then run `python3 -m tools.instruction_resources` from the repository
+root. `python3 -m tools.instruction_resources --check` verifies the committed
+resource copy and separate derivation manifest; CI enforces it without a sibling
+Library. See that deliverable's `Work/INSTRUCTION_RESOURCE_AUTHORING.md` for
+the retained four-role binding and historical provenance limits.
+
 Use Rust 1.97.1, Node 24, Python 3 and prepared Cargo/npm caches. Set
 `CARGO_HOME` to the dependency cache you prepared if it is isolated. The offline
 commands require those caches to contain the locked dependencies; use the
