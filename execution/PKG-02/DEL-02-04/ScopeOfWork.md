@@ -119,3 +119,22 @@ Each row's verification set applies to its single criterion. Repeated output ref
 | OUT-001 | OBJ-001, OBJ-002 | REQ-005; REQ-006; CLM-001; CLM-002; CLM-003 | AC-006 | VER-006 | Reuse or replacement account against the actual receiving contract, local coverage and owner/open-choice review |
 | OUT-002 | OBJ-001, OBJ-002 | REQ-005; REQ-006; CLM-001; CLM-002; CLM-003 | AC-006 | VER-006 | Reuse or replacement account against the actual receiving contract, local coverage and owner/open-choice review |
 | OUT-003 | OBJ-001, OBJ-002 | REQ-005; REQ-006; CLM-001; CLM-002; CLM-003 | AC-006 | VER-006 | Reuse or replacement account against the actual receiving contract, local coverage and owner/open-choice review |
+
+## Maintained App instruction output locality
+
+Under the owner's direction, the App role-guidance documents and their
+source-identity account within OUT-001/OUT-002 are maintained as versioned
+App-authored sources in `Work/instructions-v1/`. The self-contained
+`tools/instruction_resources.py` derives the packaged
+`app/src-tauri/resources/instructions/` copy and its separate Work derivation
+manifest; `--check` verifies freshness, the closed file set, exact bytes and
+modes. `Work/INSTRUCTION_RESOURCE_AUTHORING.md` records this production mapping.
+
+This is an App-local authoring/derivation choice within the existing
+role-guidance owner's content/structure authority (ROLE_SUPPLY §4.2), not a
+change to REQ-001–REQ-006, acceptance, runtime roles/defaults, supplier policy,
+historical/current product bindings or receiving ownership. OI-018 is qualified
+only for this local authoring locality; portable distribution/adoption and
+host/shared allocation remain with their existing owners and open conditions.
+Generation establishes source/output correspondence, not supply, behavior,
+qualification or consumer adoption.

@@ -37,6 +37,8 @@ jobs:
       - name: Deliverable structure and utility behavior
         run: |
           python -m tools.deliverables --project . check > deliverable-check.json
+          python -m tools.instruction_resources --check
+          python -m unittest tools.test_instruction_resources
           python app/examination/repin.py --check
           python -m pytest -q tools/deliverables/test_cli.py
           python -m pytest -q tools/ci/test_selection.py
