@@ -132,3 +132,11 @@ witness/recovery plan under the existing signing obligation. It neither selects
 real namespace values nor authenticates a profile, activates keychain access or
 qualifies SEAL-2. Exact signer intake, controlled enrollment invocation and actual
 signed-candidate evidence remain explicitly required.
+
+## A15 invoking-window implementation reconciliation
+
+The [A15 original-window presentation account](Work/A15_ORIGINAL_WINDOW_CONFIRMATION.md)
+records the J2 registration stall's source diagnosis and the invoking-window
+sheet repair under REQ-008/OUT-005. Native confirmation/capture meaning and
+dependency conditions stay unchanged; offline stand-ins do not establish a
+completed native registration or J2 journey.

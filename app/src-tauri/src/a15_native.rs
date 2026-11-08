@@ -1,7 +1,9 @@
 //! Native-only A15 event producer. No production constructor or serde surface.
 use crate::act_control::{native_statement, A15OfferRef, A15Variant, ActControl, HotA15Result};
 use crate::workflow_workspace::registration::ReviewSession;
+use raw_window_handle::{DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, WindowHandle};
 use serde_json::Value;
+use std::sync::mpsc;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult};
 
 pub(crate) struct ConfirmedA15Event {
@@ -50,7 +52,7 @@ pub(crate) fn a15_buttons(variant: A15Variant) -> MessageDialogButtons {
 /// Actual host-native path. Root owns retained session/library/home state and
 /// supplies observed actor/context from current_actor_context_for, with actual
 /// owning-home/library/session rechecks inside observe. No webview DTO reaches
-/// these arguments. Closure supplies facts; only actual blocking_show creates
+/// these arguments. Closure supplies facts; only the explicit native sheet result creates
 /// the opaque event. Holding the session prevents replacement while current()
 /// additionally rereads actual live entries/slot before and after the dialog.
 ///
@@ -58,27 +60,98 @@ pub(crate) fn a15_buttons(variant: A15Variant) -> MessageDialogButtons {
 /// shown in the App (also while the alert is open) and named in the statement
 /// by reference and digest. Only the explicit middle (act) result captures.
 pub(crate) fn confirm_native(
-    app: &tauri::AppHandle,
+    invoking: &tauri::Window,
     control: &mut ActControl,
     session: &ReviewSession,
     offer: &A15OfferRef,
     observe: impl FnMut() -> Result<(Value, Value), String>,
 ) -> Result<Option<HotA15Result>, String> {
-    confirm_with_adapter(control, session, offer, observe, |text, buttons| {
-        app.dialog()
-            .message(text)
-            .title("Chirality — register workflow")
-            .kind(MessageDialogKind::Warning)
-            .buttons(buttons)
-            .blocking_show_with_result()
+    confirm_with_adapter(control, session, offer, observe, |text, buttons, act| {
+        present_in_original(invoking, text, buttons, act)
     })
 }
+
+const UNAVAILABLE: &str = "Invoking App window unavailable; A15 confirmation refused";
+
+// The plugin silently ignores failed parent lookups. Cache both handles before
+// calling it so an unavailable original can never select a parentless alert.
+struct Parent<'a> {
+    window: WindowHandle<'a>,
+    display: DisplayHandle<'a>,
+}
+impl HasWindowHandle for Parent<'_> {
+    fn window_handle(&self) -> Result<WindowHandle<'_>, HandleError> { Ok(self.window) }
+}
+impl HasDisplayHandle for Parent<'_> {
+    fn display_handle(&self) -> Result<DisplayHandle<'_>, HandleError> { Ok(self.display) }
+}
+fn checked_parent<T>(
+    original: &(impl HasWindowHandle + HasDisplayHandle),
+    present: impl FnOnce(&Parent<'_>) -> T,
+) -> Result<T, String> {
+    let parent = Parent {
+        window: original.window_handle().map_err(|_| UNAVAILABLE)?,
+        display: original.display_handle().map_err(|_| UNAVAILABLE)?,
+    };
+    Ok(present(&parent))
+}
+fn result_in_original(
+    original: &(impl HasWindowHandle + HasDisplayHandle),
+    result: MessageDialogResult,
+    act: &str,
+) -> Result<MessageDialogResult, String> {
+    if native_statement::chose(&result, act) { checked_parent(original, |_| ())?; }
+    Ok(result)
+}
+fn receive_result(
+    receive: mpsc::Receiver<Result<MessageDialogResult, String>>,
+) -> Result<MessageDialogResult, String> {
+    receive.recv().map_err(|_| "A15 confirmation ended without a result; nothing captured".to_string())?
+}
+
+// Only the async IPC worker waits. Validation, parenting and callback-based
+// sheet presentation share one main-thread turn, using the actual IPC invoker.
+fn present_in_original(
+    invoking: &tauri::Window,
+    text: String,
+    buttons: MessageDialogButtons,
+    act: &str,
+) -> Result<MessageDialogResult, String> {
+    let (send, receive) = mpsc::channel();
+    let window = invoking.clone();
+    let act = act.to_owned();
+    invoking.run_on_main_thread(move || {
+        let failure = send.clone();
+        if let Err(error) = checked_parent(&window, |parent| {
+            window.dialog().message(text).title("Chirality — register workflow")
+                .kind(MessageDialogKind::Warning).buttons(buttons).parent(parent)
+                .show_with_result({
+                    let window = window.clone();
+                    move |result| {
+                        if !native_statement::chose(&result, &act) {
+                            let _ = send.send(Ok(result));
+                            return;
+                        }
+                        let original = window.clone();
+                        let failure = send.clone();
+                        if window.run_on_main_thread(move || {
+                            let _ = send.send(result_in_original(&original, result, &act));
+                        }).is_err() {
+                            let _ = failure.send(Err(UNAVAILABLE.into()));
+                        }
+                    }
+                });
+        }) { let _ = failure.send(Err(error)); }
+    }).map_err(|_| "Invoking App window could not present A15 confirmation".to_string())?;
+    receive_result(receive)
+}
+
 fn confirm_with_adapter(
     control: &mut ActControl,
     session: &ReviewSession,
     offer: &A15OfferRef,
     mut observe: impl FnMut() -> Result<(Value, Value), String>,
-    choose: impl FnOnce(String, MessageDialogButtons) -> MessageDialogResult,
+    choose: impl FnOnce(String, MessageDialogButtons, &str) -> Result<MessageDialogResult, String>,
 ) -> Result<Option<HotA15Result>, String> {
     let (actor, context) = observe()?;
     let text = {
@@ -90,8 +163,15 @@ fn confirm_with_adapter(
     let variant = control.a15_variant(offer)?;
     let in_app = control.a15_in_app(offer)?;
     control.present_a15(offer)?;
-    let result =
-        native_statement::showing_in_app(Some(&in_app), || choose(text, a15_buttons(variant)));
+    let result = match native_statement::showing_in_app(Some(&in_app), || {
+        choose(text, a15_buttons(variant), variant.act)
+    }) {
+        Ok(result) => result,
+        Err(error) => {
+            control.dismiss_a15(offer);
+            return Err(error);
+        }
+    };
     if !native_statement::chose(&result, variant.act) {
         control.dismiss_a15(offer);
         return Ok(None);
@@ -138,5 +218,20 @@ pub(crate) fn synthetic_a15_native(
     observe: impl FnMut() -> Result<(Value, Value), String>,
     choose: impl FnOnce(String, MessageDialogButtons) -> MessageDialogResult,
 ) -> Result<Option<HotA15Result>, String> {
+    confirm_with_adapter(control, session, offer, observe, |text, buttons, _| Ok(choose(text, buttons)))
+}
+
+#[cfg(test)]
+pub(crate) fn synthetic_a15_native_result(
+    control: &mut ActControl,
+    session: &ReviewSession,
+    offer: &A15OfferRef,
+    observe: impl FnMut() -> Result<(Value, Value), String>,
+    choose: impl FnOnce(String, MessageDialogButtons, &str) -> Result<MessageDialogResult, String>,
+) -> Result<Option<HotA15Result>, String> {
     confirm_with_adapter(control, session, offer, observe, choose)
 }
+
+#[cfg(test)]
+#[path = "a15_native_tests.rs"]
+mod tests;

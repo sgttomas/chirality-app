@@ -165,6 +165,7 @@ code_paths:
 - app/src-tauri/src/hosting_handoff_send.rs
 - app/src-tauri/src/installation.rs
 - app/src-tauri/src/act_control_a15.rs
+- app/src-tauri/src/a15_native.rs
 checks:
 - app/src-tauri/src/model_turn_recorder_tests.rs
 - app/src-tauri/src/runtime_session.rs
@@ -199,4 +200,5 @@ checks:
 - app/tests/validate-records.test.mjs
 - app/src-tauri/src/installation.rs
 - app/src-tauri/src/act_control_a15.rs
+- app/src-tauri/src/a15_native_tests.rs
 - app/src-tauri/tests/schema_validation.rs

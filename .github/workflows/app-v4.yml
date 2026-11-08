@@ -43,7 +43,10 @@ jobs:
           checkpoint_custody trial_reads_route_to_the_home_holding_the_trial_conversation
           model_turn model_rerouted execution_custody_tests records::durability_tests
           record_relations records_index u_store_2 recovery::store::tests stop_records
-          a15_single_entry file_act role_observations host_tick after_end_file_lapse
+          a15_single_entry a15_native::tests
+          act_control::a15::tests::native_presentation_failure_
+          act_control::a15::tests::native_adapter_three_buttons_only_the_middle_captures
+          file_act role_observations host_tick after_end_file_lapse
           role_r3 home_qualified_hot_run process_group_custody access_provider
           runtime_session::workflow_root_tests::supply_dispatch_tests
           runtime_session::workflow_root_tests::trial_restart_source_tests
