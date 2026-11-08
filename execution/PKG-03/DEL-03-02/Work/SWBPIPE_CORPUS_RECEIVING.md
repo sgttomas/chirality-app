@@ -199,13 +199,12 @@ as the person's acceptance.
 
 ## Verification
 
-The corpus map reads its pinned historical SWBPIPE commit from Git; it needs
-the former monorepo history containing that commit. The App-only checkout does
-not contain it. From the repository root, the remaining commands use a fresh
-SH-1 run:
+The historical corpus map reads the hash-pinned SWBPIPE filesystem inputs in
+the former monorepo layout described by `swbpipe-corpus-pins.json`. Those inputs
+are unavailable in the App-only checkout, so the map cannot be regenerated
+here. From the repository root, the following commands use a fresh SH-1 run:
 
 ```sh
-python3 -B execution/PKG-03/DEL-03-02/Work/prototype/swbpipe_corpus_map.py
 D=$(mktemp -d)/run
 python3 -B execution/PKG-03/DEL-03-01/Work/prototype/run_fixture.py --out "$D"
 python3 -B execution/PKG-03/DEL-03-01/Work/prototype/run_swbpipe_profile.py --out "$D"
