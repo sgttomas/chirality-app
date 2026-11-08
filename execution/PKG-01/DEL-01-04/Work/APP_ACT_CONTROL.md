@@ -16,7 +16,7 @@
   file amends SC2-01-04-1 for K-8 (A15, DEL-02-02 as consumer): proposal
   SC3-01-04-1 in the return file `D/D3.md`.
 - **v0.3 change (R23-8, R23-18, R23-21; run `APP-V4-DESIGN-PASS-4-20261003`, owner O-A):** A16 *decide* on a decision package: §1.2 row, §2 AI-9 (the package as a runtime value), and both §5 schemas with their examples (A16, the alternatives, `alternativeChosen`; additive, in place in schema 0.3); §5.1 names the offer digest's serialization (`aac-offer-digest/0.1`). **Re-pin (R23-5):** DEL-01-04 ScopeOfWork.md now has sha256 8434cc47ec28e1397e7dae548183543567f0b5fcfdefaebc0b44bc1f709aacf3 (SCA-V4-003 applied SC3-01-04-1, so the act control's obligation is now REQ-008/OUT-005/AC-008/VER-008, and the "Standing" bullet above is historical). Blocks read: G-0104-01…14. Bearing: G-0104-04, -09, -10, -12 and -14 (OUT-005, REQ-008, AC-008, VER-008 and the matrix row: "one act kind at a time on App content", "App files and outputs"; a decision package is an App file, so A16 falls within them), G-0104-08 (REQ-006: acts owned elsewhere) and G-0104-13 (AX-005); the others do not bear on this row.
-- Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not
+- Historical design-pass status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not
   accepted. Beside it: two PROPOSED schemas with a valid and an invalid
   example each (§5), and the act-control part of the prototype in
   [`prototype/act_control.py`](prototype/act_control.py) (§8).

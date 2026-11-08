@@ -126,6 +126,7 @@ licence texts remain open, as stated there.
 records read-only marker counts and offsets in the main and code-mode-host bytes:
 - the code-mode host contains V8 (`v8` crate 150.4.0), ICU 77 and Chromium libc++;
 - the main binary embeds the `skill-creator` and `skill-installer` samples with the Apache 2.0 text;
-- bubblewrap code is absent from the macOS main binary.
+- the specified bubblewrap byte patterns were absent from the macOS main binary;
+  that does not establish that the code is absent.
 
 The remaining edges and exact inputs are in [SHIPPED_NOTICE_COVERAGE.md](../SHIPPED_NOTICE_COVERAGE.md).

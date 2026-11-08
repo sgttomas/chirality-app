@@ -603,8 +603,8 @@ are not supplied by these reader slices.
   pinned** in `fleet_store.py` (`VENDOR_SHA256`; FV10-R8), so a file edited
   together with its entry is refused. A copy whose bytes differ is refused
   (`VendoredInputChanged`). Re-pinned deliberately from EU-D1 v0.1
-  (`589f2c5d…`), whose bytes were never committed. Re-pin again at O-D's next
-  refreeze.
+  (`589f2c5d…`), whose bytes were never committed. The contemporaneous plan
+  was to re-pin again at O-D's next refreeze.
 - **RF-6** A decision need is satisfied only by an RS `human_act` of the
   named kind citing the request (for A16, with a named alternative). Without
   the RS records it is *unknown*. Where several such acts exist, the latest

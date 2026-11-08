@@ -187,11 +187,11 @@ None of these adds a required key, so the account still validates.
 
 **RR-F: a second independent reader, on `IS-FX-DP1-3`.** HELP_HUMAN dispatched a fresh reader with exactly ten files (`E/RR-F/SUPPLIED.sha256`, which matches `IS-FX-DP1-3`, the reader brief v0.2, the account schema and the assembled input; checked by `shasum -a 256 -c` against `prototype/fixtures/IS-FX-DP1-3-input/`). Its account (`E/RR-F/account.json`, sha256 8188caba864ff83e73e9c6b99342208d6df978c70bdb7744b35991fdd6f392c0, kept byte-identical as `prototype/fixtures/account.independent.RR-F.json`) holds **9 of 9 with nothing referred**: the reader stated absences with `no_outcome` and `no_change`, and recomputed the offer digest from the supplied rule alone. It is the standing check's second independent case (SC-1). It used full namespaced ids, so it does not exercise the short-form rule; the overlap case below does.
 
-**Rerun on the R23-24 refreeze (`IS-FX-DP1-3`).** `account.good.IS-FX-DP1-3.json`: 9 of 9 hold. `account.rre-shape.IS-FX-DP1-3.json` (RR-E's claims, re-pointed at the new input set; constructed, not a reader run): 8 hold, RC-9 referred for C-09. No independent reader has run on `IS-FX-DP1-3`; RR-E stands for the method, and a run would also exercise the digest check.
+**Rerun on the R23-24 refreeze (`IS-FX-DP1-3`).** `account.good.IS-FX-DP1-3.json`: 9 of 9 hold. `account.rre-shape.IS-FX-DP1-3.json` (RR-E's claims, re-pointed at the new input set; constructed, not a reader run): 8 hold, RC-9 referred for C-09. These constructed accounts are separate from RR-F, the independent reader run on `IS-FX-DP1-3` described above; RR-F also exercised the digest check.
 
 The account schema (sha256 26d0d2e08e06c8cf74cccd537474e096e17848bf0a3c06b10b0486e29341791e) passes `check_schema`, and all accounts but `bad4` validate against it.
 
-**The early path's consumption check, as it now stands.** The records of FX-DP1 are usable by an independent reader from the files alone. The reader's content is right on both packages, and the repaired comparison holds on its account, with the examiner's judgment recorded for one referred absence claim. Still to do: rerun on O-A's refrozen E-1 records (R23-21).
+**The early path's consumption check.** RR-E reconstructed both packages from the first fixture; its repaired comparison holds with an examiner judgment for one referred absence. RR-F independently reconstructed the revised `IS-FX-DP1-3` fixture and checked the digest as described above. Both are fixture evidence; neither supplies the actual week-later host-journey witness. The host did not enforce RR-E or RR-F read limits; separation rests on the supplied brief and reader report.
 
 ## 9. Failure behaviour and responsibility (VER-006)
 

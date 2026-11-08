@@ -5,7 +5,7 @@ APP-V4-DESIGN-PASS-2-20260930, node B3): Python 3 standard library only; it
 imports DEL-03-01's `schema_subset.py` by relative path.
 
 `observe_map.py --run RUN` reads the items an SH-1 run recorded (C-v0.8
-§10.8; DEL-03-01 `Design/prototype/run_fixture.py`) and applies ADAPTER-v0.6:
+§10.8; DEL-03-01 `Work/prototype/run_fixture.py`) and applies ADAPTER-v0.6:
 
 - **§4.6 OM-1…OM-10**: each `mcpToolCall`-shaped item (N-MCP) and each
   `commandExecution`-shaped item (N-CLI) becomes one external dispatch record
@@ -34,12 +34,11 @@ reports, for example whether `aggregatedOutput` interleaves stderr) are marked
 "OBS-1 pending" in ADAPTER §4.6; ADAPTER 7 (the live spike) is not part of
 this prototype.
 
-```sh
-python3 observe_map.py --run "$TMPDIR/b3-sh1-run"
-```
+From the repository root, use the hash-checking runner for the recorded
+pre-rename prototype bytes:
 
-`observe_map.py` keeps its recorded pre-rename bytes, so run it from the
-repository root as
-`python3 tools/run_recorded_prototype.py execution/PKG-03/DEL-03-03/Work/prototype/observe_map.py --run DIR`.
+```sh
+python3 -B tools/run_recorded_prototype.py execution/PKG-03/DEL-03-03/Work/prototype/observe_map.py --run "$TMPDIR/b3-sh1-run"
+```
 
 The observed output of the run of 2026-09-30 is recorded in `WAVE_B/B3.md`.

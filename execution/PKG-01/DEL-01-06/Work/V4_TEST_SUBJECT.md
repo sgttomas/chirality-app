@@ -54,13 +54,26 @@ were opened. Same-ID collision is conservatively possible; no absence claim.
    is insufficient. Before execution, verify the selected account/root and
    non-overlap without inspecting owner private data. No immediate owner act is
    requested while source/notice/signing preparation continues.
-3. Owner testing focuses on v4 workspace setup, intended actions, captures and
-   verification, normal app lifecycle/close/Quit, and readable failures. Collect
-   actual package/S4/functional witnesses against that exact candidate through
-   the existing consumer path; mocked/source passes do not replace them.
-   Signing/enrollment and any necessary account operation remain separately
-   concrete authorized stages. Existing owner data is not a fixture: no implicit
-   migration, key import, reset, resealing or cleanup.
+3. The 2026-11-05 owner correction assigns development testing to agents; Agent 0
+   carries the App to a publication-ready recommendation before owner testing.
+   Both standalone journeys remain open: J1 first use, an existing workflow,
+   useful real-model work and finding results; J2 create, trial, register and
+   reuse a workflow and return to unfinished work. Collect actual package/S4/
+   functional witnesses against the applicable exact candidate through the
+   existing consumer path; mocked/source passes do not replace them. Signing,
+   enrollment and any necessary account operation remain separately authorized
+   stages. Existing owner data is not a fixture: no implicit migration, key
+   import, reset, resealing or cleanup.
+
+   The [2026-11-08 actual J1 account](../../../PKG-09/DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md)
+   records the core path on development source
+   `57bb9c4dbe5cb4adaa55c1082a7c8f832da8b257`, executable SHA256
+   `1997e441b756d3f21a8d5f4fae2f3b03b346cdc8d77c123fcf7bcc349a12761e`:
+   saved setup, owner sign-in, included workflow, useful real-model work and
+   checked saved results found in the App. The sign-in status display finding
+   remains open. This observation is not full installed qualification or owner
+   acceptance; J1 remains open for the applicable candidate and evidence, and
+   J2 creation, trial, registration, reuse and resumption remain incomplete.
 
 The identifier choice does not select service/account/access-group values.
 Runtime owns SEAL_C_KEYCHAIN_SIGNING_JOIN.md; it has been notified of the new

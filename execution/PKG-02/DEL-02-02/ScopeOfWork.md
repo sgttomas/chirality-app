@@ -119,9 +119,7 @@ selected pinned production `coordinated-knowledge-work` package, run from this
 App's own installed resources without A15. It supports J1 of
 [Work/PUBLICATION_JOURNEYS.md](Work/PUBLICATION_JOURNEYS.md). REQ-004/AC-004
 origin identity, registration and every acceptance criterion are unchanged.
-Holding copies, development and other candidate subjects still never run. No
-published release or qualification is claimed; the candidate-bound J1
-observation remains open.
+Holding copies, development and other candidate subjects still never run. No published release or qualification is claimed. The development J1 core path is recorded in [Work/PUBLICATION_JOURNEYS.md](Work/PUBLICATION_JOURNEYS.md); it does not by itself establish the candidate-bound installed-resource observation required by BUNDLED-RUN-01 or installed qualification.
 
 ## Output and Evaluation Matrix
 

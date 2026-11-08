@@ -72,8 +72,11 @@ Before this change, core:menu allowed web content to create a matching-ID menu
 whose click reached the global listener without authenticated creator origin.
 This specific webview construction/mutation route is now denied by IPC ACL on a
 fresh narrowed build. The native listener itself still uses an ID, not an
-origin-authentication token, and OS/native automation remains possible. None
-still hides and rejects SEAL-C dispatch. No source test is relabelled as a native
+origin-authentication token, and OS/native automation remains possible. The
+current selection requires a macOS release build and compiled publisher selection
+before SEAL-C is offered; dispatch without that eligibility is refused. The
+provider still independently checks authority and policy. No source test is
+relabelled as a native
 or signed-production witness, and an already-running older process is not
 claimed to have its resources revoked by a source change.
 
@@ -91,8 +94,7 @@ an AppKit menu was operated. Existing native-waiting, enrollment, confirmation
 and Quit source cohorts plus frontend Waiting bridge tests retain their value.
 
 The focused integration test joins existing PR CI without removing any filter.
-Independent review uses the owner's current reviewer policy (Astra, medium).
-Parent owns final integration. Actual native effectiveness and selected signed/
+Actual native effectiveness and selected signed/
 installed v4 functional testing remain separate, with no keychain or signing
 activation implied by these source permissions.
 
