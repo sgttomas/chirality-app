@@ -1175,3 +1175,51 @@ test('explicit account checks latch queued presses and obsolete handlers cannot 
     assert.doesNotMatch(ui.container.textContent,new RegExp(accountCanary));
   },{read:()=>held.promise});
 });
+
+// Offered per-model effort, mounted through the real ordinary composer.
+const effortPacket = {state:'observed',conversationModel:'m',generation:g,modeHomeClass:'account',serverProviderState:'named',serverProvider:'openai',complete:true,limits:[],models:[{
+  id:'m',model:'m',displayName:'Offered model',description:'',isDefault:true,defaultReasoningEffort:'medium',
+  supportedReasoningEfforts:[{reasoningEffort:'medium',description:'Balanced'},{reasoningEffort:'future-offered',description:'Supplier choice'}]
+}]};
+
+test('mounted ordinary chooser sends only deliberate offered effort, binds model, rejects old Send and resets on conversation change', async () => {
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const calls=[];const sends=[];let failSend=false;
+  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{calls.push({command,args});assert.equal(command,'read_available_models');return effortPacket;}};
+  const host={state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},threads:['t','other'].map(threadId=>({generation:g,threadId,model:'obsolete-thread-report',modelProvider:'openai'})),planMode:{state:'offered'}};
+  const show = thread => React.act(()=>root.render(React.createElement(ConversationPanel,{host,threadKey:JSON.stringify([g,thread]),setThreadKey:noop,answer:noop,runAct:noop,send:async(...args)=>{sends.push(args);if(failSend)throw Error("unknown send");return {result:{}};},steer:noop,submitAttachments:noop,interrupt:noop,checkPlanMode:noop,codexBusy:false})));
+  const change=(element,value)=>React.act(()=>props(element).onChange({target:{value}}));
+  const effort=()=>elements(c,'select').find(e=>e.parentNode.textContent.startsWith('Reasoning effort for'));
+  try {
+    await show('t');assert.equal(calls.length,0,'no implicit read');
+    assert.equal(props(effort()).value,'','catalog default not chosen');
+    await React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
+    assert.equal(calls.length,1);assert.ok(c.textContent.includes('future-offered'));
+    const oldChoice=props(effort()).onChange;
+    const oldRead=props(button(c,'Read effort choices for this model')).onClick;
+    const textarea=()=>elements(c,'textarea').find(e=>props(e).id==='ordinary-composer-text');
+    await change(textarea(),'Exact text');
+    const oldSend=props(button(c,'Send text')).onClick;
+    await change(effort(),'future-offered');
+    await React.act(()=>oldSend());assert.equal(sends.length,0,'earlier Send cannot carry a new effort');
+    await React.act(()=>props(button(c,'Send in plan mode (experimental)')).onClick());
+    assert.deepEqual(sends[0],[g,'t','Exact text','plan','m','future-offered']);
+    assert.equal(props(effort()).value,'','successful send leaves native sticky setting in force');
+    await change(effort(),'medium');
+    await React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
+    await React.act(()=>oldChoice({target:{value:'future-offered'}}));
+    assert.equal(props(effort()).value,'medium','old observation cannot choose after reread');
+    await show('other');assert.equal(props(effort()).value,'','other conversation inherits no local choice');
+    assert.equal(props(effort()).disabled,true,'old list not matched to other conversation');
+    await show('t');
+    const readCount=calls.length;
+    await React.act(()=>oldRead());assert.equal(calls.length,readCount,'old read cannot revive after A to B to A');
+    await React.act(()=>oldChoice({target:{value:'future-offered'}}));assert.equal(props(effort()).value,'');
+    await React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
+    await change(effort(),'medium');await change(textarea(),'Uncertain text');failSend=true;
+    await React.act(()=>props(button(c,'Send text')).onClick());
+    assert.equal(sends.length,2);assert.equal(props(effort()).value,'medium','unknown outcome keeps effort');
+    assert.equal(props(textarea()).value,'Uncertain text');
+    assert.equal(props(button(c,'Send text')).disabled,true,'no automatic resend after unknown outcome');
+  } finally {await React.act(()=>root.unmount());document.body.removeChild(c);delete window.__TAURI_INTERNALS__;}
+});

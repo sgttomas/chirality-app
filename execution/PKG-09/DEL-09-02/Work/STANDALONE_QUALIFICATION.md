@@ -525,6 +525,14 @@ See the named change's source basis, consumer account and check results in
 (relative to the App v4 project). Earlier prototype results above remain
 historical.
 
+## Next publication witness preparation
+
+[The next P3 proposal](P3_NEXT_WITNESS_PROPOSAL.md) identifies the demonstrated
+J1/J2 portions, one independently scoped ordinary request/interrupt/continuation
+segment, missing inputs/authority for each of the three access modes and the
+separate F7/recovery dependencies. It opens no examination, renews no historical
+pin/harness and changes no Scope, supplier case or dependency condition.
+
 ## Current implementation conditions
 
 **Recording and source correspondence conditions.** DEL-01-01's

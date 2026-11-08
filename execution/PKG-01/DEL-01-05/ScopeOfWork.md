@@ -114,3 +114,13 @@ Recorded exchanges and focused checks may implement these verification methods i
 | OUT-004 | OBJ-002, OBJ-004 | REQ-008, CLM-004 | AC-009 | VER-009 | Applicable local-server requirements and limits handed to the named PKG-05 receiver |
 | OUT-004 | OBJ-002, OBJ-004 | REQ-009, CLM-003, CLM-004 | AC-010 | VER-010 | One-for-one boundary/owner comparison against accepted contributions |
 | OUT-002 | OBJ-002 | REQ-010, CLM-001 | AC-011 | VER-011 | Per-version start-up connection observations with and without the settings and plugin setting, compared with the network view and record |
+
+## Ordinary effort presentation reconciliation
+
+[The owning access account](Work/ACCOUNT_AND_PROVIDER_ACCESS.md#offered-per-model-effort-for-ordinary-text)
+receives the selected supplier's offered effort fields for an explicit ordinary
+text choice, including collaboration-mode precedence and pending-notice
+carriage. This refines existing model interaction without changing REQ-004's
+no-default/access-mode choice, qualification criteria, permission policy or
+any dependency condition. Source checks and actual candidate evidence remain
+separate; the repair grants no launch, credential or model-use authority.
