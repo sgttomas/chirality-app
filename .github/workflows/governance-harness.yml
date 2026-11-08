@@ -33,7 +33,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install repository-check dependencies
-        run: python -m pip install pyyaml pytest
+        run: python -m pip install pyyaml pytest jsonschema==4.26.0
       - name: Deliverable structure and utility behavior
         run: |
           python -m tools.deliverables --project . check > deliverable-check.json
@@ -44,6 +44,8 @@ jobs:
           python -m pytest -q tools/ci/test_selection.py
           python -m pytest -q tools/test_run_recorded_prototype.py
           python -m pytest -q tools/validation/test_library_v2_1_operational_adoption.py
+          python -m pytest -q tools/validation/test_library_v3_operational_adoption.py
+          python -m pytest -q tools/validation/test_document_metadata.py
       - name: Conflict and credential checks
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}

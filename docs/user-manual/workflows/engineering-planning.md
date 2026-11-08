@@ -1,3 +1,10 @@
+---
+name: chirality-app-engineering-planning-guide
+description: Guide users in preparing an engineering estimate and schedule.
+metadata:
+  kind: instruction
+  surface: reference
+---
 # Prepare an engineering estimate and schedule
 
 Use this method to prepare or revise an engineering estimate and a schedule

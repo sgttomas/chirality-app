@@ -1,3 +1,10 @@
+---
+name: chirality-app-workspace-setup
+description: Guide users through workspace setup and account access.
+metadata:
+  kind: instruction
+  surface: reference
+---
 # Set up your workspace
 
 **Development-source guide, 1 November 2026. Not a completed desktop walkthrough.**

@@ -1,3 +1,10 @@
+---
+name: chirality-app-bootstrap
+description: Initialize an App Agent 0 session and await owner steering.
+metadata:
+  kind: instruction
+  surface: bootstrap
+---
 <init-prompt>
 Resolve `REPO_ROOT` with `git rev-parse --show-toplevel`.
 Verify that `{REPO_ROOT}` is the Chirality App repository.

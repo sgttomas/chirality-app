@@ -1,3 +1,10 @@
+---
+name: chirality-app-development-verification
+description: Explain how changed paths select repository and product checks.
+metadata:
+  kind: instruction
+  surface: reference
+---
 # App development verification
 
 `harness` remains the required check on every PR. Repository checks always run:

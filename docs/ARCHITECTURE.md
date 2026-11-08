@@ -1,3 +1,10 @@
+---
+name: chirality-app-architecture
+description: Define the App architecture basis and implementation boundaries.
+metadata:
+  kind: instruction
+  surface: requirements
+---
 # Chirality v4 — Architecture basis
 
 **Status: post-acceptance consolidation for the accepted decomposition basis;

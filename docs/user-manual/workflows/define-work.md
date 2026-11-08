@@ -1,3 +1,10 @@
+---
+name: chirality-app-define-work-guide
+description: Guide users in defining work that can be assigned and checked.
+metadata:
+  kind: instruction
+  surface: reference
+---
 # Define work
 
 Use this method when a task is too vague to assign or check. Its result is a

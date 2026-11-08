@@ -1,3 +1,10 @@
+---
+name: chirality-app-user-manual
+description: Guide users through App setup, conversations, workflows and examination.
+metadata:
+  kind: instruction
+  surface: reference
+---
 # Chirality App v4 User Manual
 
 **Working draft, 1 November 2026. Not yet a release manual.**

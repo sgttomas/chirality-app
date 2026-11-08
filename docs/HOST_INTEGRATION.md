@@ -1,3 +1,10 @@
+---
+name: chirality-app-host-integration
+description: Define the App host integration contract and reserved acts.
+metadata:
+  kind: instruction
+  surface: requirements
+---
 # Chirality v4 — Host integration
 
 **Status: post-acceptance consolidation for the accepted decomposition basis;
