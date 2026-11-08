@@ -11,7 +11,7 @@ preserves raw bytes and retains bounded compiler/native traces. It does not
 enable the guest route or claim hostile-namespace/compiler parent-death safety.
 All five cases passed on hosted native-x64 Windows at source `d26ecdae` in
 Actions run `40845322580`; see
-`execution/PKG-01/DEL-01-02/Design/HOSTED_WINDOWS_PROCESS_FIXTURE_RESULTS.md`
+`execution/PKG-01/DEL-01-02/Work/HOSTED_WINDOWS_PROCESS_FIXTURE_RESULTS.md`
 for prerequisites, boundaries and artifact schema. Host-only checks:
 `python3 -B app/examination/windows_platform/test_hosted_fixture.py`.
 
@@ -77,7 +77,7 @@ The older observations below describe historical preparation, not a current rout
 This examination harness exercises invented P01/P02 process semantics only.
 It neither runs App/suppliers/models nor selects production Job/crash policy.
 The owning design and results are in
-`execution/PKG-01/DEL-01-02/Design/WINDOWS_PROCESS_FIXTURE_RESULTS.md`.
+`execution/PKG-01/DEL-01-02/Work/WINDOWS_PROCESS_FIXTURE_RESULTS.md`.
 
 **Native execution is withheld.** Independent scrutiny of `0e3db4a5`
 found two blocking driver safety gaps: no continuously retained namespace guards
