@@ -74,12 +74,11 @@ The build root is
 its `READY_BUNDLE`, `BUILD_BINDING.json` and `RESOURCE_INVENTORIES.json` identify
 the artifact. It has not been launched or signed/installed-qualified.
 
-The next proposed scope is one registration attempt and one fresh-conversation
-reuse turn, at most twenty minutes, with an early stop if the normal App UI
-cannot find the unchanged draft or preserve the existing project/store identity.
-The prior trial/recovery will not be repeated or relabeled. The proposal at
+The owner selected the bounded registration/fresh-conversation continuation in
+[continuation boundaries](CONTINUATION_BOUNDARIES.md), preserving this artifact
+and the earlier trial/recovery subjects. Registration and reuse remain
+unobserved; guarded preflight refused before any new invocation. The proposal at
 `/Users/ryan/dev/chirality-t3/scratch/app-j2-registration-reuse-lsjpcmen/PROPOSAL.md`
-was presented but **not approved** before the owner's graceful-close direction.
-The incoming Agent 0 must receive the applicable owner decision before launch
-or new cloud use. This account changes no acceptance, dependency condition or
-publication authority.
+and its `PREPARATION.json`, `SUBJECT.json` and `OWNER_APPROVAL.json` retain the
+exact selected private inputs. The account changes no acceptance, dependency
+condition or publication authority.

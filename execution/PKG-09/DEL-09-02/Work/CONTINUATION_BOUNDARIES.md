@@ -2,13 +2,33 @@
 
 The current observations are [J1](J1_REAL_MODEL_ACTUAL_20261108.md) and
 [J2](J2_PARTIAL_ACTUAL_20261108.md). Their actual source identities and limits
-remain authoritative. PR160's repaired development artifact is unlaunched;
-registration and fresh-conversation reuse remain a proposed, unapproved scope.
-The owner is the next actor for that launch/cloud-use decision. Options are the
-bounded registration/reuse proposal recorded in J2, a revised scope responding
-to its gaps, or no continuation. Recommendation: preserve the original trial and
-project/store identity and assess the exact repaired artifact before proposing
-any new live attempt. No further campaign follows from the consumed J1 scope.
+remain authoritative. The owner approved one registration attempt and, only if
+successful, one fresh-conversation reuse turn on PR160's repaired development
+artifact. That artifact remains unlaunched. This is a separate bounded scope;
+the earlier J1/J2 campaigns remain consumed.
+
+The selected subject is the source `475c9b8f` artifact identified in J2.
+Agent 0 operates the existing native Computer Use route, with at most twenty
+minutes from launch including normal closure. Use the existing App-owned
+ChatGPT home, GPT-6.1 Terra at medium effort and standard service, file credential
+storage and plugins disabled. The invented case/workflow and ordinary supplier
+context/metadata may use the same stock ChatGPT route; there is no verified
+monetary cap or full-destination confinement claim. No new sign-in, settings
+change, download, extra conversation, retry or owner-operated fallback is
+selected. Preserve the original draft, trial, inputs, outputs and project/store
+identity. The explicit workspace and supported development records-store
+override select the existing project/store; no migration or copied evidence is
+selected. Stop on inaccessible confirmation or a checkpoint mismatch.
+
+Offline preparation verified the artifact/resources, unchanged inputs and
+draft package, existing project/store linkage and absent original Apps. Required
+guarded preflight then refused before invoking the App because the shared
+memory guard was absent; no App, supplier or model invocation occurred.
+Restoration requires Root's owner-authorized shared-service action, including
+its effect on other live workloads. The J2 grant supplies no guard-activation
+or bypass authority. Agent 0 resumes only after the guarded route is usable and
+the bound artifact/input/process facts are rechecked. Exact private proposal and
+preparation inputs are retained at the root identified in J2.
 
 ## Constraints at the native boundary
 
