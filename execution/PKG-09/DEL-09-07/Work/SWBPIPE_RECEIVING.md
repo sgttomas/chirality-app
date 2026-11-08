@@ -9,7 +9,7 @@ historical source records below are not rewritten. Seven tools and the separate
 16-row operation table supply offline receiving evidence only. No live Apply,
 native operation, model run or criterion17 qualification is inferred.
 
-## Current catalog-v3 adoption
+## Catalog-v3 adoption
 
 DEL-09-07 receives the [catalog-v3 source/schema adoption](../../DEL-09-06/Work/SWBPIPE_CATALOG_V3_RECEIVING.md)
 from DEL-09-06: actual SWBPIPE merge `4d8cb7b0c8f101d5102813e634e23ecba29b310e`,
@@ -58,9 +58,21 @@ and examples are not evidence that those scenarios ran, nor an implementation
 plan to inherit. This receiving account supplies current applicability without
 rewriting historical pins or assigning an invented pass.
 
-## Received evidence and next required contributions
+The historical LHQ-v0.2 and DOS-v0.1 bytes cited by the dossier, traffic plan,
+DEL-09-11 and DEL-11-03 are recoverable at App commit `81b5579f` under
+`execution/PKG-09_Candidate examination and connected journeys/1_Working/DEL-09-07_Local host candidate qualification/Design/`.
+Their respective SHA256 values are `d59a1ea011fd860139603fb78c20a3f66b04984f1bc2501ac0af74083876b8f1`
+and `b4de982f84e8f77aea1678084d40fae23e3a40bbb5614ab111fd2f5482cfd1fe`.
+The later receiving supplements in the current Work copies change their full
+file hashes; they do not rebind those historical citations. The traffic plan
+retains its original method and limitations, including the independent capture
+and calibration needed before reliance. DEL-09-11 still needs the actual journey
+date, primary records and receipt references for its separate reader; the
+definition and its invented examples do not supply that journey.
 
-| Requirement or evidence | Current standing | Owner and next concrete contribution |
+## 2026-10-29 checkpoint: evidence and required contributions
+
+| Requirement or evidence | Standing at the checkpoint | Owner and next concrete contribution |
 |---|---|---|
 | Catalog and retained-basis semantics | Merged canonical v2 and generated resource match the existing receiving pin; App's 10 origin and 6 receiving checks remain catalog/specimen evidence | SWBPIPE owns evolving catalog/runtime conformance. App checks changed interface bytes when supplied; no repin or schema rerun for unchanged bytes |
 | Actual local model call | #1738 reports a five-turn witness: one invented summary call/result/follow-up and four denied-tool turns under its earlier permissive outer profile | SWBPIPE retains `agent-local-witness.md`, `agent-witness-pin.json` and `tools/agent_host_witness.py`; App receives that bounded evidence without repeating acquisition or execution |
@@ -72,12 +84,11 @@ rewriting historical pins or assigning an invented pass.
 | REQ-006, AC-006 complete same-run traffic and native destination enforcement | Bounded denial probes and localhost-only configuration do not fulfill this case | SWBPIPE supplies actual native-route/traffic/destination evidence for the joined candidate/run; DEL-09-07 examines observation completeness and limits |
 | Proposal-only first increment versus AC-005 direct-operation class; AC-002 individual row accept/reject; full workflow transfer/checkpoint history | Current implementation priority is effective operation; these retained criteria are not automatically met or waived | App HELP_HUMAN reconciles exact changed criteria with the owner and SWBPIPE owner. Until directed, keep ScopeOfWork and dependency conditions open and unchanged |
 
-The actual App contribution at this checkpoint is this receiving/applicability
-repair. No App implementation prerequisite is identified for the host's current
-fixture. After host integration arrives, this manager owns affected receiving
-checks, joined evidence review and integration through ready PRs. Host process
-custody, permissions and persistence changes need their own targeted regressions
-and independent scrutiny; this source inspection is not that review.
+At the checkpoint, source inspection identified no App implementation prerequisite
+for the host's fixture. The joined evidence and receiving checks remain to be
+examined when host integration arrives. Host process custody, permissions and
+persistence changes require targeted regressions and independent scrutiny; the
+source inspection does not provide that review.
 
 ## First desktop trace receiving checks
 

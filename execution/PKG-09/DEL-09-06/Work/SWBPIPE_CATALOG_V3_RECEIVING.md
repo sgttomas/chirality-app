@@ -89,9 +89,9 @@ this adoption; origin regressions were rerun. The 84-case operation corpus and i
 historical inputs; catalog adoption does not refresh or requalify that corpus.
 New pins alone use `sgttomas/SWBPIPE`, repository-root paths and `Work`.
 
-The current receiving loader pins both selection bytes and catalog size/hash.
+The v3 receiving loader pins both selection bytes and catalog size/hash.
 Old, unknown, altered, absent and oversized catalog inputs refuse; neither an
-origin/v2 record nor a relabelled catalog supplies current v3 identity. Ordinary
+origin/v2 record nor a relabelled catalog supplies the selected v3 identity. Ordinary
 checks use the retained exact snapshot and need no sibling checkout or network:
 
 ```sh

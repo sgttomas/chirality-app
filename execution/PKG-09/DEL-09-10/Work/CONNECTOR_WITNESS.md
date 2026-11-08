@@ -1,5 +1,12 @@
 # Optional connector consumption witness
 
+**Current scope.** PEC provider delivery, qualification and receiving adoption
+are retired as prerequisites. The cases and missing-input statements below
+describe the historical CW-v0.2 rehearsal and its then-proposed qualified
+witness; they do not impose a current PEC witness or hold this deliverable
+open. The remaining connector and source-file recovery commitments are in the
+current ScopeOfWork. Historical source pins and rehearsal standing are unchanged.
+
 - **Contribution:** DEL-09-10/CW-v0.2. It supersedes CW-v0.1 (sha256
   `f836c7462286aa3197256c75b9fbb36cdd2e465b86a694a3e05876e0834e44f3`, the
   EU-D1 freeze RV2 reviewed), repaired for RV2-EUD1 (EUD1-R1, R5, R6, R7;

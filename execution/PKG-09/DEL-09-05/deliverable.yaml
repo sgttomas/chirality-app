@@ -5,7 +5,7 @@ needs:
   condition: The joined witness consumes actual bounded briefs, the current file graph and native-delegation
     associations with ownership/return observations on the identified candidate; DEL-06-01 currently supplies
     the file graph/return/waiting reader and Fork/Continue-as observations. Full native brief/dispatch/child
-    association and joined worker evidence remain separate inputs (Design/DECISION_ATTRIBUTION_CASE.md).
+    association and joined worker evidence remain separate inputs (Work/DECISION_ATTRIBUTION_CASE.md).
   gating: true
   evidence: execution/PKG-09/DEL-09-05/ScopeOfWork.md
 - from: DEL-06-02
