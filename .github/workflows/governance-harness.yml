@@ -36,6 +36,7 @@ jobs:
         run: python -m pip install pyyaml pytest jsonschema==4.26.0
       - name: Deliverable structure and utility behavior
         run: |
+          python tools/ci/select_checks.py inventory
           python -m tools.deliverables --project . check > deliverable-check.json
           python -m tools.instruction_resources --check
           python -m unittest tools.test_instruction_resources

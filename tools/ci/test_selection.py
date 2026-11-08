@@ -65,6 +65,129 @@ def test_ordinary_prose_modification(repo):
     assert result["changes"][0]["status"] == "M"
 
 
+@pytest.mark.parametrize("paths", [
+    # PR149: project-reference corrections; both guides previously escalated.
+    ["AGENTS.md", "README.md", "docs/OPERATING_METHOD.md", "docs/user-manual/README.md"],
+    # PR148: the punchlist previously escalated this two-file change.
+    ["execution/_Coordination/CURRENT_EXECUTION_BASIS.md",
+     "execution/_Coordination/PUBLICATION_PUNCHLIST.md"],
+])
+def test_real_documentary_prs_do_not_select_product(repo, paths):
+    for path in paths:
+        write(repo, path)
+    base = commit(repo)
+    for path in paths:
+        write(repo, path, "updated documentary text\n")
+    result = selection(repo, base)
+    assert not result["run_product"]
+    assert {item["path"] for item in result["changes"]} == set(paths)
+
+
+def test_pr162_typed_headers_and_adoption_still_select_product(repo):
+    # Complete PR162 path set: metadata prose mixed with workflow/validator inputs.
+    paths = [
+        '.github/workflows/governance-harness.yml',
+        'AGENTS.md',
+        'docs/ARCHITECTURE.md',
+        'docs/CI_SELECTION.md',
+        'docs/EXAMINATION.md',
+        'docs/HOST_INTEGRATION.md',
+        'docs/OPERATING_METHOD.md',
+        'docs/PRD.md',
+        'docs/user-manual/README.md',
+        'docs/user-manual/creating-workflows.md',
+        'docs/user-manual/finding-conversations.md',
+        'docs/user-manual/sending-and-interrupting.md',
+        'docs/user-manual/setting-up.md',
+        'docs/user-manual/using-workflows.md',
+        'docs/user-manual/workflows/define-work.md',
+        'docs/user-manual/workflows/engineering-planning.md',
+        'execution/PKG-10/DEL-10-01/Work/LIBRARY_V3_RECEIVING.md',
+        'execution/PKG-10/DEL-10-01/deliverable.yaml',
+        'execution/_Coordination/CURRENT_EXECUTION_BASIS.md',
+        'init/README.md',
+        'init/init-prompt.md',
+        'loop/LOOP_INIT.md',
+        'reference/library-v3.0.0/MANIFEST.json',
+        'reference/library-v3.0.0/README.md',
+        'reference/library-v3.0.0/document-metadata.schema.json',
+        'reference/library-v3.0.0/source/LICENSE.md',
+        'reference/library-v3.0.0/source/agents/AGENT_HELPS_HUMANS.md',
+        'reference/library-v3.0.0/source/agents/AGENT_HELP_HUMAN.md',
+        'reference/library-v3.0.0/source/agents/AGENT_INTERLOCUTOR.md',
+        'reference/library-v3.0.0/source/agents/AGENT_TASK.md',
+        'reference/library-v3.0.0/source/agents/AGENT_WORKING_ITEMS.md',
+        'reference/library-v3.0.0/source/agents/registry.json',
+        'reference/library-v3.0.0/source/tools/validation/build_workflow_index.py',
+        'reference/library-v3.0.0/source/tools/validation/validate_agent_instructions.py',
+        'reference/library-v3.0.0/source/tools/workflow_runtime/resolve_workflow.py',
+        'tools/deliverables/README.md',
+        'tools/validation/test_document_metadata.py',
+        'tools/validation/test_library_v2_1_operational_adoption.py',
+        'tools/validation/test_library_v3_operational_adoption.py',
+    ]
+    base = git(repo, "rev-parse", "HEAD")
+    for path in paths:
+        write(repo, path)
+    result = selection(repo, base)
+    assert result["mode"] == "product" and result["run_product"]
+    assert {item["path"] for item in result["changes"]} == set(paths)
+    assert next(item for item in result["changes"]
+                if item["path"] == ".github/workflows/governance-harness.yml")["checks"] == "product"
+
+
+def test_tracked_path_completeness_and_unknown_full_fallback(repo, monkeypatch):
+    (repo / ".fixture").unlink()
+    write(repo, "AGENTS.md")
+    write(repo, "app/new-module.rs")
+    base = commit(repo)
+    assert subject.inventory(repo) == {"tracked_paths": 2, "unmatched": []}
+    path = "new-domain/README.md"
+    write(repo, path)
+    result = selection(repo, base)
+    assert result["run_product"]
+    assert result["changes"][0]["rule"] == "unmatched"
+    assert subject.inventory(repo)["unmatched"] == [path]
+    command = ["python3", str(Path(subject.__file__)), "inventory", "--repo", str(repo)]
+    failed = subprocess.run(command, capture_output=True, text=True)
+    assert failed.returncode == 2 and path in failed.stdout
+    # An intentional rule, not the full-coverage fallback, clears completeness.
+    monkeypatch.setattr(subject, "PROSE_PATHS", subject.PROSE_PATHS | {path})
+    assert subject.inventory(repo)["unmatched"] == []
+
+
+def test_repository_has_no_unclassified_tracked_paths():
+    assert subject.inventory(Path(subject.__file__).resolve().parents[2])["unmatched"] == []
+
+
+@pytest.mark.parametrize("path", [
+    "new-domain/README.md", ".github/ISSUE_TEMPLATE/README.md", "init/new-guide.md",
+    "loop/new-input.json", "new-root.rs",
+])
+def test_unknowns_anywhere_keep_every_product_job(repo, path):
+    base = git(repo, "rev-parse", "HEAD")
+    write(repo, "tools/deliverables/README.md")
+    write(repo, path)
+    result = selection(repo, base)
+    assert result["mode"] == "product" and result["run_product"]
+    unknown = next(item for item in result["changes"] if item["path"] == path)
+    assert unknown["rule"] == "unmatched" and unknown["checks"] == "product"
+
+
+@pytest.mark.parametrize("path", [
+    "app/src/new.rs", "docs/PRD.md", "tools/ci/select_checks.py",
+    "execution/PKG-10/DEL-10-01/ScopeOfWork.md",
+    "reference/library-v3.1.0/README.md",
+])
+def test_new_documentary_exceptions_do_not_swallow_product_domains(repo, path):
+    base = git(repo, "rev-parse", "HEAD")
+    write(repo, "docs/OPERATING_METHOD.md")
+    write(repo, path)
+    result = selection(repo, base)
+    assert result["run_product"]
+    assert next(item for item in result["changes"] if item["path"] == path)["rule"] == "product-domain"
+
+
 @pytest.mark.parametrize("path", [
     "app/src/App.tsx", "app/src-tauri/src/hosting.rs", "app/package-lock.json",
     ".github/workflows/governance-harness.yml", "tools/ci/select_checks.py",
@@ -108,8 +231,10 @@ def test_rename_looks_at_old_and_new_path(repo):
 
 
 @pytest.mark.parametrize("kind", ["delete", "executable", "symlink"])
-def test_deletion_and_type_or_mode_changes_at_allowed_path_keep_product(repo, kind):
-    path = write(repo, "README.md")
+@pytest.mark.parametrize("relative", ["README.md", "tools/deliverables/README.md",
+                                     "execution/_Coordination/PUBLICATION_PUNCHLIST.md"])
+def test_deletion_and_type_or_mode_changes_at_allowed_path_keep_product(repo, kind, relative):
+    path = write(repo, relative)
     base = commit(repo)
     if kind == "delete":
         path.unlink()
@@ -253,6 +378,8 @@ def test_workflow_always_runs_selection_and_checks_only_explicit_exclusion():
     assert trigger["pull_request"] is None
     jobs = workflow["jobs"]
     repo = jobs["repository-checks"]
+    assert any("python tools/ci/select_checks.py inventory" in step.get("run", "")
+               for step in repo["steps"])
     select_step = next(step for step in repo["steps"] if step.get("id") == "selection")
     assert '--base "$BASE" --head "$HEAD"' in select_step["run"]
     assert select_step["env"]["BASE"] == "${{ github.event.pull_request.base.sha }}"
