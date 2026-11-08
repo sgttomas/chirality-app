@@ -1306,6 +1306,13 @@ verified, model turns through `openai`. API-key, device and logout journeys and
 complete access qualification remain unwitnessed; that one account home does
 not establish other-home/provider or credential-separation behavior.
 
+The later J1 development observation on 2026-11-08 used source `57bb9c4d`
+and executable SHA256 `1997e441b756d3f21a8d5f4fae2f3b03b346cdc8d77c123fcf7bcc349a12761e`:
+the owner signed in and a real model completed a workflow turn. The
+[actual account](../../../PKG-09/DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md)
+retains the subject, result and limits; it does not establish account identity,
+credential custody, concurrent access modes or complete qualification.
+
 ## 13. Receivers and register rows
 
 | Row (DAG-003 layer) | Direction | Other end | Where this file holds it |
