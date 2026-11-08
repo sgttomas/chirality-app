@@ -27,7 +27,9 @@ evidence still needed by consumers.
 
 Enter through `loop/LOOP_INIT.md`. Requirements and interfaces live in `docs/`;
 deliverables retain their `execution/PKG-nn/DEL-nn-nn/ScopeOfWork.md`, `Work/`
-and `deliverable.yaml` conventions. Reconcile changed implementation meaning
+and `deliverable.yaml` conventions. Keep current findings and their reasons,
+working artifacts and outputs in `Work/`; keep approval quotes and review/check
+narrative in the PR. Reconcile changed implementation meaning
 with those documents; leave unchanged commitments and historical evidence alone.
 Do not modify `foundation/thesis/`.
 
@@ -60,9 +62,9 @@ advisory brief; a method serves it only when that method's `compatible_roles`
 name it. Writes still need explicit brief targets and actual host permission.
 Selection, models and effort are not inferred.
 
-The selected shared Library edition is `library-v3.0.0` pinned at
-`5170575f3f4c1fc51386fa5cd38c7ef9ac048b20`
-(`reference/library-v3.0.0/README.md`). Verify the checkout resolves to this
+The selected shared Library edition is `library-v3.1.0` pinned at
+`88ab3f4f5f8ec7f7e030279164dbd1a4aa38b514`
+(`reference/library-v3.1.0/README.md`). Verify the checkout resolves to this
 revision before relying on it, and record the resolved revision with dependent
 results. Later tags or checkout movement do not change this selection.
 The shared Chirality Library for this workspace is `/Users/ryan/dev/chirality-library`.
@@ -97,6 +99,9 @@ returns and retain responsibility for how they fit together. Scratch holds
 evidence, outputs and at most one recovery note; governing instructions remain
 in repository files and assignment briefs.
 
+Lead owner updates with the result or decision needed. Use plain prose with
+spaced identifiers in messages to delegates.
+
 This App repository owns its work, commitments and Git lifecycle. The work
 locality, backlog, repository-specific duties and standing Git grant of the
 Library or Root do not transfer here. Shared-library consultation does not
@@ -116,8 +121,8 @@ projects and hosts shared services. Its agents may evaluate App from session
 telemetry, read-only; the owner reviews every finding. Root never changes App's
 files, branches or PRs; its only action here is opening a GitHub issue for an
 owner-approved finding cleared for publication. Routine adherence checks of
-App's deliverables stay with App's Agent 0 through a Library workflow. Records
-written before 2026-11-05 use "Root" for the former combined repository that
+App's deliverables stay with App's Agent 0 under these standing instructions.
+Records written before 2026-11-05 use "Root" for the former combined repository that
 held the Library; its old content is in Root's Git history, not on its `main`.
 
 ## Product assets and local tools
@@ -145,6 +150,10 @@ changes affecting persistence, permissions or destructive operations require
 targeted regression checks and independent scrutiny. Preserve truthful source
 identity and report unrun checks as limitations. Commitments, acceptance,
 releases and lifting holds remain owner decisions.
+
+When an owner instruction overrides a standing rule, note the exception in the
+PR and ask once whether the standing rule should change. Retain standing grants
+and adopted rule changes in their governing instructions.
 
 ### Standing Git grant
 
