@@ -6,6 +6,12 @@ A subsequent bounded fixture source/readiness return is recorded in
 Its native cases remain unrun because independent scrutiny found unresolved
 bootstrap safety prerequisites; it does not revise the prior design evidence.
 
+The unrun status above describes the original design and held guest-route
+fixture. Subsequent disposable hosted evidence is recorded separately: the
+[P-01/P-02 controlled-stdout results](HOSTED_WINDOWS_PROCESS_FIXTURE_RESULTS.md)
+and [P-03 Stop results](HOSTED_WINDOWS_P03_STOP_CANDIDATE.md). Their
+profile and coverage limits do not qualify the Windows App.
+
 This does not select Windows shipping/support, change a guarantee, qualify a
 supplier, record acceptance or authorize provisioning/execution. macOS remains
 independently finishable. No production behavior changes accompany this document.
@@ -424,6 +430,11 @@ negative case) remains peer-specific and does not prove real solver coverage.
 This App has no corresponding worker/headroom admission contract to replace.
 Job memory limits or cooperative events are therefore not an App/SWB shared
 solution. Agent 0 carries consequential alignment; no peer source is changed.
+
+The following was the 2026-10-28 proposed sequence, not a current
+authorization or a claim that all named probes remain unrun. The hosted
+results linked above record the later P-01/P-02 and P-03 fixture outcomes;
+production capability and policy selection remain open.
 
 After owner-authorized acquisition/tooling and a policy decision, the next
 buildable work is **isolated P-01/P-02/P-03 and S-01/F-01 probes**, with original

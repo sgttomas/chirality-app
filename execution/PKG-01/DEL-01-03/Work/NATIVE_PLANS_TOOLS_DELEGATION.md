@@ -1,7 +1,7 @@
 # Native plans, tools and delegation views
 - Contribution: DEL-01-03/NPTD-v0.3 (CC-NPT-GEN successor of v0.2; historical round headers below retained). Historical v0.2 contribution: (supersedes DEL-01-03/NPTD-v0.1, committed at `63a6e0fa47` and unchanged since, file sha256 a3b36a454d497e28b0cf0bc3edb17d018f6f724cce0270157ed65c4e1e63ef59)
-- Current named change: `APP-V4-GROUP-A-20261004/changes/CC-NPT-GEN.md`, 2026-10-04, TASK `/root/group_a_execution/native_items_generation_design`, delegated-harness-native child of `/root/group_a_execution`; independent review required before I1 release. Only DEL-01-03 Design and that change record amended.
-- Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
+- Historical named change: `APP-V4-GROUP-A-20261004/changes/CC-NPT-GEN.md`, 2026-10-04, TASK `/root/group_a_execution/native_items_generation_design`, delegated-harness-native child of `/root/group_a_execution`; independent review required before I1 release. Only DEL-01-03 Design and that change record amended.
+- Historical v0.3 status (2026-10-04): DRAFT DEFINITION — proposed, unsupplied, not implemented, not accepted
 - Historical v0.2 run and node: `APP-V4-DESIGN-PASS-3-20261001`, node D2 (Type 2 TASK, Claude Opus 5.5, high effort): round 1 written 2026-10-01; round 2 (this version) 2026-10-02
 - **v0.2 inputs (round 2; sha256 recomputed with `shasum -a 256` at this node; run folder `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-3-20261001/`):** `BRIEFS.md` 316ea29325a0d45004ffd59c1b142d2e9f5c371ac765bce7c4b94898a57788d7 ("D round 2"); `R18_RESOLUTIONS.md` abf5eee6324647ff9f126603ff189a21f847d5887f20e24e540fd9a6b4c0bd30 (R18-1 C-03…C-08; R18-4; R18-7 G-3, G-4; R18-9); `R19_RESOLUTIONS.md` 16930ecdcead75118ee264bc78d3a7c4824212323cb9895b9a3c15478122a12c (R19-2, R19-5, R19-7); `OWNER_DECISIONS.md` ea96c55710af41c94afe3721f8881bf5edc5bbfc9ad4d0d9ff68e20ca808e015 (DECISION-L); `F/F0_JOINS.md` e93608be1c6e3eb03e6194f3c6f415e3171492f9828b0fd80b4dccb81fe47dd9 (§2, §6, §7.2); `DEL-01-01/Design/OBS_2_0.158.0.md` 61cc34ffb811eb270542042ce4cfdc195efb0c5be4b89dbbe73eb9b99e104ac0 (O-1, O-2, O-4/O-4a/O-4b, O-5b, O-8); `DEL-01-01/Design/OBS_3_0.158.0.md` 554ac4451d11282450e3ec4a4192448adf67bda6a07820f84a698716c806a843 (W-5, W-6); DEL-02-04 `ROLE_SUPPLY.md` (ROLE-v0.1 §6.2 LA-1/LA-2, §6.3 DL-4, §7.2 O-6; read for the K-10 label as handed). Generated types: `ModelProviderCapabilitiesReadResponse`, `Model.multiAgentVersion`, `ThreadGoal*` read at 0.158.0 (stable and experimental variants equal for the goal types).
 - **Round-1 header (v0.1), kept as written:**
@@ -15,7 +15,7 @@
   - Receivers (from the live register rows; layer per DAG-003): DEL-02-02 via DEP-01-03-013 (admitted; mirror DEP-02-02-012): the plan-revision reference (§5.6); PKG-06 via DEP-01-03-014 (package target, not topological) and DEL-06-01 via its own DEP-06-01-007 (admitted): the delegation export (§7.7); DEL-09-02 via DEP-09-02-011 and DEL-09-05 via DEP-09-05-008 (both admitted): fixtures, designed cases and the descendant presentation (§15). Offered without a register row (proposed in the return, §16.3): DEL-01-04 (item anchors, plan-mode element) and DEL-02-04 (the delegation export for its K-10 limit account). Suppliers: DEL-01-01 via DEP-01-03-011 (admitted) and DEL-01-02 via DEP-01-03-012 (admitted).
 - **Receivers at v0.2:** as above, except that DEL-02-04 is no longer a receiver of the delegation export (R18-1 C-07: its K-10 label is a runtime value handed to this file), and the offered row DEL-01-04 → DEL-01-03 is adopted (R18-1 C-06; F0 NR-05).
 
-**ScopeOfWork reading (R17-15).** The INIT contract lags later decisions in
+**Historical ScopeOfWork reading (R17-15).** The INIT contract lags later decisions in
 four places. This file reads it as follows, and the return lists a precise
 proposal for each: (1) TBD-001's "selected supplier pin … remains with the
 App implementation owner (OI-012)" is read with owner decision D4: 0.158.0 is
@@ -922,6 +922,17 @@ candidate-pin counterpart required by SQ §3.4. NV-04's "not observed" and
 U-P4's "a later observation" wording have not yet received that distinction.
 Whether a candidate-pin rerun meets SQ U-SQ-6 and the ST-4 counterpart remains
 with DEL-09-02; the candidate-pin missing inputs remain open.
+
+**Later counterpart standing (2026-10-17).** The preceding open-condition
+note predates the SQ owner's settlement: the separately recorded 0.160.0
+ST-4/NV-04 rehearsal serves the recording counterpart for an examination
+binding that candidate pin and distribution assertion, if its model route
+cannot delegate. Its replay remains unrun; native ST-4 remains required on
+a delegating route. SQ U-SQ-5/U-SQ-6 and its recording correspondence
+account describe the conditions and limits. This does not upgrade the
+2026-10-10 development capture or establish candidate examination.
+
+---
 
 ### 15.3 Prototype (R17-1; R12-3)
 

@@ -4,8 +4,8 @@ needs:
 - from: DEL-01-01
   condition: Native views require DEL-01-01's actual stock Codex hosting boundary, selected supplier identity,
     generated protocol types and protocol qualification. SEAL-C signing-stage use also consumes the compiled
-    publisher subject and installed-integrity boundary in Work/SEAL_C_KEYCHAIN_TRANSITION.md, without activating
-    the None-gated keychain selection.
+    publisher subject and installed-integrity boundary in Work/SEAL_C_KEYCHAIN_TRANSITION.md. The initially
+    None-gated keychain selection was admitted 2026-11-03; selection alone does not activate keychain access.
   gating: true
   evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
 - from: DEL-01-02

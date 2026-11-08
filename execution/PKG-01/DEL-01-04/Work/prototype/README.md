@@ -67,6 +67,17 @@ Logs written by the act control go to a temporary folder under `$TMPDIR`
 A "pass" means the rules ran as written on this model. It is evidence about
 the design, never a VER pass: no App candidate exists.
 
+## Historical output custody
+
+The October 4 and October 5 text outputs named below were removed from the
+worktree by commit `f8cde614` because they carried local paths. Their original
+bytes remain in Git at `34e3e386773a6b858ee7a50ba82425c9129154c2`, under
+`execution/PKG-01/DEL-01-04/Work/prototype/results/`; references below describe
+historical outputs, not files currently retained in this directory. This applies
+to the canonical, legacy, registry, integrated and attachment-submission outputs
+named below. The review reproduction JSON remains in the current tree. Git
+custody does not turn these model results into native or product evidence.
+
 ## CC-A candidate (2026-10-04)
 
 `cc_a_sequence.py` is a standalone standard-library state model for frozen

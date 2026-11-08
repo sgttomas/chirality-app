@@ -17,7 +17,7 @@
   end) and G-0104-03 (OUT-002: turn and outcome presentation).
   Companion: [APP_ACT_CONTROL.md](APP_ACT_CONTROL.md) (DEL-01-04/AAC-v0.3),
   which designs the App act control.
-- Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not
+- Historical design-pass status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not
   accepted. Beside it: three PROPOSED schemas with a valid and an invalid
   example each (§14), and a design prototype in [`prototype/`](prototype)
   that ran on 2026-10-02 (§13.2). No product code.

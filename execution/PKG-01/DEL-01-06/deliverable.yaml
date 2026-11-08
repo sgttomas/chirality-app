@@ -20,7 +20,7 @@ needs:
 - from: external:chirality-app-v4:DEP-004
   condition: Before public release beyond owner use, obtain through the owner an identified official supplier
     publication or direct response, retained with source/date/custody, release/sign-in scope and the owner's
-    applicability disposition; OI-007 remains open and DEP-004 unconfirmed. Anthropic/Claude terms apply
+    applicability disposition; the applicable OpenAI position is retained for the selected free, local, open-source initial macOS offering, including first public distribution, in execution/PKG-01/DEL-01-06/Work/terms-position-v1/OpenAI.json; the distribution decision has not been made. Anthropic/Claude terms apply
     only if that sign-in need arises.
   evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
 - from: external:SWBPIPE

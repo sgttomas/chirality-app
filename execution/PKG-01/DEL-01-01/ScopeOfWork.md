@@ -18,7 +18,7 @@ not broaden this contract, qualify a supplier/candidate, or select Windows
 shipping/support. Existing dependency conditions and macOS commitments remain
 unchanged.
 
-Provide the stock Codex hosting and supplier boundary for the standalone Chirality App. The responsible party is the **App supplier-integration owner**; the accepted type is BACKEND_FEATURE_SLICE in PKG-01, Native App and third-party harness integration. This contract defines the required contribution and later completion evidence. Its initialization is not product implementation or qualification. [D, P, G, C]
+Provide the stock Codex hosting and supplier boundary for the standalone Chirality App. The responsible party is the **App supplier-integration owner**; the accepted type is BACKEND_FEATURE_SLICE in PKG-01, Native App and third-party harness integration. This contract defines the required contribution and later completion evidence. Initialization established the contract; subsequent implementation and candidate qualification require their own evidence. [D, P, G, C]
 
 | Objective | Local contribution | Scope basis |
 |---|---|---|
@@ -118,8 +118,7 @@ The bounded installed-integrity implementation and exact evidence/consumer limit
 are recorded in [the S4 technical supplement](Work/INSTALLED_INTEGRITY_S4.md).
 This supplies technical means under the existing outputs and requirements; it
 does not select a publisher, qualify a pin/candidate, change acceptance criteria
-or complete native/package witnesses. The compiled publisher requirement remains
-None, so production continues to refuse before supplier execution.
+or complete native/package witnesses. By default, the compiled publisher requirement is unselected, so builds without a validated publisher selection refuse production supplier execution; an explicitly selected build follows its separate validation path.
 
 ## Publisher build-selection reconciliation
 

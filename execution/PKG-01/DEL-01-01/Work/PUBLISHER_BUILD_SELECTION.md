@@ -9,6 +9,11 @@ and original identity SHA-256
 `d51c1130f5a1356fcc2a6100f1486e8ee3a0728de59f4fe69d4ac6a1580e5290` remain the
 supplier/installed-observation basis. Frozen S1/S3 artifacts are unchanged.
 
+The S4 clause records the original None-gated implementation at its 2026-10-30
+basis. This later build-selection interface retains None by default and permits
+an explicitly selected build to supply the requirement subject to the guards
+and installed-observation checks described below.
+
 ## Input and build recipe
 
 The only owner input is a closed UTF-8 JSON object:
