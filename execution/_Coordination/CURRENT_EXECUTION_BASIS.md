@@ -13,8 +13,11 @@ statements below are historical for new contributor reliance.
 The continuing interlocutor and conditional coordination are contributor
 instructions. The product's Work-owned/shipped instruction bytes and basis89ac
 four-role binding remain unchanged; this supplies no product v3 adoption.
-Optional typed headers on App's own entry files and the upcoming survey wording
-are deferred. The successor steering prompt and draft closeout PR161 remain
+The owner's subsequent before-handoff direction requires typed headers across
+the maintained entry, docs and tool-use surfaces; nineteen documents are typed
+and checked against the locally retained released schema. Historical inputs and
+packaged instructions retain their own bytes. The upcoming survey wording is
+deferred. The successor steering prompt and draft closeout PR161 remain
 unchanged until the owner guides their revision after the project adoptions.
 Existing J2 limits and unapproved continuation, acquisition/VM holds and
 publication reservations are not expanded by this adoption.

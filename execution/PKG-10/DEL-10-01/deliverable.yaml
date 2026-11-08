@@ -47,3 +47,4 @@ needs:
 checks:
 - tools/validation/test_library_v2_1_operational_adoption.py
 - tools/validation/test_library_v3_operational_adoption.py
+- tools/validation/test_document_metadata.py

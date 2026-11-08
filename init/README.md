@@ -1,3 +1,10 @@
+---
+name: chirality-app-session-start
+description: Start an App session with the tagged initialization prompt and separate steering.
+metadata:
+  kind: instruction
+  surface: reference
+---
 # Starting an App v4 session
 
 1. Send only the `<init-prompt>...</init-prompt>` block from

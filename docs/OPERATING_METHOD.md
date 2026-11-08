@@ -1,3 +1,10 @@
+---
+name: chirality-app-operating-method
+description: Define the accepted operating method for the App and its workflows.
+metadata:
+  kind: instruction
+  surface: requirements
+---
 # Chirality v4 — Operating method
 
 **Status: post-acceptance consolidation for the accepted decomposition basis;

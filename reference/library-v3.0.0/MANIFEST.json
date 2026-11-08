@@ -80,5 +80,13 @@
       "sha256": "76449008a7a7ae4eb9fc17e9f26228794e9172fb04c6ba5d8ea5f7e1a3c271d3",
       "bytes": 17550
     }
-  ]
+  ],
+  "documentMetadataSchema": {
+    "path": "document-metadata.schema.json",
+    "sourcePath": "docs/document-metadata.schema.json",
+    "gitMode": "100644",
+    "gitBlob": "4e3b219656d427ead41a1fae0f9b6f59565d62f5",
+    "sha256": "5489dadd80396a5ee9d64eb1ed6c158837b709d15f69bebb4ad5a163cb21365c",
+    "bytes": 1619
+  }
 }

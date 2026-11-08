@@ -1,3 +1,10 @@
+---
+name: chirality-app-examination
+description: Define examination requirements, evidence and limits for the App.
+metadata:
+  kind: instruction
+  surface: requirements
+---
 # Chirality v4 — Examination
 
 **Status: post-acceptance consolidation for the accepted decomposition basis;

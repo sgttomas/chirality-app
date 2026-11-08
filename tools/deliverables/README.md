@@ -1,3 +1,10 @@
+---
+name: chirality-app-deliverable-queries
+description: Use repository queries to locate deliverables and dependency conditions.
+metadata:
+  kind: instruction
+  surface: tool
+---
 # Deliverable queries
 
 Run from the selected Git repository with Python 3 and PyYAML. The repository

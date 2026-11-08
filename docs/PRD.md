@@ -1,3 +1,10 @@
+---
+name: chirality-app-product-requirements
+description: Define the accepted App product requirements and their source basis.
+metadata:
+  kind: instruction
+  surface: requirements
+---
 # Chirality v4 — Product Requirements
 
 **Status: post-acceptance consolidation for the accepted decomposition basis;

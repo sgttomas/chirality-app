@@ -1,3 +1,10 @@
+---
+name: chirality-app-use-workflows
+description: Guide users in choosing and using a workflow.
+metadata:
+  kind: instruction
+  surface: reference
+---
 # Use a workflow
 
 A workflow is a reusable set of instructions for doing a kind of work. It can

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/sgttomas/chirality-library/blob/main/docs/document-metadata.schema.json",
+  "title": "Chirality document frontmatter",
+  "type": "object",
+  "required": [
+    "name",
+    "description",
+    "metadata"
+  ],
+  "propertyNames": {
+    "not": {
+      "enum": [
+        "status",
+        "date",
+        "revision"
+      ]
+    }
+  },
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "description": {
+      "type": "string",
+      "pattern": "\\S",
+      "not": {
+        "pattern": "[\\r\\n]"
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": [
+        "kind",
+        "surface"
+      ],
+      "propertyNames": {
+        "not": {
+          "enum": [
+            "status",
+            "date",
+            "revision"
+          ]
+        }
+      },
+      "properties": {
+        "kind": {
+          "enum": [
+            "instruction",
+            "explanation",
+            "example",
+            "proposal",
+            "historical-source"
+          ]
+        },
+        "surface": {
+          "enum": [
+            "bootstrap",
+            "standing",
+            "operating-entry",
+            "role",
+            "workflow",
+            "skill",
+            "tool",
+            "reference",
+            "requirements"
+          ]
+        },
+        "applicability": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

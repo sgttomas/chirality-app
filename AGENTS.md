@@ -1,3 +1,10 @@
+---
+name: chirality-app-standing-instructions
+description: Apply repository authority, roles, verification and protected boundaries.
+metadata:
+  kind: instruction
+  surface: standing
+---
 # Chirality App repository instructions
 
 This repository owns App v4. Work follows the owner's current steer and the

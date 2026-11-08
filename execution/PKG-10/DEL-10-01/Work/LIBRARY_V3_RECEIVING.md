@@ -52,13 +52,13 @@ Checked against the release's
 | Standing subjects and deliberate Library selection | Existing authority/holds/roles retained; pin changed explicitly to v3. App-local verification tiers and cross-project wording adapted without importing another repository's grants. |
 | Actual grants remain local and loop links to them | Owner quote and App-only Git grant unchanged; loop points to AGENTS verification/grant/holds. |
 | No session/gate narrative in AGENTS or loop | Removed the dated resumption/retired-session narrative from those entry surfaces. It already remains in CURRENT_EXECUTION_BASIS; preserve the standing macOS/shared-code rule and handoff safeguards. Legacy vocabulary/source citations are retained where they explain current interpretation. |
-| Queries work from the stated directory and links resolve | Replaced the placeholder neighborhood argument with DEL-10-01. Check the query and local entry links with the focused verification below. Python/PyYAML and repository-root invocation remain prerequisites. |
+| Queries work from the stated directory and links resolve | Use the affected deliverable, with DEL-10-01 as an explicit worked example. The query and local entry links are checked below. Python/PyYAML and repository-root invocation remain prerequisites. |
 
 App's accepted execution layout, retained local workflows/test inputs, protected
 Windows/VM boundaries, credential/download rules and release reservations stay
-local. Optional typed headers on App's own init/AGENTS/loop are deferred; those
-files have no new metadata consumer to migrate in this adoption. This does not
-defer reading the released Library role headers.
+local. The owner's later direction makes typed headers mandatory before handoff;
+the coverage and compatibility account below supersedes their earlier optional
+standing. The released Library role headers are read as part of the source.
 
 The five-file legacy practice-pointer PR72 remains a separate draft: its Root
 citations predate the repository split and need current-source reconciliation.
@@ -81,6 +81,8 @@ The new ten-file test closure is deliberately partial: five roles, registry,
 validator/parser, resolver and LICENSE. It is not the release distribution,
 renderer, complete method catalog or a live product dependency. App CI exercises
 it in an isolated exported folder and never reads a sibling Library checkout.
+The exact released document-metadata schema is retained separately beside that
+closure, with its source path, Git blob/mode and digest in the same manifest.
 The old v2.1 harness continues on its frozen fixture; its active-selection-named
 test now reads the historical receiving account to avoid mislabeling c35 as
 the current selection.
@@ -126,3 +128,54 @@ adjacent-module import path. The harness now uses `-E -s` in its relocated
 export; the released source was not patched. The corrected focused batch passed.
 No App build, native/supplier/auth/model action, asset acquisition or Library
 write was performed.
+
+## Mandatory maintained-document headers
+
+The owner extended the adoption: "I want all the typed headers in place
+consistently across the projects before we handoff." Nineteen maintained
+documents now carry the released schema's name, description, kind and surface:
+AGENTS, the init prompt and its usage README, the loop, all fourteen Markdown
+documents under docs (including the eight user-manual pages), and the one
+tool-use README. The header sits above the unchanged init tagged block; only
+that block is sent. CLAUDE remains exactly its existing AGENTS pointer.
+
+All are instructions by principal use. The five accepted PRD/companion
+documents use the requirements surface, including architecture and operating
+method: their rationale remains in the body, but they establish the accepted
+product basis. The manual pages and CI guide use reference; the deliverable
+query README uses tool. No classification remains unresolved. No date, revision
+or status field was added to metadata; the existing body standing is preserved.
+Bodies and anchors are unchanged except for explicitly labelling the loop's
+query as an example, following the interlocutor's minor clarity suggestion.
+
+The retained local coordinated-knowledge-work WORKFLOW and REVIEW-NOTES are
+migration test inputs, not maintained App method authoring; their exact hashes
+remain those in reference/migration/shared-inputs.json. They therefore take the
+owner's retained-historical-byte exclusion. There are no local skill entrypoints
+or maintained local workflow entrypoints to migrate. Execution documents,
+foundation/thesis, reference/migration, frozen/reference editions, all packaged
+resources and their Work sources, generated derivatives and CLAUDE are excluded.
+Root README, license, conceptual history and app-local documentation are outside
+the named maintained surfaces. No generated workflow index exists for the
+retained local input, and none was invented or refreshed.
+
+`tools/validation/test_document_metadata.py` discovers the maintained surfaces,
+validates every header against the exact local Draft 2020-12 schema, rejects
+invalid/history metadata, preserves package extensions, verifies the schema's
+source identity and the frozen workflow bytes, and checks the tagged bootstrap
+and CLAUDE pointer. Governance CI runs it with existing App-compatible
+jsonschema 4.26.0; no sibling checkout or network schema resolution is required.
+Source inspection found no documentation renderer/build or application reader
+for these guide bodies. Existing role/entry readers use full text and anchored
+section searches, which tolerate the prefix. The compatibility suite and
+examination freshness check exercise the existing readers; no current pin or
+derivative requires regeneration for these documents. Historical hash-bound
+documentary selections retain their frozen subjects rather than being renewed.
+
+The extended focused suite passed 167 pytest cases, including all nineteen live
+headers and schema/entry/preservation regressions, plus ten instruction-generator
+tests. Deliverables again reported 41/zero errors; the neighborhood query,
+eight-file instruction freshness and examination-pin check passed. Header/body
+comparison preserved all nineteen pre-header bodies apart from the stated loop
+clarification. Extended evidence and the final exact-head receipt are in
+`/Users/ryan/dev/chirality-t3/scratch/app-library-v3-headers-3ual3kma/CHECK_SUMMARY.json`.

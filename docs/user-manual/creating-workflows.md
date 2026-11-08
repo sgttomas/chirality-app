@@ -1,3 +1,10 @@
+---
+name: chirality-app-create-workflows
+description: Guide users in creating, trying and improving reusable workflows.
+metadata:
+  kind: instruction
+  surface: reference
+---
 # Create and improve a workflow
 
 Start from a task you understand. A useful workflow explains how to achieve a

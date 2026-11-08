@@ -23,6 +23,12 @@ validator needs existing PyYAML; the resolver's optional CLI brief-normalization
 path is not selected. No full workflow catalog, renderer or Library suite is
 copied or claimed.
 
+`document-metadata.schema.json` separately retains the exact released
+`docs/document-metadata.schema.json`. Its source path, blob/mode, length and
+digest are in `MANIFEST.json` under `documentMetadataSchema`. The App's
+maintained-document validation uses this local schema, not the sibling checkout
+or an online schema lookup. It does not change the ten-file role-test closure.
+
 `tools/validation/test_library_v3_operational_adoption.py` exercises this closure
 in ordinary App governance CI without the sibling checkout, Git or network.
 The old v2.1 fixture and checks remain historical. The v2.1 reader rejects the

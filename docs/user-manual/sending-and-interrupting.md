@@ -1,3 +1,10 @@
+---
+name: chirality-app-send-and-interrupt
+description: Guide users in sending messages and interrupting live turns.
+metadata:
+  kind: instruction
+  surface: reference
+---
 # Send a message and interrupt a live turn
 
 **Development-source guide, 2 November 2026. Not a completed desktop walkthrough.**

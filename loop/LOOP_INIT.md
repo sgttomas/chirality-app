@@ -1,3 +1,10 @@
+---
+name: chirality-app-operating-entry
+description: Locate and carry App work under the selected execution basis.
+metadata:
+  kind: instruction
+  surface: operating-entry
+---
 # App v4 development entry
 
 The current release pathway and continuing Type 1 owners are in
@@ -16,7 +23,7 @@ Start from the affected `execution/PKG-nn/DEL-nn-nn/` and its ScopeOfWork,
 Work and dependency conditions. Consult `docs/PRD.md` and its companions for
 requirements and interfaces involved in this slice, not as a compulsory census.
 
-From the repository root:
+From the repository root, query the affected deliverable; for example:
 
 ```sh
 python3 -m tools.deliverables --project . neighborhood DEL-10-01

@@ -1,3 +1,10 @@
+---
+name: chirality-app-find-conversations
+description: Guide users in finding and continuing saved conversations.
+metadata:
+  kind: instruction
+  surface: reference
+---
 # Find and continue a past conversation
 
 **Development-source guide, 1 November 2026. Not a completed desktop walkthrough.**
