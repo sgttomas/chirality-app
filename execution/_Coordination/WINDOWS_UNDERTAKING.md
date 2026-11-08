@@ -119,8 +119,9 @@ operations. Do not weaken or bypass a check to claim portability.
 
 ## Cross-project coordination
 
-App Agent 0: [Chirality App for windows](t3-thread://v1/7821dcff-74fd-4895-8c77-56074ddcb84a).
-Peer: [SWBPIPE for windows](t3-thread://v1/533ebf43-c41f-41e8-bfd7-91517fff8a7e).
+Find current App and SWBPIPE Agent 0 sessions by listing current T3 threads;
+the owner names sessions at each restart. Coordinate directly as `AGENTS.md`
+describes.
 Agent 0 sent the initial coordination proposal on 2026-10-28. SWBPIPE Agent 0
 returned a compatible feasibility plan and proposed the App manager as the
 single provisioning writer for a common Windows guest/toolchain. App Agent 0
