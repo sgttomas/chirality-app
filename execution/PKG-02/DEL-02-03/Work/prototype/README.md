@@ -33,7 +33,7 @@ For schema 0.7, `run_all.py` checks
 decision-package `act_request` and an A16 `act_lapsed`) and INV-EXEC-8…10.
 It also checks `decision-package-file.example.valid.json` and `.invalid.json`
 (INV-PKG-1…6) against `$defs/decisionPackageFile`, and the file → `act_request`
-mapping (`request_from_file`). Use `--write-examples` to regenerate these fixtures.
+mapping (`request_from_file`).
 
 ## Limits
 
