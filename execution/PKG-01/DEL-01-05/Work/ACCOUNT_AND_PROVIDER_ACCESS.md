@@ -1013,10 +1013,13 @@ It establishes field exposure on that development subject, not actual credential
 custody or a result for a later build. Existing ScopeOfWork acceptance and dependency
 conditions remain unchanged.
 
-A same-source R1→R2→R1 status replay could revive a superseded receipt.
-Irreversible receipt retirement and a refresh guard prevent that revival.
-Mounted regressions failed before repair for the replay, a revision during a
-delayed native read, and a late explicit refresh after a newer App status.
+Independent review identified a same-source R1→R2→R1 status replay that could
+revive a superseded receipt. Agent0 repaired it directly with irreversible
+receipt retirement and an owning refresh guard. Three mounted regressions
+reproduce that revival, an intervening revision during a delayed native read,
+and a late explicit refresh overwriting a newer App status. All three fail on
+the reviewed source; all seven focused mounted cases and TypeScript pass on the
+repair. The unchanged Rust setting-projection/source checks are reused.
 Credential custody remains unproved.
 
 Hosted CI on the separate notice PR exposed an inherited model-catalog error
@@ -2014,7 +2017,12 @@ invalidation, private-error canaries, duplicate/stale handlers, restart and
 late native/read-refresh transitions. `request-cards.test.mjs` changes only the
 renamed account-check button used to refresh its existing source-transition
 fixtures. Both suites passed **114/114**, zero failures/skips; TypeScript
-`--noEmit` passed. These constructed checks do not establish native behavior.
+`--noEmit` passed. Logs are retained in `/tmp/app-account-status.nQNIMR/`
+(`focused-checked.log`, `types-checked.log`, `deliverables.log`,
+`conflicts.log`, `leaks.log`). Earlier intermediate focused runs also passed;
+`focused-final.log` predates the last case because its preceding edit command
+used the wrong directory and made no edits. The final checked logs identify the
+returned source.
 
 DEL-01-05 declares the added component; its ScopeOfWork, acceptance and dependency
 conditions retain their meaning. Existing native privacy projection and

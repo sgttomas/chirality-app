@@ -184,6 +184,11 @@ with `#[path]`, and the workflow test with `include!`; there is no product use.
   - 0 surviving descendants.
 - **Gate refusal.** Without the gate, the test refused with "opt-in absent;
   nothing executed".
+- **Regressions run.**
+  - The greeting fixture, gated, passed in 3.58 s.
+  - The smoke file's non-ignored tests passed (3).
+  - The LS-5 tests `bundled_ls5*`, `bundled_run_admission*` and
+    `bundled_publication*` passed (6).
 - **Cleanup.** No Codex process remained and no fixture scratch was left. The
   existing `cfg(test)` records-store placement (`chirality-test-records-<pid>`)
   is created under the run's `TMPDIR`, which is inside the owned scratch.
