@@ -57,8 +57,9 @@ thread. A Type 1 agent delegates to children within its own session or thread.
 A WORKING_ITEMS agent may call in a HELPS_HUMANS agent directly, which like
 every Type 1 runs in its own standalone session or thread; other engagements
 between Type 1 agents go through Agent 0. Peers do not own one another; Agent 0
-keeps them aligned. Any Type 2 role can run as a child in any session or
-thread, whether Agent 0 or a Type 1 delegates it. Agent 0 gives each Type 1 its
+keeps them aligned. A Type 2 role runs as a child within the session or
+thread of the agent that delegates it, whether Agent 0 or a Type 1; it never
+gets a standalone session. Agent 0 gives each Type 1 its
 full assignment at the start, including how to reach Agent 0. A Type 1 reports
 to Agent 0 by message when it calls in a HELPS_HUMANS agent, reaches a result,
 has a PR ready to merge, is blocked or meets a reserved choice, stating the
