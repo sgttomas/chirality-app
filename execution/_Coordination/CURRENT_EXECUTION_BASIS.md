@@ -133,7 +133,7 @@ The owner's model selections apply to future work:
 
 | Instance | Provider/model | Effort and options |
 |---|---|---|
-| Type 1 managers | Codex-Hub `gpt-6.1-sol` | `reasoningEffort=xhigh`, `serviceTier=default` |
+| Type 1 managers | Codex-Hub `gpt-6.1-sol` | `reasoningEffort=high`, `serviceTier=default` (owner's subsequent direction for future delegation) |
 | Type 2 execution tasks | Claude-Hub `claude-opus-5-5` (Opus 5.5) | `effort=high`, `fastMode=false` |
 | Type 2 independent reviews | Codex-Hub `gpt-6.1-sol` | `reasoningEffort=xhigh`, `serviceTier=default` |
 
