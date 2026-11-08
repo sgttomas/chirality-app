@@ -164,8 +164,10 @@ on 2026-10-04.
 
 ### 3.2 Reverse: does any supplier record name DEL-10-03 outside the population?
 
-Historical observations by O-E; the prototype checks the supplier SoW clauses,
-while the register observation was a separate comparison:
+Historical observations by O-E: the original prototype checked supplier SoW
+clauses, scanned registers and checked missing mirrors. The current prototype
+checks supplier SoW clauses; the historical register checks were retired during
+migration:
 - **Supplier SoWs.** Every supplier SoW clause naming DEL-10-03 belongs to an
   entry in §1.2: DEL-02-01 CLM-002, DEL-02-03 CLM-003, DEL-02-04 CLM-002,
   DEL-03-01 CLM-002, DEL-03-02 CLM-004, DEL-04-03 REQ-005.
