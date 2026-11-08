@@ -54,13 +54,16 @@ were opened. Same-ID collision is conservatively possible; no absence claim.
    is insufficient. Before execution, verify the selected account/root and
    non-overlap without inspecting owner private data. No immediate owner act is
    requested while source/notice/signing preparation continues.
-3. Owner testing focuses on v4 workspace setup, intended actions, captures and
-   verification, normal app lifecycle/close/Quit, and readable failures. Collect
-   actual package/S4/functional witnesses against that exact candidate through
-   the existing consumer path; mocked/source passes do not replace them.
-   Signing/enrollment and any necessary account operation remain separately
-   concrete authorized stages. Existing owner data is not a fixture: no implicit
-   migration, key import, reset, resealing or cleanup.
+3. The 2026-11-05 owner correction assigns development testing to agents; Agent 0
+   carries the App to a publication-ready recommendation before owner testing.
+   Both standalone journeys remain open: J1 first use, an existing workflow,
+   useful real-model work and finding results; J2 create, trial, register and
+   reuse a workflow and return to unfinished work. Collect actual package/S4/
+   functional witnesses against the applicable exact candidate through the
+   existing consumer path; mocked/source passes do not replace them. Signing,
+   enrollment and any necessary account operation remain separately authorized
+   stages. Existing owner data is not a fixture: no implicit migration, key
+   import, reset, resealing or cleanup.
 
 The identifier choice does not select service/account/access-group values.
 Runtime owns SEAL_C_KEYCHAIN_SIGNING_JOIN.md; it has been notified of the new
