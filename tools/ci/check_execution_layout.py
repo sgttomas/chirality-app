@@ -40,7 +40,7 @@ def code_surface(path, raw, mode):
 
 def execution_literal(node):
     return any(isinstance(n, ast.Constant) and isinstance(n.value, str)
-               and re.search(r'(^|/)execution(?:/|$)', n.value)
+               and re.search(r'(?:^|[/\s\"\'])execution(?:/|$)', n.value)
                for n in ast.walk(node))
 
 
@@ -65,7 +65,8 @@ def execution_calls(tree):
                'exec', 'eval', 'compile', 'builtins.exec', 'builtins.eval', 'builtins.compile'}
     processes = {'subprocess.run', 'subprocess.Popen', 'subprocess.call', 'subprocess.check_call',
                  'subprocess.check_output', 'os.system', 'os.popen', 'os.execl', 'os.execv',
-                 'os.execve', 'os.spawnv', 'os.spawnve', 'asyncio.create_subprocess_exec',
+                 'os.execve', 'os.execvp', 'os.execvpe', 'os.execlp', 'os.execle', 'os.execlpe',
+                 'os.spawnv', 'os.spawnve', 'os.spawnvp', 'os.spawnvpe', 'os.spawnl', 'os.spawnle', 'os.spawnlp', 'os.spawnlpe', 'asyncio.create_subprocess_exec',
                  'asyncio.create_subprocess_shell'}
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
@@ -79,6 +80,14 @@ def execution_calls(tree):
                 yield 'Import from execution/'
         if name not in processes:
             continue
+        if name.startswith(('os.exec', 'os.spawn')) or name == 'asyncio.create_subprocess_exec':
+            index = 1 if name.startswith('os.spawn') else 0
+            if len(node.args) > index:
+                program = node.args[index]
+                interpreter = (isinstance(program, ast.Constant) and isinstance(program.value, str)
+                               and re.fullmatch(r'(?:.*/)?(?:python[\d.]*|node|bash|sh|zsh)', program.value)) or qualified(program) == 'sys.executable'
+                if execution_literal(program) or (interpreter and any(execution_literal(arg) for arg in node.args[index + 1:])):
+                    yield 'Interpreter invocation into execution/'
         command = node.args[0] if node.args else next((k.value for k in node.keywords if k.arg == 'args'), None)
         if command is None:
             continue
@@ -88,16 +97,12 @@ def execution_calls(tree):
                 yield 'Interpreter invocation into execution/'
             interpreter = (isinstance(program, ast.Constant) and isinstance(program.value, str)
                            and re.fullmatch(r'(?:.*/)?(?:python[\d.]*|node|bash|sh|zsh)', program.value)) or qualified(program) == 'sys.executable'
-            if interpreter:
-                # Interpreter options precede the script/module/command operand.
-                for operand in arguments:
-                    if isinstance(operand, ast.Constant) and isinstance(operand.value, str) and operand.value.startswith('-'):
-                        continue
-                    if execution_literal(operand):
-                        yield 'Interpreter invocation into execution/'
-                    break
+            if interpreter and any(execution_literal(argument) for argument in arguments):
+                # Conservative for interpreter argv: option operands and embedded
+                # -c programs cannot hide a reference into the documentary tree.
+                yield 'Interpreter invocation into execution/'
         elif isinstance(command, ast.Constant) and isinstance(command.value, str):
-            if re.search(r'(?:^|[\s;])(?:python[\d.]*|node|bash|sh|zsh)\s+[^\n]*\bexecution/', command.value) or command.value.startswith('execution/'):
+            if re.search(r'(?:^|[\s;])(?:[^\s;]*/)?(?:python[\d.]*|node|bash|sh|zsh)\s+[^\n]*\bexecution/', command.value) or command.value.startswith('execution/'):
                 yield 'Interpreter invocation into execution/'
 
 def check(root=ROOT):

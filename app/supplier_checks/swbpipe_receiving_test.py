@@ -2,7 +2,7 @@
 
 Default input is the retained App snapshot; --catalog checks an explicit export.
 No supplier, host, model, network, native operation or person's act is executed.
-Historical v2 receiving bytes remain in DEL-09-06 Work/catalog-v2/receiving-test.py.txt.
+Historical v2 receiving bytes are preserved unchanged in historical/catalog_v2/receiving-test.py.txt; the original deliverable locator remains recoverable in Git history.
 """
 import argparse
 import copy

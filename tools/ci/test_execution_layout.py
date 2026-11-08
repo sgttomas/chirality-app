@@ -136,7 +136,7 @@ def test_schema_consumer_cannot_select_an_unregistered_source():
     original = Path.read_bytes
     def changed(path):
         return json.dumps(value).encode() if path == schema else original(path)
-    with patch.object(Path, 'read_bytes', changed), pytest.raises(ValueError, match='Unregistered consumer input'):
+    with patch.object(Path, 'read_bytes', changed), pytest.raises(ValueError, match='Consumer requires data registration'):
         execution_inputs.check()
 
 
@@ -153,3 +153,34 @@ def test_native_successor_dependencies_resolve_to_operational_sources():
     assert dependencies[str(retained)] == '91c9ca98d7bf8d784e2cea5cbd42d237230b9018d58f5e04e369a755d5b7720c'
     # Import class definitions only; do not instantiate AX or invoke a campaign.
     assert setup.load_base().load_ax().__name__ == 'ScopedAX'
+
+
+@pytest.mark.parametrize('source', [
+    'import subprocess; subprocess.run("/usr/bin/python3 execution/probe/notes.md", shell=True)',
+    'import subprocess; subprocess.run(["python3", "-W", "ignore", "execution/probe/notes.md"])',
+    'import os; os.execl("/usr/bin/python3", "python3", "execution/probe/notes.md")',
+    'import os; os.execv("/usr/bin/python3", ["python3", "execution/probe/notes.md"])',
+    'import os; os.spawnv(0, "/usr/bin/python3", ["python3", "execution/probe/notes.md"])',
+])
+def test_literal_interpreter_options_absolute_shell_and_exec_argv_are_guarded(repo, source):
+    write(repo, 'tools/probe.py', source.encode())
+    with pytest.raises(ValueError, match='Interpreter invocation'):
+        guard.check(repo)
+
+
+def test_reclassifying_schema_as_code_cannot_exempt_freshness():
+    from unittest.mock import patch
+    manifest_path = execution_inputs.MANIFEST
+    value = json.loads(manifest_path.read_bytes())
+    row = next(row for row in value['data'] if row['source'].endswith('/RS_RECORD.schema.json'))
+    value['data'].remove(row)
+    value['code'].append({'source': row['source'], 'path': row['copy'], 'sha256': row['sha256'], 'bound': False})
+    original = Path.read_bytes
+    def changed(path):
+        if path == manifest_path:
+            return json.dumps(value).encode()
+        if path == execution_inputs.ROOT / row['copy']:
+            return b'{"changed":true}\n'
+        return original(path)
+    with patch.object(Path, 'read_bytes', changed), pytest.raises(ValueError, match='cannot exempt a retained authoring input'):
+        execution_inputs.check()

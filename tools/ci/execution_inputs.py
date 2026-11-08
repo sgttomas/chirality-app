@@ -59,6 +59,11 @@ def check(root=ROOT) -> int:
     root = Path(root)
     value = json.loads((root / "tools/ci/execution-inputs.json").read_bytes())
     registered = locations(root)
+    data_sources = {row['source'] for row in value['data']}
+    data_targets = {row['copy'] for row in value['data']}
+    for row in value['code']:
+        if (root / row['source']).exists():
+            raise ValueError('Code registration cannot exempt a retained authoring input: ' + row['source'])
     targets = list(registered.values())
     if len(set(targets)) != len(targets):
         raise ValueError('Ambiguous physical input registration')
@@ -70,15 +75,18 @@ def check(root=ROOT) -> int:
     for row in value['data']:
         if row['copy'] != 'app/contract_inputs/' + row['source'].removeprefix('execution/'):
             raise ValueError('App input does not match its authoring locator')
-    def require_registered(name):
+    def require_registered(name, *, data=False):
         logical = normalize(name)
+        if data and ((logical.startswith('execution/') and logical not in data_sources)
+                     or (logical.startswith('app/contract_inputs/') and logical not in data_targets)):
+            raise ValueError('Consumer requires data registration: ' + name)
         if logical.startswith('execution/') and logical not in registered:
             raise ValueError('Unregistered consumer input: ' + name)
         if logical.startswith('app/contract_inputs/') and logical not in targets:
             raise ValueError('Unregistered consumer copy: ' + name)
     schema = json.loads((root / 'app/src-tauri/schemas/manifest.json').read_bytes())
     for row in [*schema['resources'], *schema.get('file_fixtures', []), *schema['fixture']['sources']]:
-        require_registered(row['source'])
+        require_registered(row['source'], data=True)
     # Live profile membership, not historical receipt/provenance rows.
     spec = importlib.util.spec_from_file_location('_registered_examination_inputs', root / 'app/examination/repin.py')
     pins = importlib.util.module_from_spec(spec)
@@ -93,7 +101,7 @@ def check(root=ROOT) -> int:
     project = correspondence.projector(root)
     selections = {}
     for source, selection in correspondence.projections(root):
-        require_registered(source)
+        require_registered(source, data=True)
         selections.setdefault(source, []).append(selection['selectors'])
     # This current admission profile deliberately selects full documents.
     full = json.loads((root / 'app/examination/admission/sources.current-v1.json').read_bytes())['sources']

@@ -9,3 +9,5 @@ Original source identities are from `109441b501edd86453d263f4207ff6199dbd9a78`. 
 | `execution/PKG-09/DEL-09-06/Work/prototype/run_w14_rehearsals.py` | `app/contract_inputs/PKG-09/DEL-09-06/Work/prototype/run_w14_rehearsals.py` | `829186f50af39345fd3e74b5d942d629798b2edfffc1b9d25a323f5ac46b8e91` | no |
 
 `tools/ci/execution-inputs.json` records current physical source/data locations. Specification-data copies remain distinct from the authoring originals; repository checks compare full bytes or the existing selected documentary extents. This move creates no qualification, acceptance, publication, reconstruction or native-run result.
+
+Retained Python source `execution/PKG-09/DEL-09-06/Work/catalog-v2/receiving-test.py.txt` now has physical location `app/supplier_checks/historical/catalog_v2/receiving-test.py.txt`, with unchanged SHA-256 `ceb767caf5f6865775c976b30331c233bfc2eeea5da129235a7a55ad3d60d134`. Original historical citations retain their logical identity through Git history. It was moved without execution; no historical build, receiving observation or acceptance is reconstructed.
