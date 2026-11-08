@@ -2,8 +2,7 @@
 
 ## Scope
 
-PEC is retired as an active product programme by the owner's 2026-10-09
-instruction. App v4 no longer owes a PEC first-consumer adapter, qualified
+PEC is retired as an active product programme, as confirmed by the owner. App v4 no longer owes a PEC first-consumer adapter, qualified
 provider witness, release/adoption exercise or completion of OI-022/DEP-002.
 No work is blocked awaiting those inputs. The former scope is recoverable
 at `archive/pre-efficiency-cleanup-2026-10-09`.

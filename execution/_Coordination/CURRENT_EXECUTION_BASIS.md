@@ -30,16 +30,21 @@ remain recovery inputs.
 
 The cleanup managers have returned their finite contributions. The roster below
 retains delivery ownership and contribution history; it does not establish live
-execution. During this sweep, delegated managers and TASKs use
-`gpt-6.1-terra` at high effort and independent reviews use `gpt-6.1-sol` at
-high effort. App-internal Terra/medium remains a separate selection.
+execution. During the completed sweep, delegated managers and TASKs used
+`gpt-6.1-terra` at high effort. Current owner direction selects
+`gpt-6.1-sol` at high effort for Agent 0 and Type 1 managers, and Claude
+Opus 5.5 at high effort for TASKs and other Type 2 instances. Independent
+reviews remain on `gpt-6.1-sol` high and the opted-in INTERLOCUTOR remains
+on Claude Opus 5.5 high. Existing Terra runs may finish their current unit;
+new or relaunched sessions use the current selection. App-internal
+Terra/medium retains its separate historical product subject.
 Earlier current/next and model statements below retain their original subjects.
 The punchlist indexes the remaining product results.
 
 Pending product and Scope interpretations are recorded in issue 168. The owner
 has confirmed PEC retirement: active provider and App adoption work is not
-expected or awaited. Scope passages that still assign that work are being
-reconciled with their affected consumers under the coordinator's delegation.
+expected or awaited. The affected Scope passages now record retirement and retained-consumer
+requirements under the coordinator's accepted disposition.
 Applicable retained-compatibility source, limitation, refusal and recovery
 obligations remain; no live service or qualification is claimed. PR72's
 reconciliation is integrated through PR172 with its history and frozen accounts
