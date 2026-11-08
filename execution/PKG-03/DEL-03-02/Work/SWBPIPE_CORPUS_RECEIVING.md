@@ -199,16 +199,18 @@ as the person's acceptance.
 
 ## Verification
 
-From `projects/chirality-app-v4/execution/PKG-03/`:
+The historical corpus map reads the hash-pinned SWBPIPE filesystem inputs in
+the former monorepo layout described by `swbpipe-corpus-pins.json`. Those inputs
+are unavailable in the App-only checkout, so the map cannot be regenerated
+here. From the repository root, the following commands use a fresh SH-1 run:
 
 ```sh
-python3 -B DEL-03-02/Design/prototype/swbpipe_corpus_map.py
 D=$(mktemp -d)/run
-python3 -B DEL-03-01/Design/prototype/run_fixture.py --out "$D"
-python3 -B DEL-03-01/Design/prototype/run_swbpipe_profile.py --out "$D"
-python3 -B DEL-03-01/Design/prototype/validate_all.py --run "$D"
-python3 -B DEL-03-03/Design/prototype/observe_map.py --run "$D"
-python3 -B DEL-03-02/Design/prototype/proposal_states.py --check "$D"
+python3 -B execution/PKG-03/DEL-03-01/Work/prototype/run_fixture.py --out "$D"
+python3 -B execution/PKG-03/DEL-03-01/Work/prototype/run_swbpipe_profile.py --out "$D"
+python3 -B execution/PKG-03/DEL-03-01/Work/prototype/validate_all.py --run "$D"
+python3 -B tools/run_recorded_prototype.py execution/PKG-03/DEL-03-03/Work/prototype/observe_map.py --run "$D"
+python3 -B execution/PKG-03/DEL-03-02/Work/prototype/proposal_states.py --check "$D"
 ```
 
 From `projects/chirality-app-v4/app/src-tauri/`, with the offline route of
