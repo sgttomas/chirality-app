@@ -4,16 +4,20 @@ description: Locate and carry App work under the selected execution basis.
 metadata:
   kind: instruction
   surface: operating-entry
+  upstream:
+    source: workflows/project-setup/resources/project-entry.md
+    edition: library-v3.3.0
 ---
 # App v4 development entry
 
-The current release pathway and continuing Type 1 owners are in
+The current release pathway and delivery lanes are in
 `execution/_Coordination/CURRENT_EXECUTION_BASIS.md`. Read local `AGENTS.md`
 for shared-library selection and current constraints. HELP_HUMAN coordinates
 the dedicated manager sessions through T3 chat; managers retain delivery
 ownership through repairs, reconciliation, review and cleanup.
 
-Use the actual current PRs and assigned manager routes in that execution basis.
+Use the actual current PRs and recorded assignment lanes in that execution basis.
+Session discovery follows `AGENTS.md`.
 The platform baseline, project authority and protected boundaries are in
 `AGENTS.md`; historical sessions are not active dispatch routes.
 

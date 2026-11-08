@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/sgttomas/chirality-library/blob/main/docs/document-metadata.schema.json",
+  "title": "Chirality document frontmatter",
+  "type": "object",
+  "required": [
+    "name",
+    "description",
+    "metadata"
+  ],
+  "propertyNames": {
+    "not": {
+      "enum": [
+        "status",
+        "date",
+        "revision"
+      ]
+    }
+  },
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "description": {
+      "type": "string",
+      "pattern": "\\S",
+      "not": {
+        "pattern": "[\\r\\n]"
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": [
+        "kind",
+        "surface"
+      ],
+      "propertyNames": {
+        "not": {
+          "enum": [
+            "status",
+            "date",
+            "revision"
+          ]
+        }
+      },
+      "properties": {
+        "kind": {
+          "enum": [
+            "instruction",
+            "explanation",
+            "example",
+            "proposal",
+            "historical-source"
+          ]
+        },
+        "surface": {
+          "enum": [
+            "bootstrap",
+            "standing",
+            "operating-entry",
+            "role",
+            "workflow",
+            "skill",
+            "tool",
+            "reference",
+            "requirements"
+          ]
+        },
+        "applicability": {
+          "type": "string",
+          "minLength": 1
+        },
+        "upstream": {
+          "type": "object",
+          "description": "Library source and edition last reconciled with this adapted document.",
+          "required": [
+            "source",
+            "edition"
+          ],
+          "properties": {
+            "source": {
+              "type": "string",
+              "pattern": "\\S",
+              "not": {
+                "pattern": "[\\r\\n]"
+              },
+              "description": "Repository-root-relative Library source-file path at the recorded edition."
+            },
+            "edition": {
+              "type": "string",
+              "pattern": "^library-v[0-9]+\\.[0-9]+\\.[0-9]+$",
+              "not": {
+                "pattern": "[\\r\\n]"
+              },
+              "description": "Published Library edition last reconciled with the adapted document."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
