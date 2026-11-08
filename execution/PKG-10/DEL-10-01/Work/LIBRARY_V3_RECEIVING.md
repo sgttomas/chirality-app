@@ -1,19 +1,13 @@
 # Library 3.0.0 contributor adoption
 
-## Selection and source
-
-The owner directed this post-handoff adoption as one App PR. App pins its
-contributor instructions to released `library-v3.0.0`, commit
-`5170575f3f4c1fc51386fa5cd38c7ef9ac048b20`, rather than tracking moving main.
-The shared checkout `/Users/ryan/dev/chirality-library` was clean and both HEAD
-and the release tag resolved to that commit before reliance. Dependent results
-record that resolved revision. Source paths and fixture hashes are in
-[`reference/library-v3.0.0/`](../../../../reference/library-v3.0.0/README.md).
-The released migration notes were read first; the reported archive digest is
-recorded there without claiming an archive download or independent verification.
-
-This supersedes c35/v2.1 only for new contributor work. Earlier results,
-fixtures, accepted scope and product bindings retain their actual subjects.
+The owner selected `library-v3.0.0`, commit
+`5170575f3f4c1fc51386fa5cd38c7ef9ac048b20`, for contributor work. The
+checkout and release tag resolved to that commit. Source paths and fixture
+hashes are in [`reference/library-v3.0.0/`](../../../../reference/library-v3.0.0/README.md).
+The reported archive digest is release metadata, not an independently verified
+download. This historical selection was superseded for new reliance by
+[Library 3.1.0](LIBRARY_V3_1_RECEIVING.md); its findings and fixtures retain
+their original subjects. Accepted scope and product bindings retain their actual subjects.
 It serves DEL-10-01 OUT-001/002/003 and the existing source-selection condition;
 no ScopeOfWork commitment, maturity or dependency condition changes. Its new
 compatibility harness is declared in `deliverable.yaml`.
@@ -106,28 +100,15 @@ The earlier [v2.1 product-boundary recommendation](LIBRARY_V2_1_RECEIVING.md#pro
 remains a recommendation, not a selected product migration. No native/model
 proof follows from this source inspection.
 
-## Verification
+## Verification scope
 
-Focused checks use prepared offline Python/PyYAML/pytest under the ordinary
-slot wrapper with fresh scratch OS/Codex/temp homes. The receiving harness,
-historical fixture checks, existing deliverable/CI/prototype consumers,
-instruction-resource freshness and the documented neighborhood query are the
-relevant checks. Results: 130 focused pytest cases passed; deliverables reported
-41 deliverables and zero errors; the DEL-10-01 neighborhood query succeeded;
-instruction-resource freshness passed for all eight files; ten generator tests
-passed; and examination pins agreed. The ten retained Library blobs and modes
-were independently compared with the selected Git objects. Receiving/init local
-links resolved, and the protected product sources, generated instructions,
-derivation, historical fixture, init prompt and CLAUDE pointer were unchanged.
-
-Evidence is retained in
-`/Users/ryan/dev/chirality-t3/scratch/app-library-v3-receiving-_xtqy8q6/CHECK_SUMMARY.json`;
-the final receipt binds contribution and log hashes to the PR head. The initial
-harness invocation failed because Python `-I` removed the released validator's
-adjacent-module import path. The harness now uses `-E -s` in its relocated
-export; the released source was not patched. The corrected focused batch passed.
-No App build, native/supplier/auth/model action, asset acquisition or Library
-write was performed.
+The receiving checks covered the partial Library fixture, project entry,
+deliverable and existing prototype consumers, and instruction-resource
+freshness. The initial isolated harness failed because Python `-I` removed the
+validator's adjacent-module import path; the relocated export uses `-E -s`
+without patching the released source. No App build, native, supplier, auth or
+model action, asset acquisition or Library write was performed. The receiving
+evidence is at `/Users/ryan/dev/chirality-t3/scratch/app-library-v3-receiving-_xtqy8q6/CHECK_SUMMARY.json`.
 
 ## Mandatory maintained-document headers
 
@@ -172,10 +153,6 @@ examination freshness check exercise the existing readers; no current pin or
 derivative requires regeneration for these documents. Historical hash-bound
 documentary selections retain their frozen subjects rather than being renewed.
 
-The extended focused suite passed 167 pytest cases, including all nineteen live
-headers and schema/entry/preservation regressions, plus ten instruction-generator
-tests. Deliverables again reported 41/zero errors; the neighborhood query,
-eight-file instruction freshness and examination-pin check passed. Header/body
-comparison preserved all nineteen pre-header bodies apart from the stated loop
-clarification. Extended evidence and the final exact-head receipt are in
+The header/body comparison retained the nineteen pre-header bodies apart from
+the stated loop clarification. Extended evidence is at
 `/Users/ryan/dev/chirality-t3/scratch/app-library-v3-headers-3ual3kma/CHECK_SUMMARY.json`.

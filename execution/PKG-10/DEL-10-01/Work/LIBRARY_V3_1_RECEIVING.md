@@ -30,9 +30,8 @@ their existing headers and classifications. The current-role export uses the
 same released readers and full-source hashes, with no sibling checkout required
 by product build, test or CI. No generated index or current pin needs changing.
 
-Keep the packaged instruction Work sources, all product resources and their
-historical bindings unchanged at basis89ac/four roles. The final contributor
-edition does not qualify product uptake or native behavior. Draft PR161 and the
-successor prompt remain held for the owner's later direction. J2 continuation,
-acquisition, acceptance and publication retain their existing boundaries. Keep
-broader historical record cleanup separate from this small edition update.
+Packaged instruction Work sources, product resources and historical bindings
+remain at basis89ac/four roles. This contributor edition does not qualify
+product uptake or native behavior. Draft PR161 and the successor prompt remain
+held for the owner's direction. J2 continuation, acquisition, acceptance and
+publication retain their existing boundaries.

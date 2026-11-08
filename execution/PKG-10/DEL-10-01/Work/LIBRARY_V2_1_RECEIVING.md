@@ -126,57 +126,31 @@ App Agent 0's design/integration authority and independent review:
 - **Session steering:** whether a given App session selects INTERLOCUTOR, and
   its model and effort.
 
-## Checks (2026-11-07, uncommitted candidate on base `2b5134f6`)
+## Verification scope (2026-11-07)
 
-Python 3.13.14 with existing pytest 9.1.1 and PyYAML 6.0.3, offline. Commands
-ran under the slot wrapper with a scratch `CODEX_HOME`/`TMPDIR` and no bytecode.
+The offline receiving checks covered the v2.1 harness, deliverable and existing
+CI/prototype consumers, and examination pins. A constructed probe found that
+the 2.0.0 resolver admitted INTERLOCUTOR without a companion and accepted a
+`"TASK"` string as a role list; the 2.1.0 resolver refused both. This compared
+old consumer code on new inputs, not the original 2.0.0 registry.
 
-- `python3 -m pytest -q tools/validation/test_library_v2_1_operational_adoption.py`:
-  38 passed. The same run with bytecode enabled (scratch prefix) also passed and
-  wrote no bytecode into the fixture.
-- A constructed compatibility probe loads the 2.0.0 resolver against the new
-  five-role registry and constructed packages: it admits INTERLOCUTOR without a
-  companion and accepts a `"TASK"` string as a role list. The 2.1.0 resolver
-  refuses both. This distinguishes old consumer code on new inputs; it does
-  not claim that the original 2.0.0 registry included INTERLOCUTOR.
-- `python3 -m tools.deliverables --project . check`: 41 deliverables, 0 errors.
-  `app/examination/repin.py --check`: the pins agree.
-- The new harness ran together with `tools/ci/test_selection.py`,
-  `tools/deliverables/test_cli.py` and `tools/test_run_recorded_prototype.py`:
-  119 passed.
-- `git diff --check` found no whitespace errors in changed or new files. The
-  repository credential patterns and conflict-marker scan found nothing in the
-  20 changed or new files. These ran locally before commit; the base/head forms
-  of those validators run in hosted CI.
-
-Not run: the Library suite, index rebuild, App build, Rust/Node tests and native
-or model probes. The release archive checksum was not re-derived because no
-asset was downloaded.
-
-Manager inspection additionally verified all 11 fixture files byte-for-byte
-against the local c35 Git objects and the annotated tag target. The Library's
-`LICENSE.md` is byte-identical to App's existing root license (SHA256
-`495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da`);
-its terms cover this retained source fixture. The product-boundary test checks
-the existing role-set and every guidance source digest rather than coupling
-CI to Rust/JSX formatting. Source inspection of those unchanged runtime
-consumers remains distinct from executing their product suites. After that
-manager test refinement, the focused harness again passed 38/38 (log
-`/tmp/app-lib21-scratch.BpunGI/manager-adoption.log`). The earlier 119-test
-repository run remains applicable to the unchanged existing consumers. No build,
-native or model qualification is inferred.
+The eleven fixture files were compared byte-for-byte with the c35 Git objects
+and tag target. Library `LICENSE.md` is byte-identical to App's root license
+(SHA256 `495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da`)
+and covers the retained fixture. Product source inspection did not execute the
+product suites. The Library suite, index rebuild, App build, Rust/Node tests,
+native and model probes were not run; the release archive was not downloaded
+or its checksum re-derived. No native or model qualification is inferred.
 
 ## Later method candidate (not selected)
 
-App Agent 0 relayed Library development main
-`380eb2a0862984c956235d5789c135054773b60e` (PR9 checked `8d92051`): a later,
-unpublished coordinated-knowledge-work WORKFLOW/REVIEW-NOTES and DEL04-02 Work
-increment concerning need-based staffing/context/completion and proportionate
-recovery. This is the supplied notice only, not a substantive read or adoption
-of those bytes. The selected released edition remains `library-v2.1.0` at c35;
-its coordination method and all 11 compatibility fixture files are unchanged.
-No additional method eligibility, private Root service or App custody/safety
-waiver follows. A later method adoption requires its own source-qualified choice.
+Library development main `380eb2a0862984c956235d5789c135054773b60e`
+was supplied as a notice of an unpublished coordination-method increment on
+staffing, context, completion and recovery. This was not a substantive read or
+adoption of those bytes. At that time the selected release was `library-v2.1.0`
+at c35, with its coordination method and fixture unchanged. The later released
+[3.0.0 receiving](LIBRARY_V3_RECEIVING.md) superseded this notice, and
+[3.1.0](LIBRARY_V3_1_RECEIVING.md) is the current contributor selection.
 
 The product-retention comparison was checked against actual App main
 `2b5134f61b411de7e5dc82e8b726370e77b79aee`, not inferred from an old copied
