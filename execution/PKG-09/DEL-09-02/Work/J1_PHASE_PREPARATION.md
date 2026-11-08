@@ -163,91 +163,76 @@ JSON. AppData, sign-in, shared config/AGENTS/skills and exact project references
 must match the reviewed destinations. It reads only that new nonsecret pending
 request; never an auth file or existing owner Codex/App state.
 
-## Focused verification and handoff
+## Focused verification and preparation standing
 
-The initial 31 focused tests passed through normal shared-wrapper admission with a fresh
-scratch Codex home. All OS effects are mocked. They cover successful phase flow;
-related/nested picker relationships; wrong owner/main or ambiguous targets;
-scalar reference/array distinction; lazy/transient/missing values; stale control
-and parent chains; exact path/destination/pending schemas; unknown press/BOOL;
-identity changes; post-launch receipt failure; transient picker re-observation;
-cleanup beginning at cutoff; separate late closure without changing initial failure;
-no repeat; and a slot finalizer that holds across controller/recording failure.
-The no-file-list/history test raises if a private child is visited. Tests are
-preparation evidence, not native picker, confirmation, save or cleanup success.
+The mocked phase suite covers successful flow; related/nested pickers, wrong
+owner/main and ambiguous targets; scalar/array references; lazy, transient or
+missing values; stale controls and parent chains; exact paths, destinations and
+pending schemas; unknown press/BOOL; identity changes; post-launch receipt
+failure; picker re-observation; cutoff cleanup, late closure, no repeat and slot
+holding after controller/recording failure. A privacy test refuses file-list or
+history child reads. Its 31-case initial run and later 43- and 45-case repair
+runs are preparation evidence; OS effects were mocked.
+The later runs also exercised native-attended admission without native loading.
+The final 45-case run and 178-test native-attended cohort used an owned symlinked
+TMPDIR. The v5 correction above has its own 60-case and 193-test results.
 
-Agent0's independent review at exact head3d9fb116 returned changes requested:
-receipt failures could skip termination, a pre-dispatch failure could hold an
-unlaunched slot, confirmation provenance/readback was weak, regenerated manifests
-could rebind the case, generic picker containers were read before filtering,
-and PID reuse could hold for a replacement process. The additive v3 repair
-addresses those six findings in this PR. The maintained suite now has43 tests,
-including the review's failure scenarios, an actual NativeSession admission
-path stopped before native loading, receipt failure at both cleanup sites,
-unknown launch dispatch, same-button statement changes at the actual press
-boundary, private text behind unclassified containers, replacement birth and a
-slow operation that produces a failed overrun. All OS effects remain mocked.
-The original exact-version review is not relabelled as a clean review of v3.
-Private focused log: app-pr135-repair-checks-k0rbj7zf/focused.log (initial repair
-run); final checked commands/results are retained with the PR repair return.
+Historical PR135 checks passed: the initial 31 focused mocked cases, the 43
+focused cases and full 176-test native-attended cohort after the symlinked
+temporary-path fixture correction, and the final 45 focused cases and full
+178-test cohort on `b1f0317a61e94d3db6f51a8112b8d2a92cbfc975`. Checks used
+normal shared-wrapper admission and fresh scratch Codex homes; the portability
+and final runs used the owned symlinked TMPDIR. OS effects remained mocked.
+The repair cases included receipt failures at both cleanup sites, unknown
+launch dispatch, confirmation changes at the actual press boundary, private
+content behind unclassified containers, replacement process birth and a slow
+operation reported as a failed overrun. The final two regressions exercised
+mutating callbacks through the actual hold/finalizer paths, preserving the
+original PID/birth and holding until that original process's absence. Late
+closure did not relabel the initial failure.
 
-Hosted CI on4a865b51 exposed a temporary-path fixture issue before its admission
-assertion: macOS's symlinked temp path differed from the resolved reviewed project.
-An owned symlinked TMPDIR reproduced that failure. Canonicalizing the fixture
-root fixes it; the controller's exact-path guard and all controller bytes are
-unchanged. The43 focused cases and full176-test native-attended cohort both pass
-with that symlinked TMPDIR. Before/after logs and exact commands are retained in
-app-pr135-ci-temp-alias-mjepzl1q. This fixes test portability, not native behavior,
-and supplies no new App execution or independent review of a different controller.
+The repairs addressed receipt failures that could skip cleanup, pre-dispatch
+slot holding, weak confirmation provenance, manifest rebinding, private content
+behind unclassified picker containers, PID reuse and a callback alias in
+closure receipts. A symlinked temporary-path fixture also needed canonicalizing;
+that correction did not change controller bytes or establish native behavior.
+The caller must supply the authentic reviewed Subject/preflight: the controller
+does not authenticate a replacement caller-provided receipt or provide signed
+attestation. The original version-specific review is not a review of later bytes.
+Logs and commands remain in `app-pr135-repair-checks-k0rbj7zf/focused.log` and
+`app-pr135-ci-temp-alias-mjepzl1q`, including `identity-repair-checks.json` and
+matching `*-identity-final.log` files.
 
-The targeted re-check of4a865b51 confirmed the six repair paths, and found one
-remaining callback alias in held/late/final-closure receipts plus the temp-path
-fixture issue above (11/12 requested cases passed at that old subject). Agent0
-detached every remaining original-identity receipt and the returned closure,
-with two regression cases exercising the actual hold/finalizer paths against
-a mutating callback. Those cases require the original to remain held until its
-own absence and preserve its PID/birth in retained and returned facts. This small
-follow-up is parent-verified; neither prior report is relabelled clean on new
-bytes. The maintained focused suite now has45 cases. No further delegate or
-native attempt was started for this correction. The caller must still supply
-the authentic reviewed Subject/preflight; the controller does not authenticate
-a replacement caller-provided receipt or constitute signed attestation.
-All45 focused cases and the full178-test native-attended cohort pass under the
-owned symlinked TMPDIR; deliverables reports errors=[] and diff check passes.
-Exact commands, source hashes and logs: app-pr135-ci-temp-alias-mjepzl1q,
-identity-repair-checks.json and the matching *-identity-final.log files.
+Historical preparation was reconciled onto main
+`3f6f7e858147ff07fb1ff9c56e61b88d184d1e7b`. Agent 0's independent review of
+`3d9fb116` requested changes for six controller defects. The targeted re-check
+of `4a865b51` confirmed those repair paths but recorded 11/12 requested cases
+passing, with a remaining held/late/final-closure callback alias and the
+temporary-path fixture failure. Agent 0 verified the follow-up directly;
+neither independent report becomes a clean review of later bytes. The original
+discovery-name/Work-reference adjustment changed no controller or test bytes;
+the later v3 repair did. Frozen v2 exports and FINAL_HEAD remain historical
+inputs, not receipts for repaired source.
 
-Deliverables/diff checks and the exact prepared source manifest accompany the
-PR return. Agent0, not this manager, will commission the one independent review
-of this concrete version before any new live launch. The actual two attempts
-stay failed/incomplete at their precise observed stages. J1/J2/publication and
-native qualification remain open. No owner test task is assigned.
+The retained preparation contains the controller, tests, pinned reader, reviewed
+input/subject references and a SHA256 manifest. The original `e7a4o477` and
+`bhzpqx_p` attempt/helper/result files, frozen v2 export and FINAL_HEAD mapping
+retain their historical identities. The focused test uses the existing
+`test_native_attended*.py` discovery name. The actual attempts and their limits
+remain in [the first-use account](J1_AGENT_FIRST_USE_20261105.md); preparation
+itself is not a native admission or proof of picker path-entry capability.
 
-
-## Current prepared identity and review route
-
-Preparation is based on main3f6f7e858147ff07fb1ff9c56e61b88d184d1e7b by normal
-fast-forward reconciliation of the isolated contribution branch. Frontend
-coordination and product/package/lock bytes are untouched by this contribution.
-Current manager/settings: codex-hub/gpt-6.1-sol, reasoningEffort=xhigh,
-serviceTier=default. The initial manager preparation created no Type2. Agent0
-commissioned the independent exact-version review described above and owns the
-repair/integration disposition. Historical reviews/models retain their actual standing.
-
-The retained phase-aware preparation contains the exact controller, tests, pinned
-reader, reviewed input/subject references and a manifest with their SHA256s.
-The original e7a4o477 and bhzpqx_p attempt/helper/result files were not edited.
-This is source preparation, not a fresh native admission or another live root.
-No current process/window/dev-state probe, model/auth, build, download or native
-trial was performed in this preparation. The actual native picker path-entry
-capability remains the explicit unresolved observation above.
-
-The focused test file uses the existing test_native_attended*.py discovery name
-so the maintained native CI cohort runs these cases without a workflow change.
-That original filename/Work-reference adjustment did not change controller or
-test bytes. The later v3 repair does; the frozen v2 export and FINAL_HEAD mapping
-remain historical inputs, not a receipt for the repaired bytes.
-
+The later [J1 actual result](J1_REAL_MODEL_ACTUAL_20261108.md) records the
+completed core path on its own development subject, including saved setup and
+real-model work. It does not change the subjects or limits of these controller
+observations. J2 remains partial: its earlier renderer preparation includes
+[returning to a draft](RENDERER_RETURNING_DRAFT_20261104.md). The later
+[J2 actual account](J2_PARTIAL_ACTUAL_20261108.md) records a trial, normal
+close/reopen, History continuation and recovery of the unfinished draft and
+trial row on its own development subject. Registration and reuse were not
+established, so the create/trial/register/reuse journey remains incomplete.
+Further native or cloud continuation is not authorized by this preparation.
+Qualification and publication remain open.
 
 ## v4 correction: initial-main discovery precedes WebKit content readiness
 
