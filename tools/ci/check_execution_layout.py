@@ -35,8 +35,70 @@ def code_surface(path, raw, mode):
             pass
     return (path.suffix.lower() in CODE_SUFFIXES or bool(mode & 0o111)
             or raw.startswith(b'#!') or b'<script' in raw.lower() or b'\0' in raw
-            or launcher or path.name in {'Makefile', 'Justfile', 'Dockerfile'})
+            or path.name.endswith('.py.txt') or launcher or path.name in {'Makefile', 'Justfile', 'Dockerfile'})
 
+
+def execution_literal(node):
+    return any(isinstance(n, ast.Constant) and isinstance(n.value, str)
+               and re.search(r'(^|/)execution(?:/|$)', n.value)
+               for n in ast.walk(node))
+
+
+def execution_calls(tree):
+    """Ordinary Python imports/loaders and subprocess forms, including aliases."""
+    aliases = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for item in node.names:
+                aliases[item.asname or item.name.split('.')[0]] = item.name if item.asname else item.name.split('.')[0]
+        elif isinstance(node, ast.ImportFrom):
+            for item in node.names:
+                aliases[item.asname or item.name] = (node.module or '') + '.' + item.name
+    def qualified(node):
+        if isinstance(node, ast.Name):
+            return aliases.get(node.id, node.id)
+        if isinstance(node, ast.Attribute):
+            return qualified(node.value) + '.' + node.attr
+        return ''
+    loaders = {'runpy.run_path', 'importlib.util.spec_from_file_location',
+               'importlib.machinery.SourceFileLoader', 'importlib.machinery.SourcelessFileLoader',
+               'exec', 'eval', 'compile', 'builtins.exec', 'builtins.eval', 'builtins.compile'}
+    processes = {'subprocess.run', 'subprocess.Popen', 'subprocess.call', 'subprocess.check_call',
+                 'subprocess.check_output', 'os.system', 'os.popen', 'os.execl', 'os.execv',
+                 'os.execve', 'os.spawnv', 'os.spawnve', 'asyncio.create_subprocess_exec',
+                 'asyncio.create_subprocess_shell'}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        name = qualified(node.func)
+        if name in loaders and execution_literal(node):
+            yield 'Dynamic module from execution/'
+        if name in {'importlib.import_module', '__import__', 'builtins.__import__'}:
+            if any(isinstance(arg, ast.Constant) and isinstance(arg.value, str)
+                   and (arg.value == 'execution' or arg.value.startswith('execution.')) for arg in node.args):
+                yield 'Import from execution/'
+        if name not in processes:
+            continue
+        command = node.args[0] if node.args else next((k.value for k in node.keywords if k.arg == 'args'), None)
+        if command is None:
+            continue
+        if isinstance(command, (ast.List, ast.Tuple)) and command.elts:
+            program, *arguments = command.elts
+            if execution_literal(program):
+                yield 'Interpreter invocation into execution/'
+            interpreter = (isinstance(program, ast.Constant) and isinstance(program.value, str)
+                           and re.fullmatch(r'(?:.*/)?(?:python[\d.]*|node|bash|sh|zsh)', program.value)) or qualified(program) == 'sys.executable'
+            if interpreter:
+                # Interpreter options precede the script/module/command operand.
+                for operand in arguments:
+                    if isinstance(operand, ast.Constant) and isinstance(operand.value, str) and operand.value.startswith('-'):
+                        continue
+                    if execution_literal(operand):
+                        yield 'Interpreter invocation into execution/'
+                    break
+        elif isinstance(command, ast.Constant) and isinstance(command.value, str):
+            if re.search(r'(?:^|[\s;])(?:python[\d.]*|node|bash|sh|zsh)\s+[^\n]*\bexecution/', command.value) or command.value.startswith('execution/'):
+                yield 'Interpreter invocation into execution/'
 
 def check(root=ROOT):
     root = Path(root)
@@ -68,7 +130,7 @@ def check(root=ROOT):
         if not name.startswith(('app/', 'tools/', '.github/')) or '/frozen/' in name:
             continue
         path = root / name
-        if path.suffix not in CODE_SUFFIXES | {'.yml', '.yaml'}:
+        if path.suffix not in CODE_SUFFIXES | {'.yml', '.yaml'} and not path.name.endswith('.py.txt'):
             continue
         text = path.read_text(errors='replace')
         # The guard's regression fixtures contain intentionally forbidden examples.
@@ -76,7 +138,7 @@ def check(root=ROOT):
             continue
         if (path.suffix in {'.sh', '.bash', '.zsh'} or name.startswith('.github/')) and invocation.search(text):
             errors.append('Interpreter invocation into execution/: ' + name)
-        if path.suffix == '.py':
+        if path.suffix == '.py' or path.name.endswith('.py.txt'):
             try:
                 tree = ast.parse(text)
             except SyntaxError:
@@ -87,10 +149,7 @@ def check(root=ROOT):
                            else [node.module or ''] if isinstance(node, ast.ImportFrom) else [])
                 if any(m == 'execution' or m.startswith('execution.') for m in modules):
                     errors.append('Import from execution/: ' + name)
-                if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr in {'spec_from_file_location', 'run_path'}:
-                    literals = [n.value for n in ast.walk(node) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
-                    if any(re.search(r'(^|/)execution/', x) for x in literals):
-                        errors.append('Dynamic module from execution/: ' + name)
+            errors.extend(reason + ': ' + name for reason in execution_calls(tree))
     if errors:
         raise ValueError('\n'.join(errors))
     return {'fidelity_records': len(seen), 'tracked_paths_checked': len(paths)}

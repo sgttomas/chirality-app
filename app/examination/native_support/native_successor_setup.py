@@ -21,7 +21,7 @@ from datetime import datetime
 
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve()
-REPO = HERE.parents[2]
+REPO = HERE.parents[3]
 T3 = Path('/Users/ryan/dev/chirality-t3')
 BASE = HERE.with_name('native_setup_continuation.py')
 OLD_IDENTIFIER = 'dev.chirality.app-v4.candidate.20261029-ukt5ir80'

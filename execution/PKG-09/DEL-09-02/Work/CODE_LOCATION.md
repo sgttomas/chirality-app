@@ -97,3 +97,5 @@ Original source identities are from `109441b501edd86453d263f4207ff6199dbd9a78`. 
 | `execution/PKG-09/DEL-09-02/Work/typed_ax/reader.h` | `app/examination/native_support/typed_ax/reader.h` | `a1f3b6108d1bc178956790236d6edef67fb61501f36bc01d42a8f7884c4ea918` | no |
 
 `tools/ci/execution-inputs.json` records current physical source/data locations. Specification-data copies remain distinct from the authoring originals; repository checks compare full bytes or the existing selected documentary extents. This move creates no qualification, acceptance, publication, reconstruction or native-run result.
+
+The retained controller is executable Python despite its `.py.txt` suffix. Its original logical identity is `execution/PKG-09/DEL-09-02/Work/retained/offline-native-controller-v2.py.txt`; its current physical source is `app/examination/native_support/retained-controller-v2.py.txt`, with unchanged SHA-256 `91c9ca98d7bf8d784e2cea5cbd42d237230b9018d58f5e04e369a755d5b7720c`. Only the maintained controller loads its AX primitives; moving it gives no authority to run its historical standalone admission or campaign.

@@ -39,3 +39,5 @@ Original source identities are from `109441b501edd86453d263f4207ff6199dbd9a78`. 
 | `execution/PKG-01/DEL-01-01/Work/prototype/version_advance/va_harness.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/version_advance/va_harness.py` | `fbe61c7272ca452cf75ceab930adb01fb2b162a394a808bf7b34b7b4f0fb98e8` | no |
 
 `tools/ci/execution-inputs.json` records current physical source/data locations. Specification-data copies remain distinct from the authoring originals; repository checks compare full bytes or the existing selected documentary extents. This move creates no qualification, acceptance, publication, reconstruction or native-run result.
+
+Static S1 preserves original basis bytes as evidence and translates read paths only in a separate private current staging basis, with identical dependency hashes. A staged run is a new observation at current paths, not a reproduction or re-verification of historical S1 evidence, and qualifies nothing retroactively. Both basis digests and the absence of original-path replay are reported.

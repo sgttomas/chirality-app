@@ -22,8 +22,8 @@ def normalize(relative: str) -> str:
     return re.sub(r"^(execution/PKG-\d+/DEL-\d+-\d+)/Design/", r"\1/Work/", relative)
 
 
-def locations() -> dict[str, str]:
-    value = json.loads(MANIFEST.read_bytes())
+def locations(root=ROOT) -> dict[str, str]:
+    value = json.loads((Path(root) / "tools/ci/execution-inputs.json").read_bytes())
     if value["format"] != "chirality.app.execution-input-locations/1":
         raise ValueError("Unknown execution input location format")
     result = {}
@@ -54,28 +54,58 @@ def physical(root: Path, relative: str) -> Path:
     return Path(root) / physical_relative(relative)
 
 
-def check() -> int:
+def check(root=ROOT) -> int:
     """Always-on correspondence to declarative authoring sources; no copying."""
-    value = json.loads(MANIFEST.read_bytes())
-    locations()
-    spec = importlib.util.spec_from_file_location('_documentary_correspondence', ROOT / 'tools/ci/check_documentary_sources.py')
+    root = Path(root)
+    value = json.loads((root / "tools/ci/execution-inputs.json").read_bytes())
+    registered = locations(root)
+    targets = list(registered.values())
+    if len(set(targets)) != len(targets):
+        raise ValueError('Ambiguous physical input registration')
+    expected = {p for p in targets if p.startswith('app/contract_inputs/')} | {'app/contract_inputs/README.md'}
+    actual = {p.relative_to(root).as_posix() for p in (root / 'app/contract_inputs').rglob('*')
+              if (p.is_file() or p.is_symlink()) and '__pycache__' not in p.parts}
+    if actual != expected:
+        raise ValueError('Unregistered or missing App input: ' + ', '.join(sorted(actual ^ expected)))
+    for row in value['data']:
+        if row['copy'] != 'app/contract_inputs/' + row['source'].removeprefix('execution/'):
+            raise ValueError('App input does not match its authoring locator')
+    def require_registered(name):
+        logical = normalize(name)
+        if logical.startswith('execution/') and logical not in registered:
+            raise ValueError('Unregistered consumer input: ' + name)
+        if logical.startswith('app/contract_inputs/') and logical not in targets:
+            raise ValueError('Unregistered consumer copy: ' + name)
+    schema = json.loads((root / 'app/src-tauri/schemas/manifest.json').read_bytes())
+    for row in [*schema['resources'], *schema.get('file_fixtures', []), *schema['fixture']['sources']]:
+        require_registered(row['source'])
+    # Live profile membership, not historical receipt/provenance rows.
+    spec = importlib.util.spec_from_file_location('_registered_examination_inputs', root / 'app/examination/repin.py')
+    pins = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pins)
+    for name in pins.PROFILES:
+        profile = json.loads((root / name).read_bytes())
+        for _, _, dependency in pins.slots(name, profile):
+            require_registered(dependency)
+    spec = importlib.util.spec_from_file_location('_documentary_correspondence', root / 'tools/ci/check_documentary_sources.py')
     correspondence = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(correspondence)
-    project = correspondence.projector(ROOT)
+    project = correspondence.projector(root)
     selections = {}
-    for source, selection in correspondence.projections(ROOT):
+    for source, selection in correspondence.projections(root):
+        require_registered(source)
         selections.setdefault(source, []).append(selection['selectors'])
     # This current admission profile deliberately selects full documents.
-    full = json.loads((ROOT / 'app/examination/admission/sources.current-v1.json').read_bytes())['sources']
+    full = json.loads((root / 'app/examination/admission/sources.current-v1.json').read_bytes())['sources']
     full = {normalize(source) for source in full}
     for row in value['code']:
-        target = ROOT / row['path']
+        target = root / row['path']
         if not target.is_file():
             raise ValueError('Operational source missing: ' + row['path'])
         if row.get('bound') and hashlib.sha256(target.read_bytes()).hexdigest() != row['sha256']:
             raise ValueError('Bound source bytes changed: ' + row['path'])
     def ordinary(name):
-        target = ROOT
+        target = root
         for part in name.split('/'):
             target = target / part
             if target.is_symlink():

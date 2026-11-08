@@ -62,6 +62,12 @@ def test_executable_mode_on_document_is_rejected(repo):
 @pytest.mark.parametrize('name,raw', [
     ('.github/workflows/bad.yml', b'run: python3 execution/notes.md\n'),
     ('tools/bad.py', b'from execution.example import run\n'),
+    ('tools/bad.py', b'from runpy import run_path; run_path("execution/new/notes.md")\n'),
+    ('tools/bad.py', b'from runpy import run_path as execute; execute("execution/new/notes.md")\n'),
+    ('tools/bad.py', b'import subprocess; subprocess.run(["python3", "execution/new/notes.md"])\n'),
+    ('tools/bad.py', b'from subprocess import run as launch; launch(["python3", "execution/new/notes.md"])\n'),
+    ('tools/bad.py', b'import sys, subprocess; subprocess.run([sys.executable, "execution/new/notes.md"])\n'),
+    ('tools/bad.py', b'from pathlib import Path; exec(Path("execution/new/notes.md").read_text())\n'),
     ('tools/bad.py', b'import importlib.util\nimportlib.util.spec_from_file_location("bad", "execution/notes.md")\n'),
 ])
 def test_import_or_invocation_cannot_use_documentary_extension(repo, name, raw):
@@ -108,3 +114,42 @@ def test_static_staging_preserves_bound_bytes_and_only_translates_basis_paths(tm
     for before, after in zip(original['reads'], staged['reads'], strict=True):
         assert {k: v for k, v in before.items() if k != 'path'} == {k: v for k, v in after.items() if k != 'path'}
         assert not after['path'].startswith(('execution/', 'projects/'))
+
+
+def test_removing_manifest_row_cannot_exempt_a_drifting_schema(tmp_path):
+    from unittest.mock import patch
+    manifest_path = execution_inputs.MANIFEST
+    manifest = json.loads(manifest_path.read_bytes())
+    manifest['data'] = [row for row in manifest['data'] if not row['source'].endswith('/RS_RECORD.schema.json')]
+    original = Path.read_bytes
+    def removed(path):
+        return json.dumps(manifest).encode() if path == manifest_path else original(path)
+    with patch.object(Path, 'read_bytes', removed), pytest.raises(ValueError, match='Unregistered or missing App input'):
+        execution_inputs.check()
+
+
+def test_schema_consumer_cannot_select_an_unregistered_source():
+    from unittest.mock import patch
+    schema = execution_inputs.ROOT / 'app/src-tauri/schemas/manifest.json'
+    value = json.loads(schema.read_bytes())
+    value['resources'][0]['source'] = 'execution/PKG-04/DEL-04-03/Work/new-unregistered.schema.json'
+    original = Path.read_bytes
+    def changed(path):
+        return json.dumps(value).encode() if path == schema else original(path)
+    with patch.object(Path, 'read_bytes', changed), pytest.raises(ValueError, match='Unregistered consumer input'):
+        execution_inputs.check()
+
+
+def test_native_successor_dependencies_resolve_to_operational_sources():
+    import importlib.util
+    path = guard.ROOT / 'app/examination/native_support/native_successor_setup.py'
+    spec = importlib.util.spec_from_file_location('_layout_successor_sources', path)
+    setup = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(setup)
+    assert setup.REPO == guard.ROOT
+    dependencies = setup.dependency_digests()
+    retained = guard.ROOT / 'app/examination/native_support/retained-controller-v2.py.txt'
+    assert str(retained) in dependencies
+    assert dependencies[str(retained)] == '91c9ca98d7bf8d784e2cea5cbd42d237230b9018d58f5e04e369a755d5b7720c'
+    # Import class definitions only; do not instantiate AX or invoke a campaign.
+    assert setup.load_base().load_ax().__name__ == 'ScopedAX'
