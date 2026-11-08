@@ -31,6 +31,12 @@ Source keys below identify repository-relative records. The frozen decomposition
 - **B4 — Selected practice reasoning:** `docs/alignment-manual/README.md` is the stable discovery entry. Current selection: Consolidated v9 §§1.4 and 3.1 and chapters 4–6 and 9. Current repository practice, replacing the Field Book and Agent User Manual retired by the owner on 2026-10-23, is carried by Root `AGENTS.md` "Working cycle", "Deliverables and records", "Verification and authority", "Standing Git grant" and "Roles and workflows"; the role files `agents/AGENT_*.md`; `tools/deliverables/README.md`; `.agents/skills/chirality-change/SKILL.md`; `workflows/coordinated-knowledge-work/WORKFLOW.md` §7; `workflows/create-workflow/WORKFLOW.md`; the loop entry `projects/chirality-app-v4/loop/LOOP_INIT.md`; and the index's "Discovery and reliance". Earlier named editions remain the basis of their historical runs. A later index change does not automatically change the selected basis.
 - **B5 — Actual approved setup:** `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md`, with its content-bound proposal/actual owner response; `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-INITIAL-SETUP-20260927/RUN_BRIEF.md`; and `projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-PROJECT-DEFINITION-20260926/WORK_GRAPH.md`. These are current execution evidence with the custody and limits they state, not blanket fulfillment of this contract.
 
+B4's Root instruction citations retain their pre-2026-11-05 combined-repository
+identity. Current App Git authority comes from the owner's separate
+2026-11-07 direction, recorded in local `AGENTS.md` "Standing Git grant",
+not from another project's grant. Historical selections and this contract's
+acceptance/dependency conditions remain unchanged.
+
 ## Deliverable Definition — Ontology
 
 - **OUT-001** — Scoped work-graph control and return/reader conventions, carried in the existing file-native undertaking records, that relate selected work, bounded roles, usable inputs, actual returns, examination, integration and continuation. Covers SOW-212, SOW-213, SOW-226 and SOW-227; supports OBJ-006 and OBJ-010. Basis: B1, B2 V4-OPS-02/03/31/32, B4 Consolidated §3.1 and §§4.1–4.6, `AGENTS.md` "Deliverables and records" and "Roles and workflows", `workflows/coordinated-knowledge-work/WORKFLOW.md` §7 and `workflows/create-workflow/WORKFLOW.md`, B5.

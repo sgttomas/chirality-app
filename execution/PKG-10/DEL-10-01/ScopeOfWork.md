@@ -36,6 +36,12 @@ Paths below are repository-relative. Section references identify the applicable 
 | U | Repository practice, replacing Agent User Manual v4, retired by the owner 2026-10-23: Root `AGENTS.md` sections "Where work happens", "Working cycle", "Deliverables and records", "Verification and authority", "Standing Git grant" and "Roles and workflows"; the role files `agents/AGENT_*.md`; `tools/deliverables/README.md`; `.agents/skills/chirality-change/SKILL.md`; and the loop entry `projects/chirality-app-v4/loop/LOOP_INIT.md`. These apply the method to active repository work; edition selection follows `docs/alignment-manual/README.md` "Discovery and reliance". Cited as U with the section or file named. |
 | W | Current selected method `chirality-root:bundled:workflow:scope-of-work` at `workflows/scope-of-work/WORKFLOW.md` and `resources/{brief,checks,tools}.md`, governed by `docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md`. Relevant handoff clauses: `chirality-root:bundled:workflow:software-decomp`, `resources/contract.md` downstream use and checkpoint invariants; `chirality-root:bundled:workflow:project-setup`, `WORKFLOW.md` method and `resources/contract.md` lifecycle/coordination invariants. These clauses explain the selected handoff; this contract executes neither workflow nor a new instruction amendment. |
 
+Source U's Root references retain the pre-2026-11-05 combined-repository
+identity; they do not import the present Root or Library's Git authority.
+The owner's separate 2026-11-07 App grant is recorded in this repository's
+`AGENTS.md` under "Standing Git grant". It governs authorized App Git work
+only, without changing this deliverable's commitments or historical evidence.
+
 | Assigned scope | Local contribution | Source loci |
 |---|---|---|
 | SOW-102 | Carry current human direction, manuals and Root's conceptual/organisational role without a new precedence tree. | A HTML-D01, O V4-CST-04 and V4-OPS-12 |
