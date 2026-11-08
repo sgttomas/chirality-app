@@ -30,14 +30,8 @@ remain recovery inputs.
 
 The cleanup managers have returned their finite contributions. The roster below
 retains delivery ownership and contribution history; it does not establish live
-execution. During the completed sweep, delegated managers and TASKs used
-`gpt-6.1-terra` at high effort. Current owner direction selects
-`gpt-6.1-sol` at high effort for Agent 0 and Type 1 managers, and Claude
-Opus 5.5 at high effort for TASKs and other Type 2 instances. Independent
-reviews remain on `gpt-6.1-sol` high and the opted-in INTERLOCUTOR remains
-on Claude Opus 5.5 high. Existing Terra runs may finish their current unit;
-new or relaunched sessions use the current selection. App-internal
-Terra/medium retains its separate historical product subject.
+execution. Model and effort choices come from the owner's current session
+steering.
 Earlier current/next and model statements below retain their original subjects.
 The punchlist indexes the remaining product results.
 
