@@ -910,14 +910,17 @@ native reread observations confirmed unchanged state. Its diagnostic reflected
 the provider ID; one invented negative control establishes no general
 nonreflection or App privacy guarantee. All raw exchanges stay private.
 
-These are isolated supplier observations, not an implemented Add receiver or
-permission to overwrite an existing provider. Before a future Add depends on
-this operation, its receiving path still needs fresh source-bound absence in
-the relevant user/effective maps, the same-file native version and explicit Add
-intent, together with the applicable current-source continuation. This does not
+These isolated supplier observations did not themselves implement an Add
+receiver or permit overwriting an existing provider. At that observation stage,
+the endpoint receiver was endpoint-only; a future Add depending on this
+operation needed fresh source-bound absence in the relevant user/effective maps,
+the same-file native version and explicit Add intent, together with applicable
+current-source continuation. The current separate Add receiver implements the
+bounded absent-ID anonymous Responses addition described in §5.4 and Q-8,
+with its own private offer and decisions. The supplier observations do not
 establish universal arbitrary-writer exclusion, writer provenance, filesystem
-CAS or an atomic target/profile commit. The current endpoint receiver remains
-endpoint-only; person I-2/U-R3 consumption, qualification and release remain open.
+CAS or an atomic target/profile commit. Person I-2/U-R3 consumption,
+qualification and release remain open.
 
 **Q-9 New conversation (K-3).** `no-selection`; if the project has a last
 explicit choice, `offer-shown` (CS-3). The model list per entry: for
