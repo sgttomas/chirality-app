@@ -36,13 +36,16 @@ high effort. App-internal Terra/medium remains a separate selection.
 Earlier current/next and model statements below retain their original subjects.
 The punchlist indexes the remaining product results.
 
-Pending product and Scope interpretations are recorded in issue 168, including
-PEC retirement authority and affected consumers. Existing commitments remain
-in force; no proposed Scope replacement is selected by the cleanup. PR72's
+Pending product and Scope interpretations are recorded in issue 168. The owner
+has confirmed PEC retirement: active provider and App adoption work is not
+expected or awaited. Scope passages that still assign that work are being
+reconciled with their affected consumers under the coordinator's delegation.
+Applicable retained-compatibility source, limitation, refusal and recovery
+obligations remain; no live service or qualification is claimed. PR72's
 reconciliation is integrated through PR172 with its history and frozen accounts
-preserved. Draft PR161's successor steering remains held for owner direction;
-its original branch and commits remain available. This reconciliation supplies
-no new native, model, acquisition or publication authority.
+preserved. PR161 is closed as superseded, with its original branch and commits
+preserved; final successor steering awaits the harmonized text. This work
+supplies no new native, model, acquisition or publication authority.
 
 ## Final contributor Library edition — 2026-11-08 UTC
 
