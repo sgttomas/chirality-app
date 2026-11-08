@@ -123,8 +123,23 @@ targeted regression checks and independent scrutiny. Preserve truthful source
 identity and report unrun checks as limitations. Commitments, acceptance,
 releases and lifting holds remain owner decisions.
 
-Use isolated branches and PRs, and preserve existing release tags.
-No force pushes, protection bypasses, permission changes or release actions.
+### Standing Git grant
+
+The owner, 2026-11-07: "App must also receive the standing git grant as the
+others have."
+
+For `sgttomas/chirality-app` only, agents may commit, push, open and update PRs
+within authorized work, and merge after the verification above and required
+checks pass on the exact head. Explicit holds and reserved decisions apply.
+This grant excludes protection bypasses, history rewrites, force pushes,
+permission changes and releases. It grants no authority in another repository.
+
+Use isolated branches and PRs, integrate with merge commits, and preserve
+existing release tags. Preserve unfinished contributions and named recovery
+inputs/evidence under the handoff rules above before any cleanup.
+
+### Continuing boundaries
+
 SWBPIPE is a separate project in `sgttomas/SWBPIPE`; its implementation is outside
 this repository's scope. Historical Chirality commits and catalog provenance
 retain their original identities.
