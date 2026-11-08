@@ -114,15 +114,23 @@ source/fixture pass is not a new native result. ST-4 likewise needs actual
 native descendant facts or its applicable identified recorded counterpart.
 
 Ordinary offered requests, turn interrupt and explicit continuation can be
-scoped independently of F7/destination-failure stimuli. For affected stimuli,
-F7 remains unresolved: the proposed companion must cover a pending-length
-transition and a truthful destination-prompt terminal-failure close cause
-across LOOP/RS/AS. Current §3.2 already distinguishes length/content-filter;
-RA4 excludes delivery-only return answers. These observations adopt none of
-the proposed changes. The contract manager owns LOOP/ACT/store choices and
-pending clauses. Detailed ACT/store clauses support A15 library separation;
-broader Scope/PRD interpretation remains an owner decision. Agent 0 obtains
-that decision before any dependent implementation or witness claim.
+scoped independently of the remaining F7/length/filter stimuli. The owner
+approved closing unanswered permission requests when their turn fails,
+recording “turn failed”, with no grant or waiting dispatch. The contract
+manager is implementing coherent schemas and consumers in a separate branch;
+this decision is not yet implemented or qualified. A dependent failure witness
+needs that implementation and its actual candidate-bound result, rather than
+another decision on this approved rule.
+
+The owner also approved retaining A15 registration evidence with the library
+through an explicit exception. Its coherent implementation and qualification
+remain with the separate contract contribution. Other F7/length/filter and
+ACT summary/citation choices remain open; the pending-length transition and
+any remaining destination-prompt terminal-failure semantics must not be
+inferred from the two concise approvals. Current §3.2 already distinguishes
+length/content-filter, and RA4 excludes delivery-only return answers. The
+contract manager owns the pending LOOP/ACT/store clauses; Agent 0 obtains the
+remaining owner decisions before dependent implementation or witness claims.
 
 [Continuation boundaries](CONTINUATION_BOUNDARIES.md) continue to govern live
 work. This proposal adds no credentials, signing/enrollment/release, download,
