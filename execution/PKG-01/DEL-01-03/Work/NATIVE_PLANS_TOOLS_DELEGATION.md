@@ -923,6 +923,17 @@ U-P4's "a later observation" wording have not yet received that distinction.
 Whether a candidate-pin rerun meets SQ U-SQ-6 and the ST-4 counterpart remains
 with DEL-09-02; the candidate-pin missing inputs remain open.
 
+**Later counterpart standing (2026-10-17).** The preceding open-condition
+note predates the SQ owner's settlement: the separately recorded 0.160.0
+ST-4/NV-04 rehearsal serves the recording counterpart for an examination
+binding that candidate pin and distribution assertion, if its model route
+cannot delegate. Its replay remains unrun; native ST-4 remains required on
+a delegating route. SQ U-SQ-5/U-SQ-6 and its recording correspondence
+account describe the conditions and limits. This does not upgrade the
+2026-10-10 development capture or establish candidate examination.
+
+---
+
 ### 15.3 Prototype (R17-1; R12-3)
 
 `prototype/` (Python 3 standard library): `npt_model.py`, `scenarios.py`
