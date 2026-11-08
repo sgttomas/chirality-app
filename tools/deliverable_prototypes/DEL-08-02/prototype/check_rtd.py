@@ -32,18 +32,16 @@ import copy
 import json
 import os
 import sys
-from pathlib import Path
 
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPOSITORY = Path(__file__).resolve().parents[4]
-EXEC = str(REPOSITORY / "execution")
-DESIGN = os.path.join(EXEC, "PKG-08", "DEL-08-02", "Work")
+DESIGN = os.path.dirname(HERE)
+EXEC = os.path.abspath(os.path.join(DESIGN, "..", "..", ".."))
 STANDING = os.path.join(EXEC, "PKG-07",
                         "DEL-07-02", "Work", "connector.standing.schema.json")
-EVID = os.path.join(DESIGN, "prototype", "fixtures", "EU-D1")
+EVID = os.path.join(HERE, "fixtures", "EU-D1")
 RESULTS = []
 DRC = os.path.join(EXEC, "PKG-08",
                    "DEL-08-01", "Work", "DOMAINS_RECEIVING.md")
