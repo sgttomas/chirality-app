@@ -24,11 +24,12 @@ needs:
     runs.
   evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
 - from: external:ROOT-REPOSITORY-INSTRUCTIONS
-  condition: Use current repository practice (AGENTS.md, agents/AGENT_*.md, tools/deliverables/README.md,
-    .agents/skills/chirality-change/SKILL.md, loop/LOOP_INIT.md) for the manual application account, limited
-    to relevant practice and actual receiving use, identifying the resolved revision where exact content
-    matters. Earlier manual editions, including the Agent User Manual retired on 2026-10-23, remain the
-    inputs of their historical runs.
+  condition: Use current App repository practice (AGENTS.md, selected Library agents/AGENT_*.md,
+    tools/deliverables/README.md, loop/LOOP_INIT.md) for the manual application account, limited to relevant
+    practice and actual receiving use, identifying the resolved revision where exact content matters.
+    The former combined-repository chirality-change skill is a historical input, not current App practice.
+    Earlier manual editions, including the Agent User Manual retired on 2026-10-23, remain the inputs of
+    their historical runs.
   evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
 - from: doc:execution/_Coordination/CURRENT_EXECUTION_BASIS.md
   condition: Use the owning selection/adoption record and scope to bind actual manual and method edition/content
