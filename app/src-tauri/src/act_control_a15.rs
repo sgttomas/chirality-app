@@ -1495,6 +1495,35 @@ mod tests {
             std::fs::remove_dir_all(root).unwrap();
         }
     }
+    #[test]
+    fn native_presentation_failure_withdraws_content_and_captures_nothing() {
+        // Includes scheduling/handle/result failures and destruction after an
+        // affirmative result. The real presenter returns Err for these cases.
+        for cause in ["missing original parent", "main-thread scheduling failed", "callback ended", "original destroyed after Register"] {
+            let (root, session) = library(&["sample"], false);
+            let mut ac = ActControl::new(&root);
+            let offer = ac.compose_a15(&session.current().unwrap()).unwrap();
+            let mut observations = 0;
+            let error = crate::a15_native::synthetic_a15_native_result(
+                &mut ac, &session, &offer,
+                || { observations += 1; Ok(facts()) },
+                |_, buttons, act| {
+                    assert_eq!(act, REGISTER);
+                    assert!(matches!(buttons, tauri_plugin_dialog::MessageDialogButtons::YesNoCancelCustom(d, a, c)
+                        if d == DONT_REGISTER && a == REGISTER && c == "Cancel"));
+                    assert!(!super::super::native_statement::shown_in_app().as_array().unwrap().is_empty());
+                    Err(cause.into())
+                },
+            ).err().unwrap();
+            assert_eq!(error, cause);
+            assert_eq!(observations, 1, "no capture recheck after refused presentation");
+            assert_eq!(ac.a15_offers[offer.id()].state, OfferState::Dismissed);
+            assert!(ac.native_captures.is_empty());
+            assert!(!storage::library_log(&root).exists());
+            assert!(super::super::native_statement::shown_in_app().as_array().unwrap().is_empty());
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
     /// V14 F7: a re-confirmation descriptor (AAC §4.2, CC-WR-RECONFIRM) gets
     /// its own statement and act label without restructuring.
     #[test]

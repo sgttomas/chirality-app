@@ -2209,7 +2209,7 @@ fn workflow_review_observe(state:&AppState,home:&Arc<runtime_session::HomeSessio
     Ok((actor,context))
 }
 #[tauri::command(async)]
-fn workflow_register_native(app:tauri::AppHandle,state:State<'_,AppState>,review_ref:String)->Result<Value,String>{
+fn workflow_register_native(window:tauri::Window,state:State<'_,AppState>,review_ref:String)->Result<Value,String>{
     let original=state.workflows.lock().unwrap().reviews.get(&review_ref).cloned().ok_or("Actual original owner review unavailable")?;
     let mut original=original.try_lock().map_err(|_|"Original review native interaction already pending")?;
     if original.attempted_native{return Err("Original native attempt retained; continue it or review again, no duplicate capture".into());}
@@ -2218,7 +2218,7 @@ fn workflow_register_native(app:tauri::AppHandle,state:State<'_,AppState>,review
     original.attempted_native=true;
     let result={
         let mut control=library.control.lock().unwrap();let control=control.as_mut().ok_or("Actual original library act owner unavailable")?;
-        a15_native::confirm_native(&app,control,original.review.as_ref().ok_or("Original review already transferred")?,original.offer.as_ref().ok_or("Original opaque offer unavailable")?,||workflow_review_observe(&state,&home,&library,&review_ref,&context))
+        a15_native::confirm_native(&window,control,original.review.as_ref().ok_or("Original review already transferred")?,original.offer.as_ref().ok_or("Original opaque offer unavailable")?,||workflow_review_observe(&state,&home,&library,&review_ref,&context))
     };
     match result {
         Ok(Some(result))=>original.accept_result(result)?,
