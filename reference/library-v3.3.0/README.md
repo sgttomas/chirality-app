@@ -14,8 +14,8 @@ shared working checkout remains at its own revision and is not silently used as
 source without changing that checkout:
 
 ```sh
-CHIRALITY_INSTRUCTION_ROOT=$(mktemp -d /tmp/app-library-source.XXXXXX)
-git -C /Users/ryan/dev/chirality-library archive ec3ee2d1b398eba1fb3227ccf93e2569df95bacd | tar -xf - -C "$CHIRALITY_INSTRUCTION_ROOT"
+CHIRALITY_LIBRARY=$(mktemp -d /tmp/app-library-source.XXXXXX)
+git -C /Users/ryan/dev/chirality-library archive ec3ee2d1b398eba1fb3227ccf93e2569df95bacd | tar -xf - -C "$CHIRALITY_LIBRARY"
 ```
 
 Read selected roles and methods from that exact export. Verify the source tag

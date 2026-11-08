@@ -73,9 +73,12 @@ read an isolated export of the selected Git revision as that README describes;
 do not read the moving checkout as the selected source. Later tags or checkout
 movement do not change this selection.
 The shared Chirality Library for this workspace is `/Users/ryan/dev/chirality-library`.
+`CHIRALITY_LIBRARY` is the selected instruction source: that checkout only when
+its HEAD resolves to the pinned revision, otherwise the verified isolated export
+described in `reference/library-v3.3.0/README.md`.
 On another machine, use an explicitly selected checkout or release archive of
 `https://github.com/sgttomas/chirality-library`. Resolve the shared `agents/`, `workflows/`
-and `.agents/skills/` references in this section against that library, not this
+and `.agents/skills/` references in this section against that selected source, not this
 App repository. Load the active role's `agents/AGENT_<ROLE>.md`; other role,
 workflow and skill bodies are on demand.
 Roles grant no host permissions; model/effort choices come from session steering.
