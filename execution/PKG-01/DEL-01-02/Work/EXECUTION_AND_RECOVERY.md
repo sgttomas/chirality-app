@@ -86,6 +86,10 @@ decided: the owner's OI-008 ruling of 2026-10-10 (`docs/ARCHITECTURE.md` §3;
 files or the App's records, talks to Codex, or captures a person's act. The
 requirements are still stated separately from the placement.
 
+The following describes the original design's scope. Later additions in §7
+and Current implementation conditions describe the selected SQLite store and
+its implementation; historical supplier observations keep their stated version.
+
 **What this file does not contain.** Product code, a persistence technology,
 wire fields of Chirality's own, timing numbers (the ScopeOfWork's Praxeology
 forbids inventing them: open numbers appear as TEST VALUES in the prototype
