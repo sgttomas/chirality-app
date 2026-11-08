@@ -134,10 +134,10 @@ a shared method does not expand the authorized App scope.
 The Library (`sgttomas/chirality-library`), Root (`sgttomas/chirality`,
 private), App v4 and SWBPIPE each have their own top-level Agent 0. When work
 needs another project, read its session to confirm the current Agent 0, then
-message it in T3 Code with the need, revision/files and whether it blocks.
-The recipient owns changes in its repository. A message transfers no owner
-authority and changes nothing in another project. Do not message unaffected
-projects.
+message its session or thread with the need, revision/files and whether it
+blocks. The recipient owns changes in its repository. A message transfers no
+owner authority and changes nothing in another project. Do not message
+unaffected projects.
 
 Root measures and improves how agents deliver work across the Chirality
 projects and hosts shared services. Its agents may evaluate App from session
@@ -157,9 +157,9 @@ notices, run records or handoff chains; never hand-maintain derived progress or
 lifecycle state. Keep one replaceable recovery note only where continuity needs
 it. Roles and methods come from these repository instructions and the selected
 Library, never host-side agent definitions or harness configuration. Session
-routes are ephemeral: find current sessions by listing T3 threads; the owner
-names sessions at each restart. Agents save no memories; durable knowledge lives
-in Chirality. Scratch holds evidence, outputs and logs, never instructions.
+routes are ephemeral: find current sessions by listing current sessions or
+threads; the owner names sessions at each restart. Agents save no memories;
+durable knowledge lives in Chirality. Scratch holds evidence, outputs and logs, never instructions.
 Preserve unfinished work in reviewable PRs or an explicitly authorized durable
 recovery home. Inspect exposure and CI triggers before publishing a held candidate;
 keep its head unchanged unless its undertaking authorizes changes. Integrate and
