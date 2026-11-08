@@ -21,6 +21,11 @@ SCANNER = os.environ.get('DISTRIBUTION_STATIC_BIN')
 def sha(raw): return hashlib.sha256(raw).hexdigest()
 
 
+def current_source(name):
+    # Clone the current physical layout without changing retained logical pins.
+    return name.replace('/Design/', '/Work/', 1).replace('execution/', 'app/contract_inputs/', 1)
+
+
 class Fixture:
     def __init__(self, root, scanner):
         self.root, self.scanner = root, Path(scanner)
@@ -147,9 +152,9 @@ class Connected(unittest.TestCase):
         pins=json.loads((HERE/'sources.json').read_text())
         paths=list(pins['sources']) + [str(p.relative_to(ROOT)) for p in (PREPARE,HERE.parent/'inventory.py',HERE/'check.py',HERE/'__init__.py',HERE/'sources.json')]
         for name in paths:
-            # Keep the pinned layout in the clone; a deliverable's former Design/ now reads from Work/.
-            source=ROOT/name if (ROOT/name).exists() else ROOT/name.replace('/Design/','/Work/',1)
-            destination=clone/name;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source,destination)
+            physical=current_source(name)
+            source=ROOT/physical
+            destination=clone/physical;destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source,destination)
         return clone,clone/PREPARE.relative_to(ROOT),pins
     def mutation_scanner_seam(self,target):
         # Explicit test-only race seam; the golden test invokes the actual Rust binary directly.
@@ -160,19 +165,19 @@ class Connected(unittest.TestCase):
         return wrapper
     def test_changed_canonical_source_refuses_before_model_execution(self):
         clone,prepare,pins=self.clone_consumer()
-        target=clone/pins['model'];target.write_bytes(target.read_bytes()+b'\n')
+        target=clone/current_source(pins['model']);target.write_bytes(target.read_bytes()+b'\n')
         code,out=self.f.run(prepare=prepare);self.assertEqual(code,2,out);self.assertIn('canonical static source changed',out['error'])
     def test_unread_design_notes_and_rust_source_are_not_operational_inputs(self):
         clone,prepare,pins=self.clone_consumer()
         for name in ('app/src-tauri/src/distribution_preflight.rs',
                      'execution/PKG-01/DEL-01-01/Work/DISTRIBUTION_IDENTITY.md'):
             self.assertNotIn(name,pins['sources'])
-            target=clone/name;target.parent.mkdir(parents=True,exist_ok=True)
+            target=clone/current_source(name);target.parent.mkdir(parents=True,exist_ok=True)
             target.write_text('Unrelated changed bytes; this command does not read this file.\n')
         code,out=self.f.run(prepare=prepare);self.assertEqual(code,0,out)
     def test_original_source_changed_after_snapshot_refuses(self):
         clone,prepare,pins=self.clone_consumer()
-        wrapper=self.mutation_scanner_seam(clone/pins['model'])
+        wrapper=self.mutation_scanner_seam(clone/current_source(pins['model']))
         code,out=self.f.run(prepare=prepare,scanner=wrapper);self.assertEqual(code,2,out);self.assertIn('stale original',out['error'])
     def test_original_artifact_changed_after_snapshot_refuses(self):
         wrapper=self.mutation_scanner_seam(self.f.artifacts/'expected.json')
