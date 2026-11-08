@@ -36,11 +36,11 @@ line-ending/Unicode sensitivity checks.
 
 ## Current receiving pin and historical double
 
-CC-ROLE-PIN-0160 maintains0.160.0 for the App's generic primary role carrier;
+CC-ROLE-PIN-0160 maintains 0.160.0 for the App's generic primary role carrier;
 `../ROLE_PIN_0.160.0.md` identifies the independently reviewed HELP_HUMAN
 capture-only sample and its limits. This prototype remains a **historical
 0.158.0-shaped invented supplier double**: its pin defaults, adapter/child
-assumptions and resume/fork outcomes are not silently relabelled0.160.0 native
+assumptions and resume/fork outcomes are not silently relabelled 0.160.0 native
 evidence. Run the existing suite without --record/--write-examples to verify
 unchanged source/role/request/record meaning. It proves no new native carrier,
 other/no-role case, lifetime, child availability, model adoption or qualification.

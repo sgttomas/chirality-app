@@ -1,9 +1,9 @@
 # ROLE current0.160.0 primary carrier receiving note
 
-CC-ROLE-PIN-0160, 2026-10-05; bounded candidate for independent Design change
-review. ROLE_SUPPLY §2.1/§5.2/§5.3/§11/§14 consumes this account without
-rewriting historical0.158.0 observations. Maintained App primary carrier pin:
-0.160.0; supplier remains **unverified-development**.
+CC-ROLE-PIN-0160, 2026-10-05. ROLE_SUPPLY §2.1/§5.2/§5.3/§11/§14
+consumes this bounded account alongside the historical 0.158.0 observations.
+The App primary carrier pin is 0.160.0; the supplier remains
+**unverified-development**.
 
 ## Generic contract and single observed route
 
@@ -52,8 +52,9 @@ Raw baseline:56359bytes/SHA256
 guided:61338bytes/SHA256
 `5e847f42c29ac9ff29f6ff69f8f7550f961e90cb08ffad77600faaa6ab1fd909`.
 Raw bodies remain Root-local at the original report's exact scratch pointer.
-This TASK read review/structural records, not raw prompt text. The independent
-reviewer checked raw full strings/UTF8 bytes and structures as untrusted data.
+The source analysis used review and structural records, not raw prompt text.
+The independent reviewer checked raw full strings/UTF8 bytes and structures as
+untrusted data.
 Later scratch deletion leaves hashes of checked material, not recoverable bytes.
 
 Independent comparison removed exactly the added App content part at active
@@ -90,15 +91,15 @@ model template:21779UTF8bytes/SHA256
 Full string and byte equality with baseline/guided input[1].content[0].text
 succeeded, without normalization/prefix/hash guesses. This identifies the
 specific preserved supplier base; arbitrary developer text cannot be relabelled
-base. This TASK makes no additional network/source query for the clarification.
+base.
 
 ## Remaining obligations and receiving boundary
 
-Other/no-role native supply and the connected Rust Host/store/seeding/boundary
-record join remain unobserved. No VC-R obligation for those cases is completed.
-Lifetime/new-conversation rules remain fixed by L-2; this first-turn pair supplies
-no resume/fork/lifetime witness. Existing VERSION_ADVANCE mechanism observations
-remain separate historical evidence.
+This first-turn pair observes neither other/no-role native supply nor the
+connected Rust Host/store/seeding/boundary record join, and completes no VC-R
+obligation for those cases. Lifetime/new-conversation rules remain fixed by L-2;
+the pair supplies no resume/fork/lifetime witness. VERSION_ADVANCE mechanism
+observations remain separate historical evidence.
 
 A native App witness on 2026-10-10
 (`../../../PKG-01/DEL-01-02/Design/NATIVE_WITNESS_2026-10-10.md`) observed the
@@ -112,15 +113,14 @@ candidate:
 The witness captured no supplier-side bytes, so native supply for these cases
 remains unobserved as stated above.
 
-The separate [current child-carrier check](CHILD_ROLE_CARRIER_0.160.0.md)
-now observes per-thread TASK configuration and complete common+TASK bytes with
-clean and full-history delegation, using scripted stock-supplier execution and
-HTTP400 captures. A scratch person-defined TASK is exposed by `config/read`
-and preserved when its App override is withheld. These findings are independent
-of the primary sample above. App child supply remains **not-supplied**; U-R3
-stays open for actual App configuration, content-bound file publication and
-child-role reconciliation. Historical0.158.0 adapter child observations retain
-their actual version and limitations.
+The separate [child-carrier account](CHILD_ROLE_CARRIER_0.160.0.md) records
+per-thread TASK configuration and complete common+TASK bytes with clean and
+full-history delegation, using scripted stock-supplier execution and HTTP400
+captures. A scratch person-defined TASK is exposed by `config/read` and preserved
+when its App override is withheld. These findings are independent of the primary
+sample above. The account and ROLE §5.3 describe the later bounded App preparation
+and live-association join and their remaining limits. Historical 0.158.0 adapter
+child observations retain their actual version and limitations.
 Current availability and controls are read from the acting route, not inferred
 from the pin, generated fields, carried tools or this primary-role sample.
 
