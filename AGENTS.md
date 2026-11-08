@@ -31,8 +31,10 @@ and `deliverable.yaml` conventions.
 
 `Work/` holds the current account: findings with their reasons, working artifacts and outputs. Revise it in place rather than appending history; never rewrite fidelity copies, frozen snapshots or accepted evidence. How the work went (approval quotes, review rounds, retries, run IDs, check results) belongs in the PR description, which states what changed, why, what was checked and what remains open. Cite SHAs or hashes only where they pin something a result relies on. State a fact once and link to it.
 
-Code that runs (implementation, tests, generators, harnesses) lives outside `execution/`, in the project's code locations, and deliverables link to it; `Work/` may keep documentation-only examples that are never run. Reconcile changed implementation meaning
-with those documents; leave unchanged commitments and historical evidence alone.
+Code that runs (implementation, tests, generators, harnesses) lives outside `execution/`, in the project's code locations, and deliverables link to it; `Work/` may keep documentation-only examples that are never run. Reconcile changed implementation meaning with affected `ScopeOfWork.md`, `Work/`
+and dependency conditions in `deliverable.yaml` in the same PR before integration;
+its description states the reconciliation and any remaining conditions or reserved
+choices. Leave unchanged commitments and historical evidence alone.
 Do not modify `foundation/thesis/`.
 
 ## Shared roles and methods
@@ -142,8 +144,10 @@ Library, never host-side agent definitions or harness configuration. Session
 routes are ephemeral: find current sessions by listing T3 threads; the owner
 names sessions at each restart. Agents save no memories; durable knowledge lives
 in Chirality. Scratch holds evidence, outputs and logs, never instructions.
-Preserve unfinished work in reviewable PRs and integrate and reconcile
-contributions before cleaning up their owned branches, worktrees and scratch.
+Preserve unfinished work in reviewable PRs or an explicitly authorized durable
+recovery home. Inspect exposure and CI triggers before publishing a held candidate;
+keep its head unchanged unless its undertaking authorizes changes. Integrate and
+reconcile contributions before cleaning up their owned branches, worktrees and scratch.
 Once work is integrated, delete its scratch, worktrees, branches and build output
 unless an open review, named consumer or recovery need still uses them. Keep
 named recovery inputs and evidence still needed by consumers.
