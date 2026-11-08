@@ -1,5 +1,29 @@
 # App v4 current execution basis
 
+## Real-model J1 result and current next work — 2026-11-08
+
+The [current actual account](../PKG-09/DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md)
+records the core J1 path on repaired source `57bb9c4d`: owner sign-in after
+current file/plugins-off observations, included workflow selection, one real
+Terra run, checked saved output and results found in the App. The owner's later
+model direction selects App-internal `gpt-6.1-terra` at medium effort; the actual
+turn context reports both. The output matches the independent checking key,
+raw inputs are unchanged, the run is ended and normal App/lease closure passed.
+The earlier unstarted-sign-in/unused-scope statements below are historical.
+
+The owner's live finding that sign-in did not visibly update the App remains
+open. The product owner has the bounded status-refresh/clear-summary repair;
+Agent0 owns actual evidence and integration. J2 and publication remain open.
+The one-workflow cloud scope is consumed; no further campaign is inferred.
+PR155 and PR154 are normally merged after applicable CI/review/interlocutor
+conditions. P6 still lacks complete verified notice coverage.
+
+Owner direction cancels routine SWBPIPE–App resource-reservation handshakes
+while App is not testing local Mac-hosted models. The completed AC004 handoff
+and releases remain historical; no App hold remains. Ordinary local resource
+controls and necessary cross-project source/interface coordination continue.
+Coordinate resource use again if the owner advises local LLM testing resumes.
+
 ## Publication continuation and saved setup — 2026-11-07
 
 The owner directed Agent0 to continue toward publication readiness beyond
@@ -109,7 +133,7 @@ The owner's model selections apply to future work:
 
 | Instance | Provider/model | Effort and options |
 |---|---|---|
-| Type 1 managers | Codex-Hub `gpt-6.1-sol` | `reasoningEffort=xhigh`, `serviceTier=default` |
+| Type 1 managers | Codex-Hub `gpt-6.1-sol` | `reasoningEffort=high`, `serviceTier=default` (owner's subsequent direction for future delegation) |
 | Type 2 execution tasks | Claude-Hub `claude-opus-5-5` (Opus 5.5) | `effort=high`, `fastMode=false` |
 | Type 2 independent reviews | Codex-Hub `gpt-6.1-sol` | `reasoningEffort=xhigh`, `serviceTier=default` |
 

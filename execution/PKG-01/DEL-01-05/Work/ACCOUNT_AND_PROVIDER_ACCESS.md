@@ -1969,3 +1969,68 @@ criterion still requires its stated candidate evidence.
 | VC-A18 S-4 receiving review | §19 and HOSTING §8 S-4 | Every S-4 element received, used with a limit or not used by design; every "not supplied" element placed here | Review | Yes (review) | VER-007 |
 | VC-A19 Plugins follow the person (L-3) | Model; the person's setting on, off and absent; linked and fallback modes | Linked: no App plugins flag in any case; fallback: `plugins = false` only when the person's setting is off; the expected start-up rows are present only when plugins are on; the internal remote-control variable is never in the child's environment; analytics flag always set | Prototype | **Yes. Ran 2026-10-02: pass (model)** | — |
 | VC-A20 Refusal wording (R18-2) | Model | Ordinary conversation: "not started — no model selected"; message that would start a workflow run: "run not started — no model selected" | Prototype | **Yes. Ran 2026-10-02: pass (model)** | VER-004 |
+
+## 2026-11-07 — Sign-in completion and current account feedback
+
+This focused repair starts from App main
+`32a1016986b4475be7d0c71f9916601fef806824`. The supplied J1 finding was that
+matching sign-in completion left a manual native-account check, whose result
+was presented only as diagnostic JSON. A later supplier connection could
+truthfully have no current account observation even after authenticated work.
+Model success is not account identity or credential-custody evidence. This
+account does not modify or restate the separately owned J1 actual result.
+
+`AccountStatus.tsx`, mounted in App's existing connection/access section,
+automatically requests the existing `read_home_access` once for an exact,
+current account-home sign-in completion. It requires the original observation
+reference/request identity, matching full generation, an actual write and
+`CompletedSuccess`; pending, failed, unavailable, foreign, closed and navigating
+sources do not dispatch. Repeated polls and StrictMode do not retry a known
+completion. An explicit **Check account status** remains available, including
+after a restart or read failure. A synchronous pending guard rejects duplicate
+presses and obsolete handlers. No automatic sign-in, forced credential refresh,
+model call or auth-file read is introduced. The unchanged native receiver uses
+`configRequirements/read` followed by `account/read` with empty parameters,
+with source/namespace checks on the existing command boundary.
+
+The ordinary summary reads only allowlisted kind/status fields from the latest
+matching redacted account-read receipt, cross-checked against the current
+RuntimeSession account observation. ChatGPT/API-key presence, explicit null,
+omission, pending/unavailable result and failure remain distinct. A newer
+pending/error response never falls back to an earlier successful read. A
+receiving invalidation or replacement connection retires earlier confirmation;
+unknown status does not request another sign-in. Home/source epochs and a
+newer-host-observation check prevent late reads or refreshes from restoring an
+older account view, including home away-and-back and same-source refresh races.
+A later native receipt supersedes a local read/refresh failure. New summary and
+error strings include no account identity, email, credential or arbitrary native
+diagnostic. Existing safe diagnostics remain available in a closed disclosure.
+Canceling a pending sign-in is described as cancellation, not signed-out proof.
+
+Focused mounted checks in `conversation-panel.test.mjs` use explicitly
+constructed packets shaped like the existing redacted Rust projections and
+ordinary IPC mocks. They cover exact read payloads, one-shot completion,
+StrictMode, blocked completion states, latest-result distinctions, current-source
+invalidation, private-error canaries, duplicate/stale handlers, restart and
+late native/read-refresh transitions. `request-cards.test.mjs` changes only the
+renamed account-check button used to refresh its existing source-transition
+fixtures. Both suites passed **114/114**, zero failures/skips; TypeScript
+`--noEmit` passed. Logs are retained in `/tmp/app-account-status.nQNIMR/`
+(`focused-checked.log`, `types-checked.log`, `deliverables.log`,
+`conflicts.log`, `leaks.log`). Earlier intermediate focused runs also passed;
+`focused-final.log` predates the last case because its preceding edit command
+used the wrong directory and made no edits. The final checked logs identify the
+returned source.
+
+DEL-01-05 declares the added component; its ScopeOfWork, acceptance and dependency
+conditions retain their meaning. Existing native privacy projection and
+credential-custody limits are unchanged; no Rust access or privacy code changed
+and its prior evidence is not promoted or rerun here. No App/supplier/native,
+browser, account, credential, network, model, product build or GUI operation was
+performed for this repair. Mounted tests and a source type check do not prove
+native layout/AX, actual completion/readback or J1 qualification for this source.
+Root retains independent scrutiny, integration and native receiving.
+
+The separately reported project-library wording, workflow/start diagnostic
+presentation and absent effort chooser remain deferred; no change to those
+surfaces or the owner's App-internal model choice is included.

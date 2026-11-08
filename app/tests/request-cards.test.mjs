@@ -247,7 +247,7 @@ async function withReplyObserver(check, {outcome='written',failRefresh=true,perm
       async selectConversation(threadId){const select=container.querySelectorAll(node=>node.localName==='select'&&node.parentNode.textContent.startsWith('Current-generation conversation '))[0];await React.act(()=>props(select).onChange({target:{value:threadId?JSON.stringify([g,threadId]):''}}));},
       allowRefresh(){refreshUnavailable=false;},replyAs(next){currentOutcome=next;},
       staleSnapshot(){stale=structuredClone(original);},canonicalSnapshot(){stale=null;},
-      async swapSource(next){other=next;await React.act(async()=>props(button('Read native login policy and account')).onClick());},
+      async swapSource(next){other=next;await React.act(async()=>props(button('Check account status')).onClick());},
       async reconnect(){await React.act(()=>root.unmount());refreshUnavailable=false;root=createRoot(container);await render();},
       get commandSeen(){return commandSeen;}});
   } finally {const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);}
