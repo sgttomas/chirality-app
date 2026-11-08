@@ -42,9 +42,13 @@ hierarchy the undertaking needs. Managers retain ownership through repairs and
 integration; TASKs return their bounded contributions to the caller.
 
 INTERLOCUTOR is used only when a session selects it; it is never a direct entry
-or default role. HELP_HUMAN, HELPS_HUMANS or WORKING_ITEMS may delegate it; it
-delegates nothing. In a session that selects it, Agent 0 supplies periodic
-activity summaries and consults it at least before every PR merge. Its advice
+or default role. When session steering selects it, Agent 0 starts one continuing
+INTERLOCUTOR session and continues it by message for the life of that Agent 0
+session. Replace it only if it is lost or the owner asks. It delegates nothing.
+Agent 0 supplies periodic activity summaries and consults it at least before
+every PR merge. Independent implementation reviews remain separate assignments.
+This local rule records the owner's steering without changing the selected
+shared Library edition below. Its advice
 carries no sign-off, veto, permission or override of checks, holds or owner
 decisions. After three rounds without convergence on a matter, Agent 0 explains
 its own view and proceeds within its authority. It needs no method for its

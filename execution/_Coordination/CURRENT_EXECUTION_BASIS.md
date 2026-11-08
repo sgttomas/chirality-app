@@ -1,5 +1,62 @@
 # App v4 current execution basis
 
+## Owner-directed Agent 0 closeout — 2026-11-08 UTC
+
+The owner requested a graceful close and a steering prompt for the next Agent 0.
+The outgoing session is completing documentary reconciliation only; no further
+App launch, model campaign, tool construction or product increment is selected.
+After normal init reading, use [NEXT_AGENT0_STEERING.md](NEXT_AGENT0_STEERING.md).
+This section supersedes older current/next statements below; historical accounts
+keep their original subjects and limits.
+
+Product main is `22272108d7c30fd78ef43a556f66ab96f6d68dd8`. PRs154–160 are
+merged after their applicable checks/reviews. PR158's account-feedback repair
+is integrated; the actual046 manual check reported the ChatGPT account and
+file/plugins-off settings. Its automatic completion-trigger path remains
+mounted-test evidence. PR157 records App's own standing Git grant. PR159 puts
+the eight maintained instruction sources in DEL-02-04 Work and generates the
+unchanged shipped copies; its init ending is also integrated. Operational
+Library c35b7bbc and product89ac/four-role selections remain distinct.
+
+The [J2 partial actual account](../PKG-09/DEL-09-02/Work/J2_PARTIAL_ACTUAL_20261108.md)
+records one draft, one independently correct clean trial, normal close/reopen
+and recovery of the unfinished draft. Registration stalled before any capture
+was established; reuse was not sent. Both original Apps closed normally with
+verified original absence and matching wrapper ENDs. Their original and wrapper
+PIDs were also absent at closeout; no App lifecycle slot or resource deferral
+remains. All four dedicated Type 1 manager sessions were completed/idle with no
+pending host request at closeout. Named evidence and recovery inputs are retained.
+
+PR160 integrated the A15 invoking-window sheet repair. Its reviewed source is
+`475c9b8f9c868fe1be9d0e1ef33a9cdd72aec75f`; the merge preserves that tree.
+Independent review found no actionable defects, applicable hosted CI passed,
+and the continuing interlocutor had no material objection. One offline debug
+build of475c is ready, executable SHA-256
+`69ce6a05aa2d88d8467916d63f1f461eae4d403b174baaf66aabe15ba12d102c`.
+It remains unlaunched; source checks/build do not prove native registration.
+
+The twenty-minute proposal for one registration attempt and one fresh-
+conversation reuse turn is prepared at
+`/Users/ryan/dev/chirality-t3/scratch/app-j2-registration-reuse-lsjpcmen/PROPOSAL.md`.
+It was presented but not approved. The earlier timed campaign ended and cannot
+authorize a new launch/cloud run. The next Agent 0 receives the owner's decision
+before that step; it may continue other authorized preparation under current
+steering. The proposal stops early if the normal App cannot find the unchanged
+draft or preserve the existing project/store identity. No trial repeat,
+credential transfer or automatic retry is selected.
+
+Older PR72 (`540ef1d2`) remains a draft with its exact recovery basis and next
+reconciliation recorded in the PR body. It predates the Library/Root split and
+local Git grant; its current-reference changes are not already integrated.
+Refresh or replace that narrow documentation contribution after orientation,
+without treating historical Root-only instructions as App authority.
+
+The owner survey was returned to the cross-project thread with Part B verbatim.
+Its later host-conflict claim was explicitly corrected: continuing interlocutor
+consultations use the same child by message; independent reviews are separate.
+AGENTS.md now records that local owner steering without selecting unpublished
+Library main. No publication, acceptance or additional acquisition is inferred.
+
 ## Real-model J1 result and current next work — 2026-11-08
 
 The [current actual account](../PKG-09/DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md)
