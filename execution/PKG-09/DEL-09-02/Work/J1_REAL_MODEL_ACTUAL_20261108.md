@@ -1,4 +1,4 @@
-# J1: real model, saved result and normal closure
+# J1: real model, saved result and normal closure (2026-11-08 UTC)
 
 ## Observed result
 
@@ -43,9 +43,8 @@ There was one actual workflow attempt and one primary work conversation.
 
 ## Execution and independent check
 
-The actual work conversation was `01a1b878-9415-76d0-9e91-c174f1cfc4d2`,
-turn `01a1b87a-0b52-7600-94f8-a9d7a2e96969`, run
-`run:workflow:fa5752cf-65a6-4dd7-a77d-4eaf4443b55b`.
+The exact conversation, turn and run references remain in the private evidence
+named below, joined by `J1_RESULT_CHECK.json` to this subject and saved output.
 The corresponding supplier turn-context projection reports
 `model: gpt-6.1-terra`, `effort: medium`. No additional agents were spawned.
 The model read the brief and CSV, requested permission for the project output,
