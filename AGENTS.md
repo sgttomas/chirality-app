@@ -27,9 +27,10 @@ evidence still needed by consumers.
 
 Enter through `loop/LOOP_INIT.md`. Requirements and interfaces live in `docs/`;
 deliverables retain their `execution/PKG-nn/DEL-nn-nn/ScopeOfWork.md`, `Work/`
-and `deliverable.yaml` conventions. Keep current findings and their reasons,
-working artifacts and outputs in `Work/`; keep approval quotes and review/check
-narrative in the PR.
+and `deliverable.yaml` conventions.
+
+`Work/` holds the current account: findings with their reasons, working artifacts and outputs. Revise it in place rather than appending history; never rewrite fidelity copies, frozen snapshots or accepted evidence. How the work went (approval quotes, review rounds, retries, run IDs, check results) belongs in the PR description, which states what changed, why, what was checked and what remains open. Cite SHAs or hashes only where they pin something a result relies on. State a fact once and link to it.
+
 Code that runs (implementation, tests, generators, harnesses) lives outside `execution/`, in the project's code locations, and deliverables link to it; `Work/` may keep documentation-only examples that are never run. Reconcile changed implementation meaning
 with those documents; leave unchanged commitments and historical evidence alone.
 Do not modify `foundation/thesis/`.
@@ -116,12 +117,6 @@ message it in T3 Code with the need, revision/files and whether it blocks.
 The recipient owns changes in its repository. A message transfers no owner
 authority and changes nothing in another project. Do not message unaffected
 projects.
-
-Cross-project arrangements (project routes, the merge rule and aligned CI
-standard, delegations in force and pending owner decisions) are indexed in
-Root's `execution/_Coordination/CROSS_PROJECT.md` (`sgttomas/chirality`,
-private). If that repository isn't readable from this session, ask the
-cross-project coordinator session by T3 message.
 
 Root measures and improves how agents deliver work across the Chirality
 projects and hosts shared services. Its agents may evaluate App from session
