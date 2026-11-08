@@ -721,3 +721,14 @@ prove the field's native accessibility exposure, actual setup on a real
 folder, model behaviour or the J1 journey. Those wait for a fresh build that
 root has reviewed and an owner GO. Scope, dependencies, acceptance and holds
 are unchanged.
+
+### 2026-11-07 — Account feedback in the existing connection section
+
+The focused sign-in feedback repair on main `32a10169` adds an ordinary
+privacy-safe account summary and one source-bound non-forced read after matching
+completion. The owning DEL-01-05 account, `ACCOUNT_AND_PROVIDER_ACCESS.md`,
+records behavior, focused mounted checks and remaining native limits. The
+existing welcome/setup/save paths, visual styling, settings defaults and native
+confirmation pipeline are unchanged. Scope, dependency conditions and prior
+render/native evidence retain their original standing; this source repair adds
+no layout, AX or live sign-in qualification.
