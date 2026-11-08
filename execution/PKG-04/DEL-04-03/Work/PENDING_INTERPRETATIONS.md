@@ -15,9 +15,10 @@ is a coherent source/consumer amendment, with the applicable owner decision,
 acceptance consequences and historical bindings made explicit. Neither a code
 match nor a refreshed pin settles the choice.
 
-Recommendation: App Agent 0 first compare the governing source, selected extents,
-actual readers and fixtures, then bring a bounded decision packet with companion
-changes to the owner through the coordinator. The owner resolves commitment or
+Recommendation: compare the governing source, selected extents, actual readers
+and fixtures before choosing a repair. Next actor: App Agent 0 prepares that
+assessment and brings a bounded decision packet with companion changes to the
+owner through the coordinator. The owner resolves commitment or
 acceptance changes; the relevant implementation owner then carries the selected
 repair. Existing Scope, code, pins and evidence are unchanged by this note.
 
