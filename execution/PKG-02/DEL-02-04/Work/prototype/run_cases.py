@@ -3,11 +3,14 @@
 
     python3 run_cases.py                    # run the cases
     python3 run_cases.py --write-examples   # also (re)write the schema examples beside ROLE_SUPPLY.md
+    python3 run_cases.py --record           # retain console output in fresh scratch
+    python3 run_cases.py --record-output /tmp/role-run.txt  # explicit new receipt file
 
 Scratch files go to a fresh folder under $TMPDIR. Nothing is sent anywhere; the
-supplier is a test double. Output is also written to results/run-<date>.txt
-when --record is given.
+supplier is a test double. Receipts stay outside this deliverable's Work tree;
+--write-examples is the explicit fixture-writing operation.
 """
+import argparse
 import copy
 import inspect
 import datetime
@@ -16,9 +19,11 @@ import os
 import shutil
 import sys
 import tempfile
+from pathlib import Path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DESIGN = os.path.dirname(HERE)
+sys.dont_write_bytecode = True
 sys.path.insert(0, HERE)
 import role_supply as rs          # noqa: E402
 from jsonschema_lite import errors  # noqa: E402
@@ -47,8 +52,25 @@ def fresh(tmp, name):
 
 
 def main():
-    write_examples = "--write-examples" in sys.argv
-    record = "--record" in sys.argv
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--write-examples", action="store_true")
+    parser.add_argument("--record", action="store_true")
+    parser.add_argument("--record-output", type=Path, help="New receipt file outside Work; implies --record")
+    args = parser.parse_args()
+    write_examples = args.write_examples
+    record = args.record or args.record_output is not None
+    receipt = args.record_output
+    if receipt is not None:
+        receipt = receipt.resolve()
+        if receipt.is_relative_to(Path(DESIGN).resolve()):
+            parser.error("receipt output must be outside this deliverable's Work tree")
+        if receipt.exists():
+            parser.error("receipt output must be a new file")
+    elif record:
+        scratch = Path(tempfile.gettempdir()).resolve()
+        if scratch.is_relative_to(Path(DESIGN).resolve()):
+            parser.error("receipt scratch must be outside this deliverable's Work tree")
+        receipt = Path(tempfile.mkdtemp(prefix="chirality-role-receipt-")) / "run.txt"
     tmp = tempfile.mkdtemp(prefix="chirality-d6-role-", dir=os.environ.get("TMPDIR"))
     say("ROLE-v0.2 prototype run %s; python %s; scratch under $TMPDIR (%s)" % (
         datetime.date.today().isoformat(), sys.version.split()[0], os.path.basename(tmp)))
@@ -362,10 +384,10 @@ def main():
     say("TOTAL pass=%d fail=%d" % (RESULTS["pass"], RESULTS["fail"]))
     shutil.rmtree(tmp)
     if record:
-        rd = os.path.join(HERE, "results")
-        os.makedirs(rd, exist_ok=True)
-        with open(os.path.join(rd, "run-%s.txt" % datetime.date.today().isoformat()), "w", encoding="utf-8") as fh:
+        receipt.parent.mkdir(parents=True, exist_ok=True)
+        with receipt.open("x", encoding="utf-8") as fh:
             fh.write("\n".join(OUT) + "\n")
+        print("Receipt: %s" % receipt)
     return 0 if RESULTS["fail"] == 0 else 1
 
 
