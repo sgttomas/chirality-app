@@ -83,10 +83,7 @@ still contain identifiers from before the private-identity direction.
 - TASK / Type 2: bounded implementation, investigation or independent scrutiny;
   no further delegation.
 
-All Type 1 agents use `gpt-6.1-sol` with `reasoningEffort=high`.
-Following the owner's updated steer on 2026-10-29, all Type 2 agents use
-`gpt-6.1-sol` with `reasoningEffort=medium` and `serviceTier=default`
-(standard service). This supersedes the earlier Terra/xhigh/priority setting;
+Model and effort choices come from the owner's current session steering;
 historical review records retain the settings actually used. Managers and
 Agent 0 may decide when Type 2 contributions are useful. Do not substitute
 models or settings silently if unavailable. Initially cap active implementation
