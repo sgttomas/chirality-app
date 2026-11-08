@@ -142,8 +142,10 @@ Library, never host-side agent definitions or harness configuration. Session
 routes are ephemeral: find current sessions by listing T3 threads; the owner
 names sessions at each restart. Agents save no memories; durable knowledge lives
 in Chirality. Scratch holds evidence, outputs and logs, never instructions.
-Preserve unfinished work in reviewable PRs and integrate and reconcile
-contributions before cleaning up their owned branches, worktrees and scratch.
+Preserve unfinished work in reviewable PRs or an explicitly authorized durable
+recovery home. Inspect exposure and CI triggers before publishing a held candidate;
+keep its head unchanged unless its undertaking authorizes changes. Integrate and
+reconcile contributions before cleaning up their owned branches, worktrees and scratch.
 Once work is integrated, delete its scratch, worktrees, branches and build output
 unless an open review, named consumer or recovery need still uses them. Keep
 named recovery inputs and evidence still needed by consumers.
