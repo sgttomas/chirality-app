@@ -109,6 +109,20 @@ class FailedTurnPermissionsTest(unittest.TestCase):
         self.assertFalse(r.results)
         self.assertFalse(r.nl.grants)
 
+    def test_new_unbound_request_and_late_answer_after_failure_are_withheld(self):
+        r = run()
+        r.fail_turn(TURN)
+        before = copy.deepcopy((r.requests, r.entries, r.nl.grants, r.results))
+        with self.assertRaises(ValueError):
+            request(r, 'call:unbound', turn=None)
+        with self.assertRaises(ValueError):
+            r.answer('call:unbound', 'grant', 'once')
+        self.assertEqual(before, (r.requests, r.entries, r.nl.grants, r.results))
+        # A demonstrably different turn remains able to request and act.
+        request(r, 'call:other', turn={**TURN, 'turnId': 'turn:other'})
+        self.assertEqual(r.answer('call:other', 'grant', 'once'), 'granted')
+        self.assertEqual(r.results['call:other']['label'], 'success (ran)')
+
     def test_original_turn_binding_is_frozen_and_duplicate_call_cannot_replace_it(self):
         r = run()
         binding = copy.deepcopy(TURN)
@@ -168,6 +182,25 @@ class FailedTurnPermissionsTest(unittest.TestCase):
         self.assertFalse(any('request other for A-1: not answered' in line for line in shown))
         self.assertFalse(any(line == 'destination grant observed for request one' for line in shown))
         self.assertIn('FD-4 late request late withheld: turn failed; no choices or grant', shown)
+
+    def test_panel_new_unbound_prompt_and_late_answers_after_failure_are_withheld(self):
+        for failed_binding in [TURN, None]:
+            with self.subTest(failed_binding=failed_binding):
+                other = {**TURN, 'turnId': 'turn:other'}
+                events = [dict(ordinal=1, kind='turn failed', turn=TURN['turnId'],
+                               cause='model interface failure', message_standing='interrupted', turnRef=failed_binding),
+                          dict(ordinal=2, kind='destination request issued', request='unbound', destination='A-1'),
+                          dict(ordinal=3, kind='destination grant observed', request='unbound'),
+                          dict(ordinal=4, kind='destination grant observed', request='unseen'),
+                          dict(ordinal=5, kind='destination request issued', request='other', destination='A-1', turnRef=other),
+                          dict(ordinal=6, kind='destination grant observed', request='other', turnRef=other)]
+                shown = panel.reduce(events, set())
+                self.assertIn('FD-4 request unbound: source/turn binding unavailable; choices withheld; no closure inferred', shown)
+                self.assertNotIn('destination request unbound for A-1 shown (ND-2)', shown)
+                for req in ['unbound', 'unseen']:
+                    self.assertNotIn(f'destination grant observed for request {req}', shown)
+                    self.assertIn(f'FD-4 late or ambiguous answer for request {req} withheld; no grant inferred', shown)
+                self.assertIn('destination grant observed for request other', shown)
 
     def test_panel_mismatched_or_missing_provenance_never_infers_grant(self):
         for turn in [None, {**TURN, 'hostIdentity': 'other-host'}, {**TURN, 'conversationId': 'other-conversation'}]:

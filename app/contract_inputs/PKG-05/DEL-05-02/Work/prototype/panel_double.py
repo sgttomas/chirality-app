@@ -33,6 +33,7 @@ def reduce(events, unresolved):
     pending = {}  # request identity -> destination and original turn binding
     ended = set()
     failed = []
+    failure_seen = False
     withheld = set()
     for ev in events:
         n = ev["ordinal"]
@@ -43,6 +44,7 @@ def reduce(events, unresolved):
         if kind == "model interface failure":
             shown.append(f"FD-1 model interface failure: {ev['termination_reason']} (reported by {ev['reporter']})")
         elif kind == "turn failed":
+            failure_seen = True
             shown.append(f"FD-1 turn {ev['turn']} failed: {ev['cause']}; partial message shown as {ev['message_standing']}")
             binding = ev.get("turnRef")
             if not valid_turn_ref(binding) or binding["turnId"] != ev["turn"]:
@@ -68,6 +70,10 @@ def reduce(events, unresolved):
                 shown.append(f"reference {ref} ('{ev['label']}')")
         elif kind == "destination request issued":
             req, binding = ev["request"], ev.get("turnRef")
+            if failure_seen and not valid_turn_ref(binding):
+                withheld.add(req)
+                shown.append(f"FD-4 request {req}: source/turn binding unavailable; choices withheld; no closure inferred")
+                continue
             if req in ended or (valid_turn_ref(binding) and binding in failed):
                 shown.append(f"FD-4 late request {req} withheld: turn failed; no choices or grant")
                 ended.add(req)
@@ -81,7 +87,7 @@ def reduce(events, unresolved):
         elif kind in ("destination grant observed", "destination declined"):
             req = ev["request"]
             original = pending.get(req, (None, None))[1]
-            if req in ended or req in withheld:
+            if req in ended or req in withheld or (failure_seen and not valid_turn_ref(original)):
                 shown.append(f"FD-4 late or ambiguous answer for request {req} withheld; no grant inferred")
                 continue
             if valid_turn_ref(original) and ev.get("turnRef") != original:

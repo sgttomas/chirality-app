@@ -210,7 +210,7 @@ class Run:
 
     def request(self, call, target, purpose, scope, carried=None, t="t", turn_ref=None):
         """DF-5 Q-1...Q-5. carried = (operation reference, category, destination)."""
-        if turn_ref is not None and not self.owns_turn(turn_ref):
+        if (turn_ref is not None or self.failed_turns) and not self.owns_turn(turn_ref):
             raise ValueError("request source/turn binding not established; no grant or dispatch")
         rec = {"basis": "LOOP-v0.8 §5.3", "requestCall": call, "requester": "host-agent:E",
                "target": target, "purpose": purpose, "scopeSought": scope}
@@ -294,6 +294,8 @@ class Run:
 
     def answer(self, call, answer, scope=None, t="t"):
         """DF-5 Q-6...Q-9."""
+        if call not in self.requests:
+            raise ValueError("request not established; answer withheld")
         rec = self.requests[call]
         if call in self.provenance_limits:
             raise ValueError("request source/turn binding unavailable; answer withheld")
