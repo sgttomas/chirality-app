@@ -11,6 +11,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import shlex
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -102,7 +103,18 @@ def execution_calls(tree):
                 # -c programs cannot hide a reference into the documentary tree.
                 yield 'Interpreter invocation into execution/'
         elif isinstance(command, ast.Constant) and isinstance(command.value, str):
-            if re.search(r'(?:^|[\s;])(?:[^\s;]*/)?(?:python[\d.]*|node|bash|sh|zsh)\s+[^\n]*\bexecution/', command.value) or command.value.startswith('execution/'):
+            try:
+                words = shlex.split(command.value)
+            except ValueError:
+                if re.search(r'\bexecution/', command.value):
+                    yield 'Unparseable invocation into execution/'
+                continue
+            for index, word in enumerate(words):
+                interpreter = re.fullmatch(r'(?:.*/)?(?:python[\d.]*|node|bash|sh|zsh)', word)
+                if interpreter and any(re.search(r'(?:^|[/\s\"\'])execution(?:/|$)', arg) for arg in words[index + 1:]):
+                    yield 'Interpreter invocation into execution/'
+                    break
+            if words and re.search(r'(^|/)execution/', words[0]):
                 yield 'Interpreter invocation into execution/'
 
 def check(root=ROOT):

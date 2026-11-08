@@ -184,3 +184,12 @@ def test_reclassifying_schema_as_code_cannot_exempt_freshness():
         return original(path)
     with patch.object(Path, 'read_bytes', changed), pytest.raises(ValueError, match='cannot exempt a retained authoring input'):
         execution_inputs.check()
+
+
+@pytest.mark.parametrize('quote', ["'", '"'])
+def test_shell_quoting_does_not_hide_interpreter_path(repo, quote):
+    command = quote + '/usr/bin/python3' + quote + ' execution/probe/notes.md'
+    source = 'import subprocess; subprocess.run(' + repr(command) + ', shell=True)'
+    write(repo, 'tools/probe.py', source.encode())
+    with pytest.raises(ValueError, match='Interpreter invocation'):
+        guard.check(repo)
