@@ -30,19 +30,21 @@ remain recovery inputs.
 
 The cleanup managers have returned their finite contributions. The roster below
 retains delivery ownership and contribution history; it does not establish live
-execution. During this sweep, delegated managers and TASKs use
-`gpt-6.1-terra` at high effort and independent reviews use `gpt-6.1-sol` at
-high effort. App-internal Terra/medium remains a separate selection.
+execution. Model and effort choices come from the owner's current session
+steering.
 Earlier current/next and model statements below retain their original subjects.
 The punchlist indexes the remaining product results.
 
-Pending product and Scope interpretations are recorded in issue 168, including
-PEC retirement authority and affected consumers. Existing commitments remain
-in force; no proposed Scope replacement is selected by the cleanup. PR72's
+Pending product and Scope interpretations are recorded in issue 168. The owner
+has confirmed PEC retirement: active provider and App adoption work is not
+expected or awaited. The affected Scope passages now record retirement and retained-consumer
+requirements under the coordinator's accepted disposition.
+Applicable retained-compatibility source, limitation, refusal and recovery
+obligations remain; no live service or qualification is claimed. PR72's
 reconciliation is integrated through PR172 with its history and frozen accounts
-preserved. Draft PR161's successor steering remains held for owner direction;
-its original branch and commits remain available. This reconciliation supplies
-no new native, model, acquisition or publication authority.
+preserved. PR161 is closed as superseded, with its original branch and commits
+preserved; final successor steering awaits the harmonized text. This work
+supplies no new native, model, acquisition or publication authority.
 
 ## Final contributor Library edition — 2026-11-08 UTC
 
