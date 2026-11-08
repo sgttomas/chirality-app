@@ -20,9 +20,20 @@ PROSE_PATHS = frozenset({
     "init/init-prompt.md",
     "loop/LOOP_INIT.md",
     "docs/CI_SELECTION.md",
+    "docs/OPERATING_METHOD.md",
+    "docs/user-manual/README.md",
     "execution/_Coordination/CURRENT_EXECUTION_BASIS.md",
+    "execution/_Coordination/PUBLICATION_PUNCHLIST.md",
     "execution/_Coordination/WINDOWS_UNDERTAKING.md",
+    "tools/deliverables/README.md",
 })
+# These domains contain code, contracts, fixtures or retained source inputs.
+# Documentary exceptions above take precedence; unfamiliar domains stay unmatched.
+PRODUCT_DOMAINS = (
+    ".github/actions/", ".github/workflows/", "app/", "conceptual/", "docs/",
+    "execution/", "foundation/", "reference/", "tools/", "workflows/",
+)
+PRODUCT_FILES = frozenset({".gitattributes", ".gitignore", "CLAUDE.md", "LICENSE.md"})
 OID = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?\Z")
 RAW_HEADER = re.compile(
     rb":([0-7]{6}) ([0-7]{6}) ([0-9a-f]{40}|[0-9a-f]{64}) "
@@ -65,15 +76,33 @@ def parse_changes(raw: bytes) -> list[dict[str, str]]:
     return changes
 
 
+def path_rule(path: str) -> str:
+    if path in PROSE_PATHS:
+        return "documentary"
+    if path in PRODUCT_FILES:
+        return "product-file"
+    if path.startswith(PRODUCT_DOMAINS):
+        return "product-domain"
+    return "unmatched"
+
+
+def inventory(repo: Path) -> dict:
+    paths = [os.fsdecode(path) for path in git(repo, "ls-files", "-z").split(b"\0") if path]
+    unmatched = sorted(path for path in paths if path_rule(path) == "unmatched")
+    return {"tracked_paths": len(paths), "unmatched": unmatched}
+
+
 def classify(change: dict[str, str]) -> dict[str, str]:
-    reason = "Path is not in the documentary allowlist"
+    rule = path_rule(change["path"])
+    reason = "Unmatched path requires full product verification" if rule == "unmatched" else \
+             "Explicit product input requires product verification"
     if change["status"] not in {"A", "M"}:
         reason = "Deletion or file-type change requires product verification"
     elif change["new_mode"] != "100644" or change["old_mode"] not in {"000000", "100644"}:
         reason = "Only ordinary non-executable documentary files qualify"
-    elif change["path"] in PROSE_PATHS:
-        return {**change, "checks": "repository", "reason": "Allowlisted documentary file"}
-    return {**change, "checks": "product", "reason": reason}
+    elif rule == "documentary":
+        return {**change, "rule": rule, "checks": "repository", "reason": "Audited documentary file"}
+    return {**change, "rule": rule, "checks": "product", "reason": reason}
 
 
 def select(repo: Path, event: str, base: str, head: str) -> dict:
@@ -126,11 +155,18 @@ def main() -> int:
     selection.add_argument("--github-output", type=Path)
     selection.add_argument("--summary", type=Path)
     commands.add_parser("gate")
+    tracked = commands.add_parser("inventory")
+    tracked.add_argument("--repo", type=Path, default=Path("."))
     args = parser.parse_args()
     try:
         if args.command == "gate":
             require_success(json.loads(os.environ["RESULTS"]))
             print("All selected verification succeeded")
+        elif args.command == "inventory":
+            result = inventory(args.repo)
+            print(json.dumps(result, indent=2, ensure_ascii=True))
+            if result["unmatched"]:
+                raise ValueError("Tracked paths need explicit classification; unmatched paths still select full product verification")
         else:
             result = select(args.repo, args.event, args.base, args.head)
             rendered = json.dumps(result, indent=2, ensure_ascii=True) + "\n"
