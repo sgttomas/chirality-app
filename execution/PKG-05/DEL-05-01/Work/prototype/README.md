@@ -42,48 +42,10 @@ the invalid one (RQ; V19-B n-7).
 
 ## Recorded run (2026-09-30, Python 3.13.7, macOS)
 
-`python3 assemble_tool_calls.py`:
-
-```text
-PASS FX-V1s   FX-V1 (stream) termination=tool-calls             #0 complete
-PASS FX-V1i   FX-V1 (two)    termination=tool-calls             #0 complete; #1 complete
-PASS FX-M1    MC-1           termination=length-truncated       #0 truncated/MC-1
-PASS FX-M1b   MC-1           termination=length-truncated       #0 truncated/MC-1; #1 truncated/MC-1
-PASS FX-M2    MC-2           termination=ended-without-reason   #0 interrupted/MC-2
-PASS FX-M3    MC-3           termination=tool-calls             #0 malformed/MC-3
-PASS FX-M4    MC-4           termination=tool-calls             #0 malformed/MC-4
-PASS FX-M4b   MC-4           termination=tool-calls             #0 malformed/MC-4
-PASS FX-M4c   MC-4           termination=tool-calls             #0 malformed/MC-4
-PASS FX-M5    MC-5           termination=tool-calls             #0 complete/MC-5
-PASS FX-M6a   MC-6           termination=tool-calls             #0 malformed/MC-6
-PASS FX-M6b   MC-6           termination=tool-calls             #0 complete
-PASS FX-M6c   MC-6           termination=tool-calls             #0 malformed/MC-6
-PASS FX-M7    MC-7           termination=tool-calls             #0 malformed/MC-7; #1 malformed/MC-7
-PASS FX-M8    MC-8 (R12-7)   termination=tool-calls             #0 complete; #1 malformed/MC-3; #2 complete
-PASS FX-M10   MC-10          termination=tool-calls             #0 malformed/MC-10
-PASS FX-M11   MC-11          termination=content-filtered       #0 filtered/MC-11
-PASS FX-M12   MC-12          termination=tool-calls             #0 malformed/MC-12
-PASS FX-M13   MC-13          termination=tool-calls             #0 malformed/MC-13; #1 malformed/MC-13
-19/19 cases as expected; every record checked against LOOP_TOOL_CALL.schema.json
-```
-
-Rerun at RP-4 (2026-09-30, Python 3.13.7, macOS), after adding OBS1-C1…OBS1-C3:
-the 19 lines above unchanged, then
-
-```text
-PASS OBS1-C1  §4.1 points 1, 2 termination=tool-calls             #0 complete
-PASS OBS1-C2  §4.1 point 3   termination=tool-calls             #0 complete; #1 complete
-PASS OBS1-C3  §4.1 point 4   termination=tool-calls             #0 complete
-22/22 cases as expected; every record checked against LOOP_TOOL_CALL.schema.json
-```
-
-Schema examples:
-
-```text
-VALID   ../LOOP_TOOL_CALL.example.valid.json
-INVALID ../LOOP_TOOL_CALL.example.invalid.json
-    $: oneOf matched 0 branches [], exactly 1 required
-```
+The 2026-09-30 Python 3.13.7 prototype run assembled the 19 FB-CC-1
+fixture streams as expected; the later OBS1-C1…OBS1-C3 replay also matched
+the observed shapes. The schema accepted the valid example and refused the
+invalid example. These are fixture results, not host qualification.
 
 "FX-M5 complete/MC-5" means the call parsed completely and was refused at
 V-2 (*not offered*).
