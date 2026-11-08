@@ -3,8 +3,10 @@
 - Contribution: DEL-01-05/ACCESS-v0.2 (supersedes DEL-01-05/ACCESS-v0.1,
   committed at `63a6e0fa47`, file sha256
   b82e40395a4a19bcd0b4e5623fd62b1040b7110ab19cb01af58b15582d447da4)
-- Status: DRAFT DEFINITION — proposed, unsupplied, not implemented, not
-  accepted. Nothing here is qualified; no App candidate exists.
+- Original v0.2 status: DRAFT DEFINITION — proposed, unsupplied, not
+  implemented, not accepted. At that time nothing was qualified and no App
+  candidate existed. Subsequent implementation conditions and their limits
+  are recorded below; this design does not establish qualification.
 - **Pass-4 closeout C2 (run `APP-V4-DESIGN-PASS-4-20261003`; R23-29 item 2; in place, no version step):** §13 gains DEP-01-05-017, the supplier-side counterpart of DEP-09-02-013 ruled in R22-7 (V22 m-7). **Re-pin (R23-5):** ScopeOfWork.md sha256 2e134b572f2676ed4fe6daa892047e21e53a637f9901cba20f482a6637f7f3d3 (SCA-V4-003 revision), was baf68c79b5b8fdf01300fc255d7cf8e433975e6275daadf67b914b4e51eca4a6. Blocks read: G-0105-01…16 (`SOW_REVISIONS_A.md` of run `APP-V4-SCA003-20261002`, sha256 42c9167a…fc07). Bearing: G-0105-02 (CLM-004: DEL-09-02 receives the account/provider inputs and focused checks), recorded by the §13 row. The other blocks carry into the ScopeOfWork what this file already designs (CLM-001, TBD-001, REQ-005: the decision record and item 6 below; REQ-002: §4; REQ-004, AC-004, VER-004: §5.4; OUT-002, REQ-010, AC-011, VER-011 and the matrix row: §8, §9; TBD-002: §10; TBD-003: item 2 below; AX-006 is the amendment reference), so none requires a change to the design text. "How this file reads the ScopeOfWork" below describes the ScopeOfWork before SCA-V4-003.
 - Produced by: node D4 of run `APP-V4-DESIGN-PASS-3-20261001` (Type 2 TASK,
   Claude Opus 5.5, high effort; does not delegate): v0.1 on 2026-10-01 at
@@ -908,14 +910,17 @@ native reread observations confirmed unchanged state. Its diagnostic reflected
 the provider ID; one invented negative control establishes no general
 nonreflection or App privacy guarantee. All raw exchanges stay private.
 
-These are isolated supplier observations, not an implemented Add receiver or
-permission to overwrite an existing provider. Before a future Add depends on
-this operation, its receiving path still needs fresh source-bound absence in
-the relevant user/effective maps, the same-file native version and explicit Add
-intent, together with the applicable current-source continuation. This does not
+These isolated supplier observations did not themselves implement an Add
+receiver or permit overwriting an existing provider. At that observation stage,
+the endpoint receiver was endpoint-only; a future Add depending on this
+operation needed fresh source-bound absence in the relevant user/effective maps,
+the same-file native version and explicit Add intent, together with applicable
+current-source continuation. The current separate Add receiver implements the
+bounded absent-ID anonymous Responses addition described in §5.4 and Q-8,
+with its own private offer and decisions. The supplier observations do not
 establish universal arbitrary-writer exclusion, writer provenance, filesystem
-CAS or an atomic target/profile commit. The current endpoint receiver remains
-endpoint-only; person I-2/U-R3 consumption, qualification and release remain open.
+CAS or an atomic target/profile commit. Person I-2/U-R3 consumption,
+qualification and release remain open.
 
 **Q-9 New conversation (K-3).** `no-selection`; if the project has a last
 explicit choice, `offer-shown` (CS-3). The model list per entry: for
@@ -1180,7 +1185,9 @@ remaining start-up rows, so "nothing leaves the machine" is never implied.
 ## 10. API-key definition record (OUT-003, REQ-006; OI-010 stays OPEN)
 
 Supported API-key behaviour at the definition pin 0.158.0, with standing.
-Nothing here is observed live: no key has ever been used in this project.
+None of these definition-pin statements was observed live; when this definition
+was produced on 2026-10-01 and 2026-10-02, no key had ever been used in this
+project.
 
 | ID | Statement | Standing |
 |---|---|---|
@@ -1298,6 +1305,13 @@ ChatGPT development walkthrough on stock 0.160.0 is recorded in DEL-01-02
 verified, model turns through `openai`. API-key, device and logout journeys and
 complete access qualification remain unwitnessed; that one account home does
 not establish other-home/provider or credential-separation behavior.
+
+The later J1 development observation on 2026-11-08 used source `57bb9c4d`
+and executable SHA256 `1997e441b756d3f21a8d5f4fae2f3b03b346cdc8d77c123fcf7bcc349a12761e`:
+the owner signed in and a real model completed a workflow turn. The
+[actual account](../../../PKG-09/DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md)
+retains the subject, result and limits; it does not establish account identity,
+credential custody, concurrent access modes or complete qualification.
 
 ## 13. Receivers and register rows
 

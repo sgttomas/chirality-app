@@ -15,8 +15,8 @@ are not a replacement list of every historical subject. The historical exchange 
 represent synthetic S1/legacy-transport file correspondence, not the current
 signed package or an authenticated stopped process tree.
 
-The current operational guard in `distribution_receiving/inputs.json` has exactly
-two mismatches at this disposition:
+At this 2026-10-31 disposition, the operational guard in
+`distribution_receiving/inputs.json` had exactly two mismatches:
 
 | Input | Retained expected SHA256 | Current SHA256 |
 |---|---|---|

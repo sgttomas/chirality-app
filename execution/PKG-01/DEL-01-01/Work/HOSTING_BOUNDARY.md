@@ -2680,3 +2680,16 @@ claim a complete reading. The current source and embedded bytes are identical
 and bound in `runtime_core/MANIFEST.json`. The historical transition table
 above is unchanged. Local checks use owned stdio peers and actual REC storage;
 they establish no native walkthrough or supplier behavior.
+
+**Current successor and replay accounts.** The [distribution successor](distribution-s1/README.md)
+records the selected S1 definitions, S2 build selection and S4 installed-integrity
+implementation with their separate receiving and packaged-witness limits. Its
+0.160.0 supplier reference has a separate technical attestation; that does not
+select or qualify an App candidate. The [publisher build supplement](PUBLISHER_BUILD_SELECTION.md)
+describes the independently selected publisher input and its default refusal.
+The [recorded seam account](RECORDED_SEAM_REPLAY.md) describes the selected
+replay profiles, constructed catalog prerequisite and recovery coverage; it
+does not establish a candidate or native witness. The dated
+[version-advance observation](VERSION_ADVANCE_0.160.0.md) retains its original
+pin standing at observation time; §7.0 and U-01 describe the later SUP1
+development/definition selection.

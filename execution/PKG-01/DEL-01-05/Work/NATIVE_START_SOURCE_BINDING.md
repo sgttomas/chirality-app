@@ -198,7 +198,6 @@ generation-bound.
 
 ## Integration order
 
-The frontend lane's PR #117 emits `generation` first. The current native code
-ignores the extra key. This native enforcement integrates **after** #117. If it
-landed first, a caller without `generation` would be refused by argument
-deserialization before the command runs.
+The frontend lane's PR #117 emitted `generation` before native enforcement was
+integrated. The native commands now require it; a caller without `generation`
+is refused by argument deserialization before the command runs.

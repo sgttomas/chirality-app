@@ -188,6 +188,9 @@ supplier pin qualification, and the recorded notice gaps (the four supplier
 associations, rg/PCRE2/zsh licence texts, full objc2 terms and the Apple SDK caveat,
 transitive coverage, and the unverified `@fontsource` upstream).
 
+The following was the earlier input-test assessment, before the selected build,
+signing and notarization recorded above:
+
 The next production subject requires the actual owner identifier/team and
 settled signer/keychain inputs, then a separately identified production build,
 signing/notarisation and quarantined installed witness. This unsigned input-test

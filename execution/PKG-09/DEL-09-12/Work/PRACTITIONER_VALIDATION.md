@@ -5,7 +5,7 @@
   - the PROPOSED schema `pv.practitioner-validation.schema.json`, with five record kinds;
   - illustrative examples `pv.examples.valid.json` (12) and `pv.examples.invalid.json` (29).
 
-  The prototype is under `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/pv/` (RUN/F/pv): `pvlib.py` builds the current real records and holds the rules; `check_pv.py` checks them. The real records state what is true now: **no validation is agreed, and no practitioner use has occurred**. Every example is labelled ILLUSTRATIVE or INVENTED and is not a practitioner observation (VER-003).
+  The historical prototype and records are recoverable from Git commit `34de68e5` at `_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/F/pv/` (RUN/F/pv). Its `pvlib.py` built the records and holds the rules; `check_pv.py` checks them. At their build, the records stated **no validation was agreed, and no practitioner use had occurred**. The recorded build commit `b2fbfdbac84368c74a33e555815452fb8fcb199c` is not available in this checkout, so its supplier reads cannot currently be reproduced here. Every example is labelled ILLUSTRATIVE or INVENTED and is not a practitioner observation (VER-003).
 - **Run and assignment:** `APP-V4-DESIGN-PASS-4-20261003`, tranche 2; prepared by design agent O-F (Type 2, Claude Opus 5.5); 2026-10-04. In this file "the owner" is always the person; agents and deliverables are named as such.
 - **Serves:** OUT-001, OUT-002, OUT-003; REQ-001…REQ-006; designed cases for VER-001…VER-006 (§8).
 - **Rulings (cited by ID):**
@@ -155,7 +155,14 @@ DEL-11-03's first cut therefore refuses this record as it stands. Its next revis
   - `agreed`, `in_use` and `ended` require an agreement reference (PV1-R3);
   - `is_replacement_condition` is the constant `false` (F-R3).
 
-## 4. The real records now (`F/pv/records`, built at `b2fbfdbac8`)
+## 4. Historical real records (`F/pv/records`, built at `b2fbfdbac8`)
+
+These records describe their build-time subject, not the current candidate inventory.
+The retained App desktop candidate `795362874d-a391547a5c5d` and its bounded
+setup observation are described in DEL-09-02 `DESKTOP_CANDIDATE_CONTINUATION.md`.
+That agent-operated observation is not practitioner use or an agreement on a
+validation period and activities. The historical record has not been rebuilt
+and cannot establish the current standing of either expression.
 
 - **PV-ARR-1** (`not_agreed`). No agreement, no period, and **no activity proposed**: the activities are the owner's choice, and none could run before a candidate exists. Both expressions are `blocked`:
   - App: "no App v4 candidate exists: DEL-09-02's dossier is an illustrative example and nothing is built";
@@ -168,7 +175,7 @@ DEL-11-03's first cut therefore refuses this record as it stands. Its next revis
 
 ## 5. Sequence
 
-1. When a candidate exists for an expression, the coordinator may prepare a proposal (`proposed`). Its activities are proposed and not selected.
+1. For an identified candidate, the coordinator may prepare a proposal (`proposed`). Its activities are proposed and not selected.
 2. The owner agrees, an act at OI-016 (App v4)'s point of need (P-2). It is recorded in OWNER_DECISIONS form, and the arrangement becomes `agreed`.
 3. The owner uses v4 (P-3). Each session is recorded as a `pv_observation` (`actual_use`), and the state becomes `in_use`.
 4. Each observation that implicates a commitment gets a disposition, routed by §3.4.

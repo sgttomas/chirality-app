@@ -189,6 +189,8 @@ and all three raw traces, verified all six source blob identities/lengths/SHA-25
 against the committed source, checked every compiler/native channel hash and
 length, and reapplied the bound verifier to the raw native bytes. All 19 artifact
 files are preserved byte-for-byte; no executable binary is committed.
+The result remains in the current tree; the 18 raw compiler and native channel
+files are recoverable from Git history at `b0ba3134`.
 
 - Positive (`execution/PKG-01/DEL-01-02/Work/hosted-windows-p03-evidence/0aec700d/positive-native.stdout`, removed run output; recoverable from Git history at b0ba3134): the
   original leader exited after stdin closed, its descendant remained live

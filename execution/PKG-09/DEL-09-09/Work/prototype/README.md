@@ -19,9 +19,13 @@ not changed; `sys.dont_write_bytecode` keeps their folders free of caches.
 
 ```sh
 cd "<this folder>/.."
-python3 -B prototype/run_xt_suite.py --out "$TMPDIR/b7-xt"
-# --write-examples regenerates the four xt-*.example.*.json files
+xt_scratch=$(mktemp -d "${TMPDIR:-/tmp}/xt-rehearsal.XXXXXX")
+python3 -B prototype/run_xt_suite.py --out "$xt_scratch/run"
 ```
+
+The runner removes an existing `--out` directory before writing; use a fresh
+scratch destination. `--write-examples` overwrites the four committed
+`xt-*.example.*.json` files and is not needed for a rehearsal.
 
 Exit status 0 only if every check holds. The observed output of the run of
 2026-09-30 is recorded in XT-v0.6 §3.6 and in
@@ -30,11 +34,11 @@ Exit status 0 only if every check holds. The observed output of the run of
 `archive/pre-efficiency-cleanup-2026-10-09`: from the repository root,
 `git show archive/pre-efficiency-cleanup-2026-10-09:<path>`.
 
-**RP-4 (2026-09-30).** Evidence limits are written in RS R11's own spelling
-(the mapper's tokens are mapped once) and checked against the labels of
-DEL-04-03's `RS_RECORD.schema.json`. Rerun output in `WAVE_B/RP-4.md`. The
-result-record examples record the sha256 of the other prototypes' files, so
-they are regenerated (`--write-examples`) whenever those change.
+**RP-4 (2026-09-30).** Evidence limits use RS R11 spelling and are checked
+against DEL-04-03's `RS_RECORD.schema.json`; the rerun output is in
+`WAVE_B/RP-4.md`. Result-record examples bind the other prototypes' file
+hashes. Preserve their historical source identities; a new subject needs its
+own explicitly selected evidence rather than a silent hash refresh.
 
 ## Limits
 

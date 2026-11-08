@@ -1,5 +1,10 @@
 # Durable execution and request recovery
 
+The draft status and source pins below describe the original RECOVERY-v0.2
+definition and its observations. Later implementation and its remaining
+limits are described in [Current implementation conditions](#current-implementation-conditions);
+the historical definition and prototype do not establish candidate qualification.
+
 Windows development proposal, source-bound to App `79315c26`: see
 [Windows platform services](WINDOWS_PLATFORM_SERVICES.md) for custody,
 actual-opened-file SQLite identity, namespace/durability choices and unrun
@@ -80,6 +85,10 @@ decided: the owner's OI-008 ruling of 2026-10-10 (`docs/ARCHITECTURE.md` §3;
 §4.1 "Placement") puts in the Rust host everything that writes the person's
 files or the App's records, talks to Codex, or captures a person's act. The
 requirements are still stated separately from the placement.
+
+The following describes the original design's scope. Later additions in §7
+and Current implementation conditions describe the selected SQLite store and
+its implementation; historical supplier observations keep their stated version.
 
 **What this file does not contain.** Product code, a persistence technology,
 wire fields of Chirality's own, timing numbers (the ScopeOfWork's Praxeology

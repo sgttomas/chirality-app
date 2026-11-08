@@ -1,5 +1,16 @@
 # Bounded package-free Windows process fixture return
 
+**Current route:** The owner’s corrected Windows route of 2026-10-29
+supersedes the separate-build-guest route and the proposed guest-session
+restoration below. No second-local-instance acquisition, media retrieval,
+setup, boot or provisioning is authorized to resume. The CAEPIPE guest is
+permanently off-limits; preserve the dormant hardware and private target
+binding. Hosted CI is sufficient for the P-03 fixture only, not product App,
+namespace, SQLite or durability qualification. An exact capability missing from
+hosted CI, including any cloud option, requires an owner decision before
+acquisition or spend. The following account retains its historical observations,
+refusals and safety prerequisites; it grants no guest-operation authority.
+
 Current execution hold: the earlier target was confirmed to be the protected
 CAEPIPE VM. It is permanently off-limits. The owner selected a separate build
 guest (at most 16 GiB RAM); no target is bound yet. All guest driver modes now
