@@ -260,6 +260,11 @@ consumer basis for DEL-11-02. No adoption is performed or claimed (CLM-005).
 | VER-005 | Against PKG-02…05 interfaces and ARCH (§2.3) | Done: no common implementation named; direction retained |
 | VER-006 | Exclusions and attribution | `check_boundary_owner_resolution.py` on this SoW: 1 checked, 0 failing (O-E, 2026-10-04). Semantic follow-up: §2 assigns every act to its owner; F-RA1 is routed, not performed; the S-6 row was made by O-A, its owner |
 
+The original O-E prototype checked population equality for DEL-10-03 ACTIVE
+EXECUTION rows (P-1), the reverse register scan (R-1), missing mirrors (F-1),
+and supplier SoW clauses (R-2); its self-test exercised negative cases. Those
+historical population and register checks were retired during migration.
+
 **`prototype/ra_check.py`.** H-1 compares the supplier Design and SoW
 hashes with the prefixes in §1.2 and §3.1. A moved supplier is a notice by
 default and a failure with `--strict`; deliberate re-pinning requires reading

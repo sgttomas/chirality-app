@@ -100,15 +100,30 @@ The earlier [v2.1 product-boundary recommendation](LIBRARY_V2_1_RECEIVING.md#pro
 remains a recommendation, not a selected product migration. No native/model
 proof follows from this source inspection.
 
-## Verification scope
+## Verification
 
-The receiving checks covered the partial Library fixture, project entry,
-deliverable and existing prototype consumers, and instruction-resource
-freshness. The initial isolated harness failed because Python `-I` removed the
-validator's adjacent-module import path; the relocated export uses `-E -s`
-without patching the released source. No App build, native, supplier, auth or
-model action, asset acquisition or Library write was performed. The receiving
-evidence is at `/Users/ryan/dev/chirality-t3/scratch/app-library-v3-receiving-_xtqy8q6/CHECK_SUMMARY.json`.
+The initial receiving result was bound to `682212f62b312e182bcfb22a1ab6efa842a2adf4`; the later header extension was bound to `eac5c32b7c2c8221ea5bf39d4ce19d3e2ee8bf9a`.
+
+Focused checks use prepared offline Python/PyYAML/pytest under the ordinary
+slot wrapper with fresh scratch OS/Codex/temp homes. The receiving harness,
+historical fixture checks, existing deliverable/CI/prototype consumers,
+instruction-resource freshness and the documented neighborhood query are the
+relevant checks. Results: 130 focused pytest cases passed; deliverables reported
+41 deliverables and zero errors; the DEL-10-01 neighborhood query succeeded;
+instruction-resource freshness passed for all eight files; ten generator tests
+passed; and examination pins agreed. The ten retained Library blobs and modes
+were independently compared with the selected Git objects. Receiving/init local
+links resolved, and the protected product sources, generated instructions,
+derivation, historical fixture, init prompt and CLAUDE pointer were unchanged.
+
+Evidence is retained in
+`/Users/ryan/dev/chirality-t3/scratch/app-library-v3-receiving-_xtqy8q6/CHECK_SUMMARY.json`;
+the final receipt binds contribution and log hashes to the PR head. The initial
+harness invocation failed because Python `-I` removed the released validator's
+adjacent-module import path. The harness now uses `-E -s` in its relocated
+export; the released source was not patched. The corrected focused batch passed.
+No App build, native/supplier/auth/model action, asset acquisition or Library
+write was performed.
 
 ## Mandatory maintained-document headers
 
@@ -153,6 +168,10 @@ examination freshness check exercise the existing readers; no current pin or
 derivative requires regeneration for these documents. Historical hash-bound
 documentary selections retain their frozen subjects rather than being renewed.
 
-The header/body comparison retained the nineteen pre-header bodies apart from
-the stated loop clarification. Extended evidence is at
+The extended focused suite passed 167 pytest cases, including all nineteen live
+headers and schema/entry/preservation regressions, plus ten instruction-generator
+tests. Deliverables again reported 41/zero errors; the neighborhood query,
+eight-file instruction freshness and examination-pin check passed. Header/body
+comparison preserved all nineteen pre-header bodies apart from the stated loop
+clarification. Extended evidence is at
 `/Users/ryan/dev/chirality-t3/scratch/app-library-v3-headers-3ual3kma/CHECK_SUMMARY.json`.
