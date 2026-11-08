@@ -3,7 +3,7 @@
     {
       "file": "RS_RECORD.schema.json",
       "source": "execution/PKG-04/DEL-04-03/Work/RS_RECORD.schema.json",
-      "sha256": "05060e9708c84cae6b1d2545801b901e1d1cab1c3db4f0efbcf817fbdc5997d2",
+      "sha256": "83c14eba00f0ea4899d73b0893f943dd18d7dc54ee0b8239fafdcfe2151465ac",
       "id": "urn:chirality:app-v4:del-04-03:rs-record:0.1"
     },
     {
@@ -21,7 +21,7 @@
     {
       "file": "AS_SETTINGS_IN.schema.json",
       "source": "execution/PKG-04/DEL-04-02/Work/AS_SETTINGS_IN.schema.json",
-      "sha256": "206045da42dae052621893c8e25487066b36ef8e8a3a7a28414b02137be07d62",
+      "sha256": "f0fc92f70c4a6a56f632724f7c506d3bc9dde7f9bbb8801d6111ee7d93805363",
       "id": "urn:chirality:app-v4:del-04-02:settings-in:0.1"
     },
     {

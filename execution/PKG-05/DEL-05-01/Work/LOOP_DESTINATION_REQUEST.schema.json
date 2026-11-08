@@ -67,7 +67,8 @@
     "endCause": {
       "enum": [
         "run ended",
-        "turn cancelled"
+        "turn cancelled",
+        "turn failed"
       ]
     },
     "grantScope": {
@@ -82,6 +83,9 @@
     },
     "result": {
       "$ref": "#/$defs/result"
+    },
+    "turnRef": {
+      "$ref": "#/$defs/turnRef"
     }
   },
   "anyOf": [
@@ -308,6 +312,67 @@
           "const": "destination not allowed"
         }
       }
+    },
+    "turnRef": {
+      "type": "object",
+      "required": [
+        "hostIdentity",
+        "conversationId",
+        "runId",
+        "turnId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "hostIdentity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conversationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "turnId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "endCause"
+        ],
+        "properties": {
+          "endCause": {
+            "const": "turn failed"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "turnRef"
+        ],
+        "properties": {
+          "state": {
+            "const": "unanswered at end"
+          },
+          "result": {
+            "not": {}
+          },
+          "grantScope": {
+            "not": {}
+          },
+          "interimNotice": {
+            "not": {}
+          }
+        }
+      }
+    }
+  ]
 }

@@ -29,6 +29,7 @@ discovery answers are scripted from the published revision 2026-07-28 as
 LOOP §5.3 DF-7 quotes it; no server was contacted.
 """
 
+import copy
 import glob
 import json
 import os
@@ -105,9 +106,22 @@ class NativeLayer:
 # --------------------------------------------------------------------------
 # The loop side: V-D, the in-work request, results in TL-2 classes
 # --------------------------------------------------------------------------
+TURN_FIELDS = ("hostIdentity", "conversationId", "runId", "turnId")
+
+
+def valid_turn_ref(value):
+    return (isinstance(value, dict) and set(value) == set(TURN_FIELDS)
+            and all(isinstance(value[k], str) and value[k].strip() for k in TURN_FIELDS))
+
+
 class Run:
-    def __init__(self, run_id, settings, prompt_available=True):
+    def __init__(self, run_id, settings, prompt_available=True,
+                 host_identity="FX-PIPE-01", conversation_id=None):
         self.run_id = run_id
+        self.host_identity = host_identity
+        self.conversation_id = conversation_id
+        self.failed_turns = []
+        self.provenance_limits = set()
         self.nl = NativeLayer(settings)
         self.prompt_available = prompt_available
         self.entries = []
@@ -123,7 +137,7 @@ class Run:
                  "host control": "host-control:E"}[role]
         self.entries.append({"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": rid,
                              "kind": kind, "recorder": {"role": role, "identity": ident},
-                             "context": {"surface": "host", "hostIdentity": "FX-PIPE-01"},
+                             "context": {"surface": "host", "hostIdentity": self.host_identity},
                              "runId": self.run_id, "seq": self.seq, "writtenAt": f"w{self.seq:03d}",
                              "body": body})
         return rid
@@ -194,10 +208,18 @@ class Run:
             if g["ref"] == grant_ref and g["scope"] == "once":
                 g["state"] = "consumed"
 
-    def request(self, call, target, purpose, scope, carried=None, t="t"):
+    def request(self, call, target, purpose, scope, carried=None, t="t", turn_ref=None):
         """DF-5 Q-1...Q-5. carried = (operation reference, category, destination)."""
+        if turn_ref is not None and not self.owns_turn(turn_ref):
+            raise ValueError("request source/turn binding not established; no grant or dispatch")
         rec = {"basis": "LOOP-v0.8 §5.3", "requestCall": call, "requester": "host-agent:E",
                "target": target, "purpose": purpose, "scopeSought": scope}
+        if turn_ref is not None:
+            rec["turnRef"] = copy.deepcopy(turn_ref)
+        if turn_ref in self.failed_turns:
+            raise ValueError("turn failed; late request cannot reopen permission")
+        if call in self.requests:
+            raise ValueError("request correlation already held; cannot replace original")
         if carried:
             rec["carriedCall"] = {"operationReference": carried[0], "argumentText": json.dumps({"to": carried[2]}),
                                   "destination": {"category": carried[1], "destination": carried[2]}}
@@ -247,6 +269,10 @@ class Run:
 
     def close(self, call, state, reason=None, cause=None, t="t", result_reason=None):
         rec = self.requests[call]
+        if cause == "turn failed" and (rec.get("state") != "pending"
+                or not self.owns_turn(rec.get("turnRef"))
+                or rec["turnRef"] not in self.failed_turns):
+            raise ValueError("failed-turn closure lacks original pending request binding")
         rec["state"] = state
         body = {"requestRef": rec["req_ref"], "state": state, "carriedCallSent": False, "time": t}
         if reason:
@@ -255,6 +281,9 @@ class Run:
         if cause:
             body["cause"] = cause
             rec["endCause"] = cause
+        if cause == "turn failed":
+            body["turnRef"] = copy.deepcopy(rec["turnRef"])
+            rec.pop("interimNotice", None)
         self.rs("destination_request_closed", body, "host loop")
         if state == "not granted":
             r = {"class": 2, "label": NOT_ALLOWED, "reporter": "native layer" if reason == "not grantable"
@@ -266,7 +295,10 @@ class Run:
     def answer(self, call, answer, scope=None, t="t"):
         """DF-5 Q-6...Q-9."""
         rec = self.requests[call]
-        assert rec.get("state") == "pending"
+        if call in self.provenance_limits:
+            raise ValueError("request source/turn binding unavailable; answer withheld")
+        if rec.get("state") != "pending" or rec.get("turnRef") in self.failed_turns:
+            raise ValueError("request no longer answerable; no grant or late reply")
         if answer in ("run ended", "turn cancelled"):                          # Q-9
             return self.close(call, "unanswered at end", cause=answer, t=t)
         if answer == "decline":                                                # Q-8
@@ -304,6 +336,32 @@ class Run:
             rec["result"] = self.results[call] = {"class": 3, "label": f"granted: {scope}",
                                                   "reporter": "host control", "deferred": True}
         return "granted"
+
+    def owns_turn(self, turn_ref):
+        return (valid_turn_ref(turn_ref)
+                and turn_ref["hostIdentity"] == self.host_identity
+                and turn_ref["conversationId"] == self.conversation_id
+                and turn_ref["runId"] == self.run_id)
+
+    def fail_turn(self, turn_ref, t="t"):
+        """Scripted, source-bound failure; not a live host-loop implementation."""
+        if not self.owns_turn(turn_ref):
+            raise ValueError("failed-turn source/conversation/run binding not established")
+        if turn_ref not in self.failed_turns:
+            self.failed_turns.append(copy.deepcopy(turn_ref))
+        closed = []
+        for call, rec in self.requests.items():
+            if rec.get("state") != "pending":
+                continue
+            binding = rec.get("turnRef")
+            if not self.owns_turn(binding):
+                # Old/unbound claims remain evidence, never a grantable prompt
+                # or a falsely attributed closure of this failed turn.
+                self.provenance_limits.add(call)
+            elif binding == turn_ref:
+                self.close(call, "unanswered at end", cause="turn failed", t=t)
+                closed.append(call)
+        return closed
 
     def loop_record(self, call):
         rec = {k: v for k, v in self.requests[call].items() if k != "req_ref"}

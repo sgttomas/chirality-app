@@ -2995,7 +2995,7 @@
     {
       "source": "execution/PKG-04/DEL-04-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-04/DEL-04-02/ScopeOfWork.md",
-      "sha256": "e4f9c20828c015f49b1e8066b1d20c8d53da7286dde829b706b569492ffedc66"
+      "sha256": "19021c464487f5709863cd1f547006a480ee373048502786c4ba5bad333734cc"
     },
     {
       "source": "execution/PKG-04/DEL-04-02/Work/AS_SETTINGS_IN.invalid.examples.json",
@@ -3005,7 +3005,7 @@
     {
       "source": "execution/PKG-04/DEL-04-02/Work/AS_SETTINGS_IN.schema.json",
       "copy": "app/contract_inputs/PKG-04/DEL-04-02/Work/AS_SETTINGS_IN.schema.json",
-      "sha256": "206045da42dae052621893c8e25487066b36ef8e8a3a7a28414b02137be07d62"
+      "sha256": "f0fc92f70c4a6a56f632724f7c506d3bc9dde7f9bbb8801d6111ee7d93805363"
     },
     {
       "source": "execution/PKG-04/DEL-04-02/Work/AS_SETTINGS_IN.valid.examples.json",
@@ -3020,12 +3020,12 @@
     {
       "source": "execution/PKG-04/DEL-04-03/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-04/DEL-04-03/ScopeOfWork.md",
-      "sha256": "1335c4c47dc3a4e649c2628e1d974dd18d963968d9142894e33d2a1bb7f29790"
+      "sha256": "c93f68706a31ececac7d2ce627a94946ab6d6f7c423744830290b1617af91684"
     },
     {
       "source": "execution/PKG-04/DEL-04-03/Work/RECORD_SEMANTICS.md",
       "copy": "app/contract_inputs/PKG-04/DEL-04-03/Work/RECORD_SEMANTICS.md",
-      "sha256": "7a026314e98555341dfa0f47a61efe26bc8d91dfda607add48d47c8e95fe1b22"
+      "sha256": "19ee64a9602b5149d38201f3f53233408bb4d8297e017e0fe35914987431c79f"
     },
     {
       "source": "execution/PKG-04/DEL-04-03/Work/RS_RECORD.invalid.examples.json",
@@ -3035,7 +3035,7 @@
     {
       "source": "execution/PKG-04/DEL-04-03/Work/RS_RECORD.schema.json",
       "copy": "app/contract_inputs/PKG-04/DEL-04-03/Work/RS_RECORD.schema.json",
-      "sha256": "05060e9708c84cae6b1d2545801b901e1d1cab1c3db4f0efbcf817fbdc5997d2"
+      "sha256": "83c14eba00f0ea4899d73b0893f943dd18d7dc54ee0b8239fafdcfe2151465ac"
     },
     {
       "source": "execution/PKG-04/DEL-04-03/Work/RS_RECORD.valid.act-log.example.jsonl",
@@ -3080,7 +3080,7 @@
     {
       "source": "execution/PKG-05/DEL-05-01/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-05/DEL-05-01/ScopeOfWork.md",
-      "sha256": "16a2443b795da4e2fab9a7efcc23b16e47fe103ab918bebc8864c0d1a18df30a"
+      "sha256": "6cdfba9dc00991e338d7e02f2dc9db46bfc93384a900c4b352bcdbd796e50dd6"
     },
     {
       "source": "execution/PKG-05/DEL-05-01/Work/LOOP_DESTINATION_REQUEST.example.invalid.json",
@@ -3095,12 +3095,12 @@
     {
       "source": "execution/PKG-05/DEL-05-01/Work/LOOP_DESTINATION_REQUEST.schema.json",
       "copy": "app/contract_inputs/PKG-05/DEL-05-01/Work/LOOP_DESTINATION_REQUEST.schema.json",
-      "sha256": "7b70146bd7a48b8691e132063447b4a9664db5b16135862d2b662e8cc516ac90"
+      "sha256": "0e78b3e5e0f7d677fa0647c91a51aecd8f33ece6316695ccef115313f8ba2c84"
     },
     {
       "source": "execution/PKG-05/DEL-05-01/Work/LOOP_RECEIVING_CONTRACT.md",
       "copy": "app/contract_inputs/PKG-05/DEL-05-01/Work/LOOP_RECEIVING_CONTRACT.md",
-      "sha256": "23754dab6d5b7006739afd1401939ff766f116d87ba3f802b4d3c327b5663151"
+      "sha256": "b0f2c6d1b90e061261b3912719ca7bf9df32f09e9b4dd5d270525b7cf32b6792"
     },
     {
       "source": "execution/PKG-05/DEL-05-01/Work/LOOP_TOOL_CALL.example.invalid.json",
@@ -3130,12 +3130,12 @@
     {
       "source": "execution/PKG-05/DEL-05-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-05/DEL-05-02/ScopeOfWork.md",
-      "sha256": "8d476d82a5561ce9fa09bf544c1b7fbdb6f117c030924dbfb559db9f0a1bd8e8"
+      "sha256": "c00b344e2c7eab1a04c38c3fe117918cb09077a7b015604f90dba774dd2afaff"
     },
     {
       "source": "execution/PKG-05/DEL-05-02/Work/PANEL_RECEIVING_CONTRACT.md",
       "copy": "app/contract_inputs/PKG-05/DEL-05-02/Work/PANEL_RECEIVING_CONTRACT.md",
-      "sha256": "4af8188e8bddd7d971def4c4a535f45c5494483e7805d2163ae9027cc95dbab4"
+      "sha256": "91ea88bf95ce9658f681066b9c061f3ea8c936e370f561869302d0294c9c5979"
     },
     {
       "source": "execution/PKG-05/DEL-05-02/Work/PANEL_RETURN_INPUT.example.invalid.json",

@@ -11,6 +11,7 @@ strings are the display meanings the contract names.
 
 Usage: python3 panel_double.py [fixtures/event_script.json]
 """
+import copy
 import json
 import os
 import sys
@@ -18,10 +19,21 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
+TURN_FIELDS = ("hostIdentity", "conversationId", "runId", "turnId")
+
+
+def valid_turn_ref(value):
+    return (isinstance(value, dict) and set(value) == set(TURN_FIELDS)
+            and all(isinstance(value[k], str) and value[k].strip() for k in TURN_FIELDS))
+
+
 def reduce(events, unresolved):
     shown = []
     last = 0
-    pending = {}  # destination request id -> destination
+    pending = {}  # request identity -> destination and original turn binding
+    ended = set()
+    failed = []
+    withheld = set()
     for ev in events:
         n = ev["ordinal"]
         if n != last + 1:
@@ -32,6 +44,22 @@ def reduce(events, unresolved):
             shown.append(f"FD-1 model interface failure: {ev['termination_reason']} (reported by {ev['reporter']})")
         elif kind == "turn failed":
             shown.append(f"FD-1 turn {ev['turn']} failed: {ev['cause']}; partial message shown as {ev['message_standing']}")
+            binding = ev.get("turnRef")
+            if not valid_turn_ref(binding) or binding["turnId"] != ev["turn"]:
+                if pending:
+                    withheld.update(pending)
+                    shown.append("FD-4 failed-turn provenance unavailable; choices withheld; no closure or grant inferred")
+                continue
+            if binding not in failed:
+                failed.append(copy.deepcopy(binding))
+            for req, (dest, original) in sorted(list(pending.items())):
+                if not valid_turn_ref(original):
+                    withheld.add(req)
+                    shown.append(f"FD-4 request {req}: source/turn binding unavailable; choices withheld; no closure inferred")
+                elif original == binding and req not in withheld:
+                    shown.append(f"FD-4 destination request {req} for {dest}: not answered, turn failed; no grant shown; requesting call not sent")
+                    ended.add(req)
+                    pending.pop(req)
         elif kind == "reference":
             ref = ev["reference"]
             if ref in unresolved:
@@ -39,13 +67,31 @@ def reduce(events, unresolved):
             else:
                 shown.append(f"reference {ref} ('{ev['label']}')")
         elif kind == "destination request issued":
-            pending[ev["request"]] = ev["destination"]
-            shown.append(f"destination request {ev['request']} for {ev['destination']} shown (ND-2)")
+            req, binding = ev["request"], ev.get("turnRef")
+            if req in ended or (valid_turn_ref(binding) and binding in failed):
+                shown.append(f"FD-4 late request {req} withheld: turn failed; no choices or grant")
+                ended.add(req)
+                continue
+            if req in pending:
+                withheld.add(req)
+                shown.append(f"FD-4 duplicate request {req}: provenance ambiguous; choices withheld")
+                continue
+            pending[req] = (ev["destination"], copy.deepcopy(binding))
+            shown.append(f"destination request {req} for {ev['destination']} shown (ND-2)")
         elif kind in ("destination grant observed", "destination declined"):
-            pending.pop(ev["request"], None)
-            shown.append(f"{kind} for request {ev['request']}")
+            req = ev["request"]
+            original = pending.get(req, (None, None))[1]
+            if req in ended or req in withheld:
+                shown.append(f"FD-4 late or ambiguous answer for request {req} withheld; no grant inferred")
+                continue
+            if valid_turn_ref(original) and ev.get("turnRef") != original:
+                withheld.add(req)
+                shown.append(f"FD-4 mismatched answer for request {req} withheld; no grant inferred")
+                continue
+            pending.pop(req, None)
+            shown.append(f"{kind} for request {req}")
         elif kind == "run ended":
-            for req, dest in sorted(pending.items()):
+            for req, (dest, _) in sorted(pending.items()):
                 shown.append(f"FD-4 destination request {req} for {dest}: not answered, run ended; no grant shown; requesting call not sent")
             pending.clear()
             shown.append(f"run ended ({ev['cause']})")
