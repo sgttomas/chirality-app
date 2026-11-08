@@ -35,3 +35,20 @@ remain at basis89ac/four roles. This contributor edition does not qualify
 product uptake or native behavior. Draft PR161 and the successor prompt remain
 held for the owner's direction. J2 continuation, acquisition, acceptance and
 publication retain their existing boundaries.
+
+## Retired change-skill pointer
+
+The pre-split combined repository removed `workflows/change` and
+`.agents/skills/chirality-change/SKILL.md` at commit
+`047da79894bc5631dca564a30113f2cd26ec7ae1`. For current App work, use App
+`AGENTS.md`, `loop/LOOP_INIT.md` and the selected Library edition and methods
+under the actual assignment. The former repository's Git grant and recovery
+duties do not transfer; no replacement change method is selected here.
+
+DEL-10-01 source U and DEL-10-02 source B4 retain their historical citations;
+they do not make the retired skill current authority. The historical input
+manifest, distribution basis and instruction SOURCE_MAP retain their original
+source identities. The SOURCE_MAP records a change/review boundary read, not
+product instructions. DEL-10-01's historical prototype and DEL-10-02's
+content-bound controls account remain unchanged. This clarification changes
+no acceptance, product binding or historical result.
