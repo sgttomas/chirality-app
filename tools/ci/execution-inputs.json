@@ -4065,7 +4065,7 @@
     {
       "source": "execution/_Coordination/CURRENT_EXECUTION_BASIS.md",
       "copy": "app/contract_inputs/_Coordination/CURRENT_EXECUTION_BASIS.md",
-      "sha256": "c7ddb4279c68b2ae391f76a323974db5e44b13c01b2022e3fa1c236d5bfa7fb3"
+      "sha256": "b8cd5d04492f50f9cd161c4525325874fb0a4dce243c94af10d53c82a3b0eab6"
     },
     {
       "source": "execution/_Coordination/PUBLICATION_PUNCHLIST.md",
@@ -4075,7 +4075,7 @@
     {
       "source": "execution/_Coordination/WINDOWS_UNDERTAKING.md",
       "copy": "app/contract_inputs/_Coordination/WINDOWS_UNDERTAKING.md",
-      "sha256": "14d121c7d85120644e0f10d1c4ec490c9dcc81ef2d4b5d1f54f4fcd4fbdb8fae"
+      "sha256": "5a62851aa45885cdaf30f84294803bf62bcf400e049c74e6e288c27ffe7ce053"
     },
     {
       "source": "execution/_DAG/DAG-004/ACCEPTANCE_RECORD.md",

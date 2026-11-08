@@ -587,7 +587,7 @@ controls apply that responsibility to the existing publication push:
    consequences. Preserve unrun/failed/limited standing. Owner product acceptance
    and public release remain separate actual decisions on an identified subject.
 
-The roster below records responsibility, not live thread state. The authoritative
+The lanes below record responsibility, not live thread state. The authoritative
 behavior/evidence stays in deliverables; the punchlist constrains completion.
 Active execution and current waits must be checked through the host's actual
 returns and artifacts. SWB resource requests are handled briefly and within
@@ -597,9 +597,10 @@ scope, followed by resumption of the App result already underway.
 
 The owner clarified that Agent 0 carries the work through publication, with
 acceptance, signing/account acts, replacement and public release still reserved.
-Current Type 1 assignments are:
+The delivery lanes and their states are recorded below. Find current T3 sessions
+by listing current threads; the owner names sessions at each restart.
 
-- **Product UI and examination consumer adoption:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:dfd5f3387f3d829609ad20116fc248c584aecf045d0fd2268b5674b536a95b92>.
+- **Product UI and examination consumer adoption:**
   PRs #84/#86/#87/#88/#89 and #107/#108/#110/#111 delivered the presentation,
   first-use, model-choice and task-navigation increments. The lane retains
   delivery ownership of the usable frontend journeys. #114's conversation
@@ -610,7 +611,7 @@ Current Type 1 assignments are:
   [Product readiness reconciliation](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md)
   distinguishes implemented slices from the still-open user journey. Agent 0
   owns shared design and integration; owner acceptance remains reserved.
-- **Native desktop qualification:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:22359dd2b3895ab8526f6413ce3500b18c9dfe3ce3973194a3a0e3f66f724f66>.
+- **Native desktop qualification:**
   The normal-account retained signed subject is `dc703a30` (`fe811788`).
   Independent development testing uses separate-ID unsigned debug Apps. The
   `a6fbc9a8` native observations are integrated in #112; source `26a01ff9` has
@@ -770,7 +771,7 @@ Current Type 1 assignments are:
   collector gate. No quarantine is present on the local installed copy; no
   downloaded first-launch assessment is claimed. Historical candidates and
   held `zootd3ob` remain preserved; no old unattended harness is resumed.
-- **macOS distribution readiness:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:29a4e14ac4c1423f4ccd20d7605000caf9a5b6d9030c967d51875cd09021e07f>.
+- **macOS distribution readiness:**
   Own package inputs, notices, supplier provenance and final distribution
   assembly. PRs #92/#94/#96/#97/#99/#101/#102/#103 retain the current assembly,
   receipts, signing and notarization results. Supplier pin qualification and
@@ -780,7 +781,7 @@ Current Type 1 assignments are:
   changes require a new identified candidate and applicable final signing/
   notarization, not transfer of old results. No repeat acceptance of the approved
   OpenAI terms is required; the distribution decision remains `not_made`.
-- **Installed supplier integrity and SEAL-C:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:72b0bb46c6645f2fd7155deab7d5ff1fa5b3b56a4e77151178a0e322c1e906ae>.
+- **Installed supplier integrity and SEAL-C:**
   #116/#118/#120/#121/#127 are integrated. The stock-Codex loopback joins,
   source-bound starts and run-order producer retain their recorded subjects
   and synthetic-model limits. The precise remaining qualification boundary
@@ -797,7 +798,7 @@ Current Type 1 assignments are:
 
 Earlier delivered contributions and continuing external boundaries:
 
-- **Earlier desktop contribution (closed):** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:7d4423ab96eb63909c64ead28201edafa921eec9683ce62de4849edb4ab0466a>.
+- **Earlier desktop contribution (closed):**
   Owned the standalone create/trial/review/register/reuse/refine experience,
   interruption/restart and access-mode evidence through an identified candidate,
   then distribution readiness. One coordinated offline unsigned build is now
@@ -829,7 +830,7 @@ Earlier delivered contributions and continuing external boundaries:
   freshness. The owner has now approved the scoped terms disposition below;
   no external supplier message was authorized or sent. Attested resource placement
   alone still does not supply the S4 observation or actual installed qualification.
-- **App-side joined delivery:** <t3-thread://v2/00d44996-9458-4eba-bed2-ffb8f49dab60/mcp:launch:e263974c69d95c07f824f21aba5371b4bdd0a58c8653fb3a8457cecd1441adf4>.
+- **App-side joined delivery:**
   Own App receiving interfaces, source-bound host evidence and reconciliation
   with DEL-09-06/09-07. PRs #14 and #16 merged the source applicability repair
   and current profile-admission/first-desktop-trace receiving preparation.
@@ -843,11 +844,11 @@ Earlier delivered contributions and continuing external boundaries:
 - **SWBPIPE counterpart:** SWBPIPE lives in `sgttomas/SWBPIPE` with its own
   Agent 0; coordinate as `AGENTS.md` describes. Host catalog adoption,
   adapter/dispatcher, session bridge, queue and functional panel remain
-  host-owned. The cutover-era [SWBPIPE Type 1](t3-thread://v1/thread:delegated-task:command%3Amcp%3A430b7a29-d695-474c-bb92-8f42bc864914%3Adelegate-task%3Aa0-appv4-coord-mgr-20261028)
-  route is historical. Historical source pins are not automatically repinned.
+  host-owned. The cutover-era SWBPIPE Type 1 contribution
+  is historical, not a current dispatch route. Historical source pins are not automatically repinned.
   Do not duplicate supplier acquisition or EOF/app-death fixtures.
-- **Windows Type 1 continuation:** assigned within the incoming App Agent 0's
-  project loop. The [retired Windows Agent 0 session](t3-thread://v1/7821dcff-74fd-4895-8c77-56074ddcb84a)
+- **Windows Type 1 continuation:** assigned within App Agent 0's
+  project loop. The retired Windows contribution
   retains its historical PR and evidence provenance; it is not the next work
   dispatch route. PRs #9 and #13 are merged. Windows fixtures and native-boundary
   implementations must preserve macOS checks and shared design ownership.
@@ -859,15 +860,11 @@ Earlier delivered contributions and continuing external boundaries:
   fixture passes do not establish product App, guest namespace, SQLite or
   durability qualification.
 
-The earlier closed sessions identify historical contributions, not active dispatch
-routes. Current assignments above retain delivery ownership through repairs,
+The earlier closed contributions are historical, not active dispatch routes.
+The assignment lanes above retain delivery ownership through repairs,
 reconciliation and integration. Agent 0 inspects actual returns and named retained
-inputs; a closed assignment does not continue merely because its link remains.
-[The outgoing App Agent 0 session](t3-thread://v1/dcd88874-e45b-4faf-ad20-7541072dc619)
-remains the return route for those existing assignments during closure, not a
-permanent identity for future project ownership. No new Agent 0 session ID or
-Windows manager assignment is implied here. Final App merges belong to the
-project Agent 0. The current model selections for Type 1 managers, Type 2
+inputs; a closed assignment does not continue merely because its record remains.
+Final App merges belong to the project Agent 0. The current model selections for Type 1 managers, Type 2
 execution tasks and independent reviews are recorded in the 2026-11-07
 resumption above. The earlier all-Codex selection is superseded for future
 Type 2 execution tasks; historical review/model standing remains as recorded.
