@@ -178,7 +178,7 @@ joins.
 No retrieval is authorized by this account. Each item names the exact input;
 "size unknown" means not established locally.
 
-1. **Remaining root bodies: two files, 1,670 bytes; unapproved.**
+1. **Remaining root bodies: two files, 1,670 bytes; owner deferred acquisition.**
    - `Nugine/simd@d74c030d9dc4f3cae02146d1f497ff62726ef09a/LICENSE`,
      1,062 B, blob `2c7eabb59093ea117d73b20effdd0414f87b2af2`, for
      uuid-simd/vsimd. The retained outref member is blob `2ca354be…`, so it
@@ -198,10 +198,16 @@ No retrieval is authorized by this account. Each item names the exact input;
    The sole permitted 2026-11-05 HEAD returned 200 without Content-Length.
    Exact archive size remains unknown; no new metadata/body request or receipt
    has occurred. Its installed text stays unverified.
-3. **Main and code-mode-host Rust dependencies.** These need `codex-rs/Cargo.lock`
-   at `a956835d` (406,552 B, blob `19885ae9…`) plus the 160 workspace
-   `Cargo.toml` manifests (178,197 B in total). Those resolve the linked macOS set;
-   the dependency archives' count and size follow only from that set.
+3. **Main and code-mode-host Rust dependency inputs: 159 files, 562,794 bytes.**
+   The [exact offline acquisition proposal](supplier-notice-associations/codex-source-graph-proposal.json)
+   enumerates each path, immutable-commit URL, size and Git blob from the retained
+   complete tree at `a956835d020762cb2b570053af06f643a11c0ecc`. It selects
+   `codex-rs/Cargo.lock` (406,552 B) and the 158 unreceived `Cargo.toml` manifests
+   (156,242 B). The already-received root and code-mode-host manifests are
+   separately identified and byte/blob verified; they are excluded from acquisition.
+   This prepares a future source-graph investigation, not an observed linked set
+   or a binary-to-source join. Dependency archives, target/feature resolution and
+   notice applicability remain separate. The proposal is not submitted or authorized.
    The alternative is a supplier-provided third-party notice or attestation for
    0.160.0.
 4. **code-mode-host V8 stack (potential edges from the clues above).** This
