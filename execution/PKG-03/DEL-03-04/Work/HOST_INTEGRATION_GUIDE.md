@@ -954,15 +954,58 @@ Closed since v0.1: **G-1** (closed at v0.6 by the pass-3 Design files ROLE-v0.2 
 
 ### 4.5 Pin check (R8-12 item 7; repeated at R8-13, at Wave A, nodes A1-G and A4, at Wave B, nodes B8 and RQ, at closeout, node C0, at nodes G, H and RV20, and at design pass 3, nodes F-E2, RP-final, closeout C0 and closeout G, and at pass-4 closeouts C1 and C2)
 
-The header's input table records the historical source identities used by the
-guide, including the pass-4 closeout C2 pins and later ACT tranche-2 pin.
-The pin method resolved each basename to one path and compared SHA-256
-values of the working-tree bytes; the design-pass-3 and pass-4 closeouts used B8's
-`pins.py` (sha256 `b943319d…5423`). The earlier Wave A and Wave B checks and
-the design-pass-3 and pass-4 closeouts are recorded in the run records cited
-in the header; their recovery path is given there. These checks describe the
-bytes at those passes, not current input currency (§4).
+At design pass 3 closeout node G (R22-1…R22-3 edits to RECOVERY, NIR and ROLE) HELP_HUMAN re-pinned the table with B8's script (`pins.py`, sha256 `b943319d…5423`, unchanged): 22/25 before the write, 25/25 after; check mode after the write: 25/25. At pass-4 closeout C1 (run APP-V4-DESIGN-PASS-4-20261003) 17 rows were re-pinned in place with the same script: 20/25 before, 22/25 after (ACT, RS and AAC held for the A16 edit); output in that run's `closeout/C1_INTEGRATION.md`. At pass-4 closeout C2 (GUIDE-v0.7) the same script re-pinned ACT, RS, AAC and ACCESS: 21/25 before the write, 25/25 after; check mode after the write: 25/25; output in `closeout/C2.md`.
 
+Every sha256 in the header's input table was recomputed by script from the
+working-tree bytes after this guide's R8-13 edits and compared with the table:
+18/18 match (16 Design inputs; ANS; FACTS). At Wave A (node A1-G) the table
+was re-pinned by script (`shasum -a 256`; each File basename resolved to
+one path) on `d1a6d13e53`, and the script was rerun against the
+working-tree bytes after this guide's A1-G edits: 18/18 match. The script
+and both outputs are in `WAVE_A/A1-G.md` of run
+APP-V4-DESIGN-PASS-2-20260930. At node A4 (R11-3) the table was re-pinned
+by the same method after node A4's repairs to the other Design files, and
+the check was rerun against the working-tree bytes after this guide's A4
+edits: 18/18 match; the script and its output are in `WAVE_A/A4.md`. At
+Wave B (node B8) the table was re-pinned by the same script after the Wave B
+nodes and node B8's R15-1 edits to LOOP and RS, with each row's version at
+its Wave B label, and the check was rerun against the working-tree bytes
+after this guide's B8 edits: 18/18 match; the script and its output are in
+`WAVE_B/B8.md`. At node RQ (repairs from review V19) the table was
+re-pinned by the same script after RQ's edits to the other Design files:
+4/18 matched before the write (SPIKE, RELAY, ANS, FACTS) and 18/18 after;
+the output is in `WAVE_B/RQ.md` §4. At node C0 (closeout; the four V19b
+MINOR repairs) the table was re-pinned by the same script after C0's edits
+to LOOP and HOSTING and to this guide: 16/18 matched before the write (LOOP
+and HOSTING differed) and 18/18 after; the output is in `closeout/C0.md`.
+At node G (the items the closeout returned to the graph) the table was
+re-pinned by the same script after node G's edits to the other files and to
+this guide: 8/18 matched before the write and 18/18 after; the output is in
+`closeout/G.md`.
+At node H (LOOP's four panel-needs gaps and current pins) the table was
+re-pinned by the same script after node H's edits to LOOP, PANEL, RS,
+HOSTING, CA and RELAY and to this guide: 12/18 matched before the write
+(RS, LOOP, PANEL, HOSTING, CA and RELAY differed) and 18/18 after; the
+output is in `closeout/H.md`.
+At node RV20 (the Design-file findings of final review V20-A) the table was
+re-pinned by the same script after node RV20's edits to C, LOOP and PANEL
+and to this guide: 15/18 matched before the write (C, LOOP and PANEL
+differed) and 18/18 after; the output is in `closeout/RV20.md`.
+At node F-E2 of design pass 3 (run APP-V4-DESIGN-PASS-3-20261001; GUIDE-v0.6)
+the table was re-pinned by the same script (B8's `pins.py`, sha256
+`b943319d…`) after the pass-3 edits to the other files and F-E2's in-place
+edits to ADAPTER and WR, with seven rows added for the pass-3 Design files
+and every row's version at its design-pass-3 label: 6/25 matched before the
+write (C, P, SPIKE, RELAY, ANS, FACTS) and 25/25 after; the output is in
+`F/F-E2.md` of that run.
+At node RP-final of the same run (after repairs RV21-A and RV21-B) the table
+was re-pinned by the same script after those repairs and RP-final's edits to
+CA: 11/25 matched before the write and 25/25 after; the output is in
+`F/F-E2.md` ("RP-final").
+At closeout node C0 of the same run the table was re-pinned by the same
+script after C0's wording edits to ACCESS, WR, EXEC, WD, HOSTING, CA and RS
+and to this guide: 18/25 matched before the write and 25/25 after; the
+output is in `closeout/C0.md`.
 The check binds the table to those bytes only; it is not a
 review of their content.
 
