@@ -14,6 +14,8 @@ import re
 import shlex
 import subprocess
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[2]
 CODE_SUFFIXES = frozenset({'.py', '.pyw', '.sh', '.bash', '.zsh', '.fish', '.mjs', '.cjs',
                           '.js', '.ts', '.tsx', '.jsx', '.rs', '.c', '.h', '.cpp', '.hpp',
@@ -43,6 +45,35 @@ def execution_literal(node):
     return any(isinstance(n, ast.Constant) and isinstance(n.value, str)
                and re.search(r'(?:^|[/\s\"\'])execution(?:/|$)', n.value)
                for n in ast.walk(node))
+
+
+def shell_execution_calls(command):
+    """Inspect literal interpreter commands after removing shell quoting."""
+    try:
+        words = shlex.split(command, comments=True)
+    except ValueError:
+        if re.search(r'\bexecution/', command):
+            yield 'Unparseable invocation into execution/'
+        return
+    for index, word in enumerate(words):
+        interpreter = re.fullmatch(r'(?:.*/)?(?:python[\d.]*|node|bash|sh|zsh|source|\.)', word)
+        if interpreter and any(re.search(r'(?:^|[/\s\"\'])execution(?:/|$)', arg) for arg in words[index + 1:]):
+            yield 'Interpreter invocation into execution/'
+            break
+    if words and re.search(r'(^|/)execution/', words[0]):
+        yield 'Interpreter invocation into execution/'
+
+
+def workflow_commands(value):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key == 'run' and isinstance(item, str):
+                yield item
+            else:
+                yield from workflow_commands(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from workflow_commands(item)
 
 
 def execution_calls(tree):
@@ -103,19 +134,7 @@ def execution_calls(tree):
                 # -c programs cannot hide a reference into the documentary tree.
                 yield 'Interpreter invocation into execution/'
         elif isinstance(command, ast.Constant) and isinstance(command.value, str):
-            try:
-                words = shlex.split(command.value)
-            except ValueError:
-                if re.search(r'\bexecution/', command.value):
-                    yield 'Unparseable invocation into execution/'
-                continue
-            for index, word in enumerate(words):
-                interpreter = re.fullmatch(r'(?:.*/)?(?:python[\d.]*|node|bash|sh|zsh)', word)
-                if interpreter and any(re.search(r'(?:^|[/\s\"\'])execution(?:/|$)', arg) for arg in words[index + 1:]):
-                    yield 'Interpreter invocation into execution/'
-                    break
-            if words and re.search(r'(^|/)execution/', words[0]):
-                yield 'Interpreter invocation into execution/'
+            yield from shell_execution_calls(command.value)
 
 def check(root=ROOT):
     root = Path(root)
@@ -155,6 +174,15 @@ def check(root=ROOT):
             continue
         if (path.suffix in {'.sh', '.bash', '.zsh'} or name.startswith('.github/')) and invocation.search(text):
             errors.append('Interpreter invocation into execution/: ' + name)
+        commands = [text] if path.suffix in {'.sh', '.bash', '.zsh'} else []
+        if name.startswith('.github/') and path.suffix in {'.yml', '.yaml'}:
+            try:
+                commands = list(workflow_commands(yaml.safe_load(text)))
+            except yaml.YAMLError:
+                errors.append('Unparseable workflow: ' + name)
+        for command in commands:
+            for line in command.replace('\\\n', '').splitlines():
+                errors.extend(reason + ': ' + name for reason in shell_execution_calls(line))
         if path.suffix == '.py' or path.name.endswith('.py.txt'):
             try:
                 tree = ast.parse(text)

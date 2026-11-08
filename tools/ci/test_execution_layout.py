@@ -193,3 +193,21 @@ def test_shell_quoting_does_not_hide_interpreter_path(repo, quote):
     write(repo, 'tools/probe.py', source.encode())
     with pytest.raises(ValueError, match='Interpreter invocation'):
         guard.check(repo)
+
+
+@pytest.mark.parametrize('quote', ["'", '"'])
+@pytest.mark.parametrize('surface', ['shell', 'workflow-block', 'workflow-scalar'])
+def test_quoted_interpreters_in_shell_files_and_workflows_are_guarded(repo, quote, surface):
+    import yaml
+    command = quote + '/usr/bin/python3' + quote + ' execution/probe/notes.md'
+    write(repo, 'execution/probe/notes.md', b'print("must not run from execution")\n')
+    if surface == 'shell':
+        write(repo, 'tools/probe.sh', ('#!/bin/sh\nset -eu\n' + command + '\n').encode())
+    elif surface == 'workflow-block':
+        text = 'jobs:\n  probe:\n    steps:\n      - run: |\n          set -eu\n          ' + command + '\n'
+        write(repo, '.github/workflows/probe.yml', text.encode())
+    else:
+        workflow = {'jobs': {'probe': {'steps': [{'run': command}]}}}
+        write(repo, '.github/workflows/probe.yml', yaml.safe_dump(workflow).encode())
+    with pytest.raises(ValueError, match='Interpreter invocation'):
+        guard.check(repo)
