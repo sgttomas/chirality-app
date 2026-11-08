@@ -1,5 +1,24 @@
 # App v4 current execution basis
 
+## Post-handoff contributor Library adoption — 2026-11-08 UTC
+
+The owner selected one post-handoff adoption PR, without restarting native or
+cloud testing. Contributor practice now pins released `library-v3.0.0` at
+`5170575f3f4c1fc51386fa5cd38c7ef9ac048b20`; the shared checkout and tag were
+verified at that revision. The [owning receiving account](../PKG-10/DEL-10-01/Work/LIBRARY_V3_RECEIVING.md)
+and [source fixture](../../reference/library-v3.0.0/README.md) state migration,
+entry-convention choices, YAML-reader compatibility and limits. Older c35/v2.1
+statements below are historical for new contributor reliance.
+
+The continuing interlocutor and conditional coordination are contributor
+instructions. The product's Work-owned/shipped instruction bytes and basis89ac
+four-role binding remain unchanged; this supplies no product v3 adoption.
+Optional typed headers on App's own entry files and the upcoming survey wording
+are deferred. The successor steering prompt and draft closeout PR161 remain
+unchanged until the owner guides their revision after the project adoptions.
+Existing J2 limits and unapproved continuation, acquisition/VM holds and
+publication reservations are not expanded by this adoption.
+
 ## Real-model J1 result and current next work — 2026-11-08
 
 The [current actual account](../PKG-09/DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md)

@@ -1,8 +1,8 @@
 # Chirality App repository instructions
 
-This repository owns App v4. Development resumed by owner direction on
-2026-10-28. Work follows the owner's current steer and the applicable product
-commitments. Commitment changes, acceptance and releases remain owner decisions.
+This repository owns App v4. Work follows the owner's current steer and the
+applicable product commitments. Commitment changes, acceptance and releases
+remain owner decisions.
 
 Current release pathway, delivery owners and remaining evidence are in
 `execution/_Coordination/CURRENT_EXECUTION_BASIS.md`. HELP_HUMAN retains Agent 0
@@ -10,12 +10,10 @@ responsibility; Type 1 managers work in dedicated T3 sessions and communicate
 through T3 chat, owning delivery through repairs, reconciliation and integration
 preparation.
 
-The owner's 2026-10-30 handoff direction selects a fresh project Agent 0 from
-the standard init entry. macOS remains the release baseline; App Agent 0 owns
-shared code and design. Windows continues as Type 1 work within that same
-project loop, adding implementations at native boundaries while preserving
-macOS checks. The separate Windows Agent 0 session is retired; its historical
-session link is not an active dispatch route. Preserve unfinished work in
+macOS is the release baseline; App Agent 0 owns shared code and design.
+Windows contributes at native boundaries in the same project loop while
+preserving macOS checks. Current and historical dispatch routes live in the
+execution basis linked above. Preserve unfinished work in
 reviewable PRs and integrate and reconcile contributions before cleaning up
 their owned branches, worktrees and scratch. Keep named recovery inputs and
 evidence still needed by consumers.
@@ -41,10 +39,13 @@ continuity and reserved choices, whatever role it entered through. Use only the
 hierarchy the undertaking needs. Managers retain ownership through repairs and
 integration; TASKs return their bounded contributions to the caller.
 
-INTERLOCUTOR is used only when a session selects it; it is never a direct entry
-or default role. HELP_HUMAN, HELPS_HUMANS or WORKING_ITEMS may delegate it; it
-delegates nothing. In a session that selects it, Agent 0 supplies periodic
-activity summaries and consults it at least before every PR merge. Its advice
+INTERLOCUTOR is opt-in per session; it is never a direct entry or default role.
+When session steering selects it, Agent 0 starts one INTERLOCUTOR session and
+continues it by message for the life of the Agent 0 session; a replacement
+starts only if that session is lost or the owner asks. It delegates nothing.
+Agent 0 sends periodic activity summaries and consults it at least before every
+PR merge, as `agents/AGENT_INTERLOCUTOR.md` describes. Independent implementation
+reviews remain separate contributions. Its advice
 carries no sign-off, veto, permission or override of checks, holds or owner
 decisions. After three rounds without convergence on a matter, Agent 0 explains
 its own view and proceeds within its authority. It needs no method for its
@@ -52,9 +53,11 @@ advisory brief; a method serves it only when that method's `compatible_roles`
 name it. Writes still need explicit brief targets and actual host permission.
 Selection, models and effort are not inferred.
 
-The selected shared Library edition is `library-v2.1.0` at
-`c35b7bbc463f81c1fed566c744ea49d168d29eee`
-(`reference/library-v2.1.0/README.md`).
+The selected shared Library edition is `library-v3.0.0` pinned at
+`5170575f3f4c1fc51386fa5cd38c7ef9ac048b20`
+(`reference/library-v3.0.0/README.md`). Verify the checkout resolves to this
+revision before relying on it, and record the resolved revision with dependent
+results. Later tags or checkout movement do not change this selection.
 The shared Chirality Library for this workspace is `/Users/ryan/dev/chirality-library`.
 On another machine, use an explicitly selected checkout of
 `https://github.com/sgttomas/chirality-library`. Resolve the shared `agents/`, `workflows/`
@@ -65,7 +68,9 @@ instructions and the selected library, not host-side agent definitions.
 Roles grant no host permissions; model/effort choices come from session steering.
 
 Use the library's `workflows/coordinated-knowledge-work/WORKFLOW.md` when
-coordinating related contributions into a usable result. Other methods are
+coordinating related contributions into a usable result. Select staffing and
+completion/recovery mechanisms for the actual contribution and supported host;
+a single bounded contributor needs no management hierarchy. Other methods are
 indexed in its `workflows/index.json`; load only the selected method and the
 resources needed for the current stage. Before creating or revising a reusable
 workflow, follow its `workflows/create-workflow/WORKFLOW.md`. Load applicable
@@ -75,8 +80,12 @@ between shared, project-local or packaged sources. If the selected library is
 unavailable, make that limitation explicit and resolve the source before relying
 on its instructions; do not silently substitute a bundled product snapshot.
 
-Give a dispatched contribution its objective, input basis, allowed reads and
-writes, integration owner, review route and reserved choices. Inspect actual
+Give a dispatched contribution its complete assignment in the dispatch:
+objective, exact input basis, allowed reads and writes, integration owner,
+review route, decision rights and stop conditions. Establish the context the
+host route actually delivers or makes retrievable; carry missing applicable
+rules in the brief. Recheck an established route only when relevant conditions
+change, and follow host restrictions on polling or timers. Inspect actual
 returns and retain responsibility for how they fit together. Scratch holds
 evidence, outputs and at most one recovery note; governing instructions remain
 in repository files and assignment briefs.
@@ -89,8 +98,11 @@ a shared method does not expand the authorized App scope.
 
 The Library (`sgttomas/chirality-library`), Root (`sgttomas/chirality`,
 private), App v4 and SWBPIPE each have their own top-level Agent 0. When work
-needs another project, send that project's Agent 0 a message in T3 Code; it
-owns changes in its own repository.
+needs another project, read its session to confirm the current Agent 0, then
+message it in T3 Code with the need, revision/files and whether it blocks.
+The recipient owns changes in its repository. A message transfers no owner
+authority and changes nothing in another project. Do not message unaffected
+projects.
 
 Root measures and improves how agents deliver work across the Chirality
 projects and hosts shared services. Its agents may evaluate App from session
@@ -104,7 +116,10 @@ held the Library; its old content is in Root's Git history, not on its `main`.
 ## Product assets and local tools
 
 Agent instructions for work on this project are separate from the instructions
-packaged into the App. `app/src-tauri/resources/` and the local
+packaged into the App. DEL-02-04 maintains the versioned sources in
+`execution/PKG-02/DEL-02-04/Work/instructions-v1/`; `tools/instruction_resources.py`
+generates the shipped instruction copies and checks freshness. Both are declared
+in that deliverable. `app/src-tauri/resources/` and the local
 `workflows/coordinated-knowledge-work/` test input retain their pinned source
 identities. Reading a newer shared role or method does not update those assets
 or establish product adoption; such changes require their own authorized work.
@@ -117,7 +132,8 @@ is in `app/README.md`.
 
 ## Verification and authority
 
-Work within the owner's current steer. Use focused checks for ordinary changes;
+Work within the owner's current steer. Inspect routine reversible changes;
+use focused checks for ordinary implementation changes;
 changes affecting persistence, permissions or destructive operations require
 targeted regression checks and independent scrutiny. Preserve truthful source
 identity and report unrun checks as limitations. Commitments, acceptance,
