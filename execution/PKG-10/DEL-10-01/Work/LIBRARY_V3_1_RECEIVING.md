@@ -1,0 +1,38 @@
+# Library 3.1.0 contributor findings
+
+Contributor instructions select released `library-v3.1.0` at
+`88ab3f4f5f8ec7f7e030279164dbd1a4aa38b514`, replacing 3.0.0 for new reliance.
+Keep the earlier [3.0.0 findings](LIBRARY_V3_RECEIVING.md) and retained fixtures
+with their original subjects. Resolve the checkout before reliance and record
+the actual revision with dependent results. The source delta and exact blob
+bindings are in [reference/library-v3.1.0](../../../../reference/library-v3.1.0/README.md).
+
+The selected HELP_HUMAN now names the owner's question for each increment,
+chooses the cheapest adequate route, checks actual capabilities in-turn,
+explains a corrective mechanism's benefit and ending, and identifies the next
+action and its active owner or concrete blocker before handback. It names the
+owner-facing role Agent 0. The continuing INTERLOCUTOR lifetime and consultation
+cadence remain; its revised prose directs tools and changes through actual
+assignment and host authority.
+
+App's AGENTS now keeps current findings and reasons in Work and approval or
+review/check narrative in PRs; leads owner updates with the result or decision;
+uses plain prose and spaced identifiers in dispatches; and records standing-rule
+overrides in the PR with one question about whether to change the rule. Standing
+grants remain in their governing instructions. Routine App adherence work follows
+App's standing instructions. These adaptations preserve local grants, holds and
+reserved decisions and import no Library-specific content-approval gate.
+
+Only two of the retained role/reader inputs changed. The registry, other three
+roles, validator, frontmatter parser, resolver, license and metadata schema have
+the same Git blobs as 3.0.0. The nineteen maintained App documents therefore keep
+their existing headers and classifications. The current-role export uses the
+same released readers and full-source hashes, with no sibling checkout required
+by product build, test or CI. No generated index or current pin needs changing.
+
+Keep the packaged instruction Work sources, all product resources and their
+historical bindings unchanged at basis89ac/four roles. The final contributor
+edition does not qualify product uptake or native behavior. Draft PR161 and the
+successor prompt remain held for the owner's later direction. J2 continuation,
+acquisition, acceptance and publication retain their existing boundaries. Keep
+broader historical record cleanup separate from this small edition update.

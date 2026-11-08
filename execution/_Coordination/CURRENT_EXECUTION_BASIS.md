@@ -1,5 +1,17 @@
 # App v4 current execution basis
 
+## Final contributor Library edition — 2026-11-08 UTC
+
+Contributor practice pins `library-v3.1.0` at
+`88ab3f4f5f8ec7f7e030279164dbd1a4aa38b514`. The
+[current receiving findings](../PKG-10/DEL-10-01/Work/LIBRARY_V3_1_RECEIVING.md)
+and [source delta](../../reference/library-v3.1.0/README.md) supersede the
+3.0.0 selection and survey-wording deferral below. The nineteen typed App
+documents and unchanged 3.0.0 schema/parser remain applicable. Product
+instructions retain basis89ac/four roles. This final edition update leaves
+draft PR161 and its successor prompt held for owner direction and supplies
+no additional native/cloud, acquisition, acceptance or release authority.
+
 ## Post-handoff contributor Library adoption — 2026-11-08 UTC
 
 The owner selected one post-handoff adoption PR, without restarting native or

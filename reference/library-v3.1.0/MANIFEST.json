@@ -1,0 +1,104 @@
+{
+  "kind": "contributor-edition-delta",
+  "repository": "https://github.com/sgttomas/chirality-library",
+  "tag": "library-v3.1.0",
+  "commit": "88ab3f4f5f8ec7f7e030279164dbd1a4aa38b514",
+  "baseCommit": "5170575f3f4c1fc51386fa5cd38c7ef9ac048b20",
+  "published_archive": {
+    "name": "chirality-library-3.1.0-source.tar",
+    "bytes": 9984000,
+    "reported_sha256": "6553f7cc735740233f236bc773a3a43c03163d4351a6575d320694fb271d91ad",
+    "downloaded": false
+  },
+  "files": [
+    {
+      "path": "LICENSE.md",
+      "retainedPath": "reference/library-v3.0.0/source/LICENSE.md",
+      "gitMode": "100644",
+      "gitBlob": "6975876e98b3dc9a457ef04bdf31b4f021de2b05",
+      "sha256": "495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da",
+      "bytes": 1067
+    },
+    {
+      "path": "agents/registry.json",
+      "retainedPath": "reference/library-v3.0.0/source/agents/registry.json",
+      "gitMode": "100644",
+      "gitBlob": "91695767c41f86b81b094d2a99ea48e461b30a32",
+      "sha256": "e7a80028b77cd85716cb7fcd860662068768da1c497876d10ad0fc87a75ab720",
+      "bytes": 3235
+    },
+    {
+      "path": "agents/AGENT_HELP_HUMAN.md",
+      "retainedPath": "reference/library-v3.1.0/source/agents/AGENT_HELP_HUMAN.md",
+      "gitMode": "100644",
+      "gitBlob": "eaec14eb9a76573c7e1c39d46d0299fe6abf2fba",
+      "sha256": "9fc917ee9aafd1900d8ffc2caaa71106b9abcbe8d39826be966241e4953c2ddc",
+      "bytes": 2566
+    },
+    {
+      "path": "agents/AGENT_HELPS_HUMANS.md",
+      "retainedPath": "reference/library-v3.0.0/source/agents/AGENT_HELPS_HUMANS.md",
+      "gitMode": "100644",
+      "gitBlob": "e400869e3ddbb8a078ab3bfc37cef290de61e6bc",
+      "sha256": "d80abbd3d68ef3e99bc6febe6f4dcf7e96bf2bcd171d4f527cabb46239ba1492",
+      "bytes": 2432
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "retainedPath": "reference/library-v3.0.0/source/agents/AGENT_WORKING_ITEMS.md",
+      "gitMode": "100644",
+      "gitBlob": "48fd8b5007c33d3ae00cec2b6bac16a78c297fcb",
+      "sha256": "b075a9e6a20992145e3507bdf47093e9f0890214b92bbaf2c7b7126b79025cc6",
+      "bytes": 2352
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "retainedPath": "reference/library-v3.0.0/source/agents/AGENT_TASK.md",
+      "gitMode": "100644",
+      "gitBlob": "53fd161a4cd10b4ecad75d59819812b3c787080b",
+      "sha256": "ab884550e1da2e3c70521e452c942640b073574d1563c6610d6137239a235fc5",
+      "bytes": 1800
+    },
+    {
+      "path": "agents/AGENT_INTERLOCUTOR.md",
+      "retainedPath": "reference/library-v3.1.0/source/agents/AGENT_INTERLOCUTOR.md",
+      "gitMode": "100644",
+      "gitBlob": "db764394a1e0175bab8504baf78c988d9615ea13",
+      "sha256": "e54d9c302fd63cabddca756f0eb0787997657c1b2239067ee1acc9568709ec69",
+      "bytes": 3296
+    },
+    {
+      "path": "tools/validation/validate_agent_instructions.py",
+      "retainedPath": "reference/library-v3.0.0/source/tools/validation/validate_agent_instructions.py",
+      "gitMode": "100644",
+      "gitBlob": "d82018aab06a29830fbc07aca64a338e6c9da82e",
+      "sha256": "44a0df83841c4ec23aee364b751306c83829712d14957c75dd7279b331f1758e",
+      "bytes": 8593
+    },
+    {
+      "path": "tools/validation/build_workflow_index.py",
+      "retainedPath": "reference/library-v3.0.0/source/tools/validation/build_workflow_index.py",
+      "gitMode": "100644",
+      "gitBlob": "04cee048f717207e343be362ef6623a23155dd39",
+      "sha256": "93ab1932b31f91cb6af8be1563073f75ee21e4ad101556e03d287c813acc9017",
+      "bytes": 21870
+    },
+    {
+      "path": "tools/workflow_runtime/resolve_workflow.py",
+      "retainedPath": "reference/library-v3.0.0/source/tools/workflow_runtime/resolve_workflow.py",
+      "gitMode": "100644",
+      "gitBlob": "c704a7ba6e18171234280f33ad35a5aa73f484ca",
+      "sha256": "76449008a7a7ae4eb9fc17e9f26228794e9172fb04c6ba5d8ea5f7e1a3c271d3",
+      "bytes": 17550
+    }
+  ],
+  "documentMetadataSchema": {
+    "path": "document-metadata.schema.json",
+    "sourcePath": "docs/document-metadata.schema.json",
+    "gitMode": "100644",
+    "gitBlob": "4e3b219656d427ead41a1fae0f9b6f59565d62f5",
+    "sha256": "5489dadd80396a5ee9d64eb1ed6c158837b709d15f69bebb4ad5a163cb21365c",
+    "bytes": 1619,
+    "retainedPath": "reference/library-v3.0.0/document-metadata.schema.json"
+  }
+}
