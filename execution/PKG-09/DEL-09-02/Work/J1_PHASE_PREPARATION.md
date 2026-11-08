@@ -225,11 +225,14 @@ itself is not a native admission or proof of picker path-entry capability.
 The later [J1 actual result](J1_REAL_MODEL_ACTUAL_20261108.md) records the
 completed core path on its own development subject, including saved setup and
 real-model work. It does not change the subjects or limits of these controller
-observations. J2 remains partial: its renderer preparation includes
-[returning to a draft](RENDERER_RETURNING_DRAFT_20261104.md), but does not
-establish a real relaunch, durable trial records, History resume or a completed
-create/trial/register/reuse journey. Further native or cloud continuation is
-not authorized by this preparation. Qualification and publication remain open.
+observations. J2 remains partial: its earlier renderer preparation includes
+[returning to a draft](RENDERER_RETURNING_DRAFT_20261104.md). The later
+[J2 actual account](J2_PARTIAL_ACTUAL_20261108.md) records a trial, normal
+close/reopen, History continuation and recovery of the unfinished draft and
+trial row on its own development subject. Registration and reuse were not
+established, so the create/trial/register/reuse journey remains incomplete.
+Further native or cloud continuation is not authorized by this preparation.
+Qualification and publication remain open.
 
 ## v4 correction: initial-main discovery precedes WebKit content readiness
 
