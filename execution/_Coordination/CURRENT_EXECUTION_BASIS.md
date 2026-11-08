@@ -208,13 +208,15 @@ explicit receiving profile is required before visual use; no new live App
 session, setup action, supplier/model start or desktop GO is selected.
 
 Model and effort choices come from the owner's current session steering.
-If unavailable, report it rather than substitute. Historical task/model
-results retain their identities.
+Set the requested selection explicitly on every new delegate. If unavailable,
+report it rather than substitute. Historical task/model results retain
+their identities.
 No new top-level manager session or automatic review round is selected.
 
 ### Owner-selected Agent0 interlocutor and tooling approval
 
-The owner selected a separate Type 2 interlocutor in this Agent0 session. Its focus is helping Agent0 perform HELP_HUMAN well:
+The owner selected a separate Type 2 interlocutor in this Agent0 session.
+Model and effort choices come from the owner's current session steering. Its focus is helping Agent0 perform HELP_HUMAN well:
 publication objectives, effective delivery, judgment, compute and owner
 attention, and recommendations to start, stop or change work. Agent0 supplies
 concise summaries of activities, demonstrated results, limits and proposed
@@ -232,7 +234,8 @@ New tool acquisition or construction requires an explicit owner-approved
 proposal describing its purpose, bounded scope/source, required access,
 cost/resources and focused validation. The owner approved one development-only
 visual-session helper with offline checks and one independent review, and
-specified one Type 2 execution instance here in Agent0's session.
+specified one Type 2 execution instance here in Agent0's session. Model and effort choices for that task and its independent review come
+from the owner's current session steering.
 It reuses original-App identity and normal-cleanup safeguards. Approval adds
 no live App launch, capture/input trial, setup action, download, permission
 change or model/authentication operation. Managers potentially needed before
