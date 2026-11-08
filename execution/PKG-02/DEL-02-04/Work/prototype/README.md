@@ -16,11 +16,19 @@ OBS-2 and OBS-3 observed at 0.158.0 (resume and fork ignore new instructions).
 
 Run from this folder:
 
-    python3 run_cases.py --record                    # cases; writes results/run-<date>.txt
-    python3 run_cases.py --write-examples --record   # also rewrites the four example files beside ROLE_SUPPLY.md
+    python3 -B run_cases.py                         # cases; no fixture or receipt writes
+    python3 -B run_cases.py --record                # receipt in fresh scratch; prints its path
+    python3 -B run_cases.py --record-output /tmp/role-run.txt  # explicit new receipt file
+    python3 -B run_cases.py --write-examples         # rewrites the four schema examples beside ROLE_SUPPLY.md
 
 Scratch files are made in a fresh folder under `$TMPDIR` and removed at the
-end. New App-produced content identities use CC-CONTENT-IDENTITY
+end. `--record` retains its receipt in a separate fresh scratch folder; explicit
+receipt paths must be new files outside this deliverable's Work tree. Existing
+`results/` files are historical inputs and are not overwritten. `--write-examples`
+remains the fixture-writing operation and may be combined with receipt options.
+The runner disables local import caches so normal checks leave Work unchanged.
+
+New App-produced content identities use CC-CONTENT-IDENTITY
 `chirality.app.exact-bytes.sha256/v1`, SHA-256 over exact bytes. Historical
 fixtures retain their old method designation; HOSTING's wider U-08 and
 host-native methods remain open. The suite includes a known vector and
