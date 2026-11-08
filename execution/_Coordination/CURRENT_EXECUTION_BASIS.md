@@ -46,17 +46,17 @@ preserved. PR161 is closed as superseded, with its original branch and commits
 preserved; final successor steering awaits the harmonized text. This work
 supplies no new native, model, acquisition or publication authority.
 
-## Final contributor Library edition — 2026-11-08 UTC
+## Current contributor Library edition
 
-Contributor practice pins `library-v3.1.0` at
-`88ab3f4f5f8ec7f7e030279164dbd1a4aa38b514`. The
-[current receiving findings](../PKG-10/DEL-10-01/Work/LIBRARY_V3_1_RECEIVING.md)
-and [source delta](../../reference/library-v3.1.0/README.md) supersede the
-3.0.0 selection and survey-wording deferral below. The nineteen typed App
-documents and unchanged 3.0.0 schema/parser remain applicable. Product
-instructions retain basis89ac/four roles. This final edition update leaves
-draft PR161 and its successor prompt held for owner direction and supplies
-no additional native/cloud, acquisition, acceptance or release authority.
+Contributor practice pins released `library-v3.3.0` at
+`ec3ee2d1b398eba1fb3227ccf93e2569df95bacd`, replacing 3.1.0 for new reliance;
+3.2.1 was not adopted. The [current receiving findings](../PKG-10/DEL-10-01/Work/LIBRARY_V3_3_RECEIVING.md)
+and [source delta](../../reference/library-v3.3.0/README.md) identify the source,
+entry-document comparison, deliberate adaptations and metadata schema.
+Earlier edition accounts below retain their dated subjects. Product instructions
+and separately pinned workflow assets retain their own source identities and
+adoption routes. This contributor selection changes no product qualification,
+continuation, acquisition, acceptance or release authority.
 
 ## Post-handoff contributor Library adoption — 2026-11-08 UTC
 
@@ -864,17 +864,16 @@ The earlier closed contributions are historical, not active dispatch routes.
 The assignment lanes above retain delivery ownership through repairs,
 reconciliation and integration. Agent 0 inspects actual returns and named retained
 inputs; a closed assignment does not continue merely because its record remains.
-Final App merges belong to the project Agent 0. The current model selections for Type 1 managers, Type 2
-execution tasks and independent reviews are recorded in the 2026-11-07
-resumption above. The earlier all-Codex selection is superseded for future
-Type 2 execution tasks; historical review/model standing remains as recorded.
-The active shared library is `/Users/ryan/dev/chirality-library`, selected source
-`c35b7bbc463f81c1fed566c744ea49d168d29eee` (`library-v2.1.0`), received for
-operational/harness practice by owner request on 2026-11-07
+Final App merges belong to the project Agent 0. Model and effort choices come from the owner's current session steering.
+Historical review/model standing remains as recorded.
+On 2026-11-07, contributor practice selected shared Library source
+`c35b7bbc463f81c1fed566c744ea49d168d29eee` (`library-v2.1.0`) for
+operational/harness practice by owner request
 (`reference/library-v2.1.0/README.md`;
 [DEL-10-01 account](../PKG-10/DEL-10-01/Work/LIBRARY_V2_1_RECEIVING.md)). It
-replaces the earlier selection `2f981163d76772d3779697d9def1a9e951d978e7`
-(`library-v2.0.0`) for new work; work recorded under that selection keeps it.
+replaced the earlier selection `2f981163d76772d3779697d9def1a9e951d978e7`
+(`library-v2.0.0`) at that time; work recorded under either selection keeps it.
+The current contributor selection is 3.3.0 as stated above.
 Neither selection repins historical product source `eaf5d057` or bundled
 instructions.
 

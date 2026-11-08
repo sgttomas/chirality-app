@@ -15,7 +15,7 @@ import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
-RECEIVING = ROOT / "reference/library-v3.0.0"
+RECEIVING = ROOT / "reference/library-v3.3.0"
 MANIFEST = json.loads((RECEIVING / "MANIFEST.json").read_text())
 SCHEMA = json.loads((RECEIVING / "document-metadata.schema.json").read_text())
 VALIDATOR = Draft202012Validator(SCHEMA)
@@ -53,7 +53,7 @@ def test_maintained_document_header(path):
 
 
 def test_schema_source_identity_and_contract():
-    assert MANIFEST["commit"] == "5170575f3f4c1fc51386fa5cd38c7ef9ac048b20"
+    assert MANIFEST["commit"] == "ec3ee2d1b398eba1fb3227ccf93e2569df95bacd"
     binding = MANIFEST["documentMetadataSchema"]
     raw = (RECEIVING / binding["path"]).read_bytes()
     assert binding["sourcePath"] == "docs/document-metadata.schema.json"
@@ -113,3 +113,26 @@ def test_bootstrap_wrapper_and_claude_pointer():
     assert "name:" not in block
     assert "only the `<init-prompt>...</init-prompt>` block" in (ROOT / "init/README.md").read_text()
     assert (ROOT / "CLAUDE.md").read_bytes() == b"@AGENTS.md\n"
+
+
+@pytest.mark.parametrize("upstream", (
+    {}, {"source": "workflows/project-setup/resources/project-entry.md"},
+    {"source": "", "edition": "library-v3.3.0"},
+    {"source": "source.md", "edition": "main"},
+    {"source": "source.md", "edition": "library-v3.3.0", "extra": True},
+))
+def test_incomplete_or_unsupported_derivation_metadata_is_rejected(upstream):
+    data = copy.deepcopy(header(ROOT / "AGENTS.md"))
+    data["metadata"]["upstream"] = upstream
+    with pytest.raises(ValidationError):
+        VALIDATOR.validate(data)
+
+
+@pytest.mark.parametrize("name", ("AGENTS.md", "init/init-prompt.md", "loop/LOOP_INIT.md"))
+def test_reconciled_entry_documents_name_the_canonical_released_template(name):
+    data = header(ROOT / name)
+    VALIDATOR.validate(data)
+    assert data["metadata"]["upstream"] == {
+        "source": "workflows/project-setup/resources/project-entry.md",
+        "edition": "library-v3.3.0",
+    }

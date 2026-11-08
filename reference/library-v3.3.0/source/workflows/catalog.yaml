@@ -1,0 +1,306 @@
+{
+  "schema": "chirality-workflow-catalog/v1",
+  "library": {
+    "source": "bundled",
+    "sourceRootId": "chirality-root"
+  },
+  "centralWorkflowNames": [
+    "create-workflow",
+    "project-setup",
+    "project-decomp",
+    "software-decomp",
+    "scope-change"
+  ],
+  "navigation": {
+    "core": [
+      {
+        "name": "create-workflow"
+      },
+      {
+        "name": "project-setup"
+      },
+      {
+        "name": "project-decomp"
+      },
+      {
+        "name": "software-prd"
+      },
+      {
+        "name": "software-decomp"
+      },
+      {
+        "name": "scope-change"
+      },
+      {
+        "name": "reconciliation",
+        "displayName": "Run corpus concordance program"
+      }
+    ],
+    "specialist": [
+      {
+        "key": "plan-organize",
+        "label": "Plan & organize",
+        "workflows": [
+          {
+            "name": "define-work"
+          },
+          {
+            "name": "integrated-engineering-estimate-schedule"
+          },
+          {
+            "name": "construct-local-work-graph"
+          },
+          {
+            "name": "scope-of-work"
+          },
+          {
+            "name": "coordinated-knowledge-work"
+          },
+          {
+            "name": "domain-decomp"
+          },
+          {
+            "name": "domain-engine"
+          },
+          {
+            "name": "domain-hypergraph"
+          },
+          {
+            "name": "semantic-matrix-build",
+            "tier": "supporting"
+          },
+          {
+            "name": "lens-register",
+            "tier": "supporting"
+          },
+          {
+            "name": "semantic-lensing"
+          }
+        ]
+      },
+      {
+        "key": "research-understand",
+        "label": "Research & understand",
+        "workflows": [
+          {
+            "name": "software-repository-reconnaissance"
+          },
+          {
+            "name": "reverse-engineer-software"
+          },
+          {
+            "name": "research-orchestration"
+          },
+          {
+            "name": "content-digest"
+          }
+        ]
+      },
+      {
+        "key": "extract-documents",
+        "label": "Extract from documents",
+        "workflows": [
+          {
+            "name": "pdf2md"
+          },
+          {
+            "name": "pdf2md-orchestration"
+          },
+          {
+            "name": "pdf2md-page-full",
+            "tier": "supporting"
+          },
+          {
+            "name": "pdf2md-folio-extract",
+            "tier": "supporting"
+          },
+          {
+            "name": "dependency-extract"
+          },
+          {
+            "name": "domain-source-atomize",
+            "tier": "supporting"
+          },
+          {
+            "name": "domain-prose-validate",
+            "tier": "supporting"
+          },
+          {
+            "name": "drawing-extract"
+          },
+          {
+            "name": "drawing-extract-page",
+            "tier": "supporting"
+          },
+          {
+            "name": "drawing-titleblock-page",
+            "tier": "supporting"
+          },
+          {
+            "name": "equipment-extract",
+            "tier": "supporting"
+          },
+          {
+            "name": "equipment-costing-extract",
+            "tier": "supporting"
+          }
+        ]
+      },
+      {
+        "key": "build-maintain-software",
+        "label": "Build & maintain software",
+        "workflows": [
+          {
+            "name": "data-app-spec"
+          },
+          {
+            "name": "data-app-build"
+          },
+          {
+            "name": "analysis-binding",
+            "tier": "supporting"
+          },
+          {
+            "name": "domain-knowledge-intake",
+            "tier": "supporting"
+          },
+          {
+            "name": "software-test-planning"
+          }
+        ]
+      },
+      {
+        "key": "estimate-cost",
+        "label": "Estimate & cost",
+        "workflows": [
+          {
+            "name": "estimate-prep"
+          },
+          {
+            "name": "estimate-snapshot"
+          }
+        ]
+      },
+      {
+        "key": "review-check",
+        "label": "Review & check",
+        "workflows": [
+          {
+            "name": "bounded-reconciliation"
+          },
+          {
+            "name": "compare-library-derivations"
+          },
+          {
+            "name": "audit-dep-closure"
+          },
+          {
+            "name": "audit-governance"
+          },
+          {
+            "name": "decomposition-package-review"
+          },
+          {
+            "name": "reflect-on-work"
+          },
+          {
+            "name": "audit-decomp"
+          },
+          {
+            "name": "audit-epistemic"
+          },
+          {
+            "name": "audit-hypergraph-closure"
+          },
+          {
+            "name": "audit-scope-closure"
+          },
+          {
+            "name": "equation-audit"
+          },
+          {
+            "name": "equation-bbox-detect",
+            "tier": "supporting"
+          },
+          {
+            "name": "equation-flag-interpret",
+            "tier": "supporting"
+          },
+          {
+            "name": "evaluation-protocol"
+          },
+          {
+            "name": "evaluation-report",
+            "tier": "supporting"
+          },
+          {
+            "name": "review"
+          },
+          {
+            "name": "dbm-concordance-verify",
+            "tier": "supporting"
+          },
+          {
+            "name": "dbm-draft-review",
+            "tier": "supporting"
+          },
+          {
+            "name": "dbm-postauthor-concordance",
+            "tier": "supporting"
+          }
+        ]
+      },
+      {
+        "key": "manage-changes",
+        "label": "Manage changes",
+        "workflows": [
+          {
+            "name": "scope-change-packet"
+          },
+          {
+            "name": "kty-content-remediate",
+            "tier": "supporting"
+          },
+          {
+            "name": "kty-metadata-align",
+            "tier": "supporting"
+          }
+        ]
+      },
+      {
+        "key": "author-publish",
+        "label": "Author & publish",
+        "workflows": [
+          {
+            "name": "domain-documents"
+          },
+          {
+            "name": "dbm-publisher"
+          },
+          {
+            "name": "dbm-concordance-seed",
+            "tier": "supporting"
+          },
+          {
+            "name": "dbm-publish",
+            "tier": "supporting"
+          },
+          {
+            "name": "dbm-section-publish",
+            "tier": "supporting"
+          }
+        ]
+      }
+    ],
+    "superseded": [
+      {
+        "name": "pdf2md-page",
+        "replacedBy": "pdf2md-page-full"
+      },
+      {
+        "name": "pdf2md-page-assets",
+        "replacedBy": "pdf2md-page-full"
+      }
+    ]
+  }
+}

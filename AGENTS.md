@@ -4,6 +4,9 @@ description: Apply repository authority, roles, verification and protected bound
 metadata:
   kind: instruction
   surface: standing
+  upstream:
+    source: workflows/project-setup/resources/project-entry.md
+    edition: library-v3.3.0
 ---
 # Chirality App repository instructions
 
@@ -19,11 +22,8 @@ preparation.
 
 macOS is the release baseline; App Agent 0 owns shared code and design.
 Windows contributes at native boundaries in the same project loop while
-preserving macOS checks. Current and historical dispatch routes live in the
-execution basis linked above. Preserve unfinished work in
-reviewable PRs and integrate and reconcile contributions before cleaning up
-their owned branches, worktrees and scratch. Keep named recovery inputs and
-evidence still needed by consumers.
+preserving macOS checks. Assignment lanes and their recorded state live in the
+execution basis linked above.
 
 Enter through `loop/LOOP_INIT.md`. Requirements and interfaces live in `docs/`;
 deliverables retain their `execution/PKG-nn/DEL-nn-nn/ScopeOfWork.md`, `Work/`
@@ -64,18 +64,20 @@ advisory brief; a method serves it only when that method's `compatible_roles`
 name it. Writes still need explicit brief targets and actual host permission.
 Selection, models and effort are not inferred.
 
-The selected shared Library edition is `library-v3.1.0` pinned at
-`88ab3f4f5f8ec7f7e030279164dbd1a4aa38b514`
-(`reference/library-v3.1.0/README.md`). Verify the checkout resolves to this
-revision before relying on it, and record the resolved revision with dependent
-results. Later tags or checkout movement do not change this selection.
+The selected shared Library edition is `library-v3.3.0` pinned at
+`ec3ee2d1b398eba1fb3227ccf93e2569df95bacd`
+(`reference/library-v3.3.0/README.md`). Verify the tag and instruction source
+resolve to this revision before relying on it, and record the resolved revision
+with dependent results. If the shared working checkout is on another edition,
+read an isolated export of the selected Git revision as that README describes;
+do not read the moving checkout as the selected source. Later tags or checkout
+movement do not change this selection.
 The shared Chirality Library for this workspace is `/Users/ryan/dev/chirality-library`.
-On another machine, use an explicitly selected checkout of
+On another machine, use an explicitly selected checkout or release archive of
 `https://github.com/sgttomas/chirality-library`. Resolve the shared `agents/`, `workflows/`
 and `.agents/skills/` references in this section against that library, not this
 App repository. Load the active role's `agents/AGENT_<ROLE>.md`; other role,
-workflow and skill bodies are on demand. Roles and methods come from these local
-instructions and the selected library, not host-side agent definitions.
+workflow and skill bodies are on demand.
 Roles grant no host permissions; model/effort choices come from session steering.
 
 Use the library's `workflows/coordinated-knowledge-work/WORKFLOW.md` when
@@ -97,9 +99,7 @@ review route, decision rights and stop conditions. Establish the context the
 host route actually delivers or makes retrievable; carry missing applicable
 rules in the brief. Recheck an established route only when relevant conditions
 change, and follow host restrictions on polling or timers. Inspect actual
-returns and retain responsibility for how they fit together. Scratch holds
-evidence, outputs and at most one recovery note; governing instructions remain
-in repository files and assignment briefs.
+returns and retain responsibility for how they fit together.
 
 Lead owner updates with the result or decision needed. Use plain prose with
 spaced identifiers in messages to delegates.
@@ -126,6 +126,24 @@ owner-approved finding cleared for publication. Routine adherence checks of
 App's deliverables stay with App's Agent 0 under these standing instructions.
 Records written before 2026-11-05 use "Root" for the former combined repository that
 held the Library; its old content is in Root's Git history, not on its `main`.
+
+## What the repository keeps
+
+Produce the work and the minimum information needed to review, use or recover
+it. A record needs a concrete consumer, acceptance requirement or recovery need.
+Decisions edit the text they govern, not append registers. No routine receipts,
+notices, run records or handoff chains; never hand-maintain derived progress or
+lifecycle state. Keep one replaceable recovery note only where continuity needs
+it. Roles and methods come from these repository instructions and the selected
+Library, never host-side agent definitions or harness configuration. Session
+routes are ephemeral: find current sessions by listing T3 threads; the owner
+names sessions at each restart. Agents save no memories; durable knowledge lives
+in Chirality. Scratch holds evidence, outputs and logs, never instructions.
+Preserve unfinished work in reviewable PRs and integrate and reconcile
+contributions before cleaning up their owned branches, worktrees and scratch.
+Once work is integrated, delete its scratch, worktrees, branches and build output
+unless an open review, named consumer or recovery need still uses them. Keep
+named recovery inputs and evidence still needed by consumers.
 
 ## Product assets and local tools
 
@@ -169,8 +187,7 @@ This grant excludes protection bypasses, history rewrites, force pushes,
 permission changes and releases. It grants no authority in another repository.
 
 Use isolated branches and PRs, integrate with merge commits, and preserve
-existing release tags. Preserve unfinished contributions and named recovery
-inputs/evidence under the handoff rules above before any cleanup.
+existing release tags.
 
 ### Continuing boundaries
 
