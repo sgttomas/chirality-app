@@ -13,12 +13,11 @@ handshake still fails, as does an extra resume or other logged request.
 Only the test changes; Host/Stop/Restart behavior and requirement maturity do
 not change.
 
-Verification used the existing Python peer, offline locked Cargo, fresh
-scratch homes and ordinary slot/memory guards. A temporary 150 ms peer delay
-reproduced the original CI mismatch; the repaired test passed under that same
-delay. The delay was removed before the final run. The full `codex_stop::tests`
-cohort then passed 37/37 in 13.55 seconds. No stock supplier, model or native
-App was run, and this establishes no native qualification.
+With the existing Python peer delayed by 150 ms, the original test reproduced
+the CI mismatch; the repaired test waited for the peer receipt under the same
+delay. The delay was a temporary verification condition, not a committed
+fixture change. This offline fixture observation establishes no stock-supplier,
+model, native App or native qualification result.
 
 Private evidence under `chirality-t3`: the failed job log is in
 `scratch/app-pr130-ci-failure-2dkeb_gs/`; the controlled before/after logs,
