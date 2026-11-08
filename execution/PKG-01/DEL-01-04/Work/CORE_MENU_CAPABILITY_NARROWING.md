@@ -91,20 +91,8 @@ an AppKit menu was operated. Existing native-waiting, enrollment, confirmation
 and Quit source cohorts plus frontend Waiting bridge tests retain their value.
 
 The focused integration test joins existing PR CI without removing any filter.
-Independent review uses the owner's current reviewer policy (Astra, medium).
-Parent owns final integration. Actual native effectiveness and selected signed/
+An initial macOS test using the Windows HTTP localhost origin received remote-origin
+refusal. The corrected mock tests use the local `tauri://` origin for both menu
+refusal and event/App-command admission. Actual native effectiveness and selected signed/
 installed v4 functional testing remain separate, with no keychain or signing
 activation implied by these source permissions.
-
-Initial verification on the contribution source: three locked-ACL/mock-IPC
-integration tests passed; native Waiting source filter five, Waiting DTO eight,
-enrollment16, Quit-related19 and native-confirmation18 passed through guarded
-slots with fresh scratch homes. The existing Waiting frontend suite passed20
-using those actual Rust fixture outputs and a scratch copy of unchanged frontend
-source with dependencies installed from prepared cache via npm --offline only.
-CI-selection62 and deliverable validation (zero errors) passed. An initial test
-used the Windows HTTP localhost origin on macOS and correctly received remote-
-origin refusal; it was corrected to the actual local tauri:// origin, and both
-the menu-negative and event/App-command-positive tests now use that origin.
-No additional dependency or Cargo lock change was required. These results and
-independent review/exact-head CI are retained in the PR, not native qualification.

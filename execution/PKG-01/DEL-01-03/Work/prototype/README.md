@@ -14,8 +14,9 @@ binary is not run.
 | `results/RUN_2026-10-02.txt` | Output of the v0.2 run recorded in the Design file (`RUN_2026-10-01.txt` is the v0.1 run, kept) |
 
 Run: `python3 run_cases.py` in this folder. It reads, never writes, the
-committed 0.158.0 bundle at
-`../../../DEL-01-01/Design/generated/0.158.0/json-schema/experimental/codex_app_server_protocol.v2.schemas.json`.
+committed 0.158.0 and 0.160.0 experimental v2 bundles under
+`../../../DEL-01-01/Work/generated/`. The former supports the historical model;
+PC-22 also checks constructed shapes against the reviewed 0.160.0 bundle.
 
 A passing case shows that the Design file's rules run as written against
 constructed frames. It passes no VER criterion, and the constructed frames

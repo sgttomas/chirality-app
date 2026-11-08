@@ -2015,12 +2015,7 @@ invalidation, private-error canaries, duplicate/stale handlers, restart and
 late native/read-refresh transitions. `request-cards.test.mjs` changes only the
 renamed account-check button used to refresh its existing source-transition
 fixtures. Both suites passed **114/114**, zero failures/skips; TypeScript
-`--noEmit` passed. Logs are retained in `/tmp/app-account-status.nQNIMR/`
-(`focused-checked.log`, `types-checked.log`, `deliverables.log`,
-`conflicts.log`, `leaks.log`). Earlier intermediate focused runs also passed;
-`focused-final.log` predates the last case because its preceding edit command
-used the wrong directory and made no edits. The final checked logs identify the
-returned source.
+`--noEmit` passed. These constructed checks do not establish native behavior.
 
 DEL-01-05 declares the added component; its ScopeOfWork, acceptance and dependency
 conditions retain their meaning. Existing native privacy projection and
