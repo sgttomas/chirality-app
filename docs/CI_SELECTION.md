@@ -28,8 +28,12 @@ exact documentary paths select repository checks without product verification:
 - `init/init-prompt.md`
 - `loop/LOOP_INIT.md`
 - `docs/CI_SELECTION.md`
+- `docs/OPERATING_METHOD.md`
+- `docs/user-manual/README.md`
 - `execution/_Coordination/CURRENT_EXECUTION_BASIS.md`
+- `execution/_Coordination/PUBLICATION_PUNCHLIST.md`
 - `execution/_Coordination/WINDOWS_UNDERTAKING.md`
+- `tools/deliverables/README.md`
 
 Everything else retains the existing App product verification. This includes
 Rust and frontend code, dependencies/locks, workflows, the selector and its
@@ -42,9 +46,21 @@ side can be hidden. An empty change set selects product checks. Invalid or
 missing commit input, an unavailable or ambiguous merge base, and malformed Git
 output fail selection and block the aggregate.
 
-This is the first conservative selection increment. Other prose remains on the
-product route until its consumers are examined and its path deliberately added.
-There is no new partial frontend/Rust/schema test mapping in this increment.
+The selector names conservative product domains and exact root files, with the
+reviewed documentary exceptions taking precedence. Its report distinguishes an
+explicit product rule from an unmatched path; both select all existing PR product
+checks. The always-run `inventory` command checks every tracked path against
+positive rules and fails on unmatched paths. Classify such a path deliberately;
+the full-coverage fallback does not satisfy completeness. New files within a
+known product domain keep product coverage without individual allowlisting.
+
+The four added documentary exceptions cover the PR149/148 guides and coordination
+account, plus the deliverable-query guide. Their maintained bytes are not runtime,
+fixture or generated-product inputs. OPERATING_METHOD's historical source-map
+citation remains historical; packaged instructions derive from DEL-02-04 Work,
+not from this guide. Repository checks retain metadata and instruction/source
+binding validation. Other ScopeOfWork, Work, reference and validator paths retain
+product coverage. There is no partial frontend/Rust/schema mapping.
 
 ## Required result
 
