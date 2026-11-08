@@ -12,6 +12,8 @@ binary is not run.
 | `jsonschema_subset.py` | Byte-identical copy of DEL-01-01's validator (`DEL-01-01/Design/prototype/jsonschema_subset.py`, sha256 486e9286e5aa56888b5473f1c08493a115591255685a8a7bb88b93ff2cacffc0) |
 | `fixtures/*.{valid,invalid}.json` | One valid and one invalid instance for each PROPOSED schema beside the Design file, as `{description, instance}` |
 | `results/RUN_2026-10-02.txt` | Output of the v0.2 run recorded in the Design file (`RUN_2026-10-01.txt` is the v0.1 run, kept) |
+| `results/RUN_2026-10-02_RV21.txt` | Output of the RV21 rerun of the v0.2 cases |
+| `results/RUN_2026-10-04_CC-NPT-GEN.txt` | Output of the CC-NPT-GEN cases PC-01...PC-22 |
 
 Run: `python3 run_cases.py` in this folder. It reads, never writes, the
 committed 0.158.0 and 0.160.0 experimental v2 bundles under
