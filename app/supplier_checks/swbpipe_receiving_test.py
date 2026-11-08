@@ -183,7 +183,7 @@ class CatalogV3Receiving(unittest.TestCase):
                           dict(V3,catalogVersion='swbpipe-catalog/99')):
                 path.write_text(json.dumps(value))
                 with self.assertRaisesRegex(ValueError,'integrated v3'):load_catalog(path)
-            raw=(ROOT/selection()['snapshot']).read_bytes()
+            raw=(ROOT/selection()['snapshot'].replace('execution/', 'app/contract_inputs/', 1)).read_bytes()
             path.write_bytes(raw.replace(b'swbpipe-catalog/3',b'swbpipe-catalog/2',1))
             self.assertEqual(path.stat().st_size,RECEIVING_BYTES)
             with self.assertRaisesRegex(ValueError,'integrated v3'):load_catalog(path)
