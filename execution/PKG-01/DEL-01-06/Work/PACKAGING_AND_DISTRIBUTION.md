@@ -559,6 +559,9 @@ and content identities are placeholders, labelled in `limits`.
 
 ## Changes
 
+This table records the 2026-10-03 design and review history; the later
+implementation and receiving conditions below do not revise those results.
+
 | Version | Change |
 |---|---|
 | PKG-v0.1 (2026-10-03) | First Design file: signing decision B with fallback A, composition, identity record (M2), witness, terms record; two PROPOSED schemas; prototype 36/0 incl. FP-0 at 0.160.0 |
@@ -566,6 +569,13 @@ and content identities are placeholders, labelled in `limits`.
 | PKG-v0.2, in place (2026-10-03) | RV2 confirmation items: PKG-R12 Gatekeeper refusal is `fail` (§8, FP-4); PKG-R13 B not relied on until FP-1/FP-3 pass, PK-R9 limit (§3, §5.4); PKG-R14 FP-0 label counts 42 files and 10 directories. Prototype 66/0 |
 
 ## Current implementation conditions
+
+The observations below retain their named subjects and dates. In particular,
+the build-specific guard evidence describes that build, not a fresh clearance
+or evidence for another build. The later migration proposal in this file is a
+historical allocation account: DEL-09-01 and DEL-09-02 now select the explicit
+v3-terms documentary successor in their dependency conditions. That receiving
+selection does not supply the package, installed witness or release decision.
 
 **Complete-content development identification (2026-10-29).** DEL-09-01's
 [additive candidate v3 profile](../../../PKG-09/DEL-09-01/Design/candidate-identity-v3/METHOD.md)

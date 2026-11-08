@@ -65,6 +65,16 @@ were opened. Same-ID collision is conservatively possible; no absence claim.
    stages. Existing owner data is not a fixture: no implicit migration, key
    import, reset, resealing or cleanup.
 
+   The [2026-11-08 actual J1 account](../../../PKG-09/DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md)
+   records the core path on development source
+   `57bb9c4dbe5cb4adaa55c1082a7c8f832da8b257`, executable SHA256
+   `1997e441b756d3f21a8d5f4fae2f3b03b346cdc8d77c123fcf7bcc349a12761e`:
+   saved setup, owner sign-in, included workflow, useful real-model work and
+   checked saved results found in the App. The sign-in status display finding
+   remains open. This observation is not full installed qualification or owner
+   acceptance; J1 remains open for the applicable candidate and evidence, and
+   J2 creation, trial, registration, reuse and resumption remain incomplete.
+
 The identifier choice does not select service/account/access-group values.
 Runtime owns SEAL_C_KEYCHAIN_SIGNING_JOIN.md; it has been notified of the new
 subject and narrowed test scope. AppIdentifierPrefix comes from actual
