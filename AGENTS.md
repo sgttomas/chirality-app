@@ -31,8 +31,10 @@ and `deliverable.yaml` conventions.
 
 `Work/` holds the current account: findings with their reasons, working artifacts and outputs. Revise it in place rather than appending history; never rewrite fidelity copies, frozen snapshots or accepted evidence. How the work went (approval quotes, review rounds, retries, run IDs, check results) belongs in the PR description, which states what changed, why, what was checked and what remains open. Cite SHAs or hashes only where they pin something a result relies on. State a fact once and link to it.
 
-Code that runs (implementation, tests, generators, harnesses) lives outside `execution/`, in the project's code locations, and deliverables link to it; `Work/` may keep documentation-only examples that are never run. Reconcile changed implementation meaning
-with those documents; leave unchanged commitments and historical evidence alone.
+Code that runs (implementation, tests, generators, harnesses) lives outside `execution/`, in the project's code locations, and deliverables link to it; `Work/` may keep documentation-only examples that are never run. Reconcile changed implementation meaning with affected `ScopeOfWork.md`, `Work/`
+and dependency conditions in `deliverable.yaml` in the same PR before integration;
+its description states the reconciliation and any remaining conditions or reserved
+choices. Leave unchanged commitments and historical evidence alone.
 Do not modify `foundation/thesis/`.
 
 ## Shared roles and methods

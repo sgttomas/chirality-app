@@ -17,8 +17,7 @@ made durable by opening a public draft PR.
   must decide the launch/cloud scope before continuation.
 - [Native continuation boundaries](../PKG-09/DEL-09-02/Work/CONTINUATION_BOUNDARIES.md)
   point to the held UNRUN `zootd3ob` packet, closed custom-driver work and private
-  actual evidence. No private input was read, uploaded or made executable by
-  this reconciliation. A previously staged command is not an active launch route.
+  actual evidence. A previously staged command is not an active launch route.
 - [PR161](https://github.com/sgttomas/chirality-app/pull/161) is closed as
   superseded at `b4a7a5df15af01a90067629f4c30600639b193d2`, retained on
   `app/agent0-closeout-20261108` locally and remotely. Its source-specific J2
@@ -32,13 +31,9 @@ made durable by opening a public draft PR.
   implementation return. Production subjects and the v3 fallback are described
   in [the v4 test subject](../PKG-01/DEL-01-06/Work/V4_TEST_SUBJECT.md).
 
-Retained native actual-account branch heads without remote refs are not missing
-product increments. Eleven final account blobs match main exactly. The earlier
-available-desktop account at `bfd458f3d03093525e66f45ee88792c14d772c10` remains an
-unchanged prefix of the integrated `J1_AGENT_FIRST_USE_20261105.md`; later
-observations follow it. The local CFIndex receiving change `0104552e142645f9f0feb125244e02fee8bc24ba`
-is patch-identical to integrated `71154912` (stable patch ID
-`0a8dc8c9f7791a2e82bc7b04c701f19f0fe95df0`). These require no new publication.
+Retained native actual-account branches add no product increment beyond the
+integrated owning accounts. The local CFIndex receiving change `0104552e142645f9f0feb125244e02fee8bc24ba`
+corresponds to integrated `71154912`; it requires no new publication.
 Other intermediate/withdrawn cleanup branches are accounted for in issue 168;
 non-ancestry alone is not proof of an unfinished candidate or permission to delete.
 
@@ -52,25 +47,13 @@ Git-archive procedure in [its README](../../reference/library-v3.3.0/README.md).
 
 The four untracked review-proof files retained in worktree `t3-9967e27b`, branch
 `t3/reconcile-account-provider-access` at `a1d9e27d3b8649ca4a1c1e3019abe04ba8fdb432`,
-are also reproducible, not unique observations: compare that commit's
-`execution/PKG-01/DEL-01-05/Work/ACCOUNT_AND_PROVIDER_ACCESS.md` with its parent.
-The baseline SHA256 is `05287079d5f827d0479a3579b8b705a56873e0fc66b50b247e48f456da787ff7`;
-only half-open byte interval `[90435, 90582)` is replaced. The resulting file is
-`de50843c84eac71779942b264cafd312057f9619cfd5234996ae73a17a1fcb8e`.
-The v2/v3 documentary selectors retain projection
-`7397aebddedfdfffc2f6fbe08f0c23b2a8bb024c2de27d3695549f200b8d463b`;
-the frozen predecessor remains `996d26f9238d5549bf41075ef6509f3c65174c796e8ddcb860ab76d60e47d036`.
-No deletion of that checkout or its files is part of this pass.
-
-The named older scratch directories `app-lib21-scratch.BpunGI`,
-`app-pkg10-readonly-review.pLN1nF`, `pkg03-reconcile.ZbFHmR`,
-`pkg03-task-proof.v65sW9` and `chirality-925dcbd5-proof` still existed under `/tmp`
-at the audit. Their logs are not required to discover the pending choices:
-[owning interpretations](../PKG-05/DEL-05-01/Work/PENDING_INTERPRETATIONS.md)
-retain the LOOP proposals, and issue 168 retains historical audit limitations.
-The former held LOOP patch/worktree was already disposed after those proposals
-were recorded, as issue 168 states; its absence is not missing accepted evidence.
-No new instruction, permission or evidence claim depends on those scratch paths.
+are also reproducible, not unique observations: compare the integrated commit
+`7d061908738470f9418a8bbdf2cf28b3250a0c2f` with its parent for
+`execution/PKG-01/DEL-01-05/Work/ACCOUNT_AND_PROVIDER_ACCESS.md`. Those Git blobs
+preserve the same baseline and result without needing the local proof files.
+The former held LOOP patch/worktree was disposed after its proposals were
+recorded in issue 168; the [owning interpretations](../PKG-05/DEL-05-01/Work/PENDING_INTERPRETATIONS.md)
+now retain those proposals. Recovery does not depend on the temporary patch.
 
 ## Evidence availability limits
 
