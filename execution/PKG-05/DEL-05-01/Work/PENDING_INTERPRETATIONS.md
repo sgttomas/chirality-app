@@ -217,7 +217,7 @@ would leave a false current summary; revising it grants no host acceptance.
 |---|---|
 | P2 / J2 | The approved one-registration/one-fresh-reuse scope stays independent, twenty minutes, stop-only/no retries, preserving the current project and old-046 store. The coupled ACT/store observation is specified in the linked packet. This documentation changes neither source `475c9b8f9c868fe1be9d0e1ef33a9cdd72aec75f` nor its executable; no rebuild or repeat of its earlier trial/recovery follows. |
 | P3 | Preserve App Codex versus host Chat Completions boundaries. Later applicable failure/interruption evidence must report the actual path and selected semantics; call fixtures cannot stand in for no-call state transitions, cancellation or recovery. |
-| P5 | Before a joined-host failure/replay claim, decide E-7/F-12/F-7, receive the exact host/interface basis and test corresponding record, pending-request and reporter behavior. The factual Scope correction supplies no joined witness, native enforcement or acceptance. |
+| P5 | For affected joined-host failure/replay or tool-offering claims, resolve the applicable E-7/F-12/F-7 or TL-1 questions, receive the exact host/interface and offered-set basis, and test the corresponding behavior. Establish actual ingress/consumer applicability first: this App projection is not proof of the live SWBPIPE route. Unaffected joined work can continue. The factual Scope correction supplies no joined witness, native enforcement or acceptance. |
 
 Next actor: App Agent 0 brings the coupled recommendations and alternatives to
 the owner. After the decision, the responsible contract/implementation owners
