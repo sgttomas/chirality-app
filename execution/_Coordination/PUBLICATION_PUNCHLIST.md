@@ -6,16 +6,13 @@ is from `f664ee1d`, stapled DMG `34ab5661`. This is a finite coordination index.
 Requirements, implementation meaning and evidence stay in the owning deliverables.
 Neither a checked row nor this document supplies owner acceptance or release.
 
-Current result (2026-11-07): native Computer Use now works in the existing T3
-session. The reviewed development App accepted the exact invented project,
-completed its normal preview/confirmation and saved setup; the pending request
-was independently verified and normal Quit passed. Relaunch entered the
-workspace and connected bundled Codex. The [actual account](../PKG-09/DEL-09-02/Work/J1_NATIVE_SETUP_ACTUAL_20261107.md)
-records the result and limits. The later [effective-settings observation](../PKG-09/DEL-09-02/Work/J1_EFFECTIVE_SETTINGS_ACTUAL_20261107.md)
-reported file storage and plugins off from User configuration on source84a.
-Sign-in awaits the catalog-error privacy repair's current artifact/read; that
-84a observation supplies no credential custody or later-build result.
-J1's workflow/model/results and all of J2 remain open.
+Current result (2026-11-08): the development App ran the included workflow with
+GPT-6.1 Terra at medium effort after the owner's personal sign-in. The saved
+take-off matches the independent key, raw CSV is unchanged, Results shows the
+ended run and normal Quit passed. The [actual account](../PKG-09/DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md)
+binds the subject and limits. J1's core execution path is demonstrated; the
+owner's confusing sign-in-status finding has a product repair in progress.
+J2, installed qualification and publication remain open.
 
 The owner directed continued work toward publication readiness, not a stop after
 the next segment. Agent0 owns progression across the rows below. Agents perform
@@ -192,7 +189,7 @@ public distribution; and the owner decision packet. That list was not completed.
 
 | ID | Result and finish condition | Standing / next action | Owning deliverables and delivery owner |
 |---|---|---|---|
-| P1 | Set up a project, select an existing workflow, supply inputs, run it to completion and find the results without agent interpretation of engineering controls. | OPEN. Setup/save/relaunch succeeded. On84a, the App reported actual file storage/plugins off with matching source. Next: integrate the catalog-error privacy repair, receive its current artifact/read, then owner sign-in and the approved real workflow/results. No credentials/model used yet; Agent0 owns continuation. | [J1](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j1--use-an-existing-workflow), DEL-02-02 with DEL-01-04/05; product manager, Agent 0 integration. |
+| P1 | Set up a project, select an existing workflow, supply inputs, run it to completion and find the results without agent interpretation of engineering controls. | Core path DEMONSTRATED on57bb: owner sign-in, offered Terra/medium, one included-workflow run, independently correct saved take-off, Results finding and normal Quit. Usability remains OPEN: sign-in status is unclear; product repair assigned. No owner acceptance or installed qualification follows. | [J1](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j1--use-an-existing-workflow), [actual result](../PKG-09/DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md); product manager, Agent 0 integration. |
 | P2 | Do useful work, create/trial/review/register a reusable workflow, return to unfinished work and later run the saved workflow with new inputs. | OPEN; fresh-trial/Continue-as model choice, trial/Bring-back guards, History landing and returning-draft guidance are integrated, with recorded renderer/source-test limits. The real-backend clean-trial join uses scripted replies. Actual useful create/register/resume/reuse remains unobserved and required before 4.0.0. | [J2](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j2--create-save-return-and-reuse), DEL-02-02; product manager, native examiner. |
 | P3 | Applicable candidate-bound request/approval, cancellation, interruption/recovery, close/reopen/Quit and three access-mode results, with failures repaired or explicitly returned for owner disposition. | OPEN. Native first-use controls, setup/save and normal close/reopen have actual development-subject observations. Broader recovery/access and applicable final-candidate evidence remain open; no production or three-access-mode qualification follows. Preserve the stopped custom-controller history and use the working native route for meaningful journey evidence. | [Standalone qualification](../PKG-09/DEL-09-02/Work/STANDALONE_QUALIFICATION.md), DEL-01-01/02/03/04/05; native manager. |
 | P4 | Actual installed S4/supplier custody and applicable SEAL-C enrollment/continuity evidence joined to the candidate. | OPEN; static joins are complete for b3dd4145, real installed/native results are not. Enrollment remains a concrete owner act. Rotation unavailable/SC-5 blocked is the accepted 4.0.0 limitation, not a pass. | [Signing join](../PKG-01/DEL-01-06/Work/SEAL_C_KEYCHAIN_SIGNING_JOIN.md), DEL-01-04/06 and DEL-09-02; runtime and packaging managers. |
