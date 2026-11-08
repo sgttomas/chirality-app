@@ -84,7 +84,7 @@ remain valid. Those changes did not demonstrate either complete journey.
 The owner's present report establishes dissatisfaction with the product
 experience; it is not a finding that every underlying capability is absent.
 
-Current standing: **J1 open; J2 open.** No completed journey is inferred from
+Initial standing: **J1 open; J2 open.** No completed journey is inferred from
 signing, notarization, layout fixtures, test counts or merged PRs. Implementation
 returns must update the owning Work account with the changed behavior and actual
 checks, reconcile affected ScopeOfWork/dependency meaning, and provide candidate
@@ -167,3 +167,16 @@ Agent 0's publication-ready recommendation, rather than filling our regression
 run sheet. This changes neither person-act semantics nor the separate authority
 for credentials, model/network choice, signing, existing owner data or execution
 holds. Agent 0 owns final integration and any subsequent native evidence join.
+
+## Current real-model result — 2026-11-08
+
+The [native actual account](../../../PKG-09/DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md)
+records project setup, owner sign-in, included-workflow selection, useful
+GPT-6.1 Terra/medium execution, a saved take-off independently matching the
+checking key, results found in the conversation and the ended run in Results,
+and normal Quit. The raw CSV is unchanged. This demonstrates J1's core path
+on the identified development subject; it is not owner acceptance or installed
+qualification. The owner's sign-in-status usability finding remains open with
+the product owner. J2 remains open, and no second model campaign is authorized
+by this one-workflow result. ScopeOfWork and dependency conditions retain their
+meaning.

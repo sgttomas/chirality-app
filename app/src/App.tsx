@@ -30,6 +30,7 @@ import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealW
 import { flushSync } from "react-dom";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
 import { FirstUseSetup } from "./FirstUse";
+import { AccountStatus, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, runEvidenceAnchor } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
@@ -1190,7 +1191,8 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
   </section>;
 }
 
-export function HomeAccessPanel({ routing, access, resources, oauth, generation, navigating = false, act }: { routing: Json; access: Json; resources: Json; oauth?: Json; generation: Json; navigating?: boolean; act: (command: string, args: Record<string, unknown>) => Promise<void> }) {
+export function HomeAccessPanel({ host, resources, navigating = false, act, readAccount }: { host: Json; resources: Json; navigating?: boolean; act: (command: string, args: Record<string, unknown>) => Promise<void>; readAccount: ReadAccountStatus }) {
+  const routing = host?.homeRouting, access = host?.homeAccess, oauth = host?.homeOAuth, generation = host?.generation;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const action = async (command: string, args: Record<string, unknown>) => {
@@ -1202,17 +1204,16 @@ export function HomeAccessPanel({ routing, access, resources, oauth, generation,
   return <section><h2>Separate Codex homes and access</h2>
     <p>Active home class: {routing?.activeModeHomeClass ?? "unavailable"}. The full native generation identifies its owning source; switching homes does not transfer a conversation.</p>
     {entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.modeHomeClass} · {entry.state} · {JSON.stringify(entry.generation)} · {entry.configurationLimit}</p><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
-    <button disabled={busy || !generation || !routing?.activeModeHomeClass} onClick={() => action("read_home_access", {generation, modeHomeClass:routing.activeModeHomeClass})}>Read native login policy and account</button>
+    <AccountStatus host={host} navigating={navigating} busy={busy} read={readAccount}/>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"device-code"})}>Sign in through native device code…</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.presentationAvailable} onClick={() => action("oauth_present", {generation})}>Show pending native sign-in…</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.cancelAvailable} onClick={() => action("oauth_cancel", {generation})}>Cancel original pending sign-in with native confirmation…</button>
-    <p>{oauth?.source?.cancelStatus === "notFound" ? "Signed out: Codex had no pending sign-in." : oauth?.source?.cancelStatus === "canceled" ? "Signed out: original sign-in canceled." : oauth?.source?.phase === "CompletedSuccess" ? "Matching sign-in completed; read native account to confirm." : oauth?.source?.phase === "CompletedFailure" || oauth?.source?.phase === "StartRejected" ? "Native sign-in failed; sensitive diagnostic withheld." : oauth?.source?.phase === "Pending" ? "Waiting for sign-in; silence does not complete it." : oauth?.state ?? "Native sign-in observation unavailable."}</p>
     <details><summary>Safe original sign-in observation</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(oauth ?? {state:"unavailable"},null,2)}</pre></details>
     <button disabled={busy || !generation || !routing?.activeModeHomeClass} onClick={() => action("logout_home", {generation,modeHomeClass:routing.activeModeHomeClass})}>Log out / remove key with native live-work warning…</button>
     <button disabled={busy || !resources?.keyConfigured || !!resources?.wholeSetLimit} onClick={() => action("add_api_key", {})}>Add or replace key in native secure field…</button>
     {error && <p role="alert">{error}</p>}
-    <details open><summary>Source-owned account observations and limits</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(access, null, 2)}</pre></details>
+    <details><summary>Source-owned account observations and limits</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(access, null, 2)}</pre></details>
     <details><summary>Explicit receiving homes and shared-resource observations</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(resources ?? {state:"explicit shared-resource descriptors not configured; existing account path remains available"}, null, 2)}</pre></details>
     <p>Native login acknowledgment reports presence with validity unknown until actual use. Credential fields, browser URLs and device codes are never accepted through this webview. Resource links do not establish native discovery or authorize a future configuration write.</p>
   </section>;
@@ -1890,6 +1891,25 @@ export function App() {
     return snapshot;
   }, []);
 
+  const readAccountStatus: ReadAccountStatus = useCallback(async (generation, modeHomeClass, isCurrent) => {
+    const homeEpoch = chooserHome.current.epoch, sourceEpoch = actionSource.current.epoch;
+    const current = () => isCurrent() && !homePendingRef.current && chooserHome.current.epoch === homeEpoch
+      && actionSource.current.epoch === sourceEpoch && currentHost.current?.state === "ready" && !currentHost.current?.generationClosed
+      && currentHost.current?.homeRouting?.activeModeHomeClass === modeHomeClass
+      && sameActivityGeneration(currentHost.current?.generation, generation);
+    if (!current()) return;
+    // The native command validates the same source and uses account/read with
+    // empty params. No forced credential refresh, reauthentication or model call.
+    await invoke("read_home_access", { generation, modeHomeClass });
+    if (!current()) return;
+    const viewAtRead = currentHost.current;
+    const snapshot: Json = await invoke("host_status");
+    if (!current() || currentHost.current !== viewAtRead) return;
+    // A current host_status may itself report a replacement source. It is a
+    // new observation, never confirmation of the original account read.
+    setHost(snapshot);
+  }, []);
+
   const captureContinueNavigation = (generation: Json, historyCurrent: (history: Json) => boolean): ContinueNavigation => {
     const source = JSON.stringify(generation);
     const mode = chooserHome.current.mode, epoch = chooserHome.current.epoch;
@@ -2495,7 +2515,7 @@ export function App() {
           <h2>Settings &amp; tools</h2>
           <DesktopSetupPanel view={host?.desktopSetup}/>
           <WorkspaceDisclosure id="workspace-connection" title="Connection and access" description="Home, sign-in, provider setup and Codex controls" open={host?.state !== "ready" ? true : undefined}>
-            <HomeAccessPanel routing={host?.homeRouting} access={host?.homeAccess} oauth={host?.homeOAuth} resources={{ ...host?.homeResources, namespaceProtection: host?.nativeNamespaces, keyAdmission: host?.keyNamespaceAdmission }} generation={host?.generation} navigating={homePending} act={async (command, args) => { await homeAction(command, args); }}/>
+            <HomeAccessPanel host={host} resources={{ ...host?.homeResources, namespaceProtection: host?.nativeNamespaces, keyAdmission: host?.keyNamespaceAdmission }} navigating={homePending} readAccount={readAccountStatus} act={async (command, args) => { await homeAction(command, args); }}/>
             <EffectiveAccessSettingsPanel host={host} navigating={homePending} refresh={refreshEffectiveAccessSettings}/>
   <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }}/>
           </WorkspaceDisclosure>

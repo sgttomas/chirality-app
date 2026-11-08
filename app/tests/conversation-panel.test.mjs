@@ -314,7 +314,7 @@ test('a same-class actual generation update while Start is pending does not beco
     await React.act(()=>{pending=props(ui.start()).onClick();});
     const actual={appSession:'actual-session',home:'actual-account-home',spawnCounter:2};
     ui.homes.account.generation=actual;
-    await ui.press('Read native login policy and account');
+    await ui.press('Check account status');
     assert.deepEqual(ui.values(),selectedChoice,'a source observation is not another person choice');
     reply.resolve();await React.act(async()=>{await pending;});
     assert.deepEqual(ui.values(),blankChoice);
@@ -971,4 +971,207 @@ test('the App start display has its own role group and one shared model and prov
     document.body.removeChild(container);
     idle.restore(renderedText);
   }
+});
+
+// Constructed packets follow the existing redacted HomeSession/account RPC and
+// RuntimeSession projections. These mounted checks do not authenticate a real
+// account, read auth files, or qualify native sign-in/credential custody.
+const {AccountStatus} = loadSrc('AccountStatus');
+const accountCanary = 'INVENTED_ACCOUNT_PRIVATE_913@example.invalid';
+const accountHost = (extra={}) => ({state:'ready',generationClosed:false,generation:g,
+  homeRouting:{activeModeHomeClass:'account',entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'}]},...extra});
+const completionPacket = (extra={}) => ({state:'source-observed',source:{generation:g,requestIdentity:31,
+  observationRef:'original-login-31',phase:'CompletedSuccess',mode:'Browser',actualWriteObserved:true,...extra}});
+function accountReadPacket(kind='chatgpt', extra={}) {
+  const account = kind === null ? null : {type:kind,detailsUnavailable:true};
+  return {source:{generation:g,home:g.home,requestIdentity:32,requestRef:'read-32',sourceCurrent:true,
+    attemptedFrame:{method:'account/read',params:{}},outcome:'response-observed-result',authResponseShapeValid:true},
+    accountObservation:{state:kind === null ? 'native account null observed':'native account type observed',account,identityVerified:false},...extra};
+}
+function withAccountRead(base, row=accountReadPacket()) {
+  return {...base,homeAccess:{modeHomeClass:base.homeRouting.activeModeHomeClass,observations:[row]},
+    accountObservation:{generation:base.generation,home:base.generation.home,state:'observed',
+      nativeAccount:row.accountObservation?.account,codexAccount:accountCanary,identityVerified:false}};
+}
+async function mountedAccount(check, {initial=accountHost(),read=async()=>{},strict=false}={}) {
+  const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
+  let source=initial,navigating=false,busy=false;const reads=[];
+  const render=()=>{
+    const view=React.createElement(AccountStatus,{host:source,navigating,busy,read:async(...args)=>{reads.push(args);await read(...args);}});
+    root.render(strict?React.createElement(React.StrictMode,null,view):view);
+  };
+  try {
+    await React.act(render);
+    await check({container,reads,check:()=>React.act(async()=>props(button(container,'Check account status')).onClick()),
+      show:async(next,{nav=false,blocked=false}={})=>{source=next;navigating=nav;busy=blocked;await React.act(render);}});
+  } finally {await React.act(()=>root.unmount());document.body.removeChild(container);}
+}
+
+test('matching sign-in completion checks once, including StrictMode and repeated polls, without reauth',async()=>{
+  for(const strict of [false,true]) {
+    let complete;
+    await mountedAccount(async ui=>{
+      assert.equal(ui.reads.length,1);assert.deepEqual(ui.reads[0].slice(0,2),[g,'account']);
+      assert.match(ui.container.textContent,/Checking account status/);
+      await ui.show(accountHost({homeOAuth:completionPacket()}));assert.equal(ui.reads.length,1);
+      complete.resolve();await React.act(async()=>{});
+      await ui.show(withAccountRead(accountHost({homeOAuth:completionPacket()})));
+      assert.match(ui.container.textContent,/Codex reports a ChatGPT account for this connection/);
+      assert.equal(ui.reads.length,1);
+      assert.doesNotMatch(ui.container.textContent,new RegExp(accountCanary));
+      await ui.show(accountHost());await ui.show(accountHost({homeOAuth:completionPacket()}));
+      assert.equal(ui.reads.length,1,'a known completion is not retried after an observation gap');
+    },{strict,initial:accountHost({homeOAuth:completionPacket()}),read:()=>{complete=deferred();return complete.promise;}});
+  }
+});
+
+test('no implicit check on restart, pending, failed, foreign, missing or unavailable completion',async()=>{
+  const invalid=[accountHost(),accountHost({homeOAuth:completionPacket({phase:'Pending'})}),
+    accountHost({homeOAuth:completionPacket({phase:'CompletedFailure'})}),accountHost({homeOAuth:completionPacket({phase:'StartRejected'})}),
+    accountHost({homeOAuth:completionPacket({actualWriteObserved:false})}),accountHost({homeOAuth:completionPacket({observationRef:null})}),
+    accountHost({homeOAuth:completionPacket({requestIdentity:null})}),accountHost({homeOAuth:completionPacket({generation:{...g,spawnCounter:2}})}),
+    accountHost({homeOAuth:{...completionPacket(),state:'unknown/source-unavailable'}}),
+    accountHost({homeOAuth:completionPacket(),generationClosed:true}),accountHost({homeOAuth:completionPacket(),state:'stopped'}),
+    accountHost({homeOAuth:completionPacket(),homeRouting:{activeModeHomeClass:'api-key'}}),
+    accountHost({homeOAuth:completionPacket(),generation:{...g,extra:'invalid'}})];
+  for(const initial of invalid)await mountedAccount(async ui=>{assert.equal(ui.reads.length,0);},{initial});
+  await mountedAccount(async ui=>{
+    await ui.show(accountHost({homeOAuth:completionPacket()}),{nav:true});assert.equal(ui.reads.length,0);
+    await ui.show(accountHost({homeOAuth:completionPacket()}),{blocked:true});assert.equal(ui.reads.length,0);
+    await ui.show(accountHost({homeOAuth:completionPacket()}));assert.equal(ui.reads.length,1,'one check once the exact source is usable');
+  });
+});
+
+test('ordinary account summary distinguishes kinds, absence, omission, pending, invalid and failed latest reads',async()=>{
+  const cases=[
+    [accountReadPacket('chatgpt'),/reports a ChatGPT account/],
+    [accountReadPacket('apiKey'),/reports an API key/],
+    [accountReadPacket(null),/reports no account/],
+    [accountReadPacket('chatgptAuthTokens'),/supported account status.*unknown/],
+    [accountReadPacket('private-invented-kind'),/supported account status.*unknown/],
+    [accountReadPacket('chatgpt',{accountObservation:{state:'account omitted; unknown/unavailable',account:null}}),/did not report account status.*does not mean you are signed out/],
+    [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,outcome:'response-observed-error',response:{error:{message:accountCanary}}}}),/could not read account status/],
+    [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,authResponseShapeValid:false}}),/unavailable account response/],
+    [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,outcome:'pending'}}),/has not produced a result/],
+    [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,sourceCurrent:false}}),/no longer current/],
+  ];
+  await mountedAccount(async ui=>{
+    for(const [row,expected] of cases){
+      const source=withAccountRead(accountHost(),row);
+      source.homeAccess.observations.unshift(accountReadPacket());
+      await ui.show(source);assert.match(ui.container.textContent,expected,'latest read controls; no fallback to old success');
+      assert.doesNotMatch(ui.container.textContent,new RegExp(accountCanary));
+    }
+    const invalidated=withAccountRead(accountHost());invalidated.accountObservation.state='unknown';
+    await ui.show(invalidated);assert.match(ui.container.textContent,/changed or is no longer confirmed/);
+    await ui.show({...withAccountRead(accountHost()),generation:{...g,spawnCounter:2}});
+    assert.match(ui.container.textContent,/has not been checked for this connection/);
+    await ui.check();assert.deepEqual(ui.reads.at(-1).slice(0,2),[{...g,spawnCounter:2},'account'],'restart offers existing read, without sign-in');
+  });
+});
+
+test('failed completion read stays private, never auto retries, and allows an explicit account check',async()=>{
+  await mountedAccount(async ui=>{
+    assert.equal(ui.reads.length,1);assert.match(ui.container.textContent,/could not be confirmed/);
+    assert.doesNotMatch(ui.container.textContent,new RegExp(accountCanary));
+    await ui.show(accountHost({homeOAuth:completionPacket()}));assert.equal(ui.reads.length,1);
+    await ui.check();assert.equal(ui.reads.length,2);
+    await ui.show(withAccountRead(accountHost({homeOAuth:completionPacket()})));
+    assert.match(ui.container.textContent,/reports a ChatGPT account/,'a later native account result replaces a local read failure');
+    await ui.show(accountHost({homeOAuth:completionPacket({cancelStatus:'canceled'})}));
+    assert.match(ui.container.textContent,/pending sign-in was canceled/);assert.doesNotMatch(ui.container.textContent,/Signed out:/);
+    await ui.show(accountHost({homeOAuth:completionPacket({cancelStatus:'notFound'})}));
+    assert.match(ui.container.textContent,/no pending sign-in to cancel/);assert.doesNotMatch(ui.container.textContent,/Signed out:/);
+  },{initial:accountHost({homeOAuth:completionPacket()}),read:async()=>{throw Error(accountCanary);}});
+});
+
+// The full App dispatcher below exercises the new source guards across native
+// read and subsequent host refresh, using only constructed offline IPC replies.
+async function mountedAccountApp(check,{readReply,statusReply}={}) {
+  const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container),calls=[];
+  let snapshot=accountHost();
+  const idle=installIdleNativeWaiting(async(command,args)=>{
+    calls.push({command,args});
+    if(command==='host_status')return statusReply?statusReply(snapshot,calls):snapshot;
+    if(command==='decision_view')return {rows:[]};
+    if(command==='native_confirmation_content')return [];
+    if(command==='oauth_start'){snapshot={...snapshot,homeOAuth:completionPacket()};return {state:'source-observed'};}
+    if(command==='read_home_access'){
+      if(readReply)await readReply(args);
+      snapshot=withAccountRead(snapshot);return snapshot.homeAccess;
+    }
+    if(command==='select_home'){snapshot=accountHost({generation:args.modeHomeClass==='account'?g:{...g,home:'key-home'},
+      homeRouting:{activeModeHomeClass:args.modeHomeClass,entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'}]}});return {};}
+    throw Error(`Unexpected command ${command}`);
+  });
+  const summary=()=>container.querySelectorAll(e=>e.getAttribute('aria-label')==='Account status')[0];
+  const press=async text=>React.act(async()=>props(button(container,text)).onClick());
+  const observe=async next=>{
+    snapshot=next;document.visibilityState='visible';
+    await React.act(async()=>{for(const {type,listener} of [...document.listeners])if(type==='visibilitychange')listener();});
+  };
+  try{await React.act(async()=>root.render(React.createElement(App)));await check({container,calls,summary,press,observe});}
+  finally{const text=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(text);}
+}
+
+test('App matching completion dispatches only the existing non-forced read and shows the current account',async()=>{
+  await mountedAccountApp(async ui=>{
+    assert.match(ui.summary().textContent,/not been checked/);
+    await ui.press('Sign in with your ChatGPT account (through Codex)…');
+    assert.deepEqual(ui.calls.filter(c=>c.command==='read_home_access'),[{command:'read_home_access',args:{generation:g,modeHomeClass:'account'}}]);
+    assert.match(ui.summary().textContent,/reports a ChatGPT account/);
+    assert.doesNotMatch(ui.summary().textContent,new RegExp(accountCanary));
+    assert.ok(ui.calls.every(c=>['host_status','decision_view','native_confirmation_content','oauth_start','read_home_access'].includes(c.command)),
+      'completion never refreshes credentials, signs in again, or calls a model');
+    const diagnostics=elements(ui.container,'details').find(d=>d.textContent.startsWith('Source-owned account observations and limits'));
+    assert.equal(props(diagnostics).open,undefined,'diagnostics remain available as a disclosure');
+  });
+});
+
+test('late native account read cannot publish across source replacement or home away and back',async()=>{
+  for(const transition of ['generation','home','away-back']) {
+    const held=deferred();
+    await mountedAccountApp(async ui=>{
+      await ui.press('Sign in with your ChatGPT account (through Codex)…');
+      assert.equal(ui.calls.filter(c=>c.command==='read_home_access').length,1);
+      if(transition==='generation')await ui.observe(accountHost({generation:{...g,spawnCounter:2}}));
+      else {await ui.press('Use api-key home');if(transition==='away-back')await ui.press('Use account home');}
+      const reads=ui.calls.filter(c=>c.command==='host_status').length;
+      held.resolve();await React.act(async()=>{});
+      assert.equal(ui.calls.filter(c=>c.command==='host_status').length,reads,'stale read does not request or apply a source refresh');
+      assert.doesNotMatch(ui.summary().textContent,/reports a ChatGPT account/);
+    },{readReply:()=>held.promise});
+  }
+});
+
+test('late account host refresh cannot replace a newer App observation',async()=>{
+ for(const changedSource of [false,true]) {
+  const held=deferred(),reached=deferred();let hold=false;
+  await mountedAccountApp(async ui=>{
+    hold=true;await ui.press('Sign in with your ChatGPT account (through Codex)…');await reached.promise;
+    await ui.observe(accountHost({generation:changedSource?{...g,spawnCounter:2}:g}));
+    held.resolve();await React.act(async()=>{});
+    assert.match(ui.summary().textContent,/not been checked for this connection/);
+    assert.doesNotMatch(ui.summary().textContent,/reports a ChatGPT account/);
+  },{statusReply:async snapshot=>{
+    if(hold&&snapshot.homeAccess){hold=false;const old=structuredClone(snapshot);reached.resolve();await held.promise;return old;}
+    return snapshot;
+  }});
+ }
+});
+
+test('explicit account checks latch queued presses and obsolete handlers cannot read another source',async()=>{
+  const held=deferred();
+  await mountedAccount(async ui=>{
+    const click=props(button(ui.container,'Check account status')).onClick;
+    let first,second;
+    await React.act(()=>{first=click();second=click();});
+    assert.equal(ui.reads.length,1,'one non-forced read even for queued duplicate delivery');
+    await ui.show(accountHost({generation:{...g,spawnCounter:2}}));
+    assert.match(ui.container.textContent,/not been checked for this connection/,'old pending read is not current-source progress');
+    await React.act(async()=>{await click();});assert.equal(ui.reads.length,1,'stale handler cannot dispatch a current-source read');
+    held.reject(Error(accountCanary));await React.act(async()=>{await first;await second;});
+    assert.doesNotMatch(ui.container.textContent,/could not be confirmed/,'old failure cannot be presented as the new connection');
+    assert.doesNotMatch(ui.container.textContent,new RegExp(accountCanary));
+  },{read:()=>held.promise});
 });
