@@ -1,5 +1,49 @@
 # App v4 current execution basis
 
+## Current state after the deliverables sweep — 2026-11-08 UTC
+
+The package cleanup contributions are integrated through main
+`74589d45609624c44fa9bc7e27757f14b5fbabbb`. All 41 deliverables have finite
+retain or edit dispositions within the historical-source and recovery limits
+recorded in [issue 168](https://github.com/sgttomas/chirality-app/issues/168).
+Those dispositions preserve product obligations and selected evidence; they
+supply no additional qualification, acceptance or release standing.
+
+J1's core path is demonstrated on source `57bb9c4d`, as the
+[actual account](../PKG-09/DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md)
+records. PR158's account-feedback repair is integrated. The later explicit
+account check on `04648124` reported the ChatGPT account and file/plugins-off
+settings; automatic post-sign-in feedback remains mounted-test evidence.
+Effort selection and the other recorded usability and installed-evidence limits
+remain open.
+
+The [J2 partial actual account](../PKG-09/DEL-09-02/Work/J2_PARTIAL_ACTUAL_20261108.md)
+is now integrated. It records the draft, independently correct clean trial,
+normal close/reopen and explicit History continuation on `04648124`.
+Registration stalled; no capture or reuse was established. PR160's A15 sheet
+repair and the exact `475c9b8f` development build remain separate from that
+observation. The build is unlaunched and has no installed qualification.
+The proposed registration attempt and fresh-conversation reuse turn remain
+unapproved; the applicable owner decision is needed before launch or new cloud
+use. Original inputs, project/store identity, results and named private evidence
+remain recovery inputs.
+
+The cleanup managers have returned their finite contributions. The roster below
+retains delivery ownership and contribution history; it does not establish live
+execution. During this sweep, delegated managers and TASKs use
+`gpt-6.1-terra` at high effort and independent reviews use `gpt-6.1-sol` at
+high effort. App-internal Terra/medium remains a separate selection.
+Earlier current/next and model statements below retain their original subjects.
+The punchlist indexes the remaining product results.
+
+Pending product and Scope interpretations are recorded in issue 168, including
+PEC retirement authority and affected consumers. Existing commitments remain
+in force; no proposed Scope replacement is selected by the cleanup. PR72's
+reconciliation is integrated through PR172 with its history and frozen accounts
+preserved. Draft PR161's successor steering remains held for owner direction;
+its original branch and commits remain available. This reconciliation supplies
+no new native, model, acquisition or publication authority.
+
 ## Final contributor Library edition — 2026-11-08 UTC
 
 Contributor practice pins `library-v3.1.0` at
