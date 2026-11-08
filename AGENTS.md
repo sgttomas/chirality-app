@@ -116,6 +116,12 @@ The recipient owns changes in its repository. A message transfers no owner
 authority and changes nothing in another project. Do not message unaffected
 projects.
 
+Cross-project arrangements (project routes, the merge rule and aligned CI
+standard, delegations in force and pending owner decisions) are indexed in
+Root's `execution/_Coordination/CROSS_PROJECT.md` (`sgttomas/chirality`,
+private). If that repository isn't readable from this session, ask the
+cross-project coordinator session by T3 message.
+
 Root measures and improves how agents deliver work across the Chirality
 projects and hosts shared services. Its agents may evaluate App from session
 telemetry, read-only; the owner reviews every finding. Root never changes App's
