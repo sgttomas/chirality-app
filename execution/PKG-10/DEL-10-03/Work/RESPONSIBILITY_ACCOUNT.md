@@ -1,9 +1,11 @@
 # Shared commitments and consumer responsibility account
 
-- **Contribution:** DEL-10-03/RA-v0.2. It supersedes RA-v0.1 (`531b65b7…`, committed at `caed56b8ea`; RV3: READY with RA1-R1 and RA1-R2 MINOR); see "Changes". It serves OUT-001 (§2),
-  OUT-002 (§1, §3) and OUT-003 (§4); verification design is in §5.
-- **Status: DRAFT DEFINITION, frozen for RV3.** Owner O-E (Type 2 TASK, Claude Opus 5.5),
-  run `APP-V4-DESIGN-PASS-4-20261003`, 2026-10-04.
+- **Contribution:** This account updates the description of the checks over
+  DEL-10-03/RA-v0.2, the draft definition dated 2026-10-04. The original
+  candidate was frozen for RV3 at sha256
+  `811c868cf4689ab58ecab4a9e3e281310f17002d734fbbe2b8065a5879754897`.
+  It serves OUT-001 (§2), OUT-002 (§1, §3) and OUT-003 (§4); verification
+  design is in §5.
 - **What it is (R23-31.1, 31.7):** an index over the supplier Design files'
   own responsibility sections. It does not restate them (SQ-E2): WD §9 in
   particular is indexed, not copied.
@@ -162,7 +164,8 @@ on 2026-10-04.
 
 ### 3.2 Reverse: does any supplier record name DEL-10-03 outside the population?
 
-Checked by O-E with `prototype/ra_check.py`:
+Historical observations by O-E; the prototype checks the supplier SoW clauses,
+while the register observation was a separate comparison:
 - **Supplier SoWs.** Every supplier SoW clause naming DEL-10-03 belongs to an
   entry in §1.2: DEL-02-01 CLM-002, DEL-02-03 CLM-003, DEL-02-04 CLM-002,
   DEL-03-01 CLM-002, DEL-03-02 CLM-004, DEL-04-03 REQ-005.
@@ -249,28 +252,16 @@ consumer basis for DEL-11-02. No adoption is performed or claimed (CLM-005).
 | VER | How | Status |
 |---|---|---|
 | VER-001 | Map (§2) against SOW-230 and CLM-001…006; each entry to its accepted source | Done for the population (§2, §3.1) |
-| VER-002 | Two-way promise comparison (§3.1, §3.2), relocation (§3.3) | Done; checks by `prototype/ra_check.py` |
+| VER-002 | Two-way promise comparison (§3.1, §3.2), relocation (§3.3) | Historical comparison in §3; the prototype checks supplier SoW clauses and cited hash prefixes |
 | VER-003 | Applicability against SEED and later direction (§4.1) | Done for H-1…H-3, with the seed hashes checked by O-E |
 | VER-004 | Selector and tool-path chain from CLM-007 (§4.2), static only | Done as static traces; build and runtime checks are outstanding at their points of need |
 | VER-005 | Against PKG-02…05 interfaces and ARCH (§2.3) | Done: no common implementation named; direction retained |
 | VER-006 | Exclusions and attribution | `check_boundary_owner_resolution.py` on this SoW: 1 checked, 0 failing (O-E, 2026-10-04). Semantic follow-up: §2 assigns every act to its owner; F-RA1 is routed, not performed; the S-6 row was made by O-A, its owner |
 
-**`prototype/ra_check.py` (checked by O-E).** It recomputes:
-- the sha256 of each supplier Design file and supplier SoW cited in §1.2 and
-  §3.1, against this file's prefixes;
-- DEL-10-03's ACTIVE EXECUTION rows against the population;
-- the reverse scan in §3.2;
-- that F-RA1's three suppliers still lack a mirror (so a later mirror is
-  noticed).
-
-Negative cases are in its `--self-test`.
-
-## Changes
-
-**RA-v0.2 (2026-10-04), after RV3-RA1 (RA-v0.1 READY; 2 MINOR):**
-
-| Change | Cause |
-|---|---|
-| F-RA1 names the missing rows MIRROR (SR-6), not SAME_ARC, and cites DAG-004's handoff "Open matters" as the routing precedent | RA1-R1 |
-| S-6 re-pinned deliberately to ACT-POLICY-v0.11 (`597f13bd…`, committed at `0bd6e4b4e9`). The §10.3 mapping is recorded as done, and adoption is checked in the returned file | RA1-R2; R23-21 |
-| `ra_check.py` H-1 reports a moved supplier as a NOTICE with a re-pin instruction, not a failure. `--strict` restores failure on drift. The self-test checks both | RA1-R2 |
+**`prototype/ra_check.py`.** H-1 compares the supplier Design and SoW
+hashes with the prefixes in §1.2 and §3.1. A moved supplier is a notice by
+default and a failure with `--strict`; deliberate re-pinning requires reading
+the change (R23-21). R-2 compares clauses naming DEL-10-03 in the nine
+supplier SoWs with the expected clause sets. `--self-test` exercises both
+checks. The prototype does not scan dependency registers or check F-RA1's
+mirrors; §3.2 records the historical register observation.
