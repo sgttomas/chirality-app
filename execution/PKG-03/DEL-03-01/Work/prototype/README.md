@@ -25,13 +25,14 @@ canonicalization algorithm (C TBD-003; ADAPTER TBD-007).
 
 ## Run
 
+From the repository root, using a fresh scratch directory:
+
 ```sh
-cd "<this folder>"
-python3 run_fixture.py --out "$TMPDIR/b3-sh1-run"
-python3 validate_all.py --run "$TMPDIR/b3-sh1-run"
-# then, from the sibling prototypes:
-python3 ../../../DEL-03-03/Design/prototype/observe_map.py --run "$TMPDIR/b3-sh1-run"
-python3 ../../../DEL-03-02/Design/prototype/proposal_states.py --check "$TMPDIR/b3-sh1-run"
+D=$(mktemp -d)/run
+python3 -B execution/PKG-03/DEL-03-01/Work/prototype/run_fixture.py --out "$D"
+python3 -B execution/PKG-03/DEL-03-01/Work/prototype/validate_all.py --run "$D"
+python3 -B tools/run_recorded_prototype.py execution/PKG-03/DEL-03-03/Work/prototype/observe_map.py --run "$D"
+python3 -B execution/PKG-03/DEL-03-02/Work/prototype/proposal_states.py --check "$D"
 ```
 
 The observed output of the run of 2026-09-30 was recorded in
