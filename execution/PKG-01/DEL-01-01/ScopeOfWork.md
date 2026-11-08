@@ -18,7 +18,7 @@ not broaden this contract, qualify a supplier/candidate, or select Windows
 shipping/support. Existing dependency conditions and macOS commitments remain
 unchanged.
 
-Provide the stock Codex hosting and supplier boundary for the standalone Chirality App. The responsible party is the **App supplier-integration owner**; the accepted type is BACKEND_FEATURE_SLICE in PKG-01, Native App and third-party harness integration. This contract defines the required contribution and later completion evidence. Its initialization is not product implementation or qualification. [D, P, G, C]
+Provide the stock Codex hosting and supplier boundary for the standalone Chirality App. The responsible party is the **App supplier-integration owner**; the accepted type is BACKEND_FEATURE_SLICE in PKG-01, Native App and third-party harness integration. This contract defines the required contribution and later completion evidence. Initialization established the contract; subsequent implementation and candidate qualification require their own evidence. [D, P, G, C]
 
 | Objective | Local contribution | Scope basis |
 |---|---|---|
