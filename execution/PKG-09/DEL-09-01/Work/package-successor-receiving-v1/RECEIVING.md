@@ -132,7 +132,18 @@ independent examination and the owner's separate release/replacement decision.
 No fixture pass supplies those acts or artifacts. Unrelated known terminal/S4
 historical-source conditions are not swept into this adoption.
 
-## Downstream native journey readiness (2026-11-01)
+## Current downstream evidence (2026-11-08)
+
+The [J1 actual account](../../../DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md)
+records the core workflow on development source `57bb9c4dbe5cb4adaa55c1082a7c8f832da8b257`,
+including owner sign-in, one real model run, independently checked saved output
+and normal closure. It retains the candidate, configuration, private evidence
+and observation limits. The sign-in display finding remains open; J2 and
+publication remain open. This does not supply an installed package witness or
+transfer the result to another candidate. The 2026-11-01 readiness and planned
+steps below retain their historical subjects and are not a current run order.
+
+## Historical downstream native journey preparation (2026-11-01)
 
 Inspected against integrated main `e5a18920574ed56a8e4bf57f78566d7dab7ccfd8`.
 This receiving update uses the existing EXP/SQ contracts and reader selection;
@@ -187,7 +198,7 @@ that publication. No actual terminal packet has been admitted here. The
 retires synthetic cohorts from current release reliance, preserving their tests,
 guards and bytes; actual lifecycle/cleanup remains owed.
 
-### Executable coverage and next action
+### Executable coverage and historical preparation
 
 These are existing executable checks, not a new qualification framework:
 
@@ -214,12 +225,11 @@ draft bytes need their own exact case binding, not substitution into the fixed
 13-role example selection. Completed evidence uses EXP results/SQ dossier and
 explicit canonical sidecars; `check-blank` is not a completed-form validator.
 
-1. **Native owner first:** fix and demonstrate the initial attended path on its
-   exact candidate/controller/state admission; obtain actual setup/save and B
-   source/generation facts, and the scoped cancel/readback/closure observations
-   assigned to that attempt. A/B incarnations here are not SQ RUN-A/RUN-B.
-   Neither successful entry nor cancellation passes a workflow scenario or
-   confirms Stop. Do not infer permission for a new run from this account.
+1. **Attended path:** the preparation required setup/save and B source and
+   generation facts, scoped cancel/readback/closure observations and admission
+   on the exact candidate and controller. A/B incarnations here are not SQ
+   RUN-A/RUN-B. Entry or cancellation alone does not pass a workflow scenario
+   or confirm Stop; this historical preparation does not authorize a new run.
 2. **Before SQ RUN-A:** integration owner resolves SQ U-SQ-3/I-6: development
    build or installed package, with the actual candidate/build/Codex pin,
    runtime configuration, native route/tool check and examiner. Development
@@ -275,9 +285,6 @@ renewal was used. The broad manual suite, Rust/React suites and actual native/
 signed/host journeys were not run here. The two historical distribution guard
 drifts remain exactly as recorded in the linked disposition.
 
-Bounded independent Claude Opus5.5/high review of `1131aa9b` found no blockers.
-Manager repairs make U-SQ-3's pre-run subject choice, repeated J-8 ST-3 negatives,
-the person's credential-entry role and retained predecessor/native histories
-explicit. Review did not rerun tests or validate the private j580 observations.
-CI's historical stale-`hosting.rs` wording was reported to Agent 0 for a separate
-text correction; CI selection and guards remain unchanged here.
+The preparation retains U-SQ-3 subject selection, repeated J-8 ST-3 negatives,
+the person's credential-entry role and predecessor/native histories. The private
+j580 observations were not independently validated by this receiving account.

@@ -30,9 +30,8 @@ or App distribution, signing or release evidence is supplied by pin selection.
 ScopeOfWork adds the SUP source, carries existing D2/D3 first-increment
 reserved-act/routine-permission rulings instead of listing them as undecided,
 updates OI-012 consistently, and adds the already merged terms-adoption note.
-The first reconciliation is commit `8a8e2d7152ba0a9b720436a4128a52303521b60c`;
-`11753a17` only relocated Design to Work. The terms note is `3f4a9114`, integrated
-with PR34/37. No REQ-001…008, criterion, rule body or schema changed.
+The terms note receives the separately approved applicability disposition.
+No REQ-001…008, criterion, rule body or schema changed.
 
 ScopeOfWork was reconciled by inspection and is deliberately NOT edited in
 this adoption: its exact inspected `a60b02a8…` bytes are the receiving subject,
@@ -92,9 +91,11 @@ the tool does not authenticate it or invent a new approval requirement.
 
 The prior documentary-v3 projections are NOT the basis for this adoption: they
 exclude the changed correspondence/U-EXP-1/TBD/SUP/terms-note extents. This
-profile deliberately checks full bytes instead. Canonical support, SQ worker,
-pre-run/native-form and historical terminal/S4 cohorts continue selecting their
-existing frozen reader/source inputs. No transitive pins are renewed here.
+profile deliberately checks full bytes instead. Canonical support, SQ, pre-run
+and native-form readers retain their own selected source and reader bindings,
+including the current v3-terms documentary selection and the separate original
+frozen publication. Historical terminal/S4 cohorts retain their own inputs. No
+transitive pins are renewed here.
 
 ## Verification and remaining limits
 
