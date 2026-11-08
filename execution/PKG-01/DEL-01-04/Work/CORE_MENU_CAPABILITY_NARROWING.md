@@ -72,8 +72,11 @@ Before this change, core:menu allowed web content to create a matching-ID menu
 whose click reached the global listener without authenticated creator origin.
 This specific webview construction/mutation route is now denied by IPC ACL on a
 fresh narrowed build. The native listener itself still uses an ID, not an
-origin-authentication token, and OS/native automation remains possible. None
-still hides and rejects SEAL-C dispatch. No source test is relabelled as a native
+origin-authentication token, and OS/native automation remains possible. The
+current selection requires a macOS release build and compiled publisher selection
+before SEAL-C is offered; dispatch without that eligibility is refused. The
+provider still independently checks authority and policy. No source test is
+relabelled as a native
 or signed-production witness, and an already-running older process is not
 claimed to have its resources revoked by a source change.
 

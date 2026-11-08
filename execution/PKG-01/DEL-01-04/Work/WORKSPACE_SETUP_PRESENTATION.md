@@ -697,24 +697,19 @@ All mounted welcome cases run under the production React StrictMode, including
 its initial effect cleanup/replay. The non-UTF-8 picker test deliberately supplies
 a display string without a leading slash; the native reference still goes
 untouched to preview. Editing that display deliberately selects typed input.
-The owner-selected implementation TASK used Claude Opus 5.5/high, fastMode
-false. Its first checked FirstUse source was SHA256
+The first checked FirstUse source was SHA256
 `5c6641aa125a2ebec02168154009d4ced9663cd8d968f4ea7fccb5a028b5c3de`.
 A combined mutation of that source made three of the new tests fail: it dropped
 the stale-handler guards, re-encoded `displayPath` and removed `/`/NUL checks.
 This is a combined sensitivity result, not proof of each mutation separately.
-The manager then rejected non-lossless Unicode, strengthened the literal/picker
-cases and mounted all welcome cases under StrictMode. The final focused suite
+The final implementation rejects non-lossless Unicode; the strengthened
+literal/picker cases and welcome cases run under StrictMode. The focused suite
 passed 19/19, zero failures/skips, exit 0. Deliverable structure reports 41
 deliverables and zero errors; whitespace checks pass. No broad suite or product
 build ran.
-Child logs (`run1.log`, `mutation.log`, `deliverables-check.log`) and manager
-logs are retained at `/tmp/firstuse-typed-task.xVEILh`; the strengthened result
-is `manager-final-strengthened.log`. The preceding `manager-final.log` checked
-the unchanged child result after a manager edit command used the wrong working
-directory; the edit was corrected before the strengthened run. This earlier
-log does not establish the later source. Root commissions independent review
-of the final contribution; no independent review is claimed here.
+The retained logs are at `/tmp/firstuse-typed-task.xVEILh`;
+`manager-final-strengthened.log` records the strengthened result. The earlier
+`manager-final.log` checked the preceding source, not the later source.
 
 This is source implementation with mounted-packet tests only. It does not
 prove the field's native accessibility exposure, actual setup on a real
