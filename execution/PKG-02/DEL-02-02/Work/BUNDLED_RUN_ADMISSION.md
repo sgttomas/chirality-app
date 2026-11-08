@@ -108,22 +108,16 @@ Coordinated with the frontend lane (PR #107); no field or command change:
   selection view's standing is "bundled with this App build (WR LS-5); runs
   without A15; this build is a release candidate, not a published release",
   with `runnable` true.
-- **Frontend J1 limit (1).** The frontend lane's J1 account in
-  WORKSPACE_AND_REGISTRATION.md lists limit (1): "Until the runtime owner's
-  LS-5 admission lands, the bundled `coordinated-knowledge-work` entry is
-  refused". That condition is met in source by this clause. The guide's
-  existing `runnable` handling now offers "Use ‹name› (included with the App)"
-  whenever the installed subject verifies. The frontend lane's text is left as
-  written; observation on a candidate remains open.
+- **Frontend J1.** LS-5 admission resolves the earlier source limitation that
+  refused the bundled `coordinated-knowledge-work` entry. The guide offers
+  "Use ‹name› (included with the App)" when the installed subject verifies.
 - **Packaging.** It needs nothing new beyond the existing P-2 mapping. The
   package bytes are part of the signed bundle tree.
 
 ## Checks
 
-Focused Rust tests, offline and locked, in a fresh scratch `CODEX_HOME` and target.
-Independent Astra-medium review of `a02183cd` found three P2 boundary gaps, all
-repaired here: publication lacked installed-root authority, publication did not
-recheck the manifest, and a supply copy was not forced inside the project.
+Focused offline Rust tests cover the installed-root, manifest recheck and
+project supply-copy boundaries, including the following cases:
 - `bundled_run_admission_is_closed_to_the_selected_installed_subject`: embedded
   and holding copies are refused. An unknown or different recorded root is
   refused, and so is rebinding. The installed resolution is admitted only under
@@ -164,9 +158,9 @@ It is opt-in and synthetic. It is not the DEL-09-02 observation below.
 
 ## Limits and remaining observation
 
-These are source fixtures. The owner-visible J1 journey on an identified candidate
-remains DEL-09-02's actual observation: an included workflow selected, run and
-completed in a real project. That observation must name the candidate, its
-installed `workflows/` digest closure and the actual run records. Useful work,
-completion and model behavior are not established by these tests. The build
+The source fixtures and synthetic backend join do not establish useful work,
+completion or model behavior. The later [J1 development observation](PUBLICATION_JOURNEYS.md#current-real-model-result--2026-11-08)
+demonstrates the core path on its identified subject, without establishing
+installed qualification or owner acceptance. An installed candidate observation
+still needs its `workflows/` digest closure and actual run records. The bundle
 remains a release candidate, not a published release.

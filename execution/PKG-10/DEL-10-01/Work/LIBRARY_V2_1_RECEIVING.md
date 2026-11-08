@@ -168,15 +168,13 @@ native or model qualification is inferred.
 
 ## Later method candidate (not selected)
 
-App Agent 0 relayed Library development main
-`380eb2a0862984c956235d5789c135054773b60e` (PR9 checked `8d92051`): a later,
-unpublished coordinated-knowledge-work WORKFLOW/REVIEW-NOTES and DEL04-02 Work
-increment concerning need-based staffing/context/completion and proportionate
-recovery. This is the supplied notice only, not a substantive read or adoption
-of those bytes. The selected released edition remains `library-v2.1.0` at c35;
-its coordination method and all 11 compatibility fixture files are unchanged.
-No additional method eligibility, private Root service or App custody/safety
-waiver follows. A later method adoption requires its own source-qualified choice.
+Library development main `380eb2a0862984c956235d5789c135054773b60e`
+was supplied as a notice of an unpublished coordination-method increment on
+staffing, context, completion and recovery. This was not a substantive read or
+adoption of those bytes. At that time the selected release was `library-v2.1.0`
+at c35, with its coordination method and fixture unchanged. The later released
+[3.0.0 receiving](LIBRARY_V3_RECEIVING.md) superseded this notice, and
+[3.1.0](LIBRARY_V3_1_RECEIVING.md) is the current contributor selection.
 
 The product-retention comparison was checked against actual App main
 `2b5134f61b411de7e5dc82e8b726370e77b79aee`, not inferred from an old copied

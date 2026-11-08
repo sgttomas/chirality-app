@@ -84,27 +84,18 @@ remain valid. Those changes did not demonstrate either complete journey.
 The owner's present report establishes dissatisfaction with the product
 experience; it is not a finding that every underlying capability is absent.
 
-Initial standing: **J1 open; J2 open.** No completed journey is inferred from
-signing, notarization, layout fixtures, test counts or merged PRs. Implementation
-returns must update the owning Work account with the changed behavior and actual
-checks, reconcile affected ScopeOfWork/dependency meaning, and provide candidate
-results to DEL-09-02. Scope and dependency contracts are unchanged by this
-clarification; no maturity or acceptance status is advanced here.
-
-Agent 0 owns design and integration. The existing product/frontend manager owns
-the first implementation increment and its reconciliation. Native qualification
-owns the observed candidate results, with owner acts reserved to the owner.
-The coordination [publication punchlist](../../../_Coordination/PUBLICATION_PUNCHLIST.md)
-only indexes this result; it is not another requirements source.
+The initial standing was **J1 open; J2 open**. Later evidence and its limits
+are recorded below; signing, notarization, layout fixtures, test counts and
+merged PRs alone do not demonstrate a journey. Implementation returns reconcile
+the owning Work account and dependency meaning and supply candidate results to
+DEL-09-02. The [publication punchlist](../../../_Coordination/PUBLICATION_PUNCHLIST.md)
+indexes this result; it is not another requirements source.
 
 ## Mounted transition coverage (2026-11-05)
 
 Subject: integrated App main `0f6d8388420b5ba2bb513bb9f30fb80b65088e21`
-plus this additive test contribution. Product `RunJourney.tsx` and
-`MakeJourney.tsx` bytes are unchanged. The same-PR change is confined to the
-existing `run-journey.test.mjs` / `make-journey.test.mjs` suites and owning
-Work/current coordination reconciliation. ScopeOfWork, dependency conditions,
-product acceptance, source pins and package/lock bytes retain their meaning.
+plus additive tests in `run-journey.test.mjs` and `make-journey.test.mjs`.
+Product `RunJourney.tsx` and `MakeJourney.tsx` bytes were unchanged.
 
 The prior #125 and #128 source/mounted results did not exercise two transitions.
 The historical renderer accounts retain exactly their original subjects and
@@ -143,30 +134,16 @@ new actual trial was executed here. React is mounted through the maintained
 Node/miniDOM harness. Instrumented `focus()` and `scrollIntoView()` record the
 actual target calls, not visual positioning, OS keyboard or AX behavior.
 
-Both focused suites pass: 38 tests, zero skips, under the normal shared slot
-wrapper with fresh scratch Codex home and offline dependencies. The initial
-run had 37 passes and a new assertion that used the wrong existing user wording
-(“not valid” rather than “draft — not valid for registration”); its assertion
-was corrected, with no product-code change. Existing act-wrapping warnings from
-older trial-doubt tests remain visible in the full focused log.
+The two focused suites covered these transitions in the Node/miniDOM harness.
+Mutation checks found failures when the run-generation guard, draft-name
+stale-reveal comparison or library comparison was removed. The checks provide
+no native or end-to-end J1/J2 evidence; earlier trial-doubt tests emitted
+act-wrapping warnings.
 
-Mutation checks in a private source copy confirm that the new transitions fail
-when the run-generation guard is removed (two failures), when the draft-name
-stale-reveal comparison is removed (one), or when the library comparison is
-removed (one). The product checkout was not changed by those checks. Logs and
-mutated copies are retained in the named task scratch recorded in the PR.
-No broader suite, build or live renderer rerun was needed for these test-only
-changes. Independent review and checks of the final PR head are recorded with
-that PR; the test counts alone supply no native/end-to-end J1/J2 evidence.
-
-The owner's testing correction assigns development execution to agents. J1
-first use/useful real-model work/results finding is the next owned product
-result; J2 remains required before release. Native owns the current agent
-first-use attempt and exact unavailable capability. Owner testing begins after
-Agent 0's publication-ready recommendation, rather than filling our regression
-run sheet. This changes neither person-act semantics nor the separate authority
-for credentials, model/network choice, signing, existing owner data or execution
-holds. Agent 0 owns final integration and any subsequent native evidence join.
+The owner's testing correction assigns development execution to agents. Owner
+testing begins after Agent 0's publication-ready recommendation. Person-act
+semantics and separate authority for credentials, model/network choice, signing,
+existing owner data and execution holds remain unchanged.
 
 ## Current real-model result — 2026-11-08
 
