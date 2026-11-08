@@ -84,9 +84,10 @@ class Transitive(unittest.TestCase):
         manifest = json.loads((ROOT / t.LOCAL_ASSOCIATIONS).read_bytes())
         retained = {n['retained_path'] for a in local.values() for n in a['text']['notices']}
         for rel in (*t.BASIS, t.OBJC2_METADATA, *t.RECEIVED_TEXTS.values(), t.LOCAL_ASSOCIATIONS, manifest['proof_path'], *retained):
+            rel = rel.replace('execution/', 'app/contract_inputs/', 1)
             (repo / rel).parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(ROOT / rel, repo / rel)
         t.check(self.index, repo)
-        text = repo / t.RECEIVED_TEXTS['https://github.com/madsmtm/objc2']
+        text = repo / t.RECEIVED_TEXTS['https://github.com/madsmtm/objc2'].replace('execution/', 'app/contract_inputs/', 1)
         text.write_bytes(text.read_bytes() + b'\n')
         with self.assertRaisesRegex(ValueError, 'received upstream text differs'): t.check(self.index, repo)
 
@@ -219,6 +220,7 @@ class Transitive(unittest.TestCase):
         paths = [t.LOCAL_ASSOCIATIONS, manifest['proof_path']]
         paths += [n['retained_path'] for a in manifest['associations'] for n in a['text']['notices']]
         for rel in set(paths):
+            rel = rel.replace('execution/', 'app/contract_inputs/', 1)
             (repo / rel).parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(ROOT / rel, repo / rel)
         selected = t.local_associations(repo)
         row = next(e for e in self.value['cargo'] if e['package'] == 'alloc-stdlib')

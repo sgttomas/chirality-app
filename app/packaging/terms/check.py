@@ -13,7 +13,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 from jsonschema.exceptions import ValidationError
 
 ROOT = Path(__file__).resolve().parents[3]
-SCHEMA = ROOT / 'execution/PKG-01/DEL-01-06/Work/terms-position-v1/schema.json'
+SCHEMA = ROOT / 'app/contract_inputs/PKG-01/DEL-01-06/Work/terms-position-v1/schema.json'
 MAX_BYTES = 2 * 1024 * 1024
 
 

@@ -69,8 +69,8 @@ checks:
 - app/src-tauri/src/hosting_recovery_reads_tests.rs
 - app/src-tauri/src/historical_run_learning_tests.rs
 - app/src-tauri/src/historical_trial_flows_tests.rs
-- execution/PKG-01/DEL-01-02/Work/prototype/check_generation_ref.py
-- execution/PKG-01/DEL-01-02/Work/prototype/check_project_context.py
+- app/contract_inputs/PKG-01/DEL-01-02/Work/prototype/check_generation_ref.py
+- app/contract_inputs/PKG-01/DEL-01-02/Work/prototype/check_project_context.py
 - app/examination/windows_platform/verify_results.py
 - app/examination/windows_platform/test_driver.py
 - execution/PKG-01/DEL-01-02/Work/WINDOWS_PROCESS_FIXTURE_RESULTS.md

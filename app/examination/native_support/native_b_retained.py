@@ -192,7 +192,7 @@ def observation(b, a_root, projection_path):
     roots={name:entry['path'] for name,entry in namespaces.items()}
     roots.update({key:value['native_input_paths'][key] for key in ('project','shared_skills')})
     before=metadata(roots,links)
-    schema=b.setup.REPO/'execution/PKG-01/DEL-01-02/Work/recovery.app-ledger-entry.v0.3.schema.json'
+    schema=b.setup.REPO/'app/contract_inputs/PKG-01/DEL-01-02/Work/recovery.app-ledger-entry.v0.3.schema.json'
     require(digest(schema)==SCHEMA_SHA, 'reviewed ledger schema changed')
     projection=ledger_projection(data/'runtime/recovery.ledger.sqlite',schema)
     owned_plain(projection_path); historical=json.loads(Path(projection_path).read_text())

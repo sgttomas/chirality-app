@@ -509,8 +509,8 @@ fn work_locality(path: &str) -> String {
     match parts.as_slice() {
         ["execution", package, deliverable, rest] if package.starts_with("PKG-") && deliverable.starts_with("DEL-") => {
             match rest.strip_prefix("Design/") {
-                Some(tail) => format!("execution/{package}/{deliverable}/Work/{tail}"),
-                None => path.to_string(),
+                Some(tail) => format!("app/contract_inputs/{package}/{deliverable}/Work/{tail}"),
+                None => format!("app/contract_inputs/{package}/{deliverable}/{rest}"),
             }
         }
         _ => path.to_string(),

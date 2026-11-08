@@ -1,0 +1,447 @@
+[
+  {
+    "record_kind": "lhq_candidate_identification",
+    "format": "LHQ-v0.1",
+    "record_id": "LHQ-CIR-EXAMPLE-STATE-2026-10-03",
+    "date": {
+      "value": "2026-10-03",
+      "source": "stated_by_person"
+    },
+    "elements": {
+      "app_candidate": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "app_codex_version": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "host_candidate": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "host_loop": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "local_model_server": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "machine": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "adopted_policy": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "initial_allow_list": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "observation_tooling": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "invented_material": {
+        "value": "FX-PIPE-01 with L-LHQ-1 and L-LHQ-2 (C §10; LHQ §2.2)",
+        "source": "LHQ-v0.1 §2",
+        "standing": "app_stated"
+      },
+      "examiner": {
+        "source": "independent examiner not yet named (DEP-09-07-024)",
+        "standing": "not_supplied"
+      }
+    },
+    "agreed_activity": {
+      "agreement": {
+        "source": "DEL-09-06 agreement not supplied; OI-021 open",
+        "standing": "not_supplied"
+      },
+      "bindings": [
+        {
+          "slot": "OP-READ",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-RESULTS",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-GEOM",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-ATTR",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-LOW",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-UNDO",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-EXAMINE",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-HOSTCHECK",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-SOLVE",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "ACT-ACCEPT",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "ACT-REJECT",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "ACT-CHECK",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "ACT-GRANT",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "WF",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "WF-22",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        }
+      ]
+    },
+    "external_contributions": [
+      {
+        "id": "HC-1",
+        "contribution": "Identified host candidate",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-27 (a)"
+      },
+      {
+        "id": "HC-2",
+        "contribution": "Embedded minimal loop with catalog tools",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-20, SQ-29"
+      },
+      {
+        "id": "HC-3",
+        "contribution": "Catalog reads with four-element basis",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-03, SQ-07"
+      },
+      {
+        "id": "HC-4",
+        "contribution": "Per-item acceptance and rejection record",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-01, SQ-09"
+      },
+      {
+        "id": "HC-5",
+        "contribution": "Act capture with person and time",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-01"
+      },
+      {
+        "id": "HC-6",
+        "contribution": "Durable receipts",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-09 (c)"
+      },
+      {
+        "id": "HC-7",
+        "contribution": "Receipted undo through the route",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-10"
+      },
+      {
+        "id": "HC-8",
+        "contribution": "Per-class autonomy control",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-05"
+      },
+      {
+        "id": "HC-9",
+        "contribution": "Solve with standing",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-04 (a)"
+      },
+      {
+        "id": "HC-10",
+        "contribution": "Findings held by reference",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-24"
+      },
+      {
+        "id": "HC-11",
+        "contribution": "Native layer with destination enforcement and record",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-30"
+      },
+      {
+        "id": "HC-12",
+        "contribution": "Host run record",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-19"
+      },
+      {
+        "id": "HC-13",
+        "contribution": "Host panel and in-work destination prompt",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-19 (d), SQ-23"
+      }
+    ]
+  },
+  {
+    "record_kind": "lhq_candidate_identification",
+    "format": "LHQ-v0.1",
+    "record_id": "LHQ-CIR-EXAMPLE-MAPPED (invented)",
+    "date": {
+      "value": "2026-10-03",
+      "source": "stated_by_person"
+    },
+    "elements": {
+      "app_candidate": {
+        "value": "chirality-app v4 build 0.1.0-dev+abc1234 (invented)",
+        "source": "App build evidence (invented)",
+        "standing": "observed"
+      },
+      "app_codex_version": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "host_candidate": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "host_loop": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "local_model_server": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "machine": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "adopted_policy": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "initial_allow_list": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "observation_tooling": {
+        "source": "no candidate identified; host joins deferred (DECISION-3); LHQ §7",
+        "standing": "not_supplied"
+      },
+      "invented_material": {
+        "value": "FX-PIPE-01 with L-LHQ-1 and L-LHQ-2 (C §10; LHQ §2.2)",
+        "source": "LHQ-v0.1 §2",
+        "standing": "app_stated"
+      },
+      "examiner": {
+        "source": "independent examiner not yet named (DEP-09-07-024)",
+        "standing": "not_supplied"
+      }
+    },
+    "agreed_activity": {
+      "agreement": {
+        "source": "DEL-09-06 agreement not supplied; OI-021 open",
+        "standing": "not_supplied"
+      },
+      "bindings": [
+        {
+          "slot": "OP-READ",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-RESULTS",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-GEOM",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-ATTR",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-LOW",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-UNDO",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-EXAMINE",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-HOSTCHECK",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "OP-SOLVE",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "ACT-ACCEPT",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "ACT-REJECT",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "ACT-CHECK",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "ACT-GRANT",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "WF",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        },
+        {
+          "slot": "WF-22",
+          "state": "unbound",
+          "missing_input": "OI-021 binding (DEP-09-07-011)"
+        }
+      ]
+    },
+    "external_contributions": [
+      {
+        "id": "HC-1",
+        "contribution": "Identified host candidate",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-27 (a)"
+      },
+      {
+        "id": "HC-2",
+        "contribution": "Embedded minimal loop with catalog tools",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-20, SQ-29"
+      },
+      {
+        "id": "HC-3",
+        "contribution": "Catalog reads with four-element basis",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-03, SQ-07"
+      },
+      {
+        "id": "HC-4",
+        "contribution": "Per-item acceptance and rejection record",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-01, SQ-09"
+      },
+      {
+        "id": "HC-5",
+        "contribution": "Act capture with person and time",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-01"
+      },
+      {
+        "id": "HC-6",
+        "contribution": "Durable receipts",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-09 (c)"
+      },
+      {
+        "id": "HC-7",
+        "contribution": "Receipted undo through the route",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-10"
+      },
+      {
+        "id": "HC-8",
+        "contribution": "Per-class autonomy control",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-05"
+      },
+      {
+        "id": "HC-9",
+        "contribution": "Solve with standing",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-04 (a)"
+      },
+      {
+        "id": "HC-10",
+        "contribution": "Findings held by reference",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-24"
+      },
+      {
+        "id": "HC-11",
+        "contribution": "Native layer with destination enforcement and record",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-30"
+      },
+      {
+        "id": "HC-12",
+        "contribution": "Host run record",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-19"
+      },
+      {
+        "id": "HC-13",
+        "contribution": "Host panel and in-work destination prompt",
+        "standing": "answered",
+        "evidence": "DEL-09-06 Design/RELAY_ANSWERS_SWBPIPE.md SQ-19 (d), SQ-23"
+      }
+    ],
+    "app_candidate_subject": {
+      "revision": "abc1234 (invented)",
+      "build_identity": "0.1.0-dev+abc1234 (invented)",
+      "packaged": true,
+      "package_record": "DEL-01-06 OUT-002 record PKG-REC-1 (invented)"
+    }
+  }
+]

@@ -14,12 +14,19 @@ import tempfile
 
 
 def deliverable_path(root, relative):
-    """A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md)."""
-    # Only when the deliverable has no Design entry at all, so link refusal still applies.
+    """Resolve retained logical identities to current App inputs; never follow Design links."""
     match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
-    if match is None or os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
-        return relative
-    return match.group(1) + 'Work/' + relative[match.end():]
+    if match is not None:
+        if os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
+            return relative
+        relative = match.group(1) + 'Work/' + relative[match.end():]
+    if relative.startswith('execution/'):
+        # Historical/custom evidence trees have no current App-input namespace.
+        # A maintained root never falls back to its authoring execution tree.
+        if not os.path.lexists(os.path.join(root, 'app/contract_inputs')) and os.path.lexists(os.path.join(root, relative)):
+            return relative
+        return 'app/contract_inputs/' + relative[len('execution/'):]
+    return relative
 
 
 HERE = Path(__file__).resolve().parent
@@ -123,11 +130,11 @@ class Receiver:
         with tempfile.TemporaryDirectory(prefix='sq-receiving-') as temp:
             root = Path(temp)
             for name, data in self.sources.items():
-                target = root / name
+                target = root / deliverable_path(root, name)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
             for name, data in current_documents.items():
-                target = root / 'current-documentary-inputs' / name
+                target = root / 'current-documentary-inputs' / deliverable_path(root, name)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
             for name, data in self.original_sources.items():

@@ -1,0 +1,15 @@
+{
+  "added": [
+    {
+      "operation_identity": "OP-C9",
+      "operation_version": "v1"
+    }
+  ],
+  "changed": [],
+  "from_edition": "e1",
+  "host_identity": "SH-1",
+  "published_at": "t0002",
+  "removed": [],
+  "reporter": "host",
+  "to_edition": "e2"
+}

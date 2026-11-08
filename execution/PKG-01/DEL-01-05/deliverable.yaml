@@ -57,7 +57,7 @@ checks:
 - app/tests/conversation-panel.test.mjs
 - app/tests/access-provider.test.mjs
 - app/src-tauri/src/access_provider_tests.rs
-- execution/PKG-01/DEL-01-05/Work/prototype/check_explicit_project_context.py
+- app/contract_inputs/PKG-01/DEL-01-05/Work/prototype/check_explicit_project_context.py
 - app/supplier_checks/test_local_auth.py
 - app/supplier_checks/local_auth.py
 - app/src-tauri/tests/config_write_contract.rs

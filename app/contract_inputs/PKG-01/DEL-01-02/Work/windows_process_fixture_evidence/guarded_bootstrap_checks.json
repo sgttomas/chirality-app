@@ -1,0 +1,68 @@
+{
+  "scope": "Host checks and local repair integration only; no passing native result",
+  "requiredAncestor": "ebf71ce713e4d71a2b32193fd360cfda3cd1dab9",
+  "lastIndependentSourceReview": "c91621e09d118c001439d65d4425062bb856a913",
+  "reviewedSourcesUnchanged": [
+    "ProcessFixture.cs",
+    "verify_results.py",
+    "Controller.ps1",
+    "README.md"
+  ],
+  "smallManagerRepairAfterReview": {
+    "files": [
+      "run_fixture.py",
+      "test_driver.py"
+    ],
+    "finding": "selector/pipe close failure could discard UNKNOWN",
+    "repair": "catch each close failure, retain UNKNOWN, continue closing other local resources",
+    "regression": "test_failed_stream_or_selector_close_keeps_unknown_report",
+    "independentRereview": false,
+    "guestExecutionAfterRepair": false
+  },
+  "finalSourceSha256": {
+    "ProcessFixture.cs": "a587f4b5424b93b407bbbae671a4c1a1904bc005ed98115fbc31d0c1e096c646",
+    "run_fixture.py": "d7653cb3cf5bf50f35f140378db77ac7ca0bffc05a3e36662945dee41ad10c15",
+    "verify_results.py": "ecbe0dff2b6a67d7679f370c1589a88fcf7fbae25152ab4e3fc42f082d4a288f",
+    "Controller.ps1": "fee5f1459f21f4765a724af12865e580b869cc81992d81e9c22f799d4adb4d56",
+    "test_driver.py": "2c4570c309a1878b871fc8a5d87c4ed8bc27726826bb9ecae30068d0e90f26e3",
+    "README.md": "12f1c30a1645e4ba2346bfdfaad30bdcf207eee5d6e54cc9168f03c71200a14e"
+  },
+  "attemptedGuestSource": "c5e01df9d4a06fa6184841cb30d22ec539e30590",
+  "checks": [
+    {
+      "check": "python3 -m unittest discover -s app/examination/windows_platform -p test_driver.py",
+      "result": "PASS: 6 tests; fresh mktemp CODEX_HOME; no guest"
+    },
+    {
+      "check": "app/src-tauri/schemas/sync.py (verification mode)",
+      "result": "PASS: 11 schema resources match bytes, hashes and IDs; no source updates"
+    },
+    {
+      "check": "app/tests/check_git_checkout_bytes.py",
+      "source": "21f35b693eb13f2eed4abb836da2494166a0bb16",
+      "result": "PASS: 10 changed without attributes; 0 with; 11 protected including intentional CRLF; unrelated control converts"
+    },
+    {
+      "check": "unchanged native verifier empty trace",
+      "result": "PASS: rejects missing/mixed generation; no invented passing trace"
+    },
+    {
+      "check": "python3 -m tools.deliverables --project . check",
+      "result": "PASS: 41 deliverables, errors=[]"
+    },
+    {
+      "check": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "nativeCases": {
+    "P01-positive": "NOT RUN",
+    "P01-negative": "NOT RUN",
+    "P02-A": "NOT RUN",
+    "P02-B": "NOT RUN",
+    "P02-C": "NOT RUN"
+  },
+  "newRuntimeArchitectureAndGuestHashObservations": "NONE: guest session admission failed",
+  "lifecycleTimeoutHostLossCrashCleanupObservations": "NONE",
+  "acceptanceOrRelease": "NONE"
+}

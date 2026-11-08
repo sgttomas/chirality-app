@@ -90,7 +90,7 @@ class StandalonePreparationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for item in prep.verified_sources()['sources']:
-                target = root / item['path']
+                target = root / prep.deliverable_path(root, item['path'])
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes((prep.ROOT / prep.deliverable_path(prep.ROOT, item['path'])).read_bytes())
             self.assertEqual(prep.prepare(root), self.plan)
@@ -102,7 +102,7 @@ class StandalonePreparationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for item in prep.verified_sources()['sources']:
-                target = root / item['path']
+                target = root / prep.deliverable_path(root, item['path'])
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes((prep.ROOT / prep.deliverable_path(prep.ROOT, item['path'])).read_bytes())
                 if 'selectors' in item:

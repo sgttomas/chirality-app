@@ -1,0 +1,50 @@
+{
+  "format": "chirality.app.execution-fidelity/1",
+  "exceptions": [
+    {
+      "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102-four/sources/codex/.github/scripts/verify-zsh-manifest.sh",
+      "sha256": "4cbe1f4de2e467c7d8a0aafb4ed4434ee1f3a9255acbd89510faccd99041474c",
+      "kind": "fidelity-only supplier receipt; never invoke"
+    },
+    {
+      "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102-four/sources/codex/scripts/codex_package/ripgrep.py",
+      "sha256": "c70947d6f7df1aa5daeca3d0fa48e65a32ee38b4f6b35694f87b2e65a4467e32",
+      "kind": "fidelity-only supplier receipt; never invoke"
+    },
+    {
+      "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102-four/sources/codex/scripts/codex_package/zsh.py",
+      "sha256": "f78db6653377689ff06b69b3cb4e04f639a4d95753fc9f9cdf3a573c97a1e502",
+      "kind": "fidelity-only supplier receipt; never invoke"
+    },
+    {
+      "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/codex/.github/scripts/build-zsh-release-artifact.sh",
+      "sha256": "1a087f7201639bd093a5b7dad3b4561a376fc4bef3f12d6ee0d7a8cf7e5cde1f",
+      "kind": "fidelity-only supplier receipt; never invoke"
+    },
+    {
+      "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/codex/scripts/codex_package/cargo.py",
+      "sha256": "95303ad6fcb3d6bf69bc66d8dc78f3386499893e22e3aba62f37ace952c2b946",
+      "kind": "fidelity-only supplier receipt; never invoke"
+    },
+    {
+      "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/codex/scripts/codex_package/codex-zsh",
+      "sha256": "2012cc329d74ab041329c5415db3992c38a532d2d2a07617c4e018cf55534ae0",
+      "kind": "fidelity-only supplier receipt; never invoke"
+    },
+    {
+      "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/codex/scripts/codex_package/layout.py",
+      "sha256": "b9abc21bdf4f0ae5d4def1f28c782d9e8faee837a17528b0d7551e6fd4be47c4",
+      "kind": "fidelity-only supplier receipt; never invoke"
+    },
+    {
+      "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/codex/scripts/codex_package/rg",
+      "sha256": "41a10ca63365560d899a82b6f825fd7b420a18b34f660a98bffeece77eeae1f1",
+      "kind": "fidelity-only supplier receipt; never invoke"
+    },
+    {
+      "path": "execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html",
+      "sha256": "02d38cb18041c52989d8a2a0b969e6502ce4b25eec85fb0931bbbc100c4420e8",
+      "kind": "fidelity-only historical acceptance presentation; no CI/tool/product execution"
+    }
+  ]
+}

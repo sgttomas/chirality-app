@@ -1,0 +1,16 @@
+{
+  "sourceSha256": "fca046e15803e3505dafafe2bfd14f7dffa33d5c4a1635593428ab62018de139",
+  "foreignThread": {
+    "result": "native turn correlated; provider adoption not observed",
+    "nativeTurn": "foreign-native-turn"
+  },
+  "nullTurn": {
+    "exceptionType": "AttributeError",
+    "message": "'NoneType' object has no attribute 'get'"
+  },
+  "conflictingRepeat": {
+    "first": "native turn correlated; provider adoption not observed",
+    "second": "native turn correlated; provider adoption not observed",
+    "nativeTurn": "second"
+  }
+}

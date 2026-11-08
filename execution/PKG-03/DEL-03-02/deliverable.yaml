@@ -65,6 +65,6 @@ needs:
 code_paths:
 - app/src-tauri/src/proposal.rs
 checks:
-- execution/PKG-03/DEL-03-02/Work/prototype/swbpipe_corpus_map.py
-- execution/PKG-03/DEL-03-02/Work/prototype/proposal_states.py
+- app/contract_inputs/PKG-03/DEL-03-02/Work/prototype/swbpipe_corpus_map.py
+- app/contract_inputs/PKG-03/DEL-03-02/Work/prototype/proposal_states.py
 - app/src-tauri/tests/swbpipe_receiving.rs

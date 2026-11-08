@@ -1,0 +1,315 @@
+{
+  "description": "Constructed schema/semantic fixture only; every native receipt is invented test data, not observed authorship or runtime custody.",
+  "account": {
+    "format": "chirality.connector.route-account",
+    "formatVersion": "0.5",
+    "account_id": "ra:constructed-cce",
+    "standing": "recorded_contributions_not_acceptance",
+    "base_account": {
+      "formatVersion": "0.4",
+      "account_id": "ra:constructed-crr",
+      "relative_path": ".chirality/records/connectors/route-accounts/11111111-1111-4111-8111-111111111111.json",
+      "byte_length": 8504,
+      "sha256": "1201571a1eb69cea27bfc5818710adbde84be7e142d962155f07c803b7d5b2bf",
+      "project_identity": {
+        "device": "1",
+        "inode": "10"
+      },
+      "method": "sha256:original_file_bytes",
+      "resolution_at_write": "resolved"
+    },
+    "question_id": "Q1",
+    "answer": {
+      "artifact": {
+        "text": "{\"kind\":\"answer\",\"account_sha256\":\"1201571a1eb69cea27bfc5818710adbde84be7e142d962155f07c803b7d5b2bf\",\"question_id\":\"Q1\",\"retained_gap_pointers\":[\"/gaps/0\"],\"retained_contradiction_ids\":[],\"limit\":\"recorded_evidence_not_truth_acceptance_or_human_performance\",\"answer_text\":\"The constructed record changes from pending to recorded complete; this is a report of its text and does not establish actual completion.\",\"claims\":[{\"claim_id\":\"answer-1\",\"statement\":\"The selected lines differ; their recorded statuses are pending and recorded complete.\",\"base_claim_ids\":[\"cl-1\"],\"fact_ids\":[\"f-since\",\"f-at\"],\"comparison_ids\":[\"cmp-1\"]}]}",
+        "sha256": "b2d98bfa89a8088a3139b4f147619136661e5b7c3c0557df9f7a5c9e39bf9c75",
+        "byte_length": 629
+      },
+      "receipt": {
+        "kind": "answer_emission",
+        "home_reference": "constructed-home",
+        "generation_reference": "constructed-generation",
+        "generation": {
+          "appSession": "constructed-session",
+          "home": "constructed-home",
+          "spawnCounter": "1"
+        },
+        "thread_id": "constructed-thread-1",
+        "turn_id": "constructed-turn-1",
+        "item_id": "constructed-item-1",
+        "request_reference": "constructed-request-1",
+        "role_supply_reference": "constructed-role-1",
+        "supplied_role": "TASK",
+        "input_sha256": "49454fc7c76d30b72f5d7d4aa19a12e7c2c064b249624bc31a7736e3a5698041",
+        "content_sha256": "b2d98bfa89a8088a3139b4f147619136661e5b7c3c0557df9f7a5c9e39bf9c75",
+        "dispatch_receipt_floor": "1",
+        "item_receipt_position": "2",
+        "terminal_receipt_position": "3",
+        "phase": "final_answer",
+        "item_type": "agentMessage",
+        "terminal_status": "completed",
+        "standing": "recorded_live_source_observation_not_hot_capability",
+        "sources": [
+          {
+            "kind": "request",
+            "identity": "constructed-request-1",
+            "method": "sha256:host_parsed_frame_json_utf8",
+            "sha256": "de6c2eb8ac3a6ab9a08da0921c284e02523c0962e69371680810075facd62493",
+            "resolution_at_write": "resolved"
+          },
+          {
+            "kind": "result",
+            "identity": "constructed-result-1",
+            "method": "sha256:host_parsed_frame_json_utf8",
+            "sha256": "0eb76e7e713d7212c04fc332cfaa6bd3483ab3e70a3c9f94ca35f75b5ffc2995",
+            "resolution_at_write": "resolved"
+          },
+          {
+            "kind": "item_event",
+            "identity": "constructed-item_event-1",
+            "method": "sha256:host_parsed_frame_json_utf8",
+            "sha256": "a6ebd4af0a50eb3f545870d1cdbc60bda46a1966d0501c25b5b8411bde327177",
+            "resolution_at_write": "resolved"
+          },
+          {
+            "kind": "terminal_event",
+            "identity": "constructed-terminal_event-1",
+            "method": "sha256:host_parsed_frame_json_utf8",
+            "sha256": "48f1b3a7ee0486fcd9e9a8ad62081d94fb25ac966e26007829d9910040b98294",
+            "resolution_at_write": "resolved"
+          },
+          {
+            "kind": "role_supply",
+            "identity": "constructed-role-1",
+            "method": "sha256:role_guidance_utf8",
+            "sha256": "ee69617f078055f6335220f50f6cdea9cfab95166248a083af5148f0e78cf66c",
+            "resolution_at_write": "resolved"
+          }
+        ],
+        "liveness_at_recording": "current",
+        "response_receipt_position": "4"
+      }
+    },
+    "review": {
+      "artifact": {
+        "text": "{\"kind\":\"manager_review\",\"account_sha256\":\"1201571a1eb69cea27bfc5818710adbde84be7e142d962155f07c803b7d5b2bf\",\"question_id\":\"Q1\",\"retained_gap_pointers\":[\"/gaps/0\"],\"retained_contradiction_ids\":[],\"limit\":\"recorded_evidence_not_truth_acceptance_or_human_performance\",\"answer_sha256\":\"b2d98bfa89a8088a3139b4f147619136661e5b7c3c0557df9f7a5c9e39bf9c75\",\"review_text\":\"The answer accurately distinguishes these constructed record statements and retains the stated limitations. The insertion only adds a result note.\",\"claim_findings\":[{\"claim_id\":\"answer-1\",\"finding\":\"Cited excerpts support the reported textual difference, not actual completion.\"}],\"disposition\":\"reviewed_for_integration\",\"plan_sha256\":\"d3661fe5586773bbcc330a5ac2e5ba164de0fd410235b484504c9c9b3e134258\"}",
+        "sha256": "6e16805a1b40233494a5537db26065921dc45c157baaff5a9605f00200385358",
+        "byte_length": 768
+      },
+      "receipt": {
+        "kind": "manager_review_emission",
+        "home_reference": "constructed-home",
+        "generation_reference": "constructed-generation",
+        "generation": {
+          "appSession": "constructed-session",
+          "home": "constructed-home",
+          "spawnCounter": "1"
+        },
+        "thread_id": "constructed-thread-2",
+        "turn_id": "constructed-turn-2",
+        "item_id": "constructed-item-2",
+        "request_reference": "constructed-request-2",
+        "role_supply_reference": "constructed-role-2",
+        "supplied_role": "WORKING_ITEMS",
+        "input_sha256": "35c5c7b26541806451d11c62e318c428b20d03ed962a41dc148092a7a772c4b9",
+        "content_sha256": "6e16805a1b40233494a5537db26065921dc45c157baaff5a9605f00200385358",
+        "dispatch_receipt_floor": "11",
+        "item_receipt_position": "12",
+        "terminal_receipt_position": "13",
+        "phase": "final_answer",
+        "item_type": "agentMessage",
+        "terminal_status": "completed",
+        "standing": "recorded_live_source_observation_not_hot_capability",
+        "sources": [
+          {
+            "kind": "request",
+            "identity": "constructed-request-2",
+            "method": "sha256:host_parsed_frame_json_utf8",
+            "sha256": "de6c7c6ba628a8ec6b2c0222a6bf8d8149270defc40aaaa9f8b57bb3f36352eb",
+            "resolution_at_write": "resolved"
+          },
+          {
+            "kind": "result",
+            "identity": "constructed-result-2",
+            "method": "sha256:host_parsed_frame_json_utf8",
+            "sha256": "f8714b362d24ce8419be46a6d6e4e8c46debaeea311afe117a99c9af65840bca",
+            "resolution_at_write": "resolved"
+          },
+          {
+            "kind": "item_event",
+            "identity": "constructed-item_event-2",
+            "method": "sha256:host_parsed_frame_json_utf8",
+            "sha256": "57c5fe179c6ce5bb4ba70fef2b0167cc0fc1a6cfb1d239fb83e2f43b2d9d3d77",
+            "resolution_at_write": "resolved"
+          },
+          {
+            "kind": "terminal_event",
+            "identity": "constructed-terminal_event-2",
+            "method": "sha256:host_parsed_frame_json_utf8",
+            "sha256": "55aded610fab945ea273e75fcec0cf3990a969694cca5c4759dd390c640b6d47",
+            "resolution_at_write": "resolved"
+          },
+          {
+            "kind": "role_supply",
+            "identity": "constructed-role-2",
+            "method": "sha256:role_guidance_utf8",
+            "sha256": "d1d282c6d4d202eca8aa4ed149f6702506e2f2a204cded052a46952802653bd2",
+            "resolution_at_write": "resolved"
+          }
+        ],
+        "liveness_at_recording": "current",
+        "response_receipt_position": "14"
+      }
+    },
+    "plan": {
+      "text": "{\"target_path\":\"workgraph.md\",\"scope_reference\":\"constructed-scope\",\"selection_reference\":\"constructed-manager-selection\",\"preimage_sha256\":\"82f1faab0fd7cc7cf959ed795cfb362a860bbe13d735ece290dfdb238d2b0258\",\"preimage_length\":52,\"insertion_offset\":52,\"block_marker\":\"CCE constructed result\",\"block_template\":\"\\nCCE constructed result\\nAccount 1201571a1eb69cea27bfc5818710adbde84be7e142d962155f07c803b7d5b2bf\\nAnswer b2d98bfa89a8088a3139b4f147619136661e5b7c3c0557df9f7a5c9e39bf9c75\\nReview {{CCE_REVIEW_SHA256}}\\nRecorded statuses differ; completion and human acceptance remain unestablished.\\n\",\"account_sha256\":\"1201571a1eb69cea27bfc5818710adbde84be7e142d962155f07c803b7d5b2bf\",\"answer_sha256\":\"b2d98bfa89a8088a3139b4f147619136661e5b7c3c0557df9f7a5c9e39bf9c75\",\"limit\":\"insert_only_existing_graph_preserve_all_original_bytes_and_holds\"}",
+      "sha256": "d3661fe5586773bbcc330a5ac2e5ba164de0fd410235b484504c9c9b3e134258",
+      "byte_length": 836
+    },
+    "integration": {
+      "operation": {
+        "kind": "file_change",
+        "home_reference": "constructed-home",
+        "generation_reference": "constructed-generation",
+        "generation": {
+          "appSession": "constructed-session",
+          "home": "constructed-home",
+          "spawnCounter": "1"
+        },
+        "thread_id": "constructed-thread-3",
+        "turn_id": "constructed-turn-3",
+        "item_id": "constructed-item-3",
+        "request_reference": "constructed-request-3",
+        "role_supply_reference": "constructed-role-3",
+        "supplied_role": "TASK",
+        "input_sha256": "1d04e410afb5e05d58e4b160508f4469aa204fe4f7371a9fc09be05c0be4cc7b",
+        "content_sha256": "6cdf7402973796af67597da578e64c0c2fb4ee68aec8173c48a74057764515fc",
+        "dispatch_receipt_floor": "21",
+        "item_receipt_position": "22",
+        "terminal_receipt_position": "23",
+        "phase": null,
+        "item_type": "fileChange",
+        "terminal_status": "completed",
+        "standing": "recorded_live_source_observation_not_hot_capability",
+        "sources": [
+          {
+            "kind": "request",
+            "identity": "constructed-request-3",
+            "method": "sha256:host_parsed_frame_json_utf8",
+            "sha256": "550bec830473b29d37b356e4d240e6ccbb5a59ea7cb722ce787e7c9e744742fe",
+            "resolution_at_write": "resolved"
+          },
+          {
+            "kind": "result",
+            "identity": "constructed-result-3",
+            "method": "sha256:host_parsed_frame_json_utf8",
+            "sha256": "8d3cbd02bc36a375bcab21ac9c6bc1e89edd84df0c954bc1224056eabb5e0059",
+            "resolution_at_write": "resolved"
+          },
+          {
+            "kind": "item_event",
+            "identity": "constructed-item_event-3",
+            "method": "sha256:host_parsed_frame_json_utf8",
+            "sha256": "a74cbca1d0bd55af21eedc2f077c505b674f51f55b2740633aab8ba317270d64",
+            "resolution_at_write": "resolved"
+          },
+          {
+            "kind": "terminal_event",
+            "identity": "constructed-terminal_event-3",
+            "method": "sha256:host_parsed_frame_json_utf8",
+            "sha256": "ff177aaa1bd3d4fd191a05f57083a2cc498c76a49da462dcb087c3c0364501f9",
+            "resolution_at_write": "resolved"
+          },
+          {
+            "kind": "role_supply",
+            "identity": "constructed-role-3",
+            "method": "sha256:role_guidance_utf8",
+            "sha256": "7456c25613c5bda1b6a383c63863ce537677064a32d535046b2dae4cf0fd521b",
+            "resolution_at_write": "resolved"
+          }
+        ],
+        "liveness_at_recording": "current",
+        "response_receipt_position": "24"
+      },
+      "target_path": "workgraph.md",
+      "preimage_sha256": "82f1faab0fd7cc7cf959ed795cfb362a860bbe13d735ece290dfdb238d2b0258",
+      "postimage_sha256": "c9c8bb2b4cc46aa811689e0ca7da079ed9b9171c730b08bc006488b73272524b",
+      "reread_sha256": "c9c8bb2b4cc46aa811689e0ca7da079ed9b9171c730b08bc006488b73272524b",
+      "prefix_sha256": "82f1faab0fd7cc7cf959ed795cfb362a860bbe13d735ece290dfdb238d2b0258",
+      "suffix_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "preimage_identity": {
+        "device": "1",
+        "inode": "1"
+      },
+      "postimage_identity": {
+        "device": "1",
+        "inode": "2"
+      },
+      "reread_identity": {
+        "device": "1",
+        "inode": "2"
+      },
+      "observed_postimage_length": 373,
+      "inserted_block_sha256": "5c9ec6814e4b29568c9e3d0c648fd3a5212f63c83de5dbee3f8f907af3737d3b",
+      "standing": "operation_reported_and_bytes_changed_as_expected_not_exclusive_causality",
+      "target_observations": [
+        {
+          "kind": "preimage",
+          "identity": "constructed-target-preimage",
+          "method": "sha256:original_file_bytes",
+          "sha256": "82f1faab0fd7cc7cf959ed795cfb362a860bbe13d735ece290dfdb238d2b0258",
+          "file_identity": {
+            "device": "1",
+            "inode": "1"
+          },
+          "resolution_at_write": "resolved"
+        },
+        {
+          "kind": "postimage",
+          "identity": "constructed-target-postimage",
+          "method": "sha256:original_file_bytes",
+          "sha256": "c9c8bb2b4cc46aa811689e0ca7da079ed9b9171c730b08bc006488b73272524b",
+          "file_identity": {
+            "device": "1",
+            "inode": "2"
+          },
+          "resolution_at_write": "resolved"
+        },
+        {
+          "kind": "reread",
+          "identity": "constructed-target-reread",
+          "method": "sha256:original_file_bytes",
+          "sha256": "c9c8bb2b4cc46aa811689e0ca7da079ed9b9171c730b08bc006488b73272524b",
+          "file_identity": {
+            "device": "1",
+            "inode": "2"
+          },
+          "resolution_at_write": "resolved"
+        }
+      ]
+    },
+    "integration_attempt": null,
+    "known_conflicts": [],
+    "gaps": [
+      {
+        "gap": "Constructed fixture only; no native source custody",
+        "effect": "Definition checks cannot establish actual authored contributions or integration",
+        "responsibility": "unassigned"
+      }
+    ],
+    "human_responsibility": {
+      "standing": "outstanding",
+      "reason": "No person act observed",
+      "limit": "no_acceptance_reliance_coordination_or_waiver_inferred"
+    },
+    "recorder": {
+      "kind": "app",
+      "identity": "constructed-app"
+    },
+    "written_at": "2026-10-08T00:00:00Z",
+    "written_at_source": "observed_clock",
+    "cold_limit": "recorded_receipts_do_not_revive_hot_authorship_or_write_authority"
+  },
+  "target_preimage": "# Constructed graph\n\nHuman acceptance: outstanding.\n",
+  "target_postimage": "# Constructed graph\n\nHuman acceptance: outstanding.\n\nCCE constructed result\nAccount 1201571a1eb69cea27bfc5818710adbde84be7e142d962155f07c803b7d5b2bf\nAnswer b2d98bfa89a8088a3139b4f147619136661e5b7c3c0557df9f7a5c9e39bf9c75\nReview 6e16805a1b40233494a5537db26065921dc45c157baaff5a9605f00200385358\nRecorded statuses differ; completion and human acceptance remain unestablished.\n"
+}

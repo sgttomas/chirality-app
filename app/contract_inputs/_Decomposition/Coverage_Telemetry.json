@@ -1,0 +1,164 @@
+{
+  "standing": "GROUPS1_2_ACCEPTED_GROUP3_CANDIDATE",
+  "accepted_group1": "checkpoint_snapshots/GROUP1-20260927T222641Z",
+  "ScopeItemCount": 262,
+  "StatusCounts": {
+    "IN": 234,
+    "OUT": 15,
+    "TBD": 13
+  },
+  "PackageCount": 11,
+  "DeliverableCount": 41,
+  "ObjectiveCount": 10,
+  "UnassignedScopeItems": 0,
+  "InScopeItemsWithoutDeliverableMapping": 0,
+  "OutOrTbdWithDeliverableMapping": 0,
+  "UnmappedObjectives": 0,
+  "ContextEnvelopeCounts": {
+    "L": 8,
+    "M": 31,
+    "S": 2,
+    "XL": 0
+  },
+  "retired_unaccepted_draft_ids": [
+    "DEL-09-03",
+    "DEL-09-04",
+    "DEL-09-08"
+  ],
+  "checks": {
+    "exact_accepted_scope_fields_preserved": true,
+    "objective_meaning_preserved": true,
+    "unique_two_digit_coupled_ids": true,
+    "all_active_description_references_resolve": true,
+    "named_artifacts_interfaces_verification_in_descriptions": true,
+    "no_production_folders_or_SoWs_created": true
+  },
+  "xrg": {
+    "command": "python3 -B tools/validation/validate_decomposition_registers.py projects/chirality-app-v4/execution --families XRG --strict --json <report-path>",
+    "exit_code": 0,
+    "error_count": 0,
+    "warning_count": 0,
+    "findings": [],
+    "tool_sha256": "5442049efb41762d102448a8a64332950e4c08acfdf85d84722fef04223126f5"
+  },
+  "id_format": {
+    "tool": "tools/validation/validate_id_format.sh",
+    "result": "all11 Packages and41 Deliverables pass; additional exact two-digit/coupling assertions pass"
+  },
+  "limits": "Document/register checks, not product verification, dependency readiness, accepted DAG or human Group3 acceptance. Feature checks and joined witnesses remain future commitments.",
+  "inputs": [
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Packages.csv",
+      "sha256": "b8a9b949b629fb8dbe3343e0e5a1f09a30621785d99676f71adb1b285f741fbd"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Deliverables.csv",
+      "sha256": "bcdf6f2f5352e00360c19a956bd22c026909c388d77c76f92b4983ed906415eb"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/ScopeLedger.csv",
+      "sha256": "363643306d3bbda80f4496943a5d1de5187d7910fabdf5b89f929e6c9605fd73"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Objectives.csv",
+      "sha256": "e8e5003d9241c4e6a1d74d00a474b76f3780c6d03c93f66dc1b5c5caa7c9c248"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/ContextBudgetQA.csv",
+      "sha256": "837ae64f74fac345f861491196c0953a1f677684d077489cd98700553bfa0641"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/_Decomposition/Allocation_Rationale.csv",
+      "sha256": "b3969e6363a4f60452410994dfa61ae6e8a08da9cafac9a746304694301f68e2"
+    }
+  ],
+  "affected_clarification": {
+    "source": "projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP2-20260927T233018Z/presentation/APP-V4-IMPLEMENTATION-CLARIFICATION-20260927.md",
+    "source_sha256": "9fc0cce822402c7c69bd4c3f9e7f9a37938f4bc0d8528a94ede7e0aaf886cecf",
+    "scope": "PKG-01 name/description; DEL-01-05 native authentication wording; cross-cutting selective-reuse approach",
+    "counts_ids_mappings_envelopes_unchanged": true,
+    "prior_broad_review": "projects/chirality-app-v4/execution/_Coordination/Reviews/APP-V4-GROUP2-20260927/REVIEW.md",
+    "group2_standing": "APPROVED_AS_PRESENTED_COMPOSITE; CHECKED_CONSOLIDATION_FROZEN",
+    "source_standing": "Exact pre-banner clarification frozen with Group2; current original path carries a subsequent-act link."
+  },
+  "accepted_group2": "checkpoint_snapshots/GROUP2-20260927T233018Z",
+  "final_assembly": "Standing/bookkeeping only: objective notes, OI-025 completion, workflow comparison status and current PEC finding reference. Accepted scope/structure/artifact/interface/context meanings unchanged. Mechanical audit repairs: current vocabulary/companion/DEL-10 staging labels and complete open-issue/revision/XL-zero telemetry; no accepted meaning changed.",
+  "Revision": "G3-draft-1",
+  "Date": "2026-09-27",
+  "OpenIssuesByType": {
+    "adoption": {
+      "count": 2,
+      "ids": [
+        "OI-017",
+        "OI-018"
+      ]
+    },
+    "allocation": {
+      "count": 1,
+      "ids": [
+        "OI-026"
+      ]
+    },
+    "design": {
+      "count": 7,
+      "ids": [
+        "OI-008",
+        "OI-009",
+        "OI-010",
+        "OI-011",
+        "OI-012",
+        "OI-013",
+        "OI-014"
+      ]
+    },
+    "external": {
+      "count": 1,
+      "ids": [
+        "OI-007"
+      ]
+    },
+    "interface": {
+      "count": 3,
+      "ids": [
+        "OI-021",
+        "OI-022",
+        "OI-023"
+      ]
+    },
+    "method": {
+      "count": 2,
+      "ids": [
+        "OI-019",
+        "OI-020"
+      ]
+    },
+    "scope": {
+      "count": 6,
+      "ids": [
+        "OI-001",
+        "OI-002",
+        "OI-003",
+        "OI-004",
+        "OI-005",
+        "OI-006"
+      ]
+    },
+    "transition": {
+      "count": 1,
+      "ids": [
+        "OI-024"
+      ]
+    },
+    "validation": {
+      "count": 1,
+      "ids": [
+        "OI-016"
+      ]
+    }
+  },
+  "ActiveOpenIssueCount": 24,
+  "ResolvedIssueIDs": [
+    "OI-015",
+    "OI-025"
+  ]
+}

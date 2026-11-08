@@ -9,6 +9,8 @@ import tempfile
 
 
 SOURCES = (
+    "app/contract_inputs/PKG-04/DEL-04-03/Work/RS_RECORD.schema.json",
+    "app/contract_inputs/PKG-01/DEL-01-06/ScopeOfWork.md",
     "execution/PKG-04/DEL-04-03/Work/RS_RECORD.schema.json",
     "execution/PKG-01/DEL-01-06/ScopeOfWork.md",
     "app/src-tauri/schemas/RS_RECORD.schema.json",

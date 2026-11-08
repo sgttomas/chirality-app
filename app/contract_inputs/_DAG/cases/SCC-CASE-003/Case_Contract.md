@@ -1,0 +1,11 @@
+# SCC-CASE-003 contribution contract
+
+This working case examines only `DEL-01-06;DEL-09-01` under `chirality-root:bundled:workflow:scc-resolution-case`. It is not an accepted graph or snapshot. The parent WORKING_ITEMS `/root/renewal_research_strategy` assigned this bounded TASK `/root/renewal_research_strategy/scc_case_003` through delegated-harness-native execution. The parent integrates the return; this terminal TASK does not delegate.
+
+Contributions must identify source rows, source clauses, direction convention, actual contribution and point of need, with evidence IDs and candid unknowns. Deposit findings, evidence, candidates and a run record in this case only. Match later SCC observations by member set, recording changed membership and snapshot identity rather than reusing positional SCC IDs as case identity. Preserve actual prior packets as seed evidence only when such packets exist; none exists here.
+
+The authorized writes are these nine case files and one `_run_records/TASK_RUN_*.md`. No product, dependency-register, source, decomposition, graph, status, sibling-case or Git writes are authorized. Actual filesystem capability is broader than this instruction boundary. This inquiry applies no cut, graph merge, readiness rule, remedy or scope change. It supplies no acceptance, execution, qualification, release, adoption or professional-reliance act. All 41 Deliverable IDs and their responsibilities remain intact.
+
+The selected DepClosure observation is supplied evidence, not an invented human acceptance of its graph. Its analyzer completion is separate from the source audit. Human rulings remain absent until actually supplied and must retain actor, source and scope. Candidate organization cannot discharge either directed contribution or an external obligation.
+
+Owner routes are conditional handoffs: WORKING_ITEMS uses the selected downstream `project-dag` workflow for the real basis checkpoint; the packaging and examination owners retain production; a later `audit-dep-closure` supplies follow-up closure evidence. No owner workflow is initiated by this case. A scope/decomposition amendment would require separate warranted owner routing; none is recommended by the present source trace.

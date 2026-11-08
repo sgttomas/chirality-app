@@ -21,7 +21,7 @@ from datetime import datetime
 
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve()
-REPO = HERE.parents[4]
+REPO = HERE.parents[2]
 T3 = Path('/Users/ryan/dev/chirality-t3')
 BASE = HERE.with_name('native_setup_continuation.py')
 OLD_IDENTIFIER = 'dev.chirality.app-v4.candidate.20261029-ukt5ir80'
@@ -200,7 +200,7 @@ def dependency_digests():
     return {str(path): digest(path) for path in
             (BASE, module.RAW, REPO / 'app/examination/candidate_identity/identify.py',
              REPO / 'app/examination/candidate_identity/bundled_supplier.py',
-             REPO / 'execution/PKG-09/DEL-09-01/Work/candidate-identity-v3/candidate-identification.schema.json')}
+             REPO / 'app/contract_inputs/PKG-09/DEL-09-01/Work/candidate-identity-v3/candidate-identification.schema.json')}
 
 
 def policy(executable):

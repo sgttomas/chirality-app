@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 
 sys.dont_write_bytecode = True
 
-REPO = Path(__file__).resolve().parents[4]
+REPO = Path(__file__).resolve().parents[3]
 RETAINED = Path('/private/tmp/chirality-desktop-current-ukt5ir80')
 T3 = Path('/Users/ryan/dev/chirality-t3')
 RAW = Path(__file__).resolve().parent / 'retained/offline-native-controller-v2.py.txt'

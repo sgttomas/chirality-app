@@ -1,0 +1,331 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-07-02:contribution-message:0.2",
+  "title": "PROPOSED CCE message0.2: content-only review is not integration or authority",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/answer"
+    },
+    {
+      "$ref": "#/$defs/review"
+    }
+  ],
+  "$defs": {
+    "answer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "account_sha256",
+        "question_id",
+        "retained_gap_pointers",
+        "retained_contradiction_ids",
+        "limit",
+        "answer_text",
+        "claims"
+      ],
+      "properties": {
+        "kind": {
+          "const": "answer"
+        },
+        "account_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "question_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "retained_gap_pointers": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^/gaps/(0|[1-9][0-9]*)$"
+          }
+        },
+        "retained_contradiction_ids": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "limit": {
+          "const": "recorded_evidence_not_truth_acceptance_or_human_performance"
+        },
+        "answer_text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "claims": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "claim_id",
+              "statement",
+              "base_claim_ids",
+              "fact_ids",
+              "comparison_ids"
+            ],
+            "properties": {
+              "claim_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "statement": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 16384
+              },
+              "base_claim_ids": {
+                "type": "array",
+                "maxItems": 32,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              },
+              "fact_ids": {
+                "type": "array",
+                "maxItems": 32,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              },
+              "comparison_ids": {
+                "type": "array",
+                "maxItems": 32,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              }
+            }
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "account_sha256",
+        "question_id",
+        "retained_gap_pointers",
+        "retained_contradiction_ids",
+        "limit",
+        "answer_sha256",
+        "review_text",
+        "claim_findings",
+        "disposition",
+        "plan_sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "manager_review"
+        },
+        "account_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "question_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "retained_gap_pointers": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^/gaps/(0|[1-9][0-9]*)$"
+          }
+        },
+        "retained_contradiction_ids": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "limit": {
+          "const": "recorded_evidence_not_truth_acceptance_or_human_performance"
+        },
+        "answer_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "review_text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "claim_findings": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "claim_id",
+              "finding"
+            ],
+            "properties": {
+              "claim_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "finding": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 16384
+              }
+            }
+          }
+        },
+        "disposition": {
+          "enum": [
+            "changes_requested",
+            "cannot_assess",
+            "reviewed_for_integration",
+            "reviewed_content_only"
+          ]
+        },
+        "plan_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "disposition": {
+                "const": "reviewed_for_integration"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "plan_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "plan_sha256": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_path",
+        "scope_reference",
+        "selection_reference",
+        "preimage_sha256",
+        "preimage_length",
+        "insertion_offset",
+        "block_marker",
+        "block_template",
+        "account_sha256",
+        "answer_sha256",
+        "limit"
+      ],
+      "properties": {
+        "target_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^[^\\u0000]+$"
+        },
+        "scope_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "selection_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "preimage_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "preimage_length": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 262144
+        },
+        "insertion_offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 262144
+        },
+        "block_marker": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "block_template": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "account_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "answer_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "limit": {
+          "const": "insert_only_existing_graph_preserve_all_original_bytes_and_holds"
+        }
+      }
+    }
+  }
+}

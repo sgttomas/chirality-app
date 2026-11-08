@@ -1,0 +1,321 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-09-11:reconstruction-account:0.1",
+  "title": "Reconstruction account (DEL-09-11 RRM-v0.1 §4; PROPOSED)",
+  "description": "The reader's return. Every claim cites its sources by path and locator; a claim from records or an inference without a source is invalid. What could not be established is listed, not filled. The examiner compares it with the records (RRM §5); the account is never itself authority for an act.",
+  "type": "object",
+  "required": [
+    "record_kind",
+    "format",
+    "account_id",
+    "reader",
+    "input_set",
+    "reconstruction_date",
+    "claims",
+    "unknowns",
+    "not_authority_read",
+    "limits"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "record_kind": {
+      "const": "rrm_reconstruction_account"
+    },
+    "format": {
+      "const": "RRM-v0.1"
+    },
+    "account_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reader": {
+      "type": "object",
+      "required": [
+        "identity",
+        "kind",
+        "separation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "person",
+            "agent"
+          ]
+        },
+        "model_identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "separation": {
+          "type": "string",
+          "minLength": 1,
+          "description": "R23-10: how the reader is separate from every run author; for an agent, the reference to its recorded supplied context"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "agent"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "model_identity"
+            ]
+          }
+        }
+      ]
+    },
+    "input_set": {
+      "type": "object",
+      "required": [
+        "input_set_id",
+        "sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "input_set_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "reconstruction_date": {
+      "type": "object",
+      "required": [
+        "value",
+        "source"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}"
+        },
+        "source": {
+          "enum": [
+            "observed_clock",
+            "record_timestamp",
+            "stated_by_person"
+          ]
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "claim_id",
+          "about",
+          "kind",
+          "statement",
+          "standing"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "claim_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "about": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Names the claim's subject by its identifier as it appears in the input set: for a decision package, its file path, its packageId or its request record id (for example 'PKG-1' or 'project/decisions/PKG-1.json'). If 'about' names no package, the package files cited in 'sources' identify it (RRM §4)."
+          },
+          "kind": {
+            "enum": [
+              "request",
+              "proposal",
+              "decision",
+              "acceptance",
+              "change",
+              "outcome",
+              "lapse",
+              "no_decision",
+              "no_change",
+              "no_outcome"
+            ],
+            "description": "What the claim reconstructs. Absences are stated with no_decision, no_change or no_outcome (a statement that the records hold no such act, change or outcome)."
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "standing": {
+            "enum": [
+              "from_records",
+              "inferred",
+              "unknown"
+            ]
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path",
+                "locator"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "locator": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "actor": {
+            "type": "string",
+            "minLength": 1
+          },
+          "recorder": {
+            "type": "string",
+            "minLength": 1
+          },
+          "alternative": {
+            "type": "string",
+            "minLength": 1
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "ref",
+                "resolution_at_read"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "resolution_at_read": {
+                  "enum": [
+                    "resolved",
+                    "unresolvable",
+                    "not_supplied"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "standing": {
+                  "enum": [
+                    "from_records",
+                    "inferred"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "sources"
+              ],
+              "properties": {
+                "sources": {
+                  "minItems": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "decision",
+                    "acceptance"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "actor",
+                "recorder"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "about",
+          "why"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "about": {
+            "type": "string",
+            "minLength": 1
+          },
+          "why": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "not_authority_read": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "what_it_says",
+          "treated_as"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "what_it_says": {
+            "type": "string",
+            "minLength": 1
+          },
+          "treated_as": {
+            "const": "not evidence of any act or outcome"
+          }
+        }
+      }
+    },
+    "limits": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

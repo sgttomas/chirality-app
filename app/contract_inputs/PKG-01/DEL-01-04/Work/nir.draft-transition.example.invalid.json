@@ -1,0 +1,136 @@
+[
+  {
+    "case": "INV-DT-1",
+    "reason": "An A15 record reference that is not an RS record identity.",
+    "instance": {
+      "record_kind": "draft_transition",
+      "event": "registered",
+      "draft": {
+        "draft_location": "project",
+        "draft_root": ".chirality/workflow-drafts",
+        "name": "supports-adjust"
+      },
+      "content": {
+        "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+        "value": "d13c...4a"
+      },
+      "from": "under review",
+      "to": "registered, unchanged since",
+      "disposition": "new revision",
+      "cause": "registration committed after the person's A15",
+      "time": "2026-10-01T11:00:00Z",
+      "attribution": {
+        "kind": "app action"
+      },
+      "a15_record": "cap:0007",
+      "revision": "project:.chirality/workflows:supports-adjust@rev-5"
+    }
+  },
+  {
+    "case": "INV-DT-2",
+    "reason": "Registered into a state other than 'registered, unchanged since' (WR §5.1).",
+    "instance": {
+      "record_kind": "draft_transition",
+      "event": "registered",
+      "draft": {
+        "draft_location": "project",
+        "draft_root": ".chirality/workflow-drafts",
+        "name": "supports-adjust"
+      },
+      "content": {
+        "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+        "value": "d13c...4a"
+      },
+      "from": "under review",
+      "to": "draft",
+      "disposition": "new revision",
+      "cause": "registration committed after the person's A15",
+      "time": "2026-10-01T11:00:00Z",
+      "attribution": {
+        "kind": "app action"
+      },
+      "a15_record": "rec:app-interface:0007",
+      "revision": "project:.chirality/workflows:supports-adjust@rev-5"
+    }
+  },
+  {
+    "case": "INV-DT-3",
+    "reason": "A refusal without its disposition (K-6: 'refused: name taken').",
+    "instance": {
+      "record_kind": "draft_transition",
+      "event": "registration refused",
+      "draft": {
+        "draft_location": "project",
+        "draft_root": ".chirality/workflow-drafts",
+        "name": "supports-adjust"
+      },
+      "content": {
+        "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+        "value": "d13c...4a"
+      },
+      "from": "under review",
+      "to": "draft",
+      "cause": "registration committed after the person's A15",
+      "time": "2026-10-01T11:00:00Z",
+      "attribution": {
+        "kind": "app action"
+      },
+      "a15_record": "rec:app-interface:0007",
+      "revision": "project:.chirality/workflows:supports-adjust@rev-5"
+    }
+  },
+  {
+    "case": "INV-DT-4",
+    "reason": "An event name outside WR §5.1 (the earlier D3 name 'collision-refused').",
+    "instance": {
+      "record_kind": "draft_transition",
+      "event": "collision-refused",
+      "draft": {
+        "draft_location": "project",
+        "draft_root": ".chirality/workflow-drafts",
+        "name": "supports-adjust"
+      },
+      "content": {
+        "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+        "value": "d13c...4a"
+      },
+      "from": "under review",
+      "to": "registered, unchanged since",
+      "disposition": "new revision",
+      "cause": "registration committed after the person's A15",
+      "time": "2026-10-01T11:00:00Z",
+      "attribution": {
+        "kind": "app action"
+      },
+      "a15_record": "rec:app-interface:0007",
+      "revision": "project:.chirality/workflows:supports-adjust@rev-5"
+    }
+  },
+  {
+    "case": "INV-DT-5",
+    "reason": "An empty revision identity.",
+    "instance": {
+      "record_kind": "draft_transition",
+      "event": "registered",
+      "draft": {
+        "draft_location": "project",
+        "draft_root": ".chirality/workflow-drafts",
+        "name": "supports-adjust"
+      },
+      "content": {
+        "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+        "value": "d13c...4a"
+      },
+      "from": "under review",
+      "to": "registered, unchanged since",
+      "disposition": "new revision",
+      "cause": "registration committed after the person's A15",
+      "time": "2026-10-01T11:00:00Z",
+      "attribution": {
+        "kind": "app action"
+      },
+      "a15_record": "rec:app-interface:0007",
+      "revision": ""
+    }
+  }
+]

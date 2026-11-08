@@ -1,0 +1,42 @@
+{
+  "declaration_contract_version": "WD-v0.8",
+  "required_tools": [
+    {
+      "name": "label-support",
+      "class": "host_operation",
+      "operation": "OP-C9",
+      "versions": ["v1"],
+      "purpose": "Set one support's display label.",
+      "necessity": "required",
+      "stages": ["Label"]
+    }
+  ],
+  "checkpoints": [
+    {
+      "name": "CP-grant",
+      "required_act": "A12",
+      "reached_when": {"kind": "before_dispatch", "tool": "label-support"},
+      "subject": {"class": "grant_setting", "setting": {"classes": ["P-03"], "grant_value": "direct", "scope": {"workspace": "FX-W1", "objects": ["S-4"]}}},
+      "position": "Label",
+      "scope": "The declared setting content: class P-03, grant value direct, on FX-W1, object set {S-4} (the content of ⟨set-2⟩).",
+      "purpose": "The engineer decides whether the agent may label S-4 directly, without a proposal.",
+      "actor": "the_person",
+      "on_negative_decision": {"path": "stop", "explanation": "Stop and report that no grant was set."},
+      "expected_act_evidence": {"capturing_surface": "grant_control", "description": "The host control's record of the A12, established with its settings version, bound to the declared setting content."},
+      "held_actions": {"form": "host_operations_only", "tools": ["label-support"]}
+    },
+    {
+      "name": "CP-check",
+      "required_act": "A4",
+      "reached_when": {"kind": "host_outcome", "tools": ["label-support"], "outcome": "applied"},
+      "subject": {"class": "objects_changed_by_named_outcome", "tools": ["label-support"], "outcome": "applied"},
+      "position": "Ask for the Checked mark",
+      "scope": "The support the label change changed.",
+      "purpose": "The engineer records their own checking of the relabelled support.",
+      "actor": "the_person",
+      "on_negative_decision": {"path": "stop", "explanation": "Stop and report."},
+      "expected_act_evidence": {"capturing_surface": "host_act_facility", "description": "The host's act record of A4 (OP-C6 capture) with its capture-evidence reference, bound to the support's post-application subject content identity."},
+      "held_actions": {"form": "listed_steps", "steps": [{"step": "Return", "app_side": true}]}
+    }
+  ]
+}

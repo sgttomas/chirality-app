@@ -4,15 +4,15 @@
   "sq_prototype": "execution/PKG-09/DEL-09-02/Design/prototype/check_sq.py",
   "sq_step_map": "execution/PKG-09/DEL-09-02/Design/sq.step-map.json",
   "sources": {
-    "app/examination/admission/admission_check.py": "bd9a8ef07bdf0c848f8ba09e14b8c3ef977a7a52140c26e5a58f1cf83e7167cf",
+    "app/examination/admission/admission_check.py": "df430d16f77370cb080b41c46bae572c4c43a31a08aaf491012eddcaafd6e21d",
     "app/examination/admission/admission_rules.py": "b6cb783561cade47855431f0be33190d8fe287a9f5ff05a2da5bbc7953e694a5",
     "app/examination/admission/sources.json": "c1acc36b327f4b0ad066768854dfc655d500bb47630cb6425a4bbd6da3c9a458",
-    "app/examination/check.py": "b65b71dde2498c74c31d44eabd432e8f7c435a23e915008df0d6f5344124b724",
+    "app/examination/check.py": "20b39f8306a45ba8bf213c0078cc236540ca4b2705383cb9f7291c4c85c3ac07",
     "app/examination/rules.py": "ceba713f1c1439855eecd60ef02dc1dd6e68e373916281e5e1ca5d8cb10b0cfc",
     "app/examination/sources.json": "07e3f54cd9698bfa74e7bc57dc3373e9a9743ebf18d277b02a0138c92c8db477",
     "app/examination/support_identity/binding.v1.schema.json": "b5e5baca25c90e53fdaf3f685f531eb84fb921ac8e31b6cb0c782ff68fd05394",
     "app/examination/support_identity/canonical-pins.terms-v1.json": "b824461a0966445704d9505da04e577c228287a7a92df9b5f157c4dfbea6987c",
-    "app/examination/support_identity/canonical.py": "7f5288b984fc853a117c4dd50b6577fa46a04fc16dc7bced03b1aec88650a41f",
+    "app/examination/support_identity/canonical.py": "59f3454a16969968ca7496cd3b1626c78cba2a76afee4ff540011b530d3729c2",
     "app/examination/support_identity/declaration.v1.json": "c41aad04875ad6059e9a20776e7d57dd27b876afc3159cc242bfa3dc6f8dfc92",
     "app/examination/support_identity/support_identity.py": "aa3cf8b228319cae8df8a21c6999c013c102622dc288fba9f4c376cd4842c90d",
     "execution/PKG-01/DEL-01-01/Design/HOSTING_BOUNDARY.md": "23c8f3a1a601135ec805645c6ee5ce4ad41f0e29c8076d9615cf218f83504e0b",
@@ -47,10 +47,10 @@
     "app/examination/documentary_condition.py": "d6da34b98a37ed5549d73c90374a4c5f99fc279bb758735d79e1d9aa10ffcfaf",
     "execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v3.json": "607f79712eadcbeed4bcc25d789fdbdeeb887c9facc3f6532301c6940c0b86e2",
     "app/examination/support_identity/terms_condition.py": "bbc3ebc96365b7ecec54f2c44d62414b7c55b2013672c8273826187f6bc02e62",
-    "app/packaging/static_distribution/check.py": "4e8f5589890f0098f44d6ef7fde247d0ff1c2dc00b1e46db00a8895a9b8d7584",
+    "app/packaging/static_distribution/check.py": "7a93ebbd3bb8fe5868a2b267aab5beb66694b134c2c446927a86d9fbff1a9355",
     "app/packaging/static_distribution/sources.json": "ae41f2c248e81998aca92577786ce3bbb8e2b5a008b5d89ea36b4037412d577e",
-    "app/packaging/successor/check.py": "192684234a686cc476e2c1c42286ba318e26bfed2ec3a412519d6854116efac4",
-    "app/packaging/terms/check.py": "0a35adf5f8218b9abe3f968e244cc799ec8bb95776fbf2961e1fe488b4f04e4f",
+    "app/packaging/successor/check.py": "098794527b0780015909ba117953f84822106e55093a6e24fd04619e9b6a0082",
+    "app/packaging/terms/check.py": "a397f69dfe0887cbad4bca99540e854d98b3accb35033f74207eef56fd16794d",
     "app/src-tauri/Cargo.lock": "c21ce295ae7a31ff136501df5c6ba93b95c6b881b9e2d090c7bb36016ac85ca2",
     "app/src-tauri/Cargo.toml": "32aeb2faacc2f8ec31a1d11aa617ff75fc83cced085fe1299a15cde64e4a3638",
     "app/src-tauri/build.rs": "5c89aac6205db9e6e0df74165489ea62f6e12cfd8cd3f82e80f8b6a412a92b24",
@@ -82,9 +82,9 @@
     "execution/PKG-01/DEL-01-06/Work/prototype/check_pkg.py": "1b6f1232fe0b200ffbb0eb56dfbbdfe4a4f29dab3c83e8e1d42b195d752f8d23",
     "execution/PKG-01/DEL-01-06/Work/prototype/read_tree.py": "6dacea788f0a0690ca04bc95f4d50332f4d3ddafb5bb0339147460e64b2debdb",
     "execution/PKG-01/DEL-01-06/Work/terms-position-v1/schema.json": "7a47f1e75453e8df3778e7c59628932f96791906dbe378b8aa2d8db72eecbb08",
-    "app/examination/package_receiving/sources.package-v1.json": "7c6a0b30052d15f04addca55a874c364c5c0406a0e3b86cfead86f7b0ed2c753",
-    "app/examination/package_receiving/adapter.py": "e114db7a781821d9c385e0dced2081709418c89ab31d619dcdb06e6179723268",
-    "app/examination/sq_receiving/worker_packages.py": "a0c634ec46dd4b6770d2cd12c83f27962ef284d9d561a5b5ef0acacd0f641025"
+    "app/examination/package_receiving/sources.package-v1.json": "c89f947252703d9dc58a5534d39b5c7aa55b0cbe6dca80b550e9bbaec0d21444",
+    "app/examination/package_receiving/adapter.py": "cab2121182712b6508bb9fc9fee16cbe527b04a37a8b8c235b718b9a1f909e2b",
+    "app/examination/sq_receiving/worker_packages.py": "b9c91b3fae514c33e3b6d9491716636e7b0ec3d271f0c426ab8c8c66d3155b01"
   },
   "format": "sq-package-s4-reader-pins/1",
   "documentary_selection": {
@@ -94,10 +94,10 @@
   },
   "predecessor": {
     "path": "app/examination/sq_receiving/pins.terms-v1.json",
-    "sha256": "e7fe55946b3561c48d5b484ca5720c728fe69288c36945d799f164c881322278"
+    "sha256": "ca0174c811d745a2a9a79325edcb99e05590d86af23d759511eb3140a95f0fe5"
   },
   "package_source_profile": {
     "path": "app/examination/package_receiving/sources.package-v1.json",
-    "sha256": "7c6a0b30052d15f04addca55a874c364c5c0406a0e3b86cfead86f7b0ed2c753"
+    "sha256": "c89f947252703d9dc58a5534d39b5c7aa55b0cbe6dca80b550e9bbaec0d21444"
   }
 }

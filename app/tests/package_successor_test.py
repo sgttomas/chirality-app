@@ -222,7 +222,7 @@ class PackageSuccessor(unittest.TestCase):
         self.rejected()
         # Exact original input/1 reader bytes at c26fb825; no Git-history fetch
         # or ambient object database is needed in a shallow CI/source export.
-        self.assertEqual(checker.sha((ROOT / 'app/packaging/static_distribution/check.py').read_bytes()),
+        self.assertEqual(checker.sha((ROOT / 'app/packaging/static_distribution/historical/check.py').read_bytes()),
                          '4e8f5589890f0098f44d6ef7fde247d0ff1c2dc00b1e46db00a8895a9b8d7584')
 
     def test_static_legacy_terms_and_runtime_slot_not_coerced(self):

@@ -1,0 +1,9 @@
+{
+  "input_identity": "in-0008",
+  "input_kind": "turn cancel requested",
+  "actor_reference": "host-person:engineer-a",
+  "issued_at": "T3+",
+  "conversation_identity": "conv-fx-1",
+  "run_identity": "run-12",
+  "content": {"text": "stop that", "references": []}
+}

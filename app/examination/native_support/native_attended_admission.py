@@ -142,7 +142,7 @@ class NativeAdmissions:
     """
     def __init__(self, root, build_root, plan_sha, b, identify, clock, state_basis=None):
         self.root,self.build_root=Path(root),Path(build_root)
-        repo=Path(__file__).resolve().parents[4]
+        repo=Path(__file__).resolve().parents[3]
         require(not self.root.resolve().is_relative_to(self.build_root.resolve()) and
                 not self.root.resolve().is_relative_to(repo), 'controller root must be outside protected build/repo')
         self.plan_sha,self.b,self.identify,self.clock=plan_sha,b,identify,clock
@@ -168,7 +168,7 @@ class NativeAdmissions:
         if label=='A':
             require(result.count('(allow process-fork)')==1,'A fork policy replacement unavailable')
             result=result.replace('(allow process-fork)','(deny process-fork)')
-        for path in (self.build_root,Path(__file__).resolve().parents[4]):
+        for path in (self.build_root,Path(__file__).resolve().parents[3]):
             result+='(deny file-write* (subpath '+json.dumps(str(path))+'))\n'
         # Protect the ENTIRE private control tree: bridge, both incarnations,
         # manifests and receipts. Only this incarnation's scratch/log outputs are

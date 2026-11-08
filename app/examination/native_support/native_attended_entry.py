@@ -57,7 +57,7 @@ def dependencies():
 
 def load_identify():
     import importlib.util
-    path=HERE.parents[3]/'app/examination/candidate_identity/identify.py'
+    path=HERE.parents[2]/'app/examination/candidate_identity/identify.py'
     spec=importlib.util.spec_from_file_location('attended_identify',path)
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     return module

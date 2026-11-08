@@ -176,7 +176,6 @@ def test_unknowns_anywhere_keep_every_product_job(repo, path):
 
 @pytest.mark.parametrize("path", [
     "app/src/new.rs", "docs/PRD.md", "tools/ci/select_checks.py",
-    "execution/PKG-10/DEL-10-01/ScopeOfWork.md",
     "reference/library-v3.1.0/README.md",
 ])
 def test_new_documentary_exceptions_do_not_swallow_product_domains(repo, path):
@@ -193,10 +192,7 @@ def test_new_documentary_exceptions_do_not_swallow_product_domains(repo, path):
     ".github/workflows/governance-harness.yml", "tools/ci/select_checks.py",
     "tools/ci/test_selection.py", ".gitattributes", "unknown.md",
     "app/src-tauri/resources/AGENTS.md", "workflows/example/WORKFLOW.md",
-    "execution/PKG-09/DEL-09-02/Work/README.md",
-    "execution/PKG-04/DEL-04-03/Work/prototype/README.md",
-    "execution/PKG-09/DEL-09-01/Work/example.schema.json",
-    "execution/_Coordination/nested/README.md", "app/packaging/README.md",
+    "app/packaging/README.md",
     "README.MD", "docs/CI_SELECTION.md.py", "unusual\npath\r.md",
 ])
 def test_unknown_product_inputs_and_mixed_changes_keep_product(repo, path):
@@ -436,3 +432,24 @@ def test_product_result_job_accepts_only_the_event_route(dispatch, focused, full
     result = subprocess.run(["bash", "-e", "-c", gate["steps"][-1]["run"]], capture_output=True,
                             env={**os.environ, "DISPATCH": dispatch, "FOCUSED": focused, "FULL": full})
     assert (result.returncode == 0) is passes
+
+
+@pytest.mark.parametrize("path", [
+    "execution/PKG-10/DEL-10-01/ScopeOfWork.md",
+    "execution/PKG-09/DEL-09-02/Work/README.md",
+    "execution/PKG-09/DEL-09-01/Work/example.schema.json",
+    "execution/_Coordination/nested/README.md",
+])
+def test_guarded_execution_namespace_is_documentary(repo, path):
+    base = git(repo, "rev-parse", "HEAD")
+    write(repo, path)
+    result = selection(repo, base)
+    assert not result["run_product"]
+    assert result["changes"][0]["rule"] == "documentary"
+
+
+def test_sweep_pr_paths_replay_without_product_code_changes():
+    fixture = Path(__file__).with_name("fixtures") / "sweep-pr-paths.json"
+    for pr in json.loads(fixture.read_bytes()):
+        results = [subject.classify(change) for change in pr["changes"]]
+        assert any(row["checks"] == "product" for row in results) == pr["selects_product"], pr["number"]

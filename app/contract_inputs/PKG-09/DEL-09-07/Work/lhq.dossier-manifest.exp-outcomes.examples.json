@@ -1,0 +1,25 @@
+{
+  "note": "Invented outcome stubs for the DOS examples (DX-3). Each carries only the two fields dos_check.py reads from an EXP-v0.2 result record (record_id, outcome); they are not EXP records and do not validate as such. Real EXP result records may be passed instead.",
+  "records": [
+    {
+      "record_id": "EXP-LHQ-20-not-run-example",
+      "outcome": "not-run"
+    },
+    {
+      "record_id": "EXP-LHQ-21-not-run-example",
+      "outcome": "not-run"
+    },
+    {
+      "record_id": "EXP-LHQ-22-not-run-example",
+      "outcome": "not-run"
+    },
+    {
+      "record_id": "EXP-LHQ-23-not-run-example",
+      "outcome": "not-run"
+    },
+    {
+      "record_id": "EXP-LHQ-20-inconclusive-example",
+      "outcome": "inconclusive"
+    }
+  ]
+}

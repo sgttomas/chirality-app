@@ -1,22 +1,11 @@
-# RTD checker source location
+# Operational source locations
 
-The current RTD definition checker is an App tool. Its declarative schemas,
-frozen rehearsal data and governing account remain in this deliverable.
+Runnable sources moved outside `execution/`. The declarative contracts, findings, data and historical records stay in this deliverable. Current commands use the operational locations below, from the repository root. Relative imports and specification-data reads use the preserved PKG/DEL/Work structure under `app/contract_inputs/`; native support and signing preparation have their own App homes.
 
-| Original location at `109441b501edd86453d263f4207ff6199dbd9a78` | Current operational location |
-|---|---|
-| `execution/PKG-08/DEL-08-02/Work/prototype/check_rtd.py` | `tools/deliverable_prototypes/DEL-08-02/prototype/check_rtd.py` |
+Original source identities are from `109441b501edd86453d263f4207ff6199dbd9a78`. The digest column identifies the original bytes moved in pure-rename commits. Unbound current sources may have separate locator edits; bound sources retain exactly those bytes. Historical citations keep their original locators and are recoverable in Git history.
 
-The original script's SHA-256 is `6c8c1f77cd5f29a945dc5990d1a8d7cee2b850e4fbc3efdf7a495eb2bfa8f980`. The relocated script's SHA-256
-is `e0a5c5956e00a8e6a827339f9f9b453515818ec37b7baf206612e87774091190`. The only source changes import `Path` and resolve the
-repository, Work and EU-D1 input locations from the tool's new directory.
-The pin values, fixture construction, checks and refusal rules are unchanged.
-`deliverable.yaml` names the current command source, and `prototype/README.md`
-gives the repository-root invocation.
+| Original logical path | Current operational path | Original SHA-256 | Bound bytes |
+|---|---|---|---|
+| `execution/PKG-08/DEL-08-02/Work/prototype/check_rtd.py` | `app/contract_inputs/PKG-08/DEL-08-02/Work/prototype/check_rtd.py` | `6c8c1f77cd5f29a945dc5990d1a8d7cee2b850e4fbc3efdf7a495eb2bfa8f980` | no |
 
-Historical references to the original prototype location in
-`RESEARCH_TO_DESIGN.md`, the schema description and frozen evidence retain
-their original subject. The historical RTD account, supplier selections,
-schemas and EU-D1 bytes are unchanged; no pin is refreshed. Running this
-checker is a definition rehearsal and establishes no actual Domains input,
-human act, qualification or later-increment start.
+`tools/ci/execution-inputs.json` records current physical source/data locations. Specification-data copies remain distinct from the authoring originals; repository checks compare full bytes or the existing selected documentary extents. This move creates no qualification, acceptance, publication, reconstruction or native-run result.

@@ -1,0 +1,23 @@
+# Independent review of the Codex 0.160.0 macOS arm64 expected supplier reference
+
+- Reviewer: Claude Opus 5.5, App v4 TASK independent reviewer dispatched by HELP_HUMAN (separate agent context)
+- Reviewed revision: b616fe3db0fe52fcd834236afbfa689b89596e61 (PR #1237 head; merge-base 3a29171a44)
+- Reviewed record: projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json, SHA-256 754eebae912023aebe40cab157c0882081bec2d1d9db518627986526371a2a37
+- Verdict: READY. No blocking findings.
+
+## Reproduced independently
+- Archive: 134311083 bytes; sha256 fc789bcd655d903f92e1a23c8dc5315ba38f43b3586eafb7bd3b195970b57466; sha512 (base64) aefV6cqZA2REZgR//4McyXlp7zLcTti4CI2v3j9IVgNndPBv2kCeNEcz07qeelXcwOdSFPUKb6roA48vZmDgrQ==; sha1 f78898f04bc6989ab371de42b6acdbf56b54dc9c. `npm view @openai/codex@0.160.0-darwin-arm64` (metadata only) returned the same dist.integrity and dist.shasum, and its dist.tarball equals the record's official_source_locator. `npm view @openai/codex@0.160.0 optionalDependencies` maps @openai/codex-darwin-arm64 to npm:@openai/codex@0.160.0-darwin-arm64.
+- Extraction: 44 regular-file tar entries (13 at 0644, 31 at 0755); no directory, link or special entries; only package/package.json (no scripts or bin) and package/README.md outside the source subtree. Extracted with umask 022 into a fresh temporary directory.
+- Inventory with an independent scanner (lstat, no symlink follow, hard links and specials refused), run with `python3 -I`: 53 entries (42 files, 11 directories), 332968547 file bytes, manifest 327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12; bin/codex 0755, 241555024 bytes, 112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b. Entry sets and order equal the record; inventory_model.validate reports no problems; compare returns equal. app/packaging/inventory.py agrees on every entry and the manifest (30 Mach-O files, matching an independent magic-byte count).
+- Label probe: `bin/codex --version` through Python subprocess with only CODEX_HOME, HOME, TMPDIR and PATH=<root>/codex-path:/usr/bin:/bin, all under a fresh temporary directory; no sign-in, no network, ~/.codex never touched. Exit 0, stdout `codex-cli 0.160.0\n` (sha256 matches label-probe.json), stderr empty. Only side effect: codex-home/tmp/arg0/... as documented at HOSTING_BOUNDARY.md S-F-17. Re-inventory afterwards byte-identical.
+- Generation join: GENERATION.json supplierSha256 equals the inventoried bin/codex; MANIFEST.sha256 digest 411ea5d4…b8be, 2363 rows, body 5cfd4a73ac333cab652cac1390508fa2a8e43de5ac0a28702827cce89d465e04; the four per-variant manifests (ts/stable 734 files, ts/experimental 875, json-schema/stable 314, json-schema/experimental 440) recompute to the GENERATION.json values; the App copy under app/src-tauri/resources/supplier/0.160.0 is identical.
+- Version advance: VERSION_ADVANCE_0.160.0.md records the same URL, size, sha1, sha512 and bin/codex digest. Archived revision 727762ed39 is an ancestor of HEAD and its R23_RESOLUTIONS.md (R23-22), V0-SUP1.md (READY, full regeneration from 112fae7a…), OWNER_DECISIONS.md and changes/SUP1.md recompute to their cited digests. EXAMINATION_PROTOCOL.md U-EXP-1 and STANDALONE_QUALIFICATION.md U-SQ-1 match.
+- Every evidence file bound by expected.json recomputes to its bound SHA-256. The record carries every required element of DISTRIBUTION_IDENTITY.md lines 19–21; reviewer, reviewed revision and adoption belong to the separate adoption-attestation.s1.
+- Model end to end (scratch copy): model.reference accepted this exact expected.json with a synthetic attestation and refused a self-review and an unselected attestation digest.
+- Checks: test_model.py 13 OK; test_codex_0160_reference.py 3 OK, 1 skipped (no attestation); test_inventory.py 10 OK; tools.deliverables check 0 errors; private-term validator PASS; PR CI required jobs pass.
+- No observation is promoted to an expectation without evidence; added lines contain no user, host or temporary paths.
+
+## Minor findings (no change to expected.json)
+1. test_codex_0160_reference.py:74-79 selects the attestation by its own freshly computed digest, so build selection is not tested. Pin the attestation's SHA-256 in the test once it lands.
+2. generation-correspondence.json:40: the version-advance equality rests on 16-hex prefixes because VERSION_ADVANCE records only prefixes; full equality comes from V0-SUP1's complete regeneration from the same bin/codex digest.
+3. Directory modes (0755) come from the extraction umask, not the archive; an installed tree must reproduce them.

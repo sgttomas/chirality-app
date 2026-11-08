@@ -74,4 +74,4 @@ needs:
   gating: true
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 checks:
-- execution/PKG-09/DEL-09-05/Work/prototype/fw04_check.py
+- app/contract_inputs/PKG-09/DEL-09-05/Work/prototype/fw04_check.py

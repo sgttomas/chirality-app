@@ -181,11 +181,19 @@ def encode(value):
 
 
 def resolve(root, relative):
-    """A deliverable's `Design/` before 2026-10-30 means its `Work/`, as the readers resolve it."""
+    """Resolve retained logical identities to current App inputs; never follow Design links."""
     match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
-    if match is None or os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
-        return relative
-    return match.group(1) + 'Work/' + relative[match.end():]
+    if match is not None:
+        if os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
+            return relative
+        relative = match.group(1) + 'Work/' + relative[match.end():]
+    if relative.startswith('execution/'):
+        # Historical/custom evidence trees have no current App-input namespace.
+        # A maintained root never falls back to its authoring execution tree.
+        if not os.path.lexists(os.path.join(root, 'app/contract_inputs')) and os.path.lexists(os.path.join(root, relative)):
+            return relative
+        return 'app/contract_inputs/' + relative[len('execution/'):]
+    return relative
 
 
 def at(value, pointer):

@@ -1,0 +1,27 @@
+[
+ {
+  "rule": "EXP-R8",
+  "why": "affected case whose prior result is still 'current'",
+  "record": {
+   "record_kind": "exam_change_impact",
+   "format": "EXP-v0.2",
+   "record_id": "EXP-CIR-01",
+   "change": {
+    "kind": "codex_pin",
+    "description": "Definition pin 0.158.0 to candidate pin 0.160.0 (ILLUSTRATIVE: no adoption decided; R23-3)",
+    "evidence": "node VC drift record (when it exists)"
+   },
+   "from": "0.158.0",
+   "to": "0.160.0",
+   "affected": [
+    {
+     "case_id": "EXP-VC-03",
+     "prior_result": "EXP-EX-01",
+     "reason": "illustrative"
+    }
+   ],
+   "unaffected_basis": "Reliance map EXP §6.2: cases with codex_pin not_applicable rely on no Codex fact",
+   "date": "2026-10-03"
+  }
+ }
+]

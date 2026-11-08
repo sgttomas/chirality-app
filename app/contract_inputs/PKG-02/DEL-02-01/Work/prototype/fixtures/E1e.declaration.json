@@ -1,0 +1,86 @@
+{
+  "declaration_contract_version": "WD-v0.8",
+  "expected_inputs": [
+    {
+      "name": "review-findings",
+      "meaning": "The findings of a completed run of spacing-review (E1b), naming the rows examined.",
+      "kind": "workflow_output",
+      "source_workflow": {"origin": "project", "source_root": "LIB-A1", "name": "spacing-review", "revision": "rev-B1", "output": "findings"},
+      "necessity": "required",
+      "stages": ["Gather"]
+    },
+    {
+      "name": "design-criteria",
+      "meaning": "The engineer's supports-review report file in the App project (AF-1), supplied to the run.",
+      "kind": "file_supplied",
+      "necessity": "required",
+      "basis_requirement": "The file's content identity is recorded when it is supplied (⟨AF-1@f1⟩).",
+      "stages": ["Gather"]
+    },
+    {
+      "name": "run",
+      "meaning": "The run whose supports are to be approved (for example R-100).",
+      "kind": "person_supplied",
+      "necessity": "required",
+      "stages": ["Gather"]
+    }
+  ],
+  "required_tools": [
+    {"name": "read-supports", "class": "host_operation", "operation": "OP-C1", "versions": ["v1"], "purpose": "Read the supports on the run.", "necessity": "required", "stages": ["Gather"]},
+    {"name": "read-loads", "class": "host_operation", "operation": "OP-C2", "versions": ["v1"], "purpose": "Read the sustained-load results for LC-1.", "necessity": "required", "stages": ["Report loads"]},
+    {"name": "write-package", "class": "harness_capability", "capability": "file-change", "purpose": "Write the approval package file into the App project.", "necessity": "required", "stages": ["Prepare"]}
+  ],
+  "checkpoints": [
+    {
+      "name": "CP-approve",
+      "required_act": "A6",
+      "reached_when": {"kind": "output_produced", "output": "approval-package"},
+      "subject": {"class": "named_output", "output": "approval-package"},
+      "position": "Ask for approval",
+      "scope": "The approval package file as written.",
+      "purpose": "The engineer gives or withholds engineering approval of the support arrangement the package describes.",
+      "actor": "the_person",
+      "on_negative_decision": {"path": "stop", "explanation": "Stop and report that approval was not given."},
+      "expected_act_evidence": {"capturing_surface": "app_act_control", "description": "The App act control's record of A6 on the file's content identity, with its capture-evidence reference (EXEC §5; the control is DEL-01-04's)."},
+      "held_actions": {"form": "listed_steps", "steps": [{"step": "Return", "app_side": true}]}
+    },
+    {
+      "name": "CP-rely",
+      "required_act": "A7",
+      "reached_when": {"kind": "output_produced", "output": "load-findings"},
+      "subject": {"class": "objects_named_output_concerns", "output": "load-findings"},
+      "position": "Ask for reliance",
+      "scope": "The sustained-load result rows the load findings name, as read.",
+      "purpose": "The accountable professional decides whether to rely on these sustained-load results for the support design.",
+      "actor": "the_accountable_professional",
+      "on_negative_decision": {"path": "stop", "explanation": "Stop and report that reliance was not given."},
+      "expected_act_evidence": {"capturing_surface": "host_act_facility", "description": "The host's act record of A7 by the accountable professional, bound to each result row's subject content identity as read, with its capture-evidence reference."},
+      "held_actions": {"form": "listed_steps", "steps": [{"step": "Return", "app_side": true}]}
+    }
+  ],
+  "returned_outputs": [
+    {
+      "name": "approval-package",
+      "meaning": "A file describing the support arrangement and the findings it answers, for the engineer's approval.",
+      "form": "file",
+      "path": "reports/supports-approval.md",
+      "destination": "The App project.",
+      "promised_standing": ["agent-prepared"]
+    },
+    {
+      "name": "load-findings",
+      "meaning": "The sustained-load results for LC-1, with their read basis and the rows they concern, by reference.",
+      "form": "message",
+      "destination": "The conversation.",
+      "promised_standing": ["agent-prepared"],
+      "designating_line": "## Load findings — supports-approve",
+      "relies_on": ["read-loads"]
+    }
+  ],
+  "returned_evidence": [
+    {"name": "EV-approve-act", "meaning": "The human-act record of A6 with its capture-evidence reference.", "kind": "human_act_record_reference", "supports": ["CP-approve"]},
+    {"name": "EV-rely-act", "meaning": "The human-act record of A7 by the accountable professional.", "kind": "human_act_record_reference", "supports": ["CP-rely"]},
+    {"name": "EV-loads-basis", "meaning": "The relied-on read basis of the load results.", "kind": "read_basis_reference", "supports": ["load-findings"]}
+  ],
+  "compatible_roles": ["TASK", "WORKING_ITEMS"]
+}

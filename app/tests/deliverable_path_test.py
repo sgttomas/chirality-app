@@ -29,8 +29,8 @@ def resolver(relative):
 class DeliverablePath(unittest.TestCase):
     def setUp(self):
         self.root = Path(tempfile.mkdtemp())
-        (self.root / 'execution/PKG-01/DEL-01-01/Work').mkdir(parents=True)
-        (self.root / 'execution/PKG-01/DEL-01-01/Work/a.json').write_text('{}')
+        (self.root / 'app/contract_inputs/PKG-01/DEL-01-01/Work').mkdir(parents=True)
+        (self.root / 'app/contract_inputs/PKG-01/DEL-01-01/Work/a.json').write_text('{}')
         self.addCleanup(shutil.rmtree, self.root)
 
     def test_every_reader_carries_the_same_resolver(self):
@@ -39,14 +39,15 @@ class DeliverablePath(unittest.TestCase):
 
     def test_former_design_reads_work_only_without_any_design_entry(self):
         resolve = resolver(READERS[0])
-        self.assertEqual(resolve(self.root, FORMER), 'execution/PKG-01/DEL-01-01/Work/a.json')
-        for other in ('execution/PKG-01/DEL-01-01/Work/a.json', 'app/x/Design/a.json',
+        self.assertEqual(resolve(self.root, FORMER), 'app/contract_inputs/PKG-01/DEL-01-01/Work/a.json')
+        for other in ('app/contract_inputs/PKG-01/DEL-01-01/Work/a.json', 'app/x/Design/a.json',
                       'projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/a.json'):
             self.assertEqual(resolve(self.root, other), other)
 
     def test_existing_or_linked_design_keeps_the_original_path(self):
         resolve = resolver(READERS[0])
         design = self.root / 'execution/PKG-01/DEL-01-01/Design'
+        design.parent.mkdir(parents=True, exist_ok=True)
         design.symlink_to(self.root / 'missing-directory')
         self.assertEqual(resolve(self.root, FORMER), FORMER)
         design.unlink(); design.mkdir()
@@ -55,6 +56,7 @@ class DeliverablePath(unittest.TestCase):
     def test_receiving_reader_still_refuses_a_linked_design(self):
         spec = importlib.util.spec_from_file_location('_receive_for_path_test', APP / READERS[0])
         receive = importlib.util.module_from_spec(spec); spec.loader.exec_module(receive)
+        (self.root / 'execution/PKG-01/DEL-01-01/Design').parent.mkdir(parents=True, exist_ok=True)
         (self.root / 'execution/PKG-01/DEL-01-01/Design').symlink_to(self.root / 'missing-directory')
         with self.assertRaises((ValueError, FileNotFoundError)):
             receive.read_relative(self.root, FORMER)

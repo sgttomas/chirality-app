@@ -1,0 +1,3 @@
+HandoffID,OwnerWorkflow,TriggerCondition,PayloadPath,ExpectedOutput,Status
+H01,WORKING_ITEMS,Case evidence complete and manager presents real project-dag checkpoint,Case_Datasheet.md;Candidate_Remedies.csv;Open_Questions.md,chirality-root:bundled:workflow:project-dag considers R1/R2/R3 and records actual human basis ruling; no scope-change activation,CANDIDATE_NOT_INITIATED
+H03,DEPCLOSURE,Owning project-dag method authorizes examination of a subsequent concrete candidate,Evidence_Register.csv;Ruling_Register.csv,chirality-root:bundled:workflow:audit-dep-closure returns actual follow-up closure evidence; this case cannot infer its result,CANDIDATE_NOT_INITIATED

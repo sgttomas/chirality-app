@@ -1,0 +1,124 @@
+---
+schema: chirality-deliverable-sow/v1
+deliverable_id: DEL-01-06
+package_id: PKG-01
+decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+project_scope_refs: [SOW-098, SOW-117, SOW-134]
+package_objective_refs: [OBJ-002]
+---
+
+# macOS packaging and distribution evidence
+
+## Purpose and Objective Traceability
+
+Provide the App's macOS Apple Silicon package, candidate-specific signing and entitlement evidence, install/launch witness, and the applicable written distributed-sign-in position, evidenced by an identified official supplier publication or direct response, at its accepted public-release point of need. This is the packaging contribution to OBJ-002, whose wider maintainable architecture and three access modes are delivered across other App contracts. This contract does not claim those wider behaviors from a package launch. The accepted responsibility is **App packaging owner; owner obtains supplier terms**. [B1, B2]
+
+| Accepted scope | Local contribution | Production outputs |
+|---|---|---|
+| SOW-098 — target macOS on Apple Silicon for v4.0 | Package and witness the selected native target | OUT-001, OUT-002, OUT-003 |
+| SOW-117 — obtain written sign-in distribution terms before public release beyond owner use | Preserve the conditional obligation, applicable official publication or direct response, and unresolved standing until applicability is established | OUT-004 |
+| SOW-134 — define Tauri signing/notarisation for App and Codex binaries, including any code-mode entitlement | Define the candidate's required configuration and retain its binary/entitlement evidence | OUT-001, OUT-002, OUT-003 |
+
+The accepted decomposition permits this definition with retained open matters. Contract existence, package execution, qualification and public distribution each need their own evidence; none is inferred from another. [B0, B9]
+
+## Deliverable Definition — Ontology
+
+- **CLM-001** — The App packaging owner owns this App package and its evidence. The accepted App `DEL-01-01` supplies the identified stock Codex binary and App hosting basis; its App supplier-integration owner owns stock hosting, supplier pin and protocol qualification. App PKG-09 consumes the packaged candidate for joined examination and retains those cross-component checks. Local package checks remain here. [B1: DEL-01-06, DEL-01-01; B2: PKG-01, PKG-09]
+- **CLM-002** — Signing/notarisation and required Codex entitlements remain OI-011, owned by **App implementation owner with SWB owner**, needed **Before packaged distribution witness**. This deliverable carries required definition/receiving work; authoring it does not decide the unresolved means or allocation. The selected stack is Tauri 2 + React + Vite; applicable packaging interfaces require candidate qualification against the selected suppliers, without treating dated investigation pins as the v4 selection. [B3: OI-011; B4: DEP-005; B6: §3]
+- **CLM-003** — Distributed-sign-in terms remain OI-007, owned by Owner and relevant supplier, needed before public release beyond owner use. DEP-004 names OpenAI and conditional future Anthropic as suppliers of a written position and the owner's public distribution decision as consumer. The supplier authors the official publication or direct response; the owner obtains and retains the applicable position, establishes its applicability to the selected release/sign-in scope, and separately decides public distribution. Either applicable identified official publication or direct response may evidence the position; a product-specific reply is not a blanket prerequisite. A future Claude sign-in question applies only if that need arises. The conditional obligation remains IN; its current satisfaction is unconfirmed. Owner use and independent development are not blocked by the unresolved public-release position, and no legal conclusion is supplied. [B1: DEL-01-06; B3: OI-007; B4: DEP-004; B5: OQ-08; B6: §6]
+- **CLM-004** — The external SWBPIPE implementation owner owns that host's construction and package qualification. Reusable packaging knowledge may be received through human-relayed coordination, but external SWBPIPE evidence does not qualify the App package and App evidence does not qualify SWBPIPE. The App manager owns its handoff/dependency account; human relay is distinct from external delivery or adoption. [B1: DEL-01-06; B6: §8; B10: §1; B11: §6; B12: U1/U5]
+- **OUT-001** — CONFIG: macOS Apple Silicon packaging, signing and notarisation configuration for the App and its identified stock Codex binaries under the selected Tauri stack; preserve unresolved details until their actual point of need. Scope SOW-098, SOW-134; objective OBJ-002. [B1; B5: V4-CST-02; B6: §3]
+- **OUT-002** — DOC: candidate-specific binary identity and entitlement record linking the package, App and Codex inputs to the defined signing/notarisation arrangement and actual entitlement evidence, including any applicable code-mode entitlement. Scope SOW-098, SOW-134; objective OBJ-002. [B1; B3: OI-011; B6: §3]
+- **OUT-003** — TEST: install/launch witness for the packaged macOS Apple Silicon target, identifying the candidate, binary/configuration basis, date, observed startup and required entitlements; usable by App PKG-09 without substituting for its joined checks. Scope SOW-098, SOW-134; objective OBJ-002. [B1; B7: V4-EXM-01, V4-EXM-03, V4-EXM-04]
+- **OUT-004** — DOC: the supplier's written distribution-terms position, evidenced by either an applicable identified official supplier publication or a direct supplier response, obtained and retained by the owner before public release beyond owner use. Retain the exact source and supplier identity, publication/response date when supplied and retrieval/receipt date, evidence reference and actual custody, the first-release offering and sign-in flow to which it applies, applicable conditions/exclusions and the owner's applicability disposition. Keep missing or unestablished applicability unresolved. Record the owner's public distribution decision separately, or as not made; neither evidence route supplies that decision. Any future Claude sign-in retains its own conditional terms question only if that need arises. Scope SOW-117; objective OBJ-002. [B1; B3: OI-007; B4: DEP-004; B5: OQ-08; B6: §§6, 8]
+
+## Completion and Reliance Basis — Epistemology
+
+- **REQ-001** — The package shall target macOS on Apple Silicon and identify the App and stock Codex binary supplied under the App hosting basis in CLM-001. Configuration and evidence shall bind the packaged candidate rather than inherit qualification from an earlier App or external SWBPIPE package. [B1; B5: V4-CST-02; B7: V4-EXM-01, V4-EXM-03]
+- **REQ-002** — The signing/notarisation arrangement for both App and Codex binaries and required Codex entitlements shall be defined and evidenced for the selected candidate at the OI-011 point of need in CLM-002. Any code-mode entitlement shall be included when applicable to that candidate; the historical v3 need alone does not establish the required v4 entitlement. The contract carries the unresolved detail with its owner rather than inventing a signing method, entitlement value or supplier version. [B3: OI-011; B4: DEP-005; B6: §3; B8: original ARCHITECTURE §3]
+- **REQ-003** — The install/launch witness shall establish that the scoped packaged target starts with the identified binaries and required entitlements. It shall retain candidate, configuration and date, and distinguish actual execution from defined tests or historical passes. Interface examination in WebKit and Chromium is portability/maintainability evidence; it neither selects Windows shipping nor replaces this native packaged witness. [B1; B7: V4-EXM-01, V4-EXM-03, V4-EXM-04]
+- **REQ-004** — The conditional written-position obligation shall be satisfied before public release beyond owner use by retaining either an applicable identified official supplier publication or a direct supplier response, with source, dates, custody, actual release/sign-in scope and owner applicability disposition as described in CLM-003 and OUT-004. A further product-specific response is not required solely because one could be requested when an applicable official publication is accepted as the evidence. Missing evidence or unestablished applicability remains visibly unresolved. Package execution, an agent's assertion or an earlier sign-in assumption cannot substitute for that evidence; speculative future offerings do not add conditions to the selected first release. Owner use and independent development remain ungated by this conditional public-release obligation, and the owner's public distribution decision remains separate. [B1; B3: OI-007; B4: DEP-004; B5: OQ-08; B6: §§6, 8]
+- **REQ-005** — This packaging contribution shall perform no act owned by another deliverable or external owner: stock Codex hosting/pin/protocol qualification belongs to App `DEL-01-01` and its App supplier-integration owner in CLM-001; joined cross-component examination belongs to App PKG-09 in CLM-001; external SWBPIPE construction/package qualification belongs to its external implementation owner in CLM-004; deciding the unresolved OI-011 arrangement belongs to the App implementation owner with SWB owner in CLM-002; supplying a written terms position belongs to the relevant supplier, obtaining it belongs to the owner, and the public distribution decision belongs to the owner in CLM-003. Packaging records carry the actual resulting inputs and acts with their actors; the packaging author or recorder does not acquire those decision rights by preparing the record. [B1–B4; B6: §8; B10: §1; B11: §6]
+- **AC-001** — OUT-001 identifies a macOS Apple Silicon package and its App/Codex input identities consistently with the selected App hosting basis; its configuration contains the defined signing/notarisation arrangement for those binaries. Verify with VER-001. [REQ-001, REQ-002]
+- **AC-002** — OUT-002 links the candidate package and binary identities to the actual required entitlement and signing/notarisation evidence. Applicable code-mode entitlement treatment is grounded in that candidate; unresolved OI-011 detail is not asserted resolved by inherited v3 or SWBPIPE evidence. Verify with VER-002. [REQ-001, REQ-002]
+- **AC-003** — OUT-003 records an actual install/launch witness on the scoped macOS Apple Silicon target showing startup with the identified binaries and required entitlements, with candidate, configuration and date sufficient to associate the observation with OUT-001 and OUT-002. Verify with VER-003. [REQ-003]
+- **AC-004** — OUT-004 retains the exact applicable official supplier publication or direct response obtained by the owner before public release beyond owner use, with source and supplier identity, publication/response date when supplied, retrieval/receipt date, custody and the owner-confirmed scope/conditions for the selected first-release offering and sign-in flow. An applicable identified official publication may satisfy this criterion without an additional product-specific reply. Before applicable evidence is retained and its applicability established, the record remains unresolved. Any future Claude sign-in has its own applicable position only if that need arises. Verify with VER-004. [REQ-004]
+- **AC-005** — OUT-004 distinguishes supplier position, owner's obtaining act and owner's public distribution decision from the recorder's act and package test results; the record preserves actual source/custody and does not fabricate supplier confirmation or owner release. It faithfully records an actually evidenced owner or supplier act without treating the recorder as the actor. Verify with VER-004. [REQ-004, REQ-005]
+- **AC-006** — The package evidence and handoff retain the owner boundaries in CLM-001 through CLM-004, both distinct open-issue points of need, and the native-witness requirement. Cross-engine browser results, external host evidence or an available package do not claim Windows shipping, supplier terms resolution, joined App examination or public release. Verify with VER-005. [REQ-001, REQ-003, REQ-004, REQ-005]
+
+## Production and Verification Method — Praxeology
+
+Production proceeds from the identified App hosting inputs and the applicable supplier packaging interfaces. Define the arrangement with the OI-011 owners before the packaged distribution witness; produce the scoped configuration, binary/entitlement account and candidate-bound install/launch evidence; supply the packaged candidate to App PKG-09. Receive useful SWBPIPE knowledge through its actual coordination route. Obtain and retain the applicable written terms position through the owner before public distribution beyond owner use, using either an identified official supplier publication or a direct response. These are separate points of need, not a requirement to finish an external host or settle distribution terms before independent App definition/development. [B1, B3, B4, B6, B11]
+
+- **VER-001** — Inspect the package configuration and its App/Codex identity references against the identified App hosting inputs and selected macOS Apple Silicon target. Check that both binaries are covered by the arrangement defined under OI-011; retain candidate-bound configuration/identity evidence. A browser build or unqualified historical package cannot establish this result. [AC-001]
+- **VER-002** — Inspect OUT-002 against the actual package and the OI-011 definition: compare App/Codex identities, signing/notarisation evidence and required entitlements, including the applicability and treatment of any code-mode entitlement. Report absent or unresolved evidence explicitly; do not infer the v4 requirement from the old v3 entitlement or from another project's success. [AC-002]
+- **VER-003** — Install and launch the identified package on the scoped macOS Apple Silicon target in authorized production verification, recording observed startup, configuration, date, binary identities and the required entitlement evidence. Distinguish observed failure or unavailable evidence from a pass; changed candidates reopen affected checks. Browser-only results do not satisfy this method. [AC-003; B7: V4-EXM-01, V4-EXM-03, V4-EXM-04]
+- **VER-004** — Compare the terms evidence with the exact official supplier publication or direct response and its source identity, dates and custody; compare its conditions and exclusions with the owner's stated first-release offering and actual sign-in flow. Verify the owner's obtaining/retention and applicability disposition separately from the recorder's act. An accepted applicable publication must not fail solely for lack of a direct reply. Missing evidence, unsupported applicability, a draft inquiry, package pass or recorder assertion cannot establish the supplier position. Check that source publication, evidence capture and applicability do not fabricate product-specific supplier approval or the owner's public distribution decision; retain that separate decision reference or not_made. Bundled-component licensing/notices remain a separate packaging assessment, not presumed satisfied by authentication guidance. [AC-004, AC-005; B3: OI-007; B4: DEP-004]
+- **VER-005** — Compare package evidence and handoff with the accepted scope and owner claims: App hosting input and local package qualification, App PKG-09 joined examination, external SWBPIPE ownership, OI-011 and OI-007 owners/timing, and conditional future supplier terms. Check negative substitutions (browser evidence for native launch, SWBPIPE success for App qualification, package availability for terms/release) while allowing records of actual separately evidenced acts. Preserve source-qualified App and external-project identities. [AC-006]
+
+The methods define future evidence obligations. This INIT contract does not report any implementation, live supplier experiment, package run, supplier answer, release or product qualification as performed.
+
+## Governing Values and Decisions — Axiology
+
+- **AX-001** — The accepted composite and final decomposition govern this local contribution. Original seed text is read with later owner/HTML decisions and the consolidated clauses: required results remain included while undecided means stay open; common execution or qualification is not inferred from a shared stack. macOS Apple Silicon is the target. Cross-engine interface examination is retained without extending shipping scope. [B0, B1, B5, B6, B7, B12, B13]
+- **AX-002** — Candidate qualification, supplier terms and an owner's distribution decision are distinct facts. Receipt or faithful recording of one proves only the evidenced act; the packaging record does not supply legal advice, present supplier-currentness findings or confer release authority. [B3, B4, B5: OQ-08; B6: §6]
+- **TBD-001** — OI-011 remains OPEN: **App implementation owner with SWB owner** must **Define signing, notarisation and required Codex entitlements**, needed **Before packaged distribution witness**. Required definition/receiving work is IN. Exact technical means and any code-mode entitlement remain candidate-specific and unresolved here. [B3; B13]
+- **TBD-002** — OI-007 remains OPEN: **Owner and relevant supplier** must **Obtain the stated written supplier position for distributed sign-in**, needed **Before public release beyond owner use**. DEP-004 remains UNCONFIRMED, with OpenAI and conditional future Anthropic supplier scope. The answer remains open; the accepted conditional obligation does not. [B3, B4]
+- **TBD-003** — DEP-005 records the relevant stock supplier protocol/packaging interfaces as VERSION_AND_ENVIRONMENT_TO_DEFINE, needed **Before respective implementation/qualification witnesses**. For this contract, reliance is limited to the selected Codex/Tauri packaging interfaces; other model endpoints and sibling work in that shared dependency row are not additional local outputs. No current upstream version or capability is established here. [B4; B6: §§3, 6]
+
+Source locators below are repository-relative. `Snapshot` means `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z`; `Accepted composite` means `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926`. The final acceptance changes standing without rewriting historical pending labels in the frozen tables. Current open/dependency rows were compared for the assigned issues; their owners, points of need and unresolved dispositions remain the same.
+
+| Key | Source and relevant locus |
+|---|---|
+| B0 | Snapshot `DECISION.md`, accepted downstream basis and limits |
+| B1 | Snapshot `canonical/Deliverables.csv`: App DEL-01-06 and DEL-01-01; `canonical/ScopeLedger.csv`: SOW-098, SOW-117, SOW-134 |
+| B2 | Snapshot `canonical/Packages.csv`: PKG-01, PKG-09; `canonical/Objectives.csv`: OBJ-002 |
+| B3 | Snapshot `canonical/Open_Issues.csv`: OI-007, OI-011; corresponding current rows at `projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv` |
+| B4 | Snapshot `canonical/External_Dependencies.csv`: DEP-004, DEP-005; corresponding current rows at `projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv` |
+| B5 | `projects/chirality-app-v4/docs/PRD.md`: §0 composite reading, V4-CST-02, §6 boundaries, §9 OQ-08 |
+| B6 | `projects/chirality-app-v4/docs/ARCHITECTURE.md`: §3 V4-ARC-01/02 and open signing/entitlement/pin detail; §6 supplier assumptions/terms; §8 package ownership and terms risks |
+| B7 | `projects/chirality-app-v4/docs/EXAMINATION.md`: V4-EXM-01, V4-EXM-03, V4-EXM-04 |
+| B8 | Accepted composite `original-seed/PRD.md`: V4-CST-02, §6, §9 OQ-08; `original-seed/ARCHITECTURE.md`: §3 historical code-mode entitlement and §6 unconfirmed terms, qualified by B5–B7/B12/B13 |
+| B9 | `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md`: approved INITIAL setup, defined-contract maturity and separate lifecycle/input evidence |
+| B10 | `projects/chirality-app-v4/docs/HOST_INTEGRATION.md`: §1 actual host, App and human coordination responsibilities |
+| B11 | `projects/chirality-app-v4/docs/OPERATING_METHOD.md`: V4-OPS-31–34 and §6 external coordination |
+| B12 | Accepted composite `OWNER_DIRECTIONS.md` and `OWNER_DIRECTIONS_EXCERPTS.md`: U1/U4/U5 and custody; `DECISION_BRIEF.html#d2`: shared implementation requires a concrete repeated responsibility, retained supplier/stack choice |
+| B13 | `projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`: required outcomes IN, unresolved means/allocation retained, conditional sharing and no invented gate |
+
+## Output and Evaluation Matrix
+
+| Output | Objective refs | Requirement/claim refs | Acceptance refs | Verification refs | Evidence expectation |
+|---|---|---|---|---|---|
+| OUT-001 | OBJ-002 | REQ-001, REQ-002, CLM-001, CLM-002 | AC-001 | VER-001 | Candidate-specific macOS Apple Silicon configuration with identified App/Codex inputs and defined signing/notarisation coverage |
+| OUT-002 | OBJ-002 | REQ-001, REQ-002, CLM-002 | AC-002 | VER-002 | Binary identities and actual signing/entitlement evidence, with conditional code-mode applicability and unresolved detail explicit |
+| OUT-003 | OBJ-002 | REQ-003, CLM-001 | AC-003 | VER-003 | Actual native package install/launch witness bound to candidate, configuration, binaries, entitlements and date |
+| OUT-004 | OBJ-002 | REQ-004, CLM-003 | AC-004 | VER-004 | Applicable official supplier publication or direct response obtained and retained by the owner before public release beyond owner use, or explicit unresolved evidence/applicability |
+| OUT-004 | OBJ-002 | REQ-004, REQ-005, CLM-003 | AC-005 | VER-004 | Source/custody and actor attribution; faithful actual-act record and refusal of fabricated confirmation/release claims |
+| OUT-002 | OBJ-002 | REQ-001, REQ-003, REQ-004, REQ-005, CLM-001, CLM-002, CLM-003, CLM-004 | AC-006 | VER-005 | Local package/receiving handoff referencing OUT-003 and OUT-004, with separate owners, native witness and exact open-issue points of need |
+
+## S4 implementation reconciliation (2026-10-30)
+
+The bounded installed-integrity implementation and exact evidence/consumer limits
+are recorded in [the S4 technical supplement](Work/INSTALLED_INTEGRITY_S4_SIGNING_JOIN.md).
+This supplies technical means under the existing outputs and requirements; it
+does not select a publisher, qualify a pin/candidate, change acceptance criteria
+or complete native/package witnesses. The compiled publisher requirement remains
+None, so production continues to refuse before supplier execution.
+
+## Publisher build-selection reconciliation
+
+[The publisher build supplement](Work/PUBLISHER_BUILD_SELECTION_JOIN.md) defines the bounded technical
+input/binding interface following S4. Ordinary builds remain unselected; only
+an explicit reviewed production recipe can compile owner-selected values. This
+changes no acceptance criteria and selects no real identity, version, minimum OS
+or signing act. Actual publisher input, package/consumer joins and qualification
+remain at their named points of need.
+
+## SEAL-C signing-stage implementation reconciliation
+
+[The SEAL-C signing supplement](Work/SEAL_C_KEYCHAIN_SIGNING_JOIN.md) carries AAC §6.3/U-AAC-3's
+adopted OS-keychain-at-signing obligation as a separately gated source provider
+and explicit continuity interface. It does not adopt deferred SEAL-2, change
+acceptance criteria, activate a real keychain or establish exclusive-agent or
+personal-act guarantees. Actual signed identity, entitlement/profile compatibility
+and continuity witness remain at their signing-stage points of need.

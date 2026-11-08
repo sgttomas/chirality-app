@@ -1,0 +1,428 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-07-01:pec-receiving-record:0.1",
+  "title": "PEC receiving record (DEL-07-01 PRC-v0.2 §5; PROPOSED)",
+  "description": "What the App records and shows for one PEC response, or for no response, to one first-consumer question. It carries PEC's three-field stamp and its separate reliance envelope apart (REQ-003; PEC DEL-04-03 CLM-003, CLM-019), the App's standing in DEL-07-02's vocabulary, per-claim reliance, the conclusions supported and not supported, and the handoff to the source-file route (REQ-005). Element names are Chirality labels for PEC's stated meanings; they are not PEC's wire fields (TBD-001; OI-022). 'simulated' is true for every record built from constructed input (REQ-008).",
+  "type": "object",
+  "required": [
+    "format",
+    "formatVersion",
+    "record_id",
+    "question_id",
+    "simulated",
+    "input",
+    "release",
+    "adoption",
+    "stamp",
+    "envelope_elements",
+    "response_standing",
+    "claims",
+    "conclusions",
+    "route",
+    "recorder"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "chirality.pec.receiving-record"
+    },
+    "formatVersion": {
+      "const": "0.1"
+    },
+    "record_id": {
+      "type": "string",
+      "pattern": "^pr:[A-Za-z0-9._-]+$"
+    },
+    "question_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "simulated": {
+      "type": "boolean"
+    },
+    "simulated_terms": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "input": {
+      "type": "object",
+      "required": [
+        "kind",
+        "ref",
+        "sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "response",
+            "no_response"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "fixture_standing": {
+          "enum": [
+            "recorded",
+            "recorded-truncated",
+            "mutated",
+            "constructed"
+          ]
+        }
+      }
+    },
+    "release": {
+      "type": "object",
+      "required": [
+        "identity"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stated_qualification": {
+          "enum": [
+            "qualified",
+            "unqualified",
+            "not_stated"
+          ]
+        }
+      }
+    },
+    "adoption": {
+      "type": "object",
+      "required": [
+        "account_ref",
+        "release_adopted",
+        "feeds_adopted"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "account_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The OUT-004 evidence account read (H-7: release-level adoption by the App receiving owner)."
+        },
+        "release_adopted": {
+          "type": "boolean"
+        },
+        "feeds_adopted": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "stamp": {
+      "description": "PEC-ORI-003's three fields, as supplied; null when there is no response.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "examined_through",
+            "generated_at",
+            "feed_freshness"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "examined_through": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "generated_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "feed_freshness": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "feed",
+                  "freshness"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "feed": {
+                    "type": "string"
+                  },
+                  "freshness": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "envelope_elements": {
+      "description": "PEC-ORI-007's reliance envelope, as supplied, kept apart from the stamp; null when there is no response.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "pin",
+            "feeds",
+            "fallback_signal"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "pin": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "feeds": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "feed",
+                  "coverage",
+                  "freshness",
+                  "limitation"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "feed": {
+                    "type": "string"
+                  },
+                  "coverage": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "freshness": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "limitation": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "fallback_signal": {
+              "enum": [
+                "set",
+                "clear",
+                "not_stated"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "response_standing": {
+      "$ref": "urn:chirality:app-v4:del-07-02:connector-standing:0.1#/$defs/standing"
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "claim_id",
+          "statement",
+          "citation",
+          "stated_tier",
+          "standing"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "claim_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "citation": {
+            "type": "object",
+            "required": [
+              "path"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "anchor": {
+                "type": "string"
+              },
+              "sha": {
+                "type": "string"
+              }
+            }
+          },
+          "stated_tier": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "heartbeat_age_s": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "standing": {
+            "$ref": "urn:chirality:app-v4:del-07-02:connector-standing:0.1#/$defs/standing"
+          }
+        }
+      }
+    },
+    "conclusions": {
+      "$ref": "urn:chirality:app-v4:del-07-02:connector-standing:0.1#/$defs/conclusions"
+    },
+    "route": {
+      "type": "object",
+      "required": [
+        "needed",
+        "account_ref"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "needed": {
+          "type": "boolean",
+          "description": "True whenever any part of the question is not supported by reliance (REQ-005)."
+        },
+        "account_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "recorder": {
+      "type": "object",
+      "required": [
+        "kind",
+        "identity"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "app",
+            "tool",
+            "agent"
+          ]
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "input": {
+            "properties": {
+              "kind": {
+                "const": "no_response"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "stamp": {
+            "type": "null"
+          },
+          "envelope_elements": {
+            "type": "null"
+          },
+          "claims": {
+            "maxItems": 0
+          },
+          "route": {
+            "properties": {
+              "needed": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "simulated": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "simulated_terms"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "response_standing": {
+          "properties": {
+            "connector": {
+              "const": "pec"
+            }
+          }
+        },
+        "claims": {
+          "items": {
+            "properties": {
+              "standing": {
+                "properties": {
+                  "connector": {
+                    "const": "pec"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

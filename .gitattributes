@@ -3,6 +3,8 @@
 /app/src-tauri/resources/** -text
 /app/src-tauri/schemas/** -text
 /app/tests/** -text
+/app/contract_inputs/** -text
+/tools/historical_reconstruction/** -text
 /app/examination/** -text
 /app/packaging/** -text
 /execution/**/Work/** -text

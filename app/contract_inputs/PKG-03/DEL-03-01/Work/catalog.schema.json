@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:proposed:catalog",
+  "title": "Catalog edition as discovered (DEL-03-01 C-v0.8 §2, §2.1, §3, §3.1, §3.4, §3.5; PROPOSED)",
+  "description": "PROPOSED schema (R12-1, R12-2). One catalog edition as a consumer discovers it: host identity, edition identity, completeness, basis profile and the entries. Property names are Chirality's semantic labels, not a host or supplier wire field (TBD-003). The per-entry input schema is described as a list of arguments, not as a selected schema language.",
+  "type": "object",
+  "required": ["host_identity", "edition", "completeness", "basis_profile", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "host_identity": {"$ref": "#/$defs/identity"},
+    "edition": {"$ref": "#/$defs/identity"},
+    "previous_edition": {"$ref": "#/$defs/identity"},
+    "completeness": {"enum": ["complete", "partial"]},
+    "unreadable_entries": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/identity"}},
+    "basis_profile": {"$ref": "#/$defs/basis_profile"},
+    "entries": {"type": "array", "items": {"$ref": "#/$defs/entry"}}
+  },
+  "if": {"properties": {"completeness": {"const": "partial"}}},
+  "then": {"required": ["unreadable_entries"]},
+  "else": {"not": {"required": ["unreadable_entries"]}},
+  "$defs": {
+    "identity": {"type": "string", "minLength": 1},
+    "supply": {"enum": ["supplied", "not_supplied"]},
+    "basis_profile": {
+      "description": "C §2.1 (PROPOSED): which read-basis elements this host supplies, declared once per edition, and its staleness scope (R8-3). A read is judged against it (C §5.2 rule 1 and the R12-9 proposal).",
+      "type": "object",
+      "required": ["workspace_identity", "generation", "model_revision", "canonical_content_identity", "subject_content_identity", "staleness_scope"],
+      "additionalProperties": false,
+      "properties": {
+        "workspace_identity": {"$ref": "#/$defs/supply"},
+        "generation": {"$ref": "#/$defs/supply"},
+        "model_revision": {"$ref": "#/$defs/supply"},
+        "canonical_content_identity": {"$ref": "#/$defs/supply"},
+        "subject_content_identity": {"enum": ["per_subject", "whole_model_only", "not_supplied"]},
+        "staleness_scope": {"enum": ["per_item_relied_on_targets", "whole_model", "host_stated_other"]},
+        "staleness_scope_statement": {"type": "string", "minLength": 1}
+      },
+      "if": {"properties": {"staleness_scope": {"const": "host_stated_other"}}},
+      "then": {"required": ["staleness_scope_statement"]}
+    },
+    "argument": {
+      "type": "object",
+      "required": ["argument_name", "meaning", "value_kind", "required", "identifies_target"],
+      "additionalProperties": false,
+      "properties": {
+        "argument_name": {"$ref": "#/$defs/identity"},
+        "meaning": {"type": "string", "minLength": 1},
+        "value_kind": {"enum": ["number", "text", "boolean", "identity", "enumeration", "basis_descriptor", "carried_call"]},
+        "unit": {"type": ["string", "null"]},
+        "required": {"type": "boolean"},
+        "identifies_target": {"type": "boolean"}
+      }
+    },
+    "precondition": {
+      "type": "object",
+      "required": ["precondition_identity", "meaning", "reason_identity", "reason_statement"],
+      "additionalProperties": false,
+      "properties": {
+        "precondition_identity": {"$ref": "#/$defs/identity"},
+        "meaning": {"type": "string", "minLength": 1},
+        "reason_identity": {"$ref": "#/$defs/identity"},
+        "reason_statement": {"type": "string", "minLength": 1},
+        "remedy": {"type": "string", "minLength": 1}
+      }
+    },
+    "error_decl": {
+      "type": "object",
+      "required": ["error_identity", "meaning", "raised_at", "effect"],
+      "additionalProperties": false,
+      "properties": {
+        "error_identity": {"$ref": "#/$defs/identity"},
+        "meaning": {"type": "string", "minLength": 1},
+        "raised_at": {"enum": ["evaluation", "validation", "application"]},
+        "effect": {"enum": ["none", "partial", "unknown"]}
+      }
+    },
+    "class": {
+      "description": "C §3.1 element 8.",
+      "type": "object",
+      "required": ["class_value", "value_standing", "host_adoption"],
+      "additionalProperties": false,
+      "properties": {
+        "class_value": {"enum": ["none", "may_apply_within_granted_autonomy", "proposal_only", "reserved_to_the_person", "no_policy_basis"]},
+        "no_policy_basis_reason": {"enum": ["omitted", "unassigned", "pending_OI-021"]},
+        "policy_record_reference": {"$ref": "#/$defs/identity"},
+        "value_standing": {"enum": ["settled_by_basis", "adopted_decision", "DERIVED", "accepted_default_host_adoption_unevidenced", "INTEGRATION", "PROPOSED", "UNRESOLVED"]},
+        "consequence_statement": {"type": ["string", "null"]},
+        "host_adoption": {"enum": ["adopted_and_enforced", "not_evidenced"]}
+      },
+      "if": {"properties": {"class_value": {"const": "no_policy_basis"}}},
+      "then": {"required": ["no_policy_basis_reason"]},
+      "else": {"required": ["policy_record_reference"], "not": {"required": ["no_policy_basis_reason"]}}
+    },
+    "exposure_value": {"enum": ["exposed", "not_exposed_on_this_surface", "unagreed"]},
+    "external_contact": {
+      "description": "C-v0.8 §3.4 (node B5; PROPOSED): the external-contact declaration, a sub-element of element 5. An entry that reaches a network destination for a host's agent declares its category and destination form (DEL-05-01/LOOP-v0.8 §5.3 DF-1, DF-2). Semantic labels only. Beyond this schema, conformance rule CX-1 (C §3.5; checked by prototype/validate_all.py) requires that a 'from_argument' declaration name an argument of the same entry.",
+      "type": "object",
+      "required": ["category", "destination_form"],
+      "additionalProperties": false,
+      "properties": {
+        "category": {"type": "string", "minLength": 1},
+        "destination_form": {"enum": ["fixed", "from_argument"]},
+        "destinations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/identity"}},
+        "argument_name": {"$ref": "#/$defs/identity"},
+        "served_by_outside_process": {"$ref": "#/$defs/identity"}
+      },
+      "if": {"properties": {"destination_form": {"const": "fixed"}}},
+      "then": {"required": ["destinations"]},
+      "else": {"required": ["argument_name"]}
+    },
+    "entry": {
+      "description": "C §3: the nine elements. Element 6 carries the named host checks the result may carry and element 3 may admit a requested earlier basis (C §3.4).",
+      "type": "object",
+      "required": ["operation_identity", "operation_version", "purpose", "input", "availability", "effects", "result", "errors", "class", "exposure"],
+      "additionalProperties": false,
+      "if": {"required": ["entry_kind"], "properties": {"entry_kind": {"const": "destination_request"}}},
+      "then": {
+        "description": "C-v0.8 §3.4 and §3.5 (node B5; exposure and carried-call parts added at the RP-2 repair, V18-3 m-15 and R-7): a destination request entry has class none, effects none and no external-contact declaration; it is exposed on E only (H and X never 'exposed'); and its argument list includes the carried call (an argument of value kind 'carried_call', which a call supplies for scope once).",
+        "properties": {
+          "effects": {"properties": {"kind": {"const": "none"}}, "not": {"required": ["external_contact"]}},
+          "class": {"properties": {"class_value": {"const": "none"}}},
+          "exposure": {"properties": {"H": {"not": {"const": "exposed"}}, "E": {"const": "exposed"}, "X": {"not": {"const": "exposed"}}}},
+          "input": {"properties": {"arguments": {"contains": {"properties": {"value_kind": {"const": "carried_call"}}, "required": ["value_kind"]}}}}
+        }
+      },
+      "properties": {
+        "entry_kind": {"description": "C-v0.8 §3.4 (node B5; PROPOSED). 'destination_request' is the host-supplied entry through which a host's agent asks the person for a network destination (its A8; LOOP-v0.8 §5.3 DF-1). Absent means 'operation'.", "enum": ["operation", "destination_request"]},
+        "operation_identity": {"$ref": "#/$defs/identity"},
+        "operation_version": {"$ref": "#/$defs/identity"},
+        "compatibility_statement": {"type": "string", "minLength": 1},
+        "purpose": {"type": "string", "minLength": 1},
+        "input": {
+          "type": "object",
+          "required": ["arguments", "accepts_requested_basis"],
+          "additionalProperties": false,
+          "properties": {
+            "arguments": {"type": "array", "items": {"$ref": "#/$defs/argument"}},
+            "accepts_requested_basis": {"type": "boolean"}
+          }
+        },
+        "availability": {"type": "array", "items": {"$ref": "#/$defs/precondition"}},
+        "effects": {
+          "type": "object",
+          "required": ["kind"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {"enum": ["none", "change"]},
+            "affected_object_kinds": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/identity"}},
+            "old_new_reporting": {"type": "array", "items": {"$ref": "#/$defs/identity"}},
+            "resulting_objects_reported": {"type": "boolean"},
+            "external_contact": {"$ref": "#/$defs/external_contact"}
+          },
+          "if": {"properties": {"kind": {"const": "change"}}},
+          "then": {"required": ["affected_object_kinds", "resulting_objects_reported"]}
+        },
+        "result": {
+          "type": "object",
+          "required": ["content_kinds", "named_host_checks"],
+          "additionalProperties": false,
+          "properties": {
+            "content_kinds": {"type": "array", "minItems": 1, "items": {"enum": ["table", "result_value", "diagnostic", "finding", "host_check", "applied_association", "proposal_state"]}},
+            "named_host_checks": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/identity"}}
+          }
+        },
+        "errors": {"type": "array", "items": {"$ref": "#/$defs/error_decl"}},
+        "class": {"$ref": "#/$defs/class"},
+        "exposure": {
+          "type": "object",
+          "required": ["H", "E", "X"],
+          "additionalProperties": false,
+          "properties": {
+            "H": {"$ref": "#/$defs/exposure_value"},
+            "E": {"$ref": "#/$defs/exposure_value"},
+            "X": {"$ref": "#/$defs/exposure_value"}
+          }
+        }
+      }
+    }
+  }
+}

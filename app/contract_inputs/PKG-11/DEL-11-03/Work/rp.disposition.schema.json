@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-11-03:rp-disposition:0.1",
+  "title": "DEL-11-03 replacement disposition record (RP-v0.1, PROPOSED)",
+  "description": "The standing of one replacement decision package (REPLACEMENT_PACKET.md §6). It records what was presented and, only when an attributable owner act exists, that act as recorded in the project's OWNER_DECISIONS form (R23-32 F-R4). A recorder never supplies the decision. No favourable state is a completion criterion (DEL-11-03 REQ-004).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["record_kind", "format", "disposition_id", "package_id", "package_file", "state", "fallback_status", "recorder", "recorded_at"],
+  "properties": {
+    "record_kind": { "const": "rp_disposition" },
+    "format": { "const": "RP-v0.1" },
+    "disposition_id": { "type": "string", "pattern": "^RPD-[A-Za-z0-9._-]+$" },
+    "package_id": { "type": "string", "pattern": "^pkg:[A-Za-z0-9._:-]+$" },
+    "package_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "state": {
+      "enum": ["not_presented", "presented_no_decision", "decided"],
+      "description": "not_presented: prepared only (a fixture is always this). presented_no_decision: put before the owner, no attributable act yet; silence, timeout or a tool receipt never moves it on. decided: an attributable owner act chose one of the package's alternatives."
+    },
+    "fallback_status": { "type": "string", "minLength": 1, "description": "Plain statement of v3.0.1's standing after this record. Undecided states keep 'v3.0.1 remains the fallback' (RP-R7)." },
+    "not_presented_because": { "type": "string", "minLength": 1 },
+    "presented": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["when", "by", "how"],
+      "properties": {
+        "when": { "type": "string", "minLength": 1 },
+        "by": { "type": "string", "minLength": 1 },
+        "how": { "type": "string", "minLength": 1 }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["chosen_alternative", "actor", "recorder", "record_ref", "exact_text", "custody", "act_time"],
+      "properties": {
+        "chosen_alternative": { "type": "string", "minLength": 1 },
+        "actor": { "const": "the owner" },
+        "recorder": { "type": "string", "minLength": 1 },
+        "record_ref": { "type": "string", "minLength": 1, "description": "The OWNER_DECISIONS file and heading that holds the owner's exact text." },
+        "exact_text": { "type": "string", "minLength": 1 },
+        "custody": { "type": "string", "minLength": 1, "description": "How the text reached the record, e.g. 'the owner's chat message, transcribed by the recorder; no platform timestamp'." },
+        "act_time": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["available"],
+          "properties": {
+            "available": { "type": "boolean" },
+            "value": { "type": "string", "minLength": 1 },
+            "source": { "type": "string", "minLength": 1 }
+          },
+          "if": { "properties": { "available": { "const": true } } },
+          "then": { "required": ["value", "source"] },
+          "else": { "not": { "anyOf": [ { "required": ["value"] } ] } }
+        }
+      }
+    },
+    "recorder": { "type": "string", "minLength": 1 },
+    "recorded_at": { "type": "string", "minLength": 1, "description": "When this record was written (observed recording time; distinct from act_time)." },
+    "limits": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+  },
+  "allOf": [
+    { "if": { "properties": { "state": { "const": "not_presented" } } },
+      "then": { "required": ["not_presented_because"], "not": { "anyOf": [ { "required": ["presented"] }, { "required": ["decision"] } ] } } },
+    { "if": { "properties": { "state": { "const": "presented_no_decision" } } },
+      "then": { "required": ["presented"], "not": { "required": ["decision"] } } },
+    { "if": { "properties": { "state": { "const": "decided" } } },
+      "then": { "required": ["presented", "decision"] } }
+  ]
+}

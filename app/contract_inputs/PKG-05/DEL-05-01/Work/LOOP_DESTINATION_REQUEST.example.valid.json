@@ -1,0 +1,18 @@
+{
+  "basis": "LOOP-v0.8 §5.3",
+  "requestCall": "call:31",
+  "requester": "host-agent:E",
+  "target": {"category": "web access", "destination": "https://w-2.example"},
+  "purpose": "read the invented standard table the check needs",
+  "scopeSought": "once",
+  "carriedCall": {
+    "operationReference": "OP-W1 fetch",
+    "argumentText": "{\"url\": \"https://w-2.example/table\"}",
+    "destination": {"category": "web access", "destination": "https://w-2.example"}
+  },
+  "check": {"step": "A-6", "allowed": true},
+  "state": "granted",
+  "grantScope": "once",
+  "interimNotice": "waiting for the person's answer",
+  "result": {"class": 3, "label": "success (ran)", "reporter": "host", "deferred": true}
+}

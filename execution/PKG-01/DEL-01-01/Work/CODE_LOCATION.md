@@ -1,0 +1,41 @@
+# Operational source locations
+
+Runnable sources moved outside `execution/`. The declarative contracts, findings, data and historical records stay in this deliverable. Current commands use the operational locations below, from the repository root. Relative imports and specification-data reads use the preserved PKG/DEL/Work structure under `app/contract_inputs/`; native support and signing preparation have their own App homes.
+
+Original source identities are from `109441b501edd86453d263f4207ff6199dbd9a78`. The digest column identifies the original bytes moved in pure-rename commits. Unbound current sources may have separate locator edits; bound sources retain exactly those bytes. Historical citations keep their original locators and are recoverable in Git history.
+
+| Original logical path | Current operational path | Original SHA-256 | Bound bytes |
+|---|---|---|---|
+| `execution/PKG-01/DEL-01-01/Work/distribution-s1/model.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/distribution-s1/model.py` | `eeaa631cabb0b8650c542e4c38ce7ffeb59e40d7e40bf39d18f570a3b47a2e57` | yes |
+| `execution/PKG-01/DEL-01-01/Work/distribution-s1/references/codex-0.160.0-macos-arm64/test_codex_0160_reference.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/distribution-s1/references/codex-0.160.0-macos-arm64/test_codex_0160_reference.py` | `e6f74b24e0f2d9a2a27bd5cdbb380d8a0b55b7de62058a31f43826d99e0f029c` | no |
+| `execution/PKG-01/DEL-01-01/Work/distribution-s1/test_model.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/distribution-s1/test_model.py` | `44b70b2b12f31aaafbda54519cc577d2cca5cdb40063cb6febaffb352bdd6ee1` | no |
+| `execution/PKG-01/DEL-01-01/Work/generated/0.158.0/_spike/generate.sh` | `app/contract_inputs/PKG-01/DEL-01-01/Work/generated/0.158.0/_spike/generate.sh` | `00cf28cbd4364b9a7fb142e3165d27917dbe1a36d04833b2b116f9343634b0db` | no |
+| `execution/PKG-01/DEL-01-01/Work/generated/0.158.0/_spike/handshake.mjs` | `app/contract_inputs/PKG-01/DEL-01-01/Work/generated/0.158.0/_spike/handshake.mjs` | `5e226b99eabf36739eeecc1873bbadebad50ccd952afd4335c1ea3d5e6961448` | no |
+| `execution/PKG-01/DEL-01-01/Work/generated/0.158.0/_spike/inventory.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/generated/0.158.0/_spike/inventory.py` | `032da4d84d0bbadba9d87c842d2c46ed043e7eaccad9e311dde3cc98515fbfef` | no |
+| `execution/PKG-01/DEL-01-01/Work/generated/0.158.0/_spike/redact.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/generated/0.158.0/_spike/redact.py` | `f77f4bfd29e6191f3c9ea15c2b282639fc70a376f5fc9773f82519b690690af6` | no |
+| `execution/PKG-01/DEL-01-01/Work/generated/0.160.0/compare.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/generated/0.160.0/compare.py` | `294cdf06866b77d65d1235910b24f8e136bd1e27f147505e28c787128ffeb325` | no |
+| `execution/PKG-01/DEL-01-01/Work/generated/0.160.0/generate.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/generated/0.160.0/generate.py` | `c908c0dc3bdd627dd4c516b40b33d51d9e547ff236b00153eac8a9bf02acdb31` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/boundary_model.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/boundary_model.py` | `dff501d0a82a2d16c9745079217f972e0f742acd91089416e54e54552141b873` | yes |
+| `execution/PKG-01/DEL-01-01/Work/prototype/check_attachment_correlation.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/check_attachment_correlation.py` | `77f8935a5a65986048793d9ec365953f99e4ad2c1efb67e47beb82bde994916b` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/check_later_protocol_error.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/check_later_protocol_error.py` | `6e22c12b1324bb60600d4b9993d72c0e47295eaf4d80c6dc0bd6e70cb468aee7` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/distribution_identity/inventory_model.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/distribution_identity/inventory_model.py` | `f7cfb440a14d9eaf61ada7804a79578eff7c10c4d378ee48fe790e4b459a122d` | yes |
+| `execution/PKG-01/DEL-01-01/Work/prototype/distribution_identity/test_inventory.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/distribution_identity/test_inventory.py` | `fd7c5fd79cd24206799faf9a6351d1feb8a96812ad872f9c679f9acfff02ca17` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/double_scenarios.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/double_scenarios.py` | `1e56b30d29270ce0af10f239649c4732ce0411c3816c6037e19f16f3ac3b103c` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/jsonschema_subset.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/jsonschema_subset.py` | `486e9286e5aa56888b5473f1c08493a115591255685a8a7bb88b93ff2cacffc0` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/obs1/download_watch.sh` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/obs1/download_watch.sh` | `79436fce9ffb9bea2b7503bfbf6ae06af093a000c0c2280b3e1c951ea2551172` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/obs1/obs1_harness.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/obs1/obs1_harness.py` | `0b1325547b78c1a66b6685de4170d061dfa152fabc4a58752600b7ab045c8442` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/obs1/obs1b_harness.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/obs1/obs1b_harness.py` | `28c90f8b8e379acd5d273d152d1366f693a7fdda1c7f7321739c84f97bde9790` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/obs1/partc_chat.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/obs1/partc_chat.py` | `cc5e1ded3fb6e0b308334ed48d36903d49270aacf21a5d242ce48e5859630756` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/obs1_cli_tool.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/obs1_cli_tool.py` | `c27dc227c2f3f7366aab14665fdcc928d648f6cc58f61c4965a6575e5a8eb4bf` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/obs1_mcp_double.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/obs1_mcp_double.py` | `999ae54cd2d85e2677c223de5d02748556597dc30fa7b18b950bf60593fff47f` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/obs2/obs2_harness.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/obs2/obs2_harness.py` | `589a9d703a73e60776ec7983fb81112cc83fb25242578584e59e64752f7e5ad7` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/obs2/obs2_provider_tap.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/obs2/obs2_provider_tap.py` | `b316815fc1cb9c5f689b005fe984572a8c7ccda7d2e5d4dcedcbf5e99b68d1ff` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/obs3/obs3_harness.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/obs3/obs3_harness.py` | `cbf96655a80bb6f21f4460be31d176b6583fe6d2c7fa0f6fdd3edf1c8bcf96fa` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/obs3/obs3_provider_tap.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/obs3/obs3_provider_tap.py` | `c25d6cb3f72cc0177596c5ded535d36e5acf840a0ebd88f2a0785dde1bd8f248` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/run_cases.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/run_cases.py` | `bca41f423ff7104447870f30513197d6ef6a4906ffccfb052619f5c778d32648` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/st5/st5_harness.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/st5/st5_harness.py` | `f43f06e8bcb488e9f46131c38a02f23dcfeedaca4f0b428ee3abf40c766abda1` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/st5/stub_provider.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/st5/stub_provider.py` | `370cab7988a3092db02a4d2825e42e20ff754aa085b841159463e5f6c3efe9c0` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/supplier_double.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/supplier_double.py` | `fada4ab1c828c753fb2fb82e3562b8ffbf5750ee0e5b75cbc3d0f5a17717c38e` | no |
+| `execution/PKG-01/DEL-01-01/Work/prototype/version_advance/va_harness.py` | `app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/version_advance/va_harness.py` | `fbe61c7272ca452cf75ceab930adb01fb2b162a394a808bf7b34b7b4f0fb98e8` | no |
+
+`tools/ci/execution-inputs.json` records current physical source/data locations. Specification-data copies remain distinct from the authoring originals; repository checks compare full bytes or the existing selected documentary extents. This move creates no qualification, acceptance, publication, reconstruction or native-run result.

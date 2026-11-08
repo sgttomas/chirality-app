@@ -1,5 +1,5 @@
 {
-  "app/examination/support_identity/canonical.py": "7f5288b984fc853a117c4dd50b6577fa46a04fc16dc7bced03b1aec88650a41f",
+  "app/examination/support_identity/canonical.py": "59f3454a16969968ca7496cd3b1626c78cba2a76afee4ff540011b530d3729c2",
   "app/examination/support_identity/canonical-pins.v1.json": "0866799740ba54d572c1bf480d3a95bed546e3a914146b00ea1a3cab9a0e90f3",
   "app/src-tauri/resources/distribution-successor/observed-verification.s1.schema.json": "7f61951db0ba0db5a886a4100847f51e1a3c86f0ceae4b074918a94f353368a1",
   "app/src-tauri/resources/distribution-successor/lifecycle-event.s1.schema.json": "e5713e88c720b2c4a2a1463923596e18b53302e3fae9195d433190ed098d0181",

@@ -1,0 +1,9 @@
+# SCC-CASE-006 — contribution contract
+
+Selected method: `chirality-root:bundled:workflow:scc-resolution-case`; TASK under WORKING_ITEMS `/root/renewal_research_strategy`. ScopePath and CASE_PATH: `/Users/ryan/.codex/worktrees/077c/chirality/projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-006`. Affected set: `DEL-10-02;DEL-10-04` only. Reader: App undertaking/dependency managers, separate examiner, then the human at project-dag checkpoint 1. Use: compare the actual exchanges and select an objective-relative treatment.
+
+Deposit the nine prescribed files and one TASK run record here. A subsequent contribution must identify its source/basis, exact affected clauses/rows, checks, unresolved work and return recipient. Preserve prior findings and actual decision custody; no prior seed packet exists. Match future SCC observations by member set, retaining this stable case ID and recording changes.
+
+This is a working inquiry, not an accepted graph. Source basis is `c1038ae5ac5c23a30ea7d3b516cd9033cb47f77b`; the completed closure observation is evidence supplied by the manager, not an invented human acceptance. No cuts, merge groups, local row edits, source/decomposition edits, lifecycle acts, implementation or dependency-based availability decisions are authorized. All 41 production IDs remain. Human rulings stay pending; Ruling_Register.csv is header-only.
+
+WORKING_ITEMS with `chirality-root:bundled:workflow:project-dag` owns graph interpretation/checkpoints and any subsequent assembly. Actual source defects, if found, return to the source owner and `dependency-extract` or `scope-of-work`; an actual accepted-scope change uses `scope-change`. `audit-dep-closure` supplies later closure observation. These are prospective handoffs, not activated undertakings. TASK does not delegate. Host workspace access exceeds this brief's file boundary; compliance does not prove isolated enforcement.

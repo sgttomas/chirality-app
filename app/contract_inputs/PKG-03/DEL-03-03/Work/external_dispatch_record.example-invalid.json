@@ -1,0 +1,33 @@
+{
+  "record_kind": "external_dispatch",
+  "path": "N-CLI",
+  "correlation": {
+    "thread": "th-main",
+    "turn": "turn-XF-34",
+    "native_item": "item-main-22"
+  },
+  "native_reference": {
+    "command_form": "sh1 cli call OP-C1"
+  },
+  "request_kind": "read",
+  "operation": {
+    "operation_identity": "OP-C1",
+    "operation_version": "v1"
+  },
+  "native_status": "declined",
+  "transport": {
+    "exit_status": null,
+    "duration_ms": null
+  },
+  "observed_at": "XF-34",
+  "native_source": {
+    "at_start": "agent",
+    "at_completion": "agent"
+  },
+  "outcome": {
+    "value": "tool_execution_declined",
+    "reporter": "app",
+    "reason": "A14 declined; no host request (M-6)"
+  },
+  "evidence_limits": []
+}

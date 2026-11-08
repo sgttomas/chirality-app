@@ -217,6 +217,6 @@ checks:
 - app/src-tauri/tests/record_relations.rs
 - app/src-tauri/src/record_relation_analysis_tests.rs
 - app/tests/validate-records.test.mjs
-- execution/PKG-04/DEL-04-03/Work/prototype/check_cc_r.py
-- execution/PKG-04/DEL-04-03/Work/prototype/run_prototype.py
-- execution/PKG-04/DEL-04-03/Work/prototype/test_minischema.py
+- app/contract_inputs/PKG-04/DEL-04-03/Work/prototype/check_cc_r.py
+- app/contract_inputs/PKG-04/DEL-04-03/Work/prototype/run_prototype.py
+- app/contract_inputs/PKG-04/DEL-04-03/Work/prototype/test_minischema.py

@@ -242,7 +242,7 @@ class V2(unittest.TestCase):
         db = app / 'runtime/recovery.ledger.sqlite'
         db.write_bytes(self.db.read_bytes())
         repo = self.root / 'repo'
-        schema = repo / 'execution/PKG-01/DEL-01-02/Work/recovery.app-ledger-entry.v0.3.schema.json'
+        schema = repo / 'app/contract_inputs/PKG-01/DEL-01-02/Work/recovery.app-ledger-entry.v0.3.schema.json'
         schema.parent.mkdir(parents=True)
         schema.write_bytes(self.schema.read_bytes())
         roots = {'AppData': str(app), 'WebKit': str(self.root / 'webkit'), 'Caches': str(self.root / 'caches')}

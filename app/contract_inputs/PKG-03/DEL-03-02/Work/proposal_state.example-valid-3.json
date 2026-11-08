@@ -1,0 +1,14 @@
+{
+  "kind": "item_left_event",
+  "proposal_identity": "PR-1",
+  "item_identity": "1",
+  "cause": "refused_stale",
+  "time": "t0003",
+  "evaluated_basis": {
+    "canonical_content_identity": "sh1:ab78bf780c63e3c2",
+    "generation": "g1",
+    "identity_method": "m-sh1",
+    "model_revision": "r13",
+    "workspace_identity": "FX-W1"
+  }
+}

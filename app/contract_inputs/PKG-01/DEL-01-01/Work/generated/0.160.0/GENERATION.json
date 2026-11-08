@@ -1,0 +1,160 @@
+{
+  "supplierSha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+  "version": "codex-cli 0.160.0",
+  "stats": {
+    "ts/stable": {
+      "deterministic": true,
+      "files": 734,
+      "manifestSha256": "3bf55d3ec866f70e81f093281463b0ed029d4192d7f5ddb9cc91fbc2ca7bd084"
+    },
+    "ts/experimental": {
+      "deterministic": true,
+      "files": 875,
+      "manifestSha256": "b5229a9ca5c7cb4139851e256c360c0bcfd5b8053905ed3c5280f38db12dc656"
+    },
+    "json-schema/stable": {
+      "deterministic": true,
+      "files": 314,
+      "manifestSha256": "d5f51be102b9c790f960f074b0974a4c78956896cdcdaf45225755a7c7bfeafb"
+    },
+    "json-schema/experimental": {
+      "deterministic": true,
+      "files": 440,
+      "manifestSha256": "e587a3d5ffab12e528589e14d385b04d1192b9ae6914ce008cd3ea507e5aa455"
+    }
+  },
+  "commands": [
+    {
+      "kind": "ts",
+      "variant": "stable",
+      "run": 1,
+      "command": [
+        "<approved-stock0.160.0>",
+        "app-server",
+        "generate-ts",
+        "--out",
+        "<scratch>/ts/stable/run1"
+      ],
+      "exitCode": 0,
+      "files": 734,
+      "manifestSha256": "3bf55d3ec866f70e81f093281463b0ed029d4192d7f5ddb9cc91fbc2ca7bd084",
+      "stderr": ""
+    },
+    {
+      "kind": "ts",
+      "variant": "stable",
+      "run": 2,
+      "command": [
+        "<approved-stock0.160.0>",
+        "app-server",
+        "generate-ts",
+        "--out",
+        "<scratch>/ts/stable/run2"
+      ],
+      "exitCode": 0,
+      "files": 734,
+      "manifestSha256": "3bf55d3ec866f70e81f093281463b0ed029d4192d7f5ddb9cc91fbc2ca7bd084",
+      "stderr": ""
+    },
+    {
+      "kind": "ts",
+      "variant": "experimental",
+      "run": 1,
+      "command": [
+        "<approved-stock0.160.0>",
+        "app-server",
+        "generate-ts",
+        "--experimental",
+        "--out",
+        "<scratch>/ts/experimental/run1"
+      ],
+      "exitCode": 0,
+      "files": 875,
+      "manifestSha256": "b5229a9ca5c7cb4139851e256c360c0bcfd5b8053905ed3c5280f38db12dc656",
+      "stderr": ""
+    },
+    {
+      "kind": "ts",
+      "variant": "experimental",
+      "run": 2,
+      "command": [
+        "<approved-stock0.160.0>",
+        "app-server",
+        "generate-ts",
+        "--experimental",
+        "--out",
+        "<scratch>/ts/experimental/run2"
+      ],
+      "exitCode": 0,
+      "files": 875,
+      "manifestSha256": "b5229a9ca5c7cb4139851e256c360c0bcfd5b8053905ed3c5280f38db12dc656",
+      "stderr": ""
+    },
+    {
+      "kind": "json-schema",
+      "variant": "stable",
+      "run": 1,
+      "command": [
+        "<approved-stock0.160.0>",
+        "app-server",
+        "generate-json-schema",
+        "--out",
+        "<scratch>/json-schema/stable/run1"
+      ],
+      "exitCode": 0,
+      "files": 314,
+      "manifestSha256": "d5f51be102b9c790f960f074b0974a4c78956896cdcdaf45225755a7c7bfeafb",
+      "stderr": ""
+    },
+    {
+      "kind": "json-schema",
+      "variant": "stable",
+      "run": 2,
+      "command": [
+        "<approved-stock0.160.0>",
+        "app-server",
+        "generate-json-schema",
+        "--out",
+        "<scratch>/json-schema/stable/run2"
+      ],
+      "exitCode": 0,
+      "files": 314,
+      "manifestSha256": "d5f51be102b9c790f960f074b0974a4c78956896cdcdaf45225755a7c7bfeafb",
+      "stderr": ""
+    },
+    {
+      "kind": "json-schema",
+      "variant": "experimental",
+      "run": 1,
+      "command": [
+        "<approved-stock0.160.0>",
+        "app-server",
+        "generate-json-schema",
+        "--experimental",
+        "--out",
+        "<scratch>/json-schema/experimental/run1"
+      ],
+      "exitCode": 0,
+      "files": 440,
+      "manifestSha256": "e587a3d5ffab12e528589e14d385b04d1192b9ae6914ce008cd3ea507e5aa455",
+      "stderr": ""
+    },
+    {
+      "kind": "json-schema",
+      "variant": "experimental",
+      "run": 2,
+      "command": [
+        "<approved-stock0.160.0>",
+        "app-server",
+        "generate-json-schema",
+        "--experimental",
+        "--out",
+        "<scratch>/json-schema/experimental/run2"
+      ],
+      "exitCode": 0,
+      "files": 440,
+      "manifestSha256": "e587a3d5ffab12e528589e14d385b04d1192b9ae6914ce008cd3ea507e5aa455",
+      "stderr": ""
+    }
+  ]
+}

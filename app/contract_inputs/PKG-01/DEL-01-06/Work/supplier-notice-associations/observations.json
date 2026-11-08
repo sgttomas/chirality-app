@@ -1,0 +1,114 @@
+{
+  "format": "supplier-notice-source-observations/1",
+  "supplier_pin": "0.160.0",
+  "target": "aarch64-apple-darwin",
+  "manifest": {
+    "path": "codex-resources/voice/manifest.json",
+    "sha256": "dcf75f68cd3d1e94e557f80998dd1a707283dc2a9799c9c14c5d46aa6e158909",
+    "size": 4637,
+    "buildCommit": "a956835d020762cb2b570053af06f643a11c0ecc"
+  },
+  "components": [
+    {
+      "path": "bin/codex",
+      "sha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+      "size": 241555024,
+      "manifest_binding": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+      "manifest_declared_build_commit": "a956835d020762cb2b570053af06f643a11c0ecc",
+      "embedded_clues": [
+        {
+          "bytes_hex": "2f55736572732f72756e6e65722f776f726b2f636f6465782f636f6465782f636f6465782d72732f",
+          "text": "/Users/runner/work/codex/codex/codex-rs/",
+          "offsets": [
+            181580201
+          ]
+        }
+      ],
+      "standing": "exact byte observations; embedded strings are not authenticated source/build/license provenance"
+    },
+    {
+      "path": "bin/codex-code-mode-host",
+      "sha256": "679eedaea70529aa1cffc9bc0a0788c186412663544fa76c09d63b57f383a65a",
+      "size": 65391216,
+      "manifest_binding": null,
+      "manifest_declared_build_commit": null,
+      "embedded_clues": [
+        {
+          "bytes_hex": "2f55736572732f72756e6e65722f776f726b2f636f6465782f636f6465782f636f6465782d72732f",
+          "text": "/Users/runner/work/codex/codex/codex-rs/",
+          "offsets": [
+            37557501
+          ]
+        },
+        {
+          "bytes_hex": "636f64652d6d6f64652d686f73742f7372632f6d61696e2e7273",
+          "text": "code-mode-host/src/main.rs",
+          "offsets": [
+            37544589,
+            38302199,
+            38302255,
+            38302318
+          ]
+        }
+      ],
+      "standing": "exact byte observations; embedded strings are not authenticated source/build/license provenance"
+    },
+    {
+      "path": "codex-path/rg",
+      "sha256": "7c7d5b09c3a57de864500c65dc2e9c4d2a5e96a3fc7b7d5318480c19887a739b",
+      "size": 4030432,
+      "manifest_binding": null,
+      "manifest_declared_build_commit": null,
+      "embedded_clues": [
+        {
+          "bytes_hex": "0031362e302e3000",
+          "text": "\u000016.0.0\u0000",
+          "offsets": [
+            3660432
+          ]
+        },
+        {
+          "bytes_hex": "0031302e343620323032352d30382d323700",
+          "text": "\u000010.46 2025-08-27\u0000",
+          "offsets": [
+            3660439
+          ]
+        }
+      ],
+      "standing": "exact byte observations; embedded strings are not authenticated source/build/license provenance"
+    },
+    {
+      "path": "codex-resources/zsh/bin/zsh",
+      "sha256": "d715e06edcf1661edb2e7767d65fbd1b44af505edfb217281b701f0a6ae93b15",
+      "size": 754208,
+      "manifest_binding": null,
+      "manifest_declared_build_commit": null,
+      "embedded_clues": [
+        {
+          "bytes_hex": "7a73682d352e392e302e332d746573742d38372d6737373034356566",
+          "text": "zsh-5.9.0.3-test-87-g77045ef",
+          "offsets": [
+            597539
+          ]
+        },
+        {
+          "bytes_hex": "2f7573722f6c6f63616c2f73686172652f7a73682f352e392e302e332d746573742f66756e6374696f6e73",
+          "text": "/usr/local/share/zsh/5.9.0.3-test/functions",
+          "offsets": [
+            587769
+          ]
+        }
+      ],
+      "standing": "exact byte observations; embedded strings are not authenticated source/build/license provenance"
+    }
+  ],
+  "limits": [
+    "No supplier execution, network, source acquisition, signature inspection or legal conclusion.",
+    "A manifest declaration binds main bytes to its declared commit; it does not supply that source or applicable notice texts.",
+    "Version/build strings narrow the missing-source search; they do not authenticate a release artifact or downstream patch set."
+  ],
+  "observation_date": "2026-10-31",
+  "tool_sha256": "35cdf1963a7e52a5e26a3cc0665934ef2516db89da4ef4feaa0275dc45459343",
+  "supplier_archive_sha256": "fc789bcd655d903f92e1a23c8dc5315ba38f43b3586eafb7bd3b195970b57466",
+  "archive_relation": "Retained candidate acquisition account; this observation rereads vendor bytes, not archive origin authentication."
+}

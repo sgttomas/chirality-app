@@ -1,0 +1,11 @@
+{
+  "description": "Invalid: an item anchor without its native kind, and with a translated state name ('approved') that is not a display state of this file.",
+  "instance": {
+    "anchorKind": "item",
+    "threadId": "thr-fixture-parent",
+    "turnId": "turn-fixture-1",
+    "itemId": "item-fixture-cmd-1",
+    "displayState": "approved",
+    "standing": "live-observed"
+  }
+}

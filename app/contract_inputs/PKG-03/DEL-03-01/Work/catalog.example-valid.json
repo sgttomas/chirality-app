@@ -1,0 +1,646 @@
+{
+  "host_identity": "SH-1",
+  "edition": "e2",
+  "completeness": "complete",
+  "basis_profile": {
+    "workspace_identity": "supplied",
+    "generation": "supplied",
+    "model_revision": "supplied",
+    "canonical_content_identity": "supplied",
+    "subject_content_identity": "per_subject",
+    "staleness_scope": "per_item_relied_on_targets"
+  },
+  "entries": [
+    {
+      "operation_identity": "OP-C1",
+      "operation_version": "v1",
+      "purpose": "Lists supports on a run with type, location, stiffness and label",
+      "input": {
+        "arguments": [
+          {
+            "argument_name": "run",
+            "meaning": "the run whose supports are listed",
+            "value_kind": "identity",
+            "unit": null,
+            "required": true,
+            "identifies_target": true
+          },
+          {
+            "argument_name": "requested_basis",
+            "meaning": "an earlier basis to read at (historical read)",
+            "value_kind": "basis_descriptor",
+            "unit": null,
+            "required": false,
+            "identifies_target": false
+          }
+        ],
+        "accepts_requested_basis": true
+      },
+      "availability": [
+        {
+          "precondition_identity": "run-exists",
+          "meaning": "the run exists in the workspace",
+          "reason_identity": "R-run-not-found",
+          "reason_statement": "Run not found in this workspace"
+        }
+      ],
+      "effects": {
+        "kind": "none"
+      },
+      "result": {
+        "content_kinds": [
+          "table",
+          "host_check"
+        ],
+        "named_host_checks": [
+          "equilibrium",
+          "unit-consistency"
+        ]
+      },
+      "errors": [
+        {
+          "error_identity": "E-invalid-run",
+          "meaning": "the run argument is malformed",
+          "raised_at": "evaluation",
+          "effect": "none"
+        }
+      ],
+      "class": {
+        "class_value": "none",
+        "value_standing": "INTEGRATION",
+        "consequence_statement": null,
+        "host_adoption": "not_evidenced",
+        "policy_record_reference": "fixture-read"
+      },
+      "exposure": {
+        "H": "exposed",
+        "E": "exposed",
+        "X": "exposed"
+      }
+    },
+    {
+      "operation_identity": "OP-C2",
+      "operation_version": "v1",
+      "purpose": "Stresses and support loads for a load case",
+      "input": {
+        "arguments": [
+          {
+            "argument_name": "run",
+            "meaning": "the run",
+            "value_kind": "identity",
+            "unit": null,
+            "required": true,
+            "identifies_target": true
+          },
+          {
+            "argument_name": "load_case",
+            "meaning": "the load case",
+            "value_kind": "identity",
+            "unit": null,
+            "required": true,
+            "identifies_target": false
+          }
+        ],
+        "accepts_requested_basis": false
+      },
+      "availability": [
+        {
+          "precondition_identity": "run-exists",
+          "meaning": "the run exists in the workspace",
+          "reason_identity": "R-run-not-found",
+          "reason_statement": "Run not found in this workspace"
+        },
+        {
+          "precondition_identity": "current-solve-exists",
+          "meaning": "a solve exists at the present revision for the load case",
+          "reason_identity": "R-no-current-solve",
+          "reason_statement": "No current solve for LC-1 at this revision",
+          "remedy": "the load case must be solved at the present revision"
+        }
+      ],
+      "effects": {
+        "kind": "none"
+      },
+      "result": {
+        "content_kinds": [
+          "result_value",
+          "host_check"
+        ],
+        "named_host_checks": [
+          "equilibrium",
+          "unit-consistency"
+        ]
+      },
+      "errors": [
+        {
+          "error_identity": "E-unknown-load-case",
+          "meaning": "no such load case",
+          "raised_at": "evaluation",
+          "effect": "none"
+        }
+      ],
+      "class": {
+        "class_value": "none",
+        "value_standing": "INTEGRATION",
+        "consequence_statement": null,
+        "host_adoption": "not_evidenced",
+        "policy_record_reference": "fixture-read"
+      },
+      "exposure": {
+        "H": "exposed",
+        "E": "exposed",
+        "X": "exposed"
+      }
+    },
+    {
+      "operation_identity": "OP-C3",
+      "operation_version": "v1",
+      "purpose": "Lists spans exceeding a requester-stated limit, as the requester's findings",
+      "input": {
+        "arguments": [
+          {
+            "argument_name": "run",
+            "meaning": "the run",
+            "value_kind": "identity",
+            "unit": null,
+            "required": true,
+            "identifies_target": true
+          },
+          {
+            "argument_name": "spacing_limit_m",
+            "meaning": "the requester's limit",
+            "value_kind": "number",
+            "unit": "m",
+            "required": true,
+            "identifies_target": false
+          }
+        ],
+        "accepts_requested_basis": false
+      },
+      "availability": [
+        {
+          "precondition_identity": "run-exists",
+          "meaning": "the run exists in the workspace",
+          "reason_identity": "R-run-not-found",
+          "reason_statement": "Run not found in this workspace"
+        }
+      ],
+      "effects": {
+        "kind": "none"
+      },
+      "result": {
+        "content_kinds": [
+          "finding"
+        ],
+        "named_host_checks": []
+      },
+      "errors": [
+        {
+          "error_identity": "E-invalid-limit",
+          "meaning": "limit not positive",
+          "raised_at": "evaluation",
+          "effect": "none"
+        }
+      ],
+      "class": {
+        "class_value": "none",
+        "value_standing": "INTEGRATION",
+        "consequence_statement": null,
+        "host_adoption": "not_evidenced",
+        "policy_record_reference": "fixture-read"
+      },
+      "exposure": {
+        "H": "exposed",
+        "E": "exposed",
+        "X": "exposed"
+      }
+    },
+    {
+      "operation_identity": "OP-C4",
+      "operation_version": "v1",
+      "purpose": "Adds a support at a location on a run",
+      "input": {
+        "arguments": [
+          {
+            "argument_name": "run",
+            "meaning": "the run",
+            "value_kind": "identity",
+            "unit": null,
+            "required": true,
+            "identifies_target": true
+          },
+          {
+            "argument_name": "location_m",
+            "meaning": "location along the run",
+            "value_kind": "number",
+            "unit": "m",
+            "required": true,
+            "identifies_target": false
+          },
+          {
+            "argument_name": "type",
+            "meaning": "support type",
+            "value_kind": "enumeration",
+            "unit": null,
+            "required": true,
+            "identifies_target": false
+          }
+        ],
+        "accepts_requested_basis": false
+      },
+      "availability": [
+        {
+          "precondition_identity": "run-exists",
+          "meaning": "the run exists in the workspace",
+          "reason_identity": "R-run-not-found",
+          "reason_statement": "Run not found in this workspace"
+        }
+      ],
+      "effects": {
+        "kind": "change",
+        "affected_object_kinds": [
+          "support",
+          "run"
+        ],
+        "old_new_reporting": [
+          "location_m",
+          "type",
+          "stiffness",
+          "label"
+        ],
+        "resulting_objects_reported": true
+      },
+      "result": {
+        "content_kinds": [
+          "applied_association",
+          "proposal_state"
+        ],
+        "named_host_checks": []
+      },
+      "errors": [
+        {
+          "error_identity": "E-location-occupied",
+          "meaning": "a support already stands there",
+          "raised_at": "validation",
+          "effect": "none"
+        },
+        {
+          "error_identity": "E-apply-interrupted",
+          "meaning": "application interrupted",
+          "raised_at": "application",
+          "effect": "unknown"
+        }
+      ],
+      "class": {
+        "class_value": "may_apply_within_granted_autonomy",
+        "value_standing": "DERIVED",
+        "consequence_statement": null,
+        "host_adoption": "not_evidenced",
+        "policy_record_reference": "P-03"
+      },
+      "exposure": {
+        "H": "exposed",
+        "E": "exposed",
+        "X": "exposed"
+      }
+    },
+    {
+      "operation_identity": "OP-C5",
+      "operation_version": "v1",
+      "purpose": "Changes a support's stiffness",
+      "input": {
+        "arguments": [
+          {
+            "argument_name": "support",
+            "meaning": "the support",
+            "value_kind": "identity",
+            "unit": null,
+            "required": true,
+            "identifies_target": true
+          },
+          {
+            "argument_name": "stiffness",
+            "meaning": "new stiffness",
+            "value_kind": "text",
+            "unit": "N/m",
+            "required": true,
+            "identifies_target": false
+          }
+        ],
+        "accepts_requested_basis": false
+      },
+      "availability": [],
+      "effects": {
+        "kind": "change",
+        "affected_object_kinds": [
+          "support",
+          "run"
+        ],
+        "old_new_reporting": [
+          "location_m",
+          "type",
+          "stiffness",
+          "label"
+        ],
+        "resulting_objects_reported": true
+      },
+      "result": {
+        "content_kinds": [
+          "applied_association",
+          "proposal_state"
+        ],
+        "named_host_checks": []
+      },
+      "errors": [
+        {
+          "error_identity": "E-invalid-stiffness",
+          "meaning": "stiffness not valid",
+          "raised_at": "validation",
+          "effect": "none"
+        }
+      ],
+      "class": {
+        "class_value": "may_apply_within_granted_autonomy",
+        "value_standing": "DERIVED",
+        "consequence_statement": null,
+        "host_adoption": "not_evidenced",
+        "policy_record_reference": "P-03"
+      },
+      "exposure": {
+        "H": "exposed",
+        "E": "exposed",
+        "X": "exposed"
+      }
+    },
+    {
+      "operation_identity": "OP-C6",
+      "operation_version": "v1",
+      "purpose": "Performs the person's A4 on a row's content",
+      "input": {
+        "arguments": [
+          {
+            "argument_name": "row",
+            "meaning": "the row",
+            "value_kind": "identity",
+            "unit": null,
+            "required": true,
+            "identifies_target": true
+          }
+        ],
+        "accepts_requested_basis": false
+      },
+      "availability": [],
+      "effects": {
+        "kind": "change",
+        "affected_object_kinds": [
+          "host act state"
+        ],
+        "resulting_objects_reported": false
+      },
+      "result": {
+        "content_kinds": [
+          "result_value"
+        ],
+        "named_host_checks": []
+      },
+      "errors": [],
+      "class": {
+        "class_value": "reserved_to_the_person",
+        "value_standing": "DERIVED",
+        "consequence_statement": null,
+        "host_adoption": "not_evidenced",
+        "policy_record_reference": "P-02"
+      },
+      "exposure": {
+        "H": "exposed",
+        "E": "exposed",
+        "X": "exposed"
+      }
+    },
+    {
+      "operation_identity": "OP-C7",
+      "operation_version": "v1",
+      "purpose": "Performs the person's A5 on one or more change items",
+      "input": {
+        "arguments": [
+          {
+            "argument_name": "proposal",
+            "meaning": "the proposal",
+            "value_kind": "identity",
+            "unit": null,
+            "required": true,
+            "identifies_target": true
+          },
+          {
+            "argument_name": "items",
+            "meaning": "items",
+            "value_kind": "text",
+            "unit": null,
+            "required": true,
+            "identifies_target": false
+          }
+        ],
+        "accepts_requested_basis": false
+      },
+      "availability": [],
+      "effects": {
+        "kind": "change",
+        "affected_object_kinds": [
+          "proposal item dispositions"
+        ],
+        "resulting_objects_reported": false
+      },
+      "result": {
+        "content_kinds": [
+          "result_value"
+        ],
+        "named_host_checks": []
+      },
+      "errors": [],
+      "class": {
+        "class_value": "reserved_to_the_person",
+        "value_standing": "DERIVED",
+        "consequence_statement": null,
+        "host_adoption": "not_evidenced",
+        "policy_record_reference": "P-02"
+      },
+      "exposure": {
+        "H": "exposed",
+        "E": "exposed",
+        "X": "exposed"
+      }
+    },
+    {
+      "operation_identity": "OP-C8",
+      "operation_version": "v1",
+      "purpose": "Performs the person's A10",
+      "input": {
+        "arguments": [
+          {
+            "argument_name": "proposal",
+            "meaning": "the proposal",
+            "value_kind": "identity",
+            "unit": null,
+            "required": true,
+            "identifies_target": true
+          },
+          {
+            "argument_name": "items",
+            "meaning": "items",
+            "value_kind": "text",
+            "unit": null,
+            "required": true,
+            "identifies_target": false
+          }
+        ],
+        "accepts_requested_basis": false
+      },
+      "availability": [],
+      "effects": {
+        "kind": "change",
+        "affected_object_kinds": [
+          "proposal item dispositions"
+        ],
+        "resulting_objects_reported": false
+      },
+      "result": {
+        "content_kinds": [
+          "result_value"
+        ],
+        "named_host_checks": []
+      },
+      "errors": [],
+      "class": {
+        "class_value": "reserved_to_the_person",
+        "value_standing": "DERIVED",
+        "consequence_statement": null,
+        "host_adoption": "not_evidenced",
+        "policy_record_reference": "P-02"
+      },
+      "exposure": {
+        "H": "exposed",
+        "E": "exposed",
+        "X": "exposed"
+      }
+    },
+    {
+      "operation_identity": "OP-C9",
+      "operation_version": "v1",
+      "purpose": "Changes a support's display label",
+      "input": {
+        "arguments": [
+          {
+            "argument_name": "support",
+            "meaning": "the support",
+            "value_kind": "identity",
+            "unit": null,
+            "required": true,
+            "identifies_target": true
+          },
+          {
+            "argument_name": "label",
+            "meaning": "new label",
+            "value_kind": "text",
+            "unit": null,
+            "required": true,
+            "identifies_target": false
+          }
+        ],
+        "accepts_requested_basis": false
+      },
+      "availability": [],
+      "effects": {
+        "kind": "change",
+        "affected_object_kinds": [
+          "support",
+          "run"
+        ],
+        "old_new_reporting": [
+          "location_m",
+          "type",
+          "stiffness",
+          "label"
+        ],
+        "resulting_objects_reported": true
+      },
+      "result": {
+        "content_kinds": [
+          "applied_association",
+          "proposal_state"
+        ],
+        "named_host_checks": []
+      },
+      "errors": [
+        {
+          "error_identity": "E-label-too-long",
+          "meaning": "label too long",
+          "raised_at": "validation",
+          "effect": "none"
+        }
+      ],
+      "class": {
+        "class_value": "may_apply_within_granted_autonomy",
+        "value_standing": "DERIVED",
+        "consequence_statement": null,
+        "host_adoption": "not_evidenced",
+        "policy_record_reference": "P-03"
+      },
+      "exposure": {
+        "H": "exposed",
+        "E": "exposed",
+        "X": "exposed"
+      }
+    },
+    {
+      "operation_identity": "OP-C12",
+      "operation_version": "v1",
+      "purpose": "Runs the host's named check 'support spacing' with host-defined limits",
+      "input": {
+        "arguments": [
+          {
+            "argument_name": "run",
+            "meaning": "the run",
+            "value_kind": "identity",
+            "unit": null,
+            "required": true,
+            "identifies_target": true
+          }
+        ],
+        "accepts_requested_basis": false
+      },
+      "availability": [],
+      "effects": {
+        "kind": "none"
+      },
+      "result": {
+        "content_kinds": [
+          "host_check"
+        ],
+        "named_host_checks": [
+          "support-spacing"
+        ]
+      },
+      "errors": [
+        {
+          "error_identity": "E-check-unavailable",
+          "meaning": "check cannot run",
+          "raised_at": "evaluation",
+          "effect": "none"
+        }
+      ],
+      "class": {
+        "class_value": "none",
+        "value_standing": "INTEGRATION",
+        "consequence_statement": null,
+        "host_adoption": "not_evidenced",
+        "policy_record_reference": "fixture-read"
+      },
+      "exposure": {
+        "H": "exposed",
+        "E": "exposed",
+        "X": "exposed"
+      }
+    }
+  ],
+  "previous_edition": "e1"
+}

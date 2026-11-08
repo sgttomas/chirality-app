@@ -1,0 +1,14 @@
+{
+  "paths": {
+    "node": "/Users/ryan/.local/share/mise/installs/node/24.18.0/bin/node",
+    "rustc": "/Users/ryan/.rustup/toolchains/stable-aarch64-apple-darwin/bin/rustc",
+    "cargo": "/Users/ryan/.rustup/toolchains/stable-aarch64-apple-darwin/bin/cargo"
+  },
+  "post_build_version_observations": {
+    "node": "v24.18.0",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+    "tauri_cli_package_version": "2.11.1"
+  },
+  "standing": "build argv PATH uses these fixed installed paths; version observation, not toolchain origin authentication"
+}

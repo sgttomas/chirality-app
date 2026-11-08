@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[4]
+ROOT = HERE.parents[2]
 
 
 def load(name, path):

@@ -1,0 +1,36 @@
+{
+  "attemptSourceRevision": "c5e01df9d4a06fa6184841cb30d22ec539e30590",
+  "requiredAncestor": "ebf71ce713e4d71a2b32193fd360cfda3cd1dab9",
+  "rawEvidence": "guarded_bootstrap_attempt.json",
+  "commandSha256": "f34d8a3142a14fcce05a1fb2984ad1e763a63ad08b4c05c2ed4e8db8fa156a33",
+  "sourceSha256": {
+    "ProcessFixture.cs": "a587f4b5424b93b407bbbae671a4c1a1904bc005ed98115fbc31d0c1e096c646",
+    "run_fixture.py": "d3460ed0b2c83899874136a1fd68e8fa0134afcd93a689226709bb582d163fda",
+    "verify_results.py": "ecbe0dff2b6a67d7679f370c1589a88fcf7fbae25152ab4e3fc42f082d4a288f",
+    "Controller.ps1": "f4e5fb24a59ba81fb1c90d5259a4d8a8bc1345f47fa1b1b163b5cbbae32cb498",
+    "test_driver.py": "61494f0321dbc5f64c7babb954e37e9c18d11c0d83930893ebc03974ff3cdd92",
+    "README.md": "27b99d2cd5c123cccbcd52f8870440f1559fb129a0ff8f444d8c1c577d77fea4"
+  },
+  "transportControllerBytes": 19218,
+  "hostTransportVerification": "compressed payload exactly equals attempted revision Git blob; no late source reread",
+  "actualGuestCopyHashes": null,
+  "actualGuestCopyStatus": "NOT OBSERVED; session could not be opened; no disk source staging requested",
+  "prlctlReturnCode": 255,
+  "stderr": "PrlVmGuest_RunProgram: Unable to open new session in this virtual machine. Make sure your virtual machine has finished booting, runs the latest version of Parallels Tools, and is not isolated from the host OS.\n",
+  "obstacle": "prlctl failed to open a new guest session; bootstrap not reached",
+  "guestPowerShellCompletion": "NOT OBSERVED; guest-session admission failed",
+  "runtimeAndArchitecture": "No new guest response. Reuse da0a2802 read-only readiness metadata only; IsWow64Process2 values NOT OBSERVED.",
+  "guestFilesJobsCompilerFixtureProcesses": "None requested by attempted bootstrap route; controller lifecycle NOT INVOKED",
+  "cleanup": "No fixture-owned process or Job was requested. No HANDLE-signaling, Job-empty, timeout, host-loss or crash-cleanup observation exists.",
+  "nativeCases": {
+    "P01-positive": "NOT RUN",
+    "P01-negative": "NOT RUN",
+    "P02-A": "NOT RUN",
+    "P02-B": "NOT RUN",
+    "P02-C": "NOT RUN"
+  },
+  "namespaceGuard": "Sharing-only proof rejected by documented attribute-access/reparse conflict; no compiler admission",
+  "streamCompilerPresence": "NOT OBSERVED: two-path check not reached",
+  "retry": "NONE; no inventory, guest configuration changes or workaround attempted",
+  "nextStep": "Restore authorized prlctl guest-session availability; before any compiler run establish an independently reviewed namespace guarantee covering all csc opens, or verify an available caller-owned-stream compiler prerequisite."
+}

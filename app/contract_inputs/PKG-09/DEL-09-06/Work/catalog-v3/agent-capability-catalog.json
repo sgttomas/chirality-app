@@ -1,0 +1,2152 @@
+{
+  "catalogVersion": "swbpipe-catalog/3",
+  "standing": "design_contract_not_live",
+  "owner": "SWBPIPE",
+  "source": {
+    "chiralityRevision": "1560bbf7f7add4637a20572a2b0d404ef121af63",
+    "appRevision": "5e61fbd88ff8a4fe221b25cbd9e967d2a6fdce09",
+    "integrationProposalSha256": "7d6dd0a0c3b11bb8ec14394ae890de0cf3c6a239aed9b55d01ef03c38b9117ab",
+    "steeringSha256": "0a33bbba6a898ed22a801db48267fbb85b2a0b2638f298a01f2f1db401b06e90",
+    "appProposal": {
+      "repository": "sgttomas/chirality-app",
+      "revision": "e1e3f4615b6f766b313c3492506f68254afd8a06",
+      "path": "execution/PKG-09/DEL-09-06/Design/SWBPIPE_CATALOG_PROPOSAL.json",
+      "sha256": "64aad707acd1d409f3d255381fc597e2ee74e7a4d048aadc5382414d63c64f8c"
+    }
+  },
+  "schemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "descriptorConvention": "MCP 2026-07-28 stateless; expand catalog-local schema references before publishing descriptors; not a complete MCP wire server",
+  "projection": {
+    "supplier": "0.160.0",
+    "declarationFields": [
+      "type",
+      "name",
+      "description",
+      "inputSchema"
+    ],
+    "type": "function",
+    "responseFields": [
+      "contentItems",
+      "success"
+    ],
+    "textItemType": "inputText",
+    "successRule": "false only for execution_error; rejection, stale_basis, unavailable and unknown are domain outcomes, not affirmative execution claims",
+    "internalResultFields": [
+      "content",
+      "structuredContent",
+      "isError"
+    ]
+  },
+  "limits": {
+    "argumentBytes": 16384,
+    "resultBytes": 65536,
+    "pageRows": 50,
+    "pendingCalls": 16,
+    "proposalOperations": 16
+  },
+  "hostPolicy": {
+    "liveModelOwner": "webview workspaceSession.ts",
+    "completionRoute": "new command_ingress-admitted command, not implemented here",
+    "binding": [
+      "requestRef",
+      "rpcId",
+      "threadId",
+      "turnId",
+      "callId",
+      "tool",
+      "workspaceHandle",
+      "applicationGeneration",
+      "modelRevision"
+    ],
+    "bootstrap": "Host binds the conversation to an admitted session; read_model_summary takes no arguments and returns its handle and basis. Handles do not establish identity or authority.",
+    "handles": "Host-issued opaque workspace/proposal/run/page handles; scoped to admitted generation and workspace; never filesystem paths. Restart invalidates handles; unavailable/unknown, never redispatch. Cursor binds tool, basis, run and next offset.",
+    "attribution": "Host stamps author_type=agent and original conversation/turn/call; never accepts user attribution from tool arguments.",
+    "proposal": "Require claimedModelHash == basis.modelHash == current session hash before queue registration. The agent supplies native EditorOperationIntent operation_id, operation_kind, target, change and rationale for the admitted discriminators only; the host stamps operation_status=proposed, author_type=agent, queue_id, source, not-run validation and the constant audit and professional boundary records, and passes the complete native intents to a host-created OperationBatch. No alternate field-edit language. Admitted: set_field Node position.x/y/z; create_material; create_node; connect_pipe_run; create_support; create_load_case; create_primitive_load; update_load pressure_regions; set_field Model pressure_profile. Extend native discriminators and subschemas, not tool names. The Rust applier remains the semantic validator; it refuses agent-written bend flexibility factors. Queue the immutable submission via the existing preview/human apply route.",
+    "completion": "Resolve requestRef to the immutable original pending call and require its conversation/turn/call/tool, workspace and application-generation binding. The submitting webview must remain the admitted session. For summary/node reads require unchanged live revision through completion. For queued proposals, observations, solves and result reads validate the host-retained proposal/run record against its captured basis; a later live revision is permitted only as an explicitly historical/applied outcome, never rebased to current. Duplicate or forged completions and wrong/detached sessions are refused. Preserve already admitted application outcome as actual or unknown on loss; never redispatch.",
+    "interruption": "Withdraw pending review only; application already admitted yields actual outcome or unknown. Turn interruption is not solve cancellation or rollback.",
+    "limits": "Apply the smaller of catalog caps and existing admission budgets before parsing/allocating argument or result payloads; bounded producers, no whole-model serialization followed by truncation.",
+    "results": "Use existing permitted view/value-record semantics and redaction floors. No raw private row bypass. Preserve exact decimal where required; withheld/unavailable has no numeric value. A run handle binds its evaluated model hash, never relabel historical results as current.",
+    "autonomy": "No apply/accept/release/grant tools. Any later autonomy needs separately authorized host policy and implementation.",
+    "solve": "Require claimedModelHash == basis.modelHash == current session hash before handleRun; retain evaluated hash even if run id changes. Return session solverMode, health and run handle; progress only to existing supported notifications/panel.",
+    "proposalContext": "Require an explicit bounded assumptions array (empty means none declared), separate from unchanged native operation intents and per-operation rationale. Each assumption has a stable id, statement and existing affected operation ids. Validate id uniqueness and operation membership; capture immutable context with proposal handle, batch id, original attribution and basis. Display it with the queue and retain it with session outcomes/receipts, including reject/withdraw/unknown; do not inject extra fields into native intents or claim durable persistence.",
+    "basisAdmission": "Summary has no caller basis. Node reads, proposal submission and solve admission require the current live basis. Proposal observation uses the host-retained proposal basis; result reads use the host-retained evaluated run basis. All require the admitted workspace/application generation. Historical calls are not refused solely because the current model revision advanced."
+  },
+  "definitions": {
+    "handle": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "hash": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "canonicalization",
+        "payload_scope",
+        "payload_ref",
+        "value",
+        "hash_status"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "sha256"
+        },
+        "canonicalization": {
+          "const": "rfc8785_jcs"
+        },
+        "payload_scope": {
+          "const": "model_payload"
+        },
+        "payload_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "hash_status": {
+          "const": "computed_local_preview"
+        }
+      }
+    },
+    "basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceHandle",
+        "applicationGeneration",
+        "modelRevision",
+        "modelHash",
+        "stateId",
+        "runId"
+      ],
+      "properties": {
+        "workspaceHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "applicationGeneration": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "modelRevision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "modelHash": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stateId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "units": {
+      "type": "object",
+      "maxProperties": 32,
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 40
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "position",
+        "unit"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "position": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "z": {
+              "type": "number"
+            }
+          }
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cursor",
+        "limit"
+      ],
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/handle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        }
+      }
+    },
+    "readInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceHandle",
+        "basis",
+        "page"
+      ],
+      "properties": {
+        "workspaceHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "page": {
+          "$ref": "#/definitions/page"
+        }
+      }
+    },
+    "readData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes",
+        "projectUnits",
+        "nextCursor"
+      ],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/definitions/node"
+          }
+        },
+        "projectUnits": {
+          "$ref": "#/definitions/units"
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/handle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "proposeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceHandle",
+        "basis",
+        "claimedModelHash",
+        "operations",
+        "assumptions"
+      ],
+      "properties": {
+        "workspaceHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "claimedModelHash": {
+          "$ref": "#/definitions/hash"
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/operationIntent"
+          }
+        },
+        "assumptions": {
+          "$ref": "#/definitions/assumptions"
+        }
+      }
+    },
+    "proposeData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proposalHandle",
+        "author_type"
+      ],
+      "properties": {
+        "proposalHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "author_type": {
+          "const": "agent"
+        }
+      }
+    },
+    "observeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceHandle",
+        "basis",
+        "proposalHandle"
+      ],
+      "properties": {
+        "workspaceHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "proposalHandle": {
+          "$ref": "#/definitions/handle"
+        }
+      }
+    },
+    "observeData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proposalHandle",
+        "proposalBasis",
+        "outcomeModelHash",
+        "author_type",
+        "assumptions"
+      ],
+      "properties": {
+        "proposalHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "proposalBasis": {
+          "$ref": "#/definitions/basis"
+        },
+        "outcomeModelHash": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "author_type": {
+          "const": "agent"
+        },
+        "assumptions": {
+          "$ref": "#/definitions/assumptions"
+        }
+      }
+    },
+    "solveInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceHandle",
+        "basis",
+        "claimedModelHash"
+      ],
+      "properties": {
+        "workspaceHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "claimedModelHash": {
+          "$ref": "#/definitions/hash"
+        }
+      }
+    },
+    "solveData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runHandle",
+        "runId",
+        "evaluatedModelHash",
+        "health",
+        "solverMode"
+      ],
+      "properties": {
+        "runHandle": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/handle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evaluatedModelHash": {
+          "$ref": "#/definitions/hash"
+        },
+        "health": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "solverMode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      }
+    },
+    "resultsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceHandle",
+        "basis",
+        "runHandle",
+        "page"
+      ],
+      "properties": {
+        "workspaceHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "runHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "page": {
+          "$ref": "#/definitions/page"
+        },
+        "filter": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kinds",
+            "entityRefs"
+          ],
+          "properties": {
+            "kinds": {
+              "type": "array",
+              "maxItems": 16,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            },
+            "entityRefs": {
+              "type": "array",
+              "maxItems": 16,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            }
+          },
+          "description": "Optional. Keep only rows whose kind is listed (if kinds is non-empty) and whose entityRef is listed (if entityRefs is non-empty). A cursor is bound to its filter."
+        }
+      }
+    },
+    "value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "entityRef",
+        "value",
+        "exactDecimal",
+        "unit",
+        "availability",
+        "reason"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "entityRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exactDecimal": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "availability": {
+          "enum": [
+            "available",
+            "withheld",
+            "unavailable"
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "resultsData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runHandle",
+        "runId",
+        "evaluatedModelHash",
+        "values",
+        "nextCursor",
+        "standing"
+      ],
+      "properties": {
+        "runHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "evaluatedModelHash": {
+          "$ref": "#/definitions/hash"
+        },
+        "values": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/definitions/value"
+          }
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/handle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "standing": {
+          "$ref": "#/definitions/standing"
+        }
+      }
+    },
+    "readOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "unavailable",
+            "stale_basis",
+            "execution_error"
+          ]
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/readData"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "proposeOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "pending_review",
+            "rejected",
+            "withdrawn",
+            "applied",
+            "unknown",
+            "unavailable",
+            "stale_basis",
+            "execution_error"
+          ]
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/proposeData"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "observeOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "pending_review",
+            "rejected",
+            "withdrawn",
+            "applied",
+            "unknown",
+            "unavailable",
+            "stale_basis",
+            "execution_error"
+          ]
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/observeData"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "solveOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "completed",
+            "rejected",
+            "unknown",
+            "unavailable",
+            "stale_basis",
+            "execution_error"
+          ]
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/solveData"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "resultsOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "unavailable",
+            "stale_basis",
+            "execution_error"
+          ]
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/resultsData"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "operationIntent": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/intentNodePosition"
+        },
+        {
+          "$ref": "#/definitions/intentCreateMaterial"
+        },
+        {
+          "$ref": "#/definitions/intentCreateNode"
+        },
+        {
+          "$ref": "#/definitions/intentConnectPipeRun"
+        },
+        {
+          "$ref": "#/definitions/intentCreateSupport"
+        },
+        {
+          "$ref": "#/definitions/intentCreateLoadCase"
+        },
+        {
+          "$ref": "#/definitions/intentCreatePrimitiveLoad"
+        },
+        {
+          "$ref": "#/definitions/intentPressureRegions"
+        },
+        {
+          "$ref": "#/definitions/intentPressureProfile"
+        }
+      ]
+    },
+    "standing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route",
+        "health",
+        "checks"
+      ],
+      "properties": {
+        "route": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "health": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "checks": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      }
+    },
+    "summaryInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {}
+    },
+    "summaryData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceHandle",
+        "projectId",
+        "schemaVersion",
+        "pressureContract",
+        "pressureProfileBefore",
+        "projectUnits",
+        "objectCounts",
+        "admittedOperationKinds",
+        "limits"
+      ],
+      "properties": {
+        "workspaceHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "projectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "schemaVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "pressureContract": {
+          "anyOf": [
+            {
+              "type": "object",
+              "maxProperties": 8,
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pressureProfileBefore": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "projectUnits": {
+          "$ref": "#/definitions/units"
+        },
+        "objectCounts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "maxProperties": 32
+        },
+        "admittedOperationKinds": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 9,
+          "items": {
+            "enum": [
+              "modify/Node/set_field/position",
+              "create/Material/create_material",
+              "create/Node/create_node",
+              "connect/Element/connect_pipe_run",
+              "create/Support/create_support",
+              "create/Load/create_load_case",
+              "create/Load/create_primitive_load",
+              "modify/Load/update_load/pressure_regions",
+              "modify/Model/set_field/pressure_profile"
+            ]
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "argumentBytes",
+            "resultBytes",
+            "pageRows",
+            "pendingCalls",
+            "proposalOperations"
+          ],
+          "properties": {
+            "argumentBytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "resultBytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "pageRows": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "pendingCalls": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "proposalOperations": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "summaryOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "unavailable",
+            "execution_error"
+          ]
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/summaryData"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "assumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumptionId",
+        "statement",
+        "affectedOperationIds"
+      ],
+      "properties": {
+        "assumptionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "affectedOperationIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/definitions/assumption"
+      }
+    },
+    "intentNodePosition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "operation_kind",
+        "target",
+        "change",
+        "rationale"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "operation_kind": {
+          "const": "modify"
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "object_type",
+            "ref"
+          ],
+          "properties": {
+            "object_type": {
+              "const": "Node"
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "description": "Existing node id"
+            }
+          }
+        },
+        "change": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "change_id",
+            "change_kind",
+            "field_label",
+            "field_path",
+            "before",
+            "after",
+            "unit",
+            "dimension",
+            "source_note"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "change_kind": {
+              "const": "set_field"
+            },
+            "field_label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "field_path": {
+              "enum": [
+                "position.x",
+                "position.y",
+                "position.z"
+              ]
+            },
+            "before": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Current coordinate as decimal text"
+            },
+            "after": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "New coordinate as decimal text"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "description": "Exact project.units.length"
+            },
+            "dimension": {
+              "const": "length"
+            },
+            "source_note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    },
+    "intentCreateMaterial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "operation_kind",
+        "target",
+        "change",
+        "rationale"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "operation_kind": {
+          "const": "create"
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "object_type",
+            "ref"
+          ],
+          "properties": {
+            "object_type": {
+              "const": "Material"
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "description": "New material id"
+            }
+          }
+        },
+        "change": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "change_id",
+            "change_kind",
+            "field_label",
+            "field_path",
+            "before",
+            "after",
+            "unit",
+            "dimension",
+            "source_note"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "change_kind": {
+              "const": "create_material"
+            },
+            "field_label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "field_path": {
+              "const": "materials"
+            },
+            "before": {
+              "const": "not_present"
+            },
+            "after": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "description": "JSON text of the material: id, label, elastic_modulus {value, unit}, then either shear_modulus {value, unit} (default route) or constitutive_basis \"homogeneous_isotropic_E_nu_v1\" with poisson_ratio {value, unit \"1\"} (exact route); optional thermal_expansion_coefficient {value, unit \"1/<project temperature unit>\"}; provenance (non-empty text naming the person's stated source)"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "description": "Exact project.units.pressure"
+            },
+            "dimension": {
+              "const": "stress"
+            },
+            "source_note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    },
+    "intentCreateNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "operation_kind",
+        "target",
+        "change",
+        "rationale"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "operation_kind": {
+          "const": "create"
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "object_type",
+            "ref"
+          ],
+          "properties": {
+            "object_type": {
+              "const": "Node"
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "description": "New node id"
+            }
+          }
+        },
+        "change": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "change_id",
+            "change_kind",
+            "field_label",
+            "field_path",
+            "before",
+            "after",
+            "unit",
+            "dimension",
+            "source_note"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "change_kind": {
+              "const": "create_node"
+            },
+            "field_label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "field_path": {
+              "const": "nodes"
+            },
+            "before": {
+              "const": "not_present"
+            },
+            "after": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "description": "JSON text of the node: id, label, position {x, y, z} as numbers in project.units.length, provenance (non-empty text naming the person's stated source)"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "description": "Exact project.units.length"
+            },
+            "dimension": {
+              "const": "length"
+            },
+            "source_note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    },
+    "intentConnectPipeRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "operation_kind",
+        "target",
+        "change",
+        "rationale"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "operation_kind": {
+          "const": "connect"
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "object_type",
+            "ref"
+          ],
+          "properties": {
+            "object_type": {
+              "const": "Element"
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "description": "New pipe id"
+            }
+          }
+        },
+        "change": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "change_id",
+            "change_kind",
+            "field_label",
+            "field_path",
+            "before",
+            "after",
+            "unit",
+            "dimension",
+            "source_note"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "change_kind": {
+              "const": "connect_pipe_run"
+            },
+            "field_label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "field_path": {
+              "const": "pipe_segments"
+            },
+            "before": {
+              "const": "not_present"
+            },
+            "after": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "description": "JSON text of the straight pipe: id, label, from and to (existing or earlier-in-batch node ids), section {outside_diameter {value, unit}, wall_thickness {value, unit}, and corrosion_allowance {value, unit} before the exact route is activated}, material (material id), y_reference {x, y, z} (a direction not parallel to the pipe), provenance (non-empty text naming the person's stated source)"
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "description": "Exact project.units.length"
+            },
+            "dimension": {
+              "const": "length"
+            },
+            "source_note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    },
+    "intentCreateSupport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "operation_kind",
+        "target",
+        "change",
+        "rationale"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "operation_kind": {
+          "const": "create"
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "object_type",
+            "ref"
+          ],
+          "properties": {
+            "object_type": {
+              "const": "Support"
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "description": "New support id"
+            }
+          }
+        },
+        "change": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "change_id",
+            "change_kind",
+            "field_label",
+            "field_path",
+            "before",
+            "after",
+            "unit",
+            "dimension",
+            "source_note"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "change_kind": {
+              "const": "create_support"
+            },
+            "field_label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "field_path": {
+              "const": "supports"
+            },
+            "before": {
+              "const": "not_present"
+            },
+            "after": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "description": "JSON text of the support: id, label, node (node id), family (for example \"anchor\"), restraints (subset of UX, UY, UZ, RX, RY, RZ), provenance (non-empty text naming the person's stated source)"
+            },
+            "unit": {
+              "const": "none"
+            },
+            "dimension": {
+              "const": "dimensionless"
+            },
+            "source_note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    },
+    "intentCreateLoadCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "operation_kind",
+        "target",
+        "change",
+        "rationale"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "operation_kind": {
+          "const": "create"
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "object_type",
+            "ref"
+          ],
+          "properties": {
+            "object_type": {
+              "const": "Load"
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "description": "New load case id"
+            }
+          }
+        },
+        "change": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "change_id",
+            "change_kind",
+            "field_label",
+            "field_path",
+            "before",
+            "after",
+            "unit",
+            "dimension",
+            "source_note"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "change_kind": {
+              "const": "create_load_case"
+            },
+            "field_label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "field_path": {
+              "const": "load_cases"
+            },
+            "before": {
+              "const": "not_present"
+            },
+            "after": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "description": "JSON text of the load case: id, label, kind \"primitive_user_load\", status \"preview_only\", provenance (non-empty text naming the person's stated source)"
+            },
+            "unit": {
+              "const": "none"
+            },
+            "dimension": {
+              "const": "dimensionless"
+            },
+            "source_note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    },
+    "intentCreatePrimitiveLoad": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "operation_kind",
+        "target",
+        "change",
+        "rationale"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "operation_kind": {
+          "const": "create"
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "object_type",
+            "ref"
+          ],
+          "properties": {
+            "object_type": {
+              "const": "Load"
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "description": "Existing or earlier-in-batch load case id"
+            }
+          }
+        },
+        "change": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "change_id",
+            "change_kind",
+            "field_label",
+            "field_path",
+            "before",
+            "after",
+            "unit",
+            "dimension",
+            "source_note"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "change_kind": {
+              "const": "create_primitive_load"
+            },
+            "field_label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "field_path": {
+              "const": "primitive_loads"
+            },
+            "before": {
+              "const": "not_present"
+            },
+            "after": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "description": "JSON text of the primitive load: id, category, target, direction, magnitude {value, unit} (unit equal to change.unit), dimension (equal to change.dimension), provenance (non-empty text naming the person's stated source). By category: thermal: target {type \"element\", pipe}, direction global_x, global_y or global_z, dimension temperature_interval; distributed_force: target {type \"element\", pipe}, direction global_x|y|z, dimension force_per_length; concentrated_force: target {type \"node\", node}, direction global_x|y|z, dimension force; concentrated_moment: target {type \"node\", node}, direction rotation_x, rotation_y or rotation_z, dimension moment; imposed_displacement: target {type \"support\", support, dof}, direction equal to dof (UX, UY or UZ with dimension displacement; RX, RY or RZ with dimension rotation)."
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "description": "The magnitude's unit, matching the project unit for its dimension"
+            },
+            "dimension": {
+              "enum": [
+                "force",
+                "force_per_length",
+                "moment",
+                "temperature_interval",
+                "displacement",
+                "rotation"
+              ]
+            },
+            "source_note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    },
+    "intentPressureRegions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "operation_kind",
+        "target",
+        "change",
+        "rationale"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "operation_kind": {
+          "const": "modify"
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "object_type",
+            "ref"
+          ],
+          "properties": {
+            "object_type": {
+              "const": "Load"
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "description": "Existing or earlier-in-batch load case id"
+            }
+          }
+        },
+        "change": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "change_id",
+            "change_kind",
+            "field_label",
+            "field_path",
+            "before",
+            "after",
+            "unit",
+            "dimension",
+            "source_note"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "change_kind": {
+              "const": "update_load"
+            },
+            "field_label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "field_path": {
+              "const": "pressure_regions"
+            },
+            "before": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "\"not_present\" for a case without pressure_regions, otherwise the case's current regions as canonical JSON text"
+            },
+            "after": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "JSON text of the case's pressure_regions array; \"[]\" declares none"
+            },
+            "unit": {
+              "const": "none"
+            },
+            "dimension": {
+              "const": "dimensionless"
+            },
+            "source_note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    },
+    "intentPressureProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "operation_kind",
+        "target",
+        "change",
+        "rationale"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "operation_kind": {
+          "const": "modify"
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "object_type",
+            "ref"
+          ],
+          "properties": {
+            "object_type": {
+              "const": "Model"
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "description": "The summary's projectId"
+            }
+          }
+        },
+        "change": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "change_id",
+            "change_kind",
+            "field_label",
+            "field_path",
+            "before",
+            "after",
+            "unit",
+            "dimension",
+            "source_note"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "change_kind": {
+              "const": "set_field"
+            },
+            "field_label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "field_path": {
+              "const": "pressure_profile"
+            },
+            "before": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "The summary's pressureProfileBefore text, exactly"
+            },
+            "after": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000,
+              "description": "JSON text {schema_version, pressure_contract {version \"3.0.0\", mode \"exact_pressure_v3\", shear_model \"euler_bernoulli\" or \"timoshenko_annulus_energy_v1\"}} activating the exact route; every pipe needs section.corrosion_allowance and every load case a pressure_regions array first"
+            },
+            "unit": {
+              "const": "none"
+            },
+            "dimension": {
+              "const": "dimensionless"
+            },
+            "source_note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "swbpipe_read_model_summary",
+      "description": "Orient to the admitted live workspace: handle, basis, project id, model version, pressure contract, units, object counts, admitted operation kinds and configured limits; takes no arguments.",
+      "inputSchema": {
+        "$ref": "#/definitions/summaryInput"
+      },
+      "outputSchema": {
+        "$ref": "#/definitions/summaryOutput"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "effect": "read",
+      "availability": "admitted live webview workspace; adapters not yet implemented",
+      "sourceRoute": "workspaceSession.ts model/modelHash/results; PreviewModel record-family counts",
+      "canonicalUnits": "node coordinates: exact project.units.length; result values: source row unit, no display conversion",
+      "basisPolicy": "Host captures current live workspace/hash/revision; unchanged live revision required through completion or return stale/unavailable, never mixed-state success."
+    },
+    {
+      "name": "swbpipe_read_nodes",
+      "description": "Read a bounded node page at an explicit workspace and model basis.",
+      "inputSchema": {
+        "$ref": "#/definitions/readInput"
+      },
+      "outputSchema": {
+        "$ref": "#/definitions/readOutput"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "effect": "read",
+      "availability": "admitted live webview workspace; adapters not yet implemented",
+      "sourceRoute": "workspaceSession.ts model/modelHash; PreviewModel.nodes",
+      "canonicalUnits": "node coordinates: exact project.units.length; result values: source row unit, no display conversion",
+      "basisPolicy": "Current live basis required at admission and completion; pages retain that basis; revision drift is stale/unavailable."
+    },
+    {
+      "name": "swbpipe_propose_operations",
+      "description": "Queue native operation intents as one atomic batch for the person's review; never applies them. Each operation is an applier step on the document the previous step left, so later operations may name ids created earlier in the same batch. To build a model, order: materials, nodes, pipes, supports, load cases, then (exact route only) pressure_regions and pressure_profile, then primitive loads. Use the summary's current basis and model hash. After the person applies it, observe the proposal, re-read the summary for the new basis, then solve. The host stamps attribution, status and boundary fields; do not send them. Respect the summary's limits.",
+      "inputSchema": {
+        "$ref": "#/definitions/proposeInput"
+      },
+      "outputSchema": {
+        "$ref": "#/definitions/proposeOutput"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false
+      },
+      "effect": "proposal_only",
+      "availability": "admitted live webview workspace; adapters not yet implemented",
+      "sourceRoute": "workspaceSession.ts registerOperationBatch; operationBatchService.ts validateOperationBatch; operation_applier atomic batch (admitted change kinds listed by summary)",
+      "canonicalUnits": "node coordinates: exact project.units.length; result values: source row unit, no display conversion",
+      "basisPolicy": "Current live basis and claimedModelHash required before queue registration. Completion binds immutable registration/proposal basis and actual recorded standing; a subsequent revision change does not erase the acknowledged registration or an actual applied outcome."
+    },
+    {
+      "name": "swbpipe_observe_proposal",
+      "description": "Observe an existing proposal handle; no approval, apply or retry capability.",
+      "inputSchema": {
+        "$ref": "#/definitions/observeInput"
+      },
+      "outputSchema": {
+        "$ref": "#/definitions/observeOutput"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "effect": "read",
+      "availability": "admitted live webview workspace; adapters not yet implemented",
+      "sourceRoute": "workspaceSession.ts batchRegistrations/sessionEvents and handleRunOperationBatch outcomes",
+      "canonicalUnits": "node coordinates: exact project.units.length; result values: source row unit, no display conversion",
+      "basisPolicy": "Input basis must match the host-retained proposal basis and same admitted workspace/generation. Completion may span later live revisions; report original proposalBasis and actual outcomeModelHash without relabeling them current."
+    },
+    {
+      "name": "swbpipe_solve",
+      "description": "Solve the current model at the supplied basis using the session-selected solver mode. Wait for the actual job outcome.",
+      "inputSchema": {
+        "$ref": "#/definitions/solveInput"
+      },
+      "outputSchema": {
+        "$ref": "#/definitions/solveOutput"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false
+      },
+      "effect": "solve",
+      "availability": "admitted live webview workspace; adapters not yet implemented",
+      "sourceRoute": "workspaceSession.ts handleRun; previewService.ts startPreviewMechanicsJob/takePreviewMechanicsJobResult",
+      "canonicalUnits": "node coordinates: exact project.units.length; result values: source row unit, no display conversion",
+      "basisPolicy": "Current claimed/live basis required at job admission. Completion binds captured job/evaluated hash/run identity even if live revision advances; no result implies current-state applicability."
+    },
+    {
+      "name": "swbpipe_read_results",
+      "description": "Read a bounded page of permitted result values from an explicit run handle, optionally filtered by result kind and entity; preserve withheld values.",
+      "inputSchema": {
+        "$ref": "#/definitions/resultsInput"
+      },
+      "outputSchema": {
+        "$ref": "#/definitions/resultsOutput"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "effect": "read",
+      "availability": "admitted live webview workspace; adapters not yet implemented",
+      "sourceRoute": "MechanicsResult.results; features/results/resultReader.ts; features/result-export/csvTable.ts view/value policy",
+      "canonicalUnits": "node coordinates: exact project.units.length; result values: source row unit, no display conversion",
+      "basisPolicy": "Input basis and cursor must match retained evaluated run basis in the same admitted workspace/generation. Later live model edits do not invalidate an available historical run; disappearance is unavailable, never a fabricated current run."
+    }
+  ],
+  "limitsStanding": "Fixture/default host configuration only, reported by summary; operation batch count is not a schema constant. Production host config may choose another bounded count."
+}

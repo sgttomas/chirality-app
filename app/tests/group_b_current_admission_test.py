@@ -105,7 +105,7 @@ class CurrentAdmissionTests(unittest.TestCase):
             ('execution/PKG-09/DEL-09-01/ScopeOfWork.md', b'## Implemented documentary receiving', b'## Changed documentary receiving'),
         ]
         for name, before, after in mutations:
-            target = self.root / name; raw = target.read_bytes()
+            target = self.root / current.deliverable_path(self.root, name); raw = target.read_bytes()
             self.assertIn(before, raw)
             target.write_bytes(raw.replace(before, after, 1))
             with self.subTest(source=name, clause=before), self.assertRaisesRegex(ValueError, 'source drift'):

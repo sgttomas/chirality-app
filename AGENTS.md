@@ -29,7 +29,8 @@ Enter through `loop/LOOP_INIT.md`. Requirements and interfaces live in `docs/`;
 deliverables retain their `execution/PKG-nn/DEL-nn-nn/ScopeOfWork.md`, `Work/`
 and `deliverable.yaml` conventions. Keep current findings and their reasons,
 working artifacts and outputs in `Work/`; keep approval quotes and review/check
-narrative in the PR. Reconcile changed implementation meaning
+narrative in the PR.
+Code that runs (implementation, tests, generators, harnesses) lives outside `execution/`, in the project's code locations, and deliverables link to it; `Work/` may keep documentation-only examples that are never run. Reconcile changed implementation meaning
 with those documents; leave unchanged commitments and historical evidence alone.
 Do not modify `foundation/thesis/`.
 

@@ -1,0 +1,17 @@
+{
+  "outcome": "unavailable",
+  "reporter": "host",
+  "operation": {
+    "operation_identity": "OP-C2",
+    "operation_version": "v1"
+  },
+  "edition": "e2",
+  "surface": "X",
+  "evaluated_basis": {
+    "workspace_identity": "FX-W1",
+    "generation": "g1",
+    "model_revision": "r13",
+    "canonical_content_identity": "sh1:ab78bf780c63e3c2",
+    "identity_method": "m-sh1"
+  }
+}

@@ -1,0 +1,176 @@
+{
+  "outcome": "success",
+  "operation": {
+    "operation_identity": "OP-C1",
+    "operation_version": "v1"
+  },
+  "edition": "e2",
+  "surface": "X",
+  "basis": {
+    "workspace_identity": "FX-W1",
+    "generation": "g1",
+    "model_revision": "r12",
+    "canonical_content_identity": "sh1:acd10ed310be58e8",
+    "identity_method": "m-sh1"
+  },
+  "views": [
+    {
+      "view_identity": "main",
+      "tables": [
+        {
+          "table_identity": "supports-R-100",
+          "meaning": "supports on R-100",
+          "columns": [
+            {
+              "column_identity": "location_m",
+              "meaning": "location along the run",
+              "unit": "m",
+              "value_kind": "number"
+            },
+            {
+              "column_identity": "type",
+              "meaning": "support type",
+              "unit": null,
+              "value_kind": "enumeration"
+            },
+            {
+              "column_identity": "stiffness",
+              "meaning": "stiffness",
+              "unit": "N/m",
+              "value_kind": "text"
+            },
+            {
+              "column_identity": "label",
+              "meaning": "display label",
+              "unit": null,
+              "value_kind": "text"
+            }
+          ],
+          "rows": [
+            {
+              "subject": {
+                "subject_identity": "S-1",
+                "subject_content_identity": "sh1:b192b2699a8871c9",
+                "identity_method": "m-sh1",
+                "identity_scope": "per_subject"
+              },
+              "cells": {
+                "location_m": 0.5,
+                "type": "guide",
+                "stiffness": "2.0e6",
+                "label": "G-1"
+              }
+            },
+            {
+              "subject": {
+                "subject_identity": "S-2",
+                "subject_content_identity": "sh1:5cec31832b66ad53",
+                "identity_method": "m-sh1",
+                "identity_scope": "per_subject"
+              },
+              "cells": {
+                "location_m": 2.0,
+                "type": "rigid",
+                "stiffness": "rigid",
+                "label": "R-2"
+              }
+            },
+            {
+              "subject": {
+                "subject_identity": "S-3",
+                "subject_content_identity": "sh1:61723ee181ceebdf",
+                "identity_method": "m-sh1",
+                "identity_scope": "per_subject"
+              },
+              "cells": {
+                "location_m": 8.4,
+                "type": "rigid",
+                "stiffness": "rigid",
+                "label": "R-3"
+              }
+            },
+            {
+              "subject": {
+                "subject_identity": "S-4",
+                "subject_content_identity": "sh1:186b335727546ddd",
+                "identity_method": "m-sh1",
+                "identity_scope": "per_subject"
+              },
+              "cells": {
+                "location_m": 11.0,
+                "type": "guide",
+                "stiffness": "2.0e6",
+                "label": "G-4a"
+              }
+            }
+          ]
+        },
+        {
+          "table_identity": "run-R-100",
+          "meaning": "geometry of R-100",
+          "columns": [
+            {
+              "column_identity": "from",
+              "meaning": "start node",
+              "unit": null,
+              "value_kind": "identity"
+            },
+            {
+              "column_identity": "to",
+              "meaning": "end node",
+              "unit": null,
+              "value_kind": "identity"
+            }
+          ],
+          "rows": [
+            {
+              "subject": {
+                "subject_identity": "R-100",
+                "subject_content_identity": "sh1:84c62199c52bc97d",
+                "identity_method": "m-sh1",
+                "identity_scope": "per_subject"
+              },
+              "cells": {
+                "from": "N-1",
+                "to": "N-2"
+              }
+            }
+          ]
+        }
+      ],
+      "results": [],
+      "diagnostics": []
+    }
+  ],
+  "standing": {
+    "currency": "current",
+    "host_checks": [
+      {
+        "check_name": "equilibrium",
+        "verdict": "passed",
+        "evaluated_basis": {
+          "workspace_identity": "FX-W1",
+          "generation": "g1",
+          "model_revision": "r12",
+          "canonical_content_identity": "sh1:c0b954079d7230c6",
+          "identity_method": "m-sh1"
+        }
+      },
+      {
+        "check_name": "unit-consistency",
+        "verdict": "passed",
+        "evaluated_basis": {
+          "workspace_identity": "FX-W1",
+          "generation": "g1",
+          "model_revision": "r12",
+          "canonical_content_identity": "sh1:c0b954079d7230c6",
+          "identity_method": "m-sh1"
+        }
+      }
+    ],
+    "known_limitations": [
+      "linear supports assumed"
+    ],
+    "human_act_evidence": []
+  }
+}

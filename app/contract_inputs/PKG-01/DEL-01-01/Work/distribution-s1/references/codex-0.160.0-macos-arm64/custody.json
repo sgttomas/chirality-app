@@ -1,0 +1,38 @@
+{
+  "format": "supplier-archive-custody/1",
+  "archive": {
+    "file": "codex-0.160.0-darwin-arm64.tgz",
+    "size_bytes": 134311083,
+    "sha256": "fc789bcd655d903f92e1a23c8dc5315ba38f43b3586eafb7bd3b195970b57466",
+    "sha512_base64": "aefV6cqZA2REZgR//4McyXlp7zLcTti4CI2v3j9IVgNndPBv2kCeNEcz07qeelXcwOdSFPUKb6roA48vZmDgrQ==",
+    "sha1": "f78898f04bc6989ab371de42b6acdbf56b54dc9c"
+  },
+  "retention": {
+    "location": "machine-local development cache outside the repository (chirality-dev/codex-0.160.0/archive/); bytes are not committed",
+    "state": "kept unmodified as downloaded; the only extended attribute observed is com.apple.provenance",
+    "existing_extract": "the same cache's extract/ directory, made by HELP_HUMAN with tar -xzf; its package/vendor/aarch64-apple-darwin subtree was inventoried read-only"
+  },
+  "verification_by_author": [
+    {
+      "at_utc": "2026-10-10T19:08:39Z",
+      "checks": [
+        "size 134311083 bytes (stat)",
+        "shasum -a 256 = fc789bcd655d903f92e1a23c8dc5315ba38f43b3586eafb7bd3b195970b57466",
+        "openssl dgst -sha512 -binary | base64 = npm dist.integrity value above",
+        "shasum -a 1 = f78898f04bc6989ab371de42b6acdbf56b54dc9c, the dist.shasum recorded by the 2026-10-04 version-advance download"
+      ],
+      "result": "all equal to the acquisition values and the published npm integrity"
+    },
+    {
+      "check": "fresh re-extraction into a new empty mktemp -d directory outside the repository (see extraction.json)",
+      "result": "full codex-vendor-tree-v1 inventory of the fresh extraction is byte-identical JSON to the inventory of the existing cache extract: 53 entries, 42 files, 11 directories, 332968547 file bytes, manifest 327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12; package/package.json and package/README.md also have equal SHA-256 in both"
+    }
+  ],
+  "custody_assumptions": [
+    "Single-user development machine; no concurrent writer to the cache was observed or excluded beyond the stability checks of the inventory scanner.",
+    "No network lookup was repeated by the author; the published integrity value is as relayed by HELP_HUMAN and as recorded on 2026-10-04."
+  ],
+  "limits": [
+    "Custody evidence for a development reference. Installed-bundle custody, signature validity, notarisation and quarantine remain separate PKG checks."
+  ]
+}

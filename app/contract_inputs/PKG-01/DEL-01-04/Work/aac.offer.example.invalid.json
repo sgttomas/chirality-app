@@ -1,0 +1,913 @@
+[
+  {
+    "case": "INV-OF-1",
+    "reason": "'accept' wording on A4: 'accept' belongs to A5 alone (ACT §9).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0003",
+      "actKind": "A4",
+      "wording": "accept",
+      "subject": {
+        "class": "App file",
+        "ref": "AF-1",
+        "contentIdentity": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "af1f...20"
+        }
+      },
+      "scope": "AF-1",
+      "purpose": "App output checked",
+      "actorRequirement": "the person",
+      "declineAvailable": true,
+      "answers": {
+        "arrival": {
+          "checkpoint": "CP-output-check",
+          "arrivalOrdinal": 1
+        },
+        "runId": "run:R-200/3"
+      },
+      "requestRef": "rec:app:run-3:0004",
+      "composedAt": "2026-10-01T10:10:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "0ffe...77"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-2",
+    "reason": "An A15 offer with a decline (ACT §2.3 defines none).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0009",
+      "actKind": "A15",
+      "wording": "register workflow revision",
+      "descriptorId": "a15d:supports-adjust:0004",
+      "descriptorKind": "a15_descriptor",
+      "entries": [
+        {
+          "subject": {
+            "ref": "workflow revision project:supports-adjust@rev-5",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "draft:project:supports-adjust@d13c...4a",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "priorRevision": {
+            "kind": "workflow",
+            "origin": "project",
+            "sourceRoot": ".chirality/workflows",
+            "name": "supports-adjust",
+            "revision": "rev-4",
+            "revisionMethod": "proto-sha256-list-0 (illustration)"
+          }
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": true,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:00:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "9a9a...10"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-3",
+    "reason": "Two act kinds at once (CAP-2: one at a time).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0003",
+      "actKind": [
+        "A4",
+        "A6"
+      ],
+      "wording": "mark checked",
+      "subject": {
+        "class": "App file",
+        "ref": "AF-1",
+        "contentIdentity": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "af1f...20"
+        }
+      },
+      "scope": "AF-1",
+      "purpose": "App output checked",
+      "actorRequirement": "the person",
+      "declineAvailable": true,
+      "answers": {
+        "arrival": {
+          "checkpoint": "CP-output-check",
+          "arrivalOrdinal": 1
+        },
+        "runId": "run:R-200/3"
+      },
+      "requestRef": "rec:app:run-3:0004",
+      "composedAt": "2026-10-01T10:10:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "0ffe...77"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-4",
+    "reason": "A subject without its content identity (K-8 binds the exact bytes shown).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0003",
+      "actKind": "A4",
+      "wording": "mark checked",
+      "subject": {
+        "class": "App file",
+        "ref": "AF-1"
+      },
+      "scope": "AF-1",
+      "purpose": "App output checked",
+      "actorRequirement": "the person",
+      "declineAvailable": true,
+      "answers": {
+        "arrival": {
+          "checkpoint": "CP-output-check",
+          "arrivalOrdinal": 1
+        },
+        "runId": "run:R-200/3"
+      },
+      "requestRef": "rec:app:run-3:0004",
+      "composedAt": "2026-10-01T10:10:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "0ffe...77"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-5",
+    "reason": "A12 is not served by the App act control in this increment (AAC §1.2).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0003",
+      "actKind": "A12",
+      "wording": "set grant",
+      "subject": {
+        "class": "App file",
+        "ref": "AF-1",
+        "contentIdentity": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "af1f...20"
+        }
+      },
+      "scope": "AF-1",
+      "purpose": "App output checked",
+      "actorRequirement": "the person",
+      "declineAvailable": true,
+      "answers": {
+        "arrival": {
+          "checkpoint": "CP-output-check",
+          "arrivalOrdinal": 1
+        },
+        "runId": "run:R-200/3"
+      },
+      "requestRef": "rec:app:run-3:0004",
+      "composedAt": "2026-10-01T10:10:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "0ffe...77"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-6",
+    "reason": "An A15 entry with the pair under WD's relation name 'derivedFrom' (R17-11).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0009",
+      "actKind": "A15",
+      "wording": "register workflow revision",
+      "descriptorId": "a15d:supports-adjust:0004",
+      "descriptorKind": "a15_descriptor",
+      "entries": [
+        {
+          "subject": {
+            "ref": "workflow revision project:supports-adjust@rev-5",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "priorRevision": {
+            "kind": "workflow",
+            "origin": "project",
+            "sourceRoot": ".chirality/workflows",
+            "name": "supports-adjust",
+            "revision": "rev-4",
+            "revisionMethod": "proto-sha256-list-0 (illustration)"
+          },
+          "derivedFrom": {
+            "draft": "draft:project:supports-adjust@d13c...4a",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          }
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:00:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "9a9a...10"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-7",
+    "reason": "Prior revision as a free string instead of an RS workflowTuple or null (C-01).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0009",
+      "actKind": "A15",
+      "wording": "register workflow revision",
+      "descriptorId": "a15d:supports-adjust:0004",
+      "descriptorKind": "a15_descriptor",
+      "entries": [
+        {
+          "subject": {
+            "ref": "workflow revision project:supports-adjust@rev-5",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "draft:project:supports-adjust@d13c...4a",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "priorRevision": "workflow revision project:supports-adjust@rev-4"
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:00:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "9a9a...10"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-8",
+    "reason": "Reviewed content not in WR ID-3 form draft:/entry:<location>:<name>@<content identity> (C-01).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0009",
+      "actKind": "A15",
+      "wording": "register workflow revision",
+      "descriptorId": "a15d:supports-adjust:0004",
+      "descriptorKind": "a15_descriptor",
+      "entries": [
+        {
+          "subject": {
+            "ref": "workflow revision project:supports-adjust@rev-5",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "supports-adjust",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "priorRevision": {
+            "kind": "workflow",
+            "origin": "project",
+            "sourceRoot": ".chirality/workflows",
+            "name": "supports-adjust",
+            "revision": "rev-4",
+            "revisionMethod": "proto-sha256-list-0 (illustration)"
+          }
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:00:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "9a9a...10"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-9",
+    "reason": "An A15 offer with no entries (L-4: one or more).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0009",
+      "actKind": "A15",
+      "wording": "register workflow revision",
+      "descriptorId": "a15d:supports-adjust:0004",
+      "descriptorKind": "a15_descriptor",
+      "entries": [],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:00:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "9a9a...10"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-10",
+    "reason": "Several library entries with the singular wording (R21-3: 'register workflow revisions').",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0011",
+      "actKind": "A15",
+      "wording": "register workflow revision",
+      "descriptorId": "a15m:rv-9",
+      "descriptorKind": "a15_multi_descriptor",
+      "entries": [
+        {
+          "subject": {
+            "ref": "workflow revision project:notes-a@5e21...0c",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "entry:project:notes-a@5e21...0c",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "priorRevision": null
+        },
+        {
+          "subject": {
+            "ref": "workflow revision project:notes-c@b7a0...93",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "b7a0...93"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "entry:project:notes-c@b7a0...93",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "b7a0...93"
+            }
+          },
+          "priorRevision": null
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make them available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:05:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "4c4c...e8"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-11",
+    "reason": "An a15_descriptor offer with two entries: one reviewed draft or one existing in-place entry per a15_descriptor (WR RB-4); several entries come only from one a15_multi_descriptor (R21-3).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0009",
+      "actKind": "A15",
+      "wording": "register workflow revision",
+      "descriptorId": "a15d:supports-adjust:0004",
+      "descriptorKind": "a15_descriptor",
+      "entries": [
+        {
+          "subject": {
+            "ref": "workflow revision project:supports-adjust@rev-5",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "draft:project:supports-adjust@d13c...4a",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "priorRevision": {
+            "kind": "workflow",
+            "origin": "project",
+            "sourceRoot": ".chirality/workflows",
+            "name": "supports-adjust",
+            "revision": "rev-4",
+            "revisionMethod": "proto-sha256-list-0 (illustration)"
+          }
+        },
+        {
+          "subject": {
+            "ref": "workflow revision project:notes-a@5e21...0c",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "draft:project:notes-a@5e21...0c",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "priorRevision": null
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:00:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "9a9a...10"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-12",
+    "reason": "An a15_multi_descriptor entry in the 'draft:' form: L-4's act registers library entries in place ('entry:', WR §4.7 ME-2).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0011",
+      "actKind": "A15",
+      "wording": "register workflow revisions",
+      "descriptorId": "a15m:rv-9",
+      "descriptorKind": "a15_multi_descriptor",
+      "entries": [
+        {
+          "subject": {
+            "ref": "workflow revision project:notes-a@5e21...0c",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "entry:project:notes-a@5e21...0c",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "priorRevision": null
+        },
+        {
+          "subject": {
+            "ref": "workflow revision project:notes-c@b7a0...93",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "b7a0...93"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "draft:project:notes-c@b7a0...93",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "b7a0...93"
+            }
+          },
+          "priorRevision": null
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make them available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:05:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "4c4c...e8"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-13",
+    "reason": "An A15 offer naming no descriptor (R21-3: one descriptor per act).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0011",
+      "actKind": "A15",
+      "wording": "register workflow revisions",
+      "descriptorKind": "a15_multi_descriptor",
+      "entries": [
+        {
+          "subject": {
+            "ref": "workflow revision project:notes-a@5e21...0c",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "entry:project:notes-a@5e21...0c",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "priorRevision": null
+        },
+        {
+          "subject": {
+            "ref": "workflow revision project:notes-c@b7a0...93",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "b7a0...93"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "entry:project:notes-c@b7a0...93",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "b7a0...93"
+            }
+          },
+          "priorRevision": null
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make them available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:05:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "4c4c...e8"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-14",
+    "reason": "The schema-0.2 shape: one descriptor per entry (R21-3 replaced it by one descriptor per act).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0011",
+      "actKind": "A15",
+      "wording": "register workflow revisions",
+      "descriptorId": "a15m:rv-9",
+      "descriptorKind": "a15_multi_descriptor",
+      "entries": [
+        {
+          "subject": {
+            "ref": "workflow revision project:notes-a@5e21...0c",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "entry:project:notes-a@5e21...0c",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "priorRevision": null,
+          "descriptorId": "a15d:0"
+        },
+        {
+          "subject": {
+            "ref": "workflow revision project:notes-c@b7a0...93",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "b7a0...93"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "entry:project:notes-c@b7a0...93",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "b7a0...93"
+            }
+          },
+          "priorRevision": null,
+          "descriptorId": "a15d:1"
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make them available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:05:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "4c4c...e8"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-15",
+    "reason": "An in-place entry with a prior revision (an entry registered in place is a first revision, WR ME-5).",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0011",
+      "actKind": "A15",
+      "wording": "register workflow revisions",
+      "descriptorId": "a15m:rv-9",
+      "descriptorKind": "a15_multi_descriptor",
+      "entries": [
+        {
+          "subject": {
+            "ref": "workflow revision project:notes-a@5e21...0c",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "entry:project:notes-a@5e21...0c",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "priorRevision": {
+            "kind": "workflow",
+            "origin": "project",
+            "sourceRoot": ".chirality/workflows",
+            "name": "supports-adjust",
+            "revision": "rev-4",
+            "revisionMethod": "proto-sha256-list-0 (illustration)"
+          }
+        },
+        {
+          "subject": {
+            "ref": "workflow revision project:notes-c@b7a0...93",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "b7a0...93"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "entry:project:notes-c@b7a0...93",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "b7a0...93"
+            }
+          },
+          "priorRevision": null
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make them available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:05:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "4c4c...e8"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-16",
+    "reason": "The plural wording on an A4 offer.",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0003",
+      "actKind": "A4",
+      "wording": "register workflow revisions",
+      "subject": {
+        "class": "App file",
+        "ref": "AF-1",
+        "contentIdentity": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "af1f...20"
+        }
+      },
+      "scope": "AF-1",
+      "purpose": "App output checked",
+      "actorRequirement": "the person",
+      "declineAvailable": true,
+      "answers": {
+        "arrival": {
+          "checkpoint": "CP-output-check",
+          "arrivalOrdinal": 1
+        },
+        "runId": "run:R-200/3"
+      },
+      "requestRef": "rec:app:run-3:0004",
+      "composedAt": "2026-10-01T10:10:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "0ffe...77"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-17",
+    "reason": "An A16 offer offering a decline: ACT §2.1 defines no act-declined event for A16 (AAC-v0.3)",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:pkg-1",
+      "actKind": "A16",
+      "wording": "decide",
+      "subject": {
+        "class": "App file",
+        "ref": "project/decisions/PKG-1.json",
+        "contentIdentity": {
+          "method": "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)",
+          "value": "sha256:2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b"
+        }
+      },
+      "scope": "undertaking FX-U1 (invented)",
+      "purpose": "choose how stage 2 of FX-U1 proceeds (invented)",
+      "actorRequirement": "the person",
+      "declineAvailable": true,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "requestRef": "rec:app:coord:0001",
+      "composedAt": "t3",
+      "alternatives": [
+        {
+          "id": "ALT-1",
+          "statement": "Start stage 2 now on the current supplier facts",
+          "consequences": [
+            "Stage 2 starts today; any changed supplier fact reopens the affected parts"
+          ]
+        },
+        {
+          "id": "ALT-2",
+          "statement": "Hold stage 2 until the version check returns, then start",
+          "consequences": [
+            "Stage 2 starts after the check (Prüfung); no rework from a changed fact; ≈ one day later (invented)"
+          ]
+        }
+      ],
+      "offerDigest": {
+        "method": "aac-offer-digest/0.1",
+        "value": "f0d825711252c9b4c92fd8c5e481ce8360e5541f06b8b48981184b8bcdb674e3"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-18",
+    "reason": "An A16 offer without the package's alternatives (AAC-v0.3; R23-8)",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:pkg-1",
+      "actKind": "A16",
+      "wording": "decide",
+      "subject": {
+        "class": "App file",
+        "ref": "project/decisions/PKG-1.json",
+        "contentIdentity": {
+          "method": "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)",
+          "value": "sha256:2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b"
+        }
+      },
+      "scope": "undertaking FX-U1 (invented)",
+      "purpose": "choose how stage 2 of FX-U1 proceeds (invented)",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "requestRef": "rec:app:coord:0001",
+      "composedAt": "t3",
+      "offerDigest": {
+        "method": "aac-offer-digest/0.1",
+        "value": "f0d825711252c9b4c92fd8c5e481ce8360e5541f06b8b48981184b8bcdb674e3"
+      }
+    }
+  },
+  {
+    "case": "INV-OF-19",
+    "reason": "Alternatives on an A4 offer: they belong to A16 only (AAC-v0.3)",
+    "instance": {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:pkg-1",
+      "actKind": "A4",
+      "wording": "mark checked",
+      "subject": {
+        "class": "App file",
+        "ref": "project/decisions/PKG-1.json",
+        "contentIdentity": {
+          "method": "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)",
+          "value": "sha256:2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b"
+        }
+      },
+      "scope": "undertaking FX-U1 (invented)",
+      "purpose": "choose how stage 2 of FX-U1 proceeds (invented)",
+      "actorRequirement": "the person",
+      "declineAvailable": true,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "requestRef": "rec:app:coord:0001",
+      "composedAt": "t3",
+      "alternatives": [
+        {
+          "id": "ALT-1",
+          "statement": "Start stage 2 now on the current supplier facts",
+          "consequences": [
+            "Stage 2 starts today; any changed supplier fact reopens the affected parts"
+          ]
+        },
+        {
+          "id": "ALT-2",
+          "statement": "Hold stage 2 until the version check returns, then start",
+          "consequences": [
+            "Stage 2 starts after the check (Prüfung); no rework from a changed fact; ≈ one day later (invented)"
+          ]
+        }
+      ],
+      "offerDigest": {
+        "method": "aac-offer-digest/0.1",
+        "value": "f0d825711252c9b4c92fd8c5e481ce8360e5541f06b8b48981184b8bcdb674e3"
+      }
+    }
+  }
+]

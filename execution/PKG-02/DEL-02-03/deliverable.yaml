@@ -177,5 +177,5 @@ checks:
 - app/tests/run-panel.test.mjs
 - app/tests/validate-records.test.mjs
 - execution/PKG-02/DEL-02-03/Work/checkpoint-record-entries.schema.json
-- execution/PKG-02/DEL-02-03/Work/prototype/checkpoint_recorder.py
-- execution/PKG-02/DEL-02-03/Work/prototype/required_tool_check.py
+- app/contract_inputs/PKG-02/DEL-02-03/Work/prototype/checkpoint_recorder.py
+- app/contract_inputs/PKG-02/DEL-02-03/Work/prototype/required_tool_check.py

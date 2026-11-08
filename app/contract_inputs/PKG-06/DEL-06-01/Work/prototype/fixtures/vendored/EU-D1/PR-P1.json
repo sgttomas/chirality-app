@@ -1,0 +1,400 @@
+{
+  "format": "chirality.pec.receiving-record",
+  "formatVersion": "0.1",
+  "record_id": "pr:EUD1-P1",
+  "question_id": "Q1",
+  "simulated": true,
+  "simulated_terms": [
+    "PEC response elements constructed from PEC-ORI-003/004/007 and DEL-04-03 CLM-003/019 (FX-EUD1)",
+    "release identities and the adoption account are constructed; no PEC release or App adoption exists"
+  ],
+  "input": {
+    "kind": "response",
+    "ref": "FX-EUD1 pec/P1.json",
+    "sha256": "4e2342fc068b7b7765fe4d297901c9643acc507b15e2462c73265a9b30ec33a6",
+    "fixture_standing": "constructed"
+  },
+  "adoption": {
+    "account_ref": "pec/ADOPTION_ACCOUNT.json (constructed OUT-004 account)",
+    "release_adopted": true,
+    "feeds_adopted": [
+      "work_graphs"
+    ]
+  },
+  "recorder": {
+    "kind": "tool",
+    "identity": "O-D prototype eud1.py (EU-D1)"
+  },
+  "release": {
+    "identity": "pec-release-EX-1",
+    "stated_qualification": "qualified"
+  },
+  "stamp": {
+    "examined_through": "e086dfff32c0ddc5f3236dadf2dcb5795a518734",
+    "generated_at": "2026-10-04T08:00:00Z",
+    "feed_freshness": [
+      {
+        "feed": "work_graphs",
+        "freshness": "examined through e086dfff32"
+      }
+    ]
+  },
+  "envelope_elements": {
+    "pin": "e086dfff32c0ddc5f3236dadf2dcb5795a518734",
+    "feeds": [
+      {
+        "feed": "work_graphs",
+        "coverage": "orientation: work-graph nodes in READY, ACTIVE or BLOCKED for the loop (PEC-ORI-001); deltas: node state changes since the caller's SHA (PEC-ORI-002)",
+        "freshness": "examined through e086dfff32",
+        "limitation": null
+      }
+    ],
+    "fallback_signal": "clear"
+  },
+  "response_standing": {
+    "connector": "pec",
+    "envelope": "adopted",
+    "condition": "current",
+    "supports_reliance": true,
+    "reasons": [
+      {
+        "facet": "envelope",
+        "value": "adopted",
+        "basis": "release pec-release-EX-1 and feed work_graphs are adopted in the OUT-004 account"
+      },
+      {
+        "facet": "condition",
+        "value": "current",
+        "basis": "the cited file has the same content at the pin e086dfff32 as at the asked revision; no limitation; fallback signal clear"
+      }
+    ],
+    "claim_tier": "record"
+  },
+  "claims": [
+    {
+      "claim_id": "c1",
+      "statement": "No work-graph node of APP-V4-DESIGN-PASS-4-20261003 is READY, ACTIVE or BLOCKED at e086dfff32",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "stated_tier": "record",
+      "standing": {
+        "connector": "pec",
+        "envelope": "adopted",
+        "condition": "current",
+        "claim_tier": "record",
+        "supports_reliance": true,
+        "reasons": [
+          {
+            "facet": "envelope",
+            "value": "adopted",
+            "basis": "response envelope"
+          },
+          {
+            "facet": "claim_tier",
+            "value": "record",
+            "basis": "stated tier 'record'"
+          },
+          {
+            "facet": "condition",
+            "value": "current",
+            "basis": "response condition"
+          }
+        ]
+      }
+    },
+    {
+      "claim_id": "c2",
+      "statement": "Node VC changed from ACTIVE to COMPLETE (R23-22) since e4a0c2c4c3",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "stated_tier": "record",
+      "standing": {
+        "connector": "pec",
+        "envelope": "adopted",
+        "condition": "current",
+        "claim_tier": "record",
+        "supports_reliance": true,
+        "reasons": [
+          {
+            "facet": "envelope",
+            "value": "adopted",
+            "basis": "response envelope"
+          },
+          {
+            "facet": "claim_tier",
+            "value": "record",
+            "basis": "stated tier 'record'"
+          },
+          {
+            "facet": "condition",
+            "value": "current",
+            "basis": "response condition"
+          }
+        ]
+      }
+    },
+    {
+      "claim_id": "c3",
+      "statement": "Node E changed from ACTIVE to COMPLETE (RR-E, RR-F) since e4a0c2c4c3",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "stated_tier": "record",
+      "standing": {
+        "connector": "pec",
+        "envelope": "adopted",
+        "condition": "current",
+        "claim_tier": "record",
+        "supports_reliance": true,
+        "reasons": [
+          {
+            "facet": "envelope",
+            "value": "adopted",
+            "basis": "response envelope"
+          },
+          {
+            "facet": "claim_tier",
+            "value": "record",
+            "basis": "stated tier 'record'"
+          },
+          {
+            "facet": "condition",
+            "value": "current",
+            "basis": "response condition"
+          }
+        ]
+      }
+    },
+    {
+      "claim_id": "c4",
+      "statement": "Node O-B1 changed from READY to COMPLETE since e4a0c2c4c3",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "stated_tier": "record",
+      "standing": {
+        "connector": "pec",
+        "envelope": "adopted",
+        "condition": "current",
+        "claim_tier": "record",
+        "supports_reliance": true,
+        "reasons": [
+          {
+            "facet": "envelope",
+            "value": "adopted",
+            "basis": "response envelope"
+          },
+          {
+            "facet": "claim_tier",
+            "value": "record",
+            "basis": "stated tier 'record'"
+          },
+          {
+            "facet": "condition",
+            "value": "current",
+            "basis": "response condition"
+          }
+        ]
+      }
+    },
+    {
+      "claim_id": "c5",
+      "statement": "Node O-C1 changed from READY to COMPLETE since e4a0c2c4c3",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "stated_tier": "record",
+      "standing": {
+        "connector": "pec",
+        "envelope": "adopted",
+        "condition": "current",
+        "claim_tier": "record",
+        "supports_reliance": true,
+        "reasons": [
+          {
+            "facet": "envelope",
+            "value": "adopted",
+            "basis": "response envelope"
+          },
+          {
+            "facet": "claim_tier",
+            "value": "record",
+            "basis": "stated tier 'record'"
+          },
+          {
+            "facet": "condition",
+            "value": "current",
+            "basis": "response condition"
+          }
+        ]
+      }
+    },
+    {
+      "claim_id": "c6",
+      "statement": "Node D changed from PLANNED to COMPLETE (PR) since e4a0c2c4c3",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "stated_tier": "record",
+      "standing": {
+        "connector": "pec",
+        "envelope": "adopted",
+        "condition": "current",
+        "claim_tier": "record",
+        "supports_reliance": true,
+        "reasons": [
+          {
+            "facet": "envelope",
+            "value": "adopted",
+            "basis": "response envelope"
+          },
+          {
+            "facet": "claim_tier",
+            "value": "record",
+            "basis": "stated tier 'record'"
+          },
+          {
+            "facet": "condition",
+            "value": "current",
+            "basis": "response condition"
+          }
+        ]
+      }
+    },
+    {
+      "claim_id": "c7",
+      "statement": "Node T2 was added since e4a0c2c4c3, with state PLANNED",
+      "citation": {
+        "path": "projects/chirality-app-v4/execution/_Coordination/WorkGraphs/APP-V4-DESIGN-PASS-4-20261003/WORK_GRAPH.md",
+        "anchor": "#nodes",
+        "sha": "e086dfff32c0ddc5f3236dadf2dcb5795a518734"
+      },
+      "stated_tier": "record",
+      "standing": {
+        "connector": "pec",
+        "envelope": "adopted",
+        "condition": "current",
+        "claim_tier": "record",
+        "supports_reliance": true,
+        "reasons": [
+          {
+            "facet": "envelope",
+            "value": "adopted",
+            "basis": "response envelope"
+          },
+          {
+            "facet": "claim_tier",
+            "value": "record",
+            "basis": "stated tier 'record'"
+          },
+          {
+            "facet": "condition",
+            "value": "current",
+            "basis": "response condition"
+          }
+        ]
+      }
+    },
+    {
+      "claim_id": "c8",
+      "statement": "A session for owner O-A was active",
+      "citation": {
+        "path": "pec-presence:session/O-A"
+      },
+      "stated_tier": "presence",
+      "standing": {
+        "connector": "pec",
+        "envelope": "adopted",
+        "condition": "current",
+        "claim_tier": "presence_advisory",
+        "supports_reliance": false,
+        "reasons": [
+          {
+            "facet": "envelope",
+            "value": "adopted",
+            "basis": "response envelope"
+          },
+          {
+            "facet": "claim_tier",
+            "value": "presence_advisory",
+            "basis": "stated tier 'presence'"
+          },
+          {
+            "facet": "condition",
+            "value": "current",
+            "basis": "response condition"
+          }
+        ]
+      },
+      "heartbeat_age_s": 120
+    }
+  ],
+  "conclusions": {
+    "supported": [
+      {
+        "statement": "(a) PEC reports, from the work graph recorded at e086dfff32: No work-graph node of APP-V4-DESIGN-PASS-4-20261003 is READY, ACTIVE or BLOCKED at e086dfff32",
+        "basis": "connector_reliance",
+        "refs": [
+          "pr:EUD1-P1#c1"
+        ]
+      },
+      {
+        "statement": "(b) answered from the route account (ra:EUD1-Q1 f-b): PEC orientation covers READY/ACTIVE/BLOCKED nodes only, so other open nodes are outside its coverage",
+        "basis": "source_route",
+        "refs": [
+          "ra:EUD1-Q1#f-b"
+        ]
+      },
+      {
+        "statement": "(c) Node VC changed from ACTIVE to COMPLETE (R23-22) since e4a0c2c4c3; Node E changed from ACTIVE to COMPLETE (RR-E, RR-F) since e4a0c2c4c3; Node O-B1 changed from READY to COMPLETE since e4a0c2c4c3; Node O-C1 changed from READY to COMPLETE since e4a0c2c4c3; Node D changed from PLANNED to COMPLETE (PR) since e4a0c2c4c3; Node T2 was added since e4a0c2c4c3, with state PLANNED",
+        "basis": "connector_reliance",
+        "refs": [
+          "pr:EUD1-P1#c2",
+          "pr:EUD1-P1#c3",
+          "pr:EUD1-P1#c4",
+          "pr:EUD1-P1#c5",
+          "pr:EUD1-P1#c6",
+          "pr:EUD1-P1#c7"
+        ]
+      }
+    ],
+    "unsupported": [
+      {
+        "conclusion": "No work remains in the undertaking",
+        "why": "no connector state or its absence establishes empty work; the route shows T2 open"
+      },
+      {
+        "conclusion": "Any item is ready to start, complete or permitted because of this connector material",
+        "why": "CS-R2: absence or limitation implies none of these, and a relied record-tier claim only reports what its cited record states at its pin"
+      },
+      {
+        "conclusion": "Owner O-A is working on this undertaking, or any work state is correct because a session was active",
+        "why": "claim c8 is a presence fact, advisory at its stated heartbeat age (120 s); presence is never correctness"
+      }
+    ],
+    "prohibited": [
+      "no_work",
+      "ready",
+      "permitted",
+      "correct_by_presence"
+    ]
+  },
+  "route": {
+    "needed": true,
+    "account_ref": "ra:EUD1-Q1"
+  }
+}

@@ -1,0 +1,49 @@
+[
+ {
+  "rule": "PK-R4",
+  "why": "response 'obtained' by the recorder",
+  "record": {
+   "record_kind": "distribution_terms",
+   "format": "PKG-v0.2",
+   "record_id": "PKG-TR-01",
+   "obligation": "OI-007 / DEP-004 / SOW-117: written supplier position on distributed sign-in, before public release beyond owner use",
+   "supplier": "OpenAI",
+   "state": "response_received",
+   "recorded_by": "the owner",
+   "distribution_decision": "not_made",
+   "date": "2026-10-03",
+   "response": {
+    "source_ref": "ILLUSTRATIVE written response",
+    "custody": "ILLUSTRATIVE: owner's mail archive",
+    "obtained_by": "the owner",
+    "applies_to": "ILLUSTRATIVE",
+    "received_on": "2026-10-03"
+   }
+  }
+ },
+ {
+  "rule": "PK-R4",
+  "why": "distribution decision recorded by its own decider",
+  "record": {
+   "record_kind": "distribution_terms",
+   "format": "PKG-v0.2",
+   "record_id": "PKG-TR-02",
+   "obligation": "OI-007 / DEP-004 / SOW-117: written supplier position on distributed sign-in, before public release beyond owner use",
+   "supplier": "OpenAI",
+   "state": "response_received",
+   "recorded_by": "the owner",
+   "distribution_decision": {
+    "decision_ref": "x",
+    "decided_by": "the owner"
+   },
+   "date": "2026-10-03",
+   "response": {
+    "source_ref": "ILLUSTRATIVE written response",
+    "custody": "ILLUSTRATIVE: owner's mail archive",
+    "obtained_by": "the owner",
+    "applies_to": "ILLUSTRATIVE",
+    "received_on": "2026-10-03"
+   }
+  }
+ }
+]

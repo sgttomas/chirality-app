@@ -43,4 +43,4 @@ needs:
   gating: true
   evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
 checks:
-- execution/PKG-09/DEL-09-11/Work/prototype/run_standing_check.py
+- app/contract_inputs/PKG-09/DEL-09-11/Work/prototype/run_standing_check.py

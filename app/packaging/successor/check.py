@@ -10,7 +10,7 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 ROOT = Path(__file__).resolve().parents[3]
-WORK = 'execution/PKG-01/DEL-01-06/Work/package-successor-v1'
+WORK = 'app/contract_inputs/PKG-01/DEL-01-06/Work/package-successor-v1'
 
 
 def module(name, path):
@@ -33,7 +33,7 @@ def source_dependencies():
     """
     paths = {'app/packaging/successor/check.py',
              'app/packaging/static_distribution/check.py', 'app/packaging/static_distribution/sources.json',
-             'app/packaging/terms/check.py', 'execution/PKG-01/DEL-01-06/Work/terms-position-v1/schema.json',
+             'app/packaging/terms/check.py', 'app/contract_inputs/PKG-01/DEL-01-06/Work/terms-position-v1/schema.json',
              WORK + '/static-package-input.v2.schema.json', WORK + '/packaged-s4-binding.v1.schema.json',
              'app/src-tauri/src/installed_custody.rs', 'app/src-tauri/build.rs',
              'app/src-tauri/Cargo.toml', 'app/src-tauri/Cargo.lock',

@@ -4,10 +4,10 @@ The runnable checker lives outside the deliverable's declarative source tree.
 From the repository root, run:
 
 ```sh
-python3 -B tools/deliverable_prototypes/DEL-08-02/prototype/check_rtd.py
+python3 -B app/contract_inputs/PKG-08/DEL-08-02/Work/prototype/check_rtd.py
 ```
 
-The frozen EU-D1 inputs remain in `fixtures/EU-D1/`. The checker reads them,
+The frozen EU-D1 authoring inputs remain in `fixtures/EU-D1/`. The checker reads their byte-identical App copies,
 the standing schema and the research context account schema without writing
 them. Its constructed accounts establish no actual Domains input or witness.
 

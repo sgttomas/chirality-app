@@ -1,0 +1,178 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "format": {
+      "const": "publisher-build-binding.s1"
+    },
+    "state": {
+      "const": "selected-production"
+    },
+    "input_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "requirement_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "template_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "generator_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "recipe_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "input_schema_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "cargo_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "cargo_lock_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "build_context_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "build_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "const": "aarch64-apple-darwin"
+        },
+        "profile": {
+          "const": "release"
+        },
+        "debug_assertions": {
+          "const": false
+        },
+        "development": {
+          "const": false
+        },
+        "successor": {
+          "const": true
+        },
+        "synthetic_anchor": {
+          "const": false
+        },
+        "package_name": {
+          "const": "chirality-app-v4"
+        },
+        "package_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "allOf": [
+            {
+              "contains": {
+                "const": "custom-protocol"
+              }
+            },
+            {
+              "contains": {
+                "const": "distribution-successor"
+              }
+            },
+            {
+              "not": {
+                "contains": {
+                  "const": "synthetic-distribution-anchor"
+                }
+              }
+            }
+          ]
+        },
+        "application_identifier": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 253,
+          "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$",
+          "not": {
+            "const": "dev.chirality.app-v4.skeleton"
+          }
+        },
+        "application_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tauri_config_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "target",
+        "profile",
+        "debug_assertions",
+        "development",
+        "successor",
+        "synthetic_anchor",
+        "package_name",
+        "package_version",
+        "features",
+        "application_identifier",
+        "application_version",
+        "tauri_config_sha256"
+      ]
+    },
+    "production_bundle_identifier": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 253,
+      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$",
+      "not": {
+        "const": "dev.chirality.app-v4.skeleton"
+      }
+    },
+    "developer_id_team_identifier": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]{10}$"
+    },
+    "binding_schema_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "public_projection_schema_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "required": [
+    "format",
+    "state",
+    "input_sha256",
+    "requirement_sha256",
+    "template_sha256",
+    "generator_sha256",
+    "recipe_sha256",
+    "input_schema_sha256",
+    "cargo_manifest_sha256",
+    "cargo_lock_sha256",
+    "build_context_sha256",
+    "build_context",
+    "production_bundle_identifier",
+    "developer_id_team_identifier",
+    "binding_schema_sha256",
+    "public_projection_schema_sha256"
+  ],
+  "$id": "urn:chirality:publisher-build-binding.s1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

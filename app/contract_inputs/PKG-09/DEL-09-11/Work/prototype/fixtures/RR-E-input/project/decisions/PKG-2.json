@@ -1,0 +1,29 @@
+{
+  "packageId": "PKG-2",
+  "actKind": "A16",
+  "subject": [
+    "reviewer for stage 2 of undertaking FX-U1"
+  ],
+  "purpose": "choose who reviews stage 2 (reserved to the person by the FX-U1 brief, item 5; invented)",
+  "scope": "undertaking FX-U1 (invented)",
+  "alternatives": [
+    {
+      "id": "ALT-1",
+      "statement": "The standing reviewer"
+    },
+    {
+      "id": "ALT-2",
+      "statement": "A fresh reviewer of another model family"
+    }
+  ],
+  "consequences": [
+    {
+      "alternative": "ALT-1",
+      "statement": "Continuity with stage 1 findings"
+    },
+    {
+      "alternative": "ALT-2",
+      "statement": "More independence; slower start"
+    }
+  ]
+}
