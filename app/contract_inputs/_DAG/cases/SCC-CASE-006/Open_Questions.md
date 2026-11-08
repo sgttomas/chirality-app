@@ -1,0 +1,11 @@
+# Current decision standing
+
+Actual CP1 has confirmed basis/case tracking (E-CP1-ACT). Any earlier question below about that same proposed basis/match is now historical. Unresolved technical contributions, actual inputs and future remedies remain at their points of need; they are not added pre30 gates.
+
+# SCC-CASE-006 — questions for the concrete graph-basis checkpoint
+
+- **Q1 — objective/treatment (human with App dependency owner):** For DAG-001's production-order and route-selection objective, retain R1's explicit candidate coupling, select the precisely bounded initial-graph cut R2, or rule graph-only group R3? The cut's exact covered rows, excluded later-use meaning and reconsideration trigger must be stated if chosen. No default answer is recorded.
+- **Q2 — contribution sufficiency (undertaking/dependency owners prepare evidence):** Which current work-graph/control/check/practice records and revisions are applicable inputs to this graph package, and which examination establishes their usable scope? Existing source-linked controls provide a concrete starting point. Future observations or stage dispositions are required only if applicable; they are not invented to complete a checklist. This is preparation for the package, not automatically another human approval gate.
+- **Q3 — same-arc fidelity (source owners and graph examiner):** Preserve DEP-10-02-012 CONSTRAINT and DEP-10-04-014 HANDOVER, confirm their common later-use condition and document whether that type difference is material under SR-6. No semantic contradiction was found in the bounded source audit. If material, route the actual disagreement; do not silently normalize it.
+
+The accepted/current DAG and actual graph decisions remain absent inputs to the later consumption claim. Graph acceptance, 30% continuation, lifecycle, provider qualification and professional reliance are distinct acts. Questions on later manual/instruction decisions stay with their recorded owners and points of need. Ruling_Register.csv is empty because no case ruling has been supplied.

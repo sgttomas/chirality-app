@@ -9,7 +9,7 @@ import sys
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-WORK = ROOT / "execution/PKG-02/DEL-02-04/Work"
+WORK = ROOT / "app/contract_inputs/PKG-02/DEL-02-04/Work"
 EXAMPLES = (
     "role-supply-record.valid.example.json", "role-supply-record.invalid.examples.json",
     "role-limit-account.valid.example.json", "role-limit-account.invalid.examples.json",

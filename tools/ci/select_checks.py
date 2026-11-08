@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 """Select PR verification from committed changes; validate the aggregate gate."""
+# Narrowing what a change runs (a new documentary path, a skipped job, a looser
+# rule) needs independent review, using the model set by current session
+# steering, before merge. Unknown paths keep full coverage; the selector's tests
+# and completeness check enforce the rest.
 from __future__ import annotations
 
 import argparse
@@ -11,8 +15,8 @@ import subprocess
 import sys
 
 
-# Exact documentary paths, not extension or directory-wide exemptions. Packaged
-# guidance, Design sources, fixtures and unfamiliar paths retain product checks.
+# Exact documentary paths plus the guarded declarative execution tree.
+# Operational inputs live under app/ or tools/; unknown domains retain product checks.
 PROSE_PATHS = frozenset({
     "AGENTS.md",
     "README.md",
@@ -31,7 +35,7 @@ PROSE_PATHS = frozenset({
 # Documentary exceptions above take precedence; unfamiliar domains stay unmatched.
 PRODUCT_DOMAINS = (
     ".github/actions/", ".github/workflows/", "app/", "conceptual/", "docs/",
-    "execution/", "foundation/", "reference/", "tools/", "workflows/",
+    "foundation/", "reference/", "tools/", "workflows/",
 )
 PRODUCT_FILES = frozenset({".gitattributes", ".gitignore", "CLAUDE.md", "LICENSE.md"})
 OID = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?\Z")
@@ -77,7 +81,7 @@ def parse_changes(raw: bytes) -> list[dict[str, str]]:
 
 
 def path_rule(path: str) -> str:
-    if path in PROSE_PATHS:
+    if path in PROSE_PATHS or path.startswith("execution/"):
         return "documentary"
     if path in PRODUCT_FILES:
         return "product-file"

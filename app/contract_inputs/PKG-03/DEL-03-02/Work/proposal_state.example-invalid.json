@@ -1,0 +1,65 @@
+{
+  "answered_from_recorded_state": false,
+  "current_basis": {
+    "canonical_content_identity": "sh1:ab78bf780c63e3c2",
+    "generation": "g1",
+    "identity_method": "m-sh1",
+    "model_revision": "r13",
+    "workspace_identity": "FX-W1"
+  },
+  "dedup_scope": "durable",
+  "derived_state": {
+    "all_items_decided": true,
+    "counts": {
+      "refused_stale": 2
+    },
+    "open": false,
+    "summary": "refused_stale"
+  },
+  "host_handles": [
+    {
+      "handle_kind": "ticket",
+      "scope": "durable",
+      "value": "TK-1"
+    }
+  ],
+  "items": [
+    {
+      "change_item_content_identity": "sh1:199b404518a45710",
+      "identity_method": "m-sh1",
+      "item_identity": "1",
+      "state": "refused_stale"
+    },
+    {
+      "change_item_content_identity": "sh1:b876967480ff7bc3",
+      "identity_method": "m-sh1",
+      "item_identity": "2",
+      "refusal": {
+        "evaluated_basis": {
+          "canonical_content_identity": "sh1:ab78bf780c63e3c2",
+          "generation": "g1",
+          "identity_method": "m-sh1",
+          "model_revision": "r13",
+          "workspace_identity": "FX-W1"
+        },
+        "failing_targets": [
+          "S-3"
+        ],
+        "reason": "S-3 changed since r12",
+        "relied_on_basis": {
+          "canonical_content_identity": "sh1:acd10ed310be58e8",
+          "generation": "g1",
+          "identity_method": "m-sh1",
+          "model_revision": "r12",
+          "workspace_identity": "FX-W1"
+        },
+        "staleness_scope": "per_item_relied_on_targets"
+      },
+      "state": "refused_stale"
+    }
+  ],
+  "kind": "recorded_state",
+  "observed_at": "t0003",
+  "proposal_identity": "PR-1",
+  "submissions_recorded": 1
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:proposed:edition-change-event",
+  "title": "Catalog edition-change event (DEL-03-01 C-v0.8 §2.1 CI-4; PROPOSED)",
+  "description": "PROPOSED schema (R12-1). The host-reported event that a new catalog edition replaces the one a consumer holds; moved from fixture variant V-ED1 into the catalog interface. Property names are Chirality's semantic labels, not a host wire field.",
+  "type": "object",
+  "required": ["host_identity", "from_edition", "to_edition", "added", "removed", "changed", "published_at", "reporter"],
+  "additionalProperties": false,
+  "properties": {
+    "host_identity": {"type": "string", "minLength": 1},
+    "from_edition": {"type": "string", "minLength": 1},
+    "to_edition": {"type": "string", "minLength": 1},
+    "added": {"type": "array", "items": {"$ref": "#/$defs/entry_version"}},
+    "removed": {"type": "array", "items": {"$ref": "#/$defs/entry_version"}},
+    "changed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["operation_identity", "from_version", "to_version"],
+        "additionalProperties": false,
+        "properties": {
+          "operation_identity": {"type": "string", "minLength": 1},
+          "from_version": {"type": "string", "minLength": 1},
+          "to_version": {"type": "string", "minLength": 1},
+          "exposure_changed": {"type": "boolean"}
+        }
+      }
+    },
+    "published_at": {"type": "string", "minLength": 1},
+    "reporter": {"const": "host"}
+  },
+  "$defs": {
+    "entry_version": {
+      "type": "object",
+      "required": ["operation_identity", "operation_version"],
+      "additionalProperties": false,
+      "properties": {
+        "operation_identity": {"type": "string", "minLength": 1},
+        "operation_version": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

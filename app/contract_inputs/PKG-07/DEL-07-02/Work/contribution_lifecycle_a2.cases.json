@@ -1,0 +1,198 @@
+{
+  "standing": "Proposed definition obligations; symbolic cases are not runtime tests or authority",
+  "source": "CONNECTOR_CONTRIBUTION_EVIDENCE_A2.md",
+  "cases": [
+    {
+      "id": "A2-01",
+      "stimulus": "Complete live TASK request/write/result, one final item and completed turn; exact base references",
+      "required_outcome": "Eligible for proposed answer mint only; no truth or authority",
+      "verification_home": "Host join"
+    },
+    {
+      "id": "A2-02",
+      "stimulus": "Item and terminal arrive before correlated start result, all after dispatch",
+      "required_outcome": "Wait for consistent result; do not reject solely response-late order",
+      "verification_home": "Host join"
+    },
+    {
+      "id": "A2-03",
+      "stimulus": "Matching transcript/history page but no original App request",
+      "required_outcome": "Reject fresh authorship mint",
+      "verification_home": "Host join"
+    },
+    {
+      "id": "A2-04",
+      "stimulus": "Copied private receipt projection is deserialized with all correct hashes",
+      "required_outcome": "Reject fresh capability; cold consistency may still pass",
+      "verification_home": "Host join"
+    },
+    {
+      "id": "A2-05",
+      "stimulus": "Fork/injected historical message repeats matching answer text",
+      "required_outcome": "Reject original authorship inference; fresh request/emission required",
+      "verification_home": "Host join"
+    },
+    {
+      "id": "A2-06",
+      "stimulus": "Original request write incomplete or result missing",
+      "required_outcome": "No mint; retain actual pending/unknown outcome",
+      "verification_home": "Host join"
+    },
+    {
+      "id": "A2-07",
+      "stimulus": "Matching IDs but different home/spawn generation or source pipe",
+      "required_outcome": "Reject join, never choose current source by matching text",
+      "verification_home": "Host join"
+    },
+    {
+      "id": "A2-08",
+      "stimulus": "Supplied role is TASK but renderer labels answer manager",
+      "required_outcome": "Reject review role promotion",
+      "verification_home": "Host join"
+    },
+    {
+      "id": "A2-09",
+      "stimulus": "Distinct final item IDs carry identical text",
+      "required_outcome": "Reject ambiguous selected authorship; no last-item winner",
+      "verification_home": "Host join"
+    },
+    {
+      "id": "A2-10",
+      "stimulus": "Same event identity/position has conflicting frame hash",
+      "required_outcome": "Reject inconsistent source history",
+      "verification_home": "cold semantic + Host join"
+    },
+    {
+      "id": "A2-11",
+      "stimulus": "Final item exists but terminal failed/interrupted or phase missing",
+      "required_outcome": "Reject mint; no successful-stage inference",
+      "verification_home": "Host join"
+    },
+    {
+      "id": "A2-12",
+      "stimulus": "Source closes immediately before mint; late complete frames arrive",
+      "required_outcome": "No mint; preserve gap, no history fallback",
+      "verification_home": "Host lifecycle"
+    },
+    {
+      "id": "A2-13",
+      "stimulus": "Answer minted, source closes before final recording",
+      "required_outcome": "Historical answer recording eligible subject to base/registry checks; no new authority",
+      "verification_home": "Host lifecycle"
+    },
+    {
+      "id": "A2-14",
+      "stimulus": "Answer minted; review not minted before review-source closes",
+      "required_outcome": "Retain answer; review unavailable; integration outstanding",
+      "verification_home": "Host lifecycle"
+    },
+    {
+      "id": "A2-15",
+      "stimulus": "Answer historical, review still current",
+      "required_outcome": "Keep per-contribution liveness distinct; review cannot reactivate answer",
+      "verification_home": "Host lifecycle"
+    },
+    {
+      "id": "A2-16",
+      "stimulus": "Cancellation wins while late answer completion is pending",
+      "required_outcome": "Discard working set; no resurrection or promise supplier rollback",
+      "verification_home": "Registry lifecycle"
+    },
+    {
+      "id": "A2-17",
+      "stimulus": "Source closure occurs without user cancellation",
+      "required_outcome": "Do not discard already minted exact contribution merely from closure",
+      "verification_home": "Registry lifecycle"
+    },
+    {
+      "id": "A2-18",
+      "stimulus": "Same account ID/path now contains changed bytes",
+      "required_outcome": "Refuse live rebind; prior selected subject historical, new preparation needed",
+      "verification_home": "Base resolver"
+    },
+    {
+      "id": "A2-19",
+      "stimulus": "Answer bytes gain one trailing whitespace; prior review unchanged",
+      "required_outcome": "Reject review exact-byte binding even if parsed message equal",
+      "verification_home": "cold semantic"
+    },
+    {
+      "id": "A2-20",
+      "stimulus": "Answer omits carried base gap or cites unknown fact",
+      "required_outcome": "Reject semantic preparation; schema shape alone insufficient",
+      "verification_home": "cold semantic"
+    },
+    {
+      "id": "A2-21",
+      "stimulus": "Manager review shares answer request/conversation",
+      "required_outcome": "Reject separate-manager evidence",
+      "verification_home": "cold semantic + Host join"
+    },
+    {
+      "id": "A2-22",
+      "stimulus": "Positive content review has no graph plan",
+      "required_outcome": "Do not fabricate plan or call cannot_assess; representation gap remains",
+      "verification_home": "Representation hold"
+    },
+    {
+      "id": "A2-23",
+      "stimulus": "reviewed_for_integration with null plan",
+      "required_outcome": "Reject existing cold semantic check; no authority minted",
+      "verification_home": "cold semantic"
+    },
+    {
+      "id": "A2-24",
+      "stimulus": "Two valid manager reviews conflict, later timestamp preferred",
+      "required_outcome": "No automatic winner; preserve bounded conflict evidence or refuse",
+      "verification_home": "Selection lifecycle"
+    },
+    {
+      "id": "A2-25",
+      "stimulus": "One prepared CAM payload already exists on CCE admission",
+      "required_outcome": "Refuse new working set, no eviction/second payload",
+      "verification_home": "Registry lifecycle"
+    },
+    {
+      "id": "A2-26",
+      "stimulus": "Exact final serialized UTF8 escapes exceed1MiB",
+      "required_outcome": "Refuse before slot exposure, no authored-text truncation",
+      "verification_home": "Registry lifecycle"
+    },
+    {
+      "id": "A2-27",
+      "stimulus": "Freeze succeeds then publish/cancel fails uncertainly",
+      "required_outcome": "Identity remains consumed; original Attempt retained; no retry/token revival",
+      "verification_home": "Existing CAM/CRP"
+    },
+    {
+      "id": "A2-28",
+      "stimulus": "App restarts with no prefreeze durable record",
+      "required_outcome": "Hot status unavailable, not proof no prior emission/write; no automatic resume",
+      "verification_home": "PM05 limit"
+    },
+    {
+      "id": "A2-29",
+      "stimulus": "Final cold record hashes resolve and roles look valid",
+      "required_outcome": "Historical recorded content only; cannot mint new live source/run/human act",
+      "verification_home": "Cold reader"
+    },
+    {
+      "id": "A2-30",
+      "stimulus": "Future separately authorized graph attempt has started when cancel occurs",
+      "required_outcome": "Preserve actual/uncertain attempt; this amendment cannot erase/rollback it",
+      "verification_home": "Future selected writer"
+    },
+    {
+      "id": "A2-31",
+      "stimulus": "Native final answer is valid JSON but says only done",
+      "required_outcome": "Syntactic acceptance not substantive quality; manager assessment remains needed",
+      "verification_home": "Content limit"
+    },
+    {
+      "id": "A2-32",
+      "stimulus": "Manager comments accepted/approved in free text",
+      "required_outcome": "No A5/A6 or person act inferred",
+      "verification_home": "Authority boundary"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chirality:app-v4:DEL-01-03:npt.delegation-export:v0.2",
+  "title": "Native delegation identity export (PROPOSED, NPTD-v0.2 §7.7)",
+  "description": "The native descendant identities and last observed activity under one root thread, offered to the PKG-06 fleet receiving interface (DEP-01-03-014; DEL-06-01 reads it as DEP-06-01-007 names) (R18-1 C-07: DEL-02-04 does not consume it; its K-10 label is a runtime value handed to DEL-01-03, carried here as handed, C-08). Export only: DEL-01-03 imports nothing from PKG-06 (R17-10). There is deliberately no element for a child's return, review or integration, and additionalProperties is false so none can be added (REQ-003, AC-003).",
+  "type": "object",
+  "required": ["exportId", "producedAt", "producer", "rootThreadId", "nodes", "limits"],
+  "additionalProperties": false,
+  "properties": {
+    "exportId": {"type": "string", "minLength": 1},
+    "producedAt": {"type": "integer", "minimum": 0, "description": "Unix milliseconds"},
+    "producer": {
+      "type": "object", "required": ["deliverable", "typesPin", "observedVersionLabel"],
+      "additionalProperties": false,
+      "properties": {"deliverable": {"const": "DEL-01-03"},
+                     "typesPin": {"type": "string", "minLength": 1},
+                     "observedVersionLabel": {"type": ["string", "null"]}}
+    },
+    "rootThreadId": {"type": "string", "minLength": 1},
+    "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},
+    "limits": {"type": "array", "minItems": 4, "items": {"type": "string"}}
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": ["threadId", "parentThreadId", "parentSource", "lastObserved", "observationEnded"],
+      "additionalProperties": false,
+      "properties": {
+        "threadId": {"type": "string", "minLength": 1},
+        "parentThreadId": {"type": ["string", "null"]},
+        "parentSource": {"type": "string", "minLength": 1,
+          "description": "thread/read | collabAgentToolCall | subAgentActivity (thread of the item; inference) | not-observed"},
+        "sessionId": {"type": ["string", "null"]},
+        "agentPath": {"type": ["string", "null"]},
+        "agentNickname": {"type": ["string", "null"]},
+        "agentRole": {"type": ["string", "null"], "description": "Codex's agentRole, unchanged; null when not reported"},
+        "depth": {"type": ["integer", "null"]},
+        "spawnedBy": {
+          "anyOf": [{"type": "null"},
+                    {"type": "object", "required": ["threadId", "turnId", "itemId"], "additionalProperties": false,
+                     "properties": {"threadId": {"type": "string"}, "turnId": {"type": "string"},
+                                    "itemId": {"type": "string"}}}]
+        },
+        "requested": {
+          "anyOf": [{"type": "null"},
+                    {"type": "object", "required": ["model", "reasoningEffort"], "additionalProperties": false,
+                     "properties": {"model": {"type": ["string", "null"]},
+                                    "reasoningEffort": {"type": ["string", "null"]}}}]
+        },
+        "lastObserved": {
+          "anyOf": [{"type": "null"},
+                    {"type": "object", "required": ["status", "source", "at"], "additionalProperties": false,
+                     "properties": {
+                       "status": {"type": "string", "minLength": 1,
+                         "description": "A supplier value unchanged (CollabAgentStatus, SubAgentActivityKind, ThreadStatus type) or 'active (frame observed: <method>)'"},
+                       "source": {"type": "string", "minLength": 1},
+                       "at": {"type": ["integer", "null"]}}}]
+        },
+        "observationEnded": {"type": "boolean"},
+        "delegatingRole": {
+          "anyOf": [{"type": "null"},
+                    {"type": "object", "required": ["role", "limitId", "standing"], "additionalProperties": false,
+                     "properties": {"role": {"const": "TASK"},
+                                    "limitId": {"type": "string", "minLength": 1},
+                                    "standing": {"enum": ["stated-not-enforced", "enforced-by-supplier", "unknown"],
+                                      "description": "As DEL-02-04 hands it (ROLE §6.2 LA-1, LA-2); never computed here"}}}]
+        }
+      }
+    }
+  }
+}

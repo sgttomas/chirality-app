@@ -1,0 +1,283 @@
+{
+  "record_kind": "rrm_reconstruction_account",
+  "format": "RRM-v0.1",
+  "account_id": "ACC-RR-E-SHAPE-IS3 (constructed from RR-E account shape; not a reader run)",
+  "reader": {
+    "identity": "O-C (constructed; RR-E account reused on the new input set to test the subject rule)",
+    "kind": "agent",
+    "model_identity": "claude-opus-5-5",
+    "separation": "constructed; not evidence of separation"
+  },
+  "input_set": {
+    "input_set_id": "IS-FX-DP1-3",
+    "sha256": "18b9e49b61398d814e9d4371198d117b76155c46f434901385b22acb6978c17f"
+  },
+  "reconstruction_date": {
+    "value": "2026-10-03",
+    "source": "observed_clock"
+  },
+  "claims": [
+    {
+      "claim_id": "C-01",
+      "about": "PKG-1 request",
+      "kind": "request",
+      "statement": "An A16 act was requested on a decision package file (project/decisions/PKG-1.json). Subject: 'route for stage 2 of undertaking FX-U1'. Purpose: choose how stage 2 of FX-U1 proceeds, stated as reserved to the person by the FX-U1 brief, item 4. Scope: undertaking FX-U1. Association: not at a checkpoint. Requester: agent thread:fx-u1-manager. The request was recorded by app-writer:local (role App writer), seq 1, time label t1.",
+      "standing": "from_records",
+      "actor": "thread:fx-u1-manager",
+      "recorder": "app-writer:local",
+      "sources": [
+        {
+          "path": "records/coordination.rs.jsonl",
+          "locator": "line 1 (recordId rec:app:coord:0001): kind, recorder, body.requester, body.form, body.actKind, body.subject, body.purpose, body.scope, body.association, body.time"
+        },
+        {
+          "path": "project/decisions/PKG-1.json",
+          "locator": "lines 2-8 (packageId, actKind, subject, purpose, scope)"
+        }
+      ],
+      "references": [
+        {
+          "ref": "FX-U1 brief, item 4",
+          "resolution_at_read": "not_supplied"
+        },
+        {
+          "ref": "project/decisions/PKG-1.json",
+          "resolution_at_read": "resolved"
+        }
+      ]
+    },
+    {
+      "claim_id": "C-02",
+      "about": "PKG-1 alternatives and consequences",
+      "kind": "request",
+      "statement": "PKG-1 offered two alternatives. ALT-1: 'Start stage 2 now on the current supplier facts', with the consequence that stage 2 starts today and any changed supplier fact reopens the affected parts. ALT-2: 'Hold stage 2 until the version check returns, then start', with the consequence that stage 2 starts after the check, with no rework from a changed fact, about one day later. The request record, the package file and the act control offer state these identically.",
+      "standing": "from_records",
+      "sources": [
+        {
+          "path": "records/coordination.rs.jsonl",
+          "locator": "line 1: body.alternatives, body.consequences"
+        },
+        {
+          "path": "project/decisions/PKG-1.json",
+          "locator": "lines 9-28 (alternatives, consequences)"
+        },
+        {
+          "path": "aac/offer-PKG-1.json",
+          "locator": "lines 28-43 (alternatives with consequences)"
+        }
+      ]
+    },
+    {
+      "claim_id": "C-03",
+      "about": "PKG-2 request",
+      "kind": "request",
+      "statement": "An A16 act was requested on a decision package file (project/decisions/PKG-2.json). Subject: 'reviewer for stage 2 of undertaking FX-U1'. Purpose: choose who reviews stage 2, stated as reserved to the person by the FX-U1 brief, item 5. Scope: undertaking FX-U1. Association: not at a checkpoint. Requester: agent thread:fx-u1-manager. Recorded by app-writer:local, seq 2, time label t2. Alternatives: ALT-1 'The standing reviewer' (continuity with stage 1 findings); ALT-2 'A fresh reviewer of another model family' (more independence; slower start).",
+      "standing": "from_records",
+      "actor": "thread:fx-u1-manager",
+      "recorder": "app-writer:local",
+      "sources": [
+        {
+          "path": "records/coordination.rs.jsonl",
+          "locator": "line 2 (recordId rec:app:coord:0002): recorder, body.requester, body.actKind, body.subject, body.purpose, body.scope, body.association, body.time, body.alternatives, body.consequences"
+        },
+        {
+          "path": "project/decisions/PKG-2.json",
+          "locator": "lines 1-29"
+        }
+      ],
+      "references": [
+        {
+          "ref": "FX-U1 brief, item 5",
+          "resolution_at_read": "not_supplied"
+        },
+        {
+          "ref": "project/decisions/PKG-2.json",
+          "resolution_at_read": "resolved"
+        }
+      ]
+    },
+    {
+      "claim_id": "C-04",
+      "about": "PKG-1 act control offer",
+      "kind": "proposal",
+      "statement": "An act control offer (offer:pkg-1) was composed at time label t3 for A16 with wording 'decide', on subject project/decisions/PKG-1.json bound by content identity sha256:cf885b17...66d6, requiring 'the person' as actor, with declineAvailable false, referring to request rec:app:coord:0001, and carrying the two PKG-1 alternatives with their consequences. The offer file does not itself state that it was displayed to anyone; that it was presented is supported only indirectly, by the capture evidence naming offer:pkg-1 with the same offerDigest value.",
+      "standing": "from_records",
+      "sources": [
+        {
+          "path": "aac/offer-PKG-1.json",
+          "locator": "lines 2-27 (offerId, actKind, wording, subject, actorRequirement, declineAvailable, requestRef, composedAt, offerDigest)"
+        },
+        {
+          "path": "aac/cap-decide-PKG-1.json",
+          "locator": "lines 5-9 (offerId, offerDigest)"
+        }
+      ]
+    },
+    {
+      "claim_id": "C-05",
+      "about": "PKG-1 decision",
+      "kind": "decision",
+      "statement": "PKG-1 was decided: the actor displayed as 'Engineer A' (OS account 'enga') chose ALT-2, 'Hold stage 2 until the version check returns, then start'. The act was captured directly on the App interface (inputSource host-native-confirmation) at time label t4, classed as a person's act (V4-PM-04), and recorded as human_act rec:app:coord:0003 by app-interface:local (role App interface, capturing surface). Both the record and the capture evidence state the evidence limit 'identity not verified' (identityVerified false).",
+      "standing": "from_records",
+      "actor": "Engineer A (osAccount enga; identity not verified)",
+      "recorder": "app-interface:local",
+      "alternative": "ALT-2",
+      "sources": [
+        {
+          "path": "records/coordination.rs.jsonl",
+          "locator": "line 3 (recordId rec:app:coord:0003): kind human_act, recorder, body.actClass, body.decisionActor, body.recordingMode, body.boundSubject, body.captureTime, body.evidenceLimits, body.relations.requestRef, body.relations.alternativeChosen"
+        },
+        {
+          "path": "aac/cap-decide-PKG-1.json",
+          "locator": "lines 4-40 (captureId, choice 'act', actor, boundSubject, capturedAt, surface, inputSource, requestRef, alternativeChosen, recordId, evidenceLimits)"
+        }
+      ],
+      "references": [
+        {
+          "ref": "rec:app:coord:0001",
+          "resolution_at_read": "resolved"
+        },
+        {
+          "ref": "cap:decide-pkg-1",
+          "resolution_at_read": "resolved"
+        },
+        {
+          "ref": "offer:pkg-1",
+          "resolution_at_read": "resolved"
+        },
+        {
+          "ref": "V4-PM-04",
+          "resolution_at_read": "not_supplied"
+        },
+        {
+          "ref": "RC-6",
+          "resolution_at_read": "not_supplied"
+        }
+      ]
+    },
+    {
+      "claim_id": "C-06",
+      "about": "PKG-1 content after the decision",
+      "kind": "no_change",
+      "statement": "The supplied PKG-1 package file is byte-identical to the content the decision was bound to. Its sha256 (computed by the reader with shasum -a 256) is cf885b17f0062c03e3c5a443aca6e78a38bcfba627392d9d1bdd90c6a5e066d6, which equals the claimedIdentity in the request (resolved at write), the offer's subject contentIdentity, and the boundContent of both the human_act record and the capture evidence. Nothing in the set shows PKG-1 changing after the decision. This shows identity at those points only; it cannot exclude a change that was later reverted.",
+      "standing": "from_records",
+      "sources": [
+        {
+          "path": "project/decisions/PKG-1.json",
+          "locator": "whole file, sha256 computed by reader"
+        },
+        {
+          "path": "records/coordination.rs.jsonl",
+          "locator": "line 1: body.evidence.claimedIdentity; line 3: body.boundContent[0].value"
+        },
+        {
+          "path": "aac/offer-PKG-1.json",
+          "locator": "lines 10-13 (subject.contentIdentity)"
+        },
+        {
+          "path": "aac/cap-decide-PKG-1.json",
+          "locator": "lines 20-25 (boundContent)"
+        }
+      ]
+    },
+    {
+      "claim_id": "C-07",
+      "about": "PKG-2 decision",
+      "kind": "no_decision",
+      "statement": "No record in the set captures a decision on PKG-2. The only human_act (rec:app:coord:0003) is bound to rec:app:coord:0001 / PKG-1 content, and there is no offer or capture evidence for PKG-2. On the supplied records, PKG-2 is requested and undecided. An agent message in the set asserts a PKG-2 choice, but it has standing not_authority and is not used here (see not_authority_read).",
+      "standing": "from_records",
+      "sources": [
+        {
+          "path": "records/coordination.rs.jsonl",
+          "locator": "lines 1-3 (only line 3 is a human_act; its relations.requestRef is rec:app:coord:0001)"
+        },
+        {
+          "path": "aac/cap-decide-PKG-1.json",
+          "locator": "lines 17-18, 34 (boundSubject and requestRef name PKG-1 only)"
+        }
+      ]
+    },
+    {
+      "claim_id": "C-08",
+      "about": "PKG-2 content",
+      "kind": "no_change",
+      "statement": "The supplied PKG-2 package file's sha256 (computed by the reader) is ccf63e1697b7c6b398cb2a941bb0056ec5001f65be2898c4bb6b25d579fea89c, equal to the claimedIdentity in its request record. No change to PKG-2 since the request is shown. No decision binds it.",
+      "standing": "from_records",
+      "sources": [
+        {
+          "path": "project/decisions/PKG-2.json",
+          "locator": "whole file, sha256 computed by reader"
+        },
+        {
+          "path": "records/coordination.rs.jsonl",
+          "locator": "line 2: body.evidence.claimedIdentity"
+        }
+      ]
+    },
+    {
+      "claim_id": "C-09",
+      "about": "events after the PKG-1 decision",
+      "kind": "outcome",
+      "statement": "The record log has nothing after seq 3 (rec:app:coord:0003). No supplied record shows what happened after the PKG-1 decision: whether stage 2 was held, whether the version check returned, whether stage 2 started, or any decision on PKG-2.",
+      "standing": "from_records",
+      "sources": [
+        {
+          "path": "records/coordination.rs.jsonl",
+          "locator": "lines 1-3 (the whole log; last seq is 3)"
+        }
+      ]
+    }
+  ],
+  "unknowns": [
+    {
+      "about": "Who 'Engineer A' is",
+      "why": "The record and capture evidence give only a display name and an OS account, and both state 'identity not verified' (identityVerified false). Whether Engineer A is the person to whom the FX-U1 brief reserves the act (or 'the owner') is not established."
+    },
+    {
+      "about": "What happened after the PKG-1 decision",
+      "why": "No record after rec:app:coord:0003. Whether stage 2 was held, whether the version check returned, and when or whether stage 2 started are not in the set."
+    },
+    {
+      "about": "Whether PKG-2 was decided, and how",
+      "why": "No human_act, offer or capture evidence for PKG-2 is in the set. The only statement of a PKG-2 choice is in a not_authority agent message."
+    },
+    {
+      "about": "Calendar time of each event",
+      "why": "Records use opaque labels (t1-t4, w001-w003) with no clock values. The manifest's journey date (2026-10-03) is not in a record or project_file and is not used as evidence."
+    },
+    {
+      "about": "Contents of the FX-U1 brief (items 4 and 5) and the definitions of V4-PM-04 and RC-6",
+      "why": "Referenced in the records but not supplied, so the reservation of the acts to the person cannot be checked against its source."
+    },
+    {
+      "about": "Reproducibility of offerDigest sha256:4637bed5...c4ef4",
+      "why": "The method is given only as 'sha-256 over the offer without offerDigest' with no serialization. The reader tried six JSON serializations (compact, sorted, indent 2, default, each with and without a trailing newline) and none matched. The digest equals across the offer and capture evidence but was not independently confirmed."
+    },
+    {
+      "about": "Whether the offer was actually displayed to the actor, and what the screen showed",
+      "why": "The offer file records composition (t3), not display. The capture evidence names the offer id and digest but holds no rendering record."
+    },
+    {
+      "about": "Whether PKG-1 or PKG-2 changed and was restored between the recorded points",
+      "why": "Only content identity at request, capture and supply time is available. No file history is in the set."
+    },
+    {
+      "about": "Authority of thread:fx-u1-manager to request these acts",
+      "why": "The FX-U1 brief and the agent conversation (withheld per manifest) are not supplied."
+    }
+  ],
+  "not_authority_read": [
+    {
+      "path": "conversation/agent-message.txt",
+      "what_it_says": "Self-described invented agent message, not a record, saying the owner chose ALT-1 for PKG-2 and that the agent will proceed.",
+      "treated_as": "not evidence of any act or outcome"
+    }
+  ],
+  "limits": [
+    "All six manifest items matched their sha256 (reader computed them with shasum -a 256). Manifest file sha256: f1174586ef7b2f4bac6ddb3c7ece7028ecc69b9a95b80f4721da9202cea4a63a.",
+    "The reader opened only files in the supplied folder. Per the manifest, the agent conversation thread:fx-u1-manager, the O-A working context and the DEL-06-02 decision view output were withheld.",
+    "Content identities are TEST VALUE sha-256 values over file bytes, method stated as unselected. Matches show byte identity at the recorded points, nothing more.",
+    "The fixture is labelled invented (FX-U1, FX-DP1). This account reconstructs only what the supplied records state.",
+    "The time labels t1-t4 give an order (request t1, request t2, offer t3, capture t4) but no clock time."
+  ]
+}

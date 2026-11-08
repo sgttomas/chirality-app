@@ -64,6 +64,6 @@ checks:
 - app/tests/group_b_current_admission_test.py
 - app/tests/group_b_terms_successor_test.py
 - app/tests/group_b_sq_receiving_test.py
-- execution/PKG-09/DEL-09-01/Work/prototype/check_exp.py
+- app/contract_inputs/PKG-09/DEL-09-01/Work/prototype/check_exp.py
 - app/tests/candidate_identity_test.py
 - app/tests/examination_repin_test.py

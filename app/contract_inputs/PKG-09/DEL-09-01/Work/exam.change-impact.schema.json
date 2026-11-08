@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-09-01:exam-change-impact:0.2",
+  "title": "Change-impact (reopening) record (DEL-09-01 EXP-v0.2 §4.3; PROPOSED)",
+  "description": "Written when a candidate, Codex pin, configuration, fixture, native route, support revision or a separately authorized criterion disposition changes. It names every case whose result relied on the changed thing, reopens them, and keeps the earlier results attached to their own subject as historical (EXAMINATION V4-EXM-03; REQ-004). A criterion is never changed by this record; a criterion disposition is cited, not made (REQ-005). EXP-R8 in prototype/check_exp.py checks that every affected case's prior result is marked accordingly.",
+  "type": "object",
+  "required": [
+    "record_kind",
+    "format",
+    "record_id",
+    "change",
+    "from",
+    "to",
+    "affected",
+    "unaffected_basis",
+    "date"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "record_kind": {
+      "const": "exam_change_impact"
+    },
+    "format": {
+      "const": "EXP-v0.2"
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "change": {
+      "type": "object",
+      "required": [
+        "kind",
+        "description",
+        "evidence"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "candidate_code",
+            "codex_pin",
+            "configuration",
+            "fixture",
+            "native_route",
+            "support_revision",
+            "criterion_disposition",
+            "package",
+            "case_definition"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposition_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Required for 'criterion_disposition': the separately authorized decision (REQ-005)."
+        }
+      },
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "criterion_disposition"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "disposition_ref"
+        ]
+      }
+    },
+    "from": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identity of the thing before the change."
+    },
+    "to": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identity after the change."
+    },
+    "affected": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "case_id",
+          "prior_result",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prior_result": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rerun_result": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The new result record, once the case has been run again."
+          }
+        }
+      }
+    },
+    "unaffected_basis": {
+      "type": "string",
+      "minLength": 1,
+      "description": "How cases outside 'affected' were judged unaffected (the reliance map used, EXP §6.2). An unknown reliance counts as affected."
+    },
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}"
+    }
+  }
+}

@@ -34,7 +34,7 @@ def encoded(value):
 
 adapter = load('package_receiving_fixture_adapter', APP / 'examination/package_receiving/adapter.py')
 canonical = load('package_receiving_fixture_canonical', APP / 'examination/support_identity/canonical.py')
-sq_rules = load('package_receiving_sq_rules', ROOT / 'execution/PKG-09/DEL-09-02/Work/prototype/check_sq.py')
+sq_rules = load('package_receiving_sq_rules', ROOT / 'app/contract_inputs/PKG-09/DEL-09-02/Work/prototype/check_sq.py')
 producer = load('package_receiving_fixture_producer', APP / 'packaging/successor/check.py')
 producer_fixtures = load('package_receiving_producer_fixtures', APP / 'packaging/successor/fixtures.py', {'check': producer})
 

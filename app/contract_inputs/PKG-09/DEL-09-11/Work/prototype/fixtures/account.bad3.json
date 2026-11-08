@@ -1,0 +1,123 @@
+{
+  "record_kind": "rrm_reconstruction_account",
+  "format": "RRM-v0.1",
+  "account_id": "ACC-CONSTRUCTED-BAD-3",
+  "reader": {
+    "identity": "Engineer A",
+    "kind": "agent",
+    "model_identity": "claude-opus-5-5",
+    "separation": "constructed by the method's designer to test the comparison; not evidence of separation"
+  },
+  "input_set": {
+    "input_set_id": "IS-FX-DP1-1",
+    "sha256": "f1174586ef7b2f4bac6ddb3c7ece7028ecc69b9a95b80f4721da9202cea4a63a"
+  },
+  "reconstruction_date": {
+    "value": "2026-10-03",
+    "source": "observed_clock"
+  },
+  "claims": [
+    {
+      "claim_id": "C1",
+      "about": "project/decisions/PKG-1.json",
+      "kind": "request",
+      "statement": "The agent thread:fx-u1-manager requested an A16 decision on the route for stage 2 of FX-U1, with alternatives ALT-1 (start now) and ALT-2 (hold until the version check), each with a stated consequence; reserved by the FX-U1 brief, item 4",
+      "standing": "from_records",
+      "sources": [
+        {
+          "path": "records/coordination.rs.jsonl",
+          "locator": "rec:app:coord:0001"
+        },
+        {
+          "path": "project/decisions/PKG-1.json",
+          "locator": "whole file"
+        }
+      ]
+    },
+    {
+      "claim_id": "C2",
+      "about": "project/decisions/PKG-1.json",
+      "kind": "decision",
+      "statement": "Engineer A decided ALT-2, captured by the App act control (capture cap:decide-pkg-1) and recorded by the App interface; identity not verified",
+      "standing": "from_records",
+      "actor": "Engineer A",
+      "recorder": "app-interface:local",
+      "alternative": "ALT-2",
+      "sources": [
+        {
+          "path": "records/coordination.rs.jsonl",
+          "locator": "rec:app:coord:0003"
+        },
+        {
+          "path": "aac/cap-decide-PKG-1.json",
+          "locator": "captureId cap:decide-pkg-1"
+        }
+      ],
+      "references": [
+        {
+          "ref": "cap:decide-pkg-1",
+          "resolution_at_read": "resolved"
+        }
+      ]
+    },
+    {
+      "claim_id": "C3",
+      "about": "project/decisions/PKG-1.json",
+      "kind": "lapse",
+      "statement": "The package file still has the content identity the decision is bound to: not lapsed",
+      "standing": "from_records",
+      "sources": [
+        {
+          "path": "project/decisions/PKG-1.json",
+          "locator": "sha-256 of the file"
+        },
+        {
+          "path": "records/coordination.rs.jsonl",
+          "locator": "rec:app:coord:0003 boundContent"
+        }
+      ]
+    },
+    {
+      "claim_id": "C4",
+      "about": "project/decisions/PKG-2.json",
+      "kind": "request",
+      "statement": "The agent requested an A16 decision on the reviewer for stage 2, alternatives ALT-1 and ALT-2",
+      "standing": "from_records",
+      "sources": [
+        {
+          "path": "records/coordination.rs.jsonl",
+          "locator": "rec:app:coord:0002"
+        }
+      ]
+    },
+    {
+      "claim_id": "C5",
+      "about": "project/decisions/PKG-2.json",
+      "kind": "no_decision",
+      "statement": "No decision on PKG-2 is recorded",
+      "standing": "from_records",
+      "sources": [
+        {
+          "path": "records/coordination.rs.jsonl",
+          "locator": "no human_act cites rec:app:coord:0002"
+        }
+      ]
+    }
+  ],
+  "unknowns": [
+    {
+      "about": "What happened to stage 2 after the decision",
+      "why": "The input set holds no record of stage 2's start or of any host change"
+    }
+  ],
+  "not_authority_read": [
+    {
+      "path": "conversation/agent-message.txt",
+      "what_it_says": "The owner chose ALT-1 for PKG-2",
+      "treated_as": "not evidence of any act or outcome"
+    }
+  ],
+  "limits": [
+    "Actor identity not verified (K1-4)"
+  ]
+}

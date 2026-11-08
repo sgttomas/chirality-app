@@ -1,0 +1,20 @@
+{
+  "sourceRevision": "da0a2802a87ff3f4d71fbc816c93526801eefafd",
+  "deliverablesCheck": {
+    "errors": [],
+    "deliverables": 41,
+    "cyclesUnchangedFromRequiredBase": true
+  },
+  "pythonSyntax": "PASS",
+  "refusalsBeforeGuestContact": [
+    "no arguments",
+    "--run",
+    "--run --inspect",
+    "--inspect --run"
+  ],
+  "reviewedCSharpBytesUnchanged": "PASS",
+  "readinessSourceHashesMatch": "PASS",
+  "gitDiffCheck": "PASS",
+  "nativeCases": "NOT RUN",
+  "productionAppBuildTests": "NOT RUN; no production code changes"
+}

@@ -20,7 +20,7 @@ path in the selection job's output and GitHub step summary. No GitHub files-list
 pagination or extension-wide skip is used.
 
 Only additions and modifications of ordinary non-executable files at these
-exact documentary paths select repository checks without product verification:
+exact documentary paths, and all paths under the guarded declarative `execution/` tree, select repository checks without product verification:
 
 - `AGENTS.md`
 - `README.md`
@@ -37,7 +37,7 @@ exact documentary paths select repository checks without product verification:
 
 Everything else retains the existing App product verification. This includes
 Rust and frontend code, dependencies/locks, workflows, the selector and its
-tests, schemas, packaging resources, examination/evidence/Work inputs,
+tests, App schema/fixture copies, packaging resources, examination readers,
 packaged Markdown and unknown paths. Mixed changes select the union: one
 product-relevant path selects the product workflow. Deletions, executable-mode
 changes, symlinks and other file-type changes select product checks even at an
@@ -54,13 +54,32 @@ positive rules and fails on unmatched paths. Classify such a path deliberately;
 the full-coverage fallback does not satisfy completeness. New files within a
 known product domain keep product coverage without individual allowlisting.
 
-The four added documentary exceptions cover the PR149/148 guides and coordination
-account, plus the deliverable-query guide. Their maintained bytes are not runtime,
-fixture or generated-product inputs. OPERATING_METHOD's historical source-map
-citation remains historical; packaged instructions derive from DEL-02-04 Work,
-not from this guide. Repository checks retain metadata and instruction/source
-binding validation. Other ScopeOfWork, Work, reference and validator paths retain
-product coverage. There is no partial frontend/Rust/schema mapping.
+Runnable implementation, tests, generators and harnesses live under `app/` or
+`tools/`. `execution/` holds authoring specifications and retained records.
+`tools/ci/check_execution_layout.py` rejects code surfaces in that tree and
+current imports/interpreter invocations into it. Its nine hash-bound exceptions
+are fidelity-only supplier receipts and the historical acceptance presentation;
+they grant no execution permission. This is a source/layout guard, not a proof
+about arbitrary dynamically computed programs. Changes introducing a new
+execution mechanism must extend its checks and receive review.
+
+Product consumers read selected App schema/fixture copies. Always-on repository
+checks compare those copies with their authoring source, using full bytes or the
+existing documentary selector extents, and retain the examination pin checks.
+Group B correspondence tests now run in repository checks on every PR, together
+with `check_documentary_sources.py`: live projection groups and all their
+selectors remain checked against authoring prose. Historical source profiles,
+publication identities and frozen bytes retain their distinct subjects. A
+selected source change requires reviewed reconciliation of its copy and pins;
+this layout does not authorize adoption or repinning historical evidence.
+
+The selector regression fixtures replay the complete recorded changes for
+PRs 169–181, plus unknown-path, mixed-change, mode, deletion and rename cases.
+Twelve sweep PRs become repository-only; PR178 retains product verification
+because its change includes product-selected documentation outside `execution/`.
+This PR's moves and all App/tool/guard/selector edits select full product checks.
+Other product domains remain conservative; no partial frontend/Rust mapping is
+introduced.
 
 ## Required result
 

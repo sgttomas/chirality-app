@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chirality:app-v4/DEL-05-02/PANEL_RETURN_INPUT/0.1",
+  "title": "Panel return input to the host loop",
+  "description": "PROPOSED (PANEL-v0.8 §3.9; R12-1). What the panel passes back to the host loop when the person writes, cancels a turn, stops a run or selects a workflow for a run. Decision controls (A4, A5, A10, A12 including network-destination grants, A13) are not panel return inputs: they are host-offered and host-captured (P-3), and the loop receives only the host's capture record (LOOP-v0.8 §2.3 E-2). Names are Chirality's own; no wire field is selected.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["input_identity", "input_kind", "actor_reference", "issued_at", "conversation_identity", "run_identity", "content"],
+  "properties": {
+    "input_identity": {"type": "string", "minLength": 1},
+    "input_kind": {"enum": ["message submitted", "turn cancel requested", "run stop requested", "workflow selected for a run"]},
+    "actor_reference": {"type": "string", "minLength": 1, "description": "The host's reference to the person at the panel (host-captured; the panel verifies nothing)."},
+    "issued_at": {"type": "string", "minLength": 1, "description": "Evidenced time of the person's gesture, as the host records it."},
+    "conversation_identity": {"type": "string", "minLength": 1},
+    "run_identity": {"type": ["string", "null"], "description": "The workflow run the input concerns; null for a conversation with no run, or for a selection that starts a new run."},
+    "content": {"type": "object"},
+    "loop_outcome": {"$ref": "#/$defs/loop_outcome"}
+  },
+  "oneOf": [
+    {"properties": {"input_kind": {"const": "message submitted"}, "content": {"$ref": "#/$defs/message"}}},
+    {"properties": {"input_kind": {"const": "turn cancel requested"}, "content": {"$ref": "#/$defs/turn_cancel"}}},
+    {"properties": {"input_kind": {"const": "run stop requested"}, "content": {"$ref": "#/$defs/run_stop"}}},
+    {"properties": {"input_kind": {"const": "workflow selected for a run"}, "content": {"$ref": "#/$defs/workflow_selection"}}}
+  ],
+  "$defs": {
+    "message": {
+      "type": "object", "additionalProperties": false, "required": ["text", "references"],
+      "properties": {
+        "text": {"type": "string", "minLength": 1},
+        "references": {"type": "array", "items": {"type": "string", "minLength": 1}, "description": "References the person attached (host objects, view positions, proposals); references, not copies."}
+      }
+    },
+    "turn_cancel": {
+      "type": "object", "additionalProperties": false, "required": ["turn"],
+      "properties": {"turn": {"type": "string", "minLength": 1}}
+    },
+    "run_stop": {
+      "type": "object", "additionalProperties": false, "required": ["run"],
+      "properties": {"run": {"type": "string", "minLength": 1}}
+    },
+    "workflow_tuple": {
+      "description": "WD-v0.8 §6.1 identity tuple (`workflow-declaration.schema.json#/$defs/workflow_identity`), used for derived-from (RX).",
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "origin", "source_root", "name"],
+      "properties": {
+        "kind": {"const": "workflow"},
+        "origin": {"enum": ["project", "user", "bundled", "host"]},
+        "source_root": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1},
+        "revision": {"type": "string", "minLength": 1},
+        "revision_method": {"type": "string", "minLength": 1},
+        "derived_from": {"$ref": "#/$defs/workflow_tuple"}
+      }
+    },
+    "workflow_selection": {
+      "type": "object", "additionalProperties": false, "required": ["workflow_identity", "holding_library", "continues_run"],
+      "properties": {
+        "workflow_identity": {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "origin", "source_root", "name", "revision", "derived_from"],
+          "properties": {
+            "kind": {"type": "string", "minLength": 1},
+            "origin": {"enum": ["project", "user", "bundled", "host"]},
+            "source_root": {"type": "string", "minLength": 1},
+            "name": {"type": "string", "minLength": 1},
+            "revision": {"type": "string", "minLength": 1},
+            "derived_from": {"description": "null for a workflow not adapted; otherwise the full identity tuple of the workflow adapted from, never a string (WD-v0.8 §6.1, `workflow-declaration.schema.json#/$defs/workflow_identity`; V18-2 m-9; RX).", "anyOf": [{"type": "null"}, {"$ref": "#/$defs/workflow_tuple"}]}
+          }
+        },
+        "holding_library": {"type": ["string", "null"], "description": "Shown beside the origin; never part of identity equality (WD §6.4)."},
+        "continues_run": {"type": ["string", "null"], "description": "The ended run this new run continues; it inherits nothing (R4-4)."}
+      }
+    },
+    "loop_outcome": {
+      "type": "object", "additionalProperties": false, "required": ["received", "refusal"],
+      "properties": {
+        "received": {"type": "boolean"},
+        "refusal": {"description": "The loop's refusal reason; 'run not started — no model selected' is not a boundary refusal (LOOP F-2 (a); R15-1; RQ).", "anyOf": [{"type": "null"}, {"enum": ["run not started — no model selected", "no credential", "turn not active", "run already ended", "selection not established", "not delivered"]}]}
+      }
+    }
+  }
+}

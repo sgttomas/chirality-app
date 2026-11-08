@@ -21,7 +21,7 @@ import Ajv2020 from "ajv/dist/2020.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const app = join(here, "..");
-const exec = join(app, "..", "execution");
+const exec = join(app, "contract_inputs");
 const design = (pkg, del) => join(exec, pkg.split("_")[0], del.split("_")[0], "Work");
 const D0101 = design("PKG-01_Native App and third-party harness integration", "DEL-01-01_Stock Codex hosting and supplier contract");
 const D0104 = design("PKG-01_Native App and third-party harness integration", "DEL-01-04_Native requests, outcomes and attachments");

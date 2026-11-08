@@ -1,0 +1,27 @@
+{
+  "format": "supplier-reference-technical-adoption/1",
+  "date": "2026-10-10",
+  "decision": "adopt-for-supplier-reference",
+  "subject": {
+    "path": "distribution-s1/references/codex-0.160.0-macos-arm64/expected.json",
+    "sha256": "754eebae912023aebe40cab157c0882081bec2d1d9db518627986526371a2a37"
+  },
+  "actor": "HELP_HUMAN (Agent 0), recording technical adoption for the App implementation owner",
+  "owner_direction": {
+    "words": "You can pursue the supplier artifact",
+    "date": "2026-10-10",
+    "channel": "owner's message in the active chat with HELP_HUMAN; relayed by HELP_HUMAN"
+  },
+  "basis": {
+    "review": {
+      "path": "distribution-s1/references/codex-0.160.0-macos-arm64/review.md",
+      "sha256": "b820240871c14261362a7dca650df1820dc18de3bf4566a33bbb56c8dd3f7146"
+    },
+    "verdict": "READY, no blocking findings",
+    "reviewed_revision": "b616fe3db0fe52fcd834236afbfa689b89596e61"
+  },
+  "recorded_by": "The reference author wrote this file at HELP_HUMAN's direction, sent in the author's assignment on 2026-10-10, using the content HELP_HUMAN supplied. The author did not see the owner's chat.",
+  "limits": [
+    "Technical adoption of the supplier reference only. It is not App candidate qualification, R23-22 candidate pin selection, build selection, release or owner acceptance."
+  ]
+}

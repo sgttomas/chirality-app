@@ -1,0 +1,11 @@
+{
+  "model_interface_basis": "FB-CC-1",
+  "position_in_response": 0,
+  "call_correlation_identity": "call-fx-v1s-0",
+  "operation_reference": "OP-C1",
+  "argument_text": "{\"run\": \"R-100\"}",
+  "argument_value": {"run": "R-100"},
+  "parse_state": "complete",
+  "response_termination": "tool-calls",
+  "rejection": null
+}

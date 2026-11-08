@@ -1,0 +1,664 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-01-02:custody-event:0.2",
+  "title": "DEL-01-02 custody event — observation and recovery facts offered to receivers (PROPOSED)",
+  "description": "EXECUTION_AND_RECOVERY.md §4 and §9. DEL-01-02's own format, offered to DEL-01-04, DEL-01-03, DEL-04-03 (DEP-01-02-020), DEL-02-03 and DEL-03-03. DEL-01-02 writes no entry in DEL-04-03's record format (R17-10); the receiving writer maps these facts (§9 table). No kind here is a human act, an approval or a run end.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/observation_lost"
+    },
+    {
+      "$ref": "#/$defs/observation_recovered"
+    },
+    {
+      "$ref": "#/$defs/turn_outcome"
+    },
+    {
+      "$ref": "#/$defs/request_ended_unanswered"
+    },
+    {
+      "$ref": "#/$defs/acknowledgment_not_observed"
+    },
+    {
+      "$ref": "#/$defs/app_restart_interruption"
+    }
+  ],
+  "$defs": {
+    "observation_lost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "eventId",
+        "appSession",
+        "at",
+        "standing",
+        "home",
+        "generation",
+        "cause",
+        "conversations",
+        "liveTurns",
+        "inFlightItems",
+        "outstandingEntries"
+      ],
+      "properties": {
+        "kind": {
+          "const": "observation_lost"
+        },
+        "eventId": {
+          "type": "string",
+          "pattern": "^cev:.+"
+        },
+        "appSession": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "at": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "standing": {
+          "description": "R17-4: the App's own observation, never authority for what Codex holds.",
+          "const": "App-observed"
+        },
+        "home": {
+          "$ref": "#/$defs/home"
+        },
+        "generation": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "cause": {
+          "description": "Only an end of the supplier generation is an observation loss. Closing, hiding or reloading a window is not (R17-3; §2 DEF-1).",
+          "enum": [
+            "supplier-exit",
+            "supplier-stop",
+            "app-quit",
+            "system-termination"
+          ]
+        },
+        "conversations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "liveTurns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/turnRef"
+          }
+        },
+        "inFlightItems": {
+          "description": "Items started and not completed at the loss (ADAPTER PI-6 input).",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "threadId",
+              "turnId",
+              "itemId",
+              "itemType",
+              "lastObservedStatus"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "threadId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "turnId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "itemId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "itemType": {
+                "type": "string",
+                "minLength": 1
+              },
+              "lastObservedStatus": {
+                "enum": [
+                  "inProgress"
+                ]
+              }
+            }
+          }
+        },
+        "outstandingEntries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entryRef"
+          }
+        }
+      }
+    },
+    "observation_recovered": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "eventId",
+        "appSession",
+        "at",
+        "standing",
+        "threadId",
+        "home",
+        "generation",
+        "via",
+        "priorEvents",
+        "turns"
+      ],
+      "properties": {
+        "kind": {
+          "const": "observation_recovered"
+        },
+        "eventId": {
+          "type": "string",
+          "pattern": "^cev:.+"
+        },
+        "appSession": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "at": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "standing": {
+          "description": "R17-4: the App's own observation, never authority for what Codex holds.",
+          "const": "App-observed"
+        },
+        "threadId": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "home": {
+          "$ref": "#/$defs/home"
+        },
+        "generation": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "via": {
+          "enum": [
+            "thread/read",
+            "thread/resume"
+          ]
+        },
+        "priorEvents": {
+          "enum": [
+            "accessible",
+            "unavailable"
+          ]
+        },
+        "unavailableReason": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "turns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "turnId",
+              "supplierStatus",
+              "appReading"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "turnId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "supplierStatus": {
+                "enum": [
+                  "interrupted",
+                  "completed",
+                  "failed",
+                  "inProgress",
+                  "absent"
+                ]
+              },
+              "appReading": {
+                "type": "string",
+                "minLength": 1
+              },
+              "historyNote": {
+                "description": "G-5 (R18-7): on a graceful stop with a live turn Codex 0.158.0 writes into history that the user interrupted the turn on purpose (OBS-2 §5.2). Stated from the App's own record of the stop; the App does not parse history text.",
+                "const": "graceful-stop abort note (Codex 0.158.0, observed OBS-2)"
+              }
+            }
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "priorEvents": {
+            "const": "unavailable"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "unavailableReason"
+        ]
+      }
+    },
+    "turn_outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "eventId",
+        "appSession",
+        "at",
+        "standing",
+        "threadId",
+        "turnId",
+        "outcome",
+        "source"
+      ],
+      "properties": {
+        "kind": {
+          "const": "turn_outcome"
+        },
+        "eventId": {
+          "type": "string",
+          "pattern": "^cev:.+"
+        },
+        "appSession": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "at": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "standing": {
+          "description": "R17-4: the App's own observation, never authority for what Codex holds.",
+          "const": "App-observed"
+        },
+        "threadId": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "turnId": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "outcome": {
+          "enum": [
+            "completed",
+            "interrupted",
+            "failed",
+            "unknown"
+          ]
+        },
+        "source": {
+          "enum": [
+            "observed",
+            "recovered-from-supplier",
+            "not-observed"
+          ]
+        },
+        "cause": {
+          "description": "cancel-answer (C-13): no stop request; the person's cancel answer to a tool-permission request in this turn, after which Codex declined the item and interrupted the turn (observed OBS-2 §5.1).",
+          "enum": [
+            "person-interrupt",
+            "quit",
+            "codex-stop",
+            "cancel-answer"
+          ]
+        },
+        "stopRequest": {
+          "type": "string",
+          "pattern": "^stop:.+"
+        },
+        "causeRequest": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "itemsNotCompleted": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/notCompleted"
+          }
+        },
+        "descendantsActive": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/descendant"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "outcome": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source": {
+                "const": "not-observed"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "not-observed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "outcome": {
+                "const": "unknown"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "cause": {
+                "const": "cancel-answer"
+              }
+            },
+            "required": [
+              "cause"
+            ]
+          },
+          "then": {
+            "required": [
+              "causeRequest"
+            ],
+            "not": {
+              "required": [
+                "stopRequest"
+              ]
+            },
+            "properties": {
+              "outcome": {
+                "const": "interrupted"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "request_ended_unanswered": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "eventId",
+        "appSession",
+        "at",
+        "standing",
+        "entry",
+        "context"
+      ],
+      "properties": {
+        "kind": {
+          "const": "request_ended_unanswered"
+        },
+        "eventId": {
+          "type": "string",
+          "pattern": "^cev:.+"
+        },
+        "appSession": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "at": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "standing": {
+          "description": "R17-4: the App's own observation, never authority for what Codex holds.",
+          "const": "App-observed"
+        },
+        "entry": {
+          "$ref": "#/$defs/entryRef"
+        },
+        "context": {
+          "$ref": "#/$defs/lossContext"
+        }
+      }
+    },
+    "acknowledgment_not_observed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "eventId",
+        "appSession",
+        "at",
+        "standing",
+        "entry",
+        "settlementOrigin",
+        "context"
+      ],
+      "properties": {
+        "kind": {
+          "const": "acknowledgment_not_observed"
+        },
+        "eventId": {
+          "type": "string",
+          "pattern": "^cev:.+"
+        },
+        "appSession": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "at": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "standing": {
+          "description": "R17-4: the App's own observation, never authority for what Codex holds.",
+          "const": "App-observed"
+        },
+        "entry": {
+          "$ref": "#/$defs/entryRef"
+        },
+        "settlementOrigin": {
+          "type": "string",
+          "pattern": "^(person-via-interaction|app-explicit-error|app-rule:.+)$"
+        },
+        "context": {
+          "$ref": "#/$defs/lossContext"
+        }
+      }
+    },
+    "app_restart_interruption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "eventId",
+        "appSession",
+        "at",
+        "standing",
+        "threadId",
+        "home",
+        "priorSession",
+        "priorSessionEnd",
+        "liveTurnsAtEnd"
+      ],
+      "properties": {
+        "kind": {
+          "const": "app_restart_interruption"
+        },
+        "eventId": {
+          "type": "string",
+          "pattern": "^cev:.+"
+        },
+        "appSession": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "at": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "standing": {
+          "description": "R17-4: the App's own observation, never authority for what Codex holds.",
+          "const": "App-observed"
+        },
+        "threadId": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "home": {
+          "$ref": "#/$defs/home"
+        },
+        "priorSession": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "priorSessionEnd": {
+          "enum": [
+            "quit-with-live-work",
+            "ended-without-record",
+            "system-terminated"
+          ]
+        },
+        "liveTurnsAtEnd": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/turnRef"
+          }
+        }
+      }
+    },
+    "nonempty": {
+      "type": "string",
+      "minLength": 1
+    },
+    "turnRef": {
+      "type": "object",
+      "required": [
+        "threadId",
+        "turnId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "threadId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "turnId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "subject": {
+      "description": "Supplier references carried as data (HOSTING §6.1 subject references); never payload content.",
+      "type": "object",
+      "required": [
+        "threadId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "threadId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "turnId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "itemId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "entryRef": {
+      "description": "A register entry by reference: generation, identity, method and subject only. Native parameters are never carried (R17-4).",
+      "type": "object",
+      "required": [
+        "generation",
+        "requestIdentity",
+        "method"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestIdentity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject": {
+          "$ref": "#/$defs/subject"
+        }
+      }
+    },
+    "descendant": {
+      "type": "object",
+      "required": [
+        "kind",
+        "ref",
+        "observedStatus"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "child-thread",
+            "background-terminal",
+            "process"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observedStatus": {
+          "enum": [
+            "active",
+            "ended",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "lossContext": {
+      "enum": [
+        "supplier-exit",
+        "supplier-stop",
+        "app-quit",
+        "system-termination",
+        "app-ended-without-record"
+      ]
+    },
+    "home": {
+      "description": "The App-owned Codex home (DECISION-L L-1): H-acct, or H-key for API-key conversations.",
+      "type": "string",
+      "pattern": "^H-[a-z]+$"
+    },
+    "notCompleted": {
+      "description": "G-4 (R18-7): an item opened in the turn and never completed, settled at turn end.",
+      "type": "object",
+      "required": [
+        "itemId",
+        "itemType"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "itemId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "itemType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "settled": {
+          "const": "not completed (turn ended)"
+        }
+      }
+    }
+  }
+}

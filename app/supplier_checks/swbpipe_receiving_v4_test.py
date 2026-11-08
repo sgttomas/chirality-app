@@ -234,18 +234,19 @@ class V4Receiving(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             for source in pins['sources']:
-                target=root/source['snapshot'];target.parent.mkdir(parents=True,exist_ok=True)
-                target.write_bytes((ROOT/source['snapshot']).read_bytes())
+                snapshot=source['snapshot'].replace('execution/', 'app/contract_inputs/', 1)
+                target=root/snapshot;target.parent.mkdir(parents=True,exist_ok=True)
+                target.write_bytes((ROOT/snapshot).read_bytes())
             with patch('swbpipe_catalog_v4_receiving.ROOT',root):
                 selection()
                 for source in pins['sources']:
-                    path=root/source['snapshot'];raw=path.read_bytes();path.write_bytes(raw+b' ')
+                    path=root/source['snapshot'].replace('execution/', 'app/contract_inputs/', 1);raw=path.read_bytes();path.write_bytes(raw+b' ')
                     with self.assertRaisesRegex(ValueError,'selected source changed'):selection()
                     path.unlink()
                     with self.assertRaises(FileNotFoundError):selection()
                     path.write_bytes(raw)
             from swbpipe_catalog_receiving import selection as v3_selection
-            with self.assertRaisesRegex(ValueError,'integrated v4'):load_catalog(ROOT/v3_selection()['snapshot'])
+            with self.assertRaisesRegex(ValueError,'integrated v4'):load_catalog(ROOT/v3_selection()['snapshot'].replace('execution/', 'app/contract_inputs/', 1))
         with patch('swbpipe_catalog_v4_receiving.PINS_SHA256','0'*64):
             with self.assertRaisesRegex(ValueError,'selection changed'):selection()
 

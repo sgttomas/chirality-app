@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:role-run-context:0.1",
+  "title": "Original role receiving run context",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "formatVersion",
+    "projectId",
+    "run",
+    "writer",
+    "home",
+    "thread",
+    "generation",
+    "requestRef",
+    "requestIdentity",
+    "requestMethod",
+    "writeResult",
+    "outcome",
+    "sourceCurrent",
+    "nativeTurn",
+    "observedTurnStatus",
+    "roleSource",
+    "limitAccount",
+    "runText",
+    "selectionRecord",
+    "opened",
+    "scope",
+    "standing"
+  ],
+  "properties": {
+    "format": {
+      "const": "chirality.role.run.context"
+    },
+    "formatVersion": {
+      "const": "0.1"
+    },
+    "projectId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run": {
+      "type": "string",
+      "minLength": 1
+    },
+    "writer": {
+      "const": "app-workflow-supply-writer"
+    },
+    "home": {
+      "type": "string",
+      "minLength": 1
+    },
+    "thread": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "appSession": {
+          "type": "string",
+          "minLength": 1
+        },
+        "home": {
+          "type": "string",
+          "minLength": 1
+        },
+        "spawnCounter": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "appSession",
+        "home",
+        "spawnCounter"
+      ]
+    },
+    "requestRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requestIdentity": {
+      "type": [
+        "string",
+        "integer"
+      ]
+    },
+    "requestMethod": {
+      "const": "turn/start"
+    },
+    "writeResult": {
+      "const": "written"
+    },
+    "outcome": {
+      "const": "response-observed-result"
+    },
+    "sourceCurrent": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "nativeTurn": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observedTurnStatus": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "roleSource": {
+      "type": "string",
+      "minLength": 1
+    },
+    "limitAccount": {
+      "type": "string",
+      "minLength": 1
+    },
+    "runText": {
+      "type": "string",
+      "minLength": 1
+    },
+    "selectionRecord": {
+      "type": "string",
+      "minLength": 1
+    },
+    "opened": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recordId",
+        "content",
+        "observedAt"
+      ],
+      "properties": {
+        "recordId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "value"
+          ],
+          "properties": {
+            "method": {
+              "const": "chirality.app.rs.body-json.sha256/v1"
+            },
+            "value": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "observedAt": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceRoot",
+        "holdingLibrary",
+        "selectionRef",
+        "revisionStore"
+      ],
+      "properties": {
+        "sourceRoot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "holdingLibrary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selectionRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revisionStore": {}
+      }
+    },
+    "standing": {
+      "const": "App observation of the original run start; unsigned file provenance is unverified; no current native authority restored"
+    }
+  }
+}

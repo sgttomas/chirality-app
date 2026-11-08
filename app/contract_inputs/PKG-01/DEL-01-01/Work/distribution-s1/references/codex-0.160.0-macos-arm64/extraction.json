@@ -1,0 +1,52 @@
+{
+  "format": "supplier-extraction-procedure/1",
+  "archive_sha256": "fc789bcd655d903f92e1a23c8dc5315ba38f43b3586eafb7bd3b195970b57466",
+  "archive_listing": {
+    "command": "tar -tvzf codex-0.160.0-darwin-arm64.tgz",
+    "entries": 44,
+    "entry_types": "44 regular files; no directory, symbolic-link, hard-link or special entries",
+    "outside_source_subtree": [
+      "package/package.json",
+      "package/README.md"
+    ],
+    "inside_source_subtree": 42
+  },
+  "procedure": [
+    "Make a new empty directory: mktemp -d (outside the repository).",
+    "With umask 022, run: tar -xzf codex-0.160.0-darwin-arm64.tgz -C <new directory>.",
+    "Measure the source subtree <new directory>/package/vendor/aarch64-apple-darwin as the codex-vendor-tree-v1 root.",
+    "Do not run npm, package scripts or any file from the archive during extraction or measurement."
+  ],
+  "source_subtree": "package/vendor/aarch64-apple-darwin",
+  "mode_provenance": "The archive carries no directory entries, so bsdtar creates directories with the extracting umask: 0755 under umask 022. File modes 0755/0644 come from the archive headers and are unchanged by umask 022. A different umask yields different directory or file modes and therefore a different tree.",
+  "tools": {
+    "tar": "bsdtar 3.5.3 - libarchive 3.7.4",
+    "os": "macOS 26.6.2 (25G83), arm64",
+    "python": "3.13.7, run with -I"
+  },
+  "measurement": {
+    "method": "codex-vendor-tree-v1",
+    "scanner": "author's standard-library descriptor-relative, no-follow scanner run with python3 -I: refuses symbolic links, special files, regular files with link count other than one, unrepresentable names and detected mutation; records root '.' and every descendant with st_mode & 07777, and size and SHA-256 for files",
+    "validation": "distribution-s1 model.inventory.validate returned no problems; model.inventory.manifest recomputation equals manifest_sha256",
+    "independent_cross_check": "app/packaging/inventory.py scan() on the same fresh tree gives the same paths, kinds, modes, sizes and SHA-256 values and the same manifest; it reports 30 Mach-O files and only dir/file kinds",
+    "repeatability": "the fresh extraction and HELP_HUMAN's earlier cache extraction give byte-identical inventory JSON",
+    "probe_effect": "re-inventory of the fresh tree after the label probe is byte-identical to the pre-probe inventory"
+  },
+  "result": {
+    "entries": 53,
+    "files": 42,
+    "directories": 11,
+    "file_bytes": 332968547,
+    "manifest_sha256": "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12",
+    "bin/codex_sha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+    "codex-package.json": {
+      "layoutVersion": 1,
+      "version": "0.160.0",
+      "target": "aarch64-apple-darwin",
+      "variant": "codex",
+      "entrypoint": "bin/codex",
+      "resourcesDir": "codex-resources",
+      "pathDir": "codex-path"
+    }
+  }
+}

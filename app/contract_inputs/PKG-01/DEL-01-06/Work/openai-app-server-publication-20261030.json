@@ -1,0 +1,31 @@
+{
+  "requested_url": "https://learn.chatgpt.com/docs/app-server#auth-endpoints",
+  "resolved_url": "https://learn.chatgpt.com/docs/app-server",
+  "retrieved_at": "2026-10-30T22:27:28.120160+00:00",
+  "http_status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "last_modified": "Fri, 30 Oct 2026 22:25:46 GMT",
+  "bytes": 982933,
+  "sha256": "45066e6ad75795ef8ff658c9a40540efbfcc843e38bcee9d0e2cf5ea6259e343",
+  "supplier": "OpenAI",
+  "publication_date": null,
+  "publication_date_note": "No publication date established for the cited statement; HTTP Last-Modified is retained only as a response header, not a publication date.",
+  "capture_actor": "App macOS packaging Type 1, agent recorder",
+  "capture_method": "Python urllib HTTPS GET without credentials; UTF-8 HTML decoded; exact p and li element substrings retained below; HTMLParser text extraction decodes entities and concatenates text nodes.",
+  "full_response_custody": "/Users/ryan/dev/chirality-t3/scratch/app-macos-packaging-k15ok7t8/openai-app-server.html",
+  "excerpts": [
+    {
+      "section": "Auth endpoints continuation notice",
+      "html": "<p>If you’ve built a local or open-source application using Codex app-server authentication, you can continue using it, though we recommend migrating to Sign in with ChatGPT so users have greater control over and visibility into their usage. See developer docs for Sign in with ChatGPT <a href=\"https://developers.openai.com/siwc\" target=\"_blank\" rel=\"noopener noreferrer\">here</a>, and our implementation cookbook <a href=\"https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt\" target=\"_blank\" rel=\"noopener noreferrer\">here</a>. App-server authentication has never been permitted for commercial or hosted services. We launched Sign in with ChatGPT to support these use cases, and we’re excited to see what you build. Join our partner waitlist <a href=\"https://openai.com/form/sign-in-with-chatgpt-interest/\" target=\"_blank\" rel=\"noopener noreferrer\">here</a>.</p>",
+      "text": "If you’ve built a local or open-source application using Codex app-server authentication, you can continue using it, though we recommend migrating to Sign in with ChatGPT so users have greater control over and visibility into their usage. See developer docs for Sign in with ChatGPT here, and our implementation cookbook here. App-server authentication has never been permitted for commercial or hosted services. We launched Sign in with ChatGPT to support these use cases, and we’re excited to see what you build. Join our partner waitlist here.",
+      "html_sha256": "cbbbf404fcc1d5ee12064a6859a16a47b15fe57e766ea0b82a4efa2f530929f0"
+    },
+    {
+      "section": "Authentication modes / ChatGPT managed",
+      "html": "<li><strong>ChatGPT managed (<code>chatgpt</code>)</strong> - Codex owns the ChatGPT OAuth flow, persists tokens, and refreshes them automatically. Start with <code>type: &quot;chatgpt&quot;</code> for the browser flow or <code>type: &quot;chatgptDeviceCode&quot;</code> for the device-code flow.</li>",
+      "text": "ChatGPT managed (chatgpt) - Codex owns the ChatGPT OAuth flow, persists tokens, and refreshes them automatically. Start with type: \"chatgpt\" for the browser flow or type: \"chatgptDeviceCode\" for the device-code flow.",
+      "html_sha256": "e891280776e9a421b29ed1445a0bc25c6b5158d3be6346bf0c6de299c979c03e"
+    }
+  ],
+  "standing": "Agent-captured official publication excerpts for proposed owner applicability disposition; not direct supplier response, owner obtaining act, legal conclusion, terms resolution or distribution approval."
+}

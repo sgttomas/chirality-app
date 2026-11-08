@@ -1,0 +1,102 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "declaration_sha256",
+    "support_identity",
+    "artifact",
+    "binding_method",
+    "binding_purpose"
+  ],
+  "properties": {
+    "format": {
+      "const": "exp-support-binding.canonical.v1"
+    },
+    "declaration_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "support_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exp_version",
+        "schema_ids",
+        "prototype_sha256"
+      ],
+      "properties": {
+        "exp_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_ids": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "result",
+            "review",
+            "change"
+          ],
+          "properties": {
+            "result": {
+              "type": "string",
+              "minLength": 1
+            },
+            "review": {
+              "type": "string",
+              "minLength": 1
+            },
+            "change": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "prototype_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "record_id",
+        "kind"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "record_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "result",
+            "review",
+            "change",
+            "package"
+          ]
+        }
+      }
+    },
+    "binding_method": {
+      "const": "EXP-SUPPORT-BINDING-v1"
+    },
+    "binding_purpose": {
+      "enum": [
+        "current_producer_declaration",
+        "historical_correspondence"
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:exp-support-binding:canonical:1",
+  "description": "EXP-SUPPORT-BINDING-v1 additive sidecar; declaration selection is fixed outside writer input. Actual producer use and publication authority are not authenticated."
+}

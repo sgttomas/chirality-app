@@ -1,0 +1,185 @@
+{
+  "description": "Valid (invented): (1) an A4 offer on an App file answering a recorded arrival, opened by the person from the arrival's row (SD-3; R18-5); (2) an A15 offer composed from one WR a15_descriptor: a new revision of supports-adjust following rev-4, bound to the reviewed draft's bytes; (3) one A15 act over two library entries registered in place, composed from one WR a15_multi_descriptor (DECISION-L L-4; R21-3): 'entry:' strings, no prior revision, the plural wording; each entry bound to its own reviewed bytes. (4) AAC-v0.3 (pass 4, R23-18): an A16 'decide' offer on one decision package (an App file recorded as an act_request), showing its two alternatives with their consequences; no decline. The A16 instance carries non-ASCII text (\u00fc, \u2248, U+2028) in its alternatives' consequences, and its offerDigest is aac-offer-digest/0.1 over those characters as themselves (RV E1-R4).",
+  "instances": [
+    {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0003",
+      "actKind": "A4",
+      "wording": "mark checked",
+      "subject": {
+        "class": "App file",
+        "ref": "AF-1",
+        "contentIdentity": {
+          "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+          "value": "af1f...20"
+        }
+      },
+      "scope": "AF-1",
+      "purpose": "App output checked",
+      "actorRequirement": "the person",
+      "declineAvailable": true,
+      "answers": {
+        "arrival": {
+          "checkpoint": "CP-output-check",
+          "arrivalOrdinal": 1
+        },
+        "runId": "run:R-200/3"
+      },
+      "requestRef": "rec:app:run-3:0004",
+      "composedAt": "2026-10-01T10:10:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "0ffe...77"
+      }
+    },
+    {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0009",
+      "actKind": "A15",
+      "wording": "register workflow revision",
+      "descriptorId": "a15d:supports-adjust:0004",
+      "descriptorKind": "a15_descriptor",
+      "entries": [
+        {
+          "subject": {
+            "ref": "workflow revision project:supports-adjust@rev-5",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "draft:project:supports-adjust@d13c...4a",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "d13c...4a"
+            }
+          },
+          "priorRevision": {
+            "kind": "workflow",
+            "origin": "project",
+            "sourceRoot": ".chirality/workflows",
+            "name": "supports-adjust",
+            "revision": "rev-4",
+            "revisionMethod": "proto-sha256-list-0 (illustration)"
+          }
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make it available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:00:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "9a9a...10"
+      }
+    },
+    {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:0011",
+      "actKind": "A15",
+      "wording": "register workflow revisions",
+      "descriptorId": "a15m:rv-9",
+      "descriptorKind": "a15_multi_descriptor",
+      "entries": [
+        {
+          "subject": {
+            "ref": "workflow revision project:notes-a@5e21...0c",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "entry:project:notes-a@5e21...0c",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "5e21...0c"
+            }
+          },
+          "priorRevision": null
+        },
+        {
+          "subject": {
+            "ref": "workflow revision project:notes-c@b7a0...93",
+            "contentIdentity": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "b7a0...93"
+            }
+          },
+          "reviewedDraft": {
+            "draft": "entry:project:notes-c@b7a0...93",
+            "content": {
+              "method": "illustration: sha-256 over content bytes (method unselected; RS U-04, WD U-03)",
+              "value": "b7a0...93"
+            }
+          },
+          "priorRevision": null
+        }
+      ],
+      "scope": "project library .chirality/workflows",
+      "purpose": "make them available in the project library",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "composedAt": "2026-10-02T10:05:00Z",
+      "offerDigest": {
+        "method": "illustration: sha-256 over the canonical offer",
+        "value": "4c4c...e8"
+      }
+    },
+    {
+      "format": "chirality.aac.offer",
+      "formatVersion": "0.3",
+      "offerId": "offer:pkg-1",
+      "actKind": "A16",
+      "wording": "decide",
+      "subject": {
+        "class": "App file",
+        "ref": "project/decisions/PKG-1.json",
+        "contentIdentity": {
+          "method": "file content identity (method unselected; TEST VALUE: sha-256 of the file bytes)",
+          "value": "sha256:2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b"
+        }
+      },
+      "scope": "undertaking FX-U1 (invented)",
+      "purpose": "choose how stage 2 of FX-U1 proceeds (invented)",
+      "actorRequirement": "the person",
+      "declineAvailable": false,
+      "answers": {
+        "standing": "no arrival: a standing act (RC-6)"
+      },
+      "requestRef": "rec:app:coord:0001",
+      "composedAt": "t3",
+      "alternatives": [
+        {
+          "id": "ALT-1",
+          "statement": "Start stage 2 now on the current supplier facts",
+          "consequences": [
+            "Stage 2 starts today; any changed supplier fact reopens the affected parts"
+          ]
+        },
+        {
+          "id": "ALT-2",
+          "statement": "Hold stage 2 until the version check returns, then start",
+          "consequences": [
+            "Stage 2 starts after the check (Pr\u00fcfung); no rework from a changed fact; \u2248 one day later\u2028(invented)"
+          ]
+        }
+      ],
+      "offerDigest": {
+        "method": "aac-offer-digest/0.1",
+        "value": "f0d825711252c9b4c92fd8c5e481ce8360e5541f06b8b48981184b8bcdb674e3"
+      }
+    }
+  ]
+}

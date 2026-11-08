@@ -1,0 +1,38 @@
+{
+  "description": "Invalid: a node claims the child returned and was integrated (no such element exists: REQ-003), and the delegating-role standing is a value DEL-02-04 does not hand ('enforced'; C-08 allows stated-not-enforced, enforced-by-supplier, unknown).",
+  "instance": {
+    "exportId": "exp-fixture-2",
+    "producedAt": 1790000060000,
+    "producer": {
+      "deliverable": "DEL-01-03",
+      "typesPin": "0.158.0",
+      "observedVersionLabel": "codex-cli 0.158.0"
+    },
+    "rootThreadId": "thr-fixture-parent",
+    "nodes": [
+      {
+        "threadId": "thr-fixture-child-1",
+        "parentThreadId": "thr-fixture-parent",
+        "parentSource": "collabAgentToolCall",
+        "lastObserved": {
+          "status": "completed",
+          "source": "collabAgentToolCall.agentsStates",
+          "at": 1790000030000
+        },
+        "observationEnded": false,
+        "returnedAndIntegrated": true,
+        "delegatingRole": {
+          "role": "TASK",
+          "limitId": "L-TASK-1",
+          "standing": "enforced"
+        }
+      }
+    ],
+    "limits": [
+      "Child completion, return, review and integration are not inferred from any observation here.",
+      "A parent turn's completion says nothing about its children.",
+      "Status values are the last observed value from the named source at the named time.",
+      "Identities are Codex's; this export is App-observed, not authority for what Codex holds."
+    ]
+  }
+}

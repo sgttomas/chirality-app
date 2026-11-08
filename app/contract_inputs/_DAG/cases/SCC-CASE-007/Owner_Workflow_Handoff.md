@@ -1,0 +1,3 @@
+HandoffID,OwnerWorkflow,TriggerCondition,PayloadPath,ExpectedOutput,Status
+H01,WORKING_ITEMS,Actual CP1 basis review under chirality-root:bundled:workflow:project-dag,projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Case_Datasheet.md,Owner-rulable treatment and objective for R1/R2/R3 with both transfers and all 41 Deliverable IDs preserved; no acceptance inferred,PROPOSED_NOT_DISPATCHED
+H02,DEPCLOSURE,After actual authorized graph/row treatment; selected chirality-root:bundled:workflow:audit-dep-closure examines exact candidate,projects/chirality-app-v4/execution/_DAG/cases/SCC-CASE-007/Candidate_Remedies.csv,Follow-up snapshot and member-set comparison; only observed results may support later case-state disposition,PROPOSED_NOT_DISPATCHED

@@ -1,0 +1,556 @@
+[
+  {
+    "number": 169,
+    "recorded_base": "4162bd05fe340de4c000808653498e1d57d9f841",
+    "recorded_head": "2218ca456214ac2c541e126a8d96c7151fc8bc02",
+    "changes": [
+      {
+        "path": "execution/PKG-03/DEL-03-01/Work/CATALOG_AND_READ_BASIS.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-03/DEL-03-01/Work/prototype/README.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-03/DEL-03-02/Work/PROPOSAL_LIFECYCLE_AND_OUTCOMES.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-03/DEL-03-02/Work/SWBPIPE_CORPUS_RECEIVING.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-03/DEL-03-02/Work/prototype/README.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-03/DEL-03-03/Work/ADAPTER_ENABLEMENT_AND_RECEIVING.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-03/DEL-03-03/Work/prototype/README.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-03/DEL-03-04/Work/HOST_INTEGRATION_GUIDE.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      }
+    ],
+    "selects_product": false
+  },
+  {
+    "number": 170,
+    "recorded_base": "d22aabf4d429deab423cd2f0c61e1d5864aad76a",
+    "recorded_head": "e54ad4d445ac0608882d2944ea221c5b6de87910",
+    "changes": [
+      {
+        "path": "execution/PKG-11/DEL-11-02/Work/ADOPTION_ACCOUNT.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      }
+    ],
+    "selects_product": false
+  },
+  {
+    "number": 171,
+    "recorded_base": "032333dbfb7740ea453cf131823206db6b360219",
+    "recorded_head": "6b518687433bc8cb0f032c122041b8e746c7a4f0",
+    "changes": [
+      {
+        "path": "execution/PKG-02/DEL-02-01/Work/prototype/README.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-02/DEL-02-02/ScopeOfWork.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-02/DEL-02-02/Work/BUNDLED_RUN_ADMISSION.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-02/DEL-02-03/Work/prototype/README.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-02/DEL-02-04/Work/ROLE_PIN_0.160.0.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-02/DEL-02-04/Work/ROLE_SUPPLY.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-02/DEL-02-04/Work/prototype/README.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      }
+    ],
+    "selects_product": false
+  },
+  {
+    "number": 172,
+    "recorded_base": "ba76f0c3b5e013eb4b5dcb37277fb3c2f21fbcf0",
+    "recorded_head": "bd892666a0109502f951b88fb80a620dc2fa5d81",
+    "changes": [
+      {
+        "path": "execution/PKG-10/DEL-10-01/Work/LIBRARY_V2_1_RECEIVING.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-10/DEL-10-01/Work/LIBRARY_V3_1_RECEIVING.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-10/DEL-10-01/Work/LIBRARY_V3_RECEIVING.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-10/DEL-10-01/deliverable.yaml",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-10/DEL-10-03/Work/RESPONSIBILITY_ACCOUNT.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-11/DEL-11-02/Work/ADOPTION_ACCOUNT.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      }
+    ],
+    "selects_product": false
+  },
+  {
+    "number": 173,
+    "recorded_base": "87f60f65c8c6a68c0e1b02d3047f0f612c102cff",
+    "recorded_head": "647895691ded3068d677f7963e93e65cfe40b329",
+    "changes": [
+      {
+        "path": "execution/PKG-09/DEL-09-01/Work/CURRENT_ADMISSION_ADOPTION.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-09/DEL-09-01/Work/HISTORICAL_DISTRIBUTION_TERMINAL_DISPOSITION.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-09/DEL-09-01/Work/package-successor-receiving-v1/RECEIVING.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-09/DEL-09-05/Work/DECISION_ATTRIBUTION_CASE.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-09/DEL-09-05/deliverable.yaml",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-09/DEL-09-06/Work/CONNECTED_ACTIVITY_CONTRACT.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-09/DEL-09-06/Work/SWBPIPE_CATALOG_V3_RECEIVING.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-09/DEL-09-06/Work/SWBPIPE_RECEIVING_BINDING.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-09/DEL-09-07/Work/SWBPIPE_RECEIVING.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-09/DEL-09-09/Work/prototype/README.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-09/DEL-09-10/Work/CONNECTOR_WITNESS.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-09/DEL-09-11/Work/READER_METHOD.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-09/DEL-09-12/Work/PRACTITIONER_VALIDATION.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      }
+    ],
+    "selects_product": false
+  },
+  {
+    "number": 174,
+    "recorded_base": "23dda1c25d5a87dbb76403a463a57b06683925ed",
+    "recorded_head": "b9e0853fc88d2954149e8389f42f202f40ded068",
+    "changes": [
+      {
+        "path": "execution/PKG-09/DEL-09-02/Work/J1_PHASE_PREPARATION.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-09/DEL-09-02/Work/J2_PARTIAL_ACTUAL_20261108.md",
+        "status": "A",
+        "old_mode": "000000",
+        "new_mode": "100644"
+      }
+    ],
+    "selects_product": false
+  },
+  {
+    "number": 175,
+    "recorded_base": "796e446aca7722a6a4b1c1f5d8cfd31a441150b2",
+    "recorded_head": "665dcd350fb0124f8f3e3f9934459249e2b9e8ec",
+    "changes": [
+      {
+        "path": "execution/PKG-01/DEL-01-01/ScopeOfWork.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-01/Work/HOSTING_BOUNDARY.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-01/Work/PUBLISHER_BUILD_SELECTION.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-02/Work/EXECUTION_AND_RECOVERY.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-02/Work/HOSTED_WINDOWS_P03_STOP_CANDIDATE.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-02/Work/WINDOWS_PLATFORM_SERVICES.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-02/Work/WINDOWS_PROCESS_FIXTURE_RESULTS.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-03/Work/NATIVE_PLANS_TOOLS_DELEGATION.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-03/Work/prototype/README.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-04/Work/APP_ACT_CONTROL.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-04/Work/CORE_MENU_CAPABILITY_NARROWING.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-04/Work/NATIVE_INTERACTION_RECEIVING.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-04/Work/prototype/README.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-04/deliverable.yaml",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-05/Work/ACCOUNT_AND_PROVIDER_ACCESS.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-05/Work/NATIVE_START_SOURCE_BINDING.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-06/Work/PACKAGING_AND_DISTRIBUTION.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-06/Work/PRODUCTION_INPUT_PREPARATION.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-06/Work/V4_TEST_SUBJECT.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/LOCAL_RECEIPT_INTAKE.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/README.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-06/deliverable.yaml",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      }
+    ],
+    "selects_product": false
+  },
+  {
+    "number": 176,
+    "recorded_base": "d0d2bbf2873ecd6182963b42bcd644574ed1f024",
+    "recorded_head": "70f9ce3edd9d3f6c2fd3601cf4c54052abda661c",
+    "changes": [
+      {
+        "path": "execution/PKG-06/DEL-06-01/Work/FLEET_RECORDS.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      }
+    ],
+    "selects_product": false
+  },
+  {
+    "number": 177,
+    "recorded_base": "07cda65cf39fcc02687030a3a2b5a404cb2d6d11",
+    "recorded_head": "840e4a1ddc6c6708e6cd26ae9bdbb67faa030d27",
+    "changes": [
+      {
+        "path": "execution/PKG-04/DEL-04-03/Work/RECORD_SEMANTICS.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      }
+    ],
+    "selects_product": false
+  },
+  {
+    "number": 178,
+    "recorded_base": "74589d45609624c44fa9bc7e27757f14b5fbabbb",
+    "recorded_head": "5fb9e5c87bf51282bcaef17fa25759f10c14c0e6",
+    "changes": [
+      {
+        "path": "app/examination/windows_platform/README.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-01/DEL-01-02/Work/EXECUTION_AND_RECOVERY.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/_Coordination/CURRENT_EXECUTION_BASIS.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/_Coordination/PUBLICATION_PUNCHLIST.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      }
+    ],
+    "selects_product": true
+  },
+  {
+    "number": 179,
+    "recorded_base": "a96890454aa47ee29fbafe1b32a427be948e2654",
+    "recorded_head": "3dd0357f816fa92c7f6051e645f53d145a6e54a7",
+    "changes": [
+      {
+        "path": "execution/PKG-03/DEL-03-04/ScopeOfWork.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-03/DEL-03-04/Work/HOST_INTEGRATION_GUIDE.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-07/DEL-07-01/ScopeOfWork.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-07/DEL-07-02/ScopeOfWork.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/PKG-07/DEL-07-02/Work/PEC_RETIREMENT_RECONCILIATION.md",
+        "status": "A",
+        "old_mode": "000000",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/_Coordination/CURRENT_EXECUTION_BASIS.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      }
+    ],
+    "selects_product": false
+  },
+  {
+    "number": 180,
+    "recorded_base": "5a579e486dffeacb3c33ab98e141162ebf726c99",
+    "recorded_head": "844ad82fa7df7a7e5dfa6f8ed83ce775b521da1e",
+    "changes": [
+      {
+        "path": "AGENTS.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      }
+    ],
+    "selects_product": false
+  },
+  {
+    "number": 181,
+    "recorded_base": "a96890454aa47ee29fbafe1b32a427be948e2654",
+    "recorded_head": "e9b9ae5e55e3ce2ebc4ac2c3b09426da7ea5a00e",
+    "changes": [
+      {
+        "path": "execution/_Coordination/CURRENT_EXECUTION_BASIS.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      },
+      {
+        "path": "execution/_Coordination/WINDOWS_UNDERTAKING.md",
+        "status": "M",
+        "old_mode": "100644",
+        "new_mode": "100644"
+      }
+    ],
+    "selects_product": false
+  }
+]

@@ -312,7 +312,7 @@ class TermsPosition(unittest.TestCase):
         self.assertFalse(result['distribution_decision_recorded'])
 
     def test_legacy_reader_keeps_original_closed_meaning(self):
-        work = ROOT / 'execution/PKG-01/DEL-01-06/Work'
+        work = ROOT / 'app/contract_inputs/PKG-01/DEL-01-06/Work'
         legacy_schema = reader.parse((work / 'pkg.terms-record.schema.json').read_bytes())
         legacy_record = reader.parse((work.parent / 'Evidence/PKG/terms/OpenAI.json').read_bytes())
         validator = reader.Draft202012Validator(legacy_schema)

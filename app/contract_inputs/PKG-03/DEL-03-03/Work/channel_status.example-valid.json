@@ -1,0 +1,26 @@
+{
+  "host_identity": "SH-1",
+  "reporter": "host",
+  "since": "main:5:host_enablement_observed",
+  "host_enablement": {
+    "record": "in_force",
+    "capture_evidence_reference": "SH1-CAP-1"
+  },
+  "app_side_configuration": {
+    "present": true,
+    "directed_by": "person",
+    "path": "N-CLI",
+    "locus": "command_on_path"
+  },
+  "endpoint": {
+    "reachable": "yes",
+    "locality": "local_process"
+  },
+  "model_destination": {
+    "requested": "user-selected model",
+    "effective": "unknown",
+    "destination_class": "unknown"
+  },
+  "evidence_limits": [],
+  "channel_state": "enabled"
+}

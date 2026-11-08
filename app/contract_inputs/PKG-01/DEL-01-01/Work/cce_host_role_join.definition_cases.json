@@ -1,0 +1,156 @@
+{
+  "status": "PROPOSED definition expectations; not executed native tests",
+  "basis": "2254d6b2806158211411aa05f74001465ce829b4",
+  "cases": [
+    {
+      "id": "EARLY",
+      "input": "item+terminal after dispatch cut but before response/write completion",
+      "expected": "pending until complete write and correlated matching turn",
+      "invariant": "No premature mint; arrival order does not imply write success"
+    },
+    {
+      "id": "CUT",
+      "input": "item observed before dispatch cut but exact text equals later answer",
+      "expected": "refuse",
+      "invariant": "No history-to-origin promotion"
+    },
+    {
+      "id": "COUNTERS",
+      "input": "sendPosition numerically exceeds receiptPosition",
+      "expected": "never compare across domains",
+      "invariant": "Only generation-local receipt cut orders received events"
+    },
+    {
+      "id": "WRITE",
+      "input": "matching response plus partial/failed write",
+      "expected": "refuse mint, retain uncertainty",
+      "invariant": "Response cannot replace complete-write proof"
+    },
+    {
+      "id": "SECOND_TURN",
+      "input": "two candidate turns on selected thread before result",
+      "expected": "poison capture",
+      "invariant": "Fixed cardinality; no posthoc history search"
+    },
+    {
+      "id": "SECOND_ITEM",
+      "input": "two final IDs with identical text",
+      "expected": "poison capture",
+      "invariant": "Identity ambiguity survives equal content"
+    },
+    {
+      "id": "DUPLICATE",
+      "input": "same qualifying native identity/frame delivered twice",
+      "expected": "idempotent",
+      "invariant": "One emission/mint; distinct positions not new authorship"
+    },
+    {
+      "id": "CONFLICT",
+      "input": "same itemID different text or phase",
+      "expected": "poison capture",
+      "invariant": "No newest-wins"
+    },
+    {
+      "id": "TERMINAL",
+      "input": "completed notification with failed/interrupted/status-error contradiction",
+      "expected": "refuse",
+      "invariant": "Successful response is not successful terminal"
+    },
+    {
+      "id": "PHASE",
+      "input": "agentMessage has missing/null phase or commentary",
+      "expected": "refuse",
+      "invariant": "No final-answer guess"
+    },
+    {
+      "id": "ROLE",
+      "input": "RoleBinding constructed from caller JSON without admitted Host chain",
+      "expected": "refuse",
+      "invariant": "Private fields alone not transport provenance"
+    },
+    {
+      "id": "SEPARATION",
+      "input": "manager review uses answer conversation/request/turn/item",
+      "expected": "refuse",
+      "invariant": "Distinct manager source required"
+    },
+    {
+      "id": "REVIEW_BINDING",
+      "input": "review request mentions equal hash but producer selected different answer bytes",
+      "expected": "refuse",
+      "invariant": "Exact structured selection, not prose claim"
+    },
+    {
+      "id": "CLOSE_BEFORE",
+      "input": "source closes before last needed join",
+      "expected": "refuse mint",
+      "invariant": "Closed late frame cannot advance capture"
+    },
+    {
+      "id": "CLOSE_AFTER",
+      "input": "answer minted then closes; review source still current",
+      "expected": "answer historical independently",
+      "invariant": "Review cannot revive answer currentness"
+    },
+    {
+      "id": "LATE_CONFLICT",
+      "input": "new contradictory frame after mint before freeze",
+      "expected": "current recheck refuses; historical first bytes retained",
+      "invariant": "Point-in-time mint is not eternal validity"
+    },
+    {
+      "id": "CANCEL",
+      "input": "cancel then late matching response/item/terminal",
+      "expected": "no resurrection",
+      "invariant": "Capture epoch retired"
+    },
+    {
+      "id": "FREEZE_RACE",
+      "input": "role/Host/capture/selection changes between parse and freeze",
+      "expected": "guarded revision recheck refuses",
+      "invariant": "No unlocked boolean authority"
+    },
+    {
+      "id": "IMPORT",
+      "input": "history read/inject_items/fork-carried message matches selected text",
+      "expected": "no mint from history",
+      "invariant": "Live request-specific source required"
+    },
+    {
+      "id": "BUDGET",
+      "input": "raw+parsed+escaped text and metadata exceeds1MiB",
+      "expected": "refuse before identity exposure",
+      "invariant": "No truncation/second buffer exclusion"
+    },
+    {
+      "id": "CAPACITY",
+      "input": "existing CAM payload in flight",
+      "expected": "refuse CCE admission",
+      "invariant": "No second full payload or hidden reservation"
+    },
+    {
+      "id": "COLD",
+      "input": "serialized receipt loaded after process restart",
+      "expected": "historical resolution only",
+      "invariant": "No request/role capability hydration"
+    },
+    {
+      "id": "NOTICE",
+      "input": "pending run-end notice changes intended one-text request",
+      "expected": "resolve original composition before dispatch or refuse CCE",
+      "invariant": "No silent prepend/bypass"
+    },
+    {
+      "id": "UNRELATED",
+      "input": "another thread sends normal notifications during capture",
+      "expected": "ordinary Host handling unchanged",
+      "invariant": "CCE eligibility cannot filter event stream"
+    },
+    {
+      "id": "POSITIVE_GAP",
+      "input": "valid positive content review but A2 enum unavailable without plan",
+      "expected": "observed emission retained; representation refuses",
+      "invariant": "No invented plan/enum/integration claim"
+    }
+  ]
+}

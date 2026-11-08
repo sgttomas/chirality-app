@@ -17,7 +17,7 @@ root = here.parents[2]
 manifest_path = here / 'manifest.json'
 manifest = json.loads(manifest_path.read_text())
 for row in manifest['resources']:
-    source = (root / row['source']).read_bytes()
+    source = (root / row['source'].replace('execution/', 'app/contract_inputs/', 1)).read_bytes()
     copied = here / row['file']
     digest = hashlib.sha256(source).hexdigest()
     if args.sync:
@@ -29,7 +29,7 @@ for row in manifest['resources']:
         assert digest == row['sha256'], f"source hash mismatch: {row['source']}"
         assert json.loads(source)['$id'] == row['id'], f"schema ID mismatch: {row['file']}"
 for row in manifest.get('file_fixtures', []):
-    source = (root / row['source']).read_bytes()
+    source = (root / row['source'].replace('execution/', 'app/contract_inputs/', 1)).read_bytes()
     copied = here / row['file']
     digest = hashlib.sha256(source).hexdigest()
     if args.sync:
@@ -41,7 +41,7 @@ for row in manifest.get('file_fixtures', []):
 fixture = manifest['fixture']
 entries = []
 for row in fixture['sources']:
-    source = (root / row['source']).read_bytes()
+    source = (root / row['source'].replace('execution/', 'app/contract_inputs/', 1)).read_bytes()
     digest = hashlib.sha256(source).hexdigest()
     if args.sync:
         row['sha256'] = digest

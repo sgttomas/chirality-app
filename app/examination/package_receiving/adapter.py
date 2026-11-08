@@ -4,6 +4,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import stat
@@ -71,6 +72,22 @@ def digest(value):
     require(isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value), 'invalid digest')
 
 
+def deliverable_path(root, relative):
+    """Resolve retained logical identities to current App inputs; never follow Design links."""
+    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
+    if match is not None:
+        if os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
+            return relative
+        relative = match.group(1) + 'Work/' + relative[match.end():]
+    if relative.startswith('execution/'):
+        # Historical/custom evidence trees have no current App-input namespace.
+        # A maintained root never falls back to its authoring execution tree.
+        if not os.path.lexists(os.path.join(root, 'app/contract_inputs')) and os.path.lexists(os.path.join(root, relative)):
+            return relative
+        return 'app/contract_inputs/' + relative[len('execution/'):]
+    return relative
+
+
 def read(root, relative):
     require(isinstance(relative, str) and relative and not relative.startswith('/')
             and '\\' not in relative and all(p not in ('', '.', '..') for p in relative.split('/')),
@@ -98,7 +115,7 @@ class Receiver:
         require(self.pins['format'] == PROFILE, 'unknown package receiving profile')
         self.sources = {}
         for path, expected in self.pins['sources'].items():
-            payload = read(PROJECT, path)
+            payload = read(PROJECT, deliverable_path(PROJECT, path))
             require(sha(payload) == expected, 'package receiving source changed: ' + path)
             self.sources[path] = payload
         source = 'app/examination/support_identity/canonical.py'
@@ -111,7 +128,7 @@ class Receiver:
         # The legacy static reader finds its root by this file; it never reads it.
         (producer_root / 'AGENTS.md').write_text('Package producer snapshot root marker.\n')
         for path in self.pins['producer_sources']:
-            target = producer_root / path
+            target = producer_root / deliverable_path(producer_root, path)
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(self.sources[path])
         source = 'app/packaging/successor/check.py'

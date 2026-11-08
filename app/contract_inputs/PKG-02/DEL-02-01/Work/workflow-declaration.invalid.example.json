@@ -1,0 +1,44 @@
+{
+  "declaration_contract_version": "WD-v0.8",
+  "required_tools": [
+    {
+      "name": "read-supports",
+      "operation": "OP-C1",
+      "versions": ["v1"],
+      "necessity": "required",
+      "stages": ["Inspect"]
+    },
+    {
+      "name": "write-report",
+      "class": "harness_capability",
+      "capability": "gpu-compute",
+      "purpose": "Write a report file.",
+      "necessity": "optional",
+      "stages": ["Return"]
+    }
+  ],
+  "checkpoints": [
+    {
+      "name": "CP-check",
+      "required_act": "A2",
+      "reached_when": {"kind": "after_everything"},
+      "subject": {"class": "named_output", "output": "summary"},
+      "position": "Return",
+      "scope": "The summary.",
+      "purpose": "The engineer marks the summary checked.",
+      "actor": "the_person",
+      "expected_act_evidence": {"capturing_surface": "host_act_facility", "description": "Host act record."},
+      "governed": "maybe"
+    }
+  ],
+  "returned_outputs": [
+    {
+      "name": "summary",
+      "meaning": "What changed.",
+      "form": "message",
+      "destination": "The conversation.",
+      "promised_standing": ["agent-prepared"]
+    }
+  ],
+  "compatible_roles": ["ADMIN"]
+}

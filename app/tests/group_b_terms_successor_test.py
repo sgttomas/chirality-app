@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 APP = ROOT / 'app'
-BASE = ROOT / 'execution/PKG-09/DEL-09-01/Work/support-identity-v1'
+BASE = ROOT / 'app/contract_inputs/PKG-09/DEL-09-01/Work/support-identity-v1'
 
 
 def load(name, path):

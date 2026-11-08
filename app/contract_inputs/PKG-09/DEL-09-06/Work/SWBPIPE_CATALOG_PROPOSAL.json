@@ -1,0 +1,1297 @@
+{
+  "catalogVersion": "swbpipe-catalog-proposal/1",
+  "standing": "proposal_not_adopted",
+  "owner": "SWBPIPE",
+  "source": {
+    "chiralityRevision": "1560bbf7f7add4637a20572a2b0d404ef121af63",
+    "appRevision": "5e61fbd88ff8a4fe221b25cbd9e967d2a6fdce09",
+    "integrationProposalSha256": "7d6dd0a0c3b11bb8ec14394ae890de0cf3c6a239aed9b55d01ef03c38b9117ab",
+    "steeringSha256": "0a33bbba6a898ed22a801db48267fbb85b2a0b2638f298a01f2f1db401b06e90"
+  },
+  "schemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "descriptorConvention": "MCP 2026-07-28 stateless; expand catalog-local schema references before publishing descriptors; not a complete MCP wire server",
+  "projection": {
+    "supplier": "0.160.0",
+    "declarationFields": [
+      "type",
+      "name",
+      "description",
+      "inputSchema"
+    ],
+    "type": "function",
+    "responseFields": [
+      "contentItems",
+      "success"
+    ],
+    "textItemType": "inputText",
+    "successRule": "false only for execution_error; rejection, stale_basis, unavailable and unknown are domain outcomes, not affirmative execution claims",
+    "internalResultFields": [
+      "content",
+      "structuredContent",
+      "isError"
+    ]
+  },
+  "limits": {
+    "argumentBytes": 16384,
+    "resultBytes": 65536,
+    "pageRows": 50,
+    "pendingCalls": 16,
+    "proposalOperations": 16
+  },
+  "hostPolicy": {
+    "liveModelOwner": "webview workspaceSession.ts",
+    "completionRoute": "new command_ingress-admitted command, not implemented here",
+    "binding": [
+      "requestRef",
+      "rpcId",
+      "threadId",
+      "turnId",
+      "callId",
+      "tool",
+      "workspaceHandle",
+      "applicationGeneration",
+      "modelRevision"
+    ],
+    "bootstrap": "Host binds the conversation to an admitted session; read_model_summary takes no arguments and returns its handle and basis. Handles do not establish identity or authority.",
+    "handles": "Host-issued opaque workspace/proposal/run/page handles; scoped to admitted generation and workspace; never filesystem paths. Restart invalidates handles; unavailable/unknown, never redispatch. Cursor binds tool, basis, run and next offset.",
+    "attribution": "Host stamps author_type=agent and original conversation/turn/call; never accepts user attribution from tool arguments.",
+    "proposal": "Require claimedModelHash == basis.modelHash == current session hash before queue registration. Pass operations in native EditorOperationIntent shape to a host-created OperationBatch; no alternate field-edit language. Current discriminator is native operation_kind=modify, target.object_type=Node, change.change_kind=set_field with position.x/y/z. Extend those native discriminators and subschemas, not tool names. Rust applier remains semantic validator. Treat validation/source/id fields as untrusted; host stamps conversation attribution and queues immutable submission via existing preview/human apply route.",
+    "completion": "Resolve host-issued requestRef against pending call; webview cannot choose RPC destination. Check binding and current session generation/revision before completing; serialize queue/apply/interrupt transitions.",
+    "interruption": "Withdraw pending review only; application already admitted yields actual outcome or unknown. Turn interruption is not solve cancellation or rollback.",
+    "limits": "Apply the smaller of catalog caps and existing admission budgets before parsing/allocating argument or result payloads; bounded producers, no whole-model serialization followed by truncation.",
+    "results": "Use existing permitted view/value-record semantics and redaction floors. No raw private row bypass. Preserve exact decimal where required; withheld/unavailable has no numeric value. A run handle binds its evaluated model hash, never relabel historical results as current.",
+    "autonomy": "No apply/accept/release/grant tools. Any later autonomy needs separately authorized host policy and implementation.",
+    "solve": "Require claimedModelHash == basis.modelHash == current session hash before handleRun; retain evaluated hash even if run id changes. Return session solverMode, health and run handle; progress only to existing supported notifications/panel."
+  },
+  "definitions": {
+    "handle": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "hash": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "canonicalization",
+        "payload_scope",
+        "payload_ref",
+        "value",
+        "hash_status"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "sha256"
+        },
+        "canonicalization": {
+          "const": "rfc8785_jcs"
+        },
+        "payload_scope": {
+          "const": "model_payload"
+        },
+        "payload_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "hash_status": {
+          "const": "computed_local_preview"
+        }
+      }
+    },
+    "basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceHandle",
+        "applicationGeneration",
+        "modelRevision",
+        "modelHash",
+        "stateId",
+        "runId"
+      ],
+      "properties": {
+        "workspaceHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "applicationGeneration": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "modelRevision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "modelHash": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stateId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "units": {
+      "type": "object",
+      "maxProperties": 32,
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 40
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "position",
+        "unit"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "position": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "z": {
+              "type": "number"
+            }
+          }
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cursor",
+        "limit"
+      ],
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/handle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        }
+      }
+    },
+    "readInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceHandle",
+        "basis",
+        "page"
+      ],
+      "properties": {
+        "workspaceHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "page": {
+          "$ref": "#/definitions/page"
+        }
+      }
+    },
+    "readData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes",
+        "projectUnits",
+        "nextCursor"
+      ],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/definitions/node"
+          }
+        },
+        "projectUnits": {
+          "$ref": "#/definitions/units"
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/handle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "proposeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceHandle",
+        "basis",
+        "claimedModelHash",
+        "operations"
+      ],
+      "properties": {
+        "workspaceHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "claimedModelHash": {
+          "$ref": "#/definitions/hash"
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/operationIntent"
+          }
+        }
+      }
+    },
+    "proposeData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proposalHandle",
+        "author_type"
+      ],
+      "properties": {
+        "proposalHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "author_type": {
+          "const": "agent"
+        }
+      }
+    },
+    "observeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceHandle",
+        "basis",
+        "proposalHandle"
+      ],
+      "properties": {
+        "workspaceHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "proposalHandle": {
+          "$ref": "#/definitions/handle"
+        }
+      }
+    },
+    "observeData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proposalHandle",
+        "proposalBasis",
+        "outcomeModelHash",
+        "author_type"
+      ],
+      "properties": {
+        "proposalHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "proposalBasis": {
+          "$ref": "#/definitions/basis"
+        },
+        "outcomeModelHash": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "author_type": {
+          "const": "agent"
+        }
+      }
+    },
+    "solveInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceHandle",
+        "basis",
+        "claimedModelHash"
+      ],
+      "properties": {
+        "workspaceHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "claimedModelHash": {
+          "$ref": "#/definitions/hash"
+        }
+      }
+    },
+    "solveData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runHandle",
+        "runId",
+        "evaluatedModelHash",
+        "health",
+        "solverMode"
+      ],
+      "properties": {
+        "runHandle": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/handle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evaluatedModelHash": {
+          "$ref": "#/definitions/hash"
+        },
+        "health": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "solverMode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      }
+    },
+    "resultsInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceHandle",
+        "basis",
+        "runHandle",
+        "page"
+      ],
+      "properties": {
+        "workspaceHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "runHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "page": {
+          "$ref": "#/definitions/page"
+        }
+      }
+    },
+    "value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "entityRef",
+        "value",
+        "exactDecimal",
+        "unit",
+        "availability",
+        "reason"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "entityRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "exactDecimal": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "availability": {
+          "enum": [
+            "available",
+            "withheld",
+            "unavailable"
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "resultsData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runHandle",
+        "runId",
+        "evaluatedModelHash",
+        "values",
+        "nextCursor",
+        "standing"
+      ],
+      "properties": {
+        "runHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "evaluatedModelHash": {
+          "$ref": "#/definitions/hash"
+        },
+        "values": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/definitions/value"
+          }
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/handle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "standing": {
+          "$ref": "#/definitions/standing"
+        }
+      }
+    },
+    "readOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "unavailable",
+            "stale_basis",
+            "execution_error"
+          ]
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/readData"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "proposeOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "pending_review",
+            "rejected",
+            "unavailable",
+            "stale_basis",
+            "execution_error"
+          ]
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/proposeData"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "observeOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "pending_review",
+            "rejected",
+            "withdrawn",
+            "applied",
+            "unknown",
+            "unavailable",
+            "stale_basis",
+            "execution_error"
+          ]
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/observeData"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "solveOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "completed",
+            "rejected",
+            "unknown",
+            "unavailable",
+            "stale_basis",
+            "execution_error"
+          ]
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/solveData"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "resultsOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "unavailable",
+            "stale_basis",
+            "execution_error"
+          ]
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/resultsData"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "operationIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "operation_kind",
+        "operation_status",
+        "author_type",
+        "target",
+        "change",
+        "validation",
+        "audit_boundary",
+        "professional_boundary",
+        "rationale"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "operation_kind": {
+          "const": "modify"
+        },
+        "operation_status": {
+          "const": "proposed"
+        },
+        "author_type": {
+          "const": "agent"
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "object_type",
+            "ref"
+          ],
+          "properties": {
+            "object_type": {
+              "const": "Node"
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            }
+          }
+        },
+        "change": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "change_id",
+            "change_kind",
+            "field_label",
+            "field_path",
+            "before",
+            "after",
+            "unit",
+            "dimension",
+            "source_note"
+          ],
+          "properties": {
+            "change_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "change_kind": {
+              "const": "set_field"
+            },
+            "field_label": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "field_path": {
+              "enum": [
+                "position.x",
+                "position.y",
+                "position.z"
+              ]
+            },
+            "before": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "after": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "unit": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            },
+            "dimension": {
+              "const": "length"
+            },
+            "source_note": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            }
+          }
+        },
+        "validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_validation",
+            "constraint_validation",
+            "unit_validation",
+            "diff_preview_status",
+            "application_status"
+          ],
+          "properties": {
+            "schema_validation": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "constraint_validation": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "unit_validation": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "diff_preview_status": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "application_status": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        },
+        "audit_boundary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mutation_route",
+            "direct_model_mutation_allowed",
+            "requires_user_acceptance",
+            "mutates_accepted_model_state"
+          ],
+          "properties": {
+            "mutation_route": {
+              "const": "structured_operations_only"
+            },
+            "direct_model_mutation_allowed": {
+              "const": false
+            },
+            "requires_user_acceptance": {
+              "const": true
+            },
+            "mutates_accepted_model_state": {
+              "const": false
+            }
+          }
+        },
+        "professional_boundary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "human_review_required",
+            "software_makes_compliance_claim",
+            "software_makes_certification_claim",
+            "software_makes_sealing_claim",
+            "software_makes_approval_claim",
+            "software_makes_authentication_claim"
+          ],
+          "properties": {
+            "human_review_required": {
+              "const": true
+            },
+            "software_makes_compliance_claim": {
+              "const": false
+            },
+            "software_makes_certification_claim": {
+              "const": false
+            },
+            "software_makes_sealing_claim": {
+              "const": false
+            },
+            "software_makes_approval_claim": {
+              "const": false
+            },
+            "software_makes_authentication_claim": {
+              "const": false
+            }
+          }
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "queue_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_ref",
+            "source_channel",
+            "source_role"
+          ],
+          "properties": {
+            "source_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "source_channel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "source_role": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            }
+          }
+        }
+      }
+    },
+    "standing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route",
+        "health",
+        "checks"
+      ],
+      "properties": {
+        "route": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "health": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "checks": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      }
+    },
+    "summaryInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [],
+      "properties": {}
+    },
+    "summaryData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceHandle",
+        "projectUnits",
+        "objectCounts",
+        "admittedOperationKinds",
+        "limits"
+      ],
+      "properties": {
+        "workspaceHandle": {
+          "$ref": "#/definitions/handle"
+        },
+        "projectUnits": {
+          "$ref": "#/definitions/units"
+        },
+        "objectCounts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "maxProperties": 32
+        },
+        "admittedOperationKinds": {
+          "type": "array",
+          "items": {
+            "const": "modify/Node/set_field/position"
+          },
+          "maxItems": 1
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "argumentBytes",
+            "resultBytes",
+            "pageRows",
+            "pendingCalls",
+            "proposalOperations"
+          ],
+          "properties": {
+            "argumentBytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "resultBytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "pageRows": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "pendingCalls": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "proposalOperations": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "summaryOutput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "message",
+        "data"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "unavailable",
+            "execution_error"
+          ]
+        },
+        "basis": {
+          "$ref": "#/definitions/basis"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/summaryData"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "swbpipe_read_model_summary",
+      "description": "Orient to the admitted live workspace: handle, basis, units, object counts, operation kinds and configured limits; takes no arguments.",
+      "inputSchema": {
+        "$ref": "#/definitions/summaryInput"
+      },
+      "outputSchema": {
+        "$ref": "#/definitions/summaryOutput"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "effect": "read",
+      "availability": "admitted live webview workspace; adapters not yet implemented",
+      "sourceRoute": "workspaceSession.ts model/modelHash/results; PreviewModel record-family counts",
+      "canonicalUnits": "node coordinates: exact project.units.length; result values: source row unit, no display conversion",
+      "basisPolicy": "explicit workspace handle; exact model hash/revision/generation; pages retain snapshot basis"
+    },
+    {
+      "name": "swbpipe_read_nodes",
+      "description": "Read a bounded node page at an explicit workspace and model basis.",
+      "inputSchema": {
+        "$ref": "#/definitions/readInput"
+      },
+      "outputSchema": {
+        "$ref": "#/definitions/readOutput"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "effect": "read",
+      "availability": "admitted live webview workspace; adapters not yet implemented",
+      "sourceRoute": "workspaceSession.ts model/modelHash; PreviewModel.nodes",
+      "canonicalUnits": "node coordinates: exact project.units.length; result values: source row unit, no display conversion",
+      "basisPolicy": "explicit workspace handle; exact model hash/revision/generation; pages retain snapshot basis"
+    },
+    {
+      "name": "swbpipe_propose_operations",
+      "description": "Queue native operation intents for human review; currently only modify/Node/set_field on position.x/y/z. Never applies them. Respect summary host limits.",
+      "inputSchema": {
+        "$ref": "#/definitions/proposeInput"
+      },
+      "outputSchema": {
+        "$ref": "#/definitions/proposeOutput"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false
+      },
+      "effect": "proposal_only",
+      "availability": "admitted live webview workspace; adapters not yet implemented",
+      "sourceRoute": "workspaceSession.ts registerOperationBatch; operationBatchService.ts validateOperationBatch; operation_applier set_field Node position.x/y/z",
+      "canonicalUnits": "node coordinates: exact project.units.length; result values: source row unit, no display conversion",
+      "basisPolicy": "explicit workspace handle; exact model hash/revision/generation; pages retain snapshot basis"
+    },
+    {
+      "name": "swbpipe_observe_proposal",
+      "description": "Observe an existing proposal handle; no approval, apply or retry capability.",
+      "inputSchema": {
+        "$ref": "#/definitions/observeInput"
+      },
+      "outputSchema": {
+        "$ref": "#/definitions/observeOutput"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "effect": "read",
+      "availability": "admitted live webview workspace; adapters not yet implemented",
+      "sourceRoute": "workspaceSession.ts batchRegistrations/sessionEvents and handleRunOperationBatch outcomes",
+      "canonicalUnits": "node coordinates: exact project.units.length; result values: source row unit, no display conversion",
+      "basisPolicy": "explicit workspace handle; exact model hash/revision/generation; pages retain snapshot basis"
+    },
+    {
+      "name": "swbpipe_solve",
+      "description": "Solve the current model at the supplied basis using the session-selected solver mode. Wait for the actual job outcome.",
+      "inputSchema": {
+        "$ref": "#/definitions/solveInput"
+      },
+      "outputSchema": {
+        "$ref": "#/definitions/solveOutput"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false
+      },
+      "effect": "solve",
+      "availability": "admitted live webview workspace; adapters not yet implemented",
+      "sourceRoute": "workspaceSession.ts handleRun; previewService.ts startPreviewMechanicsJob/takePreviewMechanicsJobResult",
+      "canonicalUnits": "node coordinates: exact project.units.length; result values: source row unit, no display conversion",
+      "basisPolicy": "explicit workspace handle; exact model hash/revision/generation; pages retain snapshot basis"
+    },
+    {
+      "name": "swbpipe_read_results",
+      "description": "Read a bounded page of permitted result values from an explicit run handle; preserve withheld values.",
+      "inputSchema": {
+        "$ref": "#/definitions/resultsInput"
+      },
+      "outputSchema": {
+        "$ref": "#/definitions/resultsOutput"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "effect": "read",
+      "availability": "admitted live webview workspace; adapters not yet implemented",
+      "sourceRoute": "MechanicsResult.results; features/results/resultReader.ts; features/result-export/csvTable.ts view/value policy",
+      "canonicalUnits": "node coordinates: exact project.units.length; result values: source row unit, no display conversion",
+      "basisPolicy": "explicit workspace handle; exact model hash/revision/generation; pages retain snapshot basis"
+    }
+  ],
+  "limitsStanding": "Fixture/default host configuration only, reported by summary; operation batch count is not a schema constant. Production host config may choose another bounded count."
+}

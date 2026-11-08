@@ -1,0 +1,36 @@
+{
+  "description": "Inputs DEL-06-01 RF-5a and DEL-06-02 FV-10 rely on, vendored under R23-44 (RV2 FV10-R2). They are O-D's refrozen EU-D1 (CFB-v0.2, O-D.md CURRENT, 2026-10-04): the standing schema bf4cef4d…0719, committed at 25054b04df; the records PR-P1, PR-P3 and PR-P6 as listed in O-D's frozen reader-input manifest e68154c6d83e3856aef266ac9c22332961c1c81f4d9b8267c7505f1c7bd276bc (records/PR-P*.json). Re-pin (R23-21): these replace EU-D1 v0.1's schema 589f2c5d… and records 8d0cb89a…, 4e759148…, 03dd7244…, which FV-10 read live before this repair and which were never committed. The v0.2 schema makes CS-R1 per connector (EUD1-R2), so cross-tier standings are refused. The prototypes check these hashes before use. Re-pin deliberately at O-D's next refreeze. Added 2026-10-04 (RV2 FV10-R7): PR-P8, for the claim-level unknown case. VENDOR.json itself is pinned in fleet_store.py (VENDOR_SHA256; FV10-R8).",
+  "copiedAt": "2026-10-04, from the working tree; byte-identical to the EU-D1 v0.2 refreeze (checked against git 25054b04df and O-D's reader-input manifest)",
+  "files": [
+    {
+      "file": "connector.standing.schema.json",
+      "sha256": "bf4cef4df1ef16bc4a2a8e8fbb341798a90a48abbbe3689d68d5ce9019650719",
+      "source": "projects/chirality-app-v4/execution/PKG-07_PEC receiving and connector fallback/1_Working/DEL-07-02_Connector limitation and source-file recovery paths/Design/connector.standing.schema.json",
+      "supplier": "O-D, EU-D1 refrozen (CFB-v0.2)"
+    },
+    {
+      "file": "PR-P1.json",
+      "sha256": "b9cd7cce7fbf459d06a26e29ad3f2d6bc94384d3c8f4f4b3dcf359b91ab24689",
+      "source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/D/build/records/PR-P1.json",
+      "supplier": "O-D, EU-D1 refrozen (CFB-v0.2)"
+    },
+    {
+      "file": "PR-P3.json",
+      "sha256": "fcacb91a8a4e4e981cbe602cefd8283334d89f2d2394ad295ba470eac413acce",
+      "source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/D/build/records/PR-P3.json",
+      "supplier": "O-D, EU-D1 refrozen (CFB-v0.2)"
+    },
+    {
+      "file": "PR-P6.json",
+      "sha256": "98aa1d8e14dbaff525d9a0462583157fe90aedf7d7a516012ca9deb50bac95e8",
+      "source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/D/build/records/PR-P6.json",
+      "supplier": "O-D, EU-D1 refrozen (CFB-v0.2)"
+    },
+    {
+      "file": "PR-P8.json",
+      "sha256": "174e129146ad13932211a5c1407eb5089969c62fca5f53f5fb299ef44bbe4fec",
+      "source": "projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-4-20261003/D/evidence/records/PR-P8.json",
+      "supplier": "O-D, EU-D1 (CFB-v0.2) record P8 (claim c3 unknown under PR-7), taken from D/evidence/ after the R23-48.1 move; not yet in git when copied, so re-pin if O-D's committed bytes differ"
+    }
+  ]
+}

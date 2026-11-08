@@ -1,0 +1,94 @@
+{
+  "base_revision": "f2e7a2a9ff3ba4e6f5dd0f726766961c8dba1ce1",
+  "mechanism": "delegated-harness-native",
+  "parent": "/root/distribution_successor_design",
+  "role": "TASK Type 2",
+  "scope": "offline S1 candidate contracts only; no descendants",
+  "reads": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "f96feb19d297c74e10048c506805b2fe3622c50cfefd6078f599724556113977",
+      "extent": "full or relevant schema/prototype sections"
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "sha256": "1a13a5b00b3ce01ff8519efe6b46bcbe0cd6a5b7985e24282fa7efa2c57c8fb7",
+      "extent": "full or relevant schema/prototype sections"
+    },
+    {
+      "path": ".agents/skills/chirality-change/SKILL.md",
+      "sha256": "1a2b056263ec77e4104efdf99afe3fe76dda792334a243fb2f21c60bc9c81450",
+      "extent": "full or relevant schema/prototype sections"
+    },
+    {
+      "path": "projects/chirality-app-v4/loop/LOOP_INIT.md",
+      "sha256": "c2e88f81439ed03578fee13fd7563082fefdfe11096d9134a59531eba3b985bd",
+      "extent": "full or relevant schema/prototype sections"
+    },
+    {
+      "path": "docs/alignment-manual/README.md",
+      "sha256": "5eee30d902c57a251bf885f91bfa0481a7834ec6945c3382baf15d2e2980c63d",
+      "extent": "full or relevant schema/prototype sections"
+    },
+    {
+      "path": "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md",
+      "sha256": "02d53a3966220001318aacf3f46e1b63b8695a098c81b20f4e3e1531b93024d3",
+      "extent": "full or relevant schema/prototype sections"
+    },
+    {
+      "path": "docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md",
+      "sha256": "2535efe547f2368e06d965d189efc47c7c46f28c2d6fd4777b0b8cece9003fa7",
+      "extent": "headings only"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/DISTRIBUTION_IDENTITY.md",
+      "sha256": "d51c1130f5a1356fcc2a6100f1486e8ee3a0728de59f4fe69d4ac6a1580e5290",
+      "extent": "full or relevant schema/prototype sections"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/hosting.distribution-inventory.schema.json",
+      "sha256": "25fbc007b1e20b51b7e7eb33eea3eb095abf1a71318e8fdd2085715e22eb1b22",
+      "extent": "full or relevant schema/prototype sections"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/prototype/distribution_identity/inventory_model.py",
+      "sha256": "f7cfb440a14d9eaf61ada7804a79578eff7c10c4d378ee48fe790e4b459a122d",
+      "extent": "full or relevant schema/prototype sections"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/hosting.lifecycle-event.schema.json",
+      "sha256": "40d9dc95330f7186ed43d152459a10441c732233403bf49642b87ec67d13cd97",
+      "extent": "full or relevant schema/prototype sections"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-06/Design/pkg.identity-record.schema.json",
+      "sha256": "efb0de357efc3cfc0a193a8ffdcb9b08d93908b99d51ece614c4c2d6b94e008a",
+      "extent": "full or relevant schema/prototype sections"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-06/Design/prototype/check_pkg.py",
+      "sha256": "1b6f1232fe0b200ffbb0eb56dfbbdfe4a4f29dab3c83e8e1d42b195d752f8d23",
+      "extent": "full or relevant schema/prototype sections"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/prototype/boundary_model.py",
+      "sha256": "dff501d0a82a2d16c9745079217f972e0f742acd91089416e54e54552141b873",
+      "extent": "transition table only"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-06/Design/pkg.identity-record.valid.examples.json",
+      "sha256": "39aa4a5c98699a9ba533b88cdc5be6eed3500cc66ddabb83bc22edc360d13fbc",
+      "extent": "source dependency / synthetic example seed"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-06/Design/prototype/read_tree.py",
+      "sha256": "6dacea788f0a0690ca04bc95f4d50332f4d3ddafb5bb0339147460e64b2debdb",
+      "extent": "source dependency / synthetic example seed"
+    },
+    {
+      "path": "projects/chirality-app-v4/execution/PKG-01/DEL-01-06/Design/pkg.terms-record.schema.json",
+      "sha256": "46ee0d3c0072fd3a94c45749fd8da14ad05e6322367f2df51500e754eb6e6af9",
+      "extent": "source dependency / synthetic example seed"
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "record_kind": "rrm_input_set",
+  "format": "RRM-v0.1",
+  "input_set_id": "IS-FX-DP1-3",
+  "source_journey": {
+    "identity": "FX-DP1 as refrozen under R23-24 (manifest 9501ef81…; invented)",
+    "run_authors": [
+      {
+        "identity": "thread:fx-u1-manager",
+        "role": "agent requester (wrote the packages)"
+      },
+      {
+        "identity": "Engineer A",
+        "role": "person, decision actor"
+      },
+      {
+        "identity": "app-writer:local",
+        "role": "recorder"
+      },
+      {
+        "identity": "app-interface:local",
+        "role": "capturing surface and recorder"
+      },
+      {
+        "identity": "O-A (fixture author)",
+        "role": "fixture author"
+      }
+    ],
+    "journey_dates": [
+      {
+        "value": "2026-10-03",
+        "source": "record_timestamp"
+      }
+    ]
+  },
+  "items": [
+    {
+      "path": "records/coordination.rs.jsonl",
+      "sha256": "3d6da8a510b59de558bf6bb4fd7ca6f9f348b595a5eb00237c30e958add5f05a",
+      "standing": "record",
+      "note": "RS 0.1 log: two act_request packages and one A16 human_act"
+    },
+    {
+      "path": "aac/cap-decide-PKG-1.json",
+      "sha256": "15ace8c4d6bbdad064630196a6d2bee4e168e323514d7972502c8c133c6304a5",
+      "standing": "record",
+      "note": "act control capture evidence"
+    },
+    {
+      "path": "aac/offer-PKG-1.json",
+      "sha256": "83374d6c4cbc90980e1a62d72b552c1e4c9121c4b4d23ea9deca119fdb8006ea",
+      "standing": "record",
+      "note": "act control offer shown to the person"
+    },
+    {
+      "path": "project/decisions/PKG-1.json",
+      "sha256": "2d1c0c2e205f951f0227db65352dafb07717a9e72843f134e7af84d143799a5b",
+      "standing": "project_file",
+      "note": "package file the agent wrote"
+    },
+    {
+      "path": "project/decisions/PKG-2.json",
+      "sha256": "5ac1b4fbb9d4676c8263d3b134dc8a5201d5170e2e5cb10426051d63d877dd96",
+      "standing": "project_file",
+      "note": "package file the agent wrote"
+    },
+    {
+      "path": "conversation/agent-message.txt",
+      "sha256": "bae74df5a2e2e03b656dcf81806970a4dd483ab9244a1145e396a809be892ac9",
+      "standing": "not_authority",
+      "note": "an agent's message; may be read, never supports a claim (REQ-004)"
+    },
+    {
+      "path": "definitions/aac-offer-digest-0.1.md",
+      "sha256": "ad6a148d5971f37646880f784d28dc9e2967602b479d135cca2a23d15f44889f",
+      "standing": "definition",
+      "note": "how offerDigest is computed (AAC §5.1), so the reader can check it",
+      "source": {
+        "path": "projects/chirality-app-v4/execution/PKG-01_Native App and third-party harness integration/1_Working/DEL-01-04_Native requests, outcomes and attachments/Design/APP_ACT_CONTROL.md",
+        "sha256": "de39976e93500c9455c000b78363ad192fe56fd8aa87c680284f78db939acf65"
+      }
+    }
+  ],
+  "withheld": [
+    {
+      "identity": "thread:fx-u1-manager",
+      "kind": "app_conversation"
+    },
+    {
+      "identity": "O-A working context",
+      "kind": "author_memory"
+    },
+    {
+      "identity": "DEL-06-02 decision view output",
+      "kind": "derived_view"
+    }
+  ]
+}

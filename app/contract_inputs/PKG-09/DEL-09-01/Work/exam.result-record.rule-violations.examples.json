@@ -1,0 +1,575 @@
+[
+ {
+  "rule": "EXP-R1",
+  "why": "outcome hides a failed part",
+  "record": {
+   "record_kind": "exam_result",
+   "format": "EXP-v0.2",
+   "record_id": "EXP-RV-01",
+   "support_revision": {
+    "exp_version": "EXP-v0.2",
+    "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+   },
+   "case": {
+    "case_id": "VC-R-14",
+    "owner_deliverable": "DEL-01-02",
+    "scenario": "V4-EXM-11"
+   },
+   "criterion": {
+    "source": "EXAMINATION.md V4-EXM-11",
+    "identity": "sha256:49d6faf7a018ab0216d7da67d3f3fd004955f17091cdc7596d89921291fffc81"
+   },
+   "activity": "verification",
+   "run_basis": "candidate",
+   "subject": {
+    "kind": "candidate",
+    "app_candidate": {
+     "revision": "ILLUSTRATIVE (EXP example; not a real candidate)",
+     "build_identity": "ILLUSTRATIVE (EXP example; not a real candidate)"
+    },
+    "invented_material": "EXP example material"
+   },
+   "configuration": {
+    "codex_pin": "0.160.0",
+    "model": {
+     "requested": "ILLUSTRATIVE-local-model"
+    },
+    "model_server": {
+     "kind": "local_provider",
+     "label": "ILLUSTRATIVE local server",
+     "home": "H-acct"
+    },
+    "route": {
+     "kind": "native_development",
+     "platform": {
+      "os": "macOS",
+      "arch": "arm64"
+     },
+     "webview": {
+      "name": "WKWebView",
+      "webkit_version": "ILLUSTRATIVE",
+      "os_version": "ILLUSTRATIVE macOS"
+     },
+     "native_route": {
+      "method": "person_operated",
+      "form_ref": "Evidence/EXP/ILLUSTRATIVE/forms/EXP-EX-05-N1.md"
+     }
+    }
+   },
+   "date": {
+    "value": "2026-10-03",
+    "source": "record_timestamp"
+   },
+   "outcome": "pass",
+   "parts": [
+    {
+     "part": "stop a turn",
+     "expectation": "turn ends 'interrupted'; nothing shown as done that was not observed",
+     "outcome": "pass",
+     "needs_native": true,
+     "evidence": [
+      {
+       "ref": "ILLUSTRATIVE capture 1",
+       "provenance": "live_observation",
+       "route": "native_development"
+      }
+     ]
+    },
+    {
+     "part": "deny/grant",
+     "expectation": "turn ends 'interrupted'; nothing shown as done that was not observed",
+     "outcome": "fail",
+     "needs_native": true,
+     "evidence": [
+      {
+       "ref": "ILLUSTRATIVE capture 1",
+       "provenance": "live_observation",
+       "route": "native_development"
+      }
+     ]
+    }
+   ],
+   "evidence": [
+    {
+     "ref": "ILLUSTRATIVE capture 1",
+     "provenance": "live_observation",
+     "route": "native_development"
+    }
+   ],
+   "acts_cited": [
+    {
+     "record_ref": "ILLUSTRATIVE RS human_act record",
+     "kind": "A15",
+     "actor": "the person",
+     "recorder": "App act control"
+    }
+   ],
+   "limits": [
+    {
+     "label": "unobserved adoption",
+     "vocabulary": "RS-v0.9 evidenceLimitLabel"
+    }
+   ],
+   "currency": {
+    "state": "current"
+   }
+  }
+ },
+ {
+  "rule": "EXP-R4",
+  "why": "native part passed on browser evidence only",
+  "record": {
+   "record_kind": "exam_result",
+   "format": "EXP-v0.2",
+   "record_id": "EXP-RV-02",
+   "support_revision": {
+    "exp_version": "EXP-v0.2",
+    "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+   },
+   "case": {
+    "case_id": "VC-R-14",
+    "owner_deliverable": "DEL-01-02",
+    "scenario": "V4-EXM-11"
+   },
+   "criterion": {
+    "source": "EXAMINATION.md V4-EXM-11",
+    "identity": "sha256:49d6faf7a018ab0216d7da67d3f3fd004955f17091cdc7596d89921291fffc81"
+   },
+   "activity": "verification",
+   "run_basis": "candidate",
+   "subject": {
+    "kind": "candidate",
+    "app_candidate": {
+     "revision": "ILLUSTRATIVE (EXP example; not a real candidate)",
+     "build_identity": "ILLUSTRATIVE (EXP example; not a real candidate)"
+    },
+    "invented_material": "EXP example material"
+   },
+   "configuration": {
+    "codex_pin": "0.160.0",
+    "model": {
+     "requested": "ILLUSTRATIVE-local-model"
+    },
+    "model_server": {
+     "kind": "local_provider",
+     "label": "ILLUSTRATIVE local server",
+     "home": "H-acct"
+    },
+    "route": {
+     "kind": "native_development",
+     "platform": {
+      "os": "macOS",
+      "arch": "arm64"
+     },
+     "webview": {
+      "name": "WKWebView",
+      "webkit_version": "ILLUSTRATIVE",
+      "os_version": "ILLUSTRATIVE macOS"
+     },
+     "native_route": {
+      "method": "person_operated",
+      "form_ref": "Evidence/EXP/ILLUSTRATIVE/forms/EXP-EX-05-N1.md"
+     }
+    }
+   },
+   "date": {
+    "value": "2026-10-03",
+    "source": "record_timestamp"
+   },
+   "outcome": "pass",
+   "parts": [
+    {
+     "part": "stop a turn",
+     "expectation": "x",
+     "outcome": "pass",
+     "needs_native": true,
+     "evidence": [
+      {
+       "ref": "webkit run",
+       "provenance": "live_observation",
+       "route": "interface_webkit"
+      }
+     ]
+    }
+   ],
+   "evidence": [
+    {
+     "ref": "ILLUSTRATIVE capture 1",
+     "provenance": "live_observation",
+     "route": "native_development"
+    }
+   ],
+   "acts_cited": [
+    {
+     "record_ref": "ILLUSTRATIVE RS human_act record",
+     "kind": "A15",
+     "actor": "the person",
+     "recorder": "App act control"
+    }
+   ],
+   "limits": [
+    {
+     "label": "unobserved adoption",
+     "vocabulary": "RS-v0.9 evidenceLimitLabel"
+    }
+   ],
+   "currency": {
+    "state": "current"
+   }
+  }
+ },
+ {
+  "rule": "EXP-R5",
+  "why": "act cited with actor equal to recorder",
+  "record": {
+   "record_kind": "exam_result",
+   "format": "EXP-v0.2",
+   "record_id": "EXP-RV-03",
+   "support_revision": {
+    "exp_version": "EXP-v0.2",
+    "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+   },
+   "case": {
+    "case_id": "VC-R-14",
+    "owner_deliverable": "DEL-01-02",
+    "scenario": "V4-EXM-11"
+   },
+   "criterion": {
+    "source": "EXAMINATION.md V4-EXM-11",
+    "identity": "sha256:49d6faf7a018ab0216d7da67d3f3fd004955f17091cdc7596d89921291fffc81"
+   },
+   "activity": "verification",
+   "run_basis": "candidate",
+   "subject": {
+    "kind": "candidate",
+    "app_candidate": {
+     "revision": "ILLUSTRATIVE (EXP example; not a real candidate)",
+     "build_identity": "ILLUSTRATIVE (EXP example; not a real candidate)"
+    },
+    "invented_material": "EXP example material"
+   },
+   "configuration": {
+    "codex_pin": "0.160.0",
+    "model": {
+     "requested": "ILLUSTRATIVE-local-model"
+    },
+    "model_server": {
+     "kind": "local_provider",
+     "label": "ILLUSTRATIVE local server",
+     "home": "H-acct"
+    },
+    "route": {
+     "kind": "native_development",
+     "platform": {
+      "os": "macOS",
+      "arch": "arm64"
+     },
+     "webview": {
+      "name": "WKWebView",
+      "webkit_version": "ILLUSTRATIVE",
+      "os_version": "ILLUSTRATIVE macOS"
+     },
+     "native_route": {
+      "method": "person_operated",
+      "form_ref": "Evidence/EXP/ILLUSTRATIVE/forms/EXP-EX-05-N1.md"
+     }
+    }
+   },
+   "date": {
+    "value": "2026-10-03",
+    "source": "record_timestamp"
+   },
+   "outcome": "blocked",
+   "blocked_by": "part 'deny one approval and grant another'",
+   "parts": [
+    {
+     "part": "stop a turn",
+     "expectation": "turn ends 'interrupted'; nothing shown as done that was not observed",
+     "outcome": "pass",
+     "needs_native": true,
+     "evidence": [
+      {
+       "ref": "ILLUSTRATIVE capture 1",
+       "provenance": "live_observation",
+       "route": "native_development"
+      }
+     ]
+    },
+    {
+     "part": "deny one approval and grant another",
+     "expectation": "separate settlements, each with its origin",
+     "outcome": "blocked",
+     "needs_native": true,
+     "blocked_by": "the request card did not appear (ILLUSTRATIVE)"
+    },
+    {
+     "part": "quit, relaunch, continue",
+     "expectation": "outstanding requests survive; conversation continues",
+     "outcome": "not-run",
+     "needs_native": true,
+     "not_run_because": "needs the end state of 'deny one approval and grant another'"
+    }
+   ],
+   "evidence": [
+    {
+     "ref": "ILLUSTRATIVE capture 1",
+     "provenance": "live_observation",
+     "route": "native_development"
+    }
+   ],
+   "acts_cited": [
+    {
+     "record_ref": "x",
+     "kind": "A15",
+     "actor": "App act control",
+     "recorder": "App act control"
+    }
+   ],
+   "limits": [
+    {
+     "label": "unobserved adoption",
+     "vocabulary": "RS-v0.9 evidenceLimitLabel"
+    }
+   ],
+   "currency": {
+    "state": "current"
+   }
+  }
+ },
+ {
+  "rule": "EXP-R1",
+  "why": "a part both declared not applicable and run",
+  "record": {
+   "record_kind": "exam_result",
+   "format": "EXP-v0.2",
+   "record_id": "EXP-RV-04",
+   "support_revision": {
+    "exp_version": "EXP-v0.2",
+    "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+   },
+   "case": {
+    "case_id": "ILLUSTRATIVE-LHQ-22",
+    "owner_deliverable": "DEL-09-07",
+    "scenario": "V4-EXM-22"
+   },
+   "criterion": {
+    "source": "EXAMINATION.md V4-EXM-22",
+    "identity": "sha256:e8f55d12aac238f397e2fb08665a751cc910c3dbc6b3cdabde91fa435ef0c40f"
+   },
+   "activity": "verification",
+   "run_basis": "candidate",
+   "subject": {
+    "kind": "candidate",
+    "app_candidate": {
+     "revision": "ILLUSTRATIVE (EXP example; not a real candidate)",
+     "build_identity": "ILLUSTRATIVE (EXP example; not a real candidate)"
+    },
+    "host_candidate": "ILLUSTRATIVE (EXP example; not a real candidate)"
+   },
+   "configuration": {
+    "codex_pin": "0.158.0",
+    "model": {
+     "requested": "ILLUSTRATIVE"
+    },
+    "model_server": {
+     "kind": "local_provider",
+     "label": "ILLUSTRATIVE"
+    },
+    "route": {
+     "kind": "seam_live"
+    }
+   },
+   "date": {
+    "value": "2026-10-03",
+    "source": "record_timestamp"
+   },
+   "outcome": "pass",
+   "parts": [
+    {
+     "part": "P22-A",
+     "expectation": "ILLUSTRATIVE",
+     "outcome": "pass",
+     "evidence": [
+      {
+       "ref": "ILLUSTRATIVE",
+       "provenance": "live_observation"
+      }
+     ]
+    },
+    {
+     "part": "P22-B",
+     "expectation": "ILLUSTRATIVE",
+     "outcome": "pass",
+     "evidence": [
+      {
+       "ref": "ILLUSTRATIVE",
+       "provenance": "live_observation"
+      }
+     ]
+    },
+    {
+     "part": "P22-C",
+     "expectation": "ILLUSTRATIVE",
+     "outcome": "pass",
+     "evidence": [
+      {
+       "ref": "ILLUSTRATIVE",
+       "provenance": "live_observation"
+      }
+     ]
+    },
+    {
+     "part": "P22-D",
+     "expectation": "ILLUSTRATIVE",
+     "outcome": "pass",
+     "evidence": [
+      {
+       "ref": "ILLUSTRATIVE",
+       "provenance": "live_observation"
+      }
+     ]
+    }
+   ],
+   "parts_not_applicable": [
+    {
+     "part": "P22-A",
+     "reason": "governance phase not taken up (declared before the run)",
+     "declared_in": {
+      "case_definition": "ILLUSTRATIVE LHQ-22 case definition",
+      "identity": "sha256:6ddcca1f2a1a3e7e74b9aa8dcf387cecbb7764cf857de67a47776fb7ef685435"
+     }
+    }
+   ],
+   "evidence": [
+    {
+     "ref": "ILLUSTRATIVE",
+     "provenance": "live_observation"
+    }
+   ],
+   "currency": {
+    "state": "current"
+   }
+  }
+ },
+ {
+  "rule": "EXP-R1",
+  "why": "an applicable part not run, case reported pass (R23-19.3)",
+  "record": {
+   "record_kind": "exam_result",
+   "format": "EXP-v0.2",
+   "record_id": "EXP-RV-05",
+   "support_revision": {
+    "exp_version": "EXP-v0.2",
+    "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2"
+   },
+   "case": {
+    "case_id": "ILLUSTRATIVE-LHQ-22",
+    "owner_deliverable": "DEL-09-07",
+    "scenario": "V4-EXM-22"
+   },
+   "criterion": {
+    "source": "EXAMINATION.md V4-EXM-22",
+    "identity": "sha256:e8f55d12aac238f397e2fb08665a751cc910c3dbc6b3cdabde91fa435ef0c40f"
+   },
+   "activity": "verification",
+   "run_basis": "candidate",
+   "subject": {
+    "kind": "candidate",
+    "app_candidate": {
+     "revision": "ILLUSTRATIVE (EXP example; not a real candidate)",
+     "build_identity": "ILLUSTRATIVE (EXP example; not a real candidate)"
+    },
+    "host_candidate": "ILLUSTRATIVE (EXP example; not a real candidate)"
+   },
+   "configuration": {
+    "codex_pin": "0.158.0",
+    "model": {
+     "requested": "ILLUSTRATIVE"
+    },
+    "model_server": {
+     "kind": "local_provider",
+     "label": "ILLUSTRATIVE"
+    },
+    "route": {
+     "kind": "seam_live"
+    }
+   },
+   "date": {
+    "value": "2026-10-03",
+    "source": "record_timestamp"
+   },
+   "outcome": "pass",
+   "parts": [
+    {
+     "part": "P22-A",
+     "expectation": "ILLUSTRATIVE",
+     "outcome": "pass",
+     "evidence": [
+      {
+       "ref": "ILLUSTRATIVE",
+       "provenance": "live_observation"
+      }
+     ]
+    },
+    {
+     "part": "P22-B",
+     "expectation": "ILLUSTRATIVE",
+     "outcome": "pass",
+     "evidence": [
+      {
+       "ref": "ILLUSTRATIVE",
+       "provenance": "live_observation"
+      }
+     ]
+    },
+    {
+     "part": "P22-C",
+     "expectation": "ILLUSTRATIVE",
+     "outcome": "pass",
+     "evidence": [
+      {
+       "ref": "ILLUSTRATIVE",
+       "provenance": "live_observation"
+      }
+     ]
+    },
+    {
+     "part": "P22-D",
+     "expectation": "ILLUSTRATIVE",
+     "outcome": "pass",
+     "evidence": [
+      {
+       "ref": "ILLUSTRATIVE",
+       "provenance": "live_observation"
+      }
+     ]
+    },
+    {
+     "part": "P22-E",
+     "expectation": "x",
+     "outcome": "not-run",
+     "not_run_because": "x"
+    }
+   ],
+   "parts_not_applicable": [
+    {
+     "part": "P22-G",
+     "reason": "governance phase not taken up (declared before the run)",
+     "declared_in": {
+      "case_definition": "ILLUSTRATIVE LHQ-22 case definition",
+      "identity": "sha256:6ddcca1f2a1a3e7e74b9aa8dcf387cecbb7764cf857de67a47776fb7ef685435"
+     }
+    }
+   ],
+   "evidence": [
+    {
+     "ref": "ILLUSTRATIVE",
+     "provenance": "live_observation"
+    }
+   ],
+   "currency": {
+    "state": "current"
+   }
+  }
+ }
+]

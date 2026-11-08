@@ -1,0 +1,4 @@
+HandoffID,OwnerWorkflow,TriggerCondition,PayloadPath,ExpectedOutput,Status
+H1,WORKING_ITEMS,Next concrete project-dag basis checkpoint; no new gate invented,Case_Datasheet.md;Open_Questions.md;Candidate_Remedies.csv,chirality-root:bundled:workflow:project-dag objective/treatment package; actual human ruling if made; source/current-condition and mirror account,PROPOSED_NOT_DISPATCHED
+H2,WORKING_ITEMS,Authorized preparation of applicable contribution account under R1,Case_Datasheet.md;Evidence_Register.csv,"project-dag coordinator with undertaking manager identifies current control subset, examination and later current-DAG consumption condition in existing records",PROPOSED_NOT_DISPATCHED
+H3,DEPCLOSURE,After actual owner-applied remedy or changed source/basis,Case_Datasheet.md;Ruling_Register.csv,chirality-root:bundled:workflow:audit-dep-closure observation covering actual changed candidate; no case closure inferred from this packet,CONDITIONAL_NOT_DISPATCHED

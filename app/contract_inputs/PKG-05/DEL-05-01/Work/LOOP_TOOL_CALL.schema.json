@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "chirality:app-v4/DEL-05-01/LOOP_TOOL_CALL/0.1",
+  "title": "Received tool call after parse (V-1) and offering (V-2) checks",
+  "description": "PROPOSED (LOOP-v0.8 §7.2; R12-1). One tool call as the host loop received it from one model response, before V-3. Names are Chirality's own semantic names; no wire field of any provider or supplier is selected. The representation it is assembled from is the model-interface basis named in model_interface_basis (for fixtures: FB-CC-1, fixture basis, not a product selection).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["model_interface_basis", "position_in_response", "call_correlation_identity", "operation_reference", "argument_text", "argument_value", "parse_state", "response_termination", "rejection"],
+  "properties": {
+    "model_interface_basis": {"type": "string", "minLength": 1, "description": "Label of the basis the call was received under, e.g. FB-CC-1."},
+    "position_in_response": {"type": "integer", "minimum": 0, "description": "Order of the call within its model response."},
+    "call_correlation_identity": {"type": ["string", "null"], "description": "The model's call identity; null when none was received."},
+    "operation_reference": {"type": ["string", "null"], "description": "The named catalog entry; null when none was received."},
+    "argument_text": {"type": ["string", "null"], "description": "The argument text exactly as received and assembled, never repaired (MC-9); null when none was received."},
+    "argument_value": {"type": ["object", "null"], "description": "The parsed argument object when the text parsed completely to an object; otherwise null."},
+    "parse_state": {"enum": ["complete", "truncated", "interrupted", "malformed", "filtered"]},
+    "response_termination": {"enum": ["tool-calls", "stop", "length-truncated", "content-filtered", "deprecated-function-call", "ended-without-reason"]},
+    "rejection": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/rejection"}]}
+  },
+  "oneOf": [
+    {
+      "description": "Passed V-1 and V-2; goes on to V-3 on its own (R12-7).",
+      "properties": {
+        "parse_state": {"const": "complete"},
+        "rejection": {"type": "null"},
+        "argument_value": {"type": "object"},
+        "call_correlation_identity": {"type": "string", "minLength": 1},
+        "operation_reference": {"type": "string", "minLength": 1}
+      }
+    },
+    {
+      "description": "Rejected before dispatch; class 1 result for this call only.",
+      "properties": {
+        "rejection": {"$ref": "#/$defs/rejection"}
+      }
+    }
+  ],
+  "$defs": {
+    "rejection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step", "case", "reason", "dispatched"],
+      "properties": {
+        "step": {"enum": ["V-1", "V-2"]},
+        "case": {"enum": ["MC-1", "MC-2", "MC-3", "MC-4", "MC-5", "MC-6", "MC-7", "MC-10", "MC-11", "MC-12", "MC-13"]},
+        "reason": {"type": "string", "minLength": 1},
+        "dispatched": {"const": false}
+      }
+    }
+  }
+}

@@ -10,7 +10,7 @@ PROJECT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(PROJECT / 'app/examination'))
 sys.path.insert(0, str(PROJECT / 'app/examination/admission'))
 sys.path.insert(0, str(PROJECT / 'app/examination/support_identity'))
-from canonical import CanonicalSupport
+from canonical import CanonicalSupport, deliverable_path
 from admission_check import Support as Admission
 from check import Support as Package
 
@@ -28,7 +28,7 @@ def check(selection_path, expected, configuration, configuration_sha256):
     api = canonical.legacy
     exact, require, parse = api.exact, api.require, api.parse
     pins = parse((PROJECT / 'reader-pins.json').read_bytes())
-    spec = importlib.util.spec_from_file_location('selected_sq', PROJECT / pins['sq_prototype'])
+    spec = importlib.util.spec_from_file_location('selected_sq', PROJECT / deliverable_path(PROJECT, pins['sq_prototype']))
     sq = importlib.util.module_from_spec(spec); spec.loader.exec_module(sq)
     admission, package = Admission(), Package()
     spec = importlib.util.spec_from_file_location('_sq_package_successor', PROJECT / 'app/examination/package_receiving/adapter.py')
@@ -36,9 +36,9 @@ def check(selection_path, expected, configuration, configuration_sha256):
     package_successor = receiving.Receiver(canonical=canonical)
     package_reports = {}
     package_routes = {}
-    schema = parse((PROJECT / pins['sq_schema']).read_bytes())
+    schema = parse((PROJECT / deliverable_path(PROJECT, pins['sq_schema'])).read_bytes())
     sq_validator = Draft202012Validator(schema, registry=Registry())
-    step_map = parse((PROJECT / pins['sq_step_map']).read_bytes())
+    step_map = parse((PROJECT / deliverable_path(PROJECT, pins['sq_step_map'])).read_bytes())
     root = selection_path.parent
     require(not any(p.is_symlink() for p in (root, *root.parents)), 'selection parent link refused')
     raw_selection = api.relative_file(root, selection_path.name)

@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:proposed:w14-result-record",
+  "title": "W14 result record (DEL-09-06 CA-v0.6 §8.4; PROPOSED, node B7; R12-1, R12-2)",
+  "description": "One record per executed or not-run V4-EXM-14 case (W14-00…W14-10) or case part, as CA §8.4 defines it. Property names are Chirality semantic labels; no host or supplier wire field is selected. Evidence is linked by reference and never copied (V4-HI-71). A record whose evidence label is not 'actual_host', or whose run kind is not 'joined_witness', never counts toward OUT-003 (CA §8.1, §8.3).",
+  "type": "object",
+  "required": ["record_kind", "format", "case", "phase_reading", "run_kind", "evidence_label", "subject_of_run", "configuration", "date", "outcome", "parts", "evidence_limits", "missing_inputs", "completion"],
+  "additionalProperties": false,
+  "properties": {
+    "record_kind": {"const": "w14_result"},
+    "format": {"const": "proposed-0.1"},
+    "record_id": {"type": "string", "minLength": 1},
+    "case": {"type": "string", "pattern": "^W14-(0[0-9]|10)$"},
+    "variant": {"type": "string", "minLength": 1},
+    "phase_reading": {"enum": ["current", "governance"]},
+    "run_kind": {
+      "description": "joined_witness: on identified App and host candidates (§8.1). rehearsal: on a test double (SH-1, C-v0.8 §10.8, or EXEC-v0.6's recorder or catalog double). definition_check: a reading of the definition only.",
+      "enum": ["joined_witness", "rehearsal", "definition_check"]
+    },
+    "evidence_label": {
+      "description": "C-v0.8 evidence-label mapping (CA §7.1).",
+      "enum": ["illustrative", "test_double", "actual_host", "not_observed", "limited"]
+    },
+    "case_state_at_run": {"enum": ["DESIGNED", "AWAITING INPUT", "HELD"]},
+    "subject_of_run": {
+      "description": "Identified candidates (W14-00) for a joined witness; the double's identity and file digests for a rehearsal; the definition's version label for a definition check.",
+      "oneOf": [
+        {"$ref": "#/$defs/candidates"},
+        {"$ref": "#/$defs/double"},
+        {"$ref": "#/$defs/definition"}
+      ]
+    },
+    "configuration": {"$ref": "#/$defs/configuration"},
+    "date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}"},
+    "outcome": {
+      "description": "EXAMINATION §1 values. PROPOSED aggregation over parts: failed if any part failed; else blocked if any part blocked; else passed if every part passed; else not_run if no part ran; else inconclusive.",
+      "enum": ["passed", "failed", "blocked", "not_run", "inconclusive"]
+    },
+    "parts": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/part"}},
+    "act_records_cited": {"type": "array", "items": {"$ref": "#/$defs/act_citation"}},
+    "evidence_limits": {"description": "RS R11 evidence-limit labels in RS's own spelling (RS-v0.8 RS_RECORD.schema.json); an act record's own limits go on the act citation (record_limits). The rehearsal prototype maps the ADAPTER mapper's tokens once and checks every label against RS's list (V18-4 m-2; RP-4).", "type": "array", "items": {"type": "string", "minLength": 1}},
+    "missing_inputs": {"type": "array", "items": {"$ref": "#/$defs/missing_input"}},
+    "blocked_by": {
+      "description": "Where the outcome is blocked or not_run because an earlier step or case could not proceed: that step or case (CA §8.4 rule W-R5).",
+      "type": "string", "minLength": 1
+    },
+    "completion": {
+      "type": "object",
+      "required": ["counts_toward_out003", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "counts_toward_out003": {"type": "boolean"},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "W-R1: only an actual-host joined witness with an observed outcome can count toward OUT-003.",
+      "if": {
+        "anyOf": [
+          {"not": {"properties": {"evidence_label": {"const": "actual_host"}}}},
+          {"not": {"properties": {"run_kind": {"const": "joined_witness"}}}},
+          {"properties": {"outcome": {"const": "not_run"}}}
+        ]
+      },
+      "then": {"properties": {"completion": {"properties": {"counts_toward_out003": {"const": false}}}}}
+    },
+    {
+      "description": "W-R2: a joined witness names identified candidates; a rehearsal names its double.",
+      "if": {"properties": {"run_kind": {"const": "joined_witness"}}},
+      "then": {"properties": {"subject_of_run": {"$ref": "#/$defs/candidates"}}}
+    },
+    {
+      "if": {"properties": {"run_kind": {"const": "rehearsal"}}},
+      "then": {"properties": {"subject_of_run": {"$ref": "#/$defs/double"}, "evidence_label": {"enum": ["test_double", "limited", "not_observed"]}}}
+    },
+    {
+      "description": "W-R3: a result that did not run, or was blocked, says what was missing or what blocked it.",
+      "if": {"properties": {"outcome": {"enum": ["not_run", "blocked"]}}},
+      "then": {"anyOf": [
+        {"properties": {"missing_inputs": {"minItems": 1}}},
+        {"required": ["blocked_by"]}
+      ]}
+    },
+    {
+      "description": "W-R4: in the current phase no part carries a hold-support value or a hold claim (EXEC PH-2, PH-3).",
+      "if": {"properties": {"phase_reading": {"const": "current"}}},
+      "then": {"properties": {"parts": {"items": {"not": {"anyOf": [{"required": ["hold_support"]}, {"required": ["hold_claim"]}]}}}}}
+    }
+  ],
+  "$defs": {
+    "candidates": {
+      "type": "object",
+      "required": ["app_candidate", "host_candidate", "identification_record"],
+      "additionalProperties": false,
+      "properties": {
+        "app_candidate": {"type": "string", "minLength": 1},
+        "host_candidate": {"type": "string", "minLength": 1},
+        "identification_record": {"type": "string", "minLength": 1, "description": "The W14-00 result record this result cites."},
+        "invented_material": {"type": "string", "minLength": 1}
+      }
+    },
+    "double": {
+      "type": "object",
+      "required": ["double_identity", "specified_in", "files"],
+      "additionalProperties": false,
+      "properties": {
+        "double_identity": {"type": "string", "minLength": 1},
+        "specified_in": {"type": "string", "minLength": 1},
+        "files": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/file_digest"}},
+        "invented_material": {"type": "string", "minLength": 1}
+      }
+    },
+    "definition": {
+      "type": "object",
+      "required": ["definition_label"],
+      "additionalProperties": false,
+      "properties": {"definition_label": {"type": "string", "minLength": 1}}
+    },
+    "file_digest": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "required": ["acting_surface_variant", "native_path"],
+      "additionalProperties": false,
+      "properties": {
+        "acting_surface_variant": {"enum": ["CA/E", "CA/X", "app_only", "not_applicable"]},
+        "native_path": {"enum": ["N-MCP", "N-CLI", "both", "not_applicable"]},
+        "host_profile": {"type": "string", "minLength": 1},
+        "model_destination": {
+          "description": "Information only, never a gate (CA S-12).",
+          "oneOf": [
+            {"type": "object", "required": ["requested", "effective"], "additionalProperties": false,
+             "properties": {"requested": {"type": "string"}, "effective": {"type": "string"}}},
+            {"type": "object", "required": ["not_observed"], "additionalProperties": false,
+             "properties": {"not_observed": {"type": "string", "minLength": 1}}}
+          ]
+        }
+      }
+    },
+    "part": {
+      "type": "object",
+      "required": ["part", "expectation", "outcome"],
+      "additionalProperties": false,
+      "properties": {
+        "part": {"type": "string", "minLength": 1},
+        "expectation": {"type": "string", "minLength": 1},
+        "outcome": {"enum": ["passed", "failed", "blocked", "not_run", "inconclusive"]},
+        "built_on": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "observations": {"type": "array", "items": {"$ref": "#/$defs/observation"}},
+        "not_run_because": {"type": "string", "minLength": 1},
+        "hold_support": {"type": "string"},
+        "hold_claim": {"type": "string"}
+      },
+      "if": {"properties": {"outcome": {"const": "not_run"}}},
+      "then": {"required": ["not_run_because"]}
+    },
+    "observation": {
+      "type": "object",
+      "required": ["what", "reference"],
+      "additionalProperties": false,
+      "properties": {
+        "what": {"type": "string", "minLength": 1},
+        "reference": {
+          "type": "object",
+          "required": ["kind", "ref"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {"enum": ["host_document", "host_receipt", "dispatch_record", "exec_entries", "compatibility_report", "rs_entry", "act_record", "relay_evidence", "run_output"]},
+            "ref": {"type": "string", "minLength": 1}
+          }
+        },
+        "linked_not_copied": {"const": true}
+      }
+    },
+    "act_citation": {
+      "description": "A human act cited by its record identity (RS §6); never copied, never inferred from success, queued, receipt, A14, model text or a user-input answer (R4-12).",
+      "type": "object",
+      "required": ["record_id", "act_kind", "actor", "recorder", "capture_evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {"type": "string", "minLength": 1},
+        "act_kind": {"description": "The human-act kinds of RS-v0.8 §6.1 (V18-4 m-3; RP-4): never A1/A2 (operation entries), A3, A8, A9 or A14.", "enum": ["A4", "A5", "A6", "A7", "A10", "A11", "A12", "A13", "A15"]},
+        "actor": {"type": "string", "minLength": 1},
+        "recorder": {"type": "string", "minLength": 1},
+        "record_limits": {"description": "Evidence limits of the act record itself (RS-v0.8 §6.1), e.g. 'identity not verified' for an App-captured act (EXEC CAP-8); not RS R11 labels (RP-4).", "type": "array", "items": {"type": "string", "minLength": 1}},
+        "capture_evidence": {
+          "oneOf": [
+            {"type": "object", "required": ["reference"], "additionalProperties": false,
+             "properties": {"reference": {"type": "string", "minLength": 1}}},
+            {"type": "object", "required": ["absent"], "additionalProperties": false,
+             "properties": {"absent": {"type": "string", "minLength": 1}}}
+          ]
+        },
+        "counted_as": {"enum": ["after_arrival", "earlier_act", "prior act not counted", "act on other content", "not evaluated"]},
+        "not_counted_reason": {"enum": ["content no longer current", "another act kind", "captured before arrival (governance-phase option)"]}
+      },
+      "if": {"properties": {"counted_as": {"const": "prior act not counted"}}, "required": ["counted_as"]},
+      "then": {"required": ["not_counted_reason"]}
+    },
+    "missing_input": {
+      "type": "object",
+      "required": ["input", "supplier"],
+      "additionalProperties": false,
+      "properties": {
+        "input": {"type": "string", "minLength": 1},
+        "supplier": {"type": "string", "minLength": 1},
+        "relay_question": {"type": "string", "pattern": "^SQ-[0-9]{2}"}
+      }
+    }
+  }
+}

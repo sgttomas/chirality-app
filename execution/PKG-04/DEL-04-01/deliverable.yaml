@@ -43,4 +43,4 @@ needs:
 code_paths:
 - app/src-tauri/src/act_control.rs
 checks:
-- execution/PKG-04/DEL-04-01/Work/prototype/validate_policy.py
+- app/contract_inputs/PKG-04/DEL-04-01/Work/prototype/validate_policy.py

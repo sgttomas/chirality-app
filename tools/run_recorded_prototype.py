@@ -7,8 +7,8 @@ examples). This runner checks the recorded hash, then executes the script with
 a deliverable's former `Design` path components read as `Work`
 (loop/LOOP_INIT.md). The file on disk is never changed.
 
-    python3 tools/run_recorded_prototype.py execution/PKG-09/DEL-09-01/Work/prototype/check_exp.py
-    python3 tools/run_recorded_prototype.py execution/PKG-03/DEL-03-03/Work/prototype/observe_map.py --run DIR
+    python3 tools/run_recorded_prototype.py app/contract_inputs/PKG-09/DEL-09-01/Work/prototype/check_exp.py
+    python3 tools/run_recorded_prototype.py app/contract_inputs/PKG-03/DEL-03-03/Work/prototype/observe_map.py --run DIR
 """
 import hashlib
 import io
@@ -19,9 +19,9 @@ import tokenize
 
 ROOT = Path(__file__).resolve().parents[1]
 RECORDED = {
-    'execution/PKG-09/DEL-09-01/Work/prototype/check_exp.py':
+    'app/contract_inputs/PKG-09/DEL-09-01/Work/prototype/check_exp.py':
         'f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce',
-    'execution/PKG-03/DEL-03-03/Work/prototype/observe_map.py':
+    'app/contract_inputs/PKG-03/DEL-03-03/Work/prototype/observe_map.py':
         'cf7ba7b4d4218d660d53dc89fe48b37c797041b5d6864e3f28adf342e5d193d6',
 }
 COMPONENT = re.compile(r'''^([rRbBuUfF]*)(["'])Design\2$''')

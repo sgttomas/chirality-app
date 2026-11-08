@@ -1,0 +1,16 @@
+{
+  "path": "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/build.log",
+  "sha256": "4682f008ce64ac18597a8ad4276ba4d846ebee52337f55d24b02d728a6ffac63",
+  "bytes": 35567,
+  "exit_code": 0,
+  "tail": [
+    "warning: `chirality-app-v4` (lib) generated 79 warnings (run `cargo fix --lib -p chirality-app-v4` to apply 7 suggestions)",
+    "    Finished `release` profile [optimized] target(s) in 3m 10s",
+    "       Built application at: /Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/target/release/chirality-app-v4",
+    "    Bundling Chirality App v4 (package input test hmhzn4b2).app (/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/target/release/bundle/macos/Chirality App v4 (package input test hmhzn4b2).app)",
+    "        Warn Skipping signing due to --no-sign flag.",
+    "    Finished 1 bundle at:",
+    "        /Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/target/release/bundle/macos/Chirality App v4 (package input test hmhzn4b2).app",
+    ""
+  ]
+}

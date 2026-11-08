@@ -9,7 +9,7 @@ use std::time::Instant;
 
 const RECORDINGS: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../execution/PKG-01/DEL-01-01/Work/prototype/st5/recordings"
+    "/../contract_inputs/PKG-01/DEL-01-01/Work/prototype/st5/recordings"
 );
 const PEER: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),

@@ -1,0 +1,265 @@
+[
+  {
+    "kind": "checkpoint_listed",
+    "observedAt": "T0",
+    "body": {
+      "checkpoint": "CP-check",
+      "requiredAct": "A4",
+      "reachedWhenKind": "output_produced",
+      "subjectClass": "objects changed by a named outcome",
+      "governed": false,
+      "purpose": "engineer records their own checking of the changed supports",
+      "scope": "those objects",
+      "evaluability": {
+        "status": "evaluable with limit",
+        "reason": "message-output designation by WD OP-1 (designating line); the MCP path stays OBS-1 pending (R13-6)"
+      }
+    }
+  },
+  {
+    "kind": "checkpoint_arrival",
+    "observedAt": "T14b",
+    "body": {
+      "checkpoint": "CP-check",
+      "requiredAct": "A4",
+      "subjectClass": "objects changed by a named outcome",
+      "governed": false,
+      "arrivalOrdinal": 1,
+      "event": {
+        "source": "native_item",
+        "ref": "item:agentMessage/examination-report",
+        "evidencedTime": {
+          "value": "T14b",
+          "source": "supplier_item_time"
+        }
+      },
+      "referents": [
+        {
+          "subject": "S-5",
+          "content": {
+            "method": "m-fx",
+            "value": "S-5@r14"
+          }
+        },
+        {
+          "subject": "R-100",
+          "content": {
+            "method": "m-fx",
+            "value": "R-100@r14"
+          }
+        },
+        {
+          "subject": "S-3",
+          "content": {
+            "method": "m-fx",
+            "value": "S-3@r14"
+          }
+        }
+      ],
+      "purpose": "engineer records their own checking",
+      "scope": "S-5, R-100, S-3",
+      "limits": [],
+      "requestObservation": {
+        "state": "not yet observed"
+      }
+    }
+  },
+  {
+    "kind": "disposition_change",
+    "observedAt": "T14b",
+    "body": {
+      "arrival": {
+        "checkpoint": "CP-check",
+        "arrivalOrdinal": 1
+      },
+      "disposition": "waiting",
+      "annotations": []
+    }
+  },
+  {
+    "kind": "act_request",
+    "observedAt": "T14c",
+    "body": {
+      "requester": {
+        "kind": "agent"
+      },
+      "form": "supplier person-input request",
+      "actKind": "not named by the request",
+      "subject": "not named by the request",
+      "purpose": "not named by the request",
+      "association": "associated with the current arrival",
+      "evidence": {
+        "kind": "conversation item",
+        "ref": "req:ask-checked-mark",
+        "resolutionAtWrite": "resolved"
+      },
+      "time": "T14c",
+      "arrival": {
+        "checkpoint": "CP-check",
+        "arrivalOrdinal": 1
+      }
+    }
+  },
+  {
+    "kind": "act_counted",
+    "observedAt": "T14d",
+    "body": {
+      "arrival": {
+        "checkpoint": "CP-check",
+        "arrivalOrdinal": 1
+      },
+      "act": {
+        "recordId": "rec:app:run-12a:A4-a1",
+        "actKind": "A4",
+        "capturedAt": "T14d",
+        "capturingSurface": "host_act_facility"
+      },
+      "relation": "after arrival",
+      "referents": [
+        "S-5",
+        "R-100",
+        "S-3"
+      ]
+    }
+  },
+  {
+    "kind": "disposition_change",
+    "observedAt": "T14d",
+    "body": {
+      "arrival": {
+        "checkpoint": "CP-check",
+        "arrivalOrdinal": 1
+      },
+      "disposition": "performed",
+      "annotations": [],
+      "performanceOrdinal": 1,
+      "answeredBy": [
+        "rec:app:run-12a:A4-a1"
+      ]
+    }
+  },
+  {
+    "kind": "run_resumed",
+    "observedAt": "T14e",
+    "body": {
+      "arrival": {
+        "checkpoint": "CP-check",
+        "arrivalOrdinal": 1
+      },
+      "firstActionRef": "item:fileChange/summary-draft.md",
+      "time": "T14e"
+    }
+  },
+  {
+    "kind": "act_lapsed",
+    "observedAt": "T14f",
+    "body": {
+      "act": {
+        "recordId": "rec:app:run-12a:A4-a1",
+        "actKind": "A4",
+        "capturedAt": "T14d",
+        "capturingSurface": "host_act_facility"
+      },
+      "state": "lapsed",
+      "referents": [
+        "S-3"
+      ],
+      "c0": {
+        "method": "m-fx",
+        "value": "S-3@r14"
+      },
+      "c1": {
+        "method": "m-fx",
+        "value": "S-3@r15"
+      },
+      "time": "T14f",
+      "arrival": {
+        "checkpoint": "CP-check",
+        "arrivalOrdinal": 1
+      },
+      "when": "after resume"
+    }
+  },
+  {
+    "kind": "disposition_change",
+    "observedAt": "T14f",
+    "body": {
+      "arrival": {
+        "checkpoint": "CP-check",
+        "arrivalOrdinal": 1
+      },
+      "disposition": "performed",
+      "annotations": [
+        {
+          "label": "act lapsed at",
+          "time": "T14f",
+          "referents": [
+            "S-3"
+          ]
+        }
+      ],
+      "performanceOrdinal": 1,
+      "answeredBy": [
+        "rec:app:run-12a:A4-a1"
+      ]
+    }
+  },
+  {
+    "kind": "continued_past",
+    "observedAt": "T14g",
+    "body": {
+      "arrival": {
+        "checkpoint": "CP-check",
+        "arrivalOrdinal": 1
+      },
+      "actionRef": "item:fileChange/summary.md",
+      "actKind": "A4",
+      "turnInitiator": "agent"
+    }
+  },
+  {
+    "kind": "act_counted",
+    "observedAt": "T14h",
+    "body": {
+      "arrival": {
+        "checkpoint": "CP-check",
+        "arrivalOrdinal": 1
+      },
+      "act": {
+        "recordId": "rec:app:run-12a:A4-a2",
+        "actKind": "A4",
+        "capturedAt": "T14h",
+        "capturingSurface": "host_act_facility"
+      },
+      "relation": "after arrival",
+      "referents": [
+        "S-3"
+      ]
+    }
+  },
+  {
+    "kind": "disposition_change",
+    "observedAt": "T14h",
+    "body": {
+      "arrival": {
+        "checkpoint": "CP-check",
+        "arrivalOrdinal": 1
+      },
+      "disposition": "performed",
+      "annotations": [
+        {
+          "label": "answered by acts",
+          "actRefs": [
+            "rec:app:run-12a:A4-a1",
+            "rec:app:run-12a:A4-a2"
+          ]
+        }
+      ],
+      "performanceOrdinal": 2,
+      "answeredBy": [
+        "rec:app:run-12a:A4-a1",
+        "rec:app:run-12a:A4-a2"
+      ]
+    }
+  }
+]

@@ -1,0 +1,298 @@
+{
+  "source": {
+    "tree": "a56efd947626ffb2fc15e2092631c6bcaee41036",
+    "tracked_files_verified": 3504
+  },
+  "build_identity": "chirality.app.bundle-tree.sha256/v2:278899dad62ebbc6dd701490f71b20bd04e1329bca4dbefbd5d88eecd83e31f0",
+  "bundle": "/Users/ryan/dev/chirality-t3/scratch/app-release-input-build-hmhzn4b2/target/release/bundle/macos/Chirality App v4 (package input test hmhzn4b2).app",
+  "bundle_inventory_sha256": "2828f0799c6cac64301c2052d101d0e6c5aab827ebf3c3c1efe8d03a35989d14",
+  "executable": {
+    "path": "Contents/MacOS/chirality-app-v4",
+    "sha256": "1b3c6c2ec345845122322134cd6f9b59e60d32c78ef0795a5e2b4e5cf26796b8",
+    "size": 37234576
+  },
+  "bundle_identifier": "dev.chirality.app-v4.package-test.hmhzn4b2",
+  "version": "4.0.0",
+  "minimum_macos": "15.0",
+  "resource_mappings_checked": 50,
+  "resource_files": 101,
+  "generated_icon": "Chirality App v4 (package input test hmhzn4b2).icns",
+  "resource_comparisons": {
+    "instructions": {
+      "comparison": {
+        "equal": true,
+        "differing": [],
+        "missing": [],
+        "extra": [],
+        "root_mode_equal": true
+      },
+      "files": 8,
+      "manifest_sha256": "50c82a3c663773b327d7ed84bb27a7d639514062e0d1335f7c47b6f3b0194d18"
+    },
+    "workflows": {
+      "comparison": {
+        "equal": true,
+        "differing": [],
+        "missing": [],
+        "extra": [],
+        "root_mode_equal": true
+      },
+      "files": 3,
+      "manifest_sha256": "cd34f3262ece093f782cf1594063e2fc7681708ef8624899360187367fc73e29"
+    },
+    "distribution-reference/VERSION_ADVANCE_0.160.0.md": {
+      "sha256": "b58c75ce82f0d715091b585a58d9ed60740356db09adcbb8ccd37929644c4cd6",
+      "size": 65215,
+      "equal": true
+    },
+    "distribution-reference/build-selection.s2.json": {
+      "sha256": "49df30f500af353c5cc141bf939515a21ab9438c92d2fd61ed435c831bcd0fea",
+      "size": 529,
+      "equal": true
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/acquisition.json": {
+      "sha256": "0711daae91a41f97b85f60cfd6f2d7ae520fc47b52ff09387b0ba465188291f8",
+      "size": 2266,
+      "equal": true
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json": {
+      "sha256": "dc901fa2f8a3a3fce7bed8df7efbee49e3f4c77f9878bacfde132d13c4c73841",
+      "size": 1329,
+      "equal": true
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json": {
+      "sha256": "09e1fae9d243462132803d868174b70ddae111bde2106aa2351ebfe74c793fe9",
+      "size": 2212,
+      "equal": true
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/custody.json": {
+      "sha256": "fcf292db0644b6e2f99c7e7bec0ac2161f51373b68f5e17db6a39bafa806427d",
+      "size": 2367,
+      "equal": true
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json": {
+      "sha256": "754eebae912023aebe40cab157c0882081bec2d1d9db518627986526371a2a37",
+      "size": 13386,
+      "equal": true
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/extraction.json": {
+      "sha256": "3e5330ab122e1ba025a2b830f01bb8ab775e6737a67018ba9b310becbbde20a2",
+      "size": 2939,
+      "equal": true
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json": {
+      "sha256": "1451412b412bfd0da38e2cc614c38bc020073e31edf25eba313d53674057feef",
+      "size": 6272,
+      "equal": true
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/label-probe.json": {
+      "sha256": "cb05e9f0c9509219fec9e85ecaf77879032554e4ecd450b753a984077d3b8375",
+      "size": 2675,
+      "equal": true
+    },
+    "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/review.md": {
+      "sha256": "b820240871c14261362a7dca650df1820dc18de3bf4566a33bbb56c8dd3f7146",
+      "size": 4633,
+      "equal": true
+    },
+    "distribution-reference/generated/0.160.0/GENERATION.json": {
+      "sha256": "5774a783ea98c60cc7ceeabd61f86ca86685e6ade224123cfef3d5507dcbb544",
+      "size": 4220,
+      "equal": true
+    },
+    "third-party-notices/index.json": {
+      "sha256": "907ef89f059b9674f84a12ab2637a80c723a33364e269cb5385410a252827a90",
+      "size": 24032,
+      "equal": true
+    },
+    "third-party-notices/assets/app/LICENSE.md": {
+      "sha256": "495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da",
+      "size": 1067,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/pulldown-cmark/0.13.4/LICENSE": {
+      "sha256": "c4f10f55904bdb9f27d3fbf94c354926d6cfe8b982276e556238c258941b243b",
+      "size": 1089,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/tauri/2.11.1/LICENSE_APACHE-2.0": {
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "size": 10174,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/tauri/2.11.1/LICENSE_MIT": {
+      "sha256": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d",
+      "size": 1090,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_APACHE-2.0": {
+      "sha256": "0cec06e0e55fbc3dc5cee4fca9b607f66cb8f4e4dbcf3b3c013594dd156732e9",
+      "size": 10173,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE.spdx": {
+      "sha256": "eb8a6c84630461b352badcab1dbe5d0168c56d377358b2b8c86b51003272d5ef",
+      "size": 888,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/tauri-plugin-dialog/2.7.2/LICENSE_MIT": {
+      "sha256": "89ff9689dcf9dd53968785d05a26f7898bb169dbfcada8d032b3e68cf0d55607",
+      "size": 1089,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-MIT.md": {
+      "sha256": "9c5a80639a57c1c945570e7ebbca0706305849ce3c098021325cca9db2f7acc4",
+      "size": 1064,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-ZLIB.md": {
+      "sha256": "ae895c8576e682f310fb70d93d9f99b1dd82872094c54a8f6cdfe2ca5c2d6ecb",
+      "size": 836,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/raw-window-handle/0.6.2/LICENSE-APACHE.md": {
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "size": 10174,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/serde/1.0.229/LICENSE-APACHE": {
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+      "size": 9723,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/serde/1.0.229/LICENSE-MIT": {
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "size": 1023,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/serde_json/1.0.151/LICENSE-APACHE": {
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+      "size": 9723,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/serde_json/1.0.151/LICENSE-MIT": {
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3",
+      "size": 1023,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/sha2/0.10.9/LICENSE-APACHE": {
+      "sha256": "a9040321c3712d8fd0b09cf52b17445de04a23a10165049ae187cd39e5c86be5",
+      "size": 10849,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/sha2/0.10.9/LICENSE-MIT": {
+      "sha256": "b4eb00df6e2a4d22518fcaa6a2b4646f249b3a3c9814509b22bd2091f1392ff1",
+      "size": 1138,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/libc/0.2.189/LICENSE-APACHE": {
+      "sha256": "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a",
+      "size": 9723,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/libc/0.2.189/LICENSE-MIT": {
+      "sha256": "123a331b5dbf04c30097fa43b8f858bc85df671fe776de498d01f3d6b7c1f69e",
+      "size": 1066,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/uuid/1.23.1/LICENSE-APACHE": {
+      "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "size": 10847,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/uuid/1.23.1/LICENSE-MIT": {
+      "sha256": "436bc5a105d8e57dcd8778730f3754f7bf39c14d2f530e4cde4bd2d17a83ec3d",
+      "size": 1157,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/getrandom/0.4.2/LICENSE-APACHE": {
+      "sha256": "aaff376532ea30a0cd5330b9502ad4a4c8bf769c539c87ffe78819d188a18ebf",
+      "size": 10849,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/getrandom/0.4.2/LICENSE-MIT": {
+      "sha256": "523a42c25d245dde9c015f882cec7f4555aad883382a6cf19b4b7d9b2cd5419b",
+      "size": 1130,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-APACHE": {
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+      "size": 11358,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/toml/1.1.2+spec-1.1.0/LICENSE-MIT": {
+      "sha256": "6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6",
+      "size": 1062,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/jsonschema/0.58.5/LICENSE": {
+      "sha256": "117829c3ca21efb132d81a44b55363d395ab8eea18526873bc828da4c0e5f038",
+      "size": 1075,
+      "equal": true
+    },
+    "third-party-notices/assets/cargo/rusqlite/0.32.1/LICENSE": {
+      "sha256": "f59ba65550f2a5adff98ec6478d783402c8e0a3eb515025c0b3438f3d30dc39e",
+      "size": 1072,
+      "equal": true
+    },
+    "third-party-notices/assets/npm/@tauri-apps/api/2.11.0/LICENSE_APACHE-2.0": {
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "size": 10174,
+      "equal": true
+    },
+    "third-party-notices/assets/npm/@tauri-apps/api/2.11.0/LICENSE_MIT": {
+      "sha256": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d",
+      "size": 1090,
+      "equal": true
+    },
+    "third-party-notices/assets/npm/react/19.2.7/LICENSE": {
+      "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93",
+      "size": 1088,
+      "equal": true
+    },
+    "third-party-notices/assets/npm/react-dom/19.2.7/LICENSE": {
+      "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93",
+      "size": 1088,
+      "equal": true
+    },
+    "third-party-notices/sqlite-preparation/index.json": {
+      "sha256": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",
+      "size": 1394,
+      "equal": true
+    },
+    "third-party-notices/sqlite-preparation/libsqlite3-sys.LICENSE": {
+      "sha256": "f59ba65550f2a5adff98ec6478d783402c8e0a3eb515025c0b3438f3d30dc39e",
+      "size": 1072,
+      "equal": true
+    },
+    "third-party-notices/sqlite-preparation/sqlite3-source-header.txt": {
+      "sha256": "54c4f16385920a82097fa915543acfad929c7e6ced5a7320f57db7ef25576923",
+      "size": 1968,
+      "equal": true
+    },
+    "third-party-notices/sqlite-preparation/README.md": {
+      "sha256": "6394bed41da5135273ad2ed71610e63aedc292035ad5fc67bec095b180b80e50",
+      "size": 1700,
+      "equal": true
+    },
+    "codex": {
+      "comparison": {
+        "equal": true,
+        "differing": [],
+        "missing": [],
+        "extra": [],
+        "root_mode_equal": true
+      },
+      "files": 42,
+      "manifest_sha256": "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12"
+    }
+  },
+  "publisher_outputs": {
+    "publisher-build-binding.s1.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+    "publisher-build-public-projection.s1.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+    "publisher_selection.rs": "82f2293b0eaa0197bdb90f4fe68cf1214b051ccbc0e53a000c07bac09ab87d98"
+  },
+  "publisher_state": "unselected; generated binding/projection null and compiled values None",
+  "observed_at": "2026-10-31T23:19:38.712323+00:00",
+  "standing": "actual unsigned release-profile App input-test build; no launch/signature inspection/signing/native/S4/pin/OS qualification or release; no development candidate v3 record emitted"
+}

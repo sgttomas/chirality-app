@@ -9,7 +9,7 @@ import unittest
 
 APP = Path(__file__).resolve().parents[1]
 PROJECT = APP.parent
-MANIFEST = PROJECT / 'execution/PKG-09/DEL-09-01/Work/support-identity-v1/documentary-condition.v3.json'
+MANIFEST = PROJECT / 'app/contract_inputs/PKG-09/DEL-09-01/Work/support-identity-v1/documentary-condition.v3.json'
 
 
 def load(name, path):

@@ -32,19 +32,19 @@ class PR40Receiving(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder)
             for s in pins['sources']:
-                path=root/s['snapshot'];path.parent.mkdir(parents=True,exist_ok=True)
-                path.write_bytes((selected.ROOT/s['snapshot']).read_bytes())
+                path=root/s['snapshot'].replace('execution/', 'app/contract_inputs/', 1);path.parent.mkdir(parents=True,exist_ok=True)
+                path.write_bytes((selected.ROOT/s['snapshot'].replace('execution/', 'app/contract_inputs/', 1)).read_bytes())
             with patch.object(selected,'ROOT',root):
                 selected.load_catalog()
                 for s in pins['sources']:
-                    path=root/s['snapshot'];raw=path.read_bytes();path.write_bytes(raw+b'\n')
+                    path=root/s['snapshot'].replace('execution/', 'app/contract_inputs/', 1);raw=path.read_bytes();path.write_bytes(raw+b'\n')
                     with self.subTest(path=s['path']),self.assertRaisesRegex(ValueError,'selected source changed'):selected.load_catalog()
                     path.unlink()
                     with self.assertRaises(FileNotFoundError):selected.load_catalog()
                     path.write_bytes(raw)
                 session=next(s for s in pins['sources'] if s['path'].endswith('/embeddedAgentSession.ts'))
                 old=next(s for s in prior.selection()['sources'] if s['path']==session['path'])
-                (root/session['snapshot']).write_bytes((prior.ROOT/old['snapshot']).read_bytes())
+                (root/session['snapshot'].replace('execution/', 'app/contract_inputs/', 1)).write_bytes((prior.ROOT/old['snapshot'].replace('execution/', 'app/contract_inputs/', 1)).read_bytes())
                 with self.assertRaisesRegex(ValueError,'selected source changed'):selected.load_catalog()
 
     def test_strict_forms_correspond_without_normalization_or_rewriting(self):
@@ -134,7 +134,7 @@ class PR40Receiving(unittest.TestCase):
 
     def test_inspected_callsites_preserve_actual_boundary_relationships(self):
         pins=selected.selection()
-        def source(suffix):return (selected.ROOT/next(s['snapshot'] for s in pins['sources'] if s['path'].endswith(suffix))).read_text()
+        def source(suffix):return (selected.ROOT/next(s['snapshot'] for s in pins['sources'] if s['path'].endswith(suffix)).replace('execution/', 'app/contract_inputs/', 1)).read_text()
         session=source('/embeddedAgentSession.ts');workspace=source('/workspaceSession.ts')
         for text in ['modelHash:agentHash(before.hash)','modelHash:agentHash(snap.hash)',
                      'same(catalogHash(call.basis.modelHash),agentHash(live.hash))',

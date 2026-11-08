@@ -1,0 +1,150 @@
+{
+  "format": "exec-compatibility-report/proposed-0.6",
+  "phase": "current",
+  "report_id": "MT-1/current",
+  "workflow": {
+    "identity": {
+      "kind": "workflow",
+      "origin": "host",
+      "source_root": "fx-root",
+      "name": "supports-adjust",
+      "revision": "rev-3"
+    },
+    "holding_library": "fx-root"
+  },
+  "declared_part_status": "declared",
+  "host": {
+    "host_id": "FX-PIPE-01 test double",
+    "catalog_edition": "e2",
+    "catalog_readable": true
+  },
+  "surface": {
+    "surface": "E",
+    "channel_state": "enabled"
+  },
+  "occasion": {
+    "occasion": "CK-1",
+    "evaluated_at": "2026-09-30T00:00:00Z"
+  },
+  "requirements": [
+    {
+      "reference": "OP-C1",
+      "class": "host_operation",
+      "necessity": "required",
+      "purpose": "read supports on the run",
+      "declared_versions": [
+        "v1"
+      ],
+      "entry": {
+        "operation_id": "OP-C1",
+        "version": "v1"
+      },
+      "exposure": "exposed",
+      "availability": null,
+      "outcome": "compatible",
+      "reason": ""
+    },
+    {
+      "reference": "OP-C3",
+      "class": "host_operation",
+      "necessity": "required",
+      "purpose": "examine spacing against the limit (A3 findings)",
+      "declared_versions": [
+        "v1"
+      ],
+      "entry": {
+        "operation_id": "OP-C3",
+        "version": "v1"
+      },
+      "exposure": "exposed",
+      "availability": null,
+      "outcome": "present",
+      "reason": ""
+    },
+    {
+      "reference": "OP-C12",
+      "class": "host_operation",
+      "necessity": "optional",
+      "purpose": "run the host's named support-spacing check (fallback: report host check not run)",
+      "declared_versions": [
+        "v1"
+      ],
+      "entry": {
+        "operation_id": "OP-C12",
+        "version": "v1"
+      },
+      "exposure": "exposed",
+      "availability": null,
+      "outcome": "present",
+      "reason": ""
+    },
+    {
+      "reference": "OP-C4",
+      "class": "host_operation",
+      "necessity": "required",
+      "purpose": "propose added supports",
+      "declared_versions": [
+        "v1"
+      ],
+      "entry": {
+        "operation_id": "OP-C4",
+        "version": "v1"
+      },
+      "exposure": "exposed",
+      "availability": null,
+      "outcome": "present",
+      "reason": ""
+    },
+    {
+      "reference": "OP-C5",
+      "class": "host_operation",
+      "necessity": "optional",
+      "purpose": "propose stiffness changes (fallback: propose added supports only)",
+      "declared_versions": [
+        "v1"
+      ],
+      "entry": {
+        "operation_id": "OP-C5",
+        "version": "v1"
+      },
+      "exposure": "exposed",
+      "availability": null,
+      "outcome": "present",
+      "reason": ""
+    }
+  ],
+  "workflow_unsupported": [],
+  "checkpoints": [
+    {
+      "name": "CP-accept",
+      "required_act": "A5",
+      "reached_when_kind": "c",
+      "subject_class": "change items of a named proposal",
+      "held_actions": "absent_derived",
+      "governed": false,
+      "declaration_status": "valid",
+      "phase_reading": "guidance",
+      "hold_support": {
+        "value": "not_enforceable",
+        "hs_row": "HS-5"
+      }
+    },
+    {
+      "name": "CP-check",
+      "required_act": "A4",
+      "reached_when_kind": "b",
+      "subject_class": "objects changed by a named outcome",
+      "held_actions": "listed_steps",
+      "governed": false,
+      "declaration_status": "valid",
+      "phase_reading": "guidance"
+    }
+  ],
+  "runtime_holds": [],
+  "limitations": [
+    "evaluated on a test double (FX-PIPE-01)",
+    "exposure is a fixture assumption (FXA-1)"
+  ],
+  "evidence_standing": "test_double",
+  "model_destination": null
+}

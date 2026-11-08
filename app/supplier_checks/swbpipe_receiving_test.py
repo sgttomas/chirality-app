@@ -2,7 +2,7 @@
 
 Default input is the retained App snapshot; --catalog checks an explicit export.
 No supplier, host, model, network, native operation or person's act is executed.
-Historical v2 receiving bytes remain in DEL-09-06 Work/catalog-v2/receiving-test.py.txt.
+Historical v2 receiving bytes are preserved unchanged in historical/catalog_v2/receiving-test.py.txt; the original deliverable locator remains recoverable in Git history.
 """
 import argparse
 import copy
@@ -183,7 +183,7 @@ class CatalogV3Receiving(unittest.TestCase):
                           dict(V3,catalogVersion='swbpipe-catalog/99')):
                 path.write_text(json.dumps(value))
                 with self.assertRaisesRegex(ValueError,'integrated v3'):load_catalog(path)
-            raw=(ROOT/selection()['snapshot']).read_bytes()
+            raw=(ROOT/selection()['snapshot'].replace('execution/', 'app/contract_inputs/', 1)).read_bytes()
             path.write_bytes(raw.replace(b'swbpipe-catalog/3',b'swbpipe-catalog/2',1))
             self.assertEqual(path.stat().st_size,RECEIVING_BYTES)
             with self.assertRaisesRegex(ValueError,'integrated v3'):load_catalog(path)

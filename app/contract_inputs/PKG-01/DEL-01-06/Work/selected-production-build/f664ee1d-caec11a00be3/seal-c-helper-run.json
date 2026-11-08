@@ -1,0 +1,114 @@
+{
+  "format": "seal-c-helper-run-summary/1",
+  "helper": "execution/PKG-01/DEL-01-04/Work/seal-c-signing/prepare.py at main f664ee1d",
+  "assessed_at": "2026-11-03T03:22:49Z",
+  "packaging_plan_files": {
+    "tauri.package-inputs.conf.json": "3f104a2979bb3a1717a91747e7f2dd31612a5d6bcf800e7e24b422d9a2373912",
+    "build-recipe.json": "b436d5b2b6200a88ed179a304bb6919a47d33918afb562206cd60d0209ac2f6c",
+    "input-inventory.json": "a26d0489ab07d90f8b7a886ead1a0eb46edfdf4125fd597e169abda1f1e0f903",
+    "PLAN_COMPLETE.json": "4d4337c53f86a421c0ac088d3f140ed67ee25c7a82761ba831010d6f281c67c4"
+  },
+  "publisher_input": {
+    "path": "publisher-build-selection.s1.json",
+    "sha256": "63a77b966e93d7db9096c5cd104879a49a14210e835320c2543b57a465cf8f4e"
+  },
+  "publisher_artifacts": {
+    "publisher_binding": {
+      "path": "publisher-build-binding.s1.json",
+      "sha256": "58463a0240c7912f841ea2aaf80a4da396d1ba8c05234533621ed3398ebd5e19"
+    },
+    "publisher_projection": {
+      "path": "publisher-build-public-projection.s1.json",
+      "sha256": "a73f4f4c82b4604586d8fb662309fbca4b3d56b869824b269c526b9db176e334"
+    },
+    "publisher_requirement": {
+      "path": "publisher-requirement.txt",
+      "sha256": "86d4009014b754289d7466429f849887144a1af435e32a7b75f0531aaf8fc128"
+    },
+    "tauri_config": {
+      "path": "effective-tauri-config.json",
+      "sha256": "1000cf8763b1422ec1436c2b92e4fb5cbbd6813c2649cfc2ef5506b646541e4d"
+    }
+  },
+  "profile_cms": {
+    "path": "profile.cms",
+    "sha256": "5eccea61c989e499f738376cd843fe55c0c6ba6a6ad5ca86af074acdef965165"
+  },
+  "profile_metadata": {
+    "uuid": "005576c2-84ca-4906-b4c1-6c50ca4d401c",
+    "prefix": "8A7JL35U4S",
+    "creation": "2026-11-03T01:38:03Z",
+    "expiration": "2044-10-29T01:38:03Z"
+  },
+  "trusted_signer_sha1": "c7f111429f7ac5085484a9df6f5ae7cff552deef",
+  "metadata_state": "profile-proposal-publisher-gaps",
+  "metadata_gaps": [
+    "independently selected publisher binding digest"
+  ],
+  "publisher_closure": "gaps",
+  "group_route": "default-application-identifier-group",
+  "namespace_proposal": {
+    "service": "com.chirality.app.v4.capture-seal",
+    "account": "installation-keyring",
+    "access_group": "8A7JL35U4S.com.chirality.app"
+  },
+  "entitlements_proposed_sha256": "7c86aed9fe6f9ef56c2f42066672f387f3db931248e1cce6b85cb3dd590a3787",
+  "entitlements_proposed": {
+    "com.apple.application-identifier": "8A7JL35U4S.com.chirality.app",
+    "com.apple.developer.team-identifier": "8A7JL35U4S"
+  },
+  "effective_tauri_config": "reconstructed offline as tauri.conf.json merged with the plan overlay; canonical SHA-256 equals the compiled binding tauri_config_sha256",
+  "profile_metadata_authenticated_by_helper": false,
+  "profile_cms_independently_verified": "openssl cms -verify against system-store Apple Root CA b0b1730e\u2026f024 (separate intake)",
+  "independent_publisher_digest": null,
+  "limits": [
+    "static byte-join consistency with an explicitly selected trust input; not signature, OS acceptance, S4, native behaviour or qualification",
+    "no signing, notarization, SecItem, enrollment or activation"
+  ],
+  "trusted_publisher_selection": {
+    "selected_by": "App Agent 0, explicit selection 2026-11-03 after independently hashing the actual OUT_DIR binding",
+    "trusted_publisher_binding_sha256": "58463a0240c7912f841ea2aaf80a4da396d1ba8c05234533621ed3398ebd5e19",
+    "scope": {
+      "candidate": "app-selected-candidate-7ou43x2n",
+      "normalized_bundle_identity": "chirality.app.bundle-tree.sha256/v2:bc38496b6ccff29c7e7512c8ab7499cd14037224e846b9deefedb03d31c2eb63",
+      "executable_sha256": "df5b12ccee10caa0225c20bbe7404e176952f7219b84fbff09540f802a20ff3f"
+    },
+    "checked_by_agent0": [
+      "com.chirality.app / team 8A7JL35U4S",
+      "release 4.0.0 aarch64 distribution-successor",
+      "selected input 63a77b96",
+      "effective config 1000cf87",
+      "entitlements 7c86aed9 directly verified"
+    ],
+    "not": "general self-trust of arbitrary future build output"
+  },
+  "trusted_run": {
+    "metadata_state": "consistent-profile-proposal",
+    "metadata_gaps": [],
+    "publisher_closure": "consistent-exact-byte-joins",
+    "group_route": "default-application-identifier-group",
+    "entitlements_proposed_sha256": "7c86aed9fe6f9ef56c2f42066672f387f3db931248e1cce6b85cb3dd590a3787",
+    "signing_plan_sha256": "9836582b71f32a91f7cc4fdd7fb3a51a56073481dc1bd7791bc533ff7365841b",
+    "activation_gaps_remaining": true
+  },
+  "historical_note": "Top-level metadata_state/metadata_gaps record the first run without a trust input (historical). trusted_run and corroborating_runtime_run use the Agent 0 selection.",
+  "corroborating_runtime_run": {
+    "by": "Lane3 runtime owner",
+    "private_record": "/Users/ryan/dev/chirality-t3/scratch/seal-c-profile-intake.4peCQRrX/build-join.json",
+    "assessed_at": "2026-11-03T03:22:28Z",
+    "helper": "main f664ee1d, tool 4ecce7cc\u2026",
+    "trusted_publisher_sha256": "58463a0240c7912f841ea2aaf80a4da396d1ba8c05234533621ed3398ebd5e19",
+    "metadata_state": "consistent-profile-proposal",
+    "metadata_gaps": [],
+    "publisher_closure": "consistent-exact-byte-joins",
+    "group_route": "default-application-identifier-group",
+    "outputs": {
+      "signing-plan.json": "6c64499b6fb41a4bab0fc471f3d25d88d71c3d50e78eadaa4774c1c6412f39e5",
+      "witness-sequence.json": "45a44fd71ab19cf0521a0a979baa1d8dd976cd985c6a6c0cd2c8900b2c52cced",
+      "entitlements.proposed.plist": "7c86aed9fe6f9ef56c2f42066672f387f3db931248e1cce6b85cb3dd590a3787",
+      "COMPLETE.json": "d9e24dbc925fceb06c0e5b9730db9206f8c32d5cf0f3fd10738b8126e734528b"
+    },
+    "check_output": "OK",
+    "note": "signing-plan digest differs from trusted_run only by assessed_at and private evidence locators; entitlements and outcome identical"
+  }
+}

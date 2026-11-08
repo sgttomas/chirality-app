@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-04-01:policy-class-record:0.1",
+  "title": "Adopted policy-class configuration (DEL-04-01 OUT-002) — PROPOSED",
+  "description": "PROPOSED structure (ACT-POLICY-v0.8 §8.1; R12-1, R12-2). Names are Chirality's own; no host or supplier field is selected. Placement (library, local file or service) is not chosen (OI-013, OI-014). The content-identity method is unselected: 'method' names the designation only. Consequence values are the PROPOSED vocabulary of ACT §8.5, drafted for the owner's phase review; no record assigns them while U-02 is open.",
+  "$ref": "#/$defs/policyConfiguration",
+  "$defs": {
+    "policyConfiguration": {
+      "type": "object",
+      "required": ["format", "formatVersion", "policyRevision", "records"],
+      "additionalProperties": false,
+      "properties": {
+        "format": {"const": "chirality.act.policy"},
+        "formatVersion": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"},
+        "policyRevision": {"$ref": "#/$defs/policyRevision"},
+        "records": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/policyClassRecord"}},
+        "decisionRecords": {"type": "array", "items": {"$ref": "#/$defs/decisionRecord"}}
+      }
+    },
+    "policyRevision": {
+      "description": "Cited by consumers in their governing-policy element (C element 8; RS §6.1). A catalog entry refers to a record as {policy revision label, record identity}.",
+      "type": "object",
+      "required": ["label", "contentIdentity"],
+      "additionalProperties": false,
+      "properties": {
+        "label": {"type": "string", "pattern": "^DEL-04-01/ACT-POLICY-v[0-9]+\\.[0-9]+$"},
+        "contentIdentity": {"$ref": "#/$defs/contentIdentity"}
+      }
+    },
+    "contentIdentity": {
+      "type": "object",
+      "required": ["method", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "method": {"type": "string", "minLength": 1},
+        "value": {"type": "string", "minLength": 1}
+      }
+    },
+    "policyRecordRef": {
+      "type": "object",
+      "required": ["policyRevision", "recordId"],
+      "additionalProperties": false,
+      "properties": {
+        "policyRevision": {"type": "string", "pattern": "^DEL-04-01/ACT-POLICY-v[0-9]+\\.[0-9]+$"},
+        "recordId": {"type": "string", "pattern": "^P-[0-9]{2}[a-z]?$"}
+      }
+    },
+    "actKind": {"enum": ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10", "A11", "A12", "A13", "A14", "A15"]},
+    "standing": {
+      "enum": ["settled-by-basis", "adopted decision", "DERIVED", "accepted default (host adoption unevidenced)", "INTEGRATION", "PROPOSED", "UNRESOLVED"]
+    },
+    "decisionBasis": {
+      "description": "Identity, decision actor, recorder, date and custody of the fixing requirement or decision; for an open value, the item, its owner and its point of need (ACT §8.1).",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["identity", "standing"],
+          "additionalProperties": false,
+          "properties": {
+            "identity": {"type": "string", "minLength": 1},
+            "part": {"type": "string"},
+            "standing": {"$ref": "#/$defs/standing"},
+            "decisionActor": {"type": "string"},
+            "recorder": {"type": "string"},
+            "date": {"type": "string"},
+            "custody": {"type": "string"}
+          }
+        },
+        {
+          "type": "object",
+          "required": ["openItem", "owner", "pointOfNeed"],
+          "additionalProperties": false,
+          "properties": {
+            "openItem": {"type": "string", "pattern": "^UNRESOLVED\\{.+\\}$"},
+            "owner": {"type": "string"},
+            "pointOfNeed": {"type": "string"}
+          }
+        }
+      ]
+    },
+    "consequenceStatement": {
+      "description": "PROPOSED vocabulary from the four d3 dimensions (ACT §8.5), for the owner's phase review. While U-02 is open a record carries 'assigned: false' with the open item.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["assigned", "openItem"],
+          "additionalProperties": false,
+          "properties": {
+            "assigned": {"const": false},
+            "openItem": {"const": "UNRESOLVED{U-02}"},
+            "note": {"type": "string"}
+          }
+        },
+        {
+          "type": "object",
+          "required": ["assigned", "effect", "reversibility", "examination", "delegation"],
+          "additionalProperties": false,
+          "properties": {
+            "assigned": {"const": true},
+            "effect": {"enum": ["CQ-E0 no domain change", "CQ-E1 App-side only", "CQ-E2 queued proposal only", "CQ-E3 domain change, bounded objects", "CQ-E4 domain change, model-wide", "CQ-E5 effect outside the host"]},
+            "reversibility": {"enum": ["CQ-R1 host undo with receipt", "CQ-R2 host undo without receipt", "CQ-R3 reversed only by a further change", "CQ-R4 not reversible", "CQ-R0 not stated"]},
+            "examination": {"enum": ["CQ-X1 host checks available on the result", "CQ-X2 agent examination only", "CQ-X3 the person's examination only", "CQ-X4 none before reliance", "CQ-X0 not stated"]},
+            "delegation": {"enum": ["CQ-D1 the person decides each item", "CQ-D2 the person decides the batch", "CQ-D3 agent applies within scope; the person checks later", "CQ-D4 agent applies within scope; no follow-up act expected"]}
+          }
+        },
+        {
+          "type": "object",
+          "required": ["assigned", "notApplicable"],
+          "additionalProperties": false,
+          "properties": {
+            "assigned": {"const": false},
+            "notApplicable": {"type": "string", "minLength": 1}
+          }
+        }
+      ]
+    },
+    "phaseNote": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "currentPhase": {"type": "string"},
+        "governancePhase": {"type": "string"}
+      }
+    },
+    "recordCommon": {
+      "type": "object",
+      "required": ["recordId", "title", "recordRole", "decisionBasis", "decisionStanding", "hostAdoption"],
+      "properties": {
+        "recordId": {"type": "string", "pattern": "^P-[0-9]{2}[a-z]?$"},
+        "title": {"type": "string", "minLength": 1},
+        "recordRole": {"enum": ["catalog class", "treatment rule", "tool-permission setting"]},
+        "classIdentity": {
+          "type": "object",
+          "required": ["kind", "name"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {"enum": ["host-named operation class", "act-defined class"]},
+            "name": {"type": "string", "minLength": 1}
+          }
+        },
+        "coveredOperations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["operationId"],
+            "additionalProperties": false,
+            "properties": {
+              "operationId": {"type": "string"},
+              "version": {"type": "string"},
+              "fixtureOnly": {"type": "boolean"}
+            }
+          }
+        },
+        "coveredActs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/actKind"}},
+        "coverageRule": {"type": "string"},
+        "humanActClass": {"enum": ["none", "may apply within granted autonomy", "proposal only", "reserved to the person", "no policy basis"]},
+        "noPolicyBasisReason": {"enum": ["omitted", "unassigned", "pending OI-021"]},
+        "defaultGrantValue": {"enum": ["direct", "propose"]},
+        "treatment": {"enum": ["propose", "not permitted when direct", "request the person's act", "execute"]},
+        "settingOwner": {"type": "string"},
+        "widenable": {"enum": ["yes, bounded by ACT §5.6", "no", "not applicable"]},
+        "acceptanceGranularity": {"type": "array", "items": {"enum": ["row", "multi-row", "whole batch"]}},
+        "actorsCovered": {"type": "array", "minItems": 1, "items": {"enum": ["person", "embedded agent", "external agent"]}},
+        "consequence": {"$ref": "#/$defs/consequenceStatement"},
+        "decisionBasis": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/decisionBasis"}},
+        "decisionStanding": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/standing"}},
+        "openItems": {"type": "array", "items": {"type": "string", "pattern": "^UNRESOLVED\\{.+\\}$"}},
+        "hostAdoption": {
+          "type": "object",
+          "required": ["state"],
+          "additionalProperties": false,
+          "properties": {
+            "state": {"enum": ["unevidenced", "evidenced"]},
+            "note": {"type": "string"}
+          }
+        },
+        "phase": {"$ref": "#/$defs/phaseNote"},
+        "undoRule": {"type": "string"},
+        "conditions": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "policyClassRecord": {
+      "allOf": [{"$ref": "#/$defs/recordCommon"}],
+      "oneOf": [
+        {
+          "description": "A catalog class record carries a human-act class and a class identity.",
+          "type": "object",
+          "required": ["recordRole", "humanActClass", "classIdentity", "widenable"],
+          "properties": {"recordRole": {"const": "catalog class"}}
+        },
+        {
+          "description": "A treatment rule leaves the class unchanged and fixes the treatment per run (P-05).",
+          "type": "object",
+          "required": ["recordRole", "treatment"],
+          "properties": {"recordRole": {"const": "treatment rule"}},
+          "not": {"required": ["humanActClass"]}
+        },
+        {
+          "description": "The routine tool-permission setting is never a class value (P-04).",
+          "type": "object",
+          "required": ["recordRole", "settingOwner"],
+          "properties": {"recordRole": {"const": "tool-permission setting"}},
+          "not": {"required": ["humanActClass"]}
+        }
+      ]
+    },
+    "decisionRecord": {
+      "type": "object",
+      "required": ["identity", "decisionActor", "recorder", "date", "custody", "scope"],
+      "additionalProperties": false,
+      "properties": {
+        "identity": {"type": "string"},
+        "decisionActor": {"type": "string"},
+        "recorder": {"type": "string"},
+        "date": {"type": "string"},
+        "custody": {"type": "string"},
+        "source": {"type": "string"},
+        "scope": {"type": "string"},
+        "notEstablished": {"type": "string"}
+      }
+    }
+  }
+}

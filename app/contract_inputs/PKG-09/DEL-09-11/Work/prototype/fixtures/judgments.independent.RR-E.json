@@ -1,0 +1,18 @@
+{
+  "format": "rrm.examiner-judgments",
+  "formatVersion": "0.2",
+  "account": {
+    "account_id": "RR-E-FX-DP1-ACCOUNT-1",
+    "sha256": "637e234cdab95785698ab2f39275359a68e674dd9a9024fa7447cf25b3134cee"
+  },
+  "judgments": {
+    "C-09": "absence"
+  },
+  "basis": {
+    "C-09": "The claim states that the record log holds nothing after seq 3 and that no supplied record shows what happened after the PKG-1 decision. The log has exactly three entries, seq 1-3 (checked: 3 lines). A truthful statement of absence, not a claim that something happened. Judged by HELP_HUMAN in RR-E/RESULT.md (\"a truthful statement of absence\") and confirmed independently by O-C against the log."
+  },
+  "examiner": {
+    "identity": "HELP_HUMAN (Claude Code session), confirmed by O-C",
+    "kind": "agent"
+  }
+}

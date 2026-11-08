@@ -1,0 +1,24 @@
+{
+  "kind": "stop_request",
+  "stopRequestId": "stop:sess-1:2",
+  "appSession": "sess-1",
+  "home": "H-acct",
+  "generation": "gen:v1:s:736573732d31:h:482d61636374:n:1",
+  "threadId": "thr-ex-1",
+  "turnId": "turn-ex-4",
+  "cause": "person-interrupt",
+  "requestedBy": {
+    "kind": "person",
+    "identity": "person:ex-1",
+    "identityStatus": "identity not verified"
+  },
+  "requestedAt": "2026-10-01T09:20:11.004Z",
+  "clientRequest": "cr-sess-1/g1-23",
+  "send": "sent",
+  "response": "result",
+  "turnOutcome": "interrupted",
+  "outcomeSource": "not-observed",
+  "outcomeLabel": "interrupted by the person",
+  "state": "settled",
+  "transition": "SR-06"
+}

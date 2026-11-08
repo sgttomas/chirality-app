@@ -1,0 +1,33 @@
+{
+  "format": "pre-sign-mode-normalization/1",
+  "authorized_by": "Agent 0 option (a), 2026-11-03",
+  "action": "chmod 0644 Contents/embedded.provisionprofile",
+  "pre": {
+    "build_identity": "chirality.app.bundle-tree.sha256/v2:caec11a00be3836a5576c7e4f84da4cb4f7b2749e9a29be9b2159c37fcb7d18d",
+    "inventory_manifest_sha256": "f08c0a2c7e33547ec4717085421a36d1eba0960f0a0cad76e894b8e7405bc999",
+    "profile_sha256": "5eccea61c989e499f738376cd843fe55c0c6ba6a6ad5ca86af074acdef965165",
+    "profile_mode": "0o600"
+  },
+  "post": {
+    "build_identity": "chirality.app.bundle-tree.sha256/v2:bc38496b6ccff29c7e7512c8ab7499cd14037224e846b9deefedb03d31c2eb63",
+    "inventory_manifest_sha256": "f08c0a2c7e33547ec4717085421a36d1eba0960f0a0cad76e894b8e7405bc999",
+    "profile_sha256": "5eccea61c989e499f738376cd843fe55c0c6ba6a6ad5ca86af074acdef965165",
+    "profile_mode": "0o644"
+  },
+  "delta": {
+    "Contents/embedded.provisionprofile": {
+      "mode": [
+        "0o600",
+        "0o644"
+      ]
+    }
+  },
+  "unchanged_asserted": [
+    "profile bytes 5eccea61",
+    "executable df5b12cc",
+    "Contents/Resources/codex/ entries (52)",
+    "every other bundle entry"
+  ],
+  "private_original": "unchanged: 0600 file in 0700 directory",
+  "standing": "unsigned candidate; no signing, launch or notarization"
+}

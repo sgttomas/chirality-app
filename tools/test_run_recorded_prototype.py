@@ -11,8 +11,8 @@ import run_recorded_prototype as subject  # noqa: E402
 
 
 @pytest.mark.parametrize('relative, changed', [
-    ('execution/PKG-09/DEL-09-01/Work/prototype/check_exp.py', 3),
-    ('execution/PKG-03/DEL-03-03/Work/prototype/observe_map.py', 5),
+    ('app/contract_inputs/PKG-09/DEL-09-01/Work/prototype/check_exp.py', 3),
+    ('app/contract_inputs/PKG-03/DEL-03-03/Work/prototype/observe_map.py', 5),
 ])
 def test_recorded_bytes_and_only_design_path_strings_change(relative, changed):
     raw = (subject.ROOT / relative).read_bytes()
@@ -36,7 +36,7 @@ def test_unrecorded_or_changed_scripts_are_refused(tmp_path, monkeypatch):
     runner = Path(subject.__file__)
     refused = subprocess.run([sys.executable, str(runner), str(runner)], capture_output=True, text=True)
     assert refused.returncode != 0 and 'not a recorded prototype' in refused.stderr
-    relative = 'execution/PKG-09/DEL-09-01/Work/prototype/check_exp.py'
+    relative = 'app/contract_inputs/PKG-09/DEL-09-01/Work/prototype/check_exp.py'
     monkeypatch.setitem(subject.RECORDED, relative, '0' * 64)
     with pytest.raises(SystemExit, match='recorded prototype bytes changed'):
         subject.main([str(subject.ROOT / relative)])

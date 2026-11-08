@@ -33,12 +33,12 @@ class PR30SourceReceiving(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             for source in pins['sources']:
-                target=root/source['snapshot'];target.parent.mkdir(parents=True,exist_ok=True)
-                target.write_bytes((successor.ROOT/source['snapshot']).read_bytes())
+                target=root/source['snapshot'].replace('execution/', 'app/contract_inputs/', 1);target.parent.mkdir(parents=True,exist_ok=True)
+                target.write_bytes((successor.ROOT/source['snapshot'].replace('execution/', 'app/contract_inputs/', 1)).read_bytes())
             with patch.object(successor,'ROOT',root):
                 successor.load_catalog()
                 for source in pins['sources']:
-                    path=root/source['snapshot'];raw=path.read_bytes()
+                    path=root/source['snapshot'].replace('execution/', 'app/contract_inputs/', 1);raw=path.read_bytes()
                     path.write_bytes(raw+b'\n')
                     with self.subTest(source=source['path']),self.assertRaisesRegex(ValueError,'selected source changed'):successor.load_catalog()
                     path.unlink()
@@ -46,8 +46,8 @@ class PR30SourceReceiving(unittest.TestCase):
                     path.write_bytes(raw)
                 for source in pins['sources'][2:4]:
                     previous=next(s for s in original.selection()['sources'] if s['path']==source['path'])
-                    path=root/source['snapshot'];raw=path.read_bytes()
-                    path.write_bytes((original.ROOT/previous['snapshot']).read_bytes())
+                    path=root/source['snapshot'].replace('execution/', 'app/contract_inputs/', 1);raw=path.read_bytes()
+                    path.write_bytes((original.ROOT/previous['snapshot'].replace('execution/', 'app/contract_inputs/', 1)).read_bytes())
                     with self.assertRaisesRegex(ValueError,'selected source changed'):successor.load_catalog()
                     path.write_bytes(raw)
         with patch.object(successor,'PINS',original.PINS):
@@ -59,7 +59,7 @@ class PR30SourceReceiving(unittest.TestCase):
         new=successor.selection();old=original.selection()
         def read(pins,suffix):
             source=next(s for s in pins['sources'] if s['path'].endswith(suffix))
-            return (successor.ROOT/source['snapshot']).read_text()
+            return (successor.ROOT/source['snapshot'].replace('execution/', 'app/contract_inputs/', 1)).read_text()
         previous=read(old,'embeddedAgentSession.ts');current=read(new,'embeddedAgentSession.ts')
         self.assertEqual(previous[previous.index('export async function recordBefore'):],
                          current[current.index('export async function recordBefore'):])
