@@ -207,24 +207,14 @@ subjects and authentic561 remain historical, without relabeling. A fresh
 explicit receiving profile is required before visual use; no new live App
 session, setup action, supplier/model start or desktop GO is selected.
 
-The owner's model selections apply to future work:
-
-| Instance | Provider/model | Effort and options |
-|---|---|---|
-| Type 1 managers | Codex-Hub `gpt-6.1-sol` | `reasoningEffort=high`, `serviceTier=default` (owner's subsequent direction for future delegation) |
-| Type 2 execution tasks | Claude-Hub `claude-opus-5-5` (Opus 5.5) | `effort=high`, `fastMode=false` |
-| Type 2 independent reviews | Codex-Hub `gpt-6.1-sol` | `reasoningEffort=xhigh`, `serviceTier=default` |
-
-Set the requested selection explicitly on every new delegate. If unavailable,
-report it rather than substitute. Existing Type 1 session selections are
-configured accordingly; historical task/model results retain their identities.
+Model and effort choices come from the owner's current session steering.
+If unavailable, report it rather than substitute. Historical task/model
+results retain their identities.
 No new top-level manager session or automatic review round is selected.
 
 ### Owner-selected Agent0 interlocutor and tooling approval
 
-The owner selected a separate Type 2 interlocutor in this Agent0 session,
-using Claude-Hub Opus 5.5 (`claude-opus-5-5`, `effort=high`,
-`fastMode=false`). Its focus is helping Agent0 perform HELP_HUMAN well:
+The owner selected a separate Type 2 interlocutor in this Agent0 session. Its focus is helping Agent0 perform HELP_HUMAN well:
 publication objectives, effective delivery, judgment, compute and owner
 attention, and recommendations to start, stop or change work. Agent0 supplies
 concise summaries of activities, demonstrated results, limits and proposed
@@ -242,8 +232,7 @@ New tool acquisition or construction requires an explicit owner-approved
 proposal describing its purpose, bounded scope/source, required access,
 cost/resources and focused validation. The owner approved one development-only
 visual-session helper with offline checks and one independent review, and
-specified one Type 2 execution instance here in Agent0's session. That task
-uses Opus 5.5/high; independent implementation review uses GPT-6.1-sol/xhigh.
+specified one Type 2 execution instance here in Agent0's session.
 It reuses original-App identity and normal-cleanup safeguards. Approval adds
 no live App launch, capture/input trial, setup action, download, permission
 change or model/authentication operation. Managers potentially needed before
