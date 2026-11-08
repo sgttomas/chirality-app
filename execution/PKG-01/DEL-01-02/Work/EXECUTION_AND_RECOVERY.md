@@ -1,5 +1,10 @@
 # Durable execution and request recovery
 
+The draft status and source pins below describe the original RECOVERY-v0.2
+definition and its observations. Later implementation and its remaining
+limits are described in [Current implementation conditions](#current-implementation-conditions);
+the historical definition and prototype do not establish candidate qualification.
+
 Windows development proposal, source-bound to App `79315c26`: see
 [Windows platform services](WINDOWS_PLATFORM_SERVICES.md) for custody,
 actual-opened-file SQLite identity, namespace/durability choices and unrun
