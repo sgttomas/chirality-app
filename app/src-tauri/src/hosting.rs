@@ -4646,6 +4646,7 @@ mod conversation_transport_tests {
     mod manual_history_tests { include!("hosting_manual_history_tests.rs"); }
     mod observation_custody_tests { include!("hosting_observation_custody_tests.rs"); }
     mod role_observations_host_tests { include!("role_observations_host_tests.rs"); }
+    mod local_role_metadata_tests { include!("local_role_metadata_tests.rs"); }
     mod namespace_admission_tests { include!("namespace_admission_tests.rs"); }
     use super::*;
     fn g()->Value {json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":1})}
@@ -5212,10 +5213,10 @@ mod conversation_transport_tests {
         let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
         *host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();
         *host.before_provider_wait.lock().unwrap()=Some(Box::new(move|host,source|{host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":cfg})).unwrap(),source.generation());}));
-        let me=Arc::clone(host);
+        let me=Arc::clone(host);let generation=host.snapshot()["generation"].clone();
         let worker=std::thread::spawn(move||{let mut reader=BufReader::new(stdout);let mut frames=vec![];loop{let mut line=String::new();if reader.read_line(&mut line).unwrap()==0{break;}let frame:Value=serde_json::from_str(&line).unwrap();
-            if matches!(frame["method"].as_str(),Some("thread/resume"|"thread/fork")){me.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":reply})).unwrap(),&g());}
-            if frame["method"]=="thread/read"{me.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":{"thread":saved}})).unwrap(),&g());}frames.push(frame);}frames});
+            if matches!(frame["method"].as_str(),Some("thread/resume"|"thread/fork")){me.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":reply})).unwrap(),&generation);}
+            if frame["method"]=="thread/read"{me.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":{"thread":saved}})).unwrap(),&generation);}frames.push(frame);}frames});
         let result=operation();
         *host.stdin.lock().unwrap()=None;*host.before_provider_wait.lock().unwrap()=None;let frames=worker.join().unwrap();assert!(child.wait().unwrap().success());(result,frames)
     }

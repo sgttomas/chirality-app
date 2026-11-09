@@ -1120,6 +1120,21 @@ impl ProviderAdmission {
     pub(super) fn cwd(&self) -> &str { &self.cwd }
 }
 impl Host {
+    /// Role correlation uses the original receipt and this Host's private local
+    /// destination, not a cwd copied from sent/received JSON. Operational admission
+    /// still independently checks the current private configuration reading.
+    pub(crate) fn role_metadata_request(&self, source: &SourceRequest, request: crate::role_lifecycle::MetadataRequest) -> Result<crate::role_lifecycle::MetadataRequest, String> {
+        self.check_source(source)?;
+        let i = self.inner.0.lock().map_err(|_| unavailable())?;
+        let Some(binding) = &i.local_provider else { return Ok(request); };
+        if i.generation != *source.generation() || i.state != "ready" || i.server_requests.is_closed(source.generation())
+            || source.generation()["home"] != binding.home || request.generation() != source.generation()
+            || request.request_id() != source.request_id() || request.request_ref() != source.request_ref()
+            || source.frame["method"] != request.method() {
+            return Err(crate::native_local_provider::LIMIT.into());
+        }
+        Ok(request.with_classified_cwd(&binding.cwd))
+    }
     /// Local Continue reads and classifies the effective provider definition before dispatch; None without a local binding.
     pub(super) fn local_resume_admission(&self, generation: &Value, thread: &Value) -> Result<Option<ProviderAdmission>, String> {
         let cwd = match self.inner.0.lock().map_err(|_| unavailable())?.local_provider.as_ref() { Some(b) => b.cwd.clone(), None => return Ok(None) };

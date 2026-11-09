@@ -1482,6 +1482,7 @@ impl HistorySession {
                                 status["requestIdentity"].clone(),
                                 status["requestRef"].as_str().unwrap_or(""),
                             )
+                            .and_then(|request| host.role_metadata_request(pending.receipt.source(), request))
                             .and_then(|request| {
                                 request.observe(
                                     &status["generation"],
@@ -1641,6 +1642,7 @@ impl HistorySession {
         let status=host.source_request_status(receipt)?;let home=status["home"].as_str().ok_or("fork home absent")?.to_owned();
         let Some(source)=self.roles.get(&home,source_thread).cloned()else{return Ok(json!({"kind":"inherited-fork","sourceThread":source_thread,"role":{"standing":"unknown","reason":"source conversation's original App role not established in this App process; supplier guidance remains unverified"}}));};
         let request=source.fork(&home,status["generation"].clone(),status["requestIdentity"].clone(),status["requestRef"].as_str().ok_or("fork request reference absent")?,supply_ref)?;
+        let request=host.role_metadata_request(receipt,request)?;
         let binding=request.observe(&status["generation"],&status["sentFrame"],&status["response"])?;let relation=binding.relation();let thread=binding.thread().to_owned();self.roles.insert(binding)?;Ok(json!({"kind":"inherited-fork","thread":thread,"relation":relation,"role":self.role(&home,&thread)}))
     }
     /// Legacy internal caller: native admission already performed by its owner.

@@ -120,6 +120,12 @@ directory, and it gets the same private effective-configuration reading,
 write-time recheck and admission currency as Continue. The fork must report the
 fixed provider, model and working directory.
 
+Role-lifecycle correlation binds these three-field local packets to the original
+native receipt and the Host's private classified directory. Continue retains
+the original App role binding across a Codex generation restart; same-role Fork
+inherits it without resupplying guidance. Account/H-key metadata packets retain
+their existing shape.
+
 The DTO names `modeHomeClass`, `entryId`, `providerId`, `endpoint`, `model`,
 `generation` and `credentialState`. The fixed entry is `local-provider-keyed`.
 States are `entry-required` or `configured-not-verified`. After key entry the
