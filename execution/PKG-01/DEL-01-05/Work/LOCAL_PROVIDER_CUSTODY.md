@@ -160,6 +160,14 @@ turns: the exact response `OMLX_OK`, then a read-only tool call
 the model's answer both matched the fixture line, and the fixture bytes were
 unchanged. The original App process closed normally and its absence was verified.
 
+The command ran automatically under the retained turns' `on-request` approval
+policy and `read-only` sandbox; the App ledger contains no permission request
+or answer for this run. These policy values match the earlier
+[account P3 subject](../../../PKG-09/DEL-09-02/Work/P3_NEXT_WITNESS_PROPOSAL.md).
+The fixed local configuration and flags set neither approval nor sandbox
+overrides and do not copy account configuration. No local approval request
+was exercised.
+
 These observations establish the bounded keyed response and read-only command
 path on this development subject. Nonsecret turn/command observations and
 original-process closure facts are retained privately at
