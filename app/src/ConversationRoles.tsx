@@ -234,7 +234,7 @@ export function RoleHistoryReader({ read, scope, ready }: { read?: () => Promise
   return <div><button disabled={!ready || !read || reading} onClick={() => { void inspect(); }}>{reading ? "Reading role-supply history…" : "Read quoted role-supply history"}</button><RoleSupplyHistory view={view} /></div>;
 }
 
-export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, trialConversation, trialsStartedHere, readSupplyHistory }: { thread: Json; limits: Json; busy: boolean; ready: boolean; continueAs: (role: string | null) => void; fork: () => void; trialConversation?: Json; trialsStartedHere?: Json; readSupplyHistory?: () => Promise<Json> }) {
+export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, forkUnavailable, trialConversation, trialsStartedHere, readSupplyHistory }: { thread: Json; limits: Json; busy: boolean; ready: boolean; continueAs: (role: string | null) => void; fork: () => void; forkUnavailable?: string; trialConversation?: Json; trialsStartedHere?: Json; readSupplyHistory?: () => Promise<Json> }) {
   const appRole = thread?.appRole;
   const own: string | null | undefined = appRole?.standing === "app-observed" ? (appRole.role ?? null) : undefined;
   // The choice starts at this conversation's own role (Continue as the same role takes up new guidance).
@@ -258,8 +258,9 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, tria
         {CONVERSATION_ROLES.map(r => <option key={r} value={r}>{r}</option>)}<option value="">No role</option>
       </select></label>{" "}
       <button disabled={busy || !ready} onClick={() => continueAs(target === "" ? null : target)}>Continue as {target || "no role"}…</button>{" "}
-      <button disabled={busy || !ready} onClick={fork}>Fork (same role)</button>
+      <button disabled={busy || !ready || !!forkUnavailable} onClick={fork}>Fork (same role)</button>
     </p>
+    {forkUnavailable && <p role="status">{forkUnavailable}</p>}
     <p><small>Continue as starts a new conversation with that role; this conversation keeps its role. The App first asks this conversation's agent for a handoff summary in a visible turn here, and you edit it before anything is sent. Fork copies this conversation with the same role and guidance.</small></p>
   </div>;
 }

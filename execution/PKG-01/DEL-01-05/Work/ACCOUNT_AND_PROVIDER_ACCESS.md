@@ -1675,17 +1675,46 @@ button. Existing anonymous local providers use the account home; the adopted
 keyed oMLX design uses a dedicated local home. Omitting H-key's product entry
 does not remove local-provider authentication.
 
-Local credential support required by oMLX remains owed. The owner-selected
-nonsecret inputs are `http://127.0.0.1:8000/v1` and
-`mlx-community/Qwen3.6-35B-A3B-8bit`; no key was supplied and no server was used.
-The current receiver only admits anonymous providers. Its limitation is shown
-in the UI until the separate native-access contribution lands. The adopted
-design keeps the token in Codex custody in a dedicated local home with its own
-fixed nonsecret oMLX configuration, without a plaintext bearer in provider
-configuration. The source-supported authentication design does not establish
-actual oMLX compatibility. This frontend contribution chooses no wire field,
-secret store or credential write. The supplier lane owns
-the selected 0.167.0 generation/runtime advance.
+Native local credential support is implemented by the dedicated local-home
+path ([LOCAL_PROVIDER_CUSTODY](LOCAL_PROVIDER_CUSTODY.md)); actual keyed provider
+qualification remains open. The owner-selected nonsecret inputs are
+`http://127.0.0.1:8000/v1` and `mlx-community/Qwen3.6-35B-A3B-8bit`; no key has
+been supplied and actual model use remains unrun. The adopted design keeps the
+token in Codex custody in a dedicated local home with its own fixed nonsecret
+oMLX configuration, without a plaintext
+bearer in provider configuration. The source-supported authentication design
+does not establish actual oMLX compatibility.
+
+The frontend receives that path's nonsecret commands and view. Under Connection
+& access, **Prepare the oMLX connection** calls `prepare_local_provider()`;
+**Enter oMLX key in a secure
+field…** calls `submit_local_provider_key(generation)` for the viewed local
+generation; **Use local oMLX home** and **Use account home** switch between the
+retained homes. The App shows only the returned endpoint, provider, model and
+`entry-required` or `configured-not-verified` state, and only while the view's
+generation is the current ready local generation. Any other view is reported as
+earlier and offers no key entry or route. Preparation reports Codex's
+no-refresh account observation for that generation: a saved local key appears
+as `configured-not-verified`, including after a restart, and none as
+`entry-required`. Neither establishes the key's validity. A refused command,
+including the fixed refusal when administrator Codex configuration is present,
+or an incomplete reply withdraws the earlier view and shows no key state. Key
+entry is offered once per local generation and counts as used before dispatch,
+including on cancel, refusal or unknown outcome. That nonsecret record survives
+a renderer reload in the window's session storage, and native still refuses any
+repeat. A further entry needs a new generation. In the active local home, the
+new-conversation chooser offers only the fixed **Use oMLX model …** route, which
+starts with `local-provider-keyed`, that provider and model. Start rechecks that
+route against the current ready generation immediately before dispatch, and a
+post-command refresh cannot replace a newer observation. Account sign-in and
+model discovery stay with the account home. Same-role Fork in the local home
+depends on the native Fork path carrying the same effective-configuration
+admission as local Continue, and is offered only with that native
+contribution. Its frontend scope uses the existing original generation, home,
+epoch and intent guards; without that dependency it is shown unavailable.
+The webview never receives a key, and
+this glue chooses no wire field, secret store or credential write. The supplier
+lane owns the selected 0.167.0 generation/runtime advance.
 
 Account connection now has a primary ChatGPT sign-in action, separate local
 alternative and secondary advanced operations. It retains source-owned account

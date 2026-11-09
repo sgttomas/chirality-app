@@ -22,7 +22,8 @@ needs:
   condition: Standalone OpenAI API-key access and its qualification are omitted from this increment.
     Retained protocol definitions apply before any later owner-selected API-key scope; oMLX/local
     credential support remains required through the adopted Codex-custody dedicated local home; native
-    implementation and actual oMLX compatibility remain pending.
+    secure entry and renderer receiving are implemented, while actual keyed oMLX compatibility and
+    candidate-bound qualification remain open.
   evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
 - from: DEL-01-01
   condition: Supply the selected embedding-protocol qualification and local-provider protocol requirement

@@ -439,3 +439,20 @@ test('raw action responses are optional while an exception stays directly readab
   assert.equal(all(c,'details').length,0);assert.match(all(c,'p')[0].textContent,/Could not read/);
   await React.act(async()=>root.unmount());
 });
+
+// desktop_startup.rs DesktopSetup::adopt names this source; lib.rs host_status
+// replaces the launch observation source with it after a saved desktop setup.
+const SAVED = 'explicit saved desktop request, revalidated this launch';
+const launchFrom = (source, root = '/invented/work-project') => ({launchAppProjectObservation:{source, nativeRoot:path(root), associationStanding:'a'}});
+test('a saved desktop setup shows the project folder only when its projection matches the frozen reference', async () => {
+  const ui=await mount({host:host({attachmentSelections:launchFrom(SAVED)}),data:data()});
+  assert.match(region(ui.c,'Project location').textContent,/Project folder: \/invented\/work-project/);
+  await ui.rerender({host:host({attachmentSelections:launchFrom(SAVED,'/invented/other-project')})});
+  assert.match(region(ui.c,'Project location').textContent,/Project is set; its folder name is unavailable/,'a mismatched saved-desktop projection supplies no folder');
+  assert.doesNotMatch(region(ui.c,'Project location').textContent,/other-project/);
+  for(const source of ['explicit saved desktop request','another producer',undefined]){
+    await ui.rerender({host:host({attachmentSelections:launchFrom(source)})});
+    assert.match(region(ui.c,'Project location').textContent,/Project is set; its folder name is unavailable/,`unknown source ${source} supplies no folder`);
+  }
+  assert.deepEqual(ui.calls,[]);await ui.close();
+});

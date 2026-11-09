@@ -69,10 +69,11 @@ harness definitions are not refreshed into new evidence here.
 | Local provider | Historical server/model observations retain their original pair and limits | Owner-selected available server/model/version/endpoint and local-resource/use decision; candidate-bound provider/Responses configuration and useful conversation, with unsupported tools/delegation and unknown destination facts stated truthfully. No discovery, download, probe, model load or substitute follows from the account result. |
 
 The current owner scope requires account plus oMLX/local, including its local
-credential, with switching preserving the other configuration. The frontend
-currently reports anonymous-only receiving; keyed oMLX remains pending native
-implementation of the adopted Codex-custody dedicated local home and actual
-oMLX compatibility. This is not a mode × every-stimulus
+credential, with switching preserving the other configuration. Keyed oMLX
+uses the adopted Codex-custody dedicated local home, with frontend prepare,
+native secure key entry and home switching dependent on its native commands
+integrating first. No key, server use or actual oMLX compatibility is
+established by source or fixtures. This is not a mode × every-stimulus
 matrix or a new gate. Credential-custody observation remains privacy-bounded;
 absence of credentials from a public log is not custody evidence.
 

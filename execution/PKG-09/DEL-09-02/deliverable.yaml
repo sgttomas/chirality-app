@@ -98,7 +98,8 @@ needs:
   condition: Standalone OpenAI API-key qualification is omitted for this increment; obtain supported
     pinned-protocol account behavior before any later owner-selected API-key scope. Account and
     oMLX/local credential support remain required through the adopted Codex-custody dedicated local
-    home; native implementation and actual compatibility remain pending.
+    home; native secure entry and renderer receiving are implemented, while actual keyed oMLX compatibility
+    and candidate-bound qualification remain open.
   evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: external:OI-011
   condition: Obtain the App implementation owner and SWB owner's signing/notarisation/Codex-entitlement

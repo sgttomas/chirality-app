@@ -43,6 +43,10 @@ export function ConversationContext({ label, host, reference, empty, limit, work
  * supplier closing. Neither projectLibraryAvailable nor native cwd is a path. */
 /** The fixed App project's readable folder, only when the launch observation's
  * exact projection agrees with the frozen reference; otherwise null. */
+// The established producers of the launch workspace observation: an explicit
+// launch environment, or the saved desktop request this launch revalidated
+// (DesktopSetup::adopt). Any other or unknown source supplies no folder.
+const LAUNCH_PROJECT_SOURCES = ["explicit App launch CHIRALITY_WORKSPACE", "explicit saved desktop request, revalidated this launch"];
 export function appProjectFolder(host: Json): string | null {
   const project = host?.currentAppProjectContext;
   const knownProject = !host?.currentAppProjectContextLimit && nonempty(project?.reference);
@@ -51,7 +55,7 @@ export function appProjectFolder(host: Json): string | null {
   // Both producers receive the same launch workspace. Use that path only when
   // its exact projection agrees with the frozen reference; never decode an
   // opaque reference or infer an accepted REC/native/actor association.
-  return knownProject && launch?.source === "explicit App launch CHIRALITY_WORKSPACE" && launchPath !== null
+  return knownProject && LAUNCH_PROJECT_SOURCES.includes(launch?.source) && launchPath !== null
     && (project.reference === launchPath || project.reference === JSON.stringify(launch.nativeRoot)) ? launchPath : null;
 }
 export function ProjectLibraryContext({ host }: { host: Json }) {
