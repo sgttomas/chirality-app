@@ -7,6 +7,11 @@ type Json = any;
 
 export const LOCAL_MODE = "local-provider";
 export const LOCAL_ENTRY = "local-provider-keyed";
+// Same-role Fork in the local home stays unavailable until the native Fork
+// path carries the same effective-configuration admission as local Continue.
+// Enable only with that fixed native head; the frontend guards are ready.
+export const LOCAL_FORK_AVAILABLE = false;
+export const LOCAL_FORK_UNAVAILABLE = "Fork isn't available in the local oMLX home yet: the check that a fork keeps the fixed oMLX settings is still being added.";
 const STATES = ["entry-required", "configured-not-verified"] as const;
 export type LocalCredentialState = typeof STATES[number];
 export type LocalView = { entryId: string; providerId: string; endpoint: string; model: string; generation: Json; credentialState: LocalCredentialState };
@@ -14,6 +19,20 @@ export type LocalView = { entryId: string; providerId: string; endpoint: string;
 const text = (value: unknown) => typeof value === "string" && value !== "";
 const sameGeneration = (a: Json, b: Json) => !!a && !!b && a.appSession === b.appSession && a.home === b.home && a.spawnCounter === b.spawnCounter;
 export const generationKey = (generation: Json) => JSON.stringify([generation?.appSession ?? null, generation?.home ?? null, generation?.spawnCounter ?? null]);
+
+// Nonsecret generation identities whose one native key entry was dispatched.
+// Kept in this window's session storage across a renderer reload; native still
+// refuses any repeat for the same generation.
+const ATTEMPTS = "chirality.localKeyEntryAttempts";
+export function readAttemptedLocalEntries(): string[] {
+  try { const value = JSON.parse(globalThis.sessionStorage?.getItem(ATTEMPTS) ?? "[]"); return Array.isArray(value) ? value.filter(item => typeof item === "string") : []; }
+  catch { return []; }
+}
+export function recordAttemptedLocalEntry(key: string): string[] {
+  const next = [...new Set([...readAttemptedLocalEntries(), key])];
+  try { globalThis.sessionStorage?.setItem(ATTEMPTS, JSON.stringify(next)); } catch { /* in-memory only */ }
+  return next;
+}
 
 /** Only a complete local view is admitted; any other reply is not a local status. */
 export function localViewFrom(value: Json): LocalView | null {
@@ -56,7 +75,7 @@ export function LocalProviderAccess({ host, view, attempted, pending, message, n
       <p aria-label="oMLX destination">Destination <code>{view.endpoint}</code> · provider <code>{view.providerId}</code> · model <code>{view.model}</code></p>
       {view.credentialState === "configured-not-verified"
         ? <p role="status">Key saved by Codex — not verified. Whether oMLX accepts it is known only when a conversation reaches the server.</p>
-        : <p role="status">Key entry required. Preparation reports this without reading any key Codex may already hold.</p>}
+        : <p role="status">Key entry required: Codex reports no saved key in the local home.</p>}
       {view.credentialState === "entry-required" && (used
         ? <p>Key entry for this Codex session has been used. Restart Codex for the oMLX home to enter a key again.</p>
         : <p><button disabled={pending || navigating} onClick={() => enterKey(view.generation)}>Enter oMLX key in a secure field…</button>{" "}

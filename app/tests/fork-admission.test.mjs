@@ -9,7 +9,7 @@ import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 // Native admission belongs to that producer, not these renderer fields. This
 // suite mounts the actual App and executes no native supplier/window.
 const g={appSession:'fork-fixture',home:'account-home',spawnCounter:1};
-const kg={...g,home:'key-home'};
+const kg={...g,home:'key-home'},lgk={...g,home:'local-home'};
 const key=(id,generation=g)=>JSON.stringify([generation,id]);
 const thread=(id,generation=g,role='WORKING_ITEMS')=>({generation,threadId:id,status:{type:'idle'},model:'fixture-model',modelProvider:'fixture-provider',appRole:{standing:'app-observed',role,supply_ref:`sup:${id}`},roleRelation:{kind:'start'},futureGuidanceNotices:[]});
 const forkResult=(generation=g)=>({thread:{...thread('fork-1',generation),forkedFrom:{threadId:'source',forkRequestRef:'original-host-fork-receipt',reportedForkedFromId:'source'},requestedDestination:{source:'inherited from the forked conversation; none chosen at fork'},roleRelation:{kind:'inherited-fork',sourceThread:'source',sourceSupplyRef:'sup:source',forkedFromId:'source'}},role:{kind:'inherited-fork',thread:'fork-1',role:thread('fork-1',generation).appRole},roleSupplyRecord:{state:'not-confirmed'},standing:"Same-role copy: thread/fork carried no instructions, so the fork keeps the source's guidance; the source conversation is unchanged."});
@@ -29,8 +29,8 @@ const choice={model:'person-choice',modelProvider:'fixture-provider',entryId:'lo
 async function mounted(options,check) {
  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
  const calls=[],unexpected=[],intervals=new Map();const initial=options.initial??'account';let timer=0,active=initial,statusFailure=false,explicitStarts=0,explicitHomes=0;
- const homes={account:{generation:g,threads:[thread('source'),thread('other')],state:'ready'},'api-key':{generation:kg,threads:[thread('source',kg),thread('other',kg)],state:'ready'}};
- const snapshot=()=>structuredClone({...homes[active],homeRouting:{activeModeHomeClass:active,entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'}]},roleLimits:{account:{roles:[]}}});
+ const homes={account:{generation:g,threads:[thread('source'),thread('other')],state:'ready'},'api-key':{generation:kg,threads:[thread('source',kg),thread('other',kg)],state:'ready'},'local-provider':{generation:lgk,threads:[thread('source',lgk),thread('other',lgk)],state:'ready'}};
+ const snapshot=()=>structuredClone({...homes[active],homeRouting:{activeModeHomeClass:active,entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'},...(initial==='local-provider'?[{modeHomeClass:'local-provider',generation:lgk,state:'ready'}]:[])]},roleLimits:{account:{roles:[]}}});
  const oldTimers={setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval};
  globalThis.setInterval=(fn,ms)=>{const id=++timer;intervals.set(id,{fn,ms});return id;};globalThis.clearInterval=id=>intervals.delete(id);
  const idle=installIdleNativeWaiting(async(command,args)=>{
@@ -117,4 +117,23 @@ for(const alter of [r=>undefined,r=>({...r,error:{code:-1}}),r=>({...r,thread:{.
 });
 test('queued duplicate presses dispatch the original Fork only once',async()=>{
  const held=deferred();await mounted({fork:async r=>{await held.promise;return r;}},async ui=>{const click=props(button(ui.c,'Fork (same role)')).onClick;await React.act(()=>{click();click();});assert.equal(ui.forkCount(),1);await React.act(async()=>{held.resolve();});assert.equal(ui.selected(),key('fork-1'));assert.equal(ui.forkCount(),1);});
+});
+
+// Local-home Fork stays explicitly unavailable until the native Fork path has
+// the same effective-configuration admission as local Continue (native d448c92
+// checks only reported provider/model/cwd). The guarded positive cases below
+// are enabled together with LOCAL_FORK_AVAILABLE on that fixed native head.
+const {LOCAL_FORK_AVAILABLE}=loadSrc('LocalProviderAccess');
+const localFork={skip:LOCAL_FORK_AVAILABLE?false:'local Fork awaits native effective-config admission'};
+test('local-home Fork is shown unavailable and a retained press dispatches nothing',{skip:LOCAL_FORK_AVAILABLE},async()=>{
+ await mounted({initial:'local-provider'},async ui=>{const b=button(ui.c,'Fork (same role)');assert.equal(props(b).disabled,true);assert.match(ui.c.textContent,/Fork isn't available in the local oMLX home yet/);await React.act(async()=>{props(b).onClick();});assert.equal(ui.forkCount(),0);assert.equal(ui.selected(),key('source',lgk));});
+});
+test('local-home Fork opens once under the original local generation and preserves draft/chooser',localFork,async()=>{
+ await mounted({initial:'local-provider'},async ui=>{await ui.press('Fork (same role)');assert.equal(ui.selected(),key('fork-1',lgk));assert.equal(ui.forkCount(),1);await ui.poll();assert.equal(ui.forkCount(),1);});
+});
+test('account intent from the local home supersedes a pending local Fork',localFork,async()=>{
+ const held=deferred(),home=deferred();await mounted({initial:'local-provider',fork:async r=>{await held.promise;return r;},home:async()=>home.promise},async ui=>{await ui.press('Fork (same role)');await ui.press('Use account home');await React.act(async()=>{held.resolve();});assert.notEqual(ui.selected(),key('fork-1',lgk));await React.act(async()=>{home.resolve();});assert.match(ui.c.textContent,/Selected home: account\./);assert.notEqual(ui.selected(),key('fork-1',lgk));assert.equal(ui.forkCount(),1);});
+});
+test('a replaced local generation cannot receive the original local Fork navigation',localFork,async()=>{
+ const held=deferred();await mounted({initial:'local-provider',fork:async r=>{await held.promise;return r;}},async ui=>{await ui.press('Fork (same role)');const next={...lgk,spawnCounter:2};ui.homes['local-provider'].generation=next;ui.homes['local-provider'].threads=[thread('source',next),thread('fork-1',next)];await ui.poll();await React.act(async()=>{held.resolve();});assert.notEqual(ui.selected(),key('fork-1',lgk));assert.notEqual(ui.selected(),key('fork-1',next));assert.equal(ui.forkCount(),1);});
 });

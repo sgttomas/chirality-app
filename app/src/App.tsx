@@ -1,5 +1,5 @@
 import { ActionFeedback } from "./ActionFeedback";
-import { LOCAL_ENTRY, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, type LocalView } from "./LocalProviderAccess";
+import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
@@ -366,6 +366,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     {selected && <details className="conversation-options"><summary>Role and continuation options</summary><RoleHeader key={`role-header:${JSON.stringify([selected.generation, selected.threadId])}`} thread={selected} limits={host?.roleLimits} busy={!!busy || forkBusy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
       readSupplyHistory={() => invoke("role_supply_history", { generation: selected.generation, thread: selected.threadId })}
       continueAs={role => { void roleAct("asking for a handoff summary", "continue_as_begin", { generation: selected.generation, threadId: selected.threadId, role }); }}
+      forkUnavailable={host?.homeRouting?.activeModeHomeClass === LOCAL_MODE && !LOCAL_FORK_AVAILABLE ? LOCAL_FORK_UNAVAILABLE : undefined}
       fork={() => { void forkSelected(); }} /></details>}
     {selected && <ContinuationContext key={`prior-work:${JSON.stringify([selected.generation, selected.threadId, selected.resumeRequestRef])}`} host={host} thread={selected} />}
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
@@ -1489,11 +1490,15 @@ export function App() {
   const [trialObservation, setTrialObservation] = useState<{ relation: { attempt: number; command: string; source: Json; reference: unknown; target: Json }; limit: string | null } | null>(null);
   const homeClass = host?.homeRouting?.activeModeHomeClass ?? null;
   // Keyed oMLX local status (see localCommand); never contains a key.
-  const [localView, setLocalView] = useState<LocalView | null>(null);
-  const [localAttempted, setLocalAttempted] = useState<string[]>([]);
+  const [localView, setLocalViewState] = useState<LocalView | null>(null);
+  const localViewRef = useRef<LocalView | null>(null);
+  const setLocalView = (view: LocalView | null) => { localViewRef.current = view; setLocalViewState(view); };
+  // Native consumes one entry per generation for its process; a renderer
+  // reload keeps this nonsecret record so no refused retry is offered.
+  const [localAttempted, setLocalAttempted] = useState<string[]>(readAttemptedLocalEntries);
   const [localPending, setLocalPending] = useState(false);
   const [localMessage, setLocalMessage] = useState<LocalAccess["message"]>(null);
-  const localPendingRef = useRef(false);
+  const localPendingRef = useRef(false), localSequence = useRef(0);
   const chooserHome = useRef({ mode: homeClass, epoch: 0 });
   if (chooserHome.current.mode !== homeClass) {
     // A different active home invalidates its previous chooser even if the
@@ -1985,6 +1990,12 @@ export function App() {
     }
     await refresh();
   };
+  // A local Start is bound to the current fixed route of this exact ready generation.
+  const localStartBound = (submitted: { model: string; modelProvider: string; entryId: string }, source: Json) => {
+    const route = localRoute(localViewRef.current, source);
+    return !!route && submitted.entryId === LOCAL_ENTRY && submitted.model === route.model && submitted.modelProvider === route.providerId
+      && sameActivityGeneration(source?.generation, route.generation);
+  };
   const startConversation = async () => {
     const source = currentHost.current;
     const mode = source?.homeRouting?.activeModeHomeClass;
@@ -1992,6 +2003,7 @@ export function App() {
     const epoch = chooserHome.current.epoch;
     if (endpointBusyRef.current || startPendingRef.current || homePendingRef.current || providerReadPending.current || configuredRowChoiceStale() || source?.state !== "ready" || submitted.homeEpoch !== epoch ||
         !submitted.model.trim() || !submitted.modelProvider.trim() || (mode !== "account" && mode !== LOCAL_MODE) ||
+        (mode === LOCAL_MODE && !localStartBound(submitted, source)) ||
         !startEntries(source).some(entry => entry.value === submitted.entryId)) return;
     expireEndpointPreview();
     const revision = editRevision.current;
@@ -2027,21 +2039,29 @@ export function App() {
   const localCommand = async (command: "prepare_local_provider" | "submit_local_provider_key", generation?: Json) => {
     if (localPendingRef.current || homePendingRef.current) return;
     localPendingRef.current = true; setLocalPending(true); setLocalMessage(null);
+    const sequence = ++localSequence.current;
     const what = command === "prepare_local_provider" ? "oMLX preparation" : "oMLX key entry";
-    if (generation) { const key = generationKey(generation); setLocalAttempted(previous => previous.includes(key) ? previous : [...previous, key]); }
+    if (generation) { const recorded = recordAttemptedLocalEntry(generationKey(generation)); setLocalAttempted(previous => [...new Set([...previous, ...recorded])]); }
     try {
       const view = localViewFrom(await invoke(command, generation ? { generation } : undefined));
-      if (!view) setLocalMessage({ kind: "alert", text: `${what}: the reply was not an oMLX status, so nothing from it is shown.` });
+      if (!view) { setLocalView(null); setLocalMessage({ kind: "alert", text: `${what}: the reply was not an oMLX status, so nothing from it is shown.` }); }
       else {
         setLocalView(view);
         if (generation) setLocalMessage(view.credentialState === "configured-not-verified"
           ? { kind: "status", text: "Codex reports the key saved in the oMLX home. It is not verified." }
           : { kind: "status", text: "No key was saved: the secure field closed without one." });
       }
-    } catch (error) { setLocalMessage({ kind: "alert", text: `${what} did not complete: ${String(error)}` }); }
+    } catch (error) {
+      // A refusal (including an administrator configuration Codex reads above
+      // the App's settings) supplies no key state; an earlier view is withdrawn.
+      setLocalView(null); setLocalMessage({ kind: "alert", text: `${what} did not complete: ${String(error)}` });
+    }
     finally {
-      localPendingRef.current = false; setLocalPending(false);
-      try { await refresh(); } catch (error) { setLocalMessage(previous => ({ kind: "alert", text: `${previous ? `${previous.text} ` : ""}Current view unavailable: ${String(error)}` })); }
+      // The latch is held through this refresh, which cannot replace a newer
+      // observation or home navigation that arrived while it was read.
+      try { await refreshEffectiveAccessSettings(() => sequence === localSequence.current && !homePendingRef.current); }
+      catch (error) { setLocalMessage(previous => ({ kind: "alert", text: `${previous ? `${previous.text} ` : ""}Current view unavailable: ${String(error)}` })); }
+      finally { localPendingRef.current = false; setLocalPending(false); }
     }
   };
   const localAccess: LocalAccess = { view: localView, attempted: localAttempted, pending: localPending, message: localMessage,
@@ -2214,7 +2234,7 @@ export function App() {
       modeHomeClass: currentHost.current?.homeRouting?.activeModeHomeClass, choiceRevision: threadChoiceRevision.current, homeEpoch: chooserHome.current.epoch,
       startRevision: forkStartRevision.current, sequence: forkSequence.current + 1 };
     if (typeof scope.generation.appSession !== "string" || !scope.generation.appSession || typeof scope.generation.home !== "string" || !scope.generation.home || !Number.isSafeInteger(scope.generation.spawnCounter) || scope.generation.spawnCounter <= 0 ||
-        !["account", "api-key"].includes(scope.modeHomeClass)) return;
+        !["account", "api-key", ...(LOCAL_FORK_AVAILABLE ? [LOCAL_MODE] : [])].includes(scope.modeHomeClass)) return;
     forkSequence.current = scope.sequence;
     if (!forkContextCurrent(scope, currentHost.current)) return;
     forkInFlight.current = true;

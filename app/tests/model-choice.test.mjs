@@ -28,12 +28,14 @@ const packet = (over = {}) => ({state:'observed', generation:g, modeHomeClass:'a
 const snapshotFor = (mode = 'account', generation = g) => ({state:'ready', generation, homeRouting:{activeModeHomeClass:mode}, threads:[],
   roleLimits:{account:{roles:[]}, 'api-key':{roles:[]}}, roleSet:{available:true, defaultRole:'HELP_HUMAN', roles:[{name:'HELP_HUMAN', meaning:'fixture role', default_for_new_chat:true}]}});
 
+// Optional one-shot hold of the next host_status read (its snapshot is taken first).
+let hostGate = null;
 async function mounted(handler, check, initial = snapshotFor()) {
   const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c); const calls = [];
   let snapshot = initial;
   const idle = installIdleNativeWaiting(async (command, args) => {
     calls.push({command, args:structuredClone(args)});
-    if (command === 'host_status') return structuredClone(snapshot);
+    if (command === 'host_status') { const value = structuredClone(snapshot), gate = hostGate; hostGate = null; if (gate) await gate; return value; }
     if (command === 'decision_view') return {rows:[]};
     if (command === 'native_confirmation_content') return [];
     return handler(command, args, {get snapshot() { return snapshot; }});
@@ -293,6 +295,103 @@ test('keyed oMLX refuses incomplete views, stale routes and duplicate presses', 
     assert.match(ui.c.textContent, /Prepare the oMLX connection under Connection & access for this Codex session first/, 'a view for another generation offers no route');
     assert.equal(button(ui.c, `Use oMLX model ${LOCAL.model}`), undefined);
     assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true);
+    assertNoSecretTraffic(ui);
+  });
+});
+
+test('review: a retained local Start cannot dispatch against a replacement generation', async () => {
+  await mounted(async (command, args) => {
+    if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); return localView('entry-required'); }
+    if (command === 'select_home') { ui.setSnapshot(routed(args.modeHomeClass, lg)); return {state:'selected'}; }
+    throw Error(`unexpected ${command}`);
+  }, async u => {
+    ui = u;
+    await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press(`Use oMLX model ${LOCAL.model}`);
+    const retained = props(button(ui.c, 'Start thread')).onClick;
+    assert.equal(!!props(button(ui.c, 'Start thread')).disabled, false);
+    ui.setSnapshot(routed('local-provider', {...lg, spawnCounter:2})); await ui.refresh();
+    assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true);
+    await React.act(async () => { await retained(); });
+    assert.equal(ui.issued().filter(call => call.command === 'thread_start').length, 0, 'the earlier generation route is not sent to its successor');
+    assertNoSecretTraffic(ui);
+  });
+});
+
+test('review: a consumed key entry is not offered again after a renderer reload of the same generation', async () => {
+  const store = new Map(), previous = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage');
+  Object.defineProperty(globalThis, 'sessionStorage', {configurable:true, value:{getItem:k => store.has(k) ? store.get(k) : null, setItem:(k, v) => store.set(k, String(v))}});
+  try {
+    const handler = async (command, args) => {
+      if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); return localView('entry-required'); }
+      if (command === 'submit_local_provider_key') return localView('entry-required');
+      throw Error(`unexpected ${command}`);
+    };
+    await mounted(handler, async u => { ui = u; await ui.press('Prepare the oMLX connection'); await ui.press('Enter oMLX key in a secure field…'); });
+    await mounted(handler, async u => {
+      ui = u; await ui.press('Prepare the oMLX connection');
+      assert.equal(button(ui.c, 'Enter oMLX key in a secure field…'), undefined, 'the reloaded window keeps the consumed generation');
+      assert.match(ui.c.textContent, /Key entry for this Codex session has been used/);
+      assert.equal(ui.issued().filter(call => call.command === 'submit_local_provider_key').length, 0);
+    });
+  } finally { if (previous) Object.defineProperty(globalThis, 'sessionStorage', previous); else delete globalThis.sessionStorage; }
+});
+
+test('review: an older preparation refresh cannot replace a newer host observation', async () => {
+  let release;
+  await mounted(async command => {
+    if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); hostGate = new Promise(yes => { release = yes; }); return localView('entry-required'); }
+    throw Error(`unexpected ${command}`);
+  }, async u => {
+    ui = u;
+    await ui.press('Prepare the oMLX connection');
+    assert.equal(!!props(button(ui.c, 'Prepare the oMLX connection')).disabled, true, 'the latch is held through the refresh');
+    ui.setSnapshot(routed('account', {...lg, spawnCounter:2})); await ui.refresh();
+    assert.match(ui.c.textContent, /from an earlier Codex session or home/);
+    await React.act(async () => { release(); });
+    assert.match(ui.c.textContent, /from an earlier Codex session or home/, 'the held older snapshot is not published over the newer one');
+    assert.equal(region(ui.c, 'oMLX destination'), undefined);
+    assert.equal(!!props(button(ui.c, 'Prepare the oMLX connection')).disabled, false);
+  });
+});
+
+// Native d448c92a8a81e46fd62f3c97b24fe8d26c9f2426: preparation reports the
+// original generation's no-refresh account observation; administrator Codex
+// configuration presence refuses with the same fixed limit.
+const LIMIT = 'Local oMLX source unavailable; no fallback or automatic credential retry';
+test('keyed oMLX: a saved key after restart is shown as saved and not verified, with no key entry offered', async () => {
+  await mounted(async command => {
+    if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); return localView('configured-not-verified'); }
+    throw Error(`unexpected ${command}`);
+  }, async u => {
+    ui = u;
+    await ui.press('Prepare the oMLX connection');
+    assert.match(region(ui.c, 'Keyed oMLX connection').textContent, /Key saved by Codex — not verified/);
+    assert.equal(button(ui.c, 'Enter oMLX key in a secure field…'), undefined);
+    assert.doesNotMatch(ui.c.textContent, /Key entry required/);
+    assertNoSecretTraffic(ui);
+  });
+});
+
+test('keyed oMLX: a refused preparation or Start shows the fixed limit and withdraws any earlier key state', async () => {
+  let refuse = false;
+  await mounted(async (command, args) => {
+    if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); if (refuse) throw Error(LIMIT); return localView('configured-not-verified'); }
+    if (command === 'select_home') { ui.setSnapshot(routed(args.modeHomeClass, lg)); return {state:'selected'}; }
+    if (command === 'thread_start') throw Error(LIMIT);
+    throw Error(`unexpected ${command}`);
+  }, async u => {
+    ui = u;
+    await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press(`Use oMLX model ${LOCAL.model}`);
+    await ui.press('Start thread');
+    assert.ok(ui.c.textContent.includes(`thread_start: Error: ${LIMIT}`), 'the fixed refusal is shown as given');
+    assert.match(region(ui.c, 'Keyed oMLX connection').textContent, /Key saved by Codex — not verified/, 'a Start refusal is not a key observation');
+    refuse = true; await ui.press('Prepare the oMLX connection');
+    const local = region(ui.c, 'Keyed oMLX connection').textContent;
+    assert.ok(local.includes(`oMLX preparation did not complete: Error: ${LIMIT}`));
+    assert.doesNotMatch(local, /Key saved by Codex|Key entry required|earlier Codex session/, 'a refusal supplies no key state');
+    assert.equal(region(ui.c, 'oMLX destination'), undefined);
+    assert.equal(button(ui.c, 'Enter oMLX key in a secure field…'), undefined);
+    assert.equal(button(ui.c, `Use oMLX model ${LOCAL.model}`), undefined, 'no local route without a current observation');
     assertNoSecretTraffic(ui);
   });
 });
