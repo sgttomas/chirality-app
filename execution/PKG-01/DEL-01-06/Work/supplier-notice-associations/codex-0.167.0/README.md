@@ -1,0 +1,25 @@
+# Codex 0.167.0 notice/source associations
+
+`associations.json` and `source-graph-proposal.json` are generated, and can be
+rechecked, offline from retained inputs by
+[`associate_0167.py`](../../../../../../app/packaging/supplier_notices/associate_0167.py):
+
+```sh
+python3 app/packaging/supplier_notices/associate_0167.py \
+  <canonical 0.167.0 vendor> <frozen 0.160.0 vendor> <retained metadata dir> --check \
+  execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/codex-0.167.0
+```
+
+The reader requires the canonical vendor manifest `158dd670…`, the frozen 0.160.0
+manifest `327effb9…` and the eight retained public metadata responses whose
+SHA-256 values `associations.json` records. It executes no supplier code and
+opens no network connection. `rg-ripgrep-15.2.0.json` is recomputed the same way by
+[`ripgrep_0167.py`](../../../../../../app/packaging/supplier_notices/ripgrep_0167.py)
+(`<canonical rg> <retained ripgrep dir> <retained pcre2-sys dir> --check <file>`).
+`code-mode-host-v8.json` is recomputed by
+[`v8_0167.py`](../../../../../../app/packaging/supplier_notices/v8_0167.py)
+(`<retained Codex metadata dir> <retained V8/rusty_v8 dir> <retained gitiles pins dir> --check <file>`).
+`source-text-receipt.json` records the 173 public source-text files read and
+verified on 2026-11-09; their bodies are held privately and not committed.
+What the records establish, and what remains open,
+is stated in [SHIPPED_NOTICE_COVERAGE.md](../../SHIPPED_NOTICE_COVERAGE.md).

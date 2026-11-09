@@ -1,0 +1,207 @@
+{
+ "format": "codex-code-mode-host-v8-association/1",
+ "tool_sha256": "7c26814480418393f55fc9b0e87b9595f6ad63f992c2cfc91d45d438fdd6a3a3",
+ "codex_commit": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
+ "v8_engine": {
+  "repository": "https://github.com/v8/v8",
+  "tag": "15.2.124.1",
+  "commit": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+  "codex_patches": [
+   "//patches:v8_source_portability.patch",
+   "//patches:v8_array_sort_elements_kind.patch",
+   "//third_party/v8:v8_defs.patch"
+  ]
+ },
+ "v8_crate": {
+  "repository": "https://github.com/seanh-oai/rusty_v8",
+  "commit": "350c5a859a9b3c84ab8701b3ad51e3b7699b30c0",
+  "name": "v8",
+  "version": "152.2.0",
+  "license": "MIT",
+  "fork_v8_submodule_commit": "c4ca1eccb90c5464d826b7713dc27178a53b0cfe",
+  "fork_v8_submodule_differs_from_engine_pin": true
+ },
+ "prebuilt_archive": {
+  "name": "librusty_v8_ptrcomp_sandbox_release_aarch64-apple-darwin.a.gz",
+  "sha256": "feab9ae0384bebaa99c1d000654462c9d42123d587185c7876aaeef7d76ff749",
+  "url": "https://github.com/openai/codex/releases/download/rusty-v8-v152.2.0/librusty_v8_ptrcomp_sandbox_release_aarch64-apple-darwin.a.gz",
+  "held": false
+ },
+ "other_pins": {
+  "icu": {
+   "remote": "https://chromium.googlesource.com/chromium/deps/icu.git",
+   "commit": "d578f2e8b7bd5938e21cfb6bf15c079e0aa5b738",
+   "agrees_with_v8_deps": true,
+   "tree": "1a597ddb83a0d67c5138b9ef1554a45d5d152ec7"
+  },
+  "libcxx": {
+   "remote": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxx.git",
+   "commit": "b16984ce99c702355a5b2b4c52574e82cec41fb9",
+   "agrees_with_v8_deps": true,
+   "tree": "259b31836fe451d0c58620553af519c5cfbb0d65"
+  },
+  "libcxxabi": {
+   "remote": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxxabi.git",
+   "commit": "8f11bb1d4438d0239d0dfc1bd9456a9f31629dda",
+   "agrees_with_v8_deps": true,
+   "tree": "63eed58f0937ba832a2195cd848f9f53ef8ecea9"
+  },
+  "llvm_libc": {
+   "remote": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libc.git",
+   "commit": "75ae50cd48c8a9d70f552ccff040029968778da9",
+   "agrees_with_v8_deps": null,
+   "tree": "a76e949547e2e0c26351b50c2a0774bd56e1f08b"
+  }
+ },
+ "terms_texts": [
+  {
+   "repository": "https://github.com/v8/v8",
+   "commit": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "path": "LICENSE",
+   "local_text": "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE",
+   "size_bytes": 3093,
+   "sha256": "6ab33af8774a0f396ee3aeeb761e3229057682d6f9fa7f572e390c2cb3a6e509",
+   "git_blob_sha1": "9898b2d4833bfe87c05ba9106f082ed600bb2aab"
+  },
+  {
+   "repository": "https://github.com/v8/v8",
+   "commit": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "path": "LICENSE.v8",
+   "local_text": "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE.v8",
+   "size_bytes": 1527,
+   "sha256": "4af93c12062c58058378de2397dc1c92bbff9ddfb1d583a01c84127557ce97ca",
+   "git_blob_sha1": "933718a9ef9dae4cb4afa56e490211760d8a949f"
+  },
+  {
+   "repository": "https://github.com/v8/v8",
+   "commit": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "path": "LICENSE.fdlibm",
+   "local_text": "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE.fdlibm",
+   "size_bytes": 250,
+   "sha256": "e7115e18444dae09d17f361ddc365fb1d342640fe500796209c63f7c80dfae10",
+   "git_blob_sha1": "b54cb52278e1847b4f9faa1db09d6b526cd3ddc6"
+  },
+  {
+   "repository": "https://github.com/v8/v8",
+   "commit": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "path": "LICENSE.strongtalk",
+   "local_text": "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE.strongtalk",
+   "size_bytes": 1482,
+   "sha256": "6a585a9f466654abc8fc0829d56b1bc987e3a073d31faa03bba37d33640a23cd",
+   "git_blob_sha1": "9bd62e4f231a357d47073bdece85373325dd732f"
+  },
+  {
+   "repository": "https://github.com/seanh-oai/rusty_v8",
+   "commit": "350c5a859a9b3c84ab8701b3ad51e3b7699b30c0",
+   "path": "LICENSE",
+   "local_text": "app/packaging/supplier_notices/rusty_v8-350c5a85/LICENSE",
+   "size_bytes": 1078,
+   "sha256": "1c6356fb751d45f0c53093ebf8a7f5e580e802f51999178e19d60f3ec39e147d",
+   "git_blob_sha1": "5a671244de937cfc449c42d48da7867e4f0a7852"
+  },
+  {
+   "repository": "https://chromium.googlesource.com/chromium/deps/icu.git",
+   "commit": "d578f2e8b7bd5938e21cfb6bf15c079e0aa5b738",
+   "path": "LICENSE",
+   "local_text": "app/packaging/supplier_notices/icu-d578f2e8/LICENSE",
+   "size_bytes": 27718,
+   "sha256": "e55522d81edc687a341a4411e0776e54ca654e90147f354a90458aaced4116af",
+   "git_blob_sha1": "5a2eda629500c36c75377c1d693d8b584fcf40e6"
+  },
+  {
+   "repository": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxx.git",
+   "commit": "b16984ce99c702355a5b2b4c52574e82cec41fb9",
+   "path": "LICENSE.TXT",
+   "local_text": "app/packaging/supplier_notices/libcxx-b16984ce/LICENSE.TXT",
+   "size_bytes": 16703,
+   "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b",
+   "git_blob_sha1": "e159d283443f92ac78b964d2bccebe8f95d5d445"
+  },
+  {
+   "repository": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxxabi.git",
+   "commit": "8f11bb1d4438d0239d0dfc1bd9456a9f31629dda",
+   "path": "LICENSE.TXT",
+   "local_text": "app/packaging/supplier_notices/libcxxabi-8f11bb1d/LICENSE.TXT",
+   "size_bytes": 16706,
+   "sha256": "e2b35be49f7284a45b7baca8fc7b3ab7440e7902392b2528a457816b5bb2a15c",
+   "git_blob_sha1": "b75c0441bcd5be32b5a07e2a1ffc7e67b6d99f16"
+  },
+  {
+   "repository": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libc.git",
+   "commit": "75ae50cd48c8a9d70f552ccff040029968778da9",
+   "path": "LICENSE.TXT",
+   "local_text": "app/packaging/supplier_notices/llvm-libc-75ae50cd/LICENSE.TXT",
+   "size_bytes": 15140,
+   "sha256": "ebcd9bbf783a73d05c53ba4d586b8d5813dcdf3bbec50265860ccc885e606f47",
+   "git_blob_sha1": "24806ab4c9eb291db4d28e159901f7a0901b9fd1"
+  }
+ ],
+ "retained_responses": [
+  {
+   "name": "v8-ref-tag.json",
+   "sha256": "de07441bff703a6a3731f3d517be48f60d49b9d2f0988fe1332a027a8f12c9cf",
+   "size": 370
+  },
+  {
+   "name": "v8-root-tree.json",
+   "sha256": "aaab750dc33522c94c2e532a5f623e81f86e3b77c19c3f3ad2bc5a1b949fc5ef",
+   "size": 14459
+  },
+  {
+   "name": "fork-root-tree.json",
+   "sha256": "ccaadce4ce8906a8fa6398fb9bc28988d6acae127f05a9bdb832454c4dd217db",
+   "size": 7085
+  },
+  {
+   "name": "fork-gitmodules",
+   "sha256": "21a40b0ff12b590f7033dd9c05eec4b00478f0d3d558f5925fe2960b042aa880",
+   "size": 2952
+  },
+  {
+   "name": "icu-commit.json",
+   "sha256": "c3acabc1ec17dd5e69b6215cefc196a1eec51e88b74eeef2accbe9f9e89a02a9",
+   "size": 3203
+  },
+  {
+   "name": "icu-tree.json",
+   "sha256": "dd1d318126b937c623f8faddd7c3c3e8464d6cb8034055d0306f8205dd9f835e",
+   "size": 5853
+  },
+  {
+   "name": "libcxx-commit.json",
+   "sha256": "83f5cef6fa89e34306039da3f8f12192bd4cbb5979de609bafc6009387393da0",
+   "size": 1820
+  },
+  {
+   "name": "libcxx-tree.json",
+   "sha256": "a4421f005951c23dbe643bd3091d1783253cde6951b3b92788cccdfd5c4861dd",
+   "size": 2568
+  },
+  {
+   "name": "libcxxabi-commit.json",
+   "sha256": "03f82eb1a99e60babea5178af4143b73f943c758074dab02a3d2496e25ebe18a",
+   "size": 1219
+  },
+  {
+   "name": "libcxxabi-tree.json",
+   "sha256": "c5ef4045fe63197d1039a69dcea56a94ecb34e6fd5e431c403fcbc9b54ca2229",
+   "size": 1815
+  },
+  {
+   "name": "llvm_libc-commit.json",
+   "sha256": "bbbbfab7c7da5ac2caeb71e06b9fb63d427fffda02961b65708adcdbb13c0360",
+   "size": 1146
+  },
+  {
+   "name": "llvm_libc-tree.json",
+   "sha256": "9ce8c55aabf89c8ce2cbab536c6903be35d95127900fd2b7eedfb54c86dd31bf",
+   "size": 2927
+  }
+ ],
+ "limits": [
+  "No execution, network access, acquisition, signature validation or legal conclusion.",
+  "Codex documents that release builds link its published rusty-v8-v152.2.0 archive built from this Bazel graph; the shipped code-mode-host is not joined to that archive or graph here.",
+  "V8 states that externally maintained libraries and sub-directory LICENSE files carry their own terms; those and the other pinned V8 dependencies are not covered by these texts.",
+  "For ICU, libc++, libc++abi and llvm-libc only the root terms text is held. The LLVM texts point to separately licensed sub-directory trees and to CREDITS.TXT; neither is read. Each pin commit-to-tree link is as gitiles reports it; the tree is recomputed from its listing."
+ ]
+}
