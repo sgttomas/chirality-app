@@ -133,3 +133,36 @@ fn explicitly_set_robust_is_never_lowered_automatically() {
     settings.recheck(); // only a protected recovery re-reads
     assert_eq!(settings.level(), AssuranceLevel::Robust);
 }
+
+#[test]
+fn restoring_after_a_locked_start_never_reports_protection_without_enrollment() {
+    // Never enrolled, keychain locked at startup: recovery, robust.
+    let chain = InMemoryKeychain::install(false);
+    chain.lock();
+    let store = file();
+    let settings = Settings::with_stores(keychain, Box::new(store.clone()));
+    assert_eq!(settings.level(), AssuranceLevel::Robust);
+    assert_eq!(settings.view()["verification"]["state"], "recovery required");
+    chain.unlock();
+    settings.require_verified().unwrap();
+    assert_eq!(settings.view()["verification"]["state"], "not set up", "no seal key, so no protection is claimed");
+    assert_eq!(settings.view()["verification"]["available"], false);
+    assert_eq!(chain.policy_items(), 0, "no keychain policy without enrollment");
+    assert_eq!(store.writes.lock().unwrap().last(), Some(&AssuranceLevel::Robust));
+}
+
+#[test]
+fn a_lost_latest_protected_item_needs_recovery_and_never_rolls_back() {
+    let chain = InMemoryKeychain::install(true);
+    let store = file();
+    let settings = Settings::with_stores(keychain, Box::new(store.clone()));
+    settings.after_enrollment().unwrap(); // 1 = robust
+    lower(&settings).unwrap(); // 2 = relaxed
+    settings.require_verified().unwrap(); // 3 = robust
+    chain.remove_latest_policy();
+    let relaunched = Settings::with_stores(keychain, Box::new(store.clone()));
+    assert_eq!(relaunched.level(), AssuranceLevel::Robust, "never the earlier relaxed item");
+    assert_eq!(relaunched.view()["verification"]["state"], "recovery required");
+    relaunched.require_verified().unwrap();
+    assert_eq!(relaunched.view()["verification"]["state"], "set up");
+}

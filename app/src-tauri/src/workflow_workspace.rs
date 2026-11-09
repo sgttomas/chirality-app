@@ -674,6 +674,20 @@ impl Selection {
     pub(crate) fn approval(&self) -> Option<Result<registration::Admission, String>> {
         self.registration_basis.as_ref().map(|b| b.admit(&self.identity))
     }
+    /// The admission now must be the one the prepared run recorded: a policy
+    /// or verification change after preparation needs a new preparation, so
+    /// a record never claims stronger evidence than the send applies.
+    pub(crate) fn approval_unchanged(&self, recorded: Option<&serde_json::Value>) -> Result<(), String> {
+        let now = self.approval().transpose()?.map(|a| a.record());
+        if now.as_ref() != recorded {
+            return Err(format!(
+                "workflow approval changed since this run was prepared (recorded {}, now {}); nothing sent; prepare the run again",
+                recorded.map_or("none".into(), |v| v.to_string()),
+                now.map_or("none".into(), |v| v.to_string())
+            ));
+        }
+        Ok(())
+    }
     pub fn verify_store(&self, path: &Path) -> Result<(), String> {
         if let SelectionAdmission::ProductionBundle {
             holding_library: Some(root),

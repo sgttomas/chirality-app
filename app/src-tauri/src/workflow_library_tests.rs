@@ -2198,9 +2198,10 @@ fn v15_f5_registered_listing_labels_rows() {
     assert_eq!(rows[0]["sequence"], 1);
     assert_eq!(
         rows[0]["label"],
-        "registered — re-confirm to use in this App session"
+        "registered — Session confirmation required; persistent verification unavailable; re-confirm to use in this App session"
     );
     assert_eq!(rows[0]["reconfirm"], true, "{rows}");
+    assert!(rows[0].get("evidence").is_none(), "{rows}");
     reconfirmed(&reconfirm(&owner, one.revision()).0[0]);
     let rows = owner.registered_listing();
     assert_eq!(
@@ -2210,9 +2211,10 @@ fn v15_f5_registered_listing_labels_rows() {
     );
     assert_eq!(
         rows[0]["label"],
-        "registered — selectable in this App session"
+        "registered — Approved in this App session (native A15)"
     );
-    assert!(rows[0].get("reconfirm").is_none(), "{rows}");
+    assert_eq!(rows[0]["evidence"], "in-process A15", "{rows}");
+    assert_eq!(rows[0]["reconfirm"], false, "{rows}");
 }
 
 /// WR §4.6 LS-1 "Select (in such a process)", SL-2, SL-5: the listing offers
@@ -2795,6 +2797,35 @@ fn sealed_admission_accepts_only_a_fully_bound_keychain_seal() {
     fs::write(ledger_path(&s), b"").unwrap();
     assert!(cold.resolve_registered(first.identity()).is_err(), "missing ledger line");
     fs::write(ledger_path(&s), &ledger).unwrap();
+    // Record-side facts changed while the sealed capture stays valid: the
+    // record no longer is the capture's body, so no keychain-verified label.
+    let log = storage::library_log(&s.0);
+    let acts = fs::read_to_string(&log).unwrap();
+    let altered: String = acts.lines().map(|l| {
+        let mut v: Value = serde_json::from_str(l).unwrap();
+        if v["body"]["actKind"] == "A15" { v["body"]["purpose"] = json!("an agent's purpose"); }
+        format!("{v}\n")
+    }).collect();
+    fs::write(&log, altered).unwrap();
+    refused_or_lower("record purpose altered", &cold);
+    fs::write(&log, &acts).unwrap();
+    // The committed line's prior revision disagrees with the sealed relation.
+    let mut line: Value = serde_json::from_slice(&ledger).unwrap();
+    line["prior_revision"] = json!(first.identity());
+    fs::write(ledger_path(&s), format!("{line}\n")).unwrap();
+    refused_or_lower("line prior altered", &cold);
+    fs::write(ledger_path(&s), &ledger).unwrap();
+    cold.resolve_registered(first.identity()).unwrap();
+    // A run prepared on keychain-verified approval may not be sent on weaker evidence.
+    let prepared = cold.resolve_registered(first.identity()).unwrap().select();
+    let recorded = prepared.approval().unwrap().unwrap().record();
+    cold.set_assurance_level(AssuranceLevel::Relaxed);
+    chain.lock();
+    assert_eq!(evidence(&prepared), Evidence::Disk);
+    assert!(prepared.approval_unchanged(Some(&recorded)).unwrap_err().contains("prepare the run again"));
+    chain.unlock();
+    prepared.approval_unchanged(Some(&json!({"requested_policy":"relaxed","admission_evidence":"keychain-verified approval"}))).unwrap();
+    cold.set_assurance_level(AssuranceLevel::Robust);
     // Locked keychain: verification fails; robust refuses, relaxed admits on disk.
     chain.lock();
     refused("locked keychain");
@@ -2808,6 +2839,17 @@ fn sealed_admission_accepts_only_a_fully_bound_keychain_seal() {
     refused("no keychain provider");
 }
 
+/// Never a keychain-verified label: refused, or admitted only on weaker evidence.
+fn refused_or_lower(why: &str, owner: &LibraryOwner) {
+    for level in [AssuranceLevel::Robust, AssuranceLevel::Relaxed] {
+        owner.set_assurance_level(level);
+        if let Ok(revision) = owner.resolve_registered(&serde_json::from_value(read_ledger(&owner.root).unwrap()[0]["identity"].clone()).unwrap()) {
+            assert_ne!(evidence(&revision.select()), Evidence::Keychain, "{why}");
+            assert_eq!(level, AssuranceLevel::Relaxed, "{why}: robust admitted");
+        }
+    }
+    owner.set_assurance_level(AssuranceLevel::Robust);
+}
 /// Altered derived_from: never admitted and never labelled in-process.
 #[test]
 fn altered_derived_from_is_refused_and_never_mislabelled() {

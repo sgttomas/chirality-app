@@ -137,23 +137,48 @@ fn sealed_admission(root: &Path, lines: &[Value], k: &WorkflowIdentity) -> Resul
 fn sealed_line(root: &Path, acts: &[Value], line: &Value, subject: &str, content: &Value) -> Result<String, String> {
     let record = line["act"]["record_id"].as_str().ok_or("ledger line cites no A15 record")?;
     let capture_id = line["act"]["capture_evidence"].as_str().ok_or("ledger line cites no capture")?;
-    let act = acts.iter().find(|a| a["recordId"] == record).ok_or("the cited A15 record is not in the act log")?;
+    // Exactly one record with this ID, and no other record citing this capture.
+    let mut cited = acts.iter().filter(|a| a["recordId"] == record);
+    let act = cited.next().ok_or("the cited A15 record is not in the act log")?;
+    if cited.next().is_some() {
+        return Err("the cited A15 record ID appears more than once".into());
+    }
+    let cites_capture = |a: &Value| a["body"]["captureEvidence"].as_array().is_some_and(|c| c.iter().any(|e| e["ref"] == capture_id));
+    if acts.iter().filter(|a| cites_capture(a)).count() != 1 || !cites_capture(act) {
+        return Err("the cited capture is not cited by exactly this A15 record".into());
+    }
     let body = &act["body"];
     if act["kind"] != "human_act" || body["actKind"] != "A15" || !binds_subject(body, subject, content) {
         return Err("the cited A15 record does not bind this complete identity".into());
-    }
-    if !body["captureEvidence"].as_array().is_some_and(|c| c.iter().any(|e| e["ref"] == capture_id)) {
-        return Err("the cited A15 record names another capture".into());
     }
     let path = storage::library_capture_path(root, capture_id);
     storage::check_path(&path)?;
     let capture: Value = serde_json::from_slice(&fs::read(&path).map_err(|e| format!("A15 capture not readable: {e}"))?)
         .map_err(|e| format!("A15 capture not readable: {e}"))?;
+    // Every record fact is the capture's: the record body is exactly the body
+    // the act control derives from the sealed capture (actor, scope, purpose,
+    // time, limits, relations), and the add-once backlink, when present,
+    // names this record.
     if capture["captureId"] != capture_id || capture["actKind"] != "A15" || capture["choice"] != "act"
-        || capture["boundSubject"] != body["boundSubject"] || capture["boundContent"] != body["boundContent"]
+        || *body != crate::act_control::act_body(&capture)
+        || capture.get("recordId").is_some_and(|r| r != record)
         || !binds_subject(&capture, subject, content)
     {
         return Err("the A15 capture differs from its record or identity".into());
+    }
+    // The committed line's own relation agrees with the sealed entry.
+    let index = body["boundSubject"].as_array().and_then(|s| s.iter().position(|v| v == subject)).ok_or("subject not bound")?;
+    let relation = if body["relations"]["registeredEntries"].is_array() {
+        body["relations"]["registeredEntries"][index]["priorRevision"].clone()
+    } else {
+        body["relations"]["priorRevision"].clone()
+    };
+    let line_prior = match &line["prior_revision"] {
+        Value::Null => Value::Null,
+        prior => crate::act_control::a15_tuple(&serde_json::from_value(prior.clone()).map_err(|e| format!("ledger prior revision not readable: {e}"))?),
+    };
+    if relation != line_prior {
+        return Err("the committed ledger line's prior revision differs from the sealed approval".into());
     }
     crate::capture_seal::verify_keychain(root, &capture)?;
     Ok(record.to_owned())

@@ -31,7 +31,7 @@ pub(crate) use file_act::{FileActKind, FileActOfferRef, confirm_file_native};
 
 #[path = "act_control_a15.rs"]
 mod a15;
-pub(crate) use a15::{a15_subject_ref, review_digest, A15OfferRef, A15Variant, HotA15Receipt, HotA15Result};
+pub(crate) use a15::{a15_subject_ref, a15_tuple, review_digest, A15OfferRef, A15Variant, HotA15Receipt, HotA15Result};
 use crate::canonical::{offer_digest, OFFER_DIGEST_METHOD};
 use crate::recorder::LOG;
 use crate::records;

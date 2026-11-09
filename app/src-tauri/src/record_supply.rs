@@ -523,6 +523,9 @@ pub struct RecordedRun {
     pub conversation: Option<String>,
     pub follows: Option<String>,
     pub workflow: Value,
+    /// The run-start text's optional approval evidence (WR §4.6); `Null`
+    /// when the record has none, which reads as unknown.
+    pub assurance: Value,
     pub lifecycle: RecordedLifecycle,
     pub restart_interruptions: Vec<Value>,
 }
@@ -565,7 +568,7 @@ impl RunsReading {
                 RecordedLifecycle::StartNotConfirmed=>("start not confirmed in record",json!("published run-start text without run_opened")),
                 RecordedLifecycle::Unknown(reason)=>("unknown",json!(reason)),
             };
-            json!({"run":r.run,"conversation":r.conversation,"follows":r.follows,"workflow":r.workflow,"state":state,"detail":detail,"restartInterruptions":r.restart_interruptions})
+            json!({"run":r.run,"conversation":r.conversation,"follows":r.follows,"workflow":r.workflow,"assurance":r.assurance,"state":state,"detail":detail,"restartInterruptions":r.restart_interruptions})
         }).collect::<Vec<_>>(),"limits":self.limits,
         "standing":"reopened from project records only; completion is never inferred from a native turn, and no live process run is claimed"})
     }
@@ -666,6 +669,7 @@ pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> 
                     .first()
                     .and_then(|e| e["body"]["follows"].as_str())
                     .map(str::to_owned),
+                assurance: start.and_then(|s| s.get("assurance")).cloned().unwrap_or(Value::Null),
                 run,
                 conversation,
                 workflow,

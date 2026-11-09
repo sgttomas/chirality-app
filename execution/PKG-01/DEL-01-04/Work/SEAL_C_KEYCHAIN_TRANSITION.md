@@ -376,8 +376,13 @@ selection.
   and access group, under the account `installation-keyring.assurance-policy.`
   followed by a 16-hex sequence. `KeychainAuthority::admits` accepts exactly
   that form beside the primary and rotation accounts. A change adds the next
-  sequence and never replaces or deletes an item. A read takes the latest
-  present item. A read error other than "missing" is an error, never "no
+  sequence and never replaces or deletes an item. A read takes the highest
+  present sequence; an earlier gap hides nothing. An App-data head record of
+  the last sequence written turns a lost latest item into recovery, never a
+  rollback to an earlier choice (losing both the keychain item and the head
+  record would still roll back; that needs deletion inside the keychain).
+  Policy items count only with the seal-key sentinel present: without
+  enrollment they are not protection, and restoring a policy never claims it. A read error other than "missing" is an error, never "no
   policy". When no policy item exists, the primary (sentinel) item tells
   "protection set up, policy missing", which needs recovery, apart from "not set
   up". A missing, locked or corrupt policy reads as "Require verified approval"

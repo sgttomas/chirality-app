@@ -1031,6 +1031,8 @@ fn operate_bound(
 const POLICY_FORMAT: &str = "chirality.app.workflow-approval-policy";
 /// Upper bound on the add-only sequence probed at each read.
 const POLICY_MAX: u64 = 4096;
+/// The App-data record of the latest policy sequence written (rollback check).
+const POLICY_HEAD: &str = "workflow-approval-policy-head.json";
 #[derive(Debug)]
 pub(crate) enum PolicyRead {
     /// The latest stored policy, as its machine value ("robust" or "relaxed").
@@ -1064,26 +1066,56 @@ fn backend_cause(error: BackendError) -> String {
         BackendError::Missing => "keychain item missing".into(),
     }
 }
-/// The last present sequence and its bytes. Any read failure other than
+/// Sequences probed past a missing one. Items are add-only, so the highest
+/// present sequence is the latest choice; an earlier gap hides nothing.
+const POLICY_GAP_PROBE: u64 = 8;
+/// The highest present sequence and its bytes. Any read failure other than
 /// Missing is an error: it never reads as "no policy".
 fn policy_probe(backend: &impl Backend, i: &ItemIdentity) -> Result<Option<(u64, Vec<u8>)>, String> {
     let mut last = None;
-    for sequence in 1..=POLICY_MAX {
+    let mut sequence = 1;
+    while sequence <= POLICY_MAX && sequence <= last.as_ref().map_or(0, |(n, _)| *n) + POLICY_GAP_PROBE {
         match backend.read(&policy_item(i, sequence)) {
             Ok(bytes) => last = Some((sequence, bytes)),
-            Err(BackendError::Missing) => return Ok(last),
+            Err(BackendError::Missing) => (),
             Err(error) => return Err(format!("workflow approval policy not readable: {}", backend_cause(error))),
         }
+        sequence += 1;
     }
-    Err("workflow approval policy sequence exhausted; recovery required".into())
+    Ok(last)
 }
-pub(crate) fn read_policy(backend: &impl Backend, i: &ItemIdentity) -> Result<PolicyRead, String> {
-    let Some((sequence, bytes)) = policy_probe(backend, i)? else {
-        return match backend.read(i) {
-            Ok(_) => Ok(PolicyRead::Absent { enrolled: true }),
-            Err(BackendError::Missing) => Ok(PolicyRead::Absent { enrolled: false }),
-            Err(error) => Err(format!("keychain protection state not readable: {}", backend_cause(error))),
-        };
+/// The latest sequence recorded outside the keychain (App data). Losing the
+/// keychain's latest item cannot silently roll back to an earlier choice:
+/// a recorded head beyond the present items needs recovery. A missing head
+/// file is not evidence of anything (the items still govern).
+fn recorded_head(head: Option<&Path>) -> Result<u64, String> {
+    let Some(path) = head else { return Ok(0) };
+    match fs::read(path) {
+        Ok(bytes) => serde_json::from_slice::<serde_json::Value>(&bytes)
+            .ok()
+            .and_then(|v| v["sequence"].as_u64())
+            .ok_or_else(|| "workflow approval policy head record is corrupt; recovery required".into()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(0),
+        Err(e) => Err(format!("workflow approval policy head not readable: {e}")),
+    }
+}
+pub(crate) fn read_policy(backend: &impl Backend, i: &ItemIdentity, head: Option<&Path>) -> Result<PolicyRead, String> {
+    // Protection is set up only with the namespace sentinel (the first seal
+    // key). Policy items without it are not protection; enrollment is offered.
+    let enrolled = match backend.read(i) {
+        Ok(_) => true,
+        Err(BackendError::Missing) => false,
+        Err(error) => return Err(format!("keychain protection state not readable: {}", backend_cause(error))),
+    };
+    if !enrolled {
+        return Ok(PolicyRead::Absent { enrolled: false });
+    }
+    let found = policy_probe(backend, i)?;
+    if recorded_head(head)? > found.as_ref().map_or(0, |(sequence, _)| *sequence) {
+        return Err("the latest stored workflow approval policy item is missing; recovery required".into());
+    }
+    let Some((sequence, bytes)) = found else {
+        return Ok(PolicyRead::Absent { enrolled: true });
     };
     let value: serde_json::Value = serde_json::from_slice(&bytes)
         .map_err(|_| "stored workflow approval policy is corrupt; recovery required")?;
@@ -1093,18 +1125,33 @@ pub(crate) fn read_policy(backend: &impl Backend, i: &ItemIdentity) -> Result<Po
         _ => Err("stored workflow approval policy is corrupt; recovery required".into()),
     }
 }
-/// Adds the next sequence. Never replaces or deletes an earlier item.
-pub(crate) fn write_policy(backend: &impl Backend, i: &ItemIdentity, level: &str) -> Result<(), String> {
+/// Adds the next sequence after every present or recorded one. Never replaces
+/// or deletes an earlier item. Requires enrollment.
+pub(crate) fn write_policy(backend: &impl Backend, i: &ItemIdentity, level: &str, head: Option<&Path>) -> Result<(), String> {
     if !["robust", "relaxed"].contains(&level) {
         return Err("unknown workflow approval policy".into());
     }
-    let next = policy_probe(backend, i)?.map_or(1, |(sequence, _)| sequence + 1);
+    match backend.read(i) {
+        Ok(_) => (),
+        Err(BackendError::Missing) => return Err("keychain protection is not set up; nothing stored".into()),
+        Err(error) => return Err(format!("workflow approval policy not stored: {}", backend_cause(error))),
+    }
+    // A lost tail still allows recovery: add past every present or recorded sequence.
+    let present = policy_probe(backend, i)?.map_or(0, |(sequence, _)| sequence);
+    let next = present.max(recorded_head(head).unwrap_or(0)) + 1;
     if next > POLICY_MAX {
         return Err("workflow approval policy sequence exhausted".into());
     }
     let bytes = serde_json::to_vec(&serde_json::json!({"format":POLICY_FORMAT,"sequence":next,"level":level,"writtenAt":crate::util::now_rfc3339()}))
         .map_err(|e| e.to_string())?;
-    backend.add(&policy_item(i, next), &bytes).map_err(|error| format!("workflow approval policy not stored: {}", backend_cause(error)))
+    backend.add(&policy_item(i, next), &bytes).map_err(|error| format!("workflow approval policy not stored: {}", backend_cause(error)))?;
+    if let Some(path) = head {
+        let temp = path.with_extension(format!("{}.tmp", crate::util::opaque_id("")?));
+        fs::write(&temp, serde_json::to_vec(&serde_json::json!({"sequence":next})).map_err(|e| e.to_string())?)
+            .and_then(|()| fs::rename(&temp, path))
+            .map_err(|e| { let _ = fs::remove_file(&temp); format!("workflow approval policy stored, but its head record was not: {e}") })?;
+    }
+    Ok(())
 }
 #[cfg(test)]
 thread_local! {static TEST_POLICY:std::cell::RefCell<Option<Box<dyn Fn(PolicyOp)->Result<PolicyRead,String>>>>=const{std::cell::RefCell::new(None)};}
@@ -1131,9 +1178,10 @@ pub(crate) fn policy(operation: PolicyOp) -> Option<Result<PolicyRead, String>> 
         Ok(true) => Some((|| {
             let authority = process_authority(matches!(operation, PolicyOp::Write(_)))?;
             let backend = macos::NativeBackend::new(&authority);
+            let head = crate::capture_seal::installed_root_for_enrollment()?.join(POLICY_HEAD);
             match operation {
-                PolicyOp::Read => read_policy(&backend, &authority.identity),
-                PolicyOp::Write(level) => write_policy(&backend, &authority.identity, level).and_then(|()| read_policy(&backend, &authority.identity)),
+                PolicyOp::Read => read_policy(&backend, &authority.identity, Some(&head)),
+                PolicyOp::Write(level) => write_policy(&backend, &authority.identity, level, Some(&head)).and_then(|()| read_policy(&backend, &authority.identity, Some(&head))),
             }
         })()),
     }

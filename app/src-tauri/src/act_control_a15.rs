@@ -53,6 +53,8 @@ impl A15Binding {
 pub(crate) fn a15_subject_ref(identity: &WorkflowIdentity) -> Result<String, String> {
     Ok(format!("workflow revision {}", serde_json::to_string(&rs_tuple(identity)).map_err(|e| e.to_string())?))
 }
+/// The record/capture tuple form of an identity (relations' `priorRevision`).
+pub(crate) fn a15_tuple(identity: &WorkflowIdentity) -> Value { rs_tuple(identity) }
 fn rs_tuple(tuple: &WorkflowIdentity) -> Value {
     let mut value = json!({"kind":tuple.kind,"origin":tuple.origin,"sourceRoot":tuple.source_root,
         "name":tuple.name,"revision":tuple.revision,"revisionMethod":tuple.revision_method});

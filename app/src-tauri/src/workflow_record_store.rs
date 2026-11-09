@@ -1016,13 +1016,9 @@ impl PreparedRunPublication {
         // The policy requested and the evidence applied, as read now. Content
         // with no library-owner basis records none: an absent field reads as
         // unknown, never as a defaulted label.
-        let mut prepared = prepared;
-        if let Some(approval) = selection_source.approval() {
-            let assurance = approval?.record();
+        selection_source.approval_unchanged(prepared.record.get("assurance"))?;
+        if let Some(assurance) = prepared.record.get("assurance") {
             body["assurance"] = assurance.clone();
-            prepared.record["assurance"] = assurance;
-        } else if let Some(map) = prepared.record.as_object_mut() {
-            map.remove("assurance");
         }
         if let Some(proposal) = prepared.proposal() {
             body["how"] = json!("agent proposal confirmed by the person");

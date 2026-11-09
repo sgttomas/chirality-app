@@ -233,27 +233,42 @@ impl Settings {
                     "reason":match &s.protection { Protection::SetUp => Some("Keychain protection is set up.".to_owned()), Protection::Recovery(_) => Some("Recover the protected policy first.".to_owned()), _ => crate::capture_seal_keychain::enrollment_unavailable_reason().map(str::to_owned) }}})
         })
     }
-    /// "Require verified approval": raising needs no act. Under recovery this
-    /// also restores the protected policy item.
+    /// "Require verified approval": raising needs no act. Under recovery the
+    /// protection state is read again first; the keychain is written only
+    /// where protection (the seal key) exists, so restoring a policy never
+    /// reports protection that enrollment did not set up.
     pub(crate) fn require_verified(&self) -> Result<(), String> {
-        self.with_state(|s| {
-            self.set(AssuranceLevel::Robust);
-            s.epoch += 1;
-            let protected = matches!(s.protection, Protection::SetUp | Protection::Recovery(_));
-            let written = if protected {
+        let mut state = self.state.lock().unwrap();
+        if state.is_none() { *state = Some(self.load()); }
+        let s = state.as_mut().unwrap();
+        let epoch = s.epoch + 1;
+        if matches!(s.protection, Protection::Recovery(_)) {
+            *s = self.load();
+        }
+        self.set(AssuranceLevel::Robust);
+        s.epoch = epoch;
+        let written = match &s.protection {
+            Protection::SetUp | Protection::Recovery(_) => {
                 (self.keychain)().ok_or("keychain provider not on this build".to_owned()).and_then(|store| store.write(AssuranceLevel::Robust))
-            } else {
-                self.file.write(AssuranceLevel::Robust)
-            };
-            match written {
-                Ok(()) => {
-                    if protected { s.protection = Protection::SetUp; s.source = "Stored in your keychain".into(); } else { s.source = "Stored in this App's settings".into(); }
-                    s.note = None;
-                    Ok(())
-                }
-                Err(cause) => { s.note = Some(format!("Not saved: {cause}")); Err(format!("Verified approval applies now but was not saved: {cause}")) }
             }
-        })
+            _ => self.file.write(AssuranceLevel::Robust),
+        };
+        match written {
+            Ok(()) => {
+                let protected = matches!(s.protection, Protection::SetUp | Protection::Recovery(_));
+                if protected {
+                    // Read back what the keychain now holds.
+                    *s = self.load();
+                    s.epoch = epoch;
+                } else {
+                    s.source = "Stored in this App's settings".into();
+                    s.note = None;
+                }
+                self.set(AssuranceLevel::Robust);
+                Ok(())
+            }
+            Err(cause) => { s.note = Some(format!("Not saved: {cause}")); Err(format!("Verified approval applies now but was not saved: {cause}")) }
+        }
     }
     pub(crate) fn lowering_context(&self) -> (String, u64, bool) {
         self.with_state(|s| (self.identity.clone(), s.epoch, matches!(s.protection, Protection::SetUp | Protection::Recovery(_))))

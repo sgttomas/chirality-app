@@ -4522,8 +4522,7 @@ impl WorkflowRootSession {
         Ok(())
     }
     fn selection_view(&self, s: &WorkflowSelectionState) -> Value {
-        let current_limit = self.run_admission(&s.selection).and_then(|()| s.selection.verify_store(&s.package)).err();
-        json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"assurance":match s.selection.approval() { Some(Ok(a)) => a.record(), _ => Value::Null },"package":crate::attachments::native_path_identity(&s.package),"currentLimit":current_limit,"selectedAt":s.selected_at,"replaces":s.replaces,"newerRevision":self.newer_revision_view(s),"runnable":current_limit.is_none(),"runLimit":current_limit,
+        json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"assurance":match s.selection.approval() { Some(Ok(a)) => a.record(), _ => Value::Null },"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err(),"selectedAt":s.selected_at,"replaces":s.replaces,"newerRevision":self.newer_revision_view(s),"runnable":self.run_admission(&s.selection).is_ok(),"runLimit":self.run_admission(&s.selection).err(),
                 // NIR §9 PD-1 / AS §4 OV-1: the declared part, read from the selected revision's own bytes, for the run panel.
                 "declaration":s.selection.snapshot().declaration().map(|d|json!(d)).unwrap_or_else(|error|json!({"unavailable":error}))})
     }
@@ -7275,6 +7274,11 @@ impl WorkflowRun {
             let records=json!({"selection":self.record_state(self.publication.selection_reference()),"runText":self.record_state(self.publication.run_text_reference())});
             self.status=json!({"state":"selected revision source changed or unavailable; nothing sent","sent":false,"supplied":"not supplied","records":records,"limit":cause,"retry":"Restore the exact original selected revision and retry this prepared send while it remains eligible. A withdrawn chained successor needs a new preparation.","otherFiles":self.files.describe(),"adoption":"unknown","runStanding":"not opened: original prepared run retained"});
             return Err(format!("Selected revision source no longer verifies: {cause}; nothing sent; original selection and prepared text retained"));
+        }
+        if let Err(cause)=self.selection.approval_unchanged(self.prepared().record().get("assurance")){
+            let records=json!({"selection":self.record_state(self.publication.selection_reference()),"runText":self.record_state(self.publication.run_text_reference())});
+            self.status=json!({"state":"workflow approval changed since preparation; nothing sent","sent":false,"supplied":"not supplied","records":records,"limit":cause,"retry":"Prepare the run again so its records state the approval actually applied. Already published records are kept.","otherFiles":self.files.describe(),"adoption":"unknown","runStanding":"not opened: original prepared run retained"});
+            return Err(cause);
         }
         self.verify_generated_supporting_files()
     }

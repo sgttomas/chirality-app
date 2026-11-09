@@ -655,8 +655,10 @@ the App data folder, and the key moves to the OS keychain at signing (OI-011):
   writer without read access to the key cannot make a new one count. A sealed
   capture copied, with its record, into an enclosing project counts there only
   for the same act on the same content, since its subject, content and time
-  are sealed. A15 and A16 captures are not sealed; neither is counted through
-  this rule.
+  are sealed. A16 captures are not sealed. A15 captures are sealed only
+  through the enrolled SEAL-C keychain provider (never a file key), for WR's
+  sealed cold admission (WR §4.6); neither A15 nor A16 is counted through this
+  rule.
 
 **Signing-stage implementation preparation (SEAL-C-KEYCHAIN-01, 2026-10-31).**
 [The separate technical clause](SEAL_C_KEYCHAIN_TRANSITION.md) supplies a
