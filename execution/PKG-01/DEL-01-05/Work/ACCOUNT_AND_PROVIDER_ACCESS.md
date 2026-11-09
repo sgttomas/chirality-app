@@ -1675,18 +1675,19 @@ button. Existing anonymous local providers use the account home; the adopted
 keyed oMLX design uses a dedicated local home. Omitting H-key's product entry
 does not remove local-provider authentication.
 
-Local credential support required by oMLX remains owed until the native
-local-home contribution ([LOCAL_PROVIDER_CUSTODY](LOCAL_PROVIDER_CUSTODY.md))
-integrates. The owner-selected nonsecret inputs are `http://127.0.0.1:8000/v1`
-and `mlx-community/Qwen3.6-35B-A3B-8bit`; no key was supplied and no server was
-used. The adopted design keeps the token in Codex custody in a dedicated local
-home with its own fixed nonsecret oMLX configuration, without a plaintext
+Native local credential support is implemented by the dedicated local-home
+path ([LOCAL_PROVIDER_CUSTODY](LOCAL_PROVIDER_CUSTODY.md)); actual keyed provider
+qualification remains open. The owner-selected nonsecret inputs are
+`http://127.0.0.1:8000/v1` and `mlx-community/Qwen3.6-35B-A3B-8bit`; no key has
+been supplied and actual model use remains unrun. The adopted design keeps the
+token in Codex custody in a dedicated local home with its own fixed nonsecret
+oMLX configuration, without a plaintext
 bearer in provider configuration. The source-supported authentication design
 does not establish actual oMLX compatibility.
 
-The frontend receives that contribution's nonsecret commands and view, and
-integrates only after them. Under Connection & access, **Prepare the oMLX
-connection** calls `prepare_local_provider()`; **Enter oMLX key in a secure
+The frontend receives that path's nonsecret commands and view. Under Connection
+& access, **Prepare the oMLX connection** calls `prepare_local_provider()`;
+**Enter oMLX key in a secure
 field…** calls `submit_local_provider_key(generation)` for the viewed local
 generation; **Use local oMLX home** and **Use account home** switch between the
 retained homes. The App shows only the returned endpoint, provider, model and
