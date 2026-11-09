@@ -247,16 +247,57 @@ in the [0.160.0 source-graph proposal](supplier-notice-associations/codex-source
    open, as does the alternative of a supplier-provided third-party notice or
    attestation for 0.167.0.
 4. **code-mode-host V8 stack (potential edges from the clues above).** At
-   `086ccc83` this is rusty_v8 **152.2.0**, with ICU 78 data observed. The held
-   lock takes `v8` 152.2.0 from **git**,
-   `https://github.com/seanh-oai/rusty_v8.git` at `350c5a859a9b3c84ab8701b3ad51e3b7699b30c0`,
-   not from crates.io. It needs that revision's `v8` licence files and the
-   V8/ICU/libc++ terms (sizes unknown), plus confirmation of what is actually
-   linked. The commit's
-   `third_party/v8/rusty_v8_152_2_0_release_manifests.sha256` (1,040 B, blob
-   `814e018a`) identifies the prebuilt inputs. A host **byte join** would need the
-   release asset `codex-code-mode-host-aarch64-apple-darwin.tar.gz`
-   (25,262,553 B, `sha256:876a3e26…`).
+   `086ccc83` this is rusty_v8 **152.2.0**, with ICU 78 data observed. The
+   V8 engine, `v8` crate, ICU, libc++, libc++abi and llvm-libc root terms texts
+   are now associated with their pinned sources. The [V8 association](supplier-notice-associations/codex-0.167.0/code-mode-host-v8.json),
+   recomputed by
+   [`v8_0167.py`](../../../../app/packaging/supplier_notices/v8_0167.py) from
+   blob-verified public source text, holds the following:
+   - **Prebuilt artifact.** Codex's `MODULE.bazel` and checksum list pin
+     `librusty_v8_ptrcomp_sandbox_release_aarch64-apple-darwin.a.gz`
+     (`sha256:feab9ae0…`) from Codex's own release `rusty-v8-v152.2.0`. Its
+     `third_party/v8/README.md` states that release builds use these archives,
+     built by its Bazel graph.
+   - **V8 engine.** That graph builds V8 from `v8/v8` tag `15.2.124.1` (commit
+     `d848a2b3`) with three Codex patches. V8's `LICENSE` (3,093 B, blob
+     `9898b2d4`), `LICENSE.v8`, `LICENSE.fdlibm` and `LICENSE.strongtalk` at that
+     commit are committed as
+     [packaging inputs](../../../../app/packaging/supplier_notices/v8-15.2.124.1).
+   - **`v8` crate.** The held lock and `MODULE.bazel` both take it from git:
+     `seanh-oai/rusty_v8` at `350c5a85`, not crates.io. Its `Cargo.toml` names
+     `v8` 152.2.0 under MIT, and its `LICENSE` (1,078 B, blob `5a671244`) is
+     committed as a [packaging input](../../../../app/packaging/supplier_notices/rusty_v8-350c5a85/LICENSE).
+     The fork's own `v8` submodule points at `denoland/v8` `c4ca1ecc`, not the
+     engine commit Codex's graph builds; the two are kept distinct.
+   - **ICU and libc++.** V8 15.2.124.1's `DEPS` and Codex's Bazel pins name the
+     same ICU (`chromium/deps/icu.git` `d578f2e8`), libc++ (`b16984ce`) and
+     libc++abi (`8f11bb1d`) commits. Codex also pins llvm-libc `75ae50cd`. The
+     root terms text at each of these four commits is committed as a packaging
+     input: ICU [`LICENSE`](../../../../app/packaging/supplier_notices/icu-d578f2e8/LICENSE)
+     (27,718 B, blob `5a2eda62`), libc++
+     [`LICENSE.TXT`](../../../../app/packaging/supplier_notices/libcxx-b16984ce/LICENSE.TXT)
+     (16,703 B, `e159d283`), libc++abi
+     [`LICENSE.TXT`](../../../../app/packaging/supplier_notices/libcxxabi-8f11bb1d/LICENSE.TXT)
+     (16,706 B, `b75c0441`) and llvm-libc
+     [`LICENSE.TXT`](../../../../app/packaging/supplier_notices/llvm-libc-75ae50cd/LICENSE.TXT)
+     (15,140 B, `24806ab4`). Each is read from `chromium.googlesource.com`.
+     Its blob is checked against the pinned commit's root tree, and that tree
+     is recomputed from its listing. The commit-to-tree link is as gitiles
+     reports it.
+
+   Open inputs, all public source text except the last:
+   - The separately licensed sub-directory trees and `CREDITS.TXT` that the
+     libc++, libc++abi and llvm-libc texts point to. ICU's `LICENSE` carries its
+     third-party sections inline.
+   - The sub-directory and externally maintained library licences that V8's own
+     `LICENSE` points to, and the other pinned V8 dependencies (Abseil,
+     Highway, fast_float, simdutf, dragonbox, FP16).
+   - Confirmation of what the shipped host links. Neither the archive's build
+     from this graph nor the host's link of that archive is observed here; the
+     V8, ICU and libc++ markers remain clues. A host **byte join** would need
+     the release asset `codex-code-mode-host-aarch64-apple-darwin.tar.gz`
+     (25,262,553 B, `sha256:876a3e26…`), and an archive join would need
+     `feab9ae0…`. Both are binary downloads needing permission.
 5. **rg: ripgrep 15.2.0 (revision `e89fff89ac`) with PCRE2 10.46, unchanged
    code since 0.160.0.** The ripgrep and PCRE2 terms-text inputs are now
    associated.
