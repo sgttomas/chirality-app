@@ -236,31 +236,76 @@ in the [0.160.0 source-graph proposal](supplier-notice-associations/codex-source
    lists each path, immutable-commit URL, size and Git blob from the complete
    recursive `codex-rs` tree `c98bbd63` at `086ccc83`. It covers
    `codex-rs/Cargo.lock` (409,810 B, blob `2eae72da`) and all 172 `Cargo.toml`
-   manifests, including `exec-server/Cargo.toml` (3,655 B). None of these blobs is
-   held locally. The proposal prepares a source-graph investigation; it is not an
-   observed linked set or a binary-to-source join. Dependency archives,
-   target/feature resolution and notice applicability remain separate. The
-   list is public source text under the standing read-only inspection
-   authority; no row is held until its bytes are read and match size and blob.
-   The alternative is a supplier-provided third-party notice or attestation for
-   0.167.0.
+   manifests, including `exec-server/Cargo.toml` (3,655 B). On 2026-11-09 all 173
+   were read as public source text under the standing read-only inspection
+   authority, and each matched its size and Git blob. They are held privately;
+   the [receipt](supplier-notice-associations/codex-0.167.0/source-text-receipt.json)
+   records each SHA-256. The held lock has 1,479 packages: 1,296 crates.io, 171 path
+   and 12 git packages. No source graph has been resolved and no cargo graph has
+   been run; this is not an observed linked set or a binary-to-source join.
+   Dependency archives, target/feature resolution and notice applicability remain
+   open, as does the alternative of a supplier-provided third-party notice or
+   attestation for 0.167.0.
 4. **code-mode-host V8 stack (potential edges from the clues above).** At
-   `086ccc83` this is rusty_v8 **152.2.0**, with ICU 78 data observed. It needs
-   the `v8` 152.2.0 crate's licence files and the V8/ICU/libc++ terms (sizes
-   unknown), plus confirmation of what is actually linked. The commit's
+   `086ccc83` this is rusty_v8 **152.2.0**, with ICU 78 data observed. The held
+   lock takes `v8` 152.2.0 from **git**,
+   `https://github.com/seanh-oai/rusty_v8.git` at `350c5a859a9b3c84ab8701b3ad51e3b7699b30c0`,
+   not from crates.io. It needs that revision's `v8` licence files and the
+   V8/ICU/libc++ terms (sizes unknown), plus confirmation of what is actually
+   linked. The commit's
    `third_party/v8/rusty_v8_152_2_0_release_manifests.sha256` (1,040 B, blob
    `814e018a`) identifies the prebuilt inputs. A host **byte join** would need the
    release asset `codex-code-mode-host-aarch64-apple-darwin.tar.gz`
    (25,262,553 B, `sha256:876a3e26…`).
 5. **rg: ripgrep 15.2.0 (revision `e89fff89ac`) with PCRE2 10.46, unchanged
-   code since 0.160.0.** Known: the selector names
-   `ripgrep-15.2.0-aarch64-apple-darwin.tar.gz` (1,764,284 B, `3750b2e9…`), and
-   the binary's version, revision and PCRE2 strings. Unknown: a byte join of that
-   archive's `rg` member with the shipped binary, the ripgrep 15.2.0 licence
-   files, and the PCRE2 licence for the linked version through ripgrep 15.2.0's
-   `pcre2-sys`, whose version and size are not established. The archive is a
-   binary download needing its own permission; the licence and lock files are
-   public source text. Version strings alone do not establish the join.
+   code since 0.160.0.** The ripgrep and PCRE2 terms-text inputs are now
+   associated.
+   The [rg association](supplier-notice-associations/codex-0.167.0/rg-ripgrep-15.2.0.json),
+   recomputed by
+   [`ripgrep_0167.py`](../../../../app/packaging/supplier_notices/ripgrep_0167.py),
+   holds the following:
+   - The selector names
+     `ripgrep-15.2.0-aarch64-apple-darwin.tar.gz` (1,764,284 B, `3750b2e9…`) from
+     `BurntSushi/ripgrep` release `15.2.0`.
+   - Tag `15.2.0` (tag object `6ec72def`) names commit `e89fff89ac9af12e…`. The
+     binary's embedded revision prefix `e89fff89ac` equals that commit.
+   - All 16 crates.io source directories embedded in `rg` are exact name-version
+     entries of that commit's `Cargo.lock` (12,745 B, blob `55893348`).
+   - At that commit `COPYING` (126 B), `LICENSE-MIT` (1,081 B) and `UNLICENSE`
+     (1,211 B) were read as public source text, matched their blobs, and are
+     committed as [packaging inputs](../../../../app/packaging/supplier_notices/ripgrep-15.2.0).
+
+   - PCRE2's terms are associated through public metadata and source text, with
+     no archive:
+     - The ripgrep lock pins `pcre2-sys` 0.2.10 with checksum `18b9073c…`. The
+       crates.io index and API give 0.2.10 the same checksum (crate size
+       771,875 B, licence `Unlicense OR MIT`, repository `BurntSushi/rust-pcre2`).
+     - The published crate's `.cargo_vcs_info.json`, shown by docs.rs, records
+       commit `fd05026e1bf3ad62…` with path `pcre2-sys`. The signed tag
+       `pcre2-sys-0.2.10` names the same commit, whose `Cargo.toml` (blob
+       `be55c4ce`) states version 0.2.10.
+     - Its `update-pcre2` (blob `4411f294`) vendors PCRE2 **10.46**, matching
+       the binary's `10.46 2025-08-27` string. All 43 vendored PCRE2 files equal
+       the `pcre2-10.46` release tree (commit `b2bd4254`) by blob, after the
+       script's three renames. All 33 vendored `deps/sljit` files equal `sljit`
+       at `e51eabbf`, the submodule commit PCRE2 10.46 pins.
+     - The vendored tree carries no licence file, so the crate archive would not
+       have supplied PCRE2's terms either.
+     - The terms texts, read and blob-verified, are committed as packaging inputs:
+       PCRE2 [`LICENCE.md`](../../../../app/packaging/supplier_notices/pcre2-10.46/LICENCE.md)
+       (3,867 B, blob `f58ceb75`), `sljit`
+       [`LICENSE`](../../../../app/packaging/supplier_notices/sljit-e51eabbf/LICENSE)
+       (1,444 B, blob `0aaecaaa`; the shipped voice `sljit.txt` has the same
+       blob), and `pcre2-sys`'s own
+       [`LICENSE-MIT`](../../../../app/packaging/supplier_notices/pcre2-sys-0.2.10/LICENSE-MIT)
+       (1,081 B, blob `3303149e`). Its `COPYING` and `UNLICENSE` equal ripgrep's
+       committed texts.
+
+   These are selector, string, checksum, VCS-record and blob clues, not a byte
+   join with the archive. They do not observe what the shipped `rg` statically
+   links: `pcre2-sys`'s build can also use a system PCRE2. One input remains: the
+   byte join needs the archive itself, a binary download with its own
+   permission.
 6. **exec-server (new).** Its root-text candidate and dependency inputs are
    covered by item 3 and the exec-server row above. A standalone byte join would need
    `codex-exec-server-aarch64-apple-darwin.tar.gz` (22,746,226 B,
