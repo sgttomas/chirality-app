@@ -1,7 +1,7 @@
 import { conversationLabel, nativePathText } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
 import { chatWorkflow } from "./workflowSelection";
-import { appProjectFolder } from "./WorkflowContext";
+import { ProjectFolderSummary, appProjectFolder } from "./WorkflowContext";
 import { useEffect, useRef, useState } from "react";
 
 /** What each guide command did, in the person's words. */
@@ -201,14 +201,14 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
     <h2>Run a workflow</h2>
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {step}</p>
     <ol className="run-journey-steps">
-      <li><h3>Project</h3>
-        <p>Project folder: {projectFolder !== null ? <code>{projectFolder}</code> : "not established for this App window."}</p>
+      <li aria-labelledby="run-project-heading"><h3 id="run-project-heading">Project</h3>
+        <ProjectFolderSummary host={host} libraryAvailable={projectAvailable}/>
         {active ? <p>Using the {text(active.origin) || "opened"} workflow library{libraryFolder ? <> in <code>{libraryFolder}</code></> : ""}.</p>
           : <p>{projectAvailable ? "This App has a project folder. Its workflows are kept in its .chirality folder." : "No project folder is set for this App yet."}</p>}
         {projectAvailable ? <button disabled={!canAct || !ready} onClick={() => perform("workflow_open_project_library", {})}>{active ? "Reload this project's workflows" : "Show this project's workflows"}</button>
           : <p><a href="#desktop-setup">Choose a project in Desktop setup</a> — the choice applies when you next open the App. Or open any workflow library from the workflow studio below.</p>}
       </li>
-      <li><h3>Conversation</h3>
+      <li aria-labelledby="run-conversation-heading"><h3 id="run-conversation-heading">Conversation</h3>
         {conversations.length ? <label>Conversation to run it in <select value={thread} disabled={!canAct} onChange={event => chooseThread(event.target.value)}>
           <option value="">Choose a conversation</option>
           {conversations.map((row: Json) => <option key={row.threadId} value={row.threadId}>{conversationLabel(host, row)}</option>)}
@@ -216,7 +216,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         {thread && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{thread}</code></details>}
         <p><small>The workflow runs inside this conversation; you answer its questions there.</small></p>
       </li>
-      <li><h3>Workflow</h3>
+      <li aria-labelledby="run-workflow-heading"><h3 id="run-workflow-heading">Workflow</h3>
         {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {text(chosen.identity?.origin)} library, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : ""}<code title={text(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosen.runnable === true ? "Ready to run." : `Can't run: ${text(chosen.runLimit)}`}</p>}
         {chosen && newer && (newer.limit ? <p role="note">Newer revisions of {text(chosen.identity?.name)} can't be checked: {text(newer.limit)}</p>
           : <p role="note" aria-label="Newer revision for this conversation">A newer revision of <strong>{text(chosen.identity?.name)}</strong> is registered ({text(newer.notice)}). This conversation keeps using the one shown above until you choose the newer one.{" "}
@@ -241,14 +241,14 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
           : <div key={entry.name} role="note"><p>Included with the App: <strong>{text(entry.name)}</strong>. This build can't run it directly; you can inspect it in the workflow studio.</p>
             <details><summary>Why</summary><p>{text(entry.runLimit) || text(data?.productionCatalog?.standing) || "The App reports it as not runnable."}</p></details></div>)}
       </li>
-      <li><h3>Inputs</h3>
+      <li aria-labelledby="run-inputs-heading"><h3 id="run-inputs-heading">Inputs</h3>
         {inputs.length > 0 ? <ul aria-label="What this workflow needs">{inputs.map((input: Json, index: number) => <li key={index}>
           <strong>{text(input.name)}</strong> ({input.necessity === "optional" ? "optional" : "required"}; {INPUT_KIND[text(input.kind)] ?? text(input.kind)}): {text(input.meaning)}{input.absence_effect ? ` If you leave it out: ${text(input.absence_effect)}` : ""}</li>)}</ul>
           : chosen ? <p>This workflow doesn't list required inputs. Describe what it should work on.</p> : <p>Choose a workflow to see what it needs.</p>}
         <label>What should the workflow work on? <textarea value={personText} onChange={event => setText(event.target.value)} disabled={busy} rows={3}/></label>
         <p><small>Name any files in the project folder that it should use. This text goes with the workflow's own instructions in one starting message.</small></p>
       </li>
-      <li><h3>Start</h3>
+      <li aria-labelledby="run-start-heading"><h3 id="run-start-heading">Start</h3>
         {!prepared ? <>{unresolvedStart && <p><label><input type="checkbox" checked={checkedRun === holdKey} disabled={!canAct} onChange={event => setCheckedRun(event.target.checked ? holdKey : null)}/> I read the conversation and want to prepare a new run anyway</label>
             <small>The earlier start may have run; a new run sends the workflow again.</small></p>}
           <button className="setup-primary" disabled={!canAct || !ready || !thread || chosen?.runnable !== true || inProgress || (unresolvedStart && checkedRun !== holdKey)}
@@ -257,7 +257,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
             <button ref={startButton} className="setup-primary" disabled={!canAct || !ready} onClick={() => performThen("workflow_send_run", { runRef: prepared.reference }, "progress")}>Start the run</button></>}
         <p><small>Preparing composes the starting message from the chosen revision; nothing is sent. Starting records the run and sends that message once — if recording fails, nothing is sent.</small></p>
       </li>
-      <li><h3>Progress</h3>
+      <li aria-labelledby="run-progress-heading"><h3 id="run-progress-heading">Progress</h3>
         {reading ? <div ref={progressNode} tabIndex={-1} className={`run-journey-state run-journey-${reading.tone}`} aria-label="Run progress">
           <p role="status"><strong>{reading.title}.</strong> {reading.detail}</p>
           {(starts(latest.lifecycle?.state, "open") || reading.tone === "uncertain") && <p>{showConversation
@@ -271,7 +271,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         {result && <div role="status" aria-label="Run a workflow — last result"><p>{result.words}</p>
           {result.detail && <details><summary>What the App reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{result.detail}</pre></details>}</div>}
       </li>
-      <li><h3>Results</h3>
+      <li aria-labelledby="run-results-heading"><h3 id="run-results-heading">Results</h3>
         {(resultOrder.ordered.length + resultOrder.unordered.length) > 0 && <ul aria-label="Runs in this conversation">
           {resultOrder.ordered.map((run: Json) => <RunResult key={text(run.reference)} run={run} host={host} loaded showConversation={showConversation}/>)}
           {resultOrder.unordered.length > 0 && <li><small>{resultOrder.ordered.length ? "These runs' order isn't known:" : resultOrder.unordered.length > 1 ? "The App doesn't know these runs' order:" : ""}</small></li>}
@@ -289,7 +289,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         {outputs.length > 0 ? <ul aria-label="Where the results go">{outputs.map((output: Json, index: number) => <li key={index}>
           <strong>{text(output.name)}</strong>{output.path ? <> — declared path <code>{text(output.path)}</code></> : ""}{output.meaning ? `: ${text(output.meaning)}` : ""}</li>)}</ul>
           : <p>{chosen ? "This workflow doesn't declare where its results go; the agent reports them in the conversation." : "Choose a workflow to see what it produces."}</p>}
-        <p><small>These are what the workflow declares it produces; the App hasn't checked that any of them exist. {projectFolder !== null ? <>A relative declared path is the workflow's own wording; the App doesn't establish whether it is inside the project folder <code>{projectFolder}</code>.</> : "The project folder is not established for this App window."} Files Codex actually changed are listed in the conversation's activity.</small></p>
+        <p><small>These are what the workflow declares it produces; the App hasn't checked that any of them exist. {projectFolder !== null ? <>A relative declared path is the workflow's own wording; the App doesn't establish whether it is inside the project folder <code>{projectFolder}</code>.</> : "The App has not reported a matching project folder; the library location alone does not establish output locations."} Files Codex actually changed are listed in the conversation's activity.</small></p>
       </li>
     </ol>
   </section>;

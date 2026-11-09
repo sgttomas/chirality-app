@@ -9,9 +9,10 @@ import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 // Native admission belongs to that producer, not these renderer fields. This
 // suite mounts the actual App and executes no native supplier/window.
 const g={appSession:'fork-fixture',home:'account-home',spawnCounter:1};
+const kg={...g,home:'key-home'};
 const key=(id,generation=g)=>JSON.stringify([generation,id]);
 const thread=(id,generation=g,role='WORKING_ITEMS')=>({generation,threadId:id,status:{type:'idle'},model:'fixture-model',modelProvider:'fixture-provider',appRole:{standing:'app-observed',role,supply_ref:`sup:${id}`},roleRelation:{kind:'start'},futureGuidanceNotices:[]});
-const forkResult=()=>({thread:{...thread('fork-1'),forkedFrom:{threadId:'source',forkRequestRef:'original-host-fork-receipt',reportedForkedFromId:'source'},requestedDestination:{source:'inherited from the forked conversation; none chosen at fork'},roleRelation:{kind:'inherited-fork',sourceThread:'source',sourceSupplyRef:'sup:source',forkedFromId:'source'}},role:{kind:'inherited-fork',thread:'fork-1',role:thread('fork-1').appRole},roleSupplyRecord:{state:'not-confirmed'},standing:"Same-role copy: thread/fork carried no instructions, so the fork keeps the source's guidance; the source conversation is unchanged."});
+const forkResult=(generation=g)=>({thread:{...thread('fork-1',generation),forkedFrom:{threadId:'source',forkRequestRef:'original-host-fork-receipt',reportedForkedFromId:'source'},requestedDestination:{source:'inherited from the forked conversation; none chosen at fork'},roleRelation:{kind:'inherited-fork',sourceThread:'source',sourceSupplyRef:'sup:source',forkedFromId:'source'}},role:{kind:'inherited-fork',thread:'fork-1',role:thread('fork-1',generation).appRole},roleSupplyRecord:{state:'not-confirmed'},standing:"Same-role copy: thread/fork carried no instructions, so the fork keeps the source's guidance; the source conversation is unchanged."});
 const deferred=()=>{let resolve;return {promise:new Promise(yes=>{resolve=yes;}),resolve:v=>resolve(v)};};
 const document=installMiniDom();
 const React=(await import('react')).default;
@@ -27,8 +28,8 @@ const choice={model:'person-choice',modelProvider:'fixture-provider',entryId:'lo
 
 async function mounted(options,check) {
  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
- const calls=[],unexpected=[],intervals=new Map();let timer=0,active='account',statusFailure=false,explicitStarts=0,explicitHomes=0;
- const homes={account:{generation:g,threads:[thread('source'),thread('other')],state:'ready'},'api-key':{generation:{...g,home:'key-home'},threads:[],state:'ready'}};
+ const calls=[],unexpected=[],intervals=new Map();const initial=options.initial??'account';let timer=0,active=initial,statusFailure=false,explicitStarts=0,explicitHomes=0;
+ const homes={account:{generation:g,threads:[thread('source'),thread('other')],state:'ready'},'api-key':{generation:kg,threads:[thread('source',kg),thread('other',kg)],state:'ready'}};
  const snapshot=()=>structuredClone({...homes[active],homeRouting:{activeModeHomeClass:active,entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'}]},roleLimits:{account:{roles:[]}}});
  const oldTimers={setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval};
  globalThis.setInterval=(fn,ms)=>{const id=++timer;intervals.set(id,{fn,ms});return id;};globalThis.clearInterval=id=>intervals.delete(id);
@@ -37,8 +38,8 @@ async function mounted(options,check) {
   if(command==='host_status'){const value=snapshot();if(statusFailure)throw Error('controlled observer refresh unavailable');if(options.read)await options.read(value,calls);return value;}
   if(command==='decision_view')return {rows:[]};if(command==='native_confirmation_content')return [];
   if(command==='conversation_fork'){
-   assert.deepEqual(args,{generation:g,threadId:'source'});const result=forkResult();
-   if(options.admit!==false)homes.account.threads.push(structuredClone(result.thread));
+   const origin=homes[initial].generation;assert.deepEqual(args,{generation:origin,threadId:'source'});const result=forkResult(origin);
+   if(options.admit!==false)homes[initial].threads.push(structuredClone(result.thread));
    if(options.refreshFails)statusFailure=true;return options.fork?options.fork(result):result;
   }
   if(command==='thread_start'){
@@ -53,14 +54,15 @@ async function mounted(options,check) {
  const change=async(e,value)=>React.act(()=>props(e).onChange({target:{value}}));
  const edit=async values=>{for(const [name,value]of Object.entries(values)){const [tag,label]=name==='model'?['input','Model ']:name==='modelProvider'?['input','Configured Codex provider ']:['select','Access entry '];await change(labelled(c,tag,label),value);}};
  const values=()=>({model:props(labelled(c,'input','Model ')).value,modelProvider:props(labelled(c,'input','Configured Codex provider ')).value,entryId:props(labelled(c,'select','Access entry ')).value});
- const press=async label=>React.act(async()=>{const b=button(c,label);assert.ok(b,label);assert.equal(props(b).disabled,false,label);if(label==='Start thread')explicitStarts++;if(label==='Use account home'||label==='Use api-key home')explicitHomes++;props(b).onClick();});
+ const press=async label=>React.act(async()=>{const b=button(c,label);assert.ok(b,label);assert.equal(props(b).disabled,false,label);if(label==='Start thread')explicitStarts++;if(label==='Use account home')explicitHomes++;props(b).onClick();});
  const poll=async()=>React.act(async()=>{const p=[...intervals.values()].find(p=>p.fn.toString().includes('host_status'));assert.ok(p);p.fn();});
  try{
   await React.act(async()=>root.render(React.createElement(App)));
-  await change(elements(conversation(c),'select')[0],key('source'));
-  await change(elements(conversation(c),'textarea')[0],draft);await edit(choice);
+  await change(elements(conversation(c),'select')[0],key('source',homes[initial].generation));
+  // A retained legacy home offers no new-conversation access entry.
+  await change(elements(conversation(c),'textarea')[0],draft);await edit(initial==='account'?choice:{model:choice.model,modelProvider:choice.modelProvider});
   assert.equal(calls.filter(c=>c.command==='conversation_fork').length,0,'mount/selection/edits never fork');
-  await check({c,calls,homes,snapshot,selected,values,edit,press,poll,change,chooser:()=>elements(conversation(c),'select')[0],recover:()=>{statusFailure=false;},forkCount:()=>calls.filter(c=>c.command==='conversation_fork').length});
+  await check({c,calls,homes,snapshot,selected,values,edit,press,poll,change,chooser:()=>elements(conversation(c),'select')[0],recover:()=>{statusFailure=false;},observeHome:async mode=>{active=mode;await poll();},forkCount:()=>calls.filter(c=>c.command==='conversation_fork').length});
   assert.deepEqual(unexpected,[],'strict dispatcher rejects implicit send/resume/start/answer');
   assert.equal(calls.filter(c=>c.command==='thread_start').length,explicitStarts,'only explicit Start presses dispatch Start');
   assert.equal(calls.filter(c=>c.command==='select_home').length,explicitHomes,'Fork never selects a home');
@@ -93,14 +95,16 @@ for(const reason of ['Native start refused before send','Native start remains pe
 test('newer explicit selector choice remains available and takes precedence',async()=>{
  const held=deferred();await mounted({fork:async r=>{await held.promise;return r;}},async ui=>{await ui.press('Fork (same role)');assert.equal(props(ui.chooser()).disabled,false);await ui.change(ui.chooser(),key('other'));await React.act(async()=>{held.resolve();});assert.equal(ui.selected(),key('other'));assert.deepEqual(ui.values(),choice);assert.equal(ui.forkCount(),1);});
 });
+// The API-key switch is omitted; a supported account choice from an observed
+// retained legacy home expresses home intent while the original Fork is pending.
 test('home intent supersedes Fork before the new home finishes opening',async()=>{
- const held=deferred(),home=deferred();await mounted({fork:async r=>{await held.promise;return r;},home:async()=>home.promise},async ui=>{await ui.press('Fork (same role)');await ui.press('Use api-key home');await React.act(async()=>{held.resolve();});assert.notEqual(ui.selected(),key('fork-1'));await React.act(async()=>{home.resolve();});assert.match(ui.c.textContent,/Active home class: api-key/);assert.equal(ui.forkCount(),1);});
+ const held=deferred(),home=deferred();await mounted({initial:'api-key',fork:async r=>{await held.promise;return r;},home:async()=>home.promise},async ui=>{await ui.press('Fork (same role)');await ui.press('Use account home');await React.act(async()=>{held.resolve();});assert.notEqual(ui.selected(),key('fork-1',kg));await React.act(async()=>{home.resolve();});assert.match(ui.c.textContent,/Selected home: account\./);assert.notEqual(ui.selected(),key('fork-1',kg));assert.equal(ui.forkCount(),1);});
 });
 test('leaving and returning to the original home never revives old navigation',async()=>{
- const held=deferred();await mounted({fork:async r=>{await held.promise;return r;}},async ui=>{await ui.press('Fork (same role)');await ui.press('Use api-key home');await ui.press('Use account home');await ui.edit(choice);await React.act(async()=>{held.resolve();});assert.notEqual(ui.selected(),key('fork-1'));assert.deepEqual(ui.values(),choice);assert.equal(ui.forkCount(),1);});
+ const held=deferred();await mounted({fork:async r=>{await held.promise;return r;}},async ui=>{await ui.press('Fork (same role)');await ui.observeHome('api-key');await ui.press('Use account home');await ui.edit(choice);await React.act(async()=>{held.resolve();});assert.notEqual(ui.selected(),key('fork-1'));assert.deepEqual(ui.values(),choice);assert.equal(ui.forkCount(),1);});
 });
 test('stale Fork observer reply cannot restore an older home over newer choices',async()=>{
- const observer=deferred();let hold=true;await mounted({read:async(_s,calls)=>{if(hold&&calls.some(c=>c.command==='conversation_fork')){hold=false;await observer.promise;}}},async ui=>{await ui.press('Fork (same role)');await ui.press('Use api-key home');await ui.edit({model:'new-key-choice',modelProvider:'openai',entryId:'api-key'});const newer=ui.values();await React.act(async()=>{observer.resolve();});assert.match(ui.c.textContent,/Active home class: api-key/);assert.notEqual(ui.selected(),key('fork-1'));assert.deepEqual(ui.values(),newer);assert.equal(ui.forkCount(),1);});
+ const observer=deferred();let hold=true;await mounted({initial:'api-key',read:async(_s,calls)=>{if(hold&&calls.some(c=>c.command==='conversation_fork')){hold=false;await observer.promise;}}},async ui=>{await ui.press('Fork (same role)');await ui.press('Use account home');await ui.edit({model:'new-account-choice',modelProvider:'fixture-provider',entryId:'local-provider'});const newer=ui.values();await React.act(async()=>{observer.resolve();});assert.match(ui.c.textContent,/Selected home: account\./);assert.notEqual(ui.selected(),key('fork-1',kg));assert.deepEqual(ui.values(),newer);assert.equal(ui.forkCount(),1);});
 });
 for(const close of ['closed','replacement'])test(`original admission cannot navigate after source ${close}`,async()=>{
  const held=deferred();await mounted({fork:async r=>{await held.promise;return r;}},async ui=>{await ui.press('Fork (same role)');if(close==='closed'){ui.homes.account.state='exited';ui.homes.account.generationClosed=true;}else{ui.homes.account.generation={...g,spawnCounter:2};ui.homes.account.threads=[thread('source',ui.homes.account.generation),thread('fork-1',ui.homes.account.generation)];}await ui.poll();await React.act(async()=>{held.resolve();});assert.notEqual(ui.selected(),key('fork-1'));assert.equal(ui.forkCount(),1);assert.deepEqual(ui.values(),choice);});

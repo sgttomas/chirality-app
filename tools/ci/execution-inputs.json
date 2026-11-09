@@ -2015,7 +2015,7 @@
     {
       "source": "execution/PKG-01/DEL-01-05/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-01/DEL-01-05/ScopeOfWork.md",
-      "sha256": "2e134b572f2676ed4fe6daa892047e21e53a637f9901cba20f482a6637f7f3d3"
+      "sha256": "f7e737097b1d8668c1ca47aedcb4071d61efdad52ad723bcd16afb98028738b8"
     },
     {
       "source": "execution/PKG-01/DEL-01-05/Work/ACCOUNT_AND_PROVIDER_ACCESS.md",
@@ -3525,7 +3525,7 @@
     {
       "source": "execution/PKG-09/DEL-09-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-09/DEL-09-02/ScopeOfWork.md",
-      "sha256": "171184d43a9ba2176c177943d6cf0819d8da93d77d544c35e3a9db0d16874112"
+      "sha256": "e9e93fc834ffb4c916016c9b2067d21a1aabd10eed689c5f50f61278aecde5fb"
     },
     {
       "source": "execution/PKG-09/DEL-09-02/Work/STANDALONE_QUALIFICATION.md",
@@ -4065,12 +4065,12 @@
     {
       "source": "execution/_Coordination/CURRENT_EXECUTION_BASIS.md",
       "copy": "app/contract_inputs/_Coordination/CURRENT_EXECUTION_BASIS.md",
-      "sha256": "df927e6f8b6494c265263c55adcb93f245b4071368ac06e2f65137d739a6501f"
+      "sha256": "0329559342795a9fb50c2d5c0c1a9b0470a05f3417e273e914d32d777b5eb61b"
     },
     {
       "source": "execution/_Coordination/PUBLICATION_PUNCHLIST.md",
       "copy": "app/contract_inputs/_Coordination/PUBLICATION_PUNCHLIST.md",
-      "sha256": "bee95b68f1d20b88a2972deb675b5ab6f3c9e248c04d2d13fa7bc6178bd17b4a"
+      "sha256": "c9362478629cfef8d3cfd74e8b919a7f0a00f3a4474ef38bd923c3362a8c38b6"
     },
     {
       "source": "execution/_Coordination/WINDOWS_UNDERTAKING.md",

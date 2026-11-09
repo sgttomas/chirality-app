@@ -87,6 +87,7 @@ needs:
   gating: false
   evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 code_paths:
+- app/src/ActionFeedback.tsx
 - app/src-tauri/src/workflow_record_store.rs
 - app/src-tauri/src/record_supply.rs
 - app/src-tauri/src/runtime_session.rs

@@ -49,9 +49,15 @@ function actualPacket() {
 // The whole studio section: its detailed controls sit in the Advanced disclosure; the action response follows it.
 const panelIn = container => container.querySelectorAll(node => node.getAttribute('aria-label') === 'Workflow studio controls')[0];
 const createButton = container => nodes(panelIn(container),'button').find(node => node.textContent === 'Create draft from inspected content');
-const resultText = container => labelled(panelIn(container),'Workflow command result')?.textContent ?? '';
+// ActionFeedback retains the complete response as `<command>: <raw text>`;
+// a technical response keeps it in its details. The raw text must be unchanged.
+const resultText = container => {
+  const region = labelled(panelIn(container),'Workflow command result');if (!region) return '';
+  const retained = (nodes(region,'pre')[0] ?? region).textContent,prefix = /^workflow_[a-z_]+: /.exec(retained);
+  assert.ok(prefix,'the retained response names its original command');return retained.slice(prefix[0].length);
+};
 const limits = container => panelIn(container).querySelectorAll(node => node.getAttribute('aria-label') === 'Workflow observation limit').map(node => node.textContent);
-const relation = container => JSON.parse(nodes(nodes(labelled(panelIn(container),'Workflow action response'),'details')[0],'pre')[0].textContent);
+const relation = container => JSON.parse(nodes(nodes(labelled(panelIn(container),'Workflow action response'),'details').find(node => nodes(node,'summary')[0]?.textContent === 'Original workflow request'),'pre')[0].textContent);
 
 async function mountedApp(t,{failFirstRefresh = false,metadataError,nativeRefusal = false,viewGate} = {}) {
   const source = actualPacket(),before = JSON.stringify(source),calls = [],unexpected = [];

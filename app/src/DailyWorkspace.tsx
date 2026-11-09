@@ -132,6 +132,13 @@ export function DailyWorkspace({ children }: { children: ReactNode }) {
       .workspace-disclosure>summary { padding:12px 16px; }
       .workspace-disclosure>summary span { display:inline; margin-left:12px; color:var(--workspace-muted); font-size:.82rem; }
       .workspace-disclosure-content { padding:4px 16px 16px; min-width:0; }
+      .local-access-alternative { border-top:1px solid var(--rule); padding:12px 0; margin-top:18px; }
+      .conversation-options { margin:10px 0; color:var(--ink-soft); }
+      .conversation-options>summary { font-size:.9rem; }
+      .action-feedback { border-left:3px solid var(--rule-strong); padding:0 12px; margin:12px 0; }
+      .action-feedback>details { font-size:.88rem; color:var(--ink-soft); }
+      [aria-label="Native activity"]>section { padding:12px 0; }
+      [aria-label="Native activity"] h4 { font-family:var(--font-display); margin:8px 0; }
       .workspace-notices:empty { display:none; }
       .workspace-notices { margin:12px 0; }
       .workspace-notices [role=alert] { border-left:3px solid var(--danger); padding-left:10px; }

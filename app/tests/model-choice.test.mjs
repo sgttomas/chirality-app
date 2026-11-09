@@ -55,7 +55,7 @@ test('a listed model is offered only for a confirmed or explicitly unconfirmed b
   assert.equal(modelMatch(packet(), '', ''), 'none', 'no provider chosen yet');
   const unnamed = packet({serverProvider:null, serverProviderState:'unnamed', providerLimit:'the app-server\'s configuration names no provider; the list is not matched to any conversation provider'});
   assert.equal(modelMatch(unnamed, 'openai', 'chatgpt-account'), 'unconfirmed');
-  assert.equal(modelMatch(unnamed, 'openai', 'api-key'), 'unconfirmed');
+  assert.equal(modelMatch(unnamed, 'openai', 'api-key'), 'none');
   assert.equal(modelMatch(unnamed, 'local-lab', 'local-provider'), 'none', 'an unnamed provider is never matched to a local one');
   assert.equal(modelMatch(unnamed, 'openai', 'local-provider'), 'none');
   assert.equal(modelMatch(packet({serverProvider:null, serverProviderState:'not-established', providerLimit:'provider not established: disagree'}), 'openai', 'chatgpt-account'), 'none', 'a disagreeing configuration is not established');
@@ -95,6 +95,36 @@ test('a first-time account user chooses the built-in route and a reported model,
   });
 });
 
+test('a long already-safe App response keeps its distinct tail in optional details; a start error stays direct', async () => {
+  const response = {acknowledged:false, error:'Explicit negative acknowledgment.', notice:'Invented safe App response '.repeat(40), tail:'distinct-response-tail-6921'};
+  let refuse = false;
+  await mounted(async command => {
+    if (command === 'read_available_models') return packet();
+    if (command === 'thread_start') {
+      if (refuse) throw Error('Explicit fixture refusal; nothing admitted.');
+      return response;
+    }
+    throw Error(`unexpected ${command}`);
+  }, async ui => {
+    await ui.press('Use my ChatGPT account (built-in OpenAI)');
+    await ui.press('Read available models'); await ui.press('Use Model B');
+    await ui.press('Start thread');
+    const feedback = region(ui.c, 'Latest App response');
+    const details = nodes(feedback, 'details')[0];
+    assert.ok(details); assert.equal(!!props(details).open, false);
+    const expected = `thread_start: ${JSON.stringify(response)}`;
+    assert.ok(expected.length > 600);
+    assert.equal(nodes(details, 'pre')[0].textContent, expected);
+    assert.doesNotMatch(nodes(feedback, 'p')[0].textContent, /success|completed|accepted/i);
+    assert.ok(nodes(feedback, 'p').some(node => node.textContent === 'acknowledged: false'));
+    assert.ok(nodes(feedback, 'p').some(node => node.textContent === 'error: Explicit negative acknowledgment.'));
+    refuse = true; await ui.press('Start thread');
+    assert.equal(nodes(feedback, 'details').length, 0);
+    assert.match(nodes(feedback, 'p')[0].textContent, /Explicit fixture refusal; nothing admitted\./);
+    assert.equal(ui.issued().filter(call => call.command === 'thread_start').length, 2, 'one dispatch per press, no retry');
+  });
+});
+
 test('a list for another provider, an unnamed provider and a stale or failed read never choose a model', async () => {
   let reply = packet({serverProvider:'local-lab'});
   await mounted(async command => { if (command === 'read_available_models') { if (reply instanceof Error) throw reply; return reply; } throw Error(`unexpected ${command}`); }, async ui => {
@@ -120,18 +150,32 @@ test('a list for another provider, an unnamed provider and a stale or failed rea
   });
 });
 
-test('an incomplete list says so, and the API-key home offers its own built-in route', async () => {
+test('omitted OpenAI-key mode offers no product entry or dispatch; account and local remain independent', async () => {
+  await mounted(async command => { throw Error(`unexpected ${command}`); }, async ui => {
+    assert.equal(button(ui.c, "Use this home's API key (built-in OpenAI)"), undefined);
+    assert.equal(button(ui.c, 'Add or replace key in native secure field…'), undefined);
+    assert.equal(button(ui.c, 'Use api-key home'), undefined);
+    assert.equal(!!props(button(ui.c, 'Read available models')).disabled, true);
+    assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true);
+    assert.ok(!nodes(ui.c, 'option').some(n => props(n).value === 'api-key'));
+    assert.equal(ui.issued().filter(x => ['add_api_key','read_available_models','thread_start'].includes(x.command)).length, 0);
+    ui.setSnapshot(snapshotFor()); await ui.refresh();
+    assert.ok(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'));
+    assert.ok(nodes(ui.c, 'option').some(n => props(n).value === 'local-provider'));
+    assert.match(region(ui.c, 'Account connection').textContent, /anonymous local providers only; keyed oMLX support is pending/);
+    const advanced=nodes(ui.c,'details').find(n=>n.textContent.startsWith('Other sign-in options'));
+    assert.ok(advanced);assert.equal(!!props(advanced).open,false);
+    assert.equal(props(button(ui.c,'Sign in with your ChatGPT account (through Codex)…')).className,'setup-primary');
+  }, snapshotFor('api-key', {...g, home:'api-key'}));
+});
+
+test('an incomplete account model list remains explicit', async () => {
   await mounted(async command => {
-    if (command === 'read_available_models') return packet({modeHomeClass:'api-key', generation:{...g, home:'api-key'}, complete:false, limits:['model list incomplete: Codex repeated a page cursor']});
+    if (command === 'read_available_models') return packet({complete:false, limits:['model list incomplete: Codex repeated a page cursor']});
     throw Error(`unexpected ${command}`);
   }, async ui => {
-    assert.equal(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'), undefined);
-    await ui.press('Use this home\'s API key (built-in OpenAI)');
-    await ui.press('Read available models');
-    assert.deepEqual(ui.issued().at(-1), {command:'read_available_models', args:{generation:{...g, home:'api-key'}, modeHomeClass:'api-key'}});
-    const list = region(ui.c, 'Available models').textContent;
-    assert.match(list, /The list may be incomplete: model list incomplete: Codex repeated a page cursor/);
-    await ui.press('Use Model A');
-    assert.match(ui.summary(), /model-a via openai \(api-key\)/);
-  }, snapshotFor('api-key', {...g, home:'api-key'}));
+    await ui.press('Use my ChatGPT account (built-in OpenAI)'); await ui.press('Read available models');
+    assert.match(region(ui.c, 'Available models').textContent, /The list may be incomplete: model list incomplete: Codex repeated a page cursor/);
+    await ui.press('Use Model A'); assert.match(ui.summary(), /model-a via openai \(chatgpt-account\)/);
+  });
 });

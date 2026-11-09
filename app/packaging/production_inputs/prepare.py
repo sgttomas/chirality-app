@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import plistlib
 import re
+import tomllib
 import xml.parsers.expat
 
 from jsonschema import Draft202012Validator
@@ -63,7 +64,47 @@ def check_plan(output):
             {'tauri.package-inputs.conf.json', 'build-recipe.json', 'input-inventory.json'}, 'invalid completion marker')
     for name, digest in marker['files'].items():
         require(files.transfer(output / name)[1] == digest, 'completed plan file changed')
+    recipe = parse(files.transfer(output / 'build-recipe.json', retain=True)[0])
+    if 'cargo_build_input' in recipe:
+        contract = recipe['cargo_build_input']
+        require(contract == cargo_build_input_contract(contract.get('preset')), 'invalid Cargo build input contract')
     return marker
+
+
+CARGO_BUILD_PRESET = 'macos-arm64-rust-1.97.1-no-strip'
+
+
+def cargo_build_input_contract(preset):
+    """Explicit opt-in for the measured toolchain; never a global Cargo default."""
+    require(preset == CARGO_BUILD_PRESET, 'unsupported Cargo build input preset')
+    text = ('[net]\noffline = true\n[build]\njobs = 2\n\n'
+            '[profile.release.build-override]\nstrip = "none"\n\n'
+            '[profile.release]\nstrip = "none"\n')
+    return {'preset': preset, 'destination': 'CARGO_HOME/config.toml', 'text': text, 'sha256': sha(text.encode()),
+            'scope': {'host': 'aarch64-apple-darwin', 'target': 'aarch64-apple-darwin', 'macos': '27.2', 'sdk': '27.2'},
+            'tool_sha256': {
+                'rustc': '210df6794001b73ec3d453878707fa1e0bdcb63c427024a6e6574bbe5615a4da',
+                'cargo': '7672ead309d505577c018fff2cafb3433601f073e38cbe87359ac1f7b944bbf5',
+                'clang': 'fc5e3cbba6ad54059295cad716aacb05ace8235f5f7a6031f1d8c15d24bd6d66',
+                'ld': '7f7041b1bb30e5e6a815a55edf374065d5c82e1ab93f84d5b6ed5656ded24bcf'},
+            'release_opt_level': 3,
+            'standing': 'host build dependencies/proc-macros AND shipped release targets are unstripped; '
+                        'no bit-identical output claim; require Apple dyld_info -validate_only on actual bundled Mach-Os'}
+
+
+def verify_cargo_build_input(output, cargo_home, scope, tool_paths):
+    """Read-only pre-build check; caller supplies observed scope and resolved tool paths."""
+    check_plan(output)
+    recipe = parse(files.transfer(Path(output) / 'build-recipe.json', retain=True)[0])
+    require('cargo_build_input' in recipe, 'plan has no selected Cargo build input')
+    contract = recipe['cargo_build_input']
+    require(scope == contract['scope'], 'Cargo build input platform scope mismatch')
+    require(set(tool_paths) == set(contract['tool_sha256']), 'exact resolved Cargo tool paths required')
+    for name, digest in contract['tool_sha256'].items():
+        require(files.transfer(tool_paths[name])[1] == digest, 'Cargo build input toolchain mismatch: ' + name)
+    raw, digest, _ = files.transfer(inventory.anchored(cargo_home) / 'config.toml', retain=True)
+    require(digest == contract['sha256'] and raw == contract['text'].encode(), 'Cargo build config mismatch')
+    return contract['sha256']
 
 
 SIGNED_DATA_OID = bytes.fromhex('2a864886f70d010702')
@@ -155,7 +196,8 @@ def profile_consistency(raw, expected_sha256, selected, now=None):
 
 def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
             test_identifier=None, publisher_input=None, publisher_sha256=None, upstream_notices=None,
-            provisioning_profile=None, provisioning_profile_sha256=None):
+            provisioning_profile=None, provisioning_profile_sha256=None, cargo_build_input=None):
+    cargo_contract = cargo_build_input_contract(cargo_build_input) if cargo_build_input is not None else None
     source_root, vendor, output = map(inventory.anchored, (source_root, vendor, output))
     require(not os.path.lexists(source_root / '.git'), 'source must be a disposable frozen export, not a checkout')
     require('*' not in str(vendor), 'glob characters in vendor source refused')
@@ -286,6 +328,10 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
     # Read relevant recipe inputs without selecting a new supplier pin or changing source.
     for relative in ('app/package-lock.json', 'app/src-tauri/Cargo.lock', 'app/src-tauri/Cargo.toml', 'app/src-tauri/tauri.conf.json'):
         read(source_root / relative)
+    if cargo_contract is not None:
+        manifest = tomllib.loads(read(source_root / 'app/src-tauri/Cargo.toml').decode())
+        require(manifest.get('profile', {}).get('release', {}).get('opt-level', 3) == 3,
+                'Cargo build input requires release opt-level 3')
     tool_paths = [__file__, inventory.__file__, files.__file__, font_notice.__file__]
     if supplement is not None: tool_paths.append(receipts.__file__)
     tool_hashes = {str(inventory.anchored(p)): sha(read(Path(p))) for p in tool_paths}
@@ -314,9 +360,11 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
               'argv': ['node', 'node_modules/@tauri-apps/cli/tauri.js', 'build', '--no-sign', '--bundles', 'app',
                        '--features', 'custom-protocol,distribution-successor', '--config', str(output / 'tauri.package-inputs.conf.json'), '--', '--offline', '--locked'],
               'required_host_controls': ['prepared offline caches and isolated target', 'fresh scratch CODEX_HOME',
-                                         'shared t3_slot.sh/t3_cargo.sh and running memguard admission', 'jobs2',
+                                         'current owner-selected host admission; no shared-script changes', 'jobs2',
                                          'coordinate one fresh candidate; never mutate retained native artifacts'],
               'signing': 'disabled; no signing or build executed', 'profile': 'release', 'mode': mode}
+    if cargo_contract is not None:
+        recipe['cargo_build_input'] = cargo_contract
     # Ensure all inspected files/trees are still the same before publishing inputs.
     for name, digest in inspected.items():
         require(files.transfer(name)[1] == digest, 'input file changed during preparation')
@@ -370,6 +418,8 @@ if __name__ == '__main__':
     parser.add_argument('--upstream-notices', help='Explicit completed upstream notice supplement; default omitted')
     parser.add_argument('--provisioning-profile', help='Private Developer ID profile embedded at Contents/; production only')
     parser.add_argument('--provisioning-profile-sha256')
+    parser.add_argument('--cargo-build-input', choices=[CARGO_BUILD_PRESET],
+                        help='Explicit platform/toolchain-scoped host and shipped release strip override; default omitted')
     args = vars(parser.parse_args())
     try:
         print(json.dumps(prepare(**args), indent=2))

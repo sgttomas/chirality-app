@@ -2,13 +2,22 @@
 
 The current observations are [J1](J1_REAL_MODEL_ACTUAL_20261108.md) and
 [J2](J2_PARTIAL_ACTUAL_20261108.md). Their actual source identities and limits
-remain authoritative. PR160's repaired development artifact is unlaunched;
-registration and fresh-conversation reuse remain a proposed, unapproved scope.
-The owner is the next actor for that launch/cloud-use decision. Options are the
-bounded registration/reuse proposal recorded in J2, a revised scope responding
-to its gaps, or no continuation. Recommendation: preserve the original trial and
-project/store identity and assess the exact repaired artifact before proposing
-any new live attempt. No further campaign follows from the consumed J1 scope.
+remain authoritative. J2's repaired 475c development artifact completed native
+registration and one fresh-conversation reuse turn, followed by explicit run
+end and normal Quit. That bounded window has ended; it supplies no additional
+model turn or new campaign. Agent-operated controls establish no personal
+owner act or installed/release qualification.
+
+The segment used the existing App-owned ChatGPT home, GPT-6.1 Terra at medium
+effort and standard configured service, file storage and plugins disabled. The
+invented case/workflow and ordinary supplier context/metadata used the same
+stock ChatGPT route; no verified monetary cap or full-destination confinement
+was established. Original draft, trial, inputs, outputs and project/store
+identity were preserved. The supported explicit workspace/records-store route
+selected that existing project/store without migration or copied evidence.
+
+Native state requests can open an absent App: check the original process
+before using them, and use process checks only after Quit.
 
 ## Constraints at the native boundary
 
@@ -25,12 +34,16 @@ any new live attempt. No further campaign follows from the consumed J1 scope.
   to manufacture freshness. Automated actions retain agent attribution and
   cannot establish a personal human act. Headless injected joins do not qualify
   AppKit/WebKit, native dialogs or supplier startup.
-- Ordinary offline builds and bounded non-model/non-measurement native work use
-  the existing slot wrapper and memguard caps. Routine START/END handshakes are
-  not required. Shared local model loads and RSS/timing measurements require
-  advance resource coordination and the existing exclusive measurement wrapper.
-  Overruns or resident workloads affecting release must be reported. These
-  controls confer no new local-model or measurement undertaking.
+- Ordinary offline App builds and authorized development testing, including
+  use of the owner-selected oMLX service, proceed with reasonable concurrency
+  without shared resource windows or a shared slot/memory-guard prerequisite.
+  Routine testing and setup corrections within authorized scope continue without
+  a new resource-permission round. Agent-operated development witnesses on built
+  candidates may use the established App-owned ChatGPT route within bounded
+  time and turn limits under that standing testing direction; each binds its
+  actual artifact and inputs. This changes no shared guard script or service.
+  Separate measurements retain any isolation required by their selected method;
+  this resource rule confers no new model acquisition or measurement undertaking.
 - Authentication, new cloud scope, access/spend, acceptance, signing and release
   stay with the owner under [AGENTS](../../../../AGENTS.md). Retained stock-download
   receipts and previous hosted choices are evidence of their exact scopes, not

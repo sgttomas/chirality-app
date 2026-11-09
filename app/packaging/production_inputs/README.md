@@ -70,7 +70,7 @@ Outputs, in a new private directory:
   version, with limits. The source
   revision is a caller claim; actual export provenance is separately checked.
 - `build-recipe.json`: argv array and allowlisted build inputs, explicit offline/
-  jobs2/no-sign controls and required host slot/cache/scratch admission. This is
+  jobs2/no-sign controls and current owner-selected host/cache/scratch admission. This is
   data, not a shell script or an automatic build runner. Use prepared tools/caches
   and a fresh scratch CODEX_HOME; never execute it by concatenating shell strings.
 - `PLAN_COMPLETE.json`: written last, identifying the exact three plan files.
@@ -90,6 +90,56 @@ Preserve exact private originals and separately identified redacted derivatives.
 All old resource/source pins stay separate; mapping a closure does not adopt a
 new pin, grant runtime authority or prove actual Tauri SDK/bundle inclusion.
 
+## Explicit Cargo input for the measured macOS toolchain
+
+`--cargo-build-input macos-arm64-rust-1.97.1-no-strip` adds an opt-in
+`cargo_build_input` contract inside `build-recipe.json`; the completion marker
+still binds the same three files. The default plan has no strip override. This
+preset applies only to the measured arm64 host/target, macOS 27.2 / SDK 27.2,
+Rust/Cargo 1.97.1 and exact compiler/linker binary digests in the contract. It
+does not establish macOS 15 runtime qualification or apply to other toolchains.
+
+The contract contains the exact UTF-8 Cargo config text and SHA-256
+`82651ddc167d78065e4af475e439cd0c2fa0855b601f8fdda9a81ab263de42fc`:
+
+```toml
+[net]
+offline = true
+[build]
+jobs = 2
+
+[profile.release.build-override]
+strip = "none"
+
+[profile.release]
+strip = "none"
+```
+
+The host build override covers build dependencies and proc-macros. The release
+override also changes shipped target stripping; source release optimization
+remains level 3. No bit-identical shipped-output claim follows. The measured
+toolchain produced malformed LINKEDIT string-pool alignment with
+`strip=debuginfo`: the host-only override allowed compilation but left the App
+executable malformed. Both explicit overrides produced a candidate accepted by
+Apple's static validator. This is a scoped workaround, not a diagnosis of every
+possible compiler/linker defect.
+
+Before a later authorized build, materialize `contract['text'].encode('utf-8')`
+unchanged at the task-owned `CARGO_HOME/config.toml`, outside source and shared
+caches. Do not overwrite another consumer's config. From the build driver call
+`verify_cargo_build_input(plan, cargo_home, observed_scope, resolved_tool_paths)`
+on this module. The scope keys are `host`, `target`, `macos`, `sdk`; resolved tool
+paths must name `rustc`, `cargo`, `clang`, `ld`. The verifier reads and hashes
+those files without executing them and refuses scope, tool or config mismatch.
+The driver must establish the observed scope and use those same selected tools;
+the helper cannot authenticate caller metadata or rule out other Cargo config
+layers. Retain the empty allowlisted environment and confirm no source/ancestor
+Cargo config adds overrides. Bind actual config/toolchain digests, original plan,
+source and artifact together; the repository revision alone is not the recipe.
+After building, require `dyld_info -validate_only` success on the actual main
+executable and every actual bundled Mach-O as well as the normal resource,
+profile and publisher static checks. A resource match cannot substitute for this.
+
 ## Actual input-test artifact and next production subject
 
 One coordinated unsigned release-profile input-test App has been built from
@@ -102,8 +152,9 @@ and release-profile build behavior before private publisher values arrive.
 It cannot establish production publisher matching, installed S4 or signing.
 
 Before invoking the recipe, the build owner binds the exact source export,
-prepared dependency caches, private target and toolchain, and admits one offline
-slot under the shared host controls. Fill every `required_environment` entry,
+prepared dependency caches, private target and toolchain, and applies the current
+owner-selected host controls. The present ordinary offline build direction does
+not require a shared slot/guard; this helper grants no build authority. Fill every `required_environment` entry,
 including a new absolute `CARGO_TARGET_DIR` outside all inputs, and start from an
 empty environment, adding only listed allowlist entries. Do not inherit
 TAURI_CONFIG, RUSTFLAGS, encoded Rust flags or signing variables. Tauri may set

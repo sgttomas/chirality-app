@@ -130,7 +130,7 @@ test('native unnamed selection shows only the original home request section',asy
   await mounted(async ui=>{
     await ui.wake(ui.dto.native.intents.unnamed);
     assert.equal(props(ui.select()).value,'');assert.deepEqual(ui.scrolls,['other-requests']);
-    assert.match(ui.container.textContent,/Active home class: account/);
+    assert.match(ui.container.textContent,/Selected home: account\./);
   });
 });
 
