@@ -31,7 +31,8 @@ retained records under DEL-01-06 `Work/supplier-notice-associations/codex-0.167.
 
 `ripgrep_0167.py` recomputes the rg association the same way. It reads the
 canonical 0.167.0 `rg`, the received Codex rg selector, the committed
-`ripgrep-15.2.0/` licence texts, and retained ripgrep tag/tree responses and
-`Cargo.lock`. `--check FILE` compares its output with
+`ripgrep-15.2.0/`, `pcre2-sys-0.2.10/`, `pcre2-10.46/` and `sljit-e51eabbf/`
+terms texts, retained ripgrep tag/tree responses and `Cargo.lock`, and retained
+pcre2-sys/PCRE2/sljit metadata and source text. `--check FILE` compares its output with
 `codex-0.167.0/rg-ripgrep-15.2.0.json`. It is not a byte join with the selected
 release archive.

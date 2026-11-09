@@ -8,6 +8,7 @@ do not join the shipped binary to the selected release archive.
 """
 import argparse
 import hashlib
+import html
 import importlib.util
 import json
 import re
@@ -32,8 +33,25 @@ RESPONSES = ('ripgrep-ref-tag.json', 'ripgrep-tag-object.json', 'ripgrep-root-tr
 LIMITS = [
     'No execution, network access, acquisition, signature validation or legal conclusion.',
     'The selector, tag and embedded revision associate the shipped rg with the selected ripgrep source revision; they are not a byte join with the selected release archive.',
-    'PCRE2 terms are not covered here; ripgrep 15.2.0 locks pcre2-sys 0.2.10, whose source text is not held.',
+    'The pcre2-sys chain binds published crate metadata and source revisions by checksum, VCS record, tags and blobs; it does not observe what the shipped rg statically links.',
 ]
+# pcre2-sys 0.2.10 -> vendored PCRE2 10.46 and sljit source revisions (public metadata/source text).
+PCRE2_SYS = {'version': '0.2.10', 'repository': 'https://github.com/BurntSushi/rust-pcre2',
+             'tag': 'pcre2-sys-0.2.10', 'commit': 'fd05026e1bf3ad62b3876cf9bd952dc742368462'}
+PCRE2 = {'version': '10.46', 'repository': 'https://github.com/PCRE2Project/pcre2', 'tag': 'pcre2-10.46',
+         'commit': 'b2bd4254b379b9d7dc9a3dda060a7e27009ccdff'}
+SLJIT = {'repository': 'https://github.com/zherczeg/sljit', 'commit': 'e51eabbfb8eabc6526f56e4e88b29fb10d1ee048'}
+PCRE2_RESPONSES = ('index-pcre2-sys.txt', 'crate-0.2.10.json', 'docsrs-vcs.html', 'refs-tags.json', 'tag-object.json',
+                   'root-tree.json', 'pcre2-sys-tree.json', 'upstream-tree.json', 'pcre2-ref-tag.json',
+                   'pcre2-tag-object.json', 'pcre2-tree-recursive.json', 'pcre2-gitmodules', 'sljit-tree-recursive.json')
+# Vendored file -> PCRE2 release path where update-pcre2 renames it.
+VENDOR_RENAMES = {'include/config.h': 'src/config.h.generic', 'include/pcre2.h': 'src/pcre2.h.generic',
+                  'src/pcre2_chartables.c': 'src/pcre2_chartables.c.dist'}
+TERMS = (('pcre2-sys/COPYING', 'app/packaging/supplier_notices/ripgrep-15.2.0/COPYING', 'crate'),
+         ('pcre2-sys/LICENSE-MIT', 'app/packaging/supplier_notices/pcre2-sys-0.2.10/LICENSE-MIT', 'crate'),
+         ('pcre2-sys/UNLICENSE', 'app/packaging/supplier_notices/ripgrep-15.2.0/UNLICENSE', 'crate'),
+         ('LICENCE.md', 'app/packaging/supplier_notices/pcre2-10.46/LICENCE.md', 'pcre2'),
+         ('LICENSE', 'app/packaging/supplier_notices/sljit-e51eabbf/LICENSE', 'sljit'))
 
 
 def blob(raw):
@@ -44,7 +62,74 @@ def read(path):
     return reader.transfer(Path(path).absolute(), retain=True)
 
 
-def build(rg_path, metadata):
+def pcre2_chain(metadata, locked):
+    metadata = Path(metadata)
+    raw_of, kept = {}, []
+    for name in PCRE2_RESPONSES:
+        raw, digest, size = read(metadata / name)
+        raw_of[name] = raw
+        kept.append({'name': name, 'sha256': digest, 'size': size})
+    j = lambda name: reader.parse(raw_of[name])
+    index = [json.loads(line) for line in raw_of['index-pcre2-sys.txt'].decode().splitlines() if line]
+    entry = next(v for v in index if v['vers'] == PCRE2_SYS['version'])
+    api = j('crate-0.2.10.json')['version']
+    require(entry['cksum'] == locked['checksum'] == api['checksum'] and not entry['yanked'], 'crate checksum chain broken')
+    require(api['repository'] == PCRE2_SYS['repository'], 'crate repository changed')
+    # docs.rs renders the published crate's .cargo_vcs_info.json as highlighted HTML source text.
+    shown = html.unescape(re.sub(r'<[^>]+>', '', raw_of['docsrs-vcs.html'].decode()))
+    vcs = re.findall(r'"sha1": "([0-9a-f]{40})"\s*},\s*"path_in_vcs": "([^"]+)"', shown)
+    require(vcs == [(PCRE2_SYS['commit'], 'pcre2-sys')], 'published VCS record differs')
+    ref = next(r for r in j('refs-tags.json') if r['ref'] == 'refs/tags/' + PCRE2_SYS['tag'])
+    tag = j('tag-object.json')
+    require(ref['object']['sha'] == tag['sha'] and tag['object']['sha'] == PCRE2_SYS['commit'], 'pcre2-sys tag mismatch')
+    root = j('root-tree.json')
+    require(root['sha'] == PCRE2_SYS['commit'] and not root['truncated'], 'rust-pcre2 tree is not the tagged commit')
+    crate_tree = j('pcre2-sys-tree.json')
+    require(crate_tree['sha'] == {e['path']: e for e in root['tree']}['pcre2-sys']['sha'], 'pcre2-sys subtree mismatch')
+    crate = {e['path']: e for e in crate_tree['tree']}
+    upstream = j('upstream-tree.json')
+    require(upstream['sha'] == crate['upstream']['sha'] and not upstream['truncated'], 'vendored upstream tree mismatch')
+    for name, check in (('pcre2-sys-Cargo.toml', b'version = "0.2.10"'), ('pcre2-sys-update-pcre2', b'version="10.46"')):
+        raw, _, size = read(metadata / 'source' / name)
+        key = name.removeprefix('pcre2-sys-')
+        require(crate[key]['size'] == size and crate[key]['sha'] == blob(raw) and check in raw, 'crate source differs: ' + key)
+    ptag = j('pcre2-tag-object.json')
+    require(j('pcre2-ref-tag.json')['object']['sha'] == ptag['sha'] and ptag['tag'] == PCRE2['tag']
+            and ptag['object']['sha'] == PCRE2['commit'], 'PCRE2 tag mismatch')
+    ptree = j('pcre2-tree-recursive.json')
+    require(ptree['sha'] == PCRE2['commit'] and not ptree['truncated'], 'PCRE2 tree incomplete')
+    pfiles = {e['path']: e for e in ptree['tree']}
+    require(pfiles['deps/sljit']['type'] == 'commit' and pfiles['deps/sljit']['sha'] == SLJIT['commit'], 'sljit pointer changed')
+    require(b'url = https://github.com/zherczeg/sljit.git' in raw_of['pcre2-gitmodules'], 'sljit submodule URL changed')
+    stree = j('sljit-tree-recursive.json')
+    require(stree['sha'] == SLJIT['commit'] and not stree['truncated'], 'sljit tree incomplete')
+    sfiles = {e['path']: e for e in stree['tree']}
+    counts = {'pcre2_release': 0, 'sljit': 0}
+    for e in upstream['tree']:
+        if e['type'] != 'blob':
+            continue
+        if e['path'].startswith('deps/sljit/'):
+            require(sfiles[e['path'][len('deps/sljit/'):]]['sha'] == e['sha'], 'vendored sljit differs: ' + e['path'])
+            counts['sljit'] += 1
+        else:
+            require(pfiles[VENDOR_RENAMES.get(e['path'], e['path'])]['sha'] == e['sha'], 'vendored PCRE2 differs: ' + e['path'])
+            counts['pcre2_release'] += 1
+    trees = {'crate': ({'pcre2-sys/' + k: v for k, v in crate.items()}, PCRE2_SYS), 'pcre2': (pfiles, PCRE2), 'sljit': (sfiles, SLJIT)}
+    terms = []
+    for source_path, local, kind in TERMS:
+        raw, digest, size = read(ROOT / local)
+        files, origin = trees[kind]
+        require(files[source_path]['size'] == size and files[source_path]['sha'] == blob(raw), 'terms text differs: ' + local)
+        terms.append({'repository': origin['repository'], 'commit': origin['commit'], 'path': source_path,
+                      'local_text': local, 'size_bytes': size, 'sha256': digest, 'git_blob_sha1': blob(raw)})
+    return {'crate': {**PCRE2_SYS, 'checksum': entry['cksum'], 'crate_size': api['crate_size'], 'license': api['license']},
+            'pcre2': PCRE2, 'sljit': SLJIT, 'vendored_blobs_equal_to_sources': counts,
+            'vendored_upstream_has_licence_file': any(e['path'].upper().startswith(('LICEN', 'COPYING')) or '/LICEN' in e['path'].upper()
+                                                      for e in upstream['tree']),
+            'terms_texts': terms, 'retained_responses': kept}
+
+
+def build(rg_path, metadata, pcre2_metadata):
     metadata = Path(metadata)
     raw_rg, rg_sha, rg_size = read(rg_path)
     require(rg_sha == RG_SHA256, 'rg is not the canonical 0.167.0 subject')
@@ -96,8 +181,7 @@ def build(rg_path, metadata):
                            'registry_crate_directories': crates,
                            'all_in_locked_registry_packages': all(c in registry for c in crates)},
         'licence_texts': texts,
-        'pcre2_sys_locked': {'version': pcre2_sys['version'], 'checksum': pcre2_sys['checksum'],
-                             'held': False},
+        'pcre2_sys': pcre2_chain(pcre2_metadata, pcre2_sys),
         'limits': LIMITS,
     }
 
@@ -110,11 +194,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('rg')
     parser.add_argument('metadata', help='directory holding the retained ripgrep responses and source/Cargo.lock')
+    parser.add_argument('pcre2_metadata', help='directory holding the retained pcre2-sys/PCRE2/sljit responses and source texts')
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--write', metavar='FILE')
     mode.add_argument('--check', metavar='FILE')
     args = parser.parse_args()
-    text = render(build(args.rg, args.metadata))
+    text = render(build(args.rg, args.metadata, args.pcre2_metadata))
     if args.write:
         Path(args.write).write_text(text)
     else:

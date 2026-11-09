@@ -258,7 +258,8 @@ in the [0.160.0 source-graph proposal](supplier-notice-associations/codex-source
    release asset `codex-code-mode-host-aarch64-apple-darwin.tar.gz`
    (25,262,553 B, `sha256:876a3e26…`).
 5. **rg: ripgrep 15.2.0 (revision `e89fff89ac`) with PCRE2 10.46, unchanged
-   code since 0.160.0.** The ripgrep licence-text input is now associated.
+   code since 0.160.0.** The ripgrep and PCRE2 terms-text inputs are now
+   associated.
    The [rg association](supplier-notice-associations/codex-0.167.0/rg-ripgrep-15.2.0.json),
    recomputed by
    [`ripgrep_0167.py`](../../../../app/packaging/supplier_notices/ripgrep_0167.py),
@@ -274,14 +275,37 @@ in the [0.160.0 source-graph proposal](supplier-notice-associations/codex-source
      (1,211 B) were read as public source text, matched their blobs, and are
      committed as [packaging inputs](../../../../app/packaging/supplier_notices/ripgrep-15.2.0).
 
-   These are selector, string and lock clues, not a byte join with the archive.
-   Two inputs remain:
-   - The byte join needs the archive itself, a binary download with its own
-     permission.
-   - PCRE2's terms: the lock pins `pcre2-sys` 0.2.10 (checksum `18b9073c…`),
-     which is not held. Its crate archive (size unknown; a content-length
-     metadata step would establish it) needs permission. Its public source text
-     at the matching revision would be a source-text read.
+   - PCRE2's terms are associated through public metadata and source text, with
+     no archive:
+     - The ripgrep lock pins `pcre2-sys` 0.2.10 with checksum `18b9073c…`. The
+       crates.io index and API give 0.2.10 the same checksum (crate size
+       771,875 B, licence `Unlicense OR MIT`, repository `BurntSushi/rust-pcre2`).
+     - The published crate's `.cargo_vcs_info.json`, shown by docs.rs, records
+       commit `fd05026e1bf3ad62…` with path `pcre2-sys`. The signed tag
+       `pcre2-sys-0.2.10` names the same commit, whose `Cargo.toml` (blob
+       `be55c4ce`) states version 0.2.10.
+     - Its `update-pcre2` (blob `4411f294`) vendors PCRE2 **10.46**, matching
+       the binary's `10.46 2025-08-27` string. All 43 vendored PCRE2 files equal
+       the `pcre2-10.46` release tree (commit `b2bd4254`) by blob, after the
+       script's three renames. All 33 vendored `deps/sljit` files equal `sljit`
+       at `e51eabbf`, the submodule commit PCRE2 10.46 pins.
+     - The vendored tree carries no licence file, so the crate archive would not
+       have supplied PCRE2's terms either.
+     - The terms texts, read and blob-verified, are committed as packaging inputs:
+       PCRE2 [`LICENCE.md`](../../../../app/packaging/supplier_notices/pcre2-10.46/LICENCE.md)
+       (3,867 B, blob `f58ceb75`), `sljit`
+       [`LICENSE`](../../../../app/packaging/supplier_notices/sljit-e51eabbf/LICENSE)
+       (1,444 B, blob `0aaecaaa`; the shipped voice `sljit.txt` has the same
+       blob), and `pcre2-sys`'s own
+       [`LICENSE-MIT`](../../../../app/packaging/supplier_notices/pcre2-sys-0.2.10/LICENSE-MIT)
+       (1,081 B, blob `3303149e`). Its `COPYING` and `UNLICENSE` equal ripgrep's
+       committed texts.
+
+   These are selector, string, checksum, VCS-record and blob clues, not a byte
+   join with the archive. They do not observe what the shipped `rg` statically
+   links: `pcre2-sys`'s build can also use a system PCRE2. One input remains: the
+   byte join needs the archive itself, a binary download with its own
+   permission.
 6. **exec-server (new).** Its root-text candidate and dependency inputs are
    covered by item 3 and the exec-server row above. A standalone byte join would need
    `codex-exec-server-aarch64-apple-darwin.tar.gz` (22,746,226 B,

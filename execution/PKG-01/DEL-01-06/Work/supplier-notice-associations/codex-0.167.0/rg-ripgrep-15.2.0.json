@@ -1,6 +1,6 @@
 {
  "format": "codex-rg-ripgrep-association/1",
- "tool_sha256": "493154fad09e1d9e3db476c5ff5632c8d073ec47887834e8f3977d9fb67b6d2c",
+ "tool_sha256": "e46cb0255623d45564b795344cbbd70c8938daf9971eb4319c677528d0044fec",
  "subject": {
   "path": "codex-path/rg",
   "sha256": "13424ef22134a65a211e490475bc17a4671e4fad3c82ad4c613fe5978f022a6d",
@@ -98,14 +98,149 @@
    "git_blob_sha1": "68a49daad8ff7e35068f2b7a97d643aab440eaec"
   }
  ],
- "pcre2_sys_locked": {
-  "version": "0.2.10",
-  "checksum": "18b9073c1a2549bd409bf4a32c94d903bb1a09bf845bc306ae148897fa0760a4",
-  "held": false
+ "pcre2_sys": {
+  "crate": {
+   "version": "0.2.10",
+   "repository": "https://github.com/BurntSushi/rust-pcre2",
+   "tag": "pcre2-sys-0.2.10",
+   "commit": "fd05026e1bf3ad62b3876cf9bd952dc742368462",
+   "checksum": "18b9073c1a2549bd409bf4a32c94d903bb1a09bf845bc306ae148897fa0760a4",
+   "crate_size": 771875,
+   "license": "Unlicense OR MIT"
+  },
+  "pcre2": {
+   "version": "10.46",
+   "repository": "https://github.com/PCRE2Project/pcre2",
+   "tag": "pcre2-10.46",
+   "commit": "b2bd4254b379b9d7dc9a3dda060a7e27009ccdff"
+  },
+  "sljit": {
+   "repository": "https://github.com/zherczeg/sljit",
+   "commit": "e51eabbfb8eabc6526f56e4e88b29fb10d1ee048"
+  },
+  "vendored_blobs_equal_to_sources": {
+   "pcre2_release": 43,
+   "sljit": 33
+  },
+  "vendored_upstream_has_licence_file": false,
+  "terms_texts": [
+   {
+    "repository": "https://github.com/BurntSushi/rust-pcre2",
+    "commit": "fd05026e1bf3ad62b3876cf9bd952dc742368462",
+    "path": "pcre2-sys/COPYING",
+    "local_text": "app/packaging/supplier_notices/ripgrep-15.2.0/COPYING",
+    "size_bytes": 126,
+    "sha256": "01c266bced4a434da0051174d6bee16a4c82cf634e2679b6155d40d75012390f",
+    "git_blob_sha1": "bb9c20a094e41b7632d63bcff20c0b4b95e80777"
+   },
+   {
+    "repository": "https://github.com/BurntSushi/rust-pcre2",
+    "commit": "fd05026e1bf3ad62b3876cf9bd952dc742368462",
+    "path": "pcre2-sys/LICENSE-MIT",
+    "local_text": "app/packaging/supplier_notices/pcre2-sys-0.2.10/LICENSE-MIT",
+    "size_bytes": 1081,
+    "sha256": "cb3c929a05e6cbc9de9ab06a4c57eeb60ca8c724bef6c138c87d3a577e27aa14",
+    "git_blob_sha1": "3303149e523a4cb762a54e2b73b67f2f3c105769"
+   },
+   {
+    "repository": "https://github.com/BurntSushi/rust-pcre2",
+    "commit": "fd05026e1bf3ad62b3876cf9bd952dc742368462",
+    "path": "pcre2-sys/UNLICENSE",
+    "local_text": "app/packaging/supplier_notices/ripgrep-15.2.0/UNLICENSE",
+    "size_bytes": 1211,
+    "sha256": "7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c",
+    "git_blob_sha1": "68a49daad8ff7e35068f2b7a97d643aab440eaec"
+   },
+   {
+    "repository": "https://github.com/PCRE2Project/pcre2",
+    "commit": "b2bd4254b379b9d7dc9a3dda060a7e27009ccdff",
+    "path": "LICENCE.md",
+    "local_text": "app/packaging/supplier_notices/pcre2-10.46/LICENCE.md",
+    "size_bytes": 3867,
+    "sha256": "9cf7ac6976099a1d856826d3ef1b093bd6b84489dc6100628ac79e740cf9885a",
+    "git_blob_sha1": "f58ceb75a63e5f958631932f83d0786ee7593485"
+   },
+   {
+    "repository": "https://github.com/zherczeg/sljit",
+    "commit": "e51eabbfb8eabc6526f56e4e88b29fb10d1ee048",
+    "path": "LICENSE",
+    "local_text": "app/packaging/supplier_notices/sljit-e51eabbf/LICENSE",
+    "size_bytes": 1444,
+    "sha256": "5f216505c0f6ea3273caec89e766eef93cdeb7bbb0c429f9360116d7c938feeb",
+    "git_blob_sha1": "0aaecaaa28677aa1d3d69025ffab957131eca25d"
+   }
+  ],
+  "retained_responses": [
+   {
+    "name": "index-pcre2-sys.txt",
+    "sha256": "4e6158adc405f80488090e51bc3624aa3e321cc77b9a8b9538e813c470c8c4c3",
+    "size": 6976
+   },
+   {
+    "name": "crate-0.2.10.json",
+    "sha256": "635a885ccca7e5d673b338786c5bd1420000806cf78cbeda2828c6b78012f73e",
+    "size": 1746
+   },
+   {
+    "name": "docsrs-vcs.html",
+    "sha256": "64f2fe64dc74230b90c3113782c68d0ebf78549b4214078e678ac3b236574121",
+    "size": 20574
+   },
+   {
+    "name": "refs-tags.json",
+    "sha256": "d94ae49bc173b67c3a13ed8ab7d2f4442cc132eea57f5fea3a86cb2e22661534",
+    "size": 4355
+   },
+   {
+    "name": "tag-object.json",
+    "sha256": "8ce1a1a4e63142021767551687e74dd0a32e098c48a621253c760bfb0a870634",
+    "size": 2013
+   },
+   {
+    "name": "root-tree.json",
+    "sha256": "6b0cce580c1d7264e825fc95385045f2d16665d84481028a7ee3f7468110ce68",
+    "size": 3217
+   },
+   {
+    "name": "pcre2-sys-tree.json",
+    "sha256": "9f50a209d0dcf42b387a907cd91132333317f3a441593bb976156cda40840084",
+    "size": 3247
+   },
+   {
+    "name": "upstream-tree.json",
+    "sha256": "b3177e6c099287f6e3255a9cc2333af0c6b80466295aee5fefe8d06d6a20a828",
+    "size": 24832
+   },
+   {
+    "name": "pcre2-ref-tag.json",
+    "sha256": "d1a7195c7133bbb358b46c8b9d5e7b4851372118df7548ab6bb71cf6a4094059",
+    "size": 396
+   },
+   {
+    "name": "pcre2-tag-object.json",
+    "sha256": "98e0d32d4a432ac1d471663267b44576bc2f26bb081662cf087912cadd55b645",
+    "size": 2644
+   },
+   {
+    "name": "pcre2-tree-recursive.json",
+    "sha256": "2d7f4da4a255aa868a62c5c6bc6be7b6185c24a58f58fddbf067f8c93afc5644",
+    "size": 146584
+   },
+   {
+    "name": "pcre2-gitmodules",
+    "sha256": "7b0f71efeb749c114d98e659eeb0c17f560f804fc38f7a4978f5a52fe149fef2",
+    "size": 89
+   },
+   {
+    "name": "sljit-tree-recursive.json",
+    "sha256": "62ffc87a44cfeaa529019f9b642ef072e075b5da570fba06e4ef3fe3599c3277",
+    "size": 21258
+   }
+  ]
  },
  "limits": [
   "No execution, network access, acquisition, signature validation or legal conclusion.",
   "The selector, tag and embedded revision associate the shipped rg with the selected ripgrep source revision; they are not a byte join with the selected release archive.",
-  "PCRE2 terms are not covered here; ripgrep 15.2.0 locks pcre2-sys 0.2.10, whose source text is not held."
+  "The pcre2-sys chain binds published crate metadata and source revisions by checksum, VCS record, tags and blobs; it does not observe what the shipped rg statically links."
  ]
 }
