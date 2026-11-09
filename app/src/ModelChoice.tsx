@@ -7,7 +7,7 @@ const text = (value: Json): string => value === null || value === undefined ? ""
 /** The host's built-in provider for cloud entries (access_provider: a cloud
  * entry requires the reported built-in `openai` provider). */
 export const BUILT_IN_PROVIDER = "openai";
-export const CLOUD_ENTRIES = ["chatgpt-account", "api-key"];
+export const CLOUD_ENTRIES = ["chatgpt-account"];
 /** The host's reading of the app-server's own provider. */
 export const PROVIDER_STATES = ["named", "unnamed", "not-established", "not-read"];
 
@@ -34,13 +34,12 @@ export function validModelPacket(packet: Json, generation: Json, modeHomeClass: 
 export function AccessRouteChoice({ homeClass, modelProvider, entryId, disabled, choose, localHint }: {
   homeClass: string | null; modelProvider: string; entryId: string; disabled: boolean; choose: (route: { modelProvider: string; entryId: string }) => void; localHint?: string;
 }) {
-  const builtIn = homeClass === "api-key" ? { entryId: "api-key", label: "Use this home's API key (built-in OpenAI)" }
-    : homeClass === "account" ? { entryId: "chatgpt-account", label: "Use my ChatGPT account (built-in OpenAI)" } : null;
+  const builtIn = homeClass === "account" ? { entryId: "chatgpt-account", label: "Use my ChatGPT account (built-in OpenAI)" } : null;
   const chosen = builtIn && modelProvider === BUILT_IN_PROVIDER && entryId === builtIn.entryId;
   return <div aria-label="How this conversation connects">
     {builtIn ? <p><button disabled={disabled || !!chosen} aria-pressed={!!chosen} onClick={() => choose({ modelProvider: BUILT_IN_PROVIDER, entryId: builtIn.entryId })}>{builtIn.label}</button>{chosen ? " — chosen" : ""}</p>
-      : <p>Choose the account or API-key home under Connection &amp; access first.</p>}
-    {homeClass === "account" && <p><small>{localHint ?? "Or use a local model server: read the configured local providers below and choose one."}</small></p>}
+      : <p>Choose the account connection under Connection &amp; access first.</p>}
+    {homeClass === "account" && <p><small>{localHint ?? "oMLX/local uses its own provider credential. Keyed oMLX support is pending; this receiver currently offers anonymous providers only."}</small></p>}
     {entryId === "local-provider" && modelProvider && <p>Connects through configured local provider <code>{modelProvider}</code>.</p>}
   </div>;
 }
@@ -129,7 +128,7 @@ export function useBoundModelChoice({ owner, homeClass, generation, ready }: { o
   };
   const read = () => {
     const { homeClass: mode, generation: original } = source.current;
-    if (pending.current || !live() || !(mode === "account" || mode === "api-key")) return;
+    if (pending.current || !live() || mode !== "account") return;
     const at = epoch, number = ++sequence.current;
     const still = () => mounted.current && number === sequence.current && at === seen.current.epoch;
     pending.current = true; setReading(true); setObservation(null); setMessage(null);
@@ -149,7 +148,7 @@ export function useBoundModelChoice({ owner, homeClass, generation, ready }: { o
     if (modelMatch(shown.packet, held.route.modelProvider, held.route.entryId) === "none") return;
     revise({ model: row.model });
   };
-  const bound = () => live() && heldRef.current === held && held.epoch === epoch
+  const bound = () => homeClass === "account" && live() && heldRef.current === held && held.epoch === epoch
     ? { route: held.route, generation: held.generation, modeHomeClass: held.modeHomeClass } : null;
   return { route, stale: held.epoch !== epoch && chosenAny(held.route), revise, packet: observation?.packet ?? null, current, reading,
     message: message && message.epoch === epoch ? message.text : "", read, choose, bound };

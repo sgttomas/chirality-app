@@ -77,7 +77,7 @@ async function mounted(options,check){
  const track=call=>{if(call?.then){actions.add(call);call.then(()=>actions.delete(call),()=>actions.delete(call));}};
  const selected=()=>props(elements(conversation(c),'select')[0]).value;
  const change=async(e,value)=>React.act(()=>{if(e===labelled(c,'select','Stored conversation '))selects++;track(props(e).onChange({target:{value}}));});
- const press=async label=>React.act(async()=>{const e=button(c,label);assert.ok(e,label);assert.equal(props(e).disabled,false,label);if(label==='Start thread')starts++;if(label==='Use api-key home'||label==='Use account home')homes++;track(props(e).onClick());});
+ const press=async label=>React.act(async()=>{const e=button(c,label);assert.ok(e,label);assert.equal(props(e).disabled,false,label);if(label==='Start thread')starts++;if(label==='Use account home')homes++;track(props(e).onClick());});
  const poll=async()=>React.act(async()=>{const p=[...timers.values()].find(p=>p.fn.toString().includes('host_status'));assert.ok(p);p.fn();});
  const edit=async values=>{for(const[name,value]of Object.entries(values)){const[tag,label]=name==='model'?['input','Model ']:name==='modelProvider'?['input','Configured Codex provider ']:['select','Access entry '];await change(labelled(c,tag,label),value);}};
  const values=()=>({model:props(labelled(c,'input','Model ')).value,modelProvider:props(labelled(c,'input','Configured Codex provider ')).value,entryId:props(labelled(c,'select','Access entry ')).value});
@@ -85,7 +85,7 @@ async function mounted(options,check){
  try{
   await React.act(async()=>root.render(React.createElement(App)));await change(elements(conversation(c),'select')[0],key('existing'));await change(elements(conversation(c),'textarea')[0],draft);await edit(choice);
   await change(labelled(c,'select','Stored conversation '),'stored');for(let n=0;n<(options.metadataReads??1);n++)await press('Read metadata');assert.equal(selected(),key('existing'));assert.equal(calls.filter(x=>x.command==='history_action'&&x.args.action==='continue').length,0);
-  await check({c,calls,account,selected,press,poll,change,edit,values,context,recover:()=>{fail=false;},track,chooser:()=>elements(conversation(c),'select')[0],browser:()=>labelled(c,'select','Stored conversation ')});
+  await check({c,calls,account,selected,press,poll,change,edit,values,context,recover:()=>{fail=false;},observeHome:async mode=>{active=mode;await poll();},track,chooser:()=>elements(conversation(c),'select')[0],browser:()=>labelled(c,'select','Stored conversation ')});
   assert.deepEqual(unexpected,[]);assert.equal(calls.filter(x=>x.command==='thread_start').length,starts,'only explicit Start presses');assert.equal(calls.filter(x=>x.command==='select_home').length,homes);assert.equal(calls.filter(x=>x.command==='history_select').length,selects);
   assert.equal(calls.filter(x=>x.command==='history_action'&&x.args.action==='continue').length,1,'one original explicit Continue, never a retry on read');
   assert.equal(props(elements(conversation(c),'textarea')[0]).value,draft,'Continue never clears or replaces the unsent draft');
@@ -155,8 +155,10 @@ for(const aba of [false,true])test(`newer selector choice${aba?' away and back':
 test('newer successful Start and later chooser edits survive a delayed Continue',async()=>{
  const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');await ui.press('Start thread');assert.equal(ui.selected(),key('new-choice'));await ui.edit({model:'newer-unsent-choice'});const newer=ui.values();await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('new-choice'));assert.deepEqual(ui.values(),newer);});
 });
-test('stale Continue observer cannot restore the original home over a newer home choice',async()=>{
- const observerGate=deferred();await mounted({observerGate},async ui=>{await ui.press('Continue selected conversation');await ui.press('Use api-key home');await ui.edit({model:'new-key-choice',modelProvider:'configured',entryId:'api-key'});const newer=ui.values();await React.act(async()=>{observerGate.resolve();});assert.match(ui.c.textContent,/Active home class: api-key/);assert.notEqual(ui.selected(),key('stored'));assert.deepEqual(ui.values(),newer);});
+// No API-key switch is offered; the newer home is the observed retained legacy
+// home, whose chooser offers no access entry.
+test('stale Continue observer cannot restore the original home over a newer observed home',async()=>{
+ const observerGate=deferred();await mounted({observerGate},async ui=>{await ui.press('Continue selected conversation');await ui.observeHome('api-key');await ui.edit({model:'new-key-choice',modelProvider:'configured'});const newer=ui.values();assert.equal(newer.entryId,'');await React.act(async()=>{observerGate.resolve();});assert.match(ui.c.textContent,/Selected home: api-key\./);assert.notEqual(ui.selected(),key('stored'));assert.deepEqual(ui.values(),newer);});
 });
 // The first Continue observer has already captured its old admitted view.
 // A later normal poll renders supersession before that old response returns.
@@ -186,7 +188,7 @@ for(const supersession of ['selection epoch','thread-state query'])test(`delayed
  });
 });
 test('home away-and-back intent cancels Continue despite identical final source/key',async()=>{
- const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');await ui.press('Use api-key home');await ui.press('Use account home');await ui.edit(choice);await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('existing'));assert.deepEqual(ui.values(),choice);});
+ const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');await ui.observeHome('api-key');await ui.press('Use account home');await ui.edit(choice);await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('existing'));assert.deepEqual(ui.values(),choice);});
 });
 for(const change of ['closure','generation','epoch','query'])test(`pending Continue is cancelled by original ${change} replacement`,async()=>{
  const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');if(change==='closure'){ui.account.state='exited';ui.account.generationClosed=true;}if(change==='generation')ui.account.generation={...g,spawnCounter:2};if(change==='epoch')ui.account.nativeHistory.selectionEpoch=2;if(change==='query')ui.account.nativeHistory.selected.streamResolutions['thread-state']={query:{...query,query_id:4},revision:3,outcome:'native-result-observed'};await ui.poll();await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('existing'));assert.equal(ui.context(),undefined);});

@@ -24,7 +24,7 @@ needs:
   gating: true
   evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: DEL-01-05
-  condition: Before V4-EXM-12 (ChatGPT sign-in, API key and a local server configured concurrently, one
+  condition: Before V4-EXM-12 (ChatGPT sign-in and oMLX/local access configured concurrently, one
     conversation using each), receive DEL-01-05's identified account/provider inputs and focused native
     sign-in/concurrent-mode checks; a missing usable mode is an input gap or observed failure.
   gating: true
@@ -95,8 +95,10 @@ needs:
     Codex account-state disposition (OI-009, open); qualification does not assume the v3 overlay.
   evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: external:OI-010
-  condition: Obtain the App implementation owner's supported pinned-protocol account-behavior determination
-    before the dependent API-key qualification witness; three access modes remain required.
+  condition: Standalone OpenAI API-key qualification is omitted for this increment; obtain supported
+    pinned-protocol account behavior before any later owner-selected API-key scope. Account and
+    oMLX/local credential support remain required through the adopted Codex-custody dedicated local
+    home; native implementation and actual compatibility remain pending.
   evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: external:OI-011
   condition: Obtain the App implementation owner and SWB owner's signing/notarisation/Codex-entitlement

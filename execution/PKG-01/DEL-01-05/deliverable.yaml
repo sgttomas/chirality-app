@@ -1,5 +1,5 @@
 id: DEL-01-05
-name: Native OAuth/sign-in, API-key and local-provider access
+name: Native ChatGPT sign-in and oMLX/local-provider access
 needs:
 - from: DEL-01-01
   condition: DEL-01-05 consumes DEL-01-01's identified selected Codex protocol/pin before its mode/provider
@@ -19,9 +19,10 @@ needs:
     at 0.158.0 without a credential, is confirmed on the pinned version before account integration.'
   evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
 - from: doc:execution/PKG-01/DEL-01-05/Work/ACCOUNT_AND_PROVIDER_ACCESS.md
-  condition: The App implementation owner must establish supported API-key sign-in/account behavior against
-    the identified pinned protocol before dependent API-key implementation or qualification; OI-010 remains
-    open until supported behavior is established.
+  condition: Standalone OpenAI API-key access and its qualification are omitted from this increment.
+    Retained protocol definitions apply before any later owner-selected API-key scope; oMLX/local
+    credential support remains required through the adopted Codex-custody dedicated local home; native
+    implementation and actual oMLX compatibility remain pending.
   evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
 - from: DEL-01-01
   condition: Supply the selected embedding-protocol qualification and local-provider protocol requirement

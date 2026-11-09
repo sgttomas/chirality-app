@@ -1662,6 +1662,40 @@ assessment's recommendations 3–5):
 
 ## Current implementation conditions
 
+### Current account/oMLX increment
+
+The owner omits standalone OpenAI API-key access and its current qualification
+commitment. The active product entries are ChatGPT account and oMLX/local,
+chosen explicitly per conversation. This supersedes the prior three-mode
+product commitment for this increment; the historical definitions, two-home
+routing cases and protocol fixtures below retain their original subjects and
+are not renewed into current qualification. Native OpenAI-key plumbing, H-key
+and saved state are retained without a selectable product entry or key-entry
+button. Existing anonymous local providers use the account home; the adopted
+keyed oMLX design uses a dedicated local home. Omitting H-key's product entry
+does not remove local-provider authentication.
+
+Local credential support required by oMLX remains owed. The owner-selected
+nonsecret inputs are `http://127.0.0.1:8000/v1` and
+`mlx-community/Qwen3.6-35B-A3B-8bit`; no key was supplied and no server was used.
+The current receiver only admits anonymous providers. Its limitation is shown
+in the UI until the separate native-access contribution lands. The adopted
+design keeps the token in Codex custody in a dedicated local home with its own
+fixed nonsecret oMLX configuration, without a plaintext bearer in provider
+configuration. The source-supported authentication design does not establish
+actual oMLX compatibility. This frontend contribution chooses no wire field,
+secret store or credential write. The supplier lane owns
+the selected 0.167.0 generation/runtime advance.
+
+Account connection now has a primary ChatGPT sign-in action, separate local
+alternative and secondary advanced operations. It retains source-owned account
+status, explicit source diagnostics and native confirmations. New-conversation,
+clean-trial and Continue-as model choices offer no standalone OpenAI API-key
+entry; legacy-home observations still invalidate stale choices and retain
+unsent work. Current ordinary sends show the composer/Send before optional
+model/effort and role/continuation disclosures. An acknowledgment, source render
+or functional development observation is not usability acceptance.
+
 ### Current ordinary-text model choice (I-3 / CS-18 / Q-11)
 
 The current conversation offers an empty optional model-identifier field for
@@ -1817,7 +1851,7 @@ provider identifier. The form now offers, in this order:
 
 1. **How it connects.** One explicit route button for the active home's
    built-in cloud entry — "Use my ChatGPT account (built-in OpenAI)" in the
-   account home, "Use this home's API key (built-in OpenAI)" in the key home —
+   account home; standalone OpenAI-key entry is omitted for the current increment —
    which sets provider `openai` (the built-in provider a cloud entry requires,
    `access_provider`) and that entry. In the account home the existing configured
    local provider read and its "Choose provider ‹id›" remain the local route.

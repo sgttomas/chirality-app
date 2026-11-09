@@ -415,3 +415,27 @@ for (const [replacement, currentGeneration] of [
     assert.deepEqual(ui.calls, [], 'all these readings and navigation issue no host command');
   } finally { await ui.close(); }
 });
+
+
+test('project and library locations stay distinct without a matching project folder', async () => {
+  const ui=await mount({host:host({currentAppProjectContext:{reference:'opaque-project'}}),data:data()});
+  const location=region(ui.c,'Project location');
+  assert.match(location.textContent,/Project is set; its folder name is unavailable/);
+  assert.doesNotMatch(location.textContent,/Project folder:.*invented/);
+  assert.ok(all(location,'details').every(n=>!props(n).open));
+  for(const step of ['project','conversation','workflow','inputs','start','progress','results']) assert.ok(ui.c.querySelectorAll(n=>n.getAttribute('aria-labelledby')===`run-${step}-heading`).length);
+  await ui.rerender({host:host({currentAppProjectContext:null})});
+  assert.match(region(ui.c,'Project location').textContent,/project workflow library is available/);
+  assert.deepEqual(ui.calls,[]);await ui.close();
+});
+
+test('raw action responses are optional while an exception stays directly readable', async () => {
+  const {ActionFeedback}=loadSrc('ActionFeedback');const c=document.createElement('div');const root=createRoot(c);
+  await React.act(async()=>root.render(React.createElement(ActionFeedback,{message:'workflow_send_run: {"state":"outcome unknown","request":"original"}'})));
+  const details=all(c,'details')[0];assert.ok(details);assert.equal(!!props(details).open,false);
+  assert.match(details.textContent,/outcome unknown.*original/);
+  assert.doesNotMatch(all(c,'p')[0].textContent,/original|completed|successful/);
+  await React.act(async()=>root.render(React.createElement(ActionFeedback,{message:'Could not read the current workflow source.'})));
+  assert.equal(all(c,'details').length,0);assert.match(all(c,'p')[0].textContent,/Could not read/);
+  await React.act(async()=>root.unmount());
+});

@@ -1,6 +1,52 @@
-# J2 partial development result and A15 repair
+# J2 development result
 
-## Actual result
+## Registration and fresh-conversation reuse
+
+On 2026-11-09 UTC, the repaired development artifact from source
+`475c9b8f9c868fe1be9d0e1ef33a9cdd72aec75f`, executable SHA-256
+`69ce6a05aa2d88d8467916d63f1f461eae4d403b174baaf66aabe15ba12d102c`,
+completed the missing registration/reuse segment. The existing explicit launch
+route selected the unchanged project and records store. The App reported the
+existing ChatGPT account, file credential storage and plugins disabled; native
+turn history reported GPT-6.1 Terra and medium effort.
+
+The normal Make view found the retained `piping-takeoff` draft. Its complete
+review and accessible native confirmation named package
+`77423e920dd68d43e23097c2c51c2e491beae9b63f84fc7fe9bc9b89d2d2e08b`.
+One confirmation registered revision 1. One fresh conversation selected that
+registered revision and ran it on `data/j2-inventory.csv`, with one one-time
+output-creation permission and no persistent exec-policy amendment.
+
+The new `deliverables/j2-reuse-takeoff.md`, SHA-256
+`139dbdd6d29ed5a3d081483f682428b007f2442bb8cf0e3afa49c805d45bf082`,
+matches the independently retained key: CS/DN 100 is 8.05 m, SS316/DN 50 is
+12.25 m, grand total 20.30 m from three usable segments, longest J2-203 at
+12.25 m. It includes the 10 ft = 3.048 m conversion, excludes both J2-204
+rows and excludes missing-length J2-205. The preserved brief, CSVs, earlier
+outputs, draft and project link retained their hashes.
+
+The native turn completed. Agent 0 explicitly ended the workflow run with cause
+`completed`; Results showed the ended run and its conversation link. The App's
+read-only native-History supplied-text check reported `verified`; adoption
+remained unknown. The pending end notice awaits a later ordinary turn; no extra
+turn was sent. Normal Quit completed with original-process absence in 527.149 s,
+within the twenty-minute limit.
+
+The observed A15 record is in the library's `.chirality/records/acts.jsonl`,
+with linked evidence under `.chirality/captures/`. The reuse run's opened,
+supplied-guidance, model-turn, tool-permission-settlement and ended entries are
+in the existing external App store's project run file. This matches the
+owner-selected A15-only library allocation; no migration or duplicate act was
+made. Private `REUSE_CHECK.json` below identifies the actual file and record
+joins.
+
+**J2's draft/trial/recovery and registration/fresh-reuse development path is now
+demonstrated across its identified subjects.** Agent 0 operated registration,
+permission and end-run controls; native actor labels do not establish the
+owner's personal act. This unsigned/debug/custom-protocol result does not
+qualify an installed release or replace the remaining P3/P4/P5/P6/P7 evidence.
+
+## Earlier draft, trial and reopen subject
 
 On 2026-11-08 UTC, Agent 0 operated the owner-approved J2 development campaign
 using the existing App-owned ChatGPT account, GPT-6.1 Terra at medium effort,
@@ -36,7 +82,7 @@ registration review. The single A15 registration attempt published its frozen
 content and waited for a native result, but no confirmation controls were
 accessible in the App. This does not establish whether an OS alert existed
 elsewhere. No registration or reuse was established, and no resubmission or
-additional model turn followed. **J2 remains partial and open.**
+additional model turn followed. That earlier subject did not demonstrate registration or reuse.
 
 ## Closure and evidence
 
@@ -56,7 +102,7 @@ Private retained evidence is under
 `journal/006-result.json` receipts. Conversation identifiers and account/home
 locators remain in that private evidence rather than this public account.
 
-## Source repair and remaining witness
+## Source repair and retained evidence
 
 PR160 integrated the invoking-window A15 repair as
 `22272108d7c30fd78ef43a556f66ab96f6d68dd8`, with the same tree as reviewed
@@ -72,14 +118,15 @@ workflow and supplier resource closures matched their source/retained inputs.
 The build root is
 `/Users/ryan/dev/chirality-t3/scratch/app-dev-candidate-20261107-cc364a95-frgztvs6/`;
 its `READY_BUNDLE`, `BUILD_BINDING.json` and `RESOURCE_INVENTORIES.json` identify
-the artifact. It has not been launched or signed/installed-qualified.
+the artifact. It remains unsigned/debug development evidence, without installed
+qualification.
 
-The next proposed scope is one registration attempt and one fresh-conversation
-reuse turn, at most twenty minutes, with an early stop if the normal App UI
-cannot find the unchanged draft or preserve the existing project/store identity.
-The prior trial/recovery will not be repeated or relabeled. The proposal at
-`/Users/ryan/dev/chirality-t3/scratch/app-j2-registration-reuse-lsjpcmen/PROPOSAL.md`
-was presented but **not approved** before the owner's graceful-close direction.
-The incoming Agent 0 must receive the applicable owner decision before launch
-or new cloud use. This account changes no acceptance, dependency condition or
-publication authority.
+The [continuation boundaries](CONTINUATION_BOUNDARIES.md) retain the completed
+scope and native constraints. Private evidence for this segment is under
+`/Users/ryan/dev/chirality-t3/scratch/app-j2-registration-reuse-lsjpcmen/`:
+`PROPOSAL.md`, `PREPARATION.json`, `SUBJECT.json`, `OWNER_APPROVAL.json`,
+`REUSE_CHECK.json` and `journal/` bind the selected inputs, native UI/confirmation
+states, original launch/closure and output checks. `NATIVE_START_STOP.json`
+retains the separate setup-only startup mistake; its ordering correction and
+owner instruction are in PR192. The original 046 evidence above stays separate.
+No acceptance, dependency condition or publication authority changes.
