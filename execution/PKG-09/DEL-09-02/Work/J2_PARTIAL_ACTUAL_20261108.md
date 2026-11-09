@@ -94,6 +94,13 @@ absent. No retry followed. The executable, build/resource bindings, all 65 bundl
 resource entries, preserved project files, project link, shared configuration and
 supplier binary retained their checked identities; reuse output remains absent.
 No A15/library-versus-project record-location finding was obtained. The prepared
+bundle-scoped Application Support directory and saved setup remain absent;
+WebKit/cache metadata from the launch is preserved. At this source, the
+setup-required path has no workspace or valid supplier configuration and
+withholds operational data; the explicit-environment route does not read a
+saved desktop request. No model request was submitted, and no candidate App or
+bundled supplier process was present after closure. This source assessment and
+post-closure check are not a captured supplier process-start trace. The prepared
 runner now accepts the owner-approved guard exception, with Python syntax
 validation only; it has not run. A new bounded launch decision is needed before
 another attempt, with the prepared runner launched before any Computer Use state
