@@ -134,5 +134,52 @@ def check(root=ROOT) -> int:
     return len(value["data"])
 
 
+def sync_selected(sources, root=ROOT):
+    """Derive explicitly adopted current copies; never refresh consumer profiles.
+
+    The caller must review the source adoption and the resulting diff. Historical
+    code identities, documentary selections and examination pins are untouched.
+    All selected inputs are checked before any write; linked paths are refused.
+    """
+    root = Path(root)
+    manifest = root / "tools/ci/execution-inputs.json"
+    value = json.loads(manifest.read_bytes())
+    rows = {row['source']: row for row in value['data']}
+    registered = locations(root)
+    pending = []
+    for source in sources:
+        if source not in rows:
+            raise ValueError('Not a selected data source: ' + source)
+        row = rows[source]
+        if registered[source] != row['copy']:
+            raise ValueError('Ambiguous selected copy: ' + source)
+        paths = []
+        for name in (source, row['copy']):
+            path = root
+            for part in name.split('/'):
+                path = path / part
+                if path.is_symlink():
+                    raise ValueError('Linked source/input refused: ' + name)
+            if not path.is_file():
+                raise ValueError('Ordinary source/input required: ' + name)
+            paths.append(path)
+        if hashlib.sha256(paths[1].read_bytes()).hexdigest() != row['sha256']:
+            raise ValueError('Selected copy already changed: ' + row['copy'])
+        pending.append((row, paths[1], paths[0].read_bytes()))
+    for row, target, raw in pending:
+        target.write_bytes(raw)
+        row['sha256'] = hashlib.sha256(raw).hexdigest()
+    manifest.write_text(json.dumps(value, indent=2) + '\n')
+    return len(pending)
+
+
 if __name__ == "__main__":
-    print(f"{check()} selected App inputs match their full or declared projection extents")
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--sync', nargs='+', metavar='SOURCE',
+                        help='Derive only these explicitly adopted current data copies')
+    args = parser.parse_args()
+    if args.sync:
+        print(f"{sync_selected(args.sync)} explicitly selected current copies derived; consumer profiles unchanged")
+    else:
+        print(f"{check()} selected App inputs match their full or declared projection extents")

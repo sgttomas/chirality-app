@@ -813,3 +813,25 @@ fn settings_comparison_incomplete_scope_ambiguity_is_a_limit_not_conflict() {
     let report=compare_settings_versions(&[body],&[settings_record(absent)],&SettingsRecordRead::ReadLimited,&[]);
     assert_eq!(report.versions[0].state,SettingsComparisonState::Mismatch);
 }
+
+#[test]
+fn failed_turn_request_settings_remain_claims_and_compare_source_turn_cause() {
+    let examples = fixture("AS_SETTINGS_IN.valid.examples.json");
+    let mut body = examples.as_array().unwrap().iter()
+        .find(|e| e["instance"]["destinationSettings"].is_object()).unwrap()["instance"].clone();
+    body["destinationSettings"]["agentRequests"] = serde_json::json!([{
+        "requestRef":"rec:fixture:pending","target":{"destination":"A-1","category":"other APIs"},
+        "scopeSought":"once","state":"unanswered at end","stateReason":"turn failed",
+        "turnRef":{"hostIdentity":"FX-PIPE-01","conversationId":"conversation:fixture","runId":body["runId"],"turnId":"turn:fixture"}}]);
+    SchemaClaim::receive(body.clone(), true).unwrap();
+    let report = compare_settings_versions(&[body.clone()], &[settings_record(body.clone())], &SettingsRecordRead::Written, &[]);
+    assert_eq!(report.versions[0].state, SettingsComparisonState::Match);
+    for field in ["hostIdentity", "conversationId", "runId", "turnId"] {
+        let mut changed = body.clone();
+        changed["destinationSettings"]["agentRequests"][0]["turnRef"][field] = "different".into();
+        let mismatch = compare_settings_versions(&[body.clone()], &[settings_record(changed)], &SettingsRecordRead::Written, &[]);
+        assert_eq!(mismatch.versions[0].state, SettingsComparisonState::Mismatch, "{field}");
+    }
+    let mut unbound = body; unbound["destinationSettings"]["agentRequests"][0].as_object_mut().unwrap().remove("turnRef");
+    assert!(SchemaClaim::receive(unbound, true).is_err());
+}

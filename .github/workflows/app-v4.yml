@@ -157,6 +157,9 @@ jobs:
         run: |
           npm run build
           python src-tauri/schemas/sync.py
+          python src-tauri/schemas/sync.py --catalog-adapter
+      - name: Failed-turn destination receiving regressions
+        run: python3 -B tests/failed_turn_permissions_test.py
       - name: Design schema conditional regressions
         run: python3 -m unittest discover -s ../app/contract_inputs/PKG-04/DEL-04-03/Work/prototype -p 'test_minischema.py'
       - name: Supplier carriage detector regressions (no supplier required)
@@ -251,6 +254,9 @@ jobs:
         run: |
           npm run build
           python src-tauri/schemas/sync.py
+          python src-tauri/schemas/sync.py --catalog-adapter
+      - name: Failed-turn destination receiving regressions
+        run: python3 -B tests/failed_turn_permissions_test.py
       - name: Design schema conditional regressions
         run: python3 -m unittest discover -s ../app/contract_inputs/PKG-04/DEL-04-03/Work/prototype -p 'test_minischema.py'
       - name: Supplier carriage detector regressions (no supplier required)

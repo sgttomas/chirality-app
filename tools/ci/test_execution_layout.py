@@ -211,3 +211,42 @@ def test_quoted_interpreters_in_shell_files_and_workflows_are_guarded(repo, quot
         write(repo, '.github/workflows/probe.yml', yaml.safe_dump(workflow).encode())
     with pytest.raises(ValueError, match='Interpreter invocation'):
         guard.check(repo)
+
+
+def copy_manifest(root, entries):
+    write(root, 'tools/ci/execution-inputs.json', json.dumps({
+        'format': 'chirality.app.execution-input-locations/1', 'code': [], 'data': entries}).encode())
+
+
+def test_current_copy_sync_is_explicit_and_preserves_unselected_inputs(tmp_path):
+    import hashlib
+    rows = []
+    for name in ['selected', 'historical']:
+        source, target = f'execution/{name}.json', f'app/contract_inputs/{name}.json'
+        write(tmp_path, source, b'new source')
+        write(tmp_path, target, b'old source')
+        rows.append({'source': source, 'copy': target, 'sha256': hashlib.sha256(b'old source').hexdigest()})
+    copy_manifest(tmp_path, rows)
+    assert execution_inputs.sync_selected(['execution/selected.json'], tmp_path) == 1
+    assert (tmp_path / rows[0]['copy']).read_bytes() == b'new source'
+    assert (tmp_path / rows[1]['copy']).read_bytes() == b'old source'
+    updated = json.loads((tmp_path / 'tools/ci/execution-inputs.json').read_bytes())
+    assert updated['data'][1] == rows[1]
+
+
+def test_current_copy_sync_checks_all_inputs_before_writing(tmp_path):
+    import hashlib
+    row = {'source': 'execution/selected.json', 'copy': 'app/contract_inputs/selected.json',
+           'sha256': hashlib.sha256(b'old').hexdigest()}
+    copy_manifest(tmp_path, [row])
+    write(tmp_path, row['source'], b'new')
+    target = write(tmp_path, row['copy'], b'old')
+    with pytest.raises(ValueError, match='Not a selected data source'):
+        execution_inputs.sync_selected([row['source'], 'execution/unselected.json'], tmp_path)
+    assert target.read_bytes() == b'old'
+    target.write_bytes(b'changed by another contributor')
+    with pytest.raises(ValueError, match='already changed'):
+        execution_inputs.sync_selected([row['source']], tmp_path)
+    target.unlink(); target.symlink_to(tmp_path / row['source'])
+    with pytest.raises(ValueError, match='Linked source/input refused'):
+        execution_inputs.sync_selected([row['source']], tmp_path)

@@ -243,3 +243,22 @@ fn a15_single_entry_schema_accepts_only_singular_prior_free_registration() {
         assert!(schema_validation::validate_capture(&c).is_err(), "{mode}");
     }
 }
+
+#[test]
+fn failed_turn_destination_closure_requires_original_turn_binding_in_embedded_rs() {
+    // Shape-only current receiving test, not host execution or permission admission.
+    let validator = schema_validation::bundled().unwrap();
+    let mut record = fixtures().into_iter().find(|e| e["kind"] == "destination_request_closed").unwrap();
+    record["body"]["cause"] = json!("turn failed");
+    record["body"]["turnRef"] = json!({"hostIdentity":"FX-PIPE-01","conversationId":"conversation:fixture","runId":record["runId"],"turnId":"turn:fixture"});
+    validator.validate(&record).unwrap();
+    for field in ["hostIdentity", "conversationId", "runId", "turnId"] {
+        let mut incomplete = record.clone();
+        incomplete["body"]["turnRef"].as_object_mut().unwrap().remove(field);
+        assert!(validator.validate(&incomplete).is_err(), "{field}");
+    }
+    let mut unbound = record.clone(); unbound["body"].as_object_mut().unwrap().remove("turnRef");
+    assert!(validator.validate(&unbound).is_err());
+    let mut dispatched = record; dispatched["body"]["carriedCallSent"] = json!(true);
+    assert!(validator.validate(&dispatched).is_err());
+}

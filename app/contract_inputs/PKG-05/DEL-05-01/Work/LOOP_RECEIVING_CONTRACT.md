@@ -569,7 +569,7 @@ itself a human act.
 | **Destination grant observed** (R8-13) | Allow-list entry or in-work grant | Person (A12, subclass network-destination grant); the host's control records | Scope (once · this run · always); destination or category; time; source (allow list · in-work); capture evidence (ACT §2.7) |
 | **Destination declined** (R8-13) | Requested destination | Person; the host's control records | "destination not allowed by the person", as reported to the agent; time; the requesting call. An act-declined event of kind A12 (ACT §2.3, §2.7). **Recorded as a destination entry** (`destination_declined`): SETTLED by DEL-04-03's ScopeOfWork CLM-004, which names "destination declined" among the events the record format receives from DEL-05-01 (R16-1, correcting R12-10) |
 | **Destination refused at boundary** (R8-13) | Network request, or a call at V-D | Host native layer | Destination; category; stage (model request · V-D · at contact; v0.8); reason (not allowed · always-off item · not stateless MCP (2026-07-28)); the call, where there is one; nothing sent. **Recording the refusal is PROPOSED** (R11-5; R12-10; R16-1): V4-ARC-12 records destinations contacted, and no accepted text names a refusal |
-| **Destination request ended** (v0.8, node B5; PROPOSED) | A pending destination request | Loop, or the host's control | State *not granted* (reason: not grantable · grant refused by control · prompt not shown) or *unanswered at end* (cause: run ended · turn cancelled); the carried call not sent (§5.3 DF-5, DF-6) |
+| **Destination request ended** (v0.8, node B5; PROPOSED) | A pending destination request | Loop, or the host's control | State *not granted* (reason: not grantable · grant refused by control · prompt not shown) or *unanswered at end* (cause: run ended · turn cancelled · turn failed); the carried call not sent (§5.3 DF-5, DF-6) |
 | **Outside process started** (R8-13) | MCP server or other outside process | Host | Process identity; declared destinations; sandboxed or not; the evidence limit "process network not observed" when not sandboxed (NW-16); for an MCP server, its stateless evidence SE-1…SE-3 and the limit "stateless revision declared, not verified" (v0.8; §5.3 DF-7) |
 | Model interface failure | Model request | Model server or transport / loop | Termination reason. Under FB-CC-1 an error has no termination-reason value: it is a transport or service error, or a stream that ends with no termination reason (§4.1 point 2; v0.8) |
 | **Tool call not dispatched: turn cancelled** (v0.8; PROPOSED) | Tool call not yet dispatched when the person cancelled the turn | Loop | Correlation identity where received; "not dispatched: turn cancelled". Calls already dispatched are not recalled (§3.1 step F-11) |
@@ -1227,6 +1227,7 @@ phase* never arise in Phase 1. PROPOSED unless a cited rule decides it.
 | streaming | Termination *stop* with no tool calls while a destination request of this turn is pending (v0.8, node B5) | awaiting destination answer | The turn does not complete (DF-5 Q-5) |
 | awaiting destination answer | The request is answered (granted and in force, declined or not granted) | awaiting model | The deferred outcome is sent with the next model request (DF-5 Q-7, Q-8) |
 | awaiting destination answer | Run ends | failed | The request ends *unanswered at end* (DF-F7); turn recorded as ended by the run's end |
+| any nonterminal turn state | Turn fails | failed | Every still-unanswered destination request of this exact source/conversation/run/turn closes *unanswered at end*, cause *turn failed* (DF-6); no grant or waiting carried-call dispatch; already-dispatched outcomes stay observed/unknown |
 | any but completed, cancelled, failed (including awaiting destination answer) | Person cancels | cancelled | F-11; a pending destination request ends *unanswered at end* (DF-F6) |
 
 **Tool call.**
@@ -1867,7 +1868,7 @@ layer (NW-7; V4-ARC-12):
 | Q-6 | The person answers through the host's control, never through a panel input (PANEL §3.9): a grant (A12, network-destination grant, once · this run · always, for the destination or its category) or a decline (act-declined event of kind A12) | `human_act` or `act_declined` (R9); `destination_grant` once the control establishes it | DF-F5 |
 | Q-7 | **Granted** and the grant **in force**: the carried call passes V-D (A-6) and is dispatched unchanged; its host outcome (class 2, 3 or 4) is the request call's **deferred outcome**. With no carried call, the deferred outcome is class 3 "granted: ‹scope›". A grant the control refuses: *not granted*, reason "grant refused by control: ‹reason›" (AS DG-4) | `destination_contacted` at contact; `destination_request_closed` (*not granted*) on refusal | DF-F2, DF-F8 |
 | Q-8 | **Declined**: nothing is sent; the deferred outcome is class 2 **"destination not allowed by the person"** (reporter: the host's control) | `destination_declined` (recording SETTLED by DEL-04-03 CLM-004; R16-1) | — |
-| Q-9 | **Unanswered at end**: the run ends, or the person cancels the turn (F-11), while the request is pending. No grant; the carried call is not sent; no result is delivered, because no further model request follows in that turn. Never a grant by silence (NW-13) | `destination_request_closed` (*unanswered at end*) | — |
+| Q-9 | **Unanswered at end**: the run ends, the person cancels the turn (F-11), or the turn fails, while the request is pending. No grant; the carried call is not sent; no result is delivered, because no further model request follows in that turn. Never a grant by silence (NW-13) | `destination_request_closed` (*unanswered at end*) | — |
 
 **The wait, and ending the turn (R13-5; INTEGRATION; v0.8, RP-4).** The
 call that needs the destination (the carried call) waits for the person's
@@ -1885,10 +1886,24 @@ correlation identity (§2.1). FB-CC-1 has no member for a second result to
 a call already answered: this representation is an **inference**, PROPOSED,
 for the product left to DEP-05-01-024 (G-13).
 
+**Failed-turn request closure (current receiving rule).** A failed turn closes
+only its still-unanswered destination requests as *unanswered at end*, cause
+*turn failed*. Correlate the original request to the actual host source,
+conversation, run and turn (`turnRef` in the current representation). No grant
+is made, no carried call still waiting on that permission is dispatched, and
+no later answer/result is delivered in that failed turn. Close the prompt's
+choices; never label this as the person's cancellation or decline. Preserve
+already-dispatched outcomes and unknowns as observed. An absent, contradictory
+or unresolvable request/turn binding is a limit: withhold grant/dispatch/late
+answer, without guessing a different request's closure or inventing its cause.
+Legacy records lacking the binding remain historical evidence and supply no
+failed-turn admission authority. A late request or answer cannot reopen the
+failed turn. This adds no content-filter/length transition or run-end inference.
+
 **DF-6 Request states and TL-2.** A destination request is in exactly one
 state: **pending** → **granted** (once · this run · always) · **declined** ·
 **not granted** (reason: not grantable · grant refused by control · prompt
-not shown) · **unanswered at end** (cause: run ended · turn cancelled).
+not shown) · **unanswered at end** (cause: run ended · turn cancelled · turn failed).
 Transitions are §3.2; the grant that answers a request has its own states
 (AS §3.1). The request call receives the interim notice (not a result
 class) and then **at most one** result, always in TL-2's four classes:
@@ -2000,9 +2015,10 @@ against `LOOP_DESTINATION_REQUEST.schema.json` (§11; VC-10).
 | DF-F2 | At contact | The contact record cannot be written | Native layer | The refusal, when it can be written | Not sent (F-4); the operation's outcome as the host reports it; for the model request, turn failed |
 | DF-F3 | Q-4 | The request record cannot be written | Loop | None until the record accepts writes | No prompt is raised; F-10 applies (no further dispatch until a dispatch can be recorded) |
 | DF-F4 | Q-4 | The host's control cannot show the prompt (no control, no panel attached) | Host's control / loop | `destination_request_closed` (*not granted*, "prompt not shown") | Class 2 "destination not allowed", reason "prompt not shown"; nothing is granted |
-| DF-F5 | Q-6 | The control's confirmation of a grant is lost (AS DG-5, *unconfirmed*) | Host's control | Grant state *unconfirmed* in settings-in | The carried call is not sent; the request stays pending until the grant is in force, the run ends or the turn is cancelled |
+| DF-F5 | Q-6 | The control's confirmation of a grant is lost (AS DG-5, *unconfirmed*) | Host's control | Grant state *unconfirmed* in settings-in | The carried call is not sent; the request stays pending until the grant is in force, the run ends, the turn is cancelled or the turn fails (DF-6) |
 | DF-F6 | Q-5 | The turn is cancelled while pending | Person (panel return input) / loop | `destination_request_closed` (*unanswered at end*, turn cancelled) | F-11; nothing sent |
 | DF-F7 | Q-5 | The run ends while pending | Loop | `destination_request_closed` (*unanswered at end*, run ended) | Nothing sent; PANEL FD-4 |
+| DF-F13 | Q-5 | The request's turn fails while pending | Loop | `destination_request_closed` (*unanswered at end*, turn failed), with the original source/conversation/run/turn binding | No grant, no carried-call dispatch, no late same-turn reply; PANEL FD-4. Ambiguous provenance withholds permission and reports a limit; it never closes another turn's request |
 | DF-F8 | DF-4 (c) | The dispatched operation reaches a destination it did not declare | Native layer | `boundary_refusal` (stage at contact); recording PROPOSED | Not sent; the host outcome as reported; `UNRESOLVED{N-OPEN-3}` for whether such traffic is the agent's |
 | DF-F9 | Outside process start | The process is not sandboxed | Host | `outside_process`; R11 "process network not observed" | Started if allowed; nothing claims it contacted only what it declared (NW-16) |
 | DF-F10 | DF-7 | Discovery fails, a legacy answer, or a session identifier appears | Host | `outside_process` evidence "not stateless"; `boundary_refusal` reason "not stateless MCP (2026-07-28)" | Server not started; entries it serves refused at V-D; not grantable |
