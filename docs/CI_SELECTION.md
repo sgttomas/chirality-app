@@ -98,7 +98,8 @@ exactly like a PR: the change runs from `merge_group.base_sha` to
 `merge_group.head_sha`, and checkouts use that head. Path filters do not apply
 to queue events and the workflow has none, so `harness` always reports. The App
 workflow has no trigger of its own; it inherits the queue event when the harness
-calls it. Each candidate's concurrency group is its queue head ref, and only
+calls it. Each candidate's concurrency group is keyed by its run, so neither another
+candidate nor a manual dispatch on the queue branch can replace it. Only
 superseded `pull_request` runs are cancelled. The supplemental Windows fixture
 workflows are not required and do not run in the queue. Enabling the queue is a
 separate ruleset change.

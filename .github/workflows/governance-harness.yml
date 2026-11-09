@@ -9,9 +9,10 @@ on:
 permissions:
   contents: read
 concurrency:
-  # Each queue candidate has its own head ref and is never cancelled; only a
-  # superseded pull_request run is.
-  group: governance-harness-${{ github.event.pull_request.number || github.event.merge_group.head_ref || github.ref }}
+  # Each queue candidate runs in its own group, keyed by run, so neither a
+  # superseded PR run nor a manual dispatch on the queue branch can replace it.
+  # Only superseded pull_request runs are cancelled.
+  group: governance-harness-${{ github.event.pull_request.number || github.event_name == 'merge_group' && format('queue-{0}', github.run_id) || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   repository-checks:

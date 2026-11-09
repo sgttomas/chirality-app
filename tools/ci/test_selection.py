@@ -388,11 +388,7 @@ def test_workflow_always_runs_selection_and_checks_only_explicit_exclusion():
     assert trigger["merge_group"] == {"types": ["checks_requested"]}
     assert set(trigger) == {"pull_request", "merge_group", "workflow_dispatch"}
     # Superseded PR runs may cancel; a queue candidate's own group never does.
-    assert workflow["concurrency"] == {
-        "group": "governance-harness-${{ github.event.pull_request.number"
-                 " || github.event.merge_group.head_ref || github.ref }}",
-        "cancel-in-progress": "${{ github.event_name == 'pull_request' }}",
-    }
+    assert_concurrency(workflow["concurrency"], "governance-harness-")
     jobs = workflow["jobs"]
     assert "if" not in jobs["repository-checks"]
     repo = jobs["repository-checks"]
@@ -423,6 +419,50 @@ def test_workflow_always_runs_selection_and_checks_only_explicit_exclusion():
 
 
 HEAD_REF = "${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}"
+QUEUE_BRANCH = "refs/heads/gh-readonly-queue/main/pr-7-" + "a" * 40
+# Contexts per event; a manual dispatch may target the temporary queue branch.
+CONTEXTS = {
+    "pull_request": {"github.event_name": "pull_request", "github.event.pull_request.number": "7",
+                     "github.ref": "refs/pull/7/merge", "github.run_id": "101"},
+    "merge_group": {"github.event_name": "merge_group", "github.ref": QUEUE_BRANCH, "github.run_id": "102"},
+    "merge_group_rerun": {"github.event_name": "merge_group", "github.ref": QUEUE_BRANCH, "github.run_id": "103"},
+    "workflow_dispatch": {"github.event_name": "workflow_dispatch", "github.ref": QUEUE_BRANCH,
+                          "github.run_id": "104"},
+}
+
+
+def evaluate(expression, context):
+    """Evaluate the concurrency expression's `a || b && c || ...` forms with GitHub's truthiness."""
+    def term(text):
+        text = text.strip()
+        if text.startswith("format('queue-{0}', ") and text.endswith(")"):
+            return "queue-" + context[text[len("format('queue-{0}', "):-1]]
+        if " == " in text:
+            left, right = text.split(" == ")
+            return context.get(left.strip()) == right.strip().strip("'")
+        return context.get(text, "")
+    for alternative in expression.split("||"):
+        value = None
+        for part in alternative.split("&&"):
+            value = term(part)
+            if not value:
+                break
+        if value:
+            return value
+    return ""
+
+
+def assert_concurrency(block, prefix):
+    assert set(block) == {"group", "cancel-in-progress"}
+    group = block["group"]
+    assert group.startswith(prefix + "${{ ") and group.endswith(" }}")
+    expression = group[len(prefix) + 4:-3]
+    keys = {event: evaluate(expression, context) for event, context in CONTEXTS.items()}
+    assert keys["pull_request"] == "7"
+    assert keys["workflow_dispatch"] == QUEUE_BRANCH
+    # Every queue run has its own group, distinct from a dispatch on its branch.
+    assert keys["merge_group"] == "queue-102" and len(set(keys.values())) == len(keys)
+    assert block["cancel-in-progress"] == "${{ github.event_name == 'pull_request' }}"
 
 
 def test_product_workflow_inherits_the_callers_event_and_never_cancels_queue_runs():
@@ -431,11 +471,7 @@ def test_product_workflow_inherits_the_callers_event_and_never_cancels_queue_run
     # Called by the harness for pull_request and merge_group; a trigger of its own
     # would start a second, unselected run in the same concurrency group.
     assert set(workflow.get("on", workflow.get(True))) == {"workflow_call", "workflow_dispatch"}
-    assert workflow["concurrency"] == {
-        "group": "app-v4-${{ github.event.pull_request.number"
-                 " || github.event.merge_group.head_ref || github.ref }}",
-        "cancel-in-progress": "${{ github.event_name == 'pull_request' }}",
-    }
+    assert_concurrency(workflow["concurrency"], "app-v4-")
     checkouts = [step["with"]["ref"] for job in workflow["jobs"].values() for step in job.get("steps", [])
                  if step.get("uses", "").startswith("actions/checkout@")]
     assert len(checkouts) == 4 and set(checkouts) == {HEAD_REF}

@@ -20,9 +20,9 @@ defaults:
 # Called from governance-harness, this workflow sees the caller's event,
 # including merge_group; it has no trigger of its own for either event.
 concurrency:
-  group: app-v4-${{ github.event.pull_request.number || github.event.merge_group.head_ref || github.ref }}
-  # Only the newest PR candidate needs verification; merge-queue candidates
-  # each have their own group and are never cancelled.
+  group: app-v4-${{ github.event.pull_request.number || github.event_name == 'merge_group' && format('queue-{0}', github.run_id) || github.ref }}
+  # Only the newest PR candidate needs verification. A merge-queue candidate
+  # has its own group keyed by the caller's run, so no other run replaces it.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 
