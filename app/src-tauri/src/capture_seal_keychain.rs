@@ -1034,6 +1034,12 @@ const POLICY_FORMAT: &str = "chirality.app.workflow-approval-policy";
 /// record or run of missing items can hide a later choice. A person changes
 /// this policy rarely; after POLICY_MAX changes the protected policy can no
 /// longer change and stays as last stored (writes refuse, never wrap).
+/// No item beyond 256 can exist: policy items were introduced with this bound
+/// on an unmerged branch whose keychain path runs only in a signed build with a
+/// selected publisher, and no such build has run. The namespace admission
+/// (`policy_sequence`) refuses any sequence beyond it, and a head beyond it is
+/// corrupt (fail closed). Raising the bound later must keep discovery over
+/// every sequence ever admitted.
 const POLICY_MAX: u64 = 256;
 /// The App-data record of the latest policy sequence written (rollback check).
 const POLICY_HEAD: &str = "workflow-approval-policy-head.json";

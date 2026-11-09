@@ -385,7 +385,9 @@ selection.
   sequences, so neither a deleted or zeroed head record nor any run of
   missing items hides a later choice; a corrupt or unreadable head fails
   closed on read and write. After 256 changes the protected policy can no
-  longer change and stays as last stored. Policy items count only with the seal-key sentinel present, and
+  longer change and stays as last stored. No item beyond 256 can exist (no
+  signed build has run this path); a later raise of the bound must keep
+  discovery over every sequence ever admitted. Policy items count only with the seal-key sentinel present, and
   restoring a policy never claims protection that enrollment did not set up.
   A missing sentinel while policy items or a recorded head remain is recovery,
   never a fall back to the settings file. A read error other than "missing" is an error, never "no
