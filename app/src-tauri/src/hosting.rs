@@ -2435,6 +2435,7 @@ impl Host {
         if history.generation()!=generation||history.home()!=dispatch.query.home()||i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("Continue admission belongs to foreign/stale/closed generation".into());}
         let native=&candidate["native"];if !matches!(native["status"]["type"].as_str(),Some("idle"|"active"))||native["canAcceptDirectInput"]==false||native["id"]!=dispatch.query.params()["threadId"] {return Err("native thread cannot accept direct input".into());}
         if i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==native["id"]) {return Err("thread already operationally admitted in generation".into());}
+        Self::check_local_resume(&i,&response["result"])?;
         let result=&response["result"];let row=json!({"generation":generation,"threadId":native["id"],"name":native.get("name").and_then(Value::as_str),"preview":native.get("preview").and_then(Value::as_str),"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()});i.threads.push(row.clone());
         // Admission is already established. Context preparation/read failure must
         // never revoke it, change role/CCE state or make Continue wait on history.
@@ -5136,6 +5137,35 @@ mod conversation_transport_tests {
 
     fn history_thread(status:&str)->Value {json!({"id":"stored","cliVersion":"0.160.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":status},"turns":[],"agentRole":"TASK","nativeExtra":{"kept":true}})}
     fn history_resume(status:&str,direct:bool)->Value {let mut native=history_thread(status);native["canAcceptDirectInput"]=json!(direct);json!({"thread":native,"model":"reported","modelProvider":"configured","cwd":"/invented","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly"},"instructionSources":["/native/instructions"],"nativeExtra":true})}
+    fn bind_local_history(host:&Host) {
+        let mut i=host.inner.0.lock().unwrap();
+        i.local_provider=Some(access_provider::LocalProviderBinding::for_test("conversation-home","/invented"));
+        i.version_identity=Some(json!({"declaredPin":"0.167.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc"}}]}));
+        i.successor_status=Some(json!({"verificationGeneration":g(),"inventory":{"manifest_sha256":"158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"}}));
+    }
+    #[test]
+    fn local_provider_history_paging_and_continue_admit_saved_thread_without_seeded_row() {
+        use crate::native_local_provider::{MODEL, PROVIDER};
+        for (provider, model, admitted) in [(PROVIDER, MODEL, true), ("configured", MODEL, false), (PROVIDER, "reported", false)] {
+            let host=host();bind_local_history(&host);
+            let mut view=NativeHistory::new("conversation-home",g()).unwrap();
+            let list=view.list_threads(None,crate::native_history::Direction::Desc).unwrap();
+            let(_,e,out)=history_exchange(&host,&list,Some(json!({"result":{"data":[history_thread("notLoaded")],"nextCursor":null}})));
+            assert_eq!(out["method"],"thread/list");view.receive(&list,"conversation-home",&g(),&e["response"]["result"]).unwrap();view.select("stored").unwrap();
+            // Paged history reads are admitted for the saved local thread; none was operationally admitted before.
+            for query in [view.turns_page(None,crate::native_history::Direction::Desc).unwrap(),view.read_goal().unwrap()] {
+                let(receipt,_,out)=history_exchange(&host,&query,None);assert_eq!(out["method"],query.method());assert_eq!(receipt.evidence()["writeResult"],"written","{}",query.method());
+            }
+            assert!(!host.snapshot()["threads"].as_array().unwrap().iter().any(|t|t["threadId"]=="stored"));
+            let query=view.continue_query().unwrap();let mut native=history_resume("idle",true);native["modelProvider"]=json!(provider);native["model"]=json!(model);
+            let(receipt,evidence,out)=history_exchange(&host,&query,Some(json!({"result":native})));
+            assert_eq!(out["params"],json!({"threadId":"stored","excludeTurns":true}));
+            view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();
+            let result=host.history_admit_resume(&view,&receipt);
+            assert_eq!(result.is_ok(),admitted,"{provider}/{model}");
+            assert_eq!(host.snapshot()["threads"].as_array().unwrap().iter().any(|t|t["threadId"]=="stored"),admitted);
+        }
+    }
     fn history_selected()->NativeHistory {let mut view=NativeHistory::new("conversation-home",g()).unwrap();let q=view.list_threads(None,crate::native_history::Direction::Desc).unwrap();view.receive(&q,"conversation-home",&g(),&json!({"data":[history_thread("notLoaded")],"nextCursor":null})).unwrap();view.select("stored").unwrap();view}
     fn history_exchange(host: &Arc<Host>, query: &HistoryQuery, response: Option<Value>) -> (HistoryDispatch, Value, Value) {
         history_exchange_observed(host, query, response, None, |_| {})

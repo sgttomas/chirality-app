@@ -35,6 +35,16 @@ The mechanism is source-established at Codex 0.167.0 commit
   URL. [The manager](https://github.com/openai/codex/blob/086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a/codex-rs/models-manager/src/manager.rs#L749)
   suppresses API-key discovery for it. Bundled model metadata is not an oMLX
   model discovery result; the App offers only the owner's explicit model.
+  Session flags [merge recursively](https://github.com/openai/codex/blob/086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a/codex-rs/config/src/merge.rs#L100)
+  into lower layers, so a system, user or project layer could add a catalogue
+  URL to this provider. The [background refresh worker](https://github.com/openai/codex/blob/086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a/codex-rs/app-server/src/models_refresh_worker.rs#L41)
+  starts before App admission reads the configuration. The route therefore
+  fixes `features.api_key_model_discovery=false`, which
+  [stops API-key catalogue refresh](https://github.com/openai/codex/blob/086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a/codex-rs/models-manager/src/manager.rs#L749)
+  before any fetch. Administrator configuration (`/etc/codex/managed_config.toml`,
+  `/etc/codex/requirements.toml` and `com.openai.codex` managed preferences)
+  loads above session flags. Its presence refuses preparation, start and key
+  entry; the App neither parses nor copies it.
 - Login-notification account reading and background workspace routing require
   ChatGPT auth before backend discovery. API-key token refresh returns without
   contacting a token endpoint; rate-limit reads reject non-Codex-backend auth.
@@ -66,7 +76,10 @@ generation and supplier receipts. No thread, account or project is migrated.
 
 The home has its own fixed NONSECRET `config.toml`, without account configuration,
 AGENTS or skills links. Process-start overrides fix its provider definition,
-provider/model selection, file credential backend and plugins-off setting.
+provider/model selection, file credential backend, plugins-off and API-key
+catalogue-discovery-off settings. Admission requires the effective
+configuration to report each of them; extra provider credential, header or
+catalogue elements from another layer refuse before any thread starts.
 The App creates its home with mode 0700, nonsecret config and empty auth lock
 with mode 0600. Existing unsafe modes, links, hard links or configuration drift
 are refused without chmod, overwrite or migration. Codex alone writes the key
@@ -82,6 +95,12 @@ Original source, generation, config and window are checked around entry. One
 entry attempt per generation is consumed even on cancel or unknown outcome;
 there is no automatic retry or replay. Account/H-key wrappers retain their
 existing signature, wording and behavior.
+
+Every request from the local home passes one guard before the write. Paged
+history reads (`thread/turns/list`, `thread/items/list`, `thread/goal/get`) are
+admitted for this home. Continue may resume a saved local thread with only the
+original `{threadId, excludeTurns:true}` packet. Its admission then requires the
+resumed thread to report the fixed provider, model and working directory.
 
 The DTO names `modeHomeClass`, `entryId`, `providerId`, `endpoint`, `model`,
 `generation` and `credentialState`. The fixed entry is `local-provider-keyed`.

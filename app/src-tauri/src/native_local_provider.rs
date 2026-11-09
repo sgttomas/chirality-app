@@ -14,7 +14,7 @@ pub(crate) const MODEL: &str = "mlx-community/Qwen3.6-35B-A3B-8bit";
 pub(crate) const ENTRY: &str = "local-provider-keyed";
 pub(crate) const LIMIT: &str =
     "Local oMLX source unavailable; no fallback or automatic credential retry";
-const CONFIG: &str = "model_provider = \"chirality-omlx\"\nmodel = \"mlx-community/Qwen3.6-35B-A3B-8bit\"\ncli_auth_credentials_store = \"file\"\n[features]\nplugins = false\n[model_providers.chirality-omlx]\nname = \"oMLX\"\nbase_url = \"http://127.0.0.1:8000/v1\"\nwire_api = \"responses\"\nrequires_openai_auth = true\n";
+const CONFIG: &str = "model_provider = \"chirality-omlx\"\nmodel = \"mlx-community/Qwen3.6-35B-A3B-8bit\"\ncli_auth_credentials_store = \"file\"\n[features]\nplugins = false\napi_key_model_discovery = false\n[model_providers.chirality-omlx]\nname = \"oMLX\"\nbase_url = \"http://127.0.0.1:8000/v1\"\nwire_api = \"responses\"\nrequires_openai_auth = true\n";
 
 /// Native, nonserializable once-per-generation entry state. An unknown result is never retried.
 #[derive(Default)]
@@ -144,15 +144,77 @@ pub(crate) fn prepare(plan: &OwnedHomePlan) -> Result<(), String> {
 /// All flags are fixed nonsecret source text. No inherited account session overrides are copied.
 pub(crate) fn config(base: &HostConfig, plan: &OwnedHomePlan) -> Result<HostConfig, String> {
     check(plan)?;
+    require_no_admin_layers()?;
     let mut config = base.clone();
     config.codex_home = plan.native_path().into();
     config.session_flags = vec![
         "analytics.enabled=false".into(), "features.plugins=false".into(),
+        // Session flags merge into lower layers; a foreign catalogue URL must never receive the home key.
+        "features.api_key_model_discovery=false".into(),
         "cli_auth_credentials_store=\"file\"".into(),
         format!("model_provider=\"{PROVIDER}\""), format!("model=\"{MODEL}\""),
         format!("model_providers.{PROVIDER}={{name=\"oMLX\",base_url=\"{ENDPOINT}\",wire_api=\"responses\",requires_openai_auth=true}}"),
     ];
     Ok(config)
+}
+/// Codex 0.167 loads administrator configuration (legacy managed_config.toml, requirements.toml and
+/// macOS managed preferences) ABOVE session flags, so the fixed flags cannot hold the provider,
+/// catalogue or auth settings against it. Fail closed on presence; never parse or copy contents.
+const ADMIN_FILES: &[&str] = &["/etc/codex/managed_config.toml", "/etc/codex/requirements.toml"];
+pub(crate) fn require_no_admin_layers() -> Result<(), String> {
+    let files: Vec<&Path> = ADMIN_FILES.iter().map(Path::new).collect();
+    admin_sources_absent(&files, managed_preferences_present)
+}
+fn admin_sources_absent(
+    files: &[&Path],
+    managed_preferences: impl FnOnce() -> Result<bool, ()>,
+) -> Result<(), String> {
+    for file in files {
+        if !matches!(std::fs::symlink_metadata(file), Err(e) if e.kind() == std::io::ErrorKind::NotFound) {
+            return Err(LIMIT.into());
+        }
+    }
+    match managed_preferences() {
+        Ok(false) => Ok(()),
+        _ => Err(LIMIT.into()),
+    }
+}
+#[cfg(target_os = "macos")]
+fn managed_preferences_present() -> Result<bool, ()> {
+    use std::ffi::{c_char, c_void, CStr};
+    type Ref = *const c_void;
+    #[link(name = "CoreFoundation", kind = "framework")]
+    extern "C" {
+        fn CFStringCreateWithCString(allocator: Ref, text: *const c_char, encoding: u32) -> Ref;
+        fn CFPreferencesCopyAppValue(key: Ref, application: Ref) -> Ref;
+        fn CFRelease(value: Ref);
+    }
+    const UTF8: u32 = 0x0800_0100;
+    struct Owned(Ref);
+    impl Drop for Owned {
+        fn drop(&mut self) {
+            unsafe { CFRelease(self.0) }
+        }
+    }
+    let string = |text: &CStr| {
+        let value = unsafe { CFStringCreateWithCString(std::ptr::null(), text.as_ptr(), UTF8) };
+        if value.is_null() { Err(()) } else { Ok(Owned(value)) }
+    };
+    // The same domain and keys Codex reads; presence alone refuses, the value is released unread.
+    let application = string(c"com.openai.codex")?;
+    for key in [c"config_toml_base64", c"requirements_toml_base64"] {
+        let key = string(key)?;
+        let value = unsafe { CFPreferencesCopyAppValue(key.0, application.0) };
+        if !value.is_null() {
+            drop(Owned(value));
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+#[cfg(not(target_os = "macos"))]
+fn managed_preferences_present() -> Result<bool, ()> {
+    Err(())
 }
 pub(crate) fn fixed_selection(entry: &str, provider: &str, model: &str) -> Result<(), String> {
     if entry != ENTRY || provider != PROVIDER || model != MODEL {
@@ -165,6 +227,7 @@ pub(crate) fn view(generation: Value, configured: bool) -> Value {
 }
 fn source(home: &HomeSession, plan: &OwnedHomePlan, generation: &Value) -> Result<(), String> {
     check(plan)?;
+    require_no_admin_layers()?;
     if generation["home"] != plan.opaque_home_id()
         || home.class() != HomeClass::LocalProvider
         || home.host_config.as_ref().map_err(|_| LIMIT)?.codex_home != plan.native_path()
@@ -316,6 +379,31 @@ mod tests {
             assert!(fixed_selection(ENTRY, PROVIDER, v).is_err());
         }
         assert!(fixed_selection("api-key", PROVIDER, MODEL).is_err());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn native_local_provider_admin_layers_above_session_flags_refuse_without_reading() {
+        let (root, _plan) = fixture();
+        let absent = root.join("absent.toml");
+        assert!(admin_sources_absent(&[absent.as_path()], || Ok(false)).is_ok());
+        let present = root.join("managed_config.toml");
+        std::fs::write(&present, "unparsed").unwrap();
+        assert!(admin_sources_absent(&[absent.as_path(), present.as_path()], || Ok(false)).is_err());
+        let link = root.join("link.toml");
+        std::os::unix::fs::symlink(root.join("dangling"), &link).unwrap();
+        assert!(admin_sources_absent(&[link.as_path()], || Ok(false)).is_err(), "a dangling link is not absence");
+        assert!(admin_sources_absent(&[absent.as_path()], || Ok(true)).is_err());
+        assert!(admin_sources_absent(&[absent.as_path()], || Err(())).is_err(), "unknown preference state fails closed");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn native_local_provider_disables_api_key_catalogue_discovery_in_file_and_session_flags() {
+        assert!(CONFIG.contains("[features]\nplugins = false\napi_key_model_discovery = false\n"));
+        let (root, plan) = fixture();
+        prepare(&plan).unwrap();
+        let base = HostConfig::new(root.join("x"), root.join("account"), root.join("probe"), root.clone());
+        let flags = config(&base, &plan).unwrap().session_flags;
+        assert!(flags.iter().any(|f| f == "features.api_key_model_discovery=false"));
         std::fs::remove_dir_all(root).unwrap();
     }
     #[test]

@@ -2788,6 +2788,7 @@ fn local_167_config() -> Value {
     result["config"]["model"] = json!(crate::native_local_provider::MODEL);
     result["config"]["cli_auth_credentials_store"] = json!("file");
     result["config"]["features"]["plugins"] = json!(false);
+    result["config"]["features"]["api_key_model_discovery"] = json!(false);
     result
 }
 #[test]
@@ -2803,6 +2804,8 @@ fn native_local_provider_admission_requires_exact_source_destination_and_codex_c
         "catalogue",
         "store",
         "plugins",
+        "discovery",
+        "discovery-default",
         "absent-identity",
         "wrong-main",
         "npm-tree",
@@ -2836,6 +2839,8 @@ fn native_local_provider_admission_requires_exact_source_destination_and_codex_c
             }
             "store" => cfg["config"]["cli_auth_credentials_store"] = json!("auto"),
             "plugins" => cfg["config"]["features"]["plugins"] = json!(true),
+            "discovery" => cfg["config"]["features"]["api_key_model_discovery"] = json!(true),
+            "discovery-default" => { cfg["config"]["features"].as_object_mut().unwrap().remove("api_key_model_discovery"); }
             "absent-identity" => peer.host.inner.0.lock().unwrap().version_identity = None,
             "wrong-main" => {
                 peer.host
@@ -3076,6 +3081,14 @@ fn native_local_provider_central_guard_refuses_cross_entry_overrides_before_capt
             "turn/start",
             json!({"threadId":"local-thread","config":{"experimental_bearer_token":CANARY},"input":[]}),
         ),
+        // Continue carries only the exact original packet; no path, history, config or model rides on it.
+        ("thread/resume", json!({"threadId":"saved","excludeTurns":true,"path":CANARY})),
+        ("thread/resume", json!({"threadId":"saved","excludeTurns":true,"history":[{"text":CANARY}]})),
+        ("thread/resume", json!({"threadId":"saved","excludeTurns":true,"config":{"model_provider":"openai"}})),
+        ("thread/resume", json!({"threadId":"saved","excludeTurns":true,"model":"other"})),
+        ("thread/resume", json!({"threadId":"saved","excludeTurns":false})),
+        ("thread/resume", json!({"threadId":"","excludeTurns":true})),
+        ("thread/items/list", json!({"threadId":"saved","turnId":"t","sortDirection":"asc","base_url":CANARY})),
         ("account/login/start", json!({"type":"chatgpt"})),
         ("config/batchWrite", json!({"edits":[{"value":CANARY}]})),
         ("model/list", json!({})),
@@ -3100,6 +3113,15 @@ fn native_local_provider_central_guard_refuses_cross_entry_overrides_before_capt
             before,
             "{method}: no raw/public params captured"
         );
+    }
+    for (method, params) in [
+        ("thread/items/list", json!({"threadId":"saved","turnId":"t","sortDirection":"asc"})),
+        ("thread/turns/list", json!({"threadId":"saved","sortDirection":"desc","itemsView":"summary"})),
+        ("thread/goal/get", json!({"threadId":"saved"})),
+        ("thread/resume", json!({"threadId":"saved","excludeTurns":true})),
+    ] {
+        peer.host.request_begin_scoped(method, params.clone(), json!({"kind":"synthetic"}), false, Some(&peer.g)).unwrap();
+        assert_eq!(peer.frame()["params"], params, "{method}");
     }
     let good = json!({"threadId":"local-thread","input":[{"type":"text","text":"fixture only","text_elements":[]}]});
     let sent = peer

@@ -718,7 +718,7 @@ impl Host {
         if entry == crate::native_local_provider::ENTRY {
             crate::native_local_provider::fixed_selection(entry, provider, model)?;
             self.require_local_destination(generation)?;
-            if reading.config["config"]["model_provider"] != provider || reading.config["config"]["model"] != model || reading.config["config"]["cli_auth_credentials_store"] != "file" || reading.config["config"]["features"]["plugins"] != false { return Err(unavailable()); }
+            if reading.config["config"]["model_provider"] != provider || reading.config["config"]["model"] != model || reading.config["config"]["cli_auth_credentials_store"] != "file" || reading.config["config"]["features"]["plugins"] != false || reading.config["config"]["features"]["api_key_model_discovery"] != false { return Err(unavailable()); }
         }
         let proof = ProviderAdmission {
             source: reading.source,
@@ -1067,6 +1067,8 @@ fn child_supplier_subject(i: &Inner) -> Value {
 
 /// Constructed only for the dedicated local HomeSession, never hydrated from public DTOs.
 pub(super) struct LocalProviderBinding { home: String, cwd: String }
+#[cfg(test)]
+impl LocalProviderBinding { pub(super) fn for_test(home:&str,cwd:&str)->Self { Self{home:home.into(),cwd:cwd.into()} } }
 impl Host {
     pub(crate) fn bind_local_destination(&self, config: &HostConfig, plan: &crate::home_resources::OwnedHomePlan) -> Result<(), String> {
         crate::native_local_provider::check(plan)?;
@@ -1098,14 +1100,23 @@ impl Host {
             "config/read" if private_config && params["cwd"]==binding.cwd && params["includeLayers"]==true && params.as_object().is_some_and(|p|p.len()==2) => Ok(()),
             "thread/start" if params["cwd"]==binding.cwd && params["modelProvider"]==crate::native_local_provider::PROVIDER && params["model"]==crate::native_local_provider::MODEL && admission.is_some_and(|p|p.entry==crate::native_local_provider::ENTRY && (params.get("config").is_none_or(|c| c.is_null() || c.as_object().is_some_and(|c| c.is_empty())) || p.children.as_ref().is_some_and(|c| params["config"]==c.config))) => Ok(()),
             "thread/resume"|"thread/fork"|"turn/start"|"turn/steer"|"turn/interrupt" if thread_current() => Ok(()),
+            // History Continue: only the exact original packet for a saved thread of this dedicated home.
+            // No path/history/config/model override can ride on it; admission rechecks the resumed source.
+            "thread/resume" if params.as_object().is_some_and(|p|p.len()==2) && params["threadId"].as_str().is_some_and(|t|!t.is_empty()) && params["excludeTurns"]==true => Ok(()),
             // Local disk views carry no inference/account credential to a model transport.
-            "thread/list"|"thread/read"|"thread/loaded/list"|"thread/name/set"|"thread/archive"|"thread/unarchive"|"thread/unsubscribe" => Ok(()),
+            "thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/loaded/list"|"thread/name/set"|"thread/archive"|"thread/unarchive"|"thread/unsubscribe" => Ok(()),
             _=>refuse(),
         }
     }
 }
 
 impl Host {
+    /// A resumed local thread is admitted only when its reported source is the fixed oMLX selection.
+    pub(super) fn check_local_resume(i:&Inner,result:&Value)->Result<(),String>{
+        if i.local_provider.is_none() {return Ok(());}
+        if result["modelProvider"]!=crate::native_local_provider::PROVIDER || result["model"]!=crate::native_local_provider::MODEL || result["cwd"]!=json!(i.local_provider.as_ref().map(|b|b.cwd.as_str())) {return Err(crate::native_local_provider::LIMIT.into());}
+        Ok(())
+    }
     pub(crate) fn require_local_destination(&self,generation:&Value)->Result<(),String>{
         self.require_canonical_167(generation)?;
         let i=self.inner.0.lock().map_err(|_|unavailable())?;
