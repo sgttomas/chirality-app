@@ -4065,12 +4065,12 @@
     {
       "source": "execution/_Coordination/CURRENT_EXECUTION_BASIS.md",
       "copy": "app/contract_inputs/_Coordination/CURRENT_EXECUTION_BASIS.md",
-      "sha256": "56480aa0107cb2d0136404ca279caf745684d30258279260a27e3206e375aced"
+      "sha256": "4ea287301cb8d50481034f43551a9e58f743a6a8819406ae35e9d53dea4c1f80"
     },
     {
       "source": "execution/_Coordination/PUBLICATION_PUNCHLIST.md",
       "copy": "app/contract_inputs/_Coordination/PUBLICATION_PUNCHLIST.md",
-      "sha256": "2f5008812d0fd27641d2095bd9081d1f4a8f9baafdca58baf50cc9995ce70178"
+      "sha256": "a3777e1245642e271ed901b20b3821e03b73a3ae44765fe7e46e47c8b807fdcd"
     },
     {
       "source": "execution/_Coordination/WINDOWS_UNDERTAKING.md",

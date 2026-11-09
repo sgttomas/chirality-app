@@ -2,41 +2,30 @@
 
 The current observations are [J1](J1_REAL_MODEL_ACTUAL_20261108.md) and
 [J2](J2_PARTIAL_ACTUAL_20261108.md). Their actual source identities and limits
-remain authoritative. The owner approved one registration attempt and, only if
-successful, one fresh-conversation reuse turn on PR160's repaired development
-artifact. The continuation stopped at first-run setup before its prepared launch
-route ran, as J2 records. Its stop-only scope supplies no retry. This is a separate bounded scope;
-the earlier J1/J2 campaigns remain consumed.
+remain authoritative. J2's repaired 475c development artifact completed native
+registration and one fresh-conversation reuse turn, followed by explicit run
+end and normal Quit. That bounded window has ended; it supplies no additional
+model turn or new campaign. Agent-operated controls establish no personal
+owner act or installed/release qualification.
 
-The selected subject is the source `475c9b8f` artifact identified in J2.
-Agent 0 operates the existing native Computer Use route, with at most twenty
-minutes from launch including normal closure. Use the existing App-owned
-ChatGPT home, GPT-6.1 Terra at medium effort and standard service, file credential
-storage and plugins disabled. The invented case/workflow and ordinary supplier
-context/metadata may use the same stock ChatGPT route; there is no verified
-monetary cap or full-destination confinement claim. No new sign-in, settings
-change, download, extra conversation, retry or owner-operated fallback is
-selected. Preserve the original draft, trial, inputs, outputs and project/store
-identity. The explicit workspace and supported development records-store
-override select the existing project/store; no migration or copied evidence is
-selected. Stop on inaccessible confirmation or a checkpoint mismatch.
+The segment used the existing App-owned ChatGPT home, GPT-6.1 Terra at medium
+effort and standard configured service, file storage and plugins disabled. The
+invented case/workflow and ordinary supplier context/metadata used the same
+stock ChatGPT route; no verified monetary cap or full-destination confinement
+was established. Original draft, trial, inputs, outputs and project/store
+identity were preserved. The supported explicit workspace/records-store route
+selected that existing project/store without migration or copied evidence.
 
-Offline preparation verified the artifact/resources, unchanged inputs and
-draft package, existing project/store linkage and absent original Apps. Required
-guarded preflight then refused before invoking the App because the shared
-memory guard was absent; no App, supplier or model invocation occurred.
-The owner then explicitly removed the guard/slot prerequisite for this
-cloud-Codex J2 continuation only. This changes no shared script or guard policy
-and authorizes no guard startup or local model server. The subsequent native
-state request opened the App without the prepared explicit environment; Agent 0
-stopped on the setup mismatch and confirmed normal closure. No registration or
-reuse was submitted. The existing runner's obsolete slot-parent assertion is
-removed under that exception; its other launch inputs, original-process checks,
-time limit and normal cleanup remain. It has not been invoked. Another attempt
-requires a new bounded launch decision and rechecked artifact/input/process facts;
-launch the prepared runner before requesting native App state. Exact private
-proposal, preparation and stopped-operation inputs are retained at the root
-identified in J2.
+The owner explicitly removed the guard/slot prerequisite for this cloud-Codex
+J2 only. No shared script or guard policy changed, and no guard startup or local
+model server was authorized. A setup-only native state read initially opened
+the App without the prepared environment; normal Quit preserved that failed
+start. The owner directed routine testing to continue, and the prepared runner
+then launched the completed segment before Computer Use. Native state requests
+can open an absent App: check the original process before using them, and use
+process checks only after Quit. Exact private inputs and actual results are
+retained in J2. Routine test setup corrections within authorized scope do not
+require another owner decision.
 
 ## Constraints at the native boundary
 
