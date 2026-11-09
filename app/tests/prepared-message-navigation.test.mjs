@@ -132,7 +132,7 @@ async function mounted(options,check){
   }
   // The person is working in the conversation view.
   await React.act(()=>navigate('conversation'));
-  await check({c,calls,account,other,selected,choose,change,pickWorkflowChat,press,poll,composer,assertIndependent,editChoice,model,track,navigate:v=>React.act(()=>navigate(v)),
+  await check({c,calls,account,other,selected,choose,change,pickWorkflowChat,press,poll,observeHome:async mode=>{active=mode;await poll();},composer,assertIndependent,editChoice,model,track,navigate:v=>React.act(()=>navigate(v)),
    gate:()=>{const gate=deferred();nextRead=gate;return gate;},fail:()=>{failRead=true;},snapshot,
    open:(id='B')=>press(`View prepared message in conversation ${id}`)});
   idle.assertClean(c);assert.deepEqual(unexpected,[]);
@@ -203,12 +203,13 @@ for(const name of ['selection','selection away and back','chooser edit','home','
   if(name==='Start refused')await ui.editChoice();const gate=ui.gate();await ui.open();assert.equal(ui.selected(),key('A'));
   if(name.startsWith('selection')){await ui.choose('D');if(name.endsWith('back'))await ui.choose('A');}
   if(name==='chooser edit')await ui.editChoice();
-  if(name.startsWith('home')){await ui.press('Use api-key home');if(name.endsWith('back'))await ui.press('Use account home');}
+  // No API-key switch is offered: leave by observed retained legacy home; return by the account choice.
+  if(name.startsWith('home')){await ui.observeHome('api-key');if(name.endsWith('back'))await ui.press('Use account home');}
   if(name==='Start refused')await ui.press('Start thread');
   if(name==='newer observation')await ui.poll();
   if(name==='source changed then restored'){ui.account.workflowRoot.context.sourceRef='changed';await ui.poll();ui.account.workflowRoot.context.sourceRef='original-workflow-source';await ui.poll();}
   await React.act(async()=>gate.resolve());assert.notEqual(ui.selected(),key('B'));assert.match(ui.c.textContent,/Prepared-message navigation refused/);
-  if(name==='selection')assert.equal(ui.selected(),key('D'));if(name==='chooser edit')assert.equal(ui.model(),'newer-choice');if(name==='home')assert.match(ui.c.textContent,/Active home class: api-key/);
+  if(name==='selection')assert.equal(ui.selected(),key('D'));if(name==='chooser edit')assert.equal(ui.model(),'newer-choice');if(name==='home')assert.match(ui.c.textContent,/Selected home: api-key\./);
   await ui.poll();assert.notEqual(ui.selected(),key('B'),'a later poll cannot replay the old Open');
  });
 });
@@ -283,13 +284,14 @@ for(const outcome of ['acknowledged','refused'])test(`a late ${outcome} trial se
  });
 });
 
-const startResult=c=>elements(c,'p').find(e=>e.textContent.startsWith('thread_start:'))?.textContent;
+// The global response region retains the complete technical response text.
+const startResult=c=>region(c,'Latest App response')?.textContent;
 for(const supersession of ['newer Start','workflow source','home'])test(`old trial observer failure keeps its original attribution after ${supersession}`,async()=>{
  await mounted({send:async()=>({threadId:'D'})},async ui=>{
   await ui.choose('B');const original=ui.composer();await ui.change(labelled(original,'select','Send to '),key('D'));await ui.editChoice();
   const observation=ui.gate();await ui.press('Send',original);assert.match(original.textContent,/Sending; waiting/);
   if(supersession==='workflow source'){ui.account.workflowRoot.context.sourceRef='replacement-workflow-source';await ui.poll();}
-  if(supersession==='home'){await ui.press('Use api-key home');}
+  if(supersession==='home'){await ui.observeHome('api-key');}
   else await ui.press('Start thread');
   const newer=startResult(ui.c),before=ui.calls.length;
   if(supersession!=='home')assert.match(newer,/new-choice/);
@@ -349,7 +351,7 @@ test('opened library and fixed project remain Root observations through library 
   assert.match(working(ui.c).textContent,/Second project library/);assert.ok(working(ui.c).textContent.includes(fixedProject));assertChoice(ui.c,'Workflow chat context','C');assertChoice(ui.c,'Authoring choice for new trials','B');assert.equal(ui.composer(),original);
   ui.account.generationClosed=true;await ui.poll();for(const label of ['Operational conversation viewed','Workflow chat context','Authoring choice for new trials'])assert.match(contextText(ui.c,label),/Unavailable/);
   assert.match(ownerIn(original.parentNode),/Unavailable/);assert.match(working(ui.c).textContent,/Second project library/);assert.ok(working(ui.c).textContent.includes(fixedProject));assert.equal(ui.composer(),original);assert.equal(props(elements(original,'textarea')[0]).value,'Retained through read-only context changes');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));
-  await ui.press('Use api-key home');assert.match(working(ui.c).textContent,/Second project library/);assert.ok(working(ui.c).textContent.includes(fixedProject));assert.match(contextText(ui.c,'Authoring choice for new trials'),/Unavailable/);
+  await ui.observeHome('api-key');assert.match(working(ui.c).textContent,/Second project library/);assert.ok(working(ui.c).textContent.includes(fixedProject));assert.match(contextText(ui.c,'Authoring choice for new trials'),/Unavailable/);
  });
 });
 
@@ -403,7 +405,7 @@ for(const route of ['source','home'])test(`returning original ${route} cannot re
  await mounted({},async ui=>{
   const select=()=>labelled(ui.c,'select','Workflow chat ');assert.equal(props(select()).value,'C');assertChoice(ui.c,'Workflow chat context','C');
   if(route==='source'){ui.account.workflowRoot.context.sourceRef='temporary-other-source';await ui.poll();ui.account.workflowRoot.context.sourceRef='original-workflow-source';await ui.poll();}
-  else{await ui.press('Use api-key home');await ui.press('Use account home');}
+  else{await ui.observeHome('api-key');await ui.press('Use account home');}
   assert.equal(props(select()).value,'','existing selector semantics clear the chat on source/home change');
   assert.match(contextText(ui.c,'Workflow chat context'),/Unavailable/,'a cleared prior chat is not the currently selected chat');
   assert.doesNotMatch(contextText(ui.c,'Workflow chat context'),/Workflow chat context: Conversation C|No chat — library inspection/,'retired choice is distinct from explicit No-chat inspection');
@@ -431,7 +433,7 @@ test('project folder display requires exact source correspondence and never deco
 for(const reset of ['source','home','generation'])test(`lost Workflow chat after ${reset} reset supports direct local No-chat recovery with zero available chats`,async()=>{
  await mounted({},async ui=>{
   if(reset==='source'){ui.account.workflowRoot.context.sourceRef='new-workflow-source';ui.account.threads=[];await ui.poll();}
-  else if(reset==='home'){ui.other.threads=[];await ui.press('Use api-key home');}
+  else if(reset==='home'){ui.other.threads=[];await ui.observeHome('api-key');}
   else{const next={...g,spawnCounter:2};ui.account.generation=next;ui.account.workflowRoot.context.generation=next;ui.account.threads=[];await ui.poll();}
   const select=labelled(ui.c,'select','Workflow chat ');
   assert.equal(props(select).value,'');assert.deepEqual(elements(select,'option').map(option=>props(option).value),[''],'no unrelated chat is available as a workaround');

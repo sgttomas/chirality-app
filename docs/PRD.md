@@ -111,11 +111,9 @@ embedding interface, with native sign-in (D-19; [architecture](ARCHITECTURE.md))
   conversation without a default (D-06; current owner scope correction).
   Standalone OpenAI API-key access and its qualification commitment are omitted
   from this increment; existing native plumbing and saved homes are retained.
-  Local-provider credentials remain required. The adopted keyed oMLX design
-  keeps the token in Codex custody in a dedicated local home with its own
-  nonsecret configuration, separate from account sign-in. Implementation and
-  actual oMLX compatibility remain pending; the active UI states that keyed
-  support is pending rather than implying anonymous access fulfils it.
+  Local-provider credentials remain required; the keyed local-provider route,
+  its pending implementation and unestablished oMLX compatibility are owned by
+  [DEL-01-05](../execution/PKG-01/DEL-01-05/ScopeOfWork.md).
 - **V4-APP-03** The App offers HELP_HUMAN, HELPS_HUMANS and WORKING_ITEMS as
   the conversation roles a person can choose among, or no role (D-10). TASK
   remains one of the four standing roles: the role a manager assigns bounded
