@@ -80,6 +80,7 @@ pub(crate) fn home_class(class: &str) -> Option<&'static str> {
     match class {
         "account" => Some("H-acct"),
         "api-key" => Some("H-key"),
+        "local-provider" => Some("H-omlx"),
         _ => None,
     }
 }

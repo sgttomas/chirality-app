@@ -102,7 +102,7 @@ impl Receipt {
         {
             return Err("records receipt definition or format unsupported".into());
         }
-        if !matches!(receipt.home_class.as_str(), "H-acct" | "H-key")
+        if !matches!(receipt.home_class.as_str(), "H-acct" | "H-key" | "H-omlx")
             || receipt.home.is_empty()
             || receipt.thread.is_empty()
             || receipt.project.is_empty()

@@ -225,6 +225,7 @@ struct Inner {
     source_requests: HashMap<String, SourceEvidence>,
     provider_read_revisions: HashMap<String,(Value,String)>,
     private_config_channels: Vec<Value>,
+    local_provider: Option<access_provider::LocalProviderBinding>,
     server_requests: RequestRegister,
     recovery: Option<Arc<Mutex<RecoveryLedger>>>,
     /// The ledger's bounded snapshot and its held entries (DEL-01-02 §7):
@@ -1193,7 +1194,7 @@ impl Host {
     fn refresh_recovery_observation(&self){let ledger=self.inner.0.lock().unwrap().recovery.clone();if let Some(ledger)=ledger{let snapshot=ledger.lock().unwrap().observation();self.inner.0.lock().unwrap().recovery_snapshot=Some(snapshot);}}
     fn context_scope(i:&Inner,generation:&Value,thread:&str,home:Option<&str>)->Result<(),String>{
         crate::recovery::generation_ref(generation)?;if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation)||thread.is_empty()||!i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==thread){return Err("context source is not current operational home/thread/full generation".into());}
-        if home.is_some_and(|h|!matches!(h,"H-acct"|"H-key")){return Err("REC home class must come actual configured ACCESS home kind or absence".into());}Ok(())
+        if home.is_some_and(|h|!matches!(h,"H-acct"|"H-key"|"H-omlx")){return Err("REC home class must come actual configured ACCESS home kind or absence".into());}Ok(())
     }
     fn context_rows(snapshot:Option<&crate::recovery::LedgerObservation>)->Vec<Value>{snapshot.map(|o|o.rows.iter().filter(|e|e["kind"]=="conversation_index").cloned().collect()).unwrap_or_default()}
     /// New CURRENT known admission only; historical P is never overwritten by Q.
@@ -1994,6 +1995,7 @@ impl Host {
         let (tx, rx) = channel();
         let mut i = self.inner.0.lock().unwrap();
         if let Some(write)=endpoint_write {write.check(self,&i)?;}
+        Self::check_local_request(&i,method,&params,expected_generation,handshake,private_credential,private_config,provider_admission)?;
         if cce_intent.is_some() && i.cce_offer.is_some(){return Err("one offered start per generation; no replacement".into())}
         // A request bound to a replaced generation records nothing: it is never
         // attributed to the replacement, even one still starting.
@@ -2060,6 +2062,7 @@ impl Host {
             if let Some(proof)=provider_admission { self.recheck_child_sources(proof)?; }
             if let Some(write)=endpoint_write {write.before_write()?;}
             {let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;
+                Self::check_local_request(&i,method,&frame["params"],expected_generation,handshake,private_credential,private_config,provider_admission)?;
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
                 Self::check_send_admitted(&i,method)?;
                 if let Some(proof)=provider_admission{self.check_provider_admission(&i,proof,&frame["params"])?;}
@@ -2619,6 +2622,7 @@ impl Host {
         Self::validate_native_result(if expected_turn.is_some(){"TurnSteerParams"}else{"TurnStartParams"},&params)?;
         let(tx,rx)=channel();let(source,client,pipe_identity,pipe_epoch)={
             let mut i=self.inner.0.lock().unwrap();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation){return Err("attachment preparation scope is stale/closed/non-ready".into());}
+            Self::check_local_request(&i,method,&params,Some(generation),false,false,false,None)?;
             Self::check_send_admitted(&i,method)?;Self::check_conversation_request(&i,method,&params)?;let pipe=self.stdin.lock().unwrap();let identity=Self::pipe_identity(pipe.as_ref().ok_or("actual source pipe unavailable; nothing reserved")?)?;drop(pipe);
             i.next_id+=1;let id=i.next_id;let frame=json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
             let source=SourceRequest{source:Arc::downgrade(&self.inner),generation:generation.clone(),frame,request_ref:opaque_id("host-attachment-request:")?,receiver:Arc::new(Mutex::new(rx))};
@@ -2649,6 +2653,7 @@ impl Host {
             prepared.custody.check_prepared_leased(&namespace_lease,&prepared.list.supply_records(),&prepared.client)?;
             let gate=self.attachment_gate.lock().unwrap();let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
             let mut i=self.inner.0.lock().unwrap();let generation=prepared.source.generation();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation)||i.attachment_pipe_epoch!=prepared.pipe_epoch{return Err("attachment generation/pipe drift before commit; nothing sent".into());}
+            Self::check_local_request(&i,frame["method"].as_str().unwrap(),&frame["params"],Some(generation),false,false,false,None)?;
             Self::check_send_admitted(&i,frame["method"].as_str().unwrap())?;
             Self::check_conversation_request(&i,frame["method"].as_str().unwrap(),&frame["params"])?;
             let mut bound=self.capture_pipe(&i)?;if bound.identity!=prepared.pipe_identity{return Err("actual source pipe changed; nothing sent".into());}

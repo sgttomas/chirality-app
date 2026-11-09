@@ -3,10 +3,10 @@
   "resources": [
     {
       "file": "access.conversation-selection.schema.json",
-      "sha256": "e40fec6a0c0915f2842c00ae39761fa320fd83924cf56258abf63f1ffb1c0fed",
+      "sha256": "31c1a401dfdcbbd7a7f35014a265ec5f9d08b912f796afebc836597de3999b70",
       "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-05/Design/access.conversation-selection.schema.json",
-      "sourceSha256": "e40fec6a0c0915f2842c00ae39761fa320fd83924cf56258abf63f1ffb1c0fed",
-      "standing": "maintained unchanged Design schema"
+      "sourceSha256": "31c1a401dfdcbbd7a7f35014a265ec5f9d08b912f796afebc836597de3999b70",
+      "standing": "maintained current source schema"
     },
     {
       "file": "hosting.server-request-entry.schema.json",

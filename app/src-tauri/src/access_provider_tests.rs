@@ -1768,7 +1768,7 @@ fn access_provider_actual_private_refusal_output_has_only_safe_public_consumers(
         &refusal,
         true,
     );
-    assert_eq!(published["state"], "written");
+    assert_eq!(published["state"], "written", "{published}");
     let quoted = history.read_role_supply("home", None);
     assert!(quoted["observations"].as_array().unwrap().len() > 0);
     let packet = json!({"refusal":refusal,"snapshot":peer.host.snapshot(),"recordedRecovery":peer.host.recorded_recovery_entries(),"roleSupplyRecord":published,"quotedRole":quoted});
@@ -2763,4 +2763,623 @@ fn native_child_guidance_private_receipt_queue_survives_journal_burst_and_close(
     associations.reconcile(&peer.host, &roles, None);
     assert_eq!(associations.limits().as_array().unwrap().len(), 1);
     std::fs::remove_dir_all(root).unwrap();
+}
+
+fn canonical_167_peer(peer: &Peer) {
+    let mut i = peer.host.inner.0.lock().unwrap();
+    i.version_identity = Some(
+        json!({"declaredPin":"0.167.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc"}}]}),
+    );
+    i.successor_status = Some(
+        json!({"verificationGeneration":peer.g,"inventory":{"manifest_sha256":"158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"}}),
+    );
+}
+fn local_167_config() -> Value {
+    let mut definition = local();
+    definition["name"] = json!("oMLX");
+    definition["base_url"] = json!(crate::native_local_provider::ENDPOINT);
+    definition["requires_openai_auth"] = json!(true);
+    definition["model_catalog_url"] = Value::Null;
+    for key in ["project_id", "location", "credential_file", "capabilities"] {
+        definition[key] = Value::Null;
+    }
+    let mut result = config(json!({crate::native_local_provider::PROVIDER:definition}));
+    result["config"]["model_provider"] = json!(crate::native_local_provider::PROVIDER);
+    result["config"]["model"] = json!(crate::native_local_provider::MODEL);
+    result["config"]["cli_auth_credentials_store"] = json!("file");
+    result["config"]["features"]["plugins"] = json!(false);
+    result
+}
+#[test]
+fn native_local_provider_admission_requires_exact_source_destination_and_codex_custody() {
+    use crate::native_local_provider::{ENTRY, MODEL, PROVIDER};
+    for case in [
+        "positive",
+        "env",
+        "bearer",
+        "header",
+        "default",
+        "other-provider",
+        "catalogue",
+        "store",
+        "plugins",
+        "absent-identity",
+        "wrong-main",
+        "npm-tree",
+        "foreign-generation",
+    ] {
+        let mut peer = Peer::new("invented-local-home");
+        canonical_167_peer(&peer);
+        peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding {
+            home: "invented-local-home".into(),
+            cwd: "/invented/work".into(),
+        });
+        let mut cfg = local_167_config();
+        match case {
+            "env" => cfg["config"]["model_providers"][PROVIDER]["env_key"] = json!(CANARY),
+            "bearer" => {
+                cfg["config"]["model_providers"][PROVIDER]["experimental_bearer_token"] =
+                    json!(CANARY)
+            }
+            "header" => {
+                cfg["config"]["model_providers"][PROVIDER]["http_headers"] =
+                    json!({"Authorization":CANARY})
+            }
+            "default" => {
+                cfg["config"]["model_providers"][PROVIDER]["base_url"] =
+                    json!("https://api.openai.com/v1")
+            }
+            "other-provider" => cfg["config"]["model_provider"] = json!("other"),
+            "catalogue" => {
+                cfg["config"]["model_providers"][PROVIDER]["model_catalog_url"] =
+                    json!("https://api.openai.com/v1/models")
+            }
+            "store" => cfg["config"]["cli_auth_credentials_store"] = json!("auto"),
+            "plugins" => cfg["config"]["features"]["plugins"] = json!(true),
+            "absent-identity" => peer.host.inner.0.lock().unwrap().version_identity = None,
+            "wrong-main" => {
+                peer.host
+                    .inner
+                    .0
+                    .lock()
+                    .unwrap()
+                    .version_identity
+                    .as_mut()
+                    .unwrap()["distributionContentIdentity"][0]["identity"]["value"] =
+                    json!("wrong")
+            }
+            "npm-tree" => {
+                peer.host
+                    .inner
+                    .0
+                    .lock()
+                    .unwrap()
+                    .successor_status
+                    .as_mut()
+                    .unwrap()["inventory"]["manifest_sha256"] = json!("not-canonical-42-file-tree")
+            }
+            "foreign-generation" => {
+                peer.host
+                    .inner
+                    .0
+                    .lock()
+                    .unwrap()
+                    .successor_status
+                    .as_mut()
+                    .unwrap()["verificationGeneration"]["spawnCounter"] = json!(2)
+            }
+            _ => {}
+        }
+        peer.answer(cfg);
+        let proof = peer.host.provider_admission_read_within(
+            &peer.g,
+            "/invented/work",
+            ENTRY,
+            PROVIDER,
+            MODEL,
+            Duration::from_millis(30),
+        );
+        assert_eq!(proof.is_ok(), case == "positive", "{case}");
+        if !peer.host.client_requests().is_empty() {
+            assert_eq!(peer.frame()["method"], "config/read");
+        }
+        assert!(peer
+            .host
+            .client_requests()
+            .iter()
+            .all(|r| r["method"] == "config/read"));
+        peer.safe();
+    }
+}
+#[test]
+fn native_children_167_requires_canonical_whole_source_and_does_not_rebind_after_preparation() {
+    for case in [
+        "positive",
+        "wrong-manifest",
+        "absent-identity",
+        "unestablished-source",
+        "rebind",
+    ] {
+        let (root, value) = child_fixture();
+        let mut peer = child_peer();
+        canonical_167_peer(&peer);
+        match case {
+            "wrong-manifest" => {
+                peer.host
+                    .inner
+                    .0
+                    .lock()
+                    .unwrap()
+                    .successor_status
+                    .as_mut()
+                    .unwrap()["inventory"]["manifest_sha256"] = json!("npm-41")
+            }
+            "absent-identity" => peer.host.inner.0.lock().unwrap().version_identity = None,
+            _ => {}
+        }
+        peer.answer(value);
+        let mut proof = peer.read("chatgpt-account", "openai").unwrap();
+        let _ = peer.frame();
+        let mut c = crate::runtime_session::compose_role(
+            &root.join("instructions"),
+            Some(crate::role_supply::Role::HELP_HUMAN),
+        )
+        .unwrap();
+        if case == "unestablished-source" {
+            peer.host
+                .inner
+                .0
+                .lock()
+                .unwrap()
+                .provider_read_revisions
+                .clear();
+        }
+        peer.host
+            .prepare_role_children(&mut proof, &mut c, &root.join("instructions"), &root)
+            .unwrap();
+        let supplied = matches!(case, "positive" | "rebind");
+        assert_eq!(!c.children.is_empty(), supplied, "{case}");
+        if supplied {
+            assert_eq!(peer.frame()["method"], "config/read");
+            if case == "rebind" {
+                peer.host.inner.0.lock().unwrap().successor_status = None;
+            }
+            let result = peer.host.thread_start_with_role_dispatch(&proof, &c);
+            assert_eq!(result.is_ok(), case == "positive");
+            if case == "positive" {
+                let frame = peer.frame();
+                assert_eq!(frame["params"]["config"], c.native_config());
+            }
+        }
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[test]
+fn native_local_provider_one_private_login_frame_and_safe_receipts_without_supplier_or_endpoint() {
+    use crate::native_local_provider as local_route;
+    let root = std::env::temp_dir()
+        .canonicalize()
+        .unwrap()
+        .join(opaque_id("local-private-pipe-").unwrap());
+    std::fs::create_dir(&root).unwrap();
+    let plan = crate::home_resources::OwnedHomePlan::new(
+        root.clone(),
+        root.join("local"),
+        crate::home_resources::HomeClass::LocalProvider,
+        None,
+    )
+    .unwrap();
+    local_route::prepare(&plan).unwrap();
+    let mut peer = Peer::new(&plan.opaque_home_id());
+    canonical_167_peer(&peer);
+    peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding {
+        home: plan.opaque_home_id(),
+        cwd: "/invented/work".into(),
+    });
+    peer.answer(local_167_config());
+    let cfg = HostConfig::new(
+        root.join("not-run"),
+        plan.native_path().into(),
+        root.join("probe"),
+        "/invented/work".into(),
+    );
+    let home = crate::runtime_session::HomeSession::new(
+        crate::home_resources::HomeClass::LocalProvider,
+        peer.host.clone(),
+        Ok(cfg),
+    )
+    .unwrap();
+    let entry = local_route::CredentialEntry::default();
+    let generation = peer.g.clone();
+    let result=std::thread::scope(|scope| {
+        let work=scope.spawn(||local_route::submit(&home,&plan,&generation,&entry,||Ok(()),||Ok(Some(CANARY.into()))));
+        assert_eq!(peer.frame()["method"],"config/read");
+        let policy=peer.frame();assert_eq!(policy["method"],"configRequirements/read");
+        peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":null}})).unwrap(),&peer.g);
+        let login=peer.frame();assert_eq!(login["method"],"account/login/start");
+        assert_eq!(login["params"],json!({"type":"apiKey","apiKey":CANARY}));
+        peer.safe();assert!(!json!(peer.host.journal()).to_string().contains(CANARY));
+        peer.host.on_line(&serde_json::to_vec(&json!({"id":login["id"],"result":{"type":"apiKey"}})).unwrap(),&peer.g);
+        let read=peer.frame();assert_eq!(read["method"],"account/read");
+        peer.host.on_line(&serde_json::to_vec(&json!({"id":read["id"],"result":{"account":{"type":"apiKey"},"requiresOpenaiAuth":true}})).unwrap(),&peer.g);
+        work.join().unwrap()
+    }).unwrap();
+    assert_eq!(result["credentialState"], "configured-not-verified");
+    peer.safe();
+    let rows = peer.host.client_requests();
+    assert_eq!(
+        rows.iter()
+            .filter(|r| r["method"] == "account/login/start")
+            .count(),
+        1
+    );
+    assert!(rows.iter().all(|r| matches!(
+        r["method"].as_str(),
+        Some("config/read" | "configRequirements/read" | "account/login/start" | "account/read")
+    )));
+    assert!(
+        !plan.native_path().join("auth.json").exists(),
+        "App does not persist a key; the synthetic pipe is no supplier custody witness"
+    );
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn native_local_provider_central_guard_refuses_cross_entry_overrides_before_capture_and_allows_current_turn(
+) {
+    use crate::native_local_provider::{MODEL, PROVIDER};
+    let mut peer = Peer::new("local-guard");
+    canonical_167_peer(&peer);
+    {
+        let mut i = peer.host.inner.0.lock().unwrap();
+        i.local_provider = Some(LocalProviderBinding {
+            home: "local-guard".into(),
+            cwd: "/invented/work".into(),
+        });
+        i.threads.push(json!({"generation":peer.g,"threadId":"local-thread","modelProvider":PROVIDER,"model":MODEL}));
+    }
+    let cases = [
+        (
+            "thread/start",
+            json!({"cwd":"/invented/work","modelProvider":"openai","model":MODEL}),
+        ),
+        (
+            "thread/start",
+            json!({"cwd":"/invented/work","modelProvider":PROVIDER,"model":MODEL,"config":{"model_provider":"openai"}}),
+        ),
+        (
+            "thread/resume",
+            json!({"threadId":"local-thread","modelProvider":"openai"}),
+        ),
+        (
+            "thread/fork",
+            json!({"threadId":"local-thread","config":{"model_provider":"openai"}}),
+        ),
+        (
+            "turn/start",
+            json!({"threadId":"local-thread","model":"other","input":[]}),
+        ),
+        (
+            "turn/start",
+            json!({"threadId":"local-thread","collaborationMode":{"settings":{"model":"other"}},"input":[]}),
+        ),
+        (
+            "turn/steer",
+            json!({"threadId":"local-thread","modelProvider":"openai","expectedTurnId":"u","input":[]}),
+        ),
+        (
+            "turn/start",
+            json!({"threadId":"foreign-thread","input":[]}),
+        ),
+        (
+            "turn/start",
+            json!({"threadId":"local-thread","config":{"experimental_bearer_token":CANARY},"input":[]}),
+        ),
+        ("account/login/start", json!({"type":"chatgpt"})),
+        ("config/batchWrite", json!({"edits":[{"value":CANARY}]})),
+        ("model/list", json!({})),
+        ("feedback/upload", json!({})),
+    ];
+    for (method, params) in cases {
+        let before = peer.host.inner.0.lock().unwrap().source_requests.len();
+        let error = peer
+            .host
+            .request_begin_scoped(
+                method,
+                params,
+                json!({"kind":"synthetic"}),
+                false,
+                Some(&peer.g),
+            )
+            .err()
+            .unwrap();
+        assert!(!error.contains(CANARY));
+        assert_eq!(
+            peer.host.inner.0.lock().unwrap().source_requests.len(),
+            before,
+            "{method}: no raw/public params captured"
+        );
+    }
+    let good = json!({"threadId":"local-thread","input":[{"type":"text","text":"fixture only","text_elements":[]}]});
+    let sent = peer
+        .host
+        .request_begin_scoped(
+            "turn/start",
+            good.clone(),
+            json!({"kind":"synthetic"}),
+            false,
+            Some(&peer.g),
+        )
+        .unwrap();
+    assert_eq!(peer.frame()["params"], good);
+    assert_eq!(sent.evidence()["writeResult"], "written");
+    // A newer contradictory report must not inherit an earlier matching row.
+    peer.host.inner.0.lock().unwrap().threads.push(json!({"generation":peer.g,"threadId":"local-thread","modelProvider":"openai","model":MODEL}));
+    assert!(peer
+        .host
+        .request_begin_scoped(
+            "turn/start",
+            good,
+            json!({"kind":"synthetic"}),
+            false,
+            Some(&peer.g)
+        )
+        .is_err());
+    peer.safe();
+    for class in ["account-fixture", "key-fixture"] {
+        let mut original = Peer::new(class);
+        let sent = original
+            .host
+            .request_begin_scoped(
+                "thread/start",
+                json!({"modelProvider":"openai","model":"ordinary-unbound"}),
+                json!({"kind":"synthetic"}),
+                false,
+                Some(&original.g),
+            )
+            .unwrap();
+        assert_eq!(sent.evidence()["writeResult"], "written");
+        assert_eq!(original.frame()["params"]["modelProvider"], "openai");
+    }
+}
+#[test]
+fn native_local_provider_central_guard_rechecks_original_thread_after_writer_wait() {
+    use crate::native_local_provider::{MODEL, PROVIDER};
+    let peer = Peer::new("local-queue");
+    canonical_167_peer(&peer);
+    {
+        let mut i = peer.host.inner.0.lock().unwrap();
+        i.local_provider = Some(LocalProviderBinding {
+            home: "local-queue".into(),
+            cwd: "/invented/work".into(),
+        });
+        i.threads.push(
+            json!({"generation":peer.g,"threadId":"t","modelProvider":PROVIDER,"model":MODEL}),
+        );
+    }
+    let gate = peer.host.frame_write.lock().unwrap();
+    let host = peer.host.clone();
+    let g = peer.g.clone();
+    let worker = std::thread::spawn(move || {
+        host.request_begin_scoped(
+            "turn/start",
+            json!({"threadId":"t","input":[]}),
+            json!({"kind":"synthetic"}),
+            false,
+            Some(&g),
+        )
+    });
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    loop {
+        if !peer.host.inner.0.lock().unwrap().source_requests.is_empty() {
+            break;
+        }
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::yield_now();
+    }
+    peer.host.inner.0.lock().unwrap().threads[0]["modelProvider"] = json!("openai");
+    drop(gate);
+    let request = worker.join().unwrap().unwrap();
+    let e = request.evidence();
+    assert_eq!(e["actualWriteAttemptObserved"], false);
+    assert!(e["sentFrame"].is_null());
+    peer.safe();
+}
+
+#[test]
+fn native_local_provider_canonical_legacy_receiving_requires_all42_original_native_rows() {
+    let rows: Value = serde_json::from_str(include_str!(
+        "../../tests/fixtures/local-provider/canonical-167-file-identities.json"
+    ))
+    .unwrap();
+    assert_eq!(
+        sha256_hex(&serde_json::to_vec(&rows).unwrap()),
+        "a4a5a0ab4e6f0572db715dd356e4afee9db1e8a3cef8e7e8a4a4da6a74009df9"
+    );
+    for case in [
+        "positive",
+        "npm41",
+        "duplicate",
+        "extra",
+        "mutation",
+        "missing-main",
+        "wrong-pin",
+        "foreign-generation",
+    ] {
+        let peer = Peer::new("native-local-legacy");
+        canonical_167_peer(&peer);
+        {
+            let mut i = peer.host.inner.0.lock().unwrap();
+            i.successor_status = None;
+            i.version_identity.as_mut().unwrap()["distributionContentIdentity"] = rows.clone();
+            let pin = i.version_identity.as_mut().unwrap();
+            match case {
+                "npm41" => {
+                    pin["distributionContentIdentity"]
+                        .as_array_mut()
+                        .unwrap()
+                        .retain(|r| r["path"] != "bin/codex-exec-server");
+                }
+                "duplicate" => {
+                    let list = pin["distributionContentIdentity"].as_array_mut().unwrap();
+                    list[1] = list[0].clone();
+                }
+                "extra" => pin["distributionContentIdentity"]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(json!({"path":"extra","identity":{"algorithm":"sha-256","value":"x"}})),
+                "mutation" => {
+                    pin["distributionContentIdentity"][1]["identity"]["value"] = json!("mutated")
+                }
+                "missing-main" => {
+                    pin["distributionContentIdentity"]
+                        .as_array_mut()
+                        .unwrap()
+                        .retain(|r| r["path"] != "bin/codex");
+                }
+                "wrong-pin" => pin["declaredPin"] = json!("0.160.0"),
+                "foreign-generation" => i.generation["spawnCounter"] = json!(2),
+                _ => {}
+            }
+        }
+        assert_eq!(
+            peer.host.require_canonical_167(&peer.g).is_ok(),
+            case == "positive",
+            "{case}"
+        );
+    }
+}
+#[test]
+fn native_local_provider_reserved_attachment_rechecks_destination_before_actual_write() {
+    use crate::native_local_provider::{MODEL, PROVIDER};
+    for changed in [false, true] {
+        let root = std::env::temp_dir()
+            .canonicalize()
+            .unwrap()
+            .join(opaque_id("local-attachment-").unwrap());
+        std::fs::create_dir(&root).unwrap();
+        let native = root.join("native");
+        let native_id = format!(
+            "app-home:{}",
+            sha256_hex(native.as_os_str().as_encoded_bytes())
+        );
+        let mut peer = Peer::new(&native_id);
+        canonical_167_peer(&peer);
+        {
+            let mut i = peer.host.inner.0.lock().unwrap();
+            i.local_provider = Some(LocalProviderBinding {
+                home: native_id,
+                cwd: "/invented/work".into(),
+            });
+            i.threads.push(
+                json!({"generation":peer.g,"threadId":"t","modelProvider":PROVIDER,"model":MODEL}),
+            );
+        }
+        let custody = Arc::new(
+            crate::hosting::attachment_custody::AttachmentCustody::open(&root.join("app"), &native)
+                .unwrap(),
+        );
+        let text = root.join("fixture.txt");
+        std::fs::write(&text, "synthetic local attachment").unwrap();
+        let selected =
+            crate::attachments::SelectedTextAttachment::from_native_selection(text, None).unwrap();
+        let prepared = peer
+            .host
+            .prepare_attachment_turn(custody, &peer.g, "t", None, "fixture text", &[selected])
+            .unwrap();
+        if changed {
+            peer.host.inner.0.lock().unwrap().threads[0]["modelProvider"] = json!("openai");
+        }
+        let sent = peer.host.dispatch_attachment_turn(&prepared);
+        assert_eq!(sent.is_ok(), !changed);
+        if changed {
+            assert_eq!(
+                prepared.source.evidence()["actualWriteAttemptObserved"],
+                false
+            );
+            assert!(prepared.source.evidence()["sentFrame"].is_null());
+        } else {
+            assert_eq!(peer.frame()["method"], "turn/start");
+            assert_eq!(sent.unwrap().evidence()["writeResult"], "written");
+        }
+        peer.safe();
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+#[test]
+fn native_local_provider_recovery_run_source_and_selection_keep_actual_local_class() {
+    use crate::native_local_provider::{ENTRY, MODEL, PROVIDER};
+    let root = std::env::temp_dir()
+        .canonicalize()
+        .unwrap()
+        .join(opaque_id("local-recovery-").unwrap());
+    std::fs::create_dir(&root).unwrap();
+    let peer = Peer::with_ledger("local-recovery-home", Some(root.join("ledger.jsonl")));
+    peer.host
+        .inner
+        .0
+        .lock()
+        .unwrap()
+        .threads
+        .push(json!({"generation":peer.g,"threadId":"t","modelProvider":PROVIDER,"model":MODEL}));
+    let context = crate::recovery::ExplicitAppProjectContext::known(
+        "project:local",
+        crate::recovery::AppProjectSource::ConfiguredDirectory,
+    )
+    .unwrap();
+    peer.host
+        .observe_conversation_project(&peer.g, "t", Some("H-omlx"), &context)
+        .unwrap();
+    peer.host.tag_conversation(
+        &peer.g,
+        "t",
+        Some("H-omlx"),
+        crate::run_restart::RUN_TAG_OWNER,
+        "run:local",
+    );
+    let rows = peer.host.recorded_recovery_entries();
+    let rows = rows.as_array().unwrap();
+    assert!(rows.iter().any(|r| r["kind"] == "conversation_index"
+        && r["home"] == "H-omlx"
+        && r["threadId"] == "t"));
+    assert_eq!(
+        crate::run_restart::conversation_home_class(rows, &[], "t", "run:local").unwrap(),
+        "H-omlx"
+    );
+    let mut selection =
+        crate::access::ConversationSelection::new("attempt:local", "project:local").unwrap();
+    selection.choose(ENTRY, PROVIDER, MODEL, false).unwrap();
+    assert!(selection.start_params(&peer.g, "account", false).is_err());
+    assert!(selection.start_params(&peer.g, "api-key", false).is_err());
+    selection
+        .start_params(&peer.g, "local-provider", false)
+        .unwrap();
+    assert_eq!(selection.recovery_home(), Some("H-omlx"));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn native_local_provider_cancel_window_or_source_change_never_writes_or_replays_a_key() {
+    use crate::native_local_provider as route;
+    use std::sync::atomic::{AtomicBool,Ordering};
+    for case in ["cancel","window","source"] {
+        let root=std::env::temp_dir().canonicalize().unwrap().join(opaque_id("local-entry-limit-").unwrap());std::fs::create_dir(&root).unwrap();
+        let plan=crate::home_resources::OwnedHomePlan::new(root.clone(),root.join("local"),crate::home_resources::HomeClass::LocalProvider,None).unwrap();route::prepare(&plan).unwrap();
+        let mut peer=Peer::new(&plan.opaque_home_id());canonical_167_peer(&peer);peer.host.inner.0.lock().unwrap().local_provider=Some(LocalProviderBinding{home:plan.opaque_home_id(),cwd:"/invented/work".into()});peer.answer(local_167_config());
+        let cfg=HostConfig::new(root.join("not-run"),plan.native_path().into(),root.join("probe"),"/invented/work".into());
+        let home=crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider,peer.host.clone(),Ok(cfg)).unwrap();let g=peer.g.clone();let entry=route::CredentialEntry::default();let current=AtomicBool::new(true);
+        let result=std::thread::scope(|scope|{
+            let worker=scope.spawn(||route::submit(&home,&plan,&g,&entry,||if current.load(Ordering::SeqCst){Ok(())}else{Err("original window closed".into())},||{
+                if case=="cancel" {return Ok(None);}
+                if case=="window" {current.store(false,Ordering::SeqCst);}else{home.host.inner.0.lock().unwrap().generation["spawnCounter"]=json!(2);}
+                Ok(Some(CANARY.into()))
+            }));
+            assert_eq!(peer.frame()["method"],"config/read");let policy=peer.frame();assert_eq!(policy["method"],"configRequirements/read");
+            peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":null}})).unwrap(),&peer.g);worker.join().unwrap()
+        });
+        assert_eq!(result.is_ok(),case=="cancel");
+        assert!(peer.host.client_requests().iter().all(|r|r["method"]!="account/login/start"));peer.safe();
+        assert!(!json!(peer.host.journal()).to_string().contains(CANARY));std::fs::remove_dir_all(root).unwrap();
+    }
 }

@@ -47,7 +47,8 @@
           "enum": [
             "account",
             "api-key",
-            "probe"
+            "probe",
+            "local-provider"
           ]
         },
         "configLink": {
@@ -167,7 +168,7 @@
       "properties": {
         "entryId": {
           "type": "string",
-          "pattern": "^(chatgpt-account|api-key|local-provider:[A-Za-z0-9_.-]+|other-provider:[A-Za-z0-9_.-]+)$"
+          "pattern": "^(chatgpt-account|api-key|local-provider-keyed|local-provider:[A-Za-z0-9_.-]+|other-provider:[A-Za-z0-9_.-]+)$"
         },
         "kind": {
           "enum": [
@@ -184,7 +185,8 @@
         "home": {
           "enum": [
             "account",
-            "api-key"
+            "api-key",
+            "local-provider"
           ]
         },
         "providerId": {
@@ -313,21 +315,49 @@
               "providerId"
             ],
             "properties": {
-              "state": {
-                "enum": [
-                  "listed",
-                  "in-use",
-                  "failing",
-                  "not-configured"
-                ]
-              },
-              "home": {
-                "const": "account"
-              },
               "destinationClass": {
                 "const": "local model server"
               }
-            }
+            },
+            "oneOf": [
+              {
+                "properties": {
+                  "entryId": {
+                    "const": "local-provider-keyed"
+                  },
+                  "home": {
+                    "const": "local-provider"
+                  },
+                  "state": {
+                    "enum": [
+                      "entry-required",
+                      "configured-not-verified",
+                      "failing"
+                    ]
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "entryId": {
+                    "not": {
+                      "const": "local-provider-keyed"
+                    }
+                  },
+                  "home": {
+                    "const": "account"
+                  },
+                  "state": {
+                    "enum": [
+                      "listed",
+                      "in-use",
+                      "failing",
+                      "not-configured"
+                    ]
+                  }
+                }
+              }
+            ]
           }
         },
         {

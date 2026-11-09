@@ -188,7 +188,7 @@ impl ConversationSelection {
         ) {
             return Err("selection is not ready to start".into());
         }
-        if !matches!(home_kind, "account" | "api-key")
+        if !matches!(home_kind, "account" | "api-key" | "local-provider")
             || generation["home"]
                 .as_str()
                 .map(str::is_empty)
@@ -207,6 +207,7 @@ impl ConversationSelection {
         if self.record["selection"]["entryId"] == "chatgpt-account" && home_kind != "account" {
             return Err("ChatGPT entry requires account home".into());
         }
+        if (home_kind=="local-provider" || self.record["selection"]["entryId"]==crate::native_local_provider::ENTRY) && (home_kind!="local-provider" || crate::native_local_provider::fixed_selection(self.record["selection"]["entryId"].as_str().unwrap_or(""),self.record["selection"]["providerId"].as_str().unwrap_or(""),self.record["selection"]["model"].as_str().unwrap_or("")).is_err()) { return Err(crate::native_local_provider::LIMIT.into()); }
         self.home = Some(home_kind.into());
         self.generation = Some(generation.clone());
         self.record["state"] = json!("starting");
@@ -253,6 +254,7 @@ impl ConversationSelection {
         match self.home.as_deref() {
             Some("account") => Some("H-acct"),
             Some("api-key") => Some("H-key"),
+            Some("local-provider") => Some("H-omlx"),
             _ => None,
         }
     }

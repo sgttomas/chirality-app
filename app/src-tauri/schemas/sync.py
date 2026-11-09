@@ -13,9 +13,34 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--sync', action='store_true')
 parser.add_argument('--catalog-adapter', action='store_true',
                     help='Use the separately maintained catalog/receiving resource manifest')
+parser.add_argument('--runtime-core', action='store_true', help='Use the current runtime resource source map')
+parser.add_argument('--resource', help='Select one runtime resource for bounded current derivation')
 args = parser.parse_args()
 here = Path(__file__).resolve().parent
 root = here.parents[2]
+if args.runtime_core:
+    directory = here.parent / 'resources/runtime_core'
+    path = directory / 'MANIFEST.json'
+    manifest = json.loads(path.read_text())
+    rows = [r for r in manifest['resources'] if args.resource is None or r['file'] == args.resource]
+    if not rows:
+        parser.error('runtime resource is not in the maintained source map')
+    for row in rows:
+        logical = row['source'].removeprefix('projects/chirality-app-v4/').replace('/Design/', '/Work/')
+        source = (root / logical.replace('execution/', 'app/contract_inputs/', 1)).read_bytes()
+        copied = directory / row['file']
+        digest = hashlib.sha256(source).hexdigest()
+        if args.sync:
+            copied.write_bytes(source)
+            row['sha256'] = row['sourceSha256'] = digest
+            row['standing'] = 'maintained current source schema'
+        else:
+            assert copied.read_bytes() == source, f"runtime copy mismatch: {row['file']}"
+            assert row['sha256'] == row['sourceSha256'] == digest, f"runtime source hash mismatch: {row['source']}"
+    if args.sync:
+        path.write_text(json.dumps(manifest, indent=2) + '\n')
+    print(f"{len(rows)} runtime resources match selected source bytes and hashes")
+    raise SystemExit(0)
 if args.catalog_adapter:
     directory = here.parent / 'resources/catalog_adapter'
     path = directory / 'manifest.json'

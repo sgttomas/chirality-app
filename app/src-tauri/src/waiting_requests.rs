@@ -36,7 +36,7 @@ pub(crate) fn overview(router: &HomeRouter) -> Value {
 pub(crate) fn validate(router: &HomeRouter, mode: &str, generation: &Value, thread: &Value) -> Result<bool, String> {
     crate::recovery::generation_ref(generation)?;
     if !thread.is_null() && !thread.as_str().is_some_and(|s|!s.is_empty()) { return Err("Waiting conversation must be the original named thread or null".into()); }
-    let class = match mode { "account"=>HomeClass::Account,"api-key"=>HomeClass::ApiKey,_=>return Err("Unknown waiting-request home class; no fallback".into()) };
+    let class = match mode { "account"=>HomeClass::Account,"api-key"=>HomeClass::ApiKey,"local-provider"=>HomeClass::LocalProvider,_=>return Err("Unknown waiting-request home class; no fallback".into()) };
     let home = router.entry(class)?;
     let snapshot = home.host.snapshot();
     if snapshot["generation"] != *generation || snapshot["state"] != "ready" {
@@ -51,7 +51,7 @@ pub(crate) fn validate(router: &HomeRouter, mode: &str, generation: &Value, thre
 
 pub(crate) fn open(router: &mut HomeRouter, mode: &str, generation: &Value, thread: &Value) -> Result<Value, String> {
     let loaded = validate(router, mode, generation, thread)?;
-    let class = match mode { "account"=>HomeClass::Account,"api-key"=>HomeClass::ApiKey,_=>return Err("Unknown waiting-request home class; no fallback".into()) };
+    let class = match mode { "account"=>HomeClass::Account,"api-key"=>HomeClass::ApiKey,"local-provider"=>HomeClass::LocalProvider,_=>return Err("Unknown waiting-request home class; no fallback".into()) };
     router.activate(class)?;
     Ok(json!({"modeHomeClass":mode,"generation":generation,"threadId":thread,"threadLoaded":loaded,
         "standing":"Explicit navigation to the original current waiting-request source only; no answer, resume or send"}))

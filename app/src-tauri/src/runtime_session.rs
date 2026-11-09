@@ -2424,6 +2424,7 @@ fn submit_selected_inner(
 pub struct HomeBootstrapSet {
     account: crate::home_resources::ExistingHomeReference,
     key: Option<crate::home_resources::OwnedHomePlan>,
+    local: Option<crate::home_resources::OwnedHomePlan>,
     probe: crate::home_resources::ExistingHomeReference,
     shared_root_targets: Option<crate::home_resources::SharedResourceTargets>,
 }
@@ -2445,6 +2446,7 @@ impl HomeBootstrapSet {
         let set = Self {
             account,
             key,
+            local: None,
             probe,
             shared_root_targets: None,
         };
@@ -2460,6 +2462,7 @@ impl HomeBootstrapSet {
         if let Some(key) = &self.key {
             bindings.push(HomeBinding::Owned(key));
         }
+        if let Some(local) = &self.local { bindings.push(HomeBinding::Owned(local)); }
         crate::home_resources::validate_home_bindings(&bindings)
     }
     pub fn native_namespaces(
@@ -2475,6 +2478,7 @@ impl HomeBootstrapSet {
                 NativeHomeNamespace::received(&self.account, targets),
                 NativeHomeNamespace::received(&self.probe, None),
             ];
+            if let Some(local) = &self.local { homes.push(NativeHomeNamespace::planned(local)); }
             if include_key {
                 homes.push(NativeHomeNamespace::planned(self.key_plan()?));
             }
@@ -2493,10 +2497,11 @@ impl HomeBootstrapSet {
         let target=match class {
             crate::home_resources::HomeClass::Account=>self.shared_root_targets.as_ref().map(|s|s.config_toml.clone()),
             crate::home_resources::HomeClass::ApiKey=>self.key_plan()?.inspect()?.resources.into_iter().find(|r|r.name=="config.toml"&&r.state==crate::home_resources::ResourceState::Linked).and_then(|r|r.intended_target),
-            crate::home_resources::HomeClass::Probe=>None,
+            crate::home_resources::HomeClass::LocalProvider | crate::home_resources::HomeClass::Probe=>None,
         };
         target.map(|target|crate::child_roles::ConfigLink::observed(config.codex_home.join("config.toml"),target)).transpose()
     }
+    pub(crate) fn local_plan(&self) -> Result<&crate::home_resources::OwnedHomePlan, String> { self.local.as_ref().ok_or_else(|| "Local provider source not prepared; no account/key fallback".into()) }
     pub fn key_plan(&self) -> Result<&crate::home_resources::OwnedHomePlan, String> {
         self.key.as_ref().ok_or_else(|| {
             "Key home/resource descriptors not explicitly configured; no account fallback".into()
@@ -2541,6 +2546,7 @@ impl HomeBootstrapSet {
         let path = match class {
             crate::home_resources::HomeClass::Account => self.account.native_path(),
             crate::home_resources::HomeClass::ApiKey => self.key_plan()?.native_path(),
+            crate::home_resources::HomeClass::LocalProvider => self.local_plan()?.native_path(),
             crate::home_resources::HomeClass::Probe => {
                 return Err("Probe is not an active Host entry".into())
             }
@@ -2722,6 +2728,7 @@ pub(crate) fn observe_home(homes: &std::sync::Mutex<HomeRouter>, source: &Value,
 pub struct HomeRouter {
     account: std::sync::Arc<HomeSession>,
     key: Option<std::sync::Arc<HomeSession>>,
+    local: Option<std::sync::Arc<HomeSession>>,
     active: crate::home_resources::HomeClass,
 }
 impl HomeRouter {
@@ -2732,6 +2739,7 @@ impl HomeRouter {
         Ok(Self {
             account,
             key: None,
+            local: None,
             active: crate::home_resources::HomeClass::Account,
         })
     }
@@ -2748,6 +2756,7 @@ impl HomeRouter {
                 .key
                 .clone()
                 .ok_or_else(|| "Separate key entry is not configured; no account fallback".into()),
+            crate::home_resources::HomeClass::LocalProvider => self.local.clone().ok_or_else(|| "Local provider source is not prepared; no fallback".into()),
             crate::home_resources::HomeClass::Probe => {
                 Err("Probe is not a conversation entry".into())
             }
@@ -2774,6 +2783,14 @@ impl HomeRouter {
         }
         self.key = Some(key);
         Ok(())
+    }
+    pub(crate) fn bind_local(&mut self, local: std::sync::Arc<HomeSession>) -> Result<(), String> {
+        if self.local.is_some() || local.class != crate::home_resources::HomeClass::LocalProvider { return Err("Local source already bound or wrong class; no replacement".into()); }
+        let source = local.host_config.as_ref().map_err(Clone::clone)?;
+        for entry in self.entries() {
+            if entry.host_config.as_ref().map_err(Clone::clone)?.codex_home == source.codex_home || !std::sync::Arc::ptr_eq(&entry.host.app_runtime_custody()?, &local.host.app_runtime_custody()?) { return Err("Local source custody/path differs from its actual App binding".into()); }
+        }
+        self.local = Some(local); Ok(())
     }
     /// Resolve an actual full tuple, including retained closed generations in its
     /// owning App session. Stale/closed operational admission remains Host-owned.
@@ -2820,6 +2837,7 @@ impl HomeRouter {
         if let Some(key) = &self.key {
             entries.push(key.clone());
         }
+        if let Some(local) = &self.local { entries.push(local.clone()); }
         entries
     }
     pub fn snapshot(&self) -> Value {
@@ -2834,7 +2852,7 @@ pub(crate) fn native_api_key_entry(app: &tauri::AppHandle) -> Result<Option<Stri
     {
         let (sender, receiver) = std::sync::mpsc::sync_channel(1);
         app.run_on_main_thread(move || {
-            let value = unsafe { mac_secure_entry::show() };
+            let value = unsafe { crate::native_secure_entry::mac_secure_entry::show(crate::native_secure_entry::Labels::HomeKey) };
             let _ = sender.send(value);
         })
         .map_err(|_| ())?;
@@ -2844,141 +2862,6 @@ pub(crate) fn native_api_key_entry(app: &tauri::AppHandle) -> Result<Option<Stri
     {
         let _ = app;
         Err(())
-    }
-}
-#[cfg(target_os = "macos")]
-mod mac_secure_entry {
-    use std::ffi::{c_char, c_void};
-    type Id = *mut c_void;
-    #[repr(C)]
-    #[derive(Clone, Copy)]
-    struct Point {
-        x: f64,
-        y: f64,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
-    struct Size {
-        width: f64,
-        height: f64,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
-    struct Rect {
-        origin: Point,
-        size: Size,
-    }
-    #[link(name = "AppKit", kind = "framework")]
-    extern "C" {}
-    #[link(name = "objc")]
-    extern "C" {
-        fn objc_getClass(name: *const c_char) -> Id;
-        fn sel_registerName(name: *const c_char) -> Id;
-        fn objc_msgSend();
-    }
-    unsafe fn selector(name: &'static [u8]) -> Id {
-        sel_registerName(name.as_ptr().cast())
-    }
-    unsafe fn class(name: &'static [u8]) -> Id {
-        objc_getClass(name.as_ptr().cast())
-    }
-    unsafe fn id(receiver: Id, name: &'static [u8]) -> Id {
-        let f: unsafe extern "C" fn(Id, Id) -> Id = std::mem::transmute(objc_msgSend as *const ());
-        f(receiver, selector(name))
-    }
-    unsafe fn object(receiver: Id, name: &'static [u8], value: Id) {
-        let f: unsafe extern "C" fn(Id, Id, Id) = std::mem::transmute(objc_msgSend as *const ());
-        f(receiver, selector(name), value);
-    }
-    unsafe fn string(text: &'static [u8]) -> Id {
-        let f: unsafe extern "C" fn(Id, Id, *const c_char) -> Id =
-            std::mem::transmute(objc_msgSend as *const ());
-        f(
-            class(b"NSString\0"),
-            selector(b"stringWithUTF8String:\0"),
-            text.as_ptr().cast(),
-        )
-    }
-    unsafe fn release(value: Id) {
-        let f: unsafe extern "C" fn(Id, Id) = std::mem::transmute(objc_msgSend as *const ());
-        f(value, selector(b"release\0"));
-    }
-    pub(super) unsafe fn show() -> Result<Option<String>, ()> {
-        let pool = id(class(b"NSAutoreleasePool\0"), b"new\0");
-        let alert = id(class(b"NSAlert\0"), b"new\0");
-        let allocated = id(class(b"NSSecureTextField\0"), b"alloc\0");
-        let initialize: unsafe extern "C" fn(Id, Id, Rect) -> Id =
-            std::mem::transmute(objc_msgSend as *const ());
-        let field = initialize(
-            allocated,
-            selector(b"initWithFrame:\0"),
-            Rect {
-                origin: Point { x: 0., y: 0. },
-                size: Size {
-                    width: 360.,
-                    height: 26.,
-                },
-            },
-        );
-        if pool.is_null() || alert.is_null() || field.is_null() {
-            if !field.is_null() {
-                release(field);
-            }
-            if !alert.is_null() {
-                release(alert);
-            }
-            if !pool.is_null() {
-                release(pool);
-            }
-            return Err(());
-        }
-        object(
-            alert,
-            b"setMessageText:\0",
-            string(b"Add or replace API key through Codex\0"),
-        );
-        object(alert,b"setInformativeText:\0",string(b"The key is delivered once to this separate App key home. Native acknowledgment does not establish validity until actual use.\0"));
-        object(alert, b"setAccessoryView:\0", field);
-        let add: unsafe extern "C" fn(Id, Id, Id) -> Id =
-            std::mem::transmute(objc_msgSend as *const ());
-        add(
-            alert,
-            selector(b"addButtonWithTitle:\0"),
-            string(b"Submit key\0"),
-        );
-        add(
-            alert,
-            selector(b"addButtonWithTitle:\0"),
-            string(b"Cancel\0"),
-        );
-        let modal: unsafe extern "C" fn(Id, Id) -> isize =
-            std::mem::transmute(objc_msgSend as *const ());
-        let accepted = modal(alert, selector(b"runModal\0")) == 1000;
-        let result = if accepted {
-            let value = id(field, b"stringValue\0");
-            let length: unsafe extern "C" fn(Id, Id, usize) -> usize =
-                std::mem::transmute(objc_msgSend as *const ());
-            let n = length(value, selector(b"lengthOfBytesUsingEncoding:\0"), 4);
-            let pointer: unsafe extern "C" fn(Id, Id) -> *const u8 =
-                std::mem::transmute(objc_msgSend as *const ());
-            let bytes = pointer(value, selector(b"UTF8String\0"));
-            if bytes.is_null() || n == 0 {
-                Err(())
-            } else {
-                std::str::from_utf8(std::slice::from_raw_parts(bytes, n))
-                    .map(|text| Some(text.to_owned()))
-                    .map_err(|_| ())
-            }
-        } else {
-            Ok(None)
-        };
-        // Release the secure field before the caller receives its one transient
-        // buffer. Ordinary drop/release is not allocator/OS physical erasure.
-        object(field, b"setStringValue:\0", string(b"\0"));
-        release(field);
-        release(alert);
-        release(pool);
-        result
     }
 }
 
@@ -3037,6 +2920,8 @@ pub fn freeze_root_home_descriptors(
     };
     let mut set = HomeBootstrapSet::new(account, key, probe)?;
     set.shared_root_targets = shared_root_targets;
+    set.local = Some(OwnedHomePlan::new(app_data.to_path_buf(), app_data.join("codex-omlx"), HomeClass::LocalProvider, None)?);
+    set.revalidate()?;
     Ok(set)
 }
 
@@ -3266,7 +3151,8 @@ pub fn logout_native_home<F: FnOnce(&Value) -> bool>(
             let entry = selection.snapshot()["selection"]["entryId"].clone();
             let affected = (home.class == crate::home_resources::HomeClass::Account
                 && entry == "chatgpt-account")
-                || (home.class == crate::home_resources::HomeClass::ApiKey && entry == "api-key");
+                || (home.class == crate::home_resources::HomeClass::ApiKey && entry == "api-key")
+                || (home.class == crate::home_resources::HomeClass::LocalProvider && entry == crate::native_local_provider::ENTRY);
             if affected && selection.owning_generation() == Some(&frozen.generation) {
                 let _=selection.unavailable("Codex reported logout for this entry; no home transfer or credential-file inspection");
             }
@@ -8812,7 +8698,7 @@ for line in sys.stdin:
         let key = Peer::with_class(crate::home_resources::HomeClass::ApiKey);
         // Construct two already-owned actual peers for this read-routing test;
         // it does not claim a qualified shared App namespace/bootstrap.
-        let homes = Mutex::new(HomeRouter { account: account.home.clone(), key: Some(key.home.clone()), active: crate::home_resources::HomeClass::ApiKey });
+        let homes = Mutex::new(HomeRouter { account: account.home.clone(), key: Some(key.home.clone()), local: None, active: crate::home_resources::HomeClass::ApiKey });
         let before = (account.home.host.client_requests().len(), key.home.host.client_requests().len());
         let attached = observe_home(&homes, &account.generation, &Value::Null, 0);
         assert_eq!(attached["generation"], account.generation, "the active key home never substitutes for the selected account source");

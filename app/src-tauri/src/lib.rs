@@ -50,6 +50,8 @@ mod publisher_selection;
 #[path = "../build.rs"]
 mod publisher_recipe;
 pub mod home_resources;
+mod native_local_provider;
+mod native_secure_entry;
 mod desktop_startup;
 mod desktop_setup_confirmation;
 mod main_window;
@@ -140,6 +142,7 @@ pub struct AppState {
     native_namespaces: Mutex<Result<Arc<hosting::attachment_custody::NativeNamespaceBindings>,String>>,
     key_namespace_admission: Mutex<Value>,
     key_setup: Mutex<()>,
+    local_credentials: native_local_provider::CredentialEntry,
     root_home_inputs: Value,
     /// One Stop/Restart Codex question at a time.
     codex_stop_gate: Mutex<()>,
@@ -953,7 +956,7 @@ fn records_store_identity(state: State<'_, AppState>, action: String) -> Result<
 fn records_store_choose(state: State<'_, AppState>, location: String) -> Result<Value, String> {
     let data = state.app_user_data_root.lock().unwrap().clone()?;
     let homes = state.homes.lock().unwrap();
-    let configs: Vec<hosting::HostConfig> = [home_resources::HomeClass::Account, home_resources::HomeClass::ApiKey].into_iter()
+    let configs: Vec<hosting::HostConfig> = [home_resources::HomeClass::Account, home_resources::HomeClass::ApiKey, home_resources::HomeClass::LocalProvider].into_iter()
         .filter_map(|class| homes.entry(class).ok()).filter_map(|home| home.host_config.as_ref().ok().cloned()).collect();
     drop(homes);
     records_store::choose_location(&data, std::path::Path::new(&location), state.workspace.as_deref(), &codex_homes(configs.iter()))
@@ -1060,7 +1063,7 @@ fn inspect_connector_drafts(state:State<'_,AppState>)->Result<Value,String>{
 }
 
 fn home_class(mode: &str) -> Result<home_resources::HomeClass,String> {
-    match mode { "account"=>Ok(home_resources::HomeClass::Account),"api-key"=>Ok(home_resources::HomeClass::ApiKey),_=>Err("Unknown active home class; no default/fallback".into()) }
+    match mode { "account"=>Ok(home_resources::HomeClass::Account),"api-key"=>Ok(home_resources::HomeClass::ApiKey),"local-provider"=>Ok(home_resources::HomeClass::LocalProvider),_=>Err("Unknown active home class; no default/fallback".into()) }
 }
 #[tauri::command]
 fn select_home(state: State<'_,AppState>, mode_home_class:String)->Result<Value,String>{
@@ -1216,6 +1219,58 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
     runtime_session::submit_native_home_key(&home,&bootstrap,&generation,||runtime_session::native_api_key_entry(&app))
 }
 
+/// Explicit local-provider setup; no endpoint/model/key argument and no account resource links.
+#[tauri::command(async)]
+fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> Result<Value, String> {
+    if hosting::DECLARED_PIN!="0.167.0" { return Err(native_local_provider::LIMIT.into()); }
+    let _operation=state.key_setup.try_lock().map_err(|_| native_local_provider::LIMIT)?;
+    if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.into()); }
+    provider_endpoint_confirmation::recheck_original(&window)?;
+    let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
+    let plan=bootstrap.local_plan()?;
+    let account=state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?;
+    state.validate_home_source(&account)?;
+    // The prospective local directory is already in the actual Root namespace set.
+    let data=state.app_user_data_root.lock().unwrap().clone()?;
+    let namespaces=bootstrap.native_namespaces(state.homes.lock().unwrap().entry(home_resources::HomeClass::ApiKey).is_ok())?;
+    account.host.app_runtime_custody()?.preflight_native_namespaces(&namespaces)?;
+    let attachment=account.attachment_custody.lock().unwrap().as_ref().map_err(Clone::clone)?.clone();
+    attachment.preflight_binding(&namespaces)?;
+    native_local_provider::prepare(plan)?;
+    bootstrap.revalidate()?;
+    let home=match state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider) { Ok(home)=>Some(home),Err(_)=>None };
+    let home=if let Some(home)=home { home } else {
+        let config=native_local_provider::config(account.host_config.as_ref().map_err(Clone::clone)?,plan)?;
+        let host=Arc::new(Host::new_with_app_custody(account.host.app_runtime_custody()?)?);
+        host.bind_local_destination(&config,plan)?;
+        if let Some(store)=account.host.distribution_store_for_admission(config.distribution.is_some())? { host.configure_distribution_store(Ok(store)); }
+        if let Some(capability)=account.host.records_capability() { if let Some(context)=account.host.records_project_context() {host.configure_records_capability_with_context(capability,context);}else{host.configure_records_capability(capability);} }
+        let home=Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::LocalProvider,host,Ok(config))?);
+        *home.attachment_custody.lock().unwrap()=Ok(attachment);
+        home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
+        home.recovery_startup.lock().unwrap().adopt_shared_source(&home.host);
+        state.homes.lock().unwrap().bind_local(home.clone())?; home
+    };
+    provider_endpoint_confirmation::recheck_original(&window)?;
+    if home.host.snapshot()["state"] != "ready" { start_home(&state,&home,"the person: prepare local oMLX source")?; }
+    let generation=home.host.snapshot()["generation"].clone();
+    home.host.require_canonical_167(&generation)?;
+    let _=data;
+    Ok(native_local_provider::view(generation,false))
+}
+#[tauri::command(async)]
+fn submit_local_provider_key(app: tauri::AppHandle, window: tauri::Window, state: State<'_, AppState>, generation: Value) -> Result<Value, String> {
+    let _operation=state.key_setup.try_lock().map_err(|_| native_local_provider::LIMIT)?;
+    if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.into()); }
+    let home=state.homes.lock().unwrap().for_generation(&generation)?;
+    let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
+    state.validate_home_source(&home)?;
+    let field_home=home.clone(); let field_generation=generation.clone(); let field_window=window.clone();
+    native_local_provider::submit(&home,bootstrap.local_plan()?,&generation,&state.local_credentials,
+        || provider_endpoint_confirmation::recheck_original(&window),
+        || native_secure_entry::local(&app,field_window,move || field_home.host.snapshot()["generation"]==field_generation && field_home.host.snapshot()["state"]=="ready"))
+}
+
 #[tauri::command(async)]
 fn host_start(state: State<'_, AppState>, mode_home_class:String) -> Result<Value, String> {
     let home = state.homes.lock().unwrap().entry(home_class(&mode_home_class)?)?;
@@ -1227,6 +1282,7 @@ fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str
     invalidate_endpoint_edits(state)?;
     let cfg = home.host_config.clone()?;
     state.validate_home_source(home)?;
+    if home.class()==home_resources::HomeClass::LocalProvider { native_local_provider::check(state.home_bootstrap.lock().unwrap().as_ref().map_err(Clone::clone)?.local_plan()?)?; }
     let root = state.app_user_data_root.lock().unwrap().clone();
     runtime_session::start_with_recovery(
         &home.host,
@@ -1538,7 +1594,8 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
         .as_ref()
         .map_err(Clone::clone)?
         .cwd.to_str().ok_or("Native working directory is not Unicode; thread/start cannot carry a lossless JSON cwd, no request sent")?.to_owned();
-    let allowed = match home.class() { home_resources::HomeClass::Account=>matches!(entry_id.as_str(),"chatgpt-account"|"local-provider"),home_resources::HomeClass::ApiKey=>entry_id=="api-key",home_resources::HomeClass::Probe=>false };
+    let allowed = match home.class() { home_resources::HomeClass::Account=>matches!(entry_id.as_str(),"chatgpt-account"|"local-provider"),home_resources::HomeClass::ApiKey=>entry_id=="api-key",home_resources::HomeClass::LocalProvider=>native_local_provider::fixed_selection(&entry_id,&model_provider,&model).is_ok(),home_resources::HomeClass::Probe=>false };
+    if home.class()==home_resources::HomeClass::LocalProvider { native_local_provider::check(state.home_bootstrap.lock().unwrap().as_ref().map_err(Clone::clone)?.local_plan()?)?; }
     if !allowed { return Err("Access entry differs from the selected actual home class; no native transfer/fallback".into()); }
     if let Ok(set) = &*state.home_bootstrap.lock().unwrap() { set.validate_binding(home.class(),home.host_config.as_ref().map_err(Clone::clone)?)?; }
     else if home.class()==home_resources::HomeClass::ApiKey {return Err("Explicit key source binding is unavailable".into());}
@@ -1704,6 +1761,11 @@ fn ordinary_send_text(home: &runtime_session::HomeSession, workflows: &std::sync
     ordinary_send_text_effort(home, workflows, generation, thread, text, mode, model, None)
 }
 fn ordinary_send_text_effort(home: &runtime_session::HomeSession, workflows: &std::sync::Mutex<runtime_session::WorkflowRootSession>, generation: &Value, thread: &str, text: &str, mode: Option<&str>, model: Option<&str>, effort: Option<&str>) -> Result<Value, String> {
+    if home.class()==home_resources::HomeClass::LocalProvider {
+        if model.is_some_and(|m| m != native_local_provider::MODEL) { return Err(native_local_provider::LIMIT.into()); }
+        home.host.require_canonical_167(generation)?;
+    }
+    let model=if home.class()==home_resources::HomeClass::LocalProvider { Some(native_local_provider::MODEL) } else { model };
     // TC-2: one original ordered notice/person frame, with the same mode/model.
     if let Some(sent) = runtime_session::send_with_pending_notice_effort_observed(workflows, generation, thread, text, mode, model, effort, &mut |_| {}) {
         return sent.result;
@@ -1719,6 +1781,7 @@ fn ordinary_send_text_effort(home: &runtime_session::HomeSession, workflows: &st
 fn read_available_models(state: State<'_, AppState>, generation: Value, mode_home_class: String, thread_id: Option<String>) -> Result<Value, String> {
     let refused = || "Model list unavailable: the selected Codex source changed; nothing was chosen".to_owned();
     let home = state.homes.lock().unwrap().active();
+    if home.class()==home_resources::HomeClass::LocalProvider { return Err("The local home uses only the explicitly selected oMLX model; no remote catalogue discovery is offered".into()); }
     let class = match mode_home_class.as_str() { "account" => home_resources::HomeClass::Account, "api-key" => home_resources::HomeClass::ApiKey, _ => return Err(refused()) };
     if home.class() != class || home.host.snapshot()["generation"] != generation { return Err(refused()); }
     state.validate_home_source(&home).map_err(|_| refused())?;
@@ -2627,7 +2690,7 @@ fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desk
         home_bootstrap: Mutex::new(bootstrap.ok_or_else(||"Explicit Root home descriptors not initialized".into())),
         native_namespaces: Mutex::new(namespaces.unwrap_or_else(||Err("Root native namespace bindings not initialized".into()))),
         key_namespace_admission: Mutex::new(json!({"state":"prospective key not admitted"})),
-        key_setup: Mutex::new(()),
+        key_setup: Mutex::new(()), local_credentials: native_local_provider::CredentialEntry::default(),
         root_home_inputs: json!({"source":source,"keyHome":key_path.as_ref().map(|path|attachments::native_path_identity(path)),"sharedConfig":shared_paths[0].as_ref().map(|path|attachments::native_path_identity(path)),"sharedGlobalAgents":shared_paths[1].as_ref().map(|path|attachments::native_path_identity(path)),"sharedSkills":shared_paths[2].as_ref().map(|path|attachments::native_path_identity(path)),"limit":"supplied references are not observed linked state, ownership or native discovery proof"}),
         codex_stop_gate: Mutex::new(()),
         codex_stops: Mutex::new(Vec::new()),
@@ -2860,6 +2923,8 @@ pub fn run() {
             finish_native_waiting_intent,
             read_home_access, read_effective_access_settings, read_configured_providers, provider_endpoint_offer, provider_endpoint_save, provider_endpoint_discard, provider_create_offer, provider_create_save, provider_create_discard,
             add_api_key,
+            prepare_local_provider,
+            submit_local_provider_key,
             oauth_start,oauth_present,oauth_cancel,
             logout_home,
             host_observe,
@@ -2940,7 +3005,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
+        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}
