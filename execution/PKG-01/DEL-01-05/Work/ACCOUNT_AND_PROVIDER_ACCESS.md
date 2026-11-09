@@ -1695,6 +1695,46 @@ rewrite the native command outcome. Offline invented-peer IPC/Host/RS checks
 and mounted App tests establish carriage and receiving behavior, not model or
 supplier qualification.
 
+### Offered per-model effort for ordinary text
+
+J1 required Agent 0 to edit `model_reasoning_effort` privately because the App
+had no usable effort chooser. The focused repair in `app/src/ModelChoice.tsx`
+and `app/src/App.tsx` reads the existing supplier model catalog only when asked
+and offers that model's `supportedReasoningEfforts`, descriptions and labelled
+`defaultReasoningEffort`. These are the pinned 0.160.0 Model fields; effort
+names are supplier data, not an App enum. No catalog default is auto-selected.
+A list must match the current home/generation/provider and one model; absent,
+ambiguous or unavailable offerings leave the current native setting alone.
+Selecting effort explicitly binds the model in the ordinary text request.
+Without a typed override, the catalog read also resolves the current model
+from the Host's ordered correlated request context, checked before and after
+the read. It never silently restores a stale thread-start model; unavailable
+context asks for an explicit model. Observation identity and monotonic source
+epochs prevent old callbacks/read results reviving after a source round trip
+or catalog reread.
+
+The Rust ordinary-text receiver carries the explicit choice as native
+`TurnStartParams.effort`, or `collaborationMode.settings.reasoning_effort` when
+plan/default mode takes precedence. The pending run-end notice carries exactly
+the same choice with the original ordered text in one frame. An omitted effort
+adds no ordinary-turn override. For mode composition, ordered correlated
+accepted requests preserve the sticky effort; a refusal cannot replace it,
+and unknown/write/order gaps refuse inherited composition rather than restore
+a stale thread-start value. Inherited model and effort are rechecked before
+write. Acknowledgment is separate from native adoption and completion.
+
+The local choice follows the existing full conversation/source and edit
+revision guards. Failure/unknown keeps it and the message; no automatic resend
+occurs. After acknowledgment the field returns to “Use current Codex setting”;
+that does not revert the sticky native setting. Attachments, steering, trial
+and other prepared messages receive no new effort override. No configuration
+file, access entry, permission policy, credential flow or instruction package
+is changed. These source changes do not apply to the retained 475c J2 build.
+Focused cases are in `app/tests/conversation-panel.test.mjs`, `model_catalog.rs`,
+`hosting.rs` and `runtime_session.rs`. Native usability, actual model uptake
+and final-candidate qualification remain owed; execution and review results
+belong in the PR. Scope and dependency conditions are unchanged.
+
 ### Current new-conversation chooser
 
 The ordinary Start form owns a new-conversation choice separately from the
@@ -2046,5 +2086,7 @@ native layout/AX, actual completion/readback or J1 qualification for this source
 Root retains independent scrutiny, integration and native receiving.
 
 The separately reported project-library wording, workflow/start diagnostic
-presentation and absent effort chooser remain deferred; no change to those
-surfaces or the owner's App-internal model choice is included.
+presentation remained deferred in that sign-in repair; its subject included no
+effort change. The current offered-effort repair is described above under
+“Offered per-model effort for ordinary text”; it does not update the retained
+sign-in evidence or choose a model for the owner.

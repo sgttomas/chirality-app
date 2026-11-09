@@ -123,3 +123,7 @@ needs:
 code_paths:
 - app/src-tauri/src/catalog.rs
 - app/src-tauri/src/receiving.rs
+- app/contract_inputs/PKG-05/DEL-05-01/Work/prototype/destination_flow.py
+checks:
+- app/tests/failed_turn_permissions_test.py
+- app/src-tauri/tests/catalog_adapter.rs

@@ -41,7 +41,7 @@ jobs:
           p2_production_catalog_tests recovery_reads::tests observer_journal
           observation_custody_tests checkpoint_recorder checkpoint_lapse
           checkpoint_custody trial_reads_route_to_the_home_holding_the_trial_conversation
-          model_turn model_rerouted execution_custody_tests records::durability_tests
+          model_turn ordinary_model model_rerouted execution_custody_tests records::durability_tests
           record_relations records_index u_store_2 recovery::store::tests stop_records
           a15_single_entry a15_native::tests
           act_control::a15::tests::native_presentation_failure_
@@ -157,6 +157,9 @@ jobs:
         run: |
           npm run build
           python src-tauri/schemas/sync.py
+          python src-tauri/schemas/sync.py --catalog-adapter
+      - name: Failed-turn destination receiving regressions
+        run: python3 -B tests/failed_turn_permissions_test.py
       - name: Design schema conditional regressions
         run: python3 -m unittest discover -s ../app/contract_inputs/PKG-04/DEL-04-03/Work/prototype -p 'test_minischema.py'
       - name: Supplier carriage detector regressions (no supplier required)
@@ -251,6 +254,9 @@ jobs:
         run: |
           npm run build
           python src-tauri/schemas/sync.py
+          python src-tauri/schemas/sync.py --catalog-adapter
+      - name: Failed-turn destination receiving regressions
+        run: python3 -B tests/failed_turn_permissions_test.py
       - name: Design schema conditional regressions
         run: python3 -m unittest discover -s ../app/contract_inputs/PKG-04/DEL-04-03/Work/prototype -p 'test_minischema.py'
       - name: Supplier carriage detector regressions (no supplier required)

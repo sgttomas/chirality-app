@@ -55,7 +55,7 @@ needs:
   evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
 - from: DEL-05-01
   condition: Consume from App DEL-05-01 a host agent's network-destination allow list, in-work destination
-    grants and contacted-destination record, which APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5 requires to
+    grants and contacted-destination record, including source/turn-bound unanswered closure with cause turn failed and no grant, which APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5 requires to
     be shown.
   gating: false
   evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
@@ -96,3 +96,5 @@ code_paths:
 checks:
 - app/tests/run-panel.test.mjs
 - app/contract_inputs/PKG-04/DEL-04-02/Work/prototype/validate_settings_in.py
+- app/tests/failed_turn_permissions_test.py
+- app/src-tauri/tests/policy_standing.rs

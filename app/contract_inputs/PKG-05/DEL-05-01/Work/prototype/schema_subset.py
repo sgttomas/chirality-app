@@ -16,7 +16,7 @@ import sys
 
 ANNOTATIONS = {"$schema", "$id", "title", "description", "$comment", "examples", "$defs"}
 SUPPORTED = {"type", "properties", "required", "additionalProperties", "enum", "const",
-             "items", "minItems", "minLength", "minimum", "oneOf", "anyOf", "$ref"}
+             "items", "minItems", "minLength", "minimum", "oneOf", "anyOf", "$ref", "allOf", "if", "then", "else", "not"}
 
 
 class UnsupportedKeyword(Exception):
@@ -83,6 +83,14 @@ def validate(instance, schema, root=None, path="$"):
         if "items" in schema:
             for i, item in enumerate(instance):
                 errors += validate(item, schema["items"], root, f"{path}[{i}]")
+    for branch in schema.get("allOf", []):
+        errors += validate(instance, branch, root, path)
+    if "if" in schema:
+        selected = "then" if not validate(instance, schema["if"], root, path) else "else"
+        if selected in schema:
+            errors += validate(instance, schema[selected], root, path)
+    if "not" in schema and not validate(instance, schema["not"], root, path):
+        errors.append(f"{path}: matches forbidden schema")
     if "oneOf" in schema:
         passing = [i for i, s in enumerate(schema["oneOf"]) if not validate(instance, s, root, path)]
         if len(passing) != 1:

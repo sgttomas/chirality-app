@@ -34,7 +34,7 @@ import { AccountStatus, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, runEvidenceAnchor } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
-import { AccessRouteChoice, AvailableModels, modelMatch, validModelPacket } from "./ModelChoice";
+import { AccessRouteChoice, AvailableModels, OfferedEffortChoice, modelMatch, validModelPacket } from "./ModelChoice";
 /** One App-composed message for the person to edit and send; never sent by the App. */
 export type ComposerOffer = { sequence: number; threadKey: string; text: string };
 import { conversationTitle, DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView, conversationLabel } from "./presentation";
@@ -86,7 +86,7 @@ const admittedForkTarget = (response: Json, scope: ForkScope): Pick<ForkNavigati
 
 type AttachmentRequest = { generation: Json; threadId: string; expectedTurnId: string | null; text: string; ownerRef: string; listRevision: number; selectionRefs: string[] };
 type AttachmentOutcome = { request: AttachmentRequest; result: { acknowledged: true; nativeValue: Json } | { acknowledged: false; nativeError: unknown }; observationLimit?: string };
-type OrdinaryTextRequest = { generation: Json; threadId: string; text: string; mode?: "plan" | "default"; model?: string };
+type OrdinaryTextRequest = { generation: Json; threadId: string; text: string; mode?: "plan" | "default"; model?: string; effort?: string };
 type OrdinaryTextOutcome = { request: OrdinaryTextRequest; result: { acknowledged: true; nativeValue: Json } | { acknowledged: false; nativeError: unknown }; observationLimit?: string };
 /** An ordinary send without a native acknowledgement (any error, or a missing
  * result). It may have been sent, so the same conversation ID is held until the
@@ -98,13 +98,13 @@ const ordinaryConversationRef = (generation: Json, thread: string | undefined) =
   ? JSON.stringify([generation.home, generation.appSession, generation.spawnCounter, thread]) : "";
 type PreparedComposerReveal = { sequence: number; item: PreparedMessage; isCurrent: () => boolean; finish: (shown: boolean) => void };
 
-export function ConversationPanel({ focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void> }) {
+export function ConversationPanel({ focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
   const textRevision = useRef(0);
   const composerField = useRef<HTMLTextAreaElement>(null);
-  const [ordinaryModel, setOrdinaryModel] = useState({ owner: "", value: "", revision: 0 });
+  const [ordinaryModel, setOrdinaryModel] = useState({ owner: "", value: "", effort: "", effortModel: "", revision: 0 });
   const [ordinaryOutcome, setOrdinaryOutcome] = useState<OrdinaryTextOutcome | null>(null);
   // Unconfirmed ordinary sends, read at every press through the ref (not the render).
   const [unconfirmed, setUnconfirmedState] = useState<UnconfirmedSend[]>([]);
@@ -137,7 +137,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     ordinaryView.current = { owner: ordinaryOwner, epoch: ordinaryView.current.epoch + 1, ready: sourceReady };
   }
   useEffect(() => {
-    setOrdinaryModel(current => current.owner === ordinaryOwner ? current : { owner: ordinaryOwner, value: "", revision: current.revision + 1 });
+    setOrdinaryModel(current => current.owner === ordinaryOwner ? current : { owner: ordinaryOwner, value: "", effort: "", effortModel: "", revision: current.revision + 1 });
   }, [ordinaryOwner]);
   const ordinaryModelValue = ordinaryModel.owner === ordinaryOwner ? ordinaryModel.value : "";
   const liveTurns = (host?.conversationTurns ?? []).filter((turn: Json) => selected && JSON.stringify(turn.generation) === generationKey && turn.threadId === selected.threadId && turn.nativeTurn?.status === "inProgress" && !turn.observationEnded && !turn.terminalEventObserved);
@@ -160,21 +160,23 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     // Shared by Send text and the plan/default controls; a retained control can't bypass it.
     if (heldSend(selected.threadId)) { setError("Not sent: an earlier message to this conversation wasn't confirmed and may have been sent. Read the conversation, then confirm below before sending again."); return; }
     const request: OrdinaryTextRequest = { generation: { ...selected.generation }, threadId: selected.threadId, text,
-      ...(mode ? { mode } : {}), ...(ordinaryModelValue ? { model: ordinaryModelValue } : {}) };
+      ...(mode ? { mode } : {}), ...(ordinaryModelValue ? { model: ordinaryModelValue } : {}), ...(ordinaryModel.owner === ordinaryOwner && ordinaryModel.effort ? { effort: ordinaryModel.effort, model: ordinaryModel.effortModel } : {}) };
     const view = ordinaryView.current, revision = textRevision.current, choice = ordinaryModel;
     const isCurrent = () => ordinaryView.current.owner === view.owner && ordinaryView.current.epoch === view.epoch && ordinaryView.current.ready;
     turnActionPending.current = true;
     setBusy(mode ? `sending in ${mode} mode` : "sending"); setError(""); setOrdinaryOutcome(null);
     let outcome: OrdinaryTextOutcome;
     try {
-      const nativeValue = await send(request.generation, request.threadId, request.text, request.mode, request.model);
+      const nativeValue = request.effort
+        ? await send(request.generation, request.threadId, request.text, request.mode, request.model, request.effort)
+        : await send(request.generation, request.threadId, request.text, request.mode, request.model);
       // A missing reply is not an acknowledgement: nothing is cleared, and it is held.
       if (nativeValue === undefined || nativeValue === null) throw new Error("The host did not report this send's outcome; it may or may not have been sent.");
       outcome = { request, result: { acknowledged: true, nativeValue } };
       if (isCurrent()) {
         if (textRevision.current === revision) setText(current => current === request.text ? "" : current);
         setOrdinaryModel(current => current.owner === choice.owner && current.revision === choice.revision
-          ? { ...current, value: "", revision: current.revision + 1 } : current);
+          ? { ...current, value: "", effort: "", effortModel: "", revision: current.revision + 1 } : current);
       }
     } catch (nativeError) {
       outcome = { request, result: { acknowledged: false, nativeError } };
@@ -428,8 +430,12 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     {text && selected && textWrittenFor.current && textWrittenFor.current !== threadKey && <p role="note" aria-label="Where your text goes">Your unsent text was written while another conversation was shown. It is kept; if you send it now it goes to {conversationLabel(host, selected)}.</p>}
     <p><label>Text <textarea id="ordinary-composer-text" ref={composerField} aria-describedby="ordinary-send-readiness" disabled={!!busy} value={text} onChange={e => { textRevision.current += 1; textWrittenFor.current = threadKey; setText(e.target.value); }} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
     <p><label>Optional model identifier for next ordinary text turn <input {...EXACT_TEXT} disabled={!selected || !!busy} value={ordinaryModelValue}
-      onChange={e => setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, revision: current.revision + 1 }))} aria-describedby="ordinary-model-help" /></label></p>
+      onChange={e => setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, effort: "", effortModel: "", revision: current.revision + 1 }))} aria-describedby="ordinary-model-help" /></label></p>
     <p id="ordinary-model-help">Applies to Send text and the plan/default text controls below. Empty keeps the existing native model choice. An explicit identifier overrides the model for this turn and subsequent native turns; clearing this field does not revert it. Attachment, steering and prepared-message sends do not use this field.</p>
+    <OfferedEffortChoice owner={ordinaryOwner} threadId={selected?.threadId ?? ""} generation={selected?.generation} homeClass={host?.homeRouting?.activeModeHomeClass ?? null}
+      modelProvider={selected?.modelProvider ?? ""} entryId={selected?.requestedDestination?.entryId ?? (selected?.modelProvider === "openai" ? (host?.homeRouting?.activeModeHomeClass === "api-key" ? "api-key" : "chatgpt-account") : "local-provider")}
+      model={ordinaryModelValue} effort={ordinaryModel.owner === ordinaryOwner ? ordinaryModel.effort : ""} disabled={!sourceReady || !selected || !!busy}
+      choose={(effort, effortModel) => setOrdinaryModel(current => ({ ...current, owner: ordinaryOwner, effort, effortModel, revision: current.revision + 1 }))} />
     <button aria-describedby="ordinary-send-readiness" disabled={!sourceReady || !selected || !text || !!busy || unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected?.threadId)} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
     {selected && <PlanModeControl planMode={host?.planMode} requested={(host?.requestedModes ?? []).find((r: Json) => JSON.stringify(r.generation) === generationKey && r.threadId === selected.threadId) ?? null}
       ready={sourceReady} busy={!!busy} hasText={!!text && !unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId)}
@@ -437,7 +443,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     {(host?.attachmentSelections?.selections ?? []).length > 0 && <p>This plain-text action excludes the selected attachments. Use the explicit ordered-attachment action to include the entire private selection.</p>}
     <p>Text is sent unchanged to the selected native conversation. Its role, access entry, provider and home remain the conversation's existing settings; a model choice opens no new run.</p>
     {ordinaryOutcome && <div aria-label="Ordinary text submission outcome">
-      <p>Original ordinary text turn · conversation {ordinaryOutcome.request.threadId} · Home {ordinaryOutcome.request.generation.home} · App session {ordinaryOutcome.request.generation.appSession} · spawn {ordinaryOutcome.request.generation.spawnCounter} · {ordinaryOutcome.request.mode ?? "no mode override"} · requested model {ordinaryOutcome.request.model ?? "no override"}.</p>
+      <p>Original ordinary text turn · conversation {ordinaryOutcome.request.threadId} · Home {ordinaryOutcome.request.generation.home} · App session {ordinaryOutcome.request.generation.appSession} · spawn {ordinaryOutcome.request.generation.spawnCounter} · {ordinaryOutcome.request.mode ?? "no mode override"} · requested model {ordinaryOutcome.request.model ?? "no override"} · requested effort {ordinaryOutcome.request.effort ?? "no override"}.</p>
       {ordinaryOutcome.result.acknowledged
         ? <p role="status">Native turn/start response received. Model adoption, execution and completion remain unestablished; reported model facts are separate.</p>
         : <p role="alert">{String(ordinaryOutcome.result.nativeError)} Text and model choice retained unless superseded by a newer edit or conversation. No automatic retry or substitution.</p>}
@@ -2024,8 +2030,8 @@ export function App() {
     }
   };
 
-  const ordinarySend = (generation: Json, threadId: string, text: string, mode?: "plan" | "default", model?: string) =>
-    invoke<Json>("conversation_send_text", { generation, threadId, text, mode: mode ?? null, ...(model ? { model } : {}) });
+  const ordinarySend = (generation: Json, threadId: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) =>
+    invoke<Json>("conversation_send_text", { generation, threadId, text, mode: mode ?? null, ...(model ? { model } : {}), ...(effort ? { effort } : {}) });
   const observeOrdinaryView = async (request: OrdinaryTextRequest, isCurrent: () => boolean) => {
     const viewAtRead = currentHost.current;
     if (!isCurrent() || !sameActivityGeneration(viewAtRead?.generation, request.generation)) throw new Error("The original conversation/source was superseded; its view was not applied");

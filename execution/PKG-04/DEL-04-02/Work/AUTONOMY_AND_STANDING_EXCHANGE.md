@@ -335,6 +335,7 @@ grant or the checkpoint indicator.
 | DG-11 | requested | The person declines | no grant | Not shown as a grant; the call's outcome "destination not allowed by the person" (PANEL ND-3) | Agent request, state *declined*; the act-declined event (INTEGRATION, R2-5, R8-13); its R15 record `destination_declined` (SETTLED by DEL-04-03 CLM-004; R16-1) |
 | DG-12 | requested | Nobody answers | requested (unchanged) | Still pending; never granted by silence or timeout (S12) | State *pending* |
 | DG-13 | requested | The run ends unanswered | no grant | Gone; the requesting call shown not sent (PANEL FD-4) | Agent request, state *unanswered at end* (cause run ended); RS `destination_request_closed` (PROPOSED) |
+| DG-16 | requested | The request's turn fails, bound to its actual source/conversation/run/turn (LOOP DF-6) | no grant | Gone; waiting carried call not sent; no late same-turn answer | Request *unanswered at end* (cause turn failed) with `turnRef`; RS `destination_request_closed`. Ambiguous binding: no grant/dispatch/answer; report the provenance limit |
 | DG-14 (B5) | requested | The person cancels the turn in which it was asked (LOOP F-11) | no grant | Gone | Agent request, state *unanswered at end* (cause turn cancelled); RS `destination_request_closed` |
 | DG-15 (B5; RP-4) | — (no *requested* state is entered: LOOP-v0.8 §3.2) | The agent asks for a target that cannot be granted (a non-stateless MCP server; an always-off item, which only an allow-list edit turns on), or the host's control cannot show the prompt (LOOP DF-3 A-2, A-3; DF-F4) | no grant | "cannot be allowed: ‹reason›" beside the governing list (PANEL PS-5, with no PS-1 before it) | Agent request, state *not granted* (reason not grantable · prompt not shown), never *pending*; RS `destination_requested` and `destination_request_closed` |
 
@@ -578,7 +579,11 @@ answers; and each **agent request** still open or resolved in the run, with
 the scope sought and its state (pending · granted · declined · not
 granted · unanswered at end, with its reason or cause; DEL-05-01/LOOP-v0.8
 §5.3 DF-6). *Not applicable* for the App's own Codex, whose
-model destination is R5. PROPOSED representation: DEL-04-02's
+model destination is R5. For a request ended by *turn failed*, settings-in
+retains its original `turnRef` (host source, conversation, run and turn),
+state *unanswered at end* and cause *turn failed*. Record-out carries that
+same binding and cause. It supplies no grant or late same-turn answer;
+missing or contradictory provenance is a limit, never permission. PROPOSED representation: DEL-04-02's
 `AS_SETTINGS_IN.schema.json`, carried in the record as the body of a
 `settings_version` entry (RS §13).
 

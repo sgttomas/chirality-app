@@ -3,7 +3,7 @@
 These are recommendations for the owner, not adopted replacements. Source:
 [issue 168](https://github.com/sgttomas/chirality-app/issues/168). This packet
 also includes the coupled [ACT](../../../PKG-04/DEL-04-01/Work/PENDING_INTERPRETATIONS.md)
-and [record-store/citation](../../../PKG-04/DEL-04-03/Work/PENDING_INTERPRETATIONS.md)
+and [record-store allocation/remaining citation](../../../PKG-04/DEL-04-03/Work/PENDING_INTERPRETATIONS.md)
 choices. LOOP F-12 here is distinct from PANEL F-12 in DEL-05-02.
 
 ## Basis and recommendation
@@ -19,13 +19,12 @@ Recommend resolving the contradictory LOOP summaries in favor of their
 explicit event, replay and turn-state rules, with the companion amendments
 below. E-7/F-12 narrow universal recording language; F-7 selects failure and
 continuation behavior, including one missing pending-request transition.
-Those consequences require an owner decision. F-5's error representation and
+The membership and model-transition consequences still require an owner decision. The separately approved failed-turn permission closure is now specified in LOOP DF-6 and its AS/RS/PANEL companions. F-5's error representation and
 the host-evidence summary can be corrected without removing an obligation.
 Keep TL-1's host/local reporter distinction and repair its local consumer after
 the offering question below is settled for the affected input.
 
-No OUT, REQ, AC, dependency condition, historical pin or implementation is
-changed by this packet. The alternative throughout is to retain the broad
+The current failed-turn closure and A15 location amendment is scoped in the governing contracts/Scopes and current schemas; remaining candidates here are not adopted. Historical pins retain their original subjects. The alternative throughout is to retain the broad
 contract and repair its detailed consumers; that entails the concrete work
 described below, rather than declaring the current code authoritative.
 
@@ -83,50 +82,14 @@ of that response dispatch. Keep MC-1/MC-11 rejection, correlation identities and
 the existing post-answer deferred-result path. The pending-length transition
 is a substantive completion of the table, not an already observed outcome.
 
-There is a second coupled gap: DF-5 Q-9/DF-6 close a pending destination
-request on run end or person cancellation, but not on a failed turn (including
-no-call content filter). Keeping it pending after a terminal failure would
-leave an actionable prompt and no truthful same-turn result path. Recommend
-the following **substantive companion**, rather than relabelling failure as a
-person's cancellation:
-
-- In Q-9, replace “the run ends, or the person cancels the turn (F-11),
-  while the request is pending” with “the run ends, the person cancels the
-  turn (F-11), or the turn fails, while the request is pending”. Keep no
-  grant, no carried-call dispatch and no later result in that turn.
-- In DF-6, replace “cause: run ended · turn cancelled” with “cause: run
-  ended · turn cancelled · turn failed”. In §3.2's failed-turn rules add:
-  “Every still-pending destination request of the failed turn ends
-  unanswered at end, cause turn failed; its carried call is not dispatched
-  and its prompt offers no further choices.” Add the corresponding DF
-  failure row: “Turn fails while request pending | Loop | destination_request_closed
-  (unanswered at end, turn failed) | No grant, no carried-call dispatch,
-  no deferred outcome in a later turn”. Preserve separately observed
-  outcomes of calls already dispatched; missing outcomes stay unknown.
-- In `LOOP_DESTINATION_REQUEST.schema.json`, add `turn failed` to
-  `properties.endCause.enum`; in RS `RS_RECORD.schema.json`, add it to
-  `$defs.destinationRequestClosed.properties.cause.enum`; in AS
-  `AS_SETTINGS_IN.schema.json`, add it to the destination request
-  `stateReason` enum. Keep the existing state names and all unrelated
-  validation/attribution constraints. RS's R15/entry description must carry
-  the same cause without asserting that a human cancelled or declined.
-- Add AS §3.1's requested → no-grant transition: “The turn fails while the
-  request is pending | no grant | Gone; carried call not sent | request
-  unanswered at end, cause turn failed; RS destination_request_closed”.
-  PANEL ND-2/FD-4 must consume that terminal report as “Not answered — turn
-  failed”, with no choices or grant. For F-5, PANEL FD-1 must replace its
-  demand for a failure's termination reason with “failure kind, available
-  termination/service/transport evidence and reporter”; never invent an
-  error finish reason.
-
-This companion changes actual request-close vocabulary and consumers; it is
-not part of the separate citation-only correction. Later implementation needs
-targeted terminal-failure/pending-request regressions and independent scrutiny
-of persistence and permission boundaries. A fixture expectation cannot adopt
-it. Alternative: retain the existing close causes and require an explicit
-run end to retire such a prompt; that needs a specified failed-turn prompt and
-late-answer policy before use, and must not fabricate a person stop. The
-recommended automatic terminal closure avoids leaving a grantable orphan.
+The failed-turn destination-prompt closure is now the current rule in
+[LOOP DF-6](LOOP_RECEIVING_CONTRACT.md), with source/turn correlation and a
+truthful *turn failed* cause in the current LOOP/RS/AS schema representations
+and PANEL display. Its adoption does not select F-5's representation repair,
+F-7's no-call filter/length behavior or the proposed pending-length transition.
+The local scripted consumers exercise that receiving rule; `receive_calls`
+is a test-only projection, not SWBPIPE's live ingress or a host model loop.
+Actual host adoption/conformance remains an incoming host contribution.
 
 Alternative: keep F-7's no-call completion for both reasons. That requires
 changing §3.2's content-filter failure and pending-request rule, plus deciding
@@ -215,12 +178,12 @@ would leave a false current summary; revising it grants no host acceptance.
 
 | Evidence | Consequence of the recommendations |
 |---|---|
-| P2 / J2 | The approved one-registration/one-fresh-reuse scope stays independent, twenty minutes, stop-only/no retries, preserving the current project and old-046 store. The coupled ACT/store observation is specified in the linked packet. This documentation changes neither source `475c9b8f9c868fe1be9d0e1ef33a9cdd72aec75f` nor its executable; no rebuild or repeat of its earlier trial/recovery follows. |
+| P2 / J2 | The approved one-registration/one-fresh-reuse scope stays independent, twenty minutes, stop-only/no retries, preserving the current project and old-046 store. The current A15 allocation and remaining ACT questions are specified in the linked notes. This documentation changes neither source `475c9b8f9c868fe1be9d0e1ef33a9cdd72aec75f` nor its executable; no rebuild or repeat of its earlier trial/recovery follows. |
 | P3 | Preserve App Codex versus host Chat Completions boundaries. Later applicable failure/interruption evidence must report the actual path and selected semantics; call fixtures cannot stand in for no-call state transitions, cancellation or recovery. |
 | P5 | For affected joined-host failure/replay or tool-offering claims, resolve the applicable E-7/F-12/F-7 or TL-1 questions, receive the exact host/interface and offered-set basis, and test the corresponding behavior. Establish actual ingress/consumer applicability first: this App projection is not proof of the live SWBPIPE route. Unaffected joined work can continue. The factual Scope correction supplies no joined witness, native enforcement or acceptance. |
 
 Next actor: App Agent 0 brings the coupled recommendations and alternatives to
-the owner. After the decision, the responsible contract/implementation owners
+the owner. After any further owner decision, the responsible contract/implementation owners
 reconcile the selected live consumers, copies and dependency meanings in one
 reviewed change, preserving historical identities and unrun obligations.
 App Agent 0 owns final integration and the publication recommendation.

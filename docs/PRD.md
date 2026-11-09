@@ -390,7 +390,12 @@ For the owner and an agent fleet, in the Chirality App (D-09, option B).
   records and run records are kept by the App in its own records store,
   outside the working tree an agent edits, as ordinary append-only files
   linked to their project by a stable project identity and exportable with
-  it (R-STORE).
+  it (R-STORE), except A15 workflow-library registration acts. A15 acts remain
+  ordinary append-only library logs with linked capture evidence travelling
+  with the library; project runs cite the applicable library evidence. An
+  in-project library's evidence remains inside the agent-editable working
+  tree. This exception changes location and carriage only: attribution,
+  content binding, integrity and recovery requirements still apply.
 - **V4-REC-03** A harness's own session store is operational, not the
   authority for any human act.
 - **V4-REC-04** Each workflow run leaves a compact record, linked to its

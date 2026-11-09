@@ -2433,7 +2433,8 @@
         "cause": {
           "enum": [
             "run ended",
-            "turn cancelled"
+            "turn cancelled",
+            "turn failed"
           ]
         },
         "carriedCallSent": {
@@ -2441,6 +2442,9 @@
         },
         "time": {
           "type": "string"
+        },
+        "turnRef": {
+          "$ref": "#/$defs/turnRef"
         }
       },
       "oneOf": [
@@ -2463,6 +2467,30 @@
           "required": [
             "cause"
           ]
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "cause"
+            ],
+            "properties": {
+              "cause": {
+                "const": "turn failed"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "turnRef"
+            ],
+            "properties": {
+              "state": {
+                "const": "unanswered at end"
+              }
+            }
+          }
         }
       ]
     },
@@ -2712,6 +2740,34 @@
               }
             ]
           }
+        }
+      }
+    },
+    "turnRef": {
+      "type": "object",
+      "required": [
+        "hostIdentity",
+        "conversationId",
+        "runId",
+        "turnId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "hostIdentity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conversationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "turnId": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }

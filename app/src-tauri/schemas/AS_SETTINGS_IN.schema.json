@@ -5,6 +5,7 @@
   "description": "PROPOSED representation of the AS-v0.8 §6 / RS-v0.8 §8 settings-in element (R12-1, R12-2). One settings version per run and per change. Operation-class grants and, for a host's agent, network-destination settings are carried apart and never merged. Names are Chirality's own; no host or supplier field is selected; placement is not chosen (OI-014). The run record carries a settings version as the body of an RS entry of kind settings_version.",
   "$ref": "#/$defs/settingsVersion",
   "$defs": {
+    "turnRef": {"type": "object", "required": ["hostIdentity", "conversationId", "runId", "turnId"], "additionalProperties": false, "properties": {"hostIdentity": {"type": "string", "minLength": 1}, "conversationId": {"type": "string", "minLength": 1}, "runId": {"type": "string", "minLength": 1}, "turnId": {"type": "string", "minLength": 1}}},
     "settingsVersion": {
       "type": "object",
       "required": ["settingsVersionId", "sourceOfControl", "changeKind", "operationClassGrants"],
@@ -235,8 +236,11 @@
               "target": {"$ref": "#/$defs/destinationTarget"},
               "scopeSought": {"enum": ["once", "this run", "always"]},
               "state": {"description": "LOOP-v0.8 §5.3 DF-6 request states (node B5; PROPOSED); 'granted' once the grant is in force (AS §3.1 DG-3).", "enum": ["pending", "granted", "declined", "not granted", "unanswered at end"]},
-              "stateReason": {"enum": ["not grantable", "grant refused by control", "prompt not shown", "run ended", "turn cancelled"]}
-            }
+              "stateReason": {"enum": ["not grantable", "grant refused by control", "prompt not shown", "run ended", "turn cancelled", "turn failed"]},
+              "turnRef": {"$ref": "#/$defs/turnRef"}
+            },
+            "allOf": [{"if": {"required": ["stateReason"], "properties": {"stateReason": {"const": "turn failed"}}},
+                       "then": {"required": ["turnRef"], "properties": {"state": {"const": "unanswered at end"}}}}]
           }
         }
       }

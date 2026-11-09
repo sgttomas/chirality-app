@@ -157,3 +157,14 @@ qualification. The owner's sign-in-status usability finding remains open with
 the product owner. J2 remains open, and no second model campaign is authorized
 by this one-workflow result. ScopeOfWork and dependency conditions retain their
 meaning.
+
+
+## Ordinary effort interaction
+
+The J1 effort-chooser finding has a focused source repair in
+[the access account](../../../PKG-01/DEL-01-05/Work/ACCOUNT_AND_PROVIDER_ACCESS.md#offered-per-model-effort-for-ordinary-text).
+It offers the selected model's reported effort choices for ordinary text,
+including plan/default and a pending run-end notice, without private config
+editing. This supplies no new journey observation or qualification and changes
+no registration/trial rule or dependency condition. The retained J1/J2 actual
+accounts keep their original artifacts and operator attribution.

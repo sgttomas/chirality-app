@@ -362,3 +362,19 @@ fn work_locality(path: &str) -> String {
         _ => path.to_string(),
     }
 }
+
+#[test]
+fn failed_turn_destination_receiving_is_shape_only_and_refuses_grant_or_missing_source() {
+    let mut supplied = value("LOOP_DESTINATION_REQUEST.example.valid.json");
+    for field in ["result", "grantScope", "interimNotice"] { supplied.as_object_mut().unwrap().remove(field); }
+    supplied["state"] = "unanswered at end".into();
+    supplied["endCause"] = "turn failed".into();
+    supplied["turnRef"] = serde_json::json!({"hostIdentity":"FX-PIPE-01","conversationId":"conversation:fixture","runId":"run:fixture","turnId":"turn:fixture"});
+    let bytes = serde_json::to_vec(&supplied).unwrap();
+    let received = receiving::receive_destination(&bytes).unwrap();
+    assert_eq!(received.original_bytes(), bytes); // no host admission or execution
+    let mut unbound = supplied.clone(); unbound.as_object_mut().unwrap().remove("turnRef");
+    assert!(receiving::receive_destination(&serde_json::to_vec(&unbound).unwrap()).is_err());
+    supplied["grantScope"] = "once".into();
+    assert!(receiving::receive_destination(&serde_json::to_vec(&supplied).unwrap()).is_err());
+}

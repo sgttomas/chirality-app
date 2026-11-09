@@ -1,7 +1,7 @@
 # Pending act and policy decisions
 
 Recommendations below are unadopted. The [packet basis and LOOP decisions](../../../PKG-05/DEL-05-01/Work/PENDING_INTERPRETATIONS.md)
-and the coupled [A15 store decision](../../DEL-04-03/Work/PENDING_INTERPRETATIONS.md)
+and the [current A15 store allocation](../../DEL-04-03/Work/PENDING_INTERPRETATIONS.md)
 form one owner decision packet. Source:
 [issue 168](https://github.com/sgttomas/chirality-app/issues/168).
 
@@ -9,9 +9,7 @@ form one owner decision packet. Source:
 
 Recommend repairing ACT's incomplete summaries while retaining its existing
 A15 attribution and A16 decision rules. This does not add a new reserved act,
-grant agent authority or change the D2/D3 policy. The coupled store exception
-needs the explicit owner interpretation set out in DEL-04-03, rather than
-assuming that adding A15 to A9 decides where its evidence belongs.
+grant agent authority or change the D2/D3 policy. The A15-only store exception is now explicit in DEL-04-03 and PRD V4-REC-02. That location decision does not adopt A9 or LC-6 summary repairs.
 
 [Scope](../ScopeOfWork.md) REQ-002 already names registration as a person's
 act and supplies that meaning to DEL-02-02 and DEL-01-04. In
@@ -91,7 +89,7 @@ not authority to invent the rule. Any later amendment must compare same-package
 successors, changed-package lapse, correction and uncertain decision order;
 existing synthetic passes establish only their own cases.
 
-Current ACT SHA-256 is
+Unchanged ACT SHA-256 is
 `788590495aa6351d14f41e234650129779cc7824013139e6ee17321c06be46b6`.
 The historical policy-standing and A16 product bases retain ACT
 `597f13bda1fe1c1fa97b9db8ebc92483c2b43ebcbdc784d91be1f57fa93df5f2`.
@@ -107,7 +105,7 @@ P2's approved exact-475c J2 observation stays independent: one registration,
 one fresh reuse turn, twenty minutes, stop-only/no retries, preserving the
 current project and old-046 store. Observe capture/record placement and exact
 reviewed-content linkage without claiming a personal human act; the linked
-store note states which findings change the recommendation. A native
+store note distinguishes registration evidence from project reuse-record findings. A native
 confirmation or a valid A15-shaped record does not identify the operator as a
 person or establish any A4–A7.
 
@@ -115,7 +113,7 @@ P3's later applicable act/recovery evidence must distinguish an act record,
 its capture and its recording outcome. P5 must retain the host's actual actor,
 control and evidence; no App rule or fixture demonstrates host enforcement.
 
-Next actor: App Agent 0 brings the summary repairs and coupled store choice
-to the owner. The contract and implementation owners then carry any selected
+Next actor: App Agent 0 brings the remaining summary repairs to the owner;
+the location decision alone does not adopt them. The contract and implementation owners then carry any selected
 amendment with its live consumer reconciliation. Acceptance, final integration
 and publication recommendation remain with their existing owners.
