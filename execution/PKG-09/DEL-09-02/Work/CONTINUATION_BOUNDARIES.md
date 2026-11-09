@@ -16,9 +16,10 @@ was established. Original draft, trial, inputs, outputs and project/store
 identity were preserved. The supported explicit workspace/records-store route
 selected that existing project/store without migration or copied evidence.
 
-The owner explicitly removed the guard/slot prerequisite for this cloud-Codex
-J2 only. No shared script or guard policy changed, and no guard startup or local
-model server was authorized. A setup-only native state read initially opened
+The owner removed the guard/slot prerequisite for cloud-Codex work and directed
+ordinary development testing to proceed; this also covers offline App builds.
+No shared script or guard policy changed, and no guard startup or local model
+server was authorized. A setup-only native state read initially opened
 the App without the prepared environment; normal Quit preserved that failed
 start. The owner directed routine testing to continue, and the prepared runner
 then launched the completed segment before Computer Use. Native state requests
@@ -42,9 +43,12 @@ require another owner decision.
   to manufacture freshness. Automated actions retain agent attribution and
   cannot establish a personal human act. Headless injected joins do not qualify
   AppKit/WebKit, native dialogs or supplier startup.
-- Ordinary offline builds and bounded non-model/non-measurement native work use
-  the existing slot wrapper and memguard caps. Routine START/END handshakes are
-  not required. Shared local model loads and RSS/timing measurements require
+- Ordinary offline App builds and cloud-Codex development testing proceed
+  without the shared slot/memory-guard prerequisite, under the owner's direction
+  that resources are not a concern when no local model server is used. Routine
+  testing and setup corrections within authorized scope continue without a new
+  resource-permission round. This changes no shared guard script or service.
+  Shared local model loads and RSS/timing measurements require
   advance resource coordination and the existing exclusive measurement wrapper.
   Overruns or resident workloads affecting release must be reported. These
   controls confer no new local-model or measurement undertaking.
