@@ -26,7 +26,10 @@ export function guideResultWords(outcome: { command: string; message: string; fa
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 /** A run's own place in the workflow studio, so a link lands on its recorded evidence. Exact: the reference's UTF-16 code units in hex. */
-export const runEvidenceAnchor = (reference: Json): string => `run-evidence-${Array.from(typeof reference === "string" ? reference : "", c => c.charCodeAt(0).toString(16).padStart(4, "0")).join("")}`;
+const hex = (value: Json): string => Array.from(typeof value === "string" ? value : "", c => c.charCodeAt(0).toString(16).padStart(4, "0")).join("");
+export const runEvidenceAnchor = (reference: Json): string => `run-evidence-${hex(reference)}`;
+/** A registered revision's own row in the workflow studio (library, name and revision, each exact). */
+export const registeredRevisionAnchor = (library: Json, name: Json, revision: Json): string => `registered-revision-${hex(library)}-${hex(name)}-${hex(revision)}`;
 type Act = (command: string, args: Record<string, unknown>) => Promise<Json>;
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
@@ -225,7 +228,9 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         {active && registered.length > 0 && <ul aria-label="Workflows ready to use">{registered.map((row: Json) => <li key={`${row.name}@${row.revision}`}>
           <strong>{text(row.name)}</strong> · revision {text(row.sequence)}{chosen && chosen.identity?.name === row.name && chosen.identity?.revision === row.revision ? <> — chosen</> : row.selectable === true
             ? <> <button disabled={!canAct || !thread} onClick={() => perform("workflow_select_listed", { libraryRef: active.reference, name: row.name, revision: row.revision })}>Use {text(row.name)}{sameName(row.name) ? ` revision ${text(row.sequence)}` : ""}</button></>
-            : <> — {text(row.label)}</>}
+            : <> — {text(row.label)}.{" "}
+              <a href={`#${registeredRevisionAnchor(active.reference, row.name, row.revision)}`}>{row.reconfirm === true ? `Re-confirm ${text(row.name)} in the workflow studio` : "See this revision in the workflow studio"}</a>
+              {row.reconfirm === true && <small> Refine it into a draft, then review that draft and confirm in the App's dialog. Nothing is chosen or run until you do.</small>}</>}
           {row.selectable === true && <small> · {text(row.label)}</small>}
         </li>)}</ul>}
         {active && !Array.isArray(active.registered) && active.registered?.limit && <p role="note">This library's list of approved workflows can't be read: {text(active.registered.limit)}</p>}

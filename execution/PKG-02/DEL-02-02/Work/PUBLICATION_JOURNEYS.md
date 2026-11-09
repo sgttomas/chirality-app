@@ -203,6 +203,18 @@ by normal Quit. It preserves the earlier observations and their separate
 subjects; it is neither owner usability acceptance nor installed qualification.
 
 
+## Re-confirmation route from Run
+
+After a relaunch under robust assurance, Run lists a cold LS-1 revision as
+"registered earlier; not verified in this session — robust assurance requires a valid installation capture seal; re-confirm to use in this App session" ([LS-1 after a relaunch](WORKSPACE_AND_REGISTRATION.md#46-library-standing)).
+Run now links that row to the same revision's row in the workflow studio, and the
+host marks the robust cold row as needing re-confirmation. Under relaxed assurance, a valid LS-1 row is selectable instead. That studio row explains the robust route:
+Refine makes a draft with the revision's bytes (RF-1), then the person reviews
+the draft and confirms the native act (DS-8). Following the link performs no
+action, and nothing is refined, reviewed, selected or run. Re-confirmation still
+needs a reviewed draft and a fresh native act. The mounted Node/miniDOM check covers the link, its
+target and focus; it provides no native or end-to-end J2 evidence.
+
 ## Ordinary effort interaction
 
 The J1 effort-chooser finding has a focused source repair in
