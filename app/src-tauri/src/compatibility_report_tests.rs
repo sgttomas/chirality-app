@@ -15,7 +15,7 @@ fn basis() -> Basis {
         home: "h".into(),
         generation: json!({"home":"h","appSession":"s","spawnCounter":1}),
         conversation: "t".into(),
-        acting_pin: "App Codex 0.160.0".into(),
+        acting_pin: "App Codex 0.167.0".into(),
         surface: "X".into(),
         environment_observation: None,
         catalog_edition: None,
@@ -126,7 +126,7 @@ fn unknown_role_does_not_erase_known_missing() {
 #[test]
 fn current_pin_does_not_borrow_old_presence_account() {
     let env = Environment {
-        harness_pin: Some("App Codex 0.160.0".into()),
+        harness_pin: Some("App Codex 0.167.0".into()),
         harness_signals: Some(
             json!({"thread_start":{"approvalPolicy":"never","sandbox":"read-only"}}),
         ),
@@ -652,7 +652,7 @@ fn j2_current_pin_does_not_borrow_0158_account_in_published_report() {
         run("App Codex 0.158.0").prepared.result(),
         &Check::Unsupported
     );
-    let current = run("App Codex 0.160.0");
+    let current = run("App Codex 0.167.0");
     assert_eq!(current.prepared.result(), &Check::NotEstablished);
     let body = published(&current).body();
     assert_design_valid(body);
@@ -664,7 +664,7 @@ fn j2_current_pin_does_not_borrow_0158_account_in_published_report() {
     assert_eq!(body["check_result"], "not_established");
     assert!(body["limitations"]
         .to_string()
-        .contains("App Codex 0.160.0"));
+        .contains("App Codex 0.167.0"));
 }
 
 #[test]

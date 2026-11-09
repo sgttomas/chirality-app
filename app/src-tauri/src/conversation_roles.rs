@@ -305,7 +305,7 @@ pub fn limit_account(root: Option<&std::path::Path>) -> Value {
     }
     let account = json!({"format":"chirality.role.limits","formatVersion":"0.2",
         "accountId":format!("lim:{}", crate::role_supply::content(crate::role_supply::BUNDLED_ROLE_SET)["value"].as_str().unwrap_or("")),
-        "appRelease":crate::runtime_session::INSTRUCTION_RELEASE,"supplierPin":"0.160.0","roles":roles});
+        "appRelease":crate::runtime_session::INSTRUCTION_RELEASE,"supplierPin":crate::hosting::DECLARED_PIN,"roles":roles});
     json!({"available":true,"account":account,"notRead":not_read,
         "standing":"Stated in the role's guidance; Codex does not enforce it. Approval policy, sandbox, your configuration and the depth limit are not this limit's enforcement."})
 }

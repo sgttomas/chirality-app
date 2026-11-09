@@ -66,9 +66,16 @@ impl Fixture {
         std::fs::write(root.join("generation"), "1").unwrap();
         // Only our scratch wrapper is executed. The recorded command text is
         // supplier data; no shell, model, account or original path is invoked.
+        // The wrapper answers the current Host's `--version` probe with a
+        // SYNTHETIC label derived from DECLARED_PIN. It is not the recordings'
+        // supplier version: the original 0.160.0 tapes, their capture
+        // verification and recorded_replay.py's VERSION/BINARY_SHA256 stay
+        // unchanged, and the Host's version guard is not relaxed.
         let wrapper = format!(
             r#"#!/usr/bin/env python3
 import pathlib,runpy,sys
+if '--version' in sys.argv[1:]:
+ print({label}); sys.exit(0)
 root=pathlib.Path({root})
 generation=(root/'generation').read_text().strip()
 profile='app' if generation=='1' else 'app-recovery'
@@ -82,6 +89,7 @@ if profile=='app-continue':
 sys.argv=args+['--']+sys.argv[1:]
 runpy.run_path({peer},run_name='__main__')
 "#,
+            label = json!(format!("codex-cli {DECLARED_PIN}")),
             root = json!(root.to_str().unwrap()),
             peer = json!(PEER),
             recording = json!(path.to_str().unwrap()),

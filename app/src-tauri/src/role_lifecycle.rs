@@ -157,7 +157,7 @@ fn native_validate(target: &str, value: &Value) -> Result<(), String> {
     let validators = VALIDATORS
         .get_or_init(|| {
             let root: Value = serde_json::from_str(include_str!(
-                "../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json"
+                "../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json"
             ))
             .map_err(|e| e.to_string())?;
             [
@@ -586,7 +586,7 @@ impl MetadataRequest {
     /// names its classified cwd. Resume excludes deprecated
     /// full-history hydration; prior work is read through bounded native pages. A fork
     /// also asks Codex not to start the source goal's automatic continuation
-    /// (0.160.0 `ThreadForkParams.deferGoalContinuation`), so no turn runs that
+    /// (0.167.0 `ThreadForkParams.deferGoalContinuation`), so no turn runs that
     /// the person did not start; the next explicit turn owns the goal.
     pub fn params(&self) -> Value {
         let mut params = if self.is_fork {

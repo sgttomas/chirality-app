@@ -3721,7 +3721,7 @@ mod oauth_root_tests {
             std::fs::write(&peer,r#"#!/usr/bin/python3
 import sys,json,threading,time,os
 if '--version' in sys.argv:
- print('codex-cli 0.160.0');sys.exit(0)
+ print('codex-cli 0.167.0');sys.exit(0)
 lock=threading.Lock()
 private='OWNED_ROOT_OAUTH_PRIVATE_CANARY'
 def emit(value):
@@ -7118,7 +7118,7 @@ impl WorkflowRun {
             home: scope.home.clone(),
             generation: scope.generation.clone(),
             conversation: scope.conversation.clone(),
-            acting_pin: "App Codex 0.160.0".into(),
+            acting_pin: format!("App Codex {}", crate::hosting::DECLARED_PIN),
             surface: "X".into(),
             environment_observation: None,
             catalog_edition: None,
@@ -8089,10 +8089,10 @@ mod workflow_root_tests {
             std::fs::write(&script,r#"#!/usr/bin/python3
 import sys,json,os
 if '--version' in sys.argv:
- print('codex-cli 0.160.0');sys.exit(0)
+ print('codex-cli 0.167.0');sys.exit(0)
 def emit(v):print(json.dumps(v),flush=True)
 starts=[0]
-def thread(tid='thread'):return {'id':tid,'cliVersion':'0.160.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'own native-shaped fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[],'agentRole':'TASK'}
+def thread(tid='thread'):return {'id':tid,'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'own native-shaped fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[],'agentRole':'TASK'}
 def turn():return {'id':(mode('turn-id') or 'turn'),'status':'failed','items':[],'error':None,'itemsView':'summary'}
 text='';client='';inputs=[]
 def mode(name):
@@ -10519,7 +10519,7 @@ for line in sys.stdin:
     }
     #[test]
     fn ordinary_model_ipc_consumer_carries_plain_plan_default_and_pending_notice() {
-        let schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json")).unwrap();
+        let schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).unwrap();
         let mut turn_schema = schema.clone();
         turn_schema["$ref"] = json!("#/definitions/v2/TurnStartParams");
         let validator = jsonschema::options().offline().build(&turn_schema).unwrap();

@@ -72,7 +72,7 @@ fn compatibility_for_subject(
         home: generation["home"].as_str().unwrap_or("").into(),
         generation: generation.clone(),
         conversation: thread.into(),
-        acting_pin: "App Codex 0.160.0".into(),
+        acting_pin: format!("App Codex {}", crate::hosting::DECLARED_PIN),
         surface: "X".into(),
         environment_observation: None,
         catalog_edition: None,

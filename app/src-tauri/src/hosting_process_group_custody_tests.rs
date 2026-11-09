@@ -12,7 +12,7 @@ fn until(predicate: impl Fn() -> bool) {
 fn ready(body: &str) -> (Fixture, Arc<Host>, Value, Arc<OwnedProcess>) {
     let mut f = Fixture::new("pass");
     f.cfg.distribution = None;
-    let code=format!("#!/usr/bin/env python3\nimport os,sys,json,subprocess,time\nif '--version' in sys.argv: print('codex-cli 0.160.0'); sys.exit(0)\n{body}\nfor line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='fixture/exit': sys.exit(7)\n if f.get('method')=='fixture/close-output':\n  os.close(1); time.sleep(30)\n if 'id' in f: print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.160.0'}}}}),flush=True)\n");
+    let code=format!("#!/usr/bin/env python3\nimport os,sys,json,subprocess,time\nif '--version' in sys.argv: print('codex-cli 0.167.0'); sys.exit(0)\n{body}\nfor line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='fixture/exit': sys.exit(7)\n if f.get('method')=='fixture/close-output':\n  os.close(1); time.sleep(30)\n if 'id' in f: print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.167.0'}}}}),flush=True)\n");
     std::fs::write(&f.cfg.codex_bin, code).unwrap();
     let h = Arc::new(Host::new());
     let g = h.start(&f.cfg, "synthetic custody peer").unwrap()["generation"].clone();

@@ -62,7 +62,7 @@ fn valid_result(request: &SourceRequest, response: &Value) -> Result<(), String>
     let validators = VALIDATORS
         .get_or_init(|| {
             let schema: Value = serde_json::from_str(include_str!(
-                "../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json"
+                "../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json"
             ))
             .map_err(|e| e.to_string())?;
             ["ThreadStartResponse", "ThreadForkResponse"]

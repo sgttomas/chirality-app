@@ -125,7 +125,7 @@ impl NativeView {
             generation: None,
             closed: Vec::new(),
             position: None,
-            types_pin: "0.160.0".into(),
+            types_pin: crate::hosting::DECLARED_PIN.into(),
             version: Value::Null,
             supplier_standing: Value::Null,
             distribution_evidence: Value::Null,
@@ -664,7 +664,7 @@ mod tests {
         let mut v = NativeView::new("h".into()).unwrap();
         v.ready(
             g(1),
-            json!("codex 0.160.0"),
+            json!("codex 0.167.0"),
             json!("unverified-development"),
         )
         .unwrap();
@@ -726,6 +726,8 @@ mod tests {
         let params = json!({"threadId":"t:.é","turnId":"u:","explanation":null,"plan":[{"step":"work","status":"pending"}]});
         frame(&mut v, 1, "turn/plan/updated", params.clone());
         let reference = v.snapshot()["revisions"][0].clone();
+        assert_eq!(v.snapshot()["typesPin"], crate::hosting::DECLARED_PIN);
+        assert_eq!(reference["typesPin"], crate::hosting::DECLARED_PIN);
         assert_eq!(reference["revisionId"], "cl:v2:czrDqQ.aA.1.dDouw6k.dTo.1");
         for foreign in [
             json!(1),
@@ -980,7 +982,7 @@ mod tests {
         assert_eq!(row(&v, "c")["displayState"], "not-completed");
         assert_eq!(row(&v, "c")["preview"], "out", "partial output stays with its not-completed state");
     }
-    // HOSTING §8.3: `model/rerouted` (0.160.0 ModelReroutedNotification) is kept
+    // HOSTING §8.3: `model/rerouted` (0.167.0 ModelReroutedNotification) is kept
     // as a live observation naming its thread and turn; a malformed one is refused.
     #[test]
     fn model_rerouted_is_observed_with_its_turn_and_receipt() {

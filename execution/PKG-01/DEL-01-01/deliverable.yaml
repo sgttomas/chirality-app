@@ -15,7 +15,7 @@ needs:
 - from: external:chirality-app-v4:DEP-005
   condition: Implementation and qualification witnesses need the published stock supplier interfaces on
     an identified version and environment; DEP-005 remains VERSION_AND_ENVIRONMENT_TO_DEFINE for qualification
-    witnesses. The reviewed SUP1 0.160.0 development basis (ScopeOfWork [S], CLM-003, TBD-002) supplies
+    witnesses. The owner-selected 0.167.0 assessment/integration basis (ScopeOfWork [U], CLM-003, TBD-002) supplies
     no qualified candidate, endpoint capability or signing/release evidence.
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 - from: DEL-01-05
@@ -24,6 +24,7 @@ needs:
   gating: false
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 code_paths:
+- app/src-tauri/resources/supplier/0.167.0
 - app/src-tauri/src/hosting_probe.rs
 - .gitattributes
 - app/src-tauri/src/desktop_setup_confirmation.rs
@@ -38,6 +39,7 @@ code_paths:
 - app/src-tauri/src/hosting_native_delivery.rs
 - app/src-tauri/src/model_turn_recorder.rs
 checks:
+- app/src-tauri/src/hosting_0167_tests.rs
 - app/src-tauri/src/hosting_probe.rs
 - app/tests/check_git_checkout_bytes.py
 - app/src-tauri/src/desktop_setup_confirmation.rs

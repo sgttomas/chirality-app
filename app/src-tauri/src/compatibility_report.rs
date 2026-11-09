@@ -367,7 +367,7 @@ pub struct ModelDestination {
 ///   binding. Never a new-chat selector value; a missing binding stays `Unknown`
 ///   and is never turned into no-role.
 /// - `basis`: home, full `{appSession, home, spawnCounter}` generation, thread,
-///   acting pin (`"App Codex 0.160.0"` for the current supplier), surface
+///   acting pin (`"App Codex <declared pin>"` for the current supplier), surface
 ///   (`"X"` for App runs), the identity of the environment observation the
 ///   inventory came from, and the catalog edition when one is known.
 /// - `occasion`: CK-1 on selection, CK-2 immediately before the run's first

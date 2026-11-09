@@ -51,17 +51,17 @@ pub fn validate_label_join(legacy_event: &Value, observation: &Value) -> Result<
 mod tests {
     use super::*;
     fn pair() -> (Value, Value) {
-        (json!({"versionIdentity":{"observedVersionLabel":"codex-cli 0.160.0","declaredPin":"0.160.0"}}),
-         json!({"raw_version_label":"codex-cli 0.160.0\n","observed_label":"0.160.0","pin":"0.160.0"}))
+        (json!({"versionIdentity":{"observedVersionLabel":"codex-cli 0.167.0","declaredPin":"0.167.0"}}),
+         json!({"raw_version_label":"codex-cli 0.167.0\n","observed_label":"0.167.0","pin":"0.167.0"}))
     }
     #[test]
     fn exact_optional_one_lf_and_no_other_normalization() {
         let (event, mut observation) = pair();
         assert!(validate_label_join(&event, &observation).is_ok());
-        observation["raw_version_label"] = json!("codex-cli 0.160.0");
+        observation["raw_version_label"] = json!("codex-cli 0.167.0");
         assert!(validate_label_join(&event, &observation).is_ok());
-        for raw in ["codex-cli 0.160.0\n\n", "codex-cli 0.160.0\r\n", "codex-cli 0.160.0 ",
-            "Codex-cli 0.160.0", "codex 0.160.0", "0.160.0", "codex-cli 0.161.0", "codex-cli 0.160.0-suffix"] {
+        for raw in ["codex-cli 0.167.0\n\n", "codex-cli 0.167.0\r\n", "codex-cli 0.167.0 ",
+            "Codex-cli 0.167.0", "codex 0.167.0", "0.167.0", "codex-cli 0.161.0", "codex-cli 0.167.0-suffix"] {
             observation["raw_version_label"] = json!(raw);
             assert!(validate_label_join(&event, &observation).is_err(), "{raw:?}");
         }
@@ -79,10 +79,10 @@ mod tests {
             assert!(validate_label_join(&event, &observation).is_err());
         }
         for field in ["observedVersionLabel", "declaredPin"] {
-            for replacement in [Value::Null, json!("0.160.0"), json!("codex-cli 0.160.0\n"), json!("codex-cli 0.161.0")] {
+            for replacement in [Value::Null, json!("0.167.0"), json!("codex-cli 0.167.0\n"), json!("codex-cli 0.161.0")] {
                 let (mut event, observation) = pair();
                 event["versionIdentity"][field] = replacement;
-                if field == "declaredPin" && event["versionIdentity"][field] == "0.160.0" { continue; }
+                if field == "declaredPin" && event["versionIdentity"][field] == "0.167.0" { continue; }
                 assert!(validate_label_join(&event, &observation).is_err(), "{field}");
             }
         }
