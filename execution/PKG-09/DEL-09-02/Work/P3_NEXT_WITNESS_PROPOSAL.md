@@ -1,138 +1,95 @@
-# Next bounded P3 witness after J2
+# P3 account witness and remaining qualification
 
-## Proposed result and current evidence
+## Actual ordinary account segment
 
-Prepare one ordinary request/interrupt/continuation segment after Agent 0
-returns the separately authorized J2 registration/reuse result. This proposal
-opens no examination and authorizes no launch, capture, model call or access.
-Agent 0 names the actual candidate/configuration and obtains the applicable
-owner scope first. It is a useful next increment toward the existing
-[standalone qualification](STANDALONE_QUALIFICATION.md), not another gate or
-replacement for its remaining cases.
+On 2026-11-09 UTC, Agent 0 operated the bounded P3 segment on source
+`d424cd371bd8ad210d3ed668ad242bc9b94ddc2e`, executable SHA-256
+`75cbca359906cc5577f0e88d9e1b9ac2dd5a8a3bcc859fd8fde2df25a8586635`.
+This is the unsigned debug/custom-protocol development App containing the
+PR189 effort repair and PR193 contract contribution, using the frozen bundled
+supplier, existing App-owned ChatGPT account, invented Kestrel project and
+records store. It is development evidence, not installed or release acceptance.
+[J1](J1_REAL_MODEL_ACTUAL_20261108.md) and
+[J2](J2_PARTIAL_ACTUAL_20261108.md) retain their separate subjects; the actual
+475c J2 registration/reuse result is not transferred to this artifact.
 
-[J1](J1_REAL_MODEL_ACTUAL_20261108.md) demonstrates useful account-backed
-execution, one one-time tool approval, saved output, Results and normal Quit
-on source 57bb9c4d. [J2](J2_PARTIAL_ACTUAL_20261108.md) demonstrates draft/trial,
-normal close/reopen and explicit unfinished-draft History continuation on
-04648124. Agent 0 operated their development approvals and controls; the owner
-personally signed in. Those observations do not become personal owner review,
-registration or professional acts. Source PR158's automatic account feedback
-and PR160's A15 confirmation repair retain their separate evidence subjects.
+One conversation, three work turns and two offered command requests completed
+within the twenty-minute bound:
 
-The 475c9b8f debug build remains Agent 0's exact J2 witness subject. Effort UI
-source changes cannot be assigned to that build. A later artifact containing
-the effort repair needs its own build/resource/source identity and observations.
-Neither it nor 475c inherits final production, installed or three-mode evidence.
+| Observation | Actual result |
+|---|---|
+| Offered effort | Terra offered low (model default), medium, high, xhigh, max and ultra. Agent 0 chose medium in the ordinary App UI, without a configuration edit. The first-send UI reported requested effort medium; the selected supplier rollout's `turn_context` reports Terra/medium for all three turns, including later sticky turns and the reopened conversation. This is not raw wire capture. |
+| First request | Agent 0 sent the offered `cancel` answer through native confirmation. The command was declined and the turn interrupted; the intended output was absent. This supplier cancellation is not the confirmation sheet's Cancel button, which sends nothing. |
+| Second request and interrupt | Agent 0 sent `accept` (one-time) through native confirmation, without a policy amendment. The write completed. Agent 0 explicitly interrupted while the turn was observed live; the acknowledgment and subsequent interrupted status were observed separately. The completed write was preserved, not rolled back or prevented. |
+| Normal reopen and continuation | Both original invocations ended with normal Quit and verified original-process absence. After reopen, History retained both interrupted turns and the completed command. Explicit Continue admitted the same conversation; the third, read-only report completed with no further permission request or write. History read and continuation were separate actions. |
 
-## Minimal proposed ordinary segment
+`deliverables/p3-follow-up.md` is 297 bytes / 48 words, SHA-256
+`6bfd08f3da1b4eae4dada84b150ab6c0a968279138d1dcf9969cfee813b5e1d0`.
+Its three points correctly report duplicate-row exclusion, missing-length
+exclusion and unit/rounding treatment already present in the take-off. The
+seven baseline project/input/result files retained their recorded hashes.
+No new product defect or repair was identified in this segment.
 
-Proposed ceiling for a later approval: one invented project, one conversation,
-at most three work turns, two tool-permission requests, one active-turn
-interrupt and one normal Quit/reopen, within twenty minutes. No automatic
-retries or additional inference follow failure. Agent 0 can narrow this after
-J2; the ceiling is a proposal, not a transferred cloud allowance.
+## Evidence and limits
 
-1. Bind the exact App artifact, supplier pin/distribution, project/store,
-   existing access home, provider/model/effort, permission settings and native
-   control/capture route. Use invented input and an allowlisted disposable
-   project output; keep the independent expected result outside that project.
-   Do not change permission settings to force a request without approval.
-2. In the first ordinary work turn, inspect the actually offered request card
-   and choose its offered decline. Record its exact decision form and outcome.
-   A supplier `cancel` form can also interrupt the turn and must say so; a
-   plain denial is not relabelled cancellation. If the needed form/request
-   does not arise, report the missing stimulus instead of inventing one.
-3. In a second deliberate turn, permit only the intended project operation
-   using an actually offered one-time grant. Observe the tool outcome
-   separately from the request write/response and from any human act. While
-   a turn is actually live, request one interrupt; distinguish acknowledgment,
-   final interrupted/completed status and any unobserved final state. Do not
-   report prevented work when it actually completed before the interrupt.
-4. Normal Quit and reopen using the approved existing lifecycle route. Read
-   History, explicitly Continue the identified conversation, then use the
-   third turn only if necessary to show deliberate continuation. A read or
-   admitted resume sends no message by itself. Preserve completed output and
-   unsent text; do not replay an earlier permission answer or completed work.
-   End with normal Quit and verified original-process closure.
+Private evidence is retained at
+`/Users/ryan/dev/chirality-t3/scratch/app-p3-account-4r91b6kq/`:
+`SUBJECT.json`, `BASELINE.json`, `RESULT_CHECK.json`, `native-ui.jsonl`,
+`journal-1/`, `journal-2/` and `WINDOW.json`. SUBJECT joins the artifact/build
+binding to the actual account/configuration/project/store and lifecycle route;
+RESULT_CHECK joins the selected rollout and output checks. Conversation,
+turn/request references and private home locators remain there.
 
-This segment can demonstrate ordinary card decline/grant, an offered cancel
-where it actually occurs, active-turn interruption and explicit continuation.
-It does not by itself establish S11-1 with a child outliving its parent,
-S11-2 observer-only window detachment while a request waits, S11-5 Quit with a
-live turn and waiting request, or S11-6's acknowledgment-not-observed case.
-Those conditions require their actual stimulus/configuration and containment;
-a normal idle reopen cannot stand in for them. A15 cancel/unconfirmed controls
-are separate from supplier tool-permission forms and need a separately scoped
-content review if a personal-act claim is wanted.
+The retained native UI evidence is AX/text. Screenshot URLs occur in AX
+returns, but their files are absent; no retained-image or visual-acceptance
+claim follows. Agent 0 performed development controls. UI wording about a
+“person” establishes no personal owner review, approval or professional act.
+The result establishes ordinary request cancellation, one-time permission,
+live-turn interruption and normal History continuation on this development
+subject. It does not complete the standalone dossier or all P3 cases. The
+recorded P1 project wording, diagnostic density and AX limitations remain;
+this result supplies no broader usability acceptance.
 
-## Concrete record and candidate inputs
+## Remaining actual stimuli and access modes
 
-Before execution, Agent 0 supplies the exact source, executable/bundle identity,
-build/profile/resource correspondence, supplier identity, and a private journal
-location. The configuration account names the access-home class (without its
-private locator), model/provider/effort, settings source and permission policy,
-project/store binding, invented inputs/output allowlist and independently kept
-expected result. The native route must bind the original process, deadline,
-normal cleanup and truthful unknown outcome if cleanup or observation fails.
-Capture/input authority and privacy scope must be explicit; existing tooling
-or a proposal file supplies neither.
+S11-1/ST-4 still needs actual descendant facts (including a child outliving its
+parent) or an applicable identified recorded counterpart on a nondelegating
+route. S11-2 needs observer-only detachment while a request waits; S11-5 needs
+Quit with a live turn and waiting request. Normal Quit after interruption is
+not either stimulus. S11-6/ST-5 needs an answer written without an observed
+acknowledgment across process loss, the recovery read, and candidate-bound
+replay through the App seam. Retained historical recordings may be assessed
+for applicability by their actual consumer; their old dossier pins and dormant
+harness definitions are not refreshed into new evidence here.
 
-The actual record must join those inputs to original generation/conversation/
-turn/request references, offered forms, initiating operator, request write and
-response, final turn/tool observations, History read and explicit resume,
-saved-output comparison and original closure. Keep raw screenshots, journals,
-private state and credential-sensitive custody observations in the approved
-private evidence location. Publish only the minimal attributable facts and
-limits in current Work; execution/check/review details belong in the PR.
-No actual result, candidate pin, dossier pass or personal act is created here.
+| Access mode | Current evidence | Remaining actual input/result |
+|---|---|---|
+| ChatGPT account | J1/J2 account-backed work plus the candidate-bound ordinary P3 segment above | Remaining native recovery stimuli and applicable final-candidate/installed qualification; this result does not establish credential-custody or destination qualification. |
+| API key | Native protocol and offline receiving preparation; no actual key-mode qualification | Owner-selected separate App-owned H-key, key entry through supported native UI, intended endpoint/model and storage/plugin settings; actual key-mode use and preservation of the account/local configurations. No key is requested in chat or copied from another home. |
+| Local provider | Historical server/model observations retain their original pair and limits | Owner-selected available server/model/version/endpoint and local-resource/use decision; candidate-bound provider/Responses configuration and useful conversation, with unsupported tools/delegation and unknown destination facts stated truthfully. No discovery, download, probe, model load or substitute follows from the account result. |
 
-## Three access modes: required inputs and authority
+All three remain required under ACCESS's two-home arrangement, with switching
+preserving the others' configuration. This is not a mode × every-stimulus
+matrix or a new gate. Credential-custody observation remains privacy-bounded;
+absence of credentials from a public log is not custody evidence.
 
-| Mode | Already demonstrated | Missing input / owner action | Actual result still needed |
-|---|---|---|---|
-| ChatGPT account | Owner sign-in and agent-operated real work on the J1/J2 development subjects; J2 explicit account/settings read | Agent 0's exact post-J2 subject/config and a new bounded launch/capture/cloud-use scope; do not assume another sign-in is required | Candidate-bound account read and conversation/use result, preserving who signed in and who operated each control |
-| API key | Native protocol and offline receiving preparation; no actual key-mode qualification | Owner selects the separate App-owned H-key and personally supplies the key using supported native UI; confirms storage/plugin settings and authorized endpoint/use budget. No key is requested in chat, read from another home or copied by the agent | Exact candidate/supplier, H-key versus H-acct separation, reported key account, deliberately chosen model/provider, actual conversation/use and preservation of other modes. Credential custody requires approved private observation, not inference from a successful login |
-| Local provider | Historical server/model observations retain their original pair and limits; they do not qualify a current App | Owner names an already available server/model/version/endpoint and permits exact server/App launch, model load, resource window and capture/use. No server discovery, download, probe, local-model measurement or substitute is authorized | Candidate-bound configured provider/Responses interface, requested versus reported destination/model and actual useful conversation/use; record unsupported tools/delegation and unknowns truthfully |
+## Separate contract and qualification dependencies
 
-All three remain required and selectable together under ACCESS's two-home
-arrangement; switching must preserve the others' configuration. This is not a
-mode × every-stimulus matrix. Begin with the account ordinary segment only
-if approved; key/local work waits for its named inputs and authority. A
-no-model choice check is a configuration/UI observation, not inference proof.
-The required custody scan needs its own privacy-bounded input/access scope and
-cannot be replaced by a public log claiming that no credentials were seen.
+PR193 is included in this subject: its approved destination failed-turn rule
+closes unanswered permission requests as “turn failed”, without a grant or
+waiting dispatch, and its explicit A15 exception retains registration evidence
+with the library. This ordinary supplier segment does not exercise a failed
+destination prompt or qualify native host LOOP/RS/AS behaviour; standalone
+supplier A14 remains unchanged.
 
-## Separate recovery and contract dependencies
+Other F7/length/filter and ACT summary/citation choices remain open, including
+the pending-length transition and remaining affected terminal-failure
+semantics. Current §3.2 distinguishes length/content-filter, and RA4 excludes
+delivery-only return answers. The contract manager owns the pending clauses;
+Agent 0 carries reserved owner choices and selects the next useful actual
+stimulus. None is predecided by this successful ordinary segment.
 
-ST-5 needs a recording that actually contains an answer written without an
-observed acknowledgment across process loss, its recovery read, and a replay
-through the actual candidate's App seam. Before allocating capture/replay,
-Agent 0 identifies the consumer and current supplier/configuration record and
-checks whether a retained exact recording is applicable. Historical dossier
-pins and dormant harness definitions are not renewed by this proposal; a
-source/fixture pass is not a new native result. ST-4 likewise needs actual
-native descendant facts or its applicable identified recorded counterpart.
-
-Ordinary offered requests, turn interrupt and explicit continuation can be
-scoped independently of the remaining F7/length/filter stimuli. The owner
-approved closing unanswered permission requests when their turn fails,
-recording “turn failed”, with no grant or waiting dispatch. The contract
-manager is implementing coherent schemas and consumers in a separate branch;
-this decision is not yet implemented or qualified. A dependent failure witness
-needs that implementation and its actual candidate-bound result, rather than
-another decision on this approved rule.
-
-The owner also approved retaining A15 registration evidence with the library
-through an explicit exception. Its coherent implementation and qualification
-remain with the separate contract contribution. Other F7/length/filter and
-ACT summary/citation choices remain open; the pending-length transition and
-any remaining destination-prompt terminal-failure semantics must not be
-inferred from the two concise approvals. Current §3.2 already distinguishes
-length/content-filter, and RA4 excludes delivery-only return answers. The
-contract manager owns the pending LOOP/ACT/store clauses; Agent 0 obtains the
-remaining owner decisions before dependent implementation or witness claims.
-
-[Continuation boundaries](CONTINUATION_BOUNDARIES.md) continue to govern live
-work. This proposal adds no credentials, signing/enrollment/release, download,
-local-model or VM authority. Final-candidate applicability remains owed even
-when a development segment succeeds.
+[Continuation boundaries](CONTINUATION_BOUNDARIES.md) still govern live work.
+This result changes no qualification criterion, historical pin, Scope or
+dependency condition, and grants no new credentials, local-model, signing,
+release, download or VM authority. Final-candidate applicability remains owed.

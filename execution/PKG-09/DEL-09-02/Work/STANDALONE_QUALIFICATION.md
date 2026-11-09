@@ -4,7 +4,7 @@
   file sha256 `5772038725e2dacd3939707c3fe16e064b543b9b39e4c6049fca05205a61747c`),
   repaired for review `reviews/RV2-SQ-U3.md` under R23-22 and R23-27 (see
   "Changes").
-- **Status:** DRAFT DEFINITION — proposed, unsupplied, not implemented, not
+- **Status at original SQ-v0.2 definition:** DRAFT DEFINITION — proposed, unsupplied, not implemented, not
   accepted. Beside it: the PROPOSED dossier schema with valid, invalid and
   rule-violation example sets, the step map `sq.step-map.json`, and a design
   prototype `prototype/check_sq.py` (not product code). No candidate exists;
@@ -525,13 +525,21 @@ See the named change's source basis, consumer account and check results in
 (relative to the App v4 project). Earlier prototype results above remain
 historical.
 
-## Next publication witness preparation
+## Current publication evidence
 
-[The next P3 proposal](P3_NEXT_WITNESS_PROPOSAL.md) identifies the demonstrated
-J1/J2 portions, one independently scoped ordinary request/interrupt/continuation
-segment, missing inputs/authority for each of the three access modes and the
-separate F7/recovery dependencies. It opens no examination, renews no historical
-pin/harness and changes no Scope, supplier case or dependency condition.
+[The current P3 account](P3_NEXT_WITNESS_PROPOSAL.md) records the actual ordinary
+account request/cancel, one-time grant, live-turn interrupt, normal Quit/reopen
+and explicit History continuation on the combined development subject. It
+also records UI-selected medium effort and the supplier's Terra/medium turn
+contexts across all three turns, including reopen. Its subject, output,
+private evidence and AX/text-only limits are stated there once; J1/J2 retain
+their separate evidence subjects.
+
+This bounded result supplies no complete SQ dossier or installed/release
+qualification. Key/local access, ST-4/ST-5, observer detachment and live-request
+Quit need their real stimuli; affected F7/length/filter and ACT choices remain
+open. No historical pin/harness is renewed and no Scope, supplier criterion or
+dependency condition changes.
 
 ## Current implementation conditions
 
