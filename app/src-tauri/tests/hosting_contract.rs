@@ -1,6 +1,6 @@
 //! Offline hosting contract checks; supplier double performs no network operation.
 mod common;
-use chirality_app_v4_lib::hosting::{Host, HostConfig};
+use chirality_app_v4_lib::hosting::{Host, HostConfig, DECLARED_PIN};
 use common::ScratchDirectory;
 use serde_json::json;
 use std::os::unix::fs::PermissionsExt;
@@ -8,19 +8,21 @@ use std::sync::Arc;
 
 fn config(root: &ScratchDirectory) -> HostConfig {
     let bin = root.join("codex-double");
+    // Synthetic double: its version label and handshake userAgent follow the
+    // current Host's DECLARED_PIN; it is not a supplier version witness.
     std::fs::write(&bin, r#"#!/usr/bin/env python3
 import sys,json
 if '--version' in sys.argv:
- print('codex-cli 0.160.0'); sys.exit(0)
+ print('codex-cli @PIN@'); sys.exit(0)
 for line in sys.stdin:
  f=json.loads(line)
  if 'id' not in f: continue
  if f['method']=='initialize':
   print(json.dumps({'method':'test/early','params':{'native':True},'emittedAtMs':1}),flush=True)
-  result={'userAgent':'codex/0.160.0'}
+  result={'userAgent':'codex/@PIN@'}
  else: result={'thread':{'id':'same-thread-id','status':{'type':'idle'}},'model':'configured-model','modelProvider':'configured-provider'}
  print(json.dumps({'id':f['id'],'result':result}),flush=True)
-"#).unwrap();
+"#.replace("@PIN@", DECLARED_PIN)).unwrap();
     std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o700)).unwrap();
     let mut cfg = HostConfig::new(bin, root.join("home"), root.join("probe"), root.to_path_buf());
     std::fs::create_dir_all(&cfg.codex_home).unwrap();
@@ -68,7 +70,7 @@ fn identity_separates_instances_homes_and_spawns_and_frames_stay_native() {
     assert_eq!(snapshot["threads"][0]["reportedDestination"]["scope"], "thread");
     assert_eq!(snapshot["networkDisclosure"]["entries"][1]["purpose"], "model");
     assert_eq!(snapshot["networkDisclosure"]["observationSourceVersion"], "0.158.0");
-    assert_eq!(snapshot["networkDisclosure"]["currentSupplierVersion"], "0.160.0");
+    assert_eq!(snapshot["networkDisclosure"]["currentSupplierVersion"], DECLARED_PIN);
     let positions: Vec<u64> = first.journal().iter().filter_map(|e| e["position"].as_u64()).collect();
     assert!(positions.windows(2).all(|w| w[0] < w[1]));
     let early = first.journal().into_iter().find(|e| e["frame"]["method"]=="test/early").unwrap();
@@ -221,12 +223,12 @@ fn version_label_and_handshake_mismatches_refuse_readiness() {
     let root = ScratchDirectory::new("hostversion");
     let cfg = config(&root);
     let original = std::fs::read_to_string(&cfg.codex_bin).unwrap();
-    std::fs::write(&cfg.codex_bin, original.replace("codex-cli 0.160.0", "codex-cli 0.159.0")).unwrap();
+    std::fs::write(&cfg.codex_bin, original.replace(&format!("codex-cli {DECLARED_PIN}"), "codex-cli 0.159.0")).unwrap();
     let host = Arc::new(Host::new());
     assert!(host.start(&cfg, "test").is_err());
     assert_eq!(host.state(), "refused");
     assert!(host.child_pid().is_none());
-    std::fs::write(&cfg.codex_bin, original.replace("codex/0.160.0", "codex/0.159.0")).unwrap();
+    std::fs::write(&cfg.codex_bin, original.replace(&format!("codex/{DECLARED_PIN}"), "codex/0.159.0")).unwrap();
     assert!(host.start(&cfg, "test").is_err());
     assert_ne!(host.state(), "ready");
     assert_eq!(host.snapshot()["versionIdentity"]["handshakeReportedIdentity"], json!({"userAgent":"codex/0.159.0"}));

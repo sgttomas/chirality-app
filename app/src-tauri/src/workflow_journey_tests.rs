@@ -49,10 +49,10 @@ const THREAD: &str = "thread";
 const PEER: &str = r#"#!/usr/bin/python3
 import sys,json,os
 if '--version' in sys.argv:
- print('codex-cli 0.160.0');sys.exit(0)
+ print('codex-cli 0.167.0');sys.exit(0)
 def emit(v):print(json.dumps(v),flush=True)
 starts=[0]
-def thread(tid='thread'):return {'id':tid,'cliVersion':'0.160.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'own native-shaped fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[],'agentRole':'TASK'}
+def thread(tid='thread'):return {'id':tid,'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'own native-shaped fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[],'agentRole':'TASK'}
 def turn():return {'id':'turn','status':'failed','items':[],'error':None,'itemsView':'summary'}
 text='';client=''
 def mode(name):

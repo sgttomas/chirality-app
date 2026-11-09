@@ -443,6 +443,14 @@ instructions on resume or fork (RC-07, RC-11; schema IS-1, IS-6, IS-9).
 
 ### 5.3 Native child roles (R17-9 as amended by R18-4)
 
+Current 0.167.0 development source compatibility is in the
+[0.167 carrier account](CHILD_ROLE_CARRIER_0.167.0.md). It distinguishes V1
+full-history role rejection from V2 explicit-role support, keeps unknown-origin
+and currentness refusal, and establishes no new runtime-child qualification.
+The native access predicate/connecting fixtures must consume that basis.
+The following 0.160.0 implementation and receiving facts retain their historical
+subject; its 12-case/19-request evidence is not a 0.167.0 witness.
+
 The Rust host implements the bounded 0.160.0 path in `child_roles.rs`,
 `access_provider.rs`, `role_supply.rs`, `hosting_child_roles.rs` and
 `native_child_guidance.rs`. The [child-carrier account](CHILD_ROLE_CARRIER_0.160.0.md)

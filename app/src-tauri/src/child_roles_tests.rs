@@ -185,3 +185,24 @@ fn native_children_malformed_or_unwitnessed_role_file_shape_withholds() {
     for bytes in ["name = \"OTHER\"\ndescription = [1]\ndeveloper_instructions = \"person\"\n","name = \"OTHER\"\ndescription = \"person\"\ndeveloper_instructions = [1]\n","name = \"OTHER\"\ndescription = \"person\"\ndeveloper_instructions = \"person\"\nmodel = \"unwitnessed\"\n"]{std::fs::write(&path,bytes).unwrap();assert!(Namespace::observe(&reading).is_err());}
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn codex_0167_agent_controls_and_alias_do_not_become_role_names() {
+    let (root, mut reading) = setup();
+    // Exact AgentsToml controls at the .167 source pin, including raw-layer
+    // alias max_threads and serialized interrupt_message (renamed from .160).
+    reading["layers"][1]["config"]["agents"] = json!({
+        "enabled":true,"max_threads":3,"max_concurrent_threads_per_session":3,
+        "max_depth":1,"default_subagent_model":null,
+        "default_subagent_reasoning_effort":null,"job_max_runtime_seconds":null,
+        "interrupt_message":false
+    });
+    let observed = Namespace::observe(&reading).unwrap();
+    assert!(observed.names.is_empty());
+    for key in ["interrupt_message_enabled", "future_control"] {
+        reading["layers"][1]["config"]["agents"][key] = json!(false);
+        assert!(Namespace::observe(&reading).is_err(), "unknown {key} withholds");
+        reading["layers"][1]["config"]["agents"].as_object_mut().unwrap().remove(key);
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}

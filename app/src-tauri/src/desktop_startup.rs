@@ -1745,17 +1745,9 @@ fn resource_view(plan: &OwnedHomePlan) -> Result<Value, String> {
         .collect::<Vec<_>>()))
 }
 fn development_binary_assertion() -> Result<String, String> {
-    // Reuse the maintained selected-reference bytes as a development assertion,
-    // not a newly invented supplier qualification or a persisted trust receipt.
-    let expected: Value = serde_json::from_str(include_str!("../resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json")).map_err(|e|e.to_string())?;
-    expected["inventory"]["entries"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .find(|e| e["path"] == "bin/codex")
-        .and_then(|e| e["sha256"].as_str())
-        .map(str::to_owned)
-        .ok_or("compiled development binary assertion missing".into())
+    // The installed npm generator identifies the current development main only.
+    // Historical archive attestations do not qualify this new distribution.
+    Ok(crate::hosting::ASSESSMENT_SUPPLIER_SHA256.to_owned())
 }
 
 #[cfg(test)]
@@ -5107,7 +5099,7 @@ mod tests {
         assert_eq!(cfg.codex_bin, f.resources.join("codex/bin/codex"));
         assert_eq!(
             cfg.expected_sha256.as_deref(),
-            Some("112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b")
+            Some(crate::hosting::ASSESSMENT_SUPPLIER_SHA256)
         );
         assert!(cfg.allow_unverified_dev);
         assert!(cfg.distribution.is_none());

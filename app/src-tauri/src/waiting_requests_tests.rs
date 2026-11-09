@@ -12,7 +12,7 @@ impl Fixture {
         std::fs::write(&bin, r#"#!/usr/bin/python3
 import json,sys
 if '--version' in sys.argv:
- print('codex-cli 0.160.0');sys.exit(0)
+ print('codex-cli 0.167.0');sys.exit(0)
 def emit(x): print(json.dumps(x),flush=True)
 for line in sys.stdin:
  f=json.loads(line);m=f.get('method')

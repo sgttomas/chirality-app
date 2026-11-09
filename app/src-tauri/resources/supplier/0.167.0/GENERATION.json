@@ -1,0 +1,70 @@
+{
+  "format": "chirality.supplier-json-generation/1",
+  "pin": "0.167.0",
+  "supplier": {
+    "source": "retained installed npm @openai/codex 0.167.0 / darwin-arm64 platform package",
+    "main_sha256": "030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc",
+    "tree_manifest_sha256": "e4ea2270217a849432a8d86bb3b45fa7a643781a1afffabf8ba5dfd9ffcaa257",
+    "layout_version": 1,
+    "canonical_archive_equivalence": false
+  },
+  "official_release": {
+    "tag": "rust-v0.167.0",
+    "commit": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
+    "url": "https://github.com/openai/codex/releases/tag/rust-v0.167.0"
+  },
+  "original_private_generation_record_sha256": "224cbfc2045f559af31311cb5fb1318012c5ebde8eab17ddf49b6b9272ed9b5d",
+  "environment": {
+    "inherit_environment": false,
+    "allowlist": [
+      "HOME",
+      "CODEX_HOME",
+      "TMPDIR",
+      "PATH",
+      "LANG"
+    ],
+    "homes": "fresh task-private HOME/CODEX_HOME/tmp",
+    "network": "no server/provider/network commands"
+  },
+  "variants": {
+    "stable": {
+      "argv": [
+        "<private-vendor>/bin/codex",
+        "app-server",
+        "generate-json-schema",
+        "--out",
+        "<private-output>/stable"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 45,
+      "files": 322,
+      "bytes": 3751081,
+      "manifest_sha256": "46348cd87d9545043540d9170501e42043b6e1cd58cda8074f2ae527c25a6964"
+    },
+    "experimental": {
+      "argv": [
+        "<private-vendor>/bin/codex",
+        "app-server",
+        "generate-json-schema",
+        "--experimental",
+        "--out",
+        "<private-output>/experimental"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 45,
+      "files": 470,
+      "bytes": 4654630,
+      "manifest_sha256": "23849d8249c26ef0dd3443205538002a0b5abd833b410bc24644f207bc270791"
+    }
+  },
+  "compiled_experimental_bundles": {
+    "codex_app_server_protocol.schemas.json": "486c7c8daa5dc7f3ab2a1fb56de5316804caf7a4210fda1dc28d3f0f4e90cfe1",
+    "codex_app_server_protocol.v2.schemas.json": "b1e5d17224b9d9732b5976012438ba78e2cf7e418b67f8f8a5f5cffe301b875d"
+  },
+  "manifest_sha256": "353ab01c4d92b18c8939c985ea1a8529e70a8d8ee58c8f9818545a13ed5dcc51",
+  "limits": [
+    "One generator pass per variant; determinism not assessed.",
+    "Generated JSON schemas only; no TypeScript generation, app-server session, turn, login or provider connection.",
+    "Installed npm input and schema provenance are not canonical archive custody, distribution qualification, native qualification or release acceptance."
+  ]
+}

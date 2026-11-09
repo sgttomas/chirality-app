@@ -170,7 +170,11 @@ fn s2_compiled_stock_reference_resolves_exact_closure_and_refuses_tampered_copy(
     assert_eq!(reference.attestation_ref().sha256, "09e1fae9d243462132803d868174b70ddae111bde2106aa2351ebfe74c793fe9");
     let e = reference.expected().unwrap(); assert_eq!(e["inventory"]["entries"].as_array().unwrap().len(), 53);
     assert!(e["inventory"]["manifest_sha256"].as_str().unwrap().starts_with("327effb9"));
-    assert_eq!(e["generated"]["manifest_sha256"], GENERATED_MANIFEST_SHA256);
+    // The compiled .160 archive reference remains historical. It is readable,
+    // but cannot attest the current .167 generated protocol or acting tree.
+    assert_ne!(e["generated"]["manifest_sha256"], GENERATED_MANIFEST_SHA256);
+    assert_eq!(e["pin"], "0.160.0");
+    assert_ne!(e["pin"], crate::hosting::DECLARED_PIN);
     let f = fixture(); let copied = f.root.join("copied-reference"); copy_files(&source, &copied);
     Selected::production(&copied).unwrap(); std::fs::write(copied.join(reference.expected_ref().path.as_str()), b"changed").unwrap();
     assert!(Selected::production(&copied).is_err());
