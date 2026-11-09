@@ -1099,10 +1099,11 @@ impl Host {
             "account/logout"|"configRequirements/read"|"modelProvider/capabilities/read"|"collaborationMode/list" if params.as_object().is_some_and(|p|p.is_empty()) => Ok(()),
             "config/read" if private_config && params["cwd"]==binding.cwd && params["includeLayers"]==true && params.as_object().is_some_and(|p|p.len()==2) => Ok(()),
             "thread/start" if params["cwd"]==binding.cwd && params["modelProvider"]==crate::native_local_provider::PROVIDER && params["model"]==crate::native_local_provider::MODEL && admission.is_some_and(|p|p.entry==crate::native_local_provider::ENTRY && (params.get("config").is_none_or(|c| c.is_null() || c.as_object().is_some_and(|c| c.is_empty())) || p.children.as_ref().is_some_and(|c| params["config"]==c.config))) => Ok(()),
-            "thread/resume"|"thread/fork"|"turn/start"|"turn/steer"|"turn/interrupt" if thread_current() => Ok(()),
-            // History Continue: only the exact original packet for a saved thread of this dedicated home.
-            // No path/history/config/model override can ride on it; admission rechecks the resumed source.
-            "thread/resume" if params.as_object().is_some_and(|p|p.len()==2) && params["threadId"].as_str().is_some_and(|t|!t.is_empty()) && params["excludeTurns"]==true => Ok(()),
+            "thread/fork"|"turn/start"|"turn/steer"|"turn/interrupt" if thread_current() => Ok(()),
+            // Every local resume, admitted or saved, is only the exact original Continue packet, carried on
+            // a current private effective-configuration admission. No path/history/config/model rides on it.
+            "thread/resume" if params.as_object().is_some_and(|p|p.len()==2) && params["threadId"].as_str().is_some_and(|t|!t.is_empty()) && params["excludeTurns"]==true
+                && admission.is_some_and(|p|p.entry==crate::native_local_provider::ENTRY && p.cwd==binding.cwd && p.provider==crate::native_local_provider::PROVIDER && p.model==crate::native_local_provider::MODEL) => Ok(()),
             // Local disk views carry no inference/account credential to a model transport.
             "thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/loaded/list"|"thread/name/set"|"thread/archive"|"thread/unarchive"|"thread/unsubscribe" => Ok(()),
             _=>refuse(),
@@ -1110,7 +1111,27 @@ impl Host {
     }
 }
 
+impl ProviderAdmission {
+    pub(super) fn source(&self) -> &SourceRequest { &self.source }
+}
 impl Host {
+    /// Local Continue reads and classifies the effective provider definition before dispatch; None without a local binding.
+    pub(super) fn local_resume_admission(&self, generation: &Value) -> Result<Option<ProviderAdmission>, String> {
+        let cwd = match self.inner.0.lock().map_err(|_| unavailable())?.local_provider.as_ref() { Some(b) => b.cwd.clone(), None => return Ok(None) };
+        use crate::native_local_provider::{ENTRY, MODEL, PROVIDER};
+        self.provider_admission_read(generation, &cwd, ENTRY, PROVIDER, MODEL).map(Some)
+    }
+    /// Write-time recheck: the admitting reading is still the current private reading for the bound home.
+    pub(super) fn check_local_resume_proof(&self, i: &Inner, proof: &ProviderAdmission) -> Result<(), String> {
+        let Some(binding) = &i.local_provider else { return Err(unavailable()); };
+        if proof.entry != crate::native_local_provider::ENTRY || proof.cwd != binding.cwd || !canonical_167(i) { return Err(unavailable()); }
+        self.check_provider_read(i, &proof.source, &proof.cwd)
+    }
+    /// Operational admission of a local Continue still requires its admitting reading to be current.
+    pub(super) fn check_local_resume_source(&self, i: &Inner, source: Option<&SourceRequest>) -> Result<(), String> {
+        let Some(binding) = &i.local_provider else { return Ok(()); };
+        self.check_provider_read(i, source.ok_or(crate::native_local_provider::LIMIT)?, &binding.cwd)
+    }
     /// A resumed local thread is admitted only when its reported source is the fixed oMLX selection.
     pub(super) fn check_local_resume(i:&Inner,result:&Value)->Result<(),String>{
         if i.local_provider.is_none() {return Ok(());}

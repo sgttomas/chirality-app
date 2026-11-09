@@ -98,9 +98,14 @@ existing signature, wording and behavior.
 
 Every request from the local home passes one guard before the write. Paged
 history reads (`thread/turns/list`, `thread/items/list`, `thread/goal/get`) are
-admitted for this home. Continue may resume a saved local thread with only the
-original `{threadId, excludeTurns:true}` packet. Its admission then requires the
-resumed thread to report the fixed provider, model and working directory.
+admitted for this home. Every local resume carries only the original
+`{threadId, excludeTurns:true}` Continue packet. Like a new start, it first
+needs a private effective-configuration reading that classifies the fixed
+provider definition, and that reading is checked again at the write.
+Operational admission requires the same reading to be current, and the resumed
+thread to report the fixed provider, model and working directory. Credential,
+header or catalogue drift from another layer refuses before any resume is
+written.
 
 The DTO names `modeHomeClass`, `entryId`, `providerId`, `endpoint`, `model`,
 `generation` and `credentialState`. The fixed entry is `local-provider-keyed`.

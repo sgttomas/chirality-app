@@ -2774,7 +2774,7 @@ fn canonical_167_peer(peer: &Peer) {
         json!({"verificationGeneration":peer.g,"inventory":{"manifest_sha256":"158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"}}),
     );
 }
-fn local_167_config() -> Value {
+pub(crate) fn local_167_config() -> Value {
     let mut definition = local();
     definition["name"] = json!("oMLX");
     definition["base_url"] = json!(crate::native_local_provider::ENDPOINT);
@@ -3087,6 +3087,12 @@ fn native_local_provider_central_guard_refuses_cross_entry_overrides_before_capt
         ("thread/resume", json!({"threadId":"saved","excludeTurns":true,"config":{"model_provider":"openai"}})),
         ("thread/resume", json!({"threadId":"saved","excludeTurns":true,"model":"other"})),
         ("thread/resume", json!({"threadId":"saved","excludeTurns":false})),
+        // Without a current private effective-configuration admission even the exact packet is refused.
+        ("thread/resume", json!({"threadId":"saved","excludeTurns":true})),
+        // An already admitted local thread gets no broader resume than a saved one.
+        ("thread/resume", json!({"threadId":"local-thread","excludeTurns":true})),
+        ("thread/resume", json!({"threadId":"local-thread","excludeTurns":false})),
+        ("thread/resume", json!({"threadId":"local-thread","excludeTurns":true,"history":[{"text":CANARY}]})),
         ("thread/resume", json!({"threadId":"","excludeTurns":true})),
         ("thread/items/list", json!({"threadId":"saved","turnId":"t","sortDirection":"asc","base_url":CANARY})),
         ("account/login/start", json!({"type":"chatgpt"})),
@@ -3118,7 +3124,6 @@ fn native_local_provider_central_guard_refuses_cross_entry_overrides_before_capt
         ("thread/items/list", json!({"threadId":"saved","turnId":"t","sortDirection":"asc"})),
         ("thread/turns/list", json!({"threadId":"saved","sortDirection":"desc","itemsView":"summary"})),
         ("thread/goal/get", json!({"threadId":"saved"})),
-        ("thread/resume", json!({"threadId":"saved","excludeTurns":true})),
     ] {
         peer.host.request_begin_scoped(method, params.clone(), json!({"kind":"synthetic"}), false, Some(&peer.g)).unwrap();
         assert_eq!(peer.frame()["params"], params, "{method}");

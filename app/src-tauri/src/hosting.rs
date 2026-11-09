@@ -422,7 +422,8 @@ impl NativeItemCoverageSeal {
 }
 
 #[derive(Clone)]
-pub struct HistoryDispatch { query: HistoryQuery, source: SourceRequest }
+/// `local_config` is the private effective-configuration reading a local Continue was admitted on.
+pub struct HistoryDispatch { query: HistoryQuery, source: SourceRequest, local_config: Option<SourceRequest> }
 impl HistoryDispatch {
     pub fn query(&self) -> &HistoryQuery { &self.query }
     pub fn source(&self) -> &SourceRequest { &self.source }
@@ -2007,7 +2008,7 @@ impl Host {
         }
         if expected_generation.map(|g|g!=&i.generation||i.server_requests.is_closed(g)).unwrap_or(false) {return Err(format!("refused-not-sent: {method} generation changed before request registration"));}
         Self::check_send_admitted(&i,method)?;
-        if let Some(proof)=provider_admission{self.check_provider_admission(&i,proof,&params)?;}
+        if let Some(proof)=provider_admission{if method=="thread/resume"{self.check_local_resume_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,&params)?;}}
         if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer") {Self::check_conversation_request(&i,method,&params)?;}
         let oauth_mode=if method=="account/login/start" {match params["type"].as_str(){Some("chatgpt")=>Some(oauth_control::OAuthMode::Chatgpt),Some("chatgptDeviceCode")=>Some(oauth_control::OAuthMode::DeviceCode),_=>None}}else{None};
         if oauth_mode.is_some(){
@@ -2065,7 +2066,7 @@ impl Host {
                 Self::check_local_request(&i,method,&frame["params"],expected_generation,handshake,private_credential,private_config,provider_admission)?;
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
                 Self::check_send_admitted(&i,method)?;
-                if let Some(proof)=provider_admission{self.check_provider_admission(&i,proof,&frame["params"])?;}
+                if let Some(proof)=provider_admission{if method=="thread/resume"{self.check_local_resume_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,&frame["params"])?;}}
                 if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.provider_read_revisions.remove(write.cwd());}
                 if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,&frame["params"],Some(&json!(id)))?;}
                 if let Some(original)=oauth_cancel{
@@ -2317,8 +2318,14 @@ impl Host {
         crate::recovery::generation_ref(query.generation())?;
         if query.generation()["home"]!=query.home() {return Err("history home and full generation differ".into());}
         if !matches!(query.method(),"thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/resume") {return Err("unsupported history factory method".into());}
+        // A local saved-thread Continue gets the same effective provider-definition admission as a new start.
+        if let Some(proof)=(query.method()=="thread/resume").then(||self.local_resume_admission(query.generation())).transpose()?.flatten() {
+            auth_rpc::generic_guard(query.method(),query.params())?;
+            let source=self.request_begin_with_access_offer(query.method(),query.params().clone(),initiator,false,Some(query.generation()),false,None,None,None,None,false,Some(&proof))?;
+            return Ok(HistoryDispatch {query:query.clone(),source,local_config:Some(proof.source().clone())});
+        }
         let source=self.request_begin_scoped(query.method(),query.params().clone(),initiator,false,Some(query.generation()))?;
-        Ok(HistoryDispatch {query:query.clone(),source})
+        Ok(HistoryDispatch {query:query.clone(),source,local_config:None})
     }
     pub fn history_wait(&self, dispatch: &HistoryDispatch, wait: Duration) -> Result<Value,String> {self.source_request_wait(&dispatch.source,wait)}
     pub fn history_dispatch_status(&self, dispatch: &HistoryDispatch) -> Result<Value,String> {self.source_request_status(&dispatch.source)}
@@ -2436,6 +2443,7 @@ impl Host {
         let native=&candidate["native"];if !matches!(native["status"]["type"].as_str(),Some("idle"|"active"))||native["canAcceptDirectInput"]==false||native["id"]!=dispatch.query.params()["threadId"] {return Err("native thread cannot accept direct input".into());}
         if i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==native["id"]) {return Err("thread already operationally admitted in generation".into());}
         Self::check_local_resume(&i,&response["result"])?;
+        self.check_local_resume_source(&i,dispatch.local_config.as_ref())?;
         let result=&response["result"];let row=json!({"generation":generation,"threadId":native["id"],"name":native.get("name").and_then(Value::as_str),"preview":native.get("preview").and_then(Value::as_str),"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()});i.threads.push(row.clone());
         // Admission is already established. Context preparation/read failure must
         // never revoke it, change role/CCE state or make Continue wait on history.
@@ -5143,10 +5151,23 @@ mod conversation_transport_tests {
         i.version_identity=Some(json!({"declaredPin":"0.167.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc"}}]}));
         i.successor_status=Some(json!({"verificationGeneration":g(),"inventory":{"manifest_sha256":"158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"}}));
     }
+    /// Answers the private config/read through the host hook and the resume frame through the peer.
+    fn local_continue_exchange(host:&Arc<Host>,query:&HistoryQuery,cfg:Value,resume:Value,between:impl FnOnce())->(Result<HistoryDispatch,String>,Vec<Value>) {
+        let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
+        *host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();
+        *host.before_provider_wait.lock().unwrap()=Some(Box::new(move|host,source|{host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":cfg})).unwrap(),source.generation());}));
+        let me=Arc::clone(host);
+        let worker=std::thread::spawn(move||{let mut reader=BufReader::new(stdout);let mut frames=vec![];loop{let mut line=String::new();if reader.read_line(&mut line).unwrap()==0{break;}let frame:Value=serde_json::from_str(&line).unwrap();
+            if frame["method"]=="thread/resume"{me.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":resume})).unwrap(),&g());}frames.push(frame);}frames});
+        let result=host.history_dispatch(query).and_then(|d|{host.history_wait(&d,Duration::from_secs(2))?;between();Ok(d)});
+        *host.stdin.lock().unwrap()=None;*host.before_provider_wait.lock().unwrap()=None;let frames=worker.join().unwrap();assert!(child.wait().unwrap().success());(result,frames)
+    }
     #[test]
     fn local_provider_history_paging_and_continue_admit_saved_thread_without_seeded_row() {
         use crate::native_local_provider::{MODEL, PROVIDER};
-        for (provider, model, admitted) in [(PROVIDER, MODEL, true), ("configured", MODEL, false), (PROVIDER, "reported", false)] {
+        let good=access_provider::tests::local_167_config();
+        let mut drift=good.clone();drift["config"]["model_providers"][PROVIDER]["experimental_bearer_token"]=json!("INVENTED_PRIVATE_PROVIDER_CANARY_481");
+        for case in ["positive","credential-drift","superseded-reading","provider","model"] {
             let host=host();bind_local_history(&host);
             let mut view=NativeHistory::new("conversation-home",g()).unwrap();
             let list=view.list_threads(None,crate::native_history::Direction::Desc).unwrap();
@@ -5157,12 +5178,20 @@ mod conversation_transport_tests {
                 let(receipt,_,out)=history_exchange(&host,&query,None);assert_eq!(out["method"],query.method());assert_eq!(receipt.evidence()["writeResult"],"written","{}",query.method());
             }
             assert!(!host.snapshot()["threads"].as_array().unwrap().iter().any(|t|t["threadId"]=="stored"));
-            let query=view.continue_query().unwrap();let mut native=history_resume("idle",true);native["modelProvider"]=json!(provider);native["model"]=json!(model);
-            let(receipt,evidence,out)=history_exchange(&host,&query,Some(json!({"result":native})));
-            assert_eq!(out["params"],json!({"threadId":"stored","excludeTurns":true}));
-            view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();
-            let result=host.history_admit_resume(&view,&receipt);
-            assert_eq!(result.is_ok(),admitted,"{provider}/{model}");
+            let query=view.continue_query().unwrap();let mut native=history_resume("idle",true);native["modelProvider"]=json!(PROVIDER);native["model"]=json!(MODEL);
+            if case=="provider"{native["modelProvider"]=json!("configured");} if case=="model"{native["model"]=json!("reported");}
+            let cfg=if case=="credential-drift"{drift.clone()}else{good.clone()};
+            let me=Arc::clone(&host);
+            let(dispatch,frames)=local_continue_exchange(&host,&query,cfg,native,move||if case=="superseded-reading"{let _=me.provider_admission_read(&g(),"/invented",crate::native_local_provider::ENTRY,PROVIDER,MODEL);});
+            assert_eq!(frames.iter().filter(|f|f["method"]=="config/read").count(),if case=="superseded-reading"{2}else{1},"{case}");
+            if case=="credential-drift" {
+                assert!(dispatch.is_err());assert!(!frames.iter().any(|f|f["method"]=="thread/resume"),"no resume written on credential drift");
+                assert!(!host.snapshot().to_string().contains("INVENTED_PRIVATE_PROVIDER_CANARY_481"));continue;
+            }
+            let receipt=dispatch.unwrap();assert_eq!(frames.iter().find(|f|f["method"]=="thread/resume").unwrap()["params"],json!({"threadId":"stored","excludeTurns":true}));
+            view.receive(&query,"conversation-home",&g(),&receipt.evidence()["response"]["result"]).unwrap();
+            let admitted=host.history_admit_resume(&view,&receipt).is_ok();
+            assert_eq!(admitted,case=="positive","{case}");
             assert_eq!(host.snapshot()["threads"].as_array().unwrap().iter().any(|t|t["threadId"]=="stored"),admitted);
         }
     }
