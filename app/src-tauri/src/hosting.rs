@@ -1975,7 +1975,14 @@ impl Host {
         self.request_begin_with_access_offer_guarded(method, params, initiator, handshake, expected_generation, private_credential, oauth_cancel, aa_reservation, cce_intent, records_project, private_config, provider_admission, None, None)
     }
     fn request_begin_ordinary(&self, generation: &Value, params: Value, inherited_mode: bool) -> Result<SourceRequest, String> {
-        let guard = inherited_mode.then(|| params["collaborationMode"]["settings"]["model"].clone());
+        self.request_begin_ordinary_effort(generation, params, inherited_mode, false)
+    }
+    fn request_begin_ordinary_effort(&self, generation: &Value, params: Value, inherited_mode: bool, inherited_effort: bool) -> Result<SourceRequest, String> {
+        let guard = (inherited_mode || inherited_effort).then(|| json!({
+            "model": if inherited_mode { params["collaborationMode"]["settings"]["model"].clone() } else { Value::Null },
+            "effortGuard": inherited_effort,
+            "effort": params["collaborationMode"]["settings"]["reasoning_effort"]
+        }));
         self.request_begin_with_access_offer_guarded("turn/start", params, json!({"kind":"person-directed"}), false, Some(generation), false, None, None, None, None, false, None, guard.as_ref(), None)
     }
     fn request_begin_with_access_offer_guarded(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>,ordinary_model_guard:Option<&Value>,endpoint_write:Option<&provider_endpoint::PrivateWrite<'_>>)->Result<SourceRequest,String>{
@@ -2066,8 +2073,8 @@ impl Host {
                 let context = if method == "turn/start" {
                     let thread = frame["params"]["threadId"].as_str().unwrap_or_default();
                     if let Some(expected) = ordinary_model_guard {
-                        let current = Self::ordinary_mode_model(&i, thread)?;
-                        if expected != &json!(current) { return Err("ordinary model context changed before write; nothing sent".into()); }
+                        if !expected["model"].is_null() && expected["model"] != json!(Self::ordinary_mode_model(&i, thread)?) { return Err("ordinary model context changed before write; nothing sent".into()); }
+                        if expected["effortGuard"] == true && expected["effort"] != Self::ordinary_mode_effort(&i, thread)? { return Err("ordinary effort context changed before write; nothing sent".into()); }
                     }
                     Self::turn_requested_context(&i, &frame["params"], cut)
                 } else { Value::Null };
@@ -2954,8 +2961,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         self.request_begin_scoped("turn/start",params,json!({"kind":"person-directed"}),false,Some(generation))
     }
     pub(crate) fn turn_start_prepared_notice_model(&self,generation:&Value,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,mode:Option<&Value>,model:Option<&str>)->Result<SourceRequest,String>{
-        let params=Self::prepared_run_turn_params_model(generation,prepared,person_text,client_id,mode,model)?;
-        self.request_begin_ordinary(generation, params, mode.is_some() && model.is_none_or(str::is_empty))
+        self.turn_start_prepared_notice_effort(generation, prepared, person_text, client_id, mode, model, None)
+    }
+    pub(crate) fn turn_start_prepared_notice_effort(&self,generation:&Value,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,mode:Option<&Value>,model:Option<&str>,effort:Option<&str>)->Result<SourceRequest,String>{
+        let mut params=Self::prepared_run_turn_params_model(generation,prepared,person_text,client_id,mode,model)?;
+        Self::apply_ordinary_effort(&mut params, mode, model, effort)?;
+        Self::validate_native_result("TurnStartParams", &params)?;
+        self.request_begin_ordinary_effort(generation, params, mode.is_some() && model.is_none_or(str::is_empty), mode.is_some() && effort.is_none())
     }
     /// Root retains the original prepared/person/client tuple and genuine source on every
     /// error/unknown result. No generic evidence JSON can admit a native turn through this API.
@@ -2966,8 +2978,12 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         self.turn_start_prepared_notice_finish_model(source, prepared, person_text, client_id, mode, None, wait)
     }
     pub(crate) fn turn_start_prepared_notice_finish_model<'a>(&self,source:&'a SourceRequest,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,mode:Option<&Value>,model:Option<&str>,wait:Duration)->Result<PreparedNativeTurnStart<'a>,String>{
+        self.turn_start_prepared_notice_finish_effort(source, prepared, person_text, client_id, mode, model, None, wait)
+    }
+    pub(crate) fn turn_start_prepared_notice_finish_effort<'a>(&self,source:&'a SourceRequest,prepared:&crate::workflow_workspace::PreparedRunText,person_text:&str,client_id:&str,mode:Option<&Value>,model:Option<&str>,effort:Option<&str>,wait:Duration)->Result<PreparedNativeTurnStart<'a>,String>{
         self.check_source(source)?;
-        let expected=Self::prepared_run_turn_params_model(source.generation(),prepared,person_text,client_id,mode,model)?;
+        let mut expected=Self::prepared_run_turn_params_model(source.generation(),prepared,person_text,client_id,mode,model)?;
+        Self::apply_ordinary_effort(&mut expected, mode, model, effort)?;
         if source.frame["method"]!="turn/start"||source.frame["params"]!=expected{return Err("original prepared turn sender/ordered text/client identity differs".into());}
         self.wait_source_response(source,wait)?;
         let i=self.inner.0.lock().unwrap();
@@ -3485,6 +3501,20 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         }
         crate::model_catalog::view(generation, provider, models, &read_at)
     }
+    /// Same catalog read with its conversation-model observation checked on
+    /// both sides. Keep this boundary testable without AppState or a GUI.
+    pub(crate) fn model_catalog_read_for_conversation(&self, generation: &Value, thread: Option<&str>) -> Value {
+        let before = thread.map(|thread| self.ordinary_model_for_effort(generation, thread)).transpose();
+        let mut view = self.model_catalog_read(generation);
+        if let Some(thread) = thread {
+            let after = self.ordinary_model_for_effort(generation, thread);
+            view["conversationModel"] = match (before, after) {
+                (Ok(Some(before)), Ok(after)) if before == after => json!(after),
+                _ => Value::Null,
+            };
+        }
+        view
+    }
     /// The loaded conversations of the current generation the host tick reads
     /// (at most `limit`): those whose model, provider and folder have no
     /// reading yet (read once, when the conversation's model is known), and
@@ -3539,12 +3569,15 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// Native 0.160 keeps the override for subsequent turns. No provider,
     /// role, policy or reported thread-model mutation is made here.
     pub(crate) fn turn_start_ordinary_text(&self, generation: &Value, thread_id: &str, text: &str, mode: Option<&str>, model: Option<&str>) -> Result<Value, String> {
+        self.turn_start_ordinary_text_effort(generation, thread_id, text, mode, model, None)
+    }
+    pub(crate) fn turn_start_ordinary_text_effort(&self, generation: &Value, thread_id: &str, text: &str, mode: Option<&str>, model: Option<&str>, effort: Option<&str>) -> Result<Value, String> {
         let model = model.filter(|m| !m.is_empty());
-        let element = mode.map(|mode| self.collaboration_mode_element_with_model(generation, thread_id, mode, model)).transpose()?;
+        let element = mode.map(|mode| self.collaboration_mode_element_with_effort(generation, thread_id, mode, model, effort)).transpose()?;
         let mut params = Self::text_turn_params(thread_id, text)?;
-        Self::apply_ordinary_model(&mut params, element.as_ref(), model);
+        Self::apply_ordinary_effort(&mut params, element.as_ref(), model, effort)?;
         Self::validate_native_result("TurnStartParams", &params)?;
-        let response = self.conversation_operation_guarded("turn/start", generation, params, Duration::from_secs(20), Some(mode.is_some() && model.is_none()));
+        let response = self.conversation_operation_guarded("turn/start", generation, params, Duration::from_secs(20), Some((mode.is_some() && model.is_none(), mode.is_some() && effort.is_none())));
         if let Some(element) = element {
             if !response.as_ref().is_err_and(|e| e.contains("refused-not-sent") || e.contains("conversation-not-loaded")) {
                 self.record_requested_mode(generation, thread_id, &element, response.as_ref().map(|_| ()).map_err(Clone::clone));
@@ -3562,6 +3595,19 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         } else if let Some(model) = model.filter(|m| !m.is_empty()) { params["model"] = json!(model); }
     }
 
+    fn check_effort(effort: &str) -> Result<(), String> {
+        if effort.is_empty() || effort.len() > 128 || effort.chars().any(char::is_control) { return Err("invalid reasoning effort".into()); }
+        Ok(())
+    }
+    fn apply_ordinary_effort(params: &mut Value, mode: Option<&Value>, model: Option<&str>, effort: Option<&str>) -> Result<(), String> {
+        Self::apply_ordinary_model(params, mode, model);
+        if let Some(effort) = effort {
+            Self::check_effort(effort)?;
+            if mode.is_some() { params["collaborationMode"]["settings"]["reasoning_effort"] = json!(effort); }
+            else { params["effort"] = json!(effort); }
+        }
+        Ok(())
+    }
     /// TC-4/TC-5: the `collaborationMode` element a plan/default mode turn of
     /// this conversation carries: the conversation's reported model and
     /// reasoning effort (null when Codex reported none) and null developer
@@ -3571,16 +3617,18 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         self.collaboration_mode_element_with_model(generation, thread_id, mode, None)
     }
     pub(crate) fn collaboration_mode_element_with_model(&self, generation: &Value, thread_id: &str, mode: &str, model: Option<&str>) -> Result<Value, String> {
+        self.collaboration_mode_element_with_effort(generation, thread_id, mode, model, None)
+    }
+    pub(crate) fn collaboration_mode_element_with_effort(&self, generation: &Value, thread_id: &str, mode: &str, model: Option<&str>, effort: Option<&str>) -> Result<Value, String> {
         if !matches!(mode, "plan" | "default") { return Err("unknown collaboration mode".into()); }
         let i = self.inner.0.lock().unwrap();
         if i.generation != *generation { return Err("refused-not-sent: generation changed".into()); }
         if Self::plan_mode_availability(&i)["state"] != "offered" { return Err(format!("not started — plan mode not offered ({})", Self::plan_mode_availability(&i)["reason"].as_str().unwrap_or(""))); }
-        let thread = i.threads.iter().find(|t| t["generation"] == *generation && t["threadId"] == thread_id);
         let model = match model.filter(|m| !m.is_empty()) {
             Some(model) => model.to_owned(),
             None => Self::ordinary_mode_model(&i, thread_id)?,
         };
-        let effort = thread.map(|t| t["reasoningEffort"].clone()).filter(|e| e.as_str().is_some_and(|s| !s.is_empty())).unwrap_or(Value::Null);
+        let effort = match effort { Some(e) => { Self::check_effort(e)?; json!(e) }, None => Self::ordinary_mode_effort(&i, thread_id)? };
         Ok(json!({"mode":mode,"settings":{"model":model,"reasoning_effort":effort,"developer_instructions":null}}))
     }
 
@@ -3604,11 +3652,11 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     fn conversation_operation(&self, method: &str, generation: &Value, params: Value, wait: Duration) -> Result<Value, String> {
         self.conversation_operation_guarded(method, generation, params, wait, None)
     }
-    fn conversation_operation_guarded(&self, method: &str, generation: &Value, params: Value, wait: Duration, ordinary: Option<bool>) -> Result<Value, String> {
+    fn conversation_operation_guarded(&self, method: &str, generation: &Value, params: Value, wait: Duration, ordinary: Option<(bool, bool)>) -> Result<Value, String> {
         crate::recovery::generation_ref(generation)?;
         let steering_target = if method == "turn/steer" { Some(params.clone()) } else { None };
         let response = match ordinary {
-            Some(inherited_mode) => { let source = self.request_begin_ordinary(generation, params, inherited_mode)?; self.wait_source_response(&source, wait)? },
+            Some((inherited_mode, inherited_effort)) => { let source = self.request_begin_ordinary_effort(generation, params, inherited_mode, inherited_effort)?; self.wait_source_response(&source, wait)? },
             None => self.request_inner_scoped(method, params, json!({"kind":"person-directed"}), wait, false, Some(generation))?,
         };
         #[cfg(test)]
@@ -3649,6 +3697,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// A model-bearing request must itself have followed earlier responses.
     /// Unknown writes, external turns and concurrent/order gaps yield a limit.
     fn inherited_requested_model(i: &Inner, thread: &str, cut: u64) -> Result<Option<String>, String> {
+        Self::inherited_requested_setting(i, thread, cut, Self::frame_requested_model)
+    }
+    fn frame_requested_effort(params: &Value) -> Option<&str> {
+        let value = if params["collaborationMode"].is_object() { &params["collaborationMode"]["settings"]["reasoning_effort"] } else { &params["effort"] };
+        value.as_str().filter(|e| !e.is_empty())
+    }
+    fn inherited_requested_setting(i: &Inner, thread: &str, cut: u64, field: fn(&Value) -> Option<&str>) -> Result<Option<String>, String> {
         let mut prior: Vec<_> = i.source_requests.values().filter(|e| e.request.generation == i.generation && e.request.frame["method"] == "turn/start" && e.request.frame["params"]["threadId"] == thread && e.attempt_position.is_some()).collect();
         prior.sort_by_key(|e| e.attempt_position);
         let mut latest = None;
@@ -3671,7 +3726,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             }
             Self::validate_native_result("TurnStartResponse", &response["result"]).map_err(|_| "a prior turn result shape is unavailable")?;
             turn_ids.push(response["result"]["turn"]["id"].clone());
-            if let Some(model) = Self::frame_requested_model(&e.request.frame["params"]) {
+            if let Some(model) = field(&e.request.frame["params"]) {
                 latest = Some(if receipts.iter().all(|p| *p <= e.turn_model_cut) { Ok(model.to_owned()) } else { Err("model requests have no established native acceptance order".to_string()) });
                 latest_model_receipt = Some(position);
             } else if latest_model_receipt.is_some_and(|p| p > e.turn_model_cut) {
@@ -3689,6 +3744,23 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             .map_err(|e| format!("not started — current requested model context unknown ({e}); enter an explicit ordinary model identifier"))?;
         known.or_else(|| i.threads.iter().rev().find(|t| t["generation"] == i.generation && t["threadId"] == thread).and_then(|t| t["model"].as_str()).filter(|m| !m.is_empty()).map(str::to_owned))
             .ok_or_else(|| "not started — no model selected".into())
+    }
+    /// Current ordered requested model for the ordinary effort chooser. A stale
+    /// thread-start report is usable only when no model override intervened.
+    pub(crate) fn ordinary_model_for_effort(&self, generation: &Value, thread: &str) -> Result<String, String> {
+        let i = self.inner.0.lock().unwrap();
+        if i.generation != *generation || i.state != "ready" || i.server_requests.is_closed(generation)
+            || !i.threads.iter().any(|t| t["generation"] == *generation && t["threadId"] == thread) {
+            return Err("current conversation model unavailable; choose an explicit model".into());
+        }
+        Self::ordinary_mode_model(&i, thread)
+    }
+    fn ordinary_mode_effort(i: &Inner, thread: &str) -> Result<Value, String> {
+        let known = Self::inherited_requested_setting(i, thread, i.receipt_position, Self::frame_requested_effort)
+            .map_err(|e| format!("not started — current requested effort context unknown ({e}); choose an explicit effort"))?;
+        Ok(known.map(Value::String).unwrap_or_else(|| i.threads.iter().rev()
+            .find(|t| t["generation"] == i.generation && t["threadId"] == thread)
+            .and_then(|t| t["reasoningEffort"].as_str()).filter(|e| !e.is_empty()).map(|e| json!(e)).unwrap_or(Value::Null)))
     }
     fn turn_requested_context(i: &Inner, params: &Value, cut: u64) -> Value {
         if let Some(model) = Self::frame_requested_model(params) { return json!({"requested":model,"basis":"actual explicit effective request field; native adoption unestablished"}); }
@@ -3711,6 +3783,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let params = &e.request.frame["params"];
         let mut sent = json!({"collaborationMode":params["collaborationMode"].is_object(),"requestRef":e.request.request_ref,"requestedContext":e.turn_model_context});
         if let Some(model) = Self::frame_requested_model(params) { sent["model"] = json!(model); }
+        if let Some(effort) = Self::frame_requested_effort(params) { sent["effort"] = json!(effort); }
         if let Some(entry) = i.conversation_turns.iter_mut().find(|e| e["generation"] == *generation && e["threadId"] == thread && e["turnId"] == *turn) { entry["appTurnStart"] = sent; }
     }
     fn remember_turn(i: &mut Inner, generation: &Value, thread: &str, native: &Value, source: &str, position: u64) {
@@ -4786,6 +4859,124 @@ mod conversation_transport_tests {
         assert!(host.turn_start_text_mode(&g(),"unknown-thread","x","plan").is_err());
         assert!(host.snapshot()["requestedModes"].as_array().unwrap().iter().all(|r|r["threadId"]!="unknown-thread"));
     }
+    #[test]
+    fn model_turn_offered_effort_preserves_defaults_mode_precedence_and_ordered_sticky_choice() {
+        let host = host();
+        {
+            let mut i = host.inner.0.lock().unwrap();
+            i.declared_capabilities = Some(json!({"experimentalApi":true}));
+            i.collaboration_modes = json!({"generation":g(),"result":{"data":[{"name":"Plan","mode":"plan"}]}});
+        }
+        let (first_result, first) = exchange(&host, Some(json!({"result":{"turn":turn("completed")}})), vec![], ||
+            host.turn_start_ordinary_text_effort(&g(), "thread", "unchanged default", None, None, None));
+        first_result.unwrap();
+        assert!(first["params"].get("effort").is_none());
+        let mut second = turn("completed"); second["id"] = json!("effort-2");
+        let (chosen_result, chosen) = exchange(&host, Some(json!({"result":{"turn":second}})), vec![], ||
+            host.turn_start_ordinary_text_effort(&g(), "thread", "chosen", None, Some("chosen-model"), Some("future-offered-effort")));
+        chosen_result.unwrap();
+        assert_eq!(chosen["params"]["effort"], "future-offered-effort");
+        assert_eq!(host.ordinary_model_for_effort(&g(), "thread").unwrap(), "chosen-model");
+        assert_eq!(host.snapshot()["threads"][0]["model"], "selected", "reported model is separate from the chooser context");
+        // Mode composition reads actual ordered correlated requests, never a
+        // stale thread-start effort. No hard-coded supplier effort enum.
+        let element = host.collaboration_mode_element_with_effort(&g(), "thread", "plan", None, None).unwrap();
+        assert_eq!(element["settings"]["reasoning_effort"], "future-offered-effort");
+        let mut params = Host::text_turn_params("thread", "mode choice").unwrap();
+        Host::apply_ordinary_effort(&mut params, Some(&element), None, Some("medium")).unwrap();
+        assert_eq!(params["collaborationMode"]["settings"]["reasoning_effort"], "medium");
+        assert!(params.get("effort").is_none());
+        assert!(Host::apply_ordinary_effort(&mut params, None, None, Some("")).is_err());
+        assert!(Host::apply_ordinary_effort(&mut params, None, None, Some("bad\neffort")).is_err());
+    }
+
+    #[test]
+    fn model_turn_effort_refusal_unknown_order_and_write_limits_are_independent_of_model() {
+        let host = host();
+        {
+            let mut i = host.inner.0.lock().unwrap();
+            i.declared_capabilities = Some(json!({"experimentalApi":true}));
+            i.collaboration_modes = json!({"generation":g(),"result":{"data":[{"name":"Plan","mode":"plan"}]}});
+            i.threads[0]["reasoningEffort"] = json!("low");
+        }
+        exchange(&host, Some(json!({"result":{"turn":turn("completed")}})), vec![], ||
+            host.turn_start_ordinary_text_effort(&g(), "thread", "choose effort only", None, None, Some("medium"))).0.unwrap();
+        let inherited = || host.collaboration_mode_element_with_effort(&g(), "thread", "plan", Some("explicit-model"), None);
+        exchange(&host, Some(json!({"error":{"code":-32600,"message":"effort refused"}})), vec![], ||
+            host.turn_start_ordinary_text_effort(&g(), "thread", "refused effort only", None, None, Some("high"))).0.unwrap_err();
+        assert_eq!(inherited().unwrap()["settings"]["reasoning_effort"], "medium", "refusal cannot replace accepted effort or restore the low thread report");
+        let mut unknown = None;
+        exchange(&host, None, vec![], || {
+            unknown = Some(host.request_begin_ordinary_effort(&g(), json!({"threadId":"thread","input":[{"type":"text","text":"unknown effort","text_elements":[]}],"effort":"high"}), false, false)?);
+            Ok(Value::Null)
+        }).0.unwrap();
+        assert!(inherited().unwrap_err().contains("requested effort context unknown"), "explicit model must not bypass unknown effort");
+        let mut omitted = turn("completed"); omitted["id"] = json!("effort-omitted");
+        exchange(&host, Some(json!({"result":{"turn":omitted}})), vec![], ||
+            host.turn_start_ordinary_text_effort(&g(), "thread", "omitted before late response", None, None, None)).0.unwrap();
+        let mut late = turn("completed"); late["id"] = json!("effort-late");
+        host.on_line(&serde_json::to_vec(&json!({"id":unknown.unwrap().request_id(),"result":{"turn":late}})).unwrap(), &g());
+        assert!(inherited().unwrap_err().contains("requested effort context unknown"), "late acceptance cannot repair native order");
+        let mut fresh = turn("completed"); fresh["id"] = json!("effort-fresh");
+        exchange(&host, Some(json!({"result":{"turn":fresh}})), vec![], ||
+            host.turn_start_ordinary_text_effort(&g(), "thread", "fresh ordered effort", None, None, Some("low"))).0.unwrap();
+        assert_eq!(inherited().unwrap()["settings"]["reasoning_effort"], "low");
+        install_broken_test_input(&host);
+        assert!(host.turn_start_ordinary_text_effort(&g(), "thread", "failed effort write", None, None, Some("high")).unwrap_err().contains("write failed"));
+        assert_eq!(host.client_requests().last().unwrap()["writeResult"], "write-failed");
+        assert!(inherited().unwrap_err().contains("requested effort context unknown"));
+    }
+
+    #[test]
+    fn model_turn_inherited_effort_rechecks_after_writer_wait_with_an_explicit_model() {
+        let host = host();
+        {
+            let mut i = host.inner.0.lock().unwrap();
+            i.declared_capabilities = Some(json!({"experimentalApi":true}));
+            i.collaboration_modes = json!({"generation":g(),"result":{"data":[{"name":"Plan","mode":"plan"}]}});
+            i.threads[0]["reasoningEffort"] = json!("medium");
+        }
+        let mut child = Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).spawn().unwrap();
+        *host.stdin.lock().unwrap() = child.stdin.take();
+        let serial = host.frame_write.lock().unwrap();
+        let before = host.client_requests().len();
+        let writes = host.inner.0.lock().unwrap().send_position;
+        let h = host.clone();
+        let pending = std::thread::spawn(move || h.turn_start_ordinary_text_effort(&g(), "thread", "queued effort text", Some("plan"), Some("explicit-model"), None));
+        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        while host.inner.0.lock().unwrap().source_requests.len() == before {
+            assert!(std::time::Instant::now() < deadline); std::thread::sleep(Duration::from_millis(2));
+        }
+        host.inner.0.lock().unwrap().threads[0]["reasoningEffort"] = json!("high");
+        drop(serial);
+        assert!(pending.join().unwrap().unwrap_err().contains("ordinary effort context changed before write"), "the model is explicit, so only the inherited effort guard can reject this change");
+        assert_eq!(host.inner.0.lock().unwrap().send_position, writes);
+        *host.stdin.lock().unwrap() = None; assert!(child.wait().unwrap().success());
+    }
+
+    #[test]
+    fn model_catalog_conversation_model_change_during_read_is_not_offered_as_current() {
+        for changed in [false, true] {
+            let host = host();
+            // This fixture has no server cwd, so the real catalog reader sends
+            // only model/list and truthfully leaves its provider unestablished.
+            let mut child = Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
+            *host.stdin.lock().unwrap() = child.stdin.take();
+            let stdout = child.stdout.take().unwrap(); let h = host.clone();
+            let reply = std::thread::spawn(move || {
+                let mut line = String::new(); BufReader::new(stdout).read_line(&mut line).unwrap();
+                let request: Value = serde_json::from_str(&line).unwrap();
+                assert_eq!(request["method"], "model/list");
+                if changed { h.inner.0.lock().unwrap().threads[0]["model"] = json!("changed-model"); }
+                h.on_line(&serde_json::to_vec(&json!({"id":request["id"],"result":{"data":[],"nextCursor":null}})).unwrap(), &g());
+            });
+            let result = host.model_catalog_read_for_conversation(&g(), Some("thread"));
+            reply.join().unwrap();
+            assert_eq!(result["conversationModel"], if changed { Value::Null } else { json!("selected") });
+            *host.stdin.lock().unwrap() = None; assert!(child.wait().unwrap().success());
+        }
+    }
+
     #[test]
     fn ordinary_model_request_context_preserves_unknown_late_order_and_source_limits() {
         let host = host();

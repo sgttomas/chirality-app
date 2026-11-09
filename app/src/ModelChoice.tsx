@@ -154,3 +154,61 @@ export function useBoundModelChoice({ owner, homeClass, generation, ready }: { o
   return { route, stale: held.epoch !== epoch && chosenAny(held.route), revise, packet: observation?.packet ?? null, current, reading,
     message: message && message.epoch === epoch ? message.text : "", read, choose, bound };
 }
+
+/** Ordinary-text effort choices come only from the current provider's model
+ * list. No config is edited and a catalog default is never auto-selected. */
+export function OfferedEffortChoice({ owner, threadId, generation, homeClass, modelProvider, entryId, model, effort, disabled, choose }: {
+  owner: string; threadId: string; generation: Json; homeClass: string | null; modelProvider: string; entryId: string;
+  model: string; effort: string; disabled: boolean; choose: (effort: string, model: string) => void;
+}) {
+  const key = JSON.stringify([owner, generation, homeClass, modelProvider, entryId, model]);
+  const latest = useRef({ key, epoch: 0, disabled });
+  if (latest.current.key !== key) latest.current = { key, epoch: latest.current.epoch + 1, disabled };
+  latest.current.disabled = disabled;
+  const epoch = latest.current.epoch;
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const [reading, setReading] = useState(false);
+  const pending = useRef(false), sequence = useRef(0);
+  type Result = { epoch: number; sequence: number; packet?: Json; message?: string };
+  const [result, setResult] = useState<Result | null>(null);
+  const resultRef = useRef(result); resultRef.current = result;
+  const live = () => mounted.current && latest.current.epoch === epoch && !latest.current.disabled;
+  const current = result?.epoch === epoch && result.sequence === sequence.current ? result : null;
+  const offeredModel = model || current?.packet?.conversationModel || "";
+  const matching = current?.packet && modelMatch(current.packet, modelProvider, entryId) !== "none";
+  const rows = matching ? list(current.packet.models).filter(row => row.model === offeredModel) : [];
+  const row = rows.length === 1 ? rows[0] : null;
+  const options = list(row?.supportedReasoningEfforts).filter((option, index, all) => typeof option?.reasoningEffort === "string" && option.reasoningEffort !== "" && typeof option.description === "string" && all.findIndex(other => other.reasoningEffort === option.reasoningEffort) === index);
+  const read = async () => {
+    if (!live() || pending.current || !owner) return;
+    const number = ++sequence.current;
+    pending.current = true; resultRef.current = null;
+    setReading(true); setResult(null);
+    try {
+      const packet: Json = await invoke("read_available_models", { generation, modeHomeClass: homeClass, threadId });
+      if (!validModelPacket(packet, generation, homeClass ?? "")) throw Error("not a model list for this Codex source");
+      if (mounted.current && latest.current.epoch === epoch && number === sequence.current) setResult({ epoch, sequence: number, packet });
+    } catch {
+      if (mounted.current && latest.current.epoch === epoch && number === sequence.current) setResult({ epoch, sequence: number, message: "Effort choices could not be read. The current Codex setting is kept." });
+    } finally { pending.current = false; if (mounted.current && number === sequence.current) setReading(false); }
+  };
+  return <div aria-label="Model reasoning effort">
+    <button disabled={disabled || reading || !owner} onClick={() => { void read(); }}>Read effort choices for this model</button>
+    {reading && <p role="status">Reading model effort choices…</p>}
+    {current?.message && <p role="alert">{current.message}</p>}
+    <p><label>Reasoning effort for {row?.displayName || model || "the current conversation model"}{" "}
+      <select value={effort} disabled={disabled || !row || options.length === 0} onChange={event => {
+        const value = event.target.value;
+        if (live() && current && resultRef.current === current && current.sequence === sequence.current && !pending.current
+          && (value === "" || options.some(option => option.reasoningEffort === value))) choose(value, offeredModel);
+      }}>
+        <option value="">Use current Codex setting</option>
+        {effort && !options.some(option => option.reasoningEffort === effort) && <option value={effort}>{effort} · selected</option>}
+        {options.map(option => <option key={option.reasoningEffort} value={option.reasoningEffort}>{option.reasoningEffort}{option.reasoningEffort === row.defaultReasoningEffort ? " · model default" : ""}{option.description ? ` — ${option.description}` : ""}</option>)}
+      </select></label></p>
+    {current?.packet && !row && <p>No effort choices could be matched to this model and provider. Choose an explicit model ID or read the choices again.</p>}
+    {row && options.length === 0 && <p>Codex offered no effort choices for this model.</p>}
+    <p><small>Applies to ordinary text and plan/default text sends. A chosen effort continues on later Codex turns; “Use current Codex setting” leaves it as it is. Attachments, steering and prepared messages use their existing settings.</small></p>
+  </div>;
+}

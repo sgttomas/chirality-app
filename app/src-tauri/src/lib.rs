@@ -1694,32 +1694,35 @@ fn continuation_context_action(state: State<'_, AppState>, generation: Value, th
 #[tauri::command(async)]
 fn conversation_send_text(
     state: State<'_, AppState>, generation: Value, thread_id: String,
-    text: String, mode: Option<String>, model: Option<String>,
+    text: String, mode: Option<String>, model: Option<String>, effort: Option<String>,
 ) -> Result<Value, String> {
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
-    ordinary_send_text(&home, &state.workflows, &generation, &thread_id, &text, mode.as_deref(), model.as_deref())
+    ordinary_send_text_effort(&home, &state.workflows, &generation, &thread_id, &text, mode.as_deref(), model.as_deref(), effort.as_deref())
 }
 /// Actual IPC consumer, also exercised with an invented native peer offline.
 fn ordinary_send_text(home: &runtime_session::HomeSession, workflows: &std::sync::Mutex<runtime_session::WorkflowRootSession>, generation: &Value, thread: &str, text: &str, mode: Option<&str>, model: Option<&str>) -> Result<Value, String> {
+    ordinary_send_text_effort(home, workflows, generation, thread, text, mode, model, None)
+}
+fn ordinary_send_text_effort(home: &runtime_session::HomeSession, workflows: &std::sync::Mutex<runtime_session::WorkflowRootSession>, generation: &Value, thread: &str, text: &str, mode: Option<&str>, model: Option<&str>, effort: Option<&str>) -> Result<Value, String> {
     // TC-2: one original ordered notice/person frame, with the same mode/model.
-    if let Some(sent) = runtime_session::send_with_pending_notice_model_observed(workflows, generation, thread, text, mode, model, &mut |_| {}) {
+    if let Some(sent) = runtime_session::send_with_pending_notice_effort_observed(workflows, generation, thread, text, mode, model, effort, &mut |_| {}) {
         return sent.result;
     }
     runtime_session::send_conversation_text(&home.host.snapshot(), generation, thread, text,
-        |generation, thread, text| home.host.turn_start_ordinary_text(generation, thread, text, mode, model))
+        |generation, thread, text| home.host.turn_start_ordinary_text_effort(generation, thread, text, mode, model, effort))
 }
 
 /// DEL-01-05 model discovery for a new conversation, at the person's press:
 /// only the currently selected source of the named mode, re-checked after the
 /// reads; a changed source refuses rather than answering for another.
 #[tauri::command(async)]
-fn read_available_models(state: State<'_, AppState>, generation: Value, mode_home_class: String) -> Result<Value, String> {
+fn read_available_models(state: State<'_, AppState>, generation: Value, mode_home_class: String, thread_id: Option<String>) -> Result<Value, String> {
     let refused = || "Model list unavailable: the selected Codex source changed; nothing was chosen".to_owned();
     let home = state.homes.lock().unwrap().active();
     let class = match mode_home_class.as_str() { "account" => home_resources::HomeClass::Account, "api-key" => home_resources::HomeClass::ApiKey, _ => return Err(refused()) };
     if home.class() != class || home.host.snapshot()["generation"] != generation { return Err(refused()); }
     state.validate_home_source(&home).map_err(|_| refused())?;
-    let mut view = home.host.model_catalog_read(&generation);
+    let mut view = home.host.model_catalog_read_for_conversation(&generation, thread_id.as_deref());
     state.validate_home_source(&home).map_err(|_| refused())?;
     if !Arc::ptr_eq(&state.homes.lock().unwrap().active(), &home) || home.host.snapshot()["generation"] != generation { return Err(refused()); }
     view["modeHomeClass"] = json!(mode_home_class);

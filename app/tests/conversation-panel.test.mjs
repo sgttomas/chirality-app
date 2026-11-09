@@ -1175,3 +1175,88 @@ test('explicit account checks latch queued presses and obsolete handlers cannot 
     assert.doesNotMatch(ui.container.textContent,new RegExp(accountCanary));
   },{read:()=>held.promise});
 });
+
+// Offered per-model effort, mounted through the real ordinary composer.
+const effortPacket = {state:'observed',conversationModel:'m',generation:g,modeHomeClass:'account',serverProviderState:'named',serverProvider:'openai',complete:true,limits:[],models:[{
+  id:'m',model:'m',displayName:'Offered model',description:'',isDefault:true,defaultReasoningEffort:'medium',
+  supportedReasoningEfforts:[{reasoningEffort:'medium',description:'Balanced'},{reasoningEffort:'future-offered',description:'Supplier choice'}]
+}]};
+
+test('mounted ordinary chooser sends only deliberate offered effort, binds model, rejects old Send and resets on conversation change', async () => {
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const calls=[];const sends=[];let failSend=false;
+  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{calls.push({command,args});assert.equal(command,'read_available_models');return effortPacket;}};
+  const host={state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},threads:['t','other'].map(threadId=>({generation:g,threadId,model:'obsolete-thread-report',modelProvider:'openai'})),planMode:{state:'offered'}};
+  const show = thread => React.act(()=>root.render(React.createElement(ConversationPanel,{host,threadKey:JSON.stringify([g,thread]),setThreadKey:noop,answer:noop,runAct:noop,send:async(...args)=>{sends.push(args);if(failSend)throw Error("unknown send");return {result:{}};},steer:noop,submitAttachments:noop,interrupt:noop,checkPlanMode:noop,codexBusy:false})));
+  const change=(element,value)=>React.act(()=>props(element).onChange({target:{value}}));
+  const effort=()=>elements(c,'select').find(e=>e.parentNode.textContent.startsWith('Reasoning effort for'));
+  try {
+    await show('t');assert.equal(calls.length,0,'no implicit read');
+    assert.equal(props(effort()).value,'','catalog default not chosen');
+    await React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
+    assert.equal(calls.length,1);assert.ok(c.textContent.includes('future-offered'));
+    const oldChoice=props(effort()).onChange;
+    const oldRead=props(button(c,'Read effort choices for this model')).onClick;
+    const textarea=()=>elements(c,'textarea').find(e=>props(e).id==='ordinary-composer-text');
+    await change(textarea(),'Exact text');
+    const oldSend=props(button(c,'Send text')).onClick;
+    await change(effort(),'future-offered');
+    await React.act(()=>oldSend());assert.equal(sends.length,0,'earlier Send cannot carry a new effort');
+    await React.act(()=>props(button(c,'Send in plan mode (experimental)')).onClick());
+    assert.deepEqual(sends[0],[g,'t','Exact text','plan','m','future-offered']);
+    assert.equal(props(effort()).value,'','successful send leaves native sticky setting in force');
+    await change(effort(),'medium');
+    await React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
+    await React.act(()=>oldChoice({target:{value:'future-offered'}}));
+    assert.equal(props(effort()).value,'medium','old observation cannot choose after reread');
+    await show('other');assert.equal(props(effort()).value,'','other conversation inherits no local choice');
+    assert.equal(props(effort()).disabled,true,'old list not matched to other conversation');
+    await show('t');
+    const readCount=calls.length;
+    await React.act(()=>oldRead());assert.equal(calls.length,readCount,'old read cannot revive after A to B to A');
+    await React.act(()=>oldChoice({target:{value:'future-offered'}}));assert.equal(props(effort()).value,'');
+    await React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
+    await change(effort(),'medium');await change(textarea(),'Uncertain text');failSend=true;
+    await React.act(()=>props(button(c,'Send text')).onClick());
+    assert.equal(sends.length,2);assert.equal(props(effort()).value,'medium','unknown outcome keeps effort');
+    assert.equal(props(textarea()).value,'Uncertain text');
+    assert.equal(props(button(c,'Send text')).disabled,true,'no automatic resend after unknown outcome');
+  } finally {await React.act(()=>root.unmount());document.body.removeChild(c);delete window.__TAURI_INTERNALS__;}
+});
+
+
+test('delayed effort replies cannot populate another source and readiness disables retained controls', async () => {
+  const {OfferedEffortChoice} = loadSrc('ModelChoice');
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const calls=[], choices=[], replies=[];
+  const previous=window.__TAURI_INTERNALS__;
+  window.__TAURI_INTERNALS__={invoke:(command,args)=>{
+    assert.equal(command,'read_available_models');calls.push(args);
+    const held=deferred();replies.push(held);return held.promise;
+  }};
+  let current={owner:'original',threadId:'t',generation:g,homeClass:'account',modelProvider:'openai',entryId:'chatgpt-account',model:'',effort:'',disabled:false,choose:(...args)=>choices.push(args)};
+  const show=async patch=>{current={...current,...patch};await React.act(()=>root.render(React.createElement(OfferedEffortChoice,current)));};
+  const effort=()=>elements(c,'select')[0];
+  const read=()=>React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
+  try {
+    await show({});await read();const oldRead=props(button(c,'Read effort choices for this model')).onClick;
+    const replacement={...g,spawnCounter:2};
+    await show({owner:'replacement',generation:replacement});
+    await React.act(async()=>{replies[0].resolve(effortPacket);});
+    assert.equal(props(effort()).disabled,true);assert.ok(!c.textContent.includes('future-offered'),'old-source reply is discarded');
+    await read();await show({disabled:true});
+    await React.act(async()=>{replies[1].resolve({...effortPacket,generation:replacement});});
+    assert.equal(props(effort()).disabled,true,'a current reply grants no action while source is unavailable');
+    const retainedChoice=props(effort()).onChange;
+    await React.act(()=>retainedChoice({target:{value:'medium'}}));assert.equal(choices.length,0);
+    await show({disabled:false});
+    await React.act(()=>oldRead());assert.equal(calls.length,2,'original read callback stays obsolete');
+    await read();
+    const next={...g,spawnCounter:3};await show({owner:'next',generation:next});
+    await React.act(async()=>{replies[2].reject(Error('obsolete read failed'));});
+    assert.ok(!c.textContent.includes('could not be read'),'delayed old error is not attributed to the new source');
+    await React.act(()=>retainedChoice({target:{value:'medium'}}));assert.equal(choices.length,0);
+  } finally {
+    await React.act(()=>root.unmount());document.body.removeChild(c);window.__TAURI_INTERNALS__=previous;
+  }
+});
