@@ -202,6 +202,34 @@ class FailedTurnPermissionsTest(unittest.TestCase):
                     self.assertIn(f'FD-4 late or ambiguous answer for request {req} withheld; no grant inferred', shown)
                 self.assertIn('destination grant observed for request other', shown)
 
+    def test_panel_retains_ambiguous_failure_for_later_bound_requests(self):
+        conflicting = {**TURN, 'turnId': 'turn:conflicting'}
+        for failure_binding, affected in [(None, [TURN]), (conflicting, [TURN, conflicting])]:
+            for request_binding in affected:
+                with self.subTest(failure_binding=failure_binding, request_binding=request_binding):
+                    other = {**TURN, 'turnId': 'turn:unaffected'}
+                    for pending_before_failure in [False, True]:
+                        events = []
+                        def event(kind, **fields):
+                            events.append(dict(ordinal=len(events)+1, kind=kind, **fields))
+                        if pending_before_failure:
+                            event('destination request issued', request='affected', destination='A-1', turnRef=request_binding)
+                            event('destination request issued', request='other', destination='A-1', turnRef=other)
+                        event('turn failed', turn=TURN['turnId'], cause='model interface failure',
+                              message_standing='interrupted', turnRef=failure_binding)
+                        if not pending_before_failure:
+                            event('destination request issued', request='affected', destination='A-1', turnRef=request_binding)
+                            event('destination request issued', request='other', destination='A-1', turnRef=other)
+                        event('destination grant observed', request='affected', turnRef=request_binding)
+                        event('destination grant observed', request='other', turnRef=other)
+                        shown = panel.reduce(events, set())
+                        if not pending_before_failure:
+                            self.assertNotIn('destination request affected for A-1 shown (ND-2)', shown)
+                            self.assertIn('FD-4 request affected: failed-turn correlation unresolved; choices withheld; no closure inferred', shown)
+                        self.assertNotIn('destination grant observed for request affected', shown)
+                        self.assertFalse(any('request affected for A-1: not answered, turn failed' in line for line in shown))
+                        self.assertIn('destination grant observed for request other', shown)
+
     def test_panel_mismatched_or_missing_provenance_never_infers_grant(self):
         for turn in [None, {**TURN, 'hostIdentity': 'other-host'}, {**TURN, 'conversationId': 'other-conversation'}]:
             with self.subTest(turn=turn):

@@ -34,7 +34,15 @@ def reduce(events, unresolved):
     ended = set()
     failed = []
     failure_seen = False
+    uncertain_turns = set()  # all turn IDs named by unresolvable failure evidence
+    unknown_failed_turn = False
     withheld = set()
+
+    def uncertain_failure_applies(binding):
+        return ((uncertain_turns or unknown_failed_turn)
+                and (not valid_turn_ref(binding) or unknown_failed_turn
+                     or binding["turnId"] in uncertain_turns))
+
     for ev in events:
         n = ev["ordinal"]
         if n != last + 1:
@@ -48,8 +56,18 @@ def reduce(events, unresolved):
             shown.append(f"FD-1 turn {ev['turn']} failed: {ev['cause']}; partial message shown as {ev['message_standing']}")
             binding = ev.get("turnRef")
             if not valid_turn_ref(binding) or binding["turnId"] != ev["turn"]:
-                if pending:
-                    withheld.update(pending)
+                # Do not discard an unresolvable failure: later prompts must
+                # prove that they concern a different turn. Contradictory turn
+                # IDs keep both possible subjects; neither becomes a closure.
+                named = [ev["turn"]]
+                if isinstance(binding, dict):
+                    named.append(binding.get("turnId"))
+                uncertain_turns.update(v for v in named if isinstance(v, str) and v.strip())
+                unknown_failed_turn |= not isinstance(ev["turn"], str) or not ev["turn"].strip()
+                affected = {req for req, (_, original) in pending.items()
+                            if uncertain_failure_applies(original)}
+                if affected:
+                    withheld.update(affected)
                     shown.append("FD-4 failed-turn provenance unavailable; choices withheld; no closure or grant inferred")
                 continue
             if binding not in failed:
@@ -74,6 +92,10 @@ def reduce(events, unresolved):
                 withheld.add(req)
                 shown.append(f"FD-4 request {req}: source/turn binding unavailable; choices withheld; no closure inferred")
                 continue
+            if req in withheld or uncertain_failure_applies(binding):
+                withheld.add(req)
+                shown.append(f"FD-4 request {req}: failed-turn correlation unresolved; choices withheld; no closure inferred")
+                continue
             if req in ended or (valid_turn_ref(binding) and binding in failed):
                 shown.append(f"FD-4 late request {req} withheld: turn failed; no choices or grant")
                 ended.add(req)
@@ -87,7 +109,8 @@ def reduce(events, unresolved):
         elif kind in ("destination grant observed", "destination declined"):
             req = ev["request"]
             original = pending.get(req, (None, None))[1]
-            if req in ended or req in withheld or (failure_seen and not valid_turn_ref(original)):
+            if (req in ended or req in withheld or uncertain_failure_applies(original)
+                    or (failure_seen and not valid_turn_ref(original))):
                 shown.append(f"FD-4 late or ambiguous answer for request {req} withheld; no grant inferred")
                 continue
             if valid_turn_ref(original) and ev.get("turnRef") != original:
