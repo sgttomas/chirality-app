@@ -381,8 +381,11 @@ selection.
   the last sequence written turns a lost latest item into recovery, never a
   rollback to an earlier choice (losing both the keychain item and the head
   record would still roll back; that needs deletion inside the keychain).
-  Policy items count only with the seal-key sentinel present: without
-  enrollment they are not protection, and restoring a policy never claims it. A read error other than "missing" is an error, never "no
+  Reads cover at least the recorded head, so no run of missing items hides a
+  later one. Policy items count only with the seal-key sentinel present, and
+  restoring a policy never claims protection that enrollment did not set up.
+  A missing sentinel while policy items or a recorded head remain is recovery,
+  never a fall back to the settings file. A read error other than "missing" is an error, never "no
   policy". When no policy item exists, the primary (sentinel) item tells
   "protection set up, policy missing", which needs recovery, apart from "not set
   up". A missing, locked or corrupt policy reads as "Require verified approval"

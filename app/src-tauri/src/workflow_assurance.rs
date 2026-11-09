@@ -257,9 +257,15 @@ impl Settings {
             Ok(()) => {
                 let protected = matches!(s.protection, Protection::SetUp | Protection::Recovery(_));
                 if protected {
-                    // Read back what the keychain now holds.
+                    // Read back what the keychain now holds; success only if
+                    // the restoration actually reads back.
                     *s = self.load();
                     s.epoch = epoch;
+                    if let Protection::Recovery(cause) = &s.protection {
+                        let cause = cause.clone();
+                        self.set(AssuranceLevel::Robust);
+                        return Err(format!("Verified approval applies now, but the protected policy still needs recovery: {cause}"));
+                    }
                 } else {
                     s.source = "Stored in this App's settings".into();
                     s.note = None;

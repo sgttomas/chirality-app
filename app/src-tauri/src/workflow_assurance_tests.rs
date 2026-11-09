@@ -166,3 +166,18 @@ fn a_lost_latest_protected_item_needs_recovery_and_never_rolls_back() {
     relaunched.require_verified().unwrap();
     assert_eq!(relaunched.view()["verification"]["state"], "set up");
 }
+
+#[test]
+fn a_lost_seal_key_never_falls_back_to_a_relaxed_settings_file() {
+    let chain = InMemoryKeychain::install(true);
+    let store = file();
+    *store.value.lock().unwrap() = Some(Ok(Stored::Level(AssuranceLevel::Relaxed)));
+    let settings = Settings::with_stores(keychain, Box::new(store.clone()));
+    settings.after_enrollment().unwrap();
+    chain.remove_sentinel();
+    let relaunched = Settings::with_stores(keychain, Box::new(store.clone()));
+    assert_eq!(relaunched.level(), AssuranceLevel::Robust, "never the file's relaxed");
+    assert_eq!(relaunched.view()["verification"]["state"], "recovery required");
+    assert!(relaunched.require_verified().is_err(), "restoration that does not read back is not reported as success");
+    assert_eq!(relaunched.level(), AssuranceLevel::Robust);
+}

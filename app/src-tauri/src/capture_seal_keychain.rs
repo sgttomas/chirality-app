@@ -1071,10 +1071,12 @@ fn backend_cause(error: BackendError) -> String {
 const POLICY_GAP_PROBE: u64 = 8;
 /// The highest present sequence and its bytes. Any read failure other than
 /// Missing is an error: it never reads as "no policy".
-fn policy_probe(backend: &impl Backend, i: &ItemIdentity) -> Result<Option<(u64, Vec<u8>)>, String> {
+fn policy_probe(backend: &impl Backend, i: &ItemIdentity, through: u64) -> Result<Option<(u64, Vec<u8>)>, String> {
+    // Read at least through the recorded head, and a window past the last
+    // present item, so no run of missing items hides a later one.
     let mut last = None;
     let mut sequence = 1;
-    while sequence <= POLICY_MAX && sequence <= last.as_ref().map_or(0, |(n, _)| *n) + POLICY_GAP_PROBE {
+    while sequence <= POLICY_MAX && sequence <= through.max(last.as_ref().map_or(0, |(n, _)| *n) + POLICY_GAP_PROBE) {
         match backend.read(&policy_item(i, sequence)) {
             Ok(bytes) => last = Some((sequence, bytes)),
             Err(BackendError::Missing) => (),
@@ -1107,11 +1109,17 @@ pub(crate) fn read_policy(backend: &impl Backend, i: &ItemIdentity, head: Option
         Err(BackendError::Missing) => false,
         Err(error) => return Err(format!("keychain protection state not readable: {}", backend_cause(error))),
     };
+    let head_sequence = recorded_head(head)?;
+    let found = policy_probe(backend, i, head_sequence)?;
     if !enrolled {
+        // Policy items or a recorded head show protection was set up: losing
+        // the seal key is recovery, never a fall back to the settings file.
+        if found.is_some() || head_sequence > 0 {
+            return Err("keychain protection was set up but its seal key is missing; recovery required".into());
+        }
         return Ok(PolicyRead::Absent { enrolled: false });
     }
-    let found = policy_probe(backend, i)?;
-    if recorded_head(head)? > found.as_ref().map_or(0, |(sequence, _)| *sequence) {
+    if head_sequence > found.as_ref().map_or(0, |(sequence, _)| *sequence) {
         return Err("the latest stored workflow approval policy item is missing; recovery required".into());
     }
     let Some((sequence, bytes)) = found else {
@@ -1137,8 +1145,9 @@ pub(crate) fn write_policy(backend: &impl Backend, i: &ItemIdentity, level: &str
         Err(error) => return Err(format!("workflow approval policy not stored: {}", backend_cause(error))),
     }
     // A lost tail still allows recovery: add past every present or recorded sequence.
-    let present = policy_probe(backend, i)?.map_or(0, |(sequence, _)| sequence);
-    let next = present.max(recorded_head(head).unwrap_or(0)) + 1;
+    let head_sequence = recorded_head(head).unwrap_or(0);
+    let present = policy_probe(backend, i, head_sequence)?.map_or(0, |(sequence, _)| sequence);
+    let next = present.max(head_sequence) + 1;
     if next > POLICY_MAX {
         return Err("workflow approval policy sequence exhausted".into());
     }

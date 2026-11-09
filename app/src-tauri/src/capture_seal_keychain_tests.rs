@@ -963,6 +963,10 @@ impl InMemoryKeychain {
         let key = items.keys().filter(|k| k.contains(".assurance-policy.")).max().cloned().expect("a policy item");
         items.insert(key, b"not a policy".to_vec());
     }
+    pub(crate) fn remove_sentinel(&self) {
+        let i = &self.fixture.identity;
+        self.backend.items.lock().unwrap().remove(&format!("{}|{}|{}", i.service, i.account, i.access_group)).expect("sentinel");
+    }
     pub(crate) fn remove_latest_policy(&self) {
         let mut items = self.backend.items.lock().unwrap();
         let key = items.keys().filter(|k| k.contains(".assurance-policy.")).max().cloned().expect("a policy item");
@@ -1026,4 +1030,23 @@ fn policy_items_are_add_only_sequenced_and_never_read_absent_on_error() {
     write("robust").unwrap();
     assert!(matches!(read().unwrap(), PolicyRead::Stored(l) if l == "robust"));
     assert!(b.items.lock().unwrap().contains_key(&name(5)));
+    // A long run of missing items before the recorded head hides nothing,
+    // and recovery past it reads back.
+    for n in 1..=4 { b.items.lock().unwrap().remove(&name(n)); }
+    write("relaxed").unwrap(); // 6
+    for n in 7..=15 { assert!(!b.items.lock().unwrap().contains_key(&name(n))); }
+    let sixth = b.items.lock().unwrap().remove(&name(6)).unwrap();
+    b.items.lock().unwrap().insert(name(16), sixth.clone());
+    fs::write(&head, br#"{"sequence":16}"#).unwrap();
+    assert!(read().unwrap_err().contains("corrupt"), "item 16 is read through the head even after a long gap");
+    b.items.lock().unwrap().remove(&name(16));
+    assert!(read().unwrap_err().contains("missing; recovery required"));
+    write("robust").unwrap(); // 17
+    assert!(matches!(read().unwrap(), PolicyRead::Stored(l) if l == "robust"));
+    // A lost seal key with policy evidence remaining is recovery, not first use.
+    let sentinel = format!("{}|{}|{}", f.identity.service, f.identity.account, f.identity.access_group);
+    b.items.lock().unwrap().remove(&sentinel).unwrap();
+    assert!(read().unwrap_err().contains("seal key is missing"));
+    fs::remove_file(&head).unwrap();
+    assert!(read().unwrap_err().contains("seal key is missing"), "policy items alone still show protection was set up");
 }

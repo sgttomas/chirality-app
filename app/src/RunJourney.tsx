@@ -189,12 +189,16 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
     && !list(data?.runs).some((live: Json) => live.reference === run.run)) : [];
   const sameName = (name: Json) => registered.filter((row: Json) => row.name === name).length > 1;
   const newer = chosen?.newerRevision;
+  // A current limit (changed store, approval no longer admitted) blocks the run
+  // even while the selection's standing admits it (WR §4.6, SL-4).
+  const chosenReady = chosen?.runnable === true && !chosen?.currentLimit;
+  const chosenLimit = chosen?.runnable === true ? chosen?.currentLimit : chosen?.runLimit;
   const step = !ready ? "Connect Codex first: open Connection & access and start Codex."
     : !sourceCurrent ? "The workflow view is out of date. Wait for it to refresh, or reopen the App view."
     : !active ? projectAvailable ? "Show this project's workflows to begin." : "No project folder is set. Choose one in Desktop setup; it applies the next time you open the App."
     : !thread ? conversations.length ? "Choose the conversation that will run the workflow." : "Start a conversation first, then choose it here."
     : !chosen ? registered.some((row: Json) => row.selectable === true) || bundled.some((entry: Json) => entry.runnable === true) ? "Choose a workflow to use." : "No workflow here is ready to use yet. Review one below, or open another library in the workflow studio."
-    : chosen.runnable !== true ? `${text(chosen.identity?.name)} can't run: ${text(chosen.runLimit)}`
+    : !chosenReady ? `${text(chosen.identity?.name)} can't run: ${text(chosenLimit)}`
     : unresolvedStart && checkedRun !== holdKey ? (latest ? "Read the conversation: the last start's outcome is unknown and it may have run."
       : "Read the conversation: a start here has an unknown outcome and may have run; the App can't tell which run is latest.")
     : orderUnknown && inProgress ? "A run in this conversation is still open, and the App can't tell which run is latest; follow or end it from Results or the workflow studio before preparing another."
@@ -220,7 +224,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         <p><small>The workflow runs inside this conversation; you answer its questions there.</small></p>
       </li>
       <li aria-labelledby="run-workflow-heading"><h3 id="run-workflow-heading">Workflow</h3>
-        {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {text(chosen.identity?.origin)} library, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : ""}<code title={text(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosen.runnable === true ? "Ready to run." : `Can't run: ${text(chosen.runLimit)}`}</p>}
+        {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {text(chosen.identity?.origin)} library, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : ""}<code title={text(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosenReady ? "Ready to run." : `Can't run: ${text(chosenLimit)}`}</p>}
         {chosen && chosen.identity?.origin !== "bundled" && <p role="note" aria-label="Approval evidence">{workflowAssurance(chosen.assurance)}</p>}
         {chosen && newer && (newer.limit ? <p role="note">Newer revisions of {text(chosen.identity?.name)} can't be checked: {text(newer.limit)}</p>
           : <p role="note" aria-label="Newer revision for this conversation">A newer revision of <strong>{text(chosen.identity?.name)}</strong> is registered ({text(newer.notice)}). This conversation keeps using the one shown above until you choose the newer one.{" "}
@@ -258,7 +262,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
       <li aria-labelledby="run-start-heading"><h3 id="run-start-heading">Start</h3>
         {!prepared ? <>{unresolvedStart && <p><label><input type="checkbox" checked={checkedRun === holdKey} disabled={!canAct} onChange={event => setCheckedRun(event.target.checked ? holdKey : null)}/> I read the conversation and want to prepare a new run anyway</label>
             <small>The earlier start may have run; a new run sends the workflow again.</small></p>}
-          <button className="setup-primary" disabled={!canAct || !ready || !thread || chosen?.runnable !== true || inProgress || (unresolvedStart && checkedRun !== holdKey)}
+          <button className="setup-primary" disabled={!canAct || !ready || !thread || !chosenReady || inProgress || (unresolvedStart && checkedRun !== holdKey)}
           onClick={() => { if (!unresolvedStart || checkedRun === holdKey) performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start"); }}>Prepare this run</button></>
           : <><p>Prepared {text(prepared.workflow?.name)} with your text. Nothing has been sent yet.</p>
             <button ref={startButton} className="setup-primary" disabled={!canAct || !ready} onClick={() => performThen("workflow_send_run", { runRef: prepared.reference }, "progress")}>Start the run</button></>}
