@@ -12,6 +12,35 @@ remain the record of their own dates. The 2026-11-04 repair of the index checks
 is described below. The manifests and locks are unchanged through main
 `f9dd4ef7`, and the regenerated member set equals the original one.
 
+## 2026-11-09 current supplier subject: Codex 0.167.0
+
+The selected supplier is now the canonical Codex 0.167.0 package: 42 files with
+manifest `158dd670…`, from the release asset at 166,340,155 B, `af45ed45…`. The
+supplier statements in the 2026-11-04 section below describe the 0.160.0
+subject (manifest `327effb9…`) and stay as that subject's record. The 0.167.0
+associations were derived offline from retained bytes and public metadata
+responses by
+[`associate_0167.py`](../../../../app/packaging/supplier_notices/associate_0167.py).
+Its outputs, and the command to recheck them, are in
+[supplier-notice-associations/codex-0.167.0](supplier-notice-associations/codex-0.167.0/README.md).
+Nothing was downloaded, built or executed. The only network reads were six
+public tree-metadata responses: root, `third_party`, `third_party/v8`, the
+recursive `codex-rs` tree, `scripts` and `scripts/codex_package`. Together with
+the two retained release responses, their hashes are recorded with the outputs.
+
+| 0.167.0 component | Change from 0.160.0 | Current association standing |
+|---|---|---|
+| Main `bin/codex` `030316ec…` | Changed | The voice manifest binds it to build commit `086ccc83`, and release tag `rust-v0.167.0` names that commit. Root `LICENSE` (10,926 B, blob `4606e72e`) and `NOTICE` (242 B, blob `2805899d`) at that commit equal the committed [supplier texts](../../../../app/packaging/supplier_notices/codex-0.160.0), so the root-text association carries with no new text. Dependency notices remain open (edge 3) |
+| `bin/codex-exec-server` `385736a6…` | **New** | Not manifest-bound. It embeds `codex-exec-server0.167.0`, 143 `exec-server/src` paths and 3,319 crates.io registry paths (231 distinct crate directories). The main binary also embeds 225 `exec-server/src` paths. The root texts are a **candidate** association only; its dependency closure belongs to edge 3 |
+| `bin/codex-code-mode-host` `5cc29d14…` | Changed | Not manifest-bound. It now shows `icudt78l` (ICU 78) together with the V8, Unicode-terms and libc++ clues. At the commit, `third_party/v8` names rusty_v8 **152.2.0** (edge 4) |
+| `codex-path/rg` `13424ef2…` | Re-signed only | Same size and code-signature offset as 0.160.0; every byte before the signature blob is equal. It embeds ripgrep `15.2.0` followed by revision `e89fff89ac`, and `16.0.0` beside PCRE2 `10.46 2025-08-27`. The [2026-11-02 receipt](supplier-notice-associations/approved-receipt-20261102-four/SCOPE.md) identifies that `16.0.0` as PCRE2's Unicode version, not a ripgrep version. At `086ccc83` the release selector `scripts/codex_package/rg` (blob `3b7c3484`) and `ripgrep.py` (blob `155c5d32`) equal the received 0.160.0 texts, so 0.167.0 still selects the ripgrep 15.2.0 archive (edge 5). These are string and selector clues plus a binary-to-binary comparison, not a byte join |
+| `codex-resources/voice/**` | Libraries and host rebuilt | `NOTICE.md`, the seven `licenses/` texts and `sources.json` are byte-identical to 0.160.0, so the declared upstream versions and archive digests are unchanged. The manifest binds every voice file to `086ccc83`. The supplier-provided voice notices carry as before |
+| `codex-resources/zsh/bin/zsh` | **Removed** | The 0.160.0 zsh edge does not apply to 0.167.0 |
+
+These associations bind bytes to source locators. They do not establish build
+equivalence, linked contents or notice applicability, and they make no
+compliance claim.
+
 ## 2026-11-07 local association successor
 
 On App main `85505f95`, ten of the twelve missing-root rows still had no
@@ -125,7 +154,7 @@ unverified and P6 remains open. All 58 notice tests pass, including 13 transitiv
 cases. Both the default check and the offline prepared-Cargo-home check pass;
 the latter independently reproduces the member set and archive notice members.
 
-## Supplier binaries: marker observations, not content determinations
+## Supplier binaries at 0.160.0: marker observations, not content determinations
 
 Read-only regex byte searches of the four retained 0.160.0 subjects are recorded
 with counts and first offsets in
@@ -198,32 +227,44 @@ No retrieval is authorized by this account. Each item names the exact input;
    The sole permitted 2026-11-05 HEAD returned 200 without Content-Length.
    Exact archive size remains unknown; no new metadata/body request or receipt
    has occurred. Its installed text stays unverified.
-3. **Main and code-mode-host Rust dependency inputs: 159 files, 562,794 bytes.**
-   The [exact offline acquisition proposal](supplier-notice-associations/codex-source-graph-proposal.json)
-   enumerates each path, immutable-commit URL, size and Git blob from the retained
-   complete tree at `a956835d020762cb2b570053af06f643a11c0ecc`. It selects
-   `codex-rs/Cargo.lock` (406,552 B) and the 158 unreceived `Cargo.toml` manifests
-   (156,242 B). The already-received root and code-mode-host manifests are
-   separately identified and byte/blob verified; they are excluded from acquisition.
-   This prepares a future source-graph investigation, not an observed linked set
-   or a binary-to-source join. Dependency archives, target/feature resolution and
-   notice applicability remain separate. The proposal is not submitted or authorized.
+Items 3–6 name the current 0.167.0 supplier edges. Their 0.160.0 forms remain
+in the [0.160.0 source-graph proposal](supplier-notice-associations/codex-source-graph-proposal.json)
+(159 files, 562,794 B at `a956835d`) and in this file's Git history.
+
+3. **Main, exec-server and code-mode-host Rust dependency inputs: 173 files,
+   604,854 bytes.** The [exact 0.167.0 source-text list](supplier-notice-associations/codex-0.167.0/source-graph-proposal.json)
+   lists each path, immutable-commit URL, size and Git blob from the complete
+   recursive `codex-rs` tree `c98bbd63` at `086ccc83`. It covers
+   `codex-rs/Cargo.lock` (409,810 B, blob `2eae72da`) and all 172 `Cargo.toml`
+   manifests, including `exec-server/Cargo.toml` (3,655 B). None of these blobs is
+   held locally. The proposal prepares a source-graph investigation; it is not an
+   observed linked set or a binary-to-source join. Dependency archives,
+   target/feature resolution and notice applicability remain separate. The
+   list is public source text under the standing read-only inspection
+   authority; no row is held until its bytes are read and match size and blob.
    The alternative is a supplier-provided third-party notice or attestation for
-   0.160.0.
-4. **code-mode-host V8 stack (potential edges from the clues above).** This
-   needs the `v8` 150.4.0 crate's licence files and the V8/ICU/libc++ terms
-   (size unknown), plus confirmation of what is actually linked. The commit's
-   `third_party/v8/rusty_v8_150_4_0_release_manifests.sha256` (1,040 B) identifies
-   the prebuilt inputs. The host **byte join** still needs the release asset
-   `codex-code-mode-host-aarch64-apple-darwin.tar.gz` (23,825,926 B,
-   `sha256:dc70fbc7…`).
-5. **rg.** This needs `ripgrep-15.2.0-aarch64-apple-darwin.tar.gz`
-   (1,764,284 B, `3750b2e9…`): it carries ripgrep's licence files and the
-   unsigned member for comparison. The PCRE2 licence needs ripgrep 15.2.0's
-   `pcre2-sys` source; its version and size are unknown.
-6. **zsh.** This needs the `codex-zsh-v0.1.0` manifest (digest `c534eab8…`, size
-   unknown), the archive it names, and zsh's licence at `77045ef8`
-   (`git.code.sf.net/p/zsh/code`, size unknown).
+   0.167.0.
+4. **code-mode-host V8 stack (potential edges from the clues above).** At
+   `086ccc83` this is rusty_v8 **152.2.0**, with ICU 78 data observed. It needs
+   the `v8` 152.2.0 crate's licence files and the V8/ICU/libc++ terms (sizes
+   unknown), plus confirmation of what is actually linked. The commit's
+   `third_party/v8/rusty_v8_152_2_0_release_manifests.sha256` (1,040 B, blob
+   `814e018a`) identifies the prebuilt inputs. A host **byte join** would need the
+   release asset `codex-code-mode-host-aarch64-apple-darwin.tar.gz`
+   (25,262,553 B, `sha256:876a3e26…`).
+5. **rg: ripgrep 15.2.0 (revision `e89fff89ac`) with PCRE2 10.46, unchanged
+   code since 0.160.0.** Known: the selector names
+   `ripgrep-15.2.0-aarch64-apple-darwin.tar.gz` (1,764,284 B, `3750b2e9…`), and
+   the binary's version, revision and PCRE2 strings. Unknown: a byte join of that
+   archive's `rg` member with the shipped binary, the ripgrep 15.2.0 licence
+   files, and the PCRE2 licence for the linked version through ripgrep 15.2.0's
+   `pcre2-sys`, whose version and size are not established. The archive is a
+   binary download needing its own permission; the licence and lock files are
+   public source text. Version strings alone do not establish the join.
+6. **exec-server (new).** Its root-text candidate and dependency inputs are
+   covered by item 3 and the exec-server row above. A standalone byte join would need
+   `codex-exec-server-aarch64-apple-darwin.tar.gz` (22,746,226 B,
+   `sha256:82bb1c4d…`). It is not needed for the notice association itself.
 
 Placing the prepared texts in a bundle (a notices overlay or the production
 mapping) is a later packaging step with its own build verification. P6 stays

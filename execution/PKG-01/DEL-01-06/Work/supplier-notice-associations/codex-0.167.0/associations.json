@@ -1,0 +1,647 @@
+{
+ "format": "codex-notice-source-associations/1",
+ "supplier_pin": "0.167.0",
+ "target": "aarch64-apple-darwin",
+ "tool_sha256": "b95f2b9717f42dd02b708ee044fa0a0154c9f4de98c0cc24b1f877ee25b6a8ce",
+ "inputs": {
+  "canonical_vendor_manifest_sha256": "158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b",
+  "previous_vendor": {
+   "pin": "0.160.0",
+   "manifest_sha256": "327effb91a5854eccb388321b4b160e059795f0402c553f594e85365189d8d12"
+  },
+  "retained_responses": [
+   {
+    "name": "root-tree.json",
+    "sha256": "bdef0aba84b51fbd20a0b105eef1b8e80c86a456cc4780469ae55d7bce28d171",
+    "size": 12250
+   },
+   {
+    "name": "third_party-tree.json",
+    "sha256": "5051ca0afa1c6ed5f0e094da44eae6ad4d7f8b3f9e286becdbbf2279c3446c80",
+    "size": 1437
+   },
+   {
+    "name": "third_party-v8-tree.json",
+    "sha256": "240b5ea06f8fa3ce1b4e56b4db780c4f4b00f51741654e9dc9cac427554b06d1",
+    "size": 8349
+   },
+   {
+    "name": "codex-rs-tree-recursive.json",
+    "sha256": "d64fc13dae765d108de24e33098c54ef2ff7acd4417b1dea4fa938010c595081",
+    "size": 3180888
+   },
+   {
+    "name": "scripts-tree.json",
+    "sha256": "89519c31d48d34caf4a171436413da137752734137ce605ae1bd3ef9cabb04d0",
+    "size": 6581
+   },
+   {
+    "name": "scripts-codex_package-tree.json",
+    "sha256": "f638c52ae2964454d6207974efd1b2ee6d471658951477f5aca7d03ce6ab1d8e",
+    "size": 5340
+   },
+   {
+    "name": "latest-release.json",
+    "sha256": "660ba8a0b158cdccad4d91db9a60e25dcc5b0a5fad5e73168e0a852adc2142dc",
+    "size": 341529
+   },
+   {
+    "name": "release-tag-object.json",
+    "sha256": "66f96f65336e6620e0971c524c89a89bb40236fdda3a5f521b5c11697380f6dd",
+    "size": 768
+   }
+  ]
+ },
+ "source": {
+  "repository": "https://github.com/openai/codex",
+  "tag": "rust-v0.167.0",
+  "tag_object": "cb41599ccbe371272892f156286a236aa097bada",
+  "commit": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
+  "codex_rs_tree": "c98bbd639c8f04c69cfd8495ba74996c06385dad",
+  "package_asset": {
+   "name": "codex-package-aarch64-apple-darwin.tar.gz",
+   "size": 166340155,
+   "digest": "sha256:af45ed45d940d7998809622c1c0296d3098ed7d7fad695284422c228bd454517"
+  }
+ },
+ "voice_manifest": {
+  "sha256": "e1be4816aff4a8cf22e4f09616e70be08e914290134243c27209454d5b7ff46a",
+  "buildCommit": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
+  "bound_paths": [
+   "bin/codex",
+   "codex-resources/voice/NOTICE.md",
+   "codex-resources/voice/bin/codex-voice-host",
+   "codex-resources/voice/lib/libffi.8.dylib",
+   "codex-resources/voice/lib/libgio-2.0.0.dylib",
+   "codex-resources/voice/lib/libglib-2.0.0.dylib",
+   "codex-resources/voice/lib/libgmodule-2.0.0.dylib",
+   "codex-resources/voice/lib/libgobject-2.0.0.dylib",
+   "codex-resources/voice/lib/libgstapp-1.0.0.dylib",
+   "codex-resources/voice/lib/libgstaudio-1.0.0.dylib",
+   "codex-resources/voice/lib/libgstbase-1.0.0.dylib",
+   "codex-resources/voice/lib/libgstnet-1.0.0.dylib",
+   "codex-resources/voice/lib/libgstpbutils-1.0.0.dylib",
+   "codex-resources/voice/lib/libgstreamer-1.0.0.dylib",
+   "codex-resources/voice/lib/libgstrtp-1.0.0.dylib",
+   "codex-resources/voice/lib/libgsttag-1.0.0.dylib",
+   "codex-resources/voice/lib/libgstvideo-1.0.0.dylib",
+   "codex-resources/voice/lib/libintl.8.dylib",
+   "codex-resources/voice/lib/libopus.0.dylib",
+   "codex-resources/voice/lib/libpcre2-8.0.dylib",
+   "codex-resources/voice/lib/libz.1.dylib",
+   "codex-resources/voice/licenses/LGPL-2.1.txt",
+   "codex-resources/voice/licenses/Opus.txt",
+   "codex-resources/voice/licenses/PCRE2.md",
+   "codex-resources/voice/licenses/libffi.txt",
+   "codex-resources/voice/licenses/proxy-libintl.txt",
+   "codex-resources/voice/licenses/sljit.txt",
+   "codex-resources/voice/licenses/zlib.txt",
+   "codex-resources/voice/plugins/libgstapp.dylib",
+   "codex-resources/voice/plugins/libgstaudioconvert.dylib",
+   "codex-resources/voice/plugins/libgstaudioresample.dylib",
+   "codex-resources/voice/plugins/libgstcoreelements.dylib",
+   "codex-resources/voice/plugins/libgstopus.dylib",
+   "codex-resources/voice/plugins/libgstrtp.dylib",
+   "codex-resources/voice/plugins/libgstrtpmanager.dylib",
+   "codex-resources/voice/runtime.json",
+   "codex-resources/voice/sources.json"
+  ]
+ },
+ "root_notice_association": [
+  {
+   "path": "LICENSE",
+   "local_text": "app/packaging/supplier_notices/codex-0.160.0/LICENSE",
+   "size_bytes": 10926,
+   "sha256": "d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc",
+   "git_blob_sha1": "4606e72e042564097e8780d66c1d4dcb611869bd"
+  },
+  {
+   "path": "NOTICE",
+   "local_text": "app/packaging/supplier_notices/codex-0.160.0/NOTICE",
+   "size_bytes": 242,
+   "sha256": "9d71575ecfd9a843fc1677b0efb08053c6ba9fd686a0de1a6f5382fd3c220915",
+   "git_blob_sha1": "2805899d56d0332d175cfc613c67d45d6f006db7"
+  }
+ ],
+ "inventory_delta": {
+  "unchanged": [
+   "codex-resources/voice/NOTICE.md",
+   "codex-resources/voice/licenses/LGPL-2.1.txt",
+   "codex-resources/voice/licenses/Opus.txt",
+   "codex-resources/voice/licenses/PCRE2.md",
+   "codex-resources/voice/licenses/libffi.txt",
+   "codex-resources/voice/licenses/proxy-libintl.txt",
+   "codex-resources/voice/licenses/sljit.txt",
+   "codex-resources/voice/licenses/zlib.txt",
+   "codex-resources/voice/sources.json"
+  ],
+  "changed": [
+   "bin/codex",
+   "bin/codex-code-mode-host",
+   "codex-package.json",
+   "codex-path/rg",
+   "codex-resources/voice/bin/codex-voice-host",
+   "codex-resources/voice/lib/libffi.8.dylib",
+   "codex-resources/voice/lib/libgio-2.0.0.dylib",
+   "codex-resources/voice/lib/libglib-2.0.0.dylib",
+   "codex-resources/voice/lib/libgmodule-2.0.0.dylib",
+   "codex-resources/voice/lib/libgobject-2.0.0.dylib",
+   "codex-resources/voice/lib/libgstapp-1.0.0.dylib",
+   "codex-resources/voice/lib/libgstaudio-1.0.0.dylib",
+   "codex-resources/voice/lib/libgstbase-1.0.0.dylib",
+   "codex-resources/voice/lib/libgstnet-1.0.0.dylib",
+   "codex-resources/voice/lib/libgstpbutils-1.0.0.dylib",
+   "codex-resources/voice/lib/libgstreamer-1.0.0.dylib",
+   "codex-resources/voice/lib/libgstrtp-1.0.0.dylib",
+   "codex-resources/voice/lib/libgsttag-1.0.0.dylib",
+   "codex-resources/voice/lib/libgstvideo-1.0.0.dylib",
+   "codex-resources/voice/lib/libintl.8.dylib",
+   "codex-resources/voice/lib/libopus.0.dylib",
+   "codex-resources/voice/lib/libpcre2-8.0.dylib",
+   "codex-resources/voice/lib/libz.1.dylib",
+   "codex-resources/voice/manifest.json",
+   "codex-resources/voice/plugins/libgstapp.dylib",
+   "codex-resources/voice/plugins/libgstaudioconvert.dylib",
+   "codex-resources/voice/plugins/libgstaudioresample.dylib",
+   "codex-resources/voice/plugins/libgstcoreelements.dylib",
+   "codex-resources/voice/plugins/libgstopus.dylib",
+   "codex-resources/voice/plugins/libgstrtp.dylib",
+   "codex-resources/voice/plugins/libgstrtpmanager.dylib",
+   "codex-resources/voice/runtime.json"
+  ],
+  "removed": [
+   "codex-resources/zsh/bin/zsh"
+  ],
+  "added": [
+   "bin/codex-exec-server"
+  ]
+ },
+ "rg_release_selector": [
+  {
+   "path": "scripts/codex_package/rg",
+   "size_bytes": 2592,
+   "git_blob_sha1": "3b7c34843aaafe4cf26a87b3daf5806195d4bb0e",
+   "received_0160_sha256": "41a10ca63365560d899a82b6f825fd7b420a18b34f660a98bffeece77eeae1f1",
+   "equals_received_0160_text": true
+  },
+  {
+   "path": "scripts/codex_package/ripgrep.py",
+   "size_bytes": 862,
+   "git_blob_sha1": "155c5d323ec60ba9fc2dfafd807145f8b26fb38b",
+   "received_0160_sha256": "c70947d6f7df1aa5daeca3d0fa48e65a32ee38b4f6b35694f87b2e65a4467e32",
+   "equals_received_0160_text": true
+  }
+ ],
+ "rg_previous_comparison": {
+  "size": [
+   4030432,
+   4030432
+  ],
+  "signature_range": [
+   [
+    3983328,
+    47104
+   ],
+   [
+    3983328,
+    47104
+   ]
+  ],
+  "bytes_before_signature_equal": true
+ },
+ "supplier_binaries": [
+  {
+   "path": "bin/codex",
+   "sha256": "030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc",
+   "size": 270815376,
+   "manifest_bound_to_commit": true,
+   "previous_sha256": "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b",
+   "markers": [
+    {
+     "marker": "codex-rs CI path",
+     "pattern_hex": "2f55736572732f72756e6e65722f776f726b2f636f6465782f636f6465782f636f6465782d72732f",
+     "count": 2,
+     "first_offset": 204206166
+    },
+    {
+     "marker": "exec-server crate label",
+     "pattern_hex": "636f6465782d657865632d736572766572305c2e3136375c2e30",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "exec-server source path",
+     "pattern_hex": "657865632d7365727665722f7372632f5b612d7a5f2f5d2b5c2e7273",
+     "count": 225,
+     "first_offset": 204001389
+    },
+    {
+     "marker": "code-mode-host source path",
+     "pattern_hex": "636f64652d6d6f64652d686f73742f7372632f6d61696e5c2e7273",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "crates.io registry source path",
+     "pattern_hex": "72656769737472792f7372632f696e6465785c2e6372617465735c2e696f2d5b302d39612d665d2b2f5b412d5a612d7a302d395f2e2b2d5d2b",
+     "count": 5387,
+     "first_offset": 203923229,
+     "distinct_crate_directories": 383
+    },
+    {
+     "marker": "skill-creator sample",
+     "pattern_hex": "6e616d653a20736b696c6c2d63726561746f72",
+     "count": 1,
+     "first_offset": 209514271
+    },
+    {
+     "marker": "skill-installer sample",
+     "pattern_hex": "6e616d653a20736b696c6c2d696e7374616c6c6572",
+     "count": 1,
+     "first_offset": 209568041
+    },
+    {
+     "marker": "Apache appendix",
+     "pattern_hex": "415050454e4449583a20486f7720746f206170706c792074686520417061636865204c6963656e7365",
+     "count": 2,
+     "first_offset": 209310994
+    },
+    {
+     "marker": "bwrap",
+     "pattern_hex": "6277726170",
+     "count": 11,
+     "first_offset": 205481832
+    },
+    {
+     "marker": "v8::internal",
+     "pattern_hex": "76383a3a696e7465726e616c",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "ICU data name",
+     "pattern_hex": "69637564745c642b6c",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "Unicode terms heading",
+     "pattern_hex": "556e69636f64652c20496e635c2e20616e64206f74686572735c2e204c6963656e73652026207465726d73206f6620757365",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "Chromium libc++ namespace",
+     "pattern_hex": "4e5374345f5f4372",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "ripgrep version and revision",
+     "pattern_hex": "5c284a495420697320617661696c61626c655c295c6e5c642b5c2e5c642b5c2e5c642b5b302d39612d665d7b31307d",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "PCRE2 Unicode version and PCRE2 version",
+     "pattern_hex": "5c7830305c642b5c2e5c642b5c2e5c642b5c7830305c642b5c2e5c642b205c647b347d2d5c647b327d2d5c647b327d5c783030",
+     "count": 0,
+     "first_offset": null
+    }
+   ]
+  },
+  {
+   "path": "bin/codex-exec-server",
+   "sha256": "385736a6d82e125d4946a672074eb3a9f13e45a4aaecee4b72d592c0e1bb566a",
+   "size": 61038432,
+   "manifest_bound_to_commit": false,
+   "previous_sha256": null,
+   "markers": [
+    {
+     "marker": "codex-rs CI path",
+     "pattern_hex": "2f55736572732f72756e6e65722f776f726b2f636f6465782f636f6465782f636f6465782d72732f",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "exec-server crate label",
+     "pattern_hex": "636f6465782d657865632d736572766572305c2e3136375c2e30",
+     "count": 1,
+     "first_offset": 44240786,
+     "first_match_hex": "636f6465782d657865632d736572766572302e3136372e30"
+    },
+    {
+     "marker": "exec-server source path",
+     "pattern_hex": "657865632d7365727665722f7372632f5b612d7a5f2f5d2b5c2e7273",
+     "count": 143,
+     "first_offset": 43379907
+    },
+    {
+     "marker": "code-mode-host source path",
+     "pattern_hex": "636f64652d6d6f64652d686f73742f7372632f6d61696e5c2e7273",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "crates.io registry source path",
+     "pattern_hex": "72656769737472792f7372632f696e6465785c2e6372617465735c2e696f2d5b302d39612d665d2b2f5b412d5a612d7a302d395f2e2b2d5d2b",
+     "count": 3319,
+     "first_offset": 43292213,
+     "distinct_crate_directories": 231
+    },
+    {
+     "marker": "skill-creator sample",
+     "pattern_hex": "6e616d653a20736b696c6c2d63726561746f72",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "skill-installer sample",
+     "pattern_hex": "6e616d653a20736b696c6c2d696e7374616c6c6572",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "Apache appendix",
+     "pattern_hex": "415050454e4449583a20486f7720746f206170706c792074686520417061636865204c6963656e7365",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "bwrap",
+     "pattern_hex": "6277726170",
+     "count": 1,
+     "first_offset": 44330759
+    },
+    {
+     "marker": "v8::internal",
+     "pattern_hex": "76383a3a696e7465726e616c",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "ICU data name",
+     "pattern_hex": "69637564745c642b6c",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "Unicode terms heading",
+     "pattern_hex": "556e69636f64652c20496e635c2e20616e64206f74686572735c2e204c6963656e73652026207465726d73206f6620757365",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "Chromium libc++ namespace",
+     "pattern_hex": "4e5374345f5f4372",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "ripgrep version and revision",
+     "pattern_hex": "5c284a495420697320617661696c61626c655c295c6e5c642b5c2e5c642b5c2e5c642b5b302d39612d665d7b31307d",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "PCRE2 Unicode version and PCRE2 version",
+     "pattern_hex": "5c7830305c642b5c2e5c642b5c2e5c642b5c7830305c642b5c2e5c642b205c647b347d2d5c647b327d2d5c647b327d5c783030",
+     "count": 0,
+     "first_offset": null
+    }
+   ]
+  },
+  {
+   "path": "bin/codex-code-mode-host",
+   "sha256": "5cc29d144fc05e3563f5f90c36adc95bdc287e2297b48ecf0bf4abdf1892d3ab",
+   "size": 70259040,
+   "manifest_bound_to_commit": false,
+   "previous_sha256": "679eedaea70529aa1cffc9bc0a0788c186412663544fa76c09d63b57f383a65a",
+   "markers": [
+    {
+     "marker": "codex-rs CI path",
+     "pattern_hex": "2f55736572732f72756e6e65722f776f726b2f636f6465782f636f6465782f636f6465782d72732f",
+     "count": 1,
+     "first_offset": 41494275
+    },
+    {
+     "marker": "exec-server crate label",
+     "pattern_hex": "636f6465782d657865632d736572766572305c2e3136375c2e30",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "exec-server source path",
+     "pattern_hex": "657865632d7365727665722f7372632f5b612d7a5f2f5d2b5c2e7273",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "code-mode-host source path",
+     "pattern_hex": "636f64652d6d6f64652d686f73742f7372632f6d61696e5c2e7273",
+     "count": 4,
+     "first_offset": 41494731
+    },
+    {
+     "marker": "crates.io registry source path",
+     "pattern_hex": "72656769737472792f7372632f696e6465785c2e6372617465735c2e696f2d5b302d39612d665d2b2f5b412d5a612d7a302d395f2e2b2d5d2b",
+     "count": 1619,
+     "first_offset": 41469829,
+     "distinct_crate_directories": 128
+    },
+    {
+     "marker": "skill-creator sample",
+     "pattern_hex": "6e616d653a20736b696c6c2d63726561746f72",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "skill-installer sample",
+     "pattern_hex": "6e616d653a20736b696c6c2d696e7374616c6c6572",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "Apache appendix",
+     "pattern_hex": "415050454e4449583a20486f7720746f206170706c792074686520417061636865204c6963656e7365",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "bwrap",
+     "pattern_hex": "6277726170",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "v8::internal",
+     "pattern_hex": "76383a3a696e7465726e616c",
+     "count": 63,
+     "first_offset": 41760610
+    },
+    {
+     "marker": "ICU data name",
+     "pattern_hex": "69637564745c642b6c",
+     "count": 2371,
+     "first_offset": 41681065,
+     "first_match_hex": "696375647437386c"
+    },
+    {
+     "marker": "Unicode terms heading",
+     "pattern_hex": "556e69636f64652c20496e635c2e20616e64206f74686572735c2e204c6963656e73652026207465726d73206f6620757365",
+     "count": 52,
+     "first_offset": 42409079
+    },
+    {
+     "marker": "Chromium libc++ namespace",
+     "pattern_hex": "4e5374345f5f4372",
+     "count": 1949,
+     "first_offset": 54389229
+    },
+    {
+     "marker": "ripgrep version and revision",
+     "pattern_hex": "5c284a495420697320617661696c61626c655c295c6e5c642b5c2e5c642b5c2e5c642b5b302d39612d665d7b31307d",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "PCRE2 Unicode version and PCRE2 version",
+     "pattern_hex": "5c7830305c642b5c2e5c642b5c2e5c642b5c7830305c642b5c2e5c642b205c647b347d2d5c647b327d2d5c647b327d5c783030",
+     "count": 0,
+     "first_offset": null
+    }
+   ]
+  },
+  {
+   "path": "codex-path/rg",
+   "sha256": "13424ef22134a65a211e490475bc17a4671e4fad3c82ad4c613fe5978f022a6d",
+   "size": 4030432,
+   "manifest_bound_to_commit": false,
+   "previous_sha256": "7c7d5b09c3a57de864500c65dc2e9c4d2a5e96a3fc7b7d5318480c19887a739b",
+   "markers": [
+    {
+     "marker": "codex-rs CI path",
+     "pattern_hex": "2f55736572732f72756e6e65722f776f726b2f636f6465782f636f6465782f636f6465782d72732f",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "exec-server crate label",
+     "pattern_hex": "636f6465782d657865632d736572766572305c2e3136375c2e30",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "exec-server source path",
+     "pattern_hex": "657865632d7365727665722f7372632f5b612d7a5f2f5d2b5c2e7273",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "code-mode-host source path",
+     "pattern_hex": "636f64652d6d6f64652d686f73742f7372632f6d61696e5c2e7273",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "crates.io registry source path",
+     "pattern_hex": "72656769737472792f7372632f696e6465785c2e6372617465735c2e696f2d5b302d39612d665d2b2f5b412d5a612d7a302d395f2e2b2d5d2b",
+     "count": 110,
+     "first_offset": 3629081,
+     "distinct_crate_directories": 16
+    },
+    {
+     "marker": "skill-creator sample",
+     "pattern_hex": "6e616d653a20736b696c6c2d63726561746f72",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "skill-installer sample",
+     "pattern_hex": "6e616d653a20736b696c6c2d696e7374616c6c6572",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "Apache appendix",
+     "pattern_hex": "415050454e4449583a20486f7720746f206170706c792074686520417061636865204c6963656e7365",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "bwrap",
+     "pattern_hex": "6277726170",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "v8::internal",
+     "pattern_hex": "76383a3a696e7465726e616c",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "ICU data name",
+     "pattern_hex": "69637564745c642b6c",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "Unicode terms heading",
+     "pattern_hex": "556e69636f64652c20496e635c2e20616e64206f74686572735c2e204c6963656e73652026207465726d73206f6620757365",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "Chromium libc++ namespace",
+     "pattern_hex": "4e5374345f5f4372",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "ripgrep version and revision",
+     "pattern_hex": "5c284a495420697320617661696c61626c655c295c6e5c642b5c2e5c642b5c2e5c642b5b302d39612d665d7b31307d",
+     "count": 1,
+     "first_offset": 2907340,
+     "first_match_hex": "284a495420697320617661696c61626c65290a31352e322e3065383966666638396163"
+    },
+    {
+     "marker": "PCRE2 Unicode version and PCRE2 version",
+     "pattern_hex": "5c7830305c642b5c2e5c642b5c2e5c642b5c7830305c642b5c2e5c642b205c647b347d2d5c647b327d2d5c647b327d5c783030",
+     "count": 1,
+     "first_offset": 3660432,
+     "first_match_hex": "0031362e302e300031302e343620323032352d30382d323700"
+    }
+   ]
+  }
+ ],
+ "v8_third_party": [
+  {
+   "path": "third_party/v8/rusty_v8_152_2_0.sha256",
+   "size_bytes": 2078,
+   "git_blob_sha1": "7698173a1fda8a34c73db8a32eb77b7f40c91909"
+  },
+  {
+   "path": "third_party/v8/rusty_v8_152_2_0_release_manifests.sha256",
+   "size_bytes": 1040,
+   "git_blob_sha1": "814e018a41c42e7bfc1c4b3f651940725d00176f"
+  }
+ ],
+ "standalone_release_assets": [
+  {
+   "name": "codex-code-mode-host-aarch64-apple-darwin.tar.gz",
+   "size": 25262553,
+   "digest": "sha256:876a3e263348ef0edaeae5cf5bc52a5c121141cefd15157ab0eeca305f3eb563"
+  },
+  {
+   "name": "codex-exec-server-aarch64-apple-darwin.tar.gz",
+   "size": 22746226,
+   "digest": "sha256:82bb1c4de7850d569aa95fead8e86dd6e7acf08b6145fad26a6900ab0a7ea7c0"
+  }
+ ],
+ "limits": [
+  "No supplier execution, network access, acquisition, signature validation or legal conclusion.",
+  "A blob/size identity or manifest declaration associates bytes with a source locator; it does not establish build equivalence, linked contents or notice applicability.",
+  "Marker counts are byte clues in exact binaries. Absent patterns do not show absent code."
+ ]
+}
