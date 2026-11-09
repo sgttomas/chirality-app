@@ -140,6 +140,44 @@ validity, actor identity, personal act or completed model run. Raw keys never
 enter renderer DTOs, App journals, history, captures or error text. Existing
 private account transport supplies fixed withholding.
 
+## Current native observation
+
+The unsigned development App built from `02506cce0c2bd4bef5fb57496d00cd6e219d3454`
+completed fresh App-owned setup, normal Quit/reopen and adoption of the saved
+isolated project. Explicit activation made its setup page paint; an earlier
+background-only blank window did not establish a source defect. Local
+preparation reported the fixed destination and `entry-required`. The native
+secure field opened; cancelling without a key reported no key saved and
+consumed that generation's entry attempt. Explicit local-home selection
+offered only the fixed oMLX model, and returning to the account home preserved
+the local preparation.
+
+With the owner reporting direct key entry through the native secure field,
+Codex reported the key saved in the dedicated local home. The same development
+App admitted the fixed local conversation and completed two agent-operated
+turns: the exact response `OMLX_OK`, then a read-only tool call
+`/bin/zsh -c 'cat readme.txt'` in the isolated project, exit 0. Its output and
+the model's answer both matched the fixture line, and the fixture bytes were
+unchanged. The original App process closed normally and its absence was verified.
+
+The command ran automatically under the retained turns' `on-request` approval
+policy and `read-only` sandbox; the App ledger contains no permission request
+or answer for this run. These policy values match the earlier
+[account P3 subject](../../../PKG-09/DEL-09-02/Work/P3_NEXT_WITNESS_PROPOSAL.md).
+The fixed local configuration and flags set neither approval nor sandbox
+overrides and do not copy account configuration. No local approval request
+was exercised.
+
+These observations establish the bounded keyed response and read-only command
+path on this development subject. Nonsecret turn/command observations and
+original-process closure facts are retained privately at
+`/Users/ryan/dev/chirality-t3/scratch/app-omlx-current-ijt11txd/key-ready-run/`;
+setup/cancellation observations remain in its parent directory. The credential
+value was not supplied to the agent, and no credential-file contents were read.
+There was no independent network/destination capture. Broader model/tool and
+workflow compatibility, continuing credential validity, custody/network
+qualification and installed/final-candidate acceptance remain open.
+
 ## Child receiving at the selected source
 
 The .167 canonical subject can receive parent `thread/start` dotted
@@ -159,5 +197,5 @@ integration inputs. No generic declared-pin promotion is allowed.
 
 The owning Scope's candidate-native, account-coexistence, substitution and
 network verification obligations remain. Scripted/source checks support only
-the behavior they exercise; secure key provisioning and actual local-server
-use await the owner's useful-point act through the secure route.
+the behavior they exercise; the bounded native observations above do not close
+those remaining obligations or qualify child delegation.

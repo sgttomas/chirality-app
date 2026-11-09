@@ -1678,12 +1678,15 @@ does not remove local-provider authentication.
 Native local credential support is implemented by the dedicated local-home
 path ([LOCAL_PROVIDER_CUSTODY](LOCAL_PROVIDER_CUSTODY.md)); actual keyed provider
 qualification remains open. The owner-selected nonsecret inputs are
-`http://127.0.0.1:8000/v1` and `mlx-community/Qwen3.6-35B-A3B-8bit`; no key has
-been supplied and actual model use remains unrun. The adopted design keeps the
+`http://127.0.0.1:8000/v1` and `mlx-community/Qwen3.6-35B-A3B-8bit`. On the
+identified development subject, owner-reported native key entry was followed by
+Codex's saved-key observation and two completed local turns, including one
+read-only command; [the current native observation](LOCAL_PROVIDER_CUSTODY.md#current-native-observation)
+binds that result and its limits. The adopted design keeps the
 token in Codex custody in a dedicated local home with its own fixed nonsecret
 oMLX configuration, without a plaintext
 bearer in provider configuration. The source-supported authentication design
-does not establish actual oMLX compatibility.
+alone does not establish actual oMLX compatibility.
 
 The frontend receives that path's nonsecret commands and view. Under Connection
 & access, **Prepare the oMLX connection** calls `prepare_local_provider()`;

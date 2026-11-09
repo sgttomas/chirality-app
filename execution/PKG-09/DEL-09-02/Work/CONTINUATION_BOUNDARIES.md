@@ -50,6 +50,13 @@ before using them, and use process checks only after Quit.
   renewed acquisition or credential authority. Windows/guest boundaries are in
   [the Windows undertaking](../../../_Coordination/WINDOWS_UNDERTAKING.md) and AGENTS.
 
+The owner's current testing direction uses the App's Codex/ChatGPT account
+route for general usability and workflow testing, keeping the local model out
+of memory. The bounded oMLX response and read-only command checks are complete;
+no further local-model run is planned. A specific local-provider finding may
+justify a separately bounded check, without expanding the completed result's
+coverage.
+
 ## Retained artifacts and private evidence
 
 The held `app-typed-ax-prepared-zootd3ob` root remains UNRUN, with its identity,

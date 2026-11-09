@@ -343,7 +343,7 @@ test('first use: choose a project, start with new App-owned settings, review the
     for(const effect of next.preview.effects)assert.ok(effects.includes(effect),effect);
     assert.match(effects,/Create a new settings folder for this App/);assert.match(effects,/No other Codex settings, home or credential is read, imported or changed/);
     await press(c,'Create settings and save for next launch…');
-    assert.match(region(c,'Setup saved').textContent,/quit Chirality \(⌘Q\) and open it again.*sign in to Codex under Connection & access/);
+    assert.match(region(c,'Setup saved').textContent,/quit Chirality \(⌘Q\) and open it again.*Connection & access.*ChatGPT account or prepare the oMLX connection/);
     assert.deepEqual(calls.map(call=>call.command),['desktop_setup_pick','desktop_setup_new_settings_preview','desktop_setup_prepare']);
   });
 });

@@ -24,7 +24,9 @@ bearer credentials remain required. Keyed oMLX is received through the
 adopted Codex-custody dedicated local home: the person prepares it, enters the
 key in a native secure field and switches between account and local homes
 (DEL-01-05 current account/oMLX increment). That glue integrates only after the
-native local-home commands. Actual oMLX compatibility remains unverified. The supplier lane owns the selected 0.167.0 advance;
+native local-home commands. A bounded keyed response and read-only command
+passed on the [identified development subject](../../../PKG-01/DEL-01-05/Work/LOCAL_PROVIDER_CUSTODY.md#current-native-observation);
+broader oMLX compatibility remains open. The supplier lane owns the selected 0.167.0 advance;
 this UI increment adds no generated protocol or native credential behavior.
 
 The retained source-rendered visual checkpoint uses actual components, the
@@ -193,6 +195,12 @@ qualification. The owner's sign-in-status usability finding remains open with
 the product owner. J2 remains open, and no second model campaign is authorized
 by this one-workflow result. ScopeOfWork and dependency conditions retain their
 meaning.
+
+The later [0.167 account workflow segment](../../../PKG-09/DEL-09-02/Work/P3_NEXT_WITNESS_PROPOSAL.md#current-account-workflow-segment)
+on development source `02506cce` exercised the revised Run guide, one native
+write approval, a checked saved review and the ended run in Results, followed
+by normal Quit. It preserves the earlier observations and their separate
+subjects; it is neither owner usability acceptance nor installed qualification.
 
 
 ## Ordinary effort interaction
