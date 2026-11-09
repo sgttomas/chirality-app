@@ -2200,6 +2200,7 @@ fn v15_f5_registered_listing_labels_rows() {
         rows[0]["label"],
         "registered — re-confirm to use in this App session"
     );
+    assert_eq!(rows[0]["reconfirm"], true, "{rows}");
     reconfirmed(&reconfirm(&owner, one.revision()).0[0]);
     let rows = owner.registered_listing();
     assert_eq!(
@@ -2211,6 +2212,7 @@ fn v15_f5_registered_listing_labels_rows() {
         rows[0]["label"],
         "registered — selectable in this App session"
     );
+    assert!(rows[0].get("reconfirm").is_none(), "{rows}");
 }
 
 /// WR §4.6 LS-1 "Select (in such a process)", SL-2, SL-5: the listing offers
