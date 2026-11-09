@@ -1,13 +1,20 @@
 # Chirality App v4 — runtime contract development
 
 Run `APP-V4-GROUP-A-20261004` repairs and extends the walking skeleton from
-`APP-V4-GRAPH-CLOSURE-20261004`. The current path hosts stock Codex 0.160.0,
+`APP-V4-GRAPH-CLOSURE-20261004`. The current development integration targets stock Codex 0.167.0,
 supplies reviewed v4 common/role guidance, receives native requests and activity,
 loads external observations, records decision packages, and supplies native controls
 for A16 decisions, A15 workflow registration, and A4/A6/A7 App-file acts. Separate
 readers retain decision and file-act evidence limits. App v4 development resumed
 by owner direction on 2026-10-28; packaging, supplier qualification and the owner's
 stage gate remain separate work.
+
+The [0.167 upgrade account](../execution/PKG-01/DEL-01-01/Work/CODEX_0.167_UPGRADE.md)
+identifies the exact canonical 42-file package, generated-schema subject and
+unqualified development admission. The installed npm 41-file tree shares its
+main but is not that acting distribution. The historical 0.160 supplier checks
+and examples below retain their own pin/input requirements; they are not 0.167
+runtime qualification. Production still refuses the old compiled reference.
 
 Tests use the maintained invented `tests/fixtures/FX-DP1` content. Native
 confirmation tests are explicit stand-ins; they do not establish that a person
@@ -38,7 +45,7 @@ npm run build
 (cd src-tauri && python3 schemas/sync.py)
 ```
 
-Before running supplier-dependent checks, prepare the complete stock Codex
+Before running the historical supplier-dependent checks below, prepare their complete stock Codex
 0.160.0 platform package and set the binary path and expected hash as described
 in [Offline build and checks](#offline-build-and-checks). For a development
 launch, follow [Run the development App](#run-the-development-app), including

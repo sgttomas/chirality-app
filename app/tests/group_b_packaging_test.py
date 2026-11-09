@@ -103,6 +103,29 @@ class PackagingPreparation(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'executable Mach-O'): self.run_prepare()
         self.assertFalse(self.output.exists())
 
+    def test_0167_exec_server_is_required_and_staged_verbatim(self):
+        self.metadata.update(version='0.167.0', execServer='bin/codex-exec-server')
+        (self.vendor/'codex-package.json').write_text(json.dumps(self.metadata))
+        with self.assertRaisesRegex(ValueError, 'codex-exec-server'):
+            inventory.validate_package_layout(self.metadata, inventory.scan(self.vendor), '0.167.0')
+        helper = self.vendor/'bin/codex-exec-server'
+        helper.write_bytes(bytes.fromhex('cffaedfe') + b'INVENTED exec server; never run')
+        helper.chmod(0o755)
+        for mode in (0o644, 0o755):
+            helper.chmod(mode)
+            if mode == 0o644:
+                with self.assertRaisesRegex(ValueError, 'executable Mach-O'):
+                    inventory.validate_package_layout(self.metadata, inventory.scan(self.vendor), '0.167.0')
+            else:
+                inventory.validate_package_layout(self.metadata, inventory.scan(self.vendor), '0.167.0')
+        wrong = dict(self.metadata, execServer='bin/other')
+        with self.assertRaisesRegex(ValueError, 'metadata'):
+            inventory.validate_package_layout(wrong, inventory.scan(self.vendor), '0.167.0')
+        result = self.run_prepare(pin='0.167.0')
+        self.assertTrue((self.output/'bundle/Contents/Resources/codex/bin/codex-exec-server').is_file())
+        self.assertEqual((self.output/'bundle/Contents/Resources/codex/bin/codex-exec-server').read_bytes(), helper.read_bytes())
+        self.assertFalse(result['package_complete'])
+
     def test_selected_resources_are_inspected_without_claiming_placement(self):
         guidance=self.root/'AGENTS.md'; guidance.write_text('invented product guidance')
         self.inputs.write_text(json.dumps({'guidance':str(guidance),'bundle_id':'dev.invented.app','minimum_macos':'15.0'}))

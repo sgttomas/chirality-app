@@ -11,7 +11,7 @@ env:
   RUST_TEST_THREADS: '1'
   CARGO_INCREMENTAL: '0'
   CARGO_BUILD_JOBS: '2'
-  CHIRALITY_CODEX_EXPECTED_SHA256: 112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b
+  CHIRALITY_CODEX_EXPECTED_SHA256: 030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc
 
 defaults:
   run:
@@ -94,6 +94,7 @@ jobs:
     timeout-minutes: 45
     env:
       LIB_COHORTS: >-
+          supplier_0167_tests delegation_availability::tests
           continuation_context::tests history_bridge conversation_roles::tests
           workflow_role_tests desktop_startup instruction_seed_tests
           workflow_catalog_tests recorded_replay_tests native_delivery::tests
@@ -215,7 +216,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           filter: blob:none
       - uses: ./.github/actions/app-v4-setup
-      - name: Prepare adopted supplier in scratch storage
+      - name: Prepare selected assessment supplier in scratch storage
         env:
           SUPPLIER_ROOT: ${{ runner.temp }}/app-v4-supplier
           CHIRALITY_CODEX_HOME: ${{ runner.temp }}/app-v4-codex-home
@@ -224,21 +225,34 @@ jobs:
           /usr/bin/git --no-lazy-fetch --version
           mkdir -p "$SUPPLIER_ROOT" "$CHIRALITY_CODEX_HOME"
           curl --fail --location --retry 2 \
-            https://registry.npmjs.org/@openai/codex/-/codex-0.160.0-darwin-arm64.tgz \
+            https://github.com/openai/codex/releases/download/rust-v0.167.0/codex-package-aarch64-apple-darwin.tar.gz \
             --output "$SUPPLIER_ROOT/supplier.tgz"
           python - <<'PY'
-          import base64, hashlib, os
-          from pathlib import Path
-          archive = Path(os.environ['SUPPLIER_ROOT']) / 'supplier.tgz'
+          import hashlib, os, tarfile
+          from pathlib import Path, PurePosixPath
+          root = Path(os.environ['SUPPLIER_ROOT'])
+          archive = root / 'supplier.tgz'
+          if archive.stat().st_size != 166340155:
+              raise SystemExit('supplier archive size mismatch')
           with archive.open('rb') as stream:
-              digest = base64.b64encode(hashlib.file_digest(stream, 'sha512').digest()).decode()
-          expected = 'aefV6cqZA2REZgR//4McyXlp7zLcTti4CI2v3j9IVgNndPBv2kCeNEcz07qeelXcwOdSFPUKb6roA48vZmDgrQ=='
-          if digest != expected:
+              digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+          if digest != 'af45ed45d940d7998809622c1c0296d3098ed7d7fad695284422c228bd454517':
               raise SystemExit('supplier archive integrity mismatch')
+          with tarfile.open(archive, 'r:gz') as package:
+              members = package.getmembers()
+              paths = set()
+              for member in members:
+                  path = PurePosixPath(member.name)
+                  if (path.is_absolute() or '..' in path.parts or not path.parts
+                          or member.name in paths or not (member.isfile() or member.isdir())):
+                      raise SystemExit('unsafe supplier archive member')
+                  paths.add(member.name)
+              vendor = root / 'vendor'
+              vendor.mkdir()
+              package.extractall(vendor, members=members, filter='data')
           PY
-          tar -xzf "$SUPPLIER_ROOT/supplier.tgz" -C "$SUPPLIER_ROOT"
-          echo "$SUPPLIER_ROOT/package/vendor/aarch64-apple-darwin/codex-path" >> "$GITHUB_PATH"
-          export CHIRALITY_CODEX_BIN="$SUPPLIER_ROOT/package/vendor/aarch64-apple-darwin/bin/codex"
+          echo "$SUPPLIER_ROOT/vendor/codex-path" >> "$GITHUB_PATH"
+          export CHIRALITY_CODEX_BIN="$SUPPLIER_ROOT/vendor/bin/codex"
           python - <<'PY'
           import hashlib, os
           from pathlib import Path

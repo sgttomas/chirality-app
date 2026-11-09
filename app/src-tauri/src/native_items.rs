@@ -664,7 +664,7 @@ mod tests {
         let mut v = NativeView::new("h".into()).unwrap();
         v.ready(
             g(1),
-            json!("codex 0.160.0"),
+            json!("codex 0.167.0"),
             json!("unverified-development"),
         )
         .unwrap();
@@ -980,7 +980,7 @@ mod tests {
         assert_eq!(row(&v, "c")["displayState"], "not-completed");
         assert_eq!(row(&v, "c")["preview"], "out", "partial output stays with its not-completed state");
     }
-    // HOSTING §8.3: `model/rerouted` (0.160.0 ModelReroutedNotification) is kept
+    // HOSTING §8.3: `model/rerouted` (0.167.0 ModelReroutedNotification) is kept
     // as a live observation naming its thread and turn; a malformed one is refused.
     #[test]
     fn model_rerouted_is_observed_with_its_turn_and_receipt() {

@@ -28,7 +28,7 @@ fn composition(role: Role) -> Composition {
     Composition::new(&common, Some((role, &role_doc)), role == Role::TASK).unwrap()
 }
 fn start_result() -> Value {
-    json!({"thread":{"id":"thread","cliVersion":"0.160.0","createdAt":1,"updatedAt":2,"cwd":"/synthetic","ephemeral":false,"modelProvider":"synthetic","preview":"synthetic","projectId":null,"sessionId":"synthetic-native","source":"appServer","status":{"type":"idle"},"turns":[],"agentRole":"WORKING_ITEMS"},"model":"synthetic","modelProvider":"synthetic","cwd":"/synthetic","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly"},"instructionSources":[]})
+    json!({"thread":{"id":"thread","cliVersion":"0.167.0","createdAt":1,"updatedAt":2,"cwd":"/synthetic","ephemeral":false,"modelProvider":"synthetic","preview":"synthetic","projectId":null,"sessionId":"synthetic-native","source":"appServer","status":{"type":"idle"},"turns":[],"agentRole":"WORKING_ITEMS"},"model":"synthetic","modelProvider":"synthetic","cwd":"/synthetic","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly"},"instructionSources":[]})
 }
 fn args() -> Value {
     json!({"base":{"path":"/synthetic/base.json","id":"base","byteLength":0,"sha256":"a".repeat(64)},"question":"question","claimIds":[]})

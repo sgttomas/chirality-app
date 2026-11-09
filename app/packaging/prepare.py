@@ -10,7 +10,7 @@ import stat
 import subprocess
 import sys
 
-from inventory import anchored, compare, inspect_signatures, scan, sha256
+from inventory import anchored, compare, inspect_signatures, scan, sha256, validate_package_layout
 
 
 def deliverable_path(root, relative):
@@ -151,13 +151,7 @@ def prepare(vendor,expected_manifest,pin,revision,inputs,output):
     if any(e['kind'] not in ('dir','file') for e in inventory['entries']):
         raise ValueError('Option B supplier staging refuses links and special files')
     metadata=read_json(Path(inventory['root'])/'codex-package.json')
-    expected={'layoutVersion':1,'version':pin,'target':'aarch64-apple-darwin','variant':'codex','entrypoint':'bin/codex','resourcesDir':'codex-resources','pathDir':'codex-path'}
-    if metadata!=expected: raise ValueError('supplier package metadata does not match selected pin/layout/target')
-    by_path={e['path']:e for e in inventory['entries']}
-    if not (by_path.get('bin/codex',{}).get('macho') and int(by_path['bin/codex']['mode'],8)&0o111):
-        raise ValueError('supplier entrypoint is not an executable Mach-O file')
-    for name in ('codex-path','codex-resources'):
-        if by_path.get(name,{}).get('kind')!='dir': raise ValueError(f'supplier missing {name}')
+    validate_package_layout(metadata,inventory,pin)
     account=inputs_account(inputs)
     output=anchored(output)
     # Never create staging inside a source, nor accept a reused output directory.

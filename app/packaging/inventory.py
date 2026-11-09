@@ -94,6 +94,30 @@ def compare(actual, expected):
             'missing':missing,'extra':extra,'root_mode_equal':root_mode_equal}
 
 
+def validate_package_layout(metadata, inventory, pin):
+    """Validate the selected stock layout without executing supplier helpers."""
+    expected = {'layoutVersion': 1, 'version': pin, 'target': 'aarch64-apple-darwin',
+                'variant': 'codex', 'entrypoint': 'bin/codex',
+                'resourcesDir': 'codex-resources', 'pathDir': 'codex-path'}
+    executables = ['bin/codex']
+    if pin == '0.167.0':
+        expected['execServer'] = 'bin/codex-exec-server'
+        executables.append(expected['execServer'])
+    if type(metadata.get('layoutVersion')) is not int:
+        raise ValueError('vendor layoutVersion must be an integer')
+    if metadata != expected:
+        raise ValueError('supplier package metadata does not match selected pin/layout/target')
+    entries = {entry['path']: entry for entry in inventory['entries']}
+    for path in executables:
+        entry = entries.get(path, {})
+        if not (entry.get('kind') == 'file' and entry.get('macho')
+                and int(entry['mode'], 8) & 0o111):
+            raise ValueError(f'supplier executable is not an executable Mach-O file: {path}')
+    if any(entries.get(path, {}).get('kind') != 'dir' for path in ('codex-path', 'codex-resources')):
+        raise ValueError('supplier package layout incomplete')
+    return metadata
+
+
 def inspect_signatures(inventory):
     """Only Apple's signature-display commands; nonzero/unreadable output never passes."""
     records=[]

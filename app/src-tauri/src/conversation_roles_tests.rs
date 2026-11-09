@@ -17,12 +17,12 @@ use std::time::{Duration, Instant};
 const PEER: &str = r#"#!/usr/bin/python3
 import sys,json,os,threading,time
 if '--version' in sys.argv:
- print('codex-cli 0.160.0');sys.exit(0)
+ print('codex-cli 0.167.0');sys.exit(0)
 lock=threading.Lock()
 def emit(v):
  with lock: print(json.dumps(v),flush=True)
 def thread(i,extra=None):
- t={'id':i,'cliVersion':'0.160.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'roles fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
+ t={'id':i,'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'roles fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
  if extra: t.update(extra)
  return t
 def settled(t):
@@ -164,8 +164,8 @@ fn fork_is_a_same_role_copy_and_leaves_the_source_unchanged() {
     let sent = f.wire().into_iter().find(|frame| frame["method"] == "thread/fork").expect("thread/fork written");
     assert_eq!(sent["params"], json!({"threadId":source,"deferGoalContinuation":true}),
         "the thread id and no instructions, model or settings; no automatic goal continuation turn");
-    // The exact params are valid 0.160.0 ThreadForkParams.
-    let mut schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json")).unwrap();
+    // The exact params are valid 0.167.0 ThreadForkParams.
+    let mut schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).unwrap();
     schema["$ref"] = json!("#/definitions/v2/ThreadForkParams");
     jsonschema::options().with_draft(jsonschema::Draft::Draft7).offline().build(&schema).unwrap().validate(&sent["params"]).unwrap();
     assert!(crate::role_supply::check_role_inputs("thread/fork", &sent["params"]).is_ok(), "carries no role input");

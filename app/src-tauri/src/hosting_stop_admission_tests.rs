@@ -4,7 +4,7 @@ fn stop_admission_original_d2_probe_release_cannot_resurrect_either_route(){
     for successor in [false,true] {for failure in [false,true] {
         let mut f=Fixture::new("open(os.environ['CODEX_HOME']+'/entered','w').close()\n while not os.path.exists(os.environ['CODEX_HOME']+'/release'): time.sleep(0.005)");
         f.cfg.wait_limit=Duration::from_secs(12);if !successor{f.cfg.distribution=None;}
-        if failure {let path=f.root.join("vendor/bin/codex");let s=std::fs::read_to_string(&path).unwrap().replace(" print('codex-cli 0.160.0'); sys.exit(0)"," sys.exit(7)");std::fs::write(path,s).unwrap();}
+        if failure {let path=f.root.join("vendor/bin/codex");let s=std::fs::read_to_string(&path).unwrap().replace(" print('codex-cli 0.167.0'); sys.exit(0)"," sys.exit(7)");std::fs::write(path,s).unwrap();}
         let h=Arc::new(Host::new());let source=h.clone();let cfg=f.cfg.clone();let start=std::thread::spawn(move||source.start(&cfg,"blocked probe"));
         let end=std::time::Instant::now()+Duration::from_secs(5);while !f.root.join("probe/entered").exists(){assert!(std::time::Instant::now()<end);std::thread::sleep(Duration::from_millis(5));}
         assert_eq!(h.state(),"verifying");assert!(h.child_pid().is_none());
@@ -43,7 +43,7 @@ fn stop_admission_late_handshake_success_error_and_contradiction_never_mutate_ne
     for successor in [false,true]{for outcome in 0..3{
         let f=route(successor);let h=Arc::new(Host::new());let(rx,go)=pause_at(&h.before_successor_settlement);let source=h.clone();let cfg=f.cfg.clone();let start=std::thread::spawn(move||source.start(&cfg,"old handshake"));rx.recv_timeout(Duration::from_secs(5)).unwrap();
         let old=h.snapshot()["generation"].clone();let attempt=h.inner.0.lock().unwrap().start_attempt;h.stop("synthetic","before settlement").unwrap();let stopped=h.snapshot();go.send(()).unwrap();assert!(start.join().unwrap().is_err());assert_eq!(h.snapshot(),stopped);
-        h.start(&f.cfg,"replacement").unwrap();let before=h.snapshot();let response=match outcome{0=>Ok(json!({"result":{"userAgent":"codex/0.160.0"}})),1=>Err("late error".into()),_=>Ok(json!({"result":{"userAgent":"codex/9.0.0"}}))};
+        h.start(&f.cfg,"replacement").unwrap();let before=h.snapshot();let response=match outcome{0=>Ok(json!({"result":{"userAgent":"codex/0.167.0"}})),1=>Err("late error".into()),_=>Ok(json!({"result":{"userAgent":"codex/9.0.0"}}))};
         assert!(h.finish_start_handshake(&old,attempt,json!({}),response,successor).is_err());assert_eq!(h.snapshot(),before);h.stop("synthetic","cleanup").unwrap();
     }}
 }

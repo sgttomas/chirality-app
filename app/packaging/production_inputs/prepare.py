@@ -256,12 +256,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
     require(all(e['kind'] in ('file', 'dir') for e in supplier['entries']), 'vendor links/special files refused')
     require_nonempty(supplier)
     metadata = parse(read(vendor / 'codex-package.json'))
-    require(type(metadata.get('layoutVersion')) is int, 'vendor layoutVersion must be an integer')
-    require(metadata == {'layoutVersion': 1, 'version': pin, 'target': 'aarch64-apple-darwin', 'variant': 'codex',
-                         'entrypoint': 'bin/codex', 'resourcesDir': 'codex-resources', 'pathDir': 'codex-path'}, 'vendor metadata mismatch')
-    entries = {e['path']: e for e in supplier['entries']}
-    require(entries.get('bin/codex', {}).get('macho') and int(entries['bin/codex']['mode'], 8) & 0o111, 'vendor entrypoint invalid')
-    require(all(entries.get(n, {}).get('kind') == 'dir' for n in ('codex-path', 'codex-resources')), 'vendor layout incomplete')
+    inventory.validate_package_layout(metadata, supplier, pin)
     require('codex' not in {p for p, _ in destinations}
             and not any(p.startswith('codex/') for p, _ in destinations), 'vendor destination collision')
     by_destination = {info['destination']: src for src, info in resource_inputs.items() if 'tree' not in info}

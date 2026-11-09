@@ -367,11 +367,11 @@ mod tests {
 import os,sys,json,time
 if '--version' in sys.argv:
  {probe}
- print('codex-cli 0.160.0'); sys.exit(0)
+ print('codex-cli 0.167.0'); sys.exit(0)
 for line in sys.stdin:
  f=json.loads(line)
  if 'id' in f:
-  print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.160.0'}}}}),flush=True)
+  print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.167.0'}}}}),flush=True)
 "#
             );
             std::fs::write(&bin, code).unwrap();
@@ -405,7 +405,7 @@ for line in sys.stdin:
                 ready["generation"]
             );
             assert_eq!(ready["supplierStanding"], "unverified-development");
-            assert_eq!(ready["versionIdentity"]["declaredPin"], "0.160.0");
+            assert_eq!(ready["versionIdentity"]["declaredPin"], "0.167.0");
             let mut receiver = crate::runtime_session::RuntimeSession::default();
             let received = receiver.receive(&host.observe(&Value::Null, 0));
             assert_eq!(received["nativeView"]["generation"], ready["generation"]);
@@ -425,9 +425,9 @@ for line in sys.stdin:
             .find(|e| e["transitionId"] == "LT-09").unwrap();
         let observation = json!({
             "raw_version_label": ready["distributionSuccessor"]["rawVersionLabel"],
-            "observed_label": "0.160.0", "pin": "0.160.0"
+            "observed_label": "0.167.0", "pin": "0.167.0"
         });
-        assert_eq!(event["versionIdentity"]["observedVersionLabel"], "codex-cli 0.160.0");
+        assert_eq!(event["versionIdentity"]["observedVersionLabel"], "codex-cli 0.167.0");
         let result = crate::distribution_semantics::validate_label_join(&event, &observation);
         host.stop("fixture", "label join complete").unwrap();
         result.unwrap();
@@ -536,7 +536,7 @@ for line in sys.stdin:
             let raw=serde_json::to_vec(&facts).unwrap();let reference=json!({"path":".chirality-s1/preflight.json","sha256":tree::digest(&raw)});
             rebound.insert(".chirality-s1/preflight.json".into(),raw);for check in value["checks"].as_object_mut().unwrap().values_mut(){check["evidence"]=reference.clone();}rebound
         };
-        for (pointer,value) in [("/raw_version_label",json!("codex 0.160.0\n")),("/observed_label",json!("9.9.9")),("/configuration/resolved_executable",json!("/wrong")),("/configuration/path_prefix",json!("bad:prefix")),("/configuration/probe_home",observed["configuration"]["account_home"].clone()),("/configuration/removed_environment_names",json!(["SOME_OTHER_VARIABLE"])),("/inventory/manifest_sha256",json!("0".repeat(64))),("/outcome",json!("verified")),("/checks/custody/outcome",json!("pass")),("/expected_reference",json!({"path":"forged.json","sha256":"0".repeat(64)}))] {
+        for (pointer,value) in [("/raw_version_label",json!("codex 0.167.0\n")),("/observed_label",json!("9.9.9")),("/configuration/resolved_executable",json!("/wrong")),("/configuration/path_prefix",json!("bad:prefix")),("/configuration/probe_home",observed["configuration"]["account_home"].clone()),("/configuration/removed_environment_names",json!(["SOME_OTHER_VARIABLE"])),("/inventory/manifest_sha256",json!("0".repeat(64))),("/outcome",json!("verified")),("/checks/custody/outcome",json!("pass")),("/expected_reference",json!({"path":"forged.json","sha256":"0".repeat(64)}))] {
             let mut changed=observed.clone();*changed.pointer_mut(pointer).unwrap()=value;
             let rebound=rebind(&mut changed);assert!(crate::distribution_s1::observed(&changed,&rebound,None).is_err(),"{pointer}");
         }
@@ -544,7 +544,7 @@ for line in sys.stdin:
         let mut changed=observed.clone();let duplicate=changed["inventory"]["entries"][0].clone();changed["inventory"]["entries"].as_array_mut().unwrap().push(duplicate);let rebound=rebind(&mut changed);assert!(crate::distribution_s1::observed(&changed,&rebound,None).unwrap_err().contains("mismatch"));
         let mut changed=observed.clone();changed["checks"]["tree"]["outcome"]=json!("mismatch");changed["outcome"]=json!("mismatch");assert_eq!(crate::distribution_s1::observed(&changed,&files,None).unwrap(),"mismatch");
         let mut tampered=files.clone();tampered.insert(".chirality-s1/preflight.json".into(),b"{}".to_vec());assert!(crate::distribution_s1::observed(&observed,&tampered,None).is_err());
-        for (pointer,value) in [("/verification_generation/spawnCounter",json!(99)),("/legacy_event/generation/spawnCounter",json!(99)),("/legacy_event/fromState",json!("absent")),("/legacy_event/versionIdentity/observedVersionLabel",json!("0.160.0"))] {let mut changed=lifecycle.clone();*changed.pointer_mut(pointer).unwrap()=value;assert!(crate::distribution_s1::lifecycle(&changed,&files,None).is_err(),"{pointer}");}
+        for (pointer,value) in [("/verification_generation/spawnCounter",json!(99)),("/legacy_event/generation/spawnCounter",json!(99)),("/legacy_event/fromState",json!("absent")),("/legacy_event/versionIdentity/observedVersionLabel",json!("0.167.0"))] {let mut changed=lifecycle.clone();*changed.pointer_mut(pointer).unwrap()=value;assert!(crate::distribution_s1::lifecycle(&changed,&files,None).is_err(),"{pointer}");}
         let lt24=host.lifecycle_events().into_iter().find(|e|e["transitionId"]=="LT-24").unwrap();
         let mut phase_envelope=json!({"format":"lifecycle-event.s1","legacy_event":lt24,"verification_artifact":lifecycle["verification_artifact"],"verification_generation":observed["generation"]});
         assert_eq!(crate::distribution_s1::lifecycle(&phase_envelope,&files,None).unwrap(),"unverifiable");
@@ -931,7 +931,7 @@ for line in sys.stdin:
         let f = Fixture::new("pass");
         let source = std::fs::read_to_string(&f.cfg.codex_bin)
             .unwrap()
-            .replace("codex/0.160.0", "codex/0.159.0");
+            .replace("codex/0.167.0", "codex/0.159.0");
         std::fs::write(&f.cfg.codex_bin, source).unwrap();
         let host = Arc::new(Host::new());
         assert!(host
