@@ -125,7 +125,7 @@ impl NativeView {
             generation: None,
             closed: Vec::new(),
             position: None,
-            types_pin: "0.160.0".into(),
+            types_pin: crate::hosting::DECLARED_PIN.into(),
             version: Value::Null,
             supplier_standing: Value::Null,
             distribution_evidence: Value::Null,
@@ -726,6 +726,8 @@ mod tests {
         let params = json!({"threadId":"t:.é","turnId":"u:","explanation":null,"plan":[{"step":"work","status":"pending"}]});
         frame(&mut v, 1, "turn/plan/updated", params.clone());
         let reference = v.snapshot()["revisions"][0].clone();
+        assert_eq!(v.snapshot()["typesPin"], crate::hosting::DECLARED_PIN);
+        assert_eq!(reference["typesPin"], crate::hosting::DECLARED_PIN);
         assert_eq!(reference["revisionId"], "cl:v2:czrDqQ.aA.1.dDouw6k.dTo.1");
         for foreign in [
             json!(1),

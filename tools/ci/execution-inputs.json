@@ -1255,7 +1255,7 @@
     {
       "source": "execution/PKG-01/DEL-01-01/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-01/DEL-01-01/ScopeOfWork.md",
-      "sha256": "dec5ca2a53f7ff5d56de2642c5b7391df9771f125c2bb53306f4db18b8d8028c"
+      "sha256": "37a24285ce086ac5e55fd5caeebbc1c237493e120202df9ad6bb7c7b9b678f84"
     },
     {
       "source": "execution/PKG-01/DEL-01-01/Work/DISTRIBUTION_IDENTITY.md",
@@ -2560,7 +2560,7 @@
     {
       "source": "execution/PKG-02/DEL-02-04/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-02/DEL-02-04/ScopeOfWork.md",
-      "sha256": "08b2c36f15a8458fb46d63a8bc283cbf7befbe3258788f7241c5cc7c12c6ffee"
+      "sha256": "da6be9e62813b200a0dd29e09cba511fbce11910ff7aa1e9f77a4e769ec153e8"
     },
     {
       "source": "execution/PKG-02/DEL-02-04/Work/INSTRUCTION_RESOURCE_DERIVATION.json",
@@ -2570,7 +2570,7 @@
     {
       "source": "execution/PKG-02/DEL-02-04/Work/ROLE_SUPPLY.md",
       "copy": "app/contract_inputs/PKG-02/DEL-02-04/Work/ROLE_SUPPLY.md",
-      "sha256": "c5a97524228edcc765e8c534086bd6845527962489e4a5c6fa4a1ed2253a5f50"
+      "sha256": "122818a06ab2ae373ede6cf73cc5e7f38efaec8ed82217464cff51e3be428770"
     },
     {
       "source": "execution/PKG-02/DEL-02-04/Work/instructions-v1/AGENTS.md",
