@@ -1153,13 +1153,40 @@ fn workflow_reselection_select_from_list_newer_revision_and_follow() {
     // the re-confirmation route.
     let cold = root_session(&disk);
     let mut c = cold.lock().unwrap();
+    c.assurance.require_verified().unwrap();
     c.open_library(project.clone(), "project", Some(&project), Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&project))))).unwrap();
     let rows = c.snapshot()["libraries"][0]["registered"].clone();
     assert!(rows.as_array().unwrap().iter().all(|row| row["selectable"] == false), "{rows}");
     let cold_library = c.active_library.clone().unwrap();
     let refused = c.select_listed_registered(&crate::workflow_selection::Chat::in_home(&one.home, THREAD),&cold_library, NAME, &revision_two).unwrap_err();
-    assert!(refused.contains("re-confirm to use in this App session") && refused.contains("Refine (RF-1)"), "{refused}");
-    assert!(c.snapshot()["selection"].is_null());
+    assert!(refused.contains("Session confirmation required; persistent verification unavailable") && refused.contains("DS-8"), "{refused}");
+    assert_eq!(c.snapshot()["assuranceSetting"]["policy"], "Require verified approval");
+    // The person's native act chooses "Allow disk records" (synthetic event here).
+    let (id, epoch, _) = c.assurance.lowering_context();
+    c.assurance.lower(crate::act_control::ConfirmedAssuranceAct::synthetic(id, epoch)).unwrap();
+    let rows = c.snapshot()["libraries"][0]["registered"].clone();
+    assert!(rows.as_array().unwrap().iter().all(|row| row["selectable"] == true && row["evidence"] == "disk-consistency"), "{rows}");
+    let selected = c.select_listed_registered(&crate::workflow_selection::Chat::in_home(&one.home, THREAD), &cold_library, NAME, &revision_two).unwrap();
+    let disk = serde_json::json!({"requested_policy":"relaxed","admission_evidence":"disk-consistency"});
+    assert_eq!(selected["choice"]["assurance"], disk);
+    let file = store(&revision_two).join("WORKFLOW.md");
+    let original = std::fs::read(&file).unwrap();
+    std::fs::write(&file, b"changed after selection").unwrap();
+    assert!(c.prepare_run(one.home.clone(), &one.generation, THREAD, "cold reuse".into(), Some(&project)).is_err(), "fresh bytes at run preparation");
+    std::fs::write(&file, &original).unwrap();
+    let run = c.prepare_run(one.home.clone(), &one.generation, THREAD, "cold reuse".into(), Some(&project)).unwrap();
+    drop(c);
+    // Mutation after preparation is caught at the last dispatch boundary too.
+    std::fs::write(&file, b"changed before dispatch").unwrap();
+    assert!(start_workflow_run(&cold, &run).is_err());
+    std::fs::write(&file, original).unwrap();
+    start_workflow_run(&cold, &run).unwrap();
+    let c = cold.lock().unwrap();
+    let run_view = c.runs[&run].lock().unwrap().view(&run);
+    let records = crate::workflow_workspace::publication::ProjectRecords::open(&project).unwrap();
+    assert_eq!(records.resolve(run_view["publication"]["selection"].as_str().unwrap()).unwrap().body()["assurance"], disk);
+    assert_eq!(records.resolve(run_view["publication"]["runText"].as_str().unwrap()).unwrap().body()["assurance"], disk);
+    assert!(c.snapshot()["selection"].is_null(), "no global selection; choice belongs to its chat");
     drop(c);
     drop(cold);
     drop(root);

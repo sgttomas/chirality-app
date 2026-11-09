@@ -48,6 +48,13 @@ impl A15Binding {
         ))
     }
 }
+/// The A15 bound-subject string for a complete workflow identity, including
+/// `derived_from` (the form `boundSubject` carries in captures and records).
+pub(crate) fn a15_subject_ref(identity: &WorkflowIdentity) -> Result<String, String> {
+    Ok(format!("workflow revision {}", serde_json::to_string(&rs_tuple(identity)).map_err(|e| e.to_string())?))
+}
+/// The record/capture tuple form of an identity (relations' `priorRevision`).
+pub(crate) fn a15_tuple(identity: &WorkflowIdentity) -> Value { rs_tuple(identity) }
 fn rs_tuple(tuple: &WorkflowIdentity) -> Value {
     let mut value = json!({"kind":tuple.kind,"origin":tuple.origin,"sourceRoot":tuple.source_root,
         "name":tuple.name,"revision":tuple.revision,"revisionMethod":tuple.revision_method});
@@ -634,6 +641,9 @@ impl ActControl {
         let (installation, limit) = crate::installation::capture_claim(&self.workspace);
         capture["installation"] = installation;
         if let Some(limit) = limit { capture["evidenceLimits"].as_array_mut().unwrap().push(json!(limit)); }
+        if let Err(limit) = crate::capture_seal::seal_a15_if_keychain_available(&self.workspace, &mut capture) {
+            capture["evidenceLimits"].as_array_mut().unwrap().push(json!(format!("A15 capture unsealed: {limit}; present native act only, no keychain-verified approval across sessions")));
+        }
         crate::schema_validation::validate_capture(&capture)?;
         let root = self.workspace.clone();
         let target_log = storage::library_log(&root)

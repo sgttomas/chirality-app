@@ -19,6 +19,10 @@
 //! and HA-11; act class from DEL-04-01 ACT_AND_POLICY_CONTRACT.md §2.1 (A16,
 //! "person's act (V4-PM-04)").
 
+#[path = "act_control_assurance.rs"]
+mod assurance;
+pub(crate) use assurance::{ConfirmedAssuranceAct, confirm_assurance_lowering};
+
 #[path = "act_control_file.rs"]
 mod file_act;
 #[cfg(test)]
@@ -27,7 +31,7 @@ pub(crate) use file_act::{FileActKind, FileActOfferRef, confirm_file_native};
 
 #[path = "act_control_a15.rs"]
 mod a15;
-pub(crate) use a15::{review_digest, A15OfferRef, A15Variant, HotA15Receipt, HotA15Result};
+pub(crate) use a15::{a15_subject_ref, a15_tuple, review_digest, A15OfferRef, A15Variant, HotA15Receipt, HotA15Result};
 use crate::canonical::{offer_digest, OFFER_DIGEST_METHOD};
 use crate::recorder::LOG;
 use crate::records;

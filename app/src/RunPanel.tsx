@@ -1,3 +1,4 @@
+import { workflowAssurance } from "./workflowSelection";
 import { useState } from "react";
 import { beginBringBack, bringBackHeld, endBringBack } from "./bringBackDoubts";
 import { ConversationSelect, conversationKey, conversationReference, findConversation } from "./TrialComposer";
@@ -530,6 +531,7 @@ export function SelectedWorkflow({ selection, inspection = false }: { selection:
   const id = selection.identity ?? {};
   return <div aria-label={inspection ? "Inspected workflow content" : "Selected workflow"}>
     <p>{inspection ? "Inspected:" : "Selected:"} <b>{text(id.name)}</b> ({text(id.origin)}), revision {text(id.revision).slice(0, 12)} · {text(selection.standing)} · {selection.runnable ? "can be run" : `not runnable: ${text(selection.runLimit)}`}{selection.currentLimit ? ` · current limit: ${text(selection.currentLimit)}` : ""}.</p>
+    {["project", "user"].includes(id.origin) && <p role="note">{workflowAssurance(selection.assurance)}</p>}
     <DeclaredPart declaration={selection.declaration} />
   </div>;
 }

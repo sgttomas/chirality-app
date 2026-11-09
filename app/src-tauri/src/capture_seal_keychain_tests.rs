@@ -928,3 +928,172 @@ fn seal_prepared_installed_root_change_revokes_original_intent() {
     assert!(!f.dir.exists());
     crate::capture_seal::set_folder_for_test(None);
 }
+
+
+/// An enrolled installation on the existing in-memory backend (`Mock`, through
+/// the real `operate` and policy item code), installed as this thread's
+/// provider for capture sealing and the workflow approval policy. Dropping it
+/// removes the provider: the build then reads as having no keychain.
+pub(crate) struct InMemoryKeychain {
+    fixture: std::rc::Rc<Fixture>,
+    backend: std::rc::Rc<Mock>,
+}
+impl InMemoryKeychain {
+    pub(crate) fn install(enrolled: bool) -> Self {
+        let fixture = std::rc::Rc::new(Fixture::new());
+        let backend = std::rc::Rc::new(Mock::default());
+        if enrolled {
+            fixture.run(&backend, Operation::Enroll, 9).unwrap();
+        }
+        let (f, b) = (fixture.clone(), backend.clone());
+        TEST_PROVIDER.with(|slot| *slot.borrow_mut() = Some(Box::new(move |_, operation| f.run(&b, operation, 9))));
+        let (f, b) = (fixture.clone(), backend.clone());
+        set_policy_provider_for_test(Some(Box::new(move |operation| match operation {
+            PolicyOp::Read => read_policy(&*b, &f.identity, Some(&f.root.join(POLICY_HEAD))),
+            PolicyOp::Write(level) => write_policy(&*b, &f.identity, level, Some(&f.root.join(POLICY_HEAD))).and_then(|()| read_policy(&*b, &f.identity, Some(&f.root.join(POLICY_HEAD)))),
+        })));
+        Self { fixture, backend }
+    }
+    /// Locked / denied: every read fails as the native backend reports it.
+    pub(crate) fn lock(&self) { *self.backend.read_error.lock().unwrap() = Some(BackendError::Unavailable(-25308)); }
+    pub(crate) fn unlock(&self) { *self.backend.read_error.lock().unwrap() = None; }
+    /// Replace the latest policy item's bytes (corruption in the keychain).
+    pub(crate) fn corrupt_policy(&self) {
+        let mut items = self.backend.items.lock().unwrap();
+        let key = items.keys().filter(|k| k.contains(".assurance-policy.")).max().cloned().expect("a policy item");
+        items.insert(key, b"not a policy".to_vec());
+    }
+    pub(crate) fn remove_sentinel(&self) {
+        let i = &self.fixture.identity;
+        self.backend.items.lock().unwrap().remove(&format!("{}|{}|{}", i.service, i.account, i.access_group)).expect("sentinel");
+    }
+    pub(crate) fn remove_latest_policy(&self) {
+        let mut items = self.backend.items.lock().unwrap();
+        let key = items.keys().filter(|k| k.contains(".assurance-policy.")).max().cloned().expect("a policy item");
+        items.remove(&key);
+    }
+    pub(crate) fn policy_items(&self) -> usize {
+        self.backend.items.lock().unwrap().keys().filter(|k| k.contains(".assurance-policy.")).count()
+    }
+}
+impl Drop for InMemoryKeychain {
+    fn drop(&mut self) {
+        TEST_PROVIDER.with(|slot| *slot.borrow_mut() = None);
+        set_policy_provider_for_test(None);
+    }
+}
+
+#[test]
+fn policy_items_are_add_only_sequenced_and_never_read_absent_on_error() {
+    let f = Fixture::new();
+    let b = Mock::default();
+    let head = f.root.join(POLICY_HEAD);
+    let read = || read_policy(&b, &f.identity, Some(&head));
+    let write = |level| write_policy(&b, &f.identity, level, Some(&head));
+    assert!(matches!(read().unwrap(), PolicyRead::Absent { enrolled: false }));
+    assert!(write("robust").is_err(), "no policy item without keychain protection");
+    f.run(&b, Operation::Enroll, 3).unwrap();
+    assert!(matches!(read().unwrap(), PolicyRead::Absent { enrolled: true }), "enrolled with no policy needs recovery");
+    write("robust").unwrap();
+    write("relaxed").unwrap();
+    assert!(matches!(read().unwrap(), PolicyRead::Stored(l) if l == "relaxed"));
+    write("robust").unwrap();
+    assert!(matches!(read().unwrap(), PolicyRead::Stored(l) if l == "robust"));
+    assert!(write("other").is_err());
+    assert_eq!(b.items.lock().unwrap().keys().filter(|k| k.contains(".assurance-policy.")).count(), 3);
+    let numbered = ItemIdentity { service: f.identity.service.clone(), account: format!("{}.assurance-policy.{:016x}", f.identity.account, 2), access_group: f.identity.access_group.clone() };
+    assert_eq!(policy_sequence(&f.identity, &numbered), Some(2));
+    let outside = ItemIdentity { account: format!("{}.assurance-policy.zz", f.identity.account), ..numbered.clone() };
+    assert_eq!(policy_sequence(&f.identity, &outside), None);
+    // Locked: an error, never "absent" and never a level.
+    *b.read_error.lock().unwrap() = Some(BackendError::Unavailable(-25308));
+    assert!(read().unwrap_err().contains("locked"));
+    assert!(write("relaxed").is_err());
+    *b.read_error.lock().unwrap() = None;
+    // Lost tail (1=robust, 2=relaxed, 3=robust; 3 lost): never rolls back to relaxed.
+    let name = |n: u64| format!("{}|{}.assurance-policy.{:016x}|{}", f.identity.service, f.identity.account, n, f.identity.access_group);
+    let third = b.items.lock().unwrap().remove(&name(3)).unwrap();
+    assert!(read().unwrap_err().contains("missing; recovery required"), "recorded head beyond the present items");
+    // Intermediate gap: the later (latest) item is still found, not hidden.
+    b.items.lock().unwrap().insert(name(3), third);
+    let second = b.items.lock().unwrap().remove(&name(2)).unwrap();
+    assert!(matches!(read().unwrap(), PolicyRead::Stored(l) if l == "robust"));
+    b.items.lock().unwrap().insert(name(2), second);
+    // Corrupt latest item: an error until a new item is added.
+    b.items.lock().unwrap().insert(name(3), b"{}".to_vec());
+    assert!(read().unwrap_err().contains("corrupt"));
+    write("robust").unwrap();
+    assert!(matches!(read().unwrap(), PolicyRead::Stored(l) if l == "robust"));
+    // Recovery after a lost tail adds past every recorded sequence.
+    b.items.lock().unwrap().remove(&name(4)).unwrap();
+    assert!(read().is_err());
+    write("robust").unwrap();
+    assert!(matches!(read().unwrap(), PolicyRead::Stored(l) if l == "robust"));
+    assert!(b.items.lock().unwrap().contains_key(&name(5)));
+    // A long run of missing items before the recorded head hides nothing,
+    // and recovery past it reads back.
+    for n in 1..=4 { b.items.lock().unwrap().remove(&name(n)); }
+    write("relaxed").unwrap(); // 6
+    for n in 7..=15 { assert!(!b.items.lock().unwrap().contains_key(&name(n))); }
+    let sixth = b.items.lock().unwrap().remove(&name(6)).unwrap();
+    b.items.lock().unwrap().insert(name(16), sixth.clone());
+    fs::write(&head, br#"{"sequence":16}"#).unwrap();
+    assert!(read().unwrap_err().contains("corrupt"), "item 16 is read through the head even after a long gap");
+    b.items.lock().unwrap().remove(&name(16));
+    assert!(read().unwrap_err().contains("missing; recovery required"));
+    write("robust").unwrap(); // 17
+    assert!(matches!(read().unwrap(), PolicyRead::Stored(l) if l == "robust"));
+    // A lost seal key with policy evidence remaining is recovery, not first use.
+    let sentinel = format!("{}|{}|{}", f.identity.service, f.identity.account, f.identity.access_group);
+    b.items.lock().unwrap().remove(&sentinel).unwrap();
+    assert!(read().unwrap_err().contains("seal key is missing"));
+    fs::remove_file(&head).unwrap();
+    assert!(read().unwrap_err().contains("seal key is missing"), "policy items alone still show protection was set up");
+}
+
+/// Agent 0's P1 cases: discovery covers the whole bounded range, whatever the
+/// App-data head says; a corrupt or unreadable head fails closed on read and write.
+#[test]
+fn policy_discovery_is_authoritative_over_the_whole_range() {
+    let f = Fixture::new();
+    let b = Mock::default();
+    let head = f.root.join(POLICY_HEAD);
+    let name = |n: u64| format!("{}|{}.assurance-policy.{:016x}|{}", f.identity.service, f.identity.account, n, f.identity.access_group);
+    let put = |n: u64, level: &str| { b.items.lock().unwrap().insert(name(n), serde_json::to_vec(&serde_json::json!({"format":POLICY_FORMAT,"sequence":n,"level":level})).unwrap()); };
+    let read = || read_policy(&b, &f.identity, Some(&head));
+    f.run(&b, Operation::Enroll, 3).unwrap();
+    // Item 2 relaxed, item 16 robust (beyond any eight-item window), between missing.
+    put(2, "relaxed");
+    put(16, "robust");
+    for recorded in [None, Some(r#"{"sequence":0}"#)] {
+        match recorded { Some(text) => fs::write(&head, text).unwrap(), None => { let _ = fs::remove_file(&head); } }
+        assert!(matches!(read().unwrap(), PolicyRead::Stored(l) if l == "robust"), "head {recorded:?}: never the earlier relaxed item");
+    }
+    // A far item at the very end of the range is found too.
+    put(POLICY_MAX, "relaxed");
+    assert!(matches!(read().unwrap(), PolicyRead::Stored(l) if l == "relaxed"));
+    assert!(write_policy(&b, &f.identity, "robust", Some(&head)).unwrap_err().contains("exhausted"), "never written below a later item");
+    b.items.lock().unwrap().remove(&name(POLICY_MAX));
+    // Corrupt or unreadable head: read and write fail closed.
+    fs::write(&head, b"not json").unwrap();
+    assert!(read().unwrap_err().contains("head record is corrupt"));
+    assert!(write_policy(&b, &f.identity, "robust", Some(&head)).unwrap_err().contains("head record is corrupt"));
+    fs::write(&head, format!(r#"{{"sequence":{}}}"#, POLICY_MAX + 1)).unwrap();
+    assert!(read().is_err() && write_policy(&b, &f.identity, "robust", Some(&head)).is_err(), "a head beyond the range is corrupt");
+    let _ = fs::remove_file(&head);
+    fs::create_dir(&head).unwrap();
+    assert!(read().unwrap_err().contains("head not readable"));
+    assert!(write_policy(&b, &f.identity, "robust", Some(&head)).unwrap_err().contains("head not readable"));
+    fs::remove_dir(&head).unwrap();
+    assert_eq!(b.items.lock().unwrap().keys().filter(|k| k.contains(".assurance-policy.")).count(), 2, "no item written on a refused write");
+    // Writing with a zero head and items present goes past every present item.
+    fs::write(&head, r#"{"sequence":0}"#).unwrap();
+    write_policy(&b, &f.identity, "relaxed", Some(&head)).unwrap();
+    assert!(b.items.lock().unwrap().contains_key(&name(17)));
+    // Missing seal key with only a far item present: recovery, never absent.
+    let sentinel = format!("{}|{}|{}", f.identity.service, f.identity.account, f.identity.access_group);
+    b.items.lock().unwrap().retain(|k, _| k == &name(16) || k == &sentinel);
+    b.items.lock().unwrap().remove(&sentinel);
+    let _ = fs::remove_file(&head);
+    assert!(read().unwrap_err().contains("seal key is missing"));
+}

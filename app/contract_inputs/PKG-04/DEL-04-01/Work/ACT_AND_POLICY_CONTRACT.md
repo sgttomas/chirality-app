@@ -355,6 +355,8 @@ here:
 - stopping work (V4-EXE-01), which produces a run-ended event (§4.3);
 - reserved coordination decisions (V4-PM-04) now have one: A16 *decide* (R23-8).
 
+Workflow reuse follows WR §4.6 and §4.8 RC-2 under the owner's 2026-11-09 decisions: under "Allow disk records", fresh LS-1 disk standing permits use across processes without a new A15; under "Require verified approval", cold use needs an A15 capture verified under this installation's keychain seal and bound to its record, complete identity and committed ledger line, with present in-process A15 re-confirmation otherwise. Disk consistency is disclosed and recorded, never presented as seal verification or another human act. Lowering the policy is a person's native act. This changes no checkpoint evidence rule.
+
 ### 2.2 Direct application is never acceptance
 
 When an effective direct treatment lets an agent apply a change, the act is

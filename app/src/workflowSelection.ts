@@ -24,3 +24,16 @@ export function workflowArguments(command: string, args: Record<string, unknown>
   if (!context) throw new Error("Workflow source or chat changed; refresh the displayed choice before acting");
   return {...args, context};
 }
+
+/** A registered revision's approval evidence, as the host recorded or read it
+ * (owner decisions 2026-11-09). The requested policy is shown beside the
+ * evidence actually applied. Absence is unknown, never inferred from standing. */
+export function workflowAssurance(assurance: Json): string {
+  const policy = assurance?.requested_policy === "robust" ? "Require verified approval"
+    : assurance?.requested_policy === "relaxed" ? "Allow disk records" : undefined;
+  const evidence = assurance?.admission_evidence === "disk-consistency" ? "Disk consistency checked; approval authenticity unverified"
+    : assurance?.admission_evidence === "keychain-verified approval" ? "Approval verified by keychain seal"
+    : assurance?.admission_evidence === "in-process A15" ? "Approved in this App session (native A15)" : undefined;
+  if (!policy || !evidence) return "Approval evidence unknown (not recorded).";
+  return `${evidence}. Policy: ${policy}.`;
+}

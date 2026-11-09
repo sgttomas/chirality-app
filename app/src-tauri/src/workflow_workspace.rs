@@ -559,6 +559,7 @@ pub struct RegisteredRevision {
     identity: WorkflowIdentity,
     snapshot: Snapshot,
     act_ref: String,
+    basis: Option<registration::RegistrationBasis>,
 }
 impl RegisteredRevision {
     pub fn identity(&self) -> &WorkflowIdentity {
@@ -572,6 +573,7 @@ impl RegisteredRevision {
             identity: self.identity.clone(),
             snapshot: self.snapshot.clone(),
             admission: SelectionAdmission::RegisteredRevision,
+            registration_basis: self.basis.clone(),
         }
     }
 }
@@ -580,6 +582,7 @@ pub struct Selection {
     identity: WorkflowIdentity,
     snapshot: Snapshot,
     admission: SelectionAdmission,
+    registration_basis: Option<registration::RegistrationBasis>,
 }
 /// Read-only provenance carried with selected content, never an admission input.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -639,6 +642,7 @@ impl Selection {
             identity,
             snapshot,
             admission: SelectionAdmission::SyntheticFixture,
+            registration_basis: None,
         })
     }
     /// Synthetic fixture only: a project or user library revision selected as a
@@ -653,7 +657,7 @@ impl Selection {
         {
             return Err("registered identity does not bind bytes".into());
         }
-        Ok(Self { identity, snapshot, admission: SelectionAdmission::SyntheticFixture })
+        Ok(Self { identity, snapshot, admission: SelectionAdmission::SyntheticFixture, registration_basis: None })
     }
     pub fn identity(&self) -> &WorkflowIdentity {
         &self.identity
@@ -663,6 +667,26 @@ impl Selection {
     }
     pub fn admission(&self) -> &SelectionAdmission {
         &self.admission
+    }
+    /// The registered revision's admission as read now: the person's policy
+    /// and the evidence applied. `None` for content that is not a registered
+    /// revision resolved by a library owner (bundled, host, fixtures).
+    pub(crate) fn approval(&self) -> Option<Result<registration::Admission, String>> {
+        self.registration_basis.as_ref().map(|b| b.admit(&self.identity))
+    }
+    /// The admission now must be the one the prepared run recorded: a policy
+    /// or verification change after preparation needs a new preparation, so
+    /// a record never claims stronger evidence than the send applies.
+    pub(crate) fn approval_unchanged(&self, recorded: Option<&serde_json::Value>) -> Result<(), String> {
+        let now = self.approval().transpose()?.map(|a| a.record());
+        if now.as_ref() != recorded {
+            return Err(format!(
+                "workflow approval changed since this run was prepared (recorded {}, now {}); nothing sent; prepare the run again",
+                recorded.map_or("none".into(), |v| v.to_string()),
+                now.map_or("none".into(), |v| v.to_string())
+            ));
+        }
+        Ok(())
     }
     pub fn verify_store(&self, path: &Path) -> Result<(), String> {
         if let SelectionAdmission::ProductionBundle {
@@ -690,6 +714,7 @@ impl Selection {
         if read.revision != self.identity.revision {
             return Err("revision not verified".into());
         }
+        if let Some(basis) = &self.registration_basis { basis.admit(&self.identity)?; }
         Ok(())
     }
     /// WR-FRAME-1. The person's brief travels in a second text element. The
@@ -1462,6 +1487,7 @@ impl PreparedRunText {
         let body = selection.snapshot.workflow_text();
         let mut record = serde_json::json!({"record_kind":"run_text","purpose":"run start","framing":"WR-FRAME-1","run":scope.run,"conversation":scope.conversation,"workflow":selection.identity,"holding_library":scope.holding_library,
             "workflow_file":{"path":"WORKFLOW.md","content":exact_text_identity(body),"bytes":body.len()},"chain":chain,"origin_of_start":"selected by the person","selection":scope.selection_ref,"lines":lines,"text_identity":exact_text_identity(&text),"text_bytes":text.len()});
+        if let Some(approval) = selection.approval() { record["assurance"] = approval?.record(); }
         let other: Vec<_> = selection
             .snapshot
             .files
@@ -1579,7 +1605,9 @@ impl PreparedRunText {
         {
             return Err("end event does not identify this run".into());
         }
-        end_notice_parts(&self.workflow, &self.scope.run, &self.scope.conversation, &end.reason)
+        let (text, mut record) = end_notice_parts(&self.workflow, &self.scope.run, &self.scope.conversation, &end.reason)?;
+        if let Some(assurance) = self.record.get("assurance") { record["assurance"] = assurance.clone(); }
+        Ok((text, record))
     }
     /// TX3 locates this selected tuple's exact marker lines, not an arbitrary
     /// workflow-shaped pair from observed text. No source-byte normalization.

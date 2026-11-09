@@ -36,6 +36,7 @@ impl DevelopmentCatalog {
         }
         Ok(Self {
             selection: Selection {
+                registration_basis: None,
                 snapshot,
                 identity,
                 admission: SelectionAdmission::DevelopmentCatalog {
@@ -211,6 +212,7 @@ impl ProductionCatalog {
         let identity = snapshot.identity("bundled", RELEASE_SUBJECT, NAME, None)?;
         Ok(Self {
             selection: Selection {
+                registration_basis: None,
                 snapshot,
                 identity,
                 admission: SelectionAdmission::ProductionBundle {

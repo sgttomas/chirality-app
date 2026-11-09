@@ -1,4 +1,4 @@
-//! Owner-held hot registration. Readable ledger facts do not authenticate old acts.
+//! Registration standing: fresh LS-1 disk checks and process-held native A15 results.
 use super::{
     DraftKey, RegisteredRevision, Review, Selection, Snapshot, WorkflowIdentity, SNAPSHOT_METHOD,
 };
@@ -11,6 +11,178 @@ use std::{
     io::Write,
     path::{Path, PathBuf},
 };
+
+/// The person's workflow-approval policy, applied as `workflow_assurance`
+/// resolves it: relaxed is "Allow disk records", robust "Require verified approval".
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum AssuranceLevel { Relaxed, Robust }
+impl AssuranceLevel { pub(crate) fn label(self) -> &'static str { match self { Self::Relaxed => "relaxed", Self::Robust => "robust" } } }
+
+/// The admission evidence actually applied to a registered revision, kept
+/// apart from the policy requested (owner revised design, item 6).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Evidence {
+    /// A matching native A15 this process captured (complete identity and act).
+    InProcess,
+    /// An authenticated keychain-sealed A15 capture bound to the A15 record,
+    /// the complete identity and a committed ledger line.
+    Keychain,
+    /// Fresh LS-1 disk consistency only (relaxed policy).
+    Disk,
+}
+impl Evidence {
+    pub(crate) fn label(self) -> &'static str {
+        match self { Self::InProcess => "in-process A15", Self::Keychain => "keychain-verified approval", Self::Disk => "disk-consistency" }
+    }
+    pub(crate) fn display(self) -> &'static str {
+        match self {
+            Self::InProcess => "Approved in this App session (native A15)",
+            Self::Keychain => "Approval verified by keychain seal",
+            Self::Disk => "Disk consistency checked; approval authenticity unverified",
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct Admission { pub(crate) policy: AssuranceLevel, pub(crate) evidence: Evidence }
+impl Admission {
+    /// The persisted form: requested policy beside the evidence applied.
+    pub(crate) fn record(&self) -> Value {
+        json!({"requested_policy":self.policy.label(),"admission_evidence":self.evidence.label()})
+    }
+}
+
+/// Original selection basis, never reconstructed from a renderer claim. Each
+/// use re-reads the disk, the held custody and the keychain afresh.
+#[derive(Clone, Debug)]
+pub(crate) struct RegistrationBasis {
+    root: PathBuf,
+    level: crate::workflow_assurance::Policy,
+    held: Held,
+}
+impl RegistrationBasis {
+    pub(crate) fn admit(&self, k: &WorkflowIdentity) -> Result<Admission, String> {
+        admit(&self.root, &self.level, &self.held, k).map(|(_, _, admission)| admission)
+    }
+}
+/// Fresh admission of `k`: LS-1 as read now (complete subject), then the
+/// strongest evidence available, then the policy. A failed or unavailable
+/// verification never lowers the policy.
+fn admit(root: &Path, level: &crate::workflow_assurance::Policy, held: &Held, k: &WorkflowIdentity) -> Result<(Snapshot, String, Admission), String> {
+    let rows = read_ledger(root)?;
+    let (snapshot, line) = checked_disk_revision(root, &rows, k)?;
+    let policy = *level.lock().unwrap();
+    let lines = committed_lines(&rows, k);
+    if let Some(act) = held_act(held, k) {
+        if lines.iter().any(|v| v["act"]["record_id"] == act.as_str()) {
+            return Ok((snapshot, act, Admission { policy, evidence: Evidence::InProcess }));
+        }
+    }
+    match sealed_admission(root, &lines, k) {
+        Ok(act) => Ok((snapshot, act, Admission { policy, evidence: Evidence::Keychain })),
+        Err(_) if policy == AssuranceLevel::Relaxed => {
+            let act = line["act"]["record_id"].as_str().ok_or("registered A15 reference absent")?.to_owned();
+            Ok((snapshot, act, Admission { policy, evidence: Evidence::Disk }))
+        }
+        Err(cause) => Err(robust_refusal(&cause)),
+    }
+}
+pub(crate) const ROBUST_UNVERIFIED: &str = "Session confirmation required; persistent verification unavailable";
+fn robust_refusal(cause: &str) -> String {
+    format!("{ROBUST_UNVERIFIED} ({cause}). \"Require verified approval\" does not accept disk records alone: re-confirm with A15 for use in this App session (DS-8), or Refine (RF-1) to make its draft; set up or recover keychain protection in the workflow approval setting")
+}
+/// The slot's committed registration and re-confirmation lines for exactly `k`.
+fn committed_lines(rows: &[Value], k: &WorkflowIdentity) -> Vec<Value> {
+    rows.iter().filter(|v| (v["outcome"] == "registered" || v["outcome"] == "re-confirmed") && v["identity"] == json!(k)).cloned().collect()
+}
+fn checked_disk_revision(root: &Path, rows: &[Value], k: &WorkflowIdentity) -> Result<(Snapshot, Value), String> {
+    let slot = slot_lines(rows, &k.origin, &k.source_root, &k.name);
+    latest(&slot)?;
+    let line = slot.iter().find(|v| v["outcome"] == "registered" && v["identity"] == json!(k))
+        .ok_or("LS-4: revision has no matching registered ledger entry")?;
+    act_record_found(root, line, k).map_err(|e| format!("LS-4: {e}"))?;
+    let store = store_path(root, k);
+    storage::check_path(&store)?;
+    let snapshot = Snapshot::capture(&store).map_err(|e| format!("LS-4: revision store not readable: {e}"))?;
+    if snapshot.revision() != k.revision {
+        return Err("LS-4: revision not verified: store bytes do not recompute to the revision".into());
+    }
+    Ok((snapshot, line.clone()))
+}
+/// Whether an act body binds the complete subject and its content together,
+/// at the same entry position.
+fn binds_subject(body: &Value, subject: &str, content: &Value) -> bool {
+    let (Some(subjects), Some(contents)) = (body["boundSubject"].as_array(), body["boundContent"].as_array()) else { return false };
+    subjects.len() == contents.len() && subjects.iter().zip(contents).any(|(s, c)| s == subject && c == content)
+}
+/// Sealed cold admission (owner revised design, item 5). A seal's presence
+/// qualifies nothing: the capture must verify under this installation's
+/// keychain key (never a file key) and bind to the A15 record the committed
+/// ledger line cites, the complete identity and its content.
+fn sealed_admission(root: &Path, lines: &[Value], k: &WorkflowIdentity) -> Result<String, String> {
+    let subject = crate::act_control::a15_subject_ref(k)?;
+    let content = json!({"method":k.revision_method,"value":k.revision});
+    let (acts, limits) = crate::records::read_log(&storage::library_log(root));
+    if !limits.is_empty() {
+        return Err(format!("act log not completely readable: {}", limits.join("; ")));
+    }
+    let mut cause = "no committed registration or re-confirmation line for this exact identity".to_owned();
+    for line in lines {
+        match sealed_line(root, &acts, line, &subject, &content) {
+            Ok(record) => return Ok(record),
+            Err(why) => cause = why,
+        }
+    }
+    Err(cause)
+}
+fn sealed_line(root: &Path, acts: &[Value], line: &Value, subject: &str, content: &Value) -> Result<String, String> {
+    let record = line["act"]["record_id"].as_str().ok_or("ledger line cites no A15 record")?;
+    let capture_id = line["act"]["capture_evidence"].as_str().ok_or("ledger line cites no capture")?;
+    // Exactly one record with this ID, and no other record citing this capture.
+    let mut cited = acts.iter().filter(|a| a["recordId"] == record);
+    let act = cited.next().ok_or("the cited A15 record is not in the act log")?;
+    if cited.next().is_some() {
+        return Err("the cited A15 record ID appears more than once".into());
+    }
+    let cites_capture = |a: &Value| a["body"]["captureEvidence"].as_array().is_some_and(|c| c.iter().any(|e| e["ref"] == capture_id));
+    if acts.iter().filter(|a| cites_capture(a)).count() != 1 || !cites_capture(act) {
+        return Err("the cited capture is not cited by exactly this A15 record".into());
+    }
+    let body = &act["body"];
+    if act["kind"] != "human_act" || body["actKind"] != "A15" || !binds_subject(body, subject, content) {
+        return Err("the cited A15 record does not bind this complete identity".into());
+    }
+    let path = storage::library_capture_path(root, capture_id);
+    storage::check_path(&path)?;
+    let capture: Value = serde_json::from_slice(&fs::read(&path).map_err(|e| format!("A15 capture not readable: {e}"))?)
+        .map_err(|e| format!("A15 capture not readable: {e}"))?;
+    // Every record fact is the capture's: the record body is exactly the body
+    // the act control derives from the sealed capture (actor, scope, purpose,
+    // time, limits, relations), and the add-once backlink, when present,
+    // names this record.
+    if capture["captureId"] != capture_id || capture["actKind"] != "A15" || capture["choice"] != "act"
+        || *body != crate::act_control::act_body(&capture)
+        || capture.get("recordId").is_some_and(|r| r != record)
+        || !binds_subject(&capture, subject, content)
+    {
+        return Err("the A15 capture differs from its record or identity".into());
+    }
+    // The committed line's own relation agrees with the sealed entry.
+    let index = body["boundSubject"].as_array().and_then(|s| s.iter().position(|v| v == subject)).ok_or("subject not bound")?;
+    let relation = if body["relations"]["registeredEntries"].is_array() {
+        body["relations"]["registeredEntries"][index]["priorRevision"].clone()
+    } else {
+        body["relations"]["priorRevision"].clone()
+    };
+    let line_prior = match &line["prior_revision"] {
+        Value::Null => Value::Null,
+        prior => crate::act_control::a15_tuple(&serde_json::from_value(prior.clone()).map_err(|e| format!("ledger prior revision not readable: {e}"))?),
+    };
+    if relation != line_prior {
+        return Err("the committed ledger line's prior revision differs from the sealed approval".into());
+    }
+    crate::capture_seal::verify_keychain(root, &capture)?;
+    Ok(record.to_owned())
+}
 
 pub(crate) struct LibraryOwner {
     root: PathBuf,
@@ -26,11 +198,14 @@ pub(crate) struct LibraryOwner {
     /// result this App process holds. Filled only by this process's own hot
     /// commits; never rebuilt from the ledger or any record read from disk.
     held: Held,
+    assurance_level: crate::workflow_assurance::Policy,
     /// SQ-X X-1/X-2 outcomes at open (registration and re-confirmation
     /// attempts recovered from their A15 records and the store), with causes.
     reconciliation: Vec<String>,
 }
-type Held = std::sync::Arc<std::sync::Mutex<std::collections::HashSet<(String, String)>>>;
+/// RC-2 custody: each revision this process registered or re-confirmed, with
+/// its complete identity and the record ID of the native A15 that did it.
+type Held = std::sync::Arc<std::sync::Mutex<Vec<(WorkflowIdentity, String)>>>;
 /// Physical correspondence of an explicit listing, retained by review and AAC
 /// custody. Comparison data only; never reconstructed from a capture or DTO.
 #[derive(Clone, PartialEq)]
@@ -66,6 +241,7 @@ impl LibraryOwner {
             registered_bases: Default::default(),
             base_store: None,
             held: Default::default(),
+            assurance_level: std::sync::Arc::new(std::sync::Mutex::new(AssuranceLevel::Robust)),
             reconciliation: vec![],
         };
         // SQ-X X-1/X-2 at App start, per library (owner ruling 2026-10-10: no
@@ -164,13 +340,13 @@ impl LibraryOwner {
         // Selectable only when held here (RC-2) and its store verifies now (SL-4).
         let selectable = self.selectable_now(&newer);
         // `latest` checked the series: sequence k+1 is the k+1-th registered line.
-        Ok(Some((registered.len() as u64, newer, selectable)))
+        Ok(Some((registered.len() as u64, newer, selectable.map(|a| a.is_some()))))
     }
     /// WR SL-5 / §5.4: why `name` at `revision` is not offered for selection
     /// here, with its standing and the route the person has.
     pub(crate) fn not_selectable(&self, name: &str, revision: &str) -> String {
         match self.registered_revision(name, revision) {
-            Ok(Some((sequence, k))) if !self.is_held(&k) => format!("{name} revision {sequence}: registered — re-confirm to use in this App session (WR §4.8 RC-2): Review a draft with its bytes (DS-8), or Refine (RF-1) to make one. Nothing selected"),
+            Ok(Some((sequence, k))) if admit(&self.root, &self.assurance_level, &self.held, &k).is_err() => format!("{name} revision {sequence}: registered — {}. Nothing selected", admit(&self.root, &self.assurance_level, &self.held, &k).err().unwrap_or_default()),
             Ok(Some((sequence, _))) => format!("{name} revision {sequence} is selectable in this App session, but its registration result is not reachable now (a registration interaction may be pending); nothing selected, select it again"),
             Err(cause) => format!("{name}: registration ledger not readable ({cause}); nothing selected"),
             // SL-5 names the content's standing only when the requested content
@@ -200,17 +376,27 @@ impl LibraryOwner {
         }
         Ok(())
     }
-    /// RC-2 and SL-4 together: held by this process, and its store verifies now.
-    fn selectable_now(&self, k: &WorkflowIdentity) -> Result<bool, String> {
-        if !self.is_held(k) {
-            return Ok(false);
-        }
-        self.store_verifies(k).map(|()| true)
+    fn basis(&self) -> RegistrationBasis {
+        RegistrationBasis { root: self.root.clone(), level: self.assurance_level.clone(), held: self.held.clone() }
     }
-    /// V15 F5 (WR §4.6 LS-1 note, §5.4): the library's registered revisions as
-    /// read, for listing, per-row Select (LS-1 "Select (in such a process)")
-    /// and Refine. LS-1 is not checked here; a row is "selectable in this App
-    /// session" only when this process holds its result.
+    /// Resolve from fresh disk facts under the person's chosen policy.
+    pub(crate) fn resolve_registered(&self, k: &WorkflowIdentity) -> Result<RegisteredRevision, String> {
+        if k.origin != self.origin || k.source_root != self.source_root {
+            return Err("registered revision belongs to another library".into());
+        }
+        let (snapshot, act_ref, _) = admit(&self.root, &self.assurance_level, &self.held, k)?;
+        Ok(RegisteredRevision { identity: k.clone(), snapshot, act_ref, basis: Some(self.basis()) })
+    }
+    /// Ok(None): LS-1 holds but the policy refuses (robust, unverified).
+    fn selectable_now(&self, k: &WorkflowIdentity) -> Result<Option<Admission>, String> {
+        let rows = read_ledger(&self.root)?;
+        checked_disk_revision(&self.root, &rows, k)?;
+        Ok(admit(&self.root, &self.assurance_level, &self.held, k).ok().map(|(_, _, a)| a))
+    }
+    pub(crate) fn attach_assurance_policy(&mut self, policy: crate::workflow_assurance::Policy) { self.assurance_level = policy; }
+    #[cfg(test)]
+    pub(crate) fn set_assurance_level(&self, level: AssuranceLevel) { *self.assurance_level.lock().unwrap() = level; }
+    /// LS-1 and policy are checked freshly for each row; listing grants no capability.
     pub(crate) fn registered_listing(&self) -> Value {
         let rows = match read_ledger(&self.root) {
             Ok(rows) => rows,
@@ -222,28 +408,30 @@ impl LibraryOwner {
                 && v["identity"]["origin"] == self.origin.as_str()
                 && v["identity"]["source_root"] == self.source_root.as_str())
             .map(|v| {
-                // A held row's store is read now (content-addressed, bounded by
-                // HY-5): Select is offered only when the selection would resolve.
+                // The store is read now (content-addressed, bounded by HY-5):
+                // Select is offered only when the selection would resolve.
                 let selectable = serde_json::from_value::<WorkflowIdentity>(v["identity"].clone())
                     .map_err(|e| format!("registered identity not readable: {e}"))
                     .and_then(|k| self.selectable_now(&k));
                 let mut row = json!({"name":v["identity"]["name"],"sequence":v["sequence"],"revision":v["identity"]["revision"],
                     "registeredAt":v["written_at"],"disposition":v["disposition"]});
                 match selectable {
-                    Ok(true) => {
-                        row["label"] = json!("registered — selectable in this App session");
+                    Ok(Some(admission)) => {
+                        row["label"] = json!(format!("registered — {}", admission.evidence.display()));
+                        row["evidence"] = json!(admission.evidence.label());
                         row["selectable"] = json!(true);
+                        row["reconfirm"] = json!(false);
                         row["offered"] = json!("Select; Refine (RF-1)");
                     }
-                    Ok(false) => {
-                        row["label"] = json!("registered — re-confirm to use in this App session");
+                    Ok(None) => {
+                        row["label"] = json!(format!("registered — {ROBUST_UNVERIFIED}; re-confirm to use in this App session"));
+                        row["reconfirm"] = json!(true);
                         row["selectable"] = json!(false);
                         row["offered"] = json!("Refine (RF-1); Review a draft with its bytes (DS-8)");
-                        // WR §4.8 RC-2: this row's route is re-confirmation.
-                        row["reconfirm"] = json!(true);
                     }
                     Err(cause) => {
-                        row["label"] = json!(format!("registered in this App session — not selectable now: {cause} (LS-4)"));
+                        row["label"] = json!(format!("registered — not selectable now: {cause}"));
+                        row["reconfirm"] = json!(false);
                         row["selectable"] = json!(false);
                         row["offered"] = json!("Review to register once the record or store is restored (LS-4)");
                     }
@@ -617,6 +805,7 @@ impl LibraryOwner {
             root: self.root.clone(),
             custody: self.base_custody(),
             held: self.held.clone(),
+            assurance_level: self.assurance_level.clone(),
             act_log: storage::library_log(&self.root),
             origin: self.origin.clone(),
             source_root: self.source_root.clone(),
@@ -724,6 +913,7 @@ fn act_prior(e: &ReviewedEntry) -> Option<&WorkflowIdentity> {
 pub(crate) struct ReviewSession {
     custody: BaseCustody,
     held: Held,
+    assurance_level: crate::workflow_assurance::Policy,
     root: PathBuf,
     act_log: PathBuf,
     origin: String,
@@ -1139,9 +1329,11 @@ fn slot_latest_now(
     latest(&slot_lines(rows, origin, source, &e.review.identity.name))
 }
 fn is_held(held: &Held, identity: &WorkflowIdentity) -> bool {
-    held.lock()
-        .map(|h| h.contains(&(identity.name.clone(), identity.revision.clone())))
-        .unwrap_or(false)
+    held_act(held, identity).is_some()
+}
+/// The genuine act reference held for exactly this complete identity.
+fn held_act(held: &Held, identity: &WorkflowIdentity) -> Option<String> {
+    held.lock().ok()?.iter().find(|(k, _)| k == identity).map(|(_, act)| act.clone())
 }
 /// Why LS-1's act condition does not hold as read (V15 F4). WR LS-4 names
 /// "A15 record missing or bound to other content"; an act log that cannot be
@@ -1181,11 +1373,11 @@ fn act_record_found(root: &Path, line: &Value, k: &WorkflowIdentity) -> Result<(
             ))
         })?;
     let bound = json!({"method":k.revision_method,"value":k.revision});
+    // The complete subject (including derived_from) and its content, together.
+    let subject = crate::act_control::a15_subject_ref(k).map_err(ActRecordFault::Incomplete)?;
     if act["kind"] != "human_act"
         || act["body"]["actKind"] != "A15"
-        || !act["body"]["boundContent"]
-            .as_array()
-            .is_some_and(|b| b.contains(&bound))
+        || !binds_subject(&act["body"], &subject, &bound)
     {
         return Err(ActRecordFault::Incomplete(format!(
             "A15 record {record} is bound to other content"
@@ -1641,8 +1833,9 @@ impl HotRegistrationAttempt {
             identity: e.review.identity.clone(),
             snapshot: e.review.snapshot().clone(),
             act_ref: self.receipt.record_id().into(),
+            basis: Some(RegistrationBasis { root: self.session.root.clone(), level: self.session.assurance_level.clone(), held: self.session.held.clone() }),
         };
-        hold(&self.session.held, &e.review.identity);
+        hold(&self.session.held, &e.review.identity, self.receipt.record_id());
         let publication =
             match self
                 .session
@@ -1706,9 +1899,10 @@ impl HotRegistrationAttempt {
             identity: e.review.identity.clone(),
             snapshot: e.review.snapshot().clone(),
             act_ref: self.receipt.record_id().into(),
+            basis: Some(RegistrationBasis { root: self.session.root.clone(), level: self.session.assurance_level.clone(), held: self.session.held.clone() }),
         };
         // RC-2: this process now holds the registration result.
-        hold(&self.session.held, &e.review.identity);
+        hold(&self.session.held, &e.review.identity, self.receipt.record_id());
         // G-6 / §5.1: "the App records the new revision as the draft's base".
         // An in-place entry has no draft, so no draft base is recorded for it.
         let base_update = if e.in_place {
@@ -1802,9 +1996,11 @@ fn lose_at(point: u8) -> Result<(), String> {
     }
     Ok(())
 }
-fn hold(held: &Held, identity: &WorkflowIdentity) {
+fn hold(held: &Held, identity: &WorkflowIdentity, act: &str) {
     if let Ok(mut h) = held.lock() {
-        h.insert((identity.name.clone(), identity.revision.clone()));
+        if !h.iter().any(|(k, a)| k == identity && a == act) {
+            h.push((identity.clone(), act.to_owned()));
+        }
     }
 }
 /// SQ-X liveness file (WR §6 X-1). Every open review holds it shared, from

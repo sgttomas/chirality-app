@@ -821,9 +821,41 @@ export function workflowActionMessage(command: string, result: Json): string {
   return JSON.stringify(result);
 }
 
-/** The active library's registered revisions (WR §4.6 LS-1). A revision this App
- * process holds a registration or re-confirmation result for is offered Select;
- * the host resolves it from the revision store (SL-1, SL-4). Every row keeps Refine. */
+export function WorkflowAssuranceSetting({ setting, act }: { setting: Json; act: (command: string, args: Record<string, unknown>) => Promise<unknown> }) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const choose = async (command: string) => {
+    if (pending) return;
+    setPending(true); setError("");
+    try { await act(command, {}); } catch (cause) { setError(String(cause)); } finally { setPending(false); }
+  };
+  if (!setting) return <section aria-label="Workflow approval"><p>Workflow approval setting unavailable.</p></section>;
+  const verification = setting.verification ?? {};
+  const robust = setting.level === "robust";
+  return <section aria-label="Workflow approval" aria-busy={pending}>
+    <p><strong>Workflow approval: {setting.policy}</strong>. {setting.source}.</p>
+    <p>Keychain verification: <strong>{verification.state}</strong>. {verification.detail}</p>
+    {robust && verification.available !== true && <p role="note">{setting.robustWithoutVerification}: a registered workflow runs only after you confirm it in this session.</p>}
+    {setting.note && <p role="note">{setting.note}</p>}
+    <details><summary>Change workflow approval</summary>
+      <p>Require verified approval: a workflow runs when you approved it in this App session, or when your approval is verified by your keychain seal. Allow disk records: a workflow you registered earlier runs after a fresh check that its ledger entry, approval record and stored bytes agree on disk; who approved it is not verified.</p>
+      <p>{setting.storage}</p>
+      <button disabled={pending || (robust && verification.state !== "recovery required")} onClick={() => { void choose("workflow_assurance_robust"); }}>{verification.state === "recovery required" ? "Restore verified approval in your keychain" : "Require verified approval"}</button>{" "}
+      <button disabled={pending || !robust} onClick={() => { void choose("workflow_assurance_relaxed"); }}>Allow disk records (native confirmation)…</button>
+      {verification.state === "recovery required" && <>{" "}<button disabled={pending} onClick={() => { void choose("workflow_assurance_recheck"); }}>Check keychain again</button></>}
+      <p>{setting.lowering}</p>
+      {setting.protect?.offered === true
+        ? <p><button disabled={pending} onClick={() => { void choose("workflow_protect_with_keychain"); }}>Protect registered workflows with your keychain…</button> Your keychain then verifies approvals across sessions and keeps this setting; you confirm in the App's native dialog.</p>
+        : <p>Protect registered workflows with your keychain: unavailable. {setting.protect?.reason}</p>}
+    </details>
+    {error && <p role="alert">{error}</p>}
+  </section>;
+}
+
+/** The active library's registered revisions (WR §4.6 LS-1). A revision the
+ * host admits under the person's approval policy is offered Select, with its
+ * approval evidence; the host resolves it from the revision store (SL-1, SL-4).
+ * Every row keeps Refine. */
 export function RegisteredRevisions({ library, rows, busy, act, chatAvailable = true }:{ library: string; rows: Json[]; busy: boolean; chatAvailable?: boolean; act: (command:string,args:Record<string,unknown>)=>unknown }) {
   return <ul aria-label="Registered revisions in the active library">{rows.map((row:Json)=><li key={`${row.name}@${row.revision}`} id={registeredRevisionAnchor(library,row.name,row.revision)}>{row.name} · revision {row.sequence} · {row.label}
     {row.selectable===true&&<> <button disabled={busy||!chatAvailable} onClick={()=>act("workflow_select_listed",{libraryRef:library,name:row.name,revision:row.revision})}>Select revision {row.sequence}</button></>}
@@ -2397,6 +2429,7 @@ export function App() {
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
         <div hidden={setupRequired}>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
+        <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => { const result = await invoke(command, args); await refresh(); return result; }}/>
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>

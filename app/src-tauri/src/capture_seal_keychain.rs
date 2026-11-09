@@ -77,6 +77,7 @@ impl KeychainAuthority {
         item.service == self.identity.service
             && item.access_group == self.identity.access_group
             && (item.account == self.identity.account
+                || policy_sequence(&self.identity, item).is_some()
                 || item
                     .account
                     .strip_prefix(&format!("{}.rotation.", self.identity.account))
@@ -1020,6 +1021,198 @@ fn operate_bound(
     material(backend, i, &m)
 }
 
+// ---- Workflow approval policy (owner decisions A/B/C, 2026-11-09) ----------
+// The person's chosen workflow-approval policy, once keychain protection is
+// set up, lives in add-only items of the same selected service and access group:
+// `<account>.assurance-policy.<16-hex sequence>`. Each change adds the next
+// sequence; the latest present item is the policy. A same-user process without
+// the App's access group can neither add nor remove these items, so a file
+// edit, deletion or replay outside the keychain cannot change the policy.
+const POLICY_FORMAT: &str = "chirality.app.workflow-approval-policy";
+/// The whole bounded sequence range. Every read and write discovers over all
+/// of 1..=POLICY_MAX (one keychain read per sequence), so no deleted head
+/// record or run of missing items can hide a later choice. A person changes
+/// this policy rarely; after POLICY_MAX changes the protected policy can no
+/// longer change and stays as last stored (writes refuse, never wrap).
+/// No item beyond 256 can exist: policy items were introduced with this bound
+/// on an unmerged branch whose keychain path runs only in a signed build with a
+/// selected publisher, and no such build has run. The namespace admission
+/// (`policy_sequence`) refuses any sequence beyond it, and a head beyond it is
+/// corrupt (fail closed). Raising the bound later must keep discovery over
+/// every sequence ever admitted.
+const POLICY_MAX: u64 = 256;
+/// The App-data record of the latest policy sequence written (rollback check).
+const POLICY_HEAD: &str = "workflow-approval-policy-head.json";
+#[derive(Debug)]
+pub(crate) enum PolicyRead {
+    /// The latest stored policy, as its machine value ("robust" or "relaxed").
+    Stored(String),
+    /// No policy item. `enrolled` reports whether the namespace sentinel (the
+    /// first seal key) exists: protection set up but its policy missing.
+    Absent { enrolled: bool },
+}
+#[derive(Clone, Copy)]
+pub(crate) enum PolicyOp {
+    Read,
+    Write(&'static str),
+}
+fn policy_item(i: &ItemIdentity, sequence: u64) -> ItemIdentity {
+    let mut item = i.clone();
+    item.account = format!("{}.assurance-policy.{sequence:016x}", i.account);
+    item
+}
+fn policy_sequence(i: &ItemIdentity, item: &ItemIdentity) -> Option<u64> {
+    let suffix = item.account.strip_prefix(&format!("{}.assurance-policy.", i.account))?;
+    (suffix.len() == 16 && suffix.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)))
+        .then(|| u64::from_str_radix(suffix, 16).ok())
+        .flatten()
+        .filter(|n| (1..=POLICY_MAX).contains(n))
+}
+fn backend_cause(error: BackendError) -> String {
+    match error {
+        BackendError::Unavailable(code) => format!("keychain locked, denied or unavailable (status {code})"),
+        BackendError::Invalid => "keychain item outside the selected namespace".into(),
+        BackendError::Duplicate => "keychain item already present".into(),
+        BackendError::Missing => "keychain item missing".into(),
+    }
+}
+/// The highest present sequence and its bytes, discovered over the whole
+/// bounded range. Items are add-only, so the highest is the latest choice and
+/// an earlier gap hides nothing. Any read failure other than Missing is an
+/// error: it never reads as "no policy".
+fn policy_probe(backend: &impl Backend, i: &ItemIdentity) -> Result<Option<(u64, Vec<u8>)>, String> {
+    let mut last = None;
+    for sequence in 1..=POLICY_MAX {
+        match backend.read(&policy_item(i, sequence)) {
+            Ok(bytes) => last = Some((sequence, bytes)),
+            Err(BackendError::Missing) => (),
+            Err(error) => return Err(format!("workflow approval policy not readable: {}", backend_cause(error))),
+        }
+    }
+    Ok(last)
+}
+/// The latest sequence recorded outside the keychain (App data). Losing the
+/// keychain's latest item cannot silently roll back to an earlier choice:
+/// a recorded head beyond the present items needs recovery. A missing head
+/// file is not evidence of anything (the items still govern).
+fn recorded_head(head: Option<&Path>) -> Result<u64, String> {
+    let Some(path) = head else { return Ok(0) };
+    match fs::read(path) {
+        Ok(bytes) => serde_json::from_slice::<serde_json::Value>(&bytes)
+            .ok()
+            .and_then(|v| v["sequence"].as_u64())
+            .filter(|n| *n <= POLICY_MAX)
+            .ok_or_else(|| "workflow approval policy head record is corrupt; recovery required".into()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(0),
+        Err(e) => Err(format!("workflow approval policy head not readable: {e}")),
+    }
+}
+pub(crate) fn read_policy(backend: &impl Backend, i: &ItemIdentity, head: Option<&Path>) -> Result<PolicyRead, String> {
+    // Protection is set up only with the namespace sentinel (the first seal
+    // key). Policy items without it are not protection; enrollment is offered.
+    let enrolled = match backend.read(i) {
+        Ok(_) => true,
+        Err(BackendError::Missing) => false,
+        Err(error) => return Err(format!("keychain protection state not readable: {}", backend_cause(error))),
+    };
+    let head_sequence = recorded_head(head)?;
+    let found = policy_probe(backend, i)?;
+    if !enrolled {
+        // Policy items or a recorded head show protection was set up: losing
+        // the seal key is recovery, never a fall back to the settings file.
+        if found.is_some() || head_sequence > 0 {
+            return Err("keychain protection was set up but its seal key is missing; recovery required".into());
+        }
+        return Ok(PolicyRead::Absent { enrolled: false });
+    }
+    if head_sequence > found.as_ref().map_or(0, |(sequence, _)| *sequence) {
+        return Err("the latest stored workflow approval policy item is missing; recovery required".into());
+    }
+    let Some((sequence, bytes)) = found else {
+        return Ok(PolicyRead::Absent { enrolled: true });
+    };
+    let value: serde_json::Value = serde_json::from_slice(&bytes)
+        .map_err(|_| "stored workflow approval policy is corrupt; recovery required")?;
+    let level = value["level"].as_str().filter(|l| ["robust", "relaxed"].contains(l));
+    match level {
+        Some(level) if value["format"] == POLICY_FORMAT && value["sequence"] == sequence => Ok(PolicyRead::Stored(level.into())),
+        _ => Err("stored workflow approval policy is corrupt; recovery required".into()),
+    }
+}
+/// Adds the next sequence after every present or recorded one. Never replaces
+/// or deletes an earlier item. Requires enrollment.
+pub(crate) fn write_policy(backend: &impl Backend, i: &ItemIdentity, level: &str, head: Option<&Path>) -> Result<(), String> {
+    if !["robust", "relaxed"].contains(&level) {
+        return Err("unknown workflow approval policy".into());
+    }
+    match backend.read(i) {
+        Ok(_) => (),
+        Err(BackendError::Missing) => return Err("keychain protection is not set up; nothing stored".into()),
+        Err(error) => return Err(format!("workflow approval policy not stored: {}", backend_cause(error))),
+    }
+    // A lost tail still allows recovery: add past every present or recorded
+    // sequence. An unreadable or corrupt head is an error, never zero.
+    let head_sequence = recorded_head(head)?;
+    let present = policy_probe(backend, i)?.map_or(0, |(sequence, _)| sequence);
+    let next = present.max(head_sequence) + 1;
+    if next > POLICY_MAX {
+        return Err("workflow approval policy sequence exhausted".into());
+    }
+    let bytes = serde_json::to_vec(&serde_json::json!({"format":POLICY_FORMAT,"sequence":next,"level":level,"writtenAt":crate::util::now_rfc3339()}))
+        .map_err(|e| e.to_string())?;
+    backend.add(&policy_item(i, next), &bytes).map_err(|error| format!("workflow approval policy not stored: {}", backend_cause(error)))?;
+    if let Some(path) = head {
+        let temp = path.with_extension(format!("{}.tmp", crate::util::opaque_id("")?));
+        fs::write(&temp, serde_json::to_vec(&serde_json::json!({"sequence":next})).map_err(|e| e.to_string())?)
+            .and_then(|()| fs::rename(&temp, path))
+            .map_err(|e| { let _ = fs::remove_file(&temp); format!("workflow approval policy stored, but its head record was not: {e}") })?;
+    }
+    Ok(())
+}
+#[cfg(test)]
+thread_local! {static TEST_POLICY:std::cell::RefCell<Option<Box<dyn Fn(PolicyOp)->Result<PolicyRead,String>>>>=const{std::cell::RefCell::new(None)};}
+#[cfg(test)]
+pub(crate) fn set_policy_provider_for_test(provider: Option<Box<dyn Fn(PolicyOp) -> Result<PolicyRead, String>>>) {
+    TEST_POLICY.with(|slot| *slot.borrow_mut() = provider);
+}
+/// `None`: this build has no selected keychain provider (unsigned or
+/// development); protection cannot be set up here. A selected but invalid
+/// publisher is an error, never "not available".
+pub(crate) fn policy(operation: PolicyOp) -> Option<Result<PolicyRead, String>> {
+    #[cfg(test)]
+    {
+        if let Some(result) = TEST_POLICY.with(|slot| slot.borrow().as_ref().map(|p| p(operation))) {
+            return Some(result);
+        }
+        if !test_selected() {
+            return None;
+        }
+    }
+    match publisher_route() {
+        Ok(false) => None,
+        Err(_) => Some(Err("SEAL-C publisher validation unavailable; keychain protection state unknown".into())),
+        Ok(true) => Some((|| {
+            let authority = process_authority(matches!(operation, PolicyOp::Write(_)))?;
+            let backend = macos::NativeBackend::new(&authority);
+            let head = crate::capture_seal::installed_root_for_enrollment()?.join(POLICY_HEAD);
+            match operation {
+                PolicyOp::Read => read_policy(&backend, &authority.identity, Some(&head)),
+                PolicyOp::Write(level) => write_policy(&backend, &authority.identity, level, Some(&head)).and_then(|()| read_policy(&backend, &authority.identity, Some(&head))),
+            }
+        })()),
+    }
+}
+/// Why "Protect registered workflows with your keychain" is not offered here.
+pub(crate) fn enrollment_unavailable_reason() -> Option<&'static str> {
+    if enrollment_compiled_available() {
+        None
+    } else if cfg!(debug_assertions) || !cfg!(chirality_publisher_selected) {
+        Some("This is an unsigned or development build. Keychain protection needs the signed App with its selected signing identity (team, access group); development file keys are never used for it.")
+    } else {
+        Some("Keychain protection is not available on this platform or build.")
+    }
+}
+
 #[cfg(test)]
 #[path = "capture_seal_keychain_tests.rs"]
-mod tests;
+pub(crate) mod tests;

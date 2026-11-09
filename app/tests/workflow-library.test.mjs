@@ -285,3 +285,52 @@ test('draft creation requires an explicit name and explains the current source/l
     data={...data,context:null};await show();assert.equal(props(create()).disabled,true);assert.match(guidance(),/source is unavailable or changed/);
   } finally {await React.act(()=>root.unmount());document.body.removeChild(c);}
 });
+
+test('disk-consistency rows remain selectable and disclose unverified approval',()=>{
+  const row={...cold,selectable:true,reconfirm:false,evidence:'disk-consistency',label:'registered — Disk consistency checked; approval authenticity unverified'};
+  const s=spy();const tree=RegisteredRevisions({library:'lib-1',rows:[row],busy:false,act:s.act});
+  assert.match(text(tree),/Disk consistency checked; approval authenticity unverified/);
+  buttons(tree)[0].props.onClick();
+  assert.deepEqual(s.calls,[['workflow_select_listed',{libraryRef:'lib-1',name:row.name,revision:row.revision}]]);
+});
+
+const setting=(over={})=>({level:'robust',policy:'Require verified approval',source:'Stored in this App\'s settings',
+  verification:{state:'unavailable on this build',available:false,detail:'This is an unsigned or development build.'},
+  storage:"Stored in this App's settings file, outside any project. Until keychain protection is set up, an agent able to write that file could change this setting.",
+  robustWithoutVerification:'Session confirmation required; persistent verification unavailable',
+  lowering:'Choosing "Allow disk records" needs your native confirmation; no command or project file lowers it.',
+  protect:{offered:false,reason:'This is an unsigned or development build. Keychain protection needs the signed App with its selected signing identity (team, access group); development file keys are never used for it.'},...over});
+
+test('approval setting shows the policy, verification availability and the disclosed file gap',()=>{
+  const {WorkflowAssuranceSetting}=loadSrc('App');
+  const html=renderToStaticMarkup(React.createElement(WorkflowAssuranceSetting,{setting:setting(),act:()=>{throw Error('rendering changes nothing');}}));
+  assert.match(html,/Workflow approval: Require verified approval/);
+  assert.match(html,/Keychain verification: <strong>unavailable on this build/);
+  assert.match(html,/Session confirmation required; persistent verification unavailable/);
+  assert.match(html,/an agent able to write that file could change this setting/);
+  assert.match(html,/Allow disk records \(native confirmation\)/);
+  assert.match(html,/Protect registered workflows with your keychain: unavailable\. This is an unsigned or development build/);
+  assert.doesNotMatch(html,/Protect registered workflows with your keychain…/);
+});
+
+test('approval setting offers keychain protection and recovery only where they apply',()=>{
+  const {WorkflowAssuranceSetting}=loadSrc('App');
+  const offered=renderToStaticMarkup(React.createElement(WorkflowAssuranceSetting,{setting:setting({verification:{state:'not set up',available:false,detail:'Keychain protection is not set up.'},protect:{offered:true}}),act:()=>{}}));
+  assert.match(offered,/Protect registered workflows with your keychain…/);
+  const recovery=renderToStaticMarkup(React.createElement(WorkflowAssuranceSetting,{setting:setting({verification:{state:'recovery required',available:false,detail:'keychain locked. Verified approval is required until recovered; nothing is relaxed automatically.'},storage:'Stored in your keychain.',protect:{offered:false,reason:'Recover the protected policy first.'}}),act:()=>{}}));
+  assert.match(recovery,/Restore verified approval in your keychain/);
+  assert.match(recovery,/Check keychain again/);
+  assert.match(recovery,/nothing is relaxed automatically/);
+  const relaxed=renderToStaticMarkup(React.createElement(WorkflowAssuranceSetting,{setting:setting({level:'relaxed',policy:'Allow disk records'}),act:()=>{}}));
+  assert.match(relaxed,/Workflow approval: Allow disk records/);
+  assert.doesNotMatch(relaxed,/Session confirmation required/);
+});
+
+test('approval evidence labels never infer evidence from registered standing',()=>{
+  const {workflowAssurance}=loadSrc('workflowSelection');
+  assert.equal(workflowAssurance({requested_policy:'relaxed',admission_evidence:'disk-consistency'}),'Disk consistency checked; approval authenticity unverified. Policy: Allow disk records.');
+  assert.equal(workflowAssurance({requested_policy:'robust',admission_evidence:'keychain-verified approval'}),'Approval verified by keychain seal. Policy: Require verified approval.');
+  assert.equal(workflowAssurance({requested_policy:'robust',admission_evidence:'in-process A15'}),'Approved in this App session (native A15). Policy: Require verified approval.');
+  assert.equal(workflowAssurance(undefined),'Approval evidence unknown (not recorded).');
+  assert.equal(workflowAssurance('in-process A15'),'Approval evidence unknown (not recorded).');
+});

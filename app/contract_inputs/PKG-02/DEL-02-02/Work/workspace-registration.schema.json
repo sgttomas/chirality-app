@@ -1252,6 +1252,30 @@
               "pattern": "^(project|user|bundled|host):(?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           }
+        },
+        "assurance": {
+          "description": "Owner decisions 2026-11-09 (A/B/C): the person's workflow approval policy requested at this selection or run start (relaxed is \"Allow disk records\", robust is \"Require verified approval\"), kept separate from the admission evidence actually applied. disk-consistency is fresh LS-1 disk standing without verified approval (relaxed only); keychain-verified approval is an A15 capture sealed under this installation's SEAL-C keychain key and bound to its A15 record, the complete identity and a committed registration or re-confirmation line; in-process A15 is a native A15 captured by this App process for the complete identity. Optional: absent means unknown, never inferred from standing.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requested_policy",
+            "admission_evidence"
+          ],
+          "properties": {
+            "requested_policy": {
+              "enum": [
+                "relaxed",
+                "robust"
+              ]
+            },
+            "admission_evidence": {
+              "enum": [
+                "disk-consistency",
+                "keychain-verified approval",
+                "in-process A15"
+              ]
+            }
+          }
         }
       },
       "allOf": [
@@ -2069,6 +2093,30 @@
         "text_bytes": {
           "type": "integer",
           "minimum": 1
+        },
+        "assurance": {
+          "description": "Owner decisions 2026-11-09 (A/B/C): the person's workflow approval policy requested at this selection or run start (relaxed is \"Allow disk records\", robust is \"Require verified approval\"), kept separate from the admission evidence actually applied. disk-consistency is fresh LS-1 disk standing without verified approval (relaxed only); keychain-verified approval is an A15 capture sealed under this installation's SEAL-C keychain key and bound to its A15 record, the complete identity and a committed registration or re-confirmation line; in-process A15 is a native A15 captured by this App process for the complete identity. Optional: absent means unknown, never inferred from standing.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requested_policy",
+            "admission_evidence"
+          ],
+          "properties": {
+            "requested_policy": {
+              "enum": [
+                "relaxed",
+                "robust"
+              ]
+            },
+            "admission_evidence": {
+              "enum": [
+                "disk-consistency",
+                "keychain-verified approval",
+                "in-process A15"
+              ]
+            }
+          }
         }
       },
       "allOf": [

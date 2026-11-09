@@ -651,6 +651,20 @@ is evidenced. Host whole-model over-lapse and host/global canonicalization and
 one-effect remain unselected. Record UUIDs, capture/transfer IDs and offer/test
 digests remain separate operational facts, not these content identities or acts.
 
+
+### 6.2b Workflow approval evidence (WR §4.6; owner 2026-11-09)
+
+Workflow selections and run texts use WR's optional `assurance` object
+(WR §4.6; owner 2026-11-09): `requested_policy` (`relaxed` is "Allow disk
+records", `robust` is "Require verified approval") and `admission_evidence`
+(`disk-consistency`, `keychain-verified approval` or `in-process A15`), emitted
+for every new registered selection and run. Older records without it remain
+readable and show the evidence as unknown; a reader never infers a seal or
+present act from `standing: registered`. `disk-consistency` describes fresh
+LS-1 disk standing, not authenticated native origin, and is never a human-act
+record. A failed verification never becomes disk admission under "Require
+verified approval"; DS-8 supplies a new present A15. The A15 record and
+capture shapes stay unchanged.
 ## 7. Content binding and lapse comparison rule
 
 Notation: *S* bound subject; *c₀*, *m₀* bound content identity and method

@@ -1,7 +1,9 @@
-//! Menu-event joining of the inactive SEAL-C prepared provider intent.
-//! Menu-event origin is not authenticated: existing core:menu permissions may
-//! let web content request a question, never answer it or supply provider authority.
-//! No direct SEAL-C command/MCP/CLI/path input or startup enrollment. None hides AND
+//! "Protect registered workflows with your keychain" (owner decision C,
+//! 2026-11-09): the person's in-App native act that performs SEAL-C enrollment
+//! through the gated provider. The menu event and the workflow approval
+//! setting's IPC request are both unauthenticated origins: they may request the
+//! question, never answer it or supply provider authority, path or namespace.
+//! No direct SEAL-C enrollment input or startup enrollment. None hides AND
 //! rejects dispatch. The provider still owns signature, policy and filesystem
 //! revalidation; this module owns the question and key_setup/Quit ordering.
 use crate::{
@@ -15,12 +17,12 @@ use std::sync::{
 use tauri::Manager;
 
 pub(crate) const MENU_ID: &str = "chirality-prepare-capture-sealing";
-const TITLE: &str = "Prepare capture sealing";
+const TITLE: &str = "Protect registered workflows with your keychain";
 const LEAVE: &str = "Leave unchanged";
-const PREPARE: &str = "Prepare capture sealing";
+const PREPARE: &str = "Protect with keychain";
 
 pub(crate) fn menu_entry() -> Option<(&'static str, &'static str)> {
-    provider::enrollment_compiled_available().then_some((MENU_ID, "Prepare capture sealing…"))
+    provider::enrollment_compiled_available().then_some((MENU_ID, "Protect Registered Workflows with Your Keychain…"))
 }
 fn dispatch_if_configured(action: impl FnOnce()) {
     if menu_entry().is_some() {
@@ -114,7 +116,7 @@ fn statement(preview: &Value) -> Result<ns::NativeStatement, String> {
     } else {
         preview["marker"].to_string()
     };
-    let whole=format!("Prepare capture sealing for this installation?\nLocation: {}\nService: {}\nAccount: {}\nAccess group: {}\nCommitted and pending key IDs: {}\nExisting keys are retained. Development keys are not imported.",
+    let whole=format!("Protect registered workflows with your keychain on this installation?\nYour approvals (A15) will be sealed with a key kept in your keychain, so they can be verified in later sessions, and \"Require verified approval\" will be stored there; lowering it will need your native confirmation.\nLocation: {}\nService: {}\nAccount: {}\nAccess group: {}\nCommitted and pending key IDs: {}\nExisting keys are retained. Development keys are not imported.",
         field("app_data")?,field("service")?,field("account")?,field("access_group")?,marker);
     ns::whole_or_in_app(
         "Capture sealing",
@@ -123,12 +125,16 @@ fn statement(preview: &Value) -> Result<ns::NativeStatement, String> {
         preview,
         |digest| {
             format!(
-        "Prepare capture sealing for the installation shown in the App under Content named by an open native confirmation? sha-256: {digest}\nExisting keys are retained; development keys are not imported.")
+        "Protect registered workflows with your keychain for the installation shown in the App under Content named by an open native confirmation? sha-256: {digest}\nExisting keys are retained; development keys are not imported.")
         },
     )
 }
 
-/// Called only from lib.rs's native menu event. Retain main once, before the
+/// Whether the in-App request may open the question; otherwise the reason.
+pub(crate) fn offered() -> Result<(), String> {
+    menu_entry().map(|_| ()).ok_or_else(|| provider::enrollment_unavailable_reason().unwrap_or("Keychain protection is not available on this build").to_owned())
+}
+/// Called from lib.rs's native menu event and the workflow approval setting. Retain main once, before the
 /// worker; never resolve a focused/first/replacement window after preparation.
 pub(crate) fn request(app: tauri::AppHandle) {
     dispatch_if_configured(|| {
@@ -185,11 +191,15 @@ pub(crate) fn request(app: tauri::AppHandle) {
             match result {
                 Ok(Outcome::Cancelled) => (),
                 Ok(Outcome::ProviderReturnedSuccess) => {
-                    crate::native_lifecycle_confirmation::notice(
-                        original.as_ref(),
-                        TITLE,
-                        "Capture sealing check completed for the prepared installation.".into(),
-                    )
+                    // The default where keychain protection works is "Require
+                    // verified approval"; it is stored in the keychain now.
+                    let stored = app.try_state::<crate::AppState>().map(|state| state.workflows.lock().unwrap().assurance.after_enrollment());
+                    let text = match stored {
+                        Some(Ok(())) => "Keychain protection is set up. \"Require verified approval\" is stored in your keychain.".to_owned(),
+                        Some(Err(cause)) => format!("Keychain protection is set up, but the approval policy was not stored ({cause}). Verified approval is required until it is recovered."),
+                        None => "Keychain protection is set up. Reopen the App to read the approval policy.".to_owned(),
+                    };
+                    crate::native_lifecycle_confirmation::notice(original.as_ref(), TITLE, text)
                 }
                 Err(reason) => {
                     crate::native_lifecycle_confirmation::notice(original.as_ref(), TITLE, reason)

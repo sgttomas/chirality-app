@@ -87,7 +87,7 @@ A person can, through the App:
    review/registration act against the identified content. Merely writing a
    file or receiving a successful tool response is not registration.
 3. Later find the saved workflow and run it again in the intended project with
-   new inputs, preserving source and revision identity.
+   new inputs, preserving source and revision identity. Across App sessions, "Allow disk records" checks LS-1 freshly without another A15 and labels the workflow "Disk consistency checked; approval authenticity unverified"; "Require verified approval" accepts a keychain-verified approval or offers native DS-8 re-confirmation. Selection and run records state the requested policy and the evidence applied (WR §4.6/RC-2).
 4. Return to unfinished work after closing/reopening and resume it without
    losing the draft, confusing read-only history with continuation, or silently
    replaying already completed actions.
@@ -205,10 +205,11 @@ subjects; it is neither owner usability acceptance nor installed qualification.
 
 ## Re-confirmation route from Run
 
-After a relaunch, Run lists an LS-1 revision as "registered — re-confirm to use
-in this App session" ([LS-1 after a relaunch](WORKSPACE_AND_REGISTRATION.md#46-library-standing)).
+After a relaunch under "Require verified approval" without keychain-verified
+approval, Run lists a cold LS-1 revision as "registered — Session confirmation
+required; persistent verification unavailable; re-confirm to use in this App session" ([LS-1 after a relaunch](WORKSPACE_AND_REGISTRATION.md#46-library-standing)).
 Run now links that row to the same revision's row in the workflow studio, and the
-host marks the row as needing re-confirmation. That studio row explains the route:
+host marks that row as needing re-confirmation. Under "Allow disk records", or with a keychain-verified approval, a valid LS-1 row is selectable instead. That studio row explains the re-confirmation route:
 Refine makes a draft with the revision's bytes (RF-1), then the person reviews
 the draft and confirms the native act (DS-8). Following the link performs no
 action, and nothing is refined, reviewed, selected or run. Re-confirmation still
