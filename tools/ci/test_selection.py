@@ -40,8 +40,8 @@ def repo(tmp_path):
     return tmp_path
 
 
-def selection(repo, base):
-    return subject.select(repo, "pull_request", base, commit(repo))
+def selection(repo, base, event="pull_request"):
+    return subject.select(repo, event, base, commit(repo))
 
 
 def test_prose_only_reports_every_path_and_commit_identity(repo):
@@ -257,9 +257,21 @@ def test_merge_base_excludes_base_only_changes_but_keeps_entire_pr(repo):
     assert {item["path"] for item in result["changes"]} == {"README.md", "AGENTS.md"}
 
 
+@pytest.mark.parametrize("event", ["pull_request", "merge_group"])
+def test_merge_queue_candidate_selects_like_a_pull_request(repo, event):
+    base = git(repo, "rev-parse", "HEAD")
+    write(repo, "AGENTS.md", "revised instructions\n")
+    prose = selection(repo, base, event)
+    assert (prose["mode"], prose["merge_base"]) == ("prose", base)
+    write(repo, "app/src/new.rs")
+    product = selection(repo, base, event)
+    assert product["run_product"] and {c["path"] for c in product["changes"]} == {"AGENTS.md", "app/src/new.rs"}
+
+
 def test_empty_change_and_manual_dispatch_keep_product(repo):
     head = git(repo, "rev-parse", "HEAD")
     assert subject.select(repo, "pull_request", head, head)["run_product"]
+    assert subject.select(repo, "merge_group", head, head)["run_product"]
     assert subject.select(repo, "workflow_dispatch", "", head)["run_product"]
 
 
@@ -276,8 +288,9 @@ def test_unrelated_history_and_unsupported_event_fail(repo):
     head = commit(repo)
     with pytest.raises(subprocess.CalledProcessError):
         subject.select(repo, "pull_request", base, head)
-    with pytest.raises(ValueError):
-        subject.select(repo, "push", "", head)
+    for event in ("push", "merge_queue", "pull_request_target"):
+        with pytest.raises(ValueError):
+            subject.select(repo, event, "", head)
 
 
 def test_ambiguous_merge_base_fails(repo):
@@ -372,13 +385,29 @@ def test_workflow_always_runs_selection_and_checks_only_explicit_exclusion():
     # PyYAML 1.1 treats the bare workflow key 'on' as True.
     trigger = workflow.get("on", workflow.get(True))
     assert trigger["pull_request"] is None
+    assert trigger["merge_group"] == {"types": ["checks_requested"]}
+    assert set(trigger) == {"pull_request", "merge_group", "workflow_dispatch"}
+    # Superseded PR runs may cancel; a queue candidate's own group never does.
+    assert workflow["concurrency"] == {
+        "group": "governance-harness-${{ github.event.pull_request.number"
+                 " || github.event.merge_group.head_ref || github.ref }}",
+        "cancel-in-progress": "${{ github.event_name == 'pull_request' }}",
+    }
     jobs = workflow["jobs"]
+    assert "if" not in jobs["repository-checks"]
     repo = jobs["repository-checks"]
     assert any("python tools/ci/select_checks.py inventory" in step.get("run", "")
                for step in repo["steps"])
     select_step = next(step for step in repo["steps"] if step.get("id") == "selection")
     assert '--base "$BASE" --head "$HEAD"' in select_step["run"]
-    assert select_step["env"]["BASE"] == "${{ github.event.pull_request.base.sha }}"
+    assert select_step["env"] == {
+        "EVENT": "${{ github.event_name }}",
+        "BASE": "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}",
+        "HEAD": "${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}",
+    }
+    checkouts = [step["with"]["ref"] for job in jobs.values() for step in job.get("steps", [])
+                 if step.get("uses", "").startswith("actions/checkout@")]
+    assert checkouts and set(checkouts) == {HEAD_REF}
     assert repo["outputs"] == {
         "selection_mode": "${{ steps.selection.outputs.selection_mode }}",
         "run_product": "${{ steps.selection.outputs.run_product }}",
@@ -391,6 +420,25 @@ def test_workflow_always_runs_selection_and_checks_only_explicit_exclusion():
     assert set(gate["needs"]) == {"repository-checks", "app-v4"}
     assert gate["steps"][-1]["env"]["RESULTS"] == "${{ toJSON(needs) }}"
     assert gate["steps"][-1]["run"] == "python3 tools/ci/select_checks.py gate"
+
+
+HEAD_REF = "${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}"
+
+
+def test_product_workflow_inherits_the_callers_event_and_never_cancels_queue_runs():
+    root = Path(subject.__file__).resolve().parents[2]
+    workflow = yaml.safe_load((root / ".github/workflows/app-v4.yml").read_text())
+    # Called by the harness for pull_request and merge_group; a trigger of its own
+    # would start a second, unselected run in the same concurrency group.
+    assert set(workflow.get("on", workflow.get(True))) == {"workflow_call", "workflow_dispatch"}
+    assert workflow["concurrency"] == {
+        "group": "app-v4-${{ github.event.pull_request.number"
+                 " || github.event.merge_group.head_ref || github.ref }}",
+        "cancel-in-progress": "${{ github.event_name == 'pull_request' }}",
+    }
+    checkouts = [step["with"]["ref"] for job in workflow["jobs"].values() for step in job.get("steps", [])
+                 if step.get("uses", "").startswith("actions/checkout@")]
+    assert len(checkouts) == 4 and set(checkouts) == {HEAD_REF}
 
 
 def test_product_workflow_gates_every_job_and_assigns_each_lib_cohort_once():

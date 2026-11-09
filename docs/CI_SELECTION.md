@@ -90,6 +90,19 @@ valid selection outputs. It accepts `app-v4: skipped` only for the explicit
 cancellations, unexpected skips and missing/inconsistent outputs block merging.
 No branch-rule change or product-check removal is needed.
 
+## Merge queue
+
+The governance harness also runs on `merge_group` (`checks_requested`), so a
+merge queue can require the same `harness` check. A queue candidate is selected
+exactly like a PR: the change runs from `merge_group.base_sha` to
+`merge_group.head_sha`, and checkouts use that head. Path filters do not apply
+to queue events and the workflow has none, so `harness` always reports. The App
+workflow has no trigger of its own; it inherits the queue event when the harness
+calls it. Each candidate's concurrency group is its queue head ref, and only
+superseded `pull_request` runs are cancelled. The supplemental Windows fixture
+workflows are not required and do not run in the queue. Enabling the queue is a
+separate ruleset change.
+
 The App workflow runs the focused build, Rust, Node and Python checks, plus
 frozen-source regression checks. On PRs they run as three
 parallel macOS jobs sharing `.github/actions/app-v4-setup`. Each job builds

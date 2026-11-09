@@ -17,9 +17,12 @@ defaults:
   run:
     working-directory: app
 
+# Called from governance-harness, this workflow sees the caller's event,
+# including merge_group; it has no trigger of its own for either event.
 concurrency:
-  group: app-v4-${{ github.event.pull_request.number || github.ref }}
-  # Only the newest PR candidate needs verification.
+  group: app-v4-${{ github.event.pull_request.number || github.event.merge_group.head_ref || github.ref }}
+  # Only the newest PR candidate needs verification; merge-queue candidates
+  # each have their own group and are never cancelled.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 
@@ -57,7 +60,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
           filter: blob:none
       - uses: ./.github/actions/app-v4-setup
       - name: Build App frontend
@@ -119,7 +122,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
           filter: blob:none
       - uses: ./.github/actions/app-v4-setup
       - name: Build App frontend
@@ -151,7 +154,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
           filter: blob:none
       - uses: ./.github/actions/app-v4-setup
       - name: Build App and verify source-mapped schemas
@@ -213,7 +216,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
           filter: blob:none
       - uses: ./.github/actions/app-v4-setup
       - name: Prepare selected assessment supplier in scratch storage

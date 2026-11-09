@@ -114,7 +114,9 @@ def select(repo: Path, event: str, base: str, head: str) -> dict:
     if event == "workflow_dispatch":
         return {"head": head, "mode": "product", "run_product": True,
                 "reason": "Manual dispatch retains product verification", "changes": []}
-    if event != "pull_request":
+    # A merge-queue candidate is selected like a pull request: its base_sha and
+    # head_sha bound the change the queue would merge.
+    if event not in {"pull_request", "merge_group"}:
         raise ValueError("Unsupported CI event")
     base = commit(repo, base)
     bases = git(repo, "merge-base", "--all", base, head).decode().splitlines()
