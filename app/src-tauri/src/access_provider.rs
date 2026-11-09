@@ -12,7 +12,7 @@ pub(crate) struct ProviderAdmission {
     children: Option<ChildStartGuard>,
     config_link: Option<crate::child_roles::ConfigLink>,
 }
-struct ChildStartGuard { namespace: crate::child_roles::Namespace, config: Value, files: Vec<crate::child_roles::ChildSupply> }
+struct ChildStartGuard { namespace: crate::child_roles::Namespace, config: Value, files: Vec<crate::child_roles::ChildSupply>, supplier: Value }
 const LIMIT: &str = "Access entry unavailable: current provider configuration could not be established; no thread/start sent";
 fn unavailable() -> String {
     LIMIT.into()
@@ -38,6 +38,7 @@ const PROVIDER_FIELDS: &[&str] = &[
     "requires_openai_auth",
     "supports_websockets",
     "supports_standalone_web_search",
+    "project_id", "location", "credential_file", "capabilities",
 ];
 const OBSERVATION_LIMIT: &str = "Configured provider observation unavailable; private values and diagnostics withheld. Manual explicit choices remain independent and Start requires a fresh private reading.";
 pub(super) struct PrivateConfigReading {
@@ -550,7 +551,7 @@ fn classify(result: &Value, entry: &str, provider: &str) -> Result<(), String> {
             }
             Ok(())
         }
-        "local-provider" => {
+        "local-provider" | "local-provider-keyed" => {
             if provider == "openai" {
                 return Err(unavailable());
             }
@@ -636,9 +637,11 @@ fn classify(result: &Value, entry: &str, provider: &str) -> Result<(), String> {
             {
                 return Err(unavailable());
             }
+            if ["project_id", "location", "credential_file", "capabilities"].iter().any(|key| def.get(*key).is_some_and(|v| !v.is_null())) { return Err(unavailable()); }
+            if entry == "local-provider-keyed" && (provider != crate::native_local_provider::PROVIDER || def.get("base_url") != Some(&json!(crate::native_local_provider::ENDPOINT)) || def.get("name") != Some(&json!("oMLX")) || def.get("model_catalog_url").is_none_or(|v| !v.is_null())) { return Err(unavailable()); }
             let carries = |key: &str| def.get(key).is_some_and(|v| !v.is_null());
             if AUTH.iter().any(|key| carries(key))
-                || def.get("requires_openai_auth") == Some(&json!(true))
+                || def.get("requires_openai_auth") != Some(&json!(entry == "local-provider-keyed"))
             {
                 return Err("Access entry not offered: selected provider definition carries a credential element; no thread/start sent".into());
             }
@@ -712,6 +715,11 @@ impl Host {
         }
         let reading = self.private_provider_config_read(generation, cwd, wait, PrivateConfigPurpose::Admission)?;
         classify(&reading.config, entry, provider)?;
+        if entry == crate::native_local_provider::ENTRY {
+            crate::native_local_provider::fixed_selection(entry, provider, model)?;
+            self.require_local_destination(generation)?;
+            if reading.config["config"]["model_provider"] != provider || reading.config["config"]["model"] != model || reading.config["config"]["cli_auth_credentials_store"] != "file" || reading.config["config"]["features"]["plugins"] != false || reading.config["config"]["features"]["api_key_model_discovery"] != false { return Err(unavailable()); }
+        }
         let proof = ProviderAdmission {
             source: reading.source,
             cwd: cwd.into(),
@@ -873,6 +881,7 @@ impl Host {
         params: &Value,
     ) -> Result<(), String> {
         self.check_provider_read(i, &proof.source, &proof.cwd)?;
+        if proof.entry == crate::native_local_provider::ENTRY && !canonical_167(i) { return Err(unavailable()); }
         if params["cwd"] != proof.cwd
             || params["modelProvider"] != proof.provider
             || params["model"] != proof.model
@@ -880,6 +889,7 @@ impl Host {
             return Err("Access entry unavailable: original provider reading superseded/unavailable or destination/source differs; no thread/start sent".into());
         }
         if let Some(children) = &proof.children {
+            if children.supplier != child_supplier_subject(i) { return Err("Native child supplier source changed; no rebound start".into()); }
             if params.get("config") != Some(&children.config) {
                 return Err("Native child configuration differs from the prepared observation; no start sent".into());
             }
@@ -909,6 +919,7 @@ impl Host {
         instructions: &std::path::Path,
         data: &std::path::Path,
     ) -> Result<(), String> {
+        let mut supplier = Value::Null;
         let reading = (|| {
             {
                 let i = self
@@ -925,7 +936,9 @@ impl Host {
                     .version_identity
                     .as_ref()
                     .ok_or("unsupported-native-child-supplier")?;
-                if pin["declaredPin"]!="0.160.0"||!pin["distributionContentIdentity"].as_array().is_some_and(|rows|rows.iter().any(|r|r["path"]=="bin/codex"&&r["identity"]["algorithm"]=="sha-256"&&r["identity"]["value"]=="112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b")){return Err("unsupported-native-child-supplier".into())}
+                let legacy_160 = pin["declaredPin"] == "0.160.0" && pin["distributionContentIdentity"].as_array().is_some_and(|rows| rows.iter().any(|r| r["path"] == "bin/codex" && r["identity"]["algorithm"] == "sha-256" && r["identity"]["value"] == "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b"));
+                if !canonical_167(&i) && !legacy_160 { return Err("unsupported-native-child-supplier".into()); }
+                supplier = child_supplier_subject(&i);
             }
             crate::child_roles::Namespace::observe_linked(&proof.config, proof.config_link.clone())
         })();
@@ -951,6 +964,7 @@ impl Host {
                     namespace,
                     config: composition.native_config(),
                     files: composition.children.clone(),
+                    supplier,
                 });
             } else {
                 crate::child_roles::prepare(
@@ -1027,4 +1041,149 @@ impl Host {
 #[cfg(all(test, unix))]
 pub(super) mod tests {
     include!("access_provider_tests.rs");
+}
+
+// Canonical .167 package identity is the whole native successor inventory, not main-binary equality.
+fn canonical_167(i: &Inner) -> bool {
+    let Some(pin) = &i.version_identity else { return false; };
+    pin["declaredPin"] == "0.167.0"
+        && pin["distributionContentIdentity"].as_array().is_some_and(|rows| rows.iter().any(|r| r["path"] == "bin/codex" && r["identity"]["algorithm"] == "sha-256" && r["identity"]["value"] == "030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc"))
+        && (i.successor_status.as_ref().is_some_and(|s| s["verificationGeneration"] == i.generation && s["inventory"]["manifest_sha256"] == "158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b")
+            // PR197's assessment_preflight validates the full canonical tree before --version.
+            // Its legacy receiving path retains the complete42 per-file identities, not just main.
+            || (i.successor_status.is_none() && pin["distributionContentIdentity"].as_array().is_some_and(|rows| rows.len()==42)
+                && serde_json::to_vec(&pin["distributionContentIdentity"]).is_ok_and(|bytes|sha256_hex(&bytes)=="a4a5a0ab4e6f0572db715dd356e4afee9db1e8a3cef8e7e8a4a4da6a74009df9")))
+}
+impl Host {
+    pub(crate) fn require_canonical_167(&self, generation: &Value) -> Result<(), String> {
+        let i = self.inner.0.lock().map_err(|_| unavailable())?;
+        if i.generation != *generation || i.state != "ready" || i.server_requests.is_closed(generation) || !canonical_167(&i) { return Err(unavailable()); } Ok(())
+    }
+}
+
+fn child_supplier_subject(i: &Inner) -> Value {
+    json!({"identity":i.version_identity,"canonicalInventory":i.successor_status.as_ref().map(|s|json!({"generation":s["verificationGeneration"],"manifest":s["inventory"]["manifest_sha256"]}))})
+}
+
+/// Constructed only for the dedicated local HomeSession, never hydrated from public DTOs.
+pub(super) struct LocalProviderBinding { home: String, cwd: String }
+#[cfg(test)]
+impl LocalProviderBinding { pub(super) fn for_test(home:&str,cwd:&str)->Self { Self{home:home.into(),cwd:cwd.into()} } }
+impl Host {
+    pub(crate) fn bind_local_destination(&self, config: &HostConfig, plan: &crate::home_resources::OwnedHomePlan) -> Result<(), String> {
+        crate::native_local_provider::check(plan)?;
+        let expected = crate::native_local_provider::config(config,plan)?;
+        if config.codex_home != plan.native_path() || config.session_flags != expected.session_flags { return Err(unavailable()); }
+        let mut i=self.inner.0.lock().map_err(|_| unavailable())?;
+        if i.local_provider.is_some() || i.state!="absent" || !i.generation.is_null() { return Err(unavailable()); }
+        i.local_provider=Some(LocalProviderBinding{home:plan.opaque_home_id(),cwd:config.cwd.to_str().ok_or_else(unavailable)?.into()}); Ok(())
+    }
+    // Pure state/parameter guard. Caller already holds Inner; no recursion, IO or public capture.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn check_local_request(i:&Inner,method:&str,params:&Value,expected:Option<&Value>,handshake:bool,private_credential:bool,private_config:bool,admission:Option<&ProviderAdmission>)->Result<(),String> {
+        let Some(binding)=&i.local_provider else {return Ok(());};
+        let refuse=||Err(crate::native_local_provider::LIMIT.to_owned());
+        if i.generation["home"]!=binding.home || expected!=Some(&i.generation) || i.server_requests.is_closed(&i.generation) {return refuse();}
+        if method=="initialize" {return if handshake && i.state=="handshaking" {Ok(())}else{refuse()};}
+        if handshake || i.state!="ready" || !canonical_167(i) {return refuse();}
+        for key in ["auth","base_url","model_catalog_url","env_key","experimental_bearer_token","http_headers","env_http_headers","path"] {if params.get(key).is_some_and(|v|!v.is_null()){return refuse();}}
+        if params.get("cwd").is_some_and(|v|v!=&json!(binding.cwd)) {return refuse();}
+        let configured=|key:&str, expected:&str|params.get(key).is_none_or(|v|v.is_null()||v==expected);
+        if !configured("modelProvider",crate::native_local_provider::PROVIDER)||!configured("model",crate::native_local_provider::MODEL){return refuse();}
+        if params["collaborationMode"]["settings"].get("model").is_some_and(|v|v!=crate::native_local_provider::MODEL){return refuse();}
+        if params.get("config").is_some_and(|v|!v.is_null()) && method!="thread/start" {return refuse();}
+        let local_proof=||admission.is_some_and(|p|p.entry==crate::native_local_provider::ENTRY && p.cwd==binding.cwd && p.provider==crate::native_local_provider::PROVIDER && p.model==crate::native_local_provider::MODEL);
+        let thread_current=||i.threads.iter().rev().find(|t|t["generation"]==i.generation&&t["threadId"]==params["threadId"]&&t["threadId"].is_string()).is_some_and(|t|t["modelProvider"]==crate::native_local_provider::PROVIDER&&t["model"]==crate::native_local_provider::MODEL);
+        match method {
+            "account/login/start" if private_credential && params["type"]=="apiKey" => Ok(()),
+            "account/read" if params.as_object().is_some_and(|p|p.is_empty()) || *params==json!({"refreshToken":false}) => Ok(()),
+            "account/logout"|"configRequirements/read"|"modelProvider/capabilities/read"|"collaborationMode/list" if params.as_object().is_some_and(|p|p.is_empty()) => Ok(()),
+            "config/read" if private_config && params["cwd"]==binding.cwd && params["includeLayers"]==true && params.as_object().is_some_and(|p|p.len()==2) => Ok(()),
+            "thread/start" if params["cwd"]==binding.cwd && params["modelProvider"]==crate::native_local_provider::PROVIDER && params["model"]==crate::native_local_provider::MODEL && admission.is_some_and(|p|p.entry==crate::native_local_provider::ENTRY && (params.get("config").is_none_or(|c| c.is_null() || c.as_object().is_some_and(|c| c.is_empty())) || p.children.as_ref().is_some_and(|c| params["config"]==c.config))) => Ok(()),
+            "turn/start"|"turn/steer"|"turn/interrupt" if thread_current() => Ok(()),
+            // Same-role fork only: the exact packet, no instructions/model/config, on a current private reading.
+            // Codex loads layered configuration for an explicit request cwd ahead of any history-derived cwd,
+            // so local resume and fork always name the classified cwd.
+            "thread/fork" if thread_current() && params.as_object().is_some_and(|p|p.len()==3) && params["threadId"].is_string() && params["deferGoalContinuation"]==true && params["cwd"]==binding.cwd && local_proof() => Ok(()),
+            // Every local resume, admitted or saved, is only the exact original Continue packet, carried on
+            // a current private effective-configuration admission. No path/history/config/model rides on it.
+            "thread/resume" if params.as_object().is_some_and(|p|p.len()==3) && params["threadId"].as_str().is_some_and(|t|!t.is_empty()) && params["excludeTurns"]==true && params["cwd"]==binding.cwd && local_proof() => Ok(()),
+            // Local disk views carry no inference/account credential to a model transport.
+            "thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/loaded/list"|"thread/name/set"|"thread/archive"|"thread/unarchive"|"thread/unsubscribe" => Ok(()),
+            _=>refuse(),
+        }
+    }
+}
+
+impl ProviderAdmission {
+    pub(super) fn source(&self) -> &SourceRequest { &self.source }
+    pub(super) fn cwd(&self) -> &str { &self.cwd }
+}
+impl Host {
+    /// Role correlation uses the original receipt and this Host's private local
+    /// destination, not a cwd copied from sent/received JSON. Operational admission
+    /// still independently checks the current private configuration reading.
+    pub(crate) fn role_metadata_request(&self, source: &SourceRequest, request: crate::role_lifecycle::MetadataRequest) -> Result<crate::role_lifecycle::MetadataRequest, String> {
+        self.check_source(source)?;
+        let i = self.inner.0.lock().map_err(|_| unavailable())?;
+        let Some(binding) = &i.local_provider else { return Ok(request); };
+        if i.generation != *source.generation() || i.state != "ready" || i.server_requests.is_closed(source.generation())
+            || source.generation()["home"] != binding.home || request.generation() != source.generation()
+            || request.request_id() != source.request_id() || request.request_ref() != source.request_ref()
+            || source.frame["method"] != request.method() {
+            return Err(crate::native_local_provider::LIMIT.into());
+        }
+        Ok(request.with_classified_cwd(&binding.cwd))
+    }
+    /// Local Continue reads and classifies the effective provider definition before dispatch; None without a local binding.
+    pub(super) fn local_resume_admission(&self, generation: &Value, thread: &Value) -> Result<Option<ProviderAdmission>, String> {
+        let cwd = match self.inner.0.lock().map_err(|_| unavailable())?.local_provider.as_ref() { Some(b) => b.cwd.clone(), None => return Ok(None) };
+        let thread = thread.as_str().filter(|t| !t.is_empty()).ok_or(crate::native_local_provider::LIMIT)?;
+        // Codex resumes in the saved thread's own cwd and loads that cwd's configuration, so the
+        // classified reading must be for the same cwd. A saved thread elsewhere refuses before any resume.
+        let read = self.request_begin_scoped("thread/read", json!({"threadId":thread,"includeTurns":false}), json!({"kind":"person-directed"}), false, Some(generation))?;
+        self.source_request_wait(&read, Duration::from_secs(10)).map_err(|_| crate::native_local_provider::LIMIT)?;
+        let e = read.evidence();
+        if e["outcome"] != "response-observed-result" || e["sourceCurrent"] != true || e["response"]["result"]["thread"]["id"] != thread || e["response"]["result"]["thread"]["cwd"] != json!(cwd) {
+            return Err(crate::native_local_provider::LIMIT.into());
+        }
+        use crate::native_local_provider::{ENTRY, MODEL, PROVIDER};
+        self.provider_admission_read(generation, &cwd, ENTRY, PROVIDER, MODEL).map(Some)
+    }
+    /// Write-time recheck: the admitting reading is still the current private reading for the bound home.
+    pub(super) fn check_local_resume_proof(&self, i: &Inner, proof: &ProviderAdmission) -> Result<(), String> {
+        let Some(binding) = &i.local_provider else { return Err(unavailable()); };
+        if proof.entry != crate::native_local_provider::ENTRY || proof.cwd != binding.cwd || !canonical_167(i) { return Err(unavailable()); }
+        self.check_provider_read(i, &proof.source, &proof.cwd)
+    }
+    /// Fork source: the admitted local row must report the bound cwd (the cwd Codex reloads) and fixed selection.
+    pub(super) fn local_fork_admission(&self, generation: &Value, thread: &str) -> Result<Option<ProviderAdmission>, String> {
+        let cwd = {
+            let i = self.inner.0.lock().map_err(|_| unavailable())?;
+            let Some(binding) = &i.local_provider else { return Ok(None); };
+            let row = i.threads.iter().rev().find(|t| t["generation"] == *generation && t["threadId"] == thread);
+            if row.is_none_or(|t| t["cwd"] != json!(binding.cwd) || t["modelProvider"] != crate::native_local_provider::PROVIDER || t["model"] != crate::native_local_provider::MODEL) {
+                return Err(crate::native_local_provider::LIMIT.into());
+            }
+            binding.cwd.clone()
+        };
+        use crate::native_local_provider::{ENTRY, MODEL, PROVIDER};
+        self.provider_admission_read(generation, &cwd, ENTRY, PROVIDER, MODEL).map(Some)
+    }
+    /// Operational admission of a local Continue or fork still requires its admitting reading to be current.
+    pub(super) fn check_local_reading_current(&self, i: &Inner, source: Option<&SourceRequest>) -> Result<(), String> {
+        let Some(binding) = &i.local_provider else { return Ok(()); };
+        self.check_provider_read(i, source.ok_or(crate::native_local_provider::LIMIT)?, &binding.cwd)
+    }
+    /// A resumed or forked local thread is admitted only when its reported source is the fixed oMLX selection.
+    pub(super) fn check_local_reported(i:&Inner,result:&Value)->Result<(),String>{
+        if i.local_provider.is_none() {return Ok(());}
+        if result["modelProvider"]!=crate::native_local_provider::PROVIDER || result["model"]!=crate::native_local_provider::MODEL || result["cwd"]!=json!(i.local_provider.as_ref().map(|b|b.cwd.as_str())) {return Err(crate::native_local_provider::LIMIT.into());}
+        Ok(())
+    }
+    pub(crate) fn require_local_destination(&self,generation:&Value)->Result<(),String>{
+        self.require_canonical_167(generation)?;
+        let i=self.inner.0.lock().map_err(|_|unavailable())?;
+        if i.generation!=*generation || i.local_provider.as_ref().is_none_or(|b|generation["home"]!=b.home) {return Err(unavailable());} Ok(())
+    }
 }

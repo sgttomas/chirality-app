@@ -5,8 +5,8 @@
 //! model and provider, per Codex home (each home's `Host` keeps its own
 //! readings); the web view presents the reading and its reason.
 //!
-//! Signals at the 0.160.0 pin (generated types under
-//! `resources/supplier/0.160.0/`):
+//! Signals at the 0.167.0 pin (generated types under
+//! `resources/supplier/0.167.0/`):
 //! - `model/list` → `Model.multiAgentVersion` (`disabled` · `v1` · `v2`, or
 //!   null) of the entry whose `model` or `id` is the conversation's reported
 //!   model;
@@ -14,7 +14,9 @@
 //!   `Config` has no typed `features` field at the pin; it is read as an
 //!   additional property, and a configuration that was read and sets nothing
 //!   is read, not unread;
-//! - `modelProvider/capabilities/read` → `namespaceTools`.
+//! - `modelProvider/capabilities/read` no longer publishes `namespaceTools`.
+//!   The third required signal is unavailable, so availability is not
+//!   established. An untyped legacy echo cannot establish that capability.
 //!
 //! `model/list` and `modelProvider/capabilities/read` take no provider at the
 //! pin: they answer for the provider the app-server resolves for itself, not
@@ -46,11 +48,11 @@ pub(crate) fn signals(conversation: &Value, model: Result<Value, String>, config
     let other_provider = match &server {
         Ok(provider) if provider.is_string() && provider == conversation_provider => None,
         Ok(provider) => Some(format!(
-            "it takes no provider at Codex 0.160.0 and answers for the app-server's provider ({}), not the conversation's ({})",
+            "it takes no provider at Codex 0.167.0 and answers for the app-server's provider ({}), not the conversation's ({})",
             provider.as_str().unwrap_or("none named in the app-server's configuration"),
             conversation_provider.as_str().unwrap_or("not reported")
         )),
-        Err(cause) => Some(format!("it takes no provider at Codex 0.160.0 and the app-server's provider was not read ({cause})")),
+        Err(cause) => Some(format!("it takes no provider at Codex 0.167.0 and the app-server's provider was not read ({cause})")),
     };
     let version = match (&model, &other_provider) {
         (Err(cause), _) => {
@@ -92,23 +94,24 @@ pub(crate) fn signals(conversation: &Value, model: Result<Value, String>, config
             limits.push(format!("namespaceTools not read for this conversation: modelProvider/capabilities/read {why}"));
             Value::Null
         }
-        (Ok(result), None) => json!({"namespaceTools":result["namespaceTools"]}),
+        (Ok(_), None) => {
+            limits.push("namespaceTools is not published by Codex 0.167.0's provider-capabilities schema; delegation capability is not established".into());
+            Value::Null
+        },
     };
     json!({"model_multi_agent_version":version,"effective_config":effective,"provider_capabilities":capabilities,"limits":limits,
         "conversation":{"model":conversation["model"],"modelProvider":conversation["modelProvider"],"cwd":conversation["cwd"]}})
 }
 
-/// NPTD §7.1 in R21-1's order: (1) `multiAgentVersion` `disabled` → missing;
-/// (2) effective `features.multi_agent = false` → missing; (3) `namespaceTools`
-/// false → missing; (4) any of the three not read → not established; (5)
-/// otherwise present. Missing names the first reason in that order.
+/// Preserve NPTD §7.1's decisive negative model/config readings. At 0.167,
+/// the removed provider signal cannot establish either presence or absence;
+/// even an old in-memory echo must not promote this reading to present.
 pub(crate) fn evaluate(signals: Option<&Value>) -> Value {
     let Some(s) = signals else {
         return json!({"reading":"not established","reason":"the delegation signals were not read for this conversation yet (NPTD §7.1 (4)); the agent may be unable to start a sub-agent"});
     };
     let version = &s["model_multi_agent_version"];
     let config = &s["effective_config"];
-    let caps = &s["provider_capabilities"];
     let at = |reading: Value| {
         let mut reading = reading;
         reading["readAt"] = s["readAt"].clone();
@@ -120,16 +123,11 @@ pub(crate) fn evaluate(signals: Option<&Value>) -> Value {
     if config["features"]["multi_agent"] == false {
         return at(json!({"reading":"missing","reason":"the effective configuration sets features.multi_agent = false (NPTD §7.1 (2))"}));
     }
-    if caps["namespaceTools"] == false {
-        return at(json!({"reading":"missing","reason":"the provider reports namespaceTools false, so Codex sends no delegation tools (NPTD §7.1 (3))"}));
-    }
-    let version_read = version == "v1" || version == "v2";
-    if !version_read || !config.is_object() || caps["namespaceTools"] != true {
-        let limits: Vec<String> = s["limits"].as_array().into_iter().flatten().filter_map(|l| l.as_str().map(str::to_owned)).collect();
-        let detail = if limits.is_empty() { "one of multiAgentVersion, the effective configuration or namespaceTools was not read".to_owned() } else { limits.join("; ") };
-        return at(json!({"reading":"not established","reason":format!("{detail} (NPTD §7.1 (4)); the agent may be unable to start a sub-agent")}));
-    }
-    at(json!({"reading":"present","reason":null}))
+    let limits: Vec<String> = s["limits"].as_array().into_iter().flatten().filter_map(|l| l.as_str().map(str::to_owned)).collect();
+    let detail = if limits.is_empty() {
+        "Codex 0.167.0 does not publish namespaceTools; the required provider signal is unavailable".to_owned()
+    } else { limits.join("; ") };
+    at(json!({"reading":"not established","reason":format!("{detail} (NPTD §7.1 (4)); the agent may be unable to start a sub-agent")}))
 }
 
 /// `host_status`'s thread rows each gain `delegation`: the reading for that
@@ -174,11 +172,21 @@ mod tests {
     const UNREAD: fn() -> Result<Value, String> = || Err("no response".into());
 
     #[test]
+    fn a_removed_namespace_field_cannot_be_reintroduced_by_an_untyped_echo() {
+        for legacy in [true, false] {
+            let signals = json!({"model_multi_agent_version":"v2","effective_config":{},
+                "provider_capabilities":{"namespaceTools":legacy},"limits":[]});
+            assert_eq!(evaluate(Some(&signals))["reading"], "not established");
+        }
+    }
+
+    #[test]
     fn each_reading_in_r21_1_order_and_missing_names_the_first_reason() {
         let ok = || Ok(entry(Some("v2")));
         let present = read(ok(), Ok(config(None, Some("p"))), Ok(caps(true)));
-        assert_eq!(present["reading"], "present");
-        assert_eq!(reading(&read(Ok(entry(Some("v1"))), Ok(config(Some(true), Some("p"))), Ok(caps(true)))), "present", "v1 and multi_agent true");
+        assert_eq!(present["reading"], "not established");
+        assert!(present["reason"].as_str().unwrap().contains("not published by Codex 0.167.0"));
+        assert_eq!(reading(&read(Ok(entry(Some("v1"))), Ok(config(Some(true), Some("p"))), Ok(caps(true)))), "not established", "v1 still lacks the removed provider signal");
         // (1) disabled decides first, even with every other missing reading.
         let first = read(Ok(entry(Some("disabled"))), Ok(config(Some(false), Some("p"))), Ok(caps(false)));
         assert_eq!(first["reading"], "missing");
@@ -186,13 +194,13 @@ mod tests {
         // (2) multi_agent false before namespaceTools false.
         let second = read(ok(), Ok(config(Some(false), Some("p"))), Ok(caps(false)));
         assert!(second["reason"].as_str().unwrap().contains("features.multi_agent = false"), "{second}");
-        // (3) namespaceTools false.
+        // The removed legacy field is not a typed false or true at this pin.
         let third = read(ok(), Ok(config(None, Some("p"))), Ok(caps(false)));
-        assert_eq!(third["reading"], "missing");
-        assert!(third["reason"].as_str().unwrap().contains("(3)"));
+        assert_eq!(third["reading"], "not established");
+        assert!(third["reason"].as_str().unwrap().contains("not published"));
         // Missing wins over a signal not read.
         assert_eq!(reading(&read(UNREAD(), Ok(config(Some(false), Some("p"))), UNREAD())), "missing");
-        assert_eq!(reading(&read(UNREAD(), Ok(config(None, Some("p"))), Ok(caps(false)))), "missing");
+        assert_eq!(reading(&read(UNREAD(), Ok(config(None, Some("p"))), Ok(caps(false)))), "not established");
         assert_eq!(reading(&read(Ok(entry(Some("disabled"))), UNREAD(), UNREAD())), "missing");
     }
 
@@ -227,7 +235,7 @@ mod tests {
         }
         assert!(on(Ok(json!("other")), "v2", true)["reason"].as_str().unwrap().contains("app-server's provider (other), not the conversation's (p)"));
         assert_eq!(on(Ok(json!("p")), "disabled", true)["reading"], "missing");
-        assert_eq!(on(Ok(json!("p")), "v2", false)["reading"], "missing");
+        assert_eq!(on(Ok(json!("p")), "v2", false)["reading"], "not established");
         // No reading at all.
         assert_eq!(evaluate(None)["reading"], "not established");
         // RV21 (R21-1): a configuration never read is not "nothing set", even
@@ -242,7 +250,7 @@ mod tests {
     fn a_configuration_read_that_sets_nothing_is_read() {
         let s = signals(&conversation(), Ok(entry(Some("v2"))), Ok(config(None, Some("p"))), Ok(json!("p")), Ok(caps(true)));
         assert_eq!(s["effective_config"], json!({}));
-        assert_eq!(evaluate(Some(&s))["reading"], "present");
+        assert_eq!(evaluate(Some(&s))["reading"], "not established");
         let unread = signals(&conversation(), Ok(entry(Some("v2"))), UNREAD(), Ok(json!("p")), Ok(caps(true)));
         assert!(unread["effective_config"].is_null());
         // Nothing of the configuration but features.multi_agent is kept.
@@ -263,11 +271,8 @@ mod tests {
                     let got = read(v.clone(), c.clone(), k.clone());
                     let version = v.as_ref().ok().and_then(|e| e["multiAgentVersion"].as_str());
                     let multi = c.as_ref().ok().map(|c| c["config"]["features"]["multi_agent"].clone());
-                    let namespace = k.as_ref().ok().map(|k| k["namespaceTools"].clone());
-                    let expected = if version == Some("disabled") || multi == Some(json!(false)) || namespace == Some(json!(false)) {
+                    let expected = if version == Some("disabled") || multi == Some(json!(false))  {
                         "missing"
-                    } else if matches!(version, Some("v1" | "v2")) && multi.is_some() && namespace == Some(json!(true)) {
-                        "present"
                     } else {
                         "not established"
                     };
@@ -286,7 +291,7 @@ mod tests {
         other_model["threadId"] = json!("u");
         let mut threads = json!([conversation(), other_model]);
         annotate_threads(&mut threads, &readings);
-        assert_eq!(threads[0]["delegation"]["reading"], "present");
+        assert_eq!(threads[0]["delegation"]["reading"], "not established");
         assert_eq!(threads[1]["delegation"]["reading"], "not established", "another model has no reading yet");
     }
 }

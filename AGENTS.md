@@ -225,6 +225,7 @@ retain their original identities.
 Use a fresh scratch Codex home for development/tests, never `~/.codex`.
 Do not sign in or use credentials without the owner. Build offline by default;
 downloads require explicit permission identifying the file, source and size.
+Routine read-only inspection of public source code and documentation text is authorized; binary/archive downloads still require explicit file, source and size permission.
 
 The existing Parallels guest is the owner's CAEPIPE validation VM and is
 permanently off-limits to Windows development: no guest-targeted discovery,

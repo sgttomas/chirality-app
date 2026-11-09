@@ -85,7 +85,7 @@ fn capability(f: &Scratch, project: &Path) -> RecordsCapability {
 #[test]
 fn the_definition_is_a_valid_dynamic_tool_and_the_log_schema_is_the_design_copy() {
     assert_eq!(LOG_SCHEMA.as_bytes(), include_bytes!("../../contract_inputs/PKG-04/DEL-04-03/Work/records-read-log.entry.schema.json"), "the resource copy is byte-identical to the Design schema");
-    let mut schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json")).unwrap();
+    let mut schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).unwrap();
     schema["$ref"] = json!("#/definitions/v2/DynamicToolSpec");
     jsonschema::options().offline().build(&schema).unwrap().validate(&definition()).unwrap();
     jsonschema::options().build(&definition()["inputSchema"]).unwrap();
@@ -339,9 +339,9 @@ fn only_the_canonical_cursor_continues_a_page() {
 const PEER: &str = r#"#!/usr/bin/python3
 import sys,json,os
 if '--version' in sys.argv:
- print('codex-cli 0.160.0');sys.exit(0)
+ print('codex-cli 0.167.0');sys.exit(0)
 def emit(v):print(json.dumps(v),flush=True)
-def thread(cwd,identity='thread'):return {'id':identity,'cliVersion':'0.160.0','createdAt':1,'updatedAt':2,'cwd':cwd,'ephemeral':False,'modelProvider':'fixture-provider','preview':'fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
+def thread(cwd,identity='thread'):return {'id':identity,'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':cwd,'ephemeral':False,'modelProvider':'fixture-provider','preview':'fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
 threads={}
 for line in sys.stdin:
  f=json.loads(line)

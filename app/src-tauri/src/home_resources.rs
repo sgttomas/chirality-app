@@ -8,6 +8,7 @@ use std::path::{Component, Path, PathBuf};
 pub enum HomeClass {
     Account,
     ApiKey,
+    LocalProvider,
     Probe,
 }
 impl HomeClass {
@@ -15,6 +16,7 @@ impl HomeClass {
         match self {
             Self::Account => "account",
             Self::ApiKey => "api-key",
+            Self::LocalProvider => "local-provider",
             Self::Probe => "probe",
         }
     }
@@ -70,7 +72,7 @@ pub struct ExistingHomeReference {
 }
 impl ExistingHomeReference {
     pub fn new(native_path: PathBuf, class: HomeClass) -> Result<Self, String> {
-        if class == HomeClass::ApiKey {
+        if matches!(class, HomeClass::ApiKey | HomeClass::LocalProvider) {
             return Err("API-key home requires the owning-home plan".into());
         }
         let reference = Self { native_path, class };
@@ -205,7 +207,7 @@ impl OwnedHomePlan {
             );
         }
         match (class, &shared) {
-            (HomeClass::Probe, Some(_)) => return Err("probe receives no shared resources".into()),
+            (HomeClass::Probe | HomeClass::LocalProvider, Some(_)) => return Err("probe receives no shared resources".into()),
             (HomeClass::Account | HomeClass::ApiKey, None) => {
                 return Err("shared native resource references not established".into())
             }
@@ -346,11 +348,11 @@ impl OwnedHomePlan {
             class: self.class,
             native_path: self.home_path.clone(),
             opaque_home_id: self.opaque_home_id(),
-            resources: self
+            resources: if self.class == HomeClass::LocalProvider { vec![] } else { self
                 .targets()
                 .into_iter()
                 .map(|(n, t, d)| self.observe(n, t, d))
-                .collect(),
+                .collect() },
         })
     }
     /// Caller invokes only for its actual owning-home setup event. No startup/credential policy here.

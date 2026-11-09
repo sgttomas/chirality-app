@@ -32,7 +32,7 @@ fn validators() -> Result<&'static HashMap<String, jsonschema::Validator>, Strin
     VALIDATORS
         .get_or_init(|| {
             let source: Value = serde_json::from_str(include_str!(
-                "../resources/supplier/0.160.0/codex_app_server_protocol.schemas.json"
+                "../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json"
             ))
             .map_err(|e| e.to_string())?;
             ANSWERS
@@ -387,6 +387,14 @@ impl RequestRegister {
         }
         let method = frame["method"].as_str().ok_or("malformed-request")?;
         let (class, origin, error) = match method {
+            // 0.167 introduces managed checkpoints that require a new explicit
+            // initialize capability and one-time human decisions. We do not
+            // advertise/adopt it; never apply ordinary command/session grants.
+            "item/commandExecution/requestApproval" if frame["params"]["kind"] == "humanCommand" => (
+                "known-app-unsupported",
+                "app-rule:required-human-approval-not-adopted",
+                Some("Managed human-command approval is not adopted by this App"),
+            ),
             "item/tool/call" if offered.is_some() => match offered.as_ref().unwrap() {
                 Ok(_) => ("known-answerable","app-rule:managed-service-unavailable",None),
                 Err(reason) => ("known-app-unsupported","app-rule:managed-service-unavailable",Some(reason.message())),
@@ -714,6 +722,21 @@ mod tests {
         json!({"appSession":"s","home":"h","spawnCounter":1})
     }
     const ACTOR: &str = "person:Invented/test/unknown (identity not verified)";
+    #[test]
+    fn unadopted_human_command_never_becomes_an_ordinary_or_session_grant() {
+        for advertised in [false, true] {
+            let mut register = RequestRegister::default();
+            let reply = register.receive(&gen(), 1, &json!({
+                "id":"checkpoint", "method":"item/commandExecution/requestApproval",
+                "params":{"kind":"humanCommand","availableDecisions":["accept","acceptForSession","decline"]}
+            }), &json!({"experimentalApi":true,"requiredHumanApproval":advertised})).unwrap().unwrap();
+            assert!(reply.get("error").is_some());
+            assert_eq!(register.entries()[0]["classification"], "known-app-unsupported");
+            for decision in ["accept", "acceptForSession", "decline", "cancel"] {
+                assert!(register.prepare(&gen(), &json!("checkpoint"), &json!({"decision":decision}), "person", Some(ACTOR)).is_err());
+            }
+        }
+    }
     fn receive(r: &mut RequestRegister, method: &str, params: Value) -> Option<Value> {
         r.receive(
             &gen(),

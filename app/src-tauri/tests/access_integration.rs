@@ -379,8 +379,9 @@ fn frame_peer(fixture: &Fixture) -> HostConfig {
     std::fs::write(&peer, r#"#!/usr/bin/python3
 import json, os, sys
 # This is an owned fixture, never the stock supplier or a version witness.
+# Its synthetic --version label follows the current Host's DECLARED_PIN.
 if '--version' in sys.argv:
-    print('codex-cli 0.160.0')
+    print('codex-cli @PIN@')
     sys.exit(0)
 def emit(value):
     print(json.dumps(value), flush=True)
@@ -396,7 +397,7 @@ for line in sys.stdin:
         emit({'id':'fixture-request-' + str(sequence), 'method':'item/fileChange/requestApproval', 'params':{'threadId':'same-thread', 'turnId':'fixture-turn', 'itemId':'fixture-item', 'availableDecisions':['accept','decline']}})
     elif str(frame.get('id','')).startswith('fixture-request-'):
         emit({'method':'serverRequest/resolved', 'params':{'requestId':frame['id']}})
-"#).unwrap();
+"#.replace("@PIN@", chirality_app_v4_lib::hosting::DECLARED_PIN)).unwrap();
     std::fs::set_permissions(&peer, std::fs::Permissions::from_mode(0o700)).unwrap();
     let mut config = fixture.cfg.clone();
     config.codex_bin = peer;

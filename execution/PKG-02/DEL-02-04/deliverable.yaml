@@ -5,7 +5,7 @@ needs:
   condition: Consume DEL-01-01's supported native supplier receiving contract to implement additive role
     supply at the actual supplier boundary, including the native agent-role configuration through which
     delegated children receive product guidance and role, and the surfaces that record and show a task agent's
-    delegation. Development basis is the reviewed SUP1 0.160.0 (DEL-01-01 ScopeOfWork [S], CLM-003, REQ-006,
+    delegation. Current assessment/integration basis is owner-selected 0.167.0 (DEL-01-01 ScopeOfWork [U], CLM-003, REQ-006,
     TBD-002); qualification stays candidate-bound under R23-22.
   gating: true
   evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md

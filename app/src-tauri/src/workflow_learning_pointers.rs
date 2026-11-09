@@ -80,7 +80,7 @@ impl Pointer {
         let frame = source.attempted_frame();
         if source.generation() != &text.scope().generation
             || client.is_empty()
-            || !matches!(class, "H-acct" | "H-key")
+            || !matches!(class, "H-acct" | "H-key" | "H-omlx")
             || frame["method"] != "turn/start"
             || frame["params"]["threadId"] != text.scope().conversation
             || frame["params"]["clientUserMessageId"] != client

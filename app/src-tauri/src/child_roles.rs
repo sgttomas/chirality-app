@@ -1,4 +1,4 @@
-//! Bounded 0.160.0 native-name observations and App-owned immutable child files.
+//! Bounded 0.167.0 source-compatible native-name inspection and App-owned child files.
 //! Absence is scoped to one reading. It is never a lock on later native inputs.
 use crate::role_supply::{content, Composition, Guidance, Role};
 use serde_json::{json, Value};
@@ -18,11 +18,12 @@ const LIMIT: &str =
 const CONTROLS: &[&str] = &[
     "enabled",
     "max_concurrent_threads_per_session",
+    "max_threads",
     "max_depth",
     "default_subagent_model",
     "default_subagent_reasoning_effort",
     "job_max_runtime_seconds",
-    "interrupt_message_enabled",
+    "interrupt_message",
 ];
 const MAX_SOURCE: u64 = 8 * 1024 * 1024;
 #[derive(Default)]

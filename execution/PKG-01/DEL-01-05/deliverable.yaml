@@ -31,6 +31,13 @@ needs:
   gating: false
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 code_paths:
+- app/src-tauri/schemas/sync.py
+- app/src-tauri/src/native_local_provider.rs
+- app/src-tauri/src/native_secure_entry.rs
+- app/src-tauri/src/home_resources.rs
+- app/src-tauri/src/access.rs
+- app/src-tauri/src/stop_records.rs
+- app/src-tauri/src/waiting_requests.rs
 - app/src/ModelChoice.tsx
 - app/src-tauri/src/model_catalog.rs
 - app/src-tauri/src/desktop_setup_confirmation.rs
@@ -51,6 +58,7 @@ code_paths:
 - app/supplier_checks/child_roles.py
 - app/src-tauri/tests/config_write_contract.rs
 checks:
+- app/src-tauri/src/native_local_provider.rs
 - app/src-tauri/src/model_catalog.rs
 - app/src-tauri/src/desktop_setup_confirmation.rs
 - app/src-tauri/src/desktop_startup.rs

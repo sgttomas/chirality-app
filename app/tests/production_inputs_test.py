@@ -317,6 +317,16 @@ class ProductionInputs(unittest.TestCase):
             self.run_plan()
         self.assertFalse(self.output.exists())
 
+    def test_0167_layout_cannot_borrow_the_older_distribution_reference(self):
+        self.metadata.update(version='0.167.0', execServer='bin/codex-exec-server')
+        (self.vendor/'codex-package.json').write_text(json.dumps(self.metadata))
+        helper = self.vendor/'bin/codex-exec-server'
+        helper.write_bytes(bytes.fromhex('cffaedfe') + b'INVENTED; never execute')
+        helper.chmod(0o755)
+        with self.assertRaisesRegex(ValueError, 'selected vendor does not match mapped supplier reference'):
+            self.run_plan(pin='0.167.0', expected_manifest=module.inventory.scan(self.vendor)['manifest_sha256'])
+        self.assertFalse(self.output.exists())
+
     def test_empty_directories_glob_metadata_and_checkout_refuse(self):
         (self.vendor/'empty').mkdir()
         with self.assertRaisesRegex(ValueError,'empty resource'):self.run_plan()

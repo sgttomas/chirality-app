@@ -109,10 +109,10 @@ if '--version' in sys.argv:
  assert os.getcwd()==os.environ['CODEX_HOME']
  assert not any(name in os.environ for name in ['OPENAI_API_KEY','CODEX_API_KEY','CODEX_ACCESS_TOKEN'])
  {body}
- print('codex-cli 0.160.0'); sys.exit(0)
+ print('codex-cli 0.167.0'); sys.exit(0)
 for line in sys.stdin:
  f=json.loads(line)
- if 'id' in f: print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.160.0'}}}}),flush=True)
+ if 'id' in f: print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.167.0'}}}}),flush=True)
 "#)).unwrap();
             std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o700)).unwrap();
             let mut cfg = HostConfig::new(bin, root.join("account"), root.join("probe"), root.clone());
@@ -143,7 +143,7 @@ for line in sys.stdin:
             inner.start_admission = Some(super::super::StartAdmission::NotSpawned(1));
         }
         let (_, label, _) = host.verify(1, &f.cfg);
-        assert_eq!(label.as_deref(), Some("codex-cli 0.160.0"));
+        assert_eq!(label.as_deref(), Some("codex-cli 0.167.0"));
         assert!(host.probe_processes.lock().unwrap().is_empty());
     }
 

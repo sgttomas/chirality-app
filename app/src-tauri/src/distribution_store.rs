@@ -474,7 +474,7 @@ mod tests {
             .unwrap();
             let store = Store::open(&root.join("app"), &root.join("vendor"), bindings).unwrap();
             let g = json!({"appSession":"fixture","home":home.opaque_home_id(),"spawnCounter":1});
-            let attempt = json!({"format":"host-successor-attempt.s2","standing":"unverified-development","verificationGeneration":g,"rawVersionLabel":"codex-cli 0.160.0\n"});
+            let attempt = json!({"format":"host-successor-attempt.s2","standing":"unverified-development","verificationGeneration":g,"rawVersionLabel":"codex-cli 0.167.0\n"});
             Self {
                 root,
                 store,
