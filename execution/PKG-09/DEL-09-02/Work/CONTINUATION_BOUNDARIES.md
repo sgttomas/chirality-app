@@ -34,18 +34,16 @@ before using them, and use process checks only after Quit.
   to manufacture freshness. Automated actions retain agent attribution and
   cannot establish a personal human act. Headless injected joins do not qualify
   AppKit/WebKit, native dialogs or supplier startup.
-- Ordinary offline App builds and cloud-Codex development testing proceed
-  without the shared slot/memory-guard prerequisite, under the owner's direction
-  that resources are not a concern when no local model server is used. Routine
-  testing and setup corrections within authorized scope continue without a new
-  resource-permission round. Agent-operated development witnesses on built
+- Ordinary offline App builds and authorized development testing, including
+  use of the owner-selected oMLX service, proceed with reasonable concurrency
+  without shared resource windows or a shared slot/memory-guard prerequisite.
+  Routine testing and setup corrections within authorized scope continue without
+  a new resource-permission round. Agent-operated development witnesses on built
   candidates may use the established App-owned ChatGPT route within bounded
   time and turn limits under that standing testing direction; each binds its
   actual artifact and inputs. This changes no shared guard script or service.
-  Shared local model loads and RSS/timing measurements require
-  advance resource coordination and the existing exclusive measurement wrapper.
-  Overruns or resident workloads affecting release must be reported. These
-  controls confer no new local-model or measurement undertaking.
+  Separate measurements retain any isolation required by their selected method;
+  this resource rule confers no new model acquisition or measurement undertaking.
 - Authentication, new cloud scope, access/spend, acceptance, signing and release
   stay with the owner under [AGENTS](../../../../AGENTS.md). Retained stock-download
   receipts and previous hosted choices are evidence of their exact scopes, not

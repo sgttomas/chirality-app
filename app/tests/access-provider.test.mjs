@@ -281,7 +281,8 @@ test('late rows cannot survive an away/back home epoch, full generation restart 
    ready();return new Promise(resolve=>release=()=>resolve(result.response.value));
   },async(c,calls,view)=>{
    let pending;await React.act(async()=>{pending=props(button(c,'Read configured local providers')).onClick();await waiting;});
-   if(changeSource==='home-away-back'){await press(c,'Use api-key home');await press(c,'Use account home');}
+   // The legacy home can still be observed; the current product no longer offers its button.
+   if(changeSource==='home-away-back'){const original=view.snapshot;view.setSnapshot({...original,homeRouting:{...original.homeRouting,activeModeHomeClass:'api-key'}});await view.refresh();view.setSnapshot(original);await view.refresh();}
    else{view.setSnapshot(changeSource==='generation'?{...view.snapshot,generation:{...view.snapshot.generation,spawnCounter:2}}:changeSource==='project'?{...view.snapshot,currentAppProjectContext:{reference:'/invented/different-project'}}:{...view.snapshot,state:'absent'});await view.refresh();}
    await change(labelled(c,'input','Model '),'newer-source-model');await change(labelled(c,'input','Configured Codex provider '),'newer-source-provider');
    await React.act(async()=>{release();await pending;});

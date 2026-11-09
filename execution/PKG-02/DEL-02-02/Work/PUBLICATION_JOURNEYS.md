@@ -1,5 +1,40 @@
 # Two usable journeys required before 4.0.0
 
+## Current product/UI priority
+
+The owner reports that the App is still a skeleton with substantial UI work
+remaining. Functional J1/J2/P3 development observations establish their actual
+subjects; they do not establish publication usability or owner acceptance.
+Product/UI work takes priority; final packaging/signing readiness is parked.
+The v3 overall visual form remains the reference, without importing v3 tools.
+
+The current increment puts the conversation composer and Send before optional
+model/effort and long role/fork explanations. Connection has one primary
+ChatGPT sign-in action and a separate oMLX/local alternative; advanced sign-in
+and exact source/response diagnostics remain available in disclosures. Run's
+project context distinguishes a known project with an unavailable readable
+folder from a missing project, and never substitutes the workflow library's
+path. Named task steps and turn regions improve accessible structure; raw
+command details, output and reasoning are optional while messages, statuses,
+requests and failures remain readable.
+
+The active access scope is account plus oMLX/local. Standalone OpenAI API-key
+mode and its qualification commitment are omitted by owner direction; local
+bearer credentials remain required. The current receiver is anonymous-only,
+so keyed oMLX is visibly pending the separate native-access contribution and
+implementation of the adopted Codex-custody dedicated local home. Actual oMLX
+compatibility remains unverified. The supplier lane owns the selected 0.167.0 advance;
+this UI increment adds no generated protocol or native credential behavior.
+
+The retained source-rendered visual checkpoint uses actual components, the
+existing v3-derived palette/IBM Plex assets and invented data:
+`/Users/ryan/dev/chirality-t3/scratch/app-ui-product-focus-33e4bppo/visual/`.
+`VISUAL_CHECKPOINT.json` identifies the actual PNG/HTML outputs, including
+`conversation-final.png` and `connection-revised.png`. These are browser
+source-design observations, not AppKit/WebKit interaction, model use, native AX
+qualification or visual/usability acceptance. Current Work holds the product
+meaning; check/review execution belongs in the implementation PR.
+
 ## Owner direction and scope, 2026-11-03
 
 After using signed candidate `b3dd4145` (source `f664ee1d`), the owner reported

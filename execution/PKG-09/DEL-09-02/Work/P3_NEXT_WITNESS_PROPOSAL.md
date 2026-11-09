@@ -65,11 +65,14 @@ harness definitions are not refreshed into new evidence here.
 | Access mode | Current evidence | Remaining actual input/result |
 |---|---|---|
 | ChatGPT account | J1/J2 account-backed work plus the candidate-bound ordinary P3 segment above | Remaining native recovery stimuli and applicable final-candidate/installed qualification; this result does not establish credential-custody or destination qualification. |
-| API key | Native protocol and offline receiving preparation; no actual key-mode qualification | Owner-selected separate App-owned H-key, key entry through supported native UI, intended endpoint/model and storage/plugin settings; actual key-mode use and preservation of the account/local configurations. No key is requested in chat or copied from another home. |
+| Standalone OpenAI API key | Omitted by owner from the active product increment and its qualification commitment | Prior native plumbing/fixtures retain their subjects. This omission does not remove oMLX/local bearer authentication. |
 | Local provider | Historical server/model observations retain their original pair and limits | Owner-selected available server/model/version/endpoint and local-resource/use decision; candidate-bound provider/Responses configuration and useful conversation, with unsupported tools/delegation and unknown destination facts stated truthfully. No discovery, download, probe, model load or substitute follows from the account result. |
 
-All three remain required under ACCESS's two-home arrangement, with switching
-preserving the others' configuration. This is not a mode × every-stimulus
+The current owner scope requires account plus oMLX/local, including its local
+credential, with switching preserving the other configuration. The frontend
+currently reports anonymous-only receiving; keyed oMLX remains pending native
+implementation of the adopted Codex-custody dedicated local home and actual
+oMLX compatibility. This is not a mode × every-stimulus
 matrix or a new gate. Credential-custody observation remains privacy-bounded;
 absence of credentials from a public log is not custody evidence.
 
@@ -90,6 +93,7 @@ Agent 0 carries reserved owner choices and selects the next useful actual
 stimulus. None is predecided by this successful ordinary segment.
 
 [Continuation boundaries](CONTINUATION_BOUNDARIES.md) still govern live work.
-This result changes no qualification criterion, historical pin, Scope or
-dependency condition, and grants no new credentials, local-model, signing,
+The P3 result itself changes no criterion or historical pin. The later owner
+API omission is reconciled in the current ACCESS and qualification Scopes; it
+creates no API-key pass. This account grants no credentials, local-model, signing,
 release, download or VM authority. Final-candidate applicability remains owed.

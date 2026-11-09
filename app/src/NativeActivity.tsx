@@ -217,7 +217,7 @@ function ItemBody({ row, plans, runStart = false }: { row: Json; plans: Json[]; 
         <pre style={pre}>{streamed(row) ?? text(n.text)}</pre></div>;
     case "reasoning": {
       const summary: Json[] = Array.isArray(row.summaryPreview) && row.displayState !== "completed" ? row.summaryPreview : list(n.summary);
-      return <div><i>Reasoning summary</i><Unfinished row={row} />{summary.length === 0 ? <i> (none supplied{row.displayState === "completed" ? "" : " so far"})</i> : <pre style={pre}>{summary.map(text).join("\n\n")}</pre>}</div>;
+      return <details><summary>Reasoning summary<Unfinished row={row} /></summary>{summary.length === 0 ? <i> (none supplied{row.displayState === "completed" ? "" : " so far"})</i> : <pre style={pre}>{summary.map(text).join("\n\n")}</pre>}</details>;
     }
     case "plan": {
       // An ordinal counts revisions in the order this App received them, so it
@@ -232,11 +232,13 @@ function ItemBody({ row, plans, runStart = false }: { row: Json; plans: Json[]; 
     }
     case "commandExecution": {
       const startSource = row.startNative?.source;
-      return <div><b>Command</b> <code>{text(n.command)}</code><StateLine row={row} />
+      return <div><b>Command</b><StateLine row={row} />
+        {typeof n.exitCode === "number" && n.exitCode !== 0 && <p role="status">Command exited with code {n.exitCode}.</p>}
+        <details><summary>Command details</summary><code>{text(n.command)}</code>
         <Shown label="cwd" value={n.cwd} />
         <div>source: {startSource !== undefined && startSource !== n.source ? `${text(startSource)} at start, ${text(n.source)} at completion` : text(n.source ?? "not supplied")}{n.source === "userShell" && " (the App's call at the person's direction)"}</div>
-        <Shown label="exit code" value={n.exitCode} /><Shown label="duration ms" value={n.durationMs} />
-        {resultNotSupplied(row) ? <div>result not supplied by Codex</div> : <LongText label={streamed(row) !== null ? "output so far" : "output"} text={streamed(row) ?? n.aggregatedOutput} />}</div>;
+        <Shown label="exit code" value={n.exitCode} /><Shown label="duration ms" value={n.durationMs} /></details>
+        {resultNotSupplied(row) ? <div>result not supplied by Codex</div> : <details><summary>Command output{streamed(row) !== null ? " so far" : ""}</summary><LongText label={streamed(row) !== null ? "output so far" : "output"} text={streamed(row) ?? n.aggregatedOutput} /></details>}</div>;
     }
     case "fileChange":
       return <div><b>File change</b><StateLine row={row} />
@@ -441,7 +443,7 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
   const offersFor = (row: Json) => target === threadId && renderOffer ? list(offers).filter((offer: Json) => offer?.message?.threadId === row.threadId && offer?.message?.turnId === row.turnId && offer?.message?.itemId === row.native?.id) : [];
   return <div ref={container} aria-label="Native activity">
     <h3>Activity</h3>
-    <p>Codex types {text(view?.typesPin) || "not reported"} · supplier standing {String(view?.supplierStanding ?? "not established")}. {list(view?.limits).map(text).join(" ")}</p>
+    <details><summary>Activity source and limits</summary><p>Codex types {text(view?.typesPin) || "not reported"} · supplier standing {String(view?.supplierStanding ?? "not established")}. {list(view?.limits).map(text).join(" ")}</p></details>
     {descendants.length > 0 && <label>Show <select value={target} onChange={e => {
       revision.current++; setPending(null);
       setShown(e.target.value === threadId ? "" : e.target.value);
@@ -455,9 +457,10 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
     {unplaced.length > 0 && <div><small>Workflow runs in this conversation whose position this view cannot show:</small>
       {unplaced.map((run: Json) => <div key={text(run.reference)}>{!shownTurns.has(run.turn) && <RunStartMarker run={run} />}{run.lifecycle?.end && !shownTurns.has(run.endedAfterTurn) && <RunEndMarker run={run} />}</div>)}</div>}
     {model.turns.length === 0 && <p>No activity observed for this conversation in the current Codex generation. This view shows what the App received live in this generation and what it has read from Codex history; earlier generations' observations remain under the native JSON below.</p>}
-    {model.turns.map(turn => <section key={text(turn.turnId)} style={{ borderTop: "1px solid #ccc", marginTop: 8 }}>
+    {model.turns.map((turn, index) => <section key={text(turn.turnId)} aria-label={`Conversation turn ${index + 1}`} style={{ borderTop: "1px solid #ccc", marginTop: 8 }}>
       {ownRuns.filter((run: Json) => run.turn === turn.turnId).map((run: Json) => <RunStartMarker key={text(run.reference)} run={run} />)}
-      <div><small>Turn {text(turn.turnId)} · {turn.native ? `native status ${text(turn.native.status)}` : "turn status not observed"}{turn.native?.durationMs != null && ` · ${text(turn.native.durationMs)} ms`}</small></div>
+      <h4>{`Turn ${index + 1}`} · {turn.native ? text(turn.native.status) : "status unknown"}</h4>
+      <details><summary>Turn source and timing</summary><small>Turn {text(turn.turnId)} · {turn.native ? `native status ${text(turn.native.status)}` : "turn status not observed"}{turn.native?.durationMs != null && ` · ${text(turn.native.durationMs)} ms`}</small></details>
       {turnLabel(target, turn.turnId) && <p role="note"><small>{text(turnLabel(target, turn.turnId))}</small></p>}
       <StopLabel stop={stopLabelFor?.(target, text(turn.turnId)) ?? null} />
       {turn.native?.error?.message && <p role="alert">Turn error: {text(turn.native.error.message)}</p>}

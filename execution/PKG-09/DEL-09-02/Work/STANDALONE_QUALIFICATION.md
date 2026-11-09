@@ -536,10 +536,15 @@ private evidence and AX/text-only limits are stated there once; J1/J2 retain
 their separate evidence subjects.
 
 This bounded result supplies no complete SQ dossier or installed/release
-qualification. Key/local access, ST-4/ST-5, observer detachment and live-request
+qualification. oMLX/local access, ST-4/ST-5, observer detachment and live-request
 Quit need their real stimuli; affected F7/length/filter and ACT choices remain
-open. No historical pin/harness is renewed and no Scope, supplier criterion or
-dependency condition changes.
+open. The owner now selects account plus oMLX/local for this increment and
+omits standalone OpenAI API-key product/qualification scope; local bearer
+support remains required and currently pending the separate native receiver.
+Current Scope/dependency conditions carry that correction. Historical dossier
+criteria, pins and harness subjects are not refreshed or reported as passed.
+Functional development observations and source-rendered screens do not settle
+the owner's remaining UI/usability concern; final packaging/signing is parked.
 
 ## Current implementation conditions
 

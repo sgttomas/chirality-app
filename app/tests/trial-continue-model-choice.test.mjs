@@ -104,7 +104,7 @@ test('a home or generation change keeps the clean trial inputs, makes the choice
     release(packet({generation:g2})); await ui.settle();
     assert.deepEqual(buttons(ui.c, 'Use Model'), [], 'a late reply for the earlier source chooses and offers nothing');
     assert.doesNotMatch(region(ui.c, 'Available models').textContent, /Models Codex reports|out of date/, 'the late reply is not shown at all');
-    assert.ok(button(ui.c, 'Use this home\'s API key (built-in OpenAI)'), 'the API-key home offers its own route');
+    assert.equal(button(ui.c, 'Use this home\'s API key (built-in OpenAI)'), undefined, 'the omitted OpenAI-key mode offers no route');
     assert.deepEqual(acts, []);
   });
 });
@@ -218,7 +218,7 @@ test('in the App, a generation or home change keeps the clean trial composer and
     snapshot = status({...g2, home:'api-key'}, 'api-key', 'workflow-home:b'); await refresh();
     assert.equal(panel(), before, 'a home change keeps it too');
     assert.equal(props(inputs()).value, 'EDITED before generation change');
-    assert.ok(button(panel(), 'Use this home\'s API key (built-in OpenAI)'), 'the new home offers its own route');
+    assert.equal(button(panel(), 'Use this home\'s API key (built-in OpenAI)'), undefined, 'the omitted mode does not offer a route; edited inputs remain kept');
     assert.deepEqual(acts, [], 'nothing was started or sent');
   } finally {
     const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);
