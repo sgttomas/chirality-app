@@ -47,7 +47,10 @@ require another owner decision.
   without the shared slot/memory-guard prerequisite, under the owner's direction
   that resources are not a concern when no local model server is used. Routine
   testing and setup corrections within authorized scope continue without a new
-  resource-permission round. This changes no shared guard script or service.
+  resource-permission round. Agent-operated development witnesses on built
+  candidates may use the established App-owned ChatGPT route within bounded
+  time and turn limits under that standing testing direction; each binds its
+  actual artifact and inputs. This changes no shared guard script or service.
   Shared local model loads and RSS/timing measurements require
   advance resource coordination and the existing exclusive measurement wrapper.
   Overruns or resident workloads affecting release must be reported. These
