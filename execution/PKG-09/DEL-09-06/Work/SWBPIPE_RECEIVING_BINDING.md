@@ -1,5 +1,50 @@
 # SWBPIPE receiving source and admission correspondence
 
+## Current P5 host information
+
+The authoritative [host P5 input account](https://github.com/sgttomas/SWBPIPE/blob/1b8b8b054026c93daf8f03cbfb81e41aaae22dd0/execution/PKG-16/DEL-16-06/Work/app-p5-host-inputs.md)
+is integrated by SWBPIPE PR187. It assesses code and inputs at
+`8b02f8b9ec07a02e7427fb07107cb41e6bc2a2e0`; the account's merge revision
+identifies the received document, not a qualified native executable. DEL-09-06
+receives this source information for [DEL-09-07's next qualification inputs](../../DEL-09-07/Work/SWBPIPE_RECEIVING.md#next-p5-qualification-inputs).
+
+App's adopted catalog/producer selection remains the v4 basis below. The host's
+maintained catalog is now `apps/desktop/src-tauri/resources/agent-capability-catalog.json`,
+SHA256 `8e9a4b4e3eec027d092033ea5d95f1648030520e797c5a660ab387531f23be17`,
+with the same bytes at the adopted and assessed revisions. Producer changes
+include strict engine/catalog hash conversion, shared deletion-summary formatters
+and native result custody with a post-await ownership check. Catalog equality
+does not adopt those changed producers: the projects must agree a concrete later
+candidate and App must reconcile affected inputs before adopting it. V3/v4
+fixtures and historical native/source subjects retain their separate identities.
+
+### Actual offered and admission path
+
+At the assessed source, Operations > Agent selects/saves the provider revision
+and context window; the person starts a session and sends a request.
+`EmbeddedAgentPanel.tsx` uses `embeddedAgentSession.ts` and native
+`lib.rs::embedded_agent_host`; `live_host.rs`, `live_runtime.rs` and
+`session_driver.rs` own the bound workspace/start and supplier/protocol route.
+`Catalog::declarations` emits all seven tools in `Tool::ALL` order into
+`thread/start.params.dynamicTools`. The catalog has no exposure/agreement fields
+and this route has no `exposure.E` gate. Their absence establishes no agreement.
+
+Supplier calls enter `protocol.rs::tool_call` for current thread/turn, unique
+identities, supported tool/no namespace, bounded schema-valid arguments,
+proposal tuples/cap and pending capacity; `dispatcher.rs` rechecks arguments,
+basis and custody. This live ingress does not call App's `receive_calls`
+projection, whose callers in App are tests. The bridge's `offered: Option<Claim>`
+is a one-use execution claim, not exposure metadata. Thus the open
+[TL-1 consumer question](../../../PKG-05/DEL-05-01/Work/PENDING_INTERPRETATIONS.md#tl-1-keep-local-and-host-outcomes-distinguishable)
+is not demonstrated to block this native route. Seven dynamic declarations do
+not establish the complete serialized supplier wire set; corrected capture is
+still owed. No new P5 gate follows from this source finding.
+
+The host account owns the exact capture, native, W9-A and full-system input
+mapping; DEL-09-07 applies it to qualification below. The older fixture, joined
+and publication sections in this account retain their checkpoint subjects and
+then-current activation gaps, not assertions that today's source route is absent.
+
 ## Current integrated catalog-v4 receiving
 
 The [explicit v4 selection](catalog-v4/RECEIVING_ADOPTION.md) receives SWBPIPE PR27 actual merge
@@ -363,12 +408,9 @@ the repair supplies no joined live witness, qualification or acceptance.
 
 ## Remaining joined inputs
 
-The current basis above supersedes earlier pending-review, pending-merge and
-pending-harmless-roundtrip statements. SWBPIPE still owes the activated desktop
-route, actual proposal review/application and truthful stale/interruption/outcome
-evidence, native cleanup/isolation and full reference-system capability.
-DEL-09-07 still needs candidate-bound local journey, durable evidence joins and
-complete same-run traffic/native-enforcement observations. The
-[receiving map](../../DEL-09-07/Work/SWBPIPE_RECEIVING.md) assigns these inputs
-and identifies acceptance reconciliation reserved to the owner. W9-A remains
-development evidence only. Source receipt does not qualify either product.
+The [current qualification inputs](../../DEL-09-07/Work/SWBPIPE_RECEIVING.md#next-p5-qualification-inputs)
+replace the older activation-gap account with the nearest source-bound host
+contributions and their actual owners. That account retains the candidate-bound
+journey, human acts, full reference system, recovery and traffic obligations,
+and acceptance reconciliation reserved to the owner. Source receipt does not
+qualify either product.
