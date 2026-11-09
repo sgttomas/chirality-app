@@ -119,10 +119,10 @@ test('queued duplicate presses dispatch the original Fork only once',async()=>{
  const held=deferred();await mounted({fork:async r=>{await held.promise;return r;}},async ui=>{const click=props(button(ui.c,'Fork (same role)')).onClick;await React.act(()=>{click();click();});assert.equal(ui.forkCount(),1);await React.act(async()=>{held.resolve();});assert.equal(ui.selected(),key('fork-1'));assert.equal(ui.forkCount(),1);});
 });
 
-// Local-home Fork stays explicitly unavailable until the native Fork path has
-// the same effective-configuration admission as local Continue (native d448c92
-// checks only reported provider/model/cwd). The guarded positive cases below
-// are enabled together with LOCAL_FORK_AVAILABLE on that fixed native head.
+// Local-home Fork depends on native PR198 eacb1bf651d60884bbc042377865b4359930100d
+// (effective-configuration admission at dispatch, write and finish). The
+// positive cases run while LOCAL_FORK_AVAILABLE is enabled for that dependency;
+// the unavailable case runs only if it is disabled again.
 const {LOCAL_FORK_AVAILABLE}=loadSrc('LocalProviderAccess');
 const localFork={skip:LOCAL_FORK_AVAILABLE?false:'local Fork awaits native effective-config admission'};
 test('local-home Fork is shown unavailable and a retained press dispatches nothing',{skip:LOCAL_FORK_AVAILABLE},async()=>{

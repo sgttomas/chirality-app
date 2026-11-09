@@ -7,10 +7,11 @@ type Json = any;
 
 export const LOCAL_MODE = "local-provider";
 export const LOCAL_ENTRY = "local-provider-keyed";
-// Same-role Fork in the local home stays unavailable until the native Fork
-// path carries the same effective-configuration admission as local Continue.
-// Enable only with that fixed native head; the frontend guards are ready.
-export const LOCAL_FORK_AVAILABLE = false;
+// Same-role Fork in the local home depends on native PR198
+// eacb1bf651d60884bbc042377865b4359930100d, whose Fork path carries the same
+// effective-configuration admission as local Continue. Without that native
+// dependency this must be false, which shows Fork unavailable here.
+export const LOCAL_FORK_AVAILABLE = true;
 export const LOCAL_FORK_UNAVAILABLE = "Fork isn't available in the local oMLX home yet: the check that a fork keeps the fixed oMLX settings is still being added.";
 const STATES = ["entry-required", "configured-not-verified"] as const;
 export type LocalCredentialState = typeof STATES[number];

@@ -1707,9 +1707,10 @@ starts with `local-provider-keyed`, that provider and model. Start rechecks that
 route against the current ready generation immediately before dispatch, and a
 post-command refresh cannot replace a newer observation. Account sign-in and
 model discovery stay with the account home. Same-role Fork in the local home
-is shown unavailable until the native Fork path carries the same
-effective-configuration admission as local Continue. Its frontend scope then
-uses the existing original generation, home, epoch and intent guards.
+depends on the native Fork path carrying the same effective-configuration
+admission as local Continue, and is offered only with that native
+contribution. Its frontend scope uses the existing original generation, home,
+epoch and intent guards; without that dependency it is shown unavailable.
 The webview never receives a key, and
 this glue chooses no wire field, secret store or credential write. The supplier
 lane owns the selected 0.167.0 generation/runtime advance.
