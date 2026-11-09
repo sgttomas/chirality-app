@@ -4,7 +4,8 @@ The current observations are [J1](J1_REAL_MODEL_ACTUAL_20261108.md) and
 [J2](J2_PARTIAL_ACTUAL_20261108.md). Their actual source identities and limits
 remain authoritative. The owner approved one registration attempt and, only if
 successful, one fresh-conversation reuse turn on PR160's repaired development
-artifact. That artifact remains unlaunched. This is a separate bounded scope;
+artifact. The continuation stopped at first-run setup before its prepared launch
+route ran, as J2 records. Its stop-only scope supplies no retry. This is a separate bounded scope;
 the earlier J1/J2 campaigns remain consumed.
 
 The selected subject is the source `475c9b8f` artifact identified in J2.
@@ -24,11 +25,18 @@ Offline preparation verified the artifact/resources, unchanged inputs and
 draft package, existing project/store linkage and absent original Apps. Required
 guarded preflight then refused before invoking the App because the shared
 memory guard was absent; no App, supplier or model invocation occurred.
-Restoration requires Root's owner-authorized shared-service action, including
-its effect on other live workloads. The J2 grant supplies no guard-activation
-or bypass authority. Agent 0 resumes only after the guarded route is usable and
-the bound artifact/input/process facts are rechecked. Exact private proposal and
-preparation inputs are retained at the root identified in J2.
+The owner then explicitly removed the guard/slot prerequisite for this
+cloud-Codex J2 continuation only. This changes no shared script or guard policy
+and authorizes no guard startup or local model server. The subsequent native
+state request opened the App without the prepared explicit environment; Agent 0
+stopped on the setup mismatch and confirmed normal closure. No registration or
+reuse was submitted. The existing runner's obsolete slot-parent assertion is
+removed under that exception; its other launch inputs, original-process checks,
+time limit and normal cleanup remain. It has not been invoked. Another attempt
+requires a new bounded launch decision and rechecked artifact/input/process facts;
+launch the prepared runner before requesting native App state. Exact private
+proposal, preparation and stopped-operation inputs are retained at the root
+identified in J2.
 
 ## Constraints at the native boundary
 

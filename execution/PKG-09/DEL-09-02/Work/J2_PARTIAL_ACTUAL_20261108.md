@@ -72,13 +72,34 @@ workflow and supplier resource closures matched their source/retained inputs.
 The build root is
 `/Users/ryan/dev/chirality-t3/scratch/app-dev-candidate-20261107-cc364a95-frgztvs6/`;
 its `READY_BUNDLE`, `BUILD_BINDING.json` and `RESOURCE_INVENTORIES.json` identify
-the artifact. It has not been launched or signed/installed-qualified.
+the artifact. It remains unsigned/debug development evidence, without installed
+qualification.
 
 The owner selected the bounded registration/fresh-conversation continuation in
 [continuation boundaries](CONTINUATION_BOUNDARIES.md), preserving this artifact
 and the earlier trial/recovery subjects. Registration and reuse remain
-unobserved; guarded preflight refused before any new invocation. The proposal at
+unobserved. Initial guarded preflight refused before invoking the App. The owner
+subsequently waived the guard/slot prerequisite for this cloud-Codex J2 only.
+Before the prepared explicit-environment runner was invoked, a native Computer
+Use `get_app_state` request unexpectedly opened the candidate through its default
+launch route. Its App-owned accessibility output showed first-run setup: an empty
+project field, new settings selected and Review setup disabled. No setup,
+registration or reuse controls were used. This is a launch-order error in the
+development operation, not evidence against the repaired A15 sheet or the
+explicit-environment route.
+
+Agent 0 stopped on that settings-route mismatch, requested normal Quit through
+the existing Computer Use keyboard action and confirmed original PID 49134
+absent. No retry followed. The executable, build/resource bindings, all 65 bundled
+resource entries, preserved project files, project link, shared configuration and
+supplier binary retained their checked identities; reuse output remains absent.
+No A15/library-versus-project record-location finding was obtained. The prepared
+runner now accepts the owner-approved guard exception, with Python syntax
+validation only; it has not run. A new bounded launch decision is needed before
+another attempt, with the prepared runner launched before any Computer Use state
+request. The proposal at
 `/Users/ryan/dev/chirality-t3/scratch/app-j2-registration-reuse-lsjpcmen/PROPOSAL.md`
 and its `PREPARATION.json`, `SUBJECT.json` and `OWNER_APPROVAL.json` retain the
-exact selected private inputs. The account changes no acceptance, dependency
+exact selected private inputs; `NATIVE_START_STOP.json` retains the stopped
+operation, closure and preservation checks. The account changes no acceptance, dependency
 condition or publication authority.
