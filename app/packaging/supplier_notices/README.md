@@ -36,3 +36,10 @@ terms texts, retained ripgrep tag/tree responses and `Cargo.lock`, and retained
 pcre2-sys/PCRE2/sljit metadata and source text. `--check FILE` compares its output with
 `codex-0.167.0/rg-ripgrep-15.2.0.json`. It is not a byte join with the selected
 release archive.
+
+`v8_0167.py` recomputes the code-mode-host V8-stack association the same way.
+It reads retained Codex 0.167.0 tree responses and blob-verified Codex,
+`v8/v8` and `seanh-oai/rusty_v8` source text, and the committed
+`v8-15.2.124.1/` and `rusty_v8-350c5a85/` terms texts. `--check FILE` compares
+its output with `codex-0.167.0/code-mode-host-v8.json`. It does not show what
+the shipped host links.

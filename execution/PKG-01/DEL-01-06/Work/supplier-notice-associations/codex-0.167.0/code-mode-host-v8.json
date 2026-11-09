@@ -1,0 +1,130 @@
+{
+ "format": "codex-code-mode-host-v8-association/1",
+ "tool_sha256": "666615ee25949db1ab059a2c8867173b68d7a221f79631ac8077c002b2f18492",
+ "codex_commit": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
+ "v8_engine": {
+  "repository": "https://github.com/v8/v8",
+  "tag": "15.2.124.1",
+  "commit": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+  "codex_patches": [
+   "//patches:v8_source_portability.patch",
+   "//patches:v8_array_sort_elements_kind.patch",
+   "//third_party/v8:v8_defs.patch"
+  ]
+ },
+ "v8_crate": {
+  "repository": "https://github.com/seanh-oai/rusty_v8",
+  "commit": "350c5a859a9b3c84ab8701b3ad51e3b7699b30c0",
+  "name": "v8",
+  "version": "152.2.0",
+  "license": "MIT",
+  "fork_v8_submodule_commit": "c4ca1eccb90c5464d826b7713dc27178a53b0cfe",
+  "fork_v8_submodule_differs_from_engine_pin": true
+ },
+ "prebuilt_archive": {
+  "name": "librusty_v8_ptrcomp_sandbox_release_aarch64-apple-darwin.a.gz",
+  "sha256": "feab9ae0384bebaa99c1d000654462c9d42123d587185c7876aaeef7d76ff749",
+  "url": "https://github.com/openai/codex/releases/download/rusty-v8-v152.2.0/librusty_v8_ptrcomp_sandbox_release_aarch64-apple-darwin.a.gz",
+  "held": false
+ },
+ "other_pins": {
+  "icu": {
+   "remote": "https://chromium.googlesource.com/chromium/deps/icu.git",
+   "commit": "d578f2e8b7bd5938e21cfb6bf15c079e0aa5b738",
+   "agrees_with_v8_deps": true,
+   "terms_text_held": false
+  },
+  "libcxx": {
+   "remote": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxx.git",
+   "commit": "b16984ce99c702355a5b2b4c52574e82cec41fb9",
+   "agrees_with_v8_deps": true,
+   "terms_text_held": false
+  },
+  "libcxxabi": {
+   "remote": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxxabi.git",
+   "commit": "8f11bb1d4438d0239d0dfc1bd9456a9f31629dda",
+   "agrees_with_v8_deps": true,
+   "terms_text_held": false
+  },
+  "llvm_libc": {
+   "remote": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libc.git",
+   "commit": "75ae50cd48c8a9d70f552ccff040029968778da9",
+   "agrees_with_v8_deps": null,
+   "terms_text_held": false
+  }
+ },
+ "terms_texts": [
+  {
+   "repository": "https://github.com/v8/v8",
+   "commit": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "path": "LICENSE",
+   "local_text": "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE",
+   "size_bytes": 3093,
+   "sha256": "6ab33af8774a0f396ee3aeeb761e3229057682d6f9fa7f572e390c2cb3a6e509",
+   "git_blob_sha1": "9898b2d4833bfe87c05ba9106f082ed600bb2aab"
+  },
+  {
+   "repository": "https://github.com/v8/v8",
+   "commit": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "path": "LICENSE.v8",
+   "local_text": "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE.v8",
+   "size_bytes": 1527,
+   "sha256": "4af93c12062c58058378de2397dc1c92bbff9ddfb1d583a01c84127557ce97ca",
+   "git_blob_sha1": "933718a9ef9dae4cb4afa56e490211760d8a949f"
+  },
+  {
+   "repository": "https://github.com/v8/v8",
+   "commit": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "path": "LICENSE.fdlibm",
+   "local_text": "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE.fdlibm",
+   "size_bytes": 250,
+   "sha256": "e7115e18444dae09d17f361ddc365fb1d342640fe500796209c63f7c80dfae10",
+   "git_blob_sha1": "b54cb52278e1847b4f9faa1db09d6b526cd3ddc6"
+  },
+  {
+   "repository": "https://github.com/v8/v8",
+   "commit": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "path": "LICENSE.strongtalk",
+   "local_text": "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE.strongtalk",
+   "size_bytes": 1482,
+   "sha256": "6a585a9f466654abc8fc0829d56b1bc987e3a073d31faa03bba37d33640a23cd",
+   "git_blob_sha1": "9bd62e4f231a357d47073bdece85373325dd732f"
+  },
+  {
+   "repository": "https://github.com/seanh-oai/rusty_v8",
+   "commit": "350c5a859a9b3c84ab8701b3ad51e3b7699b30c0",
+   "path": "LICENSE",
+   "local_text": "app/packaging/supplier_notices/rusty_v8-350c5a85/LICENSE",
+   "size_bytes": 1078,
+   "sha256": "1c6356fb751d45f0c53093ebf8a7f5e580e802f51999178e19d60f3ec39e147d",
+   "git_blob_sha1": "5a671244de937cfc449c42d48da7867e4f0a7852"
+  }
+ ],
+ "retained_responses": [
+  {
+   "name": "v8-ref-tag.json",
+   "sha256": "de07441bff703a6a3731f3d517be48f60d49b9d2f0988fe1332a027a8f12c9cf",
+   "size": 370
+  },
+  {
+   "name": "v8-root-tree.json",
+   "sha256": "aaab750dc33522c94c2e532a5f623e81f86e3b77c19c3f3ad2bc5a1b949fc5ef",
+   "size": 14459
+  },
+  {
+   "name": "fork-root-tree.json",
+   "sha256": "ccaadce4ce8906a8fa6398fb9bc28988d6acae127f05a9bdb832454c4dd217db",
+   "size": 7085
+  },
+  {
+   "name": "fork-gitmodules",
+   "sha256": "21a40b0ff12b590f7033dd9c05eec4b00478f0d3d558f5925fe2960b042aa880",
+   "size": 2952
+  }
+ ],
+ "limits": [
+  "No execution, network access, acquisition, signature validation or legal conclusion.",
+  "Codex documents that release builds link its published rusty-v8-v152.2.0 archive built from this Bazel graph; the shipped code-mode-host is not joined to that archive or graph here.",
+  "V8 states that externally maintained libraries and sub-directory LICENSE files carry their own terms; those, ICU, libc++/libc++abi, llvm-libc and the other pinned V8 dependencies are not covered by these texts."
+ ]
+}

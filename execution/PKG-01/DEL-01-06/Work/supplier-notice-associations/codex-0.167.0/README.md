@@ -16,6 +16,9 @@ SHA-256 values `associations.json` records. It executes no supplier code and
 opens no network connection. `rg-ripgrep-15.2.0.json` is recomputed the same way by
 [`ripgrep_0167.py`](../../../../../../app/packaging/supplier_notices/ripgrep_0167.py)
 (`<canonical rg> <retained ripgrep dir> <retained pcre2-sys dir> --check <file>`).
+`code-mode-host-v8.json` is recomputed by
+[`v8_0167.py`](../../../../../../app/packaging/supplier_notices/v8_0167.py)
+(`<retained Codex metadata dir> <retained V8/rusty_v8 dir> --check <file>`).
 `source-text-receipt.json` records the 173 public source-text files read and
 verified on 2026-11-09; their bodies are held privately and not committed.
 What the records establish, and what remains open,
