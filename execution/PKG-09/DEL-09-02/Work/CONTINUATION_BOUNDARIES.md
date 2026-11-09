@@ -16,17 +16,8 @@ was established. Original draft, trial, inputs, outputs and project/store
 identity were preserved. The supported explicit workspace/records-store route
 selected that existing project/store without migration or copied evidence.
 
-The owner removed the guard/slot prerequisite for cloud-Codex work and directed
-ordinary development testing to proceed; this also covers offline App builds.
-No shared script or guard policy changed, and no guard startup or local model
-server was authorized. A setup-only native state read initially opened
-the App without the prepared environment; normal Quit preserved that failed
-start. The owner directed routine testing to continue, and the prepared runner
-then launched the completed segment before Computer Use. Native state requests
-can open an absent App: check the original process before using them, and use
-process checks only after Quit. Exact private inputs and actual results are
-retained in J2. Routine test setup corrections within authorized scope do not
-require another owner decision.
+Native state requests can open an absent App: check the original process
+before using them, and use process checks only after Quit.
 
 ## Constraints at the native boundary
 
