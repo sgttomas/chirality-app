@@ -239,6 +239,8 @@ impl LibraryOwner {
                         row["label"] = json!("registered — re-confirm to use in this App session");
                         row["selectable"] = json!(false);
                         row["offered"] = json!("Refine (RF-1); Review a draft with its bytes (DS-8)");
+                        // WR §4.8 RC-2: this row's route is re-confirmation.
+                        row["reconfirm"] = json!(true);
                     }
                     Err(cause) => {
                         row["label"] = json!(format!("registered in this App session — not selectable now: {cause} (LS-4)"));

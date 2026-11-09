@@ -154,3 +154,43 @@ test('a saved trial conversation opens History with only its ID in the search: n
     assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content'].includes(cmd)), [], 'no history read, selection, home change or Continue');
   } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
 });
+
+test('a registered revision to re-confirm links from Run to its own row in the workflow studio, issuing no command', async () => {
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  const previous = {getElementById:document.getElementById, setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval};
+  document.getElementById = id => c.querySelectorAll(n => n.getAttribute('id') === id)[0] ?? null;
+  globalThis.setInterval = () => 0; globalThis.clearInterval = () => {};
+  const {registeredRevisionAnchor} = loadSrc('RunJourney');
+  const cold = {name:'load-check', sequence:1, revision:'b'.repeat(64), label:'registered — re-confirm to use in this App session', selectable:false, reconfirm:true, offered:'Refine (RF-1); Review a draft with its bytes (DS-8)'};
+  const library = {reference:'lib-1', origin:'project', root:'/p/.chirality', sourceRoot:'src', registered:[cold], entryListing:{state:'not observed', entries:[], limits:[]}};
+  const withLibrary = {...host, workflowRoot:{...host.workflowRoot, activeLibrary:'lib-1', libraries:[library]}};
+  const calls = [];
+  const idle = installIdleNativeWaiting(async command => {
+    calls.push(command);
+    if (command === 'host_status') return structuredClone(withLibrary);
+    if (command === 'decision_view') return {rows:[]};
+    if (command === 'native_confirmation_content') return [];
+    assert.fail(`Unexpected IPC: ${command}`);
+  });
+  try {
+    await React.act(async () => root.render(React.createElement(App)));
+    const anchor = registeredRevisionAnchor('lib-1', 'load-check', 'b'.repeat(64));
+    assert.notEqual(anchor, registeredRevisionAnchor('lib-1', 'load-check', 'a'.repeat(64)), 'each revision has its own place');
+    const row = c.querySelectorAll(n => n.getAttribute('id') === anchor)[0];
+    assert.ok(row, 'the studio row has its own place');
+    assert.match(row.textContent, /re-confirmation/);
+    assert.ok(nodes(row, 'button').some(b => b.textContent === 'Refine from the revision store…'));
+    const link = nodes(c, 'a').find(a => a.textContent === 'Re-confirm load-check in the workflow studio');
+    assert.ok(link, 'the Run guide offers the re-confirmation route');
+    assert.equal(link.getAttribute('href'), `#${anchor}`);
+    const main = nodes(c, 'main')[0];
+    let prevented = false;
+    await React.act(async () => props(main).onClick({target:link, currentTarget:main, preventDefault:() => { prevented = true; }}));
+    assert.equal(prevented, true);
+    assert.equal(row.getAttribute('tabindex'), '-1', 'focus lands on that revision');
+    let owner = null;
+    for (let node = row; node; node = node.parentNode) { const v = node.getAttribute?.('data-workspace-view'); if (v) { owner = node; break; } }
+    assert.ok(owner && !owner.hidden, 'its view is shown');
+    assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content'].includes(cmd)), [], 'following the link refines, reviews and selects nothing');
+  } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
+});
