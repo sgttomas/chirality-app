@@ -2490,7 +2490,7 @@
     {
       "source": "execution/PKG-02/DEL-02-02/Work/workspace-registration.schema.json",
       "copy": "app/contract_inputs/PKG-02/DEL-02-02/Work/workspace-registration.schema.json",
-      "sha256": "66dc407802e8f927e6414f0db60e3d52e341e34b651151dc14524ebc048edc22"
+      "sha256": "ed6994c86e28bf28df47f98a80b094d779e6d2779a8191c4a4a6c3a7b8d79620"
     },
     {
       "source": "execution/PKG-02/DEL-02-02/Work/workspace-registration.valid.examples.jsonl",

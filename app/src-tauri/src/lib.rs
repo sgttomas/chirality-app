@@ -89,6 +89,7 @@ mod waiting_requests;
 mod native_waiting;
 #[cfg(test)] mod waiting_requests_tests;
 pub(crate) mod workflow_declaration;
+pub(crate) mod workflow_assurance;
 pub(crate) mod workflow_workspace;
 mod workflow_selection;
 pub(crate) mod workflow_trial_transcript;
@@ -2099,6 +2100,23 @@ fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:St
     // WR SQ-D D-2: the opened library's drafts are listed at once.
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
 }
+/// Plain IPC may raise assurance; it has no relaxed/Boolean input.
+#[tauri::command(async)]
+fn workflow_assurance_robust(state: State<'_, AppState>) -> Result<Value, String> {
+    let root = state.workflows.lock().unwrap();
+    root.assurance.request(workflow_workspace::registration::AssuranceLevel::Robust)?;
+    Ok(root.snapshot())
+}
+/// An IPC request only opens the person's native act control. Only its opaque
+/// event can lower the host setting; no caller-provided confirmation is accepted.
+#[tauri::command(async)]
+fn workflow_assurance_relaxed(window: tauri::Window, state: State<'_, AppState>) -> Result<Value, String> {
+    let (identity, epoch) = state.workflows.lock().unwrap().assurance.lowering_context();
+    let event = act_control::confirm_assurance_lowering(&window, identity, epoch)?;
+    let root = state.workflows.lock().unwrap();
+    if let Some(event) = event { root.assurance.lower(event)?; }
+    Ok(root.snapshot())
+}
 /// "Select revision ‹n›" on a retained review: resolved from the revision
 /// store (WR SL-4); no folder picker.
 #[tauri::command(async)]
@@ -2954,7 +2972,7 @@ pub fn run() {
             continue_as_send_read,
             conversation_fork,
             set_person_name,
-            workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_open_project_library,workflow_observe_drafts,workflow_library_entries_refresh,workflow_review_library_entries,workflow_trial_prepare,workflow_trial_again,workflow_trial_cancel,workflow_trial_send,workflow_trial_start_clean,workflow_trial_link,workflow_trial_unlink,workflow_trial_read,workflow_trial_bring_back,workflow_run_bring_back,workflow_bring_back_cancel,workflow_bring_back_send,workflow_trial_compare,workflow_review_draft,workflow_select_registered,workflow_select_listed,workflow_follow_newer_revision,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_reopened_notice,workflow_review_digest,native_confirmation_content,
+            workflow_assurance_robust,workflow_assurance_relaxed,workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_open_project_library,workflow_observe_drafts,workflow_library_entries_refresh,workflow_review_library_entries,workflow_trial_prepare,workflow_trial_again,workflow_trial_cancel,workflow_trial_send,workflow_trial_start_clean,workflow_trial_link,workflow_trial_unlink,workflow_trial_read,workflow_trial_bring_back,workflow_run_bring_back,workflow_bring_back_cancel,workflow_bring_back_send,workflow_trial_compare,workflow_review_draft,workflow_select_registered,workflow_select_listed,workflow_follow_newer_revision,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_reopened_notice,workflow_review_digest,native_confirmation_content,
             decision_view,
             continue_decision_recording,
             compose_offer,

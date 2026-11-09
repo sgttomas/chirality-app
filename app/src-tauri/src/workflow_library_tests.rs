@@ -2301,7 +2301,7 @@ fn workflow_reselection_select_offered_only_while_the_store_verifies() {
     let rows = owner.registered_listing();
     let row = rows.as_array().unwrap().iter().find(|r| r["revision"] == two.revision()).unwrap();
     assert_eq!(row["selectable"], false, "{row}");
-    assert!(row["label"].as_str().unwrap().contains("not selectable now: revision not verified"), "{row}");
+    assert!(row["label"].as_str().unwrap().contains("revision not verified"), "{row}");
     assert!(row["offered"].as_str().unwrap().contains("LS-4") && !row["offered"].as_str().unwrap().contains("Select"), "{row}");
     let untouched = rows.as_array().unwrap().iter().find(|r| r["revision"] == one.revision()).unwrap();
     assert_eq!(untouched["selectable"], true, "{untouched}");
@@ -2649,4 +2649,87 @@ fn a15_single_entry_portable_move_or_copy_keeps_history_and_needs_new_hot_confir
         fs::remove_dir_all(foreign_data).unwrap();
         fs::remove_dir_all(local_data).unwrap();
     }
+}
+
+/// Owner 2026-11-09: disk LS-1 standing is fresh at every selection/use.
+#[test]
+fn relaxed_disk_standing_survives_process_loss_and_refuses_each_ls4_cause() {
+    let s = Scratch::new();
+    let snapshot = s.put("sample", false, "registered once");
+    let first = {
+        let owner = s.persistent_owner();
+        let first = register(&owner, snapshot.revision());
+        assert_eq!(first.select().assurance(), Some("in-process A15"));
+        first
+    };
+    let mut cold = s.persistent_owner();
+    assert!(!cold.is_held(first.identity()));
+    cold.set_assurance_level(AssuranceLevel::Relaxed);
+    let selection = cold.resolve_registered(first.identity()).unwrap().select();
+    assert_eq!(selection.assurance(), Some("relaxed disk-read"));
+    let row = &cold.registered_listing()[0];
+    assert_eq!(row["selectable"], true);
+    assert!(row["label"].as_str().unwrap().contains("not verified by seal"));
+    assert!(!cold.is_held(first.identity()), "disk reading never becomes an in-process act");
+    let store = cold.store_copy(first.identity());
+    selection.verify_store(&store).unwrap();
+    cold.set_assurance_level(AssuranceLevel::Robust);
+    assert!(selection.verify_store(&store).is_err(), "raising invalidates disk-only use even after selection");
+    cold.set_assurance_level(AssuranceLevel::Relaxed);
+    let file = store.join("notes.txt");
+    let original = fs::read(&file).unwrap();
+    fs::write(&file, b"tampered").unwrap();
+    assert!(cold.resolve_registered(first.identity()).is_err());
+    assert!(selection.verify_store(&store).is_err(), "fresh at use after selection");
+    fs::remove_file(&file).unwrap();
+    assert!(cold.resolve_registered(first.identity()).is_err(), "missing store bytes");
+    fs::write(&file, original).unwrap();
+    let log = storage::library_log(&s.0);
+    let acts = fs::read(&log).unwrap();
+    fs::remove_file(&log).unwrap();
+    assert!(cold.resolve_registered(first.identity()).unwrap_err().contains("not found"));
+    assert!(selection.verify_store(&store).is_err(), "missing A15 at use");
+    // Valid alternate A15 log: the registered ledger line cites an act bound to other content.
+    let other = Scratch::new();
+    let other_snapshot = other.put("sample", false, "other content");
+    let other_owner = other.persistent_owner();
+    let other_registered = register(&other_owner, other_snapshot.revision());
+    fs::write(&log, fs::read(storage::library_log(&other.0)).unwrap()).unwrap();
+    let ledger_path = s.0.join(".chirality/workflow-registry.jsonl");
+    let ledger = fs::read(&ledger_path).unwrap();
+    let mut line: Value = serde_json::from_slice(&ledger).unwrap();
+    line["act"]["record_id"] = json!(other_registered.act_ref());
+    fs::write(&ledger_path, format!("{line}\n")).unwrap();
+    assert!(cold.resolve_registered(first.identity()).unwrap_err().contains("bound to other content"));
+    fs::write(&ledger_path, ledger).unwrap();
+    fs::write(&log, acts).unwrap();
+    cold.resolve_registered(first.identity()).unwrap();
+    fs::remove_dir_all(&store).unwrap();
+    assert!(cold.resolve_registered(first.identity()).is_err(), "missing store folder");
+}
+
+#[test]
+fn robust_never_accepts_disk_standing_or_falls_back_to_relaxed() {
+    let s = Scratch::new();
+    let snapshot = s.put("sample", false, "work");
+    let owner = s.persistent_owner();
+    let first = register(&owner, snapshot.revision());
+    owner.resolve_registered(first.identity()).expect("present native A15 remains usable");
+    let mut cold = s.persistent_owner();
+    cold.set_assurance_level(AssuranceLevel::Robust);
+    let error = cold.resolve_registered(first.identity()).unwrap_err();
+    assert!(error.contains("valid capture seal") && error.contains("Re-confirm") && error.contains("not accepted under robust"), "{error}");
+    assert_eq!(cold.registered_listing()[0]["selectable"], false);
+    // Changing the capture into a purported seal is never a disk-only admission.
+    let rows = read_ledger(&s.0).unwrap();
+    let capture_path = storage::library_capture_path(&s.0, rows[0]["act"]["capture_evidence"].as_str().unwrap());
+    {
+        assert!(capture_path.exists());
+        let mut capture: Value = serde_json::from_slice(&fs::read(&capture_path).unwrap()).unwrap();
+        capture["seal"] = json!({"method":"forged","value":"other-installation:bad"});
+        fs::write(&capture_path, serde_json::to_vec(&capture).unwrap()).unwrap();
+    }
+    assert!(cold.resolve_registered(first.identity()).is_err(), "invalid/foreign/unavailable seal never downgrades");
+    cold.set_assurance_level(AssuranceLevel::Relaxed);
+    cold.resolve_registered(first.identity()).unwrap();
 }

@@ -247,6 +247,17 @@ nothing that requires the act (ACT §2.3; DS-5).
 
 ### 4.4 Relaunch recovery (AC-R1)
 
+The App's workflow assurance choice is process memory, never restored from a
+project, preference file or renderer claim. Raising to robust is ordinary;
+choosing relaxed requires the person's explicit native confirmation through
+this act control. Its opaque event names the App setting and epoch; no Boolean
+or file can construct it. Cancellation, missing native window and stale epoch
+refuse without a change. It makes no A15 or project act record. Relaunch resets
+to the once-resolved keychain-availability default (WR §4.6), as the UI states.
+Registration and DS-8 re-confirmation attempt capture sealing through the
+already selected SEAL-C keychain provider whenever its key is available, at
+either level; unavailable sealing preserves present A15 with an unsealed limit.
+
 On relaunch the host reads its capture store and DEL-04-03's logs. It joins
 by the record's capture-evidence reference, then verifies the entry against
 the capture (§5.2a); it never treats a missing `recordId` backlink as proof
@@ -260,6 +271,7 @@ unreadable or ambiguous log set leaves recovery pending with its cause; it
 cannot justify a new append. Cold-process capture/pending files with unverified
 origin remain held with "capture origin not verified; automatic act replay
 held"; no new `human_act` is appended. A capture is never re-made or back-dated.
+Workflow selection is separately governed by WR §4.6/§4.8 RC-2: relaxed accepts fresh LS-1 disk standing without replaying an act; robust requires a valid installation seal for cold standing or a present native A15 in this process. This grants no automatic act append.
 Trustworthy persistent replay of actual native captures remains required;
 this clarification does not close that obligation or select its mechanism.
 
@@ -371,7 +383,7 @@ capture still in its trusted hot-process custody, after checking stored facts
 are unchanged; file content never recreates that custody. After restart, an
 unverified capture/pending file cannot authorize a new act append. Keep its
 bytes/facts and show "capture origin not verified; automatic act replay held".
-Refresh, timers or discovery cannot turn such files into a native act.
+Refresh, timers or discovery cannot turn such files into a native act. WR's owner-selected relaxed disk check admits an already registered workflow for use only; it does not authenticate that earlier act or authorize replay.
 
 Exactly one valid matching existing RS entry may repair the add-once backlink,
 subject to the same matching facts and durability checks; this appends no act
@@ -461,8 +473,8 @@ as the owner's U-STORE-2 decision (2026-10-12: "Evidence; re-register") now
 states in RS §13.8. New A15 capture/record attribution carries an optional
 unverified `installation` reference from the App data identity; older captures
 or identity persistence failures remain installation unknown. This is quoted
-attribution only: no native-origin authentication, signing or cold selection
-is established (RS §13.8; WR §4.8 RC-2). The capture
+attribution only: no native-origin authentication or signing
+is established; workflow selection applies WR §4.8 RC-2 independently (RS §13.8; WR §4.8 RC-2). The capture
 lock is per capture folder: a project's in its store subtree, a library's in
 the library; recovery takes both, the library's first.
 

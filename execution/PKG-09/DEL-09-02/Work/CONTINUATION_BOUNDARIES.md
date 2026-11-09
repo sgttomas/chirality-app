@@ -72,3 +72,10 @@ private roots. These raw inputs are not in Git and their present integrity or
 availability is not established by the repository. If needed, App Agent 0
 must obtain owner-controlled access; if unavailable, report that evidence limit.
 Do not publish or copy private homes, credentials, builds or journals as recovery.
+
+J2 cross-session reuse on a future subject applies the App assurance policy
+in [WR §4.6/RC-2](../../../PKG-02/DEL-02-02/Work/WORKSPACE_AND_REGISTRATION.md):
+relaxed uses fresh LS-1 disk standing without re-confirmation; robust needs a
+valid installation seal or a new in-process A15 through DS-8. Record the level,
+selection/run assurance and any native lowering act; no older J2 witness is
+requalified. A session choice resets to the default on relaunch.

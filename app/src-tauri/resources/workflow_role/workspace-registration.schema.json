@@ -949,7 +949,7 @@
             "in place",
             "re-confirmation"
           ],
-          "description": "'in place' covers single and multi-entry in-place registrations (DS-7, §4.7). 're-confirmation' (CC-WR-RECONFIRM, DS-8) is carried by 're-confirmed' lines and by 'not completed' lines of a re-confirmation."
+          "description": "'in place' covers single and multi-entry in-place registrations (DS-7, \u00a74.7). 're-confirmation' (CC-WR-RECONFIRM, DS-8) is carried by 're-confirmed' lines and by 'not completed' lines of a re-confirmation."
         },
         "prior_revision": {
           "$ref": "#/$defs/identity_or_none"
@@ -989,7 +989,7 @@
           }
         },
         "reviewed_entry": {
-          "description": "L-4: for an in-place registration of a library entry reviewed directly (WR §4.7), the entry's ID-3 string and content.",
+          "description": "L-4: for an in-place registration of a library entry reviewed directly (WR \u00a74.7), the entry's ID-3 string and content.",
           "type": "object",
           "required": [
             "entry",
@@ -1252,6 +1252,14 @@
               "pattern": "^(project|user|bundled|host):(?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$"
             }
           }
+        },
+        "assurance": {
+          "description": "Assurance actually applied: relaxed disk-read is fresh LS-1 disk standing without seal verification; robust sealed requires a valid installation keychain capture seal; in-process A15 is a present native act held by this process, at either level. Optional for backward compatibility: absent means unknown, never inferred from standing.",
+          "enum": [
+            "relaxed disk-read",
+            "robust sealed",
+            "in-process A15"
+          ]
         }
       },
       "allOf": [
@@ -1783,7 +1791,7 @@
       "pattern": "^[0-9a-f]{64}$"
     },
     "text_identity": {
-      "description": "WR §16.3 TX-4 / CC-WR-TEXT-METHOD-ADOPTION: new App text uses chirality.app.exact-bytes.sha256/v1 over exact UTF-8 bytes. Historical and other method/value inputs remain opaque; different methods are incomparable, never relabelled.",
+      "description": "WR \u00a716.3 TX-4 / CC-WR-TEXT-METHOD-ADOPTION: new App text uses chirality.app.exact-bytes.sha256/v1 over exact UTF-8 bytes. Historical and other method/value inputs remain opaque; different methods are incomparable, never relabelled.",
       "type": "object",
       "required": [
         "method",
@@ -1805,7 +1813,7 @@
       "pattern": "^rec:"
     },
     "a15_multi_descriptor": {
-      "description": "WR §4.7 (L-4 A as clarified): one A15 that registers several library entries in place, each entry's exact bytes bound. Offered by DEL-01-04's act control; one RS human_act with one boundSubject and boundContent per entry, in order.",
+      "description": "WR \u00a74.7 (L-4 A as clarified): one A15 that registers several library entries in place, each entry's exact bytes bound. Offered by DEL-01-04's act control; one RS human_act with one boundSubject and boundContent per entry, in order.",
       "type": "object",
       "required": [
         "record_kind",
@@ -1934,7 +1942,7 @@
       }
     },
     "run_text": {
-      "description": "WR §16 (R19-7): the text element the App composes for the turn that starts a run (purpose 'run start') or for the next turn after a run ended without a successor (purpose 'run end notice'). Framing WR-FRAME-1, PROPOSED. The record holds the lines, the identity of the workflow bytes and of the whole text; the bytes themselves stay in the revision store (linked, not copied).",
+      "description": "WR \u00a716 (R19-7): the text element the App composes for the turn that starts a run (purpose 'run start') or for the next turn after a run ended without a successor (purpose 'run end notice'). Framing WR-FRAME-1, PROPOSED. The record holds the lines, the identity of the workflow bytes and of the whole text; the bytes themselves stay in the revision store (linked, not copied).",
       "type": "object",
       "required": [
         "record_kind",
@@ -2069,6 +2077,14 @@
         "text_bytes": {
           "type": "integer",
           "minimum": 1
+        },
+        "assurance": {
+          "description": "Assurance actually applied: relaxed disk-read is fresh LS-1 disk standing without seal verification; robust sealed requires a valid installation keychain capture seal; in-process A15 is a present native act held by this process, at either level. Optional for backward compatibility: absent means unknown, never inferred from standing.",
+          "enum": [
+            "relaxed disk-read",
+            "robust sealed",
+            "in-process A15"
+          ]
         }
       },
       "allOf": [
@@ -2199,7 +2215,7 @@
       ]
     },
     "supply_check": {
-      "description": "WR §16.6 (R19-7): one check of a run text against the turn's items as Codex returns them through thread/items/list {threadId, turnId}, all pages read (R21-4; HOSTING §4.4 'Recovery reads'). Feeds RS R3 (supplied guidance). A check is never relabelled; a later read is a new check. 'Verified' means the text was supplied as composed; whether the model followed it stays unknown (supplied is not adopted).",
+      "description": "WR \u00a716.6 (R19-7): one check of a run text against the turn's items as Codex returns them through thread/items/list {threadId, turnId}, all pages read (R21-4; HOSTING \u00a74.4 'Recovery reads'). Feeds RS R3 (supplied guidance). A check is never relabelled; a later read is a new check. 'Verified' means the text was supplied as composed; whether the model followed it stays unknown (supplied is not adopted).",
       "type": "object",
       "required": [
         "record_kind",

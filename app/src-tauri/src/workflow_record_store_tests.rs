@@ -195,6 +195,7 @@ fn typed_publication_retains_prepared_text_and_refuses_lost_source_or_developmen
         identity: identity.clone(),
         snapshot,
         act_ref: "test-native-owner".into(),
+        basis: None,
     };
     let selection = registered.select();
     let scope = RunScope {
@@ -297,6 +298,7 @@ fn original_start(f: &Fixture, p: &ProjectRecords) -> (PreparedRunText, Publishe
         identity,
         snapshot,
         act_ref: "test-owner".into(),
+        basis: None,
     }
     .select();
     let scope = RunScope {

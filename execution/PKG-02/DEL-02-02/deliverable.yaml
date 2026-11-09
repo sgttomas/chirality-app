@@ -62,7 +62,7 @@ needs:
 - from: DEL-01-04
   condition: Supply native attachment and draft-transition receiving interactions, together with the receiving
     contract, and the App act control that captures workflow registration (A15), to App DEL-02-02 for its
-    complete workflow-making workspace; the registration that follows is DEL-02-02's operation.
+    complete workflow-making workspace; the registration that follows is DEL-02-02's operation. Receive the opaque native act for lowering the process-local App assurance level; opportunistic A15 keychain sealing retains SEAL-C enrollment conditions.
   gating: false
   evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
 - from: DEL-02-01

@@ -87,7 +87,7 @@ A person can, through the App:
    review/registration act against the identified content. Merely writing a
    file or receiving a successful tool response is not registration.
 3. Later find the saved workflow and run it again in the intended project with
-   new inputs, preserving source and revision identity.
+   new inputs, preserving source and revision identity. Across App sessions, relaxed assurance checks LS-1 freshly without another A15 and discloses disk-read standing; robust uses a valid installation seal or offers native DS-8 re-confirmation. Selection and run records state the applied assurance (WR §4.6/RC-2).
 4. Return to unfinished work after closing/reopening and resume it without
    losing the draft, confusing read-only history with continuation, or silently
    replaying already completed actions.

@@ -282,6 +282,25 @@ pub fn seal(root: &Path, capture: &mut Value) -> Result<(), String> {
     capture["seal"] = json!({"method":SEAL_METHOD,"value":format!("{}:{}",ring.current,hex(&mac))});
     Ok(())
 }
+/// Read-only first-resolution probe. File keys never qualify as keychain availability.
+pub(crate) fn keychain_available() -> Result<(), String> {
+    let folder = folder()?;
+    crate::capture_seal_keychain::dispatch(&folder, crate::capture_seal_keychain::Operation::Verify)
+        .ok_or("gated keychain provider not selected (development or unenrolled installation)")??;
+    Ok(())
+}
+/// A15 opportunistic sealing uses only the enrolled SEAL-C keychain provider.
+/// Development file keys cannot supply robust registration assurance. Failure
+/// preserves the present native A15 with an explicit unsealed evidence limit.
+pub(crate) fn seal_a15_if_keychain_available(root: &Path, capture: &mut Value) -> Result<(), String> {
+    let folder = folder_for(root)?;
+    let material = crate::capture_seal_keychain::dispatch(&folder, crate::capture_seal_keychain::Operation::Seal)
+        .ok_or("SEAL-C keychain provider is not selected/enrolled")??;
+    let key = material.keys.get(&material.current).ok_or("SEAL-C current key unavailable")?;
+    let mac = hmac(key, &message(capture)?);
+    capture["seal"] = json!({"method":SEAL_METHOD,"value":format!("{}:{}",material.current,hex(&mac))});
+    Ok(())
+}
 /// The evidence limit a capture of the App act control carries when it could
 /// not be sealed; such a capture is recorded but never counted.
 pub fn unsealed_limit(reason: &str) -> String {

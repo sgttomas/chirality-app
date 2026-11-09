@@ -566,6 +566,14 @@ operations (proposals, applications, undo) are never flagged or annotated
   host-offered faithful-record operation, if any, must not change act state,
   must cite capture evidence, never satisfies a checkpoint and takes ordinary
   policy; whether any host offers one is a relay question.
+Workflow selections and run texts use WR's optional `assurance` field:
+`relaxed disk-read`, `robust sealed`, or `in-process A15`, emitted for every
+new registered selection/run. Older records without it remain readable and
+show assurance unknown; a reader never infers a seal or present act from
+`standing: registered`. Relaxed records describe fresh LS-1 disk standing,
+not authenticated native origin. Robust seal failure never becomes relaxed
+admission; DS-8 supplies a new present A15. The A15 record shape stays unchanged.
+
 - **HA-10 A15 register workflow revision (R12-5; DEL-02-02 REQ-002, AC-002,
   AC-006; record elements PROPOSED; v0.9).** Written only from capture
   evidence of the person's explicit registration, or re-confirmation (WR §4.8; CC-WR-RECONFIRM), at **DEL-01-04's App act

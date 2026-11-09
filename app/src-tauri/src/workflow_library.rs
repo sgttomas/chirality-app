@@ -1,4 +1,4 @@
-//! Owner-held hot registration. Readable ledger facts do not authenticate old acts.
+//! Registration standing: fresh LS-1 disk checks and process-held native A15 results.
 use super::{
     DraftKey, RegisteredRevision, Review, Selection, Snapshot, WorkflowIdentity, SNAPSHOT_METHOD,
 };
@@ -11,6 +11,51 @@ use std::{
     io::Write,
     path::{Path, PathBuf},
 };
+
+/// Explicit policy seam. The setting's placement/default is reserved to the owner.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum AssuranceLevel { Relaxed, Robust }
+impl AssuranceLevel { pub(crate) fn label(self) -> &'static str { match self { Self::Relaxed => "relaxed", Self::Robust => "robust" } } }
+
+/// Original selection basis, never reconstructed from a renderer claim.
+#[derive(Clone, Debug)]
+pub(crate) struct RegistrationBasis {
+    root: PathBuf,
+    level: crate::workflow_assurance::Policy,
+    in_process: bool,
+}
+impl RegistrationBasis {
+    pub(crate) fn assurance(&self) -> &'static str {
+        if self.in_process { "in-process A15" } else { "relaxed disk-read" }
+    }
+    pub(crate) fn verify(&self, k: &WorkflowIdentity) -> Result<(), String> {
+        checked_disk_revision(&self.root, k)?;
+        check_assurance(*self.level.lock().unwrap(), self.in_process)
+    }
+}
+/// Robust never degrades to the disk check. SEAL-C keychain qualification is
+/// still open; fresh native A15 is the existing RC-2 session-only fallback.
+fn check_assurance(level: AssuranceLevel, in_process: bool) -> Result<(), String> {
+    match (level, in_process) {
+        (AssuranceLevel::Robust, false) => Err("registered earlier; not verified in this session. Robust assurance requires a valid capture seal from this installation; keychain seal verification is not available. Re-confirm with A15 for use in this App session (DS-8), or Refine (RF-1) to make its draft. The disk check is not accepted under robust assurance".into()),
+        _ => Ok(()),
+    }
+}
+fn checked_disk_revision(root: &Path, k: &WorkflowIdentity) -> Result<(Snapshot, String), String> {
+    let rows = read_ledger(root)?;
+    let slot = slot_lines(&rows, &k.origin, &k.source_root, &k.name);
+    latest(&slot)?;
+    let line = slot.iter().find(|v| v["outcome"] == "registered" && v["identity"] == json!(k))
+        .ok_or("LS-4: revision has no matching registered ledger entry")?;
+    act_record_found(root, line, k).map_err(|e| format!("LS-4: {e}"))?;
+    let store = store_path(root, k);
+    storage::check_path(&store)?;
+    let snapshot = Snapshot::capture(&store).map_err(|e| format!("LS-4: revision store not readable: {e}"))?;
+    if snapshot.revision() != k.revision {
+        return Err("LS-4: revision not verified: store bytes do not recompute to the revision".into());
+    }
+    Ok((snapshot, line["act"]["record_id"].as_str().ok_or("registered A15 reference absent")?.into()))
+}
 
 pub(crate) struct LibraryOwner {
     root: PathBuf,
@@ -26,6 +71,7 @@ pub(crate) struct LibraryOwner {
     /// result this App process holds. Filled only by this process's own hot
     /// commits; never rebuilt from the ledger or any record read from disk.
     held: Held,
+    assurance_level: crate::workflow_assurance::Policy,
     /// SQ-X X-1/X-2 outcomes at open (registration and re-confirmation
     /// attempts recovered from their A15 records and the store), with causes.
     reconciliation: Vec<String>,
@@ -66,6 +112,7 @@ impl LibraryOwner {
             registered_bases: Default::default(),
             base_store: None,
             held: Default::default(),
+            assurance_level: std::sync::Arc::new(std::sync::Mutex::new(AssuranceLevel::Robust)),
             reconciliation: vec![],
         };
         // SQ-X X-1/X-2 at App start, per library (owner ruling 2026-10-10: no
@@ -200,17 +247,24 @@ impl LibraryOwner {
         }
         Ok(())
     }
-    /// RC-2 and SL-4 together: held by this process, and its store verifies now.
-    fn selectable_now(&self, k: &WorkflowIdentity) -> Result<bool, String> {
-        if !self.is_held(k) {
-            return Ok(false);
+    /// Resolve from fresh disk facts under the explicitly selected policy.
+    pub(crate) fn resolve_registered(&self, k: &WorkflowIdentity) -> Result<RegisteredRevision, String> {
+        if k.origin != self.origin || k.source_root != self.source_root {
+            return Err("registered revision belongs to another library".into());
         }
-        self.store_verifies(k).map(|()| true)
+        let (snapshot, act_ref) = checked_disk_revision(&self.root, k)?;
+        let basis = RegistrationBasis { root: self.root.clone(), level: self.assurance_level.clone(), in_process: self.is_held(k) };
+        check_assurance(*basis.level.lock().unwrap(), basis.in_process)?;
+        Ok(RegisteredRevision { identity: k.clone(), snapshot, act_ref, basis: Some(basis) })
     }
-    /// V15 F5 (WR §4.6 LS-1 note, §5.4): the library's registered revisions as
-    /// read, for listing, per-row Select (LS-1 "Select (in such a process)")
-    /// and Refine. LS-1 is not checked here; a row is "selectable in this App
-    /// session" only when this process holds its result.
+    fn selectable_now(&self, k: &WorkflowIdentity) -> Result<bool, String> {
+        checked_disk_revision(&self.root, k)?;
+        Ok(check_assurance(*self.assurance_level.lock().unwrap(), self.is_held(k)).is_ok())
+    }
+    pub(crate) fn attach_assurance_policy(&mut self, policy: crate::workflow_assurance::Policy) { self.assurance_level = policy; }
+    #[cfg(test)]
+    pub(crate) fn set_assurance_level(&mut self, level: AssuranceLevel) { *self.assurance_level.lock().unwrap() = level; }
+    /// LS-1 and policy are checked freshly for each row; listing grants no capability.
     pub(crate) fn registered_listing(&self) -> Value {
         let rows = match read_ledger(&self.root) {
             Ok(rows) => rows,
@@ -231,17 +285,21 @@ impl LibraryOwner {
                     "registeredAt":v["written_at"],"disposition":v["disposition"]});
                 match selectable {
                     Ok(true) => {
-                        row["label"] = json!("registered — selectable in this App session");
+                        let k: WorkflowIdentity = serde_json::from_value(v["identity"].clone()).unwrap();
+                        row["label"] = json!(if self.is_held(&k) { "registered — selectable in this App session (in-process A15)" } else { "registered earlier; not verified in this session — standing read from disk, not verified by seal" });
+                        row["assurance"] = json!(if self.is_held(&k) { "in-process A15" } else { "relaxed disk-read" });
                         row["selectable"] = json!(true);
                         row["offered"] = json!("Select; Refine (RF-1)");
                     }
                     Ok(false) => {
-                        row["label"] = json!("registered — re-confirm to use in this App session");
+                        row["label"] = json!("registered earlier; not verified in this session — robust assurance requires a valid installation capture seal; re-confirm to use in this App session");
+                        row["reconfirm"] = json!(true);
                         row["selectable"] = json!(false);
                         row["offered"] = json!("Refine (RF-1); Review a draft with its bytes (DS-8)");
                     }
                     Err(cause) => {
-                        row["label"] = json!(format!("registered in this App session — not selectable now: {cause} (LS-4)"));
+                        row["label"] = json!(format!("registered — not selectable now: {cause}"));
+                        row["reconfirm"] = json!(false);
                         row["selectable"] = json!(false);
                         row["offered"] = json!("Review to register once the record or store is restored (LS-4)");
                     }
@@ -615,6 +673,7 @@ impl LibraryOwner {
             root: self.root.clone(),
             custody: self.base_custody(),
             held: self.held.clone(),
+            assurance_level: self.assurance_level.clone(),
             act_log: storage::library_log(&self.root),
             origin: self.origin.clone(),
             source_root: self.source_root.clone(),
@@ -722,6 +781,7 @@ fn act_prior(e: &ReviewedEntry) -> Option<&WorkflowIdentity> {
 pub(crate) struct ReviewSession {
     custody: BaseCustody,
     held: Held,
+    assurance_level: crate::workflow_assurance::Policy,
     root: PathBuf,
     act_log: PathBuf,
     origin: String,
@@ -1639,6 +1699,7 @@ impl HotRegistrationAttempt {
             identity: e.review.identity.clone(),
             snapshot: e.review.snapshot().clone(),
             act_ref: self.receipt.record_id().into(),
+            basis: Some(RegistrationBasis { root: self.session.root.clone(), level: self.session.assurance_level.clone(), in_process: true }),
         };
         hold(&self.session.held, &e.review.identity);
         let publication =
@@ -1704,6 +1765,7 @@ impl HotRegistrationAttempt {
             identity: e.review.identity.clone(),
             snapshot: e.review.snapshot().clone(),
             act_ref: self.receipt.record_id().into(),
+            basis: Some(RegistrationBasis { root: self.session.root.clone(), level: self.session.assurance_level.clone(), in_process: true }),
         };
         // RC-2: this process now holds the registration result.
         hold(&self.session.held, &e.review.identity);

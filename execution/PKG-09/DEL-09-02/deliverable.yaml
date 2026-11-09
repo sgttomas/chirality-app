@@ -42,7 +42,9 @@ needs:
   gating: true
   evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: DEL-02-02
-  condition: Receive complete workflow-making contribution and focused workflow evidence from DEL-02-02
+  condition: Receive complete workflow-making contribution and focused workflow evidence from DEL-02-02,
+    including cross-session LS-1 reuse under the applied App assurance level and truthful selection/run assurance;
+    robust cold admission and protected preference persistence retain their signing-stage conditions
     before the joined create/trial/review/register/reuse/refine witness; focused evidence does not substitute
     for the actual joined run.
   gating: true

@@ -634,6 +634,9 @@ impl ActControl {
         let (installation, limit) = crate::installation::capture_claim(&self.workspace);
         capture["installation"] = installation;
         if let Some(limit) = limit { capture["evidenceLimits"].as_array_mut().unwrap().push(json!(limit)); }
+        if let Err(limit) = crate::capture_seal::seal_a15_if_keychain_available(&self.workspace, &mut capture) {
+            capture["evidenceLimits"].as_array_mut().unwrap().push(json!(format!("A15 capture unsealed: {limit}; present native act only, no robust sealed standing")));
+        }
         crate::schema_validation::validate_capture(&capture)?;
         let root = self.workspace.clone();
         let target_log = storage::library_log(&root)

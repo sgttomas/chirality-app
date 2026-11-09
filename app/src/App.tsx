@@ -821,9 +821,30 @@ export function workflowActionMessage(command: string, result: Json): string {
   return JSON.stringify(result);
 }
 
-/** The active library's registered revisions (WR §4.6 LS-1). A revision this App
- * process holds a registration or re-confirmation result for is offered Select;
+/** The active library's registered revisions (WR §4.6 LS-1). A revision meeting
+ * the host's selected assurance policy is offered Select;
  * the host resolves it from the revision store (SL-1, SL-4). Every row keeps Refine. */
+export function WorkflowAssuranceSetting({ setting, act }: { setting: Json; act: (command: string, args: Record<string, unknown>) => Promise<unknown> }) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const choose = async (command: string) => {
+    if (pending) return;
+    setPending(true); setError("");
+    try { await act(command, {}); } catch (cause) { setError(String(cause)); } finally { setPending(false); }
+  };
+  return <section aria-label="Workflow assurance" aria-busy={pending}>
+    <p><strong>Workflow assurance: {setting?.level ?? "not resolved"}</strong>. {setting?.scope ?? "App setting unavailable."}</p>
+    {setting && <details><summary>Change assurance</summary>
+      <p>{setting.defaultReason}. The default is resolved once per App process. Once set, robust is never lowered automatically in that process.</p>
+      <p>Relaxed checks the registered ledger entry, its matching A15 record and revision bytes from disk. It does not verify a capture seal. Robust requires this installation's valid seal or a new registration/re-confirmation captured in this App session. Without a working keychain, robust offers re-confirmation each session.</p>
+      <button disabled={pending || setting.level === "robust"} onClick={() => { void choose("workflow_assurance_robust"); }}>Use robust</button>{" "}
+      <button disabled={pending} onClick={() => { void choose("workflow_assurance_relaxed"); }}>Choose relaxed in native confirmation…</button>
+      <p>{setting.lowering}</p>
+    </details>}
+    {error && <p role="alert">{error}</p>}
+  </section>;
+}
+
 export function RegisteredRevisions({ library, rows, busy, act, chatAvailable = true }:{ library: string; rows: Json[]; busy: boolean; chatAvailable?: boolean; act: (command:string,args:Record<string,unknown>)=>unknown }) {
   return <ul aria-label="Registered revisions in the active library">{rows.map((row:Json)=><li key={`${row.name}@${row.revision}`}>{row.name} · revision {row.sequence} · {row.label}
     {row.selectable===true&&<> <button disabled={busy||!chatAvailable} onClick={()=>act("workflow_select_listed",{libraryRef:library,name:row.name,revision:row.revision})}>Select revision {row.sequence}</button></>}
@@ -2396,6 +2417,7 @@ export function App() {
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
         <div hidden={setupRequired}>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
+        <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => { const result = await invoke(command, args); await refresh(); return result; }}/>
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>

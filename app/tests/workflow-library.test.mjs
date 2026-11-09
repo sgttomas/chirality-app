@@ -285,3 +285,29 @@ test('draft creation requires an explicit name and explains the current source/l
     data={...data,context:null};await show();assert.equal(props(create()).disabled,true);assert.match(guidance(),/source is unavailable or changed/);
   } finally {await React.act(()=>root.unmount());document.body.removeChild(c);}
 });
+
+test('relaxed disk-read rows remain selectable and disclose their unsealed standing',()=>{
+  const row={...cold,selectable:true,reconfirm:false,assurance:'relaxed disk-read',label:'registered earlier; not verified in this session — standing read from disk, not verified by seal'};
+  const s=spy();const tree=RegisteredRevisions({library:'lib-1',rows:[row],busy:false,act:s.act});
+  assert.match(text(tree),/standing read from disk, not verified by seal/);
+  buttons(tree)[0].props.onClick();
+  assert.deepEqual(s.calls,[['workflow_select_listed',{libraryRef:'lib-1',name:row.name,revision:row.revision}]]);
+});
+
+test('App assurance setting shows the resolved default, native lowering and relaunch reset',()=>{
+  const {WorkflowAssuranceSetting}=loadSrc('App');
+  const setting={level:'relaxed',default:'relaxed',defaultReason:'No enrolled gated SEAL-C provider; initial default relaxed',scope:'App setting held only in host process memory. A level chosen in this session resets to the default on relaunch.',lowering:"Choosing relaxed requires a person's native confirmation; a command or file cannot lower the level."};
+  const html=renderToStaticMarkup(React.createElement(WorkflowAssuranceSetting,{setting,act:()=>{throw Error('rendering changes no assurance');}}));
+  assert.match(html,/Workflow assurance: relaxed/);
+  assert.match(html,/resets to the default on relaunch/);
+  assert.match(html,/default is resolved once per App process/);
+  assert.match(html,/never lowered automatically/);
+  assert.match(html,/Choose relaxed in native confirmation/);
+});
+
+test('selection disclosure never infers a seal or a present act from registered standing',()=>{
+  const {workflowAssurance}=loadSrc('workflowSelection');
+  assert.match(workflowAssurance('relaxed disk-read'),/not verified by seal/);
+  assert.match(workflowAssurance('in-process A15'),/no seal verification claimed/);
+  assert.match(workflowAssurance(undefined),/unknown; no basis recorded/);
+});

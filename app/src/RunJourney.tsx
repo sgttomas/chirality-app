@@ -1,6 +1,6 @@
 import { conversationLabel, nativePathText } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
-import { chatWorkflow } from "./workflowSelection";
+import { chatWorkflow, workflowAssurance } from "./workflowSelection";
 import { ProjectFolderSummary, appProjectFolder } from "./WorkflowContext";
 import { useEffect, useRef, useState } from "react";
 
@@ -218,6 +218,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
       </li>
       <li aria-labelledby="run-workflow-heading"><h3 id="run-workflow-heading">Workflow</h3>
         {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {text(chosen.identity?.origin)} library, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : ""}<code title={text(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosen.runnable === true ? "Ready to run." : `Can't run: ${text(chosen.runLimit)}`}</p>}
+        {chosen && chosen.identity?.origin !== "bundled" && <p role="note" aria-label="Registration assurance">{workflowAssurance(chosen.assurance)}</p>}
         {chosen && newer && (newer.limit ? <p role="note">Newer revisions of {text(chosen.identity?.name)} can't be checked: {text(newer.limit)}</p>
           : <p role="note" aria-label="Newer revision for this conversation">A newer revision of <strong>{text(chosen.identity?.name)}</strong> is registered ({text(newer.notice)}). This conversation keeps using the one shown above until you choose the newer one.{" "}
             {newer.selectable === true ? <button disabled={!canAct} onClick={() => perform("workflow_follow_newer_revision", { selectionRef: chosen.reference, revision: newer.revision })}>{text(newer.offered)}</button> : <small>{text(newer.offered)}.</small>}</p>)}
@@ -225,6 +226,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
           <strong>{text(row.name)}</strong> · revision {text(row.sequence)}{chosen && chosen.identity?.name === row.name && chosen.identity?.revision === row.revision ? <> — chosen</> : row.selectable === true
             ? <> <button disabled={!canAct || !thread} onClick={() => perform("workflow_select_listed", { libraryRef: active.reference, name: row.name, revision: row.revision })}>Use {text(row.name)}{sameName(row.name) ? ` revision ${text(row.sequence)}` : ""}</button></>
             : <> — {text(row.label)}</>}
+          {row.selectable === true && <small> · {text(row.label)}</small>}
         </li>)}</ul>}
         {active && !Array.isArray(active.registered) && active.registered?.limit && <p role="note">This library's list of approved workflows can't be read: {text(active.registered.limit)}</p>}
         {active && registered.length === 0 && Array.isArray(active.registered) && <p>No workflow in this library has been approved for use yet.</p>}
@@ -284,7 +286,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         </div>}
         {recordedRuns.length > 0 && <div aria-label="Recorded runs of this workflow">
           <p>Recorded runs of {text(chosen?.identity?.name)} from the project's records (read only; not live in this session):</p>
-          <ul>{recordedRuns.map((run: Json) => <li key={text(run.run)}>{text(run.run)}{run.workflow?.revision ? <> · revision <code title={text(run.workflow.revision)}>{text(run.workflow.revision).slice(0, 12)}…</code></> : null} · {text(run.state)} · recorded conversation <code>{text(run.conversation) || "not recorded"}</code></li>)}</ul>
+          <ul>{recordedRuns.map((run: Json) => <li key={text(run.run)}>{text(run.run)}{run.workflow?.revision ? <> · revision <code title={text(run.workflow.revision)}>{text(run.workflow.revision).slice(0, 12)}…</code></> : null} · {text(run.state)} · recorded conversation <code>{text(run.conversation) || "not recorded"}</code> · {workflowAssurance(run.assurance)}</li>)}</ul>
         </div>}
         {outputs.length > 0 ? <ul aria-label="Where the results go">{outputs.map((output: Json, index: number) => <li key={index}>
           <strong>{text(output.name)}</strong>{output.path ? <> — declared path <code>{text(output.path)}</code></> : ""}{output.meaning ? `: ${text(output.meaning)}` : ""}</li>)}</ul>

@@ -19,6 +19,10 @@
 //! and HA-11; act class from DEL-04-01 ACT_AND_POLICY_CONTRACT.md §2.1 (A16,
 //! "person's act (V4-PM-04)").
 
+#[path = "act_control_assurance.rs"]
+mod assurance;
+pub(crate) use assurance::{ConfirmedAssuranceAct, confirm_assurance_lowering};
+
 #[path = "act_control_file.rs"]
 mod file_act;
 #[cfg(test)]

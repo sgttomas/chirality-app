@@ -4402,6 +4402,7 @@ fn not_runnable(standing: &str) -> String {
     format!("Selected workflow is not runnable ({standing}): WR TT-1/TX-1 compose and run only registered (LS-1), bundled (LS-5), host-listed (LS-6) or shipped-held (LS-8) revisions. Register a reviewed copy (draft, review, A15) and select that registered revision. Nothing prepared, recorded or sent (WR TT-1/TX-1).")
 }
 pub(crate) struct WorkflowRootSession {
+    pub(crate) assurance: crate::workflow_assurance::Settings,
     after_run_end: crate::after_run_end::Observer,
     selected: std::collections::HashMap<crate::workflow_selection::Chat, WorkflowSelectionState>,
     inspected: Option<WorkflowSelectionState>,
@@ -4456,6 +4457,7 @@ const DRAFT_TRANSITIONS_KEPT: usize = 100;
 impl Default for WorkflowRootSession {
     fn default() -> Self {
         Self {
+            assurance: Default::default(),
             after_run_end: Default::default(),
             selected: Default::default(),
             inspected: None,
@@ -4520,7 +4522,8 @@ impl WorkflowRootSession {
         Ok(())
     }
     fn selection_view(&self, s: &WorkflowSelectionState) -> Value {
-        json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":s.selection.verify_store(&s.package).err(),"selectedAt":s.selected_at,"replaces":s.replaces,"newerRevision":self.newer_revision_view(s),"runnable":self.run_admission(&s.selection).is_ok(),"runLimit":self.run_admission(&s.selection).err(),
+        let current_limit = self.run_admission(&s.selection).and_then(|()| s.selection.verify_store(&s.package)).err();
+        json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"assurance":s.selection.assurance(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":current_limit,"selectedAt":s.selected_at,"replaces":s.replaces,"newerRevision":self.newer_revision_view(s),"runnable":current_limit.is_none(),"runLimit":current_limit,
                 // NIR §9 PD-1 / AS §4 OV-1: the declared part, read from the selected revision's own bytes, for the run panel.
                 "declaration":s.selection.snapshot().declaration().map(|d|json!(d)).unwrap_or_else(|error|json!({"unavailable":error}))})
     }
@@ -4567,7 +4570,7 @@ impl WorkflowRootSession {
         };
         json!({"productionCatalog":production_catalog,"selections":self.selected.iter().map(|(chat,s)|json!({"sourceRef":chat.source,"threadId":chat.thread,"selection":self.selection_view(s)})).collect::<Vec<_>>(),
             "inspection":self.inspected.as_ref().map(|s|self.selection_view(s)),
-            "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root,"reconciliation":l.owner.try_lock().map(|o|json!(o.reconciliation())).unwrap_or(Value::Null),"registered":l.owner.try_lock().map(|o|o.registered_listing()).unwrap_or(Value::Null),"registrationEvidence":l.owner.try_lock().map(|o|o.registration_evidence()).unwrap_or(Value::Null),"entryListing":self.library_entries.get(&l.reference).map(|entries|entries.view()).unwrap_or_else(||json!({"state":"not observed","entries":[],"limits":[],"standing":"Refresh library entries to observe this library"}))})).collect::<Vec<_>>(),"activeLibrary":self.active_library,"activeReview":self.active_review,
+            "libraries":self.libraries.values().map(|l|json!({"reference":l.reference,"root":crate::attachments::native_path_identity(&l.root),"origin":l.origin,"sourceRoot":l.source_root,"reconciliation":l.owner.try_lock().map(|o|json!(o.reconciliation())).unwrap_or(Value::Null),"registered":l.owner.try_lock().map(|o|o.registered_listing()).unwrap_or(Value::Null),"registrationEvidence":l.owner.try_lock().map(|o|o.registration_evidence()).unwrap_or(Value::Null),"entryListing":self.library_entries.get(&l.reference).map(|entries|entries.view()).unwrap_or_else(||json!({"state":"not observed","entries":[],"limits":[],"standing":"Refresh library entries to observe this library"}))})).collect::<Vec<_>>(),"assuranceSetting":self.assurance.view(),"activeLibrary":self.active_library,"activeReview":self.active_review,
             "reviews":self.reviews.iter().map(|(id,review)|match review.try_lock(){Ok(review)=>json!({"reference":id,"status":review.status}),Err(_)=>json!({"reference":id,"state":"original native review interaction pending"})}).collect::<Vec<_>>(),
             "runs":self.runs.iter().map(|(id,run)|{
                 let (mut row,scope)=match run.try_lock(){
@@ -4762,6 +4765,7 @@ impl WorkflowRootSession {
             origin,
             &source_root,
         )?;
+        owner.attach_assurance_policy(self.assurance.policy());
         if let Some(data) = &self.app_user_data {
             owner.attach_app_kept_bases(data)?;
         }
@@ -4854,11 +4858,10 @@ impl WorkflowRootSession {
                 .ok_or("Actual hot registered revision unavailable in this review; registered — re-confirm to use in this App session")?;
             (held, review.library.clone())
         };
-        let store = library
-            .owner
-            .try_lock()
-            .map_err(|_| "Original library owner busy/unavailable; selection pending")?
-            .store_copy(held.identity());
+        let owner = library.owner.try_lock().map_err(|_| "Original library owner busy/unavailable; selection pending")?;
+        let held = owner.resolve_registered(held.identity())?;
+        let store = owner.store_copy(held.identity());
+        drop(owner);
         self.choose_registered(chat, &held, store)
     }
     /// WR SL-2 / §5.4: the registered selection in force, which a new
@@ -4873,24 +4876,6 @@ impl WorkflowRootSession {
     /// The opened library holding a project or user revision (its origin and source root).
     fn library_of(&self, identity: &crate::workflow_workspace::WorkflowIdentity) -> Option<std::sync::Arc<WorkflowLibraryContext>> {
         self.libraries.values().find(|l| l.origin == identity.origin && l.source_root == identity.source_root).cloned()
-    }
-    /// WR §4.8 RC-2: the registration (G-4) or re-confirmation (G-4R) result this
-    /// process holds for `identity` in `library`, from the reviews that captured it.
-    fn held_registered(
-        &self,
-        library: &std::sync::Arc<WorkflowLibraryContext>,
-        identity: &crate::workflow_workspace::WorkflowIdentity,
-    ) -> Result<Option<crate::workflow_workspace::RegisteredRevision>, String> {
-        for review in self.reviews.values() {
-            let review = review.try_lock().map_err(|_| "A registration interaction is pending; selection pending, nothing selected")?;
-            if !std::sync::Arc::ptr_eq(&review.library, library) {
-                continue;
-            }
-            if let Some(found) = review.registered.get(&identity.revision).filter(|r| r.identity() == identity) {
-                return Ok(Some(found.clone()));
-            }
-        }
-        Ok(None)
     }
     /// WR SL-2: "newer revision ‹n› available" beside a registered selection, as
     /// the slot's ledger reads now. Display only: it never changes the selection (SL-4).
@@ -4937,9 +4922,8 @@ impl WorkflowRootSession {
         let found = owner.registered_revision(name, revision).map_err(|cause| format!("{name}: registration ledger not readable ({cause}); nothing selected"))?;
         let Some((_, identity)) = found else { return Err(owner.not_selectable(name, revision)) };
         let store = owner.store_copy(&identity);
-        let refusal = owner.not_selectable(name, revision);
+        let held = owner.resolve_registered(&identity)?;
         drop(owner);
-        let held = self.held_registered(&library, &identity)?.ok_or(refusal)?;
         self.choose_registered(chat, &held, store)
     }
     /// WR SL-2: following "newer revision ‹n› available". A new selection event
@@ -4962,9 +4946,8 @@ impl WorkflowRootSession {
             return Err(format!("The slot's newer revision changed since the notice was shown (now revision {sequence}); nothing selected"));
         }
         let store = owner.store_copy(&newer);
-        let refusal = owner.not_selectable(&newer.name, &newer.revision);
+        let held = owner.resolve_registered(&newer)?;
         drop(owner);
-        let held = self.held_registered(&library, &newer)?.ok_or(refusal)?;
         self.choose_registered(chat, &held, store)
     }
     /// SL-1/SL-4: the person's selection of a held registered revision, resolved
@@ -5820,44 +5803,19 @@ impl WorkflowRootSession {
     /// here), at the slot's latest registered revision. Err is the notice shown.
     fn resolve_proposal(&self, named: &crate::run_offers::Named) -> Result<ProposedRevision, String> {
         let proposed = named.text();
-        let mut held: Vec<(crate::workflow_workspace::RegisteredRevision, std::sync::Arc<WorkflowLibraryContext>)> = Vec::new();
-        for review in self.reviews.values() {
-            let review = review.try_lock().map_err(|_| format!("proposed workflow {proposed} cannot be resolved while a registration interaction is pending"))?;
-            for revision in review.registered.values() {
-                let id = revision.identity();
-                if id.origin == named.origin && id.name == named.name {
-                    held.push((revision.clone(), review.library.clone()));
-                }
-            }
+        let mut found = Vec::new();
+        let mut draft_only = false;
+        for library in self.libraries.values().filter(|l| l.origin == named.origin) {
+            let owner = library.owner.try_lock().map_err(|_| format!("proposed workflow {proposed}: library busy"))?;
+            if let Some(identity) = owner.latest_registered(&named.name)? {
+                found.push((identity, library.clone()));
+            } else { draft_only |= owner.has_draft(&named.name); }
         }
-        let mut roots: Vec<&str> = held.iter().map(|(r, _)| r.identity().source_root.as_str()).collect();
-        roots.sort();
-        roots.dedup();
-        if roots.len() > 1 {
-            return Err(format!("proposed workflow {proposed} names more than one registered workflow"));
-        }
-        if held.is_empty() {
-            for library in self.libraries.values().filter(|l| l.origin == named.origin) {
-                let Ok(owner) = library.owner.try_lock() else { continue };
-                if owner.latest_registered(&named.name).ok().flatten().is_some() {
-                    return Err(format!("proposed workflow {proposed} is registered but not selectable in this App session: re-confirm it in the workflow panel"));
-                }
-                if owner.has_draft(&named.name) {
-                    return Err(format!("proposed workflow {proposed} is a draft only — not a workflow identity"));
-                }
-            }
-            return Err(format!("proposed workflow {proposed} is not registered in this App session"));
-        }
-        let library = held[0].1.clone();
-        let latest = {
-            let owner = library.owner.try_lock().map_err(|_| format!("proposed workflow {proposed} cannot be resolved while its library is busy"))?;
-            owner.latest_registered(&named.name).map_err(|e| format!("proposed workflow {proposed}: registration ledger not readable ({e})"))?
+        if found.len() > 1 { return Err(format!("proposed workflow {proposed} names more than one registered workflow")); }
+        let Some((identity, library)) = found.pop() else {
+            return Err(if draft_only { format!("proposed workflow {proposed} is a draft only — not a workflow identity") } else { format!("proposed workflow {proposed} is not registered in this App session") });
         };
-        let latest = latest.ok_or_else(|| format!("proposed workflow {proposed}: no registered revision in its library ledger"))?;
-        let (revision, library) = held
-            .into_iter()
-            .find(|(r, l)| r.identity().revision == latest.revision && r.identity().source_root == latest.source_root && std::sync::Arc::ptr_eq(l, &library))
-            .ok_or_else(|| format!("proposed workflow {proposed}: its latest registered revision is not selectable in this App session; re-confirm it in the workflow panel"))?;
+        let revision = library.owner.try_lock().map_err(|_| "Original proposal library busy")?.resolve_registered(&identity).map_err(|error| format!("{error}; nothing selected or started"))?;
         Ok(ProposedRevision { identity: revision.identity().clone(), revision, library })
     }
     /// `workflow_end_run`: no report is a plain end; a report names the message, which
@@ -12620,12 +12578,13 @@ for line in sys.stdin:
     fn workflow_reselection_proposal_refuses_a_revision_not_held_here(){
         let peer=Peer::new();let _registered=peer.registered();
         let mut cold=WorkflowRootSession::default();
+        cold.assurance.request(crate::workflow_workspace::registration::AssuranceLevel::Robust).unwrap();
         cold.open_library(peer.fixture.root.clone(),"project",Some(&peer.fixture.root),Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&peer.fixture.root))))).unwrap();
         let view=offer_view(&peer,&[("turn","p",1,PROPOSED,"live-observed")]);
         let notice=cold.offers(&view)[0]["proposal"]["resolution"]["notice"].as_str().unwrap().to_owned();
-        assert!(notice.contains("registered but not selectable in this App session: re-confirm"),"{notice}");
+        assert!(notice.contains("Robust assurance") && notice.contains("Re-confirm"),"{notice}");
         let refused=cold.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","p"),None,String::new(),peer.project()).unwrap_err();
-        assert!(refused.contains("re-confirm"),"{refused}");
+        assert!(refused.contains("Re-confirm"),"{refused}");
         assert!(cold.selected.is_empty()&&cold.runs.is_empty());
     }
     // SL-7 / PR-4 with SL-2: a chained run started from a proposal records how,
@@ -12645,7 +12604,7 @@ for line in sys.stdin:
         let selection=project.resolve(run.view(&b)["publication"]["selection"].as_str().unwrap()).unwrap();
         let body=selection.body();
         let mut keys:Vec<&str>=body.as_object().unwrap().keys().map(|k|k.as_str()).collect();keys.sort();
-        assert_eq!(keys,["conversation","holding_library","how","identity","prior_run","proposal","record_kind","replaces","selected_at","selected_by","selection_id","standing"]);
+        assert_eq!(keys,["assurance","conversation","holding_library","how","identity","prior_run","proposal","record_kind","replaces","selected_at","selected_by","selection_id","standing"]);
         assert_eq!(body["how"],"agent proposal confirmed by the person");
         assert_eq!(body["proposal"],json!({"conversation":"thread","item":"m","proposed_name":"project:coordinated-knowledge-work"}));
         assert_eq!(body["prior_run"],json!({"run":a,"workflow":identity,"ended":"completed"}));

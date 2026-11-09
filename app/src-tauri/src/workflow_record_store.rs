@@ -1013,6 +1013,12 @@ impl PreparedRunPublication {
         let body = json!({"record_kind":"selection_record","selection_id":prepared.scope.selection_ref,"identity":selection.identity(),"holding_library":prepared.scope.holding_library,"standing":standing,"selected_by":"the person (App interface)","how":"explicit","conversation":prepared.scope.conversation,"selected_at":selected_at});
         // WR PR-4: a confirmed agent proposal is recorded as such, citing the proposal.
         let mut body = body;
+        let assurance = selection_source.assurance().unwrap_or("in-process A15");
+        let mut prepared = prepared;
+        if standing == "registered" {
+            body["assurance"] = json!(assurance);
+            prepared.record["assurance"] = json!(assurance);
+        }
         if let Some(proposal) = prepared.proposal() {
             body["how"] = json!("agent proposal confirmed by the person");
             body["proposal"] = proposal.clone();
@@ -1233,7 +1239,8 @@ impl PreparedEndPublication {
             .as_str()
             .filter(|h| !h.is_empty())
             .ok_or("the current Codex generation of this home is not established")?;
-        let (text, record) = super::end_notice_parts(&workflow, run, conversation, reason)?;
+        let (text, mut record) = super::end_notice_parts(&workflow, run, conversation, reason)?;
+        if let Some(assurance) = body.get("assurance") { record["assurance"] = assurance.clone(); }
         let notice = PreparedRunText {
             // Internal label only: the run started from an admitted selection
             // (a registered revision or the closed LS-5 bundled subject). The

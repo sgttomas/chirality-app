@@ -24,3 +24,11 @@ export function workflowArguments(command: string, args: Record<string, unknown>
   if (!context) throw new Error("Workflow source or chat changed; refresh the displayed choice before acting");
   return {...args, context};
 }
+
+/** Historical absence is unknown, never inferred from registered standing. */
+export function workflowAssurance(assurance: Json): string {
+  if (assurance === "relaxed disk-read") return "Registered earlier; not verified in this session. Standing read from disk, not verified by seal (relaxed assurance).";
+  if (assurance === "in-process A15") return "Registration or re-confirmation captured in this App session (in-process A15); no seal verification claimed.";
+  if (assurance === "robust sealed") return "Standing verified by this installation's capture seal (robust assurance).";
+  return "Registration assurance unknown; no basis recorded.";
+}
