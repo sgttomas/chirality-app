@@ -100,11 +100,73 @@ class ProductionInputs(unittest.TestCase):
         self.assertFalse(recipe['inherit_environment'])
         self.assertIn('CARGO_TARGET_DIR',recipe['required_environment'])
         self.assertNotIn('RUSTFLAGS',recipe['environment_allowlist'])
+        self.assertNotIn('cargo_build_input', recipe)
         self.assertEqual(module.check_plan(self.output)['files'],result['files'])
         account=json.loads((self.output/'input-inventory.json').read_text())
         self.assertEqual(len(account['tool_sha256']),4)
         self.assertTrue(account['jsonschema_version'])
         self.assertFalse(result['build_executed']);self.assertFalse(result['signing_executed']);self.assertFalse(result['package_complete'])
+    def test_explicit_cargo_input_preserves_config_bytes_and_host_target_scope(self):
+        import tomllib
+        self.run_plan(cargo_build_input=module.CARGO_BUILD_PRESET)
+        recipe=json.loads((self.output/'build-recipe.json').read_text())
+        contract=recipe['cargo_build_input']
+        self.assertEqual(contract['sha256'], '82651ddc167d78065e4af475e439cd0c2fa0855b601f8fdda9a81ab263de42fc')
+        self.assertEqual(module.sha(contract['text'].encode()),contract['sha256'])
+        config=tomllib.loads(contract['text'])
+        self.assertEqual(config,{'net':{'offline':True},'build':{'jobs':2},
+            'profile':{'release':{'strip':'none','build-override':{'strip':'none'}}}})
+        self.assertEqual(contract['release_opt_level'],3)
+        self.assertEqual(contract['scope']['host'],'aarch64-apple-darwin')
+        self.assertEqual(contract['scope']['target'],'aarch64-apple-darwin')
+        self.assertEqual(set(contract['tool_sha256']),{'rustc','cargo','clang','ld'})
+        self.assertNotIn('RUSTFLAGS', recipe['environment_allowlist'])
+        self.assertEqual(set(module.check_plan(self.output)['files']),
+                         {'tauri.package-inputs.conf.json','input-inventory.json','build-recipe.json'})
+
+    def test_cargo_input_refuses_unknown_preset_and_changed_contract(self):
+        with self.assertRaisesRegex(ValueError,'unsupported Cargo build input'):
+            self.run_plan(cargo_build_input='all-platforms')
+        self.assertFalse(self.output.exists())
+        self.run_plan(cargo_build_input=module.CARGO_BUILD_PRESET)
+        path=self.output/'build-recipe.json'; recipe=json.loads(path.read_text())
+        recipe['cargo_build_input']['text']+='[profile.dev]\nstrip="none"\n'
+        path.write_text(json.dumps(recipe))
+        marker=self.output/'PLAN_COMPLETE.json';value=json.loads(marker.read_text())
+        value['files']['build-recipe.json']=module.sha(path.read_bytes());marker.write_text(json.dumps(value))
+        with self.assertRaisesRegex(ValueError,'invalid Cargo build input contract'):module.check_plan(self.output)
+
+    def test_cargo_input_refuses_changed_release_optimization(self):
+        manifest=self.source/'app/src-tauri/Cargo.toml'
+        manifest.write_text(manifest.read_text()+'\n[profile.release]\nopt-level = 1\n')
+        with self.assertRaisesRegex(ValueError,'requires release opt-level 3'):
+            self.run_plan(cargo_build_input=module.CARGO_BUILD_PRESET)
+        self.assertFalse(self.output.exists())
+
+    def test_cargo_input_preflight_refuses_scope_tool_and_config_mismatch(self):
+        self.run_plan(cargo_build_input=module.CARGO_BUILD_PRESET)
+        contract=module.cargo_build_input_contract(module.CARGO_BUILD_PRESET)
+        home=self.root/'cargo-home';home.mkdir();config=home/'config.toml';config.write_bytes(contract['text'].encode())
+        # Invented files exercise digest checks; never invoke a compiler in this test.
+        tools={name:self.root/name for name in contract['tool_sha256']}
+        for name,path in tools.items():path.write_bytes(('INVENTED '+name).encode())
+        with self.assertRaisesRegex(ValueError,'platform scope mismatch'):
+            module.verify_cargo_build_input(self.output,home,contract['scope']|{'sdk':'other'},tools)
+        with self.assertRaisesRegex(ValueError,'exact resolved Cargo tool paths'):
+            module.verify_cargo_build_input(self.output,home,contract['scope'],{})
+        with self.assertRaisesRegex(ValueError,'toolchain mismatch'):
+            module.verify_cargo_build_input(self.output,home,contract['scope'],tools)
+        transfer=module.files.transfer
+        def fixture_transfer(path, **kwargs):
+            if Path(path) in tools.values():
+                name=Path(path).name
+                return (None,contract['tool_sha256'][name],{})
+            return transfer(path,**kwargs)
+        with patch.object(module.files,'transfer',side_effect=fixture_transfer):
+            self.assertEqual(module.verify_cargo_build_input(self.output,home,contract['scope'],tools),contract['sha256'])
+            config.write_text(contract['text'].replace('[profile.release]\nstrip = "none"','[profile.release]\nstrip = "debuginfo"'))
+            with self.assertRaisesRegex(ValueError,'Cargo build config mismatch'):
+                module.verify_cargo_build_input(self.output,home,contract['scope'],tools)
     def test_explicit_invented_publisher_input_binds_identifier_and_recipe(self):
         data={'format':'publisher-build-selection.s1','production_bundle_identifier':'invalid.example.chirality-v4','developer_id_team_identifier':'EXAMPLE001'}
         path=self.publisher_file()
