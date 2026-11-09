@@ -50,6 +50,38 @@ subject. It does not complete the standalone dossier or all P3 cases. The
 recorded P1 project wording, diagnostic density and AX limitations remain;
 this result supplies no broader usability acceptance.
 
+## Current account workflow segment
+
+The unsigned development App from `02506cce0c2bd4bef5fb57496d00cd6e219d3454`,
+using canonical Codex 0.167.0, completed an additional bounded account-backed
+workflow check. Agent 0 used the established App-owned ChatGPT home, shared
+settings, invented Kestrel project and records store through the supported
+explicit development inputs. No sign-in or credential-file read was needed.
+The supplier turn context reports `gpt-6.1-terra`, medium, `on-request` and a
+`read-only` sandbox.
+
+Through the ordinary Run guide, Agent 0 selected the included
+`coordinated-knowledge-work` revision `3730d84debb5`, supplied three existing
+project files, prepared the message and started one run. Codex read the inputs,
+offered one command request to save `deliverables/current-workflow-review.md`,
+and completed after Agent 0 granted it once through native confirmation. The
+App separately reported the answer written and Codex's request resolution.
+The conversation named the saved result. Agent 0 explicitly ended the run on
+the agent's completion statement and found its ended entry in Results.
+
+The 565-byte review independently matches the CSV: 104.56 m, 11 included rows,
+three excluded rows, and correct duplicate, missing-length and feet-conversion
+checks. All 22 pre-existing project files retained their hashes. The original
+App process then quit normally and its absence was verified. Private
+`SUBJECT.json`, `ROUTE.json`, `RESULT_CHECK.json`, native AX/screenshots and
+closure evidence are at
+`/Users/ryan/dev/chirality-t3/scratch/app-account-current-lxfpfvr_/`.
+
+This establishes the observed workflow/approval/results path on that build,
+not J2, the remaining recovery stimuli, owner usability acceptance or installed
+qualification. It predates PR201's setup guidance text; its result is not
+assigned to an unbuilt head. No local model was used in this segment.
+
 ## Remaining actual stimuli and access modes
 
 S11-1/ST-4 still needs actual descendant facts (including a child outliving its
@@ -64,7 +96,7 @@ harness definitions are not refreshed into new evidence here.
 
 | Access mode | Current evidence | Remaining actual input/result |
 |---|---|---|
-| ChatGPT account | J1/J2 account-backed work plus the candidate-bound ordinary P3 segment above | Remaining native recovery stimuli and applicable final-candidate/installed qualification; this result does not establish credential-custody or destination qualification. |
+| ChatGPT account | J1/J2 account-backed work, the ordinary P3 segment and the current 0.167 account workflow segment above | Remaining native recovery stimuli and applicable final-candidate/installed qualification; these results do not establish credential-custody or destination qualification. |
 | Standalone OpenAI API key | Omitted by owner from the active product increment and its qualification commitment | Prior native plumbing/fixtures retain their subjects. This omission does not remove oMLX/local bearer authentication. |
 | Local provider | Current development [keyed native observation](../../../PKG-01/DEL-01-05/Work/LOCAL_PROVIDER_CUSTODY.md#current-native-observation) includes owner-reported secure key entry, Codex's saved-key report, a completed local response and a completed read-only command with correct output. Setup, cancellation and explicit home switching also passed on that subject. Historical server/model observations retain their original pair and limits | Broader applicable workflow/access/recovery and final-candidate qualification. The two development turns do not establish child delegation, continuing credential validity, complete tool compatibility or independently observed destination/custody facts. |
 
