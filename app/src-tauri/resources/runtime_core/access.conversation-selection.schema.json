@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "chirality:app-v4:DEL-01-05:access.conversation-selection:v0.2",
-  "title": "Conversation access selection (PROPOSED, DEL-01-05/ACCESS-v0.2 §5.4, §15)",
-  "description": "One App conversation's selection state (K-3). An offer of the last explicit choice is never a selection. Handed to DEL-01-04 (start display), DEL-01-01 S-4 (thread/start carriage) and, through HOSTING §8.3, DEL-04-03 R5.",
+  "title": "Conversation access selection (PROPOSED, DEL-01-05/ACCESS-v0.2 \u00a75.4, \u00a715)",
+  "description": "One App conversation's selection state (K-3). An offer of the last explicit choice is never a selection. Handed to DEL-01-04 (start display), DEL-01-01 S-4 (thread/start carriage) and, through HOSTING \u00a78.3, DEL-04-03 R5.",
   "type": "object",
   "required": [
     "schema",
@@ -196,7 +196,8 @@
         "home": {
           "enum": [
             "account",
-            "api-key"
+            "api-key",
+            "local-provider"
           ]
         },
         "requested": {
@@ -278,14 +279,14 @@
         "then": {
           "properties": {
             "text": {
-              "const": "run not started — no model selected"
+              "const": "run not started \u2014 no model selected"
             }
           }
         },
         "else": {
           "properties": {
             "text": {
-              "const": "not started — no model selected"
+              "const": "not started \u2014 no model selected"
             }
           }
         }

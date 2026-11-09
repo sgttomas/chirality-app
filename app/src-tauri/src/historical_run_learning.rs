@@ -617,7 +617,7 @@ pub(crate) fn source_home_for_run(
             continue;
         }
         let home = text(row, "home")?;
-        if !matches!(home, "H-acct" | "H-key") {
+        if !matches!(home, "H-acct" | "H-key" | "H-omlx") {
             return Err("historical run: REC native home class is unsupported".into());
         }
         homes.insert(home.to_owned());
@@ -643,7 +643,7 @@ pub(crate) fn source_home_for_run(
         .filter(|e| e["kind"] == "app_restart_interruption" && e["threadId"] == thread)
     {
         let home = text(event, "home")?;
-        if !matches!(home, "H-acct" | "H-key") {
+        if !matches!(home, "H-acct" | "H-key" | "H-omlx") {
             return Err("historical run: restart native home class is unsupported".into());
         }
         homes.insert(home.to_owned());

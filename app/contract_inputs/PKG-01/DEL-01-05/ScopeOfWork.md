@@ -114,3 +114,14 @@ Recorded exchanges and focused checks may implement these verification methods i
 | OUT-004 | OBJ-002, OBJ-004 | REQ-008, CLM-004 | AC-009 | VER-009 | Applicable local-server requirements and limits handed to the named PKG-05 receiver |
 | OUT-004 | OBJ-002, OBJ-004 | REQ-009, CLM-003, CLM-004 | AC-010 | VER-010 | One-for-one boundary/owner comparison against accepted contributions |
 | OUT-002 | OBJ-002 | REQ-010, CLM-001 | AC-011 | VER-011 | Per-version start-up connection observations with and without the settings and plugin setting, compared with the network view and record |
+
+## Current authenticated local-provider receiving
+
+[LOCAL_PROVIDER_CUSTODY.md](Work/LOCAL_PROVIDER_CUSTODY.md) defines the bounded
+owner-selected oMLX receiving route under adopted K2-1 / V4-ARC-04: a dedicated
+Codex-owned local home, fixed nonsecret provider configuration and native-only
+private account credential carriage. CR-8 is preserved; H-acct, H-key and their
+saved data are not reassigned. Source-established .167 support and synthetic
+checks do not discharge candidate-native provider, coexistence, substitution
+or network evidence obligations above. Supplier distribution adoption and
+actual credential/server use remain separately unestablished.

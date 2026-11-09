@@ -542,6 +542,7 @@ pub struct MetadataRequest {
     request_ref: String,
     is_fork: bool,
     fork_supply_ref: Option<String>,
+    classified_cwd: Option<String>,
 }
 impl MetadataRequest {
     fn new(
@@ -565,6 +566,7 @@ impl MetadataRequest {
             request_ref: request_ref.into(),
             is_fork,
             fork_supply_ref: None,
+            classified_cwd: None,
         })
     }
     pub fn method(&self) -> &str {
@@ -574,17 +576,26 @@ impl MetadataRequest {
             "thread/resume"
         }
     }
-    /// No instructions, model or settings (ROLE §5.2). Resume excludes deprecated
+    /// Host binds the fixed local directory from its private destination binding,
+    /// never from renderer parameters or the received metadata packet.
+    pub(crate) fn with_classified_cwd(mut self, cwd: &str) -> Self {
+        self.classified_cwd = Some(cwd.to_owned());
+        self
+    }
+    /// No instructions, model or settings (ROLE §5.2). A local home additionally
+    /// names its classified cwd. Resume excludes deprecated
     /// full-history hydration; prior work is read through bounded native pages. A fork
     /// also asks Codex not to start the source goal's automatic continuation
     /// (0.167.0 `ThreadForkParams.deferGoalContinuation`), so no turn runs that
     /// the person did not start; the next explicit turn owns the goal.
     pub fn params(&self) -> Value {
-        if self.is_fork {
+        let mut params = if self.is_fork {
             json!({"threadId":self.source.thread,"deferGoalContinuation":true})
         } else {
             json!({"threadId":self.source.thread,"excludeTurns":true})
-        }
+        };
+        if let Some(cwd) = &self.classified_cwd { params["cwd"] = json!(cwd); }
+        params
     }
     pub fn generation(&self) -> &Value {
         &self.generation

@@ -249,7 +249,7 @@ impl Proof {
                         || value["recSource"] != rec_source
                         || value["homeClass"] != row["home"]
                         || row["threadId"] != link["trial"]["clean_conversation"]
-                        || !matches!(value["homeClass"].as_str(), Some("H-acct" | "H-key"))
+                        || !matches!(value["homeClass"].as_str(), Some("H-acct" | "H-key" | "H-omlx"))
                     {
                         return Err(
                             "clean trial source pointer/link/physical correspondence differs"
