@@ -247,16 +247,21 @@ nothing that requires the act (ACT §2.3; DS-5).
 
 ### 4.4 Relaunch recovery (AC-R1)
 
-The App's workflow assurance choice is process memory, never restored from a
-project, preference file or renderer claim. Raising to robust is ordinary;
-choosing relaxed requires the person's explicit native confirmation through
-this act control. Its opaque event names the App setting and epoch; no Boolean
-or file can construct it. Cancellation, missing native window and stale epoch
-refuse without a change. It makes no A15 or project act record. Relaunch resets
-to the once-resolved keychain-availability default (WR §4.6), as the UI states.
-Registration and DS-8 re-confirmation attempt capture sealing through the
-already selected SEAL-C keychain provider whenever its key is available, at
-either level; unavailable sealing preserves present A15 with an unsealed limit.
+The person's workflow approval policy (WR §4.6; owner decisions A/B/C,
+2026-11-09) persists outside any project: in the App's settings file until
+keychain protection is set up (an agent able to write that file could change
+it; disclosed), then in the keychain through the gated SEAL-C provider. It is
+never read from a project or renderer claim. Raising to "Require verified
+approval" is ordinary; choosing "Allow disk records" requires the person's
+explicit native confirmation through this act control. Its opaque event names
+the App setting and epoch; no Boolean or file can construct it. Cancellation,
+missing native window and stale epoch refuse without a change; a protected
+policy needing recovery refuses lowering. It makes no A15 or project act record.
+"Protect registered workflows with your keychain" is the person's native SEAL-C
+enrollment act (SEAL-C); the menu and the setting only request its question.
+Registration and DS-8 re-confirmation seal their A15 capture through the SEAL-C
+keychain provider whenever its key is available, under either policy;
+unavailable sealing preserves the present A15 with an unsealed limit.
 
 On relaunch the host reads its capture store and DEL-04-03's logs. It joins
 by the record's capture-evidence reference, then verifies the entry against
@@ -271,7 +276,7 @@ unreadable or ambiguous log set leaves recovery pending with its cause; it
 cannot justify a new append. Cold-process capture/pending files with unverified
 origin remain held with "capture origin not verified; automatic act replay
 held"; no new `human_act` is appended. A capture is never re-made or back-dated.
-Workflow selection is separately governed by WR §4.6/§4.8 RC-2: relaxed accepts fresh LS-1 disk standing without replaying an act; robust requires a valid installation seal for cold standing or a present native A15 in this process. This grants no automatic act append.
+Workflow selection is separately governed by WR §4.6/§4.8 RC-2: "Allow disk records" accepts fresh LS-1 disk standing without replaying an act; "Require verified approval" accepts a keychain-sealed A15 bound to its record, complete identity and committed ledger line, or a present native A15 in this process. This grants no automatic act append.
 Trustworthy persistent replay of actual native captures remains required;
 this clarification does not close that obligation or select its mechanism.
 

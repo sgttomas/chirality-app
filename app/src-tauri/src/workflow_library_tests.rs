@@ -2257,7 +2257,7 @@ fn workflow_reselection_listing_offers_and_newer_revision_reading() {
     );
     let refused = cold.not_selectable("sample", two.revision());
     assert!(
-        refused.contains("revision 2: registered — re-confirm to use in this App session") && refused.contains("Refine (RF-1)"),
+        refused.contains("revision 2: registered — Session confirmation required; persistent verification unavailable") && refused.contains("Refine (RF-1)") && refused.contains("DS-8"),
         "{refused}"
     );
     // LS-2: content in the published-copy location with no registration.
@@ -2653,7 +2653,19 @@ fn a15_single_entry_portable_move_or_copy_keeps_history_and_needs_new_hot_confir
     }
 }
 
-/// Owner 2026-11-09: disk LS-1 standing is fresh at every selection/use.
+// ---- Owner 2026-11-09 (decisions A/B/C): admission evidence per policy.
+
+fn evidence(selection: &Selection) -> Evidence {
+    selection.approval().expect("registered basis").expect("admitted").evidence
+}
+fn ledger_path(s: &Scratch) -> PathBuf { s.0.join(".chirality/workflow-registry.jsonl") }
+fn capture_path(s: &Scratch) -> PathBuf {
+    let rows = read_ledger(&s.0).unwrap();
+    storage::library_capture_path(&s.0, rows[0]["act"]["capture_evidence"].as_str().unwrap())
+}
+
+/// "Allow disk records": fresh LS-1 disk standing across processes; each LS-4
+/// cause refused, at selection and again at use.
 #[test]
 fn relaxed_disk_standing_survives_process_loss_and_refuses_each_ls4_cause() {
     let s = Scratch::new();
@@ -2661,17 +2673,19 @@ fn relaxed_disk_standing_survives_process_loss_and_refuses_each_ls4_cause() {
     let first = {
         let owner = s.persistent_owner();
         let first = register(&owner, snapshot.revision());
-        assert_eq!(first.select().assurance(), Some("in-process A15"));
+        assert_eq!(evidence(&first.select()), Evidence::InProcess);
         first
     };
     let mut cold = s.persistent_owner();
     assert!(!cold.is_held(first.identity()));
     cold.set_assurance_level(AssuranceLevel::Relaxed);
     let selection = cold.resolve_registered(first.identity()).unwrap().select();
-    assert_eq!(selection.assurance(), Some("relaxed disk-read"));
+    let admission = selection.approval().unwrap().unwrap();
+    assert_eq!(admission.record(), json!({"requested_policy":"relaxed","admission_evidence":"disk-consistency"}));
     let row = &cold.registered_listing()[0];
     assert_eq!(row["selectable"], true);
-    assert!(row["label"].as_str().unwrap().contains("not verified by seal"));
+    assert_eq!(row["evidence"], "disk-consistency");
+    assert!(row["label"].as_str().unwrap().contains("Disk consistency checked; approval authenticity unverified"), "{row}");
     assert!(!cold.is_held(first.identity()), "disk reading never becomes an in-process act");
     let store = cold.store_copy(first.identity());
     selection.verify_store(&store).unwrap();
@@ -2697,41 +2711,131 @@ fn relaxed_disk_standing_survives_process_loss_and_refuses_each_ls4_cause() {
     let other_owner = other.persistent_owner();
     let other_registered = register(&other_owner, other_snapshot.revision());
     fs::write(&log, fs::read(storage::library_log(&other.0)).unwrap()).unwrap();
-    let ledger_path = s.0.join(".chirality/workflow-registry.jsonl");
-    let ledger = fs::read(&ledger_path).unwrap();
+    let ledger = fs::read(ledger_path(&s)).unwrap();
     let mut line: Value = serde_json::from_slice(&ledger).unwrap();
     line["act"]["record_id"] = json!(other_registered.act_ref());
-    fs::write(&ledger_path, format!("{line}\n")).unwrap();
+    fs::write(ledger_path(&s), format!("{line}\n")).unwrap();
     assert!(cold.resolve_registered(first.identity()).unwrap_err().contains("bound to other content"));
-    fs::write(&ledger_path, ledger).unwrap();
+    fs::write(ledger_path(&s), &ledger).unwrap();
     fs::write(&log, acts).unwrap();
     cold.resolve_registered(first.identity()).unwrap();
+    // A ledger line without its record: the ledger is gone.
+    fs::remove_file(ledger_path(&s)).unwrap();
+    assert!(cold.resolve_registered(first.identity()).is_err(), "no ledger line");
+    fs::write(ledger_path(&s), &ledger).unwrap();
     fs::remove_dir_all(&store).unwrap();
     assert!(cold.resolve_registered(first.identity()).is_err(), "missing store folder");
 }
 
+/// "Require verified approval" before keychain protection: a fresh native A15
+/// in this process works; disk records alone never do, and a planted seal
+/// never qualifies.
 #[test]
-fn robust_never_accepts_disk_standing_or_falls_back_to_relaxed() {
+fn robust_without_keychain_refuses_disk_standing_and_never_falls_back() {
     let s = Scratch::new();
     let snapshot = s.put("sample", false, "work");
     let owner = s.persistent_owner();
     let first = register(&owner, snapshot.revision());
-    owner.resolve_registered(first.identity()).expect("present native A15 remains usable");
+    assert_eq!(evidence(&owner.resolve_registered(first.identity()).unwrap().select()), Evidence::InProcess);
     let mut cold = s.persistent_owner();
     cold.set_assurance_level(AssuranceLevel::Robust);
     let error = cold.resolve_registered(first.identity()).unwrap_err();
-    assert!(error.contains("valid capture seal") && error.contains("Re-confirm") && error.contains("not accepted under robust"), "{error}");
-    assert_eq!(cold.registered_listing()[0]["selectable"], false);
-    // Changing the capture into a purported seal is never a disk-only admission.
-    let rows = read_ledger(&s.0).unwrap();
-    let capture_path = storage::library_capture_path(&s.0, rows[0]["act"]["capture_evidence"].as_str().unwrap());
-    {
-        assert!(capture_path.exists());
-        let mut capture: Value = serde_json::from_slice(&fs::read(&capture_path).unwrap()).unwrap();
-        capture["seal"] = json!({"method":"forged","value":"other-installation:bad"});
-        fs::write(&capture_path, serde_json::to_vec(&capture).unwrap()).unwrap();
-    }
-    assert!(cold.resolve_registered(first.identity()).is_err(), "invalid/foreign/unavailable seal never downgrades");
+    assert!(error.starts_with(ROBUST_UNVERIFIED) && error.contains("DS-8"), "{error}");
+    let row = &cold.registered_listing()[0];
+    assert_eq!((row["selectable"].clone(), row["reconfirm"].clone()), (json!(false), json!(true)));
+    assert!(row["label"].as_str().unwrap().contains("Session confirmation required; persistent verification unavailable"), "{row}");
+    let mut capture: Value = serde_json::from_slice(&fs::read(capture_path(&s)).unwrap()).unwrap();
+    capture["seal"] = json!({"method":crate::capture_seal::SEAL_METHOD,"value":"0000000000000000:00"});
+    fs::write(capture_path(&s), serde_json::to_vec(&capture).unwrap()).unwrap();
+    assert!(cold.resolve_registered(first.identity()).is_err(), "a seal's presence qualifies nothing");
     cold.set_assurance_level(AssuranceLevel::Relaxed);
+    assert_eq!(evidence(&cold.resolve_registered(first.identity()).unwrap().select()), Evidence::Disk);
+}
+
+/// Sealed cold admission joins the capture seal verifier with the A15 record,
+/// the complete identity and the committed ledger line (in-memory keychain).
+#[test]
+fn sealed_admission_accepts_only_a_fully_bound_keychain_seal() {
+    let chain = crate::capture_seal_keychain::tests::InMemoryKeychain::install(true);
+    let s = Scratch::new();
+    let snapshot = s.put("sample", false, "sealed work");
+    let first = register(&s.persistent_owner(), snapshot.revision());
+    let capture: Value = serde_json::from_slice(&fs::read(capture_path(&s)).unwrap()).unwrap();
+    assert!(capture.get("seal").is_some(), "A15 sealed by the keychain provider");
+    let mut cold = s.persistent_owner();
+    cold.set_assurance_level(AssuranceLevel::Robust);
+    let selection = cold.resolve_registered(first.identity()).unwrap().select();
+    assert_eq!(selection.approval().unwrap().unwrap().record(), json!({"requested_policy":"robust","admission_evidence":"keychain-verified approval"}));
+    assert_eq!(cold.registered_listing()[0]["evidence"], "keychain-verified approval");
+    selection.verify_store(&cold.store_copy(first.identity())).unwrap();
+    let refused = |why: &str| {
+        let error = cold.resolve_registered(first.identity()).unwrap_err();
+        assert!(error.starts_with(ROBUST_UNVERIFIED), "{why}: {error}");
+    };
+    // Absent seal.
+    let mut unsealed = capture.clone();
+    unsealed.as_object_mut().unwrap().remove("seal");
+    fs::write(capture_path(&s), serde_json::to_vec(&unsealed).unwrap()).unwrap();
+    refused("absent seal");
+    // Mismatched seal: a sealed fact changed.
+    let mut changed = capture.clone();
+    changed["purpose"] = json!("another purpose");
+    fs::write(capture_path(&s), serde_json::to_vec(&changed).unwrap()).unwrap();
+    refused("seal does not verify");
+    // Valid seal, but the capture names another subject than its record.
+    let mut other = capture.clone();
+    other["boundSubject"] = json!(["workflow revision {}"]);
+    crate::capture_seal::seal(&s.0, &mut other).unwrap();
+    fs::write(capture_path(&s), serde_json::to_vec(&other).unwrap()).unwrap();
+    refused("capture differs from its record");
+    fs::write(capture_path(&s), serde_json::to_vec(&capture).unwrap()).unwrap();
     cold.resolve_registered(first.identity()).unwrap();
+    // Missing committed ledger line.
+    let ledger = fs::read(ledger_path(&s)).unwrap();
+    fs::write(ledger_path(&s), b"").unwrap();
+    assert!(cold.resolve_registered(first.identity()).is_err(), "missing ledger line");
+    fs::write(ledger_path(&s), &ledger).unwrap();
+    // Locked keychain: verification fails; robust refuses, relaxed admits on disk.
+    chain.lock();
+    refused("locked keychain");
+    cold.set_assurance_level(AssuranceLevel::Relaxed);
+    assert_eq!(evidence(&cold.resolve_registered(first.identity()).unwrap().select()), Evidence::Disk);
+    chain.unlock();
+    assert_eq!(evidence(&cold.resolve_registered(first.identity()).unwrap().select()), Evidence::Keychain);
+    // Development file keys never qualify: without the provider nothing verifies.
+    drop(chain);
+    cold.set_assurance_level(AssuranceLevel::Robust);
+    refused("no keychain provider");
+}
+
+/// Altered derived_from: never admitted and never labelled in-process.
+#[test]
+fn altered_derived_from_is_refused_and_never_mislabelled() {
+    let s = Scratch::new();
+    let snapshot = s.put("sample", false, "lineage");
+    let owner = s.persistent_owner();
+    let first = register(&owner, snapshot.revision());
+    let mut altered = first.identity().clone();
+    altered.derived_from = Some(Box::new(first.identity().clone()));
+    let ledger = fs::read(ledger_path(&s)).unwrap();
+    let mut line: Value = serde_json::from_slice(&ledger).unwrap();
+    line["identity"] = json!(altered);
+    fs::write(ledger_path(&s), format!("{line}\n")).unwrap();
+    for level in [AssuranceLevel::Robust, AssuranceLevel::Relaxed] {
+        let mut same = owner_with_held(&owner, level);
+        let error = same.resolve_registered(&altered).unwrap_err();
+        assert!(error.contains("LS-4") && error.contains("bound to other content"), "{error}");
+        same.set_assurance_level(level);
+        let row = &same.registered_listing()[0];
+        assert_eq!(row["selectable"], false, "{row}");
+        assert!(row.get("evidence").is_none(), "{row}");
+    }
+    assert!(!owner.is_held(&altered), "custody keeps the complete identity");
+    assert!(owner.is_held(first.identity()));
+}
+fn owner_with_held(owner: &LibraryOwner, level: AssuranceLevel) -> LibraryOwner {
+    let mut same = LibraryOwner::open(owner.root.clone(), "project", "fixture-project").unwrap();
+    same.held = owner.held.clone();
+    same.set_assurance_level(level);
+    same
 }

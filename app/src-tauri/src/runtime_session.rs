@@ -4523,7 +4523,7 @@ impl WorkflowRootSession {
     }
     fn selection_view(&self, s: &WorkflowSelectionState) -> Value {
         let current_limit = self.run_admission(&s.selection).and_then(|()| s.selection.verify_store(&s.package)).err();
-        json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"assurance":s.selection.assurance(),"package":crate::attachments::native_path_identity(&s.package),"currentLimit":current_limit,"selectedAt":s.selected_at,"replaces":s.replaces,"newerRevision":self.newer_revision_view(s),"runnable":current_limit.is_none(),"runLimit":current_limit,
+        json!({"reference":s.reference,"identity":s.selection.identity(),"standing":s.selection.admission().standing(),"assurance":match s.selection.approval() { Some(Ok(a)) => a.record(), _ => Value::Null },"package":crate::attachments::native_path_identity(&s.package),"currentLimit":current_limit,"selectedAt":s.selected_at,"replaces":s.replaces,"newerRevision":self.newer_revision_view(s),"runnable":current_limit.is_none(),"runLimit":current_limit,
                 // NIR §9 PD-1 / AS §4 OV-1: the declared part, read from the selected revision's own bytes, for the run panel.
                 "declaration":s.selection.snapshot().declaration().map(|d|json!(d)).unwrap_or_else(|error|json!({"unavailable":error}))})
     }
@@ -12578,13 +12578,13 @@ for line in sys.stdin:
     fn workflow_reselection_proposal_refuses_a_revision_not_held_here(){
         let peer=Peer::new();let _registered=peer.registered();
         let mut cold=WorkflowRootSession::default();
-        cold.assurance.request(crate::workflow_workspace::registration::AssuranceLevel::Robust).unwrap();
+        cold.assurance.require_verified().unwrap();
         cold.open_library(peer.fixture.root.clone(),"project",Some(&peer.fixture.root),Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&peer.fixture.root))))).unwrap();
         let view=offer_view(&peer,&[("turn","p",1,PROPOSED,"live-observed")]);
         let notice=cold.offers(&view)[0]["proposal"]["resolution"]["notice"].as_str().unwrap().to_owned();
-        assert!(notice.contains("Robust assurance") && notice.contains("Re-confirm"),"{notice}");
+        assert!(notice.contains("Session confirmation required; persistent verification unavailable") && notice.contains("re-confirm"),"{notice}");
         let refused=cold.start_proposed(&view,peer.home.clone(),&peer.generation,&msgv("turn","p"),None,String::new(),peer.project()).unwrap_err();
-        assert!(refused.contains("Re-confirm"),"{refused}");
+        assert!(refused.contains("re-confirm"),"{refused}");
         assert!(cold.selected.is_empty()&&cold.runs.is_empty());
     }
     // SL-7 / PR-4 with SL-2: a chained run started from a proposal records how,

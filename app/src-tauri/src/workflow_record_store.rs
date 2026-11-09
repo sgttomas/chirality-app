@@ -1013,11 +1013,16 @@ impl PreparedRunPublication {
         let body = json!({"record_kind":"selection_record","selection_id":prepared.scope.selection_ref,"identity":selection.identity(),"holding_library":prepared.scope.holding_library,"standing":standing,"selected_by":"the person (App interface)","how":"explicit","conversation":prepared.scope.conversation,"selected_at":selected_at});
         // WR PR-4: a confirmed agent proposal is recorded as such, citing the proposal.
         let mut body = body;
-        let assurance = selection_source.assurance().unwrap_or("in-process A15");
+        // The policy requested and the evidence applied, as read now. Content
+        // with no library-owner basis records none: an absent field reads as
+        // unknown, never as a defaulted label.
         let mut prepared = prepared;
-        if standing == "registered" {
-            body["assurance"] = json!(assurance);
-            prepared.record["assurance"] = json!(assurance);
+        if let Some(approval) = selection_source.approval() {
+            let assurance = approval?.record();
+            body["assurance"] = assurance.clone();
+            prepared.record["assurance"] = assurance;
+        } else if let Some(map) = prepared.record.as_object_mut() {
+            map.remove("assurance");
         }
         if let Some(proposal) = prepared.proposal() {
             body["how"] = json!("agent proposal confirmed by the person");

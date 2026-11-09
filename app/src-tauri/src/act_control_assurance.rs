@@ -1,13 +1,19 @@
-//! Opaque native act for the App's process-local assurance preference.
-//! No IPC Boolean, JSON, file, or ordinary button press constructs this event.
+//! Opaque native act for lowering the App's workflow-approval policy to
+//! "Allow disk records". No IPC Boolean, JSON, file, or ordinary button press
+//! constructs this event.
 pub(crate) struct ConfirmedAssuranceAct { settings: String, epoch: u64 }
 impl ConfirmedAssuranceAct {
     pub(crate) fn matches(&self, settings: &str, epoch: u64) -> bool { self.settings == settings && self.epoch == epoch }
     #[cfg(test)] pub(crate) fn synthetic(settings: String, epoch: u64) -> Self { Self { settings, epoch } }
 }
-pub(crate) fn confirm_assurance_lowering(window: &tauri::Window, settings: String, epoch: u64) -> Result<Option<ConfirmedAssuranceAct>, String> {
-    let statement = super::native_statement::NativeStatement { text: "Choose relaxed workflow assurance for this App session?\n\nRegistered revisions may run after a fresh disk check without verifying a capture seal. An agent able to write the library ledger, A15 record and store bytes could make a workflow runnable without a person's approval.\n\nOnly Choose relaxed records this native act. Keep current assurance is the default and changes nothing. This session's level resets to the default on relaunch.".into(), in_app: None };
-    if crate::native_lifecycle_confirmation::confirm(window, "Chirality — workflow assurance", Ok(statement), "Keep current assurance", "Choose relaxed")? {
+pub(crate) fn confirm_assurance_lowering(window: &tauri::Window, settings: String, epoch: u64, protected: bool) -> Result<Option<ConfirmedAssuranceAct>, String> {
+    let kept = if protected {
+        "Your choice is stored in your keychain and kept across launches."
+    } else {
+        "Your choice is stored in this App's settings file and kept across launches. Until keychain protection is set up, an agent able to write that file could also change it."
+    };
+    let statement = super::native_statement::NativeStatement { text: format!("Allow disk records for registered workflows?\n\nA registered revision may then run in any App session after a fresh check that its ledger entry, A15 record and stored bytes agree on disk. That does not verify who approved it: an agent able to write the library ledger, A15 record and store bytes could make a workflow runnable without a person's approval.\n\n{kept}\n\nOnly Allow disk records records this native act. Keep verified approval is the default and changes nothing."), in_app: None };
+    if crate::native_lifecycle_confirmation::confirm(window, "Chirality — workflow approval", Ok(statement), "Keep verified approval", "Allow disk records")? {
         Ok(Some(ConfirmedAssuranceAct { settings, epoch }))
     } else { Ok(None) }
 }

@@ -363,3 +363,41 @@ action. Earlier statements in this and the joined documents that
 No signing, SecItem call, enrollment or native execution follows from this source
 change. OS acceptance of the entitlements, actual keychain access and the SC-3
 witness remain unrun, and the C3 rotation limit for 4.0.0 is unchanged.
+
+## Workflow approval policy and the person's protection act (2026-11-09)
+
+The owner's decisions A, B and C of 2026-11-09 (WR §4.6) give this provider
+three product uses. None of them adds a namespace outside the selected service
+and access group. None of them runs on a build without a compiled publisher
+selection.
+
+- **Keychain-held approval policy.** Once protection is set up, the person's
+  workflow approval policy is stored as add-only items in the selected service
+  and access group, under the account `installation-keyring.assurance-policy.`
+  followed by a 16-hex sequence. `KeychainAuthority::admits` accepts exactly
+  that form beside the primary and rotation accounts. A change adds the next
+  sequence and never replaces or deletes an item. A read takes the latest
+  present item. A read error other than "missing" is an error, never "no
+  policy". When no policy item exists, the primary (sentinel) item tells
+  "protection set up, policy missing", which needs recovery, apart from "not set
+  up". A missing, locked or corrupt policy reads as "Require verified approval"
+  and is never lowered automatically.
+- **"Protect registered workflows with your keychain".** First enrollment is the
+  person's in-App native act (decision C). It is no longer framed only as an
+  owner signing-stage act. The native menu and the workflow approval setting
+  both request the same prepared-intent question (`seal_c_enrollment`); neither
+  can answer it or supply a path, namespace or authority. After the provider
+  returns success, "Require verified approval" is stored in the keychain. It
+  still needs this selection, the compiled publisher selection and S4 installed
+  custody to work. Unsigned and development builds show it as unavailable with
+  that reason and never use file keys for it.
+- **Sealed cold admission.** `capture_seal::verify_keychain` verifies only
+  through this provider and refuses file keys. WR admits a revision as
+  keychain-verified only when the verified capture is bound to the A15 record a
+  committed ledger line cites, the complete identity and its content.
+
+The policy items, the act and the sealed admission are tested on the in-memory
+backend (`Mock`, through the real `operate`, `read_policy` and `write_policy`
+code). A real SecItem write of a policy item, real enrollment through the
+setting and real sealed admission remain unrun. They are part of the
+signing-stage qualification above.

@@ -282,13 +282,6 @@ pub fn seal(root: &Path, capture: &mut Value) -> Result<(), String> {
     capture["seal"] = json!({"method":SEAL_METHOD,"value":format!("{}:{}",ring.current,hex(&mac))});
     Ok(())
 }
-/// Read-only first-resolution probe. File keys never qualify as keychain availability.
-pub(crate) fn keychain_available() -> Result<(), String> {
-    let folder = folder()?;
-    crate::capture_seal_keychain::dispatch(&folder, crate::capture_seal_keychain::Operation::Verify)
-        .ok_or("gated keychain provider not selected (development or unenrolled installation)")??;
-    Ok(())
-}
 /// A15 opportunistic sealing uses only the enrolled SEAL-C keychain provider.
 /// Development file keys cannot supply robust registration assurance. Failure
 /// preserves the present native A15 with an explicit unsealed evidence limit.
@@ -309,6 +302,14 @@ pub fn unsealed_limit(reason: &str) -> String {
 /// Whether this installation verifies the capture's seal. `Err` is the stated
 /// limit for a capture that is not counted; it never claims a forgery.
 pub fn verify(root: &Path, capture: &Value) -> Result<(), String> {
+    verify_with(root, capture, false)
+}
+/// Verification for sealed workflow-approval admission: only the gated SEAL-C
+/// keychain provider qualifies. Development file keys never do.
+pub(crate) fn verify_keychain(root: &Path, capture: &Value) -> Result<(), String> {
+    verify_with(root, capture, true)
+}
+fn verify_with(root: &Path, capture: &Value, keychain_only: bool) -> Result<(), String> {
     let Some(seal) = capture.get("seal") else {
         return Err("capture has no App seal (written before capture sealing, or not by this App's act control); not verified here".into());
     };
@@ -320,6 +321,7 @@ pub fn verify(root: &Path, capture: &Value) -> Result<(), String> {
     let folder = folder_for(root).map_err(|e| format!("capture seal not checked: {e}; not verified here"))?;
     let ring=match crate::capture_seal_keychain::dispatch(&folder,crate::capture_seal_keychain::Operation::VerifyKey(id.to_owned())){
         Some(result)=>result.map(|material|Some(Keyring{current:material.current,keys:material.keys,raw:Value::Null})),
+        None if keychain_only=>return Err("keychain protection is not available on this build; not verified here".into()),
         None=>load(&folder),
     }.map_err(|e|format!("capture seal not checked: {e}; not verified here"))?;
     let Some(key) = ring.as_ref().and_then(|r| r.keys.get(id)) else {

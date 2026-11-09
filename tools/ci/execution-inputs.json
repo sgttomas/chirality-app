@@ -1895,12 +1895,12 @@
     {
       "source": "execution/PKG-01/DEL-01-04/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-01/DEL-01-04/ScopeOfWork.md",
-      "sha256": "360c4fb7403b33e820e37ee799ce2fdf7fb54f5c741d934e4717fd4ff4910e8e"
+      "sha256": "541547d566953cf4dd342ef40fb38eafba82c28d4dac43d28b06fbdbe71aff30"
     },
     {
       "source": "execution/PKG-01/DEL-01-04/Work/APP_ACT_CONTROL.md",
       "copy": "app/contract_inputs/PKG-01/DEL-01-04/Work/APP_ACT_CONTROL.md",
-      "sha256": "26c213aaeab146a15082199257cfdefb29053fa95e8d607060083f9e81284270"
+      "sha256": "1944c55b2acc59e0df176e6e2ecfcc9102d143f9ac8d286d5ac4c12359a7521d"
     },
     {
       "source": "execution/PKG-01/DEL-01-04/Work/NATIVE_INTERACTION_RECEIVING.md",
@@ -2455,12 +2455,12 @@
     {
       "source": "execution/PKG-02/DEL-02-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-02/DEL-02-02/ScopeOfWork.md",
-      "sha256": "af3c6eb3201ef92d198799f562c8f89134c37fbf578df4641597e7df5a7526c6"
+      "sha256": "c26e2a9504c2509b86e27cf524f139091c4e05acd8772e1555ffb003b3105bef"
     },
     {
       "source": "execution/PKG-02/DEL-02-02/Work/WORKSPACE_AND_REGISTRATION.md",
       "copy": "app/contract_inputs/PKG-02/DEL-02-02/Work/WORKSPACE_AND_REGISTRATION.md",
-      "sha256": "3b929bf6a637e6641ea4343e8e77bf8a1ff08358adf0ea97c405c42d29b33a25"
+      "sha256": "19da5224fa69506d4c562708fd79640c19a5f59d528a352a7426dd1ced8c9aa1"
     },
     {
       "source": "execution/PKG-02/DEL-02-02/Work/prototype/fixtures/review-pack/WORKFLOW.md",
@@ -2490,7 +2490,7 @@
     {
       "source": "execution/PKG-02/DEL-02-02/Work/workspace-registration.schema.json",
       "copy": "app/contract_inputs/PKG-02/DEL-02-02/Work/workspace-registration.schema.json",
-      "sha256": "ed6994c86e28bf28df47f98a80b094d779e6d2779a8191c4a4a6c3a7b8d79620"
+      "sha256": "53c071c5cbca0902a610bad11b0287aafd07a24014fd1553bf0e88692f90dd96"
     },
     {
       "source": "execution/PKG-02/DEL-02-02/Work/workspace-registration.valid.examples.jsonl",
@@ -2970,7 +2970,7 @@
     {
       "source": "execution/PKG-04/DEL-04-01/Work/ACT_AND_POLICY_CONTRACT.md",
       "copy": "app/contract_inputs/PKG-04/DEL-04-01/Work/ACT_AND_POLICY_CONTRACT.md",
-      "sha256": "788590495aa6351d14f41e234650129779cc7824013139e6ee17321c06be46b6"
+      "sha256": "682c7f6ec6eecad652d9661287dd25c687741b70bea66f28e2f977c6fe2c0d38"
     },
     {
       "source": "execution/PKG-04/DEL-04-01/Work/ACT_POLICY_CLASS_RECORD.invalid.examples.json",
@@ -3020,12 +3020,12 @@
     {
       "source": "execution/PKG-04/DEL-04-03/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-04/DEL-04-03/ScopeOfWork.md",
-      "sha256": "c93f68706a31ececac7d2ce627a94946ab6d6f7c423744830290b1617af91684"
+      "sha256": "cf6f328ea3f673426ac080cd1d77007d644b10e88d94e7280bbfdc19362c3a24"
     },
     {
       "source": "execution/PKG-04/DEL-04-03/Work/RECORD_SEMANTICS.md",
       "copy": "app/contract_inputs/PKG-04/DEL-04-03/Work/RECORD_SEMANTICS.md",
-      "sha256": "19ee64a9602b5149d38201f3f53233408bb4d8297e017e0fe35914987431c79f"
+      "sha256": "edde41868af4b7c8da3506e2a2628f9508879d9525c7991d8db2ccfb70c467e8"
     },
     {
       "source": "execution/PKG-04/DEL-04-03/Work/RS_RECORD.invalid.examples.json",
@@ -3525,7 +3525,7 @@
     {
       "source": "execution/PKG-09/DEL-09-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-09/DEL-09-02/ScopeOfWork.md",
-      "sha256": "e9e93fc834ffb4c916016c9b2067d21a1aabd10eed689c5f50f61278aecde5fb"
+      "sha256": "7470bcfc0b092d6eaf6cc0f7139dc6e35e3d46ed249fb96fcfa7bc5ff48af7ca"
     },
     {
       "source": "execution/PKG-09/DEL-09-02/Work/STANDALONE_QUALIFICATION.md",
@@ -4070,7 +4070,7 @@
     {
       "source": "execution/_Coordination/PUBLICATION_PUNCHLIST.md",
       "copy": "app/contract_inputs/_Coordination/PUBLICATION_PUNCHLIST.md",
-      "sha256": "c9362478629cfef8d3cfd74e8b919a7f0a00f3a4474ef38bd923c3362a8c38b6"
+      "sha256": "ba6bc8d23041915ec266a08d8ed17c6cd366d47534eed35b30e8cfd95a811d39"
     },
     {
       "source": "execution/_Coordination/WINDOWS_UNDERTAKING.md",

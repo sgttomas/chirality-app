@@ -566,14 +566,6 @@ operations (proposals, applications, undo) are never flagged or annotated
   host-offered faithful-record operation, if any, must not change act state,
   must cite capture evidence, never satisfies a checkpoint and takes ordinary
   policy; whether any host offers one is a relay question.
-Workflow selections and run texts use WR's optional `assurance` field:
-`relaxed disk-read`, `robust sealed`, or `in-process A15`, emitted for every
-new registered selection/run. Older records without it remain readable and
-show assurance unknown; a reader never infers a seal or present act from
-`standing: registered`. Relaxed records describe fresh LS-1 disk standing,
-not authenticated native origin. Robust seal failure never becomes relaxed
-admission; DS-8 supplies a new present A15. The A15 record shape stays unchanged.
-
 - **HA-10 A15 register workflow revision (R12-5; DEL-02-02 REQ-002, AC-002,
   AC-006; record elements PROPOSED; v0.9).** Written only from capture
   evidence of the person's explicit registration, or re-confirmation (WR §4.8; CC-WR-RECONFIRM), at **DEL-01-04's App act
@@ -659,6 +651,20 @@ is evidenced. Host whole-model over-lapse and host/global canonicalization and
 one-effect remain unselected. Record UUIDs, capture/transfer IDs and offer/test
 digests remain separate operational facts, not these content identities or acts.
 
+
+### 6.2b Workflow approval evidence (WR §4.6; owner 2026-11-09)
+
+Workflow selections and run texts use WR's optional `assurance` object
+(WR §4.6; owner 2026-11-09): `requested_policy` (`relaxed` is "Allow disk
+records", `robust` is "Require verified approval") and `admission_evidence`
+(`disk-consistency`, `keychain-verified approval` or `in-process A15`), emitted
+for every new registered selection and run. Older records without it remain
+readable and show the evidence as unknown; a reader never infers a seal or
+present act from `standing: registered`. `disk-consistency` describes fresh
+LS-1 disk standing, not authenticated native origin, and is never a human-act
+record. A failed verification never becomes disk admission under "Require
+verified approval"; DS-8 supplies a new present A15. The A15 record and
+capture shapes stay unchanged.
 ## 7. Content binding and lapse comparison rule
 
 Notation: *S* bound subject; *c₀*, *m₀* bound content identity and method

@@ -668,8 +668,11 @@ impl Selection {
     pub fn admission(&self) -> &SelectionAdmission {
         &self.admission
     }
-    pub fn assurance(&self) -> Option<&'static str> {
-        self.registration_basis.as_ref().map(|b| b.assurance())
+    /// The registered revision's admission as read now: the person's policy
+    /// and the evidence applied. `None` for content that is not a registered
+    /// revision resolved by a library owner (bundled, host, fixtures).
+    pub(crate) fn approval(&self) -> Option<Result<registration::Admission, String>> {
+        self.registration_basis.as_ref().map(|b| b.admit(&self.identity))
     }
     pub fn verify_store(&self, path: &Path) -> Result<(), String> {
         if let SelectionAdmission::ProductionBundle {
@@ -697,7 +700,7 @@ impl Selection {
         if read.revision != self.identity.revision {
             return Err("revision not verified".into());
         }
-        if let Some(basis) = &self.registration_basis { basis.verify(&self.identity)?; }
+        if let Some(basis) = &self.registration_basis { basis.admit(&self.identity)?; }
         Ok(())
     }
     /// WR-FRAME-1. The person's brief travels in a second text element. The
@@ -1470,7 +1473,7 @@ impl PreparedRunText {
         let body = selection.snapshot.workflow_text();
         let mut record = serde_json::json!({"record_kind":"run_text","purpose":"run start","framing":"WR-FRAME-1","run":scope.run,"conversation":scope.conversation,"workflow":selection.identity,"holding_library":scope.holding_library,
             "workflow_file":{"path":"WORKFLOW.md","content":exact_text_identity(body),"bytes":body.len()},"chain":chain,"origin_of_start":"selected by the person","selection":scope.selection_ref,"lines":lines,"text_identity":exact_text_identity(&text),"text_bytes":text.len()});
-        if let Some(assurance) = selection.assurance() { record["assurance"] = serde_json::json!(assurance); }
+        if let Some(approval) = selection.approval() { record["assurance"] = approval?.record(); }
         let other: Vec<_> = selection
             .snapshot
             .files

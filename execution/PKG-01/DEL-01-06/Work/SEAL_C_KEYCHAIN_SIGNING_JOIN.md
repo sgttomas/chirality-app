@@ -313,3 +313,14 @@ embedded at `Contents/embedded.provisionprofile`, with private original SHA-256
 their stock signatures under Option B. Activation needs the publisher-selected
 build, signing and notarization, then S4 and the SC-3 witness, each authorized
 separately.
+
+## Person-performed protection (2026-11-09)
+
+Under owner decision C, the enrollment action is offered to the person as
+"Protect registered workflows with your keychain". It appears in the native
+menu and in the App's workflow approval setting, and both only request the
+native question joined here. The signing-stage selection, publisher selection
+and installed custody remain prerequisites. The real enrollment, the
+keychain-held approval policy items in the same service and access group, and
+sealed cold admission are qualified with the signed candidate
+([SEAL-C](../../DEL-01-04/Work/SEAL_C_KEYCHAIN_TRANSITION.md#workflow-approval-policy-and-the-persons-protection-act-2026-11-09)).

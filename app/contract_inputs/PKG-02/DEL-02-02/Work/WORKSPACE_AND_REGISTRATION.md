@@ -26,7 +26,7 @@
 | F-E2 (design-pass-3 citation check; in place, no version step; R19-7) | §8's receivers: DEL-02-04 is removed from `library_entry` and `selection_record`. R19-7 dropped the row DEL-02-04 → DEL-02-02 (R17-8) and DEL-02-04 composes role guidance only (§1; §7's DEL-02-04 row: nothing flows for workflows; ROLE-v0.2 §7.1, C-6 withdrawn). The schema's `selection_record` description still names DEL-02-04 (workflow supply, R17-8); it is outside F-E2's write fence and is returned (F/F-E2.md). No record kind, field, rule or identifier changes | §8 |
 | RV21 (repairs from V21; in place, no version step) | **R21-3 (V21-A M-1, item 6):** RB-4a's stale sentence is replaced: RS-v0.9 admits both `draft:` and `entry:` and AAC-v0.2 (RV21) adopts this file's `a15_multi_descriptor` as one descriptor per act, with the plural wording; ME-3 cites it. **R21-4 (V21-B m-4):** the supply check reads with `thread/items/list {threadId, turnId}` (HOSTING-v0.9 §4.4 "Recovery reads"), following its pages, not `thread/read {includeTurns: true}`; *unreadable* now means a failed read or page. **V21-A MINOR 13:** §7's DEL-01-03 row follows R18-1 C-05 (only the plan-mode element needs the experimental opt-in); §8's stale paragraph on the RS-v0.8 form is rewritten. **V21-B m-9 (F-E2 §4.3 row 7; in this fence):** the schema's `selection_record` description no longer names DEL-02-04 (R19-7). Prototype: P-50a new, P-51/P-52 read pages; 99 checks | RB-4a; §4.7 ME-3; §7; §8; §15 U-WR-14; §16.4; §16.6 SC-3; §16.7 RN-5; §13; schema descriptions (`supply_check`, `selection_record`); `prototype/wrproto.py` |
 | C0 (closeout; in place, no version step) | **R21-5 (V21b-A N-2):** TT-3's pre-fill now attaches the draft's `WORKFLOW.md` as a text element, following NIR-v0.2 §6 AT-8 (other text files AT-9, other files named AT-10); once sent it is the person's own attachment: no run, no workflow supply, no run-start text. The earlier "a message naming the draft's path and content identity" is withdrawn. Prototype rerun 2026-10-02 (no change needed: it models the trial pointer, TT-4, not the pre-fill): `wrproto.py` 99 checks, 99 passed (`closeout/C0.md`) | §4.2 TT-3 |
-| CC-WR-RECONFIRM (named change; in place, no version step; owner decision "A15 re-confirmation now (Recommended)", 2026-10-07, run `APP-V4-GROUP-A-20261004` `OWNER_DECISIONS.md`; change record `changes/CC-WR-RECONFIRM.md` of that run, revision 2 after review V13) | After the App process that held a revision's registration result is gone (for example after a relaunch), a new genuine A15 may **re-confirm** a draft whose reviewed bytes equal registered revision ‹k› with LS-1 standing: new disposition DS-8; no new revision, sequence or identity; ledger outcome *re-confirmed* citing the new A15 and ‹k›'s registered line; the result is selectable in that process only. DS-4 stands while ‹k› is selectable in this process or is not LS-1; K-6 (SP-3, DS-3) is decided first, unchanged (SP-4a). Refine of an LS-1 revision needs no selection (RF-1), so a draft for DS-8 can be made after a relaunch. Trust rests on the new act, never on a replay of the earlier act or receipt; SEAL-2 stays deferred; AAC §5.2a cold provenance remains open. Re-confirmation route in §4.8 | §4.1 SP-4 (DS-4, DS-8), SP-4a; §4.3 RB-3, RB-4, RB-8; §4.6 LS-1 row, note, RF-1; new §4.8 RC-1…RC-10; §5.1–§5.4; §6 SQ-R R-3, SQ-G, SQ-X X-2, X-4; §7; §8; §9; §12 WR-VC-16…WR-VC-20; §15 U-WR-21…U-WR-23; schema (`reconfirmed_revision`; `registration_disposition`, `draft_transition`, `a15_descriptor` including its `freshness` description, `library_entry`) |
+| CC-WR-RECONFIRM (owner decisions 2026-11-09, including A/B/C, supersede the 2026-10-07 per-session requirement) | An unchanged registered revision remains usable across sessions once LS-1 identity is freshly checked under the person's workflow approval policy (§4.6, RC-2). "Allow disk records" accepts the disk check; "Require verified approval" accepts an in-process A15 or a keychain-verified approval and otherwise offers DS-8 re-confirmation. DS-8, its records and sequence remain intact. K-6/K-7 and LS-2/3/4/7 are unchanged | §4.1 DS-4/DS-8; §4.6; §4.8; selection_record and run_text `assurance` object |
 | CC-WR-TRIALS (owner direction on U-WR-24, 2026-10-10; in place, no version step) | Trials are rewritten from the person's side. A trial **mirrors a real run**: the App composes the draft's exact content as a registered run of that content would receive it, under a visible trial header (TT-3). While iterating, the person asks the authoring agent to run it through one sub-agent and report (**delegated trial**, TT-3a); at the person's choice, a **clean trial** runs in a fresh conversation (TT-3b), and its transcript can be brought back to the authoring conversation (TT-10). Trial links tie each trial to the draft version and both conversations (TT-4); fidelity is shown, not enforced (TT-9); the person's help actions are listed in TT-11; the registration review shows the last clean trial as information only (TT-13). A trial is still never a run, registration, checking or acceptance (TT-2). The App's attachment pre-fill and AT-10 naming for drafts are withdrawn: supporting files reach a trial as they reach a registered run (TT-8). U-WR-24 resolved. ScopeOfWork REQ-001 revised, REQ-009, AC-009 and VER-007 added | §1 K-7; §2.1; §3; §4.2 (rewritten); §4.3 RB-2; new §5.5; §6 SQ-J J-4, new SQ-DT, SQ-FT, SQ-BB; §7; §8; §9; §12 WR-VC-09, new WR-VC-21…WR-VC-25; §15 U-WR-24…U-WR-27; §16.2 line 4, TX-1, new TX-7 (folder of other files for every holding copy, WR TX-7); new §17 (implementation plan) |
 - **Serves:** OUT-001, OUT-002 (workspace and registration design and implementation), OUT-003 (focused App fixtures and the historical design prototype), OUT-004 (receiving and reuse account, §7, §10); REQ-001…REQ-009 and AC-001…AC-009 through the verification cases in §12. The table distinguishes historical prototype checks, focused App fixtures, exploratory native observations and the separately required candidate examination.
 - **Labels** (as R9 and R17): **SETTLED** (an accepted text or owner decision says it), **DERIVED** (follows from those), **INTEGRATION** (an integrator ruling, open to the owner), **PROPOSED** (a design structure of this file, decided by no one). Supplier facts carry `observed`, `observed-in-generated-types` or `inference` (R17-13).
@@ -160,7 +160,7 @@ original observation and are not refreshed on edits.
 | **DS-6 refused: changed since review** | The live draft changed while the snapshot was taken | Nothing registered | "Review again" |
 | **DS-7 in place** | The slot holds content with no registration record (LS-2); the draft is identical to it, or one or more existing entries are reviewed in place without a draft | First revision; the slot's bytes unchanged | "Registers the content already in this slot" |
 | **refused: slot moved on** | Between review and publication another revision was registered in the slot (§6 G-1) | Not completed; the A15 stands, recorded as not effective | "Another revision was registered after this review; review again" |
-| **DS-8 re-confirmation** (CC-WR-RECONFIRM) | The reviewed content equals revision ‹k› registered in the slot, ‹k› has LS-1 standing as read (§4.6), and ‹k› is **not** selectable in this App process (§4.8 RC-1, RC-2) | No new revision; on a new A15, revision ‹k› is re-confirmed for use in this App process (§4.8) | "Identical to revision ‹k›, registered earlier (not verified in this session). Re-confirm revision ‹k› for use in this App session; no new revision is registered" |
+| **DS-8 re-confirmation** (CC-WR-RECONFIRM) | The reviewed content equals revision ‹k› registered in the slot, ‹k› has LS-1 standing as read (§4.6), and no registration or re-confirmation result for ‹k› is held in this process (the route under "Require verified approval"; optional under "Allow disk records") (§4.8 RC-1, RC-2) | No new revision; on a new A15, revision ‹k› is re-confirmed for use in this App process (§4.8) | "Identical to revision ‹k›, registered earlier (not verified in this session). Re-confirm revision ‹k› for use in this App session; no new revision is registered" |
 
 - **SP-4a Order (CC-WR-RECONFIRM; PROPOSED).** A review decides DS-5 and DS-6 first. For a slot with registered revisions it then applies SP-3, unchanged: when SP-3 fails the disposition is DS-3 (K-6), whatever the content. Only then is identical content decided (DS-4, or DS-8 per §4.8), and otherwise DS-2. For a slot with no registered revision, DS-1 and DS-7 apply as before. This keeps K-6's refusal of a same-name draft with no such origin for identical content too (U-WR-23, closed: the route is Refine, RF-1).
 
@@ -260,7 +260,103 @@ original observation and are not refreshed on edits.
 
 LS-2's "not runnable" follows K-7's "only registered revisions run". **Settled by DECISION-L L-4 A as clarified:** shipped workflows are registered by the release and are not affected (LS-5); entries byte-equal to a shipped revision are recognized (LS-8); the rest are registered in place, several per act allowed (§4.7). U-WR-4 is closed.
 
-**LS-1 after a relaunch (CC-WR-RECONFIRM; INTEGRATION).** LS-1 is read from the ledger, the A15 record and the bytes, and is shown as read. While SEAL-2 is deferred, a revision is selectable only from a registration or re-confirmation result held in this App process (§4.8 RC-2). After a relaunch an LS-1 revision is listed "registered — re-confirm to use in this App session"; a draft with its bytes that SP-3 admits reviews as DS-8: the registered draft left unchanged (§5.1), or a draft made by Refine (RF-1) and left unchanged. The standing value stays *registered*.
+**LS-1 after a relaunch (owner decisions, 2026-11-09).** The owner decided
+"an unchanged registered revision must stay usable across sessions once its
+identity is checked." The owner then accepted a revised shape: "A. I accept
+your recommendation."; on a remembered choice without a keychain: "B. I accept
+your recommended choice."; on user-performed keychain setup: "C. I agree with
+your proposal." These supersede the per-session rule of 2026-10-07 and the
+process-memory level of the first increment.
+
+The person chooses one of two **workflow approval policies**, named in the UI:
+
+- **"Allow disk records"** (relaxed). A registered revision is admitted in any
+  App process after a fresh check of all three LS-1 conditions: the registered
+  ledger line, its A15 record binding the complete subject (including
+  `derived_from`) with the same content, and store bytes that recompute. The
+  check runs at selection and again at run preparation and at the final
+  dispatch boundary; nothing is cached from an earlier process. Each such
+  workflow is labelled "Disk consistency checked; approval authenticity
+  unverified": an agent able to write the ledger, A15 record and store bytes
+  could make a workflow runnable without a person's approval.
+- **"Require verified approval"** (robust). Always admits a matching native A15
+  held in this process (RC-2). Across sessions it admits an approval verified by
+  keychain seal (sealed cold admission below), once keychain protection is set
+  up. Otherwise it refuses with "Session confirmation required; persistent
+  verification unavailable", offers DS-8 re-confirmation or a fresh A15, and
+  offers keychain setup or recovery. It never falls back to the disk check.
+
+**Where the policy lives.** The chosen policy persists across launches, outside
+any project. Before keychain protection is set up it is stored in the App's
+settings file in AppData; an agent able to write that file could change it.
+The owner accepts that disclosed gap (decision B); the UI says so. Once
+protection is set up it is stored in the keychain through the gated SEAL-C
+provider (DEL-01-04 SEAL-C), as add-only policy items of the selected service and
+access group, and lowering needs the person's native act. No project file, IPC
+value or environment input lowers the policy at either stage.
+
+**Defaults and failures.** With nothing stored, the first-use default is
+"Require verified approval" where keychain protection works and "Allow disk
+records" otherwise; the default is recorded. Keychain enrollment stores
+"Require verified approval". A keychain or verification failure never lowers
+the policy: a missing, locked or corrupt protected policy, or a provider that
+cannot be read, reads as "Require verified approval" with recovery offered
+(check again, or restore verified approval). An unreadable settings file also
+reads as "Require verified approval" until the person chooses again. Raising
+needs no act; lowering always needs an opaque native-confirmation event from
+DEL-01-04's act control bound to the current setting epoch.
+
+**Keychain protection is a person's act (decision C).** "Protect registered
+workflows with your keychain" is an in-App native act that performs SEAL-C
+enrollment through the gated provider; the menu and the workflow approval
+setting only request its native question. It still needs the signing-stage
+selection (publisher, team, access group) and the signed App's installed
+custody to work. Unsigned and development builds show it unavailable with that
+reason and never use development file keys for it.
+
+**Sealed cold admission.** A revision is admitted with evidence
+*keychain-verified approval* only when a committed *registered* or
+*re-confirmed* ledger line for the complete identity cites an A15 record that
+binds that complete subject and content at the same entry and names the cited
+capture, the capture's facts agree with the record, and the capture's seal
+verifies under this installation's keychain key. A seal's presence alone
+qualifies nothing; development file keys never qualify. Registration and
+re-confirmation seal their A15 capture whenever the keychain key is available,
+at either policy. Revisions approved without a keychain seal need one DS-8
+re-confirmation after protection is set up to gain sealed cold use. Seals are
+per installation.
+
+**What the UI and records show.** The UI shows the chosen policy, whether
+verification is available (unavailable on this build, not set up, set up, or
+recovery required) and each workflow's approval evidence. Selection and run
+records keep the requested policy apart from the evidence applied
+(`assurance.requested_policy`, `assurance.admission_evidence`:
+*disk-consistency*, *keychain-verified approval* or *in-process A15*). An absent
+field reads as unknown, never as a defaulted label.
+
+**Open condition — signing-stage qualification.** Sealed cold admission and
+the keychain-held policy are implemented and tested on the in-memory keychain
+backend. Their real qualification waits for the signing stage: a signed App
+with the selected publisher, installed S4 custody and an actual enrolled
+keychain ([SEAL-C](../../../PKG-01/DEL-01-04/Work/SEAL_C_KEYCHAIN_TRANSITION.md),
+[signing join](../../../PKG-01/DEL-01-06/Work/SEAL_C_KEYCHAIN_SIGNING_JOIN.md)).
+Until then "Require verified approval" works across sessions only through
+DS-8 or a fresh A15. SEAL-2 entry sealing and native-origin replay remain
+separate open obligations.
+
+**Pinned passages read with this note.** The LS-1 row's selectability
+column, the DS-4 row and §4.8 are pinned byte-for-byte by the standalone
+examination's documentary condition
+([DEL-09-01 support identity](../../../PKG-09/DEL-09-01/Work/support-identity-v1/documentary-condition.v3.json)).
+They stay as written until a successor condition is adopted, and this note
+governs where they differ. Where they say a revision is selectable only from a
+result "held in this App process", that held result is now the *in-process
+A15* basis. A revision is also selectable under "Allow disk records", or with
+keychain-verified approval, as above. DS-4 stands only while this process holds
+‹k›'s result. Otherwise DS-8 is offered under either policy: it is the route
+under "Require verified approval" and optional under "Allow disk records".
+**Open condition:** DEL-09-01 adopts a documentary successor so that these
+passages can be edited in place.
 
 - **RF-1 Refine without a selection (CC-WR-RECONFIRM; INTEGRATION: HELP_HUMAN ruling on U-WR-21, 2026-10-07).** Refine is offered on any LS-1 revision, whether or not it is selectable in this process, including a revision registered in place (§4.7). It needs no selection and makes none. It recomputes the revision's store bytes, copies its regular files from the revision store into a new draft (SQ-D D-1), and the App records the revision as the draft's base. That base is an App-recorded fact read from the ledger at that time, not authority: the review shows it as App-recorded and freezes it (RB-2). Left unchanged, the draft reviews as DS-8 (or DS-4, RC-1); changed, as DS-2. Store bytes that do not recompute give no draft (LS-4). Re-confirmation from the listing without a draft is deferred (U-WR-21).
 
@@ -385,7 +481,7 @@ A re-confirmation attempt (§4.8; CC-WR-RECONFIRM) has the same states, with G-1
 |---|---|---|
 | none | The person selects a tuple with revision whose standing is LS-1 and selectable in this process (§4.8 RC-2; CC-WR-RECONFIRM), LS-5 or LS-6 | *selected* (pinned) |
 | none | The person tries to select a draft or LS-2/LS-3/LS-4 content | none; refusal with standing and "Review to register" |
-| none | The person tries to select an LS-1 revision that is not selectable in this process (§4.8 RC-2; CC-WR-RECONFIRM) | none; "registered — re-confirm to use in this App session", with Review where a draft holds its bytes (DS-8), or Refine (RF-1) to make one |
+| none | The person tries to select an LS-1 revision under "Require verified approval" without keychain-verified approval or a present in-process A15 (§4.8 RC-2; CC-WR-RECONFIRM) | none; "Session confirmation required; persistent verification unavailable", with Review where a draft holds its bytes (DS-8), or Refine (RF-1) to make one, and keychain setup or recovery |
 | *selected* | A newer revision is registered in the slot | *selected*, "newer revision available" shown |
 | *selected* | The person selects another tuple | *selected* (a new event that cites the one it replaces) |
 | *selected* (its run ended) | The person selects the next workflow, or confirms an agent's proposal (R19-2) | *selected* for the next run, with `prior_run` (SL-7); the run starts by §16 |
@@ -646,8 +742,8 @@ complete. The joined examination remains DEL-09-02's responsibility.
 | WR-VC-13 Shipped and multi-entry (v0.2) | VER-002, VER-003 (L-4) | LS-8 recognition (current and earlier release), edited copy not recognized; one act over three entries with a stale entry before and after capture | Library and act-control doubles; on a candidate, the person | **Ran** on doubles (P-42…P-47) |
 | WR-VC-14 Run text and supply check (v0.2) | VER-001, VER-004 (AC-001, AC-005) | Composition exact and deterministic; no other workflow named; turn/start and turn shapes against the 0.158.0 types; verified, and each mismatch state | Constructed turns, read back as `thread/items/list` pages (R21-4); on a candidate, Codex 0.158.0 or the qualified pin and a model | **Ran** on constructed frames (P-48…P-52, P-50a); live check AWAITING a candidate (OBS-3 W-4 observed the text route at 0.158.0 with one local model) |
 | WR-VC-15 Chaining (v0.2) | VER-001 (AC-001; R19-2) | One run at a time; (a) A→B with the chain line; end notice once; (b) proposal → offer → confirmation → chained start; proposals not on the last line, naming no origin, of drafts or unknown names give no Start; the finished line names origin and name (RX, R20-9); during a run only "End ‹A› and start ‹B›", recorded *ended to start ‹B›*; line placement and at-most-once (RX2, R20-11) | RunDesk double (stands in for DEL-02-03's run start and end) | **Ran** (P-53…P-65; P-60, P-61 for R20-1 and R20-3; P-62 for R20-9; P-64, P-65 for R20-11) |
-| WR-VC-16 Re-confirm after relaunch, then run (CC-WR-RECONFIRM) | VER-001, VER-002 (AC-001, AC-002) | Register ‹k› in process 1; relaunch; the registered draft, unchanged, reviews as DS-8, and so does a draft made by Refine without a selection (RF-1); A15 at the act control; G-4R *re-confirmed* line citing the new A15 and ‹k›'s registered line; ‹k› selectable in process 2 only; the selection record and the run text name ‹k› (TX-1); after another relaunch ‹k› needs a new re-confirmation | Library and act-control doubles with a modelled native event; on a candidate, the person at DEL-01-04's control | DESIGNED |
-| WR-VC-17 Revision selectable in this process: DS-4 (CC-WR-RECONFIRM) | VER-003 (AC-003) | After a registration or a re-confirmation of ‹k› in the same process, a draft with ‹k›'s bytes reviews as DS-4 "select it instead", with no descriptor; a DS-8 descriptor offered before ‹k› became selectable is withdrawn (RC-5 (d)); a capture after that is *not completed* "already selectable" (G-1R); a draft with the bytes of an LS-4 revision (act record missing, or store not recomputing) reviews as DS-4 with that exact cause, never DS-8, and Refine gives no draft from a store that does not recompute | Library and act-control doubles | DESIGNED |
+| WR-VC-16 Reuse after relaunch | VER-001, VER-002 (AC-001, AC-002) | Register ‹k› in process 1; relaunch; the stored policy is read back. "Allow disk records" selects and runs after a fresh LS-1 disk check with no A15, records `disk-consistency` and refuses each LS-4 cause, an altered `derived_from` and mutation before run start. "Require verified approval" admits a keychain-sealed A15 bound to its record, complete identity and committed line as `keychain-verified approval`; refuses an absent, mismatched or unbound seal, a missing line and a locked keychain without downgrade; offers DS-8 and admits its present A15 in process 2 as `in-process A15`. A keychain error at startup never relaxes; lowering needs the native act; no new revision/sequence/store/copy | Library, policy and in-memory keychain doubles; signed qualification separate | DESIGNED |
+| WR-VC-17 Present in-process A15 result: DS-4 (CC-WR-RECONFIRM) | VER-003 (AC-003) | After a registration or a re-confirmation of ‹k› in the same process, a draft with ‹k›'s bytes reviews as DS-4 "select it instead", with no descriptor; a DS-8 descriptor offered before ‹k› became selectable is withdrawn (RC-5 (d)); a capture after that is *not completed* "already selectable" (G-1R); a draft with the bytes of an LS-4 revision (act record missing, or store not recomputing) reviews as DS-4 with that exact cause, never DS-8, and Refine gives no draft from a store that does not recompute | Library and act-control doubles | DESIGNED |
 | WR-VC-18 Changed bytes take the ordinary route (CC-WR-RECONFIRM) | VER-002 (AC-002) | After a relaunch a draft differing from ‹k› by one byte reviews as DS-2 (base reaching the slot) or DS-3, never DS-8; a draft with ‹k›'s bytes whose SP-3 fails reviews as DS-3, not DS-8 (SP-4a) | Library double | DESIGNED |
 | WR-VC-19 Dismissal, staleness and loss have no effect (CC-WR-RECONFIRM) | VER-005 (AC-006) | Control closed: nothing captured, ledger unchanged, ‹k› not selectable. Bytes changed between review and act: AX-06, nothing captured. Slot moved on or registered line changed after capture: *not completed* citing the A15. A DS-8 descriptor stays current while the slot's latest equals `freshness.slot_latest`, when ‹k›'s own prior differs from it (RC-5). Process lost after the A15 record is written and before G-4R (stored or not): *not completed* at relaunch, never completed and never selectable. Process lost after a durable G-4R whose outcome it never learned: X-2 finds the *re-confirmed* line, writes nothing, and the ledger stays unambiguous. A live attempt in another App process is not closed (X-2 deferred). An abandoned DS-8 review begun from *registered, unchanged since* returns there. A not-completed re-confirmation is not completed later by the same act | Library double with fault injection; act-control double | DESIGNED |
 | WR-VC-20 Ledger series with re-confirmation lines (CC-WR-RECONFIRM) | R17-1; VER-003 | Registered lines 1 and 2 with *re-confirmed* lines citing 1 (twice) and 2: series and latest unchanged, and 2 is still the prior for the next DS-2. Refused, naming the line: a *re-confirmed* line citing a later line, another slot's line or a *not completed* line; a differing identity, sequence, prior revision or store path; an A15 cited by another line. Refused by the schema: a re-confirmation line without `reconfirms`; a *registered* line with disposition *re-confirmation*; `reconfirms` on a registration; a re-confirmation of an entry reviewed in place; the re-confirm wording with a registration purpose | Schema; ledger reader | Schema cases checked during the change (change record); reader checks DESIGNED |

@@ -928,3 +928,81 @@ fn seal_prepared_installed_root_change_revokes_original_intent() {
     assert!(!f.dir.exists());
     crate::capture_seal::set_folder_for_test(None);
 }
+
+
+/// An enrolled installation on the existing in-memory backend (`Mock`, through
+/// the real `operate` and policy item code), installed as this thread's
+/// provider for capture sealing and the workflow approval policy. Dropping it
+/// removes the provider: the build then reads as having no keychain.
+pub(crate) struct InMemoryKeychain {
+    fixture: std::rc::Rc<Fixture>,
+    backend: std::rc::Rc<Mock>,
+}
+impl InMemoryKeychain {
+    pub(crate) fn install(enrolled: bool) -> Self {
+        let fixture = std::rc::Rc::new(Fixture::new());
+        let backend = std::rc::Rc::new(Mock::default());
+        if enrolled {
+            fixture.run(&backend, Operation::Enroll, 9).unwrap();
+        }
+        let (f, b) = (fixture.clone(), backend.clone());
+        TEST_PROVIDER.with(|slot| *slot.borrow_mut() = Some(Box::new(move |_, operation| f.run(&b, operation, 9))));
+        let (f, b) = (fixture.clone(), backend.clone());
+        set_policy_provider_for_test(Some(Box::new(move |operation| match operation {
+            PolicyOp::Read => read_policy(&*b, &f.identity),
+            PolicyOp::Write(level) => write_policy(&*b, &f.identity, level).and_then(|()| read_policy(&*b, &f.identity)),
+        })));
+        Self { fixture, backend }
+    }
+    /// Locked / denied: every read fails as the native backend reports it.
+    pub(crate) fn lock(&self) { *self.backend.read_error.lock().unwrap() = Some(BackendError::Unavailable(-25308)); }
+    pub(crate) fn unlock(&self) { *self.backend.read_error.lock().unwrap() = None; }
+    /// Replace the latest policy item's bytes (corruption in the keychain).
+    pub(crate) fn corrupt_policy(&self) {
+        let mut items = self.backend.items.lock().unwrap();
+        let key = items.keys().filter(|k| k.contains(".assurance-policy.")).max().cloned().expect("a policy item");
+        items.insert(key, b"not a policy".to_vec());
+    }
+    pub(crate) fn policy_items(&self) -> usize {
+        self.backend.items.lock().unwrap().keys().filter(|k| k.contains(".assurance-policy.")).count()
+    }
+}
+impl Drop for InMemoryKeychain {
+    fn drop(&mut self) {
+        TEST_PROVIDER.with(|slot| *slot.borrow_mut() = None);
+        set_policy_provider_for_test(None);
+    }
+}
+
+#[test]
+fn policy_items_are_add_only_sequenced_and_never_read_absent_on_error() {
+    let f = Fixture::new();
+    let b = Mock::default();
+    assert!(matches!(read_policy(&b, &f.identity).unwrap(), PolicyRead::Absent { enrolled: false }));
+    f.run(&b, Operation::Enroll, 3).unwrap();
+    assert!(matches!(read_policy(&b, &f.identity).unwrap(), PolicyRead::Absent { enrolled: true }), "enrolled with no policy needs recovery");
+    write_policy(&b, &f.identity, "robust").unwrap();
+    write_policy(&b, &f.identity, "relaxed").unwrap();
+    assert!(matches!(read_policy(&b, &f.identity).unwrap(), PolicyRead::Stored(l) if l == "relaxed"));
+    write_policy(&b, &f.identity, "robust").unwrap();
+    assert!(matches!(read_policy(&b, &f.identity).unwrap(), PolicyRead::Stored(l) if l == "robust"));
+    assert!(write_policy(&b, &f.identity, "other").is_err());
+    // Every item stays inside the selected namespace's policy accounts.
+    let items: Vec<String> = b.items.lock().unwrap().keys().cloned().collect();
+    assert_eq!(items.iter().filter(|k| k.contains(".assurance-policy.")).count(), 3);
+    let authority_identity = ItemIdentity { service: f.identity.service.clone(), account: format!("{}.assurance-policy.{:016x}", f.identity.account, 2), access_group: f.identity.access_group.clone() };
+    assert_eq!(policy_sequence(&f.identity, &authority_identity), Some(2));
+    let outside = ItemIdentity { account: format!("{}.assurance-policy.zz", f.identity.account), ..authority_identity.clone() };
+    assert_eq!(policy_sequence(&f.identity, &outside), None);
+    // Locked: an error, never "absent" and never a level.
+    *b.read_error.lock().unwrap() = Some(BackendError::Unavailable(-25308));
+    assert!(read_policy(&b, &f.identity).unwrap_err().contains("locked"));
+    assert!(write_policy(&b, &f.identity, "relaxed").is_err());
+    *b.read_error.lock().unwrap() = None;
+    // Corrupt latest item: an error until a new item is added.
+    let latest = b.items.lock().unwrap().keys().filter(|k| k.contains(".assurance-policy.")).max().cloned().unwrap();
+    b.items.lock().unwrap().insert(latest, b"{}".to_vec());
+    assert!(read_policy(&b, &f.identity).unwrap_err().contains("corrupt"));
+    write_policy(&b, &f.identity, "robust").unwrap();
+    assert!(matches!(read_policy(&b, &f.identity).unwrap(), PolicyRead::Stored(l) if l == "robust"));
+}
