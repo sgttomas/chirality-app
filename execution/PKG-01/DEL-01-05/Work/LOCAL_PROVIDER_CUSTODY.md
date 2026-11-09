@@ -140,6 +140,24 @@ validity, actor identity, personal act or completed model run. Raw keys never
 enter renderer DTOs, App journals, history, captures or error text. Existing
 private account transport supplies fixed withholding.
 
+## Current native observation
+
+The unsigned development App built from `02506cce0c2bd4bef5fb57496d00cd6e219d3454`
+completed fresh App-owned setup, normal Quit/reopen and adoption of the saved
+isolated project. Explicit activation made its setup page paint; an earlier
+background-only blank window did not establish a source defect. Local
+preparation reported the fixed destination and `entry-required`. The native
+secure field opened; cancelling without a key reported no key saved and
+consumed that generation's entry attempt. Explicit local-home selection
+offered only the fixed oMLX model, and returning to the account home preserved
+the local preparation. No conversation or inference request was sent.
+
+These agent-operated development observations are retained privately at
+`/Users/ryan/dev/chirality-t3/scratch/app-omlx-current-ijt11txd/`, with original
+process identities and normal-closure facts. They establish neither credential
+provisioning nor validity, model/tool compatibility, network confinement,
+personal owner action or installed/final-candidate qualification.
+
 ## Child receiving at the selected source
 
 The .167 canonical subject can receive parent `thread/start` dotted
