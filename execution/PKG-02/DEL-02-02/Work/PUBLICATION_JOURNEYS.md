@@ -20,10 +20,11 @@ requests and failures remain readable.
 
 The active access scope is account plus oMLX/local. Standalone OpenAI API-key
 mode and its qualification commitment are omitted by owner direction; local
-bearer credentials remain required. The current receiver is anonymous-only,
-so keyed oMLX is visibly pending the separate native-access contribution and
-implementation of the adopted Codex-custody dedicated local home. Actual oMLX
-compatibility remains unverified. The supplier lane owns the selected 0.167.0 advance;
+bearer credentials remain required. Keyed oMLX is received through the
+adopted Codex-custody dedicated local home: the person prepares it, enters the
+key in a native secure field and switches between account and local homes
+(DEL-01-05 current account/oMLX increment). That glue integrates only after the
+native local-home commands. Actual oMLX compatibility remains unverified. The supplier lane owns the selected 0.167.0 advance;
 this UI increment adds no generated protocol or native credential behavior.
 
 The retained source-rendered visual checkpoint uses actual components, the

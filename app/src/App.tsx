@@ -1,4 +1,5 @@
 import { ActionFeedback } from "./ActionFeedback";
+import { LOCAL_ENTRY, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, type LocalView } from "./LocalProviderAccess";
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
@@ -52,7 +53,9 @@ export function SteeringControl({ target, reason, ready, busy, text, submit }: {
 }
 
 // The access entries a new conversation may use in the active home.
-const startEntries = (host: Json) => host?.homeRouting?.activeModeHomeClass !== "account"
+const startEntries = (host: Json) => host?.homeRouting?.activeModeHomeClass === LOCAL_MODE
+  ? [{ value: LOCAL_ENTRY, label: "oMLX in the local home (key kept by Codex)" }]
+  : host?.homeRouting?.activeModeHomeClass !== "account"
   ? []
   : [{ value: "chatgpt-account", label: "ChatGPT account in configured account home" }, { value: "local-provider", label: "Configured local provider" }];
 
@@ -1199,7 +1202,8 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
   </section>;
 }
 
-export function HomeAccessPanel({ host, resources, navigating = false, act, readAccount }: { host: Json; resources: Json; navigating?: boolean; act: (command: string, args: Record<string, unknown>) => Promise<void>; readAccount: ReadAccountStatus }) {
+export type LocalAccess = { view: LocalView | null; attempted: string[]; pending: boolean; message: { kind: "status" | "alert"; text: string } | null; prepare: () => void; enterKey: (generation: Json) => void };
+export function HomeAccessPanel({ host, resources, navigating = false, act, readAccount, local }: { host: Json; resources: Json; navigating?: boolean; act: (command: string, args: Record<string, unknown>) => Promise<void>; readAccount: ReadAccountStatus; local?: LocalAccess }) {
   const routing = host?.homeRouting, access = host?.homeAccess, oauth = host?.homeOAuth, generation = host?.generation;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -1211,7 +1215,8 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
   const entries: Json[] = (routing?.entries ?? []).filter((entry: Json) => entry.modeHomeClass === "account");
   return <section aria-label="Account connection"><h2>Connect to a model</h2>
     <p>Use your ChatGPT account for cloud conversations, or choose a configured oMLX/local provider.</p>
-    {routing?.activeModeHomeClass !== "account" && <p role="status">Choose the account connection to continue. An older access home is retained without changing its saved configuration.</p>}
+    {routing?.activeModeHomeClass === "api-key" && <p role="status">Choose the account connection to continue. An older access home is retained without changing its saved configuration.</p>}
+    {routing?.activeModeHomeClass === LOCAL_MODE && <p role="status">The local oMLX home is in use. ChatGPT sign-in applies to the account home.</p>}
     {routing?.activeModeHomeClass !== "account" && entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.state}{entry.configurationLimit ? ` — ${entry.configurationLimit}` : ""}</p><details><summary>Connection source</summary><pre>{JSON.stringify(entry.generation, null, 2)}</pre></details><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
     <AccountStatus host={host} navigating={navigating} busy={busy} read={readAccount}/>
     <button className="setup-primary" disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>
@@ -1221,8 +1226,10 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.cancelAvailable} onClick={() => action("oauth_cancel", {generation})}>Cancel original pending sign-in with native confirmation…</button>
     <button disabled={busy || !generation || routing?.activeModeHomeClass !== "account"} onClick={() => action("logout_home", {generation,modeHomeClass:routing.activeModeHomeClass})}>Sign out of ChatGPT…</button></details>
     <section className="local-access-alternative" aria-label="oMLX and local providers"><h3>Use oMLX / a local model</h3>
-      <p>Local providers use their own credentials, separate from ChatGPT sign-in. This receiver currently offers anonymous local providers only; keyed oMLX support is pending.</p>
-      <a href="#workspace-start">Choose a configured local provider</a>
+      <p>Local providers use their own credentials, separate from ChatGPT sign-in.</p>
+      {local && <LocalProviderAccess host={host} view={local.view} attempted={local.attempted} pending={local.pending || busy} message={local.message} navigating={navigating}
+        prepare={local.prepare} enterKey={local.enterKey} useHome={() => { void action("select_home", { modeHomeClass: LOCAL_MODE }); }}/>}
+      <p><small>Anonymous configured local providers connect through the account home.</small> <a href="#workspace-start">Choose a configured local provider</a></p>
     </section>
     <details><summary>Safe original sign-in observation</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(oauth ?? {state:"unavailable"},null,2)}</pre></details>
     {error && <p role="alert">{error}</p>}
@@ -1481,6 +1488,12 @@ export function App() {
   const trialObservationSequence = useRef(0);
   const [trialObservation, setTrialObservation] = useState<{ relation: { attempt: number; command: string; source: Json; reference: unknown; target: Json }; limit: string | null } | null>(null);
   const homeClass = host?.homeRouting?.activeModeHomeClass ?? null;
+  // Keyed oMLX local status (see localCommand); never contains a key.
+  const [localView, setLocalView] = useState<LocalView | null>(null);
+  const [localAttempted, setLocalAttempted] = useState<string[]>([]);
+  const [localPending, setLocalPending] = useState(false);
+  const [localMessage, setLocalMessage] = useState<LocalAccess["message"]>(null);
+  const localPendingRef = useRef(false);
   const chooserHome = useRef({ mode: homeClass, epoch: 0 });
   if (chooserHome.current.mode !== homeClass) {
     // A different active home invalidates its previous chooser even if the
@@ -1764,7 +1777,9 @@ export function App() {
     providerRowChoice.current = { id, source: providerObservation.source, epoch: providerObservation.epoch,
       sequence: providerObservation.sequence, revision: providerObservation.packet.scope.readRevision };
   };
-  const entryCompatible = homeClass === "account" && startEntries(host).some(entry => entry.value === entryId);
+  const fixedLocal = localRoute(localView, host);
+  const entryCompatible = startEntries(host).some(entry => entry.value === entryId) && (homeClass === "account"
+    || (homeClass === LOCAL_MODE && !!fixedLocal && model === fixedLocal.model && modelProvider === fixedLocal.providerId));
   const [role, setRole] = useState<string>("");
   const [roleTouched, setRoleTouched] = useState(false);
   const [threadKey, updateThreadKey] = useState<string>("");
@@ -1976,7 +1991,7 @@ export function App() {
     const submitted = choiceRef.current;
     const epoch = chooserHome.current.epoch;
     if (endpointBusyRef.current || startPendingRef.current || homePendingRef.current || providerReadPending.current || configuredRowChoiceStale() || source?.state !== "ready" || submitted.homeEpoch !== epoch ||
-        !submitted.model.trim() || !submitted.modelProvider.trim() || mode !== "account" ||
+        !submitted.model.trim() || !submitted.modelProvider.trim() || (mode !== "account" && mode !== LOCAL_MODE) ||
         !startEntries(source).some(entry => entry.value === submitted.entryId)) return;
     expireEndpointPreview();
     const revision = editRevision.current;
@@ -2006,6 +2021,31 @@ export function App() {
       catch (error) { setMessage(previous => `${previous}; current host view unavailable: ${String(error)}`); }
     }
   };
+  // Keyed oMLX: one local command at a time. Its view is shown only while it
+  // describes the current local generation; an attempted key entry is recorded
+  // before dispatch because native consumes it even on cancel or unknown outcome.
+  const localCommand = async (command: "prepare_local_provider" | "submit_local_provider_key", generation?: Json) => {
+    if (localPendingRef.current || homePendingRef.current) return;
+    localPendingRef.current = true; setLocalPending(true); setLocalMessage(null);
+    const what = command === "prepare_local_provider" ? "oMLX preparation" : "oMLX key entry";
+    if (generation) { const key = generationKey(generation); setLocalAttempted(previous => previous.includes(key) ? previous : [...previous, key]); }
+    try {
+      const view = localViewFrom(await invoke(command, generation ? { generation } : undefined));
+      if (!view) setLocalMessage({ kind: "alert", text: `${what}: the reply was not an oMLX status, so nothing from it is shown.` });
+      else {
+        setLocalView(view);
+        if (generation) setLocalMessage(view.credentialState === "configured-not-verified"
+          ? { kind: "status", text: "Codex reports the key saved in the oMLX home. It is not verified." }
+          : { kind: "status", text: "No key was saved: the secure field closed without one." });
+      }
+    } catch (error) { setLocalMessage({ kind: "alert", text: `${what} did not complete: ${String(error)}` }); }
+    finally {
+      localPendingRef.current = false; setLocalPending(false);
+      try { await refresh(); } catch (error) { setLocalMessage(previous => ({ kind: "alert", text: `${previous ? `${previous.text} ` : ""}Current view unavailable: ${String(error)}` })); }
+    }
+  };
+  const localAccess: LocalAccess = { view: localView, attempted: localAttempted, pending: localPending, message: localMessage,
+    prepare: () => { void localCommand("prepare_local_provider"); }, enterKey: generation => { void localCommand("submit_local_provider_key", generation); } };
   const homeAction = async (command: string, args: Record<string, unknown>) => {
     const navigating = command === "select_home" || command === "open_waiting_requests";
     if (navigating) {
@@ -2393,8 +2433,8 @@ export function App() {
           <h2>New conversation</h2>
           <div className="workspace-start-fields">
           <h3>1. How it connects</h3>
-          <AccessRouteChoice homeClass={homeClass} modelProvider={modelProvider} entryId={entryId} disabled={startPending || homePending || providerReading || endpointBusy}
-            choose={route => reviseChoice(route)}/>
+          <AccessRouteChoice homeClass={homeClass} modelProvider={modelProvider} entryId={entryId} model={model} disabled={startPending || homePending || providerReading || endpointBusy}
+            local={fixedLocal} choose={route => reviseChoice(route)}/>
           <div aria-label="Configured local providers">
             <button disabled={host?.state !== "ready" || host?.generationClosed || homeClass !== "account" || providerReading || startPending || homePending || endpointBusy}
               onClick={readConfiguredProviders}>Read configured local providers</button>
@@ -2528,7 +2568,7 @@ export function App() {
           <h2>Settings &amp; tools</h2>
           <DesktopSetupPanel view={host?.desktopSetup}/>
           <WorkspaceDisclosure id="workspace-connection" title="Connection and access" description="Home, sign-in, provider setup and Codex controls" open={host?.state !== "ready" ? true : undefined}>
-            <HomeAccessPanel host={host} resources={{ ...host?.homeResources, namespaceProtection: host?.nativeNamespaces, keyAdmission: host?.keyNamespaceAdmission }} navigating={homePending} readAccount={readAccountStatus} act={async (command, args) => { await homeAction(command, args); }}/>
+            <HomeAccessPanel host={host} resources={{ ...host?.homeResources, namespaceProtection: host?.nativeNamespaces, keyAdmission: host?.keyNamespaceAdmission }} navigating={homePending} readAccount={readAccountStatus} local={localAccess} act={async (command, args) => { await homeAction(command, args); }}/>
             <EffectiveAccessSettingsPanel host={host} navigating={homePending} refresh={refreshEffectiveAccessSettings}/>
   <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }}/>
           </WorkspaceDisclosure>

@@ -31,15 +31,22 @@ export function validModelPacket(packet: Json, generation: Json, modeHomeClass: 
 }
 
 /** How a new conversation connects: an explicit choice of an existing access route. */
-export function AccessRouteChoice({ homeClass, modelProvider, entryId, disabled, choose, localHint }: {
-  homeClass: string | null; modelProvider: string; entryId: string; disabled: boolean; choose: (route: { modelProvider: string; entryId: string }) => void; localHint?: string;
+export function AccessRouteChoice({ homeClass, modelProvider, entryId, model = "", disabled, choose, localHint, local = null }: {
+  homeClass: string | null; modelProvider: string; entryId: string; model?: string; disabled: boolean;
+  choose: (route: { modelProvider: string; entryId: string; model?: string }) => void; localHint?: string;
+  local?: { entryId: string; providerId: string; endpoint: string; model: string } | null;
 }) {
   const builtIn = homeClass === "account" ? { entryId: "chatgpt-account", label: "Use my ChatGPT account (built-in OpenAI)" } : null;
   const chosen = builtIn && modelProvider === BUILT_IN_PROVIDER && entryId === builtIn.entryId;
+  const localChosen = !!local && entryId === local.entryId && modelProvider === local.providerId && model === local.model;
   return <div aria-label="How this conversation connects">
     {builtIn ? <p><button disabled={disabled || !!chosen} aria-pressed={!!chosen} onClick={() => choose({ modelProvider: BUILT_IN_PROVIDER, entryId: builtIn.entryId })}>{builtIn.label}</button>{chosen ? " — chosen" : ""}</p>
+      : homeClass === "local-provider" ? (local
+        ? <p><button disabled={disabled || localChosen} aria-pressed={localChosen} onClick={() => choose({ modelProvider: local.providerId, entryId: local.entryId, model: local.model })}>Use oMLX model {local.model}</button>{localChosen ? " — chosen" : ""}
+          <br/><small>Local server <code>{local.endpoint}</code>; the key stays with Codex in the local home.</small></p>
+        : <p>Prepare the oMLX connection under Connection &amp; access for this Codex session first.</p>)
       : <p>Choose the account connection under Connection &amp; access first.</p>}
-    {homeClass === "account" && <p><small>{localHint ?? "oMLX/local uses its own provider credential. Keyed oMLX support is pending; this receiver currently offers anonymous providers only."}</small></p>}
+    {homeClass === "account" && <p><small>{localHint ?? "Keyed oMLX uses its own local home: prepare it and switch to it under Connection & access. Anonymous configured local providers connect here."}</small></p>}
     {entryId === "local-provider" && modelProvider && <p>Connects through configured local provider <code>{modelProvider}</code>.</p>}
   </div>;
 }
