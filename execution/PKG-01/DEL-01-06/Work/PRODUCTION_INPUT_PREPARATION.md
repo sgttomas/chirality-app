@@ -17,6 +17,17 @@ isolated-build requirements and a digest-checked completion marker. It never
 builds or signs. Its README contains the exact CLI, retained input-plan identities
 and signing/installed-witness collection sequence using the existing packet formats.
 
+The helper also supports an explicit opt-in Cargo build-input contract for the
+measured arm64 macOS 27.2 / SDK 27.2 Rust/Cargo 1.97.1 toolchain. The
+[maintained recipe instructions](../../../../app/packaging/production_inputs/README.md#explicit-cargo-input-for-the-measured-macos-toolchain)
+define exact task-local config bytes and tool digests, a read-only pre-build
+verifier, and required post-build Apple Mach-O validation. Both host build
+dependencies/proc-macros and shipped release targets use `strip=none`; release
+optimization remains level 3. This is an explicit additional build input, not a
+source-only or bit-identical-output claim. Default strip behavior and retained historical
+subjects stay unchanged; static success does not establish signing, installed
+custody, native qualification or notice closure.
+
 Independent review found no blocker for initial plan-only use and identified
 pre-build corrections. Those are implemented: device/inode ancestry separation
 (including case/firmlink aliases), no publisher/vendor embedding in source,
