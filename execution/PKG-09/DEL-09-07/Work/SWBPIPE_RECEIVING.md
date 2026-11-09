@@ -1,5 +1,66 @@
 # Current SWBPIPE qualification receiving basis
 
+## Next P5 qualification inputs
+
+DEL-09-06 supplies the [current source-information binding and actual ingress](../../DEL-09-06/Work/SWBPIPE_RECEIVING_BINDING.md#current-p5-host-information)
+from the integrated host P5 account. Its source route advances the old unwired
+checkpoint below; it supplies no corrected qualified native HC-1 executable or
+credible completion date. P5 remains open. App's existing v4 adoption remains
+unchanged pending selection and reconciliation of a concrete later candidate.
+
+The nearest exact inputs and their owners are:
+
+1. **Corrected supplier-envelope capture:** SWBPIPE's existing
+   `Work/agent-d4-capture-proposal.md` HC-1, linked from the authoritative host
+   account, prepares one supplier-only observation. Earlier grants are consumed;
+   a new host-owner decision and the maintained guard are required. The guard is
+   absent and Root's activation choice remains owner-reserved. The adapter
+   `tools/agent_supplier_capture.py` binds the selected configuration/instructions,
+   catalog and synthetic exchange fixtures. Receive its actual complete packet
+   and provider-equivalent strict tokenizer/template recount, then the D4
+   context/output reconciliation. Source reconstruction or a saved context
+   setting cannot establish wire fit, actual served context or the actual tool
+   set. The stub capture does not qualify the authenticated native relay.
+2. **Corrected native candidate and bounded journey:** SWBPIPE owns candidate
+   selection/rebuild and the exact executable, frontend, operation/self-weight
+   wasm, controller and monitor binding under `Work/agent-d4-run-plan.md` D4-5.
+   Its existing `tools/agent_journey_fixture.py`,
+   `tools/agent_live_session_fixture.py`,
+   `apps/desktop/native-smoke/agent-journey.js` and
+   `tools/agent_journey_memory_monitor.py` are preparation inputs, not corrected
+   executable evidence. Receive separately authorized candidate-bound
+   isolation, EOF/app-death, interruption, stale-basis and recovery results, plus
+   the joined local-model proposal/review/Apply/solve/result/report trace. The
+   person must perform the attended Apply; a driver click supplies no personal
+   act. CE/S6 retains priority on host build/qualification resources.
+3. **Full reference-system capability:** SWBPIPE's DEL-09-01
+   `Work/reference-system.md` §§9–11.3 and the authoritative host account's
+   “W9-A and the full reference system” mapping identify the exact missing
+   catalog, mechanics and authoring routes and their host owners. W9-A's
+   11-operation pressure-free example and six node:c motions do not supply that
+   journey. Named sections/assignment, units/self-weight, person-authored bend
+   k/SIF/source, state/load/combination routes and later analysis capabilities
+   still need their owning implementation and verification. Existing hanger/H1
+   constraints remain; the mapping selects no new implementation lane.
+4. **App qualification joins:** DEL-09-07 receives actual host records through
+   DEL-09-06 and applies the [desktop trace checks](#first-desktop-trace-receiving-checks).
+   REQ-006/AC-006 still need complete same-run host traffic and actual native
+   destination-enforcement evidence under the existing
+   [traffic plan's observation/calibration limits](TRAFFIC_OBSERVATION_PLAN.md).
+   REQ-003/007 and AC-003/007 still need durable outcome/receipt recovery and an
+   independently examined candidate dossier. Historical lifecycle matrices,
+   synthetic outcomes, bounded denial probes and a capture pass cannot supply
+   those results.
+
+These are the existing qualification obligations at their points of need, not
+a new cross-product gate. App Agent 0 coordinates external inputs and the
+owner's candidate, run and personal-act decisions with SWBPIPE; no launch or
+dispatch is inferred. The retained row/batch, direct-class and workflow/history
+questions below remain owner decisions. P5 does not hold independent App J2.
+ScopeOfWork and dependency conditions remain unchanged: this update receives
+information and prepares examination without changing implementation, source
+adoption, acceptance or qualification standing.
+
 ## Current catalog-v4 receiving
 
 The [explicit v4 selection](../../DEL-09-06/Work/catalog-v4/RECEIVING_ADOPTION.md) receives SWBPIPE PR27 actual merge
@@ -94,12 +155,15 @@ source inspection does not provide that review.
 
 This is App preparation for examining the host's existing interface and actual
 records, not a new schema, evidence protocol, runtime bridge or extra host run.
-At merged host source `3a4fa55369be67940b4d1de707b2bad8159dc0bd`,
-`embedded_agent/protocol.rs:615-630` retains the original RPC id in private
+The historical source inspection at merged host
+`3a4fa55369be67940b4d1de707b2bad8159dc0bd` found that
+`embedded_agent/protocol.rs:615-630` retained the original RPC id in private
 `Pending` state. `ToolRequested` carries the opaque request reference,
-thread/turn/call, tool and arguments. `session_driver.rs:291-334` requires the
+thread/turn/call, tool and arguments. `session_driver.rs:291-334` required the
 domain owner to retain actual outcomes separately from queue/detachment standing.
-The live coordinator/webview binding and its actual records are still owed.
+The current source route is identified in DEL-09-06's binding above; its actual
+candidate-bound records remain owed. Apply this checklist to that selected
+contribution without treating the older source locations as its runtime identity.
 
 | Receive and compare | Required interpretation |
 |---|---|
