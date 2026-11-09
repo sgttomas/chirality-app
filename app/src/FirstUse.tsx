@@ -126,7 +126,7 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
     {shown.custodyProblem && <p role="alert">Setup can't continue: {shown.custodyProblem}</p>}
     {shown.pending ? <div className="first-use-saved" role="status" aria-label="Setup saved">
       <h2>You're set up</h2>
-      <p><strong>Next: quit Chirality (⌘Q) and open it again.</strong> Then sign in to Codex under Connection &amp; access, and start a conversation.</p>
+      <p><strong>Next: quit Chirality (⌘Q) and open it again.</strong> Then open Connection &amp; access to sign in with your ChatGPT account or prepare the oMLX connection. After connecting, choose a model and start a conversation.</p>
       <p>Project: {shown.pending.project ? <code className="first-use-path">{shown.pending.project}</code> : "none"}</p>
     </div> : <>
     <ol className="first-use-steps">
