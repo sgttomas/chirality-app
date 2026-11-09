@@ -1029,8 +1029,12 @@ fn operate_bound(
 // the App's access group can neither add nor remove these items, so a file
 // edit, deletion or replay outside the keychain cannot change the policy.
 const POLICY_FORMAT: &str = "chirality.app.workflow-approval-policy";
-/// Upper bound on the add-only sequence probed at each read.
-const POLICY_MAX: u64 = 4096;
+/// The whole bounded sequence range. Every read and write discovers over all
+/// of 1..=POLICY_MAX (one keychain read per sequence), so no deleted head
+/// record or run of missing items can hide a later choice. A person changes
+/// this policy rarely; after POLICY_MAX changes the protected policy can no
+/// longer change and stays as last stored (writes refuse, never wrap).
+const POLICY_MAX: u64 = 256;
 /// The App-data record of the latest policy sequence written (rollback check).
 const POLICY_HEAD: &str = "workflow-approval-policy-head.json";
 #[derive(Debug)]
@@ -1066,23 +1070,18 @@ fn backend_cause(error: BackendError) -> String {
         BackendError::Missing => "keychain item missing".into(),
     }
 }
-/// Sequences probed past a missing one. Items are add-only, so the highest
-/// present sequence is the latest choice; an earlier gap hides nothing.
-const POLICY_GAP_PROBE: u64 = 8;
-/// The highest present sequence and its bytes. Any read failure other than
-/// Missing is an error: it never reads as "no policy".
-fn policy_probe(backend: &impl Backend, i: &ItemIdentity, through: u64) -> Result<Option<(u64, Vec<u8>)>, String> {
-    // Read at least through the recorded head, and a window past the last
-    // present item, so no run of missing items hides a later one.
+/// The highest present sequence and its bytes, discovered over the whole
+/// bounded range. Items are add-only, so the highest is the latest choice and
+/// an earlier gap hides nothing. Any read failure other than Missing is an
+/// error: it never reads as "no policy".
+fn policy_probe(backend: &impl Backend, i: &ItemIdentity) -> Result<Option<(u64, Vec<u8>)>, String> {
     let mut last = None;
-    let mut sequence = 1;
-    while sequence <= POLICY_MAX && sequence <= through.max(last.as_ref().map_or(0, |(n, _)| *n) + POLICY_GAP_PROBE) {
+    for sequence in 1..=POLICY_MAX {
         match backend.read(&policy_item(i, sequence)) {
             Ok(bytes) => last = Some((sequence, bytes)),
             Err(BackendError::Missing) => (),
             Err(error) => return Err(format!("workflow approval policy not readable: {}", backend_cause(error))),
         }
-        sequence += 1;
     }
     Ok(last)
 }
@@ -1096,6 +1095,7 @@ fn recorded_head(head: Option<&Path>) -> Result<u64, String> {
         Ok(bytes) => serde_json::from_slice::<serde_json::Value>(&bytes)
             .ok()
             .and_then(|v| v["sequence"].as_u64())
+            .filter(|n| *n <= POLICY_MAX)
             .ok_or_else(|| "workflow approval policy head record is corrupt; recovery required".into()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(0),
         Err(e) => Err(format!("workflow approval policy head not readable: {e}")),
@@ -1110,7 +1110,7 @@ pub(crate) fn read_policy(backend: &impl Backend, i: &ItemIdentity, head: Option
         Err(error) => return Err(format!("keychain protection state not readable: {}", backend_cause(error))),
     };
     let head_sequence = recorded_head(head)?;
-    let found = policy_probe(backend, i, head_sequence)?;
+    let found = policy_probe(backend, i)?;
     if !enrolled {
         // Policy items or a recorded head show protection was set up: losing
         // the seal key is recovery, never a fall back to the settings file.
@@ -1144,9 +1144,10 @@ pub(crate) fn write_policy(backend: &impl Backend, i: &ItemIdentity, level: &str
         Err(BackendError::Missing) => return Err("keychain protection is not set up; nothing stored".into()),
         Err(error) => return Err(format!("workflow approval policy not stored: {}", backend_cause(error))),
     }
-    // A lost tail still allows recovery: add past every present or recorded sequence.
-    let head_sequence = recorded_head(head).unwrap_or(0);
-    let present = policy_probe(backend, i, head_sequence)?.map_or(0, |(sequence, _)| sequence);
+    // A lost tail still allows recovery: add past every present or recorded
+    // sequence. An unreadable or corrupt head is an error, never zero.
+    let head_sequence = recorded_head(head)?;
+    let present = policy_probe(backend, i)?.map_or(0, |(sequence, _)| sequence);
     let next = present.max(head_sequence) + 1;
     if next > POLICY_MAX {
         return Err("workflow approval policy sequence exhausted".into());

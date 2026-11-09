@@ -1050,3 +1050,50 @@ fn policy_items_are_add_only_sequenced_and_never_read_absent_on_error() {
     fs::remove_file(&head).unwrap();
     assert!(read().unwrap_err().contains("seal key is missing"), "policy items alone still show protection was set up");
 }
+
+/// Agent 0's P1 cases: discovery covers the whole bounded range, whatever the
+/// App-data head says; a corrupt or unreadable head fails closed on read and write.
+#[test]
+fn policy_discovery_is_authoritative_over_the_whole_range() {
+    let f = Fixture::new();
+    let b = Mock::default();
+    let head = f.root.join(POLICY_HEAD);
+    let name = |n: u64| format!("{}|{}.assurance-policy.{:016x}|{}", f.identity.service, f.identity.account, n, f.identity.access_group);
+    let put = |n: u64, level: &str| { b.items.lock().unwrap().insert(name(n), serde_json::to_vec(&serde_json::json!({"format":POLICY_FORMAT,"sequence":n,"level":level})).unwrap()); };
+    let read = || read_policy(&b, &f.identity, Some(&head));
+    f.run(&b, Operation::Enroll, 3).unwrap();
+    // Item 2 relaxed, item 16 robust (beyond any eight-item window), between missing.
+    put(2, "relaxed");
+    put(16, "robust");
+    for recorded in [None, Some(r#"{"sequence":0}"#)] {
+        match recorded { Some(text) => fs::write(&head, text).unwrap(), None => { let _ = fs::remove_file(&head); } }
+        assert!(matches!(read().unwrap(), PolicyRead::Stored(l) if l == "robust"), "head {recorded:?}: never the earlier relaxed item");
+    }
+    // A far item at the very end of the range is found too.
+    put(POLICY_MAX, "relaxed");
+    assert!(matches!(read().unwrap(), PolicyRead::Stored(l) if l == "relaxed"));
+    assert!(write_policy(&b, &f.identity, "robust", Some(&head)).unwrap_err().contains("exhausted"), "never written below a later item");
+    b.items.lock().unwrap().remove(&name(POLICY_MAX));
+    // Corrupt or unreadable head: read and write fail closed.
+    fs::write(&head, b"not json").unwrap();
+    assert!(read().unwrap_err().contains("head record is corrupt"));
+    assert!(write_policy(&b, &f.identity, "robust", Some(&head)).unwrap_err().contains("head record is corrupt"));
+    fs::write(&head, format!(r#"{{"sequence":{}}}"#, POLICY_MAX + 1)).unwrap();
+    assert!(read().is_err() && write_policy(&b, &f.identity, "robust", Some(&head)).is_err(), "a head beyond the range is corrupt");
+    let _ = fs::remove_file(&head);
+    fs::create_dir(&head).unwrap();
+    assert!(read().unwrap_err().contains("head not readable"));
+    assert!(write_policy(&b, &f.identity, "robust", Some(&head)).unwrap_err().contains("head not readable"));
+    fs::remove_dir(&head).unwrap();
+    assert_eq!(b.items.lock().unwrap().keys().filter(|k| k.contains(".assurance-policy.")).count(), 2, "no item written on a refused write");
+    // Writing with a zero head and items present goes past every present item.
+    fs::write(&head, r#"{"sequence":0}"#).unwrap();
+    write_policy(&b, &f.identity, "relaxed", Some(&head)).unwrap();
+    assert!(b.items.lock().unwrap().contains_key(&name(17)));
+    // Missing seal key with only a far item present: recovery, never absent.
+    let sentinel = format!("{}|{}|{}", f.identity.service, f.identity.account, f.identity.access_group);
+    b.items.lock().unwrap().retain(|k, _| k == &name(16) || k == &sentinel);
+    b.items.lock().unwrap().remove(&sentinel);
+    let _ = fs::remove_file(&head);
+    assert!(read().unwrap_err().contains("seal key is missing"));
+}

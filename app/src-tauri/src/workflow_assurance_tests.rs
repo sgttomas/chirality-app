@@ -181,3 +181,23 @@ fn a_lost_seal_key_never_falls_back_to_a_relaxed_settings_file() {
     assert!(relaunched.require_verified().is_err(), "restoration that does not read back is not reported as success");
     assert_eq!(relaunched.level(), AssuranceLevel::Robust);
 }
+
+/// A keychain write that succeeds but does not read back is not reported as
+/// a completed recovery.
+#[test]
+fn a_successful_write_that_does_not_read_back_stays_in_recovery() {
+    struct WriteOkReadFails(Mutex<usize>);
+    impl Store for WriteOkReadFails {
+        fn read(&self) -> Result<Stored, String> { Err("stored workflow approval policy is corrupt; recovery required".into()) }
+        fn write(&self, _: AssuranceLevel) -> Result<(), String> { *self.0.lock().unwrap() += 1; Ok(()) }
+    }
+    let writes = Arc::new(WriteOkReadFails(Mutex::new(0)));
+    let store = writes.clone();
+    let settings = Settings::with_stores(move || Some(Box::new(store.clone()) as Box<dyn Store>), Box::new(file()));
+    assert_eq!(settings.view()["verification"]["state"], "recovery required");
+    let error = settings.require_verified().unwrap_err();
+    assert!(error.contains("still needs recovery"), "{error}");
+    assert_eq!(*writes.0.lock().unwrap(), 1, "the write itself succeeded");
+    assert_eq!(settings.level(), AssuranceLevel::Robust);
+    assert_eq!(settings.view()["verification"]["state"], "recovery required");
+}

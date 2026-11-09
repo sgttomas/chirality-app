@@ -381,8 +381,11 @@ selection.
   the last sequence written turns a lost latest item into recovery, never a
   rollback to an earlier choice (losing both the keychain item and the head
   record would still roll back; that needs deletion inside the keychain).
-  Reads cover at least the recorded head, so no run of missing items hides a
-  later one. Policy items count only with the seal-key sentinel present, and
+  Every read and write discovers over the whole bounded range of 256
+  sequences, so neither a deleted or zeroed head record nor any run of
+  missing items hides a later choice; a corrupt or unreadable head fails
+  closed on read and write. After 256 changes the protected policy can no
+  longer change and stays as last stored. Policy items count only with the seal-key sentinel present, and
   restoring a policy never claims protection that enrollment did not set up.
   A missing sentinel while policy items or a recorded head remain is recovery,
   never a fall back to the settings file. A read error other than "missing" is an error, never "no
