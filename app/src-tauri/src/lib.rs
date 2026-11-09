@@ -1256,7 +1256,8 @@ fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> 
     let generation=home.host.snapshot()["generation"].clone();
     home.host.require_canonical_167(&generation)?;
     let _=data;
-    Ok(native_local_provider::view(generation,false))
+    // A key Codex already holds after restart is reported by Codex itself, never read by the App.
+    native_local_provider::observe(&home,plan,&generation)
 }
 #[tauri::command(async)]
 fn submit_local_provider_key(app: tauri::AppHandle, window: tauri::Window, state: State<'_, AppState>, generation: Value) -> Result<Value, String> {

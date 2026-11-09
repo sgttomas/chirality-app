@@ -2158,6 +2158,8 @@ impl Host {
     }
     pub(crate) fn account_requirements_read_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("configRequirements/read",json!({}),json!({"kind":"person-directed"}),false,Some(generation))}
     pub(crate) fn account_read_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("account/read",json!({}),json!({"kind":"person-directed"}),false,Some(generation))}
+    /// Account kind only; explicitly no proactive token refresh.
+    pub(crate) fn account_read_no_refresh_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("account/read",json!({"refreshToken":false}),json!({"kind":"person-directed"}),false,Some(generation))}
     /// Caller owns explicit removal/live-work assessment; ack is not removal proof.
     pub(crate) fn account_logout_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("account/logout",json!({}),json!({"kind":"person-directed"}),false,Some(generation))}
     pub(crate) fn account_rpc_observation(&self,source:&SourceRequest)->Result<Value,String>{self.check_source(source)?;let e=source.evidence();let frame=e.get("response").filter(|f|!f.is_null());Ok(json!({"source":e,"accountObservation":frame.map(|frame|auth_rpc::typed_observation(source.attempted_frame()["method"].as_str().unwrap_or(""),frame,e["authResponseShapeValid"]==true,source.attempted_frame()["params"]["type"].as_str())),"standing":"redacted source facts only; no credential validity/home/actor qualification"}))}
@@ -2442,7 +2444,7 @@ impl Host {
         if history.generation()!=generation||history.home()!=dispatch.query.home()||i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("Continue admission belongs to foreign/stale/closed generation".into());}
         let native=&candidate["native"];if !matches!(native["status"]["type"].as_str(),Some("idle"|"active"))||native["canAcceptDirectInput"]==false||native["id"]!=dispatch.query.params()["threadId"] {return Err("native thread cannot accept direct input".into());}
         if i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==native["id"]) {return Err("thread already operationally admitted in generation".into());}
-        Self::check_local_resume(&i,&response["result"])?;
+        Self::check_local_reported(&i,&response["result"])?;
         self.check_local_resume_source(&i,dispatch.local_config.as_ref())?;
         let result=&response["result"];let row=json!({"generation":generation,"threadId":native["id"],"name":native.get("name").and_then(Value::as_str),"preview":native.get("preview").and_then(Value::as_str),"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()});i.threads.push(row.clone());
         // Admission is already established. Context preparation/read failure must
@@ -2505,6 +2507,7 @@ impl Host {
         let mut i=self.inner.0.lock().unwrap();
         if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("thread/fork result belongs to a closed or replaced generation; native response retained".into());}
         if i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("forked thread already operationally admitted in generation".into());}
+        Self::check_local_reported(&i,&response["result"])?;
         let standing=i.supplier_standing.clone();let result=&response["result"];
         let row=json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()});
         // Stock Codex retains the dynamic tool in a fork. Admit its calls only
@@ -5151,6 +5154,19 @@ mod conversation_transport_tests {
         i.version_identity=Some(json!({"declaredPin":"0.167.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc"}}]}));
         i.successor_status=Some(json!({"verificationGeneration":g(),"inventory":{"manifest_sha256":"158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"}}));
     }
+    #[test]
+    fn local_provider_same_role_fork_dispatches_and_admits_local_result() {
+        use crate::native_local_provider::{MODEL, PROVIDER};
+        for (provider, model, admitted) in [(PROVIDER, MODEL, true), ("configured", MODEL, false), (PROVIDER, "reported", false)] {
+            let host=host();bind_local_history(&host);
+            host.inner.0.lock().unwrap().threads.push(json!({"generation":g(),"threadId":"started","model":MODEL,"modelProvider":PROVIDER,"cwd":"/invented"}));
+            let mut native=history_resume("idle",true);native["thread"]["id"]=json!("forked");native["thread"]["forkedFromId"]=json!("started");native["modelProvider"]=json!(provider);native["model"]=json!(model);
+            let(forked,outbound)=exchange(&host,Some(json!({"result":native})),vec![],||{let request=host.thread_fork_dispatch(&g(),"started")?;host.source_request_wait(&request,Duration::from_secs(2))?;host.thread_fork_finish(&request)});
+            assert_eq!(outbound["method"],"thread/fork");
+            assert_eq!(forked.is_ok(),admitted,"{provider}/{model}: {forked:?}");
+            assert_eq!(host.snapshot()["threads"].as_array().unwrap().iter().any(|t|t["threadId"]=="forked"),admitted);
+        }
+    }
     /// Answers the private config/read through the host hook and the resume frame through the peer.
     fn local_continue_exchange(host:&Arc<Host>,query:&HistoryQuery,cfg:Value,resume:Value,between:impl FnOnce())->(Result<HistoryDispatch,String>,Vec<Value>) {
         let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
@@ -5179,7 +5195,7 @@ mod conversation_transport_tests {
             }
             assert!(!host.snapshot()["threads"].as_array().unwrap().iter().any(|t|t["threadId"]=="stored"));
             let query=view.continue_query().unwrap();let mut native=history_resume("idle",true);native["modelProvider"]=json!(PROVIDER);native["model"]=json!(MODEL);
-            if case=="provider"{native["modelProvider"]=json!("configured");} if case=="model"{native["model"]=json!("reported");}
+            match case {"provider"=>native["modelProvider"]=json!("configured"),"model"=>native["model"]=json!("reported"),_=>{}}
             let cfg=if case=="credential-drift"{drift.clone()}else{good.clone()};
             let me=Arc::clone(&host);
             let(dispatch,frames)=local_continue_exchange(&host,&query,cfg,native,move||if case=="superseded-reading"{let _=me.provider_admission_read(&g(),"/invented",crate::native_local_provider::ENTRY,PROVIDER,MODEL);});

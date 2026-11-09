@@ -3031,6 +3031,57 @@ fn native_local_provider_one_private_login_frame_and_safe_receipts_without_suppl
 }
 
 #[test]
+fn native_local_provider_restart_observes_codex_saved_key_kind_without_reading_or_claiming_validity() {
+    use crate::native_local_provider as local_route;
+    for case in ["saved-api-key", "absent", "error", "stale", "chatgpt", "missing-account"] {
+        let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("local-observe-").unwrap());
+        std::fs::create_dir(&root).unwrap();
+        let plan = crate::home_resources::OwnedHomePlan::new(root.clone(), root.join("local"), crate::home_resources::HomeClass::LocalProvider, None).unwrap();
+        local_route::prepare(&plan).unwrap();
+        let mut peer = Peer::new(&plan.opaque_home_id());
+        canonical_167_peer(&peer);
+        peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding { home: plan.opaque_home_id(), cwd: "/invented/work".into() });
+        let cfg = HostConfig::new(root.join("not-run"), plan.native_path().into(), root.join("probe"), "/invented/work".into());
+        let home = crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider, peer.host.clone(), Ok(cfg)).unwrap();
+        let generation = peer.g.clone();
+        let result = std::thread::scope(|scope| {
+            let work = scope.spawn(|| local_route::observe(&home, &plan, &generation));
+            let read = peer.frame();
+            assert_eq!(read["method"], "account/read");
+            assert_eq!(read["params"], json!({"refreshToken":false}));
+            let reply = match case {
+                "saved-api-key" => json!({"id":read["id"],"result":{"account":{"type":"apiKey"},"requiresOpenaiAuth":true}}),
+                "absent" => json!({"id":read["id"],"result":{"account":null,"requiresOpenaiAuth":true}}),
+                "error" => json!({"id":read["id"],"error":{"code":-32603,"message":CANARY}}),
+                "chatgpt" => json!({"id":read["id"],"result":{"account":{"type":"chatgpt","email":CANARY,"planType":"plus"},"requiresOpenaiAuth":true}}),
+                "missing-account" => json!({"id":read["id"],"result":{"requiresOpenaiAuth":true}}),
+                _ => {
+                    let mut i = peer.host.inner.0.lock().unwrap();
+                    Host::close_generation(&mut i);
+                    i.generation["spawnCounter"] = json!(2);
+                    json!({"id":read["id"],"result":{"account":{"type":"apiKey"},"requiresOpenaiAuth":true}})
+                }
+            };
+            peer.host.on_line(&serde_json::to_vec(&reply).unwrap(), &peer.g);
+            work.join().unwrap()
+        });
+        match case {
+            "saved-api-key" => assert_eq!(result.as_ref().unwrap()["credentialState"], "configured-not-verified"),
+            "absent" => assert_eq!(result.as_ref().unwrap()["credentialState"], "entry-required"),
+            _ => assert!(result.is_err(), "{case}: no state claim"),
+        }
+        if let Ok(view) = &result {
+            assert_eq!(view["generation"], peer.g);
+            assert_eq!(view["validity"], "not verified by configuration, login acknowledgment or account type");
+        }
+        assert!(!format!("{result:?}").contains(CANARY));
+        let rows = peer.host.client_requests();
+        assert!(rows.iter().all(|r| r["method"] == "account/read"), "{case}: no login, refresh or config write");
+        assert!(!plan.native_path().join("auth.json").exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+#[test]
 fn native_local_provider_central_guard_refuses_cross_entry_overrides_before_capture_and_allows_current_turn(
 ) {
     use crate::native_local_provider::{MODEL, PROVIDER};

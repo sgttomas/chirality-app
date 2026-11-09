@@ -105,13 +105,19 @@ provider definition, and that reading is checked again at the write.
 Operational admission requires the same reading to be current, and the resumed
 thread to report the fixed provider, model and working directory. Credential,
 header or catalogue drift from another layer refuses before any resume is
-written.
+written. A same-role fork of an admitted local thread is admitted only when the
+fork reports the same fixed provider, model and working directory.
 
 The DTO names `modeHomeClass`, `entryId`, `providerId`, `endpoint`, `model`,
 `generation` and `credentialState`. The fixed entry is `local-provider-keyed`.
-States are `entry-required` or `configured-not-verified`; the latter requires
-an actual matching private login acknowledgment and same-source API-key account
-read. Configuration, acknowledgment and account type establish no credential
+States are `entry-required` or `configured-not-verified`. After key entry the
+latter requires an actual matching private login acknowledgment and a
+same-source API-key account read. Preparation, including after a restart, sends
+`account/read {refreshToken:false}` for the exact local generation and uses only
+Codex's reported account kind. A saved API-key account is
+`configured-not-verified`; no account is `entry-required`. An error, a stale
+source, a missing account field or any other account kind refuses without a
+state claim. The App never opens `auth.json`. Configuration, acknowledgment and account type establish no credential
 validity, actor identity, personal act or completed model run. Raw keys never
 enter renderer DTOs, App journals, history, captures or error text. Existing
 private account transport supplies fixed withholding.

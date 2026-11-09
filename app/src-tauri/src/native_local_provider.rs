@@ -291,8 +291,24 @@ pub(crate) fn submit(
     {
         return Err(LIMIT.into());
     }
+    let observed = observe(home, plan, generation)?;
+    if observed["credentialState"] != "configured-not-verified" {
+        return Err(LIMIT.into());
+    }
+    window_current()?;
+    Ok(observed)
+}
+/// Codex's own account report for this exact local generation: `account/read` with
+/// `refreshToken:false`. Only the reported account kind is used. The App never opens auth.json,
+/// sees a key or claims validity. No account means entry is required; an error, a stale source,
+/// an unestablished reply or any non-API-key account refuses without a state claim.
+pub(crate) fn observe(
+    home: &HomeSession,
+    plan: &OwnedHomePlan,
+    generation: &Value,
+) -> Result<Value, String> {
     source(home, plan, generation)?;
-    let read = home.host.account_read_scoped(generation)?;
+    let read = home.host.account_read_no_refresh_scoped(generation)?;
     home.account_sources.lock().unwrap().push(read.clone());
     home.host
         .source_request_wait(&read, Duration::from_secs(20))
@@ -300,13 +316,18 @@ pub(crate) fn submit(
     let e = read.evidence();
     if e["outcome"] != "response-observed-result"
         || e["authResponseShapeValid"] != true
-        || e["response"]["result"]["account"]["type"] != "apiKey"
+        || e["sourceCurrent"] != true
+        || e["response"]["result"].get("account").is_none()
     {
         return Err(LIMIT.into());
     }
+    let configured = match &e["response"]["result"]["account"] {
+        Value::Null => false,
+        account if account["type"] == "apiKey" => true,
+        _ => return Err(LIMIT.into()),
+    };
     source(home, plan, generation)?;
-    window_current()?;
-    Ok(view(generation.clone(), true))
+    Ok(view(generation.clone(), configured))
 }
 
 #[cfg(all(test, unix))]

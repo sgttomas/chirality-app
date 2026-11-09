@@ -1095,7 +1095,7 @@ impl Host {
         let thread_current=||i.threads.iter().rev().find(|t|t["generation"]==i.generation&&t["threadId"]==params["threadId"]&&t["threadId"].is_string()).is_some_and(|t|t["modelProvider"]==crate::native_local_provider::PROVIDER&&t["model"]==crate::native_local_provider::MODEL);
         match method {
             "account/login/start" if private_credential && params["type"]=="apiKey" => Ok(()),
-            "account/read" if params.as_object().is_some_and(|p|p.is_empty()) => Ok(()),
+            "account/read" if params.as_object().is_some_and(|p|p.is_empty()) || *params==json!({"refreshToken":false}) => Ok(()),
             "account/logout"|"configRequirements/read"|"modelProvider/capabilities/read"|"collaborationMode/list" if params.as_object().is_some_and(|p|p.is_empty()) => Ok(()),
             "config/read" if private_config && params["cwd"]==binding.cwd && params["includeLayers"]==true && params.as_object().is_some_and(|p|p.len()==2) => Ok(()),
             "thread/start" if params["cwd"]==binding.cwd && params["modelProvider"]==crate::native_local_provider::PROVIDER && params["model"]==crate::native_local_provider::MODEL && admission.is_some_and(|p|p.entry==crate::native_local_provider::ENTRY && (params.get("config").is_none_or(|c| c.is_null() || c.as_object().is_some_and(|c| c.is_empty())) || p.children.as_ref().is_some_and(|c| params["config"]==c.config))) => Ok(()),
@@ -1132,8 +1132,8 @@ impl Host {
         let Some(binding) = &i.local_provider else { return Ok(()); };
         self.check_provider_read(i, source.ok_or(crate::native_local_provider::LIMIT)?, &binding.cwd)
     }
-    /// A resumed local thread is admitted only when its reported source is the fixed oMLX selection.
-    pub(super) fn check_local_resume(i:&Inner,result:&Value)->Result<(),String>{
+    /// A resumed or forked local thread is admitted only when its reported source is the fixed oMLX selection.
+    pub(super) fn check_local_reported(i:&Inner,result:&Value)->Result<(),String>{
         if i.local_provider.is_none() {return Ok(());}
         if result["modelProvider"]!=crate::native_local_provider::PROVIDER || result["model"]!=crate::native_local_provider::MODEL || result["cwd"]!=json!(i.local_provider.as_ref().map(|b|b.cwd.as_str())) {return Err(crate::native_local_provider::LIMIT.into());}
         Ok(())
