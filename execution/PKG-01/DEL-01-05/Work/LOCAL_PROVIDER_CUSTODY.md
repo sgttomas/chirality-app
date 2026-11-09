@@ -109,8 +109,13 @@ reading to be current, and the resumed thread to report the fixed provider,
 model and working directory. Credential, header or catalogue drift present in
 that reading refuses before any resume is written. Receipt currency is not a
 configuration lock: a layer that changes on disk after the reading, without a
-newer reading, is not observed before Codex reloads it. A same-role fork of an admitted local thread is admitted only when the
-fork reports the same fixed provider, model and working directory.
+newer reading, is not observed before Codex reloads it. Codex 0.167 also reloads layered configuration for the source thread's working
+directory on an ordinary same-role fork. A local fork is therefore only the
+exact `{threadId, deferGoalContinuation:true}` packet, with no instructions,
+model or configuration. Its admitted source row must report the bound
+directory, and it gets the same private effective-configuration reading,
+write-time recheck and admission currency as Continue. The fork must report the
+fixed provider, model and working directory.
 
 The DTO names `modeHomeClass`, `entryId`, `providerId`, `endpoint`, `model`,
 `generation` and `credentialState`. The fixed entry is `local-provider-keyed`.

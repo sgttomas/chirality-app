@@ -3112,6 +3112,9 @@ fn native_local_provider_central_guard_refuses_cross_entry_overrides_before_capt
             "thread/fork",
             json!({"threadId":"local-thread","config":{"model_provider":"openai"}}),
         ),
+        // A same-role fork packet without a current private reading is refused, admitted row or not.
+        ("thread/fork", json!({"threadId":"local-thread","deferGoalContinuation":true})),
+        ("thread/fork", json!({"threadId":"local-thread","deferGoalContinuation":true,"developerInstructions":CANARY})),
         (
             "turn/start",
             json!({"threadId":"local-thread","model":"other","input":[]}),

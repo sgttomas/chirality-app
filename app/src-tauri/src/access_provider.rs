@@ -1092,6 +1092,7 @@ impl Host {
         if !configured("modelProvider",crate::native_local_provider::PROVIDER)||!configured("model",crate::native_local_provider::MODEL){return refuse();}
         if params["collaborationMode"]["settings"].get("model").is_some_and(|v|v!=crate::native_local_provider::MODEL){return refuse();}
         if params.get("config").is_some_and(|v|!v.is_null()) && method!="thread/start" {return refuse();}
+        let local_proof=||admission.is_some_and(|p|p.entry==crate::native_local_provider::ENTRY && p.cwd==binding.cwd && p.provider==crate::native_local_provider::PROVIDER && p.model==crate::native_local_provider::MODEL);
         let thread_current=||i.threads.iter().rev().find(|t|t["generation"]==i.generation&&t["threadId"]==params["threadId"]&&t["threadId"].is_string()).is_some_and(|t|t["modelProvider"]==crate::native_local_provider::PROVIDER&&t["model"]==crate::native_local_provider::MODEL);
         match method {
             "account/login/start" if private_credential && params["type"]=="apiKey" => Ok(()),
@@ -1099,11 +1100,12 @@ impl Host {
             "account/logout"|"configRequirements/read"|"modelProvider/capabilities/read"|"collaborationMode/list" if params.as_object().is_some_and(|p|p.is_empty()) => Ok(()),
             "config/read" if private_config && params["cwd"]==binding.cwd && params["includeLayers"]==true && params.as_object().is_some_and(|p|p.len()==2) => Ok(()),
             "thread/start" if params["cwd"]==binding.cwd && params["modelProvider"]==crate::native_local_provider::PROVIDER && params["model"]==crate::native_local_provider::MODEL && admission.is_some_and(|p|p.entry==crate::native_local_provider::ENTRY && (params.get("config").is_none_or(|c| c.is_null() || c.as_object().is_some_and(|c| c.is_empty())) || p.children.as_ref().is_some_and(|c| params["config"]==c.config))) => Ok(()),
-            "thread/fork"|"turn/start"|"turn/steer"|"turn/interrupt" if thread_current() => Ok(()),
+            "turn/start"|"turn/steer"|"turn/interrupt" if thread_current() => Ok(()),
+            // Same-role fork only: the exact packet, no instructions/model/config, on a current private reading.
+            "thread/fork" if thread_current() && params.as_object().is_some_and(|p|p.len()==2) && params["threadId"].is_string() && params["deferGoalContinuation"]==true && local_proof() => Ok(()),
             // Every local resume, admitted or saved, is only the exact original Continue packet, carried on
             // a current private effective-configuration admission. No path/history/config/model rides on it.
-            "thread/resume" if params.as_object().is_some_and(|p|p.len()==2) && params["threadId"].as_str().is_some_and(|t|!t.is_empty()) && params["excludeTurns"]==true
-                && admission.is_some_and(|p|p.entry==crate::native_local_provider::ENTRY && p.cwd==binding.cwd && p.provider==crate::native_local_provider::PROVIDER && p.model==crate::native_local_provider::MODEL) => Ok(()),
+            "thread/resume" if params.as_object().is_some_and(|p|p.len()==2) && params["threadId"].as_str().is_some_and(|t|!t.is_empty()) && params["excludeTurns"]==true && local_proof() => Ok(()),
             // Local disk views carry no inference/account credential to a model transport.
             "thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/loaded/list"|"thread/name/set"|"thread/archive"|"thread/unarchive"|"thread/unsubscribe" => Ok(()),
             _=>refuse(),
@@ -1136,8 +1138,22 @@ impl Host {
         if proof.entry != crate::native_local_provider::ENTRY || proof.cwd != binding.cwd || !canonical_167(i) { return Err(unavailable()); }
         self.check_provider_read(i, &proof.source, &proof.cwd)
     }
-    /// Operational admission of a local Continue still requires its admitting reading to be current.
-    pub(super) fn check_local_resume_source(&self, i: &Inner, source: Option<&SourceRequest>) -> Result<(), String> {
+    /// Fork source: the admitted local row must report the bound cwd (the cwd Codex reloads) and fixed selection.
+    pub(super) fn local_fork_admission(&self, generation: &Value, thread: &str) -> Result<Option<ProviderAdmission>, String> {
+        let cwd = {
+            let i = self.inner.0.lock().map_err(|_| unavailable())?;
+            let Some(binding) = &i.local_provider else { return Ok(None); };
+            let row = i.threads.iter().rev().find(|t| t["generation"] == *generation && t["threadId"] == thread);
+            if row.is_none_or(|t| t["cwd"] != json!(binding.cwd) || t["modelProvider"] != crate::native_local_provider::PROVIDER || t["model"] != crate::native_local_provider::MODEL) {
+                return Err(crate::native_local_provider::LIMIT.into());
+            }
+            binding.cwd.clone()
+        };
+        use crate::native_local_provider::{ENTRY, MODEL, PROVIDER};
+        self.provider_admission_read(generation, &cwd, ENTRY, PROVIDER, MODEL).map(Some)
+    }
+    /// Operational admission of a local Continue or fork still requires its admitting reading to be current.
+    pub(super) fn check_local_reading_current(&self, i: &Inner, source: Option<&SourceRequest>) -> Result<(), String> {
         let Some(binding) = &i.local_provider else { return Ok(()); };
         self.check_provider_read(i, source.ok_or(crate::native_local_provider::LIMIT)?, &binding.cwd)
     }
