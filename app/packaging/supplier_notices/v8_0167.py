@@ -33,6 +33,12 @@ SHARED_DEPS = {'icu': ('third_party/icu', '/chromium/deps/icu.git'),
 TERMS = (('v8', 'LICENSE'), ('v8', 'LICENSE.v8'), ('v8', 'LICENSE.fdlibm'), ('v8', 'LICENSE.strongtalk'),
          ('crate', 'LICENSE'))
 LOCAL = {'v8': 'app/packaging/supplier_notices/v8-15.2.124.1', 'crate': 'app/packaging/supplier_notices/rusty_v8-350c5a85'}
+# Root terms text of each Chromium-hosted pin, read from its gitiles commit and tree responses.
+PIN_TERMS = {'icu': ('LICENSE', 'app/packaging/supplier_notices/icu-d578f2e8'),
+             'libcxx': ('LICENSE.TXT', 'app/packaging/supplier_notices/libcxx-b16984ce'),
+             'libcxxabi': ('LICENSE.TXT', 'app/packaging/supplier_notices/libcxxabi-8f11bb1d'),
+             'llvm_libc': ('LICENSE.TXT', 'app/packaging/supplier_notices/llvm-libc-75ae50cd')}
+GITILES_PREFIX = b")]}'\n"
 RESPONSES = ('v8-ref-tag.json', 'v8-root-tree.json', 'fork-root-tree.json', 'fork-gitmodules')
 SOURCES = {'codex-MODULE.bazel': ('codex-root', 'MODULE.bazel'),
            'codex-third_party-v8-dependencies.bzl': ('codex-v8', 'dependencies.bzl'),
@@ -42,7 +48,8 @@ SOURCES = {'codex-MODULE.bazel': ('codex-root', 'MODULE.bazel'),
 LIMITS = [
     'No execution, network access, acquisition, signature validation or legal conclusion.',
     'Codex documents that release builds link its published rusty-v8-v152.2.0 archive built from this Bazel graph; the shipped code-mode-host is not joined to that archive or graph here.',
-    'V8 states that externally maintained libraries and sub-directory LICENSE files carry their own terms; those, ICU, libc++/libc++abi, llvm-libc and the other pinned V8 dependencies are not covered by these texts.',
+    'V8 states that externally maintained libraries and sub-directory LICENSE files carry their own terms; those and the other pinned V8 dependencies are not covered by these texts.',
+    'For ICU, libc++, libc++abi and llvm-libc only the root terms text is held. The LLVM texts point to separately licensed sub-directory trees and to CREDITS.TXT; neither is read. Each pin commit-to-tree link is as gitiles reports it; the tree is recomputed from its listing.',
 ]
 
 
@@ -54,14 +61,47 @@ def read(path):
     return reader.transfer(Path(path).absolute(), retain=True)
 
 
+def gitiles(raw):
+    require(raw.startswith(GITILES_PREFIX), 'not a gitiles JSON response')
+    return reader.parse(raw[len(GITILES_PREFIX):])
+
+
+def tree_id(listing):
+    body = b''.join(b'%o %s\0' % (e['mode'], e['name'].encode()) + bytes.fromhex(e['id']) for e in listing['entries'])
+    return hashlib.sha1(b'tree %d\0' % len(body) + body).hexdigest()
+
+
+def pin_terms(pins_metadata, key, commit, kept):
+    raws = {}
+    for part in ('commit', 'tree'):
+        raw, digest, size = read(pins_metadata / f'{key}-{part}.json')
+        kept.append({'name': f'{key}-{part}.json', 'sha256': digest, 'size': size})
+        raws[part] = gitiles(raw)
+    require(raws['commit']['commit'] == commit, 'gitiles commit is not the pin: ' + key)
+    listing = raws['tree']
+    require(listing['id'] == raws['commit']['tree'] and tree_id(listing) == listing['id'], 'gitiles tree mismatch: ' + key)
+    name, local = PIN_TERMS[key]
+    entry = one_entry(listing, name)
+    raw, digest, size = read(ROOT / local / name)
+    require(entry['type'] == 'blob' and entry['size'] == size and entry['id'] == blob(raw), 'terms text differs: ' + key)
+    return listing['id'], {'path': name, 'local_text': local + '/' + name, 'size_bytes': size,
+                           'sha256': digest, 'git_blob_sha1': entry['id']}
+
+
+def one_entry(listing, name):
+    found = [e for e in listing['entries'] if e['name'] == name]
+    require(len(found) == 1, 'expected one tree entry ' + name)
+    return found[0]
+
+
 def one(pattern, text, label):
     found = re.findall(pattern, text, re.S)
     require(len(found) == 1, 'expected one ' + label)
     return found[0]
 
 
-def build(codex_metadata, metadata):
-    codex_metadata, metadata = Path(codex_metadata), Path(metadata)
+def build(codex_metadata, metadata, pins_metadata):
+    codex_metadata, metadata, pins_metadata = Path(codex_metadata), Path(metadata), Path(pins_metadata)
     trees = {}
     root = reader.parse(read(codex_metadata / 'root-tree.json')[0])
     require(root['sha'] == CODEX_COMMIT, 'Codex root tree is not the selected commit')
@@ -103,17 +143,20 @@ def build(codex_metadata, metadata):
     archive_pin = one(r'name = "rusty_v8_152_2_0_aarch64_apple_darwin_archive",.*?sha256 = "([0-9a-f]{64})"', module, 'archive pin')
     require(archive_pin == ARCHIVE[1] and ARCHIVE[2] in module, 'Codex prebuilt archive pin changed')
     require(f'{ARCHIVE[1]}  {ARCHIVE[0]}' in text['codex-third_party-v8-rusty_v8_152_2_0.sha256'], 'archive checksum list changed')
-    pins = {}
+    pins, pin_texts = {}, []
     for key, (deps_path, remote) in SHARED_DEPS.items():
         in_deps = one(re.escape(f"'{deps_path}':") + r"\s*Var\('chromium_url'\) \+ '" + re.escape(remote) + r"' \+ '@' \+ '([0-9a-f]{40})'",
                       deps, 'V8 DEPS ' + key)
         codex = text['codex-third_party-v8-dependencies.bzl'] + module
         require(f'commit = "{in_deps}"' in codex and remote in codex, 'Codex and V8 DEPS disagree: ' + key)
-        pins[key] = {'remote': 'https://chromium.googlesource.com' + remote, 'commit': in_deps,
-                     'agrees_with_v8_deps': True, 'terms_text_held': False}
+        pins[key] = {'remote': 'https://chromium.googlesource.com' + remote, 'commit': in_deps, 'agrees_with_v8_deps': True}
     llvm_libc = one(r'name = "rusty_v8_llvm_libc",.*?commit = "([0-9a-f]{40})"', module, 'llvm-libc pin')
     pins['llvm_libc'] = {'remote': 'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libc.git',
-                         'commit': llvm_libc, 'agrees_with_v8_deps': None, 'terms_text_held': False}
+                         'commit': llvm_libc, 'agrees_with_v8_deps': None}
+    for key, pin in pins.items():
+        tree, held = pin_terms(pins_metadata, key, pin['commit'], kept)
+        pin['tree'] = tree
+        pin_texts.append({'repository': pin['remote'], 'commit': pin['commit'], **held})
     manifest = tomllib.loads(text['rusty_v8-Cargo.toml'])['package']
     require((manifest['name'], manifest['version']) == (CRATE['name'], CRATE['version']), 'rusty_v8 crate identity changed')
     fork_v8 = trees['crate']['v8']
@@ -136,7 +179,7 @@ def build(codex_metadata, metadata):
                      'fork_v8_submodule_differs_from_engine_pin': fork_v8['sha'] != V8['commit']},
         'prebuilt_archive': {'name': ARCHIVE[0], 'sha256': ARCHIVE[1], 'url': ARCHIVE[2], 'held': False},
         'other_pins': pins,
-        'terms_texts': terms,
+        'terms_texts': terms + pin_texts,
         'retained_responses': kept,
         'limits': LIMITS,
     }
@@ -150,11 +193,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('codex_metadata', help='directory holding the retained Codex 0.167.0 tree responses')
     parser.add_argument('metadata', help='directory holding the retained V8/rusty_v8 responses and source texts')
+    parser.add_argument('pins_metadata', help='directory holding the retained gitiles ICU/libc++/libc++abi/llvm-libc responses')
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--write', metavar='FILE')
     mode.add_argument('--check', metavar='FILE')
     args = parser.parse_args()
-    rendered = render(build(args.codex_metadata, args.metadata))
+    rendered = render(build(args.codex_metadata, args.metadata, args.pins_metadata))
     if args.write:
         Path(args.write).write_text(rendered)
     else:

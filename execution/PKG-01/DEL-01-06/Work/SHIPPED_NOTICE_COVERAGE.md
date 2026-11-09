@@ -248,8 +248,8 @@ in the [0.160.0 source-graph proposal](supplier-notice-associations/codex-source
    attestation for 0.167.0.
 4. **code-mode-host V8 stack (potential edges from the clues above).** At
    `086ccc83` this is rusty_v8 **152.2.0**, with ICU 78 data observed. The
-   V8 engine and `v8` crate terms texts are now associated with their pinned
-   sources. The [V8 association](supplier-notice-associations/codex-0.167.0/code-mode-host-v8.json),
+   V8 engine, `v8` crate, ICU, libc++, libc++abi and llvm-libc root terms texts
+   are now associated with their pinned sources. The [V8 association](supplier-notice-associations/codex-0.167.0/code-mode-host-v8.json),
    recomputed by
    [`v8_0167.py`](../../../../app/packaging/supplier_notices/v8_0167.py) from
    blob-verified public source text, holds the following:
@@ -271,11 +271,24 @@ in the [0.160.0 source-graph proposal](supplier-notice-associations/codex-source
      engine commit Codex's graph builds; the two are kept distinct.
    - **ICU and libc++.** V8 15.2.124.1's `DEPS` and Codex's Bazel pins name the
      same ICU (`chromium/deps/icu.git` `d578f2e8`), libc++ (`b16984ce`) and
-     libc++abi (`8f11bb1d`) commits. Codex also pins llvm-libc `75ae50cd`.
+     libc++abi (`8f11bb1d`) commits. Codex also pins llvm-libc `75ae50cd`. The
+     root terms text at each of these four commits is committed as a packaging
+     input: ICU [`LICENSE`](../../../../app/packaging/supplier_notices/icu-d578f2e8/LICENSE)
+     (27,718 B, blob `5a2eda62`), libc++
+     [`LICENSE.TXT`](../../../../app/packaging/supplier_notices/libcxx-b16984ce/LICENSE.TXT)
+     (16,703 B, `e159d283`), libc++abi
+     [`LICENSE.TXT`](../../../../app/packaging/supplier_notices/libcxxabi-8f11bb1d/LICENSE.TXT)
+     (16,706 B, `b75c0441`) and llvm-libc
+     [`LICENSE.TXT`](../../../../app/packaging/supplier_notices/llvm-libc-75ae50cd/LICENSE.TXT)
+     (15,140 B, `24806ab4`). Each is read from `chromium.googlesource.com`.
+     Its blob is checked against the pinned commit's root tree, and that tree
+     is recomputed from its listing. The commit-to-tree link is as gitiles
+     reports it.
 
    Open inputs, all public source text except the last:
-   - The ICU, libc++/libc++abi and llvm-libc terms texts at those commits
-     (`chromium.googlesource.com`).
+   - The separately licensed sub-directory trees and `CREDITS.TXT` that the
+     libc++, libc++abi and llvm-libc texts point to. ICU's `LICENSE` carries its
+     third-party sections inline.
    - The sub-directory and externally maintained library licences that V8's own
      `LICENSE` points to, and the other pinned V8 dependencies (Abseil,
      Highway, fast_float, simdutf, dragonbox, FP16).

@@ -40,6 +40,9 @@ release archive.
 `v8_0167.py` recomputes the code-mode-host V8-stack association the same way.
 It reads retained Codex 0.167.0 tree responses and blob-verified Codex,
 `v8/v8` and `seanh-oai/rusty_v8` source text, and the committed
-`v8-15.2.124.1/` and `rusty_v8-350c5a85/` terms texts. `--check FILE` compares
+`v8-15.2.124.1/` and `rusty_v8-350c5a85/` terms texts. It also reads retained
+gitiles commit and tree responses for the ICU, libc++, libc++abi and llvm-libc
+pins, and checks the committed `icu-d578f2e8/`, `libcxx-b16984ce/`,
+`libcxxabi-8f11bb1d/` and `llvm-libc-75ae50cd/` texts against them. `--check FILE` compares
 its output with `codex-0.167.0/code-mode-host-v8.json`. It does not show what
 the shipped host links.
