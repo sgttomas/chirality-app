@@ -4065,7 +4065,7 @@
     {
       "source": "execution/_Coordination/CURRENT_EXECUTION_BASIS.md",
       "copy": "app/contract_inputs/_Coordination/CURRENT_EXECUTION_BASIS.md",
-      "sha256": "0329559342795a9fb50c2d5c0c1a9b0470a05f3417e273e914d32d777b5eb61b"
+      "sha256": "f3262e745ce5be4e2e1c0d26988fc7c871077ca32d96cc7692dd1d9ed74c9948"
     },
     {
       "source": "execution/_Coordination/PUBLICATION_PUNCHLIST.md",
