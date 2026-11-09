@@ -84,3 +84,20 @@ export function ProjectLibraryContext({ host }: { host: Json }) {
     </dd>
   </dl>;
 }
+
+/** A readable project location without borrowing the opened library's path. */
+export function ProjectFolderSummary({ host, libraryAvailable = false }: { host: Json; libraryAvailable?: boolean }) {
+  const folder = appProjectFolder(host);
+  const project = host?.currentAppProjectContext;
+  const known = !host?.currentAppProjectContextLimit && nonempty(project?.reference);
+  return <div aria-label="Project location">
+    <p>{folder !== null ? <>Project folder: <code>{folder}</code></>
+      : known ? "Project is set; its folder name is unavailable."
+      : libraryAvailable ? "A project workflow library is available; its project folder has not been reported for this window."
+      : "No project folder is associated with this window. You can still use an opened workflow library."}</p>
+    {folder === null && <details><summary>Project context details</summary>
+      <p>{host?.currentAppProjectContextLimit || "The App has no matching launch observation for the project's readable folder. A library folder is a separate location."}</p>
+      {known && <code>{project.reference}</code>}
+    </details>}
+  </div>;
+}

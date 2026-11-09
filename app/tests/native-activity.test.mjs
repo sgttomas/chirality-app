@@ -320,3 +320,19 @@ test('plan revisions and tool rows carry the run in force at their turn, from th
   // A turn the view does not show is in no run.
   assert.equal(exports.runInForce([run('run:a','WF-A','t2')],['t1','t2'],'t9'),null);
 });
+
+
+test('messages and observed statuses stay readable while command and reasoning diagnostics are folded',()=>{
+ const html=render();assert.match(html,/<section[^>]*aria-label="Conversation turn 1"/);
+ assert.match(html,/<h4>Turn 1.*interrupted/);
+ assert.match(html,/<details><summary>Command details<\/summary><code>ls -la<\/code>/);
+ assert.match(html,/<details><summary>Command output<\/summary>/);
+ assert.match(html,/<details><summary>Reasoning summary/);
+ assert.match(html,/file.txt/);assert.match(html,/Second answer/);assert.doesNotMatch(html,/<details open/);
+});
+
+
+test('a nonzero command exit stays visible outside the optional command details',()=>{
+ const v=view();v.items.find(r=>r.native.id==='c-cmd').native.exitCode=7;
+ const html=render(v);assert.match(html,/<p role="status">Command exited with code 7\.<\/p><details><summary>Command details/);
+});

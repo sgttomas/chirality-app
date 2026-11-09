@@ -140,7 +140,7 @@ test('refused, failed and identity-incomplete Start preserve selection and compo
 });
 
 // The ordinary form's actual native boundary with held responses and two
-// configured source homes. No provider/authentication is invoked by this peer.
+// configured source homes, including observed legacy API homes. No provider/authentication is invoked by this peer.
 async function withStartChooser(check, startReply, {homeReply,decisionReply}={}) {
   const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
   const calls=[];
@@ -177,6 +177,7 @@ async function withStartChooser(check, startReply, {homeReply,decisionReply}={})
   try {
     await React.act(async()=>root.render(React.createElement(App)));
     await check({container,calls,idle,homes,values,edit,press,start:()=>button(container,'Start thread'),
+      observeHome:async mode=>{active=mode;document.visibilityState='visible';await React.act(async()=>{for(const {type,listener} of [...document.listeners])if(type==='visibilitychange')listener();});},
       failStatus:()=>{statusFailure=true;},generation:()=>homes[active].generation});
   } finally {const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);}
 }
@@ -252,17 +253,16 @@ test('home choices during a pending Start neither reuse the old choice nor let i
   await withStartChooser(async ui=>{
     await ui.edit(selectedChoice);let pending;
     await React.act(()=>{pending=props(ui.start()).onClick();});
-    await ui.press('Use api-key home');assert.deepEqual(ui.values(),blankChoice);
+    await ui.observeHome('api-key');assert.deepEqual(ui.values(),blankChoice);
     const keyChoice={model:'key-model',modelProvider:'openai',entryId:'api-key'};
     await ui.edit(keyChoice);
     reply.resolve();await React.act(async()=>{await pending;});
-    assert.deepEqual(ui.values(),keyChoice);assert.equal(props(ui.start()).disabled,false);
+    assert.deepEqual(ui.values(),keyChoice);assert.equal(props(ui.start()).disabled,true,'omitted legacy mode cannot dispatch');
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
-    await ui.edit({entryId:'chatgpt-account'});
-    assert.equal(props(ui.start()).disabled,true,'a cloud entry from another home is not a compatible choice');
     await ui.press('Start thread');assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
-    await ui.edit(keyChoice);await ui.press('Start thread');assert.deepEqual(ui.values(),blankChoice);
-    await ui.press('Use account home');assert.deepEqual(ui.values(),blankChoice,'returning to the prior home does not restore a consumed or invalidated choice');
+    await ui.press('Use account home');assert.deepEqual(ui.values(),blankChoice,'returning does not restore an invalidated choice');
+    await ui.edit(selectedChoice);await ui.press('Start thread');assert.deepEqual(ui.values(),blankChoice);
+
   },async(args,index,admitted)=>{if(index===1)await reply.promise;return admitted(args,index);});
 });
 
@@ -271,7 +271,7 @@ test('an away-and-back home transition protects a newer same-valued choice from 
   await withStartChooser(async ui=>{
     await ui.edit(selectedChoice);let pending;
     await React.act(()=>{pending=props(ui.start()).onClick();});
-    await ui.press('Use api-key home');await ui.press('Use account home');
+    await ui.observeHome('api-key');await ui.press('Use account home');
     assert.deepEqual(ui.values(),blankChoice);await ui.edit(selectedChoice);
     reply.resolve();await React.act(async()=>{await pending;});
     assert.deepEqual(ui.values(),selectedChoice);assert.equal(props(ui.start()).disabled,false);
@@ -281,29 +281,30 @@ test('an away-and-back home transition protects a newer same-valued choice from 
 
 test('a home transition invalidates prior-home edits but preserves newer target-home edits while its refresh and an older Start finish',async()=>{
   const startReply=deferred(),homeReply=deferred(),targetRead=deferred(),targetReadReached=deferred();
-  let holdTargetRead=true;
+  let holdTargetRead=true,targetSelecting=false;
   await withStartChooser(async ui=>{
     await ui.edit(selectedChoice);let pendingStart,pendingHome;
     await React.act(()=>{pendingStart=props(ui.start()).onClick();});
-    await React.act(()=>{pendingHome=props(button(ui.container,'Use api-key home')).onClick();});
+    await ui.observeHome('api-key');
+    await React.act(()=>{pendingHome=props(button(ui.container,'Use account home')).onClick();});
     assert.deepEqual(ui.values(),blankChoice);
     await ui.edit({...selectedChoice,model:'edited-before-target-was-active'});
     assert.equal(props(ui.start()).disabled,true,'the prior-home draft cannot start during selection');
     await React.act(async()=>{homeReply.resolve();await targetReadReached.promise;});
-    assert.match(ui.container.textContent,/Active home class: api-key/);
-    assert.deepEqual(ui.values(),blankChoice,'edits made while account was still active do not become key-home choices');
-    const targetChoice={model:'target-home-model',modelProvider:'openai',entryId:'api-key'};
+    assert.ok(button(ui.container,'Use my ChatGPT account (built-in OpenAI)'));
+    assert.deepEqual(ui.values(),blankChoice,'edits made in the legacy source do not become account-home choices');
+    const targetChoice={model:'target-home-model',modelProvider:'openai',entryId:'chatgpt-account'};
     await ui.edit(targetChoice);
     startReply.resolve();await React.act(async()=>{await pendingStart;});
-    assert.deepEqual(ui.values(),targetChoice,'the earlier account admission cannot consume the visible key-home draft');
+    assert.deepEqual(ui.values(),targetChoice,'the earlier account admission cannot consume the visible account-home draft');
     assert.equal(props(ui.start()).disabled,true,'the home refresh is still pending');
     targetRead.resolve();await React.act(async()=>{await pendingHome;});
     assert.deepEqual(ui.values(),targetChoice);assert.equal(props(ui.start()).disabled,false);
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1,'neither home transition nor editing dispatches a start');
     await ui.press('Start thread');assert.deepEqual(ui.values(),blankChoice);
   },async(args,index,admitted)=>{if(index===1)await startReply.promise;return admitted(args,index);},{
-    homeReply:()=>homeReply.promise,
-    decisionReply:async active=>{if(active==='api-key'&&holdTargetRead){holdTargetRead=false;targetReadReached.resolve();await targetRead.promise;}return {rows:[]};},
+    homeReply:async()=>{await homeReply.promise;targetSelecting=true;},
+    decisionReply:async active=>{if(active==='account'&&targetSelecting&&holdTargetRead){holdTargetRead=false;targetReadReached.resolve();await targetRead.promise;}return {rows:[]};},
   });
 });
 
@@ -430,7 +431,9 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
       await React.act(async () => {pendingContinue = props(continueButton).onClick(); await reachedDecision;});
       // The old host_status has rendered, but its decision_view is still held.
       if (outcome === 'delayed-source-choice') {
-        await React.act(async () => {await props(button(container, 'Use api-key home')).onClick();});
+        const nextSource={...source,home:'chosen-other-home',spawnCounter:2};
+        snapshot={...snapshot,generation:nextSource,homeRouting:{...snapshot.homeRouting,activeModeHomeClass:'api-key'},threads:[{...thread('other-current',null),generation:nextSource}],nativeHistory:{...snapshot.nativeHistory,generation:nextSource,home:nextSource.home,selectionEpoch:0,selected:null,dispatches:[]}};
+        document.visibilityState='visible';await React.act(async()=>{for(const {type,listener} of [...document.listeners])if(type==='visibilitychange')listener();});
       }
       expectedKey = JSON.stringify([snapshot.generation, 'other-current']);
       await change(elements(conversation(), 'select')[0], expectedKey);
@@ -706,8 +709,8 @@ async function withDeferredConversationAction(t, command, check, {refused = fals
           choose({target: {value: key('thread-a')}});
         });
       } else if (kind === 'home' || kind === 'home-away-back') {
-        const away = button(container, 'Use api-key home'); assert.equal(!!props(away).disabled, false);
-        await React.act(async () => {await props(away).onClick();});
+        snapshot=makeSnapshot({...g,home:'other-home'},'api-key','navigated-view');
+        await React.act(async()=>{t.mock.timers.tick(1000);await flush();});
         if (kind === 'home-away-back') await React.act(async () => {await props(button(container, 'Use account home')).onClick();});
       } else if (kind === 'generation' || kind === 'snapshot') {
         snapshot = makeSnapshot(kind === 'generation' ? {...g, spawnCounter: 2} : g, 'account', 'newer-poll-view');
@@ -1135,7 +1138,7 @@ test('late native account read cannot publish across source replacement or home 
       await ui.press('Sign in with your ChatGPT account (through Codex)…');
       assert.equal(ui.calls.filter(c=>c.command==='read_home_access').length,1);
       if(transition==='generation')await ui.observe(accountHost({generation:{...g,spawnCounter:2}}));
-      else {await ui.press('Use api-key home');if(transition==='away-back')await ui.press('Use account home');}
+      else {await ui.observe(accountHost({generation:{...g,home:'key-home'},homeRouting:{activeModeHomeClass:'api-key',entries:[{modeHomeClass:'account'}]}}));if(transition==='away-back')await ui.press('Use account home');}
       const reads=ui.calls.filter(c=>c.command==='host_status').length;
       held.resolve();await React.act(async()=>{});
       assert.equal(ui.calls.filter(c=>c.command==='host_status').length,reads,'stale read does not request or apply a source refresh');
