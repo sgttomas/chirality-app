@@ -44,8 +44,12 @@ PACKAGE_ASSET = ('codex-package-aarch64-apple-darwin.tar.gz', 166340155,
 STANDALONE_ASSETS = ('codex-code-mode-host-aarch64-apple-darwin.tar.gz',
                      'codex-exec-server-aarch64-apple-darwin.tar.gz')
 RESPONSES = ('root-tree.json', 'third_party-tree.json', 'third_party-v8-tree.json',
-             'codex-rs-tree-recursive.json', 'latest-release.json', 'release-tag-object.json')
+             'codex-rs-tree-recursive.json', 'scripts-tree.json', 'scripts-codex_package-tree.json',
+             'latest-release.json', 'release-tag-object.json')
 ROOT_TEXTS = 'app/packaging/supplier_notices/codex-0.160.0'
+# rg release selector files received for 0.160.0 (approved receipt 2026-11-02).
+RECEIVED_SELECTOR = 'execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102{}/sources/codex/scripts/codex_package/{}'
+SELECTOR_FILES = (('rg', ''), ('ripgrep.py', '-four'))
 SUPPLIER_BINARIES = ('bin/codex', 'bin/codex-exec-server', 'bin/codex-code-mode-host', 'codex-path/rg')
 # Exact byte patterns; a count of zero shows only that this pattern is absent.
 MARKERS = {
@@ -62,9 +66,11 @@ MARKERS = {
     'ICU data name': rb'icudt\d+l',
     'Unicode terms heading': rb'Unicode, Inc\. and others\. License & terms of use',
     'Chromium libc++ namespace': rb'NSt4__Cr',
-    'ripgrep/PCRE2 version pair': rb'\x00\d+\.\d+\.\d+\x00\d+\.\d+ \d{4}-\d{2}-\d{2}\x00',
+    'ripgrep version and revision': rb'\(JIT is available\)\n\d+\.\d+\.\d+[0-9a-f]{10}',
+    'PCRE2 Unicode version and PCRE2 version': rb'\x00\d+\.\d+\.\d+\x00\d+\.\d+ \d{4}-\d{2}-\d{2}\x00',
 }
-SHOWN = {'ICU data name', 'ripgrep/PCRE2 version pair', 'exec-server crate label'}
+SHOWN = {'ICU data name', 'ripgrep version and revision', 'PCRE2 Unicode version and PCRE2 version',
+         'exec-server crate label'}
 LIMITS = [
     'No supplier execution, network access, acquisition, signature validation or legal conclusion.',
     'A blob/size identity or manifest declaration associates bytes with a source locator; it does not establish build equivalence, linked contents or notice applicability.',
@@ -136,7 +142,8 @@ def build(vendor, previous_vendor, metadata):
     current = files(vendor, CANONICAL_MANIFEST)
     previous = files(previous_vendor, PREVIOUS_MANIFEST)
     loaded = {name: response(metadata, name) for name in RESPONSES}
-    root_tree, third_party, v8_tree, codex_rs, release, tag = (loaded[name][0] for name in RESPONSES)
+    root_tree, third_party, v8_tree, codex_rs, scripts, codex_package, release, tag = (
+        loaded[name][0] for name in RESPONSES)
 
     require(tag['tag'] == TAG and tag['object'] == {**tag['object'], 'sha': COMMIT, 'type': 'commit'},
             'release tag does not name the selected commit')
@@ -152,6 +159,18 @@ def build(vendor, previous_vendor, metadata):
     require(third_party['sha'] == top['third_party']['sha'] and not third_party['truncated'], 'third_party tree mismatch')
     third = {e['path']: e for e in third_party['tree']}
     require(v8_tree['sha'] == third['v8']['sha'] and not v8_tree['truncated'], 'third_party/v8 tree mismatch')
+    require(scripts['sha'] == top['scripts']['sha'] and not scripts['truncated'], 'scripts tree mismatch')
+    package_scripts = {e['path']: e for e in scripts['tree']}
+    require(codex_package['sha'] == package_scripts['codex_package']['sha'] and not codex_package['truncated'],
+            'scripts/codex_package tree mismatch')
+    selector_entries = {e['path']: e for e in codex_package['tree']}
+    selectors = []
+    for name, receipt in SELECTOR_FILES:
+        raw, digest, size = read(ROOT / RECEIVED_SELECTOR.format(receipt, name))
+        entry = selector_entries[name]
+        selectors.append({'path': 'scripts/codex_package/' + name, 'size_bytes': entry['size'],
+                          'git_blob_sha1': entry['sha'], 'received_0160_sha256': digest,
+                          'equals_received_0160_text': entry['sha'] == blob(raw) and entry['size'] == size})
 
     root_notices = []
     for name in ('LICENSE', 'NOTICE'):
@@ -205,6 +224,7 @@ def build(vendor, previous_vendor, metadata):
         'inventory_delta': {'unchanged': same, 'changed': changed,
                             'removed': sorted(previous.keys() - current.keys()),
                             'added': sorted(current.keys() - previous.keys())},
+        'rg_release_selector': selectors,
         'rg_previous_comparison': {
             'size': [len(old_rg), len(new_rg)], 'signature_range': [list(old_sig), list(new_sig)],
             'bytes_before_signature_equal': old_sig == new_sig and old_rg[:old_sig[0]] == new_rg[:new_sig[0]]},
@@ -218,10 +238,10 @@ def build(vendor, previous_vendor, metadata):
     proposal = {
         'format': 'codex-source-graph-acquisition-proposal/1',
         'repository': 'https://github.com/openai/codex', 'commit': COMMIT, 'codex_rs_tree': CODEX_RS_TREE,
-        'selection': 'codex-rs/Cargo.lock and every codex-rs/**/Cargo.toml blob in the complete recursive codex-rs tree; none is held locally',
+        'selection': 'codex-rs/Cargo.lock and every codex-rs/**/Cargo.toml blob in the complete recursive codex-rs tree',
         'files': proposal_files, 'file_count': len(proposal_files),
         'total_bytes': sum(f['size_bytes'] for f in proposal_files),
-        'standing': 'Offline proposal only; not submitted and no acquisition authorized. No source graph resolved, binary joined or notice coverage completed.',
+        'standing': 'Public source-text read list (standing read-only inspection authority). A row is held only after its bytes are read and match size and Git blob. No dependency archive or binary acquisition, source graph resolution, binary join or notice coverage follows from this list.',
     }
     return {'associations.json': associations, 'source-graph-proposal.json': proposal}
 

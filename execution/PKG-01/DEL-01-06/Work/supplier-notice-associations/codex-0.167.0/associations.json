@@ -2,7 +2,7 @@
  "format": "codex-notice-source-associations/1",
  "supplier_pin": "0.167.0",
  "target": "aarch64-apple-darwin",
- "tool_sha256": "77020c8c5c3939918b5e61881b4e3ac8a94625d97b181dc8f66593897430e064",
+ "tool_sha256": "b95f2b9717f42dd02b708ee044fa0a0154c9f4de98c0cc24b1f877ee25b6a8ce",
  "inputs": {
   "canonical_vendor_manifest_sha256": "158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b",
   "previous_vendor": {
@@ -29,6 +29,16 @@
     "name": "codex-rs-tree-recursive.json",
     "sha256": "d64fc13dae765d108de24e33098c54ef2ff7acd4417b1dea4fa938010c595081",
     "size": 3180888
+   },
+   {
+    "name": "scripts-tree.json",
+    "sha256": "89519c31d48d34caf4a171436413da137752734137ce605ae1bd3ef9cabb04d0",
+    "size": 6581
+   },
+   {
+    "name": "scripts-codex_package-tree.json",
+    "sha256": "f638c52ae2964454d6207974efd1b2ee6d471658951477f5aca7d03ce6ab1d8e",
+    "size": 5340
    },
    {
     "name": "latest-release.json",
@@ -166,6 +176,22 @@
    "bin/codex-exec-server"
   ]
  },
+ "rg_release_selector": [
+  {
+   "path": "scripts/codex_package/rg",
+   "size_bytes": 2592,
+   "git_blob_sha1": "3b7c34843aaafe4cf26a87b3daf5806195d4bb0e",
+   "received_0160_sha256": "41a10ca63365560d899a82b6f825fd7b420a18b34f660a98bffeece77eeae1f1",
+   "equals_received_0160_text": true
+  },
+  {
+   "path": "scripts/codex_package/ripgrep.py",
+   "size_bytes": 862,
+   "git_blob_sha1": "155c5d323ec60ba9fc2dfafd807145f8b26fb38b",
+   "received_0160_sha256": "c70947d6f7df1aa5daeca3d0fa48e65a32ee38b4f6b35694f87b2e65a4467e32",
+   "equals_received_0160_text": true
+  }
+ ],
  "rg_previous_comparison": {
   "size": [
    4030432,
@@ -271,7 +297,13 @@
      "first_offset": null
     },
     {
-     "marker": "ripgrep/PCRE2 version pair",
+     "marker": "ripgrep version and revision",
+     "pattern_hex": "5c284a495420697320617661696c61626c655c295c6e5c642b5c2e5c642b5c2e5c642b5b302d39612d665d7b31307d",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "PCRE2 Unicode version and PCRE2 version",
      "pattern_hex": "5c7830305c642b5c2e5c642b5c2e5c642b5c7830305c642b5c2e5c642b205c647b347d2d5c647b327d2d5c647b327d5c783030",
      "count": 0,
      "first_offset": null
@@ -366,7 +398,13 @@
      "first_offset": null
     },
     {
-     "marker": "ripgrep/PCRE2 version pair",
+     "marker": "ripgrep version and revision",
+     "pattern_hex": "5c284a495420697320617661696c61626c655c295c6e5c642b5c2e5c642b5c2e5c642b5b302d39612d665d7b31307d",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "PCRE2 Unicode version and PCRE2 version",
      "pattern_hex": "5c7830305c642b5c2e5c642b5c2e5c642b5c7830305c642b5c2e5c642b205c647b347d2d5c647b327d2d5c647b327d5c783030",
      "count": 0,
      "first_offset": null
@@ -461,7 +499,13 @@
      "first_offset": 54389229
     },
     {
-     "marker": "ripgrep/PCRE2 version pair",
+     "marker": "ripgrep version and revision",
+     "pattern_hex": "5c284a495420697320617661696c61626c655c295c6e5c642b5c2e5c642b5c2e5c642b5b302d39612d665d7b31307d",
+     "count": 0,
+     "first_offset": null
+    },
+    {
+     "marker": "PCRE2 Unicode version and PCRE2 version",
      "pattern_hex": "5c7830305c642b5c2e5c642b5c2e5c642b5c7830305c642b5c2e5c642b205c647b347d2d5c647b327d2d5c647b327d5c783030",
      "count": 0,
      "first_offset": null
@@ -555,7 +599,14 @@
      "first_offset": null
     },
     {
-     "marker": "ripgrep/PCRE2 version pair",
+     "marker": "ripgrep version and revision",
+     "pattern_hex": "5c284a495420697320617661696c61626c655c295c6e5c642b5c2e5c642b5c2e5c642b5b302d39612d665d7b31307d",
+     "count": 1,
+     "first_offset": 2907340,
+     "first_match_hex": "284a495420697320617661696c61626c65290a31352e322e3065383966666638396163"
+    },
+    {
+     "marker": "PCRE2 Unicode version and PCRE2 version",
      "pattern_hex": "5c7830305c642b5c2e5c642b5c2e5c642b5c7830305c642b5c2e5c642b205c647b347d2d5c647b327d2d5c647b327d5c783030",
      "count": 1,
      "first_offset": 3660432,

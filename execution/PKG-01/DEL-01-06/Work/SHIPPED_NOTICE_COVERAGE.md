@@ -23,15 +23,17 @@ responses by
 [`associate_0167.py`](../../../../app/packaging/supplier_notices/associate_0167.py).
 Its outputs, and the command to recheck them, are in
 [supplier-notice-associations/codex-0.167.0](supplier-notice-associations/codex-0.167.0/README.md).
-Nothing was downloaded, built or executed. The only network reads were three
-public tree-metadata responses; their hashes are recorded with the outputs.
+Nothing was downloaded, built or executed. The only network reads were six
+public tree-metadata responses: root, `third_party`, `third_party/v8`, the
+recursive `codex-rs` tree, `scripts` and `scripts/codex_package`. Together with
+the two retained release responses, their hashes are recorded with the outputs.
 
 | 0.167.0 component | Change from 0.160.0 | Current association standing |
 |---|---|---|
 | Main `bin/codex` `030316ec…` | Changed | The voice manifest binds it to build commit `086ccc83`, and release tag `rust-v0.167.0` names that commit. Root `LICENSE` (10,926 B, blob `4606e72e`) and `NOTICE` (242 B, blob `2805899d`) at that commit equal the committed [supplier texts](../../../../app/packaging/supplier_notices/codex-0.160.0), so the root-text association carries with no new text. Dependency notices remain open (edge 3) |
 | `bin/codex-exec-server` `385736a6…` | **New** | Not manifest-bound. It embeds `codex-exec-server0.167.0`, 143 `exec-server/src` paths and 3,319 crates.io registry paths (231 distinct crate directories). The main binary also embeds 225 `exec-server/src` paths. The root texts are a **candidate** association only; its dependency closure belongs to edge 3 |
 | `bin/codex-code-mode-host` `5cc29d14…` | Changed | Not manifest-bound. It now shows `icudt78l` (ICU 78) together with the V8, Unicode-terms and libc++ clues. At the commit, `third_party/v8` names rusty_v8 **152.2.0** (edge 4) |
-| `codex-path/rg` `13424ef2…` | Re-signed only | Same size and code-signature offset as 0.160.0; every byte before the signature blob is equal, including the embedded `16.0.0` / `10.46 2025-08-27` strings. The existing rg edge carries unchanged (edge 5). This is a binary-to-binary comparison, not a source join |
+| `codex-path/rg` `13424ef2…` | Re-signed only | Same size and code-signature offset as 0.160.0; every byte before the signature blob is equal. It embeds ripgrep `15.2.0` followed by revision `e89fff89ac`, and `16.0.0` beside PCRE2 `10.46 2025-08-27`. The [2026-11-02 receipt](supplier-notice-associations/approved-receipt-20261102-four/SCOPE.md) identifies that `16.0.0` as PCRE2's Unicode version, not a ripgrep version. At `086ccc83` the release selector `scripts/codex_package/rg` (blob `3b7c3484`) and `ripgrep.py` (blob `155c5d32`) equal the received 0.160.0 texts, so 0.167.0 still selects the ripgrep 15.2.0 archive (edge 5). These are string and selector clues plus a binary-to-binary comparison, not a byte join |
 | `codex-resources/voice/**` | Libraries and host rebuilt | `NOTICE.md`, the seven `licenses/` texts and `sources.json` are byte-identical to 0.160.0, so the declared upstream versions and archive digests are unchanged. The manifest binds every voice file to `086ccc83`. The supplier-provided voice notices carry as before |
 | `codex-resources/zsh/bin/zsh` | **Removed** | The 0.160.0 zsh edge does not apply to 0.167.0 |
 
@@ -230,7 +232,7 @@ in the [0.160.0 source-graph proposal](supplier-notice-associations/codex-source
 (159 files, 562,794 B at `a956835d`) and in this file's Git history.
 
 3. **Main, exec-server and code-mode-host Rust dependency inputs: 173 files,
-   604,854 bytes.** The [exact 0.167.0 offline proposal](supplier-notice-associations/codex-0.167.0/source-graph-proposal.json)
+   604,854 bytes.** The [exact 0.167.0 source-text list](supplier-notice-associations/codex-0.167.0/source-graph-proposal.json)
    lists each path, immutable-commit URL, size and Git blob from the complete
    recursive `codex-rs` tree `c98bbd63` at `086ccc83`. It covers
    `codex-rs/Cargo.lock` (409,810 B, blob `2eae72da`) and all 172 `Cargo.toml`
@@ -238,8 +240,10 @@ in the [0.160.0 source-graph proposal](supplier-notice-associations/codex-source
    held locally. The proposal prepares a source-graph investigation; it is not an
    observed linked set or a binary-to-source join. Dependency archives,
    target/feature resolution and notice applicability remain separate. The
-   proposal is not submitted or authorized. The alternative is a
-   supplier-provided third-party notice or attestation for 0.167.0.
+   list is public source text under the standing read-only inspection
+   authority; no row is held until its bytes are read and match size and blob.
+   The alternative is a supplier-provided third-party notice or attestation for
+   0.167.0.
 4. **code-mode-host V8 stack (potential edges from the clues above).** At
    `086ccc83` this is rusty_v8 **152.2.0**, with ICU 78 data observed. It needs
    the `v8` 152.2.0 crate's licence files and the V8/ICU/libc++ terms (sizes
@@ -248,11 +252,15 @@ in the [0.160.0 source-graph proposal](supplier-notice-associations/codex-source
    `814e018a`) identifies the prebuilt inputs. A host **byte join** would need the
    release asset `codex-code-mode-host-aarch64-apple-darwin.tar.gz`
    (25,262,553 B, `sha256:876a3e26…`).
-5. **rg (unchanged code since 0.160.0).** This needs
-   `ripgrep-15.2.0-aarch64-apple-darwin.tar.gz` (1,764,284 B, `3750b2e9…`),
-   which carries ripgrep's licence files and the unsigned member for comparison.
-   The PCRE2 licence needs ripgrep 15.2.0's `pcre2-sys` source; its version and
-   size are unknown.
+5. **rg: ripgrep 15.2.0 (revision `e89fff89ac`) with PCRE2 10.46, unchanged
+   code since 0.160.0.** Known: the selector names
+   `ripgrep-15.2.0-aarch64-apple-darwin.tar.gz` (1,764,284 B, `3750b2e9…`), and
+   the binary's version, revision and PCRE2 strings. Unknown: a byte join of that
+   archive's `rg` member with the shipped binary, the ripgrep 15.2.0 licence
+   files, and the PCRE2 licence for the linked version through ripgrep 15.2.0's
+   `pcre2-sys`, whose version and size are not established. The archive is a
+   binary download needing its own permission; the licence and lock files are
+   public source text. Version strings alone do not establish the join.
 6. **exec-server (new).** Its root-text candidate and dependency inputs are
    covered by item 3 and the exec-server row above. A standalone byte join would need
    `codex-exec-server-aarch64-apple-darwin.tar.gz` (22,746,226 B,

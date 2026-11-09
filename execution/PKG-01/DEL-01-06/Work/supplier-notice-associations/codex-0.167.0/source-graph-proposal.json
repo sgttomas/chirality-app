@@ -3,7 +3,7 @@
  "repository": "https://github.com/openai/codex",
  "commit": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
  "codex_rs_tree": "c98bbd639c8f04c69cfd8495ba74996c06385dad",
- "selection": "codex-rs/Cargo.lock and every codex-rs/**/Cargo.toml blob in the complete recursive codex-rs tree; none is held locally",
+ "selection": "codex-rs/Cargo.lock and every codex-rs/**/Cargo.toml blob in the complete recursive codex-rs tree",
  "files": [
   {
    "path": "codex-rs/Cargo.lock",
@@ -1046,5 +1046,5 @@
  ],
  "file_count": 173,
  "total_bytes": 604854,
- "standing": "Offline proposal only; not submitted and no acquisition authorized. No source graph resolved, binary joined or notice coverage completed."
+ "standing": "Public source-text read list (standing read-only inspection authority). A row is held only after its bytes are read and match size and Git blob. No dependency archive or binary acquisition, source graph resolution, binary join or notice coverage follows from this list."
 }

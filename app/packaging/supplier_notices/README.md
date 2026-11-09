@@ -22,7 +22,7 @@ declared subject/tool identities. No actual supplier or credential is executed.
 For the current Codex 0.167.0 subject, `associate_0167.py` recomputes the
 notice/source association records offline. It reads the canonical vendor tree
 (manifest `158dd670…`), the frozen 0.160.0 tree, the committed root texts in
-`codex-0.160.0/` and six retained public metadata responses. It reuses the
+`codex-0.160.0/` and eight retained public metadata responses. It reuses the
 no-follow reader in `app/packaging/static_distribution/check.py` and
 `app/packaging/inventory.py`, executes nothing
 and opens no network connection. `--check DIR` compares its output with the
