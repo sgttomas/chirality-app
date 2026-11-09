@@ -41,7 +41,7 @@ jobs:
           p2_production_catalog_tests recovery_reads::tests observer_journal
           observation_custody_tests checkpoint_recorder checkpoint_lapse
           checkpoint_custody trial_reads_route_to_the_home_holding_the_trial_conversation
-          model_turn model_rerouted execution_custody_tests records::durability_tests
+          model_turn ordinary_model model_rerouted execution_custody_tests records::durability_tests
           record_relations records_index u_store_2 recovery::store::tests stop_records
           a15_single_entry a15_native::tests
           act_control::a15::tests::native_presentation_failure_

@@ -8,7 +8,7 @@
 //! `delegation_availability`). This module turns those reads into a narrow
 //! view: the server provider (or why it is not established) and each listed
 //! model's `id`, `model`, `displayName`, a bounded `description` and
-//! `isDefault`. No configuration body, other model field, hidden model,
+//! `isDefault` and offered reasoning efforts/default. No configuration body, other model field, hidden model,
 //! entitlement or account fact is carried. Nothing here reads, writes or
 //! starts anything; `Host::model_catalog_read` performs the reads.
 use serde_json::{json, Value};
@@ -54,7 +54,15 @@ pub(crate) fn listed(entry: &Value) -> Option<Value> {
     let field = |name: &str| entry[name].as_str().filter(|v| plain(v) && v.len() <= 128).map(str::to_owned);
     let (id, model, display) = (field("id")?, field("model")?, field("displayName")?);
     let description: String = entry["description"].as_str().unwrap_or("").chars().filter(|c| !c.is_control()).take(DESCRIPTION_LIMIT).collect();
-    Some(json!({"id":id,"model":model,"displayName":display,"description":description,"isDefault":entry["isDefault"] == Value::Bool(true)}))
+    let supported: Vec<Value> = entry["supportedReasoningEfforts"].as_array().into_iter().flatten().take(32)
+        .filter_map(|option| {
+            let effort = option["reasoningEffort"].as_str().filter(|e| plain(e) && e.len() <= 128)?;
+            let description: String = option["description"].as_str()?.chars().filter(|c| !c.is_control()).take(DESCRIPTION_LIMIT).collect();
+            Some(json!({"reasoningEffort":effort,"description":description}))
+        }).collect();
+    let default = entry["defaultReasoningEffort"].as_str().filter(|e| plain(e) && e.len() <= 128);
+    Some(json!({"id":id,"model":model,"displayName":display,"description":description,"isDefault":entry["isDefault"] == Value::Bool(true),
+        "supportedReasoningEfforts":supported,"defaultReasoningEffort":default}))
 }
 
 /// The listed models, following `nextCursor` until it is null. A page error,
@@ -125,7 +133,7 @@ mod tests {
     #[test]
     fn only_named_fields_of_visible_entries_are_kept() {
         let row = listed(&entry("a")).unwrap();
-        assert_eq!(row, json!({"id":"a","model":"a","displayName":"Name a","description":"d","isDefault":false}));
+        assert_eq!(row, json!({"id":"a","model":"a","displayName":"Name a","description":"d","isDefault":false,"supportedReasoningEfforts":[],"defaultReasoningEffort":"medium"}));
         assert!(listed(&json!({"id":"h","model":"h","displayName":"H","description":"","hidden":true,"isDefault":false})).is_none());
         assert!(listed(&json!({"id":"h","model":"h","displayName":"H","description":""})).is_none(), "hidden not reported is not shown");
         assert!(listed(&json!({"id":"","model":"x","displayName":"X","description":"","hidden":false})).is_none());
@@ -133,6 +141,24 @@ mod tests {
         let long = listed(&json!({"id":"x","model":"x","displayName":"X","description":"y".repeat(500),"hidden":false,"isDefault":true})).unwrap();
         assert_eq!(long["description"].as_str().unwrap().len(), 300);
         assert_eq!(long["isDefault"], true);
+    }
+
+    #[test]
+    fn offered_efforts_preserve_supplier_names_descriptions_and_default_without_guessing() {
+        let mut source = entry("a");
+        source["supportedReasoningEfforts"] = json!([
+            {"reasoningEffort":"medium","description":"Balanced"},
+            {"reasoningEffort":"future-value","description":"Supplier description"},
+            {"reasoningEffort":"","description":"bad"},
+            {"reasoningEffort":"bad\nvalue","description":"bad"}
+        ]);
+        let row = listed(&source).unwrap();
+        assert_eq!(row["defaultReasoningEffort"], "medium");
+        assert_eq!(row["supportedReasoningEfforts"], json!([
+            {"reasoningEffort":"medium","description":"Balanced"},
+            {"reasoningEffort":"future-value","description":"Supplier description"}
+        ]));
+        assert!(row.get("upgrade").is_none());
     }
 
     #[test]

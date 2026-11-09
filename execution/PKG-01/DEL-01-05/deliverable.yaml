@@ -30,6 +30,8 @@ needs:
   gating: false
   evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 code_paths:
+- app/src/ModelChoice.tsx
+- app/src-tauri/src/model_catalog.rs
 - app/src-tauri/src/desktop_setup_confirmation.rs
 - app/src/DesktopSetupPanel.tsx
 - app/src-tauri/src/desktop_startup.rs
@@ -48,6 +50,7 @@ code_paths:
 - app/supplier_checks/child_roles.py
 - app/src-tauri/tests/config_write_contract.rs
 checks:
+- app/src-tauri/src/model_catalog.rs
 - app/src-tauri/src/desktop_setup_confirmation.rs
 - app/src-tauri/src/desktop_startup.rs
 - app/tests/desktop-setup.test.mjs
