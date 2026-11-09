@@ -1964,7 +1964,7 @@ export function App() {
   const act = async (cmd: string, args?: Record<string, unknown>) => {
     try {
       const r: Json = await invoke(cmd, args);
-      setMessage(`${cmd}: ${JSON.stringify(r).slice(0, 300)}`);
+      setMessage(`${cmd}: ${JSON.stringify(r)}`);
     } catch (e) {
       setMessage(`${cmd}: ${String(e)}`);
     }
@@ -1996,7 +1996,7 @@ export function App() {
         // Even an edit away and back is a newer choice and must survive.
         if (editRevision.current === revision && chooserHome.current.epoch === epoch) reviseChoice(emptyConversationChoice);
       }
-      setMessage(`thread_start: ${JSON.stringify(response).slice(0, 300)}`);
+      setMessage(`thread_start: ${JSON.stringify(response)}`);
     } catch (error) {
       setMessage(`thread_start: ${String(error)}`);
     } finally {
@@ -2028,7 +2028,7 @@ export function App() {
     setProcessBusy(true);
     try {
       const r: Json = await invoke(cmd, args);
-      setMessage(r?.state === "cancelled" ? `${r.action}: ${r.reading}` : cmd === "codex_stop" ? `${r?.action}: see the outcome under Codex host.` : `${cmd}: ${JSON.stringify(r).slice(0, 300)}`);
+      setMessage(r?.state === "cancelled" ? `${r.action}: ${r.reading}` : cmd === "codex_stop" ? `${r?.action}: see the outcome under Codex host.` : `${cmd}: ${JSON.stringify(r)}`);
     } catch (e) {
       setMessage(`${cmd}: ${String(e)}`);
     } finally {
@@ -2219,7 +2219,7 @@ export function App() {
   const runAct: RunAct = async (command, args) => {
     try {
       const result = await invoke(command, args);
-      setMessage(`${command}: ${JSON.stringify(result).slice(0, 600)}`);
+      setMessage(`${command}: ${JSON.stringify(result)}`);
       return result;
     } catch (e) { setMessage(`${command}: ${String(e)}`); }
     finally { await refresh(); }
@@ -2229,7 +2229,7 @@ export function App() {
   const startRunAct: RunAct = async (command, args) => {
     try {
       const result = await invoke(command, args);
-      setMessage(`${command}: ${result === undefined ? "The host did not report an outcome." : JSON.stringify(result).slice(0, 600)}`);
+      setMessage(`${command}: ${result === undefined ? "The host did not report an outcome." : JSON.stringify(result)}`);
       return result;
     } catch (e) { setMessage(`${command}: ${String(e)}`); throw e; }
     finally { await refresh(); }
@@ -2269,7 +2269,7 @@ export function App() {
       const result = await invoke(command, args);
       // A send that resolves without a reported outcome is not a confirmed one.
       if (bringBack && (result === undefined || result === null)) noteBringBackDoubt({ ...bringBack, message: "The host did not report the send's outcome.", acknowledged: false });
-      setMessage(`${command}: ${result === undefined ? "The host did not report an outcome." : JSON.stringify(result).slice(0, 600)}`);
+      setMessage(`${command}: ${result === undefined ? "The host did not report an outcome." : JSON.stringify(result)}`);
       return result;
     } catch (e) { setMessage(`${command}: ${String(e)}`); if (bringBack && !prefillKept(e)) noteBringBackDoubt({ ...bringBack, message: hostMessage(e), acknowledged: false }); throw e; }
     finally {

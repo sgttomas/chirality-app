@@ -95,10 +95,16 @@ rendered state, primary-turn completion from active descendants, and request
 settlement from received acknowledgment. An unavailable outcome stays
 unknown rather than being reconstructed as success.
 
-**V4-EXM-12 Three kinds of model access.** With ChatGPT sign-in, an API key,
-and a local model server all configured, the person runs one conversation
-with each and switches between them.
-*Verifies* V4-APP-02.
+**V4-EXM-12 Account and oMLX/local model access.** With ChatGPT account and
+oMLX/local access configured together, the person runs one conversation with
+each and switches between them, preserving the other configuration. Examine
+the local credential requirement and Codex custody in the adopted dedicated
+local home separately from account sign-in. Standalone OpenAI API-key access
+and its qualification commitment are omitted from this increment; historical
+API-key fixtures retain their subjects and supply no current pass.
+*Verifies* V4-APP-02. The adopted authentication design and anonymous-provider
+fixtures do not establish keyed oMLX implementation or actual compatibility;
+candidate-bound use remains owed.
 
 **V4-EXM-13 Coordinating an agent fleet.** The person delegates two bounded
 pieces of work with briefs, follows them on the undertaking's work graph,

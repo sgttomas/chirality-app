@@ -95,6 +95,36 @@ test('a first-time account user chooses the built-in route and a reported model,
   });
 });
 
+test('a long already-safe App response keeps its distinct tail in optional details; a start error stays direct', async () => {
+  const response = {acknowledged:false, error:'Explicit negative acknowledgment.', notice:'Invented safe App response '.repeat(40), tail:'distinct-response-tail-6921'};
+  let refuse = false;
+  await mounted(async command => {
+    if (command === 'read_available_models') return packet();
+    if (command === 'thread_start') {
+      if (refuse) throw Error('Explicit fixture refusal; nothing admitted.');
+      return response;
+    }
+    throw Error(`unexpected ${command}`);
+  }, async ui => {
+    await ui.press('Use my ChatGPT account (built-in OpenAI)');
+    await ui.press('Read available models'); await ui.press('Use Model B');
+    await ui.press('Start thread');
+    const feedback = region(ui.c, 'Latest App response');
+    const details = nodes(feedback, 'details')[0];
+    assert.ok(details); assert.equal(!!props(details).open, false);
+    const expected = `thread_start: ${JSON.stringify(response)}`;
+    assert.ok(expected.length > 600);
+    assert.equal(nodes(details, 'pre')[0].textContent, expected);
+    assert.doesNotMatch(nodes(feedback, 'p')[0].textContent, /success|completed|accepted/i);
+    assert.ok(nodes(feedback, 'p').some(node => node.textContent === 'acknowledged: false'));
+    assert.ok(nodes(feedback, 'p').some(node => node.textContent === 'error: Explicit negative acknowledgment.'));
+    refuse = true; await ui.press('Start thread');
+    assert.equal(nodes(feedback, 'details').length, 0);
+    assert.match(nodes(feedback, 'p')[0].textContent, /Explicit fixture refusal; nothing admitted\./);
+    assert.equal(ui.issued().filter(call => call.command === 'thread_start').length, 2, 'one dispatch per press, no retry');
+  });
+});
+
 test('a list for another provider, an unnamed provider and a stale or failed read never choose a model', async () => {
   let reply = packet({serverProvider:'local-lab'});
   await mounted(async command => { if (command === 'read_available_models') { if (reply instanceof Error) throw reply; return reply; } throw Error(`unexpected ${command}`); }, async ui => {

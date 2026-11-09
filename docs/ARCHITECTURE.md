@@ -82,7 +82,7 @@ implementation and explicit receiving agreement.
  └───────────────┬─────────────────────────────────────────────────────────┘
                  │ Codex App Server protocol (JSON-RPC over stdio), pinned
                  ▼
-          Codex (stock) ── ChatGPT sign-in · API key · local provider
+          Codex (stock) ── ChatGPT account · oMLX/local provider
                  │
                  │ MCP (host tools, for an external controller)
                  ▼
@@ -117,7 +117,7 @@ prerequisite. PEC delivery is retired; no coordination-provider replacement is n
 | V4-ARC-01 | **Harness: Codex through the stock Codex App Server**, run from the App's own process, version-pinned, over its published protocol (JSON-RPC over stdio) | Recorded D-17/D-19 choice, retained by B-HTML 02; historical successful repairs support useful properties without proving topology-only causation |
 | V4-ARC-02 | **Shell: Tauri 2 + React + Vite**, the same stack as SWBPIPE | D-20; one packaging pipeline and one main-process language across Chirality applications (analysis §11.2–11.3) |
 | V4-ARC-03 | **No separate v3 Runtime service in the App target.** Its Node service and socket API are not carried forward as the App hosting topology | D-20 explicitly selected direct App-owned hosting. This is the chosen direction, not a claim that the retained service caused every historical failure or that a service is always wrong |
-| V4-ARC-04 | **Sign-in and models through Codex's own account methods**: ChatGPT sign-in and API key, with credentials held by Codex; local model servers as Codex model providers chosen per conversation (`modelProvider` on `thread/start`) | D-06, D-17 |
+| V4-ARC-04 | **Account and oMLX/local access through Codex**: ChatGPT sign-in and local model providers remain configured together and chosen per conversation, without a default. Credentials remain in Codex custody. The adopted keyed oMLX route has a dedicated local home and its own fixed nonsecret configuration, separate from the account home; its native implementation and actual oMLX compatibility remain pending. Standalone OpenAI API-key product access and its qualification commitment are omitted for this increment, while native plumbing and saved homes are retained. | D-06, D-17; current owner scope correction |
 | V4-ARC-05 | **Native presentation.** Codex's items — plans, tool activity, delegation, requests — are presented in their native form; protocol types are generated from the pinned Codex version, with a small hand-kept supplement for experimental fields | M-2; D-GOV-43 finding 4 (L-05) |
 
 **Properties the App must hold** (X-03–X-05; B-HTML 02/05). Source paths and
@@ -160,10 +160,14 @@ workspace ("A, proceed with the Rust host.") and the fleet records, and it
 keeps the properties above. Where shared contracts and components live stays
 open (OI-014).
 
-**Left to the implementation session:** whether Chirality keeps sign-in
-separate from the user's other Codex clients (v3's overlay home) or shares
-it; API-key sign-in through the pinned
-protocol; signing and notarisation of the App and Codex binaries under Tauri,
+**Access implementation:** the account-home choice is carried by
+[DEL-01-05](../execution/PKG-01/DEL-01-05/ScopeOfWork.md); the adopted dedicated
+local-home design in V4-ARC-04 preserves independent account and oMLX access
+with Codex credential custody. The webview receives no key. Source-supported
+authentication design is not actual oMLX compatibility. Any later standalone
+OpenAI API-key product scope requires an owner decision.
+
+**Left to the implementation session:** signing and notarisation of the App and Codex binaries under Tauri,
 including applicable entitlements; and the actual supplier version. The
 original investigation recorded a v3 pin of 0.154.0 and a then-current
 upstream 0.157.1; those are dated evidence, not the v4 pin. Confirm protocol
@@ -176,7 +180,7 @@ supplier direction as though it were unanswered.
 | ID | Decision | Reason |
 |---|---|---|
 | V4-ARC-10 | **Agent: a minimal Chirality agent loop** in the host, over the **OpenAI-compatible Chat Completions** interface with tool calls | Recorded D-20 choice. Compatibility and maintenance effort must be established for the selected server and implementation; the original size/stability expectations are not qualification |
-| V4-ARC-11 | **Model: local or cloud, as the person chooses, with no default** — a local model server the user controls, or a cloud model reached by OAuth sign-in or an API key | D-18; DEC-4 |
+| V4-ARC-11 | **Host model: local or cloud, as the person chooses, with no default** — a local model server the user controls, or a cloud model reached by OAuth sign-in or an API key. This host choice does not add standalone OpenAI API-key access to the current App increment; App access is account plus oMLX/local under V4-ARC-04. | D-18; DEC-4; current App scope correction |
 | V4-ARC-12 | **Network through the host.** The loop's requests pass through the host's own native layer, which allows only the selected model service and the destinations the person has allowed, records every destination contacted, and holds any key or sign-in credential outside the interface's script | D-18; DEC-4; DEC-5; T10 risk 3 |
 | V4-ARC-13 | **Tools from the host's capability catalog**, with arguments validated against the catalog's schemas before the host's own validation runs | V4-PAR-01…05; [host integration](HOST_INTEGRATION.md) |
 | V4-ARC-14 | **A Chirality-defined boundary around the loop** — messages, tools, events, checkpoints — so the loop can be replaced by Pi's libraries or another library if hosts outgrow it | D-20; M-5 |
