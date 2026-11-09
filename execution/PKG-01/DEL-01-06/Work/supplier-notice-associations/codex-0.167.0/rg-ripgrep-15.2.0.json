@@ -1,0 +1,111 @@
+{
+ "format": "codex-rg-ripgrep-association/1",
+ "tool_sha256": "493154fad09e1d9e3db476c5ff5632c8d073ec47887834e8f3977d9fb67b6d2c",
+ "subject": {
+  "path": "codex-path/rg",
+  "sha256": "13424ef22134a65a211e490475bc17a4671e4fad3c82ad4c613fe5978f022a6d",
+  "size": 4030432
+ },
+ "selector": {
+  "path": "scripts/codex_package/rg",
+  "git_blob_sha1": "3b7c34843aaafe4cf26a87b3daf5806195d4bb0e",
+  "sha256": "41a10ca63365560d899a82b6f825fd7b420a18b34f660a98bffeece77eeae1f1",
+  "macos_aarch64": {
+   "size": 1764284,
+   "hash": "sha256",
+   "digest": "3750b2e93f37e0c692657da574d7019a101c0084da05a790c83fd335bad973e4",
+   "format": "tar.gz",
+   "path": "ripgrep-15.2.0-aarch64-apple-darwin/rg",
+   "providers": [
+    {
+     "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-aarch64-apple-darwin.tar.gz"
+    }
+   ]
+  }
+ },
+ "source": {
+  "repository": "https://github.com/BurntSushi/ripgrep",
+  "tag": "15.2.0",
+  "tag_object": "6ec72defacfb042f203ca0b4bf2513a0a5505a7e",
+  "commit": "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
+  "retained_responses": [
+   {
+    "name": "ripgrep-ref-tag.json",
+    "sha256": "ec53b340ad221ad387084739390e49d278f0e62c1a1294e411d82c63b7297e65",
+    "size": 378
+   },
+   {
+    "name": "ripgrep-tag-object.json",
+    "sha256": "8b39f4bec47943fbd7c53a06983bfb1b35926ddabd8b2bc7e0631827f1cf0682",
+    "size": 1967
+   },
+   {
+    "name": "ripgrep-root-tree.json",
+    "sha256": "ba306f18b98f42d672a0cdf020e5e40cc04d1542b05e5315a45949eb3913b162",
+    "size": 7219
+   }
+  ],
+  "cargo_lock": {
+   "size_bytes": 12745,
+   "sha256": "7a7d39cda8a03930e578f1dbb724e055771901842eca239e03b01e19da946a64",
+   "git_blob_sha1": "55893348fd8d6ce440e2451df9ca8edd1ec0d7ce"
+  }
+ },
+ "embedded_clues": {
+  "version": "15.2.0",
+  "revision_prefix": "e89fff89ac",
+  "revision_prefix_matches_tag_commit": true,
+  "registry_crate_directories": [
+   "aho-corasick-1.1.4",
+   "anyhow-1.0.103",
+   "bstr-1.13.0",
+   "crossbeam-epoch-0.9.20",
+   "encoding_rs-0.8.35",
+   "encoding_rs_io-0.1.7",
+   "itoa-1.0.18",
+   "lexopt-0.3.2",
+   "memchr-2.8.3",
+   "pcre2-0.2.11",
+   "regex-automata-0.4.15",
+   "regex-syntax-0.8.11",
+   "same-file-1.0.6",
+   "termcolor-1.4.1",
+   "textwrap-0.16.2",
+   "walkdir-2.5.0"
+  ],
+  "all_in_locked_registry_packages": true
+ },
+ "licence_texts": [
+  {
+   "path": "COPYING",
+   "local_text": "app/packaging/supplier_notices/ripgrep-15.2.0/COPYING",
+   "size_bytes": 126,
+   "sha256": "01c266bced4a434da0051174d6bee16a4c82cf634e2679b6155d40d75012390f",
+   "git_blob_sha1": "bb9c20a094e41b7632d63bcff20c0b4b95e80777"
+  },
+  {
+   "path": "LICENSE-MIT",
+   "local_text": "app/packaging/supplier_notices/ripgrep-15.2.0/LICENSE-MIT",
+   "size_bytes": 1081,
+   "sha256": "0f96a83840e146e43c0ec96a22ec1f392e0680e6c1226e6f3ba87e0740af850f",
+   "git_blob_sha1": "3b0a5dc09c1e16357459ddc9182a50f360f3cdba"
+  },
+  {
+   "path": "UNLICENSE",
+   "local_text": "app/packaging/supplier_notices/ripgrep-15.2.0/UNLICENSE",
+   "size_bytes": 1211,
+   "sha256": "7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c",
+   "git_blob_sha1": "68a49daad8ff7e35068f2b7a97d643aab440eaec"
+  }
+ ],
+ "pcre2_sys_locked": {
+  "version": "0.2.10",
+  "checksum": "18b9073c1a2549bd409bf4a32c94d903bb1a09bf845bc306ae148897fa0760a4",
+  "held": false
+ },
+ "limits": [
+  "No execution, network access, acquisition, signature validation or legal conclusion.",
+  "The selector, tag and embedded revision associate the shipped rg with the selected ripgrep source revision; they are not a byte join with the selected release archive.",
+  "PCRE2 terms are not covered here; ripgrep 15.2.0 locks pcre2-sys 0.2.10, whose source text is not held."
+ ]
+}

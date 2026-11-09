@@ -28,3 +28,10 @@ no-follow reader in `app/packaging/static_distribution/check.py` and
 and opens no network connection. `--check DIR` compares its output with the
 retained records under DEL-01-06 `Work/supplier-notice-associations/codex-0.167.0/`.
 `observe.py` and its saved output remain the 0.160.0 record.
+
+`ripgrep_0167.py` recomputes the rg association the same way. It reads the
+canonical 0.167.0 `rg`, the received Codex rg selector, the committed
+`ripgrep-15.2.0/` licence texts, and retained ripgrep tag/tree responses and
+`Cargo.lock`. `--check FILE` compares its output with
+`codex-0.167.0/rg-ripgrep-15.2.0.json`. It is not a byte join with the selected
+release archive.
