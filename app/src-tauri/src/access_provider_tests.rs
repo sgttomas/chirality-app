@@ -3225,6 +3225,42 @@ fn native_local_provider_central_guard_refuses_cross_entry_overrides_before_capt
     }
 }
 #[test]
+fn native_local_provider_resume_and_fork_name_only_the_classified_cwd_even_with_a_valid_reading() {
+    use crate::native_local_provider::{ENTRY, MODEL, PROVIDER};
+    let mut peer = Peer::new("local-cwd");
+    canonical_167_peer(&peer);
+    {
+        let mut i = peer.host.inner.0.lock().unwrap();
+        i.local_provider = Some(LocalProviderBinding { home: "local-cwd".into(), cwd: "/invented/work".into() });
+        i.threads.push(json!({"generation":peer.g,"threadId":"local-thread","modelProvider":PROVIDER,"model":MODEL,"cwd":"/invented/work"}));
+    }
+    peer.answer(local_167_config());
+    let proof = peer.host.provider_admission_read_within(&peer.g, "/invented/work", ENTRY, PROVIDER, MODEL, Duration::from_millis(30)).unwrap();
+    assert_eq!(peer.frame()["method"], "config/read");
+    // Codex can derive a history cwd (SQLite or rollout) other than the classified one; only an explicit
+    // classified cwd binds its configuration load, so a missing or different cwd never reaches the wire.
+    for (method, params) in [
+        ("thread/resume", json!({"threadId":"saved","excludeTurns":true})),
+        ("thread/resume", json!({"threadId":"saved","excludeTurns":true,"cwd":"/elsewhere"})),
+        ("thread/resume", json!({"threadId":"saved","excludeTurns":true,"cwd":"/invented/work","model":MODEL})),
+        ("thread/fork", json!({"threadId":"local-thread","deferGoalContinuation":true})),
+        ("thread/fork", json!({"threadId":"local-thread","deferGoalContinuation":true,"cwd":"/elsewhere"})),
+        ("thread/fork", json!({"threadId":"local-thread","deferGoalContinuation":true,"cwd":"/invented/work","developerInstructions":CANARY})),
+    ] {
+        let before = peer.host.client_requests().len();
+        assert!(peer.host.request_begin_with_access_offer(method, params.clone(), json!({"kind":"synthetic"}), false, Some(&peer.g), false, None, None, None, None, false, Some(&proof)).is_err(), "{method} {params}");
+        assert_eq!(peer.host.client_requests().len(), before, "{method}: nothing written or captured");
+    }
+    for (method, params) in [
+        ("thread/resume", json!({"threadId":"saved","excludeTurns":true,"cwd":"/invented/work"})),
+        ("thread/fork", json!({"threadId":"local-thread","deferGoalContinuation":true,"cwd":"/invented/work"})),
+    ] {
+        peer.host.request_begin_with_access_offer(method, params.clone(), json!({"kind":"synthetic"}), false, Some(&peer.g), false, None, None, None, None, false, Some(&proof)).unwrap();
+        assert_eq!(peer.frame()["params"], params, "{method}");
+    }
+    peer.safe();
+}
+#[test]
 fn native_local_provider_central_guard_rechecks_original_thread_after_writer_wait() {
     use crate::native_local_provider::{MODEL, PROVIDER};
     let peer = Peer::new("local-queue");

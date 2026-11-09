@@ -1102,10 +1102,12 @@ impl Host {
             "thread/start" if params["cwd"]==binding.cwd && params["modelProvider"]==crate::native_local_provider::PROVIDER && params["model"]==crate::native_local_provider::MODEL && admission.is_some_and(|p|p.entry==crate::native_local_provider::ENTRY && (params.get("config").is_none_or(|c| c.is_null() || c.as_object().is_some_and(|c| c.is_empty())) || p.children.as_ref().is_some_and(|c| params["config"]==c.config))) => Ok(()),
             "turn/start"|"turn/steer"|"turn/interrupt" if thread_current() => Ok(()),
             // Same-role fork only: the exact packet, no instructions/model/config, on a current private reading.
-            "thread/fork" if thread_current() && params.as_object().is_some_and(|p|p.len()==2) && params["threadId"].is_string() && params["deferGoalContinuation"]==true && local_proof() => Ok(()),
+            // Codex loads layered configuration for an explicit request cwd ahead of any history-derived cwd,
+            // so local resume and fork always name the classified cwd.
+            "thread/fork" if thread_current() && params.as_object().is_some_and(|p|p.len()==3) && params["threadId"].is_string() && params["deferGoalContinuation"]==true && params["cwd"]==binding.cwd && local_proof() => Ok(()),
             // Every local resume, admitted or saved, is only the exact original Continue packet, carried on
             // a current private effective-configuration admission. No path/history/config/model rides on it.
-            "thread/resume" if params.as_object().is_some_and(|p|p.len()==2) && params["threadId"].as_str().is_some_and(|t|!t.is_empty()) && params["excludeTurns"]==true && local_proof() => Ok(()),
+            "thread/resume" if params.as_object().is_some_and(|p|p.len()==3) && params["threadId"].as_str().is_some_and(|t|!t.is_empty()) && params["excludeTurns"]==true && params["cwd"]==binding.cwd && local_proof() => Ok(()),
             // Local disk views carry no inference/account credential to a model transport.
             "thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/loaded/list"|"thread/name/set"|"thread/archive"|"thread/unarchive"|"thread/unsubscribe" => Ok(()),
             _=>refuse(),
@@ -1115,6 +1117,7 @@ impl Host {
 
 impl ProviderAdmission {
     pub(super) fn source(&self) -> &SourceRequest { &self.source }
+    pub(super) fn cwd(&self) -> &str { &self.cwd }
 }
 impl Host {
     /// Local Continue reads and classifies the effective provider definition before dispatch; None without a local binding.

@@ -98,12 +98,15 @@ existing signature, wording and behavior.
 
 Every request from the local home passes one guard before the write. Paged
 history reads (`thread/turns/list`, `thread/items/list`, `thread/goal/get`) are
-admitted for this home. Every local resume carries only the original
-`{threadId, excludeTurns:true}` Continue packet. Codex resumes a saved thread
-in its own saved working directory, so the App first reads that thread and
-refuses unless its working directory is the bound one. Like a new start, it
-then needs a private effective-configuration reading that classifies the fixed
-provider definition for that directory. The write checks again that this
+admitted for this home. Without an explicit directory, Codex derives a resume
+directory from its own history: SQLite metadata or the latest owned rollout
+settings, which can differ. An explicit request `cwd` takes precedence for
+layered configuration. Every local resume therefore carries only the Continue
+packet `{threadId, excludeTurns:true, cwd}` with the bound, classified
+directory. The App first reads the saved thread and refuses unless Codex
+reports the bound directory, so it never moves a thread saved elsewhere. Like a
+new start, it then needs a private effective-configuration reading that
+classifies the fixed provider definition for that directory. The write checks again that this
 reading is still the current one. Operational admission requires the same
 reading to be current, and the resumed thread to report the fixed provider,
 model and working directory. Credential, header or catalogue drift present in
@@ -111,8 +114,8 @@ that reading refuses before any resume is written. Receipt currency is not a
 configuration lock: a layer that changes on disk after the reading, without a
 newer reading, is not observed before Codex reloads it. Codex 0.167 also reloads layered configuration for the source thread's working
 directory on an ordinary same-role fork. A local fork is therefore only the
-exact `{threadId, deferGoalContinuation:true}` packet, with no instructions,
-model or configuration. Its admitted source row must report the bound
+exact `{threadId, deferGoalContinuation:true, cwd}` packet naming the bound,
+classified directory, with no instructions, model or configuration. Its admitted source row must report the bound
 directory, and it gets the same private effective-configuration reading,
 write-time recheck and admission currency as Continue. The fork must report the
 fixed provider, model and working directory.

@@ -2324,8 +2324,10 @@ impl Host {
         if !matches!(query.method(),"thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/resume") {return Err("unsupported history factory method".into());}
         // A local saved-thread Continue gets the same effective provider-definition admission as a new start.
         if let Some(proof)=(query.method()=="thread/resume").then(||self.local_resume_admission(query.generation(),&query.params()["threadId"])).transpose()?.flatten() {
-            auth_rpc::generic_guard(query.method(),query.params())?;
-            let source=self.request_begin_with_access_offer(query.method(),query.params().clone(),initiator,false,Some(query.generation()),false,None,None,None,None,false,Some(&proof))?;
+            // The wire packet names the classified cwd so Codex cannot load another history-derived cwd.
+            let mut params=query.params().clone();params["cwd"]=json!(proof.cwd());
+            auth_rpc::generic_guard(query.method(),&params)?;Self::validate_native_result("ThreadResumeParams",&params)?;
+            let source=self.request_begin_with_access_offer(query.method(),params,initiator,false,Some(query.generation()),false,None,None,None,None,false,Some(&proof))?;
             return Ok(HistoryDispatch {query:query.clone(),source,local_config:Some(proof.source().clone())});
         }
         let source=self.request_begin_scoped(query.method(),query.params().clone(),initiator,false,Some(query.generation()))?;
@@ -2495,7 +2497,8 @@ impl Host {
         // Codex reloads layered configuration for the source thread's cwd on an ordinary fork, so a local
         // fork gets the same private effective-configuration admission as a new start or Continue.
         if let Some(proof)=self.local_fork_admission(generation,source_thread)? {
-            auth_rpc::generic_guard("thread/fork",&params)?;
+            let mut params=params;params["cwd"]=json!(proof.cwd());
+            auth_rpc::generic_guard("thread/fork",&params)?;Self::validate_native_result("ThreadForkParams",&params)?;
             let request=self.request_begin_with_access_offer("thread/fork",params,json!({"kind":"person-directed"}),false,Some(generation),false,None,None,None,None,false,Some(&proof))?;
             self.inner.0.lock().unwrap().local_fork_configs.insert(request.request_ref().to_string(),proof.source().clone());
             return Ok(request);
@@ -5183,7 +5186,7 @@ mod conversation_transport_tests {
                     // An admitting reading superseded before the write cannot carry the fork.
                     let proof=host.provider_admission_read(&g(),"/invented",ENTRY,PROVIDER,MODEL)?;
                     let _=host.provider_admission_read(&g(),"/invented",ENTRY,PROVIDER,MODEL)?;
-                    return host.request_begin_with_access_offer("thread/fork",json!({"threadId":"started","deferGoalContinuation":true}),json!({"kind":"person-directed"}),false,Some(&g()),false,None,None,None,None,false,Some(&proof)).map(|_|Value::Null);
+                    return host.request_begin_with_access_offer("thread/fork",json!({"threadId":"started","deferGoalContinuation":true,"cwd":"/invented"}),json!({"kind":"person-directed"}),false,Some(&g()),false,None,None,None,None,false,Some(&proof)).map(|_|Value::Null);
                 }
                 let request=host.thread_fork_dispatch(&g(),"started")?;host.source_request_wait(&request,Duration::from_secs(2))?;
                 if case=="superseded-before-finish" {let _=host.provider_admission_read(&g(),"/invented",ENTRY,PROVIDER,MODEL);}
@@ -5198,7 +5201,7 @@ mod conversation_transport_tests {
                 "source-cwd-elsewhere" => {assert_eq!((config_reads,forks.len()),(0,0),"no classification of the wrong cwd and no fork");}
                 "superseded-before-write" => {assert_eq!((config_reads,forks.len()),(2,0),"a superseded reading carries no fork write");}
                 "superseded-before-finish" => {assert_eq!((config_reads,forks.len()),(2,1));}
-                _ => {assert_eq!((config_reads,forks.len()),(1,1),"{case}");assert_eq!(forks[0]["params"],json!({"threadId":"started","deferGoalContinuation":true}));}
+                _ => {assert_eq!((config_reads,forks.len()),(1,1),"{case}");assert_eq!(forks[0]["params"],json!({"threadId":"started","deferGoalContinuation":true,"cwd":"/invented"}),"fork names the classified cwd");}
             }
             assert!(!host.snapshot().to_string().contains("INVENTED_PRIVATE_PROVIDER_CANARY_481"));
         }
@@ -5250,7 +5253,7 @@ mod conversation_transport_tests {
                 assert!(dispatch.is_err());assert!(!frames.iter().any(|f|f["method"]=="thread/resume"),"no resume written on credential drift");
                 assert!(!host.snapshot().to_string().contains("INVENTED_PRIVATE_PROVIDER_CANARY_481"));continue;
             }
-            let receipt=dispatch.unwrap();assert_eq!(frames.iter().find(|f|f["method"]=="thread/resume").unwrap()["params"],json!({"threadId":"stored","excludeTurns":true}));
+            let receipt=dispatch.unwrap();assert_eq!(frames.iter().find(|f|f["method"]=="thread/resume").unwrap()["params"],json!({"threadId":"stored","excludeTurns":true,"cwd":"/invented"}),"resume names the classified cwd");
             view.receive(&query,"conversation-home",&g(),&receipt.evidence()["response"]["result"]).unwrap();
             let admitted=host.history_admit_resume(&view,&receipt).is_ok();
             assert_eq!(admitted,case=="positive","{case}");
