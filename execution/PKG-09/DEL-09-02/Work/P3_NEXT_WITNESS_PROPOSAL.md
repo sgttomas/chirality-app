@@ -66,14 +66,14 @@ harness definitions are not refreshed into new evidence here.
 |---|---|---|
 | ChatGPT account | J1/J2 account-backed work plus the candidate-bound ordinary P3 segment above | Remaining native recovery stimuli and applicable final-candidate/installed qualification; this result does not establish credential-custody or destination qualification. |
 | Standalone OpenAI API key | Omitted by owner from the active product increment and its qualification commitment | Prior native plumbing/fixtures retain their subjects. This omission does not remove oMLX/local bearer authentication. |
-| Local provider | Current development [native preparation and cancellation](../../../PKG-01/DEL-01-05/Work/LOCAL_PROVIDER_CUSTODY.md#current-native-observation) reports the fixed route, opens the secure field and preserves explicit home switching. Historical server/model observations retain their original pair and limits | Actual key entry and useful conversation on the owner-selected oMLX endpoint/model, with model/tool compatibility and unknown destination facts stated truthfully. Preparation is not credential or inference qualification. |
+| Local provider | Current development [keyed native observation](../../../PKG-01/DEL-01-05/Work/LOCAL_PROVIDER_CUSTODY.md#current-native-observation) includes owner-reported secure key entry, Codex's saved-key report, a completed local response and a completed read-only command with correct output. Setup, cancellation and explicit home switching also passed on that subject. Historical server/model observations retain their original pair and limits | Broader applicable workflow/access/recovery and final-candidate qualification. The two development turns do not establish child delegation, continuing credential validity, complete tool compatibility or independently observed destination/custody facts. |
 
 The current owner scope requires account plus oMLX/local, including its local
 credential, with switching preserving the other configuration. Keyed oMLX
 uses the adopted Codex-custody dedicated local home, with frontend prepare,
-native secure key entry and home switching integrated. No key, actual model
-use or oMLX compatibility is
-established by source or fixtures. This is not a mode × every-stimulus
+native secure key entry and home switching integrated. The bounded native
+result above has its own development subject; source support and fixtures
+retain their separate subjects. This is not a mode × every-stimulus
 matrix or a new gate. Credential-custody observation remains privacy-bounded;
 absence of credentials from a public log is not custody evidence.
 
