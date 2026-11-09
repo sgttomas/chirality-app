@@ -99,13 +99,17 @@ existing signature, wording and behavior.
 Every request from the local home passes one guard before the write. Paged
 history reads (`thread/turns/list`, `thread/items/list`, `thread/goal/get`) are
 admitted for this home. Every local resume carries only the original
-`{threadId, excludeTurns:true}` Continue packet. Like a new start, it first
-needs a private effective-configuration reading that classifies the fixed
-provider definition, and that reading is checked again at the write.
-Operational admission requires the same reading to be current, and the resumed
-thread to report the fixed provider, model and working directory. Credential,
-header or catalogue drift from another layer refuses before any resume is
-written. A same-role fork of an admitted local thread is admitted only when the
+`{threadId, excludeTurns:true}` Continue packet. Codex resumes a saved thread
+in its own saved working directory, so the App first reads that thread and
+refuses unless its working directory is the bound one. Like a new start, it
+then needs a private effective-configuration reading that classifies the fixed
+provider definition for that directory. The write checks again that this
+reading is still the current one. Operational admission requires the same
+reading to be current, and the resumed thread to report the fixed provider,
+model and working directory. Credential, header or catalogue drift present in
+that reading refuses before any resume is written. Receipt currency is not a
+configuration lock: a layer that changes on disk after the reading, without a
+newer reading, is not observed before Codex reloads it. A same-role fork of an admitted local thread is admitted only when the
 fork reports the same fixed provider, model and working directory.
 
 The DTO names `modeHomeClass`, `entryId`, `providerId`, `endpoint`, `model`,

@@ -2321,7 +2321,7 @@ impl Host {
         if query.generation()["home"]!=query.home() {return Err("history home and full generation differ".into());}
         if !matches!(query.method(),"thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/resume") {return Err("unsupported history factory method".into());}
         // A local saved-thread Continue gets the same effective provider-definition admission as a new start.
-        if let Some(proof)=(query.method()=="thread/resume").then(||self.local_resume_admission(query.generation())).transpose()?.flatten() {
+        if let Some(proof)=(query.method()=="thread/resume").then(||self.local_resume_admission(query.generation(),&query.params()["threadId"])).transpose()?.flatten() {
             auth_rpc::generic_guard(query.method(),query.params())?;
             let source=self.request_begin_with_access_offer(query.method(),query.params().clone(),initiator,false,Some(query.generation()),false,None,None,None,None,false,Some(&proof))?;
             return Ok(HistoryDispatch {query:query.clone(),source,local_config:Some(proof.source().clone())});
@@ -5168,13 +5168,15 @@ mod conversation_transport_tests {
         }
     }
     /// Answers the private config/read through the host hook and the resume frame through the peer.
-    fn local_continue_exchange(host:&Arc<Host>,query:&HistoryQuery,cfg:Value,resume:Value,between:impl FnOnce())->(Result<HistoryDispatch,String>,Vec<Value>) {
+    fn local_continue_exchange(host:&Arc<Host>,query:&HistoryQuery,cfg:Value,saved_cwd:&str,resume:Value,between:impl FnOnce())->(Result<HistoryDispatch,String>,Vec<Value>) {
+        let mut saved=history_thread("notLoaded");saved["cwd"]=json!(saved_cwd);
         let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
         *host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();
         *host.before_provider_wait.lock().unwrap()=Some(Box::new(move|host,source|{host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":cfg})).unwrap(),source.generation());}));
         let me=Arc::clone(host);
         let worker=std::thread::spawn(move||{let mut reader=BufReader::new(stdout);let mut frames=vec![];loop{let mut line=String::new();if reader.read_line(&mut line).unwrap()==0{break;}let frame:Value=serde_json::from_str(&line).unwrap();
-            if frame["method"]=="thread/resume"{me.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":resume})).unwrap(),&g());}frames.push(frame);}frames});
+            if frame["method"]=="thread/resume"{me.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":resume})).unwrap(),&g());}
+            if frame["method"]=="thread/read"{me.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":{"thread":saved}})).unwrap(),&g());}frames.push(frame);}frames});
         let result=host.history_dispatch(query).and_then(|d|{host.history_wait(&d,Duration::from_secs(2))?;between();Ok(d)});
         *host.stdin.lock().unwrap()=None;*host.before_provider_wait.lock().unwrap()=None;let frames=worker.join().unwrap();assert!(child.wait().unwrap().success());(result,frames)
     }
@@ -5183,7 +5185,7 @@ mod conversation_transport_tests {
         use crate::native_local_provider::{MODEL, PROVIDER};
         let good=access_provider::tests::local_167_config();
         let mut drift=good.clone();drift["config"]["model_providers"][PROVIDER]["experimental_bearer_token"]=json!("INVENTED_PRIVATE_PROVIDER_CANARY_481");
-        for case in ["positive","credential-drift","superseded-reading","provider","model"] {
+        for case in ["positive","credential-drift","saved-cwd-elsewhere","superseded-reading","provider","model"] {
             let host=host();bind_local_history(&host);
             let mut view=NativeHistory::new("conversation-home",g()).unwrap();
             let list=view.list_threads(None,crate::native_history::Direction::Desc).unwrap();
@@ -5198,7 +5200,12 @@ mod conversation_transport_tests {
             match case {"provider"=>native["modelProvider"]=json!("configured"),"model"=>native["model"]=json!("reported"),_=>{}}
             let cfg=if case=="credential-drift"{drift.clone()}else{good.clone()};
             let me=Arc::clone(&host);
-            let(dispatch,frames)=local_continue_exchange(&host,&query,cfg,native,move||if case=="superseded-reading"{let _=me.provider_admission_read(&g(),"/invented",crate::native_local_provider::ENTRY,PROVIDER,MODEL);});
+            let saved_cwd=if case=="saved-cwd-elsewhere"{"/elsewhere"}else{"/invented"};
+            let(dispatch,frames)=local_continue_exchange(&host,&query,cfg,saved_cwd,native,move||if case=="superseded-reading"{let _=me.provider_admission_read(&g(),"/invented",crate::native_local_provider::ENTRY,PROVIDER,MODEL);});
+            assert_eq!(frames.iter().find(|f|f["method"]=="thread/read").unwrap()["params"],json!({"threadId":"stored","includeTurns":false}));
+            if case=="saved-cwd-elsewhere" {
+                assert!(dispatch.is_err());assert!(!frames.iter().any(|f|f["method"]=="thread/resume"||f["method"]=="config/read"),"saved thread in another cwd: no classification of the wrong cwd and no resume");continue;
+            }
             assert_eq!(frames.iter().filter(|f|f["method"]=="config/read").count(),if case=="superseded-reading"{2}else{1},"{case}");
             if case=="credential-drift" {
                 assert!(dispatch.is_err());assert!(!frames.iter().any(|f|f["method"]=="thread/resume"),"no resume written on credential drift");

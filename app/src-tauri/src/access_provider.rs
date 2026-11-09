@@ -1116,8 +1116,17 @@ impl ProviderAdmission {
 }
 impl Host {
     /// Local Continue reads and classifies the effective provider definition before dispatch; None without a local binding.
-    pub(super) fn local_resume_admission(&self, generation: &Value) -> Result<Option<ProviderAdmission>, String> {
+    pub(super) fn local_resume_admission(&self, generation: &Value, thread: &Value) -> Result<Option<ProviderAdmission>, String> {
         let cwd = match self.inner.0.lock().map_err(|_| unavailable())?.local_provider.as_ref() { Some(b) => b.cwd.clone(), None => return Ok(None) };
+        let thread = thread.as_str().filter(|t| !t.is_empty()).ok_or(crate::native_local_provider::LIMIT)?;
+        // Codex resumes in the saved thread's own cwd and loads that cwd's configuration, so the
+        // classified reading must be for the same cwd. A saved thread elsewhere refuses before any resume.
+        let read = self.request_begin_scoped("thread/read", json!({"threadId":thread,"includeTurns":false}), json!({"kind":"person-directed"}), false, Some(generation))?;
+        self.source_request_wait(&read, Duration::from_secs(10)).map_err(|_| crate::native_local_provider::LIMIT)?;
+        let e = read.evidence();
+        if e["outcome"] != "response-observed-result" || e["sourceCurrent"] != true || e["response"]["result"]["thread"]["id"] != thread || e["response"]["result"]["thread"]["cwd"] != json!(cwd) {
+            return Err(crate::native_local_provider::LIMIT.into());
+        }
         use crate::native_local_provider::{ENTRY, MODEL, PROVIDER};
         self.provider_admission_read(generation, &cwd, ENTRY, PROVIDER, MODEL).map(Some)
     }
