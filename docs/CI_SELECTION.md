@@ -109,6 +109,21 @@ retains the broader supplier-dependent route; it is not a release and remains
 subject to the owner's authorization and App hold. No release workflow is present.
 Manual dispatch of the governance harness also always selects product checks.
 
+## Nightly full suite
+
+PR selection can miss a test broken by a change elsewhere, because PR lib
+cohorts are named filters, not the whole lib suite. `nightly-full-suite.yml`
+runs on main at 09:00 UTC and on manual dispatch. It calls `app-v4.yml` with
+`full_suite: true`, which takes the same full route as a manual dispatch: the
+`product` job, including the full `cargo test` run, and none of the focused PR
+jobs. Its first job, `tools/ci/nightly_gate.py`, skips the suite on a scheduled
+run when main's head equals that of the newest earlier scheduled run that
+reached a verdict (success or failure). Cancelled runs are looked past; a
+manual dispatch always runs, and if the earlier runs cannot be read, the suite
+runs. The nightly run is not a PR check and no ruleset requires it, so it never
+blocks a merge. A failed run is reported as an open GitHub issue labelled
+`nightly`, which Agent 0 deals with before merging (`AGENTS.md`).
+
 Frozen examination sources are verified locally without Git fetches. Toolchain
 and package setup in hosted CI retain their existing versions. Local checks use
 offline caches by default. A fresh clone needs the documented toolchains and
