@@ -134,12 +134,14 @@ def select(repo: Path, event: str, base: str, head: str) -> dict:
 
 
 def require_success(needs: dict) -> None:
-    if not isinstance(needs, dict) or set(needs) != {"repository-checks", "app-v4"}:
+    if not isinstance(needs, dict) or set(needs) != {"change-selection", "repository-checks", "app-v4"}:
         raise ValueError("Aggregate requires exactly the declared verification jobs")
-    repository = needs["repository-checks"]
-    if repository.get("result") != "success":
-        raise ValueError("Repository checks and change selection must succeed")
-    outputs = repository.get("outputs", {})
+    selected = needs["change-selection"]
+    if selected.get("result") != "success":
+        raise ValueError("Change selection must succeed")
+    if needs["repository-checks"].get("result") != "success":
+        raise ValueError("Repository checks must succeed")
+    outputs = selected.get("outputs", {})
     mode, product = outputs.get("selection_mode"), outputs.get("run_product")
     if (mode, product) not in {("prose", "false"), ("product", "true")}:
         raise ValueError("Missing or inconsistent change-selection outputs")
