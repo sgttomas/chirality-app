@@ -78,7 +78,7 @@ The selector regression fixtures replay the complete recorded changes for
 PRs 169–181, plus unknown-path, mixed-change, mode, deletion and rename cases.
 Twelve sweep PRs become repository-only; PR178 retains product verification
 because its change includes product-selected documentation outside `execution/`.
-This PR's moves and all App/tool/guard/selector edits select full product checks.
+Path moves and all App/tool/guard/selector edits select full product checks.
 Other product domains remain conservative; no partial frontend/Rust mapping is
 introduced.
 
@@ -181,17 +181,19 @@ issues. Commit subjects and job names are escaped so they cannot mention anyone.
 Listing and publishing are retried with backoff; if publishing still fails, the
 job fails visibly.
 
-The independent path is portal, an external assistant that reads the result at
-about 15:00 UTC each day and opens a `nightly` issue on its own. A run that never
+The independent path is portal, an assistant the owner runs outside this
+repository, which reads the result at about 15:00 UTC each day and opens a
+`nightly` issue on its own. A run that never
 starts has no report job, so only that path catches it.
 
-Whether a merge made through auto-merge starts the push run is unconfirmed until
-the first such merge after this workflow lands. GitHub records an auto-merge as
-merged by the person who armed it, which suggests it does; Agent 0 checks that
-run.
+A merge made through auto-merge starts the push run: PR 214's did, within seconds.
 
 Agent 0 deals with an open `nightly` issue before merging or arming auto-merge.
-The run is not a PR check and no ruleset requires it, so it never blocks a merge.
+Dealing with it means deciding, and saying in the PR, whether the failure is
+caused by or affects the change. A real failure is fixed or reverted first, unless
+the PR is the fix. Agent 0 closes the issue when a later run on main passes. This
+duty is Agent 0's: the run is not a PR check and no ruleset requires it, so GitHub
+itself never holds a merge for it.
 
 Frozen examination sources are verified locally without Git fetches. Toolchain
 and package setup in hosted CI retain their existing versions. Local checks use
