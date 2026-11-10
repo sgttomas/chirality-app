@@ -120,7 +120,7 @@ def test_display_makes_supplied_text_inert(raw, inert):
 
 
 def body(**changes):
-    values = {"head": HEAD, "subject": SUBJECT, "event": "push", "jobs": ["full-suite / App v4 product (failure)"],
+    values = {"head": HEAD, "subject": SUBJECT, "event": "schedule", "jobs": ["full-suite / App v4 product (failure)"],
               "run_url": "https://github.example/o/r/actions/runs/9",
               "passed": {"id": 8, "head_sha": BASE}, "commits": [(HEAD, SUBJECT), ("c" * 40, "Direct commit")]}
     return subject.report_body(**{**values, **changes})
@@ -134,7 +134,7 @@ def test_report_puts_run_url_and_commit_on_their_own_lines():
 
 def test_report_names_the_merge_jobs_and_commits_since_the_last_pass():
     text = body()
-    assert "after PR #211 (trigger: `push`)" in text
+    assert "after PR #211 (trigger: `schedule`)" in text
     assert "- full-suite / App v4 product (failure)" in text
     assert f"(run 8 on `{BASE}`):" in text
     assert f"- `{HEAD[:12]}` PR #211: {subject.display(SUBJECT)}" in text
@@ -204,7 +204,7 @@ class FakeWorld:
                 if command[:3] in (["gh", "issue", "create"], ["gh", "issue", "comment"])]
 
 
-ARGS = ["--event", "push", "--head", HEAD, "--run-id", "9", "--repository", "o/r",
+ARGS = ["--event", "schedule", "--head", HEAD, "--run-id", "9", "--repository", "o/r",
         "--server-url", "https://github.example", "--gate-result", "success", "--suite-result", "failure"]
 
 

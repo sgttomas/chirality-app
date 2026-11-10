@@ -461,9 +461,8 @@ def test_nightly_workflow_calls_the_full_route_only_after_its_gate():
     assert full_suite["type"] == "boolean" and full_suite["default"] is False
     workflow = yaml.safe_load((root / ".github/workflows/nightly-full-suite.yml").read_text())
     trigger = workflow.get("on", workflow.get(True))
-    # Runs after merges, not on PRs or merge groups: nothing can require it.
-    assert set(trigger) == {"push", "schedule", "workflow_dispatch"}
-    assert trigger["push"] == {"branches": ["main"]}
+    # Runs daily and on demand, not on PRs or merge groups: nothing can require it.
+    assert set(trigger) == {"schedule", "workflow_dispatch"}
     assert trigger["schedule"] == [{"cron": "0 9 * * *"}]
     assert workflow["permissions"] == {"contents": "read"}
     assert workflow["concurrency"] == {
@@ -541,10 +540,8 @@ def runs(*items):
 
 @pytest.mark.parametrize("event, recorded, expected", [
     ("workflow_dispatch", None, True),
-    ("push", None, True),
-    # Push and manual runs ignore any earlier verdict.
-    ("push", runs((8, "head", "success", "schedule")), True),
-    ("workflow_dispatch", runs((8, "head", "success", "push")), True),
+    # A manual run ignores any earlier verdict.
+    ("workflow_dispatch", runs((8, "head", "success", "schedule")), True),
     ("schedule", None, True),
     ("schedule", runs(), True),
     ("schedule", runs((8, "head", "success")), False),
@@ -552,13 +549,13 @@ def runs(*items):
     ("schedule", runs((8, "old", "success")), True),
     ("schedule", runs((8, "old", "failure")), True),
     # A verdict on this commit from any trigger is enough.
-    ("schedule", runs((8, "head", "success", "push")), False),
+    ("schedule", runs((8, "head", "success", "workflow_dispatch")), False),
     ("schedule", runs((8, "head", "failure", "workflow_dispatch")), False),
-    ("schedule", runs((8, "old", "success", "push")), True),
+    ("schedule", runs((8, "old", "success", "workflow_dispatch")), True),
     # No concluded product job is no verdict: gate or runner failure, or a skipped suite.
-    ("schedule", runs((8, "head", None, "push")), True),
-    ("schedule", runs((8, "head", "cancelled", "push"), (7, "old", "success")), True),
-    ("schedule", runs((8, "head", "skipped"), (7, "head", "success", "push")), False),
+    ("schedule", runs((8, "head", None, "workflow_dispatch")), True),
+    ("schedule", runs((8, "head", "cancelled", "workflow_dispatch"), (7, "old", "success")), True),
+    ("schedule", runs((8, "head", "skipped"), (7, "head", "success", "workflow_dispatch")), False),
     # Any verdict on this commit counts, not only the newest one.
     ("schedule", runs((8, "old", "success"), (7, "head", "success")), False),
     # The current run is never its own predecessor.
@@ -580,9 +577,7 @@ def test_nightly_gate_writes_outputs_and_never_reads_runs_on_dispatch(tmp_path):
     # Dispatch ignores the recorded runs and never calls gh.
     assert nightly_gate.main(["--event", "workflow_dispatch", "--runs-json", "/nonexistent", *common]) == 0
     assert output.read_text() == "run=false\nrun=true\n"
-    assert nightly_gate.main(["--event", "push", "--runs-json", "/nonexistent", *common]) == 0
-    assert output.read_text() == "run=false\nrun=true\nrun=true\n"
-    assert summary.read_text().count("## Nightly full suite") == 3
+    assert summary.read_text().count("## Nightly full suite") == 2
 
 
 @pytest.mark.parametrize("path", [

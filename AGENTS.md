@@ -214,8 +214,7 @@ as the merge for every duty that precedes one. Before merging or arming, Agent 0
 checks for open issues labelled `nightly` and deals with them first, and updates
 the branch from main when a PR merged since the branch was cut touched the same
 files or the same deliverable. A branch need not otherwise be up to date with
-main: the full-suite run on main after each merge reports a bad combination as a
-`nightly` issue. Delegated agents report
+main: the nightly full-suite run reports a bad combination as a `nightly` issue. Delegated agents report
 a PR ready to merge and wait for Agent 0 to merge it. Explicit holds and reserved decisions
 apply.
 This grant excludes protection bypasses, history rewrites, force pushes,
