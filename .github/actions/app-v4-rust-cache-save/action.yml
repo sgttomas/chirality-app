@@ -1,0 +1,31 @@
+name: Save compiled third-party Rust dependencies
+description: Removes the repository's own crates, then saves the rest. Never affects the job result.
+
+inputs:
+  key:
+    description: Exact cache key from app-v4-setup.
+    required: true
+  already-cached:
+    description: The cache-hit value from app-v4-setup; an exact hit needs no save.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Remove repository crates before saving
+      id: prune
+      if: inputs.key != '' && inputs.already-cached != 'true'
+      continue-on-error: true
+      shell: bash
+      run: python3 tools/ci/rust_dep_cache.py prune
+    # Runs only when pruning succeeded, so the cache cannot hold repository crates.
+    - name: Save compiled third-party Rust dependencies
+      if: steps.prune.outcome == 'success'
+      continue-on-error: true
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          app/src-tauri/target/debug/.fingerprint
+          app/src-tauri/target/debug/build
+          app/src-tauri/target/debug/deps
+        key: ${{ inputs.key }}

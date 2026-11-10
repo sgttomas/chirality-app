@@ -7,9 +7,10 @@ metadata:
 ---
 # App development verification
 
-`harness` remains the required check on every PR. Repository checks always run:
-deliverable structure and utility tests, selection regressions, and the existing
-conflict and credential checks. The workflow itself has no PR path
+`harness` remains the required check on every PR. The `change-selection` job
+decides the route, and repository checks always run in parallel with whatever
+it selects: deliverable structure and utility tests, selection regressions, and
+the existing conflict and credential checks. The workflow itself has no PR path
 filter. This standalone repository does not execute SWBPIPE checks.
 
 ## Change selection
@@ -83,17 +84,21 @@ introduced.
 
 ## Required result
 
-The macOS reusable product workflow is called only when explicitly selected.
-`harness` runs with `always()` and requires successful repository checks and
-valid selection outputs. It accepts `app-v4: skipped` only for the explicit
-`prose` selection. A product selection requires `app-v4: success`; failures,
+The macOS reusable product workflow is called only when explicitly selected. It
+needs only `change-selection`, so product jobs start as soon as the route is
+known, not after the slower repository checks. `harness` runs with `always()`
+and requires a successful `change-selection` with valid outputs and successful
+repository checks. It accepts `app-v4: skipped` only for the explicit `prose`
+selection. A product selection requires `app-v4: success`; failures,
 cancellations, unexpected skips and missing/inconsistent outputs block merging.
+A failing repository check therefore blocks the merge although the product jobs
+still run to completion.
 No branch-rule change or product-check removal is needed.
 
 The App workflow runs the focused build, Rust, Node and Python checks, plus
 frozen-source regression checks. On PRs they run as three
 parallel macOS jobs sharing `.github/actions/app-v4-setup`. Each job builds
-its own artifacts. The first compiles every default-feature test target in one
+the repository's own crates itself, on every run. The first compiles every default-feature test target in one
 pass, replacing the separate check pass, then runs `cargo clippy --all-targets`
 denying only the `clippy::correctness` and `clippy::suspicious` groups (other
 lints stay warnings); the second rebuilds the lib test
@@ -108,6 +113,27 @@ Manual App workflow dispatch
 retains the broader supplier-dependent route; it is not a release and remains
 subject to the owner's authorization and App hold. No release workflow is present.
 Manual dispatch of the governance harness also always selects product checks.
+
+## Rust dependency cache
+
+Every macOS product job, including the full route, restores compiled third-party
+dependencies in its setup and saves them as its last step. Only
+`target/debug/.fingerprint`, `build` and `deps` are cached, under a key made of
+the runner OS and architecture, the exact `rustc` build, `Cargo.lock` and the job
+id. If that exact key is absent, the newest cache for the same OS, toolchain and
+lockfile from another job is restored instead; the full route on main is what
+seeds new PRs, because a PR can read only its own caches and main's. Registry
+downloads and test results are not cached.
+
+`tools/ci/rust_dep_cache.py` keeps the repository's crates out: it removes their
+units before every save and again after every restore, using the package and
+target names reported by `cargo metadata`. Cargo reuses a unit only when its
+`.fingerprint` directory records it as fresh, so a repository crate without one
+is compiled from the checked-out source regardless of file times.
+`tools/ci/test_rust_dep_cache.py` demonstrates this with real cargo builds,
+including a control run showing that an unpruned target would run stale code.
+A cache miss, a failed restore, or restored output that cannot be cleaned becomes
+a full build. A failed save never affects the job.
 
 ## Nightly full suite
 

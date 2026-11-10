@@ -1,6 +1,19 @@
 name: App v4 toolchains and locked dependencies
 description: Shared setup for every App v4 product job; versions match the single-job baseline.
 
+inputs:
+  rust-cache-job:
+    description: The calling job's id, one part of the compiled-dependency cache key.
+    required: true
+
+outputs:
+  rust-cache-key:
+    description: Exact key for this job's compiled-dependency cache.
+    value: ${{ steps.rust-cache-key.outputs.key }}
+  rust-cache-hit:
+    description: Whether the exact key was restored, so saving is unnecessary.
+    value: ${{ steps.rust-dependencies.outputs.cache-hit }}
+
 runs:
   using: composite
   steps:
@@ -19,6 +32,35 @@ runs:
     - uses: actions/setup-python@v5
       with:
         python-version: '3.12'
+    - name: Compute the compiled-dependency cache key
+      id: rust-cache-key
+      shell: bash
+      env:
+        JOB: ${{ inputs.rust-cache-job }}
+      run: |
+        toolchain="$(rustc -vV | shasum -a 256 | cut -c1-16)"
+        lock="$(shasum -a 256 app/src-tauri/Cargo.lock | cut -c1-32)"
+        prefix="rust-deps-v1-${RUNNER_OS}-${ImageOS:-unknown}-${RUNNER_ARCH}-${toolchain}-${lock}-"
+        { echo "key=${prefix}${JOB}"; echo "prefix=${prefix}"; } >> "$GITHUB_OUTPUT"
+    # A miss or a failed restore leaves nothing to reuse, and the next step clears
+    # any partial extraction, so cargo builds everything from the checkout.
+    - name: Restore compiled third-party Rust dependencies
+      id: rust-dependencies
+      continue-on-error: true
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          app/src-tauri/target/debug/.fingerprint
+          app/src-tauri/target/debug/build
+          app/src-tauri/target/debug/deps
+        key: ${{ steps.rust-cache-key.outputs.key }}
+        restore-keys: |
+          ${{ steps.rust-cache-key.outputs.prefix }}
+    - name: Drop repository crates from restored Rust output
+      shell: bash
+      env:
+        MATCHED_KEY: ${{ steps.rust-dependencies.outputs.cache-matched-key }}
+      run: python3 tools/ci/rust_dep_cache.py restored --matched-key "$MATCHED_KEY"
     - name: Install locked App and pinned Python dependencies
       shell: bash
       working-directory: app
