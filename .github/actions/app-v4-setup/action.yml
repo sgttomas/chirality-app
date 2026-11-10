@@ -37,7 +37,15 @@ runs:
       shell: bash
       env:
         JOB: ${{ inputs.rust-cache-job }}
+        SAME_REPOSITORY: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
       run: |
+        # A fork PR can write its own PR-scoped cache from an earlier revision and
+        # remove the change that did so. Fork PRs neither restore nor save: an
+        # empty key skips both, so every fork run compiles from the checkout.
+        if [ "$SAME_REPOSITORY" != 'true' ]; then
+          { echo "key="; echo "prefix="; } >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
         toolchain="$(rustc -vV | shasum -a 256 | cut -c1-16)"
         lock="$(shasum -a 256 app/src-tauri/Cargo.lock | cut -c1-32)"
         prefix="rust-deps-v1-${RUNNER_OS}-${ImageOS:-unknown}-${RUNNER_ARCH}-${toolchain}-${lock}-"
@@ -46,6 +54,7 @@ runs:
     # any partial extraction, so cargo builds everything from the checkout.
     - name: Restore compiled third-party Rust dependencies
       id: rust-dependencies
+      if: steps.rust-cache-key.outputs.key != ''
       continue-on-error: true
       uses: actions/cache/restore@v4
       with:

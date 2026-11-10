@@ -206,3 +206,15 @@ def test_every_macos_job_restores_under_its_own_name_and_saves_last():
         assert last["with"] == {"key": "${{ steps.setup.outputs.rust-cache-key }}",
                                 "already-cached": "${{ steps.setup.outputs.rust-cache-hit }}"}
         assert steps.index(setup) < len(steps) - 1
+
+
+def test_fork_pull_requests_neither_restore_nor_save():
+    root = Path(__file__).resolve().parents[2]
+    setup = (root / '.github/actions/app-v4-setup/action.yml').read_text()
+    save = (root / '.github/actions/app-v4-rust-cache-save/action.yml').read_text()
+    assert "github.event.pull_request.head.repo.full_name == github.repository" in setup
+    assert "if [ \"$SAME_REPOSITORY\" != 'true' ]; then" in setup
+    assert 'echo "key="' in setup
+    restore = setup[setup.index('id: rust-dependencies'):setup.index('actions/cache/restore@')]
+    assert "if: steps.rust-cache-key.outputs.key != ''" in restore
+    assert "if: inputs.key != ''" in save
