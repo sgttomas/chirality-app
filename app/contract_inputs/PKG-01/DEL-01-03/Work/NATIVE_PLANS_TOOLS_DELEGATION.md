@@ -44,7 +44,7 @@ file's semantic naming.
 | Ruling / item | Change | Where |
 |---|---|---|
 | R18-1 **C-03** | A closed generation's events are not re-readable; after a supplier restart the views rebuild from Codex history, and the closed generation's checklist revisions are "not recoverable", as after a relaunch. New row CL-07. J-3 withdrawn | §2, §5.2 RV-4, §12 SQ-3, §13 CL-07, §17 |
-| R18-1 **C-04** | Delegation availability = `Model.multiAgentVersion` ≠ `disabled` **and** the provider accepts `namespace` tools (`modelProvider/capabilities/read` → `namespaceTools`); an effective `features.multi_agent = false` reads missing. Read at run time (R19-5) | §7.1; prototype PC-16 |
+| R18-1 **C-04** (revised by the owner, 2026-11-09, at the 0.167.0 pin) | Delegation availability = `Model.multiAgentVersion` is `v1` or `v2` **and** the effective configuration does not set `features.multi_agent = false`, which reads missing. Codex 0.167.0 removed the provider's `namespaceTools` capability and its gate, so no provider capability takes part (§7.1). Read at run time (R19-5) | §7.1; prototype PC-16 |
 | R18-1 **C-05** | Only plan mode is labelled "experimental"; delegation is stable and never labelled. EX-1 (b) removed | §4 |
 | R18-1 **C-06** | DEL-01-04 composes `collaborationMode` on `turn/start` from this file's plan-mode element and sends the default mode explicitly to leave plan mode; the row DEL-01-04 → DEL-01-03 is adopted | §5.3, §5.4, §10.2, §16.3 |
 | R18-1 **C-07** | Row DEL-02-04 → DEL-01-03 dropped; the K-10 label is a runtime value from DEL-02-04 (ROLE O-6) | §7.3 DR-4, §7.7, §10, §16.3 |
@@ -509,53 +509,71 @@ inference: their effect is visible only through `thread/goal/updated`
 
 ## 7. Delegation (REQ-003, AC-003, VER-003; K-10)
 
-### 7.1 Availability (R18-1 C-04; read at run time, R19-5)
+### 7.1 Availability (R18-1 C-04 as revised on 2026-11-09; read at run time, R19-5)
 
-Delegation is **available** for a conversation when all hold:
+Delegation is **available** for a conversation when both hold:
 `Model.multiAgentVersion` of the selected model (`model/list`) is `v1` or
-`v2` (not `disabled`), **and** `modelProvider/capabilities/read` reports
-`namespaceTools` true, **and** the effective configuration does not set
+`v2` (not `disabled`), **and** the effective configuration does not set
 `features.multi_agent = false` (`config/read`; absent unless set).
 **Readings, in R21-1's order (this section is the reference R21-1 names;
-EXEC EV-3a, its `_delegation` and WD §4.2.5 follow it):** (1)
+EXEC EV-3a, its `_delegation` and WD §4.2.5 keep the earlier
+`namespaceTools` capability gate within their 0.158.0 or 0.160.0 scope, and
+point here for the 0.167.0 pin):** (1)
 `multiAgentVersion` = `disabled` → **missing**; (2) effective
-`features.multi_agent = false` → **missing**; (3) `namespaceTools` false →
-**missing**; (4) any of the three not read (the model entry or its version
-not read or null, the configuration not read, the capabilities not read or
-`namespaceTools` null, or either not counting for the conversation under
-the server-provider gate below) → **not established**; (5) otherwise **present**.
+`features.multi_agent = false` → **missing**; (3) either not read (the model
+entry or its version not read or null, the configuration not read, or the
+version not counting for the conversation under the server-provider gate
+below) → **not established**; (4) otherwise **present**.
 *Missing* hides the view with the first reason in that order; *not
 established* shows the view only if delegation items arrive. A configuration
-that was read and sets nothing is read, not unread (prototype PC-16, RV21). Reason
-(observed, OBS-2 §6.1): at 0.158.0 Codex sends the delegation tools only
-inside a `namespace` tool, and with `multi_agent = false` sends none.
+that was read and sets nothing is read, not unread (prototype PC-16, RV21).
+Reason (observed, OBS-2 §6.1): at 0.158.0 Codex sends the delegation tools
+only inside a `namespace` tool, and with `multi_agent = false` sends none.
 
-**Read at the 0.160.0 pin (2026-10-10; the Rust host reads, WR TT-3a and
+**Provider capabilities (owner decision, 2026-11-09).** Until 0.160.0 the
+rule also required `modelProvider/capabilities/read` → `namespaceTools` true
+and read `namespaceTools` false as missing. Codex 0.167.0 removed that field
+and the gate behind it: [openai/codex PR 50447](https://github.com/openai/codex/pull/50447)
+("Remove the provider capability gate for tool namespaces") keeps tool
+namespaces and the configured collaboration tool namespace "without a
+provider capability check", and at the 0.167.0 tag whether the sub-agent
+tools are offered follows the turn's multi-agent version, not the provider's
+capabilities. The owner chose, on 2026-11-09, to read delegation as present
+when the two signals above allow it. The App still sends
+`modelProvider/capabilities/read` with the other reads; its failure is
+carried as the reading's `note` and never makes the reading missing or not
+established, and a legacy `namespaceTools` value in its result is ignored.
+The App cannot see from its reads whether a custom provider's backend accepts
+the sub-agent tools; before 0.167.0 `namespaceTools` was true by default for
+every provider, so it never showed that either. The upgrade's other native
+changes are in DEL-01-01
+[`CODEX_0.167_UPGRADE.md`](../../DEL-01-01/Work/CODEX_0.167_UPGRADE.md).
+
+**Read at the 0.160.0 pin, as revised at 0.167.0 (2026-10-10, 2026-11-09; the Rust host reads, WR TT-3a and
 §17; `app/src-tauri/src/hosting.rs` `delegation_signals_read`,
 `delegation_availability.rs`):**
-- **Server-provider gate.** `model/list` and
-  `modelProvider/capabilities/read` take no provider and answer for the
-  provider the app-server resolves for itself, which a conversation's
+- **Server-provider gate.** `model/list` takes no provider and answers for
+  the provider the app-server resolves for itself, which a conversation's
   project-folder configuration or start may differ from. The host reads that
   server provider as `config/read`'s `model_provider` with no folder and
   with the app-server's own working folder. Only when the two agree and name
-  the conversation's reported `modelProvider` do `multiAgentVersion` and
-  `namespaceTools` count for the conversation; otherwise both are *not
-  read*, so the reading is *not established* unless (2) applies (never
-  *present*, and never *missing* from another provider's answers). The gate
-  applies as the signals are read, before the readings above: a signal that
-  does not count is *not read*, so (1) and (3) cannot come from it; (2) is
-  read at the conversation's folder and is not gated.
+  the conversation's reported `modelProvider` does `multiAgentVersion` count
+  for the conversation; otherwise it is *not read*, so the reading is *not
+  established* unless (2) applies (never *present*, and never *missing* from
+  another provider's answers). The gate applies as the signals are read,
+  before the readings above: a signal that does not count is *not read*, so
+  (1) cannot come from it; (2) is read at the conversation's folder and is
+  not gated.
 - **No provider configured** (the common case, and the App's own homes):
-  both server-provider reads name no provider, so `multiAgentVersion` and
-  `namespaceTools` are *not read* and the reading is *not established* for
+  both server-provider reads name no provider, so `multiAgentVersion` is
+  *not read* and the reading is *not established* for
   every conversation, even for a model whose `multiAgentVersion` is
   `disabled` (*missing* only if the configuration sets
   `features.multi_agent = false`). The App does not infer Codex's default
   provider from that absence (it is not in the 0.160.0 types; OBS-2's
   observation is of 0.158.0). The trial witness of 2026-10-10 observed this
   natively at 0.160.0 in an App-only home: the app-server's configuration
-  named no provider, both signals read *not read*, the reading was *not
+  named no provider, the provider-gated signals read *not read*, the reading was *not
   established*, and Try with the authoring agent stayed offered (DEL-02-02
   `TRIAL_WITNESS_2026-10-10.md` item 2).
 - **`features.multi_agent`** is read with the conversation's `cwd`. The
@@ -574,9 +592,9 @@ inside a `namespace` tool, and with `multi_agent = false` sends none.
 
 **Stock LM Studio 0.4.16 (observed):** it drops `namespace` tools, so
 delegation never reaches the model and the view stays absent (OBS-2 O-4;
-OBS-1 OB-1). Whether Codex's `namespaceTools` reads false for such a
-custom provider is not observed (U-P8); delegation items, if any arrive,
-are always shown.
+OBS-1 OB-1). At 0.167.0 no Codex capability reports this (U-P8 closed), so
+a conversation on such a provider may read *present* while the backend
+drops the tools; delegation items, if any arrive, are always shown.
 
 **Open source correspondence.** The native development walkthrough on
 2026-10-10 observed stock 0.160.0 delegation (DEL-01-02's
@@ -994,7 +1012,7 @@ no VER criterion.
 | ID | File, section | Now | Needed (v0.2) |
 |---|---|---|---|
 | J-1 | HOSTING §4.2 step 4; U-21; F-13 (FH-11) | Opt-in "required to use plan mode" | Under K-5 the App declares `experimentalApi` true; DEL-01-03 reads the declared value per generation (EX-2). Unchanged |
-| J-2 | HOSTING §8.4 HCG-A08 (FH-33) | "`multiAgentMode` on thread and turn start (experimental-only)" | **Changed (C-04):** replace with: available when `Model.multiAgentVersion` ≠ `disabled` and `modelProvider/capabilities/read` → `namespaceTools` true; an effective `features.multi_agent = false` reads missing; `multiAgentMode` deprecated and ignored |
+| J-2 | HOSTING §8.4 HCG-A08 (FH-33) | "`multiAgentMode` on thread and turn start (experimental-only)" | **Changed (C-04, as revised on 2026-11-09):** replace with: available when `Model.multiAgentVersion` ≠ `disabled` and the effective configuration does not set `features.multi_agent = false`, which reads missing; no provider capability takes part at 0.167.0 (§7.1); `multiAgentMode` deprecated and ignored |
 | J-3 | HOSTING §4.6 / §5 Order (FH-05) | — | **Withdrawn (C-03):** closed-generation events are not re-readable; NPTD RV-4 rebuilds from history |
 | J-4 | HOSTING VC-09 (FH-35) | "revision identity left to DEL-01-03" | Cite NPTD-v0.2 §5.2 RV-1, RV-2; add that in plan mode only a `plan` item is produced (O-8) |
 | J-5 | EXEC §3.4 EV-3a `agent-delegation` (FE-05) | "present when the thread start reports a `multiAgentMode` … Active (experimental opt-in)" | **Changed (C-04, C-05):** the §7.1 rule (present / missing / not read); not experimental |
@@ -1058,7 +1076,7 @@ proposed version-advance check (regenerate, diff, rerun OBS harnesses):
 | ~~U-P5~~ | Closed: no polling | — | — |
 | U-P6 Content-identity method (HOSTING U-08) | Owner with DEL-04-03 | Before records cite plan revisions | TEST VALUE |
 | ~~U-P7~~ | Closed: OI-008 decided by the owner on 2026-10-10 (ARCH §3) | — | §1 states the placement |
-| U-P8 Whether `namespaceTools` reads false for a provider that drops namespace tools | A later observation (needs `modelProvider/capabilities/read` on that route) | Before relying on "missing" for local providers | §7.1: items shown if they arrive |
+| ~~U-P8~~ | Closed: Codex 0.167.0 has no `namespaceTools` capability (openai/codex PR 50447) | — | §7.1: a provider that drops namespace tools can read present; items shown if they arrive |
 | U-P9 A goal tool call by the model: whether an item or only notifications appear | A later observation | Before goal fixtures | GO-1 from notifications |
 | HOSTING U-06 Development run of an unverified distribution | Owner | Before implementation | §8 covers it |
 

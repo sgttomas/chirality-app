@@ -8149,7 +8149,9 @@ for line in sys.stdin:
   m=mode('namespace-tools')
   if m=='error':
    emit({'id':f['id'],'error':{'code':-32000,'message':'fixture capabilities refused'}});continue
-  result={'imageGeneration':False,'namespaceTools':m!='false','webSearch':False}
+  result={'imageGeneration':False,'webSearch':False}
+  # 0.167.0 publishes no namespaceTools; 'true'/'false' add a legacy echo the App must ignore.
+  if m in ('true','false'):result['namespaceTools']=m=='true'
  elif method=='thread/list':result={'data':[thread()]+[thread('thread-%d'%n) for n in range(2,starts[0]+1)],'nextCursor':None,'backwardsCursor':None}
  elif method=='thread/turns/list' and f['params'].get('threadId','').startswith('child'):
   if mode('child-mode')=='error':
@@ -9475,21 +9477,25 @@ for line in sys.stdin:
         assert_eq!(wire.iter().rev().find(|f|f["method"]=="model/list").unwrap()["params"]["includeHidden"],true);
         assert_eq!(wire.iter().rev().find(|f|f["method"]=="config/read").unwrap()["params"]["cwd"],peer.home.host.snapshot()["threads"][0]["cwd"]);
         assert!(wire.iter().any(|f|f["method"]=="modelProvider/capabilities/read"));
-        // (1) disabled decides first, then (2) multi_agent = false, then (3) namespaceTools false.
+        // (1) disabled decides first, then (2) multi_agent = false. A legacy
+        // namespaceTools false echo is no signal at 0.167.0 (openai/codex PR 50447).
         peer.set_mode("mav-fixture-model","disabled");peer.set_mode("config-multi-agent","false");peer.set_mode("namespace-tools","false");
         let r=read();assert_eq!(r["reading"],"missing");assert!(r["reason"].as_str().unwrap().contains("multiAgentVersion disabled"),"{r}");
         peer.set_mode("mav-fixture-model","v1");
         let r=read();assert_eq!(r["reading"],"missing");assert!(r["reason"].as_str().unwrap().contains("features.multi_agent = false"),"{r}");
         peer.set_mode("config-multi-agent","");
-        let r=read();assert_eq!(r["reading"],"missing");assert!(r["reason"].as_str().unwrap().contains("namespaceTools false"),"{r}");
-        peer.set_mode("namespace-tools","");assert_eq!(read()["reading"],"present","v1, nothing set, namespaceTools true");
+        let r=read();assert_eq!(r["reading"],"present","v1, nothing set, a legacy namespaceTools false echo ignored: {r}");
+        peer.set_mode("namespace-tools","");assert_eq!(read()["reading"],"present","v1, nothing set");
         peer.set_mode("config-multi-agent","true");assert_eq!(read()["reading"],"present");
+        // A capabilities read that fails is a note, never the reading.
+        peer.set_mode("namespace-tools","error");
+        let r=read();assert_eq!(r["reading"],"present","{r}");assert!(r["note"].as_str().unwrap().contains("modelProvider/capabilities/read failed"),"{r}");
         // A missing reading wins over a signal not read.
         reset_delegation(&peer);peer.set_mode("models-mode","error");peer.set_mode("config-multi-agent","false");
         assert_eq!(read()["reading"],"missing");
         // Each signal not read: not established, naming the cause.
         for (name,value,cause) in [("models-mode","error","multiAgentVersion not read"),("mav-fixture-model","absent","lists no model"),("mav-fixture-model","null","reports none"),
-            ("config-multi-agent","error","effective configuration not read"),("namespace-tools","error","namespaceTools not read"),
+            ("config-multi-agent","error","effective configuration not read"),
             ("config-provider","other","app-server's provider (other), not the conversation's (fixture-provider)"),("config-provider","none","none named in the app-server's configuration"),("config-provider-bare","other","names provider other without a folder and fixture-provider at its own folder"),("models-mode","emptycursor","model/list returned an empty page cursor")]{
             reset_delegation(&peer);peer.set_mode(name,value);
             let r=read();assert_eq!(r["reading"],"not established","{name}={value}: {r}");
@@ -9567,7 +9573,7 @@ for line in sys.stdin:
         let a=Peer::new();let b=Peer::new();
         let cfg=a.home.host_config.as_ref().unwrap().clone();
         a.home.host.thread_start_with_guidance(&cfg.cwd.to_string_lossy(),"other-model","fixture-provider","existing role unchanged").unwrap();
-        a.set_mode("mav-other-model","disabled");b.set_mode("namespace-tools","false");
+        a.set_mode("mav-other-model","disabled");b.set_mode("config-multi-agent","false");
         let model_lists=|p:&Peer|p.wire().iter().filter(|f|f["method"]=="model/list").count();
         // One conversation per home per tick; each model, provider and folder read once.
         assert_eq!(crate::host_tick::delegation_tick_home(&a.home),1);
@@ -9584,8 +9590,8 @@ for line in sys.stdin:
         let other=of(&threads,"thread-2");
         assert_eq!(other["reading"],"missing","other-model in home A: {other}");assert!(other["reason"].as_str().unwrap().contains("disabled"));
         let r=of(&shown(&b),"thread");
-        assert_eq!(r["reading"],"missing","the same model in home B, whose provider reports namespaceTools false: {r}");
-        assert!(r["reason"].as_str().unwrap().contains("namespaceTools false"));
+        assert_eq!(r["reading"],"missing","the same model in home B, whose configuration sets multi_agent = false: {r}");
+        assert!(r["reason"].as_str().unwrap().contains("features.multi_agent = false"));
         // A new conversation with a model not yet read is due on the next tick.
         a.home.host.thread_start_with_guidance(&cfg.cwd.to_string_lossy(),"fixture-model","fixture-provider","existing role unchanged").unwrap();
         assert_eq!(crate::host_tick::delegation_tick_home(&a.home),0,"the same model, provider and folder answer for the new conversation");
@@ -9604,25 +9610,27 @@ for line in sys.stdin:
         peer.set_mode("config-multi-agent","false");
         let refused=press(&mut root).unwrap_err();
         assert!(refused.contains("features.multi_agent = false")&&refused.contains("Try in a fresh conversation")&&refused.contains("Nothing pre-filled"),"{refused}");
-        peer.set_mode("config-multi-agent","");peer.set_mode("namespace-tools","error");
+        peer.set_mode("config-multi-agent","");peer.set_mode("models-mode","error");
         let view=press(&mut root).unwrap();
         assert_eq!(view["delegation"]["reading"],"not established","offered with the note");
-        assert!(view["delegation"]["reason"].as_str().unwrap().contains("namespaceTools not read"));
+        assert!(view["delegation"]["reason"].as_str().unwrap().contains("multiAgentVersion not read"));
+        peer.set_mode("models-mode","");
         assert!(trial_flows::delegation_signals_for("clean",Some(&peer.home),Some((&g,"thread"))).is_none(),"a clean trial reads nothing");
         let caps=|p:&Peer|p.wire().iter().filter(|f|f["method"]=="modelProvider/capabilities/read").count();
         // Try again reads the authoring conversation's signals again.
         let reference=view["reference"].as_str().unwrap().to_owned();
         let root=Mutex::new(root);trial_flows::send_trial(&root,&peer.home,&reference,&g,"thread","").unwrap();
-        peer.set_mode("namespace-tools","false");let before=caps(&peer);
+        peer.set_mode("config-multi-agent","false");let before=caps(&peer);
         let again=trial_flows::trial_again(&root,&reference,std::slice::from_ref(&peer.home),peer.project()).unwrap_err();
-        assert!(again.contains("namespaceTools false"),"{again}");assert_eq!(caps(&peer),before+1);
-        peer.set_mode("namespace-tools","");
+        assert!(again.contains("features.multi_agent = false"),"{again}");assert_eq!(caps(&peer),before+1);
+        peer.set_mode("config-multi-agent","");
         assert_eq!(trial_flows::trial_again(&root,&reference,std::slice::from_ref(&peer.home),peer.project()).unwrap()["delegation"]["reading"],"present");
     }
-    // B-1 (#1250 review): model/list and modelProvider/capabilities/read
-    // answer for the provider the app-server resolves for itself; a
-    // conversation whose project folder or start chose another provider is
-    // never read as present or missing from them, in either direction.
+    // B-1 (#1250 review): model/list answers for the provider the app-server
+    // resolves for itself; a conversation whose project folder or start chose
+    // another provider is never read as present or missing from it, in either
+    // direction. At 0.167.0 modelProvider/capabilities/read carries no
+    // delegation signal (openai/codex PR 50447), so only model/list is gated.
     #[test]
     fn the_parameterless_reads_count_only_for_the_app_servers_own_provider(){
         let peer=Peer::new();let g=peer.generation.clone();
@@ -9635,7 +9643,7 @@ for line in sys.stdin:
         let r=delegation_reading(&peer,lm);
         assert_eq!(r["reading"],"not established","the server's present must not answer for lmstudio: {r}");
         let reason=r["reason"].as_str().unwrap();
-        assert!(reason.contains("model/list it takes no provider")&&reason.contains("modelProvider/capabilities/read it takes no provider")&&reason.contains("app-server's provider (fixture-provider), not the conversation's (lmstudio)"),"{reason}");
+        assert!(reason.contains("model/list it takes no provider")&&reason.contains("app-server's provider (fixture-provider), not the conversation's (lmstudio)"),"{reason}");
         // The conversation's folder is read for features.multi_agent, and both server forms for the provider.
         let configs:Vec<Value>=peer.wire().into_iter().filter(|f|f["method"]=="config/read").collect();
         assert!(configs.iter().any(|f|f["params"]["cwd"]==project.as_str()),"{configs:?}");
@@ -9644,7 +9652,7 @@ for line in sys.stdin:
         // The server's missing readings must not hide anything for lmstudio either.
         peer.set_mode("mav-fixture-model","disabled");assert_eq!(delegation_reading(&peer,lm)["reading"],"not established");
         reset_delegation(&peer);peer.set_mode("config-provider-folder","lmstudio");peer.set_mode("namespace-tools","false");
-        assert_eq!(delegation_reading(&peer,lm)["reading"],"not established");
+        assert_eq!(delegation_reading(&peer,lm)["reading"],"not established","nor does a legacy namespaceTools echo");
         // A conversation-folder multi_agent = false is the conversation's own and still reads missing.
         reset_delegation(&peer);peer.set_mode("config-multi-agent","false");
         assert_eq!(delegation_reading(&peer,lm)["reading"],"missing");
@@ -9653,15 +9661,16 @@ for line in sys.stdin:
         peer.home.host.thread_start_with_guidance(&project,"fixture-model","fixture-provider","existing role unchanged").unwrap();
         let fp="thread-3";
         peer.set_mode("config-provider-bare","lmstudio");peer.set_mode("config-provider-server","lmstudio");peer.set_mode("config-provider-folder","fixture-provider");
-        for (name,value) in [("mav-fixture-model","disabled"),("namespace-tools","false")]{
+        for (name,value) in [("mav-fixture-model","disabled"),("mav-fixture-model","v2")]{
             peer.set_mode(name,value);
             let r=delegation_reading(&peer,fp);
-            assert_eq!(r["reading"],"not established","{name}={value} of lmstudio must not hide fixture-provider's trial: {r}");
+            assert_eq!(r["reading"],"not established","{name}={value} of lmstudio must neither hide nor show fixture-provider's trial: {r}");
             assert!(r["reason"].as_str().unwrap().contains("app-server's provider (lmstudio), not the conversation's (fixture-provider)"));
             peer.set_mode(name,"");
         }
-        // The same conversation when the server's provider is its own: counted.
-        reset_delegation(&peer);peer.set_mode("namespace-tools","false");
+        // The same conversation when the server's provider is its own: counted,
+        // missing from the server's disabled model, present otherwise.
+        reset_delegation(&peer);peer.set_mode("mav-fixture-model","disabled");
         assert_eq!(delegation_reading(&peer,fp)["reading"],"missing");
         reset_delegation(&peer);assert_eq!(delegation_reading(&peer,fp)["reading"],"present");
         let _=g;
@@ -9671,16 +9680,16 @@ for line in sys.stdin:
     // present or not established reading is not refreshed on the tick.
     #[test]
     fn the_tick_reads_again_only_a_stale_missing_reading(){
-        let peer=Peer::new();peer.set_mode("namespace-tools","false");
+        let peer=Peer::new();peer.set_mode("config-multi-agent","false");
         assert_eq!(crate::host_tick::delegation_tick_home(&peer.home),1);
         let shown=||{let mut t=peer.home.host.snapshot()["threads"].clone();crate::delegation_availability::annotate_threads(&mut t,&peer.home.host.delegation_readings());t[0]["delegation"]["reading"].clone()};
         assert_eq!(shown(),"missing");
-        peer.set_mode("namespace-tools","");
+        peer.set_mode("config-multi-agent","");
         assert_eq!(crate::host_tick::delegation_tick_home(&peer.home),0,"fresh within the refresh age");
         assert_eq!(crate::host_tick::delegation_tick_home_aged(&peer.home,Duration::ZERO),1,"stale missing: read again");
         assert_eq!(shown(),"present");
         assert_eq!(crate::host_tick::delegation_tick_home_aged(&peer.home,Duration::ZERO),0,"a present reading is not refreshed on the tick");
-        peer.set_mode("namespace-tools","error");
+        peer.set_mode("models-mode","error");
         assert_eq!(trial_flows::delegation_signals_for("delegated",Some(&peer.home),Some((&peer.generation,"thread"))).map(|s|crate::delegation_availability::evaluate(Some(&s))["reading"].clone()),Some(json!("not established")));
         assert_eq!(crate::host_tick::delegation_tick_home_aged(&peer.home,Duration::ZERO),0,"nor a not established one");
     }
@@ -9722,7 +9731,9 @@ for line in sys.stdin:
         assert_eq!(r["reading"],"not established");
         let limits=s["limits"].to_string();
         assert!(limits.contains("no response to")&&limits.contains("model/list"),"{limits}");
-        assert!(limits.contains("config/read not sent: an earlier read of this reading got no response")&&limits.contains("modelProvider/capabilities/read not sent"),"{limits}");
+        assert!(limits.contains("config/read not sent: an earlier read of this reading got no response"),"{limits}");
+        // The capabilities read is not sent either; at 0.167.0 that is a note, not a limit.
+        assert!(s["notes"].to_string().contains("modelProvider/capabilities/read not sent"),"{s}");
         assert!(peer.home.host.client_requests().iter().all(|r|r["method"]!="config/read"&&r["method"]!="modelProvider/capabilities/read"),"nothing sent after the silence");
     }
     // M-5: a reading of a generation no longer current is not kept and does
