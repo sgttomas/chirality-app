@@ -467,6 +467,14 @@ def test_nightly_workflow_calls_the_full_route_only_after_its_gate():
     assert nightly_gate.WORKFLOW == "nightly-full-suite.yml"
 
 
+def test_full_route_has_time_to_finish_the_full_rust_suite():
+    root = Path(subject.__file__).resolve().parents[2]
+    jobs = yaml.safe_load((root / ".github/workflows/app-v4.yml").read_text())["jobs"]
+    focused = [jobs[name]["timeout-minutes"] for name in ("rust-integration", "rust-lib-node", "sources-packaging")]
+    assert jobs["product"]["timeout-minutes"] >= 120
+    assert jobs["product"]["timeout-minutes"] > max(focused)
+
+
 def nightly_jobs():
     root = Path(subject.__file__).resolve().parents[2]
     return yaml.safe_load((root / ".github/workflows/nightly-full-suite.yml").read_text())["jobs"]

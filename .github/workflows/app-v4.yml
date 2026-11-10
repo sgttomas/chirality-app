@@ -215,7 +215,7 @@ jobs:
     name: App v4 product
     if: github.event_name == 'workflow_dispatch' || inputs.full_suite
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
         with:

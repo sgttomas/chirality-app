@@ -129,6 +129,12 @@ waiting run, so when several merges land during a run the merges between are
 not tested on their own, and a failure covers every commit since the last
 passing verdict.
 
+A full run is slow. Building the Rust tests and running the lib tests
+single-threaded took about 44 minutes when measured, and the integration targets
+and the Node and Python steps come after that, so a bad combination takes more
+than 45 minutes to show. The `product` job's limit is 120 minutes to allow for
+this; the focused PR jobs keep 45.
+
 The workflow reports a push, scheduled or manual run on main that fails, is
 cancelled or times out: its `report` job, `tools/ci/nightly_report.py`, opens a
 GitHub issue labelled `nightly`, or comments on the open one. The issue carries
