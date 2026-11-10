@@ -18,8 +18,9 @@ and in the [publication punchlist](../execution/_Coordination/PUBLICATION_PUNCHL
 
 **Opening duty:** at the start of each session, Agent 0 states the path from
 the current state to that target and identifies the work that can proceed
-independently. Agent 0 runs that work in parallel through standalone Type 1
-sessions.
+independently, as the [init prompt](../init/init-prompt.md) asks of the first
+report. After the owner's steering, Agent 0 runs that work in parallel through
+standalone Type 1 sessions.
 
 **Working posture.** The owner's standing instruction (2026-11-09 00:29 UTC):
 "This is just a standing instruction for you: Your top priority is to keep

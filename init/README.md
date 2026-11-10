@@ -8,8 +8,9 @@ metadata:
 # Starting an App v4 session
 
 1. Send only the `<init-prompt>...</init-prompt>` block from
-   [init-prompt.md](init-prompt.md). Let the agent orient
-   and report its understanding of the current basis and boundaries.
+   [init-prompt.md](init-prompt.md). Let the agent orient and report the path
+   to the release target with the lanes it would open, what it needs from you
+   to keep them moving, and any open `nightly` issues. It starts no work yet.
 2. Send your steering as a separate message: the undertaking, its scope and any
    reserved choices. When you send a steering file by reference instead of
    pasting it, tell the agent explicitly to read and execute it as your steering.
