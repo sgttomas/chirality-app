@@ -50,7 +50,7 @@ jobs:
           python tools/ci/execution_inputs.py
           python tools/ci/check_documentary_sources.py
           python app/tests/check_git_checkout_bytes.py
-          python -m pytest -q tools/ci/test_execution_layout.py
+          python -m pytest -q tools/ci/test_execution_layout.py tools/ci/test_nightly_report.py
           python -m pytest -q app/tests/group_b*test.py app/tests/deliverable_path_test.py
           python -m tools.deliverables --project . check > deliverable-check.json
           python -m tools.instruction_resources --check

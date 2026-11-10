@@ -205,10 +205,17 @@ The owner, 2026-11-07: "App must also receive the standing git grant as the
 others have."
 
 For `sgttomas/chirality-app` only, agents may commit, push, open and update PRs
-within authorized work. The Agent 0 of the session that opened a PR, directly
-or through its delegates, merges it after the review its change requires,
-with required checks green on the exact head, and after checking for open
-issues labelled `nightly` and dealing with them first. Delegated agents report
+within authorized work. The Agent 0 of the session that opened a PR, directly or
+through its delegates, merges it after the review its change requires and with
+required checks green on the exact head. Agent 0 may arm auto-merge in place of
+waiting for the checks: only after the review and the last push of the round,
+against the reviewed head, and it disarms before any further push. Arming counts
+as the merge for every duty that precedes one. Before merging or arming, Agent 0
+checks for open issues labelled `nightly` and deals with them first, and updates
+the branch from main when a PR merged since the branch was cut touched the same
+files or the same deliverable. A branch need not otherwise be up to date with
+main: the full-suite run on main after each merge reports a bad combination as a
+`nightly` issue. Delegated agents report
 a PR ready to merge and wait for Agent 0 to merge it. Explicit holds and reserved decisions
 apply.
 This grant excludes protection bypasses, history rewrites, force pushes,
