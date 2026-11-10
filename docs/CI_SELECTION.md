@@ -112,17 +112,31 @@ Manual dispatch of the governance harness also always selects product checks.
 ## Nightly full suite
 
 PR selection can miss a test broken by a change elsewhere, because PR lib
-cohorts are named filters, not the whole lib suite. `nightly-full-suite.yml`
-runs on main at 09:00 UTC and on manual dispatch. It calls `app-v4.yml` with
-`full_suite: true`, which takes the same full route as a manual dispatch: the
-`product` job, including the full `cargo test` run, and none of the focused PR
-jobs. Its first job, `tools/ci/nightly_gate.py`, skips the suite on a scheduled
-run when main's head equals that of the newest earlier scheduled run that
-reached a verdict (success or failure). Cancelled runs are looked past; a
-manual dispatch always runs, and if the earlier runs cannot be read, the suite
-runs. The nightly run is not a PR check and no ruleset requires it, so it never
-blocks a merge. A failed run is reported as an open GitHub issue labelled
-`nightly`, which Agent 0 deals with before merging (`AGENTS.md`).
+cohorts are named filters, not the whole lib suite, and because a branch need
+not be up to date with main when it merges (`AGENTS.md`). `nightly-full-suite.yml`
+therefore runs on main after each merge, at 09:00 UTC and on manual dispatch. It
+calls `app-v4.yml` with `full_suite: true`, which takes the same full route as a
+manual dispatch: the `product` job, including the full `cargo test` run, and
+none of the focused PR jobs.
+
+Its first job, `tools/ci/nightly_gate.py`, skips the suite on a scheduled run
+when any earlier run on main, from any trigger, reached a verdict (success or
+failure) on the same commit. Cancelled runs are not verdicts; a push or manual
+run always runs, and if the earlier runs cannot be read, the suite runs.
+
+Runs on one ref never cancel one in progress. GitHub keeps only the newest
+waiting run, so when several merges land during a run the merges between are
+not tested on their own, and a failure covers every commit since the last
+passing verdict.
+
+The workflow reports a push, scheduled or manual run on main that fails, is
+cancelled or times out: its `report` job, `tools/ci/nightly_report.py`, opens a
+GitHub issue labelled `nightly`, or comments on the open one. The issue carries
+the run URL and the commit SHA on lines of their own, the jobs that did not
+pass, and the commits since the last passing verdict with their PR numbers. Only
+that job can write issues. Agent 0 deals with an open `nightly` issue before
+merging or arming auto-merge. The run is not a PR check and no ruleset requires
+it, so it never blocks a merge.
 
 Frozen examination sources are verified locally without Git fetches. Toolchain
 and package setup in hosted CI retain their existing versions. Local checks use

@@ -444,13 +444,16 @@ def test_nightly_workflow_calls_the_full_route_only_after_its_gate():
     assert full_suite["type"] == "boolean" and full_suite["default"] is False
     workflow = yaml.safe_load((root / ".github/workflows/nightly-full-suite.yml").read_text())
     trigger = workflow.get("on", workflow.get(True))
-    # Not a PR or merge check: nothing can require it.
-    assert set(trigger) == {"schedule", "workflow_dispatch"}
+    # Runs after merges, not on PRs or merge groups: nothing can require it.
+    assert set(trigger) == {"push", "schedule", "workflow_dispatch"}
+    assert trigger["push"] == {"branches": ["main"]}
     assert trigger["schedule"] == [{"cron": "0 9 * * *"}]
     assert workflow["permissions"] == {"contents": "read"}
-    assert workflow["concurrency"]["cancel-in-progress"] is False
+    assert workflow["concurrency"] == {
+        "group": "nightly-full-suite-${{ github.ref }}", "cancel-in-progress": False}
     jobs = workflow["jobs"]
-    assert set(jobs) == {"changed", "full-suite"}
+    assert set(jobs) == {"changed", "full-suite", "report"}
+    assert {"harness"}.isdisjoint({name for name in jobs} | {job.get("name") for job in jobs.values()})
     assert jobs["changed"]["permissions"] == {"actions": "read", "contents": "read"}
     assert jobs["changed"]["outputs"] == {"run": "${{ steps.decide.outputs.run }}"}
     step = next(step for step in jobs["changed"]["steps"] if step.get("id") == "decide")
@@ -464,14 +467,59 @@ def test_nightly_workflow_calls_the_full_route_only_after_its_gate():
     assert nightly_gate.WORKFLOW == "nightly-full-suite.yml"
 
 
+def nightly_jobs():
+    root = Path(subject.__file__).resolve().parents[2]
+    return yaml.safe_load((root / ".github/workflows/nightly-full-suite.yml").read_text())["jobs"]
+
+
+def test_only_the_nightly_report_job_can_write_issues():
+    jobs = nightly_jobs()
+    assert jobs["report"]["permissions"] == {"actions": "read", "contents": "read", "issues": "write"}
+    assert all("issues" not in job.get("permissions", {}) for name, job in jobs.items() if name != "report")
+    assert jobs["report"]["needs"] == ["changed", "full-suite"]
+    checkout = jobs["report"]["steps"][0]
+    assert checkout["with"]["fetch-depth"] == 0 and checkout["with"]["persist-credentials"] is False
+    step = jobs["report"]["steps"][-1]
+    assert step["run"].startswith("python3 -m tools.ci.nightly_report ")
+    assert step["env"]["SUITE_RESULT"] == "${{ needs.full-suite.result }}"
+    assert step["env"]["GATE_RESULT"] == "${{ needs.changed.result }}"
+
+
+@pytest.mark.parametrize("ref, gate_output, suite, reports", [
+    ("refs/heads/main", "true", "failure", True),
+    # A timed-out job surfaces as failure or cancelled; both report.
+    ("refs/heads/main", "true", "cancelled", True),
+    # A gate that failed or was cancelled leaves no output and the suite skipped.
+    ("refs/heads/main", "", "skipped", True),
+    ("refs/heads/main", "true", "success", False),
+    # The scheduled skip: a verdict already exists for this commit.
+    ("refs/heads/main", "false", "skipped", False),
+    # A dispatch on another branch is not a run on main.
+    ("refs/heads/topic", "true", "failure", False),
+])
+def test_nightly_report_runs_on_every_outcome_but_success_and_a_scheduled_skip(ref, gate_output, suite, reports):
+    condition = nightly_jobs()["report"]["if"]
+    assert condition.startswith("always() && ")
+    python = condition.replace("always()", "True").replace("&&", " and ")
+    for name, value in (("github.ref", ref), ("needs.changed.outputs.run", gate_output),
+                        ("needs.full-suite.result", suite)):
+        python = python.replace(name, repr(value))
+    assert eval(python) is reports
+
+
 def runs(*items):
     return {"workflow_runs": [
-        {"id": run_id, "head_sha": sha, "status": status, "conclusion": conclusion}
-        for run_id, sha, status, conclusion in items]}
+        {"id": run_id, "head_sha": sha, "status": status, "conclusion": conclusion,
+         "event": event[0] if event else "schedule"}
+        for run_id, sha, status, conclusion, *event in items]}
 
 
 @pytest.mark.parametrize("event, recorded, expected", [
     ("workflow_dispatch", None, True),
+    ("push", None, True),
+    # Push and manual runs ignore any earlier verdict.
+    ("push", runs((8, "head", "completed", "success", "schedule")), True),
+    ("workflow_dispatch", runs((8, "head", "completed", "success", "push")), True),
     ("schedule", None, True),
     ("schedule", runs(), True),
     ("schedule", runs((9, "head", "in_progress", None)), True),
@@ -479,14 +527,19 @@ def runs(*items):
     ("schedule", runs((8, "head", "completed", "failure")), False),
     ("schedule", runs((8, "old", "completed", "success")), True),
     ("schedule", runs((8, "old", "completed", "failure")), True),
+    # A verdict on this commit from any trigger is enough.
+    ("schedule", runs((8, "head", "completed", "success", "push")), False),
+    ("schedule", runs((8, "head", "completed", "failure", "workflow_dispatch")), False),
+    ("schedule", runs((8, "old", "completed", "success", "push")), True),
     # A cancelled or startup-failed run gave no verdict; look past it.
     ("schedule", runs((8, "head", "completed", "cancelled"), (7, "old", "completed", "success")), True),
     ("schedule", runs((8, "head", "completed", "startup_failure"), (7, "head", "completed", "success")), False),
-    ("schedule", runs((8, "old", "completed", "success"), (7, "head", "completed", "success")), True),
+    # Any verdict on this commit counts, not only the newest one.
+    ("schedule", runs((8, "old", "completed", "success"), (7, "head", "completed", "success")), False),
     # The current run is never its own predecessor.
     ("schedule", runs((9, "head", "completed", "success")), True),
 ])
-def test_nightly_gate_runs_only_when_main_moved_since_the_last_verdict(event, recorded, expected):
+def test_nightly_gate_skips_only_a_scheduled_run_on_a_commit_with_a_verdict(event, recorded, expected):
     run, reason = nightly_gate.decide(event, "head", 9, recorded)
     assert run is expected and reason
 
@@ -502,7 +555,9 @@ def test_nightly_gate_writes_outputs_and_never_reads_runs_on_dispatch(tmp_path):
     # Dispatch ignores the recorded runs and never calls gh.
     assert nightly_gate.main(["--event", "workflow_dispatch", "--runs-json", "/nonexistent", *common]) == 0
     assert output.read_text() == "run=false\nrun=true\n"
-    assert summary.read_text().count("## Nightly full suite") == 2
+    assert nightly_gate.main(["--event", "push", "--runs-json", "/nonexistent", *common]) == 0
+    assert output.read_text() == "run=false\nrun=true\nrun=true\n"
+    assert summary.read_text().count("## Nightly full suite") == 3
 
 
 @pytest.mark.parametrize("path", [
@@ -537,5 +592,5 @@ def test_nightly_gate_runs_the_suite_when_earlier_runs_cannot_be_read(monkeypatc
     monkeypatch.setattr(nightly_gate.subprocess, "run", fake_run)
     assert nightly_gate.fetch("owner/repo") is None
     assert calls == [["gh", "api", "repos/owner/repo/actions/workflows/nightly-full-suite.yml/runs"
-                      "?event=schedule&branch=main&status=completed&per_page=50"]]
+                      "?branch=main&status=completed&per_page=50"]]
     assert nightly_gate.decide("schedule", "head", 9, None)[0] is True

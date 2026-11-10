@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Decide whether the nightly full suite runs: only when main moved since the last verdict."""
+"""Decide whether the full suite runs: a scheduled run skips a commit that already has a verdict."""
 from __future__ import annotations
 
 import argparse
@@ -11,15 +11,15 @@ import sys
 
 WORKFLOW = "nightly-full-suite.yml"
 # Runs that reached a verdict. A run that skipped the suite concludes "success"
-# only because an earlier scheduled run already gave a verdict on the same SHA.
+# only because an earlier run already gave a verdict on the same SHA.
 VERDICTS = frozenset({"success", "failure"})
 
 
-def last_verdict(runs: dict, run_id: int) -> dict | None:
-    """Newest completed scheduled run, other than this one, that reached a verdict."""
+def verdict_on(head: str, runs: dict, run_id: int) -> dict | None:
+    """Newest completed run on head, from any trigger and other than this one, with a verdict."""
     for item in runs.get("workflow_runs", []):
-        if (item.get("id") != run_id and item.get("status") == "completed"
-                and item.get("conclusion") in VERDICTS):
+        if (item.get("id") != run_id and item.get("head_sha") == head
+                and item.get("status") == "completed" and item.get("conclusion") in VERDICTS):
             return item
     return None
 
@@ -28,21 +28,15 @@ def decide(event: str, head: str, run_id: int, runs: dict | None) -> tuple[bool,
     if event != "schedule":
         return True, f"`{event}`: the full suite always runs on `{head}`."
     if runs is None:
-        return True, "Earlier nightly runs could not be read, so the full suite runs."
-    previous = last_verdict(runs, run_id)
+        return True, "Earlier runs could not be read, so the full suite runs."
+    previous = verdict_on(head, runs, run_id)
     if previous is None:
-        return True, "No earlier scheduled nightly verdict, so the full suite runs."
-    if previous.get("head_sha") == head:
-        return False, (f"Main is unchanged at `{head}` since scheduled run {previous['id']}"
-                       f" ({previous['conclusion']}); the full suite is skipped.")
-    return True, (f"Main moved from `{previous.get('head_sha')}` (scheduled run {previous['id']},"
-                  f" {previous['conclusion']}) to `{head}`.")
+        return True, f"No completed verdict on `{head}` yet, so the full suite runs."
+    return False, (f"`{head}` already has a verdict from {previous.get('event')} run"
+                   f" {previous['id']} ({previous['conclusion']}); the full suite is skipped.")
 
 
-def fetch(repository: str) -> dict | None:
-    # Newest first. Fifty runs leave room for cancelled ones between verdicts.
-    path = (f"repos/{repository}/actions/workflows/{WORKFLOW}/runs"
-            "?event=schedule&branch=main&status=completed&per_page=50")
+def gh_api(path: str) -> dict | None:
     result = subprocess.run(["gh", "api", path], capture_output=True, text=True)
     if result.returncode != 0:
         print(f"::warning::gh api failed: {result.stderr.strip()}", file=sys.stderr)
@@ -52,6 +46,12 @@ def fetch(repository: str) -> dict | None:
     except json.JSONDecodeError:
         print("::warning::gh api returned malformed JSON", file=sys.stderr)
         return None
+
+
+def fetch(repository: str) -> dict | None:
+    # Newest first, every trigger. Fifty runs leave room for cancelled ones between verdicts.
+    return gh_api(f"repos/{repository}/actions/workflows/{WORKFLOW}/runs"
+                  "?branch=main&status=completed&per_page=50")
 
 
 def main(argv: list[str] | None = None) -> int:

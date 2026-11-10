@@ -1,18 +1,22 @@
 name: nightly-full-suite
-# Runs every test on main, including lib tests no PR cohort selects. It is not a
-# PR check and no ruleset requires it; a failure is reported as a "nightly" issue.
+# Runs every test on main after each merge, daily and on demand, including lib
+# tests no PR cohort selects. It is not a PR check and no ruleset requires it; a
+# run on main that does not pass is reported as a "nightly" issue.
 on:
+  push:
+    branches: [main]
   schedule:
     - cron: '0 9 * * *'
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: nightly-full-suite
+  # A run in progress is never cancelled; only the newest waiting run is kept.
+  group: nightly-full-suite-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   changed:
-    name: Main changed since the last nightly verdict
+    name: Decide whether the full suite runs
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -22,7 +26,7 @@ jobs:
       run: ${{ steps.decide.outputs.run }}
     steps:
       - uses: actions/checkout@v4
-      - name: Compare with the last scheduled run
+      - name: Look for a verdict on this commit
         id: decide
         env:
           GH_TOKEN: ${{ github.token }}
@@ -40,3 +44,39 @@ jobs:
     uses: ./.github/workflows/app-v4.yml
     with:
       full_suite: true
+  report:
+    name: Report a run that did not pass
+    needs: [changed, full-suite]
+    # always() keeps this job for a cancelled run. A failure, a timeout, a
+    # cancellation and a gate that never decided all leave the suite without a
+    # success; a scheduled skip is excluded because its commit already has a verdict.
+    if: >-
+      always() && github.ref == 'refs/heads/main'
+      && needs.changed.outputs.run != 'false' && needs.full-suite.result != 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history for the commits since the last passing verdict.
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - name: Open or update the nightly issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          REPOSITORY: ${{ github.repository }}
+          SERVER_URL: ${{ github.server_url }}
+          GATE_RESULT: ${{ needs.changed.result }}
+          SUITE_RESULT: ${{ needs.full-suite.result }}
+        run: >-
+          python3 -m tools.ci.nightly_report --event "$EVENT" --head "$HEAD"
+          --run-id "$RUN_ID" --repository "$REPOSITORY" --server-url "$SERVER_URL"
+          --gate-result "$GATE_RESULT" --suite-result "$SUITE_RESULT"
