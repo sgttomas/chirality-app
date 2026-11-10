@@ -302,9 +302,10 @@ def test_malformed_diff_fails(raw):
 
 def needs(product="true", mode="product", result="success"):
     return {
-        "repository-checks": {"result": "success", "outputs": {
+        "change-selection": {"result": "success", "outputs": {
             "selection_mode": mode, "run_product": product,
         }},
+        "repository-checks": {"result": "success", "outputs": {}},
         "app-v4": {"result": result},
     }
 
@@ -329,13 +330,22 @@ def test_prose_skip_is_explicit_and_never_accepts_failure(result):
 def test_aggregate_rejects_failed_repository_and_invalid_or_missing_outputs():
     examples = [{}, {"app-v4": {}}, needs("", ""), needs("false", "product"),
                 needs("true", "prose"), needs("False", "prose")]
-    for status in ["failure", "cancelled", "skipped"]:
-        value = needs("false", "prose", "skipped")
-        value["repository-checks"]["result"] = status
-        examples.append(value)
+    for job in ["change-selection", "repository-checks"]:
+        for status in ["failure", "cancelled", "skipped", "", None]:
+            for selected in [needs("false", "prose", "skipped"), needs()]:
+                selected[job]["result"] = status
+                examples.append(selected)
     value = needs()
-    del value["repository-checks"]["outputs"]
+    del value["change-selection"]["outputs"]
     examples.append(value)
+    # Selection decides alone: outputs on repository-checks are never read.
+    value = needs()
+    value["repository-checks"]["outputs"] = value["change-selection"].pop("outputs")
+    examples.append(value)
+    for job in ["change-selection", "repository-checks", "app-v4"]:
+        value = needs()
+        del value[job]
+        examples.append(value)
     value = needs()
     value["unexpected"] = {"result": "success"}
     examples.append(value)
@@ -377,19 +387,26 @@ def test_workflow_always_runs_selection_and_checks_only_explicit_exclusion():
     repo = jobs["repository-checks"]
     assert any("python tools/ci/select_checks.py inventory" in step.get("run", "")
                for step in repo["steps"])
-    select_step = next(step for step in repo["steps"] if step.get("id") == "selection")
+    # Repository checks run unconditionally, in parallel with the product jobs.
+    assert "needs" not in repo and "if" not in repo and "outputs" not in repo
+    assert not any(step.get("id") == "selection" for step in repo["steps"])
+    selecting = jobs["change-selection"]
+    assert "needs" not in selecting and "if" not in selecting
+    assert next(step for step in selecting["steps"] if "uses" in step)["with"]["fetch-depth"] == 0
+    select_step = next(step for step in selecting["steps"] if step.get("id") == "selection")
     assert '--base "$BASE" --head "$HEAD"' in select_step["run"]
     assert select_step["env"]["BASE"] == "${{ github.event.pull_request.base.sha }}"
-    assert repo["outputs"] == {
+    assert selecting["outputs"] == {
         "selection_mode": "${{ steps.selection.outputs.selection_mode }}",
         "run_product": "${{ steps.selection.outputs.run_product }}",
     }
-    assert jobs["app-v4"]["needs"] == "repository-checks"
-    assert jobs["app-v4"]["if"] == "needs.repository-checks.outputs.run_product == 'true'"
+    assert jobs["app-v4"]["needs"] == "change-selection"
+    assert jobs["app-v4"]["if"] == "needs.change-selection.outputs.run_product == 'true'"
     assert jobs["app-v4"]["uses"] == "./.github/workflows/app-v4.yml"
+    assert set(jobs) == {"change-selection", "repository-checks", "app-v4", "harness"}
     gate = jobs["harness"]
     assert gate["if"] == "always()"
-    assert set(gate["needs"]) == {"repository-checks", "app-v4"}
+    assert set(gate["needs"]) == {"change-selection", "repository-checks", "app-v4"}
     assert gate["steps"][-1]["env"]["RESULTS"] == "${{ toJSON(needs) }}"
     assert gate["steps"][-1]["run"] == "python3 tools/ci/select_checks.py gate"
 

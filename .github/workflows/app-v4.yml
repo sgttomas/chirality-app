@@ -28,6 +28,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 
+# Each macOS job restores third-party Rust build output in its setup and saves it
+# last; repository crates are never cached (tools/ci/rust_dep_cache.py).
 # Pull requests split the focused checks across parallel macOS jobs. Every
 # focused lib cohort filter appears in exactly one shard and still runs as its
 # own serial libtest process. A new focused cohort joins the shard with the
@@ -65,7 +67,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           filter: blob:none
-      - uses: ./.github/actions/app-v4-setup
+      - id: setup
+        uses: ./.github/actions/app-v4-setup
+        with:
+          rust-cache-job: rust-integration
       - name: Build App frontend
         run: |
           npm run build
@@ -92,6 +97,12 @@ jobs:
           for cohort in $LIB_COHORTS; do
             cargo test --locked --manifest-path src-tauri/Cargo.toml --lib "$cohort" -- --test-threads=1
           done
+      - name: Save compiled third-party Rust dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/app-v4-rust-cache-save
+        with:
+          key: ${{ steps.setup.outputs.rust-cache-key }}
+          already-cached: ${{ steps.setup.outputs.rust-cache-hit }}
 
   rust-lib-node:
     name: Lib shard B and Node presentation
@@ -127,7 +138,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           filter: blob:none
-      - uses: ./.github/actions/app-v4-setup
+      - id: setup
+        uses: ./.github/actions/app-v4-setup
+        with:
+          rust-cache-job: rust-lib-node
       - name: Build App frontend
         run: |
           npm run build
@@ -148,6 +162,12 @@ jobs:
         run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs
       - name: Native history and conversation presentation
         run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs tests/trial-continue-model-choice.test.mjs tests/ordinary-send-hold.test.mjs
+      - name: Save compiled third-party Rust dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/app-v4-rust-cache-save
+        with:
+          key: ${{ steps.setup.outputs.rust-cache-key }}
+          already-cached: ${{ steps.setup.outputs.rust-cache-hit }}
 
   sources-packaging:
     name: Schemas, successor feature, packaging and examination
@@ -159,7 +179,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           filter: blob:none
-      - uses: ./.github/actions/app-v4-setup
+      - id: setup
+        uses: ./.github/actions/app-v4-setup
+        with:
+          rust-cache-job: sources-packaging
       - name: Build App and verify source-mapped schemas
         run: |
           npm run build
@@ -210,6 +233,12 @@ jobs:
         run: |
           cargo build --locked --manifest-path src-tauri/Cargo.toml --example distribution-static
           DISTRIBUTION_STATIC_BIN="$PWD/src-tauri/target/debug/examples/distribution-static" python -m pytest -q packaging/static_distribution/test_connected.py
+      - name: Save compiled third-party Rust dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/app-v4-rust-cache-save
+        with:
+          key: ${{ steps.setup.outputs.rust-cache-key }}
+          already-cached: ${{ steps.setup.outputs.rust-cache-hit }}
 
   product:
     name: App v4 product
@@ -221,7 +250,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           filter: blob:none
-      - uses: ./.github/actions/app-v4-setup
+      - id: setup
+        uses: ./.github/actions/app-v4-setup
+        with:
+          rust-cache-job: product
       - name: Prepare selected assessment supplier in scratch storage
         env:
           SUPPLIER_ROOT: ${{ runner.temp }}/app-v4-supplier
@@ -312,6 +344,12 @@ jobs:
           npm test
       - name: Python receiving and custody behavior
         run: python -m pytest -q tests
+      - name: Save compiled third-party Rust dependencies
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/app-v4-rust-cache-save
+        with:
+          key: ${{ steps.setup.outputs.rust-cache-key }}
+          already-cached: ${{ steps.setup.outputs.rust-cache-hit }}
 
   result:
     name: App v4 checks

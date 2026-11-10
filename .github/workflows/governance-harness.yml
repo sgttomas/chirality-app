@@ -8,9 +8,10 @@ concurrency:
   group: governance-harness-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
-  repository-checks:
+  # Decides the route on its own so product jobs do not wait for repository checks.
+  change-selection:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     outputs:
       selection_mode: ${{ steps.selection.outputs.selection_mode }}
       run_product: ${{ steps.selection.outputs.run_product }}
@@ -29,6 +30,14 @@ jobs:
           python3 tools/ci/select_checks.py select --event "$EVENT"
           --base "$BASE" --head "$HEAD"
           --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
+  repository-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -49,6 +58,7 @@ jobs:
           python app/examination/repin.py --check
           python -m pytest -q tools/deliverables/test_cli.py
           python -m pytest -q tools/ci/test_selection.py
+          python -m pytest -q tools/ci/test_rust_dep_cache.py
           python -m pytest -q tools/test_run_recorded_prototype.py
           python -m pytest -q tools/test_role_prototype_output.py
           python -m pytest -q tools/validation/test_library_v2_1_operational_adoption.py
@@ -62,12 +72,12 @@ jobs:
           python tools/validation/validate_conflict_markers.py --base "$BASE" --head HEAD
           python tools/validation/validate_run_record_leaks.py --base "$BASE" --head HEAD
   app-v4:
-    needs: repository-checks
-    if: needs.repository-checks.outputs.run_product == 'true'
+    needs: change-selection
+    if: needs.change-selection.outputs.run_product == 'true'
     uses: ./.github/workflows/app-v4.yml
   harness:
     name: harness
-    needs: [repository-checks, app-v4]
+    needs: [change-selection, repository-checks, app-v4]
     if: always()
     runs-on: ubuntu-latest
     steps:
