@@ -2,6 +2,11 @@ name: App v4
 
 on:
   workflow_call:
+    inputs:
+      full_suite:
+        description: Run the full product route, as a manual dispatch does (nightly caller).
+        type: boolean
+        default: false
   workflow_dispatch:
 
 permissions:
@@ -26,11 +31,12 @@ concurrency:
 # Pull requests split the focused checks across parallel macOS jobs. Every
 # focused lib cohort filter appears in exactly one shard and still runs as its
 # own serial libtest process. A new focused cohort joins the shard with the
-# shorter recorded runtime. Manual dispatch keeps the full route.
+# shorter recorded runtime. Manual dispatch and the nightly caller's full_suite
+# input take the full route instead.
 jobs:
   rust-integration:
     name: Rust compile, integration and lib shard A
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name != 'workflow_dispatch' && !inputs.full_suite
     # Match the tested arm64 environment and system Git no-lazy-fetch contract.
     runs-on: macos-26
     timeout-minutes: 45
@@ -89,7 +95,7 @@ jobs:
 
   rust-lib-node:
     name: Lib shard B and Node presentation
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name != 'workflow_dispatch' && !inputs.full_suite
     runs-on: macos-26
     timeout-minutes: 45
     env:
@@ -145,7 +151,7 @@ jobs:
 
   sources-packaging:
     name: Schemas, successor feature, packaging and examination
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name != 'workflow_dispatch' && !inputs.full_suite
     runs-on: macos-26
     timeout-minutes: 45
     steps:
@@ -207,7 +213,7 @@ jobs:
 
   product:
     name: App v4 product
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || inputs.full_suite
     runs-on: macos-26
     timeout-minutes: 45
     steps:
@@ -316,11 +322,11 @@ jobs:
       - name: Require the event's product verification to succeed
         working-directory: .
         env:
-          DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
+          FULL_ROUTE: ${{ github.event_name == 'workflow_dispatch' || inputs.full_suite }}
           FOCUSED: ${{ needs.rust-integration.result }} ${{ needs.rust-lib-node.result }} ${{ needs.sources-packaging.result }}
           FULL: ${{ needs.product.result }}
         run: |
-          if [ "$DISPATCH" = true ]; then
+          if [ "$FULL_ROUTE" = true ]; then
             test "$FULL" = success && test "$FOCUSED" = 'skipped skipped skipped'
           else
             test "$FOCUSED" = 'success success success' && test "$FULL" = skipped
