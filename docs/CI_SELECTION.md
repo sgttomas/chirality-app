@@ -189,11 +189,13 @@ starts has no report job, so only that path catches it.
 A merge made through auto-merge starts the push run: PR 214's did, within seconds.
 
 Agent 0 deals with an open `nightly` issue before merging or arming auto-merge.
-Dealing with it means deciding, and saying in the PR, whether the failure is
-caused by or affects the change. A real failure is fixed or reverted first, unless
-the PR is the fix. Agent 0 closes the issue when a later run on main passes. This
-duty is Agent 0's: the run is not a PR check and no ruleset requires it, so GitHub
-itself never holds a merge for it.
+Until the owner settles what that means, Agent 0's working reading is provisional:
+decide, and say in the PR, whether the failure is caused by or affects the change,
+and fix or revert one that does before merging, unless the PR is the fix. Agent 0
+closes the issue when a later run's `App v4 product` job passes on a commit that
+includes the failing change; a scheduled skip does not count. This duty is Agent
+0's: the run is not a PR check and no ruleset requires it, so GitHub itself never
+holds a merge for it.
 
 Frozen examination sources are verified locally without Git fetches. Toolchain
 and package setup in hosted CI retain their existing versions. Local checks use
