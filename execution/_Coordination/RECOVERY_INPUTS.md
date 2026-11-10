@@ -9,12 +9,12 @@ made durable by opening a public draft PR.
 ## Candidate sources and readiness
 
 - [J2's owning account](../PKG-09/DEL-09-02/Work/J2_PARTIAL_ACTUAL_20261108.md)
-  identifies the repaired `475c9b8f9c868fe1be9d0e1ef33a9cdd72aec75f` source,
-  exact unlaunched private development build and unapproved registration/reuse
-  proposal. Source is integrated through PR160. The build's identity records and
-  original private project/store state remain needed if that proposal is resumed;
-  a rebuild supplies a new artifact, not those original observations. The owner
-  must decide the launch/cloud scope before continuation.
+  identifies the repaired `475c9b8f9c868fe1be9d0e1ef33a9cdd72aec75f` source
+  and private development build, on which registration and fresh reuse have since
+  been demonstrated. Source is integrated through PR160. The build's identity
+  records and original private project/store state remain needed to re-examine
+  those observations; a rebuild supplies a new artifact. Authority for further
+  launches is in the continuation boundaries below.
 - [Native continuation boundaries](../PKG-09/DEL-09-02/Work/CONTINUATION_BOUNDARIES.md)
   point to the held UNRUN `zootd3ob` packet, closed custom-driver work and private
   actual evidence. A previously staged command is not an active launch route.
