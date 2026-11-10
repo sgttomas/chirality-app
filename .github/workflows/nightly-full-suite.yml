@@ -1,10 +1,8 @@
 name: nightly-full-suite
-# Runs every test on main after each merge, daily and on demand, including lib
-# tests no PR cohort selects. It is not a PR check and no ruleset requires it; a
+# Runs every test on main daily and on demand, including lib tests no PR cohort
+# selects. It is not a PR check and no ruleset requires it; a
 # run on main that does not pass is reported as a "nightly" issue.
 on:
-  push:
-    branches: [main]
   schedule:
     - cron: '0 9 * * *'
   workflow_dispatch:
