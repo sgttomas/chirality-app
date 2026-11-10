@@ -14,6 +14,7 @@ WORKFLOW = "nightly-full-suite.yml"
 # also covers gate, runner and reporting failures and runs that skipped the suite.
 PRODUCT_JOB = "App v4 product"
 VERDICTS = frozenset({"success", "failure"})
+GH_API_TIMEOUT_SECONDS = 20
 
 
 def suite_conclusion(jobs: dict) -> str | None:
@@ -46,7 +47,11 @@ def decide(event: str, head: str, run_id: int, runs: dict | None) -> tuple[bool,
 
 
 def gh_api(path: str) -> dict | None:
-    result = subprocess.run(["gh", "api", path], capture_output=True, text=True)
+    try:
+        result = subprocess.run(["gh", "api", path], capture_output=True, text=True, timeout=GH_API_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        print("::warning::gh api timed out", file=sys.stderr)
+        return None
     if result.returncode != 0:
         print(f"::warning::gh api failed: {result.stderr.strip()}", file=sys.stderr)
         return None

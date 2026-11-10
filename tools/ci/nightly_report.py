@@ -19,9 +19,11 @@ MARKDOWN_SPECIAL = re.compile(r"([\\`*_~\[\]()<>|&#])")
 PER_PAGE = 100
 # Runs examined for a verified pass; reaching this leaves the baseline unknown.
 MAX_RUNS = 200
+# Reading history stops here so publishing keeps its share of the job limit.
+HISTORY_SECONDS = 120
 PUBLISH_ATTEMPTS = 4
 BACKOFF_SECONDS = 5
-GH_TIMEOUT_SECONDS = 60
+GH_TIMEOUT_SECONDS = 30
 PUBLISH_ERRORS = (subprocess.CalledProcessError, subprocess.TimeoutExpired, json.JSONDecodeError)
 # Placed after @ and #: GitHub then finds no mention or issue reference to act on.
 ZERO_WIDTH_SPACE = "​"
@@ -30,15 +32,19 @@ ZERO_WIDTH_SPACE = "​"
 def display(text: str) -> str:
     """Make a repository-supplied string inert: one line, no Markdown, no mentions."""
     escaped = MARKDOWN_SPECIAL.sub(r"\\\1", " ".join(text.split()))
-    return escaped.replace("@", f"@{ZERO_WIDTH_SPACE}").replace("#", f"#{ZERO_WIDTH_SPACE}")
+    for marker in ("@", "#", "://"):
+        escaped = escaped.replace(marker, f"{marker[0]}{ZERO_WIDTH_SPACE}{marker[1:]}")
+    return escaped
 
 
 def last_pass(repository: str, run_id: int) -> dict | None:
     """Newest run on main, other than this one, whose product job concluded success.
 
-    None means the baseline is unknown: no such run within MAX_RUNS, or history unreadable.
+    None means the baseline is unknown: no such run within MAX_RUNS or HISTORY_SECONDS,
+    or history unreadable.
     """
     examined = 0
+    deadline = time.monotonic() + HISTORY_SECONDS
     for page in range(1, MAX_RUNS // PER_PAGE + 2):
         listed = nightly_gate.gh_api(
             f"repos/{repository}/actions/workflows/{nightly_gate.WORKFLOW}/runs"
@@ -49,7 +55,7 @@ def last_pass(repository: str, run_id: int) -> dict | None:
         for item in items:
             if item.get("id") == run_id:
                 continue
-            if examined == MAX_RUNS:
+            if examined == MAX_RUNS or time.monotonic() >= deadline:
                 return None
             examined += 1
             jobs = nightly_gate.run_jobs(repository, item["id"])
@@ -140,7 +146,7 @@ def publish_once(repository: str, issue_title: str, body: str) -> str:
 
 
 def publish(repository: str, issue_title: str, body: str) -> str:
-    """Publish with bounded retries. Each attempt lists again, so a retry never opens a second issue."""
+    """Publish with bounded retries. Each attempt lists again; a create that timed out can still land, so a duplicate stays possible and harmless."""
     for attempt in range(1, PUBLISH_ATTEMPTS + 1):
         try:
             return publish_once(repository, issue_title, body)

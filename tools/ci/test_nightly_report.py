@@ -306,3 +306,29 @@ def test_main_fails_visibly_once_the_retries_are_spent(monkeypatch, sleeps, caps
     assert world.count(verb) == subject.PUBLISH_ATTEMPTS
     assert sleeps == [5, 10, 20]
     assert "::error::" in capsys.readouterr().err
+
+
+def test_last_pass_is_unknown_once_the_history_deadline_passes(monkeypatch):
+    clock = iter([0, subject.HISTORY_SECONDS + 1])
+    monkeypatch.setattr(subject.time, 'monotonic', lambda: next(clock))
+    monkeypatch.setattr(nightly_gate, 'gh_api', lambda path: {'workflow_runs': [{'id': 1}]})
+    monkeypatch.setattr(nightly_gate, 'run_jobs', lambda *_: pytest.fail('read after the deadline'))
+    assert subject.last_pass('o/r', 99) is None
+
+
+def test_a_timed_out_api_call_reads_as_unavailable(monkeypatch):
+    def hang(*args, **kwargs):
+        raise subprocess.TimeoutExpired(args[0], kwargs['timeout'])
+    monkeypatch.setattr(nightly_gate.subprocess, 'run', hang)
+    assert nightly_gate.gh_api('repos/o/r') is None
+
+
+def test_supplied_urls_do_not_autolink():
+    shown = subject.display('see https://github.com/o/r/issues/1')
+    assert 'https://' not in shown and 'https:' in shown
+
+
+def test_publishing_and_history_fit_inside_the_report_job_limit():
+    attempts = subject.PUBLISH_ATTEMPTS
+    backoff = sum(subject.BACKOFF_SECONDS * 2 ** n for n in range(attempts - 1))
+    assert subject.HISTORY_SECONDS + 2 * attempts * subject.GH_TIMEOUT_SECONDS + backoff < 500
