@@ -78,7 +78,7 @@ consumer consequences are:
 
 | Native change | App receiving meaning |
 |---|---|
-| Provider capabilities removes `namespaceTools` | Neither presence nor absence of delegation follows from a legacy echo. Existing decisive disabled-model/config negatives remain; otherwise availability is not established. This withholds no received child/item. |
+| Provider capabilities removes `namespaceTools` | Codex removed the provider gate on tool namespaces ([openai/codex PR 50447](https://github.com/openai/codex/pull/50447)). By the owner's decision of 2026-11-09, delegation reads present when `multiAgentVersion` and the effective `features.multi_agent` allow it, and missing only for those two negatives; a legacy `namespaceTools` echo is ignored. DEL-01-03 [`NATIVE_PLANS_TOOLS_DELEGATION.md`](../../DEL-01-03/Work/NATIVE_PLANS_TOOLS_DELEGATION.md) §7.1 states the rule. |
 | Optional initialize `requiredHumanApproval`; new approval kind `humanCommand` | App does not advertise/adopt the capability. An unsolicited checkpoint is explicitly unsupported and cannot become an ordinary or session grant. Existing command approvals remain supported. |
 | Optional fork `attachToSource`/prediction fields; turn `parentTurnId`, `rootTurnId`, metadata patch; steer metadata patch | App does not send the new controls. Existing exact start/fork/text/steer/interrupt request shapes remain the receiving basis. Native additional fields are preserved. |
 | Optional history attached-thread/exclusion filters and `readState(s)` | Existing list/read/page joins remain; new filters are not supplied or treated as custody. |
