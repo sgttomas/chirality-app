@@ -118,7 +118,7 @@ test('the delegation view follows the host’s NPTD §7.1 reading, and arrived d
   const withReading=(v,delegation)=>renderToStaticMarkup(React.createElement(NativeActivityView,{view:v,threadId:'T',delegation}));
   const present={reading:'present',reason:null,readAt:'2026-10-10T00:00:00Z'};
   const missing={reading:'missing',reason:'the effective configuration sets features.multi_agent = false (NPTD §7.1 (2))',readAt:'2026-10-10T00:00:00Z'};
-  const unread={reading:'not established',reason:'namespaceTools not read: no response (NPTD §7.1 (4))'};
+  const unread={reading:'not established',reason:'multiAgentVersion not read: no response (NPTD §7.1 (3))'};
   // Present: shown, empty or not.
   assert.match(withReading(empty,present),/Delegation available \(read 2026-10-10T00:00:00Z\); no descendants observed\./);
   assert.ok(withReading(view(),present).includes('<h4>Descendants</h4>'));
@@ -132,7 +132,7 @@ test('the delegation view follows the host’s NPTD §7.1 reading, and arrived d
   const quiet=withReading(empty,unread);
   assert.doesNotMatch(quiet,/Delegation availab|Delegation not available|<h4>Descendants/);
   const shown=withReading(view(),unread);
-  assert.ok(shown.includes('<h4>Descendants</h4>')&&shown.includes('Delegation availability not established: namespaceTools not read'));
+  assert.ok(shown.includes('<h4>Descendants</h4>')&&shown.includes('Delegation availability not established: multiAgentVersion not read'));
   assert.doesNotMatch(withReading(empty,undefined),/Delegation availab|Delegation not available|<h4>Descendants/,'no reading: nothing claimed');
 });
 

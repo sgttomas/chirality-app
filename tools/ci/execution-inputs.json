@@ -1265,7 +1265,7 @@
     {
       "source": "execution/PKG-01/DEL-01-01/Work/HOSTING_BOUNDARY.md",
       "copy": "app/contract_inputs/PKG-01/DEL-01-01/Work/HOSTING_BOUNDARY.md",
-      "sha256": "a5c4d5d4e912b8ff41b44d585f68070166e13bca61351111da9564960c9fbaaa"
+      "sha256": "a62a0c67ff9dca79acc8a7192a3cf257d224f5fff4ad2990d3bfd4a91b346e3f"
     },
     {
       "source": "execution/PKG-01/DEL-01-01/Work/VERSION_ADVANCE_0.160.0.md",
@@ -1785,7 +1785,7 @@
     {
       "source": "execution/PKG-01/DEL-01-03/Work/NATIVE_PLANS_TOOLS_DELEGATION.md",
       "copy": "app/contract_inputs/PKG-01/DEL-01-03/Work/NATIVE_PLANS_TOOLS_DELEGATION.md",
-      "sha256": "f4d3b4921e59c75d1f8d19b30e007960328aff4b40df41e462d273971ca92c00"
+      "sha256": "f9021fe3827d72c313bcf9ab9732205da0efc582eb4a9d5395d7af3450caf964"
     },
     {
       "source": "execution/PKG-01/DEL-01-03/Work/npt.delegation-export.schema.json",
@@ -2395,7 +2395,7 @@
     {
       "source": "execution/PKG-02/DEL-02-01/Work/WORKFLOW_DECLARATION.md",
       "copy": "app/contract_inputs/PKG-02/DEL-02-01/Work/WORKFLOW_DECLARATION.md",
-      "sha256": "d90167ac9822a7c2aed4f291096c2a9ee22386926370e8c5db787c68cb7e670b"
+      "sha256": "899395a1a6349a23a12d175dabb90ed52f2fa6ab68f05294cb61f7650e6f0423"
     },
     {
       "source": "execution/PKG-02/DEL-02-01/Work/prototype/README.md",
@@ -2505,7 +2505,7 @@
     {
       "source": "execution/PKG-02/DEL-02-03/Work/EXECUTION_COMPATIBILITY.md",
       "copy": "app/contract_inputs/PKG-02/DEL-02-03/Work/EXECUTION_COMPATIBILITY.md",
-      "sha256": "c00f233d01da6a0685b2d8de21fb36c599af87293f04c81761e72f9de76a0c3b"
+      "sha256": "d7ef9012907cb8d5ddcb8108efe511ce9cb144456fc344564b2d0a6f1ae500d5"
     },
     {
       "source": "execution/PKG-02/DEL-02-03/Work/checkpoint-record-entries.example.decision-package.valid.json",

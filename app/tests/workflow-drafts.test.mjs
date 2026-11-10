@@ -69,16 +69,16 @@ test('Try with the authoring agent prepares a delegated trial in the chosen auth
 test('Try with the authoring agent follows the authoring conversation’s delegation reading (NPTD §7.1)',()=>{
   const reading=(r)=>({...conversations[0],delegation:r});
   // Missing: the control is absent; the first reason is shown with the fresh-conversation trial.
-  const missing=reading({reading:'missing',reason:'the provider reports namespaceTools false, so Codex sends no delegation tools (NPTD §7.1 (3))'});
+  const missing=reading({reading:'missing',reason:'the effective configuration sets features.multi_agent = false (NPTD §7.1 (2))'});
   const {tree}=row(draft(),{authoring:missing});
   assert.equal(find(tree,n=>n.type==='button'&&label(n).includes('Try with the authoring agent')).length,0,'hidden when missing');
   assert.equal(button(tree,'Try in a fresh conversation').props.disabled,false);
-  assert.match(html(draft(),{authoring:missing}),/Try with the authoring agent is not available: the provider reports namespaceTools false, so Codex sends no delegation tools \(NPTD §7\.1 \(3\)\)\. Use Try in a fresh conversation\./);
+  assert.match(html(draft(),{authoring:missing}),/Try with the authoring agent is not available: the effective configuration sets features\.multi_agent = false \(NPTD §7\.1 \(2\)\)\. Use Try in a fresh conversation\./);
   // Not established: still offered, with the note.
-  const unread=reading({reading:'not established',reason:'effective configuration not read: no response (NPTD §7.1 (4))'});
+  const unread=reading({reading:'not established',reason:'effective configuration not read: no response (NPTD §7.1 (3))'});
   const offered=row(draft(),{authoring:unread});
   assert.equal(button(offered.tree,'Try with the authoring agent').props.disabled,false);
-  assert.match(html(draft(),{authoring:unread}),/Delegation not established: effective configuration not read: no response \(NPTD §7\.1 \(4\)\)\./);
+  assert.match(html(draft(),{authoring:unread}),/Delegation not established: effective configuration not read: no response \(NPTD §7\.1 \(3\)\)\./);
   // Present: offered, no note.
   const present=html(draft(),{authoring:reading({reading:'present',reason:null})});
   assert.match(present,/Try with the authoring agent/);

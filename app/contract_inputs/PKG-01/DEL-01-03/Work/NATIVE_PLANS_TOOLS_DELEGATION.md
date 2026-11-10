@@ -516,7 +516,9 @@ Delegation is **available** for a conversation when both hold:
 `v2` (not `disabled`), **and** the effective configuration does not set
 `features.multi_agent = false` (`config/read`; absent unless set).
 **Readings, in R21-1's order (this section is the reference R21-1 names;
-EXEC EV-3a, its `_delegation` and WD §4.2.5 follow it):** (1)
+EXEC EV-3a, its `_delegation` and WD §4.2.5 keep the earlier
+`namespaceTools` capability gate within their 0.158.0 or 0.160.0 scope, and
+point here for the 0.167.0 pin):** (1)
 `multiAgentVersion` = `disabled` → **missing**; (2) effective
 `features.multi_agent = false` → **missing**; (3) either not read (the model
 entry or its version not read or null, the configuration not read, or the
