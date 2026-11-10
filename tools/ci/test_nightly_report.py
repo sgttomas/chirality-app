@@ -106,14 +106,14 @@ def test_failing_jobs_falls_back_to_the_workflow_results(jobs, gate, suite, expe
     ("ping @octocat now", f"ping @{ZWSP}octocat now"),
     ("@org/team", f"@{ZWSP}org/team"),
     ("use `code` here", r"use \`code\` here"),
-    ("[click](https://evil.example)", r"\[click\]\(https://evil.example\)"),
+    ("[click](https://evil.example)", rf"\[click\]\(https:{ZWSP}//evil.example\)"),
     ("![img](x)", r"!\[img\]\(x\)"),
     ("<img src=x>", r"\<img src=x\>"),
     ("**bold** _it_", r"\*\*bold\*\* \_it\_"),
     ("closes #12", f"closes \\#{ZWSP}12"),
     ("&#64;octocat", f"\\&\\#{ZWSP}64;octocat"),
     (r"already \@escaped", f"already \\\\@{ZWSP}escaped"),
-    ("line one\nhttps://github.example/fake\r\n" + "f" * 40, "line one https://github.example/fake " + "f" * 40),
+    ("line one\nhttps://github.example/fake\r\n" + "f" * 40, f"line one https:{ZWSP}//github.example/fake " + "f" * 40),
 ])
 def test_display_makes_supplied_text_inert(raw, inert):
     assert subject.display(raw) == inert
