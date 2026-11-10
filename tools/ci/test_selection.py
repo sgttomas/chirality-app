@@ -465,6 +465,7 @@ def test_nightly_workflow_calls_the_full_route_only_after_its_gate():
         "needs": "changed", "if": "needs.changed.outputs.run == 'true'",
         "uses": "./.github/workflows/app-v4.yml", "with": {"full_suite": True}}
     assert nightly_gate.WORKFLOW == "nightly-full-suite.yml"
+    assert product["jobs"]["product"]["name"] == nightly_gate.PRODUCT_JOB
 
 
 def test_full_route_has_time_to_finish_the_full_rust_suite():
@@ -517,35 +518,34 @@ def test_nightly_report_runs_on_every_outcome_but_success_and_a_scheduled_skip(r
 
 def runs(*items):
     return {"workflow_runs": [
-        {"id": run_id, "head_sha": sha, "status": status, "conclusion": conclusion,
-         "event": event[0] if event else "schedule"}
-        for run_id, sha, status, conclusion, *event in items]}
+        {"id": run_id, "head_sha": sha, "suite": suite, "event": event[0] if event else "schedule"}
+        for run_id, sha, suite, *event in items]}
 
 
 @pytest.mark.parametrize("event, recorded, expected", [
     ("workflow_dispatch", None, True),
     ("push", None, True),
     # Push and manual runs ignore any earlier verdict.
-    ("push", runs((8, "head", "completed", "success", "schedule")), True),
-    ("workflow_dispatch", runs((8, "head", "completed", "success", "push")), True),
+    ("push", runs((8, "head", "success", "schedule")), True),
+    ("workflow_dispatch", runs((8, "head", "success", "push")), True),
     ("schedule", None, True),
     ("schedule", runs(), True),
-    ("schedule", runs((9, "head", "in_progress", None)), True),
-    ("schedule", runs((8, "head", "completed", "success")), False),
-    ("schedule", runs((8, "head", "completed", "failure")), False),
-    ("schedule", runs((8, "old", "completed", "success")), True),
-    ("schedule", runs((8, "old", "completed", "failure")), True),
+    ("schedule", runs((8, "head", "success")), False),
+    ("schedule", runs((8, "head", "failure")), False),
+    ("schedule", runs((8, "old", "success")), True),
+    ("schedule", runs((8, "old", "failure")), True),
     # A verdict on this commit from any trigger is enough.
-    ("schedule", runs((8, "head", "completed", "success", "push")), False),
-    ("schedule", runs((8, "head", "completed", "failure", "workflow_dispatch")), False),
-    ("schedule", runs((8, "old", "completed", "success", "push")), True),
-    # A cancelled or startup-failed run gave no verdict; look past it.
-    ("schedule", runs((8, "head", "completed", "cancelled"), (7, "old", "completed", "success")), True),
-    ("schedule", runs((8, "head", "completed", "startup_failure"), (7, "head", "completed", "success")), False),
+    ("schedule", runs((8, "head", "success", "push")), False),
+    ("schedule", runs((8, "head", "failure", "workflow_dispatch")), False),
+    ("schedule", runs((8, "old", "success", "push")), True),
+    # No concluded product job is no verdict: gate or runner failure, or a skipped suite.
+    ("schedule", runs((8, "head", None, "push")), True),
+    ("schedule", runs((8, "head", "cancelled", "push"), (7, "old", "success")), True),
+    ("schedule", runs((8, "head", "skipped"), (7, "head", "success", "push")), False),
     # Any verdict on this commit counts, not only the newest one.
-    ("schedule", runs((8, "old", "completed", "success"), (7, "head", "completed", "success")), False),
+    ("schedule", runs((8, "old", "success"), (7, "head", "success")), False),
     # The current run is never its own predecessor.
-    ("schedule", runs((9, "head", "completed", "success")), True),
+    ("schedule", runs((9, "head", "success")), True),
 ])
 def test_nightly_gate_skips_only_a_scheduled_run_on_a_commit_with_a_verdict(event, recorded, expected):
     run, reason = nightly_gate.decide(event, "head", 9, recorded)
@@ -554,7 +554,7 @@ def test_nightly_gate_skips_only_a_scheduled_run_on_a_commit_with_a_verdict(even
 
 def test_nightly_gate_writes_outputs_and_never_reads_runs_on_dispatch(tmp_path):
     recorded = tmp_path / "runs.json"
-    recorded.write_text(json.dumps(runs((8, "head", "completed", "success"))))
+    recorded.write_text(json.dumps(runs((8, "head", "success"))))
     output, summary = tmp_path / "output", tmp_path / "summary"
     common = ["--head", "head", "--run-id", "9", "--repository", "owner/repo",
               "--github-output", str(output), "--summary", str(summary)]
@@ -598,7 +598,47 @@ def test_nightly_gate_runs_the_suite_when_earlier_runs_cannot_be_read(monkeypatc
         return subprocess.CompletedProcess(command, returncode, stdout, "refused")
 
     monkeypatch.setattr(nightly_gate.subprocess, "run", fake_run)
-    assert nightly_gate.fetch("owner/repo") is None
+    assert nightly_gate.fetch("owner/repo", "head") is None
     assert calls == [["gh", "api", "repos/owner/repo/actions/workflows/nightly-full-suite.yml/runs"
-                      "?branch=main&status=completed&per_page=50"]]
+                      "?branch=main&head_sha=head&status=completed&per_page=100"]]
     assert nightly_gate.decide("schedule", "head", 9, None)[0] is True
+
+
+def product_jobs(name, status, conclusion):
+    return {"jobs": [{"name": "Gate", "status": "completed", "conclusion": "success"},
+                     {"name": name, "status": status, "conclusion": conclusion}]}
+
+
+@pytest.mark.parametrize("jobs, expected", [
+    (product_jobs("full-suite / App v4 product", "completed", "success"), "success"),
+    (product_jobs("full-suite / App v4 product", "completed", "failure"), "failure"),
+    (product_jobs("full-suite / App v4 product", "completed", "cancelled"), "cancelled"),
+    (product_jobs("App v4 product", "completed", "success"), "success"),
+    # Another job's failure, or a product job that has not finished, is no conclusion.
+    (product_jobs("full-suite / App v4 checks", "completed", "failure"), None),
+    (product_jobs("full-suite / App v4 product", "in_progress", None), None),
+    ({"jobs": []}, None),
+])
+def test_suite_conclusion_reads_only_the_product_job(jobs, expected):
+    assert nightly_gate.suite_conclusion(jobs) == expected
+
+
+def test_nightly_gate_takes_the_verdict_from_each_runs_product_job(monkeypatch):
+    def fake(path):
+        if path.endswith("/runs/8/jobs?per_page=100"):
+            return {"jobs": [{"name": "changed", "status": "completed", "conclusion": "failure"}]}
+        if path.endswith("/runs/7/jobs?per_page=100"):
+            return product_jobs("full-suite / App v4 product", "completed", "failure")
+        return {"workflow_runs": [{"id": 8, "head_sha": "head", "conclusion": "failure"},
+                                  {"id": 7, "head_sha": "head", "conclusion": "failure"}]}
+
+    monkeypatch.setattr(nightly_gate, "gh_api", fake)
+    recorded = nightly_gate.fetch("owner/repo", "head")
+    assert [item["suite"] for item in recorded["workflow_runs"]] == [None, "failure"]
+    assert nightly_gate.verdict_on("head", recorded, 9)["id"] == 7
+
+
+def test_nightly_gate_runs_the_suite_when_a_runs_jobs_cannot_be_read(monkeypatch):
+    monkeypatch.setattr(nightly_gate, "gh_api", lambda path: None if path.endswith("per_page=100") and "/jobs" in path
+                        else {"workflow_runs": [{"id": 8, "head_sha": "head"}]})
+    assert nightly_gate.fetch("owner/repo", "head") is None

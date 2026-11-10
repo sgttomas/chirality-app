@@ -120,14 +120,16 @@ manual dispatch: the `product` job, including the full `cargo test` run, and
 none of the focused PR jobs.
 
 Its first job, `tools/ci/nightly_gate.py`, skips the suite on a scheduled run
-when any earlier run on main, from any trigger, reached a verdict (success or
-failure) on the same commit. Cancelled runs are not verdicts; a push or manual
-run always runs, and if the earlier runs cannot be read, the suite runs.
+when an earlier run on main, from any trigger, has a suite verdict on the same
+commit. A suite verdict is the `App v4 product` job's own conclusion, success or
+failure: a run stopped by a gate or runner failure, cancelled, or skipped has
+none, whatever the workflow concluded. A push or manual run always runs, and if
+the earlier runs or their jobs cannot be read, the suite runs.
 
 Runs on one ref never cancel one in progress. GitHub keeps only the newest
-waiting run, so when several merges land during a run the merges between are
-not tested on their own, and a failure covers every commit since the last
-passing verdict.
+waiting run, so the latest combined state is what gets tested. A merge whose
+waiting run is replaced is never tested alone, and a failure covers every commit
+since the last verified pass, meaning a run whose `App v4 product` job succeeded.
 
 A full run is slow. Building the Rust tests and running the lib tests
 single-threaded took about 44 minutes when measured, and the integration targets
@@ -139,10 +141,24 @@ The workflow reports a push, scheduled or manual run on main that fails, is
 cancelled or times out: its `report` job, `tools/ci/nightly_report.py`, opens a
 GitHub issue labelled `nightly`, or comments on the open one. The issue carries
 the run URL and the commit SHA on lines of their own, the jobs that did not
-pass, and the commits since the last passing verdict with their PR numbers. Only
-that job can write issues. Agent 0 deals with an open `nightly` issue before
-merging or arming auto-merge. The run is not a PR check and no ruleset requires
-it, so it never blocks a merge.
+pass, and the commits since the last verified pass with their PR numbers. If no
+verified pass is found within the last 200 runs, or they cannot be read, the
+issue says the baseline is unknown and lists no range. Only that job can write
+issues. Commit subjects and job names are escaped so they cannot mention anyone.
+Listing and publishing are retried with backoff; if publishing still fails, the
+job fails visibly.
+
+The independent path is portal, an external assistant that reads the result at
+about 15:00 UTC each day and opens a `nightly` issue on its own. A run that never
+starts has no report job, so only that path catches it.
+
+Whether a merge made through auto-merge starts the push run is unconfirmed until
+the first such merge after this workflow lands. GitHub records an auto-merge as
+merged by the person who armed it, which suggests it does; Agent 0 checks that
+run.
+
+Agent 0 deals with an open `nightly` issue before merging or arming auto-merge.
+The run is not a PR check and no ruleset requires it, so it never blocks a merge.
 
 Frozen examination sources are verified locally without Git fetches. Toolchain
 and package setup in hosted CI retain their existing versions. Local checks use

@@ -10,16 +10,25 @@ import sys
 
 
 WORKFLOW = "nightly-full-suite.yml"
-# Runs that reached a verdict. A run that skipped the suite concludes "success"
-# only because an earlier run already gave a verdict on the same SHA.
+# A suite verdict is this job's own conclusion. The workflow's overall conclusion
+# also covers gate, runner and reporting failures and runs that skipped the suite.
+PRODUCT_JOB = "App v4 product"
 VERDICTS = frozenset({"success", "failure"})
 
 
+def suite_conclusion(jobs: dict) -> str | None:
+    """The product job's conclusion in one run's jobs, or None if it never completed."""
+    for job in jobs.get("jobs", []):
+        # A job in a called workflow is named "<caller job> / <job name>".
+        if job.get("name", "").split(" / ")[-1] == PRODUCT_JOB and job.get("status") == "completed":
+            return job.get("conclusion")
+    return None
+
+
 def verdict_on(head: str, runs: dict, run_id: int) -> dict | None:
-    """Newest completed run on head, from any trigger and other than this one, with a verdict."""
+    """Newest run on head, from any trigger and other than this one, with a suite verdict."""
     for item in runs.get("workflow_runs", []):
-        if (item.get("id") != run_id and item.get("head_sha") == head
-                and item.get("status") == "completed" and item.get("conclusion") in VERDICTS):
+        if item.get("id") != run_id and item.get("head_sha") == head and item.get("suite") in VERDICTS:
             return item
     return None
 
@@ -28,12 +37,12 @@ def decide(event: str, head: str, run_id: int, runs: dict | None) -> tuple[bool,
     if event != "schedule":
         return True, f"`{event}`: the full suite always runs on `{head}`."
     if runs is None:
-        return True, "Earlier runs could not be read, so the full suite runs."
+        return True, "Earlier runs or their jobs could not be read, so the full suite runs."
     previous = verdict_on(head, runs, run_id)
     if previous is None:
-        return True, f"No completed verdict on `{head}` yet, so the full suite runs."
-    return False, (f"`{head}` already has a verdict from {previous.get('event')} run"
-                   f" {previous['id']} ({previous['conclusion']}); the full suite is skipped.")
+        return True, f"No suite verdict on `{head}` yet, so the full suite runs."
+    return False, (f"`{head}` already has a suite verdict from {previous.get('event')} run"
+                   f" {previous['id']} ({previous['suite']}); the full suite is skipped.")
 
 
 def gh_api(path: str) -> dict | None:
@@ -48,10 +57,24 @@ def gh_api(path: str) -> dict | None:
         return None
 
 
-def fetch(repository: str) -> dict | None:
-    # Newest first, every trigger. Fifty runs leave room for cancelled ones between verdicts.
-    return gh_api(f"repos/{repository}/actions/workflows/{WORKFLOW}/runs"
-                  "?branch=main&status=completed&per_page=50")
+def run_jobs(repository: str, run_id: int) -> dict | None:
+    return gh_api(f"repos/{repository}/actions/runs/{run_id}/jobs?per_page=100")
+
+
+def fetch(repository: str, head: str) -> dict | None:
+    """Completed runs on head, each with its suite conclusion; None if any cannot be read."""
+    # One page: a commit does not reach 100 runs, and finding no verdict runs the suite.
+    listed = gh_api(f"repos/{repository}/actions/workflows/{WORKFLOW}/runs"
+                    f"?branch=main&head_sha={head}&status=completed&per_page=100")
+    if listed is None:
+        return None
+    items = []
+    for item in listed.get("workflow_runs", []):
+        jobs = run_jobs(repository, item["id"])
+        if jobs is None:
+            return None
+        items.append({**item, "suite": suite_conclusion(jobs)})
+    return {"workflow_runs": items}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -60,13 +83,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--head", required=True)
     parser.add_argument("--run-id", required=True, type=int)
     parser.add_argument("--repository", required=True)
-    parser.add_argument("--runs-json", type=Path, help="Recorded runs response (tests only).")
+    parser.add_argument("--runs-json", type=Path, help="Recorded runs with suite conclusions (tests only).")
     parser.add_argument("--github-output", type=Path)
     parser.add_argument("--summary", type=Path)
     args = parser.parse_args(argv)
     runs = None
     if args.event == "schedule":
-        runs = json.loads(args.runs_json.read_text()) if args.runs_json else fetch(args.repository)
+        runs = json.loads(args.runs_json.read_text()) if args.runs_json else fetch(args.repository, args.head)
     run, reason = decide(args.event, args.head, args.run_id, runs)
     print(reason)
     if args.github_output:

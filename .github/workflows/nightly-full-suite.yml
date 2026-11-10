@@ -26,7 +26,7 @@ jobs:
       run: ${{ steps.decide.outputs.run }}
     steps:
       - uses: actions/checkout@v4
-      - name: Look for a verdict on this commit
+      - name: Look for a suite verdict on this commit
         id: decide
         env:
           GH_TOKEN: ${{ github.token }}
@@ -54,7 +54,7 @@ jobs:
       always() && github.ref == 'refs/heads/main'
       && needs.changed.outputs.run != 'false' && needs.full-suite.result != 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     permissions:
       actions: read
       contents: read
