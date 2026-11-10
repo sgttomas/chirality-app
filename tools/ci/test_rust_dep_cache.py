@@ -209,12 +209,17 @@ def test_every_macos_job_restores_under_its_own_name_and_saves_last():
 
 
 def test_fork_pull_requests_neither_restore_nor_save():
+    # Exact lines, so a widened condition such as `true || ...` fails here.
+    same = "github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository"
     root = Path(__file__).resolve().parents[2]
-    setup = (root / '.github/actions/app-v4-setup/action.yml').read_text()
+    setup = (root / '.github/actions/app-v4-setup/action.yml').read_text().splitlines()
     save = (root / '.github/actions/app-v4-rust-cache-save/action.yml').read_text()
-    assert "github.event.pull_request.head.repo.full_name == github.repository" in setup
-    assert "if [ \"$SAME_REPOSITORY\" != 'true' ]; then" in setup
-    assert 'echo "key="' in setup
-    restore = setup[setup.index('id: rust-dependencies'):setup.index('actions/cache/restore@')]
+    lines = [line.strip() for line in setup]
+    assert 'SAME_REPOSITORY: ${{ ' + same + ' }}' in lines
+    assert "cache: ${{ (" + same + ") && 'npm' || '' }}" in lines
+    assert sum(line.startswith('cache:') for line in lines) == 1
+    assert "if [ \"$SAME_REPOSITORY\" != 'true' ]; then" in lines
+    assert '{ echo "key="; echo "prefix="; } >> "$GITHUB_OUTPUT"' in lines
+    restore = lines[lines.index('id: rust-dependencies'):lines.index('uses: actions/cache/restore@v4')]
     assert "if: steps.rust-cache-key.outputs.key != ''" in restore
-    assert "if: inputs.key != ''" in save
+    assert "if: inputs.key != '' && inputs.already-cached != 'true'" in save

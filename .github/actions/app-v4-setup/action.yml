@@ -24,7 +24,9 @@ runs:
     - uses: actions/setup-node@v4
       with:
         node-version: '24'
-        cache: npm
+        # Fork PRs restore no cache: an archive written by an earlier revision of the
+        # PR could replace files in the checkout that later steps run.
+        cache: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'npm' || '' }}
         cache-dependency-path: app/package-lock.json
     - uses: dtolnay/rust-toolchain@stable
       with:

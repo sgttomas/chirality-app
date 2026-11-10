@@ -135,11 +135,12 @@ including a control run showing that an unpruned target would run stale code.
 A cache miss, a failed restore, or restored output that cannot be cleaned becomes
 a full build. A failed save never affects the job.
 
-Pull requests from forks neither restore nor save this cache and always compile
-from the checkout. Compiled third-party artifacts are trusted as they were built,
-so an earlier revision of a PR could otherwise leave a modified dependency for a
-later revision of the same PR to reuse. PRs from branches of this repository keep
-the cache: their authors already hold write access.
+Pull requests from forks use neither this cache nor the npm cache, and always
+build from the checkout. A cache archive is trusted as it was written, so an
+earlier revision of a PR could otherwise leave a modified dependency, or a
+replaced file in the checkout, for a later revision of the same PR to run. PRs
+from branches of this repository keep both caches: their authors already hold
+write access and control how the required check becomes green.
 
 ## Nightly full suite
 
