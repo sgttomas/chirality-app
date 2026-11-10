@@ -97,6 +97,7 @@ code_paths:
 - app/src-tauri/src/host_tick.rs
 - app/src-tauri/src/workflow_proposal_advisory.rs
 - app/src/RunOffers.tsx
+- app/src/RunJourney.tsx
 - app/src-tauri/src/run_offers.rs
 - app/src-tauri/src/trial_flows.rs
 - app/src-tauri/src/workflow_trial_source.rs
@@ -123,6 +124,7 @@ code_paths:
 - app/src/App.tsx
 - app/src/DailyWorkspace.tsx
 checks:
+- app/tests/run-journey.test.mjs
 - app/src-tauri/src/workflow_selected_chain_disclosure_tests.rs
 - app/tests/selected-chain-disclosure.test.mjs
 - app/src-tauri/src/workflow_action_result_tests.rs
