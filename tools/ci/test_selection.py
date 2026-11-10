@@ -9,6 +9,7 @@ import subprocess
 import pytest
 import yaml
 
+from tools.ci import nightly_gate
 from tools.ci import select_checks as subject
 
 
@@ -400,8 +401,9 @@ def test_product_workflow_gates_every_job_and_assigns_each_lib_cohort_once():
     assert gate["if"] == "always()" and set(gate["needs"]) == set(jobs)
     focused = {"rust-integration", "rust-lib-node", "sources-packaging"}
     assert set(jobs) == focused | {"product"}
-    assert jobs["product"]["if"] == "github.event_name == 'workflow_dispatch'"
-    assert all(jobs[name]["if"] == "github.event_name != 'workflow_dispatch'" for name in focused)
+    assert jobs["product"]["if"] == "github.event_name == 'workflow_dispatch' || inputs.full_suite"
+    assert all(jobs[name]["if"] == "github.event_name != 'workflow_dispatch' && !inputs.full_suite"
+               for name in focused)
     shards = [jobs[name]["env"]["LIB_COHORTS"].split() for name in ("rust-integration", "rust-lib-node")]
     cohorts = [cohort for shard in shards for cohort in shard]
     assert all(shards) and len(cohorts) == len(set(cohorts))
@@ -411,7 +413,7 @@ def test_product_workflow_gates_every_job_and_assigns_each_lib_cohort_once():
         assert '--lib "$cohort" -- --test-threads=1\ndone' in run
 
 
-@pytest.mark.parametrize("dispatch, focused, full, passes", [
+@pytest.mark.parametrize("full_route, focused, full, passes", [
     ("false", "success success success", "skipped", True),
     ("false", "success failure success", "skipped", False),
     ("false", "success skipped success", "skipped", False),
@@ -422,16 +424,85 @@ def test_product_workflow_gates_every_job_and_assigns_each_lib_cohort_once():
     ("true", "skipped skipped skipped", "failure", False),
     ("true", "success skipped skipped", "success", False),
 ])
-def test_product_result_job_accepts_only_the_event_route(dispatch, focused, full, passes):
+def test_product_result_job_accepts_only_the_event_route(full_route, focused, full, passes):
     root = Path(subject.__file__).resolve().parents[2]
     gate = yaml.safe_load((root / ".github/workflows/app-v4.yml").read_text())["jobs"]["result"]
     env = gate["steps"][-1]["env"]
+    assert env["FULL_ROUTE"] == "${{ github.event_name == 'workflow_dispatch' || inputs.full_suite }}"
     assert env["FOCUSED"] == ("${{ needs.rust-integration.result }} ${{ needs.rust-lib-node.result }}"
                               " ${{ needs.sources-packaging.result }}")
     assert env["FULL"] == "${{ needs.product.result }}"
     result = subprocess.run(["bash", "-e", "-c", gate["steps"][-1]["run"]], capture_output=True,
-                            env={**os.environ, "DISPATCH": dispatch, "FOCUSED": focused, "FULL": full})
+                            env={**os.environ, "FULL_ROUTE": full_route, "FOCUSED": focused, "FULL": full})
     assert (result.returncode == 0) is passes
+
+
+def test_nightly_workflow_calls_the_full_route_only_after_its_gate():
+    root = Path(subject.__file__).resolve().parents[2]
+    product = yaml.safe_load((root / ".github/workflows/app-v4.yml").read_text())
+    full_suite = product.get("on", product.get(True))["workflow_call"]["inputs"]["full_suite"]
+    assert full_suite["type"] == "boolean" and full_suite["default"] is False
+    workflow = yaml.safe_load((root / ".github/workflows/nightly-full-suite.yml").read_text())
+    trigger = workflow.get("on", workflow.get(True))
+    # Not a PR or merge check: nothing can require it.
+    assert set(trigger) == {"schedule", "workflow_dispatch"}
+    assert trigger["schedule"] == [{"cron": "0 9 * * *"}]
+    assert workflow["permissions"] == {"contents": "read"}
+    assert workflow["concurrency"]["cancel-in-progress"] is False
+    jobs = workflow["jobs"]
+    assert set(jobs) == {"changed", "full-suite"}
+    assert jobs["changed"]["permissions"] == {"actions": "read", "contents": "read"}
+    assert jobs["changed"]["outputs"] == {"run": "${{ steps.decide.outputs.run }}"}
+    step = next(step for step in jobs["changed"]["steps"] if step.get("id") == "decide")
+    assert "python3 tools/ci/nightly_gate.py" in step["run"]
+    assert step["env"]["EVENT"] == "${{ github.event_name }}"
+    assert step["env"]["HEAD"] == "${{ github.sha }}"
+    assert step["env"]["RUN_ID"] == "${{ github.run_id }}"
+    assert jobs["full-suite"] == {
+        "needs": "changed", "if": "needs.changed.outputs.run == 'true'",
+        "uses": "./.github/workflows/app-v4.yml", "with": {"full_suite": True}}
+    assert nightly_gate.WORKFLOW == "nightly-full-suite.yml"
+
+
+def runs(*items):
+    return {"workflow_runs": [
+        {"id": run_id, "head_sha": sha, "status": status, "conclusion": conclusion}
+        for run_id, sha, status, conclusion in items]}
+
+
+@pytest.mark.parametrize("event, recorded, expected", [
+    ("workflow_dispatch", None, True),
+    ("schedule", None, True),
+    ("schedule", runs(), True),
+    ("schedule", runs((9, "head", "in_progress", None)), True),
+    ("schedule", runs((8, "head", "completed", "success")), False),
+    ("schedule", runs((8, "head", "completed", "failure")), False),
+    ("schedule", runs((8, "old", "completed", "success")), True),
+    ("schedule", runs((8, "old", "completed", "failure")), True),
+    # A cancelled or startup-failed run gave no verdict; look past it.
+    ("schedule", runs((8, "head", "completed", "cancelled"), (7, "old", "completed", "success")), True),
+    ("schedule", runs((8, "head", "completed", "startup_failure"), (7, "head", "completed", "success")), False),
+    ("schedule", runs((8, "old", "completed", "success"), (7, "head", "completed", "success")), True),
+    # The current run is never its own predecessor.
+    ("schedule", runs((9, "head", "completed", "success")), True),
+])
+def test_nightly_gate_runs_only_when_main_moved_since_the_last_verdict(event, recorded, expected):
+    run, reason = nightly_gate.decide(event, "head", 9, recorded)
+    assert run is expected and reason
+
+
+def test_nightly_gate_writes_outputs_and_never_reads_runs_on_dispatch(tmp_path):
+    recorded = tmp_path / "runs.json"
+    recorded.write_text(json.dumps(runs((8, "head", "completed", "success"))))
+    output, summary = tmp_path / "output", tmp_path / "summary"
+    common = ["--head", "head", "--run-id", "9", "--repository", "owner/repo",
+              "--github-output", str(output), "--summary", str(summary)]
+    assert nightly_gate.main(["--event", "schedule", "--runs-json", str(recorded), *common]) == 0
+    assert output.read_text() == "run=false\n"
+    # Dispatch ignores the recorded runs and never calls gh.
+    assert nightly_gate.main(["--event", "workflow_dispatch", "--runs-json", "/nonexistent", *common]) == 0
+    assert output.read_text() == "run=false\nrun=true\n"
+    assert summary.read_text().count("## Nightly full suite") == 2
 
 
 @pytest.mark.parametrize("path", [
@@ -453,3 +524,18 @@ def test_sweep_pr_paths_replay_without_product_code_changes():
     for pr in json.loads(fixture.read_bytes()):
         results = [subject.classify(change) for change in pr["changes"]]
         assert any(row["checks"] == "product" for row in results) == pr["selects_product"], pr["number"]
+
+
+@pytest.mark.parametrize("returncode, stdout", [(1, ""), (0, "not json")])
+def test_nightly_gate_runs_the_suite_when_earlier_runs_cannot_be_read(monkeypatch, returncode, stdout):
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, returncode, stdout, "refused")
+
+    monkeypatch.setattr(nightly_gate.subprocess, "run", fake_run)
+    assert nightly_gate.fetch("owner/repo") is None
+    assert calls == [["gh", "api", "repos/owner/repo/actions/workflows/nightly-full-suite.yml/runs"
+                      "?event=schedule&branch=main&status=completed&per_page=50"]]
+    assert nightly_gate.decide("schedule", "head", 9, None)[0] is True

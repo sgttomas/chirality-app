@@ -1,0 +1,42 @@
+name: nightly-full-suite
+# Runs every test on main, including lib tests no PR cohort selects. It is not a
+# PR check and no ruleset requires it; a failure is reported as a "nightly" issue.
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nightly-full-suite
+  cancel-in-progress: false
+jobs:
+  changed:
+    name: Main changed since the last nightly verdict
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare with the last scheduled run
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: >-
+          python3 tools/ci/nightly_gate.py --event "$EVENT" --head "$HEAD"
+          --run-id "$RUN_ID" --repository "$REPOSITORY"
+          --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
+  full-suite:
+    needs: changed
+    if: needs.changed.outputs.run == 'true'
+    uses: ./.github/workflows/app-v4.yml
+    with:
+      full_suite: true

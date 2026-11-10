@@ -206,9 +206,10 @@ others have."
 
 For `sgttomas/chirality-app` only, agents may commit, push, open and update PRs
 within authorized work. The Agent 0 of the session that opened a PR, directly
-or through its delegates, merges it after the review its change requires and
-with required checks green on the exact head. Delegated agents report a PR ready
-to merge and wait for Agent 0 to merge it. Explicit holds and reserved decisions
+or through its delegates, merges it after the review its change requires,
+with required checks green on the exact head, and after checking for open
+issues labelled `nightly` and dealing with them first. Delegated agents report
+a PR ready to merge and wait for Agent 0 to merge it. Explicit holds and reserved decisions
 apply.
 This grant excludes protection bypasses, history rewrites, force pushes,
 permission changes and releases. It grants no authority in another repository.
