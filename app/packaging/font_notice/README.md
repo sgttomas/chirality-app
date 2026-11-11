@@ -19,8 +19,7 @@ only the 2019 Sans copyright, so the index lists all three copyright notices.
 
 All eleven files are Git-blob identical to v3 at shared Chirality
 `485051eac923c759238948a54cd7bb094eee4899`,
-`projects/chirality-app-dev/frontend/src/fonts/`, the source recorded by the
-frontend lane in `execution/PKG-01/DEL-01-04/Work/WORKSPACE_SETUP_PRESENTATION.md`.
+`projects/chirality-app-dev/frontend/src/fonts/`, the source the frontend lane used.
 They were added there by commit `f29b27a1fbf1c9a3b770923b2b74567b62f0c038`, whose
 message names `@fontsource/ibm-plex-{sans,serif,mono}` 5.3.0 npm tarballs as the
 source. That upstream claim is not verified: no tarball is available locally and

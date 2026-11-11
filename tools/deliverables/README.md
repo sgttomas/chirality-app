@@ -39,7 +39,7 @@ needs:
   - from: DEL-02-01
     condition: Interface dimensions checked for the selected operating case.
     when: Before issuing the affected drawing.
-    evidence: execution/PKG-01/DEL-01-01/Work/interface.md#basis
+    evidence: app/src-tauri/schemas/interface.schema.json
   - from: unknown
     condition: Identify the source of the equipment rating before its use.
   - from: external:recipient
@@ -56,9 +56,8 @@ holds in the condition and trigger. Distinct needs between the same endpoints
 remain distinct declarations. `needs: []` means none declared yet; it is no
 claim that the deliverable has no needs or that the set is complete.
 
-Generic paths use the shared `Work/` convention. Follow the selected project's
-adopted locality spelling, including App v4 and Piping's existing `Design/`.
-Queries do not select, detect or migrate between locality folder names.
+A deliverable locality is `ScopeOfWork.md` and `deliverable.yaml`; evidence and
+code paths name files in the project's code locations.
 
 The consumer states native upstream needs; reverse links are generated. A
 producer-local `direction: downstream` is available for an actual obligation to

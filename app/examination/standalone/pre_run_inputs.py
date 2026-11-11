@@ -13,22 +13,6 @@ import sys
 import tempfile
 
 
-def deliverable_path(root, relative):
-    """Resolve retained logical identities to current App inputs; never follow Design links."""
-    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
-    if match is not None:
-        if os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
-            return relative
-        relative = match.group(1) + 'Work/' + relative[match.end():]
-    if relative.startswith('execution/'):
-        # Historical/custom evidence trees have no current App-input namespace.
-        # A maintained root never falls back to its authoring execution tree.
-        if not os.path.lexists(os.path.join(root, 'app/contract_inputs')) and os.path.lexists(os.path.join(root, relative)):
-            return relative
-        return 'app/contract_inputs/' + relative[len('execution/'):]
-    return relative
-
-
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 # Generated digests; re-derive with `python3 app/examination/repin.py` (examination/README.md).
@@ -113,7 +97,7 @@ def relative_file(root, relative):
     require(isinstance(relative, str) and relative, 'empty source path')
     require(not PurePosixPath(relative).is_absolute() and '\\' not in relative
             and all(x not in ('', '.', '..') for x in relative.split('/')), 'invalid relative source path')
-    return read_file(Path(root) / deliverable_path(root, relative))
+    return read_file(Path(root) / relative)
 
 
 def load_module(name, path, raw=None):
@@ -124,46 +108,15 @@ def load_module(name, path, raw=None):
 
 
 class PreRunInputs:
-    def __init__(self, current_documentary_root=None, original_support_root=None):
+    def __init__(self):
         pins_bytes = read_file(HERE / 'pre_run_inputs.terms-v1.pins.json')
         require(sha(pins_bytes) == PINS_SHA256, 'pre-run source pins changed')
         self.pins = parse(pins_bytes)
-        producer_path = 'app/examination/standalone/prepare.py'
-        producer_bytes = relative_file(ROOT, producer_path)
-        require(sha(producer_bytes) == self.pins['sources'][producer_path], 'pre-run source drift: preparation helper')
-        projection = load_module('_pre_run_source_projection', ROOT / producer_path, producer_bytes)
-        support_path = 'app/examination/support_identity/support_identity.py'
-        support_bytes = relative_file(ROOT, support_path)
-        require(sha(support_bytes) == self.pins['sources'][support_path], 'pre-run source drift: support helper')
-        publication = load_module('_pre_run_publication_sources', ROOT / support_path, support_bytes)
-        declaration_path = 'app/examination/support_identity/declaration.v1.json'
-        declaration_bytes = relative_file(ROOT, declaration_path)
-        require(sha(declaration_bytes) == self.pins['sources'][declaration_path], 'pre-run source drift: declaration')
-        original_declaration = publication.parse(declaration_bytes)
-        original_root = ROOT if original_support_root is None else Path(original_support_root)
-        original_sources = {name: publication.frozen_publication_source(original_root, ('' + name if original_support_root is None else name), digest)
-                            for name, digest in original_declaration['sources'].items()}
         self.captured = {}
         for relative, expected in self.pins['sources'].items():
-            data = (publication.publication_source(ROOT, relative, expected)
-                    if relative.endswith('.md') and isinstance(expected, str)
-                    else relative_file(ROOT, relative))
-            selected = projection.source_input(expected, data) if isinstance(expected, dict) else data
-            digest = expected['sha256'] if isinstance(expected, dict) else expected
-            require(sha(selected) == digest, 'pre-run source drift: ' + relative)
+            data = relative_file(ROOT, relative)
+            require(sha(data) == expected, 'pre-run source drift: ' + relative)
             self.captured[relative] = data
-        canonical_pins = parse(self.captured['app/examination/support_identity/canonical-pins.terms-v1.json'])
-        for name, digest in canonical_pins['sources'].items():
-            if name.endswith('.md'):
-                original_sources[name] = publication.publication_source(original_root, ('' + name if original_support_root is None else name), digest)
-        condition_path = 'app/examination/support_identity/terms_condition.py'
-        condition = load_module('_pre_run_current_documentary', ROOT / condition_path, self.captured[condition_path])
-        manifest = self.captured['execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v3.json']
-        current_root = ROOT if current_documentary_root is None else Path(current_documentary_root)
-        read = lambda root, path: publication.relative_file(root, deliverable_path(root, path))
-        current_documents, self.documentary_condition = condition.Condition(current_root, manifest, read).capture('sq')
-        self.captured.update({'original-support/' + name: data for name, data in original_sources.items()})
-        self.captured.update({'current-documentary-inputs/' + name: data for name, data in current_documents.items()})
         # Each selected package is exactly the maintained two-file fixture;
         # additional companion files or directories are not silently omitted.
         fixture_root = 'app/examination/standalone/fixtures'
@@ -196,7 +149,7 @@ class PreRunInputs:
         self.snapshot = Path(self.temp.name).resolve()
         try:
             for relative, data in self.captured.items():
-                target = self.snapshot / deliverable_path(self.snapshot, relative)
+                target = self.snapshot / relative
                 target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(data)
             # Snapshot producers verify their pins against the same generated lock.
             (self.snapshot / 'app/examination/pins.lock.json').write_bytes(PIN_LOCK_BYTES)
@@ -204,8 +157,7 @@ class PreRunInputs:
             self.producer = load_module('_b7_pre_run_producer', app / 'examination/standalone/prepare.py')
             self.forms = load_module('_b7_pre_run_blank_forms', app / 'examination/native_forms/native_form.py')
             canonical = load_module('_b7_pre_run_support', app / 'examination/support_identity/canonical.py')
-            self.support = canonical.CanonicalSupport(original_root=self.snapshot / 'original-support',
-                                                      documentary_root=self.snapshot / 'current-documentary-inputs')
+            self.support = canonical.CanonicalSupport()
         except Exception:
             self.close(); raise
 
@@ -221,8 +173,7 @@ class PreRunInputs:
         plan = parse(plan_bytes)
         require(not self.producer.validate(plan), 'plan differs from preserved B7 preparation')
         return {
-            'artifact_kind': 'standalone_pre_run_inputs', 'preparation_version': 2,
-            'documentary_condition': copy.deepcopy(self.documentary_condition),
+            'artifact_kind': 'standalone_pre_run_inputs', 'preparation_version': 3,
             'standing': 'preparation_only', 'plan_sha256': expected_plan_sha256,
             'source_pins_sha256': PINS_SHA256, 'producer_sha256': sha(read_file(Path(__file__))),
             'source_files': copy.deepcopy(self.pins['sources']),
@@ -232,7 +183,7 @@ class PreRunInputs:
                 'method': self.support.declaration['binding_method'],
                 'reader_pins_sha256': sha(self.captured['app/examination/support_identity/canonical-pins.terms-v1.json']),
                 'declaration_sha256': self.support.declaration_sha256,
-                'publication_reference': copy.deepcopy(self.support.declaration['publication_reference']),
+                'predecessor_publication': copy.deepcopy(self.support.declaration['predecessor']),
                 'support_identity': copy.deepcopy(self.support.identity),
                 'producer_use_verified': False, 'result_consumer_adoption': False},
             'candidate_slot': copy.deepcopy(plan['candidate_slot']),

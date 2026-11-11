@@ -202,13 +202,9 @@ fn checkpoint_correction_refusals_and_branches_preserve_warranted_order() {
 
 #[test]
 fn checkpoint_a15_semantic_correction_limits_do_not_become_capture_authority() {
-    let first_line = include_str!(
-        "../../contract_inputs/PKG-04/DEL-04-03/Work/RS_RECORD.valid.act-log.example.jsonl"
-    )
-    .lines()
-    .next()
-    .unwrap();
-    let mut original: Value = serde_json::from_str(first_line).unwrap();
+    let fixtures: Vec<Value> =
+        serde_json::from_str(include_str!("../schemas/fixtures/valid-records.json")).unwrap();
+    let mut original: Value = fixtures[0].clone();
     original["recordId"] = json!("rec:app:original");
     let mut invalid = original.clone();
     invalid["recordId"] = json!("rec:app:invalid");

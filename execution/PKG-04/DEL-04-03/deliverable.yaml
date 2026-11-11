@@ -1,224 +1,170 @@
 id: DEL-04-03
 name: Content-bound decisions and compact run records
 needs:
-- from: external:DEP-001
-  condition: Host-dependent use requires received host implementation evidence and the supplied host receipt/hash/origin
-    references; local fixtures establish only their bounded scenarios.
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: external:Supplied evidence of an actually performed human act
-  condition: The positive faithful-recording fixture uses evidence of an actually performed human act with
-    its person, content, scope, purpose and evidence limits; it does not require manufacturing another act.
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: external:Owner with affected App/SWB contract owners — OI-001/OI-002 rulings for the first increment
-    (APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D2/D3), carried by App DEL-04-01
-  condition: Use the first-increment OI-001/OI-002 rulings (DECISION-1 D2/D3), carried by DEL-04-01, when
-    fixing dependent operation/permission implementation or examination criteria.
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: external:Shared contract, SWB implementation and App/shared contract owners — affected implementation
-    allocation
-  condition: Resolve OI-013/OI-014 host placement/persistence and shared contract/component placement only
-    at their affected design points of need through the responsible owners.
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 - from: DEL-04-01
-  condition: Receive act kinds and classes from App DEL-04-01 for the human-act format.
+  condition: Each act kind has one name and a stated performer, the acts reserved to the person are named,
+    and each operation class has one of five values, with "no policy basis" carrying its reason.
   gating: true
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 - from: DEL-04-02
-  condition: Receive settings-in from App DEL-04-02 for the run record.
+  condition: Each settings version in force, requested or refused for a run is handed over when the run
+    starts and at each change, with its identity, scope, grant values, display states, requester, setting
+    actor and the control's confirmation or refusal.
   gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: DEL-03-01
-  condition: Receive subject content identities and method designations from App DEL-03-01.
+- from: DEL-01-04
+  condition: A person's act on App content is captured only by the App act control, which produces sealed
+    capture evidence with its own identity and the person's identity as the App observes it, for the
+    record to cite.
   gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: DEL-03-02
-  condition: Receive operation outcomes, change-item content identities and receipt links from App DEL-03-02.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: DEL-02-03
-  condition: Receive checkpoint arrival, act request (where it can be identified), act and lapse events
-    and compatibility reports from App DEL-02-03; hold events are retained for the governance phase.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: DEL-03-03
-  condition: Receive external dispatch entries from App DEL-03-03.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 - from: DEL-01-01
-  condition: Receive observed supplier facts (supplied guidance, model and destination, tool-permission
-    settlements) from App DEL-01-01.
+  condition: For each thread and turn the supplier boundary hands over the identity of the guidance it
+    carried, the model and destination the supplier reported, and each tool-permission settlement with
+    the origin of its answer.
   gating: true
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: DEL-05-01
-  condition: Receive a host agent's network-destination events (destination contacted, destination grant,
-    destination declined) from App DEL-05-01, including source/turn-bound unanswered closure with cause turn failed and no grant, per APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: external:OI-021
-  condition: Resolve the affected OI-021 operation-specific addition before fixing dependent operation/permission
-    implementation or examination criteria; ordinary-file authority, faithful attribution and content-bound
-    lapse proceed independently.
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: DEL-02-01
-  condition: Receive the workflow identity tuple and the checkpoint disposition vocabulary from App DEL-02-01
-    for the run record.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: DEL-02-02
-  condition: Receive from App DEL-02-02 the per-run run-start text and run-end line with their content identity
-    and supply-check record, the selection record and the A15 descriptor's reviewed-content and prior-revision
-    relations, as supplied-workflow evidence, preserving the optional requested policy and applied admission evidence on selection/run texts and unknown legacy absence.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: DEL-02-04
-  condition: 'Receive role-supply records from App DEL-02-04: the role guidance supplied at conversation
-    start or a fork, with its source and content identity, the limit account and observations that a stated
-    limit was not kept.'
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 - from: DEL-01-02
-  condition: Hand compact observation evidence, actual observed events and explicit outcome gaps to the
-    App-v4 DEL-04-03 receiving record contract, without creating an authoritative transcript copy or a new
-    human-act schema.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
+  condition: Custody facts are handed over as observed events and stated unknowns, including a request
+    that ended unanswered and an acknowledgement that was not observed.
+  gating: false
+- from: DEL-02-01
+  condition: A workflow has a source-qualified identity whose revision changes with any byte, path or
+    file of its package, a declared checkpoint names the one act it requires, and the checkpoint disposition
+    names are defined.
+  gating: false
 - from: DEL-02-02
-  condition: Supply App v4 DEL-04-03 with the run text and its supply-check record as supplied-workflow
-    evidence; DEL-04-03 declares it upstream.
+  condition: Each run's text is identified by its content identity with the state of its supply
+    check, each selection is recorded with the approval policy requested and the evidence applied,
+    and a registration names the reviewed content it registers and the prior revision of its slot.
   gating: false
-  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
 - from: DEL-02-03
-  condition: App v4 DEL-04-03 receives this slice's report, recording meanings and transfer contract and
-    declares it upstream in its own register; its acts are not transferred here.
+  condition: Each arrival at a declared checkpoint, the request for its act where one can be
+    identified, each act counted toward an arrival, a lapse and the run's end are written as entries
+    of the checkpoint record in the run's log, and each requirement check names the workflow, host,
+    catalog edition and surface it was made on.
   gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
 - from: DEL-02-04
-  condition: Provide the role-specific source identity, actual supplied bytes and enforcement-limit evidence
-    to the content-bound run-record owner through the existing interface.
+  condition: The role guidance supplied at a conversation's start, and for a fork the start supply
+    it inherits, is identified by its source and content identity, with the limits it states and each observation that a stated limit was not
+    kept.
   gating: false
-  evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
 - from: DEL-03-01
-  condition: App v4 DEL-04-03 receives this catalog/read-basis contract (subject content identities and
-    method designations) and declares it upstream in its own register; its acts are not transferred here.
+  condition: Each object or row of a read result carries a host-supplied content identity with the method
+    that produced it, and the App computes no host identity.
   gating: false
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
 - from: DEL-03-02
-  condition: Supply operation outcome semantics and host receipt links to DEL-04-03.
+  condition: Each change item has a content identity and its own disposition, an outcome that was not
+    observed is reported as unknown, and an applied change refers to the host's receipt.
   gating: false
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
 - from: DEL-03-03
-  condition: Supply this adapter's external dispatch entries to App DEL-04-03, which declares them upstream
-    in its own register.
+  condition: Each external dispatch the App observes is produced as a dispatch record naming the operation,
+    the kind of request, the native status and the outcome with who reported it.
   gating: false
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
-- from: DEL-04-01
-  condition: DEL-04-01 supplies operation-policy and human-act meaning to DEL-04-03 for its named consuming
-    responsibility; actual policy content and applicable adopted decisions must be provided.
-  gating: true
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: DEL-04-02
-  condition: Pass visible autonomy settings and during-work changes through the App DEL-04-03 record interface
-    so displayed settings can be compared with corresponding recorded run settings.
+- from: DEL-05-01
+  condition: A host agent's network-destination events (destination contacted, destination grant, destination
+    declined) are reported with the grant or list entry that allowed each contact, and a destination
+    request left unanswered when its turn fails is closed with that cause and no grant.
   gating: false
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
-- from: package:PKG-02
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by PKG-02 workflow
-    definitions/checkpoints.
-  direction: downstream
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: package:PKG-03
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by PKG-03 basis/receipts.
-  direction: downstream
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: package:PKG-06
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by PKG-06 decisions.
-  direction: downstream
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: external:Responsible host implementation owner — host-agent run recording
-  condition: DEL-04-03 supplies shared record meaning and receiving documentation for host-agent runs to
-    use with host receipt references.
-  direction: downstream
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+- from: external:DEP-001
+  condition: SWBPIPE writes, for each host-agent run, a run record with the host project in the shared
+    meaning, names the actor of each human act it records, and keeps its receipts, hashes and origin
+    marks resolvable by reference.
+- from: external:OI-011
+  condition: The App is signed and a signing key for log checkpoints and export manifests is held in the
+    operating system's keychain.
+  when: Before the signed-checkpoint part of AC-009 and the signature part of AC-011 are examined.
+- from: external:person performing the act
+  condition: A person actually performs an act and its capture evidence is supplied with the act's content,
+    scope, purpose and evidence limits, so that the positive faithful-recording case records a performed
+    act and manufactures none.
+  when: Before the positive case of AC-003 is examined.
 code_paths:
-- app/src-tauri/src/model_turn_recorder.rs
-- app/src-tauri/src/runtime_session.rs
-- app/src-tauri/src/hosting.rs
-- app/src-tauri/src/file_act_arrival.rs
-- app/src-tauri/src/act_control_file.rs
-- app/src-tauri/src/file_act_lapse.rs
-- app/src-tauri/src/file_act_view.rs
-- app/src/FileActPanel.tsx
-- app/src-tauri/src/historical_run_learning.rs
-- app/src/App.tsx
-- app/src-tauri/src/lib.rs
-- app/src-tauri/src/records_continuity.rs
-- app/src-tauri/src/act_control.rs
-- app/src-tauri/src/act_control_a15.rs
-- app/src-tauri/src/recorder.rs
+- app/src-tauri/src/records.rs
 - app/src-tauri/src/record_lines.rs
+- app/src-tauri/src/record_relations.rs
+- app/src-tauri/src/record_semantics.rs
+- app/src-tauri/src/schema_validation.rs
+- app/src-tauri/src/recorder.rs
+# model_turn_recorder.rs is shared with DEL-01-01, which supplies the model and destination the
+# supplier reported. Here: writing them as the run record's model entries.
+- app/src-tauri/src/model_turn_recorder.rs
+- app/src-tauri/src/storage.rs
+# records_store.rs is also listed by DEL-07-02 for the placing of its route accounts. The store
+# itself is this deliverable's.
+- app/src-tauri/src/records_store.rs
+- app/src-tauri/src/records_continuity.rs
 - app/src-tauri/src/records_index.rs
 - app/src-tauri/src/records_query.rs
-- app/src-tauri/src/records.rs
 - app/src-tauri/src/records_access.rs
-- app/src-tauri/src/role_record_source.rs
-- app/src-tauri/src/role_observations.rs
-- app/src-tauri/src/records_store.rs
-- app/src-tauri/src/decision_view.rs
-- app/src-tauri/src/record_relations.rs
 - app/src-tauri/src/records_retention.rs
-- app/src-tauri/resources/runtime_core/records-administration.entry.schema.json
+- app/src-tauri/src/records_administration.rs
 - app/src-tauri/src/records_export.rs
 - app/src-tauri/src/records_package.rs
 - app/src-tauri/src/records_package_import.rs
 - app/src-tauri/src/records_package_identity.rs
 - app/src-tauri/src/records_package_controls.rs
-- app/src-tauri/src/records_administration.rs
-- app/tools/verify_records_bag.py
-- app/src-tauri/src/storage.rs
-checks:
-- app/src-tauri/src/model_turn_recorder_tests.rs
-- app/src-tauri/src/runtime_session.rs
+# file_act_lapse.rs and file_act_view.rs are shared with DEL-01-04. Here: the read-only view of
+# a file's recorded acts and the evaluation and recording of lapse when its content changes.
+# The offers and captures that use them are DEL-01-04's.
+- app/src-tauri/src/file_act_lapse.rs
+- app/src-tauri/src/file_act_view.rs
+# standing.rs is shared with DEL-04-02. Here: the lapse states and the comparison of a bound
+# with a current content identity. The standing overlay, the standing facets and the comparison
+# of settings versions are DEL-04-02's.
+- app/src-tauri/src/standing.rs
+# hosting.rs, runtime_session.rs, lib.rs and App.tsx are shared. Here: offering the records
+# capability to a conversation and answering its calls, handing a run's observed items to the
+# record writer and reading recorded runs back, the records-store commands, and the records
+# store panel.
 - app/src-tauri/src/hosting.rs
-- app/src-tauri/src/file_act_arrival_tests.rs
-- app/tests/file-act-arrival.test.mjs
-- app/src-tauri/src/file_act_lapse_tests.rs
-- app/tests/file-act-panel.test.mjs
-- app/src-tauri/src/historical_run_learning_tests.rs
-- app/src-tauri/src/historical_trial_flows_tests.rs
-- app/src-tauri/src/act_control_a15.rs
-- app/src-tauri/src/workflow_library_tests.rs
-- app/src-tauri/src/records_continuity_tests.rs
-- app/supplier_checks/records_delivery.py
-- app/supplier_checks/test_records_delivery.py
+- app/src-tauri/src/runtime_session.rs
+- app/src-tauri/src/lib.rs
+- app/src/App.tsx
+- app/src-tauri/schemas/RS_RECORD.schema.json
+- app/src-tauri/resources/runtime_core/records-administration.entry.schema.json
+- app/src-tauri/resources/runtime_core/records-read-log.entry.schema.json
+- app/tools/verify_records_bag.py
+checks:
 - app/src-tauri/src/record_lines_tests.rs
 - app/src-tauri/src/record_lines_regression_tests.rs
-- app/src-tauri/src/records_index_tests.rs
-- app/src-tauri/src/checkpoint_recorder_tests.rs
-- app/src-tauri/src/records_access_tests.rs
-- app/src-tauri/src/records_access_role_tests.rs
+- app/src-tauri/tests/record_semantics.rs
+- app/src-tauri/tests/record_relations.rs
+- app/src-tauri/src/record_relation_analysis_tests.rs
+- app/src-tauri/tests/schema_validation.rs
+- app/tests/validate-records.test.mjs
+- app/src-tauri/src/model_turn_recorder_tests.rs
 - app/src-tauri/src/records_store_tests.rs
 - app/src-tauri/src/records_store_publication_tests.rs
+- app/src-tauri/src/records_durability_tests.rs
+- app/src-tauri/src/records_scale_tests.rs
+- app/src-tauri/src/records_continuity_tests.rs
+- app/src-tauri/src/records_index_tests.rs
+- app/src-tauri/src/records_access_tests.rs
+- app/src-tauri/src/records_access_role_tests.rs
+- app/supplier_checks/records_delivery.py
+- app/supplier_checks/test_records_delivery.py
 - app/src-tauri/src/records_retention_tests.rs
 - app/tests/records-retention.test.mjs
-- app/tests/verify-records-bag.test.mjs
+- app/src-tauri/src/records_administration_tests.rs
 - app/src-tauri/src/records_export_tests.rs
 - app/src-tauri/src/records_package_tests.rs
 - app/src-tauri/src/records_package_import_tests.rs
 - app/src-tauri/src/records_package_identity_tests.rs
 - app/src-tauri/src/records_package_controls_tests.rs
-- app/src-tauri/src/records_portable_reconstruction_tests.rs
-- app/src-tauri/src/records_administration_tests.rs
 - app/src-tauri/src/records_package_capture_tests.rs
-- app/src-tauri/tests/record_semantics.rs
-- app/src-tauri/tests/record_relations.rs
-- app/src-tauri/src/record_relation_analysis_tests.rs
-- app/tests/validate-records.test.mjs
-- app/contract_inputs/PKG-04/DEL-04-03/Work/prototype/check_cc_r.py
-- app/contract_inputs/PKG-04/DEL-04-03/Work/prototype/run_prototype.py
-- app/contract_inputs/PKG-04/DEL-04-03/Work/prototype/test_minischema.py
-- app/tests/failed_turn_permissions_test.py
-- app/src-tauri/tests/schema_validation.rs
+- app/src-tauri/src/records_portable_reconstruction_tests.rs
+- app/tests/verify-records-bag.test.mjs
+- app/tests/verify_records_bag_test.py
+- app/src-tauri/src/file_act_lapse_tests.rs
+- app/src-tauri/src/file_act_arrival_tests.rs
+- app/tests/file-act-arrival.test.mjs
+- app/tests/file-act-panel.test.mjs
+- app/src-tauri/src/checkpoint_recorder_tests.rs
+- app/src-tauri/src/historical_run_learning_tests.rs
+- app/src-tauri/src/historical_trial_flows_tests.rs
+- app/src-tauri/src/workflow_library_tests.rs
+- app/src-tauri/src/act_control_a15.rs
+- app/src-tauri/src/runtime_session.rs
+- app/src-tauri/src/hosting.rs
+# policy_standing.rs is one check file shared with DEL-04-01 and DEL-04-02. Here: the cases on
+# lapse.
+- app/src-tauri/tests/policy_standing.rs
+# Here: the record of a destination request closed by its turn's failure.
+- app/src-tauri/tests/failed_turn_closure.rs

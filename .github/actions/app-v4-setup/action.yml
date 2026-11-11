@@ -17,10 +17,6 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Provision fixed examination source objects
-      shell: bash
-      working-directory: app
-      run: python3 examination/support_identity/provision_ci_objects.py
     - uses: actions/setup-node@v4
       with:
         node-version: '24'

@@ -34,8 +34,6 @@ class PreRunInputsTests(unittest.TestCase):
         return self.inputs.check(payload, self.api.sha(payload), self.plan)
 
     def test_connected_all_cases_preserve_original_blank_and_missing_inputs(self):
-        _, condition = self.inputs.support.source_condition('current_producer_declaration')
-        self.assertEqual(condition['method'], 'selected-documentary-source-condition/v3-terms')
         self.inputs.check(self.selected, self.selected_sha, self.plan)
         self.assertTrue(self.selection['fixture_roles'])
         self.assertIsNone(self.selection['candidate_slot']['revision'])
@@ -96,27 +94,27 @@ class PreRunInputsTests(unittest.TestCase):
         target = self.inputs.snapshot / relative
         target.write_bytes(target.read_bytes() + b'\n')
         with patch.object(self.api, 'ROOT', self.inputs.snapshot):
-            with self.assertRaisesRegex(ValueError, 'fixture drift'): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
+            with self.assertRaisesRegex(ValueError, 'fixture drift'): self.api.PreRunInputs()
         target.unlink()
         with patch.object(self.api, 'ROOT', self.inputs.snapshot):
-            with self.assertRaises(OSError): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
+            with self.assertRaises(OSError): self.api.PreRunInputs()
 
     def test_unlisted_fixture_companions_and_directories_refuse(self):
         directory = self.inputs.snapshot / 'app/examination/standalone/fixtures/revision-1/invented-pipe-inventory'
         extra = directory / 'extra.py'; extra.write_text('unexpected companion')
         with patch.object(self.api, 'ROOT', self.inputs.snapshot):
-            with self.assertRaisesRegex(ValueError, 'unexpected fixture file'): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
+            with self.assertRaisesRegex(ValueError, 'unexpected fixture file'): self.api.PreRunInputs()
         extra.unlink(); extra.mkdir()
         with patch.object(self.api, 'ROOT', self.inputs.snapshot):
-            with self.assertRaisesRegex(ValueError, 'unexpected fixture directory'): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
+            with self.assertRaisesRegex(ValueError, 'unexpected fixture directory'): self.api.PreRunInputs()
 
     def test_actual_source_and_helper_pin_drift_refuse(self):
         target = self.inputs.snapshot / 'app/examination/standalone/prepare.py'
         target.write_bytes(target.read_bytes() + b'\n')
         with patch.object(self.api, 'ROOT', self.inputs.snapshot):
-            with self.assertRaisesRegex(ValueError, 'source drift'): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
+            with self.assertRaisesRegex(ValueError, 'source drift'): self.api.PreRunInputs()
         with patch.object(self.api, 'PINS_SHA256', '0' * 64):
-            with self.assertRaisesRegex(ValueError, 'pins changed'): self.api.PreRunInputs(current_documentary_root=self.inputs.snapshot / 'current-documentary-inputs', original_support_root=self.inputs.snapshot / 'original-support')
+            with self.assertRaisesRegex(ValueError, 'pins changed'): self.api.PreRunInputs()
         with patch.object(wrapper, 'PINS_SHA256', '0' * 64):
             with self.assertRaisesRegex(ValueError, 'pins changed'): wrapper.consumer()
 
@@ -141,7 +139,7 @@ class PreRunInputsTests(unittest.TestCase):
     def test_duplicate_json_keys_and_nonfinite_values_refuse(self):
         for data in (b'{"x":1,"x":2}', b'{"x":NaN}', b'{"x":Infinity}'):
             with self.assertRaises(ValueError): self.api.parse(data)
-        malicious = self.selected.replace(b'"preparation_version": 2', b'"preparation_version": 2, "preparation_version": 2')
+        malicious = self.selected.replace(b'"preparation_version": 3', b'"preparation_version": 3, "preparation_version": 3')
         with self.assertRaisesRegex(ValueError, 'duplicate'):
             self.inputs.check(malicious, self.api.sha(malicious), self.plan)
 

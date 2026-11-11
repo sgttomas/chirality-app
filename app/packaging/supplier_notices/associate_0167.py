@@ -47,9 +47,15 @@ RESPONSES = ('root-tree.json', 'third_party-tree.json', 'third_party-v8-tree.jso
              'codex-rs-tree-recursive.json', 'scripts-tree.json', 'scripts-codex_package-tree.json',
              'latest-release.json', 'release-tag-object.json')
 ROOT_TEXTS = 'app/packaging/supplier_notices/codex-0.160.0'
-# rg release selector files received for 0.160.0 (approved receipt 2026-11-02).
-RECEIVED_SELECTOR = 'execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102{}/sources/codex/scripts/codex_package/{}'
-SELECTOR_FILES = (('rg', ''), ('ripgrep.py', '-four'))
+# rg release selector files of Codex 0.160.0, kept as received beside this reader:
+# name -> (size, SHA-256, Git blob SHA-1).
+SELECTOR_DIR = 'app/packaging/supplier_notices/codex-0.160.0/scripts/codex_package'
+SELECTOR_FILES = {
+    'rg': (2592, '41a10ca63365560d899a82b6f825fd7b420a18b34f660a98bffeece77eeae1f1',
+           '3b7c34843aaafe4cf26a87b3daf5806195d4bb0e'),
+    'ripgrep.py': (862, 'c70947d6f7df1aa5daeca3d0fa48e65a32ee38b4f6b35694f87b2e65a4467e32',
+                   '155c5d323ec60ba9fc2dfafd807145f8b26fb38b'),
+}
 SUPPLIER_BINARIES = ('bin/codex', 'bin/codex-exec-server', 'bin/codex-code-mode-host', 'codex-path/rg')
 # Exact byte patterns; a count of zero shows only that this pattern is absent.
 MARKERS = {
@@ -84,6 +90,13 @@ def blob(raw):
 
 def read(path):
     raw, digest, size = reader.transfer(Path(path).absolute(), retain=True)
+    return raw, digest, size
+
+
+def received_selector(name, directory=None):
+    """Read one received 0.160.0 selector file and refuse it unless its bytes carry the recorded identity."""
+    raw, digest, size = read(Path(directory or ROOT / SELECTOR_DIR) / name)
+    require((size, digest, blob(raw)) == SELECTOR_FILES[name], 'received Codex selector changed: ' + name)
     return raw, digest, size
 
 
@@ -165,8 +178,8 @@ def build(vendor, previous_vendor, metadata):
             'scripts/codex_package tree mismatch')
     selector_entries = {e['path']: e for e in codex_package['tree']}
     selectors = []
-    for name, receipt in SELECTOR_FILES:
-        raw, digest, size = read(ROOT / RECEIVED_SELECTOR.format(receipt, name))
+    for name in SELECTOR_FILES:
+        raw, digest, size = received_selector(name)
         entry = selector_entries[name]
         selectors.append({'path': 'scripts/codex_package/' + name, 'size_bytes': entry['size'],
                           'git_blob_sha1': entry['sha'], 'received_0160_sha256': digest,

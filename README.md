@@ -60,24 +60,23 @@ It identifies delivery owners, next results and the evidence still needed.
 Chirality makes a general agent act within and for a host application. Its
 workflow-authoring App is the exemplar. [Chirality thesis](https://github.com/sgttomas/chirality-library/blob/main/docs/thesis/README.md)
 develops the reasons for its form; product commitments are in the [PRD](docs/PRD.md),
-its companions and the deliverable Scopes of Work and `Work/` material.
+its companions and the deliverable Scopes of Work.
 
 Development enters through the [init prompt](init-prompt.md) and the
 [repository instructions](AGENTS.md). Deliverables live
 in `execution/PKG-nn/DEL-nn-nn/`: `ScopeOfWork.md` holds commitments and acceptance
-criteria, `Work/` holds contracts and open implementation conditions, and
-`deliverable.yaml` states needs and code/check pointers. Query their inputs and
+criteria, and `deliverable.yaml` states needs and code/check pointers. The code,
+tests, schemas and fixtures they point to live under `app/` and `tools/`. Query their inputs and
 consumers with the [deliverables tools](tools/deliverables/README.md).
 For the toolchain, build and launch instructions, start with the
 [App developer start](app/README.md#developer-start). The rest of that README
 describes the current product path, checks and remaining qualification limits.
 
 The [current manual selection](execution/_Coordination/CURRENT_EXECUTION_BASIS.md)
-applies to forward development. The [current SWBPIPE receiving account](execution/PKG-09/DEL-09-06/Work/SWBPIPE_RECEIVING_BINDING.md)
-identifies the selected integration sources and evidence limits. The
+applies to forward development. The
 [historical SWB/Domain interface basis](execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md)
 retains the dated relay and adoption record. New contract gaps belong in their
-owning deliverable's `Work/`; PR descriptions carry the history of their fixes.
+owning deliverable's scope; PR descriptions carry the history of their fixes.
 
 ### User documentation
 
@@ -113,7 +112,7 @@ These sources preserve history; they do not define a standing development backlo
 |---|---|
 | [docs/](docs/) | PRD, architecture, host integration, examination and operating method |
 | [app/](app/) | Rust host, web view and maintained product checks |
-| [execution/](execution/) | Deliverable contracts, `Work/` material and dependency conditions |
+| [execution/](execution/) | Deliverable scopes of work and dependency conditions |
 | [reference/](reference/) | Identified source revisions and inventories |
 
 ## License

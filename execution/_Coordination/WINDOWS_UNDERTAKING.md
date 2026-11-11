@@ -168,10 +168,7 @@ No AC-004 exclusive stack-witness window is currently planned by SWBPIPE.
 
 The first App feasibility return is committed at
 `716a8e795968b82c42f84cf67f26ad817d64bdfe` and integrated through a merge
-commit. Its owning records are
-`../PKG-01/DEL-01-01/Design/WINDOWS_FEASIBILITY.md` and
-`../PKG-01/DEL-01-01/Design/WINDOWS_PROVISIONING.md`, with source-pinned
-acquisition/package JSON beside them. Independent Type 2 scrutiny examined
+commit. Its owning deliverable is DEL-01-01. Independent Type 2 scrutiny examined
 `61e12b8e92445903e5fb3edc90b9098d121fb043`; its two planning findings were
 repaired in the returned revision. Agent 0 inspected the actual review return,
 the repair delta and integration, including the 78 GiB estimated simultaneous
@@ -255,16 +252,16 @@ local P-01 repair: ordered creation instrumentation, retained descendant
 HANDLE/membership proof and a deliberate early-escape negative control.
 The returned contract/trace/evidence files were preserved byte for byte.
 
-`execution/PKG-01/DEL-01-02/Design/WINDOWS_PLATFORM_SERVICES.md` records proposed process,
-namespace, lock, publication and SQLite probe gates. SQLite 3.46.0 supports
+DEL-01-02 owns the proposed process, namespace, lock, publication and SQLite
+probe gates. SQLite 3.46.0 supports
 actual opened-main HANDLE retrieval through its public file-control API;
 that does not resolve open-time/sidecar races or the Windows directory-sync
 gap. App crash cleanup and Windows durable confirmation remain reserved,
 unselected policy/profile questions. Fixtures may compare candidate behavior
 without selecting a production policy or inventing durable success.
 
-`execution/PKG-03/DEL-03-03/Design/WINDOWS_APP_SWB_TRACE.md` identifies production App receiving
-of person-selected documents and test-compiled submission seams. No live
+DEL-03-03 owns production App receiving of person-selected documents and the
+test-compiled submission seams. No live
 App-to-SWB transport or durable external submission receipt is established.
 The first Windows App milestone remains standalone. The provisioning
 amendment proposes a full short-path App checkout; generated paths remain

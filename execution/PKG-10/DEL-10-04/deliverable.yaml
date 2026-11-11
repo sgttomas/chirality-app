@@ -2,46 +2,42 @@ id: DEL-10-04
 name: Project production dependency DAG
 needs:
 - from: DEL-10-01
-  condition: Graph production consumes applicable execution-basis and manual-application records from App
-    DEL-10-01 at the actual point of need.
+  condition: The execution basis identifies the accepted decomposition and the amendments it is read with,
+    so that the node inventory is taken from the accepted allocation.
+  when: Before the node inventory of a version is fixed.
   gating: true
-  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
 - from: DEL-10-02
-  condition: Graph production consumes applicable current undertaking work-graph, control and practice-feedback
-    records from App DEL-10-02 at the actual point of need.
+  condition: Graph preparation, carried as an undertaking, keeps its briefs, returns and independent-check
+    account under the undertaking controls, so that who assembled a candidate and who examined it can be
+    recovered.
+  when: When a candidate graph is assembled and examined.
   gating: false
-  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
 - from: DEL-10-03
-  condition: Graph production consumes applicable shared responsibility and technical-promise records from
-    App DEL-10-03 at the actual point of need.
+  condition: Where the responsibility account names the owner of a shared contract part, of a technical promise
+    or of a contribution from outside the project, the owner it names is available for the graph's relationships
+    and interface account to carry.
+  when: When the graph or its interface account draws a relationship or an outside owner from that account.
   gating: true
-  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
-- from: doc:execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/SOFTWARE_DECOMP.md
-  condition: Graph production uses accepted allocation to freeze its node inventory independently of dependency-file
-    availability.
-  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
+- from: doc:execution/_Decomposition/Deliverables.csv
+  condition: The accepted decomposition lists the project's deliverables with their packages and interfaces;
+    that list is the node inventory.
 - from: doc:execution
-  condition: Graph production consumes applicable local contracts, source dependency registers and human
-    declarations with frozen provenance and original standing.
-  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
-- from: doc:execution/_Decomposition
-  condition: Graph examination consumes current relevant external contribution and open-matter records to
-    preserve project-qualified owners, standing, conditions and points of need.
-  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
-- from: doc:workflows/project-dag/WORKFLOW.md
-  condition: Future graph production uses the selected project-dag method, including its basis/version checkpoints
-    and current-basis handoff.
-  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
-- from: doc:Independent graph examination record
-  condition: The version decision package includes independent examination by an instance separate from
-    graph assembly, with findings and candidate-bound rechecks.
-  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
-- from: external:Human owner — actual graph basis and version decisions
-  condition: Graph acceptance/publication requires the actual human basis and version decisions with actor,
-    custody, subject hashes and qualifications; only the actually accepted version may be published as accepted.
-  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
-- from: DEL-10-03
-  condition: Supply relevant responsibility-account relationships to the project production DAG contribution
-    owned by DEL-10-04, without accepting an instrument or establishing an accepted dependency edge.
-  gating: true
-  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
+  condition: Every deliverable locality holds a ScopeOfWork.md and a deliverable.yaml whose needs state that
+    deliverable's upstream conditions.
+- from: doc:execution/_Decomposition/External_Dependencies.csv
+  condition: Each contribution awaited from outside the project is listed with its supplier, the contribution
+    required, its point of need and its present satisfaction.
+- from: doc:execution/_Decomposition/Open_Issues.csv
+  condition: Each open matter bearing on an outside contribution is listed with its owner, its point of need
+    and the resolution required.
+- from: external:independent examiner
+  condition: An examiner that did not assemble the graph examines the candidate and returns its findings and
+    its rechecks of what changed, each tied to the candidate it concerns.
+  when: Before the version package is put to the owner.
+- from: external:owner
+  condition: The owner decides the graph's basis and accepts a version, each decision naming the exact content
+    it covers, and decides any cut or merge of a cycle and the acceptance or rejection of a departure.
+code_paths:
+- tools/deliverables/**
+checks:
+- tools/deliverables/test_cli.py

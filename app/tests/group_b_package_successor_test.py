@@ -272,7 +272,7 @@ class PackageSuccessorReceivingTests(unittest.TestCase):
         self.assertIn('static supplier closure', str(report['missing_selected_inputs']))
 
     def test_staged_producer_never_falls_back_to_ambient_repository(self):
-        source = 'app/contract_inputs/PKG-01/DEL-01-06/Work/package-successor-v1/packaged-s4-binding.v1.schema.json'
+        source = 'app/packaging/successor/packaged-s4-binding.v1.schema.json'
         self.assertTrue((APP.parent / source).is_file())
         staged = Path(self.f.receiver.producer_snapshot.name) / source
         staged.unlink()

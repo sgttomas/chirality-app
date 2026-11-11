@@ -10,11 +10,10 @@ fn requested(cause: Cause) -> StopRequest {
 }
 
 #[test]
-fn embedded_schema_is_the_design_schema_and_its_examples_hold() {
-    assert_eq!(SCHEMA.as_bytes(), include_bytes!("../../contract_inputs/PKG-01/DEL-01-02/Work/recovery.stop-request.schema.json"), "embedded copy is byte-identical to the Design schema");
-    let valid: Value = serde_json::from_str(include_str!("../../contract_inputs/PKG-01/DEL-01-02/Work/recovery.stop-request.example.valid.json")).unwrap();
+fn embedded_schema_examples_hold() {
+    let valid: Value = serde_json::from_str(include_str!("../resources/runtime_core/recovery.stop-request.example.valid.json")).unwrap();
     validate(&valid).unwrap();
-    let invalid: Value = serde_json::from_str(include_str!("../../contract_inputs/PKG-01/DEL-01-02/Work/recovery.stop-request.example.invalid.json")).unwrap();
+    let invalid: Value = serde_json::from_str(include_str!("../resources/runtime_core/recovery.stop-request.example.invalid.json")).unwrap();
     let cases: Vec<Value> = match &invalid { Value::Array(items) => items.clone(), other => vec![other.clone()] };
     for case in cases {
         let record = case.get("instance").cloned().unwrap_or(case);

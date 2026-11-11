@@ -2,238 +2,87 @@ id: DEL-09-02
 name: Standalone App candidate qualification
 needs:
 - from: DEL-01-01
-  condition: Receive supplier hosting/protocol contribution and scoped feature checks from DEL-01-01 before
-    the relevant joined native/protocol witness; actual selected supplier identity must apply.
+  condition: The candidate hosts the stock supplier at one identified pin, and recorded exchanges
+    captured at that pin are available for seam replay.
   gating: true
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: DEL-01-02
-  condition: Receive durable execution/request recovery contribution and focused recovery checks from DEL-01-02
-    before V4-EXM-11 recovery observations on the same candidate; provider/rendered and settlement/acknowledgment
-    distinctions stay explicit.
+  condition: Work and outstanding requests survive loss of the window; a stop interrupts the turn;
+    a grant or denial settles its request; after a confirmed quit and relaunch the person can continue
+    the conversation and see prior events, with turns interrupted by the quit and requests pending
+    at the stop shown as such, and an unavailable outcome shown as unknown.
   gating: true
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: DEL-01-03
-  condition: Receive native planning/tool/delegation-view contribution and scoped feature checks from DEL-01-03
-    before V4-EXM-10 native plan/revision and substantive tool observations.
+  condition: The native views show a plan and its revisions, each tool outcome, and delegated children
+    with their own state.
   gating: true
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: DEL-01-04
-  condition: Receive native interaction-view contribution and scoped request/outcome checks from DEL-01-04
-    before the joined request/grant/denial witness; outstanding requests and truthful outcomes require actual
-    evidence.
+  condition: Each request is shown with its outcome, and the act control captures an act a person
+    performs and shows an unperformed act as not performed.
   gating: true
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: DEL-01-05
-  condition: Before V4-EXM-12 (ChatGPT sign-in and oMLX/local access configured concurrently, one
-    conversation using each), receive DEL-01-05's identified account/provider inputs and focused native
-    sign-in/concurrent-mode checks; a missing usable mode is an input gap or observed failure.
+  condition: ChatGPT sign-in and a local model server can be configured together, each can be chosen
+    per conversation, and a new conversation has no model selected until the person chooses.
   gating: true
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: DEL-01-06
-  condition: Documentary terms receiving selects the explicit v3-terms successor for approved PK-R4/section
-    9 without changing historical support or inferring release. Receive DEL-01-06's packaged candidate input
-    and packaging evidence before the native packaged witness; signing/notarisation/entitlement disposition
-    remains open under OI-011, and OI-007 public-release terms do not gate owner-use qualification.
+  condition: An installable macOS package of the identified candidate exists with its package identity
+    record and an install-and-launch observation.
   gating: true
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
+  when: Before the native packaged witness.
 - from: DEL-02-01
-  condition: Receive workflow declarations and scoped feature evidence from DEL-02-01 before V4-EXM-10 declared
-    inputs/tools/checkpoints/outputs/evidence and source-qualified identity examination.
+  condition: A workflow carries a declared part (inputs, tools, human checkpoints, outputs, evidence)
+    and a source-qualified identity.
   gating: true
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: DEL-02-02
-  condition: Receive complete workflow-making contribution and focused workflow evidence from DEL-02-02,
-    including cross-session LS-1 reuse under the person's workflow approval policy and truthful selection/run approval evidence;
-    sealed cold admission and the keychain-held approval policy retain their signing-stage qualification conditions
-    before the joined create/trial/review/register/reuse/refine witness; focused evidence does not substitute
-    for the actual joined run.
+  condition: Through the App alone a person can create, trial, review, register, reuse and refine
+    a workflow, can carry out J1 with real execution, and can carry out J2 as one sequence across
+    two sessions, no step requiring an agent to operate or explain an App control; changed material
+    stays a draft until reviewed registration, a same-name entry from another origin neither overwrites
+    nor rebinds a selection, and a saved workflow runs in a later session on new inputs under the
+    person's workflow approval policy with the same source and revision, its selection and run records
+    stating the policy requested and the approval evidence applied.
   gating: true
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: DEL-02-03
-  condition: Receive capability/checkpoint execution contribution and scoped feature evidence from DEL-02-03
-    before the joined workflow/checkpoint witness with each act retaining its separate meaning.
+  condition: A human checkpoint in a workflow run is recorded only when the person performs it, and
+    each act keeps its own meaning.
   gating: true
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: DEL-04-01
-  condition: Before the affected policy examination, receive DEL-04-01's adopted operation-policy representation
-    and scoped feature evidence, carrying the first-increment D2/D3 rulings (ScopeOfWork TBD-001); only
-    unruled operation-specific additions defer under OI-021, and actual-human-act, false-attribution and
-    explicit-registration criteria apply.
+  condition: The operation policy names the acts reserved to a person and keeps them apart from routine
+    tool permission.
   gating: true
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: DEL-04-03
-  condition: Receive content-bound act/run record contribution and scoped feature evidence from DEL-04-03
-    before the positive actual-human-act and pending/unperformed-act witnesses, bound to actor/content/scope/purpose.
+  condition: Act and run records bind each act to its actor, content, scope and purpose, record a
+    performed act faithfully with the actor distinct from the recorder, and show an unknown outcome
+    as unknown.
   gating: true
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
 - from: DEL-09-01
-  condition: Receive current reusable examination support and evidence protocol from DEL-09-01 before candidate/configuration/date
-    outcome capture, native/browser distinction and independent examination; no second record protocol or
-    prior component-pass substitution.
+  condition: Result, review and change-impact records and the candidate identification record have
+    formats and checks that refuse a record with a missing input or a mislabelled route, and a part
+    that needs native evidence passes only on a native route.
   gating: true
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
-- from: unknown
-  condition: The respective executable witness requires the identified actual App candidate and applicable
-    contributions; bind candidate revision/build, harness/model/server configuration and observation date,
-    keeping all three named scenarios on the same candidate.
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
-- from: external:Person performing the observed human act
-  condition: The positive faithful-recording witness requires a person actually to perform the observed
-    act; review, registration, grant and denial retain separate actors, content, scope, purpose and evidence.
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
-- from: external:OI-021
-  condition: Obtain a decision only for operation-specific additions to the adopted first-increment D2/D3
-    policy, from the owner via the outside SWB session and the App/shared owner, before the connected-activity
-    SoW and its affected contracts or examination criteria; only the dependent unruled criterion defers,
-    and OI-001/OI-002 choices are not reopened.
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
-- from: external:OI-008
-  condition: 'Met 2026-10-10: the owner''s OI-008 ruling places file and record writes, Codex interaction
-    and act capture in the Rust host and limits the web view to presentation and person-initiated sends,
-    preserving main-process session/request ownership; qualification uses this disposition.'
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
-- from: external:OI-009
-  condition: Before account integration, consume the owner and App implementation owner's separated-versus-shared
-    Codex account-state disposition (OI-009, open); qualification does not assume the v3 overlay.
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
-- from: external:OI-010
-  condition: Standalone OpenAI API-key qualification is omitted for this increment; obtain supported
-    pinned-protocol account behavior before any later owner-selected API-key scope. Account and
-    oMLX/local credential support remain required through the adopted Codex-custody dedicated local
-    home; native secure entry and renderer receiving are implemented, while actual keyed oMLX compatibility
-    and candidate-bound qualification remain open.
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
+- from: external:person operating the candidate
+  condition: A person operates the candidate and performs the reviews, registrations, request
+    answers, quit confirmation and sign-in that the journeys contain.
 - from: external:OI-011
-  condition: Obtain the App implementation owner and SWB owner's signing/notarisation/Codex-entitlement
-    disposition (OI-011, open) before the packaged distribution witness; packaging evidence arrives through
-    DEL-01-06.
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
-- from: external:OI-012
-  condition: Receive DEL-01-01's development and generated-reference basis, reviewed SUP1 0.160.0 (its ScopeOfWork
-    [S], CLM-003, REQ-006, TBD-002; local TBD-003), and bind the qualification pin to the actual candidate
-    at build time under R23-22. Qualified distribution identity and App qualification remain owed; historical
-    observations keep their pin.
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
+  condition: Signing, notarisation and supplier entitlements of the packaged candidate are decided
+    by the App implementation owner with the SWBPIPE owner.
+  when: Before the packaged distribution witness.
 - from: external:DEP-005
-  condition: Receive the published stock protocol, packaging interfaces and compliant configured endpoints
-    before their respective implementation/qualification witnesses; an actual usable mode and identified
-    applicable version/configuration must exist for its witness.
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
-- from: DEL-01-01
-  condition: App v4 DEL-09-02 receives the hosting/protocol contribution and scoped feature checks from
-    this supplier boundary before its joined native/protocol witness; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
-- from: DEL-01-02
-  condition: Hand the durable execution/request-recovery contribution to App v4 DEL-09-02 for its recovery
-    witness; the witness and its observations stay with DEL-09-02.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
-- from: DEL-01-03
-  condition: Hand this slice's native plan/tool/delegation views and focused checks to App DEL-09-02 before
-    its witness; the witness stays with DEL-09-02.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
-- from: DEL-01-04
-  condition: Hand this slice's native interaction view and scoped request/outcome checks to App DEL-09-02
-    before its joined request witness; the witness stays with DEL-09-02.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: DEL-01-05
-  condition: Hand the account/provider inputs and the focused sign-in and concurrent-mode checks to App
-    DEL-09-02 for V4-EXM-12; the witness stays with DEL-09-02.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
-- from: DEL-02-01
-  condition: App v4 DEL-09-02 receives this portable workflow/role/checkpoint contract and shared allocation
-    and declares it upstream in its own register; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: DEL-02-02
-  condition: Supply candidate-bound local workflow fixture results, focused evidence and remaining receiving
-    limits to DEL-09-02 for independent joined standalone candidate qualification.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
-- from: DEL-02-03
-  condition: App v4 DEL-09-02 receives this slice's report, recording meanings and transfer contract and
-    declares it upstream in its own register; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-04-03
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-09-02,
-    which the source states declares it upstream in its own register.
-  gating: true
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: DEL-09-01
-  condition: Supply reusable examination support and evidence interfaces to the named owner of DEL-09-02
-    for its own scoped work.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+  condition: The stock supplier's published protocol, a ChatGPT account, and a local model server
+    presenting a compliant endpoint with its credential are available in the versions the candidate
+    was built and configured for.
 code_paths:
-- app/examination/native_support/native_b_retained_v8.py
-- app/examination/native_support/native_b_retained_v7.py
-- app/examination/native_support/native_b_ax_route.py
-- app/examination/sq_receiving/receive_packages.py
-- app/examination/sq_receiving/worker_packages.py
-- app/examination/native_support/native_b_retained_v6.py
-- app/examination/native_support/native_b_retained_v5.py
-- app/examination/native_support/native_b_retained_v4.py
-- app/examination/native_support/native_b_retained_v3.py
-- app/examination/native_support/native_b_retained_v2.py
-- app/examination/native_support/native_b_window.py
-- app/examination/native_support/native_b_window_helper.py
-- app/examination/native_support/native_b_screen_route.py
-- app/examination/native_support/native_b_slot_entry.py
-- app/examination/native_support/native_b_typed_ax.py
-- app/examination/native_support/typed_ax/reader.c
-- app/examination/native_support/typed_ax/reader.h
-- app/examination/native_support/typed_ax/build.py
-- app/examination/native_support/native_b_retained.py
-- app/examination/native_support/native_b_diagnostic.py
-- app/examination/native_support/native_b_ax.py
-- app/examination/native_support/native_b_release.py
-- app/examination/native_support/native_successor_relaunch.py
-- app/examination/native_support/native_successor_setup.py
-- app/examination/native_support/native_setup_continuation.py
-- app/examination/standalone/prepare.py
-- app/examination/standalone/pre_run_inputs.py
-- app/examination/native_forms/native_form.py
-- app/examination/native_forms/pre_run_form.py
-- app/examination/sq_receiving/receive.py
-- app/examination/sq_receiving/worker.py
+- app/examination/standalone/**
+- app/examination/native_forms/**
+- app/examination/sq_receiving/**
+- app/examination/native_support/**
 checks:
-- app/examination/native_support/test_native_b_retained_v8.py
-- app/examination/native_support/test_native_b_ax_route.py
-- app/examination/native_support/test_native_b_retained_v7.py
-- app/tests/group_b_package_successor_test.py
-- app/examination/native_support/test_native_b_retained_v6.py
-- app/examination/native_support/test_native_b_retained_v5.py
-- app/examination/native_support/test_native_b_initial_stability.py
-- app/examination/native_support/test_native_b_retained_v4.py
-- app/examination/native_support/test_native_b_retained_v3.py
-- app/examination/native_support/test_native_b_modal.py
-- app/examination/native_support/test_native_b_screen_integration.py
-- app/examination/native_support/test_native_b_retained_v2.py
-- app/examination/native_support/test_native_b_window.py
-- app/examination/native_support/test_native_b_window_helper.py
-- app/examination/native_support/test_native_b_screen_route.py
-- app/examination/native_support/test_native_b_slot_entry.py
-- app/examination/native_support/test_native_b_typed_ax.py
-- app/examination/native_support/test_native_b_retained.py
-- app/examination/native_support/test_native_b_diagnostic.py
-- app/examination/native_support/test_native_b_guard.py
-- app/examination/native_support/test_native_b_ax.py
-- app/examination/native_support/test_native_b_release.py
-- app/examination/native_support/test_native_b_profile.py
-- app/tests/group_b_terms_successor_test.py
-- app/examination/native_support/test_native_successor_relaunch.py
-- app/examination/native_support/test_native_successor_setup.py
-- app/examination/native_support/test_native_relaunch_policy.py
-- app/examination/native_support/test_native_setup_continuation.py
-- app/contract_inputs/PKG-09/DEL-09-02/Work/prototype/check_sq.py
+- app/examination/native_support/test_*.py
 - app/tests/group_b_standalone_test.py
 - app/tests/group_b_pre_run_inputs_test.py
 - app/tests/group_b_native_forms_test.py
 - app/tests/group_b_sq_receiving_test.py
-- app/tests/group_b_distribution_receiving_test.py
-- app/tests/group_b_terminal_receiving_test.py
+- app/tests/group_b_sq_dossier_rules_test.py
+- app/tests/group_b_package_successor_test.py
+- app/tests/group_b_fixture_tools_test.py
+- app/tests/group_b_fixture_preflight.py
+- app/tests/group_b_fixture_consumer.rs

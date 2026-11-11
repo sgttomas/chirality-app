@@ -1,32 +1,38 @@
 id: DEL-08-01
 name: Domains query, admission and freshness contract
 needs:
-- from: DEL-05-01
-  condition: 'Before reliance, use DEL-05-01''s embedded-integration receiving requirements and demonstrate
-    query/tool compatibility with the host-agent destination constraint (PRD V4-HOST-02 as revised by APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5:
-    data goes only to the person''s selected model service and allowed destinations).'
-  gating: true
-  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
 - from: DEL-07-02
-  condition: Use the common connector limitation/source-file recovery behavior for Domains-specific unavailable,
-    unsuitable and stale-source cases.
+  condition: Connector standing has a published form with an envelope, a condition and a claim tier and
+    a reason for each; with no response the condition is absent and the envelope and tier are unknown;
+    and reliance is supported only by an adopted envelope, a current condition and the connector's reliable
+    tier, which for Domains is admitted.
+  gating: true
+- from: DEL-07-02
+  condition: With Domains material absent, stale or not admitted, the App shows the limitation and gives
+    the source-file route for the affected question, whatever the state of PEC.
   gating: false
-  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
-- from: external:chirality-app-v4:DEP-003
-  condition: Actual Domains query access and source-admission evidence are required before research-context
-    reliance; local receiving definition can continue without them.
-  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
-- from: unknown
-  condition: Candidate fixtures require admitted test sources against identified query meanings, with source
-    references, standing, freshness and limitations; source identities and the admission party remain unresolved
-    under OI-023, and unsupplied input leaves affected cases unexercised.
-  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
-- from: external:chirality-app-v4:OI-023
-  condition: Receive the actual OI-023 source-admission, query/provenance/freshness, workflow/receiving
-    milestone and compatible deployment/data-boundary resolutions at their points of need before the later
-    Domains-enabled design increment.
-  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
-- from: external:chirality-app-v4:OI-026
-  condition: Receive the actual provider-construction allocation and receiving-boundary resolution (OI-026,
-    unresolved) before allocating Domains provider production and committing integration.
-  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
+- from: DEL-05-01
+  condition: The host-loop receiving contract has a host's agent send data only to the model service the
+    person selected and to destinations the person has allowed, records and shows every destination contacted,
+    and has cases for an allowed, a requested and a disallowed destination.
+  gating: true
+- from: external:DEP-003
+  condition: A Domains query tool answers a research question under an identified query contract with
+    located source passages, each carrying its source reference, the revision indexed and its admission
+    state, and an admitting party supplies the admission basis naming each admitted source, its revision
+    and its intended use.
+  when: Before fixtures are prepared on admitted test sources and before any result is relied on as research
+    context. Who builds the provider and who admits sources are unallocated.
+- from: external:OI-023
+  condition: The owner, with the Domains, SWBPIPE and App receiving owners, decides who admits sources
+    and on what basis, the provider's query contract, any freshness criterion beyond a change of the source,
+    and a query-tool deployment and data boundary compatible with PRD V4-HOST-02.
+  when: Before the Domains-enabled increment, and each before the fixtures, implementation or reliance
+    that depends on it. The receiving contract is defined without them.
+- from: external:OI-026
+  condition: The owner, with the App, Domains and SWBPIPE definition owners, decides who builds the Domains
+    provider and query tool and where the receiving boundary between that provider and this contract lies.
+  when: Before Domains provider production is allocated and its integration committed. The receiving
+    contract is defined without it.
+code_paths: []
+checks: []

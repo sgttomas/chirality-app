@@ -47,20 +47,15 @@ jobs:
         run: |
           python tools/ci/select_checks.py inventory
           python tools/ci/check_execution_layout.py
-          python tools/ci/execution_inputs.py
-          python tools/ci/check_documentary_sources.py
           python app/tests/check_git_checkout_bytes.py
           python -m pytest -q tools/ci/test_execution_layout.py tools/ci/test_nightly_report.py
-          python -m pytest -q app/tests/group_b*test.py app/tests/deliverable_path_test.py
+          python -m pytest -q app/tests/group_b*test.py
           python -m tools.deliverables --project . check > deliverable-check.json
-          python -m tools.instruction_resources --check
           python -m unittest tools.test_instruction_resources
           python app/examination/repin.py --check
           python -m pytest -q tools/deliverables/test_cli.py
           python -m pytest -q tools/ci/test_selection.py
           python -m pytest -q tools/ci/test_rust_dep_cache.py
-          python -m pytest -q tools/test_run_recorded_prototype.py
-          python -m pytest -q tools/test_role_prototype_output.py
           python -m pytest -q tools/validation/test_library_v2_1_operational_adoption.py
           python -m pytest -q tools/validation/test_library_v3_operational_adoption.py
           python -m pytest -q tools/validation/test_document_metadata.py

@@ -2,103 +2,59 @@ id: DEL-02-01
 name: Portable workflow contract and shared allocation
 needs:
 - from: DEL-03-01
-  condition: Receive open capability-catalog tool descriptors for OUT-002 required-tool declarations and
-    VER-002 comparison; wire fields remain with the capability-contract owner.
+  condition: Each operation of a host's catalog edition has an identity and a version as the catalog
+    writes them, and the edition states on which surfaces the operation is exposed.
   gating: false
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
 - from: DEL-04-01
-  condition: Receive adopted human-act distinctions, including the first-increment OI-001/OI-002 rulings
-    carried by DEL-04-01, for checkpoint declarations and VER-003 examples; operation-specific reserved
-    additions remain with the owner via OI-021.
+  condition: Each act kind has one name and a stated performer, and the acts reserved to a person
+    are named and kept apart from routine tool permission.
   gating: true
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: DEL-04-03
-  condition: Receive human-act/run record semantics carrying each act's actor, subject and supporting evidence
-    for checkpoint declarations and record-interface examples; actual recorded acts remain separately evidenced.
+- from: DEL-01-01
+  condition: For the selected supplier version, the harness-capability account lists the supplier's
+    item kinds, server requests and client methods and states which are supported.
+  gating: true
+- from: DEL-03-02
+  condition: Each state a change item can be in at the host (queued, accepted, rejected, withdrawn,
+    applied, refused, application error) has one name, and an outcome nobody observed is reported
+    as unknown.
   gating: false
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
+- from: DEL-04-03
+  condition: A record of a person's act binds the actor, kept apart from the recorder, to the subject
+    content, scope and purpose with its supporting evidence, so that a checkpoint's declared actor,
+    subject and expected evidence name what the record of the act will hold.
+  gating: false
 - from: DEL-05-01
-  condition: Receive minimal-loop consumer requirements to define the portable contract and responsibility/allocation
-    map against concrete host receiving needs.
+  condition: The host-loop receiving contract states what a host's loop takes from the declared part,
+    workflow identity and checkpoint declarations, and its owner confirms or withholds that receipt.
   gating: false
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
 - from: DEL-05-02
-  condition: Receive host-panel consumer requirements to define the portable contract and responsibility/allocation
-    map against concrete panel receiving needs.
+  condition: The host-panel receiving contract states what a host's panel shows from workflow identity,
+    checkpoint declarations and requirement outcomes, and its owner confirms or withholds that receipt.
   gating: false
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: external:SWBPIPE
-  condition: Receive external SWBPIPE host consumer needs for portable-contract examples, allocation and
-    consumer fixtures; actual host conformance waits for the relevant identified host inputs while local
-    definition proceeds.
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: external:OI-014
-  condition: Before structural/production contract allocation, receive the App/shared contract owners' OI-014
-    placement choice against actual consumers; ownership agreement precedes any common implementation, and
-    OUT-003 may record the open choice without presuming a service.
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: external:OI-013
-  condition: Before shared/host implementation boundary contracts, receive the shared contract and SWB implementation
-    owners' OI-013 resolution of per-host loop placement/persistence and related receiving constraints;
-    local portable-contract definition keeps the choice open.
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: DEL-01-01
-  condition: Receive from DEL-01-01 the harness capability inventory, capability-group meanings and availability
-    signals, so that OUT-002 harness-capability requirements refer to them instead of inventing supplier
-    capability definitions.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: DEL-02-03
-  condition: Receive DEL-02-03's statement of the current checkpoint phase and, for the governance phase,
-    its hold-support values; this contract consumes and does not define them.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: external:Owner — governance-phase enforced-checkpoint decision (TBD-004)
-  condition: Before any checkpoint is claimed held, the owner decides when a workflow needs enforced checkpoints
-    (governance phase); in the current phase a declared checkpoint is plan guidance and no hold support
-    is assigned.
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: DEL-03-02
-  condition: Receive DEL-03-02's change-item content identities, per-item dispositions, all-items-decided
-    indication, item-left events and applied-outcome object identities for checkpoint subject binding and
-    item-level decisions; this contract consumes and does not define them.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: DEL-01-01
-  condition: Supply the harness-capability meaning of the selected pin (supplier item kinds, server requests
-    and client methods grouped by capability, with their standing) to App v4 DEL-02-01, which owns the portable
-    capability names that resolve to it.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
-- from: DEL-02-03
-  condition: App v4 DEL-02-01 receives this slice's report, recording meanings and transfer contract and
-    declares it upstream in its own register; its acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-03-01
-  condition: App v4 DEL-02-01 receives this catalog/read-basis contract (tool descriptors for required-tool
-    declarations) and declares it upstream in its own register; its acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: DEL-03-02
-  condition: App v4 DEL-02-01 receives this contract's proposal, validation and outcome meanings (item dispositions
-    and content identities for checkpoint subjects) and declares them upstream in its own register; its
-    acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
-- from: DEL-04-01
-  condition: DEL-04-01 supplies operation-policy and human-act meaning to DEL-02-01 for its named consuming
-    responsibility; actual policy content and applicable adopted decisions must be provided.
-  gating: true
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: DEL-04-03
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-02-01,
-    which the source states declares it upstream in its own register.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+- from: external:App and shared contract owners
+  condition: The owners of the shared contract parts decide where each part is placed and who owns
+    any common implementation.
+  when: Before a shared part is implemented once for both the App and a host.
+- from: external:SWBPIPE implementation owner
+  condition: The host owner states where the host's loop is placed, how its single agent seat maps
+    to the four role meanings, and confirms what the host's library, loop and panel receive from
+    this contract.
+  when: Before a host consumer is recorded as confirmed.
+- from: external:owner
+  condition: The owner decides when a workflow needs enforced checkpoints.
+  when: Before any hold support is assigned to a checkpoint.
 code_paths:
 - app/src-tauri/src/workflow_declaration.rs
+# workflow_workspace.rs is shared with DEL-02-02. Here: the identity type, the package snapshot
+# with its revision method, and the collision report. Review, registration, selection and the
+# run and trial texts are DEL-02-02's.
 - app/src-tauri/src/workflow_workspace.rs
 - app/src-tauri/resources/workflow_role/workflow-declaration.schema.json
+- app/src-tauri/resources/workflow_role/workflow-declaration.valid.example.json
+- app/src-tauri/resources/workflow_role/workflow-declaration.invalid.example.json
+- app/src-tauri/resources/workflow_role/identity-vectors.json
+- app/src-tauri/resources/workflow_role/tab-carriage-cases.json
 checks:
+# workflow_role_tests.rs is shared with DEL-02-02, DEL-02-03 and DEL-02-04. Here: the cases on
+# reading the declared part, identity, snapshot and collisions.
 - app/src-tauri/src/workflow_role_tests.rs

@@ -83,11 +83,10 @@ class Transitive(unittest.TestCase):
         local = t.local_associations(ROOT)
         manifest = json.loads((ROOT / t.LOCAL_ASSOCIATIONS).read_bytes())
         retained = {n['retained_path'] for a in local.values() for n in a['text']['notices']}
-        for rel in (*t.BASIS, t.OBJC2_METADATA, *t.RECEIVED_TEXTS.values(), t.LOCAL_ASSOCIATIONS, manifest['proof_path'], *retained):
-            rel = rel.replace('execution/', 'app/contract_inputs/', 1)
+        for rel in (*t.BASIS, t.OBJC2_METADATA, *t.RECEIVED_TEXTS.values(), t.LOCAL_ASSOCIATIONS, *retained):
             (repo / rel).parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(ROOT / rel, repo / rel)
         t.check(self.index, repo)
-        text = repo / t.RECEIVED_TEXTS['https://github.com/madsmtm/objc2'].replace('execution/', 'app/contract_inputs/', 1)
+        text = repo / t.RECEIVED_TEXTS['https://github.com/madsmtm/objc2']
         text.write_bytes(text.read_bytes() + b'\n')
         with self.assertRaisesRegex(ValueError, 'received upstream text differs'): t.check(self.index, repo)
 
@@ -143,8 +142,8 @@ class Transitive(unittest.TestCase):
         opened = []
         def tracking(path):
             opened.append(Path(path).resolve()); return original(path)
-        for path in (str(invented), t.WORK + '/../../../../../' + str(invented).lstrip('/'),
-                     t.WORK + '/approved-receipt-20261102/sources/objc2/../../../' + invented.name):
+        for path in (str(invented), 'app/packaging/notices/retained/../../../../' + str(invented).lstrip('/'),
+                     'app/packaging/notices/retained/../' + invented.name):
             self.setUp()
             received = next(e for e in self.value['cargo'] if e['text']['kind'] == 'received-upstream-text')
             received['text'].update(path=path, git_blob_sha1=blob); self.write(rebind=True)
@@ -217,10 +216,9 @@ class Transitive(unittest.TestCase):
     def test_root_allowlist_and_text_tampering_or_links_refuse(self):
         repo = self.root / 'repo'
         manifest = json.loads((ROOT / t.LOCAL_ASSOCIATIONS).read_bytes())
-        paths = [t.LOCAL_ASSOCIATIONS, manifest['proof_path']]
+        paths = [t.LOCAL_ASSOCIATIONS]
         paths += [n['retained_path'] for a in manifest['associations'] for n in a['text']['notices']]
         for rel in set(paths):
-            rel = rel.replace('execution/', 'app/contract_inputs/', 1)
             (repo / rel).parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(ROOT / rel, repo / rel)
         selected = t.local_associations(repo)
         row = next(e for e in self.value['cargo'] if e['package'] == 'alloc-stdlib')
@@ -232,7 +230,7 @@ class Transitive(unittest.TestCase):
         other = self.root / 'same-body'; other.write_bytes(raw)
         path.unlink(); path.symlink_to(other)
         with self.assertRaises((OSError, ValueError)): t.local_text(repo, row, selected)
-        path.unlink(); path.parent.rmdir()
+        shutil.rmtree(path.parent)
         path.parent.symlink_to(other.parent, target_is_directory=True)
         with self.assertRaises((OSError, ValueError)): t.local_text(repo, row, selected)
         registry = repo / t.LOCAL_ASSOCIATIONS

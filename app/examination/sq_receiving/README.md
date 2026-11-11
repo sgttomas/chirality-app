@@ -1,26 +1,9 @@
 # SQ dossier file receiving
 
-This separate offline receiver implements the reviewed `SQ-EXP-RECEIVING-v1`
-Design supplements in DEL-09-02 and DEL-09-01. It checks an explicitly selected
-SQ dossier, its recorded direct EXP results and primary review against fixed
-source bytes. The existing six-record canonical route is unchanged.
-
-The full documentary closure remains mandatory by its original exact hashes.
-Those frozen bytes may be captured from the reader's fixed Git object revision
-when today's Design files differ. Unavailable objects or differing bytes refuse;
-no fetch or caller-selected revision is used. The worker still runs against the
-complete checked snapshot. This is selected frozen-support correspondence,
-not a claim that the current App or Design has been examined.
-
-Current-producer selections also use the owner-approved documentary successor
-condition. Its manifest binds the cited case definitions and their governing
-clauses, excluding implementation-result cells and unrelated notes. The parent
-captures checked current documents under `current-documentary-inputs/` and
-original full support under `original-support/` in the private worker snapshot.
-The worker uses those distinct roots, preserving the original publication tuple
-and validator bytes. The report names the successor check at that read; it does
-not attribute that condition to an old producer. Historical selections keep the
-original full-source route.
+This separate offline receiver checks an explicitly selected SQ dossier, its
+recorded direct EXP results and primary review against fixed source bytes. The
+existing six-record canonical route is unchanged. A changed or missing pinned
+source refuses; no fetch or caller-selected revision is used.
 
 From the App directory, using the existing Python/jsonschema environment:
 
@@ -39,8 +22,8 @@ joins. A complete selection can retain fail, blocked or not-run outcomes. It
 never establishes qualification, native observation, actual review, independence,
 producer use or current reliance. Those flags remain false.
 
-`pins.json` freezes the two supplements, SQ schema/prototype/step map and
-supplier-case sources, canonical binding sources and existing EXP/PKG validators.
+`pins.terms-v1.json` pins the SQ dossier schema, rules (`sq_dossier_rules.py`)
+and step map, the canonical binding sources and the existing EXP/PKG validators.
 `receive.py` verifies the fixed pin digest and every source byte before copying
 the selected sources into a private temporary snapshot. The pinned `worker.py`
 runs offline Python only against that snapshot. It invokes unchanged canonical
@@ -50,8 +33,7 @@ pass an incomplete role set to canonical.py's six-role `check` API. The small
 worker separates source execution from caller files; it is not hostile-process
 isolation or authenticated filesystem custody.
 
-Selections follow the maintained DEL-09-02
-`Design/sq-exp-receiving-v1/RECEIVING.md` contract. `review.results` is an object
+In a selection, `review.results` is an object
 mapping direct result slots to their full subject/configuration/criterion basis;
 `changes[].pairs` is an array of closed before/after/nullable-rerun selections.
 A dossier receives no invented EXP binding kind. Its exact selected bytes must
@@ -76,7 +58,5 @@ this is not a general evidence resolver or native-form checker. No run-evidence
 folder is a runtime dependency. Source drift requires a named reviewed successor,
 not a caller pin or fallback.
 
-The additive package/S4 route is documented in
-[the combined receiving interface](../../../execution/PKG-09/DEL-09-01/Work/package-successor-receiving-v1/RECEIVING.md).
-Use `receive_packages.py` with its explicit successor selection and independent
+For the additive package/S4 route, use `receive_packages.py` with its explicit successor selection and independent
 configuration; the original entry above remains its own source/record subject.

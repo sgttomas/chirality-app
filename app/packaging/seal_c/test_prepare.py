@@ -89,6 +89,29 @@ class Preparation(unittest.TestCase):
         (self.output / 'entitlements.proposed.plist').write_bytes(b'changed')
         with self.assertRaises(ValueError): subject.check_output(self.output)
 
+    def test_plan_carries_the_apple_sdk_edition_its_keychain_reading_was_made_against(self):
+        self.run_plan()
+        report = json.loads((self.output / 'signing-plan.json').read_bytes())
+        basis = subject.HERE / 'sdk-basis.json'
+        self.assertEqual(report['sdk_basis_sha256'], hashlib.sha256(basis.read_bytes()).hexdigest())
+        self.assertEqual({k: report['sdk_basis'][k] for k in ('sdk_name', 'sdk_version', 'xcode_version', 'xcode_build')},
+                         {'sdk_name': 'macosx27.0', 'sdk_version': '27.0', 'xcode_version': '27.1', 'xcode_build': '27A9275'})
+        self.assertEqual(report['sdk_basis']['sdk_settings_sha256'], '90a738dbf3fd88e7f6d35646e19d3a8a716923b9773ce1b67260466d9ceed370')
+        self.assertEqual({s['sdk_relative_path']: s['sha256'] for s in report['sdk_basis']['sources']}, {
+            'System/Library/Frameworks/Security.framework/Headers/SecItem.h': '1a5a731dc52e85cf7fb6ebe26d75aa467113c07b6ec3389c98e183d75c651eaf',
+            'Entitlements.plist': '1ae4d4e9b44962c5c2b4cdc636a45e2c7d03f2ee70fe5c8804888603a064bd4e'})
+
+    def test_sdk_basis_without_an_edition_or_source_digest_is_refused(self):
+        good = json.loads((subject.HERE / 'sdk-basis.json').read_bytes())
+        def changed(edit):
+            value = json.loads(json.dumps(good)); edit(value)
+            path = self.root / 'sdk-basis.changed.json'; path.write_text(json.dumps(value)); return path
+        for edit in (lambda v: v.pop('xcode_build'), lambda v: v.update(sdk_name=''), lambda v: v.update(format='other'),
+                     lambda v: v.update(sources=[]), lambda v: v['sources'][0].update(sha256='not a digest'),
+                     lambda v: v.update(sdk_settings_sha256=None)):
+            with self.assertRaises(ValueError): subject.sdk_basis(changed(edit))
+        with self.assertRaises(OSError): subject.sdk_basis(self.root / 'absent.json')
+
     def test_default_application_group_needs_no_extra_sharing_entitlement(self):
         del self.profile['Entitlements'][subject.GROUPS]; self.changed_profile()
         self.run_plan()

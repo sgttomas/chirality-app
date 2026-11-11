@@ -9,16 +9,12 @@ import tempfile
 
 
 SOURCES = (
-    "app/contract_inputs/PKG-04/DEL-04-03/Work/RS_RECORD.schema.json",
-    "app/contract_inputs/PKG-01/DEL-01-06/ScopeOfWork.md",
-    "execution/PKG-04/DEL-04-03/Work/RS_RECORD.schema.json",
-    "execution/PKG-01/DEL-01-06/ScopeOfWork.md",
     "app/src-tauri/schemas/RS_RECORD.schema.json",
     "app/src-tauri/resources/instructions/AGENTS.md",
     "app/src-tauri/resources/production_workflows/coordinated-knowledge-work/WORKFLOW.md",
     "app/examination/support_identity/declaration.v1.json",
     "app/tests/fixtures/FX-DP1/MANIFEST.sha256",
-    "app/packaging/sources.json",
+    "app/packaging/static_distribution/sources.json",
     "reference/migration/shared-inputs.json",
 )
 CRLF_CONTROL = "app/tests/fixtures/checkout-bytes/intentional-crlf.txt"

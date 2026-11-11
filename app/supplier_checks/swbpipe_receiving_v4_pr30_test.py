@@ -18,8 +18,8 @@ class PR30SourceReceiving(unittest.TestCase):
         self.assertEqual(new['commit'],'a659523a75dbbf2cdfcccdf8a667b6fb482e10ea')
         self.assertEqual(new['checked_head'],'0c729ce5d09636341521f117e075d1a8d07acf32')
         self.assertEqual(old['commit'],'9b6281e7eaca924e6166336b87b6d25937c1ca04')
-        self.assertEqual(new['historical_test_citation']['commit'],old['commit'])
-        self.assertNotEqual(original.PINS_SHA256,successor.PINS_SHA256)
+        self.assertEqual(new['predecessor_commit'],old['commit'])
+        self.assertNotEqual(new['sources'],old['sources'])
         self.assertEqual(successor.load_catalog(),original.load_catalog())
         self.assertEqual(len(new['sources']),5)
         self.assertEqual(new['sources'][-1]['path'],'apps/desktop/src/features/model-tree/removalIntents.ts')
@@ -33,12 +33,12 @@ class PR30SourceReceiving(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             for source in pins['sources']:
-                target=root/source['snapshot'].replace('execution/', 'app/contract_inputs/', 1);target.parent.mkdir(parents=True,exist_ok=True)
-                target.write_bytes((successor.ROOT/source['snapshot'].replace('execution/', 'app/contract_inputs/', 1)).read_bytes())
-            with patch.object(successor,'ROOT',root):
+                target=root/source['snapshot'];target.parent.mkdir(parents=True,exist_ok=True)
+                target.write_bytes((successor.FIXTURES/source['snapshot']).read_bytes())
+            with patch.object(successor,'FIXTURES',root):
                 successor.load_catalog()
                 for source in pins['sources']:
-                    path=root/source['snapshot'].replace('execution/', 'app/contract_inputs/', 1);raw=path.read_bytes()
+                    path=root/source['snapshot'];raw=path.read_bytes()
                     path.write_bytes(raw+b'\n')
                     with self.subTest(source=source['path']),self.assertRaisesRegex(ValueError,'selected source changed'):successor.load_catalog()
                     path.unlink()
@@ -46,20 +46,16 @@ class PR30SourceReceiving(unittest.TestCase):
                     path.write_bytes(raw)
                 for source in pins['sources'][2:4]:
                     previous=next(s for s in original.selection()['sources'] if s['path']==source['path'])
-                    path=root/source['snapshot'].replace('execution/', 'app/contract_inputs/', 1);raw=path.read_bytes()
-                    path.write_bytes((original.ROOT/previous['snapshot'].replace('execution/', 'app/contract_inputs/', 1)).read_bytes())
+                    path=root/source['snapshot'];raw=path.read_bytes()
+                    path.write_bytes((original.FIXTURES/previous['snapshot']).read_bytes())
                     with self.assertRaisesRegex(ValueError,'selected source changed'):successor.load_catalog()
                     path.write_bytes(raw)
-        with patch.object(successor,'PINS',original.PINS):
-            with self.assertRaisesRegex(ValueError,'selection changed'):successor.load_catalog()
-        with patch.object(original,'PINS',successor.PINS):
-            with self.assertRaisesRegex(ValueError,'selection changed'):original.load_catalog()
 
     def test_source_delta_retains_before_builder_and_remaining_producer(self):
         new=successor.selection();old=original.selection()
         def read(pins,suffix):
             source=next(s for s in pins['sources'] if s['path'].endswith(suffix))
-            return (successor.ROOT/source['snapshot'].replace('execution/', 'app/contract_inputs/', 1)).read_text()
+            return (successor.FIXTURES/source['snapshot']).read_text()
         previous=read(old,'embeddedAgentSession.ts');current=read(new,'embeddedAgentSession.ts')
         self.assertEqual(previous[previous.index('export async function recordBefore'):],
                          current[current.index('export async function recordBefore'):])

@@ -1,0 +1,29 @@
+{
+  "format": "exp-support-publication.v1-successor-1",
+  "binding_method": "EXP-SUPPORT-BINDING-v1",
+  "support_identity": {
+    "exp_version": "EXP-v0.2",
+    "schema_ids": {
+      "result": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2",
+      "review": "urn:chirality:app-v4:del-09-01:exam-review-record:0.2",
+      "change": "urn:chirality:app-v4:del-09-01:exam-change-impact:0.2"
+    },
+    "prototype_sha256": "f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce"
+  },
+  "predecessor": {
+    "declaration_sha256": "06c826c4a703f73fbbdaf8bd15940ea1b6b71835eac930a9d400795bc404d701",
+    "publication_reference": {
+      "repository": "sgttomas/chirality",
+      "revision": "09106477e351c6e5bde85259c55a00cc8fc5f7f5",
+      "pull_request": 1077,
+      "mechanism": "deliverable_merge"
+    }
+  },
+  "sources": {
+    "app/examination/admission/exam.change-impact.schema.json": "b8fcb4586aa8d844fd9700d660f8eb66ccd66893724215b0a5d9cd468500f82f",
+    "app/examination/admission/exam.review-record.schema.json": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",
+    "app/src-tauri/resources/external_trace/exam.result-record.schema.json": "f7871c96cef25bb974aea73feca009ed3caf843db5077d80612f13b130af2081",
+    "app/packaging/static_distribution/schemas/pkg.identity-record.schema.json": "efb0de357efc3cfc0a193a8ffdcb9b08d93908b99d51ece614c4c2d6b94e008a"
+  },
+  "method_adoption": "separate_reviewed_merge_of_CC-EXP-SUPPORT-IDENTITY-01"
+}

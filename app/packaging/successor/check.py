@@ -10,7 +10,7 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 ROOT = Path(__file__).resolve().parents[3]
-WORK = 'app/contract_inputs/PKG-01/DEL-01-06/Work/package-successor-v1'
+SCHEMAS = 'app/packaging/successor'
 
 
 def module(name, path):
@@ -33,8 +33,8 @@ def source_dependencies():
     """
     paths = {'app/packaging/successor/check.py',
              'app/packaging/static_distribution/check.py', 'app/packaging/static_distribution/sources.json',
-             'app/packaging/terms/check.py', 'app/contract_inputs/PKG-01/DEL-01-06/Work/terms-position-v1/schema.json',
-             WORK + '/static-package-input.v2.schema.json', WORK + '/packaged-s4-binding.v1.schema.json',
+             'app/packaging/terms/check.py', 'app/packaging/terms/terms-position.v1.schema.json',
+             SCHEMAS + '/static-package-input.v2.schema.json', SCHEMAS + '/packaged-s4-binding.v1.schema.json',
              'app/src-tauri/src/installed_custody.rs', 'app/src-tauri/build.rs',
              'app/src-tauri/Cargo.toml', 'app/src-tauri/Cargo.lock',
              'app/src-tauri/build_support/publisher_selection.rs',
@@ -44,7 +44,7 @@ def source_dependencies():
     paths.update('app/src-tauri/resources/distribution-successor/' + name + '.schema.json'
                  for name in ('observed-verification.s4', 'installed-custody-observation.s4', 'distribution-preflight-facts.s3'))
     pins = parse(legacy.transfer(ROOT / 'app/packaging/static_distribution/sources.json', retain=True)[0])
-    paths.update(legacy.deliverable_path(ROOT, path) for path in pins['sources'])
+    paths.update(pins['sources'])
     return {path: legacy.transfer(ROOT / path)[1] for path in sorted(paths)}
 
 
@@ -124,7 +124,7 @@ class Context:
             self.missing.append('terms evidence closure')
 
     def static(self, request):
-        self.shape(request, WORK + '/static-package-input.v2.schema.json')
+        self.shape(request, SCHEMAS + '/static-package-input.v2.schema.json')
         values = {k: self.get(request[k]) for k in ('build_selection', 's1_package', 'legacy_package')}
         self.get(request['installer'], typed=False)
         self.term_account(request['terms'])
@@ -226,7 +226,7 @@ class Context:
         return binding
 
     def binding(self, request, trust):
-        self.shape(request, WORK + '/packaged-s4-binding.v1.schema.json')
+        self.shape(request, SCHEMAS + '/packaged-s4-binding.v1.schema.json')
         static_request = self.get(request['static_package'])
         static = self.static(static_request) if static_request is not None else None
         publisher = self.publisher(request, trust)

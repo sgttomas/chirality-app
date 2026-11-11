@@ -11,7 +11,7 @@ fixtures retain their purpose. Review this source-selection change with the
 migration PR before relying on the successor.
 
 This maintained file tool validates EXP-v0.2 result records and PKG-v0.2 package
-identity records against the unchanged canonical Design schemas and their
+identity records against the result and package-identity schemas and their
 applicable semantic rules. It checks a selected pair against an explicit App
 revision, build identity and Codex pin. It reads JSON files and prints a JSON
 report; it does not launch the App, run Codex, contact a service or rewrite inputs.
@@ -39,13 +39,12 @@ selected package file. The tool checks equality with the result's citation and
 reports both input byte hashes. It does not resolve free-form citations, infer
 which package the writer meant, or verify the authenticity of any declared fact.
 
-`sources.json` pins the canonical schemas, criterion documents and original
-prototype rule sources. Source drift fails closed; adoption requires review and
-an intentional pin update (see [Source pins](#source-pins) for the maintained
-profiles). The maintained rules execute independently of the
-prototypes. Reports identify the tool, maintained rules and source manifest by
-hash. The existing EXP support fields retain their canonical meaning: in
-particular `prototype_digest` is the pinned Design prototype, not this tool.
+`sources.json` pins the two schemas the tool reads. Source drift fails closed;
+adoption requires review and an intentional pin update (see
+[Source pins](#source-pins) for the maintained profiles). Reports identify the
+tool, maintained rules and source manifest by hash. The existing EXP support
+fields retain their meaning: in particular `prototype_digest` is the declared
+EXP-v0.2 support constant in `check.py`, not a digest of this tool.
 The package-link check requires that digest under EXP §4.4 although the schema
 makes it optional; schema-only validation accepts its omission.
 
@@ -85,9 +84,7 @@ python3 app/examination/repin.py --check   # CI: exit 1 when pins and sources di
 Repin repeats until profiles that pin other profiles agree, then refreshes the
 lock. Its output, and the diff, name exactly which pinned bytes changed; that diff
 is what review inspects. It changes digests only: selecting a different set of
-sources remains a reviewed edit to the profile. It leaves historical identities
-as recorded: Markdown documentary selections that fall back to frozen original
-bytes, documentary projection digests and historical provenance fields.
+sources remains a reviewed edit to the profile.
 
 The lock must hold exactly the entries catalogued in `repin.py` (`CURRENT` and
 `FROZEN`) with 64-character lowercase hexadecimal digests; `--check` fails on a
@@ -97,9 +94,8 @@ immutable constants in `distribution_receiving/receive.py` and `terminal.py`.
 Readers and both repin modes require the lock to equal those anchors, so editing
 a receipt and its lock entry together is still refused; repin never rewrites
 them. An unreadable or incomplete lock yields no digest, so each reader refuses
-through its usual error report. Retained original sources stay in `support_identity/frozen/`, and the
-frozen v1 declaration and binding schema keep their constants in
-`support_identity/support_identity.py`.
+through its usual error report. The v1 declaration and binding schema keep
+their constants in `support_identity/support_identity.py`.
 
 Package receiving no longer pins `AGENTS.md`: the legacy static reader uses that
 file only to locate its root and never reads its bytes, so the receiver writes a

@@ -182,8 +182,8 @@
     "kind": "double",
     "double": "HOSTING supplier double",
     "file_digests": [
-     "sha256:fada4ab1c828c753fb2fb82e3562b8ffbf5750ee0e5b75cbc3d0f5a17717c38e DEL-01-01 Design/prototype/supplier_double.py",
-     "sha256:1e56b30d29270ce0af10f239649c4732ce0411c3816c6037e19f16f3ac3b103c DEL-01-01 Design/prototype/double_scenarios.py"
+     "sha256:fada4ab1c828c753fb2fb82e3562b8ffbf5750ee0e5b75cbc3d0f5a17717c38e DEL-01-01 prototype/supplier_double.py",
+     "sha256:1e56b30d29270ce0af10f239649c4732ce0411c3816c6037e19f16f3ac3b103c DEL-01-01 prototype/double_scenarios.py"
     ]
    },
    "configuration": {
@@ -359,7 +359,7 @@
    "outcome": "pass",
    "evidence": [
     {
-     "ref": "DEL-01-01 Design/generated/0.158.0/_spike/transcripts/A-vendor-warmhome.jsonl",
+     "ref": "DEL-01-01 generated/0.158.0/_spike/transcripts/A-vendor-warmhome.jsonl",
      "provenance": "recorded_replay",
      "fixture_standing": "recorded",
      "route": "seam_replay"

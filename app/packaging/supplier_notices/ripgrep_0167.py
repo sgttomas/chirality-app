@@ -22,8 +22,10 @@ spec.loader.exec_module(reader)
 require = reader.require
 
 RG_SHA256 = '13424ef22134a65a211e490475bc17a4671e4fad3c82ad4c613fe5978f022a6d'
-SELECTOR = 'execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/codex/scripts/codex_package/rg'
+# Codex's rg release selector (scripts/codex_package/rg), kept as received beside this reader, and its identity.
+SELECTOR = 'app/packaging/supplier_notices/codex-0.160.0/scripts/codex_package/rg'
 SELECTOR_BLOB = '3b7c34843aaafe4cf26a87b3daf5806195d4bb0e'
+SELECTOR_SHA256 = '41a10ca63365560d899a82b6f825fd7b420a18b34f660a98bffeece77eeae1f1'
 ARCHIVE_URL = 'https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-aarch64-apple-darwin.tar.gz'
 TAG, TAG_OBJECT = '15.2.0', '6ec72defacfb042f203ca0b4bf2513a0a5505a7e'
 COMMIT = 'e89fff89ac9af12e8d4ce9d5fd07beb408ca730f'
@@ -60,6 +62,15 @@ def blob(raw):
 
 def read(path):
     return reader.transfer(Path(path).absolute(), retain=True)
+
+
+def selector_platform(path=None):
+    """Read the received rg selector, refuse changed bytes, and return its digest and macOS arm64 platform row."""
+    raw, digest, _ = read(path or ROOT / SELECTOR)
+    require(blob(raw) == SELECTOR_BLOB and digest == SELECTOR_SHA256, 'received rg selector changed')
+    platform = json.loads(raw.split(b'\n', 2)[2])['platforms']['macos-aarch64']
+    require(platform['providers'] == [{'url': ARCHIVE_URL}], 'selector names another archive')
+    return digest, platform
 
 
 def pcre2_chain(metadata, locked):
@@ -133,10 +144,7 @@ def build(rg_path, metadata, pcre2_metadata):
     metadata = Path(metadata)
     raw_rg, rg_sha, rg_size = read(rg_path)
     require(rg_sha == RG_SHA256, 'rg is not the canonical 0.167.0 subject')
-    selector_raw, selector_sha, _ = read(ROOT / SELECTOR)
-    require(blob(selector_raw) == SELECTOR_BLOB, 'received rg selector changed')
-    platform = json.loads(selector_raw.split(b'\n', 2)[2])['platforms']['macos-aarch64']
-    require(platform['providers'] == [{'url': ARCHIVE_URL}], 'selector names another archive')
+    selector_sha, platform = selector_platform()
 
     loaded = {}
     for name in RESPONSES:

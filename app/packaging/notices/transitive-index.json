@@ -332,7 +332,7 @@
    "text": {
     "kind": "received-upstream-text",
     "repository": "https://github.com/madsmtm/objc2",
-    "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
+    "path": "app/packaging/notices/retained/objc2-LICENSE.md",
     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
     "vcs_revision": "b4167b582b2f75f9a1be75495c41b765344fd03c",
     "path_in_vcs": "crates/block2"
@@ -892,7 +892,7 @@
    "text": {
     "kind": "received-upstream-text",
     "repository": "https://github.com/madsmtm/objc2",
-    "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
+    "path": "app/packaging/notices/retained/objc2-LICENSE.md",
     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
     "vcs_revision": "8852b424193ca41602281b3d7540d7c8ed51e49a",
     "path_in_vcs": "crates/dispatch2"
@@ -2329,7 +2329,7 @@
    "text": {
     "kind": "received-upstream-text",
     "repository": "https://github.com/madsmtm/objc2",
-    "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
+    "path": "app/packaging/notices/retained/objc2-LICENSE.md",
     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
     "vcs_revision": "8852b424193ca41602281b3d7540d7c8ed51e49a",
     "path_in_vcs": "crates/objc2"
@@ -2346,7 +2346,7 @@
    "text": {
     "kind": "received-upstream-text",
     "repository": "https://github.com/madsmtm/objc2",
-    "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
+    "path": "app/packaging/notices/retained/objc2-LICENSE.md",
     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
     "vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
     "path_in_vcs": "framework-crates/objc2-app-kit"
@@ -2363,7 +2363,7 @@
    "text": {
     "kind": "received-upstream-text",
     "repository": "https://github.com/madsmtm/objc2",
-    "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
+    "path": "app/packaging/notices/retained/objc2-LICENSE.md",
     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
     "vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
     "path_in_vcs": "framework-crates/objc2-core-foundation"
@@ -2386,7 +2386,7 @@
     "notices": [
      {
       "root_path": "LICENSE.md",
-      "retained_path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
+      "retained_path": "app/packaging/notices/retained/objc2-LICENSE.md",
       "size_bytes": 1339,
       "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
       "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
@@ -2416,7 +2416,7 @@
     "notices": [
      {
       "root_path": "LICENSE.md",
-      "retained_path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
+      "retained_path": "app/packaging/notices/retained/objc2-LICENSE.md",
       "size_bytes": 1339,
       "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
       "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
@@ -2440,7 +2440,7 @@
    "text": {
     "kind": "received-upstream-text",
     "repository": "https://github.com/madsmtm/objc2",
-    "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
+    "path": "app/packaging/notices/retained/objc2-LICENSE.md",
     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
     "vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
     "path_in_vcs": "framework-crates/objc2-foundation"
@@ -2457,7 +2457,7 @@
    "text": {
     "kind": "received-upstream-text",
     "repository": "https://github.com/madsmtm/objc2",
-    "path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
+    "path": "app/packaging/notices/retained/objc2-LICENSE.md",
     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
     "vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
     "path_in_vcs": "framework-crates/objc2-web-kit"

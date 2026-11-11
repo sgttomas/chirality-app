@@ -2,74 +2,54 @@ id: DEL-01-06
 name: macOS packaging and distribution evidence
 needs:
 - from: DEL-01-01
-  condition: Packaging consumes DEL-01-01's identified stock Codex binary and App hosting basis, receiving
-    S4 installed observation and signing facts under Work/INSTALLED_INTEGRITY_S4_SIGNING_JOIN.md and publisher
-    input/build binding under Work/PUBLISHER_BUILD_SELECTION_JOIN.md. The compiled publisher requirement
-    remains None; actual publisher selection, package record/installer binding (FP-2/W-4) and packaged qualification
-    are not supplied.
+  condition: The pin names one published Codex distribution; the expected inventory of its vendor
+    tree is available to the build; and an installed App checks its own Codex against that inventory
+    and the compiled publisher identity and reports the result.
   gating: true
-  evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
-- from: external:chirality-app-v4:OI-011
-  condition: Receive the OI-011 owners' definition of signing, notarisation and required Codex entitlements
-    for the selected App/Codex candidate before the packaged distribution witness; OI-011 remains open.
-  evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
-- from: external:chirality-app-v4:DEP-005
-  condition: Production uses applicable selected Codex/Tauri packaging interfaces, with actual version and
-    environment to be defined before respective implementation/qualification witnesses.
-  evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
-- from: external:chirality-app-v4:DEP-004
-  condition: Before public release beyond owner use, obtain through the owner an identified official supplier
-    publication or direct response, retained with source/date/custody, release/sign-in scope and the owner's
-    applicability disposition; the applicable OpenAI position is retained for the selected free, local, open-source initial macOS offering, including first public distribution, in execution/PKG-01/DEL-01-06/Work/terms-position-v1/OpenAI.json; the distribution decision has not been made. Anthropic/Claude terms apply
-    only if that sign-in need arises.
-  evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
-- from: external:SWBPIPE
-  condition: Useful reusable packaging knowledge may be received from external SWBPIPE through its actual
-    human-relayed coordination route.
-  evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
-- from: DEL-01-01
-  condition: App v4 DEL-01-06 consumes this deliverable's stock supplier boundary for its own named production
-    responsibility; the receiving act remains with that owner.
+- from: DEL-02-02
+  condition: The workflows a release ships are registered by the release, each at its shipped
+    revision, and a library entry counts as a shipped revision only when it is byte-equal to it.
+  gating: false
+- from: DEL-02-04
+  condition: The default guidance documents and the role set shipped with a release have a
+    maintained source, and the packaged guidance equals that source byte for byte.
+  gating: false
+- from: DEL-01-04
+  condition: The keychain service and access group that keychain protection uses are stated, so
+    that any entitlement the App's own code needs for it can be named.
   gating: true
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
-- from: package:PKG-09
-  condition: Supply the packaged App candidate and its local install/launch evidence to App PKG-09 for joined
-    examination.
-  direction: downstream
-  gating: false
-  evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
-- from: external:chirality-app-v4:DEP-004
-  condition: The owner's public distribution decision consumes the applicable written supplier position
-    (an identified official publication or direct response retained with source/date/custody, release/sign-in
-    scope and owner applicability disposition); the distribution decision itself remains separate.
-  direction: downstream
-  gating: false
-  evidence: execution/PKG-01/DEL-01-06/ScopeOfWork.md
+  when: Signing a package that offers keychain protection
 - from: DEL-09-01
-  condition: Supply reusable examination support and evidence interfaces to the named owner of DEL-01-06
-    for its own scoped work.
+  condition: A built candidate can be identified in a candidate identification record, and a native
+    packaged-application check can be run and recorded with the package it observed.
   gating: false
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+- from: external:chirality-app-v4:DEP-005
+  condition: The Tauri 2 bundler builds the macOS bundle.
+- from: external:Apple Developer ID signing and notary service
+  condition: The App's own code is signed with the owner's Developer ID, and the bundle is
+    notarised and a ticket issued for stapling.
+- from: external:chirality-app-v4:DEP-004
+  condition: OpenAI publishes, or gives the owner directly, its written position on distributing
+    an App that uses its sign-in.
+  when: Before public release beyond owner use
+- from: external:owner
+  condition: The owner's Developer ID certificate and notary profile are in the keychain of the
+    machine that signs, and the owner states whether the supplier's position applies to the offering.
 code_paths:
-- app/packaging/supplier_notices/**
-- app/packaging/production_inputs/**
-- app/packaging/successor/**
-- app/packaging/sqlite_notice/**
-- app/packaging/terms/**
-- app/src-tauri/src/desktop_startup.rs
-- app/packaging/notices/**
-- app/packaging/font_notice/**
-- app/packaging/unsigned/tauri.notices.conf.json
+- app/packaging/**
+- app/src-tauri/tauri.conf.json
+# build.rs and build_support compile the publisher identity into the App. The check that uses
+# the compiled identity on an installed App is DEL-01-01's.
+- app/src-tauri/build.rs
+- app/src-tauri/build_support/**
 checks:
 - app/tests/supplier_notice_observations_test.py
+- app/tests/supplier_notice_selectors_test.py
 - app/tests/production_inputs_test.py
 - app/tests/notice_receipts_test.py
 - app/packaging/sqlite_notice/check.py
 - app/tests/package_successor_test.py
 - app/tests/terms_position_test.py
-- app/src-tauri/src/desktop_startup.rs
-- app/tests/desktop-setup.test.mjs
-- app/contract_inputs/PKG-01/DEL-01-06/Work/prototype/check_pkg.py
 - app/src-tauri/tests/attested_reference_packaging.rs
 - app/packaging/notices/check.py
 - app/tests/notice_resources_test.py
@@ -77,3 +57,8 @@ checks:
 - app/tests/font_notice_test.py
 - app/packaging/notices/transitive.py
 - app/tests/notice_transitive_test.py
+- app/tests/group_b_packaging_test.py
+- app/tests/compiled_selection_packaging_test.py
+- app/packaging/seal_c/test_prepare.py
+- app/packaging/static_distribution/test_connected.py
+- app/tests/group_b_legacy_pkg_rules_test.py

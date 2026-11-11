@@ -200,7 +200,7 @@ def dependency_digests():
     return {str(path): digest(path) for path in
             (BASE, module.RAW, REPO / 'app/examination/candidate_identity/identify.py',
              REPO / 'app/examination/candidate_identity/bundled_supplier.py',
-             REPO / 'app/contract_inputs/PKG-09/DEL-09-01/Work/candidate-identity-v3/candidate-identification.schema.json')}
+             REPO / 'app/examination/candidate_identity/candidate-identification.v3.schema.json')}
 
 
 def policy(executable):

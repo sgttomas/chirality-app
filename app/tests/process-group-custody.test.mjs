@@ -8,10 +8,10 @@ import {tmpdir} from 'node:os';
 import Ajv2020 from 'ajv/dist/2020.js';
 import './support/rust-prebuild.mjs';
 const app=new URL('../',import.meta.url);
-const design=new URL('contract_inputs/PKG-01/DEL-01-01/Work/',app);
+const schemas=new URL('src-tauri/schemas/',app);
 const load=p=>JSON.parse(readFileSync(p,'utf8'));
-const current=load(new URL('hosting.lifecycle-event.v0.10.schema.json',design));
-const legacy=load(new URL('hosting.lifecycle-event.schema.json',design));
+const current=load(new URL('hosting.lifecycle-event.v0.10.schema.json',schemas));
+const legacy=load(new URL('hosting.lifecycle-event.schema.json',schemas));
 const ajv=new Ajv2020({strict:false,allErrors:true});
 const validate=ajv.compile(current),old=ajv.compile(legacy);
 const out=mkdtempSync(`${tmpdir()}/custody-json-`);after(()=>rmSync(out,{recursive:true}));
@@ -35,5 +35,5 @@ test('current profile keeps exact counts separate from unavailable; legacy uncha
  for(const descendants of [{checked:true,surviving:0},{checked:true,surviving:2},{checked:false,surviving:null,handling:'unavailable: source error'}]){row.descendants=descendants;assert.ok(validate(row),JSON.stringify(validate.errors));}
  for(const descendants of [{checked:true,surviving:null},{checked:true,surviving:-1},{checked:false,surviving:0},{checked:false,surviving:null},{checked:false,surviving:null,handling:'none surviving'}]){row.descendants=descendants;assert.equal(validate(row),false);}
  row.descendants={checked:false,surviving:0};assert.ok(old(row),'legacy unchecked integer remains readable');
- const envelope=load(new URL('distribution-s1/lifecycle-event.s1.v0.10.schema.json',design));const wrapper=ajv.compile(envelope);const dto=structuredClone(actual.evidence.lifecycle);assert.ok(wrapper(dto));dto.format='lifecycle-event.future';assert.equal(wrapper(dto),false);
+ const envelope=load(new URL('src-tauri/resources/distribution-successor/lifecycle-event.s1.v0.10.schema.json',app));const wrapper=ajv.compile(envelope);const dto=structuredClone(actual.evidence.lifecycle);assert.ok(wrapper(dto));dto.format='lifecycle-event.future';assert.equal(wrapper(dto),false);
 });

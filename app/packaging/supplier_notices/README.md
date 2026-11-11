@@ -13,11 +13,9 @@ binding, then rechecks source hashes. It does not execute supplier code, fetch
 source, validate a signature, infer notice applicability or write to the input.
 The library CLI's output can be retained by the caller as ordinary evidence.
 
-The owning DEL-01-06 Work/supplier-notice-associations account identifies precise
-missing source/build/notice edges and next remedies. No version string is promoted
-to authenticated upstream provenance; the tool does not assert the gaps closed.
-The tests use invented binaries except for checking the saved observation's
-declared subject/tool identities. No actual supplier or credential is executed.
+No version string is promoted to authenticated upstream provenance; the tool
+does not assert that missing source/build/notice edges are closed. The tests
+use invented binaries. No actual supplier or credential is executed.
 
 For the current Codex 0.167.0 subject, `associate_0167.py` recomputes the
 notice/source association records offline. It reads the canonical vendor tree
@@ -25,9 +23,8 @@ notice/source association records offline. It reads the canonical vendor tree
 `codex-0.160.0/` and eight retained public metadata responses. It reuses the
 no-follow reader in `app/packaging/static_distribution/check.py` and
 `app/packaging/inventory.py`, executes nothing
-and opens no network connection. `--check DIR` compares its output with the
-retained records under DEL-01-06 `Work/supplier-notice-associations/codex-0.167.0/`.
-`observe.py` and its saved output remain the 0.160.0 record.
+and opens no network connection. `--check DIR` compares its output with records
+the caller keeps in `DIR`. `observe.py` remains the 0.160.0 reader.
 
 `ripgrep_0167.py` recomputes the rg association the same way. It reads the
 canonical 0.167.0 `rg`, the received Codex rg selector, the committed

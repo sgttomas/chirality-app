@@ -1,64 +1,61 @@
 id: DEL-06-01
 name: Bounded delegation and current work-graph records
-code_paths:
-- app/src-tauri/src/fleet_views.rs
-- app/src-tauri/src/native_conversation_links.rs
-- app/src-tauri/src/conversation_roles.rs
-- app/src-tauri/src/fleet_records.rs
-- app/src-tauri/src/lib.rs
-- app/src-tauri/src/records_store.rs
-- app/src-tauri/src/records_index.rs
-- app/src-tauri/src/records_export.rs
-- app/src-tauri/src/records_package_import.rs
-- app/src-tauri/src/records_package_identity.rs
-- app/src-tauri/src/records_package_controls.rs
-- app/src-tauri/schemas/fleet.record.schema.json
-- app/src-tauri/schemas/fleet.native-links.schema.json
-- app/src/FleetRecordsPanel.tsx
-checks:
-- app/src-tauri/src/fleet_views_tests.rs
-- app/src-tauri/src/native_conversation_links_tests.rs
-- app/src-tauri/src/conversation_roles_tests.rs
-- app/src-tauri/src/fleet_records_tests.rs
-- app/src-tauri/src/records_package_identity_tests.rs
-- app/src-tauri/src/records_package_controls_tests.rs
-- app/tests/fleet-records.test.mjs
-- app/src-tauri/schemas/sync.py
 needs:
 - from: DEL-01-03
-  condition: Consume DEL-01-03 native supplier identities/interface and actual child/parent evidence when
-    implementing and exercising record association; bind results to the actual candidate and supplier basis.
+  condition: Each sub-agent thread Codex starts from a conversation is offered with the identity, parent,
+    role and nickname Codex reports and the source of each, in a form that can be used without reading
+    the views' own state and checked against the Codex identities it was derived from.
   gating: true
-  evidence: execution/PKG-06/DEL-06-01/ScopeOfWork.md
+- from: DEL-01-01
+  condition: Every request and response carries its generation, each ready generation carries the version
+    identity record of the Codex in use, and a request whose response was never observed is reported
+    with an unknown outcome.
+  gating: true
+- from: DEL-01-05
+  condition: Each App-owned Codex home has a stable identity that is neither a credential nor a path.
+  gating: true
+- from: DEL-01-04
+  condition: Continuing a conversation under another role opens a new conversation, forking one opens
+    a copy, and each operation's request and Codex's result, with the source conversation and the new
+    one, are available when it completes.
+  gating: true
+  when: A continued or forked conversation is recorded as a related conversation (AC-003)
 - from: DEL-04-03
-  condition: Consume the DEL-04-03 evidence/act record interface and identified source records for referenced
-    acts, retaining content, scope, purpose and actual actor; positive verification requires an actually
-    performed human-act record with a separate recorder.
+  condition: A human-act record names its kind, its decision actor and its recorder, the content, scope
+    and purpose it is bound to and the request it answers, and for a decision the package decided and
+    the alternative chosen; a correction is a new entry naming the one it corrects; and an entry that
+    cannot be read is reported as such and never used.
   gating: true
-  evidence: execution/PKG-06/DEL-06-01/ScopeOfWork.md
-- from: DEL-07-01
-  condition: Retained PEC compatibility meaning only; no provider delivery, qualification or adoption is required. Use the current scope when maintaining an existing connector consumer.
+- from: DEL-04-03
+  condition: The records store keeps one subtree for each project, outside every project working tree,
+    and holds the App's coordination observations there; a project is attached by its stable identity
+    and never on its path alone; an export package carries the store's files byte for byte; and records
+    that entered by import are identified as quoted evidence of their source.
+  gating: true
+- from: DEL-02-04
+  condition: A thread given TASK guidance is identified as such, with whether its no-delegation limit
+    is enforced by the supplier, stated and not enforced, or not known.
   gating: false
-  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
-- from: external:DEP-002
-  condition: Retained PEC source/compatibility evidence only. Current DEL-07-01 and PRD V4-CON-02 retire
-    provider delivery, qualification and receiving adoption as App prerequisites; retaining these references
-    does not reactivate PEC.
-  gating: false
-  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
-- from: DEL-01-01
-  condition: Use DEL-01-01's selected development supplier pin 0.160.0 and its protocol basis for current
-    implementation; native-association qualification needs the actual candidate/supplier/environment evidence,
-    which a selected pin does not supply.
-  gating: true
-  evidence: execution/PKG-06/DEL-06-01/ScopeOfWork.md
-- from: DEL-01-01
-  condition: App v4 DEL-06-01 receives the selected Codex pin from this supplier boundary before protocol
-    generation and qualification; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
-- from: DEL-01-03
-  condition: Hand this slice's native delegation identities to App DEL-06-01; record association and fleet
-    coordination stay with that owner.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/fleet_records.rs
+- app/src-tauri/src/native_conversation_links.rs
+- app/src-tauri/schemas/fleet.record.schema.json
+- app/src-tauri/schemas/fleet.native-links.schema.json
+# fleet_views.rs is shared with DEL-06-02. Here: current-graph selection and need-state rules;
+# queue, waiting and decision rows are DEL-06-02's, as is FleetRecordsPanel.tsx.
+- app/src-tauri/src/fleet_views.rs
+# lib.rs is shared. Here: the command that reads the selected project's fleet records, and the
+# calls that hand a fork or a continued conversation to the recorder.
+- app/src-tauri/src/lib.rs
+checks:
+- app/src-tauri/src/fleet_records_tests.rs
+# fleet_views_tests.rs is shared with DEL-06-02. Here: the cases on which graph is current and
+# on the state of each need.
+- app/src-tauri/src/fleet_views_tests.rs
+- app/src-tauri/src/native_conversation_links_tests.rs
+# conversation_roles_tests.rs is shared with DEL-01-04 and DEL-02-04. Here: the cases that record
+# a fork and a continued conversation as related conversations.
+- app/src-tauri/src/conversation_roles_tests.rs
+# records_package_controls_tests.rs is DEL-04-03's. Here: the cases in which an imported fleet
+# log stays quoted evidence.
+- app/src-tauri/src/records_package_controls_tests.rs

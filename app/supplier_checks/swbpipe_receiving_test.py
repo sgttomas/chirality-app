@@ -11,7 +11,7 @@ import json
 import unittest
 from pathlib import Path
 from swbpipe_projection import Pending, declarations, expand, validate, validate_assumptions, response
-from swbpipe_catalog_receiving import ROOT, load_catalog, selection, RECEIVING_SHA256, RECEIVING_BYTES
+from swbpipe_catalog_receiving import CATALOG_PATH, load_catalog, selection, RECEIVING_BYTES
 from jsonschema import Draft202012Validator
 import tempfile
 from unittest.mock import patch
@@ -160,14 +160,6 @@ class CatalogV3Receiving(unittest.TestCase):
         self.assertEqual(pins['repository'], 'sgttomas/SWBPIPE')
         self.assertEqual(pins['commit'], '4d8cb7b0c8f101d5102813e634e23ecba29b310e')
         self.assertEqual(pins['checked_head'], 'aa62c3dc7bf14d50b925a1b480ff54fb1b8bf3c2')
-        self.assertEqual([s['path'] for s in pins['sources']], [
-            'execution/PKG-16/DEL-16-06/Work/agent-capability-catalog.json',
-            'apps/desktop/src-tauri/resources/agent-capability-catalog.json'])
-        for source in pins['sources']:
-            self.assertEqual(source['sha256'], RECEIVING_SHA256)
-            self.assertEqual(source['bytes'], RECEIVING_BYTES)
-        self.assertEqual(pins['historical_subjects']['v2']['sha256'],
-                         'fe1439998d709e5f3e9641a4d39567000ced56c498fab5b6b8f2028df7c9f669')
         self.assertEqual(V3['catalogVersion'], 'swbpipe-catalog/3')
         self.assertEqual(CAT['catalogVersion'], 'swbpipe-catalog-proposal/1')
         self.assertEqual(V3['source']['appProposal']['sha256'],
@@ -183,14 +175,12 @@ class CatalogV3Receiving(unittest.TestCase):
                           dict(V3,catalogVersion='swbpipe-catalog/99')):
                 path.write_text(json.dumps(value))
                 with self.assertRaisesRegex(ValueError,'integrated v3'):load_catalog(path)
-            raw=(ROOT/selection()['snapshot'].replace('execution/', 'app/contract_inputs/', 1)).read_bytes()
+            raw=CATALOG_PATH.read_bytes()
             path.write_bytes(raw.replace(b'swbpipe-catalog/3',b'swbpipe-catalog/2',1))
             self.assertEqual(path.stat().st_size,RECEIVING_BYTES)
             with self.assertRaisesRegex(ValueError,'integrated v3'):load_catalog(path)
             path.write_bytes(b' '*(RECEIVING_BYTES+1))
             with self.assertRaisesRegex(ValueError,'integrated v3'):load_catalog(path)
-        with patch('swbpipe_catalog_receiving.PINS_SHA256','0'*64):
-            with self.assertRaisesRegex(ValueError,'selection changed'):load_catalog()
         future=copy.deepcopy(V3);future['catalogVersion']='swbpipe-catalog/99'
         with self.assertRaisesRegex(ValueError,'unsupported catalog'):self.propose([intent(INTENTS[0])],future)
 

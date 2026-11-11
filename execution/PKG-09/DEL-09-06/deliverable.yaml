@@ -1,188 +1,99 @@
 id: DEL-09-06
 name: Connected activity contract and workflow round trip
 needs:
-- from: package:PKG-02
-  condition: The connected workflow definition and examination consume PKG-02 workflow-making/portability
-    contributions and the actual receiving interface.
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
+- from: DEL-01-01
+  condition: For each thread and turn, the guidance actually carried to the supplier is observed by
+    content identity, with the model and destination the supplier reported, and handed with its origin
+    to the record writer; a destination reported for a thread is not attributed to a turn no report
+    names.
+  gating: true
+- from: DEL-02-01
+  condition: A workflow carries a portable declared part (expected inputs, required host tools, checkpoints
+    requiring a human act, returned outputs and evidence) with its prose method, a source-qualified
+    identity and its revision across App and host receiving.
+  gating: true
+- from: DEL-02-02
+  condition: A workflow received or refined in the App stays a draft until the person's reviewed,
+    explicit registration, and a same-name entry from another origin is never silently rebound.
+  gating: true
 - from: DEL-02-03
-  condition: The connected activity consumes App DEL-02-03 execution compatibility and workflow transfer/adaptation
-    behavior for its joined round trip.
+  condition: A workflow carried from the App to a host arrives with the same identity, revision and
+    bytes and a trace telling apart what was selected, resolved, supplied, adopted and observed;
+    an adaptation has a new identity derived from the original; a host-origin workflow is opened
+    in the App with its origin and revision unchanged and refined as a draft; a host that cannot
+    receive a declared element produces an explicit unsupported result; and a checkpoint's act is
+    recorded only when performed, with a hold only in the governance phase.
   gating: true
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: package:PKG-03
-  condition: The connected activity consumes PKG-03 catalog meanings and required tools at the applicable
-    definition and execution point.
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
+- from: DEL-03-01
+  condition: The catalog states each operation's meaning and read basis in a form the App and a host
+    can both read.
+  gating: true
+- from: DEL-03-02
+  condition: A proposal is validated and applied through one route, a stale proposal is refused after
+    an intervening edit, and each application has one outcome with its receipt.
+  gating: true
+- from: DEL-03-03
+  condition: Over the external channel the App can inspect host content and submit a proposal, and
+    a disabled channel is reported as disabled.
+  gating: true
+- from: DEL-04-01
+  condition: The operation policy names the acts reserved to a person and the values an operation
+    class may take.
+  gating: true
+- from: DEL-04-02
+  condition: The autonomy granted for a run is visible by operation class, and a directly applied
+    operation shows its origin mark and the undo route the host supplies.
+  gating: true
 - from: DEL-04-03
-  condition: The connected activity consumes PKG-04 records of actual content-bound acts for handoff and
-    witness evidence.
+  condition: Act and run records bind each act to actor, content, scope and purpose, keep an earlier
+    act in the history when its content changes, and show its standing as lapsed; and a run record
+    holds the model used with its observed destination for each turn.
   gating: true
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
 - from: DEL-05-01
-  condition: The connected activity consumes the loop/model receiving requirements supplied through App
-    PKG-05, owned by DEL-05-01.
+  condition: The loop states which model serves a turn and records the destination each turn's content
+    went to.
   gating: true
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
 - from: DEL-05-02
-  condition: The connected activity consumes the panel receiving requirements supplied through App PKG-05,
-    owned by DEL-05-02.
+  condition: The panel shows proposed rows with old and new values in the host's own tables.
   gating: true
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
+- from: DEL-09-01
+  condition: Result records bind candidate, harness, model and model-server configuration and date
+    with one of five outcomes, mark replay apart from live observation and native apart from browser
+    evidence, and refuse a record with a missing product input as a pass or failure and a rehearsal
+    record as a case result.
+  gating: true
 - from: external:DEP-001
-  condition: Catalog-v4 receiving selects integrated SWBPIPE 9b6281e7eaca924e6166336b87b6d25937c1ca04 with
-    bounded producer/host-contract extents, keeping v3 and earlier records as history. Receive actual SWBPIPE
-    construction/interface contributions before connected integration, dependent implementation or live
-    examination; live host/person evidence remains owed.
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: external:DEP-001
-  condition: The joined V4-EXM-14 witness needs the externally supplied identified host candidate and actual
-    host execution evidence; DEL-09-06 remains responsible for coordinating and completing the joined round
-    trip.
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
+  condition: SWBPIPE delivers its catalog source and schema at an identified revision, provides
+    an identified host candidate that can receive an App workflow, run the first activity and return
+    its own receipts, and states the operation policy that candidate has adopted (its reserved list,
+    its routine-permission treatment and its default for model changes).
+  when: The catalog before catalog receiving; the candidate and its adopted policy before any round-trip
+    case.
 - from: external:OI-021
-  condition: Obtain the OI-021 operation/autonomy/environment choices through the human before dependent
-    operation-specific definition is finalized or execution begins; OI-021 remains open.
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: external:OI-001
-  condition: Carry the first-increment OI-001 reserved-act ruling (APP-V4-FIRST-INCREMENT-20260928-DECISION-1
-    D2, five reserved acts) through the connected handoff; operation-specific additions remain open under
-    OI-021 before connected-activity SoW and execution, and host adoption under DEP-001.
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: external:OI-002
-  condition: 'Carry the OI-002 ruling (APP-V4-FIRST-INCREMENT-20260928-DECISION-1 D3: App routine permissions
-    are the user''s Codex setting; hosts have no classifier mode; SWB default proposal mode) in the connected
-    handoff; host adoption remains under DEP-001.'
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: external:Accountable person — actual content-bound human act in V4-EXM-14
-  condition: The joined witness consumes an actually performed human act and its faithful content-bound
-    record, with actor/subject distinct from recorder; a declared checkpoint's act is requested and recorded
-    only when the person performs it. The exact person and operation-specific act remain unresolved.
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: DEL-02-01
-  condition: The connected workflow consumes App DEL-02-01 portable declaration, identity and revision meaning.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: DEL-02-02
-  condition: The connected workflow round trip consumes App DEL-02-02 (later undertaking) review and registration.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: DEL-03-01
-  condition: The connected activity consumes App DEL-03-01 catalog/read-basis meanings.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: DEL-03-02
-  condition: The connected activity consumes App DEL-03-02 proposal/outcome meanings.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: DEL-03-03
-  condition: The connected activity consumes App DEL-03-03 external-receiving meanings.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: DEL-04-01
-  condition: The connected activity consumes adopted operation policy and act distinctions through App DEL-04-01.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: DEL-04-02
-  condition: The connected activity consumes grant display through App DEL-04-02.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: DEL-01-01
-  condition: The connected activity consumes App DEL-01-01 App-side supplied-guidance and model-destination
-    evidence.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: external:APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3
-  condition: 'Host joins are deferred until the owner resumes SWBPIPE UI-SUCCESSOR (APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3);
-    OUT-003''s joined witness cannot complete before then. Point of need: before the live W14 steps.'
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: DEL-09-01
-  condition: The joined witness consumes App DEL-09-01 reusable candidate-examination support and the evidence
-    protocol (candidate, date and configuration identification; outcome states; replay, browser and native
-    marking).
-  gating: true
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: DEL-01-01
-  condition: 'App v4 DEL-09-06 receives this supplier boundary: App-side supplied-guidance and model-destination
-    evidence; its acts are not transferred here.'
-  gating: true
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
-- from: DEL-02-01
-  condition: App v4 DEL-09-06 receives this portable workflow/role/checkpoint contract and shared allocation
-    and declares it upstream in its own register; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: DEL-02-02
-  condition: Supply App v4 DEL-09-06 with this workspace's draft, registration and selection contract; DEL-09-06
-    declares it upstream.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
-- from: DEL-02-03
-  condition: Supply the candidate-bound local workflow transfer/adaptation fixture results and identity
-    trace to the connected-activity integration owner for the externally coordinated round-trip witness.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-03-01
-  condition: App v4 DEL-09-06 receives this catalog/read-basis contract (the connected activity) and declares
-    it upstream in its own register; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: DEL-03-02
-  condition: App v4 DEL-09-06 receives this contract's proposal, validation and outcome meanings (the connected
-    activity) and declares them upstream in its own register; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
-- from: DEL-03-03
-  condition: Supply this adapter's external-receiving meanings to App DEL-09-06, which declares them upstream
-    in its own register.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
-- from: DEL-04-01
-  condition: DEL-04-01 supplies operation-policy and human-act meaning to DEL-09-06, which the source states
-    declares DEL-04-01 upstream in its own register; actual policy content and applicable adopted decisions
-    must be provided.
-  gating: true
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: DEL-04-02
-  condition: Supply DEL-04-02 visible autonomy state to App DEL-09-06, which the source states declares
-    it upstream in its own register.
-  gating: true
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
-- from: DEL-04-03
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-09-06;
-    the receiving documentation identifies how it is consumed.
-  gating: true
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: DEL-09-01
-  condition: Supply reusable examination support and evidence interfaces to the named owner of DEL-09-06
-    for its own scoped work.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+  condition: The owner, through the SWBPIPE session and with the App owner, chooses the operation,
+    the autonomy permitted, the candidate environment and the externally supplied interfaces of the
+    first activity, and any addition
+    to the reserved acts or routine-permission treatment that operation needs.
+  when: Before the activity definition is closed and before any round-trip case is run.
+- from: external:person performing the checkpoint act
+  condition: A person performs the declared checkpoint act and the acceptance in the round trip while
+    the examiner observes.
 - from: external:DEP-001
-  condition: DEL-09-06 supplies the reviewed reusable workflow to the host for adaptation/refinement in
-    the App-to-host-to-App round trip.
+  condition: Through the human, the App relays its questions and the reviewed workflow to the SWBPIPE
+    session.
   direction: downstream
   gating: false
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-- from: external:DEP-001
-  condition: DEL-09-06 supplies the human-relayed question set (Design/RELAY_QUESTIONS_SWBPIPE.md) to the
-    SWBPIPE owner; SWBPIPE's recorded answers (Design/RELAY_ANSWERS_SWBPIPE.md) stand at answered on the
-    ladder prepared, relayed, answered, committed, delivered, adopted, examined, and are not commitments.
-  direction: downstream
-  gating: false
-  evidence: execution/PKG-09/DEL-09-06/ScopeOfWork.md
-
-checks:
-- app/supplier_checks/swbpipe_receiving_pr40_test.py
-- app/supplier_checks/swbpipe_receiving_v4_pr30_test.py
-- app/supplier_checks/swbpipe_receiving_v4_test.py
-- app/supplier_checks/swbpipe_receiving_test.py
-- app/supplier_checks/swbpipe_projection_test.py
 code_paths:
+- app/supplier_checks/swbpipe_catalog_receiving.py
+- app/supplier_checks/swbpipe_catalog_v4_receiving.py
+- app/supplier_checks/swbpipe_catalog_v4_pr30_receiving.py
 - app/supplier_checks/swbpipe_catalog_v4_pr40_receiving.py
 - app/supplier_checks/swbpipe_hash_receiving.py
-- app/supplier_checks/swbpipe_catalog_v4_pr30_receiving.py
-- app/supplier_checks/swbpipe_catalog_v4_receiving.py
-- app/supplier_checks/swbpipe_projection_v4.py
-- app/supplier_checks/swbpipe_catalog_receiving.py
 - app/supplier_checks/swbpipe_projection.py
+- app/supplier_checks/swbpipe_projection_v4.py
+checks:
+- app/supplier_checks/swbpipe_receiving_test.py
+- app/supplier_checks/swbpipe_receiving_v4_test.py
+- app/supplier_checks/swbpipe_receiving_v4_pr30_test.py
+- app/supplier_checks/swbpipe_hash_receiving_test.py
+- app/supplier_checks/swbpipe_projection_test.py

@@ -8,14 +8,14 @@ made durable by opening a public draft PR.
 
 ## Candidate sources and readiness
 
-- [J2's owning account](../PKG-09/DEL-09-02/Work/J2_PARTIAL_ACTUAL_20261108.md)
+- J2's owning account
   identifies the repaired `475c9b8f9c868fe1be9d0e1ef33a9cdd72aec75f` source
   and private development build, on which registration and fresh reuse have since
   been demonstrated. Source is integrated through PR160. The build's identity
   records and original private project/store state remain needed to re-examine
   those observations; a rebuild supplies a new artifact. Authority for further
   launches is in the continuation boundaries below.
-- [Native continuation boundaries](../PKG-09/DEL-09-02/Work/CONTINUATION_BOUNDARIES.md)
+- Native continuation boundaries
   point to the held UNRUN `zootd3ob` packet, closed custom-driver work and private
   actual evidence. A previously staged command is not an active launch route.
 - [PR161](https://github.com/sgttomas/chirality-app/pull/161) is closed as
@@ -29,7 +29,7 @@ made durable by opening a public draft PR.
   locally/remotely on `app/same-user-witness`. Read its readiness limits and the
   owning signed-candidate account before any later proposal; it is not an open
   implementation return. Production subjects and the v3 fallback are described
-  in [the v4 test subject](../PKG-01/DEL-01-06/Work/V4_TEST_SUBJECT.md).
+  in the v4 test subject.
 
 Retained native actual-account branches add no product increment beyond the
 integrated owning accounts. The local CFIndex receiving change `0104552e142645f9f0feb125244e02fee8bc24ba`
@@ -45,21 +45,15 @@ checked Git heads and PR descriptions. Their transient output is not sole-source
 product evidence. The selected Library export can be recreated by the verified
 Git-archive procedure in [its README](../../reference/library-v3.3.0/README.md).
 
-The four untracked review-proof files retained in worktree `t3-9967e27b`, branch
-`t3/reconcile-account-provider-access` at `a1d9e27d3b8649ca4a1c1e3019abe04ba8fdb432`,
-are also reproducible, not unique observations: compare the integrated commit
-`7d061908738470f9418a8bbdf2cf28b3250a0c2f` with its parent for
-`execution/PKG-01/DEL-01-05/Work/ACCOUNT_AND_PROVIDER_ACCESS.md`. Those Git blobs
-preserve the same baseline and result without needing the local proof files.
 The former held LOOP patch/worktree was disposed after its proposals were
-recorded in issue 168; the [owning interpretations](../PKG-05/DEL-05-01/Work/PENDING_INTERPRETATIONS.md)
+recorded in issue 168; the owning interpretations
 now retain those proposals. Recovery does not depend on the temporary patch.
 
 ## Evidence availability limits
 
 Raw private native screenshots, journals, original state and signing/build
-records are not reproducible outputs. Their owning Work accounts retain private
-locators and observed subjects. Git does not contain those raw inputs or establish their current availability.
+records are not reproducible outputs. The accounts that held their private
+locators and observed subjects were removed with the deliverable Work folders and are in Git history. Git does not contain those raw inputs or establish their current availability.
 App Agent 0 reports an unavailable input when owner-controlled access cannot be
 obtained; a new run cannot replace its historical identity.
 

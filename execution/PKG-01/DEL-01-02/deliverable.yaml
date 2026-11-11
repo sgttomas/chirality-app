@@ -2,59 +2,61 @@ id: DEL-01-02
 name: Durable execution and request recovery
 needs:
 - from: DEL-01-01
-  condition: 'Consume DEL-01-01''s stock-Codex process/protocol boundary and selected-version types (development
-    basis: reviewed SUP1 0.160.0) for execution/recovery implementation, with Codex interaction, request
-    custody and record writes in Rust per OI-008 (HOSTING §12). The qualification pin is bound at candidate
-    build time under R23-22; qualified distribution identity, App qualification and the remaining supplier/version/environment
-    evidence remain owed.'
+  condition: Each Codex child's start, readiness, stop and exit are reported with their generation;
+    every server request has a register entry from receipt and an unfamiliar one has its explicit
+    error written at once; no App rule answers a tool-permission request affirmatively; an unobserved
+    response is reported unknown; and the processes the supplier started are counted at a stop
+    or an exit.
   gating: true
-  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
+- from: DEL-01-05
+  condition: Every conversation belongs to exactly one App-owned Codex home, and each home has
+    a stable identity that survives a relaunch.
+  gating: true
+- from: DEL-01-04
+  condition: The interrupt control, the question before a quit, and Stop Codex and Restart Codex
+    are offered to the person, and with live work only the person's confirmation in a native question
+    lets the quit or stop proceed.
+  gating: true
+- from: DEL-02-03
+  condition: An interrupt, a Codex stop, a quit and a relaunch each leave a workflow run open
+    and recoverable as the same run.
+  gating: false
 - from: DEL-04-01
-  condition: 'Consume the adopted operation policy carried by DEL-04-01 (ScopeOfWork TBD-003): first-increment
-    reserved acts (DECISION-1 D2) and the person''s own Codex tool-permission and sandbox modes (D3), which
-    never substitute for a reserved act. Only unruled operation-specific additions remain open under OI-021,
-    and no human act is inferred from an execution outcome.'
-  gating: true
-  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
-- from: DEL-01-01
-  condition: App v4 DEL-01-02 consumes this deliverable's stock supplier boundary for its own named production
-    responsibility; the receiving act remains with that owner.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+  condition: Routine tool permission is the person's own Codex setting and never stands for a
+    reserved act; evidence of one act establishes no other, and no independently evidenced act
+    is refused for want of another.
+  gating: false
 code_paths:
-- app/src-tauri/src/hosting_probe.rs
-- app/src-tauri/src/hosting_continuation_context.rs
-- app/src-tauri/src/hosting_observer_rebuild.rs
-- app/src/ObserverAttachment.tsx
-- app/src-tauri/src/host_tick.rs
-- app/src-tauri/src/runtime_session.rs
-- app/src-tauri/src/hosting_native_delivery.rs
-- app/src-tauri/src/process_group_custody.rs
-- app/src-tauri/src/records_continuity.rs
 - app/src-tauri/src/recovery.rs
 - app/src-tauri/src/recovery_store.rs
 - app/src-tauri/src/recovery_root_view.rs
-- app/src/RecoveryCustodyPanel.tsx
+- app/src-tauri/src/hosting_recovery_reads.rs
+- app/src-tauri/src/hosting_observer_journal.rs
+- app/src-tauri/src/hosting_observer_rebuild.rs
+- app/src-tauri/src/hosting_continuation_context.rs
+- app/src-tauri/src/execution_custody.rs
 - app/src-tauri/src/app_quit.rs
 - app/src-tauri/src/codex_stop.rs
 - app/src-tauri/src/stop_records.rs
-- app/src-tauri/resources/runtime_core/recovery.stop-request.schema.json
-- app/src-tauri/src/execution_custody.rs
-- app/src-tauri/src/hosting_recovery_reads.rs
-- app/src-tauri/src/workflow_learning_pointers.rs
-- app/src-tauri/src/historical_run_learning.rs
+# native_requests.rs is shared with DEL-01-04. Here: custody of outstanding requests and the
+# summaries kept of them. Answer validation and decline forms are DEL-01-04's.
+- app/src-tauri/src/native_requests.rs
+# host_tick.rs and runtime_session.rs are shared. Here: the recovery tick and the session's
+# custody of live turns, requests and tags. Delegation reads are DEL-01-03's; run and
+# workflow handling are DEL-02-02's and DEL-02-03's.
+- app/src-tauri/src/host_tick.rs
+- app/src-tauri/src/runtime_session.rs
+- app/src-tauri/resources/runtime_core/recovery.*.json
+- app/src/ObserverAttachment.tsx
+- app/src/RecoveryCustodyPanel.tsx
 checks:
-- app/src-tauri/src/hosting_probe.rs
 - app/src-tauri/src/hosting_continuation_context_tests.rs
+- app/src-tauri/src/hosting_observer_journal.rs
 - app/src-tauri/src/hosting_observer_journal_tests.rs
 - app/src-tauri/src/hosting_observer_rebuild_tests.rs
 - app/tests/observer-attachment.test.mjs
 - app/src-tauri/src/runtime_session.rs
-- app/src-tauri/src/hosting_native_delivery.rs
 - app/src-tauri/src/hosting_recorded_replay_tests.rs
-- app/src-tauri/src/hosting_process_group_custody_tests.rs
-- app/tests/process-group-custody.test.mjs
-- app/src-tauri/src/records_continuity_tests.rs
 - app/src-tauri/src/recovery_startup_request_tests.rs
 - app/src-tauri/src/recovery_store_tests.rs
 - app/src-tauri/src/recovery_request_history_tests.rs
@@ -67,18 +69,11 @@ checks:
 - app/src-tauri/src/stop_records_host_tests.rs
 - app/src-tauri/src/execution_custody_tests.rs
 - app/src-tauri/src/hosting_recovery_reads_tests.rs
-- app/src-tauri/src/historical_run_learning_tests.rs
-- app/src-tauri/src/historical_trial_flows_tests.rs
-- app/contract_inputs/PKG-01/DEL-01-02/Work/prototype/check_generation_ref.py
-- app/contract_inputs/PKG-01/DEL-01-02/Work/prototype/check_project_context.py
 - app/examination/windows_platform/verify_results.py
 - app/examination/windows_platform/test_driver.py
-- execution/PKG-01/DEL-01-02/Work/WINDOWS_PROCESS_FIXTURE_RESULTS.md
 - app/examination/windows_platform/run_hosted_fixture.py
 - app/examination/windows_platform/test_hosted_fixture.py
 - .github/workflows/windows-process-fixtures.yml
-- execution/PKG-01/DEL-01-02/Work/HOSTED_WINDOWS_PROCESS_FIXTURE_RESULTS.md
 - app/examination/windows_platform/test_p03.py
 - app/examination/windows_platform/verify_p03.py
 - .github/workflows/windows-stop-fixtures.yml
-- execution/PKG-01/DEL-01-02/Work/HOSTED_WINDOWS_P03_STOP_CANDIDATE.md

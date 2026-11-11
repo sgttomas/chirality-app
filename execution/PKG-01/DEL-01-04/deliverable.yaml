@@ -2,172 +2,138 @@ id: DEL-01-04
 name: Native requests, outcomes and attachments
 needs:
 - from: DEL-01-01
-  condition: Native views require DEL-01-01's actual stock Codex hosting boundary, selected supplier identity,
-    generated protocol types and protocol qualification. SEAL-C signing-stage use also consumes the compiled
-    publisher subject and installed-integrity boundary in Work/SEAL_C_KEYCHAIN_TRANSITION.md. The initially
-    None-gated keychain selection was admitted 2026-11-03; selection alone does not activate keychain access.
+  condition: Every server request has a register entry that can be listed and answered, with a
+    refused answer reported with its reason and each settlement with its origin; native frames
+    arrive unchanged; and on an installed build the result of the App's own installed-integrity
+    check is available.
   gating: true
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
 - from: DEL-01-02
-  condition: Receive the actual session/request interface, observed and recovered execution state and outstanding
-    requests from App DEL-01-02; route native responses through its interface while leaving durable settlement
-    and recovery ownership there.
+  condition: The state of each conversation, its turns and its outstanding requests is reported
+    after a window is lost, a Codex restart and a relaunch, with unknown outcomes stated; a live
+    turn can be interrupted; live work can be listed before a quit or a Codex stop; and an opaque
+    tag can be attached to a conversation and looked up.
   gating: true
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: DEL-02-02
-  condition: Receive from DEL-02-02 source-qualified draft identity, draft/registration/collision/refusal
-    transitions, the A15 descriptor bound to the exact reviewed content (one reviewed draft, one entry reviewed
-    in place, or several library entries) and the run-start text and run-end line for the turns this slice
-    composes.
-  gating: false
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: DEL-04-01
-  condition: Consume the adopted operation-policy and human-act distinction interface carried by App DEL-04-01
-    when implementing and checking UI labels and attribution; actual adopted policy must exist for the affected
-    operation.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: DEL-04-03
-  condition: Consume the content-bound act/run-record and recording interface, distinct actor/subject evidence
-    and supplied content-change lapse standing owned by App DEL-04-03 for faithful native presentation/recording.
-  gating: false
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: external:OI-001
-  condition: Reserved-act matters not covered by the first-increment ruling (APP-V4-FIRST-INCREMENT-20260928-DECISION-1
-    D2) stay with the owner and App/SWB contract owners before operation-policy production contracts; operation-specific
-    additions remain open under OI-021. This slice consumes the adopted policy through CLM-005 (DEP-01-04-011)
-    and decides no reserved list.
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: external:OI-008
-  condition: 'Met 2026-10-10: the owner''s OI-008 ruling places file and record writes, Codex interaction
-    and act capture in the Rust host, with the web view presenting and sending only what the person initiates.
-    UI and attachment-storage details remain open (ScopeOfWork TBD-003).'
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: external:OI-012
-  condition: The App implementation owner supplies the remaining OI-012 decisions, the implementation and
-    qualification pins for an identified candidate, before protocol generation and qualification. The 0.158.0
-    definition pin (DECISION-1 D4) is re-examined before implementation; no historical pin is adopted.
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: external:OI-014
-  condition: The App/shared contract owners must place shared contracts/components against actual consumer
-    responsibilities and agree ownership before any common implementation at the structural/production allocation
-    point of need.
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: external:DEP-005
-  condition: Obtain the pinned suppliers' published interfaces and configured endpoints needed by the respective
-    implementation/qualification witnesses; the selected supplier basis and environment remain to be defined.
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: external:Person performing the positive human-act case and separate faithful recorder
-  condition: For the positive VER-005 qualification case, obtain evidence of the person actually performing
-    the act on identified content and a separate recorder preserving it, with decision actor distinct from
-    recorder.
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
 - from: DEL-01-03
-  condition: Receive the collaboration mode (sent explicitly after plan mode was used) and the plan-mode
-    element, item anchors and delegation availability supplied by App DEL-01-03 when composing the turns
-    this slice sends.
+  condition: The plan-mode element for a turn is offered as plan, default, not offered with its
+    reason, or no model selected, and a native item can be referred to by an item anchor.
   gating: true
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
 - from: DEL-01-05
-  condition: 'Receive the model-selection state and the reported Codex account from App DEL-01-05: the selection
-    state for showing that no model is selected until the person chooses, and the account used for the person''s
-    identity at act capture.'
+  condition: For a conversation, whether a model is selected, which, and the person's last explicit
+    choice for the project are reported, and the Codex account is reported as Codex reports it
+    or as not reported.
   gating: true
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: DEL-04-02
-  condition: Receive the checkpoint overlay and standing facets defined by App DEL-04-02, which this slice
-    places in the App (OUT-002).
-  gating: false
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: DEL-02-03
-  condition: Receive the checkpoint display meanings defined by App DEL-02-03, whose behaviour in the App
-    this slice owns (OUT-002).
-  gating: false
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: DEL-02-04
-  condition: Receive the role list App DEL-02-04 supplies (with the registry default preselected and clearable,
-    and no role allowed) for the new-conversation role offer; the role stays fixed for the conversation.
-  gating: false
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: DEL-01-01
-  condition: App v4 DEL-01-04 consumes this deliverable's stock supplier boundary for its own named production
-    responsibility; the receiving act remains with that owner.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
-- from: DEL-01-02
-  condition: Provide state/request interfaces and observed events with explicitly unknown outcomes to the
-    App-v4 DEL-01-04 receiving UI.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
-- from: DEL-01-03
-  condition: Supply this slice's plan-mode element, item anchors and delegation availability to App DEL-01-04,
-    which composes turns and request cards from them.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
 - from: DEL-02-02
-  condition: Supply App v4 DEL-01-04 with this workspace's draft, registration and selection contract and,
-    for turn composition, the run-start text and run-end line with their supply-check record; DEL-01-04
-    declares them upstream.
+  condition: A draft is named by its location and name, with the content identity of its content,
+    and each change of its standing is reported; for a registration of one draft, one library entry
+    or several entries, the exact reviewed content of each is named for the person's act to bind;
+    and the run-start text and the run-end line for a turn are supplied.
   gating: false
-  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
+- from: DEL-02-03
+  condition: A run ends only by the person's explicit run end, and each arrival at a declared
+    checkpoint is recorded with its bound subject, purpose and scope, with the request for the act
+    where one can be identified and the act only when the person performs it.
+  gating: false
 - from: DEL-02-04
-  condition: App v4 DEL-01-04 receives this deliverable's role list and guidance-changed signal for its
-    new-conversation role offer and declares them upstream in its own register.
+  condition: The conversation roles are listed with the default for a new conversation, and an
+    open conversation whose guidance has since changed is reported as changed, naming the file.
   gating: false
-  evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
 - from: DEL-04-01
-  condition: DEL-04-01 supplies the distinction of the registration act (A15) to DEL-01-04, whose App act
-    control captures it; it consumes nothing from DEL-01-04.
+  condition: Each act kind has a name and wording, a stated actor requirement and whether a decline
+    exists for it, and a proposal decision is worded "accept".
   gating: true
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: DEL-04-03
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-01-04,
-    which the source states declares it upstream in its own register.
+- from: DEL-04-02
+  condition: For each arrival at a declared checkpoint the checkpoint overlay gives one
+    disposition, taken from the run record's checkpoint entries, with waiting never meaning that the
+    run is held; and the standing of a result is given as received and no stronger, as current or
+    historical, checks passed, limitations and lapse, with missing evidence and unobserved outcomes
+    explicit.
   gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+- from: DEL-04-03
+  condition: A human act and a declined act can be written as direct-capture records that bind
+    actor, recorder, content identity, scope and purpose and cite capture evidence; a record can
+    be validated; and an act whose bound content changed is reported as lapsed.
+  gating: true
+- from: DEL-06-02
+  condition: A decision package is a project file that states the exact act requested of the
+    person, its subject, purpose and basis, and each alternative with its consequences, and a
+    pending package is shown as its file states them.
+  gating: false
+- from: DEL-01-06
+  condition: The installed App is signed with the same Developer ID team and bundle identifier
+    in every release, so that keychain items written by one release are readable by the next.
+  gating: true
+  when: Keychain protection on an installed build
+- from: external:person operating the act control
+  condition: A person confirms each act in the native confirmation while an examiner observes.
 code_paths:
-- app/src-tauri/src/model_turn_recorder.rs
-- app/src-tauri/src/hosting.rs
-- app/src-tauri/src/file_act_arrival.rs
+# act_control.rs is shared. Here: the control, its offers and captures. The registration
+# operation is DEL-02-02's, act wording DEL-04-01's and the record writer DEL-04-03's.
+- app/src-tauri/src/act_control.rs
+- app/src-tauri/src/act_control_a15.rs
 - app/src-tauri/src/act_control_file.rs
+- app/src-tauri/src/act_control_assurance.rs
+- app/src-tauri/src/a15_native.rs
+- app/src-tauri/src/file_act_native.rs
 - app/src-tauri/src/file_act_root.rs
-- app/src-tauri/src/runtime_session.rs
-- app/src/FileActPanel.tsx
+- app/src-tauri/src/file_act_arrival.rs
+# file_act_view.rs and file_act_lapse.rs are shared with DEL-04-03. Here: the offers and captures
+# that use them. The read-only view of a file's recorded acts and the evaluation and recording
+# of lapse are DEL-04-03's.
 - app/src-tauri/src/file_act_view.rs
 - app/src-tauri/src/file_act_lapse.rs
-- app/src-tauri/src/lib.rs
-- app/src-tauri/src/native_request_answer.rs
-
-- app/src/App.tsx
-- app/src/DailyWorkspace.tsx
-- app/src/workspace.css
-- app/src/NativeHistory.tsx
-- app/src/ObserverAttachment.tsx
-- app/src-tauri/src/act_control.rs
 - app/src-tauri/src/canonical.rs
 - app/src-tauri/src/capture_seal.rs
-- app/src-tauri/src/recovery.rs
-- app/src-tauri/src/attachments.rs
-- app/src/RequestCards.tsx
+- app/src-tauri/src/capture_seal_keychain.rs
+- app/src-tauri/src/capture_seal_keychain_macos.rs
+- app/src-tauri/src/seal_c_enrollment.rs
+- app/src-tauri/src/installation.rs
+- app/src-tauri/schemas/aac.capture-evidence.schema.json
+- app/src-tauri/schemas/aac.offer.schema.json
+# native_requests.rs is shared with DEL-01-02. Here: answer validation and decline forms.
+- app/src-tauri/src/native_requests.rs
+- app/src-tauri/src/native_request_answer.rs
 - app/src-tauri/src/waiting_requests.rs
 - app/src-tauri/src/native_waiting.rs
-- app/src/NativeWaitingBridge.tsx
-- app/src/RunOffers.tsx
-- app/src/WorkflowDrafts.tsx
-- app/src/TrialComposer.tsx
-- app/src/WorkflowContext.tsx
-- app/src/CodexControls.tsx
-- app/src/RunPanel.tsx
-- app/src/ConversationRoles.tsx
-- app/src/exactText.ts
+- app/src-tauri/src/attachments.rs
+- app/src-tauri/src/attachment_custody.rs
+- app/src-tauri/resources/attachments
+# conversation_roles.rs and ConversationRoles.tsx are shared with DEL-02-04. Here: placement of
+# the role choice, "Continue as", Fork and the handoff summary. The role list, the default and
+# the guidance-changed reading are DEL-02-04's.
 - app/src-tauri/src/conversation_roles.rs
 - app/src-tauri/src/conversation_handoff_send.rs
 - app/src-tauri/src/hosting_handoff_send.rs
-- app/src-tauri/src/installation.rs
-- app/src-tauri/src/act_control_a15.rs
-- app/src-tauri/src/a15_native.rs
+- app/src-tauri/src/native_lifecycle_confirmation.rs
+- app/src-tauri/src/lifecycle_sheet_lease.rs
+- app/src-tauri/src/lifecycle_sheet_macos.rs
+# hosting.rs, runtime_session.rs and lib.rs are shared. Here: answer submission, turn
+# composition and sending, and the commands of the surfaces listed in this file.
+- app/src-tauri/src/hosting.rs
+- app/src-tauri/src/runtime_session.rs
+- app/src-tauri/src/lib.rs
+- app/src/RequestCards.tsx
+- app/src/NativeWaitingBridge.tsx
+- app/src/CodexControls.tsx
+- app/src/ConversationRoles.tsx
+- app/src/FileActPanel.tsx
+- app/src/exactText.ts
+# Shared with DEL-02-02; RunPanel.tsx also with DEL-02-03 and DEL-04-02. Here: the draft view,
+# the placement of texts in turns the person sends, and the placement of run offers and the
+# checkpoint and standing display. What the drafts, trial texts and run offers show is
+# DEL-02-02's, run state and checkpoints DEL-02-03's, the overlay, facets and act labels DEL-04-02's.
+- app/src/WorkflowDrafts.tsx
+- app/src/TrialComposer.tsx
+- app/src/WorkflowContext.tsx
+- app/src/RunOffers.tsx
+- app/src/RunPanel.tsx
+# NativeHistory.tsx is shared with DEL-01-03. Here: finding a conversation and continuing it.
+- app/src/NativeHistory.tsx
+# App.tsx and DailyWorkspace.tsx are shared. Here: the conversation surface and the placing of
+# the surfaces listed in this file. Each other deliverable that lists them mounts its own panels.
+- app/src/App.tsx
+- app/src/DailyWorkspace.tsx
+- app/src/workspace.css
 checks:
-- app/src-tauri/src/model_turn_recorder_tests.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/hosting.rs
 - app/tests/prepared-message-navigation.test.mjs
@@ -177,7 +143,6 @@ checks:
 - app/tests/file-act-arrival.test.mjs
 - app/tests/file-act-panel.test.mjs
 - app/src-tauri/src/file_act_lapse_tests.rs
-- app/tests/observer-attachment.test.mjs
 - app/src-tauri/tests/explicit_context.rs
 - app/src-tauri/src/conversation_roles_tests.rs
 - app/src-tauri/src/conversation_handoff_send_tests.rs

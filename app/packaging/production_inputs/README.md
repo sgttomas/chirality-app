@@ -2,8 +2,7 @@
 
 This helper prepares configuration and an exact resource/input account; it does
 not build, copy the supplier, sign, notarise, install, launch or read account state.
-The current owner selection is recorded in
-`execution/PKG-01/DEL-01-06/Work/V4_TEST_SUBJECT.md`: on 2026-11-02 the owner kept
+The current owner selection: on 2026-11-02 the owner kept
 the existing production identifier `com.chirality.app` (same-ID), superseding the
 earlier separate-v4 route, with macOS 15 minimum and package version 4.0.0. The
 exact identifier/team enter only through the closed private publisher input. These
@@ -143,9 +142,7 @@ profile and publisher static checks. A resource match cannot substitute for this
 ## Actual input-test artifact and next production subject
 
 One coordinated unsigned release-profile input-test App has been built from
-exact `12d26b8db5f251be97d83d4f574196697df40a70` in a separate target/build directory;
-the owning Work's `unsigned-release-input-build/12d26b8db5-278899dad62e/` retains
-its actual source, command, inventory and complete resource comparison.
+exact `12d26b8db5f251be97d83d4f574196697df40a70` in a separate target/build directory.
 Do not rebuild or mutate any retained native candidate or state. A default-None
 input-test bundle can establish actual P1/P2/P3/notice/attested-resource placement
 and release-profile build behavior before private publisher values arrive.
@@ -275,7 +272,5 @@ Optional upstream notice inclusion uses `--upstream-notices` with a completed
 `packaging/notices/receipts.py stage` directory. The helper validates exact
 metadata/index/asset joins, adds only the public manifest and license resource,
 and records them separately from archive-member notices. Default preparation
-and `check_plan` remain unchanged. See DEL-01-06
-`Work/supplier-notice-associations/LOCAL_RECEIPT_INTAKE.md` for local receipt and
-explicit selection commands. No actual receipt, applicability or completeness
+and `check_plan` remain unchanged. No actual receipt, applicability or completeness
 is inferred from the invented tests.

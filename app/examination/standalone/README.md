@@ -16,38 +16,23 @@ V4-EXM-10 and V4-EXM-11; RUN-B has the same still-unfilled candidate slot.
 The invented inventory rows are input material for future substantive tool
 work and new-input reuse; no workflow is authored or registered by this tool.
 
-`source_basis_revision` (and `basis_revision` in `pre_run_inputs.pins.json`)
-names the main revision on which the pinned sources were last inspected for a
-re-pin. It labels inspected source only; it is not a locator for the bound
-bytes, which the pinned hashes identify. The pin files are themselves bound,
-so no single revision can hold them and their own label; bytes changed by the
-re-pinning change (for example the SQ's case dispositions) are held by that
-change, not by the named revision. A build identity,
+A build identity,
 qualification pin, runtime configuration, person-operated native journey and
 candidate-applicable supplier evidence remain unsupplied. The missing-input
 list describes this preparation's entry, not a live discovery of external
 systems. Historical Group A evidence supplies no new candidate outcome.
 
 `check` compares the complete preparation with its regenerated, hash-bound
-basis. Documentary inputs bind the exact SQ sections and supplier-case rows
-listed in `sources.json`, using length-framed passages. Missing or repeated
-selectors refuse. Whole-file hashes retained as `basis_file_sha256` and
-`historical_provenance` identify the inspected sources; they do not require an
-unread implementation note to remain unchanged. The complete step map and
-local missing/invented input JSON remain exact inputs. It fails closed on
-changed selected passages, altered order/counting, omissions,
+basis. The step map (`../sq_receiving/sq.step-map.json`), the per-step action
+and observation cells (`step-operations.json`) and the local missing/invented
+input JSON are the exact inputs listed in `sources.terms-v1.json`. It fails
+closed on changed inputs, altered order/counting, omissions,
 substitute routes, fabricated readiness/results and extra fields, including
 `examination_opened`. A successful check means only preparation fidelity.
 This deliberately strict checker accepts no future executed dossier: use the
 accepted SQ/EXP schema and rules for that separate artifact. Updating this
 preparation requires a reviewed source-basis update, not editing an output to
-claim readiness. Source locks identify the actual supplier files read here;
-they do not adopt revisions beyond SQ's historical design pins.
-
-Supplier-case projections bind their normative definition cells, excluding
-implementation-result/status cells. Inline historical observations in RS/EXEC
-expected cells are separated by their declared markers. The reviewed documentary
-successor manifest also binds the governing clauses those cited cases depend on.
+claim readiness.
 
 Before the examiner declares the actual pre-run case definition, bind actual
 invented workflow/collision bytes and fixtures, receive the named inputs,
@@ -59,21 +44,14 @@ Every planned case then gets an honest EXP result, including unattempted ones,
 and later review/handoff follows SQ. No native launch, account operation,
 download, signing, SEAL-2 implementation or product qualification occurs here.
 
-CC-SQ-J2-ST4 reconciles the former J-2 prose/map discrepancy by including the
-already required ST-4 in J-2's machine map. This consumer explicitly adopts that
-independently reviewed correction; the source lock and generated preparation
-retain its revision and bytes. No examination outcome follows from the correction.
-
 ## Freeze exact maintained pre-run inputs
 
 `pre_run_inputs.py` is a separate technical preparation helper. It validates the
 unchanged B7 plan, captures the fixed source basis and full canonical EXP support
 selection, and binds all 13 explicit maintained fixture roles by exact bytes.
 It introduces no EXP sidecar, dossier schema, result record or ready state.
-Frozen EXP publication/source identities remain unchanged; operational helper
-pins track this capture implementation. The snapshot manifest applies
-the same documentary selectors as preparation; executable helpers, canonical
-support sources and all maintained fixture roles retain exact byte identities.
+Executable helpers, canonical support sources and all maintained fixture roles
+are captured by exact byte identity.
 
 From `app/`, first generate the ordinary plan, calculate its exact file digest,
 and supply that digest explicitly:

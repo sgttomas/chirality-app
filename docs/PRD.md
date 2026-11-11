@@ -486,15 +486,14 @@ Summarised here; specified in the companion documents.
 
 (D-11.)
 
-- **V4-REP-01** v4 may replace v3.0.1 when both hold: the Chirality App
-  supports the core loop at least at v3.0.1's level — plan, execute, save a
-  workflow, reuse it, approvals, interruption, restart — and one live
-  embedded journey in SWBPIPE runs from a request to the person's acceptance.
+- **V4-REP-01** v4 may replace v3.0.1 when the Chirality App supports the
+  core loop at least at v3.0.1's level — plan, execute, save a workflow,
+  reuse it, approvals, interruption, restart.
 - The owner decides the replacement; the old projects and archives are kept
   until then (OD-09). Staged coexistence preserves current selectors, source
   identity, active work and continuing obligations. Replacement is distinct
   from all-project retirement or professional reliance (B-HTML 07).
-- Domains is not a prerequisite to the initial V4-REP-01 journey. Its
+- Domains is not a prerequisite to replacement under V4-REP-01. Its
   subsequent increment has its own receiving/examination obligations (U2).
   PEC has no outstanding delivery or adoption obligation. Agents work from
   deliverable sources and available tools.

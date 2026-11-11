@@ -13,22 +13,6 @@ import sys
 from inventory import anchored, compare, inspect_signatures, scan, sha256, validate_package_layout
 
 
-def deliverable_path(root, relative):
-    """Resolve retained logical identities to current App inputs; never follow Design links."""
-    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
-    if match is not None:
-        if os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
-            return relative
-        relative = match.group(1) + 'Work/' + relative[match.end():]
-    if relative.startswith('execution/'):
-        # Historical/custom evidence trees have no current App-input namespace.
-        # A maintained root never falls back to its authoring execution tree.
-        if not os.path.lexists(os.path.join(root, 'app/contract_inputs')) and os.path.lexists(os.path.join(root, relative)):
-            return relative
-        return 'app/contract_inputs/' + relative[len('execution/'):]
-    return relative
-
-
 HERE=Path(__file__).resolve().parent
 PROJECT=HERE.parent.parent
 LIMITS=[
@@ -51,14 +35,6 @@ def parse_json(data):
 
 def read_json(path):
     return parse_json(Path(path).read_bytes())
-
-
-def check_basis():
-    pins=read_json(HERE/'sources.json')
-    for name,digest in pins['sources'].items():
-        if sha256((PROJECT/deliverable_path(PROJECT,name)).read_bytes())!=digest:
-            raise ValueError(f'canonical packaging source changed: {name}')
-    return sha256((HERE/'sources.json').read_bytes())
 
 
 def inputs_account(path):
@@ -145,7 +121,7 @@ def copy_supplier(inventory,destination):
 def prepare(vendor,expected_manifest,pin,revision,inputs,output):
     if not re.fullmatch(r'[0-9a-f]{64}',expected_manifest): raise ValueError('expected manifest must be a sha256')
     if not revision.strip(): raise ValueError('candidate revision is required')
-    basis=check_basis(); inventory=scan(vendor)
+    inventory=scan(vendor)
     if not inventory['files'] or inventory['manifest_sha256']!=expected_manifest:
         raise ValueError('supplier manifest does not match the explicit expected identity')
     if any(e['kind'] not in ('dir','file') for e in inventory['entries']):
@@ -174,7 +150,7 @@ def prepare(vendor,expected_manifest,pin,revision,inputs,output):
                     'CF-6':'dmg planned, not built','CF-7':{'profile_name':account['declared']['notary_profile'],'state':'not submitted'},
                     'CF-8':'not stapled'},
                 'package_complete':False,'first_package_checks':{k:'not-run' for k in ('fp0','fp1a','fp1b','fp2','fp3','fp4','fp5')},
-                'source_manifest_sha256':basis,'implementation_sha256':{n:sha256((HERE/n).read_bytes()) for n in ('prepare.py','inventory.py')},'limits':LIMITS}
+                'implementation_sha256':{n:sha256((HERE/n).read_bytes()) for n in ('prepare.py','inventory.py')},'limits':LIMITS}
         with (output/'preparation.json.tmp').open('x') as writer:
             writer.write(json.dumps(report,indent=2)+'\n')
         (output/'preparation.json.tmp').replace(output/'preparation.json')
@@ -203,8 +179,8 @@ def main(argv=None):
             print(json.dumps(result,indent=2))
             return 1 if result['comparison']=='mismatch' else 0
         if args.command=='inventory':
-            basis=check_basis(); result=scan(args.tree)
-            result.update(source_manifest_sha256=basis,limits=LIMITS)
+            result=scan(args.tree)
+            result.update(limits=LIMITS)
             if args.signature_display: result['fp0']=inspect_signatures(result)
         else:
             result=prepare(args.vendor,args.expected_manifest,args.pin,args.candidate_revision,args.inputs,args.output)

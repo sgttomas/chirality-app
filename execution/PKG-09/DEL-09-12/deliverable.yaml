@@ -1,41 +1,35 @@
 id: DEL-09-12
 name: Practitioner validation and feedback disposition
 needs:
-- from: external:OI-016
-  condition: Obtain and preserve the actual owner agreement on period and selected realistic activities
-    before practitioner validation in use; a proposed arrangement does not supply agreement.
-  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
-- from: unknown
-  condition: The selected App validation activity consumes the identified candidate and its named available
-    contributions, retaining candidate/configuration/date and material identity.
-  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
-- from: external:APP-V4:DEP-001
-  condition: The SWBPIPE validation activity consumes actual identified external host contributions and
-    the applicable validation route; retain human-relayed custody and candidate/readiness evidence before
-    corresponding connected-journey examination.
-  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
-- from: 'external:Owner practitioner: actual use records and observations'
-  condition: Receive source-linked evidence of the owner doing realistic work in both expressions, including
-    candidate/configuration/date, observed conditions and limits, to produce the faithful OUT-002 account.
-  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
+- from: DEL-01-06
+  condition: An installable macOS package of an identified App candidate exists for the owner to use.
+  gating: true
 - from: DEL-04-01
-  condition: Consume the applicable adopted operation policy for recording the selected acts without deciding
-    unsettled classes or manufacturing human acceptance.
+  condition: The operation policy names the acts reserved to a person, so an owner's act in use is
+    recorded as that act and a routine permission is not.
   gating: true
-  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
-- from: external:OI-021
-  condition: For a selected connected activity, obtain the useful operation, permitted autonomy and exact
-    candidate environment decision at its stated point of need before connected-activity SoW and execution.
-  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
 - from: DEL-09-01
-  condition: Supply reusable examination support and evidence interfaces to the named owner of DEL-09-12
-    for its own scoped work.
+  condition: A candidate identification record names the build the owner used, and verification records
+    are marked apart from validation.
   gating: true
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
-- from: unknown
-  condition: Route each feature-related fitness-for-use observation, with its owning requirement/source
-    identity, conditions and proposed treatment, to the responsible feature recipient (observation-specific,
-    unresolved here) and preserve the actual disposition evidence.
-  direction: downstream
+- from: DEL-10-02
+  condition: Each practice note brought to a stage or selected-method discussion traces to the owner's
+    actual disposition, with its actor and scope, or is shown as pending.
+  when: After a method observation from validation in use has been routed to DEL-10-02 as a practice
+    note; its disposition completes that observation's entry in the feedback dispositions.
   gating: false
-  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
+- from: external:OI-016
+  condition: The owner agrees the period and the realistic activities of validation.
+  when: Before any use counts as validation.
+- from: external:owner as practitioner
+  condition: The owner does the chosen work in the Chirality App and in SWBPIPE and reports what they
+    observed.
+- from: external:DEP-001
+  condition: SWBPIPE provides an identified host candidate the owner can do the chosen work in.
+  when: Before validation in SWBPIPE.
+- from: external:OI-021
+  condition: The owner chooses the operation, the autonomy permitted and the candidate environment
+    of the first connected activity.
+  when: Before validation of a connected activity.
+code_paths: []
+checks: []

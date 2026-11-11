@@ -4,7 +4,6 @@ import copy
 import hashlib
 import importlib.util
 import json
-import os
 from pathlib import Path
 import re
 import stat
@@ -72,22 +71,6 @@ def digest(value):
     require(isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value), 'invalid digest')
 
 
-def deliverable_path(root, relative):
-    """Resolve retained logical identities to current App inputs; never follow Design links."""
-    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
-    if match is not None:
-        if os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
-            return relative
-        relative = match.group(1) + 'Work/' + relative[match.end():]
-    if relative.startswith('execution/'):
-        # Historical/custom evidence trees have no current App-input namespace.
-        # A maintained root never falls back to its authoring execution tree.
-        if not os.path.lexists(os.path.join(root, 'app/contract_inputs')) and os.path.lexists(os.path.join(root, relative)):
-            return relative
-        return 'app/contract_inputs/' + relative[len('execution/'):]
-    return relative
-
-
 def read(root, relative):
     require(isinstance(relative, str) and relative and not relative.startswith('/')
             and '\\' not in relative and all(p not in ('', '.', '..') for p in relative.split('/')),
@@ -115,31 +98,28 @@ class Receiver:
         require(self.pins['format'] == PROFILE, 'unknown package receiving profile')
         self.sources = {}
         for path, expected in self.pins['sources'].items():
-            payload = read(PROJECT, deliverable_path(PROJECT, path))
+            payload = read(PROJECT, path)
             require(sha(payload) == expected, 'package receiving source changed: ' + path)
             self.sources[path] = payload
         source = 'app/examination/support_identity/canonical.py'
         self.canonical = canonical or module('_package_canonical', PROJECT / source, self.sources[source]).CanonicalSupport()
-        # Packaging resolves its maintained Work closure independently from the
-        # EXP worker's historical Design snapshot. Mixing those roots would
-        # falsely make the legacy resolver select a partial Design directory.
+        # The packaging producer runs from its own private capture of its sources.
         self.producer_snapshot = tempfile.TemporaryDirectory(prefix='exp-package-producer-')
         producer_root = Path(self.producer_snapshot.name)
         # The legacy static reader finds its root by this file; it never reads it.
         (producer_root / 'AGENTS.md').write_text('Package producer snapshot root marker.\n')
         for path in self.pins['producer_sources']:
-            target = producer_root / deliverable_path(producer_root, path)
+            target = producer_root / path
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(self.sources[path])
         source = 'app/packaging/successor/check.py'
         self.producer = module('_selected_packaged_s4_check', producer_root / source, self.sources[source])
-        # The exact original EXP validators remain original support, not a new
-        # package schema masquerading as PKG-v0.2.
-        frozen = self.canonical.support.sources
+        # EXP result rules and schema, as the examination tooling itself reads them.
         source = 'app/examination/rules.py'
-        self.rules = module('_package_original_exp_rules', PROJECT / source, frozen[source])
-        schemas = [parse(data) for path, data in frozen.items() if path.endswith('/exam.result-record.schema.json')]
-        require(len(schemas) == 1, 'missing original EXP result schema')
+        self.rules = module('_package_exp_rules', PROJECT / source, self.sources[source])
+        schemas = [parse(data) for path, data in self.canonical.support.sources.items()
+                   if path.endswith('/exam.result-record.schema.json')]
+        require(len(schemas) == 1, 'missing EXP result schema')
         self.result_validator = Draft202012Validator(schemas[0], registry=Registry())
 
     def configuration(self, path, expected):
@@ -188,7 +168,6 @@ class Receiver:
         request = parse(raw)
         require(request['format'] == 'packaged-s4-binding/1' and request['record_id'] == report['record_id'],
                 'binding package identity mismatch')
-        _, condition = self.canonical.source_condition('current_producer_declaration')
         return {'format': 'exp-package-witness-binding/1', 'method': PROFILE,
                 'purpose': 'current_producer_declaration', 'source_profile_sha256': PINS_SHA256,
                 'receiver_sha256': sha(Path(__file__).read_bytes()),
@@ -196,8 +175,7 @@ class Receiver:
                 'artifact': {'kind': 'package_witness', 'record_id': request['record_id'], 'sha256': sha(raw)},
                 'candidate': copy.deepcopy(report['candidate']),
                 'exp_receiving_support': {'declaration_sha256': self.canonical.declaration_sha256,
-                                          'support_identity': copy.deepcopy(self.canonical.identity)},
-                'documentary_selection': {key: condition[key] for key in ('method', 'manifest_sha256')}}
+                                          'support_identity': copy.deepcopy(self.canonical.identity)}}
 
     def verify_binding(self, raw, sidecar_raw, report, config_sha256):
         require(parse(sidecar_raw) == self.binding(raw, report, config_sha256),

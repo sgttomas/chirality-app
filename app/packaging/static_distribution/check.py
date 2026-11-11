@@ -54,22 +54,6 @@ def ref(value):
     return value
 
 
-def deliverable_path(root, relative):
-    """Resolve retained logical identities to current App inputs; never follow Design links."""
-    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
-    if match is not None:
-        if os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
-            return relative
-        relative = match.group(1) + 'Work/' + relative[match.end():]
-    if relative.startswith('execution/'):
-        # Historical/custom evidence trees have no current App-input namespace.
-        # A maintained root never falls back to its authoring execution tree.
-        if not os.path.lexists(os.path.join(root, 'app/contract_inputs')) and os.path.lexists(os.path.join(root, relative)):
-            return relative
-        return 'app/contract_inputs/' + relative[len('execution/'):]
-    return relative
-
-
 def transfer(path, destination=None, retain=False):
     """Stream a bounded no-follow regular file, checking descriptor stability."""
     path = Path(path)
@@ -152,38 +136,21 @@ class Frozen:
 def source_model(frozen, scratch):
     raw = frozen.file(HERE / 'sources.json', scratch / 'source-pins.json')
     pins = parse(raw)
-    exact(pins, ('format', 'basis_revision', 'model', 'sources'), 'source manifest')
-    require(pins['format'] == 'static-distribution-sources/1', 'unknown source manifest version')
+    exact(pins, ('format', 'model', 'sources'), 'source manifest')
+    require(pins['format'] == 'static-distribution-sources/2', 'unknown source manifest version')
     relative(pins['model'])
     require(pins['model'] in pins['sources'], 'model must be a guarded frozen source')
-    # Preserve original source/basis bytes as evidence. Only the private current
-    # staging basis translates logical locators; dependency digests stay identical.
-    logical_root = scratch / 'source'
-    original_basis = None
+    # The value model and everything it opens run from one private capture.
+    source_root = scratch / 'source'
     for name, digest in pins['sources'].items():
         relative(name)
-        physical = deliverable_path(ROOT, name)
-        actual = frozen.file(ROOT / physical, logical_root / physical)
+        actual = frozen.file(ROOT / name, source_root / name)
         require(sha(actual) == digest, 'canonical static source changed: ' + name)
-        if name.endswith('/distribution-s1/basis.json'):
-            original_basis = actual
-    require(original_basis is not None, 'static model basis missing')
-    staged_basis = parse(original_basis)
-    for item in staged_basis['reads']:
-        name = item['path'].removeprefix('projects/chirality-app-v4/')
-        item['path'] = deliverable_path(ROOT, name)
-    model_path = logical_root / deliverable_path(ROOT, pins['model'])
-    staged_basis_bytes = (json.dumps(staged_basis, indent=2) + '\n').encode()
-    (model_path.parent / 'basis.json').write_bytes(staged_basis_bytes)
-    (scratch / 'original-basis.json').write_bytes(original_basis)
-    (logical_root / 'AGENTS.md').write_text('Frozen value-model source root marker.\n')
+    (source_root / 'AGENTS.md').write_text('Frozen value-model source root marker.\n')
+    model_path = source_root / pins['model']
     spec = importlib.util.spec_from_file_location('static_s1_value_model', model_path)
     model = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(model)
-    model.location_basis = {'original_basis_sha256': sha(original_basis),
-                            'staged_basis_sha256': sha(staged_basis_bytes),
-                            'method': 'logical-to-current-physical-locators/1',
-                            'original_path_replay': False}
     return model, sha(raw)
 
 
@@ -364,7 +331,6 @@ def _check(request_path, scanner_path, published_tree=None, packaged_tree=None):
             'selected_terms_state': terms['state'],
             'selected_request_sha256': sha(request_raw), 'selected_artifacts': frozen.artifacts,
             'source_manifest_sha256': source_digest,
-            'source_location_basis': model.location_basis,
             'scanner': {'sha256': scanner_digest, 'declared_source_revision': request['scanner']['declared_source_revision'],
                         'contract': 'distribution_preflight::scan/equal; complete Inventory JSON',
                         'standing': 'operator-selected executable bytes; source/build provenance not authenticated'},

@@ -724,7 +724,7 @@
     }
   },
   "x-derivation": {
-    "source": "projects/chirality-app-v4/execution/PKG-01/DEL-01-01/Design/hosting.lifecycle-event.v0.10.schema.json",
+    "source": "app/src-tauri/schemas/hosting.lifecycle-event.v0.10.schema.json",
     "sha256": "5e0dfcbdc7d8f42e214a0e839d4e580e6a8151df154e59c8cc36ff5a3a014c13",
     "operation": "unchanged schema object nested; $defs hoisted without modification; $id/$schema metadata removed"
   }

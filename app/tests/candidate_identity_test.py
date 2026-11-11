@@ -192,20 +192,17 @@ class PortableValidation(Scratch):
         inv['entries'].pop(-1); inv['entries'][-1]['target'] = 'dir/file'
         identify.validate_inventory(inv)  # exactly 32 hops
 
-    def test_manifest_matches_independent_packaging_reader(self):
+    def test_manifest_matches_independent_file_walk(self):
         app = write_bundle(self.tmp, extra={'Contents/Resources/é.txt': b'unicode', 'Contents/Resources/A': b'A'})
-        prototype = Path(__file__).resolve().parents[2] / 'app/contract_inputs/PKG-01/DEL-01-06/Work/prototype/read_tree.py'
-        spec = importlib.util.spec_from_file_location('packaging_read_tree', prototype)
-        pkg = importlib.util.module_from_spec(spec); spec.loader.exec_module(pkg)
-        entries = pkg.read(str(app), signatures=False)
-        reference = pkg.manifest(entries)
-        # Independent filesystem traversal on all platforms; live inventory on macOS.
-        inv = identify.inventory(app) if MAC else {'entries': entries}
-        self.assertEqual(identify.file_manifest(inv), reference)
-        self.assertEqual(reference, hashlib.sha256(b''.join(
+        files = sorted((p for p in app.rglob('*') if p.is_file() and not p.is_symlink()),
+                       key=lambda p: p.relative_to(app).as_posix().encode())
+        # Live inventory on macOS; the same regular-file rows elsewhere.
+        inv = identify.inventory(app) if MAC else {'entries': [
+            {'kind': 'file', 'path': p.relative_to(app).as_posix(), 'sha256': hashlib.sha256(p.read_bytes()).hexdigest()}
+            for p in files]}
+        self.assertEqual(identify.file_manifest(inv), hashlib.sha256(b''.join(
             hashlib.sha256(p.read_bytes()).hexdigest().encode() + b'  ' + p.relative_to(app).as_posix().encode() + b'\n'
-            for p in sorted(app.rglob('*'), key=lambda p: p.relative_to(app).as_posix().encode())
-            if p.is_file() and not p.is_symlink())).hexdigest())
+            for p in files)).hexdigest())
 
     def test_unsupported_platform_refuses_live_scan_but_not_validation(self):
         with mock.patch.object(identify, '_libc', None):

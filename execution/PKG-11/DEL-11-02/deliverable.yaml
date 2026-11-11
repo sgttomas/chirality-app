@@ -2,66 +2,53 @@ id: DEL-11-02
 name: Consumer-specific renewed-basis adoption
 needs:
 - from: DEL-10-03
-  condition: Consume DEL-10-03 shared responsibility and technical-promise allocation as the basis for adoption
-    consequences.
+  condition: The responsibility account names each affected consumer of shared material with its accountable
+    owner, packaging and tool paths, holds for each proposed change of placement or supply a check of
+    them against identified current source or shows that check as outstanding, and traces each affected
+    technical promise of the workflow, catalog, act-and-record and host-loop contracts to its accountable
+    scope and evaluation path.
   gating: true
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
-- from: package:PKG-02
-  condition: Consume the relevant PKG-02 contracts identified by the adoption account for their actual adoption
-    consequences.
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
-- from: package:PKG-03
-  condition: Consume the relevant PKG-03 contracts identified by the adoption account for their actual adoption
-    consequences.
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
-- from: package:PKG-04
-  condition: Consume the relevant PKG-04 contracts identified by the adoption account for their actual adoption
-    consequences.
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
-- from: package:PKG-05
-  condition: Consume the relevant PKG-05 contracts identified by the adoption account for their actual adoption
-    consequences.
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
-- from: external:DEP-006
-  condition: Receive affected owners' identified adoption evidence, packaging/tool-path consequences and
-    continuing-obligation dispositions; retain their actual scope, actor and separate evidence for every
-    claimed act.
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
-- from: unknown
-  condition: Before relying on the historical research pin as a current implementation map, obtain and compare
-    the relevant later mainline and consumer source changes; the specific revisions and comparison corpus
-    remain unresolved.
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
-- from: external:OI-017
-  condition: Before dependent manual-edition reliance, the owning project-definition manager records the
-    actual adopted editions and content identities.
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
-- from: external:OI-018
-  condition: Before instruction changes or dependent supply, the owner with shared/project instruction owners
-    defines the distribution/adoption arrangement.
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
-- from: external:OI-019
-  condition: When a consequential manual gap affects selected work, obtain the owner with execution manager
-    disposition of improvised practice and escalation.
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
-- from: external:OI-020
-  condition: Before revising manuals from feedback, the owner settles revision authorship and approval arrangements.
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
-- from: external:OI-024
-  condition: Before each adoption or retirement decision, the owner with affected consumers identifies adopters,
-    continuing obligations and end-of-coexistence conditions.
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
-- from: external:OI-014
-  condition: Before affected structural/production allocation, App/shared contract owners place shared contracts/components
-    against actual consumer responsibilities and agree ownership before common implementation.
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
-- from: DEL-02-04
-  condition: Provide the role-specific source identity, actual supplied bytes and enforcement-limit evidence
-    to the consumer-specific adoption owner through the existing interface.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
 - from: DEL-10-01
-  condition: Supply affected basis/manual-application adoption implications, with consumer and source identity,
-    to DEL-11-02 at each receiving transition or retirement point of need.
+  condition: The execution basis names the selected editions of the manual and of the shared roles
+    and methods by release and recoverable identity, and hands over each consequence of an edition
+    or practice change for another consumer with the consumer and the source identity.
   gating: true
-  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
+- from: DEL-02-04
+  condition: For each conversation the supply record shows the source and content identity of each
+    guidance part and what was supplied, shows adoption as unknown unless a consumer's adoption is
+    evidenced with its actor and scope, and can be read without this deliverable defining its format.
+  gating: true
+- from: package:PKG-02
+  condition: The workflow, role and checkpoint contracts whose adoption is accounted for state their
+    promises, so that an affected change can be traced from them.
+  when: When a renewal changes one of those contracts.
+- from: package:PKG-03
+  condition: The catalog and proposal contracts whose adoption is accounted for state their promises,
+    so that an affected change can be traced from them.
+  when: When a renewal changes one of those contracts.
+- from: package:PKG-04
+  condition: The operation-policy, autonomy and record contracts whose adoption is accounted for state
+    their promises, so that an affected change can be traced from them.
+  when: When a renewal changes one of those contracts.
+- from: package:PKG-05
+  condition: The host-loop and panel contracts whose adoption is accounted for state their promises,
+    so that an affected change can be traced from them.
+  when: When a renewal changes one of those contracts.
+- from: external:DEP-006
+  condition: The owner of each affected consumer supplies that consumer's adoption decision, its packaging
+    and tool-path consequences and the dispositions of its continuing obligations.
+  when: Before that consumer transitions or an old arrangement retires.
+- from: external:sgttomas/chirality after revision e548d4cfada4d2105de6231516dc6e5fc4bd4689
+  condition: The mainline and consumer source changes made since the pinned research are readable for
+    comparison.
+  when: Before a consumer relies on the pinned research as a current implementation map.
+- from: external:OI-018
+  condition: The owner with the shared and project instruction owners defines how changed shared instructions
+    are distributed to and adopted by projects other than the App.
+  when: Before instruction changes or dependent supply to those consumers.
+- from: external:OI-024
+  condition: The owner with the affected consumers identifies first adopters, continuing obligations
+    and the conditions for ending coexistence.
+  when: Before each adoption or retirement decision.
+code_paths: []
+checks: []

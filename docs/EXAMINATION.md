@@ -139,8 +139,7 @@ The existing supports/run-adjustment example below is a proposed fixture,
 not an assignment to this App undertaking to build solver or host behavior.
 
 
-**V4-EXM-20 Delegated model change with a local model** — *the replacement
-journey (V4-REP-01).* On an invented piping model, the engineer asks the
+**V4-EXM-20 Delegated model change with a local model.** On an invented piping model, the engineer asks the
 embedded agent, running on the local model server, to add supports and adjust
 a run. The agent reads the tables through the catalog, drafts a proposal,
 and the engineer reviews the proposed rows in the tables, accepts some row by
@@ -255,10 +254,8 @@ provider allocation remains open; SWBPIPE implementation is externally owned.
 ## 7. Replacing v3.0.1
 
 The owner decides the replacement (V4-REP-01). The evidence presented for
-that decision is: V4-EXM-10 and V4-EXM-11 passed on the candidate App (the
-core loop at least at v3.0.1's level), and V4-EXM-20 passed on the candidate
-App and SWBPIPE with a local model (one live embedded journey from request to
-acceptance).
+that decision is V4-EXM-10 and V4-EXM-11 passed on the candidate App (the
+core loop at least at v3.0.1's level).
 
 
 This evidence is for the human's replacement judgment, not blanket
@@ -266,4 +263,4 @@ all-project retirement or professional reliance. Staged coexistence preserves
 history, current work and receiving responsibilities (B-HTML 07). Domains
 joins subsequently under U2; PEC delivery is retired. Completion of
 decomposition, prepared handoffs, accepted provider contracts and independent
-component checks do not stand in for the applicable connected witnesses.
+component checks do not stand in for the applicable witnesses on the candidate.

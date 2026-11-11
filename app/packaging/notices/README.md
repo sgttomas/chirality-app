@@ -111,4 +111,4 @@ recomputed lock closure, or when a received-text row names anything other than
 the one allowed retained file and a known revision-to-blob association. A
 rebound receipt that drops a selected crate passes the Cargo-free check; only
 `check --cargo-home` re-resolves the exact member set. This is a preparation
-inventory, not bundled coverage or a licensing determination. See `execution/PKG-01/DEL-01-06/Work/SHIPPED_NOTICE_COVERAGE.md`.
+inventory, not bundled coverage or a licensing determination.

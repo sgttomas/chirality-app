@@ -2,105 +2,62 @@ id: DEL-03-03
 name: Local external-agent receiving adapter
 needs:
 - from: DEL-03-01
-  condition: The receiving adapter requires the identified capability catalog/read-basis definitions and
-    availability/read-standing expectations supplied by App DEL-03-01 for production and contract comparisons.
+  condition: The catalog states each operation's identity, version, availability reasons and
+    exposure on the external surface, and a read carries its content, standing and basis, with the
+    non-success results (unavailable, not permitted, not exposed, channel not enabled, error) kept
+    distinct.
   gating: false
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
 - from: DEL-03-02
-  condition: The receiving adapter requires the identified proposal, validation and outcome definitions,
-    including original basis, stale refusal, no retargeting, duplicate one-effect and unknown outcomes supplied
-    by App DEL-03-02 for production and contract comparisons.
+  condition: A change request binds its targets and relied-on basis, and the state a host reports
+    for it distinguishes queued, accepted, applied with a receipt, the refusals (stale, invalid,
+    not permitted, identity conflict) and an unknown outcome, with one effect per item for a repeated
+    submission.
   gating: false
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
 - from: DEL-04-01
-  condition: 'Production and policy-dependent fixtures require the adopted PKG-04 operation-policy distinctions
-    carried by DEL-04-01 (reserved acts: DECISION-1 D2; classifier treatment: D3), consumed without deciding
-    reserved acts or classifier permissions. Operation-specific additions remain under OI-021 and host adoption/enforcement
-    under DEP-001.'
+  condition: The operation policy names the acts reserved to a person, including enabling and disabling
+    external access, treats routine tool permission as no human act, and applies the same to every
+    channel.
   gating: true
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
-- from: external:Codex native-tool capability for the selected local MCP or CLI boundary
-  condition: Receiving-adapter production requires actual Codex native-tool capability for the selected
-    machine-local MCP or CLI interface.
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
-- from: 'external:External host owner: catalog-derived local MCP/CLI endpoint contract'
-  condition: The App external-host integration owner and external host owner establish the receiving interface
-    from the App contracts and adopted policy before implementation or qualification relies on it; production
-    requires the externally supplied endpoint contract.
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
-- from: external:SWBPIPE
-  condition: Actual external host contributions are needed at the corresponding connected-journey integration/examination
-    and fallback-replacement point of need; use external host evidence for host-enforcement claims. Independent
-    App definition and explicit local fixtures may proceed.
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
 - from: DEL-01-01
-  condition: The receiving adapter consumes DEL-01-01's supplier MCP, dynamic-tool and command-execution
-    surfaces and channel-status facts at the reviewed SUP1 development pin 0.160.0 (DEL-01-01 REQ-006, TBD-002).
-    Observations dated at 0.158.0 keep their pin and limits; neither pin is qualification.
+  condition: The App owns a stock Codex child whose native MCP tool calls, command executions and
+    MCP server status reach the App as observed items, at the supplier version that deliverable
+    selects; and the model and destination the supplier reported are handed over at the scope at
+    which they were reported.
   gating: true
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
-- from: DEL-02-03
-  condition: The receiving adapter consumes DEL-02-03's checkpoint statement and required-tool check for
-    the current phase and, for the governance phase, its hold machine and hold-support values; in the current
-    phase a checkpoint on this channel is plan guidance and claims no hold.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
 - from: DEL-01-02
-  condition: The receiving adapter consumes App DEL-01-02's in-flight item state and relaunch fact for an
-    external request whose Codex process stopped or whose App relaunched during submission.
+  condition: A request in flight when Codex stops or the App relaunches is reported as interrupted
+    with its last observed state, apart from one that completed.
   gating: true
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
-- from: DEL-04-02
-  condition: The receiving adapter consumes App DEL-04-02's visible autonomy state (grant display states
-    and settings references).
-  gating: false
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
-- from: DEL-02-01
-  condition: For the governance phase, the receiving adapter consumes App DEL-02-01's declared checkpoint
-    constraints for carriage on the external channel.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
-- from: DEL-01-01
-  condition: 'App v4 DEL-03-03 receives this supplier boundary: supplier MCP/dynamic-tool surfaces and channel-status
-    facts at the definition pin; its acts are not transferred here.'
-  gating: true
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
-- from: DEL-01-02
-  condition: Serve App v4 DEL-03-03 with in-flight items and the relaunch fact; DEL-03-03 declares the consumption
-    upstream.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
-- from: DEL-02-01
-  condition: DEL-03-03 receives the declared checkpoint constraints for carriage on the external channel
-    in the governance phase.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
 - from: DEL-02-03
-  condition: App v4 DEL-03-03 receives this slice's report, recording meanings and transfer contract and
-    declares it upstream in its own register; its acts are not transferred here.
+  condition: The checkpoint record has entries for an arrival, including one a host reports, a
+    request for the act where it can be identified, an act counted toward an arrival, a decline, a
+    lapse and a lost or recovered observation, to which an observation on the external channel is an
+    input; a checkpoint's act is recorded only when the person performs it; and in the current phase
+    nothing holds a run.
   gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-03-01
-  condition: App v4 DEL-03-03 receives this catalog/read-basis contract (catalog/read-basis definitions)
-    and declares it upstream in its own register; its acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: DEL-03-02
-  condition: Supply this same operation contract to the local external-agent receiving adapter DEL-03-03.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
-- from: DEL-04-01
-  condition: DEL-04-01 supplies operation-policy and human-act meaning to DEL-03-03, which the source states
-    declares DEL-04-01 upstream in its own register; actual policy content and applicable adopted decisions
-    must be provided.
-  gating: true
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
 - from: DEL-04-02
-  condition: Supply DEL-04-02 visible autonomy state to App DEL-03-03, which the source names as a receiver.
+  condition: The grant in force for a class of operation is shown as an established or an unestablished
+    state with its settings reference, so a dispatch can state the grant it was made under.
   gating: false
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
-checks:
-- execution/PKG-03/DEL-03-03/Work/checkpoint_observation.schema.json
-- app/src-tauri/tests/catalog_adapter.rs
+- from: DEL-02-01
+  condition: A workflow declares each checkpoint with its required act, subject class and reached-when,
+    for carriage on the external channel in the governance phase.
+  gating: false
+- from: external:DEP-001
+  condition: The host offers a catalog-derived machine-local MCP server or command-line interface,
+    a facility by which the person enables it and which returns a capture-evidence reference, and
+    its route, receipts and act records.
+  when: Before a connected journey, its examination or a host-enforcement claim relies on them.
+- from: external:DEP-001
+  condition: The App external-host integration owner and the host owner settle the native path,
+    transport, caller authentication and wire schemas of the receiving interface.
+  when: Before an implementation or a qualification depends on that interface.
 code_paths:
 - app/src-tauri/src/external_adapter.rs
+- app/src-tauri/resources/catalog_adapter/channel_status.*
+- app/src-tauri/resources/catalog_adapter/external_dispatch_record.*
+- app/src-tauri/resources/catalog_adapter/checkpoint_observation.*
+checks:
+# catalog_adapter.rs is one check file shared with DEL-03-01, DEL-03-02, DEL-05-01, DEL-05-02.
+# Here: the cases on the disabled and enabled channel, dispatch records and host claims.
+- app/src-tauri/tests/catalog_adapter.rs

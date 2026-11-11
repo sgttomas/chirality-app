@@ -51,7 +51,7 @@ class RepinTests(unittest.TestCase):
         for profile in repin.PROFILES:
             paths |= {path for _, _, path in repin.slots(profile, read_json(ROOT, profile))}
         for path in paths:
-            relative = repin.resolve(ROOT, path)
+            relative = path
             target = self.root / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / relative, target)
@@ -226,15 +226,6 @@ class RepinTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn('pinned source missing: ' + SUPPORT, output)
         self.assertEqual(self.snapshot(), before)
-
-    def test_historical_markdown_selections_are_left_as_recorded(self):
-        pins = read_json(self.root, SQ_PACKAGES)
-        documentary = next(p for p in pins['sources'] if p.endswith('.md'))
-        target = self.root / repin.resolve(self.root, documentary)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(b'changed current text\n')
-        self.assertEqual(run(self.root)[0], 0)
-        self.assertEqual(read_json(self.root, SQ_PACKAGES)['sources'][documentary], pins['sources'][documentary])
 
     def test_the_lock_cannot_pin_itself(self):
         value = read_json(self.root, repin.LOCK)

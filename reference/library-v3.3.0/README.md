@@ -2,8 +2,7 @@
 
 App selects `library-v3.3.0` at
 `ec3ee2d1b398eba1fb3227ccf93e2569df95bacd`, replacing 3.1.0 for new contributor
-reliance and skipping 3.2.1. The [owning findings](../../execution/PKG-10/DEL-10-01/Work/LIBRARY_V3_3_RECEIVING.md)
-record the entry-document and retained-method dispositions.
+reliance and skipping 3.2.1. DEL-10-01 owns the adoption.
 
 The published `chirality-library-3.3.0-source.tar` is 10,004,480 bytes, with
 SHA-256 `e3db320a1d6b7b69dcb2e71d171849904189da1ce7666aa522ae91d6b98c3b20`.

@@ -2,82 +2,71 @@ id: DEL-09-07
 name: Local host candidate qualification
 needs:
 - from: DEL-09-06
-  condition: Receive catalog-v4 source/schema and bounded producer evidence through DEL-09-06 at integrated
-    SWBPIPE 9b6281e7eaca924e6166336b87b6d25937c1ca04, preserving v3 history. Before dependent qualification
-    execution, consume the agreed activity and App/host round-trip agreement, including the selected operation,
-    permitted autonomy and exact candidate environment.
+  condition: The activity examined is defined (its operation, the autonomy permitted and the candidate
+    environment), SWBPIPE's catalog has been received at an identified revision, and each SWBPIPE
+    contribution holds exactly one standing as DEL-09-06 defines it (prepared, relayed, answered,
+    committed, delivered, adopted, examined).
   gating: true
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
-- from: package:PKG-02
-  condition: Consume the applicable PKG-02 contracts for local host qualification together with the actual
-    agreed activity.
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
-- from: package:PKG-03
-  condition: Consume the applicable PKG-03 contracts for local host qualification together with the actual
-    agreed activity.
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
-- from: package:PKG-04
-  condition: Consume the applicable PKG-04 contracts for local host qualification together with the actual
-    agreed activity.
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
-- from: package:PKG-05
-  condition: Consume the applicable PKG-05 contracts for local host qualification together with the actual
-    agreed activity.
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
-- from: external:DEP-001
-  condition: 'Before the connected examination, receive the external SWB contribution: actual candidate
-    execution, complete same-run host-network observation with native destination-enforcement evidence (selected
-    model service and person-allowed destinations, each recorded and shown) and host receipts/outcomes for
-    the local-model journey.'
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
-- from: external:Actual App/SWBPIPE candidate and local-model runtime configuration
-  condition: Qualification consumes an identified App/host candidate and dated configuration, harness/model
-    versions, local model server, adopted operation policy and the actual received contribution/activity;
-    bind every observation to that runtime basis.
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
-- from: external:Person/engineer — scoped V4-EXM-20 row decisions
-  condition: The completed V4-EXM-20 witness needs the person to review the proposed old/new host-table
-    rows, accept some rows individually and reject one; retain the actual actor, affected content, scope/purpose
-    and receipts.
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
-- from: external:Engineer-edited model and agent checking request for V4-EXM-21
-  condition: Begin V4-EXM-21 with the actual engineer-edited model and agent checking request so non-mutating
-    findings can be examined against the relevant rows/results and read basis.
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
-- from: external:Person-adopted per-operation autonomy policy and actual run setting
-  condition: 'For V4-EXM-22 consume the explicitly adopted operation policy and actual visible/recorded
-    per-class run setting: one allowed low-consequence direct-operation class and proposals for model geometry.'
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
-- from: external:Person's actual declared workflow-checkpoint act for V4-EXM-22
-  condition: The V4-EXM-22 checkpoint witness requires the specified person to perform the declared checkpoint
-    act, requested and recorded only when performed regardless of the autonomy setting; hold/release by
-    that act is examined only for a workflow in the governance phase.
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
-- from: external:OI-001
-  condition: Reserved-act matters outside the first-increment ruling (APP-V4-FIRST-INCREMENT-20260928-DECISION-1
-    D2) stay with the owner and App/SWB contract owners, and a criterion depending on such an operation
-    awaits its disposition (PRD OQ-02). Operation-specific additions remain open under OI-021 (TBD-001).
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
-- from: external:OI-002
-  condition: 'A dependent examination criterion outside the first-increment classifier ruling (APP-V4-FIRST-INCREMENT-20260928-DECISION-1
-    D3: routine tool-permission and sandbox modes stay the user''s Codex setting; hosts have no classifier
-    mode) is fixed only after its disposition (PRD OQ-02); host adoption remains under DEP-001.'
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
-- from: external:Independent examiner — joined local qualification dossier examination
-  condition: Obtain independent examination of the joined candidate dossier, its source fidelity, evidence
-    joins, candidate applicability and remaining limits before treating the dossier as independently examined.
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
+- from: DEL-02-03
+  condition: A declared workflow checkpoint requests the person's act and records it only when performed,
+    and holds the run only in the governance phase.
+  gating: false
+- from: DEL-03-01
+  condition: The catalog states each operation's meaning and the read basis (workspace identity, generation,
+    model revision, canonical content hash) a read returns.
+  gating: false
+- from: DEL-03-02
+  condition: A proposal is bound to its read basis, is refused with a reason after an intervening
+    edit, stays queued until the host records acceptance and application, and has one outcome with
+    its receipt.
+  gating: false
+- from: DEL-04-01
+  condition: The operation policy names the acts reserved to a person and the settings an operation
+    class may take, with proposal as the default for SWBPIPE model changes, accepted row by row,
+    by several rows or as a whole batch.
+  gating: true
+- from: DEL-04-02
+  condition: The setting for each operation class is visible and recorded with the run, and a directly
+    applied operation shows its origin mark and the undo route the host supplies.
+  gating: false
+- from: DEL-04-03
+  condition: Act and run records bind each act to actor, recorder, content, scope and purpose, refer
+    to host receipts, and show an act as lapsed when its content changes.
+  gating: false
+- from: DEL-05-01
+  condition: The loop requirements state which model service serves a turn and that every destination
+    contacted is recorded and shown.
+  gating: false
+- from: DEL-05-02
+  condition: Proposed changes appear in the host's own tables with affected objects, old and new
+    values and reason, and check findings refer to host rows and results, with no agent-private surface.
+  gating: false
 - from: DEL-09-01
-  condition: Supply reusable examination support and evidence interfaces to the named owner of DEL-09-07
-    for its own scoped work.
+  condition: Result records bind candidate, harness, model and model-server configuration and date,
+    a candidate identification record names the App and SWBPIPE candidate pair, records mark replay,
+    browser and native evidence apart and refuse a rehearsal as a case result, and WebKit and Chromium
+    interface routes and a native package smoke route exist.
   gating: true
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
-checks:
-- app/supplier_checks/swbpipe_receiving_pr40_test.py
-- app/supplier_checks/swbpipe_receiving_v4_pr30_test.py
-- app/supplier_checks/swbpipe_receiving_v4_test.py
-- app/supplier_checks/swbpipe_receiving_test.py
-- app/supplier_checks/swbpipe_projection_test.py
-- app/contract_inputs/PKG-09/DEL-09-07/Work/prototype/cir_check.py
-- app/contract_inputs/PKG-09/DEL-09-07/Work/prototype/dos_check.py
-- app/contract_inputs/PKG-09/DEL-09-07/Work/prototype/top_check.py
+- from: external:DEP-001
+  condition: SWBPIPE provides an identified host candidate with its embedded agent and states the
+    operation policy that candidate has adopted (its reserved list, the class it allows to be applied
+    directly and its default for model changes).
+  when: Before any case is run.
+- from: external:DEP-001
+  condition: SWBPIPE runs the journey on that candidate and returns its own receipts and an observation
+    of all network traffic for the same run, with evidence of its native destination enforcement.
+  when: Before the dossier of that run is examined.
+- from: external:local model server
+  condition: A local model server of identified version and configuration serves the embedded agent.
+- from: external:engineer performing the acts
+  condition: An engineer edits the model, sets the autonomy for each operation class, accepts and
+    rejects proposed rows and performs the declared checkpoint act while the examiner observes.
+- from: external:independent examiner
+  condition: An examiner separate from the coordinating owner examines the joined dossier.
+- from: external:OI-021
+  condition: The owner, through the SWBPIPE session and with the App owner, decides any addition to
+    the reserved acts or to routine-permission treatment that the examined operation needs beyond the
+    first increment's.
+  when: Before a criterion that depends on that addition is examined.
+code_paths: []
+checks: []

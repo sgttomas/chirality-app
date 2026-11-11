@@ -2,180 +2,112 @@ id: DEL-02-03
 name: Workflow execution compatibility and round-trip support
 needs:
 - from: DEL-02-01
-  condition: Receive the portable workflow/role/checkpoint declarations and shared-allocation contract for
-    selected-workflow execution and transfer.
+  condition: A package's declared part is read with a reading for each category and element; the
+    requirement outcome names, the pass rule and the checkpoint disposition names are each stated
+    once; and a workflow has a source-qualified identity, with derived-from naming the original
+    of an adaptation.
   gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
 - from: DEL-02-02
-  condition: Receive DEL-02-02's workflow-making, reviewed-registration and source-qualified selection contract,
-    and the run-start text and App-written run-end line it composes for each run this slice starts with
-    its content identity and supply-check record; host-origin changed drafts go through its receiving interface.
+  condition: A selected revision is resolved from the stored revision and verified against it at
+    selection, at run preparation and at sending; a run text is composed for each run opened,
+    with its content identity and the state of its supply check; and a refinement of an opened
+    workflow is a draft that goes through review and registration.
   gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-02-04
+  condition: The role chosen for a conversation, or no role, is recorded at its start and stays
+    fixed for the conversation's life.
+  gating: false
 - from: DEL-03-01
-  condition: Consume the capability/catalog semantics contract to interpret current-host capability information
-    for required-tool checks; actual host capability evidence remains separately required.
+  condition: Each entry of a host's catalog edition declares a stable identity and a version and
+    its exposure on each surface, and the host reports a new edition as an edition-change event.
   gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-04-01
-  condition: Use only the identified adopted operation policy for dependent workflow cases, preserving the
-    owner and host policy owner as decision actors for unresolved classes.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-04-03
-  condition: Receive the content/scope/purpose act-binding and run-record format to faithfully record actual
-    checkpoint acts and content-change lapse.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: external:OI-013
-  condition: The shared contract owner and SWB implementation owner agree the host-specific construction
-    and any reusable common contribution, then choose loop placement, parsing, persistence and panel assembly
-    without implied transfer of SWB ownership, before shared/host implementation boundary contracts; OI-013
-    remains open.
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: external:OI-014
-  condition: App/shared contract owners place shared contracts/components against actual consumer responsibilities
-    and agree ownership before any common implementation, without presuming a common service, before structural/production
-    contract allocation; OI-014 remains open.
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: external:OI-021
-  condition: The owner, via the outside SWB session, and the App/shared owner choose the useful operation,
-    permitted autonomy and exact candidate environment before connected-activity SoW and execution; OI-021
-    remains open.
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: external:DEP-001
-  condition: Receive the human-relayed external SWBPIPE host catalog/domain route, views, origins, human-act
-    recording, local loop integration, live control and candidate evidence before corresponding connected-journey
-    integration/examination and fallback-replacement decision.
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: external:Human checkpoint actor and separate recorder — positive fixture evidence
-  condition: The positive faithful-recording verification case requires evidence that the person actually
-    performed the checkpoint act, with a separate recorder preserving actor/content/scope/purpose.
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-05-01
-  condition: Receive checkpoint arrival observation, subject binding and loop events from host loops through
-    the DEL-05-01 receiving contract for checkpoint request/recording behavior; its host-loop hold applies
-    only in the governance phase.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
 - from: DEL-01-01
-  condition: Receive observed stock-Codex supplier facts from DEL-01-01 as capability information for App-side
-    execution compatibility; supplier observation stays with DEL-01-01.
+  condition: The supplier's native items reach receivers unchanged with their thread, turn and
+    item identities, and the harness-capability account states what the selected supplier version
+    supports.
   gating: true
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: external:Owner — governance-phase enforced-checkpoint decision (TBD-006)
-  condition: Before any App or host checkpoint hold is claimed enforced, the owner decides when a workflow
-    needs enforced checkpoints, then App/shared owners decide placement (OI-014); App-side run holds (DECISION-2
-    D6) re-open then.
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-03-02
-  condition: Consume DEL-03-02's per-item dispositions, item-left events, all-items-decided indication,
-    change-item content identities and applied outcomes with their resulting objects for checkpoint recording
-    and interrupted or replayed history (REQ-002, REQ-003).
+- from: DEL-01-02
+  condition: Custody facts (an observation lost and recovered, a Codex stop, a relaunch) are handed
+    over as observed events with stated unknowns, and an opaque tag attached to a conversation
+    is kept across a relaunch and can be looked up.
+  gating: true
+- from: DEL-01-04
+  condition: The act control captures an act the person performs with its capture evidence and
+    shows an unperformed act as not performed, and the run's state, its checkpoints and the
+    control that ends a run are placed in the interface.
   gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
+- from: DEL-04-01
+  condition: Each act kind has one name and a stated performer, the acts reserved to a person are
+    named, and routine tool permission never stands for a reserved act.
+  gating: true
+- from: DEL-04-03
+  condition: Entries are written to a run's log through one writer and can be validated; a human
+    act binds actor, recorder, content identity, scope and purpose; and an act whose bound content
+    changed is reported as lapsed.
+  gating: false
+- from: DEL-03-02
+  condition: Each change item has a content identity and its own disposition, an item leaving
+    a proposal and all items being decided are reported, and an outcome nobody observed is reported
+    as unknown.
+  gating: false
 - from: DEL-03-03
-  condition: Consume DEL-03-03's observations of checkpoint arrivals and act records on the external channel,
-    which this slice records (REQ-002, REQ-003); this slice does not define the external-channel receiving.
+  condition: What the adapter observes on the external channel about a declared checkpoint (a proposal
+    queued, an act observed, an item leaving, an observation lost or recovered) is reported.
   gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-01-04
-  condition: Consume DEL-01-04's App act control (person identity as APP-V4-DESIGN-PASS-2-20260930-DECISION-K1
-    K1-4 sets it) for the App-side positive capture fixtures (OUT-003, VER-003), which await that later
-    undertaking; this slice does not construct the control.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-01-02
-  condition: Consume DEL-01-02's custody events (observation lost and recovered, App-restart interruption)
-    and its run-reference tag and look-up, so that a run interrupted by a Codex stop or App relaunch is
-    recovered as the same run with its checkpoint history (REQ-002).
-  gating: true
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
 - from: DEL-04-02
-  condition: Consume DEL-04-02's grant display states (including set by person, not yet confirmed; unconfirmed;
-    refused) for recording A12 checkpoints (REQ-002, REQ-003); this slice does not define them.
+  condition: Each grant has one display state, including set by the person and not yet confirmed,
+    unconfirmed and refused.
   gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-01-01
-  condition: 'App v4 DEL-02-03 receives this supplier boundary: observed supplier facts, as capability information
-    for App-side execution compatibility; its acts are not transferred here.'
-  gating: true
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
-- from: DEL-01-02
-  condition: Serve App v4 DEL-02-03 with run tags and custody events from this slice's main-process custody;
-    DEL-02-03 declares the consumption upstream.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
-- from: DEL-01-04
-  condition: Supply the App act control to App DEL-02-03 for its App-side positive capture fixtures; DEL-02-03
-    declares the use upstream.
+- from: DEL-05-01
+  condition: A host loop evaluates a declared checkpoint only against events it observed and
+    records each arrival with its bound subject, purpose and scope, and the request for the act
+    where one can be identified.
   gating: false
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
-- from: DEL-02-01
-  condition: App v4 DEL-02-03 receives this portable workflow/role/checkpoint contract and shared allocation
-    and declares it upstream in its own register; its acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: DEL-02-02
-  condition: Supply DEL-02-03 with the run-start text and App-written run-end line, with content identity
-    and supply-check record, for each run it starts, and with this workspace's draft, registration and selection
-    contract.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
-- from: DEL-03-01
-  condition: App v4 DEL-02-03 receives this catalog/read-basis contract (capability semantics for required-tool
-    checks) and declares it upstream in its own register; its acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: DEL-03-02
-  condition: App v4 DEL-02-03 receives this contract's proposal, validation and outcome meanings (item dispositions
-    and content identities for checkpoint subjects) and declares them upstream in its own register; its
-    acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
-- from: DEL-04-01
-  condition: DEL-04-01 supplies operation-policy and human-act meaning to DEL-02-03 for its named consuming
-    responsibility; actual policy content and applicable adopted decisions must be provided.
-  gating: true
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: DEL-04-02
-  condition: Supply DEL-04-02 visible autonomy state to App DEL-02-03, which the source names as a receiver.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
-- from: DEL-04-03
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-02-03,
-    which the source states declares it upstream in its own register.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+- from: external:person using the App
+  condition: A person starts and ends runs and performs the acts that declared checkpoints require.
+- from: external:SWBPIPE implementation owner
+  condition: The host publishes its catalog, runs its loop, receives a carried workflow package,
+    delivers a host workflow's package with its origin, revision and act history, and offers
+    the means for a person's act.
+  when: Before a host case of the requirement check, checkpoint recording or transfer is run.
+- from: external:App and shared contract owners
+  condition: The owners of the shared contract parts decide where each part is placed.
+  when: Before the check or the recording is implemented once for both the App and a host.
+- from: external:owner
+  condition: The owner decides when a workflow needs enforced checkpoints, and which connected
+    operation comes first with the autonomy permitted for it.
+  when: Before a hold is assigned to any checkpoint or claimed.
 code_paths:
-- app/src-tauri/src/hosting.rs
-- app/src-tauri/src/hosting_request_event_join.rs
-- app/src-tauri/src/native_requests.rs
-- app/src-tauri/src/recorder.rs
-- app/src-tauri/src/role_lifecycle.rs
-- app/src-tauri/src/role_supply.rs
-- app/src-tauri/src/runtime_session.rs
-- app/src-tauri/src/workflow_record_store.rs
+- app/src-tauri/src/execution_compatibility.rs
+- app/src-tauri/src/compatibility_report.rs
+- app/src-tauri/src/workflow_proposal_advisory.rs
 - app/src-tauri/src/checkpoint_recorder.rs
 - app/src-tauri/src/after_run_end.rs
+- app/src-tauri/src/run_restart.rs
+- app/src-tauri/resources/workflow_role/compatibility-report.schema.json
+- app/src-tauri/schemas/checkpoint-record-entries.schema.json
+# runtime_session.rs, lib.rs and host_tick.rs are shared. Here: opening and ending a run, its
+# run reference and tag, the occasions of the requirement check, and feeding observed items
+# to the checkpoint recorder. Run preparation, run text and the supply check are DEL-02-02's;
+# custody is DEL-01-02's; the record writer is DEL-04-03's.
+- app/src-tauri/src/runtime_session.rs
+- app/src-tauri/src/lib.rs
 - app/src-tauri/src/host_tick.rs
-- app/src-tauri/src/workflow_proposal_advisory.rs
-- app/src/RunOffers.tsx
-- app/src-tauri/src/records_index.rs
+# RunPanel.tsx is shared with DEL-01-04, DEL-02-02 and DEL-04-02. Here: what is shown of a
+# run's state, its requirement report and its checkpoints.
 - app/src/RunPanel.tsx
-- app/src/App.tsx
-- app/src-tauri/src/file_act_view.rs
 checks:
-- app/src-tauri/src/workflow_selected_chain_disclosure_tests.rs
-- app/tests/selected-chain-disclosure.test.mjs
-- app/src-tauri/src/workflow_proposal_disclosure_tests.rs
-- app/tests/proposed-run-disclosure.test.mjs
-- app/src-tauri/src/home_qualified_hot_run_tests.rs
 - app/src-tauri/src/compatibility_report_tests.rs
 - app/src-tauri/src/checkpoint_recorder_tests.rs
 - app/src-tauri/src/after_run_end_tests.rs
+- app/src-tauri/src/run_restart_tests.rs
+- app/src-tauri/src/home_qualified_hot_run_tests.rs
+- app/src-tauri/src/workflow_selected_chain_disclosure_tests.rs
+- app/src-tauri/src/workflow_proposal_disclosure_tests.rs
+# workflow_role_tests.rs is shared with DEL-02-01, DEL-02-02 and DEL-02-04. Here: the cases
+# on required-tool outcomes and the delegation need.
+- app/src-tauri/src/workflow_role_tests.rs
+- app/tests/selected-chain-disclosure.test.mjs
+- app/tests/proposed-run-disclosure.test.mjs
 - app/tests/run-panel.test.mjs
 - app/tests/validate-records.test.mjs
-- execution/PKG-02/DEL-02-03/Work/checkpoint-record-entries.schema.json
-- app/contract_inputs/PKG-02/DEL-02-03/Work/prototype/checkpoint_recorder.py
-- app/contract_inputs/PKG-02/DEL-02-03/Work/prototype/required_tool_check.py

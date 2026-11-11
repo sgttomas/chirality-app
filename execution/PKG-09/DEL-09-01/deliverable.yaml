@@ -1,69 +1,43 @@
 id: DEL-09-01
 name: Candidate examination infrastructure and evidence protocol
 needs:
-- from: unknown
-  condition: Each actual examination requires an identified candidate with applicable source criteria, selected
-    configuration and available named contributions; exact candidate/contribution artifacts and suppliers
-    remain unresolved.
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
-- from: doc:Focused feature-owner evidence
-  condition: Use feature-owner evidence as the input for selecting and joining examination seams.
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
-- from: doc:Identified recorded real protocol exchanges
-  condition: Repeatable replay-based seam examination consumes identified recorded real exchanges with origin
-    and applicable configuration, where feasible.
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+- from: DEL-01-01
+  condition: Exchanges recorded from the stock supplier exist, each naming the supplier pin it was
+    captured at, and a built candidate names the pin it was built with.
+  gating: true
 - from: DEL-01-06
-  condition: Documentary terms receiving selects the explicit v3-terms successor for approved PK-R4/section
-    9 without changing historical support or inferring release. Consume the actual targeted App package
-    and identified packaging evidence before relying on a packaged distribution witness.
+  condition: Each targeted macOS package has an identity record linking the package to its App source
+    revision, build identity and stock Codex binary (supplier pin).
   gating: false
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
-- from: doc:Independently produced candidate review record
-  condition: Checking independent-review support requires the actual independently produced review record
-    bound to the candidate and its author basis.
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
-- from: doc:Evidence of an actually performed human act
-  condition: The positive faithful-record check consumes evidence of an actually performed human act and
-    its scope, keeping the actor distinct from the recorder.
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
-- from: DEL-01-01
-  condition: 'Receive DEL-01-01''s selected supplier basis (development and generated reference: reviewed
-    SUP1 0.160.0; its ScopeOfWork [S], CLM-003, REQ-006, TBD-002) and bind the qualification pin at candidate
-    build time under R23-22. Qualified distribution identity and App qualification remain owed; historical
-    exchanges and fixtures keep their source pin.'
-  gating: true
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
-- from: external:External Domains receiving owners — later research-fixture admission input
-  condition: A later research fixture requires explicit provider/admission responsibility and the applicable
-    admission input at that fixture point of need.
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
-- from: DEL-01-01
-  condition: App v4 DEL-09-01 receives the selected Codex pin from this supplier boundary before protocol
-    generation and qualification; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
-- from: unknown
-  condition: Return candidate-specific examination results and limitations to the named independent reviewer,
-    whose candidate-specific identity remains unresolved.
-  direction: downstream
-  gating: false
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+  when: Before a result on the installed package route is relied on.
+- from: external:independent reviewer
+  condition: A reviewer separate from the candidate's author returns a review that names the candidate
+    it examined and the model identities the host exposed.
+- from: external:person performing a recorded act
+  condition: A person actually performs an act whose subject and scope are evidenced, so that a record
+    of it can be compared with the act; no human act is invented for a fixture.
+  when: Before the record checks are relied on to show faithful recording of a performed act.
+- from: external:browser engines
+  condition: WebKit and Chromium engines are installed for the interface runner, with their versions
+    readable.
 code_paths:
-- app/examination/package_receiving/adapter.py
+- app/examination/check.py
+- app/examination/rules.py
 - app/examination/repin.py
-- app/examination/admission/current_admission.py
-- app/examination/support_identity/provision_ci_objects.py
-- app/examination/support_identity/canonical.py
-- app/examination/support_identity/terms_condition.py
-- app/examination/candidate_identity/identify.py
-- app/examination/candidate_identity/bundled_supplier.py
+- app/examination/admission/**
+- app/examination/candidate_identity/**
+- app/examination/support_identity/**
+- app/examination/package_receiving/**
+- app/examination/distribution_receiving/**
+- app/examination/runner_support/**
+- app/src-tauri/resources/external_trace/exam.result-record.*
 checks:
-- app/tests/group_b_package_successor_test.py
+- app/tests/group_b_support_test.py
 - app/tests/group_b_admission_test.py
-- app/tests/group_b_current_admission_test.py
-- app/tests/group_b_terms_successor_test.py
-- app/tests/group_b_sq_receiving_test.py
-- app/contract_inputs/PKG-09/DEL-09-01/Work/prototype/check_exp.py
+- app/tests/group_b_support_identity_test.py
+- app/tests/group_b_support_identity_canonical_test.py
+- app/tests/group_b_distribution_receiving_test.py
+- app/tests/group_b_terminal_receiving_test.py
+- app/tests/group_b_runner_test.mjs
 - app/tests/candidate_identity_test.py
 - app/tests/examination_repin_test.py

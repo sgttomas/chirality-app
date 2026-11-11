@@ -2,34 +2,43 @@ id: DEL-11-01
 name: Preserved history and coexistence account
 needs:
 - from: DEL-10-03
-  condition: The continuity account consumes the supplied historical applicability, active-consumer, packaging
-    and tool-path account from DEL-10-03, with its limits.
+  condition: The responsibility account names the affected consumers of shared material with their
+    packaging and tool paths, and gives each included historical statement its present applicability
+    and a preserved original reference.
   gating: true
-  evidence: execution/PKG-11/DEL-11-01/ScopeOfWork.md
 - from: DEL-10-01
-  condition: The continuity account uses actual manual/method pins supplied by DEL-10-01, retaining edition
-    identity and distinguishing this run selection from adoption or instruction supply.
+  condition: The execution basis names the selected edition of the manual and of the shared roles
+    and methods by release and recoverable identity, and shows no edition that was only read, and
+    no historical candidate, as selected.
   gating: true
-  evidence: execution/PKG-11/DEL-11-01/ScopeOfWork.md
+  when: Before a selector cites a manual or method edition.
 - from: DEL-11-02
-  condition: The continuity account consumes identified receiving adoption status from DEL-11-02; absence
-    or uncertainty remains visible rather than being inferred from publication, files or run selection.
+  condition: The adoption account states for each affected consumer whether its adoption of the renewed
+    basis is established, with its evidence, and shows an absent or uncertain adoption as not established.
   gating: true
-  evidence: execution/PKG-11/DEL-11-01/ScopeOfWork.md
-- from: external:sgttomas/chirality-library docs/thesis/ at the selected edition library-v3.3.0
-  condition: The thesis is maintained in the Library; App may export or package it from there and holds no
-    maintained copy (owner, 2026-11-10; PRD §11). The copy App formerly held, tree
-    47fc49e96c2931ba18090f1a82d56a49f230b3ee, remains in this repository's Git history; no byte-for-byte
-    comparison is required (REQ-003 thesis part, AC-003 and VER-003 retired, owner 2026-11-10). Attribution
-    and nonbinding standing are retained.
-  evidence: execution/PKG-11/DEL-11-01/ScopeOfWork.md
-- from: DEL-11-02
-  condition: Supply truthful adoption status from the received change/verification account to DEL-11-01
-    for its continuity or replacement-evidence contribution.
-  gating: true
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
 - from: DEL-11-03
-  condition: Return the faithfully recorded later owner disposition and continuing obligations to the App
-    continuity owner.
+  condition: The disposition record gives the owner's actual response to the replacement package, with
+    its subject, actor and recorder, or shows the decision as pending with v3.0.1 retained.
   gating: false
-  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
+- from: doc:reference/REFERENCES.md
+  condition: The v3.0.1 fallback release is identified by its published release, source revision and
+    installer digest, and the investigation revision by its commit.
+- from: doc:reference/archives/ARCHIVES.md
+  condition: The Git-ignored archive locations are inventoried with a recorded digest for each and
+    a rule of read-only access.
+- from: external:sgttomas/chirality-library docs/thesis/ at the selected edition library-v3.3.0
+  condition: The thesis is available there with its attribution.
+- from: external:checkout holding the Git-ignored archives
+  condition: The checkout that holds the inventoried archives is readable.
+  when: Before the archive identity check.
+- from: external:DEP-006
+  condition: The owner of each affected consumer supplies that consumer's continuing obligations and
+    their dispositions.
+  when: Before that consumer's arrangement retires.
+- from: external:OI-024
+  condition: The owner with the affected consumers identifies first adopters, continuing obligations
+    and the conditions for ending coexistence.
+  when: Before each adoption or retirement decision.
+code_paths:
+- reference/archives/archive_digests.py
+checks: []

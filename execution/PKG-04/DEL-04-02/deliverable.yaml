@@ -2,99 +2,62 @@ id: DEL-04-02
 name: Visible autonomy and result standing
 needs:
 - from: DEL-04-01
-  condition: Consume the identified adopted operation/autonomy policy from App DEL-04-01 for receiving components,
-    contract and fixtures; the checked definition alone supplies no concrete policy decision or implemented
-    product.
+  condition: Every operation class has one of the five class values; a grant has a value of direct or
+    propose with a scope and is effective only when the person set it and the control confirmed it,
+    or under an adopted policy default; the acts reserved to the person are named; and each act kind
+    has one name.
   gating: true
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
 - from: DEL-04-03
-  condition: Receive the App DEL-04-03 run-record contribution, including recorded settings, attributable
-    human-act evidence and changed-content lapse, for comparison and evidence-bounded display.
+  condition: The run record holds each settings version handed to it and returns it with its read state,
+    returns each human act with its kind, decision actor, recorder, bound content and lapse state, and
+    returns a run's checkpoint entries.
   gating: false
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
-- from: external:App-v4:DEP-001:SWBPIPE
-  condition: Receive the corresponding real-host control/origin/undo, receipt and candidate evidence from
-    the external host owner before corresponding connected-journey integration/examination and fallback-replacement
-    decision; preserve missing evidence without blocking independent App definition.
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
-- from: external:App-v4:OI-001
-  condition: Use the owner's first-increment OI-001 ruling (DECISION-1 D2) as the adopted reserved-act input;
-    the host names and enforces its own list, and DEL-04-01 carries the policy without being the decision
-    actor.
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
-- from: external:App-v4:OI-002
-  condition: 'Use the owner''s OI-002 ruling (DECISION-1 D3) as the identified adopted input: routine tool-permission
-    and sandbox modes remain the user''s Codex setting and never stand in for a reserved or professional
-    act; hosts have no classifier permission mode in the first increment.'
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
-- from: external:App-v4:OI-013
-  condition: 'The shared contract owner and SWB implementation owner resolve OI-013 before shared/host implementation
-    boundary contracts: agree host-specific construction and any reusable common contribution, then choose
-    loop placement, parsing, persistence and panel assembly without transferring SWB ownership. OI-013 remains
-    open.'
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
-- from: external:App-v4:OI-014
-  condition: App/shared contract owners resolve OI-014 before structural/production contract allocation,
-    placing shared contracts/components against actual consumer responsibilities and agreeing ownership
-    before common implementation without presuming a common service. OI-014 remains open.
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
 - from: DEL-03-02
-  condition: Consume App DEL-03-02 proposal/outcome and direct-application origin semantics for the receiving
-    components, contract and fixtures.
+  condition: An agent's change carries its origin and the basis it relied on, a proposal reports queued
+    until the host records acceptance and application, each change item has its own disposition, and
+    an outcome that was not observed is reported as unknown.
   gating: false
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
 - from: DEL-03-01
-  condition: Consume App DEL-03-01 read-basis and standing facets for evidence-bounded result-standing display.
+  condition: A read result carries whether it is current or historical, the checks it passed and its
+    known limitations, with the basis it describes.
   gating: false
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
 - from: DEL-02-03
-  condition: Consume App DEL-02-03 checkpoint recording annotations for the current-phase receiving display;
-    the hold-support values are retained for the governance phase (TBD-006) and are not a current-phase
-    display input.
+  condition: Each arrival at a declared checkpoint, the request for its act where one can be identified,
+    and the person's act are recorded, and the act is recorded as done only when the person performs
+    it; each declaration finding, decline, lapse, lost or recovered observation, act after the run's
+    end and the run's end are recorded too, so that each arrival's disposition follows from the entries.
   gating: false
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
 - from: DEL-05-01
-  condition: Consume from App DEL-05-01 a host agent's network-destination allow list, in-work destination
-    grants and contacted-destination record, including source/turn-bound unanswered closure with cause turn failed and no grant, which APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5 requires to
-    be shown.
+  condition: A host agent's allowed destinations, the grants made during work and every destination
+    contacted are reported as events, and a destination request left unanswered when its turn fails
+    is closed with that cause and no grant.
   gating: false
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
-- from: external:App-v4:OI-021
-  condition: Operation-specific reserved-act additions remain open under OI-021 before the connected-activity
-    SoW; receiving components, contract and fixtures carry no guessed value for them (REQ-006).
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
-- from: external:APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4
-  condition: Hold-support display and App-side run holds belong to the later governance layer; the owner
-    takes it up when a workflow needs enforced checkpoints, before hold-display fixtures run. In the current
-    phase the display shows checkpoint arrivals and acts as observation only.
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
-- from: DEL-02-03
-  condition: App v4 DEL-04-02 receives this slice's report, recording meanings and transfer contract and
-    declares it upstream in its own register; its acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-03-01
-  condition: App v4 DEL-04-02 receives this catalog/read-basis contract (read-basis and standing facets)
-    and declares it upstream in its own register; its acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: DEL-03-02
-  condition: Supply standing and direct-autonomy origin semantics to DEL-04-02.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
-- from: DEL-04-01
-  condition: DEL-04-01 supplies operation-policy and human-act meaning to DEL-04-02 for its named consuming
-    responsibility; actual policy content and applicable adopted decisions must be provided.
-  gating: true
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: DEL-04-03
-  condition: DEL-04-03 supplies run evidence to App DEL-04-02 for standing/autonomy display.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+- from: external:DEP-001
+  condition: SWBPIPE supplies a control by which the person sets and changes the grant for an operation
+    class, and for each directly applied change its origin mark, a route to undo it, a route to check
+    it later and a receipt, with the standing of each result.
+- from: external:OI-021
+  condition: The owner, through the SWBPIPE session and with the App owner, decides any operation-specific
+    addition to the reserved acts and the class of the first connected operation.
 code_paths:
+# standing.rs is shared with DEL-04-03. Here: item and joint standing, the checkpoint overlay, the
+# standing facets and the comparison of settings versions. The lapse states and the comparison
+# of content identities are DEL-04-03's.
+- app/src-tauri/src/standing.rs
+# act_policy.rs is shared with DEL-04-01. Here: the settings-in claim and the grant display
+# states with their overlay. The act kinds, classes, grants, treatments, the resolver and the
+# policy-class record claim are DEL-04-01's.
+- app/src-tauri/src/act_policy.rs
+- app/src-tauri/schemas/AS_SETTINGS_IN.schema.json
+- app/src-tauri/resources/policy_standing/AS_SETTINGS_IN.valid.examples.json
+- app/src-tauri/resources/policy_standing/AS_SETTINGS_IN.invalid.examples.json
+# RunPanel.tsx is shared with DEL-01-04, DEL-02-02 and DEL-02-03. Here: the checkpoint overlay,
+# the standing facets and the act labels. DEL-01-04 places them in the App's interface.
 - app/src/RunPanel.tsx
 checks:
-- app/tests/run-panel.test.mjs
-- app/contract_inputs/PKG-04/DEL-04-02/Work/prototype/validate_settings_in.py
-- app/tests/failed_turn_permissions_test.py
+# policy_standing.rs is one check file shared with DEL-04-01 and DEL-04-03. Here: the cases on
+# grant display states, labels, the checkpoint overlay and the comparison of settings versions.
 - app/src-tauri/tests/policy_standing.rs
+- app/tests/run-panel.test.mjs
+# Here: how a destination request closed by its turn's failure is shown in the settings.
+- app/src-tauri/tests/failed_turn_closure.rs

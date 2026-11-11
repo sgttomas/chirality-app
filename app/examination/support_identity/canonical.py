@@ -6,30 +6,12 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
-import os
-import re
 import sys
 import subprocess
 import tempfile
 
 from jsonschema import Draft202012Validator
 from referencing import Registry
-
-
-def deliverable_path(root, relative):
-    """Resolve retained logical identities to current App inputs; never follow Design links."""
-    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
-    if match is not None:
-        if os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
-            return relative
-        relative = match.group(1) + 'Work/' + relative[match.end():]
-    if relative.startswith('execution/'):
-        # Historical/custom evidence trees have no current App-input namespace.
-        # A maintained root never falls back to its authoring execution tree.
-        if not os.path.lexists(os.path.join(root, 'app/contract_inputs')) and os.path.lexists(os.path.join(root, relative)):
-            return relative
-        return 'app/contract_inputs/' + relative[len('execution/'):]
-    return relative
 
 
 HERE = Path(__file__).resolve().parent
@@ -68,9 +50,7 @@ def sha(data):
 
 
 class CanonicalSupport:
-    def __init__(self, documentary_root=None, original_root=None):
-        self.documentary_root = PROJECT if documentary_root is None else Path(documentary_root)
-        original_root = PROJECT if original_root is None else Path(original_root)
+    def __init__(self):
         pins_bytes = (HERE / 'canonical-pins.terms-v1.json').read_bytes()
         if sha(pins_bytes) != PINS_SHA256:
             raise ValueError('canonical reader pins changed')
@@ -88,18 +68,13 @@ class CanonicalSupport:
             data = self.captured.get(path)
             if data is None:
                 try:
-                    source_root = original_root if path.endswith('.md') else PROJECT
-                    read = path if path.endswith('.md') else deliverable_path(source_root, path)
-                    data = self.legacy.publication_source(source_root, read, expected)
-                except ValueError as error:
+                    data = self.legacy.relative_file(PROJECT, path)
+                except (OSError, ValueError) as error:
                     raise ValueError('canonical selected source changed: ' + path) from error
             if sha(data) != expected:
                 raise ValueError('canonical selected source changed: ' + path)
             self.captured[path] = data
-        original_declaration = self.legacy.parse(self.captured['app/examination/support_identity/declaration.v1.json'])
-        self.original_sources = {path: self.legacy.frozen_publication_source(original_root, path, digest)
-                                 for path, digest in original_declaration['sources'].items()}
-        self.support = self.legacy.SupportIdentity(self.original_sources)
+        self.support = self.legacy.SupportIdentity()
         self.declaration_bytes = self.captured[self.pins['declaration']]
         self.declaration = self.legacy.parse(self.declaration_bytes)
         self.declaration_sha256 = sha(self.declaration_bytes)
@@ -107,39 +82,22 @@ class CanonicalSupport:
         require = self.legacy.require
         require(self.declaration['binding_method'] == METHOD and self.identity == self.support.identity,
                 'canonical support tuple differs from selected published sources')
-        # Independently compare all publication source hashes with actual captured
-        # source bytes, not just sidecar/declaration equality. Legacy construction
-        # also verifies the actual three schema IDs/formats and prototype digest.
-        expected = {p: sha(d) for p, d in self.support.sources.items() if p.startswith('execution/')}
+        # Independently compare the publication's schema hashes with the captured
+        # schema bytes, not just sidecar/declaration equality. Legacy construction
+        # also verifies the actual three schema IDs and formats. The checker code the
+        # proposed declaration also pins is not a publication source.
+        expected = {p: sha(d) for p, d in self.support.sources.items() if p.endswith('.schema.json')}
         require(self.declaration['sources'] == expected, 'canonical publication sources differ')
         schema = self.legacy.parse(self.captured[self.pins['schema']])
         Draft202012Validator.check_schema(schema)
         self.validator = Draft202012Validator(schema, registry=Registry())
 
-    def source_condition(self, purpose, group='canonical'):
-        if purpose == 'historical_correspondence':
-            return {}, {'method': 'original-frozen-source/v1',
-                        'standing': 'original full-byte correspondence; current documentary meaning not checked',
-                        'authority_authenticated': False}
-        self.legacy.require(purpose == 'current_producer_declaration', 'unknown binding purpose')
-        path = 'app/examination/support_identity/terms_condition.py'
-        spec = importlib.util.spec_from_file_location('_exp_documentary_condition', PROJECT / path)
-        module = importlib.util.module_from_spec(spec)
-        exec(compile(self.captured[path], str(PROJECT / path), 'exec'), module.__dict__)
-        manifest = self.captured['execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v3.json']
-        read = lambda root, path: self.legacy.relative_file(root, deliverable_path(root, path))
-        return module.Condition(self.documentary_root, manifest, read).capture(group)
-
     def binding(self, kind, data, purpose):
         self.legacy.require(purpose in PURPOSES, 'unknown binding purpose')
-        _, condition = self.source_condition(purpose)
         binding = self.support.binding(kind, data)
         binding.pop('standing')
         binding.update(format='exp-support-binding.canonical.v1', binding_method=METHOD,
                        binding_purpose=purpose, declaration_sha256=self.declaration_sha256)
-        if purpose == 'current_producer_declaration':
-            binding['format'] = 'exp-support-binding.canonical.terms-v1'
-            binding['documentary_selection'] = {key: condition[key] for key in ('method', 'manifest_sha256')}
         # A caller changing its returned dict must not mutate the reader's basis.
         return copy.deepcopy(binding)
 
@@ -157,7 +115,6 @@ class CanonicalSupport:
                        and selected['binding_method'] == METHOD, 'unknown canonical method/selection version')
         purpose = selected['binding_purpose']
         legacy.require(purpose in PURPOSES, 'unknown binding purpose')
-        _, source_condition = self.source_condition(purpose)
         legacy.require(selected['declaration_sha256'] == self.declaration_sha256,
                        'caller-selected publication refused')
         legacy.exact(selected['artifacts'], legacy.KINDS, 'canonical artifacts')
@@ -200,10 +157,9 @@ class CanonicalSupport:
             report = self.support.check(root / 'selection.json', sha(payload))
         # Report original canonical inputs, never internal temporary adapter refs.
         return {'canonical_consistency_passed': report['identity_consistency_passed'],
-                'source_condition': source_condition,
                 'errors': report['errors'], 'binding_method': METHOD, 'binding_purpose': purpose,
                 'fixed_support_selection': {'declaration_sha256': self.declaration_sha256,
-                                            'publication_reference': self.declaration['publication_reference'],
+                                            'predecessor_publication': self.declaration['predecessor'],
                                             'support_identity': self.identity, 'reader_pins_sha256': PINS_SHA256},
                 'selection_sha256': expected_sha256, 'inputs': selected['artifacts'],
                 'existing_checks': report['existing_checks'],

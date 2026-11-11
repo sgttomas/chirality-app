@@ -2,97 +2,56 @@ id: DEL-10-03
 name: Shared commitments and consumer responsibility account
 needs:
 - from: DEL-02-01
-  condition: The shared account requires the compatible portable workflow/role/checkpoint semantics and
-    justified shared allocation assigned to App v4 DEL-02-01 as its contract input for the responsibility
-    and promise trace.
+  condition: The shared allocation names, for every shared contract part, its semantic owner, its consumers,
+    the responsibility they repeat, the maintenance consequence, each consumer's confirmation or its absence,
+    and its placement or the statement that placement is undecided.
   gating: true
-  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
 - from: DEL-02-03
-  condition: The shared account requires the compatible workflow compatibility and checkpoint receiving
-    obligations assigned to App v4 DEL-02-03 as its contract input for the responsibility and promise trace.
+  condition: A workflow carried between the App and a host keeps its identity, revision and bytes, with a trace
+    that tells apart what was selected, resolved, supplied, adopted and observed, and a host that cannot receive
+    a declared element produces an explicit unsupported result.
   gating: true
-  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
 - from: DEL-02-04
-  condition: The shared account requires the compatible additive role supply obligations assigned to App
-    v4 DEL-02-04 as its contract input for the responsibility and promise trace.
+  condition: The App's additive role-supply obligations are stated with the maintained source the packaged
+    guidance is generated from, and each conversation start records the source and content identity of the
+    guidance supplied, with adoption recorded as unknown.
   gating: true
-  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
 - from: DEL-03-01
-  condition: The shared account requires the compatible catalog/read-basis obligations assigned to App v4
-    DEL-03-01 as its contract input for the responsibility and promise trace.
+  condition: The generated-surface and adapter-responsibility map states, for the human interface, the embedded
+    tools and the external interface, what is generated from the catalog, checked against it or hand-built,
+    what each adapter implements and who receives each part.
   gating: true
-  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
 - from: DEL-03-02
-  condition: The shared account requires the compatible proposal/validation/outcome obligations assigned
-    to App v4 DEL-03-02 as its contract input for the responsibility and promise trace.
+  condition: The lifecycle and route definition leaves domain truth and validation with the host, names the
+    host as the producer of its proposal view and receipts, and leaves operation-specific policy additions
+    open with their owner.
   gating: true
-  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
 - from: DEL-04-01
-  condition: The shared account requires the compatible adopted operation/human-act policy obligations assigned
-    to App v4 DEL-04-01 as its contract input for the responsibility and promise trace.
+  condition: Each value in the policy-class records has its decision basis and its consumers, and each undecided
+    value is marked with its owner and the decision it awaits.
   gating: true
-  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
 - from: DEL-04-03
-  condition: The shared account requires the compatible content-bound record format and App writer/reader
-    obligations assigned to App v4 DEL-04-03 as its contract input for the responsibility and promise trace.
+  condition: The shared record meaning accounts for what each consumer reads from a record and what a host-agent
+    run's record carries, and states no host contribution, adoption or policy decision that its owner has not
+    evidenced.
   gating: true
-  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
 - from: DEL-05-01
-  condition: The shared account requires the compatible host-loop/native-network receiving and conformance
-    obligations assigned to App v4 DEL-05-01 as its contract input for the responsibility and promise trace.
+  condition: The allocation and open-choice account names each input the host loop needs with its owner and
+    whether it is supplied, and each open choice with the owner who makes it and when it is needed, and allocates
+    no common construction without a named, agreed repeated responsibility.
   gating: true
-  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
 - from: DEL-05-02
-  condition: The shared account requires the compatible host-panel receiving and conformance obligations
-    assigned to App v4 DEL-05-02 as its contract input for the responsibility and promise trace.
+  condition: The reusable-component allocation account states, for each candidate panel part, its actual consumers
+    and whether a common component is agreed or still open.
   gating: true
-  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
 - from: DEL-10-01
-  condition: Before dependent account execution relies on manual editions, use the owning project-definition
-    manager record of actual adopted editions/content identities; this records the selected basis without
-    choosing a new edition.
+  condition: The execution basis names the selected edition of the manual and of the shared roles and methods
+    by release and recoverable identity, so that the working-guidance entries of the responsibility map point
+    at an identified edition.
   gating: true
-  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
-- from: unknown
-  condition: Before relying on an affected source-placement or supply change, the account requires identified
-    current source and the corresponding packaging/consumer/resolution/tool-path checks; unavailable affected
-    checks retain their own point-of-need hold.
-  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
-- from: DEL-02-01
-  condition: App v4 DEL-10-03 receives this portable workflow/role/checkpoint contract and shared allocation
-    and declares it upstream in its own register; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: DEL-02-03
-  condition: App v4 DEL-10-03 receives this slice's report, recording meanings and transfer contract and
-    declares it upstream in its own register; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-02-04
-  condition: App v4 DEL-10-03 receives this deliverable's role-supply obligations and declares them upstream
-    in its own register; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
-- from: DEL-03-01
-  condition: App v4 DEL-10-03 receives this catalog/read-basis contract (the shared account) and declares
-    it upstream in its own register; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: DEL-03-02
-  condition: App v4 DEL-10-03 receives this contract's proposal, validation and outcome meanings (the shared
-    account) and declares them upstream in its own register; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
-- from: DEL-04-03
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-10-03,
-    which the source states declares it upstream in its own register.
-  gating: true
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: package:PKG-11
-  condition: Supply the historical applicability and active consumer/packaging/tool-path account to PKG-11
-    as the basis for staged adoption; the account does not perform adoption.
-  direction: downstream
-  gating: false
-  evidence: execution/PKG-10/DEL-10-03/ScopeOfWork.md
-checks:
-- app/contract_inputs/PKG-10/DEL-10-03/Work/prototype/ra_check.py
+- from: external:owners of the affected Root, Runtime, App and Piping consumers
+  condition: The current source of each consumer that a proposed change of placement or supply affects is
+    identified and readable at a named revision.
+  when: Before the account's check of that change is relied on.
+code_paths: []
+checks: []

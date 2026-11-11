@@ -14,18 +14,18 @@ r = importlib.util.module_from_spec(spec); spec.loader.exec_module(r)
 
 
 def fixture(repo, intake):
-    work = repo / r.WORK; work.mkdir(parents=True, exist_ok=True)
-    for name in ('public-metadata.json', 'macos-runtime-license-metadata.json'):
-        shutil.copyfile(ROOT / r.WORK / name, work / name)
+    work = repo / r.METADATA; work.mkdir(parents=True, exist_ok=True)
+    for name in ('codex-public-metadata.json', 'macos-runtime-license-metadata.json'):
+        shutil.copyfile(ROOT / r.METADATA / name, work / name)
     index = repo / 'app/packaging/notices/index.json'
     index.parent.mkdir(parents=True, exist_ok=True)
     if not index.exists(): shutil.copyfile(ROOT / 'app/packaging/notices/index.json', index)
-    codex = json.loads((work / 'public-metadata.json').read_bytes())
+    codex = json.loads((work / 'codex-public-metadata.json').read_bytes())
     for row in codex['proposed_file_retrieval']:
         raw = ('INVENTED inspection ' + row['path']).encode()
         row.update(size_bytes=len(raw), git_blob_sha1=r.blob(raw))
         path = intake / 'codex' / row['path']; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(raw)
-    (work / 'public-metadata.json').write_bytes(r.encode(codex))
+    (work / 'codex-public-metadata.json').write_bytes(r.encode(codex))
     mac = json.loads((work / 'macos-runtime-license-metadata.json').read_bytes())
     raw = b'INVENTED upstream text; not a license grant\n'
     for row in [mac['deduplicated_retrieval_proposal'], *mac['crate_associations']]:
@@ -65,7 +65,7 @@ class Receipts(unittest.TestCase):
         self.assertEqual((self.output / 'COMPLETE.json').stat().st_mode & 0o7777, 0o600)
 
     def test_locator_and_index_joins_refuse_drift(self):
-        path = self.repo / r.WORK / 'macos-runtime-license-metadata.json'
+        path = self.repo / r.METADATA / 'macos-runtime-license-metadata.json'
         original = path.read_bytes()
         for field in ('proposal', 'immutable_url', 'resolved_repository_path', 'index_sha256'):
             with self.subTest(field=field):

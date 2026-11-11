@@ -1,6 +1,6 @@
 {
   "format": "exp-support-binding.canonical.v1",
-  "declaration_sha256": "06c826c4a703f73fbbdaf8bd15940ea1b6b71835eac930a9d400795bc404d701",
+  "declaration_sha256": "2bffb100f0836125303009a224881aa89bf840918145a699e617dd7762dacf47",
   "support_identity": {
     "exp_version": "EXP-v0.2",
     "schema_ids": {

@@ -27,7 +27,7 @@ class StandalonePreparationTest(unittest.TestCase):
     def test_exact_source_map_and_counts(self):
         lock = prep.verified_sources()
         path = next(x['path'] for x in lock['sources'] if x['role'] == 'step_map')
-        source = json.loads((prep.ROOT / prep.deliverable_path(prep.ROOT, path)).read_text())
+        source = json.loads((prep.ROOT / path).read_text())
         self.assertEqual(self.plan['stimuli'], source['stimuli'])
         for scenario in self.plan['scenarios']:
             steps = source['scenarios'][scenario['scenario']]
@@ -70,81 +70,32 @@ class StandalonePreparationTest(unittest.TestCase):
         self.assertEqual([s['run_label'] for s in self.plan['scenarios']], ['RUN-A', 'RUN-A', 'RUN-B'])
         self.rejects(lambda p: p['scenarios'][1].update(run_label='different-run'))
         self.rejects(lambda p: p['scenarios'][2].update(candidate_slot='another-candidate'))
-        self.rejects(lambda p: p['candidate_slot'].update(build_identity=p['source_basis_revision']))
+        self.rejects(lambda p: p['candidate_slot'].update(build_identity='INVENTED-BUILD'))
         self.rejects(lambda p: p['access_mode_requirements'].update(distinct_conversations=1))
         self.rejects(lambda p: p['access_mode_requirements']['kinds'].remove('api_key'))
 
-    def test_prose_preconditions_and_insertion_points(self):
-        cases = self.plan['requirements']['## 3. Case definitions']
-        self.assertIn('no request raised', cases)
-        self.assertIn('constructed', cases)
-        self.assertIn('candidate', cases)
+    def test_step_operations_and_insertion_points(self):
         self.assertIn('delegates one bounded sub-task', self.plan['scenarios'][0]['steps'][1]['source_action_observation'][0])
         insertions = self.plan['scenarios'][1]['steps']
         self.assertIn("During J-2", insertions[0]['source_action_observation'][0])
         self.assertIn("During J-8's try conversation", insertions[4]['source_action_observation'][0])
-        self.rejects(lambda p: p['requirements'].pop('## 3. Case definitions'))
         self.rejects(lambda p: p['scenarios'][1]['steps'][4].update(source_action_observation=['after RUN-A']))
 
     def test_source_drift_refuses_generation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for item in prep.verified_sources()['sources']:
-                target = root / prep.deliverable_path(root, item['path'])
+                target = root / item['path']
                 target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes((prep.ROOT / prep.deliverable_path(prep.ROOT, item['path'])).read_bytes())
+                target.write_bytes((prep.ROOT / item['path']).read_bytes())
             self.assertEqual(prep.prepare(root), self.plan)
             target.write_text('changed source')
             with self.assertRaisesRegex(ValueError, 'source changed'):
                 prep.prepare(root)
 
-    def test_unread_implementation_notes_do_not_change_preparation(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            for item in prep.verified_sources()['sources']:
-                target = root / prep.deliverable_path(root, item['path'])
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes((prep.ROOT / prep.deliverable_path(prep.ROOT, item['path'])).read_bytes())
-                if 'selectors' in item:
-                    with target.open('a') as stream:
-                        stream.write('\n## Unrelated implementation observation\nChanged internal code; same case.\n')
-            self.assertEqual(prep.prepare(root), self.plan)
-
-    def test_every_selected_passage_and_missing_or_duplicate_selector_refuses(self):
-        for source in prep.verified_sources()['sources']:
-            if 'selectors' not in source:
-                continue
-            original = (prep.ROOT / prep.deliverable_path(prep.ROOT, source['path'])).read_bytes()
-            for selector in source['selectors']:
-                key = selector.get('heading', selector.get('case', selector.get('paragraphPrefix')))
-                with self.subTest(source=source['role'], clause=key):
-                    text = original.decode()
-                    line = next(line for line in text.splitlines(keepends=True)
-                                if (line.rstrip('\r\n') == key if 'heading' in selector
-                                    else line.startswith('| ' + key) if 'case' in selector
-                                    else line.startswith(key)))
-                    if 'heading' in selector:
-                        changed_line = line.rstrip('\r\n') + ' CHANGED MEANING\n'
-                    elif 'case' in selector:
-                        cells = line.split('|')
-                        column = selector.get('columns', [0])[0]
-                        cells[column + 1] += ' CHANGED MEANING '
-                        changed_line = '|'.join(cells)
-                    else:
-                        changed_line = line.rstrip('\r\n') + ' CHANGED MEANING\n'
-                    changed = text.replace(line, changed_line, 1).encode()
-                    if 'heading' in selector:
-                        with self.assertRaisesRegex(ValueError, 'source changed'):
-                            prep.source_input(source, changed)
-                    else:
-                        self.assertNotEqual(prep.source_input(source, original), prep.source_input(source, changed))
-                    duplicate = (text + '\n' + line).encode()
-                    with self.assertRaisesRegex(ValueError, 'source changed'):
-                        prep.source_input(source, duplicate)
-
     def test_local_inventory_and_missing_input_bytes_are_bound(self):
         roles = {source['role'] for source in prep.verified_sources()['sources']}
-        self.assertTrue({'missing-inputs.json', 'invented-inputs.json'} <= roles)
+        self.assertEqual(roles, {'step_map', 'step_operations', 'missing-inputs.json', 'invented-inputs.json'})
 
     def test_cli_roundtrip_rejection_and_duplicate_keys(self):
         command = [sys.executable, str(APP / 'examination/standalone/prepare.py')]

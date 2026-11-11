@@ -1,162 +1,100 @@
 id: DEL-03-04
 name: Host boundary and integration guide
 needs:
-- from: DEL-03-01
-  condition: The guide integrates and checks the checked catalog/read-basis definition from App v4 DEL-03-01
-    at the relevant guide entry and completeness comparison; actual identified input and evidence limits
-    are required.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-03-02
-  condition: The guide integrates and checks the checked proposal/validation/outcome and basis-association
-    definition from App v4 DEL-03-02 at the relevant guide entry and completeness comparison; actual identified
-    input and evidence limits are required.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-03-03
-  condition: The guide integrates and checks the App external-agent receiving definition and its evidence
-    limits from App v4 DEL-03-03 at the relevant guide entry and completeness comparison; actual identified
-    input and evidence limits are required.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-02-01
-  condition: The guide integrates and checks portable workflow/four-role and shared-allocation receiving
-    semantics from App v4 DEL-02-01 at the relevant guide entry and completeness comparison; actual identified
-    input and evidence limits are required.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-02-03
-  condition: The guide integrates and checks workflow compatibility, checkpoint and transfer receiving semantics
-    from App v4 DEL-02-03 at the relevant guide entry and completeness comparison; actual identified input
-    and evidence limits are required.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-02-04
-  condition: The guide integrates and checks additive role guidance and supply receiving semantics from
-    App v4 DEL-02-04 at the relevant guide entry and completeness comparison; actual identified input and
-    evidence limits are required.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-04-01
-  condition: The guide integrates and checks the adopted operation/autonomy policy and human-act distinctions
-    carried by DEL-04-01 (DECISION-1 D2/D3) at the relevant guide entry and completeness comparison, keeping
-    operation-specific additions (OI-021) with their owner and point of need.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-04-02
-  condition: The guide integrates and checks DEL-04-02's autonomy/standing and origin/undo/proposal-presentation
-    receiving semantics at the relevant guide entry and completeness comparison, keeping unresolved classes
-    and declared checkpoints visible.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-04-03
-  condition: The guide integrates and checks content-bound human-act and compact-run-record definitions
-    from App v4 DEL-04-03 at the relevant guide entry and completeness comparison; actual identified input
-    and evidence limits are required.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-05-01
-  condition: The guide integrates and checks minimal-loop/model receiving requirements from App v4 DEL-05-01
-    at the relevant guide entry and completeness comparison; actual identified input and evidence limits
-    are required.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-05-02
-  condition: The guide integrates and checks panel/shared-interaction receiving requirements from App v4
-    DEL-05-02 at the relevant guide entry and completeness comparison; actual identified input and evidence
-    limits are required.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-07-01
-  condition: Retained PEC compatibility meaning only; no provider delivery, qualification or adoption is required. Use the current scope when maintaining an existing connector consumer.
-  gating: false
-  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
-- from: DEL-07-02
-  condition: The guide integrates and checks DEL-07-02's connector limitation and source-file recovery responsibilities
-    at the relevant guide entry and completeness comparison; provider deployment/allocation remains unresolved
-    and initial work may proceed without the connector.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-08-01
-  condition: The guide integrates and checks DEL-08-01's Domains receiving/query/admission and freshness
-    requirements at the relevant guide entry and completeness comparison; provider deployment/allocation
-    remains unresolved and initial work may proceed without the connector.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-08-02
-  condition: The guide integrates and checks DEL-08-02's later research-to-design receiving contribution
-    at the relevant guide entry and completeness comparison; provider deployment/allocation remains unresolved
-    and initial work may proceed without the connector.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
 - from: doc:docs/HOST_INTEGRATION.md
-  condition: Use the identified H §10 host integration checklist as the required comparison basis for guide
-    completeness, read with the qualifications stated in this ScopeOfWork.
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-01-01
-  condition: The guide integrates and cites DEL-01-01's supplier boundary (native surfaces for optional
-    external access and the supplier facts on run holds, supplied guidance and model destination that its
-    human-act, autonomy and host-method entries cite) without performing its acts.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-09-06
-  condition: The guide integrates and cites DEL-09-06's relay questions and recorded SWBPIPE answers for
-    the host-contribution column and connected-activity contract (step map, staging, evidence ladder); recorded
-    answers are not commitments, delivery or adoption.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-09-09
-  condition: The guide integrates App v4 DEL-09-09's external trace cases, citing them without performing
-    their acts; actual identified input and evidence limits are required.
-  gating: true
-  evidence: execution/PKG-03/DEL-03-04/ScopeOfWork.md
-- from: DEL-01-01
-  condition: 'App v4 DEL-03-04 receives this supplier boundary: native surfaces for optional external access;
-    its acts are not transferred here.'
-  gating: true
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
-- from: DEL-02-01
-  condition: App v4 DEL-03-04 receives this portable workflow/role/checkpoint contract and shared allocation
-    and declares it upstream in its own register; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: DEL-02-03
-  condition: App v4 DEL-03-04 receives this slice's report, recording meanings and transfer contract and
-    declares it upstream in its own register; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-02-04
-  condition: App v4 DEL-03-04 receives this deliverable's role-guidance semantics and declares them upstream
-    in its own register; its acts are not transferred here.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-04/ScopeOfWork.md
+  condition: The ownership table of section 1 and the ten-item new-host checklist of section 10
+    are the comparison basis for the guide's completeness.
 - from: DEL-03-01
-  condition: App v4 DEL-03-04 receives this catalog/read-basis contract (catalog/read-basis definitions)
-    and declares it upstream in its own register; its acts are not transferred here.
+  condition: The catalog contract states what every entry declares, what a read returns with its
+    standing and basis, and a map of what is generated from the catalog, checked against it or
+    hand-built on each surface.
   gating: true
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
 - from: DEL-03-02
-  condition: Supply the operation-contract responsibility map to DEL-03-04.
+  condition: The proposal contract states the one validation and application route, the proposal
+    lifecycle, stale refusal, unchanged targets, one effect for a repeated submission, the unknown
+    outcome, and the old and new values a host's view presents.
   gating: true
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
 - from: DEL-03-03
-  condition: Supply this adapter's external-agent receiving definition and evidence limits to App DEL-03-04
-    (the integration guide), which declares it upstream in its own register.
+  condition: The external receiving definition states the channel's disabled, enabled and unavailable
+    states, what the person's enablement does and does not grant, and that the external channel
+    follows the same route and policy.
   gating: true
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
+- from: DEL-02-01
+  condition: A workflow carries a portable declared part (inputs, required host tools, checkpoints
+    requiring a human act, outputs and evidence) with its prose method and a source-qualified identity,
+    and the four role meanings are stated for App and host receiving.
+  gating: true
+- from: DEL-02-03
+  condition: A missing required tool yields an explicit unsupported outcome, a checkpoint's act is
+    recorded only when performed, and a workflow can be transferred to a host and refined back
+    with its source identity kept.
+  gating: true
+- from: DEL-02-04
+  condition: Role guidance is supplied additively to the harness's own instructions, with its source
+    identity and supplied bytes inspectable and its unenforced limits stated.
+  gating: true
 - from: DEL-04-01
-  condition: DEL-04-01 supplies operation-policy and human-act meaning to DEL-03-04, which the source states
-    declares DEL-04-01 upstream in its own register; actual policy content and applicable adopted decisions
-    must be provided.
+  condition: The operation policy states the direct, proposal and reserved distinctions, the acts
+    reserved to a person, "accept" as the word for a proposal decision, and which values are adopted
+    and which still open.
   gating: true
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
 - from: DEL-04-02
-  condition: Supply DEL-04-02 visible autonomy state to App DEL-03-04, which the source states declares
-    it upstream in its own register.
+  condition: The grant in force is visible per class of operation and recorded with each run, and
+    a direct application shows its origin with the host's undo and later-checking routes.
   gating: true
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
 - from: DEL-04-03
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-03-04,
-    which the source states declares it upstream in its own register.
+  condition: A human act is recorded bound to its content, scope and purpose with actor apart from
+    recorder and lapses visibly when the content changes, and a run record links the host's receipts
+    by reference.
   gating: true
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+- from: DEL-05-01
+  condition: The loop requirements state the model choice with no default, the destination and credential
+    boundary, catalog-schema validation before domain validation, the handling of malformed and
+    truncated calls, and a responsive interface.
+  gating: true
+- from: DEL-05-02
+  condition: The panel requirements state the conversation, workflow, proposal and check interactions
+    and that the agent's work appears in the host's own tables and views.
+  gating: true
+- from: DEL-07-01
+  condition: Retained PEC material is constructed compatibility material, never a live, qualified
+    or adopted service; its record tier reports what its cited file states and its presence tier never
+    supports reliance.
+  gating: false
+- from: DEL-07-02
+  condition: Connector receiving distinguishes current, absent, stale, partial and failing material,
+    shows the source, standing, coverage and freshness of retained PEC material actually consumed,
+    and names the source-file recovery route.
+  gating: true
+- from: DEL-08-01
+  condition: The Domains receiving contract states request and result meanings, source references,
+    standing and freshness, and that a search hit establishes no admission.
+  gating: true
+- from: DEL-08-02
+  condition: The later research-to-design contribution states the provider, query-tool, workflow,
+    host and App contributions with their owners and points of need, and that the first activity
+    needs no connector.
+  gating: true
+- from: DEL-01-01
+  condition: The supplier boundary states the native surfaces available for optional external access,
+    and observes for each App turn the guidance supplied and the model and destination the supplier
+    reported, handing them to the record writer.
+  gating: true
+- from: DEL-09-06
+  condition: The contribution account lists every question put to SWBPIPE and every answer, commitment
+    and contribution received, each with its standing.
+  gating: true
+- from: DEL-09-09
+  condition: The external control case suite is defined (access never enabled, unavailable and enabled;
+    inspect, submit, accept and receipt; stale, retarget, duplicate, lost acknowledgment and unknown
+    outcome).
+  gating: true
+- from: external:OI-003
+  condition: The owner, with the host contract owner, decides whether the catalog-extension promise
+    is retained, narrowed or deferred.
+  when: Before the guide states an extension criterion.
+- from: external:OI-021
+  condition: The owner chooses the operation, the autonomy permitted and the candidate environment
+    of the first connected activity.
+  when: Before the guide names that activity's operation.
+code_paths: []

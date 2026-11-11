@@ -1,124 +1,77 @@
 id: DEL-05-02
 name: Host panel and shared interaction receiving
 needs:
-- from: DEL-02-01
-  condition: Panel receiving requirements consume the actual identified, independently compared portable
-    workflow/checkpoint meaning definition supplied by App-v4 DEL-02-01; the required input must be identified
-    or recorded as unavailable.
-  gating: false
-  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
-- from: DEL-03-01
-  condition: Panel receiving requirements consume the actual identified, independently compared catalog/read-basis
-    meaning definition supplied by App-v4 DEL-03-01; the required input must be identified or recorded as
-    unavailable.
-  gating: false
-  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
-- from: DEL-03-02
-  condition: Panel receiving requirements consume the actual identified, independently compared proposal,
-    validation and outcome meaning definition supplied by App-v4 DEL-03-02; the required input must be identified
-    or recorded as unavailable.
-  gating: false
-  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
-- from: DEL-04-01
-  condition: Panel receiving requirements consume the actual identified, independently compared adopted
-    operation-policy and human-act distinctions definition supplied by App-v4 DEL-04-01; the required input
-    must be identified or recorded as unavailable.
-  gating: true
-  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
-- from: DEL-04-03
-  condition: Panel receiving requirements consume the actual identified, independently compared content-bound
-    decision/run-record meaning definition supplied by App-v4 DEL-04-03; the required input must be identified
-    or recorded as unavailable.
-  gating: false
-  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
 - from: DEL-05-01
-  condition: Panel receiving requirements consume the actual identified, independently compared loop messages/tools/events/checkpoints
-    and receiving requirements definition supplied by App-v4 DEL-05-01; the required input must be identified
-    or recorded as unavailable.
+  condition: The loop reports each message, each tool call received, rejected or dispatched with its
+    outcome, each checkpoint arrival, relayed act and destination event as an event with its subject,
+    actor, reporter and evidence, never itself a human act, and closes a destination request still
+    unanswered when its turn fails with the cause "turn failed" and no grant.
   gating: false
-  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
-- from: external:DEP-001
-  condition: Receive actual external host panel/view and interaction inputs plus candidate-bound evidence
-    before corresponding joined integration/examination; contract definition and independent App preparation
-    can proceed without claiming those inputs.
-  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
-- from: external:OI-013
-  condition: Before shared/host implementation boundary contracts, obtain the host/common construction agreement
-    for the panel-receiving portion; OI-013 remains open, and any common implementation also requires an
-    agreed repeated responsibility.
-  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
-- from: external:OI-014
-  condition: Before structural/production contract allocation, agree placement and ownership against actual
-    consumer responsibilities (OI-014, open); common panel components require a concrete repeated purpose
-    and receiving-consumer agreement before implementation.
-  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
-- from: external:OI-021
-  condition: Before dependent implementation or live connected examination, resolve the first connected
-    activity exact operation, autonomy, environment and externally supplied interfaces with the App manager,
-    human and external SWBPIPE owner.
-  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
-- from: external:Person performing the actual human act for the VER-003 positive evidence case
-  condition: When executing the VER-003 positive faithful-recording case, obtain evidence of an actual human
-    act with its real actor and bound content, including an independently evidenced act without inferred
-    prior proposal acceptance.
-  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
-- from: DEL-04-02
-  condition: Panel receiving requirements consume the actual identified, independently compared autonomy-grant
-    display states and active scope definition supplied by App-v4 DEL-04-02; the required input must be
-    identified or recorded as unavailable.
-  gating: false
-  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
-- from: DEL-02-03
-  condition: Panel receiving requirements consume DEL-02-03's checkpoint recording meanings shown in the
-    current phase (arrival, act recorded only when performed, act-lapsed label) and, for the governance
-    phase, its hold-support values and hold-machine meanings.
-  gating: false
-  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
 - from: DEL-02-01
-  condition: App v4 DEL-05-02 receives this portable workflow/role/checkpoint contract and shared allocation
-    and declares it upstream in its own register; its acts are not transferred here.
+  condition: A workflow has a source-qualified identity with its holding library, each declared checkpoint
+    names its required act, subject, purpose and scope, and each required tool has one of the named
+    requirement outcomes with its necessity, so that selection can show them.
   gating: false
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
 - from: DEL-02-03
-  condition: App v4 DEL-05-02 receives this slice's report, recording meanings and transfer contract and
-    declares it upstream in its own register; its acts are not transferred here.
+  condition: A checkpoint arrival, the request for its act and the act are recorded as separate facts,
+    the act only when the person performs it; in the current phase nothing is recorded as held.
   gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
 - from: DEL-03-01
-  condition: App v4 DEL-05-02 receives this catalog/read-basis contract (panel receiving) and declares it
-    upstream in its own register; its acts are not transferred here.
+  condition: A read result carries its operation, catalog edition, basis, views and standing (current
+    or historical, checks passed, known limitations) and is tied to the host that produced it, so
+    that what a panel carries can be compared with the host's own table.
   gating: false
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
 - from: DEL-03-02
-  condition: App v4 DEL-05-02 receives this contract's proposal, validation and outcome meanings (panel
-    receiving) and declares them upstream in its own register; its acts are not transferred here.
+  condition: A proposal's state carries, for each change item, the objects affected, the old and new
+    values, the reason and its own disposition; a submission reports queued until the host records
+    acceptance and application; and a host's refusal is never a person's rejection.
   gating: false
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
 - from: DEL-04-01
-  condition: DEL-04-01 supplies operation-policy and human-act meaning to DEL-05-02, which the source states
-    declares DEL-04-01 upstream in its own register; actual policy content and applicable adopted decisions
-    must be provided.
+  condition: Each act kind has one name, edit acceptance is labelled "accept" and never "approve", the
+    acts reserved to the person are named, and a host has no classifier permission mode.
   gating: true
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
 - from: DEL-04-02
-  condition: Supply DEL-04-02 visible autonomy state to App DEL-05-02, which the source names as a receiver.
+  condition: A grant is shown in one of the named display states for each operation class and scope,
+    and a host agent's destination settings, requests and destinations contacted have a defined display,
+    kept apart from operation-class grants.
   gating: false
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
 - from: DEL-04-03
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-05-02;
-    the receiving documentation identifies how it is consumed.
+  condition: A recorded human act carries its kind, decision actor, recorder, whether it was captured
+    directly or recorded faithfully, its bound content and its lapse state.
   gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 - from: external:DEP-001
-  condition: Carry concrete panel questions and proposed interfaces to the external SWBPIPE owner through
-    the App manager and human-relayed repository-file route; retain the returned agreement/input evidence
-    separately.
-  direction: downstream
-  gating: false
-  evidence: execution/PKG-05/DEL-05-02/ScopeOfWork.md
+  condition: SWBPIPE supplies an identified host candidate with its panel, its tables and views, its
+    proposal and check displays, stable references to positions in those views and, for the faithful-recording
+    case, its capture record of an act a person actually performed.
+  when: Before a case is executed on that host or conformance is stated for it.
+- from: external:OI-013
+  condition: The shared contract owner and the SWBPIPE implementation owner agree the boundary between
+    host and common construction for the panel and choose how the panel is assembled.
+  when: Before a shared or host implementation boundary is fixed.
+- from: external:OI-014
+  condition: The App/shared contract owners, with the consumers, agree the repeated purpose, ownership
+    and placement of any common panel component.
+  when: Before structural or production allocation of shared panel contracts, and before any common
+    panel component is built.
+- from: external:OI-021
+  condition: The owner, with the App manager and the SWBPIPE owner, chooses the operation, the autonomy
+    permitted, the candidate environment and the externally supplied interfaces of the first connected
+    activity, and rules any operation-specific reserved act.
+  when: Before panel work that depends on that operation is built, and before a live connected examination.
+- from: external:person performing the act in the faithful-recording case
+  condition: A person actually performs the act shown in the positive faithful-recording case, including
+    one evidenced on its own with no earlier proposal acceptance, and the host captures it with that
+    person as actor and its bound content; the capture record is evidence of the act, not its performer.
+  when: When the positive faithful-recording case is executed on a host candidate.
 code_paths:
-- app/src-tauri/src/catalog.rs
+# receiving.rs is shared with DEL-05-01. Here: receiving a panel's return input and the
+# panel-to-host-table comparison. Tool calls, the model choice and destination requests
+# are DEL-05-01's. The schema registry in catalog.rs is DEL-03-01's.
 - app/src-tauri/src/receiving.rs
-- app/contract_inputs/PKG-05/DEL-05-02/Work/prototype/panel_double.py
+# The schema of a panel's return input.
+- app/src-tauri/resources/catalog_adapter/PANEL_RETURN_INPUT.*
 checks:
-- app/tests/failed_turn_permissions_test.py
+# Here: what a panel shows for a destination prompt closed by its turn's failure.
+# catalog_adapter.rs is one check file shared with DEL-03-01, DEL-03-02, DEL-03-03, DEL-05-01.
+# Here: the cases on panel receiving of a return input and the missing host evidence.
+- app/src-tauri/tests/catalog_adapter.rs

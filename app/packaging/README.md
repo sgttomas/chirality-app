@@ -64,9 +64,8 @@ remain unrun. Preparation does not import another report's FP-0 result; an actua
 signature inspection is a separate artifact. SIGN-1 Option B remains selected;
 FP-1(a/b) and FP-3 must pass before reliance, and OI-011's SWB part remains open.
 
-`sources.json` pins the canonical PKG design, scope and inventory prototype.
-The maintained code does not execute that prototype or depend on a dated run.
-Source drift requires reviewed adoption. Reports include source/tool hashes;
+`static_distribution/sources.json` pins the model, rule and schema files the
+static-distribution command reads. Source drift requires reviewed adoption. Reports include source/tool hashes;
 run evidence separately binds the actual source candidate and observations.
 
 ## Read-only checks on a received development candidate
@@ -108,7 +107,7 @@ PY
 ```
 
 Retain the exact subject/tool identities, input paths, comparison output and
-date with the owning Work/evidence. This comparison covers bytes, modes, types,
+date with the evidence it supports. This comparison covers bytes, modes, types,
 links and missing/extra entries; it does not prove signature validity, acquisition
 authority or installed custody. The retained `successor-content-check.json`
 uses paths relative to its `input_root` for `record`, `bundle` and
@@ -124,16 +123,11 @@ identity disclosure is outside the authorized scope. A later signed App/DMG is
 a separately identified package: these commands neither create its package
 record nor satisfy FP-1(b), FP-2/W-4, FP-3/4/5 or native examination.
 
-The current candidate findings and concrete remaining decisions are in
-[DEL-01-06 packaging Work](../../execution/PKG-01/DEL-01-06/Work/PACKAGING_AND_DISTRIBUTION.md#macos-publication-preparation-2026-10-30).
-
 ## Explicit versioned terms account
 
-The owner-approved official-publication disposition has a separate
-[terms-position/v1 record and reader](../../execution/PKG-01/DEL-01-06/Work/terms-position-v1/README.md).
-Run `python3 app/packaging/terms/check.py --evidence-root "$PWD" --record
-execution/PKG-01/DEL-01-06/Work/terms-position-v1/OpenAI.json` from the repository
-root. It checks retained bytes, actor/scope joins and recorded applicability;
-it never authorizes release. The historical PKG-v0.2 terms record/schema and
-legacy static-distribution consumer remain unchanged. Do not put a v1 terms
+A terms position is a `terms-position/v1` record, read by
+`app/packaging/terms/check.py` against `terms/terms-position.v1.schema.json`.
+Run `python3 app/packaging/terms/check.py --evidence-root <root> --record
+<record.json>` from the repository root. It checks retained bytes, actor/scope
+joins and recorded applicability; it never authorizes release. Do not put a v1 terms
 record into a legacy request or interpret consistency as package qualification.

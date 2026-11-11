@@ -63,8 +63,15 @@ class CanonicalBindingTests(unittest.TestCase):
         report = self.check()
         self.assertTrue(report['canonical_consistency_passed'], report['errors'])
         self.assertEqual(set(report['existing_checks']), {'package', 'review', 'change'})
-        self.assertEqual(report['fixed_support_selection']['publication_reference']['revision'],
+        # The selected declaration is a successor: it names the publication it
+        # derives from and claims no publication of its own bytes.
+        selected = report['fixed_support_selection']
+        self.assertNotIn('publication_reference', selected)
+        self.assertEqual(selected['predecessor_publication']['publication_reference']['revision'],
                          '09106477e351c6e5bde85259c55a00cc8fc5f7f5')
+        self.assertEqual(selected['predecessor_publication']['declaration_sha256'],
+                         '06c826c4a703f73fbbdaf8bd15940ea1b6b71835eac930a9d400795bc404d701')
+        self.assertNotEqual(selected['declaration_sha256'], selected['predecessor_publication']['declaration_sha256'])
         self.assertEqual(report['inputs'], self.selected['artifacts'])
         self.assertEqual(len(report['existing_checks']['package']['reported_prerequisite_gaps']), 3)
         for key in ('producer_use_verified', 'publication_authority_authenticated',
@@ -105,12 +112,12 @@ class CanonicalBindingTests(unittest.TestCase):
                     self.rebuild(); self.binding_change(role, mutate)
                     with self.assertRaises(ValueError): self.check()
 
-    def test_canonical_method_sources_and_reader_pins_refuse_drift(self):
+    def test_canonical_sources_and_reader_pins_refuse_drift(self):
         with patch.object(canonical, 'PINS_SHA256', '0' * 64):
             with self.assertRaisesRegex(ValueError, 'pins changed'): canonical.CanonicalSupport()
         for relative, data in self.support.captured.items():
             path = self.root / relative; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(data)
-        method = self.root / self.support.pins['method']; method.write_bytes(method.read_bytes() + b'\n')
+        method = self.root / self.support.pins['schema']; method.write_bytes(method.read_bytes() + b'\n')
         with patch.object(canonical, 'PROJECT', self.root):
             with self.assertRaisesRegex(ValueError, 'canonical selected source changed'): canonical.CanonicalSupport()
         method.unlink()

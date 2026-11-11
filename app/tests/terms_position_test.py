@@ -304,22 +304,8 @@ class TermsPosition(unittest.TestCase):
         with self.assertRaises(ValueError):
             reader.parse(b'{"state":"unresolved","state":"applicable_position_retained"}')
 
-    def test_schema_itself_and_real_record_consistency(self):
-        schema = reader.parse(reader.SCHEMA.read_bytes())
-        reader.Draft202012Validator.check_schema(schema)
-        result = reader.check('execution/PKG-01/DEL-01-06/Work/terms-position-v1/OpenAI.json', ROOT)
-        self.assertFalse(result['release_authorized'])
-        self.assertFalse(result['distribution_decision_recorded'])
-
-    def test_legacy_reader_keeps_original_closed_meaning(self):
-        work = ROOT / 'app/contract_inputs/PKG-01/DEL-01-06/Work'
-        legacy_schema = reader.parse((work / 'pkg.terms-record.schema.json').read_bytes())
-        legacy_record = reader.parse((work.parent / 'Evidence/PKG/terms/OpenAI.json').read_bytes())
-        validator = reader.Draft202012Validator(legacy_schema)
-        validator.validate(legacy_record)
-        self.assertEqual(legacy_record['state'], 'unresolved')
-        with self.assertRaises(ValidationError):
-            validator.validate(self.record)
+    def test_schema_itself_is_a_valid_schema(self):
+        reader.Draft202012Validator.check_schema(reader.parse(reader.SCHEMA.read_bytes()))
 
     def test_cli_invalid_record_exits_nonzero(self):
         self.record['state'] = 'approved_for_release'

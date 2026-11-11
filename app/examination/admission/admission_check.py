@@ -5,29 +5,11 @@ import copy
 import hashlib
 import json
 from pathlib import Path
-import os
-import re
 import sys
 
 from jsonschema import Draft202012Validator
 from referencing import Registry
 from admission_rules import impact_violations, review_violations, rule_violations
-
-
-def deliverable_path(root, relative):
-    """Resolve retained logical identities to current App inputs; never follow Design links."""
-    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
-    if match is not None:
-        if os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
-            return relative
-        relative = match.group(1) + 'Work/' + relative[match.end():]
-    if relative.startswith('execution/'):
-        # Historical/custom evidence trees have no current App-input namespace.
-        # A maintained root never falls back to its authoring execution tree.
-        if not os.path.lexists(os.path.join(root, 'app/contract_inputs')) and os.path.lexists(os.path.join(root, relative)):
-            return relative
-        return 'app/contract_inputs/' + relative[len('execution/'):]
-    return relative
 
 
 HERE=Path(__file__).resolve().parent
@@ -84,7 +66,7 @@ class Support:
         self.manifest_bytes=Path(manifest).read_bytes()
         pins=parse(self.manifest_bytes); schemas={}
         for source,pin in pins['sources'].items():
-            data=(Path(project)/deliverable_path(project,source)).read_bytes()
+            data=(Path(project)/source).read_bytes()
             if sha(data)!=pin: raise ValueError(f'canonical source drift: {source}')
             for kind,name in SCHEMAS.items():
                 if source.endswith('/'+name): schemas[kind]=parse(data)

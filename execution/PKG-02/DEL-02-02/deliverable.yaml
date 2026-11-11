@@ -1,160 +1,166 @@
 id: DEL-02-02
 name: Workflow-making workspace and registration
 needs:
-- from: DEL-01-03
-  condition: Receive DEL-01-03's native plans, revisions, tool and delegation presentation for the standalone
-    workflow-making join, including delegation availability, descendant identities and on-demand child-thread
-    reads that a delegated trial uses to link its sub-agent and show whether the workflow was given verbatim
-    (WR TT-9).
-  gating: true
-  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
-- from: DEL-01-04
-  condition: Receive from DEL-01-04 native requests, outcomes, attachments, the draft-UI receiving interface
-    and the App act control that captures registration with its evidence, plus placement of trial texts
-    and bring-back transcripts in pre-filled person-sent messages and clean-trial conversations (NIR AT-8;
-    WR TT-3, TT-10). The person performs the registration act.
+- from: DEL-01-01
+  condition: The run-start text and a trial text are carried to the supplier unchanged, and every
+    well-formed frame from the supplier is delivered natively, the reply to a read of a
+    conversation's or a descendant's thread history among them.
   gating: false
-  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
-- from: DEL-02-01
-  condition: Receive the portable declaration and shared-allocation contract from DEL-02-01 to define receiving
-    joins before dependent behavior; preserve unresolved placement rather than presume common construction.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
-- from: DEL-02-03
-  condition: Receive DEL-02-03's capability/checkpoint execution and round-trip support for the standalone
-    workspace join, preserving missing-capability, required-checkpoint and unknown-outcome conditions; for
-    each run DEL-02-03 starts, this workspace composes the run-start text and App-written run-end line,
-    records its content identity and checks it against Codex's history. Readable records alone do not resume
-    a run or establish its current native source.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
-- from: DEL-04-01
-  condition: Consume the adopted operation-policy and human-act distinctions carried by DEL-04-01, including
-    the wording and kind of the registration act (A15) the person performs through DEL-01-04's App act control;
-    unresolved classes remain with the owner and host policy owner at their stated points of need.
-  gating: true
-  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
-- from: DEL-04-03
-  condition: Receive DEL-04-03's content-bound decision and compact run-record behavior, including the A15
-    record kind bound to the exact reviewed content, for truthful review/registration presentation. Historical
-    Bring back and Compare require same-project original WR/RS correspondence and unchanged source bytes;
-    conflicts or missing boundaries remain read limits (Design §17).
-  gating: false
-  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
 - from: DEL-01-02
-  condition: Consume DEL-01-02's definitions of ending a run (distinct from interrupting a turn or stopping
-    Codex) and its App-start reconciliation event for chained runs and interrupted registration attempts.
-    Historical learning also requires REC source-home correspondence, original generation provenance and
-    current native history from that source; missing or ambiguous source identity is unavailable (Design
-    §17).
+  condition: The state of each conversation and its turns is reported after a window is lost,
+    a Codex restart and a relaunch, with unknown outcomes stated; a turn interrupt, a Codex stop
+    and a quit are reported as distinct events, none of which ends a run; and an opaque tag can
+    be attached to a conversation and looked up.
   gating: true
-  evidence: execution/PKG-02/DEL-02-02/ScopeOfWork.md
-- from: DEL-01-02
-  condition: Serve App v4 DEL-02-02 with the definitions of a turn interrupt, a run end and a Codex stop,
-    and App-start reconciliation; DEL-02-02 declares the consumption upstream.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
 - from: DEL-01-03
-  condition: Supply local native plan/tool interaction to App DEL-02-02 for its complete workflow-making
-    journey; joined integration remains with the workflow-experience integration owner.
+  condition: Delegation availability is read for a conversation at run time, and each descendant
+    thread is shown with the identity, parent and role Codex reports.
   gating: true
-  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
 - from: DEL-01-04
-  condition: Supply native attachment and draft-transition receiving interactions, together with the receiving
-    contract, and the App act control that captures workflow registration (A15), to App DEL-02-02 for its
-    complete workflow-making workspace; the registration that follows is DEL-02-02's operation. Receive the opaque native act for lowering the workflow approval policy and the person's keychain protection act; the keychain-held policy, A15 keychain sealing and sealed cold admission retain their SEAL-C signing-stage qualification conditions.
+  condition: The act control captures a registration the person performs, for one draft, one
+    library entry or several entries, bound to the exact reviewed content of each, and shows an
+    unperformed act as not performed; it offers the native act that lowers the workflow approval
+    policy and the person's keychain protection act; and a turn the person sends carries the
+    run-start text, the run-end line or a trial text as this workspace supplies it.
   gating: false
-  evidence: execution/PKG-01/DEL-01-04/ScopeOfWork.md
+- from: DEL-01-05
+  condition: For a conversation, whether a model is selected and which is reported, and a workflow
+    run without one is refused with "run not started — no model selected".
+  gating: false
+- from: DEL-01-06
+  condition: The installed App has the same publisher identity in every release, so that a keychain
+    seal written by one release verifies in the next, and the bundled workflows are packaged as
+    supplied.
+  gating: false
+  when: Keychain-verified approval and bundled workflows on an installed build
 - from: DEL-02-01
-  condition: App v4 DEL-02-02 receives this portable workflow/role/checkpoint contract and shared allocation
-    and declares it upstream in its own register; its acts are not transferred here.
+  condition: A package's declared part is read with a reading for each category and element; a
+    workflow has a source-qualified identity whose revision changes with any byte, path or file
+    of its package; and same-named workflows in different origins are reported as a collision
+    with their holding libraries.
   gating: false
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
 - from: DEL-02-03
-  condition: App v4 DEL-02-02 receives this slice's report, recording meanings and transfer contract and
-    declares it upstream in its own register; its acts are not transferred here.
+  condition: Each run is opened with a run reference and ends only by the person's explicit run
+    end; the requirement check reports each declared requirement's outcome for the current host;
+    and each checkpoint's arrival and disposition in a run is recorded.
   gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
 - from: DEL-04-01
-  condition: 'DEL-04-01 supplies the distinction of the registration act (A15: a person''s act with its
-    own actor, subject and evidence) to DEL-02-02, whose registration it governs; it consumes nothing from
-    DEL-02-02.'
+  condition: Registering a workflow revision is a distinct act kind reserved to the person, with
+    its own name and wording, and it does not say that the revision was examined, checked or
+    approved.
   gating: true
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
 - from: DEL-04-03
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-02-02,
-    which the source states declares it upstream in its own register.
+  condition: A registration is written as a direct-capture record that binds actor, recorder,
+    content identity, scope and purpose; a library's registration acts are kept with that library;
+    a record can be validated; and entries for a run's text and its supply check are carried in
+    the run's log.
   gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
+- from: external:person using the App
+  condition: A person reviews and registers workflows, sends the messages the App prepares, and
+    starts and ends runs.
+- from: external:SWBPIPE implementation owner
+  condition: A host lists its workflow library to the App and delivers a host workflow's package
+    with its origin and revision.
+  when: Before a host-origin workflow is selected or opened in the App.
 code_paths:
-- app/src/ActionFeedback.tsx
-- app/src-tauri/src/workflow_record_store.rs
-- app/src-tauri/src/record_supply.rs
-- app/src-tauri/src/runtime_session.rs
-- app/src-tauri/src/lib.rs
-- app/src-tauri/src/workflow_selection.rs
-- app/src/workflowSelection.ts
-- app/src-tauri/src/host_tick.rs
-- app/src-tauri/src/workflow_proposal_advisory.rs
-- app/src/RunOffers.tsx
-- app/src/RunJourney.tsx
-- app/src-tauri/src/run_offers.rs
-- app/src-tauri/src/trial_flows.rs
-- app/src-tauri/src/workflow_trial_source.rs
-- app/src-tauri/src/recovery.rs
-- app/src-tauri/src/historical_run_learning.rs
-- app/src-tauri/src/workflow_learning_pointers.rs
-- app/src-tauri/src/hosting.rs
-- app/src-tauri/src/workflow_drafts.rs
+# workflow_workspace.rs is shared with DEL-02-01. Here: review, registration, selection,
+# selection admission and the run and trial text composer. The identity type, the snapshot
+# with its revision method, the collision report and the declaration reader are DEL-02-01's.
+- app/src-tauri/src/workflow_workspace.rs
 - app/src-tauri/src/workflow_library.rs
 - app/src-tauri/src/workflow_library_entries.rs
-- app/src-tauri/src/act_control_a15.rs
-- app/src-tauri/src/act_control.rs
+- app/src-tauri/src/workflow_package_copy.rs
+- app/src-tauri/src/workflow_catalog.rs
+- app/src-tauri/src/workflow_assurance.rs
+- app/src-tauri/src/workflow_drafts.rs
+- app/src-tauri/src/workflow_selection.rs
+- app/src-tauri/src/workflow_record_store.rs
+- app/src-tauri/src/record_supply.rs
+- app/src-tauri/src/run_offers.rs
+- app/src-tauri/src/workflow_trials.rs
+- app/src-tauri/src/workflow_trial_source.rs
+- app/src-tauri/src/workflow_trial_transcript.rs
+- app/src-tauri/src/trial_flows.rs
+- app/src-tauri/src/historical_run_learning.rs
+- app/src-tauri/src/workflow_learning_pointers.rs
+- app/src-tauri/resources/workflow_role/workspace-registration.schema.json
+- app/src-tauri/resources/workflow_role/workflow-record-envelope.schema.json
+- app/src-tauri/resources/production_workflows/**
+- app/src-tauri/resources/development_workflows/**
+# runtime_session.rs, lib.rs, hosting.rs and host_tick.rs are shared. Here: the workflow
+# session (library, drafts, trials, selection, run preparation and the supply check), its
+# commands, and the reading of run offers on the observation tick. Opening and ending a run,
+# the requirement check and checkpoint recording are DEL-02-03's; turn composition and the
+# act control are DEL-01-04's; custody is DEL-01-02's.
+- app/src-tauri/src/runtime_session.rs
+- app/src-tauri/src/lib.rs
+- app/src-tauri/src/hosting.rs
+- app/src-tauri/src/host_tick.rs
+- app/src/RunJourney.tsx
+- app/src/MakeJourney.tsx
 - app/src/LibraryEntries.tsx
 - app/src/WorkflowRegistrationReview.tsx
-- app/src-tauri/src/workflow_package_copy.rs
-- app/src-tauri/src/workflow_trial_transcript.rs
-- app/src-tauri/src/workflow_trials.rs
-- app/src-tauri/src/workflow_workspace.rs
-- app/src/TrialComposer.tsx
+- app/src/ActionFeedback.tsx
 - app/src/preparedMessages.ts
-- app/src/RunPanel.tsx
+- app/src/workflowSelection.ts
+- app/src/bringBackDoubts.ts
+# Shared with DEL-01-04, which places them in the interface and composes the turns. Here:
+# what the draft list, the review, the trial texts, the workflow context and the run offers
+# show. RunPanel.tsx is also shared with DEL-02-03 (run state and checkpoints).
 - app/src/WorkflowDrafts.tsx
+- app/src/TrialComposer.tsx
 - app/src/WorkflowContext.tsx
-- app/src/App.tsx
+- app/src/RunOffers.tsx
+- app/src/RunPanel.tsx
 - app/src/DailyWorkspace.tsx
+- app/src/App.tsx
 checks:
-- app/tests/run-journey.test.mjs
-- app/src-tauri/src/workflow_selected_chain_disclosure_tests.rs
-- app/tests/selected-chain-disclosure.test.mjs
-- app/src-tauri/src/workflow_action_result_tests.rs
-- app/tests/workflow-action-result.test.mjs
-- app/src-tauri/src/workflow_proposal_disclosure_tests.rs
-- app/tests/proposed-run-disclosure.test.mjs
-- app/src-tauri/src/workflow_supply_dispatch_tests.rs
-- app/tests/workflow-supply-dispatch.test.mjs
-- app/src-tauri/src/hosting.rs
-- app/src-tauri/src/runtime_session.rs
-- app/src-tauri/src/historical_run_learning_tests.rs
-- app/src-tauri/src/historical_trial_flows_tests.rs
-- app/tests/run-panel.test.mjs
-- app/src-tauri/src/records_portable_reconstruction_tests.rs
-- app/src-tauri/src/workflow_chat_selection_tests.rs
-- app/tests/workflow-selection.test.mjs
-- app/src-tauri/src/run_offers.rs
+- app/src-tauri/src/workflow_library_tests.rs
+- app/src-tauri/src/workflow_library_entries_tests.rs
 - app/src-tauri/src/workflow_drafts_tests.rs
+- app/src-tauri/src/workflow_assurance_tests.rs
+- app/src-tauri/src/workflow_catalog_tests.rs
+- app/src-tauri/src/p2_production_catalog_tests.rs
+- app/src-tauri/src/workflow_receiving_tests.rs
+- app/src-tauri/src/workflow_record_store_tests.rs
+- app/src-tauri/src/record_supply_tests.rs
+- app/src-tauri/src/run_preparation_order_tests.rs
+- app/src-tauri/src/workflow_chat_selection_tests.rs
+- app/src-tauri/src/workflow_supply_dispatch_tests.rs
+- app/src-tauri/src/workflow_action_result_tests.rs
+- app/src-tauri/src/workflow_selected_chain_disclosure_tests.rs
+- app/src-tauri/src/workflow_proposal_disclosure_tests.rs
 - app/src-tauri/src/workflow_journey_tests.rs
+- app/src-tauri/src/workflow_trials_tests.rs
 - app/src-tauri/src/workflow_trial_transcript_tests.rs
 - app/src-tauri/src/workflow_trial_authoring_source_tests.rs
 - app/src-tauri/src/workflow_trial_restart_tests.rs
-- app/tests/clean-trial-restart.test.mjs
-- app/src-tauri/src/workflow_trials_tests.rs
-- app/tests/trials.test.mjs
-- app/tests/prepared-message-navigation.test.mjs
-- app/tests/workflow-drafts.test.mjs
-- app/src-tauri/src/workflow_library_tests.rs
-- app/src-tauri/src/workflow_library_entries_tests.rs
+- app/src-tauri/src/historical_run_learning_tests.rs
+- app/src-tauri/src/historical_trial_flows_tests.rs
+- app/src-tauri/src/records_portable_reconstruction_tests.rs
+- app/src-tauri/src/workflow_real_backend_fixture_tests.rs
+# workflow_role_tests.rs is shared with DEL-02-01, DEL-02-03 and DEL-02-04. Here: the cases on
+# registered bytes, run text and the supply check.
+- app/src-tauri/src/workflow_role_tests.rs
+# Tests written inside the source file.
+- app/src-tauri/src/run_offers.rs
 - app/src-tauri/src/act_control_a15.rs
+- app/src-tauri/src/hosting.rs
+- app/src-tauri/src/runtime_session.rs
+- app/tests/run-journey.test.mjs
+- app/tests/make-journey.test.mjs
+- app/tests/journey-navigation.test.mjs
+- app/tests/workflow-library.test.mjs
 - app/tests/library-entries.test.mjs
 - app/tests/registration-review.test.mjs
-- app/tests/workflow-library.test.mjs
+- app/tests/workflow-drafts.test.mjs
+- app/tests/workflow-selection.test.mjs
+- app/tests/workflow-supply-dispatch.test.mjs
+- app/tests/workflow-action-result.test.mjs
+- app/tests/selected-chain-disclosure.test.mjs
+- app/tests/proposed-run-disclosure.test.mjs
+- app/tests/trials.test.mjs
+- app/tests/clean-trial-restart.test.mjs
+- app/tests/trial-continue-model-choice.test.mjs
+- app/tests/prepared-message-navigation.test.mjs
+- app/tests/run-panel.test.mjs

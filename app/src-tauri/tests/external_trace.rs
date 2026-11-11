@@ -59,11 +59,6 @@ fn own_code_inputs_and_missing_unknown_refused_claims_keep_separate_origin(){
  assert!(a.attach_evidence(EvidenceInput{case:"XC-02".into(),source_reference:"claimed-host".into(),kind:EvidenceKind::ActualHost,state:ClaimState::Observed,bytes:Some(b"claim".to_vec()),reason:"claimed observed".into()}).is_err());
 }
 #[test]
-fn maintained_canonical_resources_and_examples_match_recorded_source_bytes(){
- use sha2::{Digest,Sha256};let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(2).unwrap();
- for item in value("manifest.json").as_array().unwrap(){let bytes=fixture(item["file"].as_str().unwrap());assert_eq!(std::fs::read(root.join(work_locality(item["source"].as_str().unwrap().strip_prefix("projects/chirality-app-v4/").expect("source must name this App project")))).unwrap(),bytes);assert_eq!(format!("{:x}",Sha256::digest(&bytes)),item["sha256"].as_str().unwrap());}
-}
-#[test]
 fn work_account_missing_duplicate_or_misbound_surface_row_is_not_complete(){
  let original=value("xt-work-account.example.valid.json");let mut a=account();
  let mut missing=original.clone();missing["rows"].as_array_mut().unwrap().remove(0);
@@ -94,18 +89,4 @@ fn exp_r1_applicability_sets_reject_duplicates_without_relabeling_results(){
   let mut duplicate=valid.clone();let row=duplicate[field][0].clone();duplicate[field].as_array_mut().unwrap().push(row);
   let mut a=account();let refused=a.receive(input(serde_json::to_vec(&duplicate).unwrap(),RecordKind::ExaminationResult,EvidenceKind::NativeSupplier));assert!(refused.refusal().unwrap().contains("duplicate"));assert_eq!(refused.original_document(),Some(&duplicate));
  }
-}
-
-/// A deliverable's `Design/` before 2026-10-30 means its `Work/` (AGENTS.md).
-fn work_locality(path: &str) -> String {
-    let parts: Vec<&str> = path.splitn(4, '/').collect();
-    match parts.as_slice() {
-        ["execution", package, deliverable, rest] if package.starts_with("PKG-") && deliverable.starts_with("DEL-") => {
-            match rest.strip_prefix("Design/") {
-                Some(tail) => format!("app/contract_inputs/{package}/{deliverable}/Work/{tail}"),
-                None => format!("app/contract_inputs/{package}/{deliverable}/{rest}"),
-            }
-        }
-        _ => path.to_string(),
-    }
 }
