@@ -273,7 +273,7 @@ checked source account at `e548d4cfada4d2105de6231516dc6e5fc4bd4689` establishes
 
 These observations are grounded in the accepted decision brief's evidence
 account, not new execution. Later mainline/external-session changes require
-a targeted applicability check before implementation reliance. The v4
-replacement condition still requires the live connected journey; decomposition
-acceptance and source inspection are not substitutes for it.
+a targeted applicability check before implementation reliance. Decomposition
+acceptance and source inspection are not substitutes for a live connected
+journey.
 
