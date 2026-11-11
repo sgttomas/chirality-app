@@ -141,9 +141,10 @@ projects.
 
 Root measures and improves how agents deliver work across the Chirality
 projects and hosts shared services. Its agents may evaluate App from session
-telemetry, read-only; the owner reviews every finding. Root never changes App's
-files, branches or PRs; its only action here is opening a GitHub issue for an
-owner-approved finding cleared for publication. Routine adherence checks of
+telemetry, read-only; the owner reviews every finding. Root's Agent 0 and its
+delegates may change App's files within work the owner has authorised, through
+a PR here under these instructions, and tell App's Agent 0. Root may also open
+a GitHub issue for an owner-approved finding cleared for publication. Routine adherence checks of
 App's deliverables stay with App's Agent 0 under these standing instructions.
 
 ## Work and verification
