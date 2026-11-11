@@ -75,6 +75,7 @@ code_paths:
 checks:
 # Here: the loop's closure of a destination request when its turn fails, which this deliverable
 # defines.
+- app/src-tauri/tests/failed_turn_closure.rs
 # catalog_adapter.rs is one check file shared with DEL-03-01, DEL-03-02, DEL-03-03, DEL-05-02.
 # Here: the cases on loop receiving of truncated, duplicate and sibling tool calls and of a
 # destination request closed by its turn's failure.

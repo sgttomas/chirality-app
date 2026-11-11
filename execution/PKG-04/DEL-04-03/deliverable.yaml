@@ -160,3 +160,4 @@ checks:
 # lapse.
 - app/src-tauri/tests/policy_standing.rs
 # Here: the record of a destination request closed by its turn's failure.
+- app/src-tauri/tests/failed_turn_closure.rs

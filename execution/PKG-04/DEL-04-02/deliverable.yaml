@@ -58,3 +58,4 @@ checks:
 - app/src-tauri/tests/policy_standing.rs
 - app/tests/run-panel.test.mjs
 # Here: how a destination request closed by its turn's failure is shown in the settings.
+- app/src-tauri/tests/failed_turn_closure.rs
