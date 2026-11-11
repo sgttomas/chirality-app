@@ -359,12 +359,10 @@ def test_interlocutor_write_needs_explicit_targets_and_host_permission(brief, po
 
 # --- Operational instructions and product boundary --------------------------------
 
-def test_historical_receiving_is_retained_and_operational_roster_is_compatible():
+def test_operational_roster_is_compatible():
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     rows = dict(re.findall(r"^\| ([A-Z_]+) \| ([0-2]) \|", agents, re.MULTILINE))
     assert rows == {name: str(cfg["type"]) for name, cfg in REGISTRY["roles"].items()}
-    basis = (ROOT / "execution/PKG-10/DEL-10-01/Work/LIBRARY_V2_1_RECEIVING.md").read_text(encoding="utf-8")
-    assert COMMIT in basis and "reference/library-v2.1.0/" in basis
 
 
 def test_packaged_product_role_set_remains_pinned_four_roles():

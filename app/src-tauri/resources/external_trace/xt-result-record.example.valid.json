@@ -13,15 +13,15 @@
     "specified_in": "DEL-03-01 C-v0.8 §10.8",
     "files": [
       {
-        "path": "PKG-03/DEL-03-01/Design/prototype/simhost.py",
+        "path": "PKG-03/DEL-03-01/prototype/simhost.py",
         "sha256": "27693ccf00e0baa9b80475c609342cddb4c026f332d899bfc980e1eb25447434"
       },
       {
-        "path": "PKG-03/DEL-03-01/Design/prototype/run_fixture.py",
+        "path": "PKG-03/DEL-03-01/prototype/run_fixture.py",
         "sha256": "88b8a5300320b793ffd403a76b59e2be0b800fa0851486c8f10478906b22c050"
       },
       {
-        "path": "PKG-03/DEL-03-03/Design/prototype/observe_map.py",
+        "path": "PKG-03/DEL-03-03/prototype/observe_map.py",
         "sha256": "cf7ba7b4d4218d660d53dc89fe48b37c797041b5d6864e3f28adf342e5d193d6"
       }
     ],

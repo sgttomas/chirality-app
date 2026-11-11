@@ -66,11 +66,10 @@ content is never opened or interpreted as another dependency.
 
 ## Claims and limits
 
-The private `sources.json` selects the canonical publication, model, schemas
-and actual imported/data dependencies. Unread Design prose, Rust preflight
-source and model test code are not operational inputs to this command. The
-selected scanner executable has its own exact byte identity. The frozen
-canonical publication and old producer are unchanged.
+The private `sources.json` selects the model, schemas and actual imported/data
+dependencies. Rust preflight source and model test code are not operational
+inputs to this command. The selected scanner executable has its own exact byte
+identity.
 Guarded source code and all selected inputs are copied to a private snapshot;
 the canonical model executes against those copies. Originals and scanner bytes
 are rechecked, and measured trees rescanned, before the report is returned.

@@ -15,7 +15,7 @@ from swbpipe_projection_v4 import Pending, admit_operations, check_records, page
 from swbpipe_projection_test import BASIS, BINDING, HASH, ARGS, RESULT
 
 INTEGRATED_SHA = '8e9a4b4e3eec027d092033ea5d95f1648030520e797c5a660ab387531f23be17'
-from swbpipe_catalog_v4_receiving import load_catalog, selection, ROOT
+from swbpipe_catalog_v4_receiving import load_catalog, selection, CATALOG_PATH, FIXTURES
 CAT = load_catalog()
 TUPLES = [
  ('modify','Node','set_field','position.x'),('modify','Node','set_field','position.y'),('modify','Node','set_field','position.z'),
@@ -234,21 +234,23 @@ class V4Receiving(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             for source in pins['sources']:
-                snapshot=source['snapshot'].replace('execution/', 'app/contract_inputs/', 1)
-                target=root/snapshot;target.parent.mkdir(parents=True,exist_ok=True)
-                target.write_bytes((ROOT/snapshot).read_bytes())
-            with patch('swbpipe_catalog_v4_receiving.ROOT',root):
+                target=root/source['snapshot'];target.parent.mkdir(parents=True,exist_ok=True)
+                target.write_bytes((FIXTURES/source['snapshot']).read_bytes())
+            with patch('swbpipe_catalog_v4_receiving.FIXTURES',root):
                 selection()
                 for source in pins['sources']:
-                    path=root/source['snapshot'].replace('execution/', 'app/contract_inputs/', 1);raw=path.read_bytes();path.write_bytes(raw+b' ')
+                    path=root/source['snapshot'];raw=path.read_bytes();path.write_bytes(raw+b' ')
                     with self.assertRaisesRegex(ValueError,'selected source changed'):selection()
                     path.unlink()
                     with self.assertRaises(FileNotFoundError):selection()
                     path.write_bytes(raw)
-            from swbpipe_catalog_receiving import selection as v3_selection
-            with self.assertRaisesRegex(ValueError,'integrated v4'):load_catalog(ROOT/v3_selection()['snapshot'].replace('execution/', 'app/contract_inputs/', 1))
-        with patch('swbpipe_catalog_v4_receiving.PINS_SHA256','0'*64):
-            with self.assertRaisesRegex(ValueError,'selection changed'):selection()
+        from swbpipe_catalog_receiving import CATALOG_PATH as v3_catalog
+        with self.assertRaisesRegex(ValueError,'integrated v4'):load_catalog(v3_catalog)
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'catalog.json'
+            with self.assertRaises(FileNotFoundError):load_catalog(path)
+            path.write_bytes(CATALOG_PATH.read_bytes()+b' ')
+            with self.assertRaisesRegex(ValueError,'integrated v4'):load_catalog(path)
 
     def test_whole_call_unavailable_and_envelope_overflow_are_distinct(self):
         args=copy.deepcopy(dict(ARGS,family='nodes'));args['page']['limit']=50

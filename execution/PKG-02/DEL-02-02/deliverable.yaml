@@ -2,8 +2,9 @@ id: DEL-02-02
 name: Workflow-making workspace and registration
 needs:
 - from: DEL-01-01
-  condition: The run-start text and a trial text are carried to the supplier unchanged, and the
-    supplier's own history of a thread arrives unchanged when it is read.
+  condition: The run-start text and a trial text are carried to the supplier unchanged, and every
+    well-formed frame from the supplier is delivered natively, the reply to a read of a
+    conversation's or a descendant's thread history among them.
   gating: false
 - from: DEL-01-02
   condition: The state of each conversation and its turns is reported after a window is lost,
@@ -12,9 +13,8 @@ needs:
     be attached to a conversation and looked up.
   gating: true
 - from: DEL-01-03
-  condition: Delegation availability is read for a conversation at run time, each descendant
-    thread is shown with the identity, parent and role Codex reports, and a descendant's own
-    thread can be read.
+  condition: Delegation availability is read for a conversation at run time, and each descendant
+    thread is shown with the identity, parent and role Codex reports.
   gating: true
 - from: DEL-01-04
   condition: The act control captures a registration the person performs, for one draft, one

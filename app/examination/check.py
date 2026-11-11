@@ -4,8 +4,6 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-import os
-import re
 import sys
 
 from jsonschema import Draft202012Validator
@@ -14,25 +12,11 @@ from referencing import Registry
 from rules import identity_violations, rule_violations
 
 
-def deliverable_path(root, relative):
-    """Resolve retained logical identities to current App inputs; never follow Design links."""
-    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
-    if match is not None:
-        if os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
-            return relative
-        relative = match.group(1) + 'Work/' + relative[match.end():]
-    if relative.startswith('execution/'):
-        # Historical/custom evidence trees have no current App-input namespace.
-        # A maintained root never falls back to its authoring execution tree.
-        if not os.path.lexists(os.path.join(root, 'app/contract_inputs')) and os.path.lexists(os.path.join(root, relative)):
-            return relative
-        return 'app/contract_inputs/' + relative[len('execution/'):]
-    return relative
-
-
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parent.parent
 SCHEMAS = {'result': 'exam.result-record.schema.json', 'package': 'pkg.identity-record.schema.json'}
+# The value EXP-v0.2 result records carry as support_revision.prototype_digest.
+PROTOTYPE_DIGEST = 'sha256:f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce'
 LIMITS = [
     'File structure and declared consistency only; observation origin is unverified.',
     'No package bytes, signatures, notarisation, native run, human act or qualification verified.',
@@ -61,23 +45,21 @@ def parse(data):
 
 
 class Support:
-    """Pin-check canonical sources before validating any record; no remote retrieval."""
+    """Check the schemas against their recorded digests before validating any record; no remote retrieval."""
     def __init__(self, project=PROJECT, manifest=HERE / 'sources.json'):
         self.sources = parse(Path(manifest).read_bytes())
         self.schemas = {}
-        self.prototype_digest = None
+        self.prototype_digest = PROTOTYPE_DIGEST
         for relative, pin in self.sources['sources'].items():
-            data = (Path(project) / deliverable_path(project, relative)).read_bytes()
-            if digest(data) != pin['sha256']:
+            data = (Path(project) / relative).read_bytes()
+            if digest(data) != pin:
                 raise ValueError(f'canonical source changed; reviewed adoption required: {relative}')
-            if relative.endswith('/prototype/check_exp.py'):
-                self.prototype_digest = 'sha256:' + digest(data)
             for kind, filename in SCHEMAS.items():
                 if relative.endswith('/' + filename):
                     schema = parse(data)
                     Draft202012Validator.check_schema(schema)
                     self.schemas[kind] = schema
-        if set(self.schemas) != set(SCHEMAS) or self.prototype_digest is None:
+        if set(self.schemas) != set(SCHEMAS):
             raise ValueError('source manifest is incomplete')
         # An empty explicit registry fails unresolved external references locally.
         self.validators = {k: Draft202012Validator(s, registry=Registry()) for k, s in self.schemas.items()}

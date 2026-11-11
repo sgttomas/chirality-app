@@ -50,7 +50,6 @@ FORMAT = 'group-b-s1-reader-exchange.v1'
 MAX_BYTES = 32 * 1024 * 1024
 CURRENT_INPUTS = (
     'app/examination/support_identity/canonical.py',
-    'app/examination/support_identity/canonical-pins.v1.json',
     *(f'app/src-tauri/resources/distribution-successor/{name}.schema.json'
       for name in ('observed-verification.s1', 'lifecycle-event.s1', 'distribution-closure-transport.s3')),
 )

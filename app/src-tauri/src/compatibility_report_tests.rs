@@ -167,15 +167,14 @@ fn currency_is_view_only_and_not_a_start_gate_or_receipt() {
 
 // ---- J2: production entry point, EXEC report publication and R14 receipt ----
 
-const DESIGN_SCHEMA: &str = include_str!("../../contract_inputs/PKG-02/DEL-02-03/Work/compatibility-report.schema.json");
-const DESIGN_VALID: &str = include_str!("../../contract_inputs/PKG-02/DEL-02-03/Work/compatibility-report.example.valid.json");
-const DESIGN_INVALID: &str = include_str!("../../contract_inputs/PKG-02/DEL-02-03/Work/compatibility-report.example.invalid.json");
+const DESIGN_VALID: &str = include_str!("../resources/workflow_role/compatibility-report.example.valid.json");
+const DESIGN_INVALID: &str = include_str!("../resources/workflow_role/compatibility-report.example.invalid.json");
 
-/// Independent of the production validator: compiles the Design file's own bytes
-/// through the existing declared-ID registry (no rewrite, no retrieval).
+/// Independent of the production validator's cached instance: compiles the schema's
+/// bytes through the existing declared-ID registry (no rewrite, no retrieval).
 fn assert_design_valid(body: &Value) {
     let validator = crate::schema_validation::compile_targets(
-        &[("compatibility-report.schema.json", DESIGN_SCHEMA)],
+        &[("compatibility-report.schema.json", REPORT_SCHEMA)],
         &[REPORT_SCHEMA_ID],
         &[REPORT_SCHEMA_ID],
     )
@@ -1184,8 +1183,7 @@ fn v8_f4_ck3_requires_earlier_report_and_known_earlier_edition() {
 }
 
 #[test]
-fn j2_embedded_schema_is_design_bytes_and_design_examples_classify() {
-    assert_eq!(REPORT_SCHEMA, DESIGN_SCHEMA);
+fn j2_design_examples_classify() {
     let valid: Value = serde_json::from_str(DESIGN_VALID).unwrap();
     let invalid: Value = serde_json::from_str(DESIGN_INVALID).unwrap();
     assert!(validate_report(&valid).is_ok());

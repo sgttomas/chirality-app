@@ -175,7 +175,7 @@ def observation(b, a_root, assessment_path=None):
     before = _metadata_gate(roots, links, assessed)
     database = data / 'runtime/recovery.ledger.sqlite'
     require(assessed['database'] == str(database), 'v3 assessed App database path differs')
-    schema = b.setup.REPO / 'app/contract_inputs/PKG-01/DEL-01-02/Work/recovery.app-ledger-entry.v0.3.schema.json'
+    schema = b.setup.REPO / 'app/src-tauri/resources/runtime_core/recovery.app-ledger-entry.v0.3.schema.json'
     projection = ledger_projection(database, schema)
     require(projection['schema_valid_rows'] == assessed['schema_valid_rows']
             and projection['counts'] == assessed['counts'], 'v3 typed ledger differs from retained assessment')

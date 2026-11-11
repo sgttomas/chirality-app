@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[3]
 _spec = importlib.util.spec_from_file_location('notice_plan_io', ROOT / 'app/packaging/production_inputs/prepare.py')
 io = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(io)
 files, require = io.files, io.require
-WORK = 'app/contract_inputs/PKG-01/DEL-01-06/Work/supplier-notice-associations'
+METADATA = 'app/packaging/notices'
 LIMITS = ['upstream Git text, not an archive member', 'explicit technical selection, not legal approval',
           'transitive coverage and four supplier binary/source/notice associations remain unresolved',
           'no download, build, signing or release authority']
@@ -34,9 +34,9 @@ def plan(repo=ROOT):
     repo = io.inventory.anchored(repo)
     sources = {}
     def metadata(name):
-        raw = read(repo / WORK / name); sources[name] = files.sha(raw)
+        raw = read(repo / METADATA / name); sources[name] = files.sha(raw)
         return files.parse(raw)
-    codex = metadata('public-metadata.json')
+    codex = metadata('codex-public-metadata.json')
     mac = metadata('macos-runtime-license-metadata.json')
     entries = []
     for row in codex['proposed_file_retrieval']:

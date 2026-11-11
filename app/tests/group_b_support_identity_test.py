@@ -126,24 +126,19 @@ class SupportIdentityTests(unittest.TestCase):
         self.rebuild(); self.selection['artifacts']['review']['record'] = self.selection['artifacts']['change']['record']
         self.assert_refused()
 
-    def test_source_freeze_cannot_be_replaced_by_writer_or_missing_sources(self):
-        # The repository-independent snapshot works even without a current checkout.
-        with patch.object(identity, 'PROJECT', self.root):
-            self.assertEqual(identity.SupportIdentity().sources, self.support.sources)
+    def test_declared_sources_refuse_change_absence_and_another_declaration(self):
         for relative, data in self.support.sources.items():
             p = self.root / relative; p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(data)
-        changed = self.root / 'app/examination/admission/sources.json'
-        changed.write_bytes(changed.read_bytes() + b'\n')
         with patch.object(identity, 'PROJECT', self.root):
-            # Writer edits cannot select a different frozen publication.
             self.assertEqual(identity.SupportIdentity().sources, self.support.sources)
-        local = self.root / 'tool'
-        shutil.copytree(identity.HERE, local)
-        target = local / 'frozen/app/examination/sources.json'
-        target.unlink()
-        with patch.object(identity, 'HERE', local):
-            with self.assertRaisesRegex(ValueError, 'frozen source missing'):
+            changed = self.root / next(iter(self.support.sources))
+            original = changed.read_bytes(); changed.write_bytes(original + b'\n')
+            with self.assertRaisesRegex(ValueError, 'frozen source changed'):
                 identity.SupportIdentity()
+            changed.unlink()
+            with self.assertRaises(OSError):
+                identity.SupportIdentity()
+            changed.write_bytes(original)
         with patch.object(identity, 'DECLARATION_SHA256', '0' * 64):
             with self.assertRaisesRegex(ValueError, 'declaration changed'): identity.SupportIdentity()
 
@@ -188,12 +183,10 @@ class SupportIdentityTests(unittest.TestCase):
 
     def test_declaration_identity_is_derived_from_actual_pinned_sources(self):
         local = self.root / 'tool'; local.mkdir()
-        shutil.copytree(identity.HERE / 'frozen', local / 'frozen')
         (local / 'binding.v1.schema.json').write_bytes((identity.HERE / 'binding.v1.schema.json').read_bytes())
-        for kind in ('schema', 'prototype', 'version'):
+        for kind in ('schema', 'version'):
             value = copy.deepcopy(self.support.declaration)
             if kind == 'schema': value['support_identity']['schema_ids']['review'] = 'other'
-            elif kind == 'prototype': value['support_identity']['prototype_sha256'] = '0' * 64
             else: value['support_identity']['exp_version'] = 'EXP-v0.3'
             payload = encoded(value); (local / 'declaration.v1.json').write_bytes(payload)
             # Test-only repin exposes the independent source-to-value checks.

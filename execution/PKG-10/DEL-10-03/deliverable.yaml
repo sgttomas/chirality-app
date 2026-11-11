@@ -48,7 +48,5 @@ needs:
     by release and recoverable identity, so that the working-guidance entries of the responsibility map point
     at an identified edition.
   gating: true
-code_paths:
-- execution/PKG-10/DEL-10-03/Work/RESPONSIBILITY_ACCOUNT.md
-checks:
-- app/contract_inputs/PKG-10/DEL-10-03/Work/prototype/ra_check.py
+code_paths: []
+checks: []

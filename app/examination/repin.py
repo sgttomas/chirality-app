@@ -14,9 +14,7 @@ pin other profiles agree, then refreshes the lock's `current` section. Review
 the resulting diff: it names exactly which pinned bytes changed. The lock must
 hold exactly the entries in CURRENT and FROZEN below. Its `frozen` section
 mirrors historical receipt digests anchored as constants in reader code; both
-modes fail if an entry or its bytes differ from the anchor. Entries outside the rules below are
-historical identities (frozen documentary Markdown selections, projection
-digests, historical provenance) and are left as recorded.
+modes fail if an entry or its bytes differ from the anchor.
 
 This tool changes only digests. Adding or removing a pinned source, or changing
 what an examination selects, is a reviewed edit to the profile itself.
@@ -25,7 +23,6 @@ import argparse
 import ast
 import hashlib
 import json
-import os
 from pathlib import Path
 import re
 import sys
@@ -33,40 +30,29 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 LOCK = 'app/examination/pins.lock.json'
 LOCK_FORMAT = 'chirality-examination-pin-lock/1'
-CONDITION = 'execution/PKG-09/DEL-09-01/Design/support-identity-v1/documentary-condition.v3.json'
 DIGEST = re.compile(r'(sha256:)?[0-9a-f]{64}')
 HEX64 = re.compile(r'[0-9a-f]{64}')
 
 
 class Map:
-    """A path -> digest object. Non-string values are projection selections.
-
-    Markdown entries are skipped unless `markdown=True`: in those profiles a
-    changed Markdown source falls back to its frozen original bytes, so its
-    digest names historical publication bytes, not the current file.
-    """
-    def __init__(self, *pointer, markdown=False):
-        self.pointer, self.markdown = pointer, markdown
+    """A path -> digest object."""
+    def __init__(self, *pointer):
+        self.pointer = pointer
 
     def slots(self, value):
         for path, digest in value.items():
-            if isinstance(digest, str) and (self.markdown or not path.endswith('.md')):
+            if isinstance(digest, str):
                 yield value, path, path
 
 
 class Refs:
-    """A list, or a role -> item object, of {path, sha256} file references.
-
-    Items carrying `selectors` record a documentary projection digest, not a
-    file digest, and are skipped.
-    """
+    """A list, or a role -> item object, of {path, sha256} file references."""
     def __init__(self, *pointer):
         self.pointer = pointer
 
     def slots(self, value):
         for item in (value.values() if isinstance(value, dict) else value):
-            if 'selectors' not in item:
-                yield item, 'sha256', item['path']
+            yield item, 'sha256', item['path']
 
 
 class Ref:
@@ -78,50 +64,31 @@ class Ref:
         yield value, 'sha256', value[self.key]
 
 
-class Digest:
-    """One digest field whose file is fixed by the profile's meaning."""
-    def __init__(self, *pointer, key, path):
-        self.pointer, self.key, self.path = pointer, key, path
-
-    def slots(self, value):
-        yield value, self.key, self.path
-
-
 # Live source profiles. Every rule names entries whose consumer compares them
 # with the current file bytes (the reader named in each comment).
 PROFILES = {
     # distribution_receiving/receive.py current_inputs()
     'app/examination/distribution_receiving/inputs.json': [Map()],
     # package_receiving/adapter.py Receiver (all sources read from the checkout)
-    'app/examination/package_receiving/sources.package-v1.json': [Map('sources', markdown=True)],
-    # packaging/prepare.py check_basis(); historical_documentary_provenance stays as recorded
-    'app/packaging/sources.json': [Map('sources')],
+    'app/examination/package_receiving/sources.package-v1.json': [Map('sources')],
     # packaging/static_distribution/check.py source_model()
     'app/packaging/static_distribution/sources.json': [Map('sources')],
     # support_identity/canonical.py CanonicalSupport
-    'app/examination/support_identity/canonical-pins.terms-v1.json': [
-        Map('sources'), Ref('documentary_selection', key='manifest')],
+    'app/examination/support_identity/canonical-pins.terms-v1.json': [Map('sources')],
     # sq_receiving/receive.py Receiver
-    'app/examination/sq_receiving/pins.terms-v1.json': [
-        Map('sources'), Ref('documentary_selection', key='manifest')],
+    'app/examination/sq_receiving/pins.terms-v1.json': [Map('sources')],
     # sq_receiving/receive_packages.py Receiver; predecessor/profile refs describe the selection
     'app/examination/sq_receiving/pins.packages-v1.json': [
-        Map('sources'), Ref('documentary_selection', key='manifest'),
-        Ref('predecessor'), Ref('package_source_profile')],
+        Map('sources'), Ref('predecessor'), Ref('package_source_profile')],
     # standalone/prepare.py verified_sources()
-    'app/examination/standalone/sources.terms-v1.json': [
-        Refs('sources'), Digest('documentary_selection', key='manifest_sha256', path=CONDITION)],
+    'app/examination/standalone/sources.terms-v1.json': [Refs('sources')],
     # standalone/pre_run_inputs.py PreRunInputs
     'app/examination/standalone/pre_run_inputs.terms-v1.pins.json': [
-        Map('sources'), Refs('fixture_roles'), Ref('documentary_selection', key='manifest')],
+        Map('sources'), Refs('fixture_roles')],
     # native_forms/native_form.py consumer()
     'app/examination/native_forms/sources.terms-v1.json': [Refs('sources')],
     # native_forms/pre_run_form.py consumer()
-    'app/examination/native_forms/pre_run_form.terms-v1.pins.json': [
-        Map('sources'), Ref('documentary_selection', key='manifest')],
-    # admission/current_admission.py: complete current documents, no frozen fallback
-    'app/examination/admission/sources.current-v1.json': [
-        Map('sources', markdown=True), Map('reader_dependencies')],
+    'app/examination/native_forms/pre_run_form.terms-v1.pins.json': [Map('sources')],
 }
 
 
@@ -129,12 +96,8 @@ E = 'app/examination/'
 # The exact lock catalog. `current` lists every digest a reader takes from the
 # lock instead of carrying it in code; repin derives them from current bytes.
 CURRENT = (
-    E + 'admission/admission_check.py',                     # current_admission DEPENDENCIES
-    E + 'admission/admission_rules.py',                     # current_admission DEPENDENCIES
-    E + 'admission/sources.current-v1.json',                # current_admission
     E + 'distribution_receiving/inputs.json',               # distribution receive
     E + 'distribution_receiving/receive.py',                # distribution terminal
-    E + 'documentary_condition.py',                         # prepare, terms_condition
     E + 'native_forms/pre_run_form.terms-v1.pins.json',     # pre_run_form
     E + 'package_receiving/sources.package-v1.json',        # package adapter
     E + 'sq_receiving/pins.packages-v1.json',               # SQ receive_packages
@@ -180,22 +143,6 @@ def encode(value):
     return (json.dumps(value, indent=2) + '\n').encode()
 
 
-def resolve(root, relative):
-    """Resolve retained logical identities to current App inputs; never follow Design links."""
-    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
-    if match is not None:
-        if os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
-            return relative
-        relative = match.group(1) + 'Work/' + relative[match.end():]
-    if relative.startswith('execution/'):
-        # Historical/custom evidence trees have no current App-input namespace.
-        # A maintained root never falls back to its authoring execution tree.
-        if not os.path.lexists(os.path.join(root, 'app/contract_inputs')) and os.path.lexists(os.path.join(root, relative)):
-            return relative
-        return 'app/contract_inputs/' + relative[len('execution/'):]
-    return relative
-
-
 def at(value, pointer):
     for key in pointer:
         value = value[key]
@@ -219,7 +166,6 @@ class Derivation:
         self.missing = []
 
     def read(self, relative):
-        relative = resolve(self.root, relative)
         if relative in self.overlay:
             return self.overlay[relative]
         target = self.root / relative
@@ -228,7 +174,7 @@ class Derivation:
         return target.read_bytes()
 
     def digest(self, owner, path):
-        if resolve(self.root, path) == LOCK:
+        if path == LOCK:
             raise PinError(owner + ': the pin lock cannot itself be pinned')
         try:
             return sha(self.read(path))

@@ -34,14 +34,8 @@ class Observations(unittest.TestCase):
  def test_link_refuses(self):
   (self.root/'real').write_bytes(self.data);(self.root/self.name).unlink();(self.root/self.name).symlink_to(self.root/'real')
   with self.assertRaises(OSError):self.run_observer()
- def test_saved_observation_is_only_matching_pin_and_clues(self):
-  saved=json.loads((ROOT/'app/contract_inputs/PKG-01/DEL-01-06/Work/supplier-notice-associations/observations.json').read_text())
-  self.assertEqual({r['path']:r['sha256'] for r in saved['components']},module.SUBJECTS)
-  self.assertEqual(saved['tool_sha256'],module.reader.sha(Path(module.__file__).read_bytes()))
-  for row in saved['components']:
-   self.assertEqual([bytes.fromhex(c['bytes_hex']) for c in row['embedded_clues']],module.CLUES[row['path']])
  def test_cached_root_notices_match_selected_public_tree_blob_identities(self):
-  evidence=json.loads((ROOT/'app/contract_inputs/PKG-01/DEL-01-06/Work/supplier-notice-associations/public-metadata.json').read_text())
+  evidence=json.loads((ROOT/'app/packaging/notices/codex-public-metadata.json').read_text())
   for item in evidence['matched_local_root_notices']:
    raw=(ROOT/'app/packaging/supplier_notices/codex-0.160.0'/item['path']).read_bytes()
    self.assertEqual(len(raw),item['size_bytes'])

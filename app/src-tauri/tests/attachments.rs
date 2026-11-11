@@ -372,23 +372,7 @@ fn full_canonical_validation_accepts_all_valid_fixtures_and_refuses_each_invalid
 }
 
 #[test]
-fn embedded_assets_match_canonical_sources_and_produced_input_matches_actual_supplier_schema() {
-    let manifest = fixture("manifest.json");
-    let cargo = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let repo = cargo.ancestors().nth(2).unwrap();
-    for row in manifest.as_array().unwrap() {
-        let asset = std::fs::read(
-            cargo
-                .join("resources/attachments")
-                .join(row["file"].as_str().unwrap()),
-        )
-        .unwrap();
-        assert_eq!(independent_hash(&asset), row["sha256"]);
-        assert_eq!(
-            asset,
-            std::fs::read(repo.join(work_locality(row["source"].as_str().unwrap().strip_prefix("projects/chirality-app-v4/").expect("source must name this App project")))).unwrap()
-        );
-    }
+fn produced_input_matches_actual_supplier_schema() {
     let mut schema: Value = serde_json::from_str(include_str!(
         "../resources/supplier/0.160.0/codex_app_server_protocol.v2.schemas.json"
     ))
@@ -501,18 +485,4 @@ fn initial_fifo_without_writer_is_held_before_any_blocking_read() {
 #[test]
 fn selected_regular_source_replaced_by_fifo_is_held_without_blocking() {
     fifo_case_has_bounded_completion("replacement");
-}
-
-/// A deliverable's `Design/` before 2026-10-30 means its `Work/` (AGENTS.md).
-fn work_locality(path: &str) -> String {
-    let parts: Vec<&str> = path.splitn(4, '/').collect();
-    match parts.as_slice() {
-        ["execution", package, deliverable, rest] if package.starts_with("PKG-") && deliverable.starts_with("DEL-") => {
-            match rest.strip_prefix("Design/") {
-                Some(tail) => format!("app/contract_inputs/{package}/{deliverable}/Work/{tail}"),
-                None => format!("app/contract_inputs/{package}/{deliverable}/{rest}"),
-            }
-        }
-        _ => path.to_string(),
-    }
 }

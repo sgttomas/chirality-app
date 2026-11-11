@@ -4,8 +4,11 @@ needs:
 - from: DEL-08-01
   condition: A Domains receiving record has an identity and gives each result an identity, its source
     reference, its indexed and current revisions, its admission state and a standing that says whether
-    it supports reliance; no response is recorded as absent with no results; and fixtures cover an admitted
-    current source, a located source that is not admitted, a stale source and no response.
+    it supports reliance; no response is recorded as absent with no results; and the fixtures are valid
+    receiving records, each naming the query contract and admission basis it was prepared against, that
+    cover an admitted current source, a located source that is not admitted, a stale source and no response
+    and serve a consumer as inputs unchanged, a fixture on an invented contract or admission basis being
+    marked simulated and counting toward none of the four.
   gating: true
 - from: DEL-02-01
   condition: A workflow package's declared part states its expected inputs, required tools, checkpoints,
@@ -33,7 +36,7 @@ needs:
     each candidate a content identity, presents the candidate to the person and captures the person's
     decision with an evidence reference, and its owner answers the handoff's questions.
   when: Before the witness of the joined activity.
-code_paths:
-- app/contract_inputs/PKG-08/DEL-08-02/Work/research.context-account.schema.json
-checks:
-- app/contract_inputs/PKG-08/DEL-08-02/Work/prototype/check_rtd.py
+code_paths: []
+# The receiving-record fixtures under prototype/fixtures/ in this folder are DEL-08-01's and are
+# listed in its yaml. Here: the account schema.
+checks: []

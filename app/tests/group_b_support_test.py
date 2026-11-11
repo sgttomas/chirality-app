@@ -34,8 +34,7 @@ class GroupBSupport(unittest.TestCase):
 
     def test_all_canonical_examples_and_false_pass_vectors(self):
         for kind, filename in support_module.SCHEMAS.items():
-            source = next(p for p in self.support.sources['sources'] if p.endswith('/' + filename))
-            directory = support_module.PROJECT / Path(support_module.deliverable_path(support_module.PROJECT, source)).parent
+            directory = APP / ('src-tauri/resources/external_trace' if kind == 'result' else 'tests/group_b_fixtures')
             prefix = filename.removesuffix('.schema.json')
             for record in json.loads((directory / f'{prefix}.valid.examples.json').read_text()):
                 with self.subTest(kind=kind, record=record['record_id']):
@@ -104,7 +103,7 @@ class GroupBSupport(unittest.TestCase):
     def test_source_drift_refuses_before_record_validation(self):
         manifest=copy.deepcopy(self.support.sources)
         first=next(iter(manifest['sources']))
-        manifest['sources'][first]['sha256']='0'*64
+        manifest['sources'][first]='0'*64
         with tempfile.TemporaryDirectory() as temp:
             path=Path(temp)/'sources.json'; path.write_text(json.dumps(manifest))
             with self.assertRaisesRegex(ValueError,'canonical source changed'):

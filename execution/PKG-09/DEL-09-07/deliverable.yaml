@@ -59,7 +59,4 @@ needs:
 - from: external:independent examiner
   condition: An examiner separate from the coordinating owner examines the joined dossier.
 code_paths: []
-checks:
-- app/contract_inputs/PKG-09/DEL-09-07/Work/prototype/cir_check.py
-- app/contract_inputs/PKG-09/DEL-09-07/Work/prototype/dos_check.py
-- app/contract_inputs/PKG-09/DEL-09-07/Work/prototype/top_check.py
+checks: []

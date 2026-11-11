@@ -140,8 +140,8 @@ def check(root=ROOT):
     root = Path(root)
     catalog = json.loads((root / 'tools/ci/execution-fidelity.json').read_bytes())
     exceptions = {row['path']: row for row in catalog['exceptions']}
-    if len(exceptions) != len(catalog['exceptions']) or len(exceptions) != 9:
-        raise ValueError('The reviewed nine fidelity exceptions must be explicit and unique')
+    if len(exceptions) != len(catalog['exceptions']) or len(exceptions) != 1:
+        raise ValueError('The one reviewed fidelity exception must be explicit and unique')
     errors, seen = [], set()
     paths = tracked(root)
     for name in paths:

@@ -2,9 +2,10 @@ id: DEL-09-06
 name: Connected activity contract and workflow round trip
 needs:
 - from: DEL-01-01
-  condition: For each App turn, the guidance actually supplied to the supplier and the model destination
-    the turn's content reached are recorded, so that what was supplied can be read apart from what
-    was selected.
+  condition: For each thread and turn, the guidance actually carried to the supplier is observed by
+    content identity, with the model and destination the supplier reported, and handed with its origin
+    to the record writer; a destination reported for a thread is not attributed to a turn no report
+    names.
   gating: true
 - from: DEL-02-01
   condition: A workflow carries a portable declared part (expected inputs, required host tools, checkpoints
@@ -16,9 +17,12 @@ needs:
     explicit registration, and a same-name entry from another origin is never silently rebound.
   gating: true
 - from: DEL-02-03
-  condition: A workflow can be transferred and adapted for another host; a required tool that is
-    missing yields an explicit unsupported outcome; and a checkpoint's act is recorded only when
-    performed, with a hold only in the governance phase.
+  condition: A workflow carried from the App to a host arrives with the same identity, revision and
+    bytes and a trace telling apart what was selected, resolved, supplied, adopted and observed;
+    an adaptation has a new identity derived from the original; a host-origin workflow is opened
+    in the App with its origin and revision unchanged and refined as a draft; a host that cannot
+    receive a declared element produces an explicit unsupported result; and a checkpoint's act is
+    recorded only when performed, with a hold only in the governance phase.
   gating: true
 - from: DEL-03-01
   condition: The catalog states each operation's meaning and read basis in a form the App and a host
@@ -42,7 +46,8 @@ needs:
   gating: true
 - from: DEL-04-03
   condition: Act and run records bind each act to actor, content, scope and purpose, keep an earlier
-    act in the history when its content changes, and show its standing as lapsed.
+    act in the history when its content changes, and show its standing as lapsed; and a run record
+    holds the model used with its observed destination for each turn.
   gating: true
 - from: DEL-05-01
   condition: The loop states which model serves a turn and records the destination each turn's content
@@ -89,5 +94,5 @@ checks:
 - app/supplier_checks/swbpipe_receiving_test.py
 - app/supplier_checks/swbpipe_receiving_v4_test.py
 - app/supplier_checks/swbpipe_receiving_v4_pr30_test.py
-- app/supplier_checks/swbpipe_receiving_pr40_test.py
+- app/supplier_checks/swbpipe_hash_receiving_test.py
 - app/supplier_checks/swbpipe_projection_test.py

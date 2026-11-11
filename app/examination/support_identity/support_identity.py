@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""EXP support-identity-v1/METHOD.md staged exact-byte support bindings; publication is never established."""
+"""EXP support identity: staged exact-byte support bindings; publication is never established."""
 import argparse
 import hashlib
 import json
-import os
 from pathlib import Path, PurePosixPath
 import re
 import stat
@@ -16,20 +15,19 @@ from referencing import Registry
 
 HERE = Path(__file__).resolve().parent
 PROJECT = HERE.parents[2]
-DECLARATION_SHA256 = 'c41aad04875ad6059e9a20776e7d57dd27b876afc3159cc242bfa3dc6f8dfc92'
+DECLARATION_SHA256 = 'e64a7ff8e058be3f7c28f0a2f2925006a7e3c24f8f62230ccc0cd89dcd22f100'
 SCHEMA_SHA256 = 'b5e5baca25c90e53fdaf3f685f531eb84fb921ac8e31b6cb0c782ff68fd05394'
 KINDS = {'before': 'result', 'after': 'result', 'rerun': 'result',
          'review': 'review', 'change': 'change', 'package': 'package'}
 RECORD_KINDS = {'result': 'exam_result', 'review': 'exam_review',
                 'change': 'exam_change_impact', 'package': 'package_identity'}
-DOCUMENTARY_SOURCE_COMMIT = '6fbd4c8722c9454981ae9518b39cafe4e6ece7c4'
 LIMITS = [
     'Exact-byte identity and supplied file relationships only; origin and actual observations are unverified.',
     'Frozen candidate declaration is not canonical publication or adoption. A record writer cannot publish support.',
     'Caller-selected artifact/basis digest is a technical freeze, not authorization or an authenticated authority.',
     'No actual review independence, repair, native execution, signatures, qualification, acceptance or release established.',
     'Filesystem link checks are best effort; hostile concurrent filesystem isolation and authenticated custody are not established.',
-    'EXP support-identity-v1/METHOD.md canonical disposition and consumer adoption remain with the owning Design loops.',
+    'Canonical disposition and consumer adoption of this binding method remain with the examination owner.',
 ]
 
 
@@ -79,46 +77,8 @@ def relative_file(root, relative):
     return current.read_bytes()
 
 
-def publication_source(root, path, expected):
-    """Same full frozen bytes; today's documentary checkout is not publication."""
-    try:
-        data = relative_file(root, path)
-    except FileNotFoundError:
-        if not path.endswith('.md'):
-            raise
-        data = None
-    if data is not None and sha(data) == expected:
-        return data
-    require(path.endswith('.md'), 'frozen source changed: ' + path)
-    return frozen_snapshot_source(path, expected)
-
-
-def frozen_snapshot_source(path, expected):
-    """Fixed original bytes carried locally; caller pins still select the content."""
-    prefix = 'projects/chirality-app-v4/'
-    relative = path[len(prefix):] if path.startswith(prefix) else path
-    try:
-        require(not (HERE / 'frozen').is_symlink(), 'symbolic link refused')
-        data = relative_file(HERE / 'frozen', relative)
-    except OSError as error:
-        raise ValueError('frozen source missing or unavailable: ' + path) from error
-    require(sha(data) == expected, 'frozen source changed: ' + path)
-    return data
-
-
-def frozen_publication_source(root, path, expected):
-    """Original declaration selects immutable validator/data bytes, not main."""
-    try:
-        raw = relative_file(root, path)
-    except FileNotFoundError:
-        raw = None
-    if raw is not None and sha(raw) == expected:
-        return raw
-    return frozen_snapshot_source(path, expected)
-
-
 class SupportIdentity:
-    def __init__(self, frozen_sources=None):
+    def __init__(self):
         # No caller-supplied declaration, source manifest, schema or publication flag.
         declaration = (HERE / 'declaration.v1.json').read_bytes()
         require(sha(declaration) == DECLARATION_SHA256, 'frozen declaration changed')
@@ -129,14 +89,11 @@ class SupportIdentity:
         Draft202012Validator.check_schema(schema)
         self.validator = Draft202012Validator(schema, registry=Registry())
         self.identity = self.declaration['support_identity']
-        # Snapshot every frozen source before any record processing. Existing
-        # checkers run from these bytes, so rereads cannot select a different basis.
+        # Capture every declared source before any record processing. The
+        # maintained checkers run from these bytes, so rereads cannot select a different basis.
         self.sources = {}
-        if frozen_sources is not None:
-            exact(frozen_sources, self.declaration['sources'], 'original publication sources')
         for path, expected in self.declaration['sources'].items():
-            data = (frozen_publication_source(PROJECT, path, expected) if frozen_sources is None
-                    else frozen_sources[path])
+            data = relative_file(PROJECT, path)
             require(sha(data) == expected, 'frozen source changed: ' + path)
             self.sources[path] = data
         for kind, filename in [('result', 'exam.result-record.schema.json'),
@@ -145,9 +102,7 @@ class SupportIdentity:
             matches = [data for path, data in self.sources.items() if path.endswith('/' + filename)]
             require(len(matches) == 1 and parse(matches[0])['$id'] == self.identity['schema_ids'][kind],
                     'declared schema identity disagrees with source')
-        prototypes = [data for path, data in self.sources.items() if path.endswith('/prototype/check_exp.py')]
-        require(len(prototypes) == 1 and sha(prototypes[0]) == self.identity['prototype_sha256'],
-                'declared prototype identity disagrees with source')
+        require(re.fullmatch('[0-9a-f]{64}', self.identity['prototype_sha256']), 'declared prototype identity is not a digest')
         # Protocol version and schema formats must agree with the frozen declaration.
         versions = [parse(data)['properties']['format']['const'] for path, data in self.sources.items()
                     if any(path.endswith('/' + name) for name in
@@ -238,8 +193,8 @@ class SupportIdentity:
                 'qualification_established': False, 'limits': LIMITS}
 
     def _existing_checks(self, raw, selection):
-        # Execute unchanged accepted maintained validators over captured bytes in
-        # an isolated temporary project; no supplier, native or canonical prototype runs.
+        # Execute the declared maintained validators from their captured bytes in an
+        # isolated temporary project; no supplier or native process runs.
         with tempfile.TemporaryDirectory(prefix='chirality-support-identity-') as temp:
             root = Path(temp)
             for relative, data in self.sources.items():

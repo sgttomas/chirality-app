@@ -29,14 +29,15 @@ needs:
     file of its package, and a declared checkpoint names the one act it requires.
   gating: false
 - from: DEL-02-02
-  condition: Each run's text is identified by its content identity with the state of its supply check,
-    each selection is recorded with the approval policy requested and the evidence applied, and a registration
-    names the reviewed draft and the prior revision.
+  condition: Each run's text is identified by its content identity with the state of its supply
+    check, each selection is recorded with the approval policy requested and the evidence applied,
+    and a registration names the reviewed content it registers and the prior revision of its slot.
   gating: false
 - from: DEL-02-03
-  condition: Checkpoint arrivals, act requests where one can be identified, counted acts, lapses and run
-    ends are produced as entries the run log carries, and each compatibility report evaluated for a run
-    is identified.
+  condition: Each arrival at a declared checkpoint, the request for its act where one can be
+    identified, each act counted toward an arrival, a lapse and the run's end are written as entries
+    of the checkpoint record in the run's log, and each requirement check names the workflow, host,
+    catalog edition and surface it was made on.
   gating: false
 - from: DEL-02-04
   condition: The role guidance supplied at a conversation's start or a fork is identified by its source
@@ -155,8 +156,7 @@ checks:
 - app/src-tauri/src/act_control_a15.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/hosting.rs
+# policy_standing.rs is one check file shared with DEL-04-01 and DEL-04-02. Here: the cases on
+# lapse.
 - app/src-tauri/tests/policy_standing.rs
-- app/tests/failed_turn_permissions_test.py
-- app/contract_inputs/PKG-04/DEL-04-03/Work/prototype/check_cc_r.py
-- app/contract_inputs/PKG-04/DEL-04-03/Work/prototype/run_prototype.py
-- app/contract_inputs/PKG-04/DEL-04-03/Work/prototype/test_minischema.py
+# Here: the record of a destination request closed by its turn's failure.

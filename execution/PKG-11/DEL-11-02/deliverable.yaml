@@ -3,8 +3,10 @@ name: Consumer-specific renewed-basis adoption
 needs:
 - from: DEL-10-03
   condition: The responsibility account names each affected consumer of shared material with its accountable
-    owner, packaging and tool paths, and traces each affected technical promise of the workflow, catalog,
-    act-and-record and host-loop contracts to its accountable scope and evaluation path.
+    owner, packaging and tool paths, holds for each proposed change of placement or supply a check of
+    them against identified current source or shows that check as outstanding, and traces each affected
+    technical promise of the workflow, catalog, act-and-record and host-loop contracts to its accountable
+    scope and evaluation path.
   gating: true
 - from: DEL-10-01
   condition: The execution basis names the selected editions of the manual and of the shared roles

@@ -85,7 +85,6 @@ code_paths:
 - app/src-tauri/src/after_run_end.rs
 - app/src-tauri/src/run_restart.rs
 - app/src-tauri/resources/workflow_role/compatibility-report.schema.json
-- app/src-tauri/resources/workflow_role/checkpoint-record-entries.schema.json
 - app/src-tauri/schemas/checkpoint-record-entries.schema.json
 # runtime_session.rs, lib.rs and host_tick.rs are shared. Here: opening and ending a run, its
 # run reference and tag, the occasions of the requirement check, and feeding observed items

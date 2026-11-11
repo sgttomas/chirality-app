@@ -9,16 +9,16 @@ Neither a checked row nor this document supplies owner acceptance or release.
 Current result (2026-11-08): the development App ran the included workflow with
 GPT-6.1 Terra at medium effort after the owner's personal sign-in. The saved
 take-off matches the independent key, raw CSV is unchanged, Results shows the
-ended run and normal Quit passed. The [actual account](../PKG-09/DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md)
+ended run and normal Quit passed. The actual account
 binds the subject and limits. J1's core execution path is demonstrated; the
 owner's confusing sign-in-status finding has an integrated repair (PR158).
 The actual046 manual account read is clear; the automatic post-sign-in path
 remains mounted-test evidence. J2 has a draft, correct clean trial and actual
 close/reopen recovery on046. The repaired475c development artifact now supplies
 accessible native registration and one independently correct fresh-conversation
-reuse, explicit run end and normal Quit. The [J2 actual account](../PKG-09/DEL-09-02/Work/J2_PARTIAL_ACTUAL_20261108.md)
+reuse, explicit run end and normal Quit. The J2 actual account
 binds both subjects and the agent-operated attribution limit. Installed
-qualification and publication remain open. [Continuation boundaries](../PKG-09/DEL-09-02/Work/CONTINUATION_BOUNDARIES.md)
+qualification and publication remain open. Continuation boundaries
 retain the completed scope and constraints.
 
 The owner directed continued work toward publication readiness, not a stop after
@@ -33,7 +33,7 @@ development tooling only; another helper/control proof is not the next result.
 Current J1 standing (2026-11-07): the reviewed development App includes typed
 first-use project entry. After one capture repair, the final visual attempt
 showed the App correctly but established no visible effect from its one click.
-The [final actual account](../PKG-09/DEL-09-02/Work/J1_VISUAL_SETUP_FINAL_ACTUAL_20261107T182502Z.md)
+The final actual account
 preserves the result and verified normal closure. Native control-tool work is
 stopped after the two-attempt limit; no third iteration is selected. Setup/save,
 useful model work and J1/J2 remain uncompleted; further native work needs a new
@@ -46,14 +46,14 @@ regression execution are agent work, not an owner-operated test sheet. #111's fi
 remain open. #114's recognizable conversation discovery is integrated, and the
 current local dev App is now built from product main `eaf5d057` after the
 #119/#123/#124/#125/#128 stack. Its
-[build and static observations](../PKG-09/DEL-09-02/Work/DEV_APP_PRODUCT_STACK_BUILD_20261105.md)
+build and static observations
 establish the retained build subject. Agent 0 verified its 2026-11-05 launch
 at 18:42:37 UTC; the owner separately observed welcome visibility. The agent
 attempt found the exact window but only seven chrome AX nodes, no AXWebArea or
 setup controls, and performed no setup/confirmation/save. One App-owned menu
 Quit was posted; original PID 79609 was absent at 18:52:54.277 UTC and independently
 at 18:53:36.966 UTC. No exit-code/reap, supplier, Stage B or model result follows.
-Native owns the [actual attempt account](../PKG-09/DEL-09-02/Work/J1_AGENT_FIRST_USE_20261105.md).
+Native owns the actual attempt account.
 It also records the second attempt's 7→57/WebArea exposure and single project-picker
 press, followed by controller binding/cleanup refusals and a separately selected
 normal-termination closure with about57 s overrun; no project selection/save.
@@ -84,20 +84,20 @@ press, then unclassified-picker refusal before path entry. Cleanup/verified
 absence2.84 s without overrun. Setup remains unsaved; the actual role structure
 does not prove native path controls absent. The next App-scoped path-entry
 method is source preparation only, preserving file/history privacy guards.
-A later [frozen PRE-MERGE c977 diagnostic](../PKG-09/DEL-09-02/Work/J1_PICKER_DIAGNOSTIC_ACTUAL_20261106.md)
+A later frozen PRE-MERGE c977 diagnostic
 reached main/WebArea9controls and one picker press, then refused initial
 structural binding before any navigation intent/event/snapshot. Its failing
 attribute/AX code is unknown. Normal cleanup/independently corroborated absence
 completed in3.89 s without overrun; no setup/save. The offline diagnostic repair
 retains already collected safe binding facts without recovery reads; its37 mocked
 cases passed before the subsequent native invocation below.
-The [next frozen c7ed evidence run](../PKG-09/DEL-09-02/Work/J1_PICKER_DIAGNOSTIC_AXROLE_20261106.md)
+The next frozen c7ed evidence run
 recorded retained-main AXRole/-25204/null after one picker press, no navigation
 allocation/post/full snapshot. Original App/wrapper closure was independently
 corroborated after3.13 s, no overrun. The source now prepares a maximum3 initial
 role-read wait for exactly that error inside the unchanged2s phase/work budget;
 all other failures and final input rechecks remain strict.48 mocked tests pass
-independently. A [selected frozen a426 invocation](../PKG-09/DEL-09-02/Work/J1_INITIAL_PICKER_READINESS_ACTUAL_20261106.md)
+independently. A selected frozen a426 invocation
 then recorded two main-role CannotComplete reads followed by AXWindow, and the
 next App AXWindows count failed-25204/count null. No chord/full snapshot or
 observed empty/over-cap count. Autonomous cleanup/verified absence5.71 s, no
@@ -115,19 +115,19 @@ mocked passes. It requires fresh focused TopLevel==retained ownedPROJECTSheet an
 converging ancestry/publication before/after intent; legacy unknown is not zero
 and zero alone is not authority. At that preparation return, exact-panel support
 was unobserved. Its repaired entry was inspected before the separately selected
-[frozen9ed invocation](../PKG-09/DEL-09-02/Work/J1_POSITIVE_TOP_LEVEL_ACTUAL_20261106T124309Z.md).
+frozen9ed invocation.
 That attempt recorded mandatory focused TopLevel/-25212/null and refused before
 extra child observation or command; closure4.64 s/no overrun and independent
 original/runner/wrapper absence. The new primary ancestry method always uses
 fresh observed parent relations, with the same intent bracketing/modal vetoes and
 no shortcut fallback.103 mocked tests and independent source/entry review passed.
-Its [frozen546 native invocation](../PKG-09/DEL-09-02/Work/J1_FOCUSED_ANCESTRY_ACTUAL_20261106T132809Z.md)
+Its frozen546 native invocation
 then found App focused-ref NoValue/null: no focused path/proof/command, closure
 3.72 s/no overrun and all four process absences independently corroborated.
 The criterion remains unchanged; an initial-only availability wait now allows
 three shared0.2s pause/resamples within the same initial/work/cap limits, with
 strict/input/snapshot checks still non-retrying.111 mocked tests pass. The
-subsequent [frozen aa08 invocation](../PKG-09/DEL-09-02/Work/J1_INITIAL_FOCUS_READINESS_ACTUAL_20261106T141435Z.md)
+subsequent frozen aa08 invocation
 observed current owned focus/parent ancestry to the picker, then ref13's failed
 owner comparison stopped bounded veto-boundary validation. No complete target
 proof, intent, allocation or chord. Its role/parent/identity and returned edge
@@ -137,7 +137,7 @@ Normal closure3.207680 s/no overrun and four process absences independently
 corroborated. The account is included unchanged; ownership remains a hard veto.
 This entry/window is consumed. Agent0 owns next method review; no retry/new GO.
 The evidence-only repair integrated in #143 passed118 mocked tests and independent
-review. Its [frozen89a5 diagnostic](../PKG-09/DEL-09-02/Work/J1_RETURN_PROVENANCE_ACTUAL_20261106T155233Z.md)
+review. Its frozen89a5 diagnostic
 retained ref13's current native return from wrapper11 AXChildren op105/index1 and
 the already-returned owner PID54405, different from original54128. The unchanged
 veto stopped before complete proof/intent/allocation/chord. Parenthood, accepted
@@ -159,7 +159,7 @@ entry was inspected and stays UNRUN/superseded after an independently found
 post-Q reciprocal-role gap. The repaired required role checks pass142 mocks;
 no additional AX/process query or census change. PR146 merged after current-head
 CI passed; the corrected CBD / `84a58cf9` freeze was inspected. Its
-[one 2026-11-07 invocation](../PKG-09/DEL-09-02/Work/J1_ROOT_BOUNDARY_ACTUAL_20261107T152200Z.md)
+one 2026-11-07 invocation
 completed all three target proofs, one attempted original-PID CmdShiftG pair
 and a retained-picker snapshot, without establishing a related Q, path-entry
 field or handling. Verified closure6.070266s/no overrun; the entry/window is
@@ -196,13 +196,13 @@ public distribution; and the owner decision packet. That list was not completed.
 
 | ID | Result and finish condition | Standing / next action | Owning deliverables and delivery owner |
 |---|---|---|---|
-| P1 | Set up a project, select an existing workflow, supply inputs, run it to completion and find the results without agent interpretation of engineering controls. | Functional path observed on development source57bb; usability remains OPEN: owner sign-in, Terra/medium, one included-workflow run, independently correct take-off, Results and normal Quit. Agent 0 set effort and operated development approvals/end-run. PR158 account feedback is integrated; actual046 manual read reports the ChatGPT account. Automatic post-sign-in feedback remains mounted-test-only. Ordinary effort selection is demonstrated on d424 in the [P3 account](../PKG-09/DEL-09-02/Work/P3_NEXT_WITNESS_PROPOSAL.md); project wording, diagnostic density and AX limits remain. No acceptance/installed qualification. | [J1](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j1--use-an-existing-workflow), [actual result](../PKG-09/DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md); product manager, Agent 0 integration. |
-| P2 | Do useful work, create/trial/review/register a reusable workflow, return to unfinished work and later run the saved workflow with new inputs. | Functional workflow operations observed on identified development subjects; usability remains OPEN:046 draft/correct trial/History continuation and reopen recovery;475c native registration, one fresh reuse matching the independent key, explicit run end and normal Quit. Agent-operated controls establish no personal owner act; this is not installed/release qualification. See the [J2 actual account](../PKG-09/DEL-09-02/Work/J2_PARTIAL_ACTUAL_20261108.md). | [J2](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md#j2--create-save-return-and-reuse), DEL-02-02; next candidate integration and remaining witnesses. |
-| P3 | Applicable candidate-bound request/approval, cancellation, interruption/recovery, close/reopen/Quit and three access-mode results, with failures repaired or explicitly returned for owner disposition. | Development controls observed on d424: offered cancel, one-time grant, live interruption, normal Quit/reopen, History and explicit same-conversation continuation; Terra/medium confirmed across three turns. The [current P3 account](../PKG-09/DEL-09-02/Work/P3_NEXT_WITNESS_PROPOSAL.md) retains the subject and limits. Key/local access, ST-4/ST-5, observer detachment, live-request Quit and applicable installed/final-candidate qualification remain open; no personal owner act or release acceptance. | [Standalone qualification](../PKG-09/DEL-09-02/Work/STANDALONE_QUALIFICATION.md), DEL-01-01/02/03/04/05; native manager. |
-| P4 | Actual installed S4/supplier custody and applicable SEAL-C enrollment/continuity evidence joined to the candidate. | OPEN; static joins are complete for b3dd4145, real installed/native results are not. Enrollment is now the person's in-App native act "Protect registered workflows with your keychain" (owner decision C, 2026-11-09); it still needs the signing-stage selection and installed S4 custody to work, and the real enrollment, keychain-held approval policy and sealed cold admission remain unqualified until then. Rotation unavailable/SC-5 blocked is the accepted 4.0.0 limitation, not a pass. | [Signing join](../PKG-01/DEL-01-06/Work/SEAL_C_KEYCHAIN_SIGNING_JOIN.md), DEL-01-04/06 and DEL-09-02; runtime and packaging managers. |
-| P5 | Joined live SWBPIPE workflow with actual host/model/configuration, controlled application, outcomes and attributable person acceptance, plus applicable lifecycle/recovery evidence. | OPEN; component results do not close it. App Agent 0 coordinates with SWBPIPE Agent 0; no SWB implementation authority transfers here. | [Local host qualification](../PKG-09/DEL-09-07/Work/LOCAL_HOST_QUALIFICATION.md); examination consumer and external SWB owner. |
-| P6 | Qualified selected supplier pin and complete applicable shipped notice/source associations, with unresolved coverage explicitly resolved before release. | OPEN. Packaging is advancing justified associations from already retained exact local bodies. Acquisition-dependent texts, scheduler and supplier-source gaps remain explicit; local adoption is not full bundled coverage. Downloads still need the applicable exact owner approval. | [Shipped notice/source account](../PKG-01/DEL-01-06/Work/SHIPPED_NOTICE_COVERAGE.md), DEL-01-01 and DEL-01-06; packaging with runtime qualification inputs. |
-| P7 | Package the finished source; verify resource/profile/supplier identity, sign/notarize/staple and perform the applicable installed/quarantine witness on that final subject. | COMPLETE only for retained signing/notary substeps; final product candidate remains OPEN. Development subjects66d39/84a have matching static resources and their own setup/settings observations, with ad-hoc signatures. They supply no production installation or final quarantine qualification. Final assembly follows required product fixes and supplier/notice closure. | [Production input preparation](../PKG-01/DEL-01-06/Work/PRODUCTION_INPUT_PREPARATION.md), DEL-01-06; packaging manager. |
+| P1 | Set up a project, select an existing workflow, supply inputs, run it to completion and find the results without agent interpretation of engineering controls. | Functional path observed on development source57bb; usability remains OPEN: owner sign-in, Terra/medium, one included-workflow run, independently correct take-off, Results and normal Quit. Agent 0 set effort and operated development approvals/end-run. PR158 account feedback is integrated; actual046 manual read reports the ChatGPT account. Automatic post-sign-in feedback remains mounted-test-only. Ordinary effort selection is demonstrated on d424 in the P3 account; project wording, diagnostic density and AX limits remain. No acceptance/installed qualification. | J1, actual result; product manager, Agent 0 integration. |
+| P2 | Do useful work, create/trial/review/register a reusable workflow, return to unfinished work and later run the saved workflow with new inputs. | Functional workflow operations observed on identified development subjects; usability remains OPEN:046 draft/correct trial/History continuation and reopen recovery;475c native registration, one fresh reuse matching the independent key, explicit run end and normal Quit. Agent-operated controls establish no personal owner act; this is not installed/release qualification. See the J2 actual account. | J2, DEL-02-02; next candidate integration and remaining witnesses. |
+| P3 | Applicable candidate-bound request/approval, cancellation, interruption/recovery, close/reopen/Quit and three access-mode results, with failures repaired or explicitly returned for owner disposition. | Development controls observed on d424: offered cancel, one-time grant, live interruption, normal Quit/reopen, History and explicit same-conversation continuation; Terra/medium confirmed across three turns. The current P3 account retains the subject and limits. Key/local access, ST-4/ST-5, observer detachment, live-request Quit and applicable installed/final-candidate qualification remain open; no personal owner act or release acceptance. | Standalone qualification (DEL-09-02), DEL-01-01/02/03/04/05; native manager. |
+| P4 | Actual installed S4/supplier custody and applicable SEAL-C enrollment/continuity evidence joined to the candidate. | OPEN; static joins are complete for b3dd4145, real installed/native results are not. Enrollment is now the person's in-App native act "Protect registered workflows with your keychain" (owner decision C, 2026-11-09); it still needs the signing-stage selection and installed S4 custody to work, and the real enrollment, keychain-held approval policy and sealed cold admission remain unqualified until then. Rotation unavailable/SC-5 blocked is the accepted 4.0.0 limitation, not a pass. | Signing join, DEL-01-04/06 and DEL-09-02; runtime and packaging managers. |
+| P5 | Joined live SWBPIPE workflow with actual host/model/configuration, controlled application, outcomes and attributable person acceptance, plus applicable lifecycle/recovery evidence. | OPEN; component results do not close it. App Agent 0 coordinates with SWBPIPE Agent 0; no SWB implementation authority transfers here. | Local host qualification; examination consumer and external SWB owner. |
+| P6 | Qualified selected supplier pin and complete applicable shipped notice/source associations, with unresolved coverage explicitly resolved before release. | OPEN. Packaging is advancing justified associations from already retained exact local bodies. Acquisition-dependent texts, scheduler and supplier-source gaps remain explicit; local adoption is not full bundled coverage. Downloads still need the applicable exact owner approval. | Shipped notice/source account, DEL-01-01 and DEL-01-06; packaging with runtime qualification inputs. |
+| P7 | Package the finished source; verify resource/profile/supplier identity, sign/notarize/staple and perform the applicable installed/quarantine witness on that final subject. | COMPLETE only for retained signing/notary substeps; final product candidate remains OPEN. Development subjects66d39/84a have matching static resources and their own setup/settings observations, with ad-hoc signatures. They supply no production installation or final quarantine qualification. Final assembly follows required product fixes and supplier/notice closure. | Production input preparation, DEL-01-06; packaging manager. |
 | P8 | Present the exact final candidate, joined results, limits and continuing obligations for the owner's publication decision and separately applicable replacement decision. | OPEN; no release authorized. Preserve existing terms applicability and distribution `not_made` until actual owner act. | [Owner packet scope](../PKG-11/DEL-11-03/ScopeOfWork.md), DEL-09-12/11-01/11-03 with DEL-01-06; Agent 0 and owner. |
 
 ## How this constrains work

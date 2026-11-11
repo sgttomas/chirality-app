@@ -23,25 +23,30 @@ needs:
     or as not reported.
   gating: true
 - from: DEL-02-02
-  condition: A draft's source-qualified identity and each change of its standing are reported;
-    a registration is described by one descriptor bound to the exact reviewed content of each
-    entry; and the run-start text and the run-end line for a turn are supplied.
+  condition: A draft is named by its location and name, with the content identity of its content,
+    and each change of its standing is reported; for a registration of one draft, one library entry
+    or several entries, the exact reviewed content of each is named for the person's act to bind;
+    and the run-start text and the run-end line for a turn are supplied.
   gating: false
 - from: DEL-02-03
-  condition: A run ends only by the person's explicit run end, and a checkpoint arrival is reported
-    with the act it asks for and a reference the act control can show.
+  condition: A run ends only by the person's explicit run end, and each arrival at a declared
+    checkpoint is recorded with its bound subject, purpose and scope, with the request for the act
+    where one can be identified and the act only when the person performs it.
   gating: false
 - from: DEL-02-04
-  condition: The conversation roles are listed with the default for a new conversation, and whether
-    guidance changed since a conversation started is reported.
+  condition: The conversation roles are listed with the default for a new conversation, and an
+    open conversation whose guidance has since changed is reported as changed, naming the file.
   gating: false
 - from: DEL-04-01
   condition: Each act kind has a name and wording, a stated actor requirement and whether a decline
     exists for it, and a proposal decision is worded "accept".
   gating: true
 - from: DEL-04-02
-  condition: The checkpoint overlay and the standing of a result are defined as display components
-    with their meanings.
+  condition: For each arrival at a declared checkpoint the checkpoint overlay gives one
+    disposition, taken from the run record's checkpoint entries, with waiting never meaning that the
+    run is held; and the standing of a result is given as received and no stronger, as current or
+    historical, checks passed, limitations and lapse, with missing evidence and unobserved outcomes
+    explicit.
   gating: false
 - from: DEL-04-03
   condition: A human act and a declined act can be written as direct-capture records that bind
@@ -49,8 +54,9 @@ needs:
     be validated; and an act whose bound content changed is reported as lapsed.
   gating: true
 - from: DEL-06-02
-  condition: A decision package is a project file naming the exact act asked of the person, its
-    subject and basis, and alternatives with a consequence for each.
+  condition: A decision package is a project file that states the exact act requested of the
+    person, its subject, purpose and basis, and each alternative with its consequences, and a
+    pending package is shown as its file states them.
   gating: false
 - from: DEL-01-06
   condition: The installed App is signed with the same Developer ID team and bundle identifier
@@ -70,6 +76,9 @@ code_paths:
 - app/src-tauri/src/file_act_native.rs
 - app/src-tauri/src/file_act_root.rs
 - app/src-tauri/src/file_act_arrival.rs
+# file_act_view.rs and file_act_lapse.rs are shared with DEL-04-03. Here: the offers and captures
+# that use them. The read-only view of a file's recorded acts and the evaluation and recording
+# of lapse are DEL-04-03's.
 - app/src-tauri/src/file_act_view.rs
 - app/src-tauri/src/file_act_lapse.rs
 - app/src-tauri/src/canonical.rs
@@ -88,6 +97,9 @@ code_paths:
 - app/src-tauri/src/attachments.rs
 - app/src-tauri/src/attachment_custody.rs
 - app/src-tauri/resources/attachments
+# conversation_roles.rs and ConversationRoles.tsx are shared with DEL-02-04. Here: placement of
+# the role choice, "Continue as", Fork and the handoff summary. The role list, the default and
+# the guidance-changed reading are DEL-02-04's.
 - app/src-tauri/src/conversation_roles.rs
 - app/src-tauri/src/conversation_handoff_send.rs
 - app/src-tauri/src/hosting_handoff_send.rs
@@ -105,8 +117,10 @@ code_paths:
 - app/src/ConversationRoles.tsx
 - app/src/FileActPanel.tsx
 - app/src/exactText.ts
-# Shared with DEL-02-02 and DEL-02-03. Here: the draft view, the placement of texts in turns
-# the person sends, and the placement of run offers and the checkpoint and standing display.
+# Shared with DEL-02-02; RunPanel.tsx also with DEL-02-03 and DEL-04-02. Here: the draft view,
+# the placement of texts in turns the person sends, and the placement of run offers and the
+# checkpoint and standing display. What the drafts, trial texts and run offers show is
+# DEL-02-02's, run state and checkpoints DEL-02-03's, the overlay, facets and act labels DEL-04-02's.
 - app/src/WorkflowDrafts.tsx
 - app/src/TrialComposer.tsx
 - app/src/WorkflowContext.tsx
@@ -114,6 +128,8 @@ code_paths:
 - app/src/RunPanel.tsx
 # NativeHistory.tsx is shared with DEL-01-03. Here: finding a conversation and continuing it.
 - app/src/NativeHistory.tsx
+# App.tsx and DailyWorkspace.tsx are shared. Here: the conversation surface and the placing of
+# the surfaces listed in this file. Each other deliverable that lists them mounts its own panels.
 - app/src/App.tsx
 - app/src/DailyWorkspace.tsx
 - app/src/workspace.css

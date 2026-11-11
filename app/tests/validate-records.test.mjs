@@ -1,4 +1,4 @@
-// Schema check of what the skeleton writes, against the Design schemas as they are.
+// Schema check of what the skeleton writes, against the schemas the App embeds.
 //
 // Runs the Rust tests that produce the outputs, then validates with Ajv (JSON
 // Schema 2020-12, from the offline npm cache):
@@ -8,7 +8,7 @@
 // - the package file -> DEL-02-03 $defs/decisionPackageFile;
 // - the hosting lifecycle events and client-request records (when the Codex test ran)
 //   -> DEL-01-01 hosting.lifecycle-event / hosting.client-request-record schemas.
-// The Design files are read unchanged and registered by their declared IDs.
+// The schema files are read unchanged and registered by their declared IDs.
 
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
@@ -21,13 +21,8 @@ import Ajv2020 from "ajv/dist/2020.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const app = join(here, "..");
-const exec = join(app, "contract_inputs");
-const design = (pkg, del) => join(exec, pkg.split("_")[0], del.split("_")[0], "Work");
-const D0101 = design("PKG-01_Native App and third-party harness integration", "DEL-01-01_Stock Codex hosting and supplier contract");
-const D0104 = design("PKG-01_Native App and third-party harness integration", "DEL-01-04_Native requests, outcomes and attachments");
-const D0203 = design("PKG-02_Workflow and role portability", "DEL-02-03_Workflow execution compatibility and round-trip support");
-const D0402 = design("PKG-04_Human acts, autonomy and run evidence", "DEL-04-02_Visible autonomy and result standing");
-const D0403 = design("PKG-04_Human acts, autonomy and run evidence", "DEL-04-03_Content-bound decisions and compact run records");
+const schemas = join(app, "src-tauri", "schemas");
+const hostingResources = join(app, "src-tauri", "resources", "hosting");
 // One run owns these evidence exports until all schema assertions finish.
 const out = mkdtempSync(join(tmpdir(), "chirality-skeleton-output-"));
 const rustEnv = { ...process.env, CHIRALITY_TEST_OUTPUT_DIRECTORY: out };
@@ -37,15 +32,15 @@ const readJson = (p) => JSON.parse(readFileSync(p, "utf8"));
 
 function validators() {
   const ajv = new Ajv2020({ strict: false, allErrors: true });
-  const checkpoint = readJson(join(D0203, "checkpoint-record-entries.schema.json"));
-  const settingsIn = readJson(join(D0402, "AS_SETTINGS_IN.schema.json"));
+  const checkpoint = readJson(join(schemas, "checkpoint-record-entries.schema.json"));
+  const settingsIn = readJson(join(schemas, "AS_SETTINGS_IN.schema.json"));
   // CC-R RS §13 declared-ID schema resolution: register the authoritative declared schema IDs without rewriting.
-  const rs = readJson(join(D0403, "RS_RECORD.schema.json"));
-  const offer = readJson(join(D0104, "aac.offer.schema.json"));
-  const capture = readJson(join(D0104, "aac.capture-evidence.schema.json"));
-  const lifecycle = readJson(join(D0101, "hosting.lifecycle-event.v0.10.schema.json"));
-  ajv.addSchema(readJson(join(D0101, "hosting.lifecycle-event.schema.json")));
-  const clientRequest = readJson(join(D0101, "hosting.client-request-record.schema.json"));
+  const rs = readJson(join(schemas, "RS_RECORD.schema.json"));
+  const offer = readJson(join(schemas, "aac.offer.schema.json"));
+  const capture = readJson(join(schemas, "aac.capture-evidence.schema.json"));
+  const lifecycle = readJson(join(schemas, "hosting.lifecycle-event.v0.10.schema.json"));
+  ajv.addSchema(readJson(join(schemas, "hosting.lifecycle-event.schema.json")));
+  const clientRequest = readJson(join(hostingResources, "hosting.client-request-record.schema.json"));
   ajv.addSchema(checkpoint);
   ajv.addSchema(settingsIn);
   ajv.addSchema(rs);

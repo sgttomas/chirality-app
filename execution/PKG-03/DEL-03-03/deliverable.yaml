@@ -2,11 +2,10 @@ id: DEL-03-03
 name: Local external-agent receiving adapter
 needs:
 - from: DEL-03-01
-  condition: The catalog states each operation's identity, version, availability reasons and exposure
-    on the external surface, and a read carries its content, standing and basis, with the non-success
-    results (unavailable, not permitted, not exposed, channel not enabled, error) kept distinct;
-    and the shared fixture catalogue and simulated host are reachable over both native paths, an
-    MCP tool path and a command-line path.
+  condition: The catalog states each operation's identity, version, availability reasons and
+    exposure on the external surface, and a read carries its content, standing and basis, with the
+    non-success results (unavailable, not permitted, not exposed, channel not enabled, error) kept
+    distinct.
   gating: false
 - from: DEL-03-02
   condition: A change request binds its targets and relied-on basis, and the state a host reports
@@ -30,10 +29,11 @@ needs:
     with its last observed state, apart from one that completed.
   gating: true
 - from: DEL-02-03
-  condition: Checkpoint recording names the events (a proposal queued, a request recorded, an act
-    observed or declined, an item leaving, an observation lost or recovered) that an observation
-    on the external channel is an input to; a checkpoint's act is recorded only when performed,
-    and a hold exists only in the governance phase.
+  condition: The checkpoint record has entries for an arrival, including one a host reports, a
+    request for the act where it can be identified, an act counted toward an arrival, a decline, a
+    lapse and a lost or recovered observation, to which an observation on the external channel is an
+    input; a checkpoint's act is recorded only when the person performs it; and in the current phase
+    nothing holds a run.
   gating: false
 - from: DEL-04-02
   condition: The grant in force for a class of operation is shown as an established or an unestablished
@@ -58,4 +58,6 @@ code_paths:
 - app/src-tauri/resources/catalog_adapter/external_dispatch_record.*
 - app/src-tauri/resources/catalog_adapter/checkpoint_observation.*
 checks:
+# catalog_adapter.rs is one check file shared with DEL-03-01, DEL-03-02, DEL-05-01, DEL-05-02.
+# Here: the cases on the disabled and enabled channel, dispatch records and host claims.
 - app/src-tauri/tests/catalog_adapter.rs

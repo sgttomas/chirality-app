@@ -2,8 +2,7 @@
 
 App selects released `library-v3.0.0` at
 `5170575f3f4c1fc51386fa5cd38c7ef9ac048b20` for contributor instructions.
-The [owning adoption account](../../execution/PKG-10/DEL-10-01/Work/LIBRARY_V3_RECEIVING.md)
-states the adopted practice, project-entry comparison, checks and limits.
+DEL-10-01 owns the adoption.
 This edition supersedes c35/v2.1 for new contributor work; retained older
 results and fixtures keep their source identities.
 

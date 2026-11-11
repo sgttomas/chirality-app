@@ -9,9 +9,8 @@ readers retain decision and file-act evidence limits. App v4 development resumed
 by owner direction on 2026-10-28; packaging, supplier qualification and the owner's
 stage gate remain separate work.
 
-The [0.167 upgrade account](../execution/PKG-01/DEL-01-01/Work/CODEX_0.167_UPGRADE.md)
-identifies the exact canonical 42-file package, generated-schema subject and
-unqualified development admission. The installed npm 41-file tree shares its
+The 0.167 upgrade uses the exact canonical 42-file package and its
+generated-schema subject under an unqualified development admission. The installed npm 41-file tree shares its
 main but is not that acting distribution. The historical 0.160 supplier checks
 and examples below retain their own pin/input requirements; they are not 0.167
 runtime qualification. Production still refuses the old compiled reference.
@@ -42,7 +41,6 @@ with `npm ci` when downloads are authorized, or use the prepared-cache route in
 npm ci
 npm run build
 (cd src-tauri && cargo build --locked)
-(cd src-tauri && python3 schemas/sync.py)
 ```
 
 Before running the historical supplier-dependent checks below, prepare their complete stock Codex
@@ -81,9 +79,8 @@ implemented behavior and qualification limits.
    read current bytes. The Rust host prepares additive native child roles
    from that frozen guidance, withholding colliding or unsupported names and
    rechecking configuration/source currentness before dispatch. The opt-in
-   [supplier child-carrier check](supplier_checks/child_roles.py) and its
-   [receiving account](../execution/PKG-02/DEL-02-04/Work/CHILD_ROLE_CARRIER_0.160.0.md)
-   distinguish production preparation and scripted stock-supplier carriage
+   [supplier child-carrier check](supplier_checks/child_roles.py)
+   distinguishes production preparation and scripted stock-supplier carriage
    from the App's private-receipt/live-association checks and qualification.
 3. The recorder validates package files, records source-faithful requests and
    separately states when the requester identity is unestablished.
@@ -886,7 +883,7 @@ implemented behavior and qualification limits.
 | `role_supply.rs`, `runtime_session.rs`, `resources/instructions/` | Reviewed v4 defaults, fixed composition bytes, seeding and generation-bound receiving/startup; supplier/model adoption remains a separate warrant |
 | `child_roles.rs`, `access_provider.rs`, `hosting_child_roles.rs`, `native_child_guidance.rs` | Conservative native-name/currentness observation, immutable full child TOML publication, private guarded additive starts and original live child association; unknown origins and unmatched children stay qualified |
 | `catalog.rs`, `proposal.rs`, `external_adapter.rs`, `receiving.rs`, `external_observation.rs` | Reviewed receiving contracts and exact person-selected observation custody; no external host dispatch or origin verification implied |
-| `src-tauri/src/schema_validation.rs`, `schemas/` | W-1 plus complete package/offer/capture checks; declared-ID registry with external retrieval disabled; embedded resources checked by `schemas/sync.py` |
+| `src-tauri/src/schema_validation.rs`, `schemas/` | W-1 plus complete package/offer/capture checks; declared-ID registry with external retrieval disabled |
 | `src-tauri/src/records.rs` | Validated append, UUID identities, sequence/read completeness, serialization and ordered capture late-write accounting |
 | `src-tauri/src/records_index.rs`, `records_query.rs`, `records_index_tests.rs` | RS §13.8 derived SQLite query cache: disk-backed identities and positions, streamed rebuilding, authoritative line revalidation, and source-scan fallback; cache metadata is disposable |
 | `src-tauri/src/record_lines.rs`, `record_lines_tests.rs` | RS §13.8 lines: one entry or one group per line (read whole or not at all), each line's chain link to the one before, unchained (legacy) and broken-chain limits, and each log's chain head |
@@ -937,13 +934,11 @@ implemented behavior and qualification limits.
 
 ## Offline build and checks
 
-Packaged product instructions are generated from the App-authored versioned
-sources in `execution/PKG-02/DEL-02-04/Work/instructions-v1/`. Edit those Work
-documents, then run `python3 -m tools.instruction_resources` from the repository
-root. `python3 -m tools.instruction_resources --check` verifies the committed
-resource copy and separate derivation manifest; CI enforces it without a sibling
-Library. See that deliverable's `Work/INSTRUCTION_RESOURCE_AUTHORING.md` for
-the retained four-role binding and historical provenance limits.
+Packaged product instructions are the App-authored documents in
+`src-tauri/resources/instructions/`; that directory is their one copy.
+`python3 -m unittest tools.test_instruction_resources`, run from the repository
+root, checks the eight-file payload and the retained four-role binding; CI
+enforces it without a sibling Library.
 
 Use Rust 1.97.1, Node 24, Python 3 and prepared Cargo/npm caches. Set
 `CARGO_HOME` to the dependency cache you prepared if it is isolated. The offline
@@ -955,7 +950,6 @@ authorized.
 npm install --offline --no-audit --no-fund --ignore-scripts
 npm run build
 (cd src-tauri && cargo build --offline --locked)
-(cd src-tauri && python3 schemas/sync.py)
 ```
 
 From `app/`, set the supplier path to run the real offline handshake:
@@ -1162,9 +1156,7 @@ files are cleaned after consumers finish.
 
 ## Recorded ST-5 and NV-04 seam replay
 
-The offline recorded peer and actual Host/recovery tests are described in
-[Recorded seam replay](../execution/PKG-01/DEL-01-01/Work/RECORDED_SEAM_REPLAY.md).
-They exercise preserved redacted supplier traffic against current App source,
+The offline recorded peer and actual Host/recovery tests exercise preserved redacted supplier traffic against current App source,
 including unknown acknowledgment after process loss and a delegated child
 outliving its parent. This is development verification; the existing C1 EXP
 records remain capture-only and no candidate qualification is claimed.
@@ -1570,7 +1562,7 @@ in force and showed its three buttons with Keep Codex running as the default.
 Restart Codex was pressed, and Cancel and Keep Codex running were not. The
 Stop Codex question and a stop with live work remain unwitnessed.
 
-A [first native App witness](../execution/PKG-01/DEL-01-02/Work/NATIVE_WITNESS_2026-10-10.md) was taken on 2026-10-10. It used an improvised
+A first native App witness was taken on 2026-10-10. It used an improvised
 debug bundle of `3a29171a44`, stock Codex 0.160.0 (unverified-development), and
 `gpt-6-luna` on a ChatGPT account signed in by the owner. It observed:
 - ChatGPT sign-in;
@@ -1591,10 +1583,10 @@ command can still complete (see the note), and the bundle gap PKG §4.1 P-2/P-3 
 fixed: the default configuration declares the instruction and workflow
 resources).
 
-Open contract conditions live beside their governing clauses in each
-deliverable's `Work/`. Implementation discoveries are added there; the PR
-describes the repair and its verification. Retain a witness or capture in
-`Work/` only while a current requirement, test or ruling uses it.
+Open contract conditions live in each deliverable's scope of work. The PR
+describes a repair and its verification. Retain a witness or capture only
+while a current requirement, test or ruling uses it, in the code location of
+what reads it.
 
 ## Recorded connector route accounts
 

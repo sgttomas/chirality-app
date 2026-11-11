@@ -12,7 +12,7 @@ needs:
   gating: false
 - from: DEL-01-05
   condition: Every conversation belongs to exactly one App-owned Codex home, and in the account
-    home the person's own Codex settings, which hold their agent definitions, are in effect.
+    home the person's own Codex settings, providers and MCP servers apply.
   gating: false
 - from: DEL-01-04
   condition: The conversation roles are offered at a conversation's start and in "Continue as",
@@ -62,16 +62,11 @@ code_paths:
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
 - app/src-tauri/resources/workflow_role/role-*.schema.json
-# The guidance documents and role set. The first two entries are the maintained source and
-# its derivation manifest; resources/instructions is the packaged copy the generator writes.
-- execution/PKG-02/DEL-02-04/Work/instructions-v1/**
-- execution/PKG-02/DEL-02-04/Work/INSTRUCTION_RESOURCE_DERIVATION.json
+# The guidance documents and role set: resources/instructions is their one copy, packaged
+# as it stands.
 - app/src-tauri/resources/instructions/**
-- tools/instruction_resources.py
 checks:
-- tools/instruction_resources.py
 - tools/test_instruction_resources.py
-- tools/test_role_prototype_output.py
 - app/src-tauri/src/p3_role_set_tests.rs
 - app/src-tauri/src/p3_role_entry_tests.rs
 - app/src-tauri/src/local_role_metadata_tests.rs

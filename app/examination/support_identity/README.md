@@ -2,34 +2,13 @@
 
 ## Canonical additive method — EXP-SUPPORT-BINDING-v1
 
-`canonical.py` implements CC-EXP-SUPPORT-IDENTITY-01's additive Design method.
-Its effective adoption boundary is the independently reviewed merge of that
-named contribution, separately from the unchanged EXP-v0.2 source publication
-at PR #1077. Before that merge it is the implementation candidate. The reader
-pins the new canonical Design declaration, binding schema, EXP method and PKG
-receiving supplement in `canonical-pins.v1.json`. The writer cannot replace
-those pins or select publication through an input field.
-
-Frozen documentary sources retain every original full-byte hash. If today's
-checkout has moved, the reader obtains the same bytes from the local `frozen/` snapshot. Its
-manifest identifies the original repository, commit and paths; existing reader
-hashes still select the exact content. Missing files, symbolic links or changed
-bytes refuse. No Git lookup or network fetch is needed. The original
-`DOCUMENTARY_SOURCE_COMMIT` remains provenance, not a destination-repository SHA.
-Exact private source snapshots need no Git access. Current operational inputs
-still refuse drift; original declaration objects retain their full selected
-hashes and fixed version independently of today's checkout. These reads identify the selected frozen support,
-not adoption of today's governing Design or evidence about today's candidate.
-
-The owner-approved `selected-documentary-source-condition/v2` additionally
-checks current-producer emission and receiving against the fixed documentary
-manifest's case rows and governing clauses. Implementation-result cells and
-unrelated notes are excluded. Receiving reports identify the method, manifest
-digest and checked extent at that read. Existing sidecars keep their original
-full tuple; they do not attest that an earlier producer used this condition.
-Historical correspondence remains checkable against the original full sources
-when today's clauses differ. Original declared validators/data are captured by
-their original full hashes, separately from current operational helper pins.
+`canonical.py` binds and checks EXP-v0.2 support identity with the
+`EXP-SUPPORT-BINDING-v1` method. The reader pins its declaration
+(`publication-declaration.v1.json`), binding schema
+(`binding.canonical.v1.schema.json`) and helper sources in
+`canonical-pins.terms-v1.json`. The writer cannot replace those pins or select
+publication through an input field. A changed or missing pinned source refuses;
+no Git lookup or network fetch is used.
 
 ```sh
 python3 -B app/examination/support_identity/canonical.py bind review review.json \
@@ -48,7 +27,7 @@ The canonical selection uses the same six artifact pairs and join-selection
 objects described below, replacing `format` with
 `exp-support-selection.canonical.v1`, removing `standing`, and adding
 `binding_method: EXP-SUPPORT-BINDING-v1` and `binding_purpose` with the chosen
-purpose. `declaration_sha256` must name the fixed canonical Design declaration,
+purpose. `declaration_sha256` must name the fixed canonical declaration,
 not the older proposed declaration. All six sidecars must use the canonical
 schema and the selection's purpose. The exact selected record bytes remain
 EXP-v0.2/PKG-v0.2, with no schema migration or outcome rewrite.
@@ -57,9 +36,12 @@ The reader validates the closed canonical bindings, adapts only their
 representation into internal unpublished sidecars, and calls the unchanged v1
 checker and legacy package/review/change validators. It preserves original
 canonical references in its report and explicitly identifies this adapter.
-`canonical_consistency_passed` reports the result. The fixed publication
-reference is visible, while publication authority, method adoption and actual
-producer use are never claimed to be authenticated at runtime.
+`canonical_consistency_passed` reports the result. The declaration is a
+successor of the published declaration: it names that publication and its
+digest as `predecessor` and claims no publication of its own bytes. The report
+shows this as `predecessor_publication`, while publication authority, method
+adoption and actual producer use are never claimed to be authenticated at
+runtime.
 
 Exit meanings remain 0 consistent, 1 joined rule failure, 2 input/source/error.
 Package prerequisite gaps remain visible even on a consistency pass. Native
@@ -72,22 +54,18 @@ python3 -B -m unittest discover -s app/tests -p 'group_b_support_identity_canoni
 
 ## Preserved proposed v1 checker
 
-The following documents the original proposed checker. Its declaration, schema
-and declared validator/data snapshot retain their original exact identities;
-the current wrapper and operational helpers are separately pinned. This route
-remains unpublished and does not silently become the canonical method.
+The following documents the original proposed checker. This route remains
+unpublished and does not silently become the canonical method.
 
 This offline tool checks a frozen technical selection of EXP result, review,
 change-impact and PKG records against complete EXP §4.4 identity: version,
 three schema IDs and prototype SHA-256. It preserves existing record bytes and
-schemas. EXP support-identity-v1/METHOD.md canonical publication and consumer adoption remain unresolved.
-A passing report establishes supplied file consistency only.
+schemas. A passing report establishes supplied file consistency only.
 
-`declaration.v1.json` freezes exact accepted source, rule and existing checker
-bytes at the recorded repository basis. The checker pins its exact digest and
-that of `binding.v1.schema.json`; neither is a caller-selectable argument.
-It independently compares the declared schema IDs/version and prototype hash
-with the pinned sources. Any source drift requires a reviewed successor;
+`declaration.v1.json` names the schemas and existing checker files by digest.
+The checker pins its exact digest and that of `binding.v1.schema.json`; neither
+is a caller-selectable argument. It independently compares the declared schema
+IDs/version with the pinned sources. Any source drift requires a reviewed successor;
 changing a record or passing a new source manifest cannot republish support.
 The declaration's `frozen_candidate_not_published` standing is mandatory.
 EXP §4.4 publication remains the deliverable's freeze/merge, not a writer act.
@@ -157,8 +135,7 @@ observations, repair, signing, a native run or a human act.
 This is a local offline file-consistency tool. Link checks are best effort,
 not hostile concurrent filesystem isolation. Captured byte hashes do not
 establish authenticated custody or immutability of the external filesystem.
-The tool executes maintained Python checkers, never canonical prototypes or a
-supplier binary. Temporary snapshots are removed after execution.
+The tool executes maintained Python checkers, never a supplier binary. Temporary snapshots are removed after execution.
 
 ## Maintained verification
 

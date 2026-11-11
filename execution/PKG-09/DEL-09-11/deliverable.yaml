@@ -27,6 +27,4 @@ needs:
   condition: A named person or agent who took no part in the source journey reads the input set a week
     after it and returns an account.
 code_paths: []
-checks:
-- app/contract_inputs/PKG-09/DEL-09-11/Work/prototype/run_standing_check.py
-- app/contract_inputs/PKG-09/DEL-09-11/Work/prototype/rrm_compare.py
+checks: []

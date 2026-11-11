@@ -2,9 +2,7 @@
 
 This record identifies the shared Library edition that App development agents
 use from 2026-11-07, and the partial source fixture retained for App's own
-compatibility harness. The receiving account, limits and reserved migration
-choices are in
-[DEL-10-01 `LIBRARY_V2_1_RECEIVING.md`](../../execution/PKG-10/DEL-10-01/Work/LIBRARY_V2_1_RECEIVING.md).
+compatibility harness. DEL-10-01 owns the receiving of this edition.
 
 ## Selected source
 

@@ -26,9 +26,9 @@ needs:
     hold a governance-phase workflow needs is defined for a loop to realise.
   gating: false
 - from: DEL-04-01
-  condition: Each act kind has one name and one performer, the acts reserved to the person are named,
-    every catalog operation has one class value, and the route's treatment for a class and grant
-    is defined, so that loop events and cases can keep the acts apart.
+  condition: Each act kind has one name and a stated performer, the acts reserved to the person
+    are named, every catalog operation has one class value, and the route's treatment for a class
+    and grant is defined, so that loop events and cases can keep the acts apart.
   gating: true
 - from: DEL-04-02
   condition: Each settings version has its own identity and gives, for each operation class, the grant
@@ -69,19 +69,13 @@ code_paths:
 # model choice and destination requests. Panel return inputs and the panel-to-host-table
 # comparison are DEL-05-02's. The schema registry in catalog.rs is DEL-03-01's.
 - app/src-tauri/src/receiving.rs
-# The contract document: OUT-001, the scenario and case definitions of OUT-002 and OUT-003,
-# and the OUT-004 account.
-- app/contract_inputs/PKG-05/DEL-05-01/Work/LOOP_RECEIVING_CONTRACT.md
+# The schemas of a received tool call and of a destination request.
 - app/src-tauri/resources/catalog_adapter/LOOP_TOOL_CALL.*
 - app/src-tauri/resources/catalog_adapter/LOOP_DESTINATION_REQUEST.*
-- app/contract_inputs/PKG-05/DEL-05-01/Work/LOOP_TOOL_CALL.*
-- app/contract_inputs/PKG-05/DEL-05-01/Work/LOOP_DESTINATION_REQUEST.*
-- app/contract_inputs/PKG-05/DEL-05-01/Work/prototype/assemble_tool_calls.py
-- app/contract_inputs/PKG-05/DEL-05-01/Work/prototype/destination_flow.py
-- app/contract_inputs/PKG-05/DEL-05-01/Work/prototype/schema_subset.py
-- app/contract_inputs/PKG-05/DEL-05-01/Work/prototype/fixtures/stream_fixtures.json
 checks:
-- app/tests/failed_turn_permissions_test.py
+# Here: the loop's closure of a destination request when its turn fails, which this deliverable
+# defines.
+# catalog_adapter.rs is one check file shared with DEL-03-01, DEL-03-02, DEL-03-03, DEL-05-02.
+# Here: the cases on loop receiving of truncated, duplicate and sibling tool calls and of a
+# destination request closed by its turn's failure.
 - app/src-tauri/tests/catalog_adapter.rs
-- app/contract_inputs/PKG-05/DEL-05-01/Work/prototype/assemble_tool_calls.py
-- app/contract_inputs/PKG-05/DEL-05-01/Work/prototype/destination_flow.py

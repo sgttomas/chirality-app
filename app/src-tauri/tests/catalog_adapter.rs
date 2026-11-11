@@ -67,18 +67,6 @@ fn schema_checks_precede_domain_and_basis_lineage_is_incomparable() {
     assert!(!read.citable);
 }
 
-#[test]
-fn maintained_resources_match_identified_source_bytes() {
-    use sha2::{Digest, Sha256};
-    let manifest = value("manifest.json");
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(2).unwrap();
-    for item in manifest.as_array().unwrap() {
-        let bytes = fixture(item["file"].as_str().unwrap());
-        let source = std::fs::read(root.join(work_locality(item["source"].as_str().unwrap().strip_prefix("projects/chirality-app-v4/").expect("source must name this App project")))).unwrap();
-        assert_eq!(bytes, source, "source drift: {}", item["source"]);
-        assert_eq!(format!("{:x}", Sha256::digest(&bytes)), item["sha256"].as_str().unwrap());
-    }
-}
 #[path = "../src/proposal.rs"]
 mod proposal;
 #[path = "../src/external_adapter.rs"]
@@ -349,19 +337,6 @@ fn invalid_host_claim_retained_raw_then_unknown_no_promoted_act() {
  assert!(matches!(h[2],proposal::SubmissionObservation::OutcomeUnknown { .. }));
 }
 
-/// A deliverable's `Design/` before 2026-10-30 means its `Work/` (AGENTS.md).
-fn work_locality(path: &str) -> String {
-    let parts: Vec<&str> = path.splitn(4, '/').collect();
-    match parts.as_slice() {
-        ["execution", package, deliverable, rest] if package.starts_with("PKG-") && deliverable.starts_with("DEL-") => {
-            match rest.strip_prefix("Design/") {
-                Some(tail) => format!("app/contract_inputs/{package}/{deliverable}/Work/{tail}"),
-                None => format!("app/contract_inputs/{package}/{deliverable}/{rest}"),
-            }
-        }
-        _ => path.to_string(),
-    }
-}
 
 #[test]
 fn failed_turn_destination_receiving_is_shape_only_and_refuses_grant_or_missing_source() {

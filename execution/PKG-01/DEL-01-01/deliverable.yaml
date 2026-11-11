@@ -48,6 +48,8 @@ code_paths:
 - app/src-tauri/src/distribution_semantics.rs
 - app/src-tauri/src/distribution_store.rs
 - app/src-tauri/src/distribution_store_s1.rs
+# model_turn_recorder.rs is shared with DEL-04-03. Here: handing over the model and destination
+# the supplier reported. Writing them as the run record's model entries is DEL-04-03's.
 - app/src-tauri/src/model_turn_recorder.rs
 # desktop_startup.rs is shared with DEL-01-05, which owns home preparation and the saved
 # request. Here: the supplier selection and standing reported at start.
@@ -68,6 +70,5 @@ checks:
 - app/src-tauri/src/hosting_startup_refusal_tests.rs
 - app/src-tauri/src/model_turn_recorder_tests.rs
 - app/tests/validate-records.test.mjs
-- app/contract_inputs/PKG-01/DEL-01-01/Work/distribution-s1/test_model.py
-- app/contract_inputs/PKG-01/DEL-01-01/Work/distribution-s1/references/codex-0.160.0-macos-arm64/test_codex_0160_reference.py
-- app/contract_inputs/PKG-01/DEL-01-01/Work/prototype/distribution_identity/test_inventory.py
+- app/packaging/static_distribution/test_s1_value_model.py
+- app/packaging/static_distribution/test_inventory.py

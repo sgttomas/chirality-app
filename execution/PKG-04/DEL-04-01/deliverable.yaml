@@ -19,5 +19,6 @@ code_paths:
 - app/src-tauri/resources/policy_standing/ACT_POLICY_CLASS_RECORD.valid.example.json
 - app/src-tauri/resources/policy_standing/ACT_POLICY_CLASS_RECORD.invalid.examples.json
 checks:
+# policy_standing.rs is one check file shared with DEL-04-02 and DEL-04-03. Here: the cases on
+# act kinds, scopes, reserved operations and the resolver.
 - app/src-tauri/tests/policy_standing.rs
-- app/contract_inputs/PKG-04/DEL-04-01/Work/prototype/validate_policy.py

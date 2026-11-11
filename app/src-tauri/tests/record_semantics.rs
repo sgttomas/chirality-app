@@ -4,9 +4,9 @@ use chirality_app_v4_lib::{records,schema_validation,decision_view::record_relat
 use serde_json::{json,Value};
 use std::path::{Path,PathBuf};
 fn examples()->Vec<Value>{
- let root=Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(2).unwrap();
- let execution=root.join("app/contract_inputs/PKG-04/DEL-04-03/Work/RS_RECORD.valid.act-log.example.jsonl");
- std::fs::read_to_string(execution).unwrap().lines().map(|l|serde_json::from_str(l).unwrap()).collect()
+ // The first five maintained valid records are the act-log example run.
+ let all:Vec<Value>=serde_json::from_str(include_str!("../schemas/fixtures/valid-records.json")).unwrap();
+ all.into_iter().take(5).collect()
 }
 fn single()->Value{examples()[0].clone()}
 fn multi()->Value{examples()[3].clone()}

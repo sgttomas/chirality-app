@@ -1,9 +1,8 @@
 # Library 3.1.0 contributor selection
 
 App pins `library-v3.1.0` at `88ab3f4f5f8ec7f7e030279164dbd1a4aa38b514`.
-Read the selected shared checkout only after verifying that revision. The
-[owning findings](../../execution/PKG-10/DEL-10-01/Work/LIBRARY_V3_1_RECEIVING.md)
-explain the local adoption and boundaries.
+Read the selected shared checkout only after verifying that revision.
+DEL-10-01 owns the local adoption.
 
 The [release notes](https://github.com/sgttomas/chirality-library/releases/tag/library-v3.1.0)
 identify a 9,984,000-byte source archive with reported SHA-256

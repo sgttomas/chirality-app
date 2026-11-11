@@ -5,46 +5,11 @@ import copy
 import hashlib
 import json
 from pathlib import Path
-import os
-import re
 import sys
-
-
-def deliverable_path(root, relative):
-    """Resolve retained logical identities to current App inputs; never follow Design links."""
-    match = re.match(r'(execution/PKG-\d+/DEL-\d+-\d+/)Design/', relative)
-    if match is not None:
-        if os.path.lexists(os.path.join(root, match.group(1) + 'Design')):
-            return relative
-        relative = match.group(1) + 'Work/' + relative[match.end():]
-    if relative.startswith('execution/'):
-        # Historical/custom evidence trees have no current App-input namespace.
-        # A maintained root never falls back to its authoring execution tree.
-        if not os.path.lexists(os.path.join(root, 'app/contract_inputs')) and os.path.lexists(os.path.join(root, relative)):
-            return relative
-        return 'app/contract_inputs/' + relative[len('execution/'):]
-    return relative
 
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
-# Generated digests; re-derive with `python3 app/examination/repin.py` (examination/README.md).
-PIN_LOCK_PATH = ROOT / 'app/examination/pins.lock.json'
-
-
-def locked_digest(section, path):
-    """The pin lock's digest for path, or None when the lock is unreadable or lacks it.
-
-    None never equals a digest, so the reader's own check refuses through its usual report.
-    """
-    try:
-        value = json.loads(PIN_LOCK_PATH.read_bytes())[section][path]
-    except (OSError, ValueError, KeyError, TypeError):
-        return None
-    return value if isinstance(value, str) else None
-
-
-DOCUMENTARY_SHA256 = locked_digest('current', 'app/examination/documentary_condition.py')
 
 
 def read_json(path):
@@ -66,55 +31,26 @@ def digest(path):
     return 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def source_input(source, raw):
-    """Exact selected documentary meaning, separate from artifact identity."""
-    if 'selectors' not in source:
-        return raw
-    import importlib.util
-    path = HERE.parent / 'documentary_condition.py'
-    data = path.read_bytes()
-    if hashlib.sha256(data).hexdigest() != DOCUMENTARY_SHA256:
-        raise ValueError('source changed: documentary projection helper')
-    spec = importlib.util.spec_from_file_location('_b7_documentary_projection', path)
-    module = importlib.util.module_from_spec(spec)
-    exec(compile(data, str(path), 'exec'), module.__dict__)
-    try:
-        return module.project(raw, source['selectors'])
-    except ValueError as error:
-        raise ValueError('source changed: ' + str(error)) from error
-
-
 def verified_sources(root=ROOT, captured=None):
     lock = read_json(HERE / 'sources.terms-v1.json')
     for source in lock['sources']:
-        path = root / deliverable_path(root, source['path'])
+        path = root / source['path']
         if not path.is_file():
             raise ValueError(f"source changed or missing; review preparation basis: {source['path']}")
         raw = path.read_bytes()
-        if ('sha256:' + hashlib.sha256(source_input(source, raw)).hexdigest()) != source['sha256']:
+        if ('sha256:' + hashlib.sha256(raw).hexdigest()) != source['sha256']:
             raise ValueError(f"source changed or missing; review preparation basis: {source['path']}")
         if captured is not None:
             captured[source['role']] = raw
     return lock
 
 
-def section(text, heading):
-    start = text.index(heading)
-    end = text.find('\n## ', start + len(heading))
-    return text[start:end if end != -1 else len(text)].strip()
-
-
 def prepare(root=ROOT):
     captured = {}
     lock = verified_sources(root, captured)
     step_map = parse_json(captured['step_map'])
-    sq = captured['sq_design'].decode('utf-8')
-    operations = {}
-    for line in sq.splitlines():
-        match = re.match(r'^\| ((?:J-|S11-|M12-)\d+R?) \|', line)
-        if match:
-            cells = [cell.strip() for cell in line.strip('|').split('|')]
-            operations[match[1]] = cells[1:-1]
+    # Each step's action and observation cells, keyed by step.
+    operations = parse_json(captured['step_operations'])
     scenarios = []
     for name, steps in step_map['scenarios'].items():
         prepared = []
@@ -124,28 +60,18 @@ def prepare(root=ROOT):
                         required_native_route='N-1',
                         native_evidence_kinds=['native_development', 'native_packaged'],
                         source_action_observation=operations[step['step']])
-            for case in step['supplier_cases']:
-                key = case['deliverable'] + '/' + case['file']
-                if not re.search(r'^\| ' + re.escape(case['case_id']) + r'\b', captured[key].decode('utf-8'), re.M):
-                    raise ValueError(f"missing supplier case: {key} {case['case_id']}")
             prepared.append(step)
         scenarios.append({'scenario': name, 'run_label': 'RUN-B' if name == 'V4-EXM-12' else 'RUN-A',
                           'candidate_slot': 'one_same_candidate', 'steps': prepared})
     return {
         'artifact_kind': 'standalone_case_preparation',
-        'preparation_version': 2,
-        'documentary_selection': copy.deepcopy(lock['documentary_selection']),
+        'preparation_version': 3,
         'standing': 'test_definition_only',
-        'source_basis_revision': lock['source_basis_revision'],
         'sources': lock['sources'],
         'candidate_slot': {'id': 'one_same_candidate', 'revision': None,
                            'build_identity': None, 'codex_pin': None, 'configuration': None},
         'scenarios': scenarios,
         'stimuli': step_map['stimuli'],
-        'requirements': {heading: section(sq, heading) for heading in (
-            '## 2. Interfaces', '## 3. Case definitions', '## 4. Route, configuration and evidence',
-            '## 6. States and sequence', '## 7. Failure behaviour',
-            '## 9. What the person must do', '## 12. UNRESOLVED')},
         'access_mode_requirements': {
             'kinds': ['chatgpt_account', 'api_key', 'local_provider'],
             'homes': {'chatgpt_account': 'H-acct', 'api_key': 'H-key'},

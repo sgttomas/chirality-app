@@ -23,8 +23,7 @@ needs:
     and its intended use.
   when: Before fixtures are prepared on admitted test sources and before any result is relied on as research
     context. Who builds the provider and who admits sources are unallocated.
-code_paths:
-- app/contract_inputs/PKG-08/DEL-08-01/Work/domains.receiving-record.schema.json
-- app/contract_inputs/PKG-08/DEL-08-02/Work/prototype/fixtures/EU-D1/DR-DM-1.json
-- app/contract_inputs/PKG-08/DEL-08-02/Work/prototype/fixtures/EU-D1/DR-DM-2.json
+code_paths: []
+# The two receiving-record fixtures sit in DEL-08-02's folder and are this deliverable's product:
+# records in its format. DEL-08-02 reads them through its need and does not list them.
 checks: []

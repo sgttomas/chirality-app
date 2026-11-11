@@ -9,7 +9,8 @@ needs:
     built from constructed input is marked simulated wherever it is shown or recorded.
   gating: true
 # This deliverable has no module of its own. connector_standing.rs and the standing form are
-# DEL-07-02's. Here: the PEC connector value and its record and presence tiers.
+# DEL-07-02's and are listed in its yaml with the same split. Here: the PEC connector value and
+# its record and presence tiers.
 code_paths:
 - app/src-tauri/src/connector_standing.rs
 - app/src-tauri/resources/connector_route/connector.standing.schema.json

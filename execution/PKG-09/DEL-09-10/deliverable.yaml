@@ -8,8 +8,9 @@ needs:
     Domains index.
   gating: true
 - from: DEL-08-01
-  condition: The Domains query, admission and freshness contract has fixtures for an unavailable source
-    and for an index older than its sources.
+  condition: The Domains receiving contract's fixtures and limit cases include no response, recorded
+    as absent with the source-file route needed, and a source revised after it was indexed, recorded
+    as stale and supporting no reliance.
   gating: true
 - from: DEL-09-01
   condition: Result records bind candidate, configuration and date, allow a part to be declared not

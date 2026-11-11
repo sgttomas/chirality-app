@@ -3,8 +3,11 @@ name: Fleet coordination and longer-work recovery witness
 needs:
 - from: DEL-06-01
   condition: A brief carries purpose, basis, context, authority and tools, write scope and expected
-    return; the work graph and coordination records are files; a native delegation is associated
-    with its brief; and a changed basis and an interruption are recorded so the state can be recovered.
+    return; the work graph and coordination records are files; an observed native child is recorded
+    with the identities Codex reported and its association, which is a brief referenced with its
+    content identity, a brief referenced that has changed since, or no brief reference; and after
+    a changed basis and an interruption the records still give ownership, returns awaiting review
+    and continuation.
   gating: true
 - from: DEL-06-02
   condition: The return, waiting and decision views are rebuilt from the records across sessions
@@ -16,8 +19,10 @@ needs:
     still active after its parent's turn has ended.
   gating: true
 - from: DEL-01-04
-  condition: The act control captures the person's decision on a pending decision package only on
-    the person's confirmation, and captures nothing when the package changed after the offer.
+  condition: The App act control is offered on a decision package for the decide act, choosing one
+    alternative the package names; only the person's native confirmation captures, and content changed
+    after the offer captures nothing; and each capture yields capture evidence and a record with
+    the person's identity marked not verified.
   gating: true
 - from: DEL-04-01
   condition: The operation policy names the acts reserved to a person and keeps them apart from routine
@@ -29,9 +34,12 @@ needs:
     content changes.
   gating: true
 - from: DEL-09-01
-  condition: Result and review records have formats and checks that refuse a pass without a candidate
-    or without the native observation a part requires, and a person-operated native route with its
-    step form exists.
+  condition: Result and review records have formats and checks that refuse a pass without a candidate,
+    and a part that needs native evidence passes only on a native route.
+  gating: true
+- from: DEL-09-02
+  condition: A native-step form exists on which the examiner records each step a person operates
+    on the candidate.
   gating: true
 - from: external:person deciding the matter
   condition: A person performs the one decision at the act control while the examiner observes.
@@ -39,5 +47,4 @@ needs:
   condition: The stock supplier is available at the pin the candidate was built with, with native
     delegation events readable.
 code_paths: []
-checks:
-- app/contract_inputs/PKG-09/DEL-09-05/Work/prototype/fw04_check.py
+checks: []

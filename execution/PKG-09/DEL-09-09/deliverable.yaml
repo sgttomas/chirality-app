@@ -19,8 +19,8 @@ needs:
     access, and applies the same to every channel.
   gating: true
 - from: DEL-04-02
-  condition: The grant in force for a run is displayed in states the three channels can be compared
-    on.
+  condition: The autonomy in force is visible for each operation class, before and after a change
+    made during work, and equals the grant the control reports.
   gating: false
 - from: DEL-04-03
   condition: An acceptance read from the host is recorded with actor, recorder, bound content, scope
@@ -31,8 +31,9 @@ needs:
     so the embedded channel can be compared with the other two.
   gating: false
 - from: DEL-02-03
-  condition: A compatibility report states, for each surface, whether a workflow's required tools
-    and checkpoints are supported.
+  condition: For an identified workflow and host, the requirement check reports each required tool
+    that is available and names each that is missing, at another version, not exposed on the surface
+    or on a disabled channel, with the catalog edition and surface checked.
   gating: false
 - from: DEL-09-01
   condition: Result records bind candidate, harness, model and model-server configuration and date
@@ -67,7 +68,6 @@ needs:
 code_paths:
 - app/src-tauri/src/external_trace.rs
 - app/src-tauri/src/trace_receiving.rs
-- app/src-tauri/resources/external_trace/manifest.json
 - app/src-tauri/resources/external_trace/own-code-inputs.json
 - app/src-tauri/resources/external_trace/xt-*
 - app/src-tauri/resources/external_trace/receiving/**

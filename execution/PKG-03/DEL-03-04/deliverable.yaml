@@ -91,5 +91,4 @@ needs:
   condition: The owner chooses the operation, the autonomy permitted and the candidate environment
     of the first connected activity.
   when: Before the guide names that activity's operation.
-code_paths:
-- execution/PKG-03/DEL-03-04/Work/HOST_INTEGRATION_GUIDE.md
+code_paths: []

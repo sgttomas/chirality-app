@@ -55,4 +55,3 @@ checks:
 # records_package_controls_tests.rs is DEL-04-03's. Here: the cases in which an imported fleet
 # log stays quoted evidence.
 - app/src-tauri/src/records_package_controls_tests.rs
-- app/src-tauri/schemas/sync.py

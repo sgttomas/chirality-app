@@ -19,7 +19,6 @@ needs:
 code_paths:
 - app/examination/check.py
 - app/examination/rules.py
-- app/examination/documentary_condition.py
 - app/examination/repin.py
 - app/examination/admission/**
 - app/examination/candidate_identity/**
@@ -29,15 +28,10 @@ code_paths:
 - app/examination/runner_support/**
 - app/src-tauri/resources/external_trace/exam.result-record.*
 checks:
-- app/contract_inputs/PKG-09/DEL-09-01/Work/prototype/check_exp.py
 - app/tests/group_b_support_test.py
 - app/tests/group_b_admission_test.py
-- app/tests/group_b_current_admission_test.py
-- app/tests/group_b_documentary_condition_test.py
 - app/tests/group_b_support_identity_test.py
 - app/tests/group_b_support_identity_canonical_test.py
-- app/tests/group_b_publication_sources_test.py
-- app/tests/group_b_terms_successor_test.py
 - app/tests/group_b_distribution_receiving_test.py
 - app/tests/group_b_terminal_receiving_test.py
 - app/tests/group_b_runner_test.mjs

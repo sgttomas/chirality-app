@@ -39,9 +39,8 @@ code_paths:
 - app/src-tauri/resources/catalog_adapter/proposal.*
 - app/src-tauri/resources/catalog_adapter/proposal_state.*
 - app/src-tauri/resources/swbpipe_receiving/swbpipe-corpus-mapping.json
-- app/contract_inputs/PKG-03/DEL-03-02/Work/prototype/swbpipe_corpus_map.py
 checks:
-- app/contract_inputs/PKG-03/DEL-03-02/Work/prototype/proposal_states.py
-- app/contract_inputs/PKG-03/DEL-03-02/Work/prototype/swbpipe_corpus_map.py
+# catalog_adapter.rs is one check file shared with DEL-03-01, DEL-03-03, DEL-05-01, DEL-05-02.
+# Here: the cases on the bound proposal, proposal states, receipts and unknown outcomes.
 - app/src-tauri/tests/catalog_adapter.rs
 - app/src-tauri/tests/swbpipe_receiving.rs

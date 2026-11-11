@@ -183,15 +183,8 @@ jobs:
         uses: ./.github/actions/app-v4-setup
         with:
           rust-cache-job: sources-packaging
-      - name: Build App and verify source-mapped schemas
-        run: |
-          npm run build
-          python src-tauri/schemas/sync.py
-          python src-tauri/schemas/sync.py --catalog-adapter
-      - name: Failed-turn destination receiving regressions
-        run: python3 -B tests/failed_turn_permissions_test.py
-      - name: Design schema conditional regressions
-        run: python3 -m unittest discover -s ../app/contract_inputs/PKG-04/DEL-04-03/Work/prototype -p 'test_minischema.py'
+      - name: Build App
+        run: npm run build
       - name: Supplier carriage detector regressions (no supplier required)
         run: |
           python3 supplier_checks/test_records_delivery.py
@@ -201,13 +194,13 @@ jobs:
           python3 supplier_checks/swbpipe_receiving_test.py
           python3 supplier_checks/swbpipe_receiving_v4_test.py
           python3 supplier_checks/swbpipe_receiving_v4_pr30_test.py
-          python3 supplier_checks/swbpipe_receiving_pr40_test.py
+          python3 supplier_checks/swbpipe_hash_receiving_test.py
           python3 -m unittest discover -s tests -p 'child_role_carrier_test.py'
           python3 -B -m unittest discover -s ../app/examination/native_support -p 'test_native_sheet_cancel.py'
           python3 -B -m unittest discover -s ../app/examination/native_support -p 'test_native_attended*.py'
           node ../app/examination/native_support/test_native_attended_manager.cjs
       - name: Packaging and examination behavior against selected App inputs
-        # Documentary Group B correspondence runs in always-on repository checks.
+        # Group B examination suites run in always-on repository checks.
         run: >-
           python -m pytest -q           tests/terms_position_test.py tests/package_successor_test.py tests/production_inputs_test.py tests/notice_receipts_test.py tests/notice_resources_test.py tests/font_notice_test.py tests/notice_transitive_test.py tests/supplier_notice_observations_test.py
           tests/examination_repin_test.py
@@ -232,7 +225,7 @@ jobs:
       - name: Connected static packaging
         run: |
           cargo build --locked --manifest-path src-tauri/Cargo.toml --example distribution-static
-          DISTRIBUTION_STATIC_BIN="$PWD/src-tauri/target/debug/examples/distribution-static" python -m pytest -q packaging/static_distribution/test_connected.py
+          DISTRIBUTION_STATIC_BIN="$PWD/src-tauri/target/debug/examples/distribution-static" python -m pytest -q packaging/static_distribution/test_connected.py packaging/static_distribution/test_inventory.py packaging/static_distribution/test_s1_value_model.py
       - name: Save compiled third-party Rust dependencies
         if: ${{ !cancelled() }}
         uses: ./.github/actions/app-v4-rust-cache-save
@@ -302,15 +295,8 @@ jobs:
           with open(os.environ['GITHUB_ENV'], 'a') as env:
               env.write(f'CHIRALITY_CODEX_BIN={binary}\n')
           PY
-      - name: Build App and verify source-mapped schemas
-        run: |
-          npm run build
-          python src-tauri/schemas/sync.py
-          python src-tauri/schemas/sync.py --catalog-adapter
-      - name: Failed-turn destination receiving regressions
-        run: python3 -B tests/failed_turn_permissions_test.py
-      - name: Design schema conditional regressions
-        run: python3 -m unittest discover -s ../app/contract_inputs/PKG-04/DEL-04-03/Work/prototype -p 'test_minischema.py'
+      - name: Build App
+        run: npm run build
       - name: Supplier carriage detector regressions (no supplier required)
         run: |
           python3 supplier_checks/test_records_delivery.py
@@ -320,7 +306,7 @@ jobs:
           python3 supplier_checks/swbpipe_receiving_test.py
           python3 supplier_checks/swbpipe_receiving_v4_test.py
           python3 supplier_checks/swbpipe_receiving_v4_pr30_test.py
-          python3 supplier_checks/swbpipe_receiving_pr40_test.py
+          python3 supplier_checks/swbpipe_hash_receiving_test.py
           python3 -m unittest discover -s tests -p 'child_role_carrier_test.py'
           python3 -B -m unittest discover -s ../app/examination/native_support -p 'test_native_sheet_cancel.py'
           python3 -B -m unittest discover -s ../app/examination/native_support -p 'test_native_attended*.py'
@@ -331,7 +317,7 @@ jobs:
         run: |
           cargo test --locked --manifest-path src-tauri/Cargo.toml --lib terminal_exchange_actual_selected_and_unselected_roundtrip -- --test-threads=1
           cargo build --locked --manifest-path src-tauri/Cargo.toml --example distribution-static
-          DISTRIBUTION_STATIC_BIN="$PWD/src-tauri/target/debug/examples/distribution-static" python -m pytest -q packaging/static_distribution/test_connected.py
+          DISTRIBUTION_STATIC_BIN="$PWD/src-tauri/target/debug/examples/distribution-static" python -m pytest -q packaging/static_distribution/test_connected.py packaging/static_distribution/test_inventory.py packaging/static_distribution/test_s1_value_model.py
       - name: Role history and portable export verification
         run: node --test tests/conversation-roles.test.mjs tests/verify-records-bag.test.mjs tests/process-group-custody.test.mjs tests/access-provider.test.mjs tests/fork-admission.test.mjs tests/continue-as-send.test.mjs
       - name: Workflow and fleet presentation

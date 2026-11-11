@@ -30,7 +30,7 @@ class SQReceivingTests(unittest.TestCase):
     def setUpClass(cls):
         cls.consumer = reader.Receiver()
         cls.support = canonical.CanonicalSupport()
-        schema = next((APP.parent / 'execution').glob('PKG-09/DEL-09-01/Work/exam.result-record.schema.json'))
+        schema = APP / 'src-tauri/resources/external_trace/exam.result-record.schema.json'
         cls.result_validator = Draft202012Validator(json.loads(schema.read_bytes()))
 
     def setUp(self):
@@ -39,12 +39,6 @@ class SQReceivingTests(unittest.TestCase):
         shutil.copytree(FIXTURE, self.root)
         self.selected = json.loads((self.root / 'selection.json').read_bytes())
         self.dossier = json.loads((self.root / 'dossier.json').read_bytes())
-        # Explicitly generate successor sidecars; preserve frozen fixture bytes.
-        for artifact in self.selected['artifacts']:
-            raw = (self.root / artifact['record']['path']).read_bytes()
-            bound = encoded(self.support.binding(artifact['kind'], raw, self.selected['purpose']))
-            (self.root / artifact['binding']['path']).write_bytes(bound)
-            artifact['binding']['sha256'] = sha(bound)
 
     def a(self, slot): return next(x for x in self.selected['artifacts'] if x['slot'] == slot)
     def value(self, slot): return json.loads((self.root / self.a(slot)['record']['path']).read_bytes())
@@ -74,14 +68,6 @@ class SQReceivingTests(unittest.TestCase):
         self.assertIn(needle,json.dumps(result));return result
 
     def schema_valid(self, value): self.assertEqual(list(self.result_validator.iter_errors(value)),[])
-
-    def test_original_current_sidecar_is_not_successor_adoption(self):
-        artifact=self.a('review')
-        path=artifact['binding']['path']
-        original=(FIXTURE/path).read_bytes()
-        (self.root/path).write_bytes(original)
-        artifact['binding']['sha256']=sha(original)
-        self.refused('invalid canonical binding')
 
     def test_connected_development_full_source_validation_no_package_change(self):
         result=self.check();self.assertTrue(result['selection_consistent']);self.assertEqual(result['coverage'],'complete')
@@ -232,7 +218,7 @@ class SQReceivingTests(unittest.TestCase):
         v=self.value('result-J-3');v.pop('not_run_because');self.save('result-J-3',v);self.refused('SCHEMA')
 
     def test_mixed_purpose_binding_refused(self):
-        a=self.a('review');p=self.root/a['binding']['path'];v=json.loads(p.read_bytes());v['binding_purpose']='historical_correspondence';p.write_bytes(encoded(v));a['binding']['sha256']=sha(p.read_bytes());self.refused('invalid canonical binding')
+        a=self.a('review');p=self.root/a['binding']['path'];v=json.loads(p.read_bytes());v['binding_purpose']='historical_correspondence';p.write_bytes(encoded(v));a['binding']['sha256']=sha(p.read_bytes());self.refused('canonical binding identity mismatch')
 
     def test_missing_prototype_identity_refused_despite_schema_optionality(self):
         v=self.value('result-J-1');v['support_revision'].pop('prototype_digest');self.schema_valid(v);self.save('result-J-1',v);self.refused('support identity missing or different')
@@ -248,16 +234,10 @@ class SQReceivingTests(unittest.TestCase):
         original=reader.read_relative
         def changed(root,name):
             data=original(root,name)
-            return data+b'\n' if name.endswith('/prototype/check_sq.py') else data
+            return data+b'\n' if name.endswith('/sq_dossier_rules.py') else data
         with patch.object(reader,'read_relative',changed):
             with self.assertRaisesRegex(ValueError,'selected source changed'):
                 reader.Receiver()
-
-    def test_full_frozen_documentary_closure_still_matches_original_hashes(self):
-        for name, data in self.consumer.sources.items():
-            if name.endswith('.md'):
-                with self.subTest(source=name):
-                    self.assertEqual(sha(data), self.consumer.pins['sources'][name])
 
     def test_boolean_target_cannot_be_integer(self):
         self.selected['review']['evidence'][0]['target']={'dossier':1};self.refused('invalid evidence target flag')

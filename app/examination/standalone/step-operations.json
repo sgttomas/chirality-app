@@ -1,0 +1,100 @@
+{
+  "J-1": [
+    "From an empty project folder, plan with the agent and revise the plan",
+    "Plan revisions (plan items if plan mode is on, K-5 of pass 3)"
+  ],
+  "J-2": [
+    "Execute with substantive real tool use in an ordinary conversation; the agent also delegates one bounded sub-task (ST-4)",
+    "Tool outcomes as Codex reports them; request cards; the delegated child"
+  ],
+  "J-3": [
+    "Turn the work into a workflow draft",
+    "Draft listed with content identity; hygiene"
+  ],
+  "J-4": [
+    "Try the draft: a delegated trial with the authoring agent and, at the person's choice, a clean trial in a fresh conversation (not a run, K-7)",
+    "No run record; draft not selectable for a run; trial text mirrors the run text; a trial link written on each acknowledged send; for the delegated trial, each sub-agent link observation names its method (*begin marker found* or *explicit link control*) and no operator, a link made with the control is not attributed to the person, and an earlier *by the person* sub-agent link observation, if any, reads as a quoted legacy claim with the operator not established; fidelity shown, not enforced; bring back and compare"
+  ],
+  "J-5": [
+    "Review the draft; the same-name entry placed in another origin (ST-2) is present",
+    "Declared inputs, tools, checkpoints, outputs, evidence; the other-origin notice (WR SP-5); nothing overwritten"
+  ],
+  "J-6": [
+    "**The person registers it** at the act control (A15), after the unperformed-act negatives (ST-3)",
+    "Direct-capture record, actor ≠ recorder, bound bytes; no A15 from silence, timeout, the agent's claim or tool success"
+  ],
+  "J-7": [
+    "Select the registered revision (an unqualified name offers both origins, ST-2) and run it on new inputs",
+    "Source-qualified identity; no rebinding to the other origin; per-run supply"
+  ],
+  "J-8": [
+    "Refine (revision 2): draft from base, **try**, review, **register** (ST-3 negatives again)",
+    "Second registered revision; ST-1: J-7's selection and run record still name revision 1, whose bytes are unchanged"
+  ],
+  "J-8R": [
+    "*(added; not counted)* Run revision 2 on new inputs",
+    "Run record"
+  ],
+  "J-9": [
+    "Refine again (revision 3): draft, try, review, register",
+    "Third registered revision; exactly two refinements"
+  ],
+  "J-9R": [
+    "*(added; not counted)* Run revision 3",
+    "Run record"
+  ],
+  "S11-1": [
+    "During J-2's tool-heavy turn, with the delegated child active (ST-4)",
+    "The person stops the turn",
+    "Turn ends interrupted (NIR-v0.3 TO-4, including a turn carrying `Turn.error` at 0.160.0); nothing shown done that was not observed; the child observed active is reported, not marked done"
+  ],
+  "S11-2": [
+    "During J-7's run, with a tool-permission request waiting",
+    "Close the window; reopen",
+    "Work continued; the request is still listed; closing an observer is not stopping work"
+  ],
+  "S11-3": [
+    "J-7, first request",
+    "**Deny** it on its card",
+    "Denial settled with its origin; not a human act"
+  ],
+  "S11-4": [
+    "J-7, a later request",
+    "**Grant** it",
+    "Grant settled; tool success is not an act"
+  ],
+  "S11-5": [
+    "During J-8's try conversation, while the agent's turn is live and a tool-permission request waits",
+    "Quit the App (confirming the question); relaunch",
+    "Quit question lists live work; relaunch reads *quit-with-live-work*; the waiting request rebuilt as interrupted by quit"
+  ],
+  "S11-6": [
+    "After relaunch",
+    "Continue **J-8's try conversation** (the one live at quit), then carry J-8 to registration",
+    "Provider vs rendered state; primary-turn completion vs the child still active (ST-4); settlement vs received acknowledgment (ST-5); unknown stays unknown; Continue opens the conversation only on an admitted resume, and a refused, read-only or failed result leaves the selection and unsent composer unchanged and sends nothing"
+  ],
+  "M12-1": [
+    "**The person signs in** with ChatGPT in the App-owned home H-acct",
+    "Sign-in completes; account reported; no credential in App records"
+  ],
+  "M12-2": [
+    "**The person enters an API key**; the App uses home H-key (L-1)",
+    "Key held by Codex in H-key; two homes, one process each"
+  ],
+  "M12-3": [
+    "Configure an identified local model server",
+    "Provider requested = reported; endpoint and model identity recorded"
+  ],
+  "M12-4": [
+    "Open a new conversation",
+    "\"No model selected\" until the person chooses (DEC-4; no default)"
+  ],
+  "M12-5": [
+    "One conversation with each mode; switch between them",
+    "Each starts; the other two stay configured and selectable"
+  ],
+  "M12-6": [
+    "Inspect records and logs",
+    "No credential anywhere (custody scan)"
+  ]
+}

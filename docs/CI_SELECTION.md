@@ -56,26 +56,23 @@ known product domain keep product coverage without individual allowlisting.
 Runnable implementation, tests, generators and harnesses live under `app/` or
 `tools/`. `execution/` holds authoring specifications and retained records.
 `tools/ci/check_execution_layout.py` rejects code surfaces in that tree and
-current imports/interpreter invocations into it. Its nine hash-bound exceptions
-are fidelity-only supplier receipts and the historical acceptance presentation;
-they grant no execution permission. This is a source/layout guard, not a proof
+current imports/interpreter invocations into it. Its one hash-bound exception
+is the historical acceptance presentation; it grants no execution permission.
+This is a source/layout guard, not a proof
 about arbitrary dynamically computed programs. Changes introducing a new
 execution mechanism must extend its checks and receive review.
 
-Product consumers read selected App schema/fixture copies. Always-on repository
-checks compare those copies with their authoring source, using full bytes or the
-existing documentary selector extents, and retain the examination pin checks.
-Group B correspondence tests now run in repository checks on every PR, together
-with `check_documentary_sources.py`: live projection groups and all their
-selectors remain checked against authoring prose. Historical source profiles,
-publication identities and frozen bytes retain their distinct subjects. A
-selected source change requires reviewed reconciliation of its copy and pins;
-this layout does not authorize adoption or repinning historical evidence.
+`execution/PKG-nn/DEL-nn-nn/` holds only `ScopeOfWork.md` and
+`deliverable.yaml`, and no tool reads or pins scope prose. Schemas, fixtures and
+data that product code or a product test reads live once, beside that reader
+under `app/`. Always-on repository checks retain the examination pin check
+(`app/examination/repin.py --check`), and the Group B examination tests run in
+repository checks on every PR.
 
-The selector regression fixtures replay the complete recorded changes for
-PRs 169–181, plus unknown-path, mixed-change, mode, deletion and rename cases.
-Twelve sweep PRs become repository-only; PR178 retains product verification
-because its change includes product-selected documentation outside `execution/`.
+The selector regression fixtures replay recorded changes from PRs 169–181,
+plus unknown-path, mixed-change, mode, deletion and rename cases. PR178 retains
+product verification because its change includes product-selected documentation
+outside `execution/`; the others are repository-only.
 Path moves and all App/tool/guard/selector edits select full product checks.
 Other product domains remain conservative; no partial frontend/Rust mapping is
 introduced.

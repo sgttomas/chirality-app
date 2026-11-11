@@ -17,9 +17,25 @@ remain owner decisions.
 Current release pathway, delivery owners and remaining evidence are in
 `execution/_Coordination/CURRENT_EXECUTION_BASIS.md`.
 
-`Work/` holds the current account: findings with their reasons, working artifacts and outputs. Revise it in place rather than appending history; never rewrite fidelity copies, frozen snapshots or accepted evidence. How the work went (approval quotes, review rounds, retries, run IDs, check results) belongs in the PR description, which states what changed, why, what was checked and what remains open. Cite SHAs or hashes only where they pin something a result relies on. State a fact once and link to it.
+There is the work, which is the code, and what expresses its goal, which is
+the scopes of work; the scope leads (the Library's
+`workflows/scope-of-work/WORKFLOW.md`, "What a scope says").
 
-Code that runs (implementation, tests, generators, harnesses) lives outside `execution/`, in the project's code locations, and deliverables link to it; `Work/` may keep documentation-only examples that are never run. Leave unchanged commitments and historical evidence alone.
+Start with what you are trying to accomplish. Read the scopes you think
+relevant and what you find along the way. Plan. Implement and learn. Reconcile
+a scope only if the thing being made, or its description within the six parts,
+materially changed; correct an affected need in the same PR. Describe the
+change at a high level in the PR. The session ends there and discovery starts
+anew next session.
+
+If you conclude that a criterion is wrong, cannot be met or no longer serves
+its purpose, do not change it, weaken its check or build around it. Say what
+you found and what you would change. Decide it only within an explicit
+delegation; otherwise it goes to the owner. The other criteria stay in force.
+
+Never rewrite fidelity copies, frozen snapshots or accepted evidence. How the work went (approval quotes, review rounds, retries, run IDs, check results) belongs in the PR description, which states what changed, why, what was checked and what remains open. Cite SHAs or hashes only where they pin something a result relies on. State a fact once and link to it.
+
+Code that runs (implementation, tests, generators, harnesses) lives outside `execution/`, in the project's code locations, and deliverables link to it. Leave unchanged commitments and historical evidence alone.
 
 ## Direction
 
@@ -216,10 +232,10 @@ For implementation and closeout in this repository:
 ## Working locality
 
 Work at this repository root. Start from the affected
-`execution/PKG-nn/DEL-nn-nn/` and its ScopeOfWork, `Work/` and dependency
-conditions. Consult `docs/PRD.md` and its companions for requirements and
-interfaces involved in this slice, not as a compulsory census. References
-written before 2026-10-30 to a deliverable's `Design/` mean its `Work/`.
+`execution/PKG-nn/DEL-nn-nn/`, which is two files: `ScopeOfWork.md` and the
+dependency conditions in `deliverable.yaml`. Consult `docs/PRD.md` and its
+companions for requirements and interfaces involved in this slice, not as a
+compulsory census.
 
 From the repository root:
 
@@ -230,8 +246,8 @@ python3 -m tools.deliverables --project . neighborhood DEL-nn-nn
 `tools/deliverables/README.md` gives the other queries (`impact`, `touches`,
 `check`, `dag-diff`). Update needs only when their conditions change.
 
-Each implementation return must reconcile its affected `ScopeOfWork.md`,
-`Work/`, dependency conditions in `deliverable.yaml`. The implementation
+Each implementation return must reconcile its affected `ScopeOfWork.md` and
+dependency conditions in `deliverable.yaml`. The implementation
 manager owns this reconciliation: it carries the rule into every brief and
 names the affected deliverables, and TASKs report the effects of their slices.
 Update changed meaning in the same PR; leave unchanged declarations alone, and
@@ -266,8 +282,7 @@ covers main.
 
 Ordinary builds and tests run concurrently across isolated worktrees; do not
 serialise them for caution. App has no shared memory guard or slot prerequisite
-for them
-(`execution/PKG-09/DEL-09-02/Work/CONTINUATION_BOUNDARIES.md`). Rust tests stay
+for them. Rust tests stay
 serial inside one Cargo run because they share process state
 (`app/README.md`). Isolation belongs to a measurement whose evidence concurrent
 load would disturb.
@@ -275,9 +290,8 @@ load would disturb.
 ## Product assets and local tools
 
 Agent instructions for work on this project are separate from the instructions
-packaged into the App. DEL-02-04 maintains the versioned sources in
-`execution/PKG-02/DEL-02-04/Work/instructions-v1/`; `tools/instruction_resources.py`
-generates the shipped instruction copies and checks freshness. Both are declared
+packaged into the App. DEL-02-04 maintains the shipped instructions in
+`app/src-tauri/resources/instructions/`, declared
 in that deliverable. `app/src-tauri/resources/` retains its pinned source
 identities. Reading a newer shared role or method does not update those assets
 or establish product adoption; such changes require their own authorized work.

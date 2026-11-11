@@ -35,19 +35,6 @@ fn one_item_state(item: Value) -> Value {
            "observed_at": "test-placeholder:time"})
 }
 
-#[test]
-fn swbpipe_resources_match_identified_source_bytes() {
-    use sha2::{Digest, Sha256};
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(2).unwrap();
-    let manifest = value("manifest.json");
-    assert_eq!(manifest.as_array().unwrap().len(), 2);
-    for item in manifest.as_array().unwrap() {
-        let copied = resource(item["file"].as_str().unwrap());
-        let source = std::fs::read(root.join(work_locality(item["source"].as_str().unwrap().strip_prefix("projects/chirality-app-v4/").expect("source must name this App project")))).unwrap();
-        assert_eq!(copied, source, "source drift: {}", item["source"]);
-        assert_eq!(format!("{:x}", Sha256::digest(&copied)), item["sha256"].as_str().unwrap());
-    }
-}
 
 #[test]
 fn corpus_mapping_gives_no_case_a_human_act_or_an_applied_branch() {
@@ -256,18 +243,4 @@ fn an_unobservable_submission_stays_unknown_and_is_never_resubmitted_blind() {
     assert!(!history.iter().any(|h| matches!(h, SubmissionObservation::Host(_))));
     let again = custody.begin(bound(&p, "PR-W6", "read_after_apply")).unwrap_err();
     assert!(again.contains("observe_before_resubmission"));
-}
-
-/// A deliverable's `Design/` before 2026-10-30 means its `Work/` (AGENTS.md).
-fn work_locality(path: &str) -> String {
-    let parts: Vec<&str> = path.splitn(4, '/').collect();
-    match parts.as_slice() {
-        ["execution", package, deliverable, rest] if package.starts_with("PKG-") && deliverable.starts_with("DEL-") => {
-            match rest.strip_prefix("Design/") {
-                Some(tail) => format!("app/contract_inputs/{package}/{deliverable}/Work/{tail}"),
-                None => format!("app/contract_inputs/{package}/{deliverable}/{rest}"),
-            }
-        }
-        _ => path.to_string(),
-    }
 }

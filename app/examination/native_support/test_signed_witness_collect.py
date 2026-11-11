@@ -1,7 +1,7 @@
 """Fake-HOME regressions for signed_witness_collect.sh (no App, keychain, mount or account).
 
 Run: WITNESS_TEST_TMP=$(mktemp -d /Users/ryan/dev/chirality-t3/scratch/app-witness-tests-XXXXXXXX) \
-       python3 -m unittest execution/PKG-09/DEL-09-02/Work/test_signed_witness_collect.py
+       python3 -m unittest app/examination/native_support/test_signed_witness_collect.py
 Without WITNESS_TEST_TMP the tests use /Users/ryan/dev/chirality-t3/scratch, or skip if absent.
 """
 import os

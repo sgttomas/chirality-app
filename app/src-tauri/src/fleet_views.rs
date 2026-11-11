@@ -32,7 +32,7 @@ fn standing_validator() -> Result<&'static jsonschema::Validator, String> {
         crate::schema_validation::compile_targets(
             &[(
                 "connector.standing.schema.json",
-                include_str!("../schemas/connector.standing.schema.json"),
+                include_str!("../resources/connector_route/connector.standing.schema.json"),
             )],
             &[id],
             &[&format!("{id}#/$defs/standing")],

@@ -1,7 +1,5 @@
 {
   "format": "retained-root-notice-associations/1",
-  "proof_path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/retained-root-associations-20261107/proof.json",
-  "proof_sha256": "92cceb847bddac6441d5f34d06cc0096acc19f1c2b12923ca135f095f01698ed",
   "associations": [
     {
       "subject": {
@@ -124,7 +122,7 @@
         "notices": [
           {
             "root_path": "LICENSE.md",
-            "retained_path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
+            "retained_path": "app/packaging/notices/retained/objc2-LICENSE.md",
             "size_bytes": 1339,
             "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
             "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",
@@ -159,7 +157,7 @@
         "notices": [
           {
             "root_path": "LICENSE.md",
-            "retained_path": "execution/PKG-01/DEL-01-06/Work/supplier-notice-associations/approved-receipt-20261102/sources/objc2/LICENSE.md",
+            "retained_path": "app/packaging/notices/retained/objc2-LICENSE.md",
             "size_bytes": 1339,
             "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
             "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e",

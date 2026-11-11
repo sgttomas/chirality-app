@@ -12,6 +12,10 @@ needs:
   condition: A candidate identification record names the build the owner used, and verification records
     are marked apart from validation.
   gating: true
+- from: DEL-10-02
+  condition: Each practice note brought to a stage or selected-method discussion traces to the owner's
+    actual disposition, with its actor and scope, or is shown as pending.
+  gating: false
 - from: external:OI-016
   condition: The owner agrees the period and the realistic activities of validation.
   when: Before any use counts as validation.

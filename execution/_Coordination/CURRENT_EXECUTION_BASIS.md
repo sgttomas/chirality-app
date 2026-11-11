@@ -20,7 +20,7 @@ publication version. Developer ID team `8A7JL35U4S` has been recovered. The
 owner selected v4-focused testing, without a broad v3 comparison, regression
 or migration campaign; narrow namespace/data-collision precautions preserve
 existing owner data without importing, resetting or resealing it. See
-[V4 test subject](../PKG-01/DEL-01-06/Work/V4_TEST_SUBJECT.md).
+V4 test subject.
 
 Both standalone journeys remain in scope: J1 first use, an existing workflow,
 useful real-model work and finding results; J2 create/trial/register/reuse and
@@ -33,40 +33,39 @@ owning functional/interactive design. This does not import frozen v3 product too
 
 | Area | Discovery and next actor |
 |---|---|
-| Product UI and journeys | DEL-02-02 [publication journeys](../PKG-02/DEL-02-02/Work/PUBLICATION_JOURNEYS.md); product implementation owner repairs concrete current findings, App Agent 0 integrates. |
-| Native and real-model evidence | DEL-09-02 [J1 actual](../PKG-09/DEL-09-02/Work/J1_REAL_MODEL_ACTUAL_20261108.md), [J2 actual](../PKG-09/DEL-09-02/Work/J2_PARTIAL_ACTUAL_20261108.md) and [continuation boundaries](../PKG-09/DEL-09-02/Work/CONTINUATION_BOUNDARIES.md). J2 registration/fresh reuse is demonstrated on its repaired development artifact. The [current P3 account](../PKG-09/DEL-09-02/Work/P3_NEXT_WITNESS_PROPOSAL.md) demonstrates ordinary account request cancellation/grant, interruption and explicit History continuation with UI-selected medium on the combined d424 development candidate. Remaining access/recovery and installed qualification stay open; evidence and artifact identities stay separate. Next product step: one account-route J2 return-path witness on current main, covering relaunch, reuse of a registered workflow under the person's approval policy and return to unfinished work. Project and evidence locators are in the [current P3 account](../PKG-09/DEL-09-02/Work/P3_NEXT_WITNESS_PROPOSAL.md); authorization boundaries are in [continuation boundaries](../PKG-09/DEL-09-02/Work/CONTINUATION_BOUNDARIES.md). Next actor: the product implementation manager Agent 0 starts. Preparation does not wait on reconfirming the App-owned account sign-in; any authorization found missing goes to the owner. This pointer grants no launch, sign-in, model or cloud authority of its own. |
-| Owner inputs that keep lanes moving | Decisions: publication and replacement (punchlist P8); the LOOP, ACT, record-store and PANEL F-12 choices in the rows below, where whether each gates 4.0.0 is not recorded, so Agent 0 asks; the organization move (PR 206). Credentials and acts: any sign-in ([AGENTS](../../AGENTS.md)); bundle, service, account and keychain-group confirmation, the Apple App ID and profile, then signing and notarization ([signing join](../PKG-01/DEL-01-04/Work/SEAL_C_KEYCHAIN_SIGNING_JOIN.md)); exact approval for deferred notice downloads ([notice coverage](../PKG-01/DEL-01-06/Work/SHIPPED_NOTICE_COVERAGE.md)). Per session: model selections and whether INTERLOCUTOR is opted in. |
-| Packaging, supplier and installed subject | DEL-01-06 [v4 test subject](../PKG-01/DEL-01-06/Work/V4_TEST_SUBJECT.md), [notice coverage](../PKG-01/DEL-01-06/Work/SHIPPED_NOTICE_COVERAGE.md), and [publication punchlist](PUBLICATION_PUNCHLIST.md). Packaging owns missing associations/qualification; acceptance and release are owner decisions. |
-| App-side joined delivery | DEL-09-06 [receiving binding](../PKG-09/DEL-09-06/Work/SWBPIPE_RECEIVING_BINDING.md) and DEL-09-07 [receiving account](../PKG-09/DEL-09-07/Work/SWBPIPE_RECEIVING.md). App receiving preparation is integrated; host activation and actual joined witness remain separate host-owned results. The unadopted acceptance-staging proposals remain in PR14, linked from the binding. |
-| Workflow approval policy | DEL-02-02 [WR §4.6](../PKG-02/DEL-02-02/Work/WORKSPACE_AND_REGISTRATION.md#46-library-standing) and DEL-01-04 [SEAL-C approval policy](../PKG-01/DEL-01-04/Work/SEAL_C_KEYCHAIN_TRANSITION.md#workflow-approval-policy-and-the-persons-protection-act-2026-11-09) record the owner's 2026-11-09 decisions. The two policies are "Allow disk records" and "Require verified approval". Records keep the requested policy separate from the applied evidence. Current builds cannot enroll keychain protection: enrollment needs a signed build with the selected publisher. Until then "Require verified approval" still admits a native A15 given in the same App process. Open conditions: signing-stage qualification of keychain policy storage, enrollment and sealed admission (packaging owner); the protected policy freezes after 256 changes; a disclosed residual rollback requires deletion inside the keychain plus the App-data head record; the policy items use the account suffix `installation-keyring.assurance-policy.` inside the selected service and access group. |
-| Pinned WR/RS passages | The standalone examination pins the WR LS-1 selectability column, DS-4 and §4.8, and RS §6.2, byte for byte ([DEL-09-01 documentary condition](../PKG-09/DEL-09-01/Work/support-identity-v1/documentary-condition.v3.json)). A governing note in WR §4.6 states the 2026-11-09 rule where they differ. Next actor: the DEL-09-01 examination owner adopts a successor documentary condition. Complete when those passages state the current rule in place and the governing note is removed. |
+| Product UI and journeys | DEL-02-02 publication journeys; product implementation owner repairs concrete current findings, App Agent 0 integrates. |
+| Native and real-model evidence | DEL-09-02 J1 actual, J2 actual and continuation boundaries. J2 registration/fresh reuse is demonstrated on its repaired development artifact. The current P3 account demonstrates ordinary account request cancellation/grant, interruption and explicit History continuation with UI-selected medium on the combined d424 development candidate. Remaining access/recovery and installed qualification stay open; evidence and artifact identities stay separate. Next product step: one account-route J2 return-path witness on current main, covering relaunch, reuse of a registered workflow under the person's approval policy and return to unfinished work. Project and evidence locators are in the current P3 account; authorization boundaries are in continuation boundaries. Next actor: the product implementation manager Agent 0 starts. Preparation does not wait on reconfirming the App-owned account sign-in; any authorization found missing goes to the owner. This pointer grants no launch, sign-in, model or cloud authority of its own. |
+| Owner inputs that keep lanes moving | Decisions: publication and replacement (punchlist P8); the LOOP, ACT, record-store and PANEL F-12 choices in the rows below, where whether each gates 4.0.0 is not recorded, so Agent 0 asks; the organization move (PR 206). Credentials and acts: any sign-in ([AGENTS](../../AGENTS.md)); bundle, service, account and keychain-group confirmation, the Apple App ID and profile, then signing and notarization (signing join); exact approval for deferred notice downloads (notice coverage). Per session: model selections and whether INTERLOCUTOR is opted in. |
+| Packaging, supplier and installed subject | DEL-01-06 v4 test subject, notice coverage, and [publication punchlist](PUBLICATION_PUNCHLIST.md). Packaging owns missing associations/qualification; acceptance and release are owner decisions. |
+| App-side joined delivery | DEL-09-06 receiving binding and DEL-09-07 receiving account. App receiving preparation is integrated; host activation and actual joined witness remain separate host-owned results. The unadopted acceptance-staging proposals remain in PR14, linked from the binding. |
+| Workflow approval policy | DEL-02-02 (library standing) and DEL-01-04 SEAL-C approval policy record the owner's 2026-11-09 decisions. The two policies are "Allow disk records" and "Require verified approval". Records keep the requested policy separate from the applied evidence. Current builds cannot enroll keychain protection: enrollment needs a signed build with the selected publisher. Until then "Require verified approval" still admits a native A15 given in the same App process. Open conditions: signing-stage qualification of keychain policy storage, enrollment and sealed admission (packaging owner); the protected policy freezes after 256 changes; a disclosed residual rollback requires deletion inside the keychain plus the App-data head record; the policy items use the account suffix `installation-keyring.assurance-policy.` inside the selected service and access group. |
 | Merge-queue CI | On 2026-11-10 the owner chose to drop the up-to-date requirement and allow auto-merge instead. The organization move and merge queue stay parked in draft [PR 206](https://github.com/sgttomas/chirality-app/pull/206), revisited only if nightly runs show bad combinations. It is not a publication prerequisite. |
 | Windows | [Windows undertaking](WINDOWS_UNDERTAKING.md), including hosted P-03 limits, native gaps and owner-released acquisition holds. App Agent 0 owns shared code/design; Windows follows initial macOS release and adds no gate to it. |
-| LOOP E-7/F-12/F-5/F-7/TL-1 and host-evidence wording | DEL-05-01 [pending interpretations](../PKG-05/DEL-05-01/Work/PENDING_INTERPRETATIONS.md): exact candidates, consequences, options and next actor. |
-| ACT A9/A15 and LC-6/A16 | DEL-04-01 [pending interpretations](../PKG-04/DEL-04-01/Work/PENDING_INTERPRETATIONS.md). |
-| Record-store CLM-001 / AX-006 and citation identities | DEL-04-03 [pending interpretations](../PKG-04/DEL-04-03/Work/PENDING_INTERPRETATIONS.md). |
-| PANEL F-12 (distinct from LOOP F-12) | DEL-05-02 [receiving contract](../PKG-05/DEL-05-02/Work/PANEL_RECEIVING_CONTRACT.md), F-12 and open-matters table: owner chooses a later Scope amendment allocating destination display, or continued receiving of DEL-05-01's obligation with Scope unchanged, at next amendment/phase review. |
-| Replacement packet | DEL-11-03 [replacement packet](../PKG-11/DEL-11-03/Work/REPLACEMENT_PACKET.md): actual evidence standing, open matters and packet/presentation boundaries; acceptance remains the owner's act. |
+| LOOP E-7/F-12/F-5/F-7/TL-1 and host-evidence wording | DEL-05-01 pending interpretations: exact candidates, consequences, options and next actor. |
+| ACT A9/A15 and LC-6/A16 | DEL-04-01 pending interpretations. |
+| Record-store CLM-001 / AX-006 and citation identities | DEL-04-03 pending interpretations. |
+| PANEL F-12 (distinct from LOOP F-12) | DEL-05-02 receiving contract, F-12 and open-matters table: owner chooses a later Scope amendment allocating destination display, or continued receiving of DEL-05-01's obligation with Scope unchanged, at next amendment/phase review. |
+| Replacement packet | DEL-11-03 replacement packet: actual evidence standing, open matters and packet/presentation boundaries; acceptance remains the owner's act. |
 | Candidate and recovery inputs | [Recovery inputs](RECOVERY_INPUTS.md): held heads, closed proposals, reproducible proofs and unavailable evidence. |
 
 [Issue 168](https://github.com/sgttomas/chirality-app/issues/168) retains the
 cleanup dispositions and historical-source limitations across all 41 deliverables.
 PEC retirement is decided; active provider/adoption work is not awaited.
 Retained compatibility obligations, Domains boundaries and frozen identities
-remain in the owning Scopes and Work. PR72 was superseded through PR172;
+remain in the owning Scopes. PR72 was superseded through PR172;
 PR161 is closed as superseded, not an open integration task.
 
 The mandatory execution-layout move is integrated in PR183. Runnable sources
-are in `app/` or `tools/`; owning CODE_LOCATION notes preserve historical mappings.
-The execution-layout guard, specification-copy freshness and documentary
-correspondence checks govern future changes; [CI selection](../../docs/CI_SELECTION.md)
-explains their coverage. No move or local check requalifies historical evidence.
+are in `app/` or `tools/`; the schemas, fixtures and data that code reads sit
+beside that code. A deliverable locality is `ScopeOfWork.md` and `deliverable.yaml`.
+The execution-layout guard governs future changes; [CI selection](../../docs/CI_SELECTION.md)
+explains its coverage. No move or local check requalifies historical evidence.
 
 ## Current contributor Library edition
 
 Contributor practice pins released `library-v3.3.0` at
 `ec3ee2d1b398eba1fb3227ccf93e2569df95bacd`, replacing 3.1.0 for new reliance;
-3.2.1 was not adopted. The [current receiving findings](../PKG-10/DEL-10-01/Work/LIBRARY_V3_3_RECEIVING.md)
+3.2.1 was not adopted. The current receiving findings
 and [source delta](../../reference/library-v3.3.0/README.md) identify the source,
 entry-document comparison, deliberate adaptations and metadata schema.
 Earlier edition accounts remain in the owning receiving records and Git history. Product instructions
@@ -94,12 +93,9 @@ audit and bounded completion rows in [the punchlist](PUBLICATION_PUNCHLIST.md).
    offering with unchanged stock-Codex-managed sign-in, then explicitly approved
    the exact `6421c323` disposition/clauses at 2026-10-30 22:36:59.004 UTC,
    including applicability to first public distribution and the commercial/hosted
-   exclusion. The [current versioned account](../PKG-01/DEL-01-06/Work/terms-position-v1/OpenAI.json)
-   records `applicable_position_retained`; its distribution decision remains
-   `not_made`. Supplier authorship, agent capture and owner receipt/adoption/
-   applicability are separate. The historical
-   `DEL-01-06/Evidence/PKG/terms/OpenAI.json` remains byte-identical and unresolved
-   for its historical subject; it is not the current applicability account.
+   exclusion. The position is retained as applicable; the distribution decision
+   is not made. Supplier authorship, agent capture and owner receipt/adoption/
+   applicability are separate.
    No product-specific reply is required for the approved disposition. This
    neither changes authentication nor settles component notices, package/supplier
    qualification, replacement or publication.
@@ -109,7 +105,7 @@ audit and bounded completion rows in [the punchlist](PUBLICATION_PUNCHLIST.md).
 Pinned-source conditions found 2026-10-30, with current dispositions:
 
 - PR #42 resolved the direct admission cohort's 16 setup errors through an
-  explicit [current-v1 full-source adoption](../PKG-09/DEL-09-01/Work/CURRENT_ADMISSION_ADOPTION.md),
+  explicit current-v1 full-source adoption,
   not renewal of the old `admission/sources.json` pin. The current profile binds
   protocol `c7aa2fcf…`, Scope `a60b02a8…` and four unchanged original inputs;
   the legacy reader/rules/lock and frozen/downstream subjects remain historical.
@@ -120,7 +116,7 @@ Pinned-source conditions found 2026-10-30, with current dispositions:
   current release reliance, preserving original bytes, guards, tests and producer
   subjects `127d48f61d91b70d00d0670d2150c79b8ac26d1f` and
   `b5dbfbbdf300b993f34fc87924146073bb017877`.
-  [The owning disposition](../PKG-09/DEL-09-01/Work/HISTORICAL_DISTRIBUTION_TERMINAL_DISPOSITION.md)
+  The owning disposition
   records the two active canonical-reader guard drifts; no historical hosting
   pin is blindly renewed. The package/terms/S4 -> EXP/SQ route does not consume
   those historical exchanges. Test behavior and CI selection remain unchanged.

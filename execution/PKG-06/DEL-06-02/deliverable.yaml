@@ -25,9 +25,10 @@ needs:
     by path and content identity and carries its act kind, subject, purpose, alternatives and consequences.
   gating: true
 - from: DEL-07-02
-  condition: A connector receiving record declares its connector and a standing that tells current, qualified
-    material from absent, stale, partial and failing material, with a standing for each claim it carries
-    and whether the source-file route is still needed.
+  condition: For each response, and for no response, a connector's receiving record carries the response's
+    standing, a standing for each claim it carries and whether the source-file route is needed; each standing
+    names its connector, conforms to the published form and says whether reliance is supported; and a standing
+    that does not conform is treated as unknown.
   gating: false
   when: A work item declares a connector need
 - from: DEL-01-04
@@ -45,6 +46,10 @@ code_paths:
 # selection and need-state rules are DEL-06-01's.
 - app/src-tauri/src/fleet_views.rs
 - app/src-tauri/src/decision_view.rs
+# app/src-tauri/resources/connector_route/connector.standing.schema.json is DEL-07-02's published standing form.
+# fleet_views.rs reads it to judge a connector need and this deliverable does not list it.
+# app/src-tauri/schemas/checkpoint-record-entries.schema.json is DEL-02-03's. Its decisionPackageFile
+# definition enforces the decision package this scope defines; the rest of the file is DEL-02-03's.
 - app/src/FleetRecordsPanel.tsx
 # runtime_session.rs, lib.rs and App.tsx are shared. Here: the read of the decision packages, the
 # decision view command, the decision packages panel and the mounting of both panels.

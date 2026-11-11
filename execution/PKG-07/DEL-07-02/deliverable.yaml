@@ -10,8 +10,9 @@ needs:
 - from: DEL-08-01
   condition: A Domains result is admitted, located and not admitted, or unknown, and its freshness is
     current, stale or unknown against the source as it stands; only an admitted, current result supports
-    reliance; and there are fixtures for an admitted current result, a located result that is not admitted,
-    a stale result and no response.
+    reliance; and the fixtures are valid receiving records that cover an admitted current result, a located
+    result that is not admitted, a stale result and no response, a fixture on an invented query contract
+    or admission basis being marked simulated and counting toward none of the four.
   gating: false
   when: Domains material is assessed
 - from: DEL-04-03
@@ -20,6 +21,8 @@ needs:
     and where the store cannot be written, recording is refused visibly and nothing is written elsewhere.
   gating: true
 code_paths:
+# connector_standing.rs and the standing form are shared with DEL-07-01. Here: everything but the
+# PEC connector value and its record and presence tiers, which are DEL-07-01's.
 - app/src-tauri/src/connector_standing.rs
 - app/src-tauri/src/connector_route_store.rs
 - app/src-tauri/src/connector_route_view.rs
@@ -31,7 +34,9 @@ code_paths:
 - app/src-tauri/src/connector_reconstruction.rs
 - app/src-tauri/src/connector_answer_only.rs
 - app/src-tauri/resources/connector_route/*
-- app/src-tauri/schemas/connector.standing.schema.json
+# The copy of the standing form under schemas/ is the one DEL-06-02's fleet_views.rs reads; it is
+# kept identical to the copy under resources/connector_route/.
+- app/src-tauri/resources/connector_route/connector.standing.schema.json
 - app/src/ConnectorRoutePanel.tsx
 - app/src/ConnectorSourcePanel.tsx
 - app/src/ConnectorReconstruction.tsx
@@ -55,5 +60,3 @@ checks:
 - app/tests/fixtures/connector-route-source-walk.json
 - app/tests/fixtures/connector.contribution-message.v0.2.schema.json
 - app/tests/fixtures/contribution_content_review_v02.fixture.json
-- app/contract_inputs/PKG-07/DEL-07-02/Work/check_record_reconstruction_v04.py
-- app/contract_inputs/PKG-07/DEL-07-02/Work/check_route_account_v02.py

@@ -7,11 +7,12 @@ needs:
     and the compiled publisher identity and reports the result.
   gating: true
 - from: DEL-02-02
-  condition: The bundled workflows of a release and the list of their shipped revisions are supplied
-    as build inputs.
+  condition: The workflows a release ships are registered by the release, each at its shipped
+    revision, and a library entry counts as a shipped revision only when it is byte-equal to it.
   gating: false
 - from: DEL-02-04
-  condition: The default role guidance, the role files and the role set are supplied as build inputs.
+  condition: The default guidance documents and the role set shipped with a release have a
+    maintained source, and the packaged guidance equals that source byte for byte.
   gating: false
 - from: DEL-01-04
   condition: The keychain service and access group that keychain protection uses are stated, so
@@ -46,7 +47,6 @@ checks:
 - app/packaging/sqlite_notice/check.py
 - app/tests/package_successor_test.py
 - app/tests/terms_position_test.py
-- app/contract_inputs/PKG-01/DEL-01-06/Work/prototype/check_pkg.py
 - app/src-tauri/tests/attested_reference_packaging.rs
 - app/packaging/notices/check.py
 - app/tests/notice_resources_test.py
@@ -58,3 +58,4 @@ checks:
 - app/tests/compiled_selection_packaging_test.py
 - app/packaging/seal_c/test_prepare.py
 - app/packaging/static_distribution/test_connected.py
+- app/tests/group_b_legacy_pkg_rules_test.py

@@ -495,7 +495,7 @@
  },
  "document_kind": "sh1_swbpipe_profile_documents",
  "evidence_label": "test-double",
- "generator": "DEL-03-01 Design/prototype/run_swbpipe_profile.py --write-examples",
+ "generator": "DEL-03-01 prototype/run_swbpipe_profile.py --write-examples",
  "observation_not_exposed": {
   "operation": {
    "operation_identity": "observe-proposal",

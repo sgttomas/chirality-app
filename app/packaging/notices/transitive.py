@@ -39,14 +39,13 @@ COMMAND = ['cargo', 'tree', '--offline', '--locked', '--target', TARGET, '--edge
            '--features', FEATURES, '--prefix', 'none', '--format', '{p}|{l}']
 BASIS = ('app/src-tauri/Cargo.toml', 'app/src-tauri/Cargo.lock', 'app/package.json', 'app/package-lock.json')
 INDEX = HERE / 'transitive-index.json'
-WORK = 'app/contract_inputs/PKG-01/DEL-01-06/Work/supplier-notice-associations'
-OBJC2_METADATA = WORK + '/macos-runtime-license-metadata.json'
+OBJC2_METADATA = 'app/packaging/notices/macos-runtime-license-metadata.json'
 # The ONLY received upstream text a row may reference, keyed by the repository it belongs to.
-RECEIVED_TEXTS = {'https://github.com/madsmtm/objc2': 'execution/PKG-01/DEL-01-06/Work/supplier-notice-associations' + '/approved-receipt-20261102/sources/objc2/LICENSE.md'}
+RECEIVED_TEXTS = {'https://github.com/madsmtm/objc2': 'app/packaging/notices/retained/objc2-LICENSE.md'}
 NOTICE_NAME = re.compile(r'^(licen[cs]e|copying|notice|copyright|unlicense)', re.I)
 NATIVE = re.compile(r'\.(c|cc|cpp|cxx|h|hpp|S|s|asm)$')
 LOCAL_ASSOCIATIONS = 'app/packaging/notices/retained-root-associations.json'
-LOCAL_ASSOCIATIONS_SHA256 = '7d3f1b53acee0d2aea6cd423eacf46f6d3534884034758722cccf78f27aacb5c'
+LOCAL_ASSOCIATIONS_SHA256 = '9b8b93ef107c0dd80a65cfe248dd0fd9323803cbf4b88747dde698dd4f4af260'
 _spec = importlib.util.spec_from_file_location('transitive_notice_files', HERE / 'retained_files.py')
 files = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(files)
 NPM_TEXT_KINDS = {'missing', 'direct-index-archive', 'installed-tree-only'}
@@ -161,7 +160,7 @@ def received_text(repo, entry):
     require(not relative.is_absolute() and '..' not in relative.parts, 'received text path must be repo-relative')
     known = known_objc2_blobs(repo)
     require(known.get(text['vcs_revision']) == text['git_blob_sha1'], 'revision has no known received-text blob')
-    target = repo / text['path'].replace('execution/', 'app/contract_inputs/', 1)
+    target = repo / text['path']
     require(not target.is_symlink() and target.resolve().is_relative_to(repo.resolve()), 'received text escapes the repository')
     require(git_blob(target.read_bytes()) == text['git_blob_sha1'], 'received upstream text differs')
 
@@ -172,9 +171,6 @@ def local_associations(repo):
     require(sha(raw) == LOCAL_ASSOCIATIONS_SHA256, 'retained-root allowlist differs')
     value = files.parse(raw)
     require(value['format'] == 'retained-root-notice-associations/1', 'unknown local association format')
-    # The proof preserves source and archive origins; it is not runtime authority.
-    proof = files.transfer(Path(repo).absolute() / value['proof_path'].replace('execution/', 'app/contract_inputs/', 1), retain=True)[0]
-    require(sha(proof) == value['proof_sha256'], 'retained-root proof differs')
     return {(a['subject']['package'], a['subject']['version']): a for a in value['associations']}
 
 
@@ -189,7 +185,7 @@ def local_text(repo, entry, associations, *, prior=False):
         require(entry['text'] == selected['text'], 'retained-root text association differs')
     # Paths and byte expectations are fixed by the source allowlist before any open.
     for notice in selected['text']['notices']:
-        raw, digest, size = files.transfer(Path(repo).absolute() / notice['retained_path'].replace('execution/', 'app/contract_inputs/', 1), retain=True)
+        raw, digest, size = files.transfer(Path(repo).absolute() / notice['retained_path'], retain=True)
         require((size, digest, git_blob(raw)) == (notice['size_bytes'], notice['sha256'], notice['git_blob_sha1']),
                 'retained-root notice bytes differ')
     return copy.deepcopy(selected['text'])
