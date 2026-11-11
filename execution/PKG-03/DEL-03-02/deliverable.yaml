@@ -25,6 +25,11 @@ needs:
     with a receipt, assigns each change item a content identity, states its de-duplication scope
     and answers an observation by proposal identity.
   when: Before an integration or a witness relies on that host.
+- from: external:Operation-contract and host owners
+  condition: The App/shared operation-contract owner and the host owner agree how proposal identity
+    and change-item content identity are represented, the schema encoding, how one effect per change
+    item is enforced and how an outcome is recovered.
+  when: Before an implementation depends on them.
 - from: external:OI-014
   condition: The App/shared contract owners place the shared proposal contract against its actual
     consumers.

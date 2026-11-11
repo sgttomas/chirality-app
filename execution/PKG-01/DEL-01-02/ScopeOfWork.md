@@ -102,12 +102,12 @@ Seam behaviour is driven by stand-in supplier peers and by exchanges recorded fr
 
 | Output | Objective refs | Requirement/claim refs | Acceptance refs | Verification refs | Evidence expectation |
 |---|---|---|---|---|---|
-| OUT-001 | OBJ-001, OBJ-002 | REQ-001, CLM-001 | AC-001 | VER-001 | Owner ruling: PRD V4-EXE-01. The child's state is read from the operating system and the bytes at its pipe, which the App did not write. |
+| OUT-001 | OBJ-001, OBJ-002 | REQ-001, CLM-001 | AC-001 | VER-001 | The child's state as the operating system reports it and the bytes written at its pipe, before and after each window event, compared with PRD V4-EXE-01: work and the pending approval persist and nothing is written to Codex because of the window. |
 | OUT-002 | OBJ-001 | REQ-002 | AC-002 | VER-002 | Outside source: the turn end Codex itself reports, and the frames recorded at the pipe. |
 | OUT-001 | OBJ-001, OBJ-005 | REQ-003, CLM-004 | AC-003 | VER-003 | Outside source: the replies the supplier, or the stand-in peer, actually received. PRD V4-EXE-02 states what may never approve. |
 | OUT-001 | OBJ-001, OBJ-002, OBJ-005 | REQ-004, CLM-002 | AC-004 | VER-004 | Outside source: the error frame and acknowledgment as recorded at the pipe. |
 | OUT-002 | OBJ-001, OBJ-002 | REQ-005 | AC-005 | VER-005 | Outside source: Codex's own history for the conversation, read independently of the App's views and ledger. |
 | OUT-002 | OBJ-001 | REQ-005 | AC-006 | VER-006 | Outside source: what the examiner observed before the quit, Codex's history, and the operating system's process list. EXAMINATION V4-EXM-11 states what must happen. |
 | OUT-004 | OBJ-001, OBJ-005 | REQ-006, CLM-004 | AC-007 | VER-007 | Outside source: the answer the examiner watched the person give. PRD V4-EXE-03 and V4-AUT-03 state what may not be asserted. |
-| OUT-003 | OBJ-001, OBJ-002, OBJ-005 | REQ-008 | AC-008 | VER-008 | Owner ruling: EXAMINATION §1 names the outcome labels; the accepted decomposition's `DEL-01-02` row and V4-EXM-11 name the transitions. Each result is traced to an observation the product did not write. |
-| OUT-004 | OBJ-001, OBJ-002, OBJ-005 | REQ-007, REQ-009, CLM-003, CLM-005 | AC-009 | VER-009 | Owner ruling: ARCHITECTURE V4-ARC-03 and the accepted decomposition's allocation of each act. |
+| OUT-003 | OBJ-001, OBJ-002, OBJ-005 | REQ-008 | AC-008 | VER-008 | An independent reviewer's reading of the candidate's results against the transitions named by the accepted decomposition's `DEL-01-02` row and EXAMINATION V4-EXM-11 and the outcome labels of EXAMINATION §1, tracing each result to an observation the product did not write. A result with no such observation establishes nothing about its transition. |
+| OUT-004 | OBJ-001, OBJ-002, OBJ-005 | REQ-007, REQ-009, CLM-003, CLM-005 | AC-009 | VER-009 | An independent reviewer's inspection of the candidate's process topology against ARCHITECTURE V4-ARC-03, and trace of each act of REQ-009 to its owner's code, compared with the allocation in the accepted decomposition's Deliverables rows. |

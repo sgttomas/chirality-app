@@ -9,7 +9,8 @@ needs:
   gating: true
 - from: DEL-04-03
   condition: The run record holds each settings version handed to it and returns it with its read state,
-    and returns each human act with its kind, decision actor, recorder, bound content and lapse state.
+    returns each human act with its kind, decision actor, recorder, bound content and lapse state, and
+    returns a run's checkpoint entries.
   gating: false
 - from: DEL-03-02
   condition: An agent's change carries its origin and the basis it relied on, a proposal reports queued
@@ -23,7 +24,8 @@ needs:
 - from: DEL-02-03
   condition: Each arrival at a declared checkpoint, the request for its act where one can be identified,
     and the person's act are recorded, and the act is recorded as done only when the person performs
-    it.
+    it; each declaration finding, decline, lapse, lost or recovered observation, act after the run's
+    end and the run's end are recorded too, so that each arrival's disposition follows from the entries.
   gating: false
 - from: DEL-05-01
   condition: A host agent's allowed destinations, the grants made during work and every destination

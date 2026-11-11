@@ -4,10 +4,15 @@ needs:
 - from: DEL-01-01
   condition: A Codex child is started for each home with no credential in its environment; the
     supplier's account, model and configuration methods and a conversation's provider selection
-    are carried unchanged; the destination Codex reports for a turn is available; and the embedding
-    protocol qualification and what Codex requires of a provider at the pin are stated, with published
-    requirements kept apart from observed capability.
+    are carried unchanged; and the destination Codex reports for a turn is available.
   gating: true
+- from: DEL-01-01
+  condition: The embedding protocol qualification on the identified candidate and what Codex
+    requires of a provider at the pin are stated, with published requirements kept apart from
+    observed capability.
+  gating: true
+  when: Qualification of the account, provider and local-server interfaces and the handoff to the
+    host loop contract
 - from: external:OpenAI ChatGPT sign-in service
   condition: The Codex-managed ChatGPT sign-in completes in the system browser for the person's
     own account.

@@ -24,6 +24,12 @@ needs:
   condition: The owner, with the host contract owner, decides whether the catalog-extension promise
     is retained, narrowed to defined generated surfaces or deferred.
   when: Before the extension criterion is fixed or the capability claimed.
+- from: DEL-09-09
+  condition: One newly added catalog operation is traced across the person's interface, the embedded
+    agent and an external agent on identified candidates, with every generated surface and every piece
+    of additional adapter or interface work accounted for.
+  when: Before the extension criterion is fixed or the capability claimed.
+  gating: false
 - from: external:OI-014
   condition: The App/shared contract owners, with the affected host and consumer owners, agree where
     the catalog schemas are placed, how a host serializes its catalog and reads, and the content-identity

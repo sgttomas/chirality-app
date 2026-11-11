@@ -10,6 +10,10 @@ needs:
     addition to the reserved acts and the class of the first connected operation.
 - from: external:owner with the host policy owner
   condition: The owner, with the host policy owner, adopts a consequence vocabulary for operation classes.
+- from: external:person performing the act
+  condition: A person actually performs one of their own acts and evidence of it is supplied, so that
+    the positive faithful-recording case records a performed act and manufactures none.
+  when: Before the positive faithful-recording case of VER-002 is examined.
 code_paths:
 # act_policy.rs is shared with DEL-04-02. Here: the act kinds, classes, grants, scopes, treatments,
 # the resolver and the policy-class record claim. The settings-in claim and the grant display

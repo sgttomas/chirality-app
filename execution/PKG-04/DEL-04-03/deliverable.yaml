@@ -26,7 +26,8 @@ needs:
   gating: false
 - from: DEL-02-01
   condition: A workflow has a source-qualified identity whose revision changes with any byte, path or
-    file of its package, and a declared checkpoint names the one act it requires.
+    file of its package, a declared checkpoint names the one act it requires, and the checkpoint disposition
+    names are defined.
   gating: false
 - from: DEL-02-02
   condition: Each run's text is identified by its content identity with the state of its supply
@@ -68,6 +69,12 @@ needs:
 - from: external:OI-011
   condition: The App is signed and a signing key for log checkpoints and export manifests is held in the
     operating system's keychain.
+  when: Before the signed-checkpoint part of AC-009 and the signature part of AC-011 are examined.
+- from: external:person performing the act
+  condition: A person actually performs an act and its capture evidence is supplied with the act's content,
+    scope, purpose and evidence limits, so that the positive faithful-recording case records a performed
+    act and manufactures none.
+  when: Before the positive case of AC-003 is examined.
 code_paths:
 - app/src-tauri/src/records.rs
 - app/src-tauri/src/record_lines.rs

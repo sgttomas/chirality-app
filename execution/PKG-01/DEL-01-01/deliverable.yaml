@@ -5,6 +5,15 @@ needs:
   condition: Codex 0.167.0 is published as a stock macOS arm64 distribution whose release archive
     digest the supplier publishes, with its App Server protocol and the generators that emit that
     protocol's types.
+- from: external:DEP-005
+  condition: A named local model server, independent of the App and importing no App code, is
+    available to run the provider route against.
+  when: Examining the provider requirement account
+- from: DEL-01-05
+  condition: A conversation on the candidate can be started through a configured local server,
+    with the provider selection reported.
+  gating: false
+  when: Examining the embedding protocol and the provider requirement account on the candidate
 - from: DEL-01-05
   condition: Each App-owned Codex home exists before a child is started for it, has a stable identity
     that is neither a credential nor a filesystem path, and carries the person's settings and the

@@ -17,15 +17,17 @@ needs:
 - from: DEL-01-04
   condition: The keychain service and access group that keychain protection uses are stated, so
     that any entitlement the App's own code needs for it can be named.
-  gating: false
+  gating: true
   when: Signing a package that offers keychain protection
 - from: DEL-09-01
   condition: A built candidate can be identified in a candidate identification record, and a native
     packaged-application check can be run and recorded with the package it observed.
   gating: false
 - from: external:chirality-app-v4:DEP-005
-  condition: The Tauri 2 bundler builds the macOS bundle, and Apple's Developer ID signing and
-    notary service sign and notarise it.
+  condition: The Tauri 2 bundler builds the macOS bundle.
+- from: external:Apple Developer ID signing and notary service
+  condition: The App's own code is signed with the owner's Developer ID, and the bundle is
+    notarised and a ticket issued for stapling.
 - from: external:chirality-app-v4:DEP-004
   condition: OpenAI publishes, or gives the owner directly, its written position on distributing
     an App that uses its sign-in.

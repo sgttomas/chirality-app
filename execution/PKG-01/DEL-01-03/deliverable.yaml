@@ -21,8 +21,7 @@ needs:
   condition: A child started with TASK guidance is identified through the role configuration, and
     a child started without a role type is reported with guidance unknown; the task limit on
     delegation is reported as stated and not enforced, as enforced by the supplier through a named
-    mechanism, or as unknown; and a delegation by a child started with TASK guidance is recorded as
-    a limit observation.
+    mechanism, or as unknown.
   gating: false
 code_paths:
 - app/src-tauri/src/native_items.rs

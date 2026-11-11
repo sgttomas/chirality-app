@@ -18,6 +18,19 @@ needs:
     applied, refused, application error) has one name, and an outcome nobody observed is reported
     as unknown.
   gating: false
+- from: DEL-04-03
+  condition: A record of a person's act binds the actor, kept apart from the recorder, to the subject
+    content, scope and purpose with its supporting evidence, so that a checkpoint's declared actor,
+    subject and expected evidence name what the record of the act will hold.
+  gating: false
+- from: DEL-05-01
+  condition: The host-loop receiving contract states what a host's loop takes from the declared part,
+    workflow identity and checkpoint declarations, and its owner confirms or withholds that receipt.
+  gating: false
+- from: DEL-05-02
+  condition: The host-panel receiving contract states what a host's panel shows from workflow identity,
+    checkpoint declarations and requirement outcomes, and its owner confirms or withholds that receipt.
+  gating: false
 - from: external:App and shared contract owners
   condition: The owners of the shared contract parts decide where each part is placed and who owns
     any common implementation.

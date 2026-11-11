@@ -39,7 +39,7 @@ Terms:
 
 - **App-owned Codex home.** A Codex home directory the App creates for its own Codex, with a stable identity that is neither a credential nor a path. Every conversation belongs to exactly one home.
 - **Account home.** The home for ChatGPT account conversations. It shares the person's Codex settings, providers and MCP servers through links to the person's own files and keeps its own sign-in, held by Codex. If a pinned Codex cannot share settings this way, the App keeps its own settings and says so.
-- **Dedicated local home.** The home for the keyed oMLX route. It has its own fixed, nonsecret configuration — provider `chirality-omlx` at `http://127.0.0.1:8000/v1` over the Responses interface, with the one model the owner selected for the route — shares nothing with the account home, and holds the local server's key in Codex custody.
+- **Dedicated local home.** The home for the keyed oMLX route. It has its own fixed, nonsecret configuration — provider `chirality-omlx` at `http://127.0.0.1:8000/v1` over the Responses interface, with one fixed model for the route — shares nothing with the account home, and holds the local server's key in Codex custody.
 - **Probe home.** A home used only when the supplier binary is asked for its version label. It is never an account home and hosts no conversation.
 - **Access entry.** One way a conversation can reach a model: the ChatGPT account, a provider from the person's shared Codex settings, or the keyed oMLX route.
 - **Selection state.** For a conversation: no model selected, a model and provider selected, and the person's last explicit choice for the project.
@@ -48,7 +48,7 @@ Terms:
 Boundary:
 
 - **CLM-001** — Codex owns its account methods and every credential. The App owns the receiving integration. The App holds no token; a key the person enters passes once through a native secure field to Codex and is never stored, logged, written to configuration, a command line or the child's environment, or shown to the web view. External-token login is not offered.
-- **CLM-002** — Standalone OpenAI API-key access is omitted from this increment by the owner. Native plumbing and a key home saved by an earlier build are kept, neither offered nor deleted. Bringing it back is an owner scope decision.
+- **CLM-002** — Standalone OpenAI API-key access is omitted from this increment. Native plumbing and a key home saved by an earlier build are kept, neither offered nor deleted. Bringing it back is an owner scope decision.
 - **CLM-003** — `DEL-01-01` hosts the Codex child for each home, carries the account methods and the provider selection, qualifies the embedding protocol and states what Codex requires of a provider. `DEL-01-04` presents the conversation start, where the selection state appears, and captures acts. `DEL-01-02` lists live work before an operation that would end it.
 - **CLM-004** — `DEL-05-01` owns the host loop and its model contract; the external host owner builds the host's loop and enforces its endpoint and key boundary. A host's model interface is Chat Completions with tool calls; the App's provider interface is whatever Codex requires at the pin. Qualifying one says nothing about the other.
 
@@ -102,12 +102,12 @@ Account and provider methods are used as the pin publishes them, and what the Ap
 | Output | Objective refs | Requirement/claim refs | Acceptance refs | Verification refs | Evidence expectation |
 |---|---|---|---|---|---|
 | OUT-001 | OBJ-002 | REQ-001, CLM-001 | AC-001 | VER-001 | Outside source: Codex's own account report and the sign-in the examiner watched. The credential search is over files the App wrote, compared with a value only the person holds. |
-| OUT-001 | OBJ-002 | REQ-002, CLM-002 | AC-002 | VER-002 | Owner ruling: PRD V4-APP-02 omits standalone API-key access and keeps saved homes. |
+| OUT-001 | OBJ-002 | REQ-002, CLM-002 | AC-002 | VER-002 | The candidate's offered access entries read against PRD V4-APP-02, and the bytes of an earlier key home compared before and after the App has run. |
 | OUT-002 | OBJ-002 | REQ-003, CLM-001 | AC-003 | VER-003 | Outside source: the local server's own request log; the server imports no App code. |
-| OUT-002 | OBJ-002 | REQ-004 | AC-004 | VER-004 | Owner ruling: PRD V4-APP-02 and EXAMINATION V4-EXM-12. The provider of each conversation is taken from Codex's report. |
-| OUT-003 | OBJ-002 | REQ-005 | AC-005 | VER-005 | Owner ruling: shared settings with a separate sign-in. The comparison is with Codex's own configuration and account reads in each home. |
+| OUT-002 | OBJ-002 | REQ-004 | AC-004 | VER-004 | Outside source: the provider Codex reports for each conversation, compared with the selection state the App reports, in the EXAMINATION V4-EXM-12 scenario witnessed by an examiner on the candidate. |
+| OUT-003 | OBJ-002 | REQ-005 | AC-005 | VER-005 | Outside source: Codex's own configuration and account reads in each home, compared with what each home's term says it shares and keeps to itself. |
 | OUT-004 | OBJ-002, OBJ-004 | REQ-007, CLM-003 | AC-007 | VER-007 | Outside source: the supplier's published protocol at the pin and exchanges recorded from the stock supplier. |
 | OUT-004 | OBJ-002, OBJ-004 | REQ-007 | AC-008 | VER-008 | Outside source: the substitute server's own request log. |
-| OUT-004 | OBJ-002, OBJ-004 | REQ-008, CLM-004 | AC-009 | VER-009 | Owner ruling: ARCHITECTURE §6 separates the App's provider interface from a host's model interface. |
-| OUT-004 | OBJ-002, OBJ-004 | REQ-009, CLM-003, CLM-004 | AC-010 | VER-010 | Owner ruling: the accepted decomposition's allocation of each act. |
-| OUT-002 | OBJ-002 | REQ-010 | AC-011 | VER-011 | Outside source: connections observed at operating-system level, independent of the App's own view. Owner ruling for which traffic is turned off and which follows the person's plugin setting. |
+| OUT-004 | OBJ-002, OBJ-004 | REQ-008, CLM-004 | AC-009 | VER-009 | An independent reviewer's reading of the handoff against the qualification evidence and the interface split of ARCHITECTURE §6. It establishes that the handoff states what was observed; it does not establish that a host's loop conforms. |
+| OUT-004 | OBJ-002, OBJ-004 | REQ-009, CLM-003, CLM-004 | AC-010 | VER-010 | An independent reviewer's trace of each act of REQ-009 to its owner's code under CLM-003 and CLM-004. |
+| OUT-002 | OBJ-002 | REQ-010 | AC-011 | VER-011 | Outside source: connections observed at operating-system level, independent of the App's own view, compared with the network view, the record and the traffic REQ-010 turns off or leaves to the person's plugin setting. The observation holds for the supplier version observed. |

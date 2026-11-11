@@ -56,6 +56,11 @@ needs:
   condition: The panel requirements state the conversation, workflow, proposal and check interactions
     and that the agent's work appears in the host's own tables and views.
   gating: true
+- from: DEL-07-01
+  condition: Retained PEC material is constructed compatibility material, never a live, qualified
+    or adopted service; its record tier reports what its cited file states and its presence tier never
+    supports reliance.
+  gating: false
 - from: DEL-07-02
   condition: Connector receiving distinguishes current, absent, stale, partial and failing material,
     shows the source, standing, coverage and freshness of retained PEC material actually consumed,
@@ -71,8 +76,9 @@ needs:
     needs no connector.
   gating: true
 - from: DEL-01-01
-  condition: The supplier boundary states the native surfaces available for optional external access
-    and records, for each App turn, the guidance supplied and the model destination reached.
+  condition: The supplier boundary states the native surfaces available for optional external access,
+    and observes for each App turn the guidance supplied and the model and destination the supplier
+    reported, handing them to the record writer.
   gating: true
 - from: DEL-09-06
   condition: The contribution account lists every question put to SWBPIPE and every answer, commitment
