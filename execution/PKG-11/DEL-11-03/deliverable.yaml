@@ -6,13 +6,6 @@ needs:
     its evidence and limits, and maps each step to the core-loop elements (plan, execute, save a
     workflow, reuse it, approvals, interruption, restart).
   gating: true
-- from: DEL-09-07
-  condition: The local qualification dossier identifies the App and SWBPIPE candidates and their configuration,
-    gives each case's result, records the person's acceptance with its actor apart from the recorder,
-    links the host's receipts, states its gaps, and has been examined independently.
-  when: When the journey evidence for the replacement decision is assembled; the publication decision
-    and its packet do not wait on it.
-  gating: false
 - from: DEL-11-01
   condition: The continuity account gives each continuing obligation's disposition by its accountable
     owner or its open owner and point of need, the identity-check results for preserved material,
@@ -55,7 +48,7 @@ needs:
   condition: The v3.0.1 fallback release is identified by its published release, source revision and
     installer digest.
 - from: doc:execution/_Decomposition/Open_Issues.csv
-  condition: Each undecided matter the packet carries (OI-016, OI-021, OI-024) names its owner and point
+  condition: Each undecided matter the packet carries (OI-016, OI-024) names its owner and point
     of need.
 - from: doc:execution/_Coordination/PUBLICATION_PUNCHLIST.md
   condition: The results the publication decision rests on are listed with the deliverables that own
@@ -66,7 +59,7 @@ needs:
     words that can be attributed and quoted.
   when: Before a disposition is recorded as decided.
 - from: external:Owner
-  condition: The owner receives the package with both obligations and their standing, the exact candidate
+  condition: The owner receives the package with the replacement condition and its standing, the exact candidate
     and proposed scope, the evidence and the continuing obligations.
   direction: downstream
   gating: false

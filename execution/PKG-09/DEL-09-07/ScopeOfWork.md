@@ -4,16 +4,16 @@ deliverable_id: DEL-09-07
 package_id: PKG-09
 decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-199, SOW-200, SOW-201, SOW-202, SOW-239]
-package_objective_refs: [OBJ-004, OBJ-005, OBJ-008, OBJ-009]
+package_objective_refs: [OBJ-004, OBJ-005, OBJ-008]
 ---
 
 # DEL-09-07 — Local host candidate qualification
 
 ## Purpose and Objective Traceability
 
-This deliverable qualifies one identified pair of App and SWBPIPE candidates by observing the local host activity on them: an engineer asks SWBPIPE's embedded agent, running on a local model, to change an invented piping model, reviews and accepts the proposal row by row, and a solve follows. It contributes the four coordinated cases V4-EXM-20, V4-EXM-21, V4-EXM-22 and V4-EXM-23 with their candidate-bound results, and one dossier that joins them with SWBPIPE's own receipts and traffic observation and goes to DEL-11-03. The App connected-activity examination owner coordinates it, SWBPIPE's owner supplies execution, traffic and receipts, and an independent examiner checks the dossier. It builds nothing in either application.
+This deliverable qualifies one identified pair of App and SWBPIPE candidates by observing the local host activity on them: an engineer asks SWBPIPE's embedded agent, running on a local model, to change an invented piping model, reviews and accepts the proposal row by row, and a solve follows. It contributes the four coordinated cases V4-EXM-20, V4-EXM-21, V4-EXM-22 and V4-EXM-23 with their candidate-bound results, and one dossier that joins them with SWBPIPE's own receipts and traffic observation. The App connected-activity examination owner coordinates it, SWBPIPE's owner supplies execution, traffic and receipts, and an independent examiner checks the dossier. It builds nothing in either application.
 
-It serves OBJ-004 (host meaning and authority), OBJ-005 (attributable autonomy), OBJ-008 (candidate-specific evidence) and OBJ-009 (the live embedded journey for replacement). Its sources are PRD V4-HOST-01/02, V4-PAR-01…04, V4-AUT-01…05, V4-WF-05, V4-REC-01…05 and V4-REP-01, HOST_INTEGRATION V4-HI-10…12, 20…25, 30…33, 40…42 and 70…71, and EXAMINATION §§1–2, §4 and §7. The live SWBPIPE journey it examines is SWBPIPE's requirement and is not part of App v4's release, which is examined through the App's own interface. AC-002 and AC-003 state that result.
+It serves OBJ-004 (host meaning and authority), OBJ-005 (attributable autonomy) and OBJ-008 (candidate-specific evidence). Its sources are PRD V4-HOST-01/02, V4-PAR-01…04, V4-AUT-01…05, V4-WF-05, V4-REC-01…05, HOST_INTEGRATION V4-HI-10…12, 20…25, 30…33, 40…42 and 70…71, and EXAMINATION §§1–2 and §4. The live SWBPIPE journey it examines is SWBPIPE's requirement and is not part of App v4's release, which is examined through the App's own interface. AC-002 and AC-003 state that result.
 
 | Assigned scope | Local contribution | Output |
 |---|---|---|
@@ -25,8 +25,8 @@ It serves OBJ-004 (host meaning and authority), OBJ-005 (attributable autonomy),
 
 ## Deliverable Definition — Ontology
 
-- **OUT-001** — The four coordinated cases V4-EXM-20…23 and one result record for each planned part on the identified candidates. Supports SOW-199, SOW-200, SOW-201, SOW-202 and SOW-239; OBJ-004, OBJ-005, OBJ-008 and OBJ-009.
-- **OUT-002** — One local qualification dossier: the identification of both candidates, a manifest linking the cases to the original model basis, the proposed, accepted, rejected and applied rows, the solve and checking evidence, the policy and checkpoints in force, the traffic observation, origins and undo, the host's receipts and the human acts. It states the gaps and the candidates' standing and goes to DEL-11-03. Supports SOW-199, SOW-200, SOW-201, SOW-202 and SOW-239; OBJ-004, OBJ-005, OBJ-008 and OBJ-009.
+- **OUT-001** — The four coordinated cases V4-EXM-20…23 and one result record for each planned part on the identified candidates. Supports SOW-199, SOW-200, SOW-201, SOW-202 and SOW-239; OBJ-004, OBJ-005 and OBJ-008.
+- **OUT-002** — One local qualification dossier: the identification of both candidates, a manifest linking the cases to the original model basis, the proposed, accepted, rejected and applied rows, the solve and checking evidence, the policy and checkpoints in force, the traffic observation, origins and undo, the host's receipts and the human acts. It states the gaps and the candidates' standing. Supports SOW-199, SOW-200, SOW-201, SOW-202 and SOW-239; OBJ-004, OBJ-005 and OBJ-008.
 
 Terms:
 
@@ -39,7 +39,7 @@ Boundary:
 
 - **CLM-001** — The App connected-activity examination owner is responsible for this qualification. Feature owners keep their own checks. Examination happens as contributions become available on the candidates.
 - **CLM-002** — SWBPIPE's own project builds the host: its model store, catalog and views, its validation, application and solve route, its loop and panel, its enforcement of network destinations, origins, undo and receipts. The host offers, records and presents human acts; the person performs them and sets the autonomy for each operation class. For the first increment's App and shared contracts, five acts are reserved to a person: marking checked, accepting a proposal where autonomy requires it, engineering approval, professional reliance, and changing the grant or enabling external access; hosts have no classifier permission mode, and SWBPIPE model changes default to proposals. The host adopts, names and enforces its own list, and SWBPIPE's adoption is part of its contribution.
-- **CLM-003** — `DEL-09-06` owns the definition of the activity examined here (its operation, autonomy and environment), the reusable method and the workflow round trip, and the receiving of SWBPIPE's catalog; this deliverable uses them. `DEL-11-03` owns the decision packet. External control, catalog extension and the later Domains activity are examined elsewhere. Reconstruction a week later is `DEL-09-11`'s.
+- **CLM-003** — `DEL-09-06` owns the definition of the activity examined here (its operation, autonomy and environment), the reusable method and the workflow round trip, and the receiving of SWBPIPE's catalog; this deliverable uses them. External control, catalog extension and the later Domains activity are examined elsewhere. Reconstruction a week later is `DEL-09-11`'s.
 - **CLM-004** — SWBPIPE's contribution is needed before the connected examination. A prepared file, an inspected source or a component pass is neither a delivery nor a joined witness. Coordination with SWBPIPE is relayed by the human through repository files.
 - **CLM-005** — What is qualified is the observed meaning, outcome and standing of operations on the candidates, in the terms defined above.
 
@@ -74,7 +74,7 @@ The activity definition from DEL-09-06 and the contribution received from SWBPIP
 - **VER-004** — Compare host table content before and after the check, follow the findings' references, and inspect the record of a performed human act (such as a row acceptance) against the act observed, with the fabrication negatives and the lapse after a content change.
 - **VER-005** — Inspect the policy and run setting in force; observe the directly applied class with origin and undo, the geometry proposals and the checkpoint.
 - **VER-006** — Receive the complete host network observation for the same run and compare every destination with the selected model service, the allowed destinations and grants in force, and the host's own destination record. State the boundary of the observation. A partial capture or a substitute fixture does not pass.
-- **VER-007** — An independent examiner reconstructs the activity from the dossier and the linked host evidence and inspects configuration, outcomes, limits, browser and native coverage and what is supplied to DEL-11-03.
+- **VER-007** — An independent examiner reconstructs the activity from the dossier and the linked host evidence and inspects configuration, outcomes, limits, browser and native coverage.
 - **VER-008** — Review the account of acts against CLM-001…CLM-004 and the standing of each SWBPIPE contribution against DEL-09-06's definition and the evidence held.
 
 ## Governing Values and Decisions — Axiology
@@ -88,11 +88,11 @@ The activity definition from DEL-09-06 and the contribution received from SWBPIP
 
 | Output | Objective refs | Requirement/claim refs | Acceptance refs | Verification refs | Evidence expectation |
 |---|---|---|---|---|---|
-| OUT-001 | OBJ-004; OBJ-005; OBJ-008; OBJ-009 | REQ-001; CLM-001; CLM-004 | AC-001 | VER-001 | The case plan and dossier compared with the accepted decomposition's five scope items, EXAMINATION V4-EXM-20…23 and the activity definition and configuration actually received; the identifications checked against the candidate pair's identification record. |
-| OUT-001 | OBJ-004; OBJ-008; OBJ-009 | REQ-002; REQ-008 | AC-002 | VER-002 | Outside source: SWBPIPE's own tables, solve result and receipts, and what the examiner watched the engineer do. EXAMINATION V4-EXM-20 and §7 state the journey. |
+| OUT-001 | OBJ-004; OBJ-005; OBJ-008 | REQ-001; CLM-001; CLM-004 | AC-001 | VER-001 | The case plan and dossier compared with the accepted decomposition's five scope items, EXAMINATION V4-EXM-20…23 and the activity definition and configuration actually received; the identifications checked against the candidate pair's identification record. |
+| OUT-001 | OBJ-004; OBJ-008 | REQ-002; REQ-008 | AC-002 | VER-002 | Outside source: SWBPIPE's own tables, solve result and receipts, and what the examiner watched the engineer do. EXAMINATION V4-EXM-20 states the journey. |
 | OUT-001 | OBJ-004; OBJ-008 | REQ-003 | AC-003 | VER-003 | Outside source: the host's own receipts and refusal reason. HOST_INTEGRATION V4-HI-21/23/70/71 state the expected behaviour. |
 | OUT-001 | OBJ-004; OBJ-008 | REQ-004; REQ-007; CLM-005 | AC-004 | VER-004 | Outside source: host table content before and after, and the act the examiner watched. EXAMINATION V4-EXM-21 and HOST_INTEGRATION V4-HI-10…12 state the expected result. |
 | OUT-001 | OBJ-005; OBJ-008 | REQ-005; CLM-002 | AC-005 | VER-005 | What the examiner observed in the host compared with the operation policy the host adopted, the person's recorded setting for each class, DEL-04-01's policy-class records and PRD V4-WF-05. |
 | OUT-001 | OBJ-004; OBJ-008 | REQ-006 | AC-006 | VER-006 | Outside source: an observation of all the host's network traffic for the run, supplied by SWBPIPE's owner, set against the host's own destination record. PRD V4-HOST-02 states the four things to establish. |
-| OUT-002 | OBJ-004; OBJ-005; OBJ-008; OBJ-009 | REQ-007; REQ-008; CLM-003 | AC-007 | VER-007 | An independent examiner's reconstruction of the activity from the dossier, compared with the host's own receipts and with EXAMINATION §§1–2 and §7. A check that a record matches DEL-09-01's formats shows only that it is well formed. |
+| OUT-002 | OBJ-004; OBJ-005; OBJ-008 | REQ-007; REQ-008; CLM-003 | AC-007 | VER-007 | An independent examiner's reconstruction of the activity from the dossier, compared with the host's own receipts and with EXAMINATION §§1–2. A check that a record matches DEL-09-01's formats shows only that it is well formed. |
 | OUT-002 | OBJ-004; OBJ-008 | REQ-009; CLM-001; CLM-002; CLM-003; CLM-004 | AC-008 | VER-008 | Each act the dossier excludes compared with its owner in CLM-001 to CLM-004 and in the accepted decomposition's rows; each SWBPIPE contribution's standing compared with the evidence held for it. |
