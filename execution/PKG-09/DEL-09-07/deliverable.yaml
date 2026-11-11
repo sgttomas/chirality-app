@@ -10,16 +10,16 @@ needs:
 - from: DEL-02-03
   condition: A declared workflow checkpoint requests the person's act and records it only when performed,
     and holds the run only in the governance phase.
-  gating: true
+  gating: false
 - from: DEL-03-01
   condition: The catalog states each operation's meaning and the read basis (workspace identity, generation,
     model revision, canonical content hash) a read returns.
-  gating: true
+  gating: false
 - from: DEL-03-02
   condition: A proposal is bound to its read basis, is refused with a reason after an intervening
     edit, stays queued until the host records acceptance and application, and has one outcome with
     its receipt.
-  gating: true
+  gating: false
 - from: DEL-04-01
   condition: The operation policy names the acts reserved to a person and the settings an operation
     class may take, with proposal as the default for SWBPIPE model changes, accepted row by row,
@@ -28,28 +28,31 @@ needs:
 - from: DEL-04-02
   condition: The setting for each operation class is visible and recorded with the run, and a directly
     applied operation shows its origin mark and the undo route the host supplies.
-  gating: true
+  gating: false
 - from: DEL-04-03
   condition: Act and run records bind each act to actor, recorder, content, scope and purpose, refer
     to host receipts, and show an act as lapsed when its content changes.
-  gating: true
+  gating: false
 - from: DEL-05-01
   condition: The loop requirements state which model service serves a turn and that every destination
     contacted is recorded and shown.
-  gating: true
+  gating: false
 - from: DEL-05-02
   condition: Proposed changes appear in the host's own tables with affected objects, old and new
     values and reason, and check findings refer to host rows and results, with no agent-private surface.
-  gating: true
+  gating: false
 - from: DEL-09-01
-  condition: Result records bind candidate, configuration and date, mark replay, browser and native
-    evidence apart, and refuse a rehearsal as a case result; WebKit and Chromium interface routes
-    and a native package smoke route exist.
+  condition: Result records bind candidate, harness, model and model-server configuration and date,
+    a candidate identification record names the App and SWBPIPE candidate pair, records mark replay,
+    browser and native evidence apart and refuse a rehearsal as a case result, and WebKit and Chromium
+    interface routes and a native package smoke route exist.
   gating: true
 - from: external:DEP-001
-  condition: SWBPIPE provides an identified host candidate with its embedded agent, runs the journey
-    on it, and returns its own receipts and an observation of all network traffic for the same run
-    with evidence of its native destination enforcement.
+  condition: SWBPIPE provides an identified host candidate with its embedded agent and states the
+    operation policy that candidate has adopted (its reserved list, the class it allows to be applied
+    directly and its default for model changes), runs the journey on it, and returns its own receipts
+    and an observation of all network traffic for the same run with evidence of its native destination
+    enforcement.
   when: Before any case is run.
 - from: external:local model server
   condition: A local model server of identified version and configuration serves the embedded agent.
@@ -58,5 +61,13 @@ needs:
     rejects proposed rows and performs the declared checkpoint act while the examiner observes.
 - from: external:independent examiner
   condition: An examiner separate from the coordinating owner examines the joined dossier.
+- from: external:OI-021
+  condition: The owner, through the SWBPIPE session and with the App owner, decides any addition to
+    the reserved acts or to routine-permission treatment that the examined operation needs beyond the
+    first increment's.
+  when: Before a criterion that depends on that addition is examined.
+- from: external:owner hold on SWBPIPE joins
+  condition: The owner releases the hold on live SWBPIPE joins by resuming SWBPIPE UI-SUCCESSOR work.
+  when: Before any case is run on a SWBPIPE candidate.
 code_paths: []
 checks: []

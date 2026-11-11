@@ -27,25 +27,27 @@ needs:
     told apart from a decision.
   gating: true
 - from: DEL-01-06
-  condition: For the final candidate, the package identity record identifies the package and the result
-    of comparing it with an independent reading of the package is recorded; the install-and-launch
-    witness names the package it concerns and what was and was not observed; each shipped component
-    is recorded with its notice or named uncovered; the terms position is recorded with the owner's
-    applicability statement or as unresolved; and the limitations stated with the release are listed.
+  condition: The package identity record identifies the final candidate, and the limitations stated
+    with the release are listed. DEL-01-06's results on that candidate (the comparison with an independent
+    reading of the package, the install-and-launch witness naming what was and was not observed, each
+    shipped component's notice or its named gap, the terms position with the owner's applicability
+    statement or as unresolved) are each recorded with their standing, an unrun one as not run.
   gating: true
   when: Before the packet is put to the owner for the publication decision.
 - from: DEL-01-01
   condition: For the final candidate, the result of the supplier qualification at the candidate's
     pin (whether the embedding protocol behaves on the candidate as the supplier publishes it) is
     recorded with its outcome, evidence and limits, and the provider requirement account names each
-    requirement as published, observed on a named server or not observed.
-  gating: true
+    requirement as published, observed on a named server or not observed; a result not yet made
+    reads as not run.
+  gating: false
   when: Before the packet is put to the owner for the publication decision.
 - from: DEL-01-04
   condition: For the final candidate, the result of the person's keychain protection act on the installed,
     signed build (enrolment of the key, the approval policy stored in the keychain, admission of
-    a sealed registered workflow after a cold start) is recorded with its outcome, evidence and limits.
-  gating: true
+    a sealed registered workflow after a cold start) is recorded with its outcome, evidence and limits;
+    a result not yet made reads as not run.
+  gating: false
   when: Before the packet is put to the owner for the publication decision.
 - from: doc:reference/REFERENCES.md
   condition: The v3.0.1 fallback release is identified by its published release, source revision and
@@ -53,8 +55,9 @@ needs:
 - from: doc:execution/_Decomposition/Open_Issues.csv
   condition: Each undecided matter the packet carries (OI-016, OI-021, OI-024) names its owner and point
     of need.
-- from: doc:docs/RELEASE_TARGET_4.0.0.md
-  condition: The exit criteria, and the deliverables that own each, are stated and accepted by the owner.
+- from: doc:execution/_Coordination/PUBLICATION_PUNCHLIST.md
+  condition: The results the publication decision rests on are listed with the deliverables that own
+    each.
   when: Before the packet is put to the owner for the publication decision.
 - from: external:Owner
   condition: The owner responds to the package presented, choosing or leaving the decision open, in

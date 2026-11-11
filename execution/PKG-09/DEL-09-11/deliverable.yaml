@@ -9,7 +9,8 @@ needs:
   gating: true
 - from: DEL-04-01
   condition: The operation policy keeps accepting an edit, checking, engineering approval and professional
-    reliance as distinct acts, so a record of one is not read as another.
+    reliance as distinct acts, so a record of one is not read as another, and a routine tool-permission
+    setting never stands in for a human or professional act.
   gating: false
 - from: DEL-09-07
   condition: One V4-EXM-20 journey has run on identified candidates, and its dossier names the journey's

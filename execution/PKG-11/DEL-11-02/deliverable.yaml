@@ -18,6 +18,22 @@ needs:
     guidance part and what was supplied, shows adoption as unknown unless a consumer's adoption is
     evidenced with its actor and scope, and can be read without this deliverable defining its format.
   gating: true
+- from: package:PKG-02
+  condition: The workflow, role and checkpoint contracts whose adoption is accounted for state their
+    promises, so that an affected change can be traced from them.
+  when: When a renewal changes one of those contracts.
+- from: package:PKG-03
+  condition: The catalog and proposal contracts whose adoption is accounted for state their promises,
+    so that an affected change can be traced from them.
+  when: When a renewal changes one of those contracts.
+- from: package:PKG-04
+  condition: The operation-policy, autonomy and record contracts whose adoption is accounted for state
+    their promises, so that an affected change can be traced from them.
+  when: When a renewal changes one of those contracts.
+- from: package:PKG-05
+  condition: The host-loop and panel contracts whose adoption is accounted for state their promises,
+    so that an affected change can be traced from them.
+  when: When a renewal changes one of those contracts.
 - from: external:DEP-006
   condition: The owner of each affected consumer supplies that consumer's adoption decision, its packaging
     and tool-path consequences and the dispositions of its continuing obligations.

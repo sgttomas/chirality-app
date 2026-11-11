@@ -4,6 +4,19 @@ needs:
 - from: DEL-10-01
   condition: The execution basis identifies the accepted decomposition and the amendments it is read with,
     so that the node inventory is taken from the accepted allocation.
+  when: Before the node inventory of a version is fixed.
+  gating: true
+- from: DEL-10-02
+  condition: Graph preparation, carried as an undertaking, keeps its briefs, returns and independent-check
+    account under the undertaking controls, so that who assembled a candidate and who examined it can be
+    recovered.
+  when: When a candidate graph is assembled and examined.
+  gating: false
+- from: DEL-10-03
+  condition: Where the responsibility account names the owner of a shared contract part, of a technical promise
+    or of a contribution from outside the project, the owner it names is available for the graph's relationships
+    and interface account to carry.
+  when: When the graph or its interface account draws a relationship or an outside owner from that account.
   gating: true
 - from: doc:execution/_Decomposition/Deliverables.csv
   condition: The accepted decomposition lists the project's deliverables with their packages and interfaces;
@@ -17,6 +30,10 @@ needs:
 - from: doc:execution/_Decomposition/Open_Issues.csv
   condition: Each open matter bearing on an outside contribution is listed with its owner, its point of need
     and the resolution required.
+- from: external:independent examiner
+  condition: An examiner that did not assemble the graph examines the candidate and returns its findings and
+    its rechecks of what changed, each tied to the candidate it concerns.
+  when: Before the version package is put to the owner.
 - from: external:owner
   condition: The owner decides the graph's basis and accepts a version, each decision naming the exact content
     it covers, and decides any cut or merge of a cycle and the acceptance or rejection of a departure.

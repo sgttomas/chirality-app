@@ -1,6 +1,12 @@
 id: DEL-09-10
 name: Optional connector consumption witness
 needs:
+- from: DEL-07-01
+  condition: Retained PEC material is constructed compatibility material, marked simulated and standing
+    for no live, qualified or adopted service, and an absent PEC input is shown as absent with no conclusion
+    of empty work, readiness or permission.
+  when: For the absent-PEC case and any case that uses retained PEC material.
+  gating: false
 - from: DEL-07-02
   condition: With a connector feed limited, stale, partial, failing or absent, the App shows the feed's
     coverage, freshness and limits, marks the conclusions it does not support, and offers the source-file

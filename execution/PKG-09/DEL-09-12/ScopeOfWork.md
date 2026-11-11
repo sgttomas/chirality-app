@@ -32,7 +32,7 @@ Boundary:
 - **CLM-001** — The owner is the practitioner and decides the period and the activities; the coordinator routes observations to their owners.
 - **CLM-002** — Agents do development testing. The owner's product testing begins after readiness has been recommended to the owner, and a control operated by an agent establishes no act of the owner.
 - **CLM-003** — `DEL-10-02` receives method feedback and `DEL-10-01` carries the adopted method and edition, with the owner deciding consequential adoption or departure. Feature owners keep changes to their requirements and their focused checks. `DEL-09-01` owns the examination support. Routing an observation performs none of those later acts.
-- **CLM-004** — SWBPIPE's own project builds the host and its surface for offering, recording and presenting human acts; coordination with it is relayed by the human. `DEL-04-01` carries the operation policy: five acts are reserved to a person, and routine tool permission is the person's own Codex setting and never stands for one of them.
+- **CLM-004** — SWBPIPE's own project builds the host and its surface for offering, recording and presenting human acts; coordination with it is relayed by the human. `DEL-04-01` carries the operation policy: for the first increment five acts are reserved to a person, with operation-specific additions undecided (owner, with the affected App and host design owners), and routine tool permission is the person's own Codex setting and never stands for one of them.
 - **CLM-005** — The owner decides replacement and publication on their own evidence, which `DEL-11-03` assembles; `DEL-11-01` carries preservation and continuing obligations. Replacement retires no other project and establishes no professional reliance.
 
 ## Completion and Reliance Basis — Epistemology
@@ -78,9 +78,9 @@ The coordinator prepares the arrangement with the owner and obtains the owner's 
 
 | Output | Objective refs | Requirement/claim refs | Acceptance refs | Verification refs | Evidence expectation |
 |---|---|---|---|---|---|
-| OUT-001 | OBJ-008 | REQ-001; CLM-001 | AC-001 | VER-001 | Owner ruling: the owner's own agreement is the expected result, read from the owner's words. |
+| OUT-001 | OBJ-008 | REQ-001; CLM-001 | AC-001 | VER-001 | The owner's own words of agreement, compared by an independent reviewer with what the arrangement records (applications, work, period, material and candidates) and with V4-EXM-40. Only the owner's agreement establishes the arrangement; a reviewer can show that the record matches it, not supply it. |
 | OUT-002 | OBJ-008 | REQ-002; CLM-002 | AC-002 | VER-002 | Outside source: the owner's own observations while using the candidate. EXAMINATION V4-EXM-41 states the four aims. |
 | OUT-002 | OBJ-008 | REQ-003; CLM-004 | AC-003 | VER-003 | Outside source: the act as the person performed it, set against the record. PRD V4-AUT-03 states what may be recorded. |
-| OUT-003 | OBJ-008; OBJ-010 | REQ-004; CLM-003 | AC-004 | VER-004 | Owner ruling: EXAMINATION V4-EXM-42 and OPERATING_METHOD V4-OPS-20…23. Each disposition is read from its recipient's own decision. |
-| OUT-001 | OBJ-008 | REQ-005; CLM-001; CLM-005 | AC-005 | VER-005 | Owner ruling: each matter is decided only by the owner named for it. |
-| OUT-003 | OBJ-008; OBJ-010 | REQ-006; CLM-003; CLM-004; CLM-005 | AC-006 | VER-006 | Owner ruling: the accepted decomposition's allocation of each act. |
+| OUT-003 | OBJ-008; OBJ-010 | REQ-004; CLM-003 | AC-004 | VER-004 | Each disposition, compared by an independent reviewer with the observation as the owner reported it and with its recipient's own record of decision, or shown as pending where none exists; each method observation also compared with the manual section it cites and the work record that carries the work (EXAMINATION V4-EXM-42, OPERATING_METHOD V4-OPS-20…23). |
+| OUT-001 | OBJ-008 | REQ-005; CLM-001; CLM-005 | AC-005 | VER-005 | The arrangement and the dispositions, compared by an independent reviewer with the undecided matters under Axiology and with the decision record of each matter's named owner, for anything stated as decided that its owner has not decided. |
+| OUT-003 | OBJ-008; OBJ-010 | REQ-006; CLM-003; CLM-004; CLM-005 | AC-006 | VER-006 | The dispositions and their links, read by an independent reviewer against the allocation of each act in CLM-003 to CLM-005 (the decomposition rows of DEL-09-12, DEL-10-01, DEL-10-02, DEL-04-01, DEL-11-01 and DEL-11-03, and PRD V4-EXT-01 and §8). |

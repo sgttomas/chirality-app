@@ -38,7 +38,8 @@ needs:
     two sessions, no step requiring an agent to operate or explain an App control; changed material
     stays a draft until reviewed registration, a same-name entry from another origin neither overwrites
     nor rebinds a selection, and a saved workflow runs in a later session on new inputs under the
-    person's workflow approval policy with the same source and revision.
+    person's workflow approval policy with the same source and revision, its selection and run records
+    stating the policy requested and the approval evidence applied.
   gating: true
 - from: DEL-02-03
   condition: A human checkpoint in a workflow run is recorded only when the person performs it, and

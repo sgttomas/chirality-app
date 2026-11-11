@@ -43,14 +43,14 @@ needs:
 - from: external:DEP-001
   condition: SWBPIPE provides an identified host candidate with its external interface, a facility
     by which the person enables that interface and which returns a capture-evidence reference, its
-    views with old and new values, origins and receipts, and the fixture set-up and reset the cases
-    need.
+    views with old and new values, origins and receipts, the fixture set-up and reset the cases
+    need, and a statement of the operation policy that candidate has adopted.
   when: Before any live case.
 - from: external:person and engineer
   condition: The person enables external access on the host, and the engineer accepts the submitted
     proposal in SWBPIPE while the examiner observes.
 - from: external:owner hold on SWBPIPE joins
-  condition: The owner resumes SWBPIPE UI-SUCCESSOR work.
+  condition: The owner releases the hold on live SWBPIPE joins by resuming SWBPIPE UI-SUCCESSOR work.
   when: Before any live case.
 - from: external:OI-003
   condition: The owner, with the host contract owner, decides whether the catalog-extension promise
@@ -58,8 +58,12 @@ needs:
   when: Before the extension criterion is verified.
 - from: external:OI-021
   condition: The owner chooses the operation, the autonomy permitted and the candidate environment
-    of the first connected activity.
+    of the first connected activity, and any addition to the reserved acts or routine-permission
+    treatment that operation needs.
   when: Before any live case.
+- from: external:OI-005
+  condition: The owner decides whether any host beyond the App and SWBPIPE is essential to examination.
+  when: Before the examination scope is frozen.
 - from: external:OI-003
   condition: The trace of one new operation and the work account go to the owner and the host contract
     owner as evidence for the extension decision.

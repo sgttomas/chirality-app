@@ -13,11 +13,11 @@ package_objective_refs: [OBJ-006, OBJ-008]
 
 This deliverable shows, on one identified App candidate, that a person can coordinate delegated agent work and recover the whole undertaking after it is interrupted. It contributes a small fleet fixture and the joined record of what happened when that fixture ran: who actually worked, what returned, what was reviewed and integrated, what still waits and why, and one decision the person actually made. The App fleet integration owner integrates it and an independent examiner checks it. It builds no fleet feature.
 
-SOW-198 is the two-delegation graph, queue, decision and view-rebuild witness of V4-EXM-13; it serves OBJ-006 (recoverable bounded fleet work) and OBJ-008 (candidate-specific evidence). SOW-243 is the separate longer-work evidence and its limits; it serves OBJ-008. Its sources are PRD V4-PM-01…06, V4-EXE-01…04 and V4-AUT-03…05, and EXAMINATION §§1–2 and V4-EXM-13. The draft 4.0.0 release target names no exit criterion for this deliverable.
+SOW-198 is the two-delegation graph, queue, decision and view-rebuild witness of V4-EXM-13; it serves OBJ-006 (recoverable bounded fleet work) and OBJ-008 (candidate-specific evidence). SOW-243 is the separate longer-work evidence and its limits; it serves OBJ-008. Its sources are PRD V4-PM-01…06, V4-EXE-01…04 and V4-AUT-03…05, and EXAMINATION §§1–2 and V4-EXM-13.
 
 ## Deliverable Definition — Ontology
 
-- **OUT-001** — The V4-EXM-13 fixture: an invented undertaking with two bounded delegations, a work graph, a return queue, one decision package, a change of basis and an interruption, run on an identified candidate. Supports SOW-198 and SOW-243; OBJ-006 and OBJ-008. The fixture's invented work, delegations and decided matter are written here before VER-001 is run.
+- **OUT-001** — The V4-EXM-13 fixture: an invented undertaking with two bounded delegations, a work graph, a return queue, one decision package, a change of basis and an interruption, run on an identified candidate. Supports SOW-198 and SOW-243; OBJ-006 and OBJ-008. The fixture's invented work, delegations and decided matter are fixed before VER-001 is run.
 - **OUT-002** — The joined account of that run: returns, reviews, workers, ownership and pending choices, the views rebuilt from files, the decision record set against the decision actually made, the outcomes, the independent findings, and what this evidence adds beyond a single-host or conversation-only result. Supports SOW-198 and SOW-243; OBJ-006 and OBJ-008.
 
 Terms:
@@ -74,10 +74,10 @@ The fixture is kept small: it realises the conditions of V4-EXM-13 and sets no s
 
 | Output | Objective refs | Requirement/claim refs | Acceptance refs | Verification refs | Evidence expectation |
 |---|---|---|---|---|---|
-| OUT-001 | OBJ-006; OBJ-008 | REQ-001; CLM-001 | AC-001 | VER-001 | Owner ruling: EXAMINATION V4-EXM-13 and PRD V4-PM-01…04. Child launches and returns are read from the supplier's native events, which the App did not write. |
-| OUT-001 | OBJ-006; OBJ-008 | REQ-002 | AC-002 | VER-002 | Owner ruling: EXAMINATION V4-EXM-13 lists the conditions. The result is what the examiner observed at each point. |
+| OUT-001 | OBJ-006; OBJ-008 | REQ-001; CLM-001 | AC-001 | VER-001 | Child launches and returns read from the supplier's native events, which the App did not write, compared with the briefs, graph, queue and decision package; each brief compared with the fields of PRD V4-PM-01…04 and the fixture with the conditions of EXAMINATION V4-EXM-13. |
+| OUT-001 | OBJ-006; OBJ-008 | REQ-002 | AC-002 | VER-002 | Judgment by the examiner: the states observed before, at and after the interruption compared with the conditions EXAMINATION V4-EXM-13 and REQ-002 list. |
 | OUT-002 | OBJ-006; OBJ-008 | REQ-002; REQ-003 | AC-003 | VER-003 | The state the examiner recorded before closing, and the files on disk. No independent grounds: the comparison is of the product with its own earlier state and its own files, so it guards against loss and does not show the earlier state was right. AC-001 and AC-002 carry that. |
 | OUT-002 | OBJ-006; OBJ-008 | REQ-004; CLM-002 | AC-004 | VER-004 | Outside source: the decision the examiner watched the person make. PRD V4-AUT-03, V4-EXE-02 and V4-PM-04 state what may and may not be recorded. |
-| OUT-002 | OBJ-008 | REQ-005 | AC-005 | VER-005 | Owner ruling: EXAMINATION §§1–2. An independent reviewer reads the account against the native events and the candidate identification. |
-| OUT-002 | OBJ-008 | REQ-005; REQ-006; CLM-003 | AC-006 | VER-006 | Owner ruling: accepted basis decision 05 (SOW-243) keeps first-host evidence bounded and requires the longer-work join; EXAMINATION §7 names the replacement evidence, which this is not. |
-| OUT-002 | OBJ-006; OBJ-008 | REQ-006; CLM-001; CLM-002; CLM-003 | AC-007 | VER-007 | Owner ruling: the accepted decomposition's allocation of each act. |
+| OUT-002 | OBJ-008 | REQ-005 | AC-005 | VER-005 | Judgment by an independent reviewer: the account read against the native events, the candidate identification and the outcome meanings of EXAMINATION §§1–2. |
+| OUT-002 | OBJ-008 | REQ-005; REQ-006; CLM-003 | AC-006 | VER-006 | Judgment by a reviewer: the account's statement of coverage compared with the first-host, conversation-only and component evidence it cites, and with the longer-work conditions SOW-243 adds; EXAMINATION §7 names the replacement evidence, which this is not. |
+| OUT-002 | OBJ-006; OBJ-008 | REQ-006; CLM-001; CLM-002; CLM-003 | AC-007 | VER-007 | Judgment by a reviewer: both outputs read against the decomposition's allocation of each act to its deliverable and the owners of the undecided matters below. |

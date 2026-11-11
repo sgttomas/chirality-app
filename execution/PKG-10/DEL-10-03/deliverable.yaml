@@ -12,8 +12,9 @@ needs:
     a declared element produces an explicit unsupported result.
   gating: true
 - from: DEL-02-04
-  condition: The packaged guidance equals its maintained source byte for byte, and each conversation start
-    records the source and content identity of the guidance supplied, with adoption recorded as unknown.
+  condition: The App's additive role-supply obligations are stated with the maintained source the packaged
+    guidance is generated from, and each conversation start records the source and content identity of the
+    guidance supplied, with adoption recorded as unknown.
   gating: true
 - from: DEL-03-01
   condition: The generated-surface and adapter-responsibility map states, for the human interface, the embedded
@@ -48,5 +49,9 @@ needs:
     by release and recoverable identity, so that the working-guidance entries of the responsibility map point
     at an identified edition.
   gating: true
+- from: external:owners of the affected Root, Runtime, App and Piping consumers
+  condition: The current source of each consumer that a proposed change of placement or supply affects is
+    identified and readable at a named revision.
+  when: Before the account's check of that change is relied on.
 code_paths: []
 checks: []

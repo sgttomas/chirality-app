@@ -63,16 +63,20 @@ needs:
     record as a case result.
   gating: true
 - from: external:DEP-001
-  condition: SWBPIPE delivers its catalog source and schema at an identified revision, and provides
+  condition: SWBPIPE delivers its catalog source and schema at an identified revision, provides
     an identified host candidate that can receive an App workflow, run the first activity and return
-    its own receipts.
-  when: The catalog before catalog receiving; the candidate before any round-trip case.
+    its own receipts, and states the operation policy that candidate has adopted (its reserved list,
+    its routine-permission treatment and its default for model changes).
+  when: The catalog before catalog receiving; the candidate and its adopted policy before any round-trip
+    case.
 - from: external:OI-021
   condition: The owner, through the SWBPIPE session and with the App owner, chooses the operation,
-    the autonomy permitted and the candidate environment of the first activity.
+    the autonomy permitted, the candidate environment and the externally supplied interfaces of the
+    first activity, and any addition
+    to the reserved acts or routine-permission treatment that operation needs.
   when: Before the activity definition is closed and before any round-trip case is run.
 - from: external:owner hold on SWBPIPE joins
-  condition: The owner resumes SWBPIPE UI-SUCCESSOR work.
+  condition: The owner releases the hold on live SWBPIPE joins by resuming SWBPIPE UI-SUCCESSOR work.
   when: Before any live round-trip case.
 - from: external:person performing the checkpoint act
   condition: A person performs the declared checkpoint act and the acceptance in the round trip while

@@ -13,6 +13,10 @@ needs:
 - from: external:independent reviewer
   condition: A reviewer separate from the candidate's author returns a review that names the candidate
     it examined and the model identities the host exposed.
+- from: external:person performing a recorded act
+  condition: A person actually performs an act whose subject and scope are evidenced, so that a record
+    of it can be compared with the act; no human act is invented for a fixture.
+  when: Before the record checks are relied on to show faithful recording of a performed act.
 - from: external:browser engines
   condition: WebKit and Chromium engines are installed for the interface runner, with their versions
     readable.

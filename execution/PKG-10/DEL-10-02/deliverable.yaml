@@ -15,10 +15,12 @@ needs:
   condition: Each method observation from the owner's validating use arrives citing the section of the selected
     manual, its observed conditions and the existing work record that carries the work, with this deliverable
     named as its recipient.
+  when: When the owner's validating use yields an observation about the selected practice.
   gating: false
 - from: external:owner
-  condition: The owner gives each practice note brought to a stage or selected-method discussion its disposition,
-    which is a proposed manual revision, a departure scoped to this project, or no change.
+  condition: The owner decides the disposition of a practice note brought to a stage or selected-method discussion,
+    as a proposed manual revision, a departure scoped to this project, or no change; a note not yet decided
+    stays pending.
   when: At the stage or selected-method discussion.
   gating: false
 code_paths: []

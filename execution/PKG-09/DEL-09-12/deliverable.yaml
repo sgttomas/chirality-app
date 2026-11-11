@@ -15,6 +15,8 @@ needs:
 - from: DEL-10-02
   condition: Each practice note brought to a stage or selected-method discussion traces to the owner's
     actual disposition, with its actor and scope, or is shown as pending.
+  when: After a method observation from validation in use has been routed to DEL-10-02 as a practice
+    note; its disposition completes that observation's entry in the feedback dispositions.
   gating: false
 - from: external:OI-016
   condition: The owner agrees the period and the realistic activities of validation.

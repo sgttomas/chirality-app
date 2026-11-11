@@ -8,8 +8,8 @@ needs:
   condition: The pointer names the accepted final decomposition and gives the rule for reading it as amended
     by the accepted scope-change amendments.
 - from: external:sgttomas/chirality-library Project Management manual
-  condition: The Library publishes the Consolidated edition of the manual at a revision from which the selected
-    text can be recovered, including its chapter on development positions.
+  condition: The Library publishes the Project Management manual, Consolidated v9, at a revision from which
+    the selected text can be recovered, including its chapter on development positions.
 - from: external:sgttomas/chirality-library release
   condition: The selected Library release publishes its tag, commit and source archive digest, and contains
     the role files, the workflow index, the project-entry template and the document metadata schema.
@@ -19,6 +19,7 @@ needs:
 - from: DEL-10-04
   condition: The project dependency graph names a node for every accepted deliverable and states each relationship
     with its condition and standing, so that the handoff can refer dependency questions to it.
+  when: When the handoff refers a reader's dependency question to the graph.
   gating: false
 code_paths:
 - AGENTS.md
