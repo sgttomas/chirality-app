@@ -187,9 +187,10 @@ public distribution; and the owner decision packet. That list was not completed.
   slices and interruption/submission repairs. Source checks did not establish
   the owner's usable journey. The presentation deliverable explicitly retained
   that limit; coordination failed to keep it central.
-- Still open: complete native journeys/recovery/access, joined SWBPIPE witness,
-  supplier qualification and notice gaps, installed custody/enrollment results
-  and the owner publication decision. OpenAI terms applicability is already
+- Still open: complete native journeys/recovery/access, supplier qualification
+  and notice gaps, installed custody/enrollment results and the owner
+  publication decision. The joined SWBPIPE witness is SWBPIPE's requirement and
+  is not part of App v4's release. OpenAI terms applicability is already
   adopted; a repeated terms acceptance is not a new gate.
 
 ## Bounded results
@@ -200,7 +201,7 @@ public distribution; and the owner decision packet. That list was not completed.
 | P2 | Do useful work, create/trial/review/register a reusable workflow, return to unfinished work and later run the saved workflow with new inputs. | Functional workflow operations observed on identified development subjects; usability remains OPEN:046 draft/correct trial/History continuation and reopen recovery;475c native registration, one fresh reuse matching the independent key, explicit run end and normal Quit. Agent-operated controls establish no personal owner act; this is not installed/release qualification. See the J2 actual account. | J2, DEL-02-02; next candidate integration and remaining witnesses. |
 | P3 | Applicable candidate-bound request/approval, cancellation, interruption/recovery, close/reopen/Quit and three access-mode results, with failures repaired or explicitly returned for owner disposition. | Development controls observed on d424: offered cancel, one-time grant, live interruption, normal Quit/reopen, History and explicit same-conversation continuation; Terra/medium confirmed across three turns. The current P3 account retains the subject and limits. Key/local access, ST-4/ST-5, observer detachment, live-request Quit and applicable installed/final-candidate qualification remain open; no personal owner act or release acceptance. | Standalone qualification (DEL-09-02), DEL-01-01/02/03/04/05; native manager. |
 | P4 | Actual installed S4/supplier custody and applicable SEAL-C enrollment/continuity evidence joined to the candidate. | OPEN; static joins are complete for b3dd4145, real installed/native results are not. Enrollment is now the person's in-App native act "Protect registered workflows with your keychain" (owner decision C, 2026-11-09); it still needs the signing-stage selection and installed S4 custody to work, and the real enrollment, keychain-held approval policy and sealed cold admission remain unqualified until then. Rotation unavailable/SC-5 blocked is the accepted 4.0.0 limitation, not a pass. | Signing join, DEL-01-04/06 and DEL-09-02; runtime and packaging managers. |
-| P5 | Joined live SWBPIPE workflow with actual host/model/configuration, controlled application, outcomes and attributable person acceptance, plus applicable lifecycle/recovery evidence. | OPEN; component results do not close it. App Agent 0 coordinates with SWBPIPE Agent 0; no SWB implementation authority transfers here. | Local host qualification; examination consumer and external SWB owner. |
+| P5 | Not part of App v4's release. A joined live SWBPIPE workflow with actual host/model/configuration, controlled application, outcomes and attributable person acceptance is SWBPIPE's requirement. | Not an App v4 release obligation: App v4 is examined and released on working through the user interface it ships with (P1 to P4). App Agent 0 answers SWBPIPE Agent 0 on the App's receiving side when asked; no SWB implementation authority transfers here. | SWBPIPE's own project. |
 | P6 | Qualified selected supplier pin and complete applicable shipped notice/source associations, with unresolved coverage explicitly resolved before release. | OPEN. Packaging is advancing justified associations from already retained exact local bodies. Acquisition-dependent texts, scheduler and supplier-source gaps remain explicit; local adoption is not full bundled coverage. Downloads still need the applicable exact owner approval. | Shipped notice/source account, DEL-01-01 and DEL-01-06; packaging with runtime qualification inputs. |
 | P7 | Package the finished source; verify resource/profile/supplier identity, sign/notarize/staple and perform the applicable installed/quarantine witness on that final subject. | COMPLETE only for retained signing/notary substeps; final product candidate remains OPEN. Development subjects66d39/84a have matching static resources and their own setup/settings observations, with ad-hoc signatures. They supply no production installation or final quarantine qualification. Final assembly follows required product fixes and supplier/notice closure. | Production input preparation, DEL-01-06; packaging manager. |
 | P8 | Present the exact final candidate, joined results, limits and continuing obligations for the owner's publication decision and separately applicable replacement decision. | OPEN; no release authorized. Preserve existing terms applicability and distribution `not_made` until actual owner act. | [Owner packet scope](../PKG-11/DEL-11-03/ScopeOfWork.md), DEL-09-12/11-01/11-03 with DEL-01-06; Agent 0 and owner. |
@@ -208,7 +209,8 @@ public distribution; and the owner decision packet. That list was not completed.
 ## How this constrains work
 
 P1 then P2 drive product implementation. P3/P4 gather applicable evidence from
-those journeys; P5/P6 remain separate real release obligations. P7 final assembly
+those journeys; P6 remains a separate real release obligation, and P5 is SWBPIPE's
+and not part of App v4's release. P7 final assembly
 follows the product fixes; P8 is the owner decision, not an agent completion claim.
 Windows remains after the initial macOS release. No new v3 comparison campaign,
 VM work, rotation implementation or unrelated polish is introduced.

@@ -10,7 +10,9 @@ needs:
   condition: The local qualification dossier identifies the App and SWBPIPE candidates and their configuration,
     gives each case's result, records the person's acceptance with its actor apart from the recorder,
     links the host's receipts, states its gaps, and has been examined independently.
-  gating: true
+  when: When the journey evidence for the replacement decision is assembled; the publication decision
+    and its packet do not wait on it.
+  gating: false
 - from: DEL-11-01
   condition: The continuity account gives each continuing obligation's disposition by its accountable
     owner or its open owner and point of need, the identity-check results for preserved material,

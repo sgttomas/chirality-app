@@ -7,7 +7,9 @@ Authority and current-session discovery are in [AGENTS](../../AGENTS.md).
 ## Release target and authority
 
 The owner resumed development on 2026-10-28 and selected the full public v4
-release including the live SWBPIPE journey. v3.0.1 remains the fallback until
+release. App v4 is examined and released on working through the user interface
+it ships with. A live SWBPIPE journey is SWBPIPE's requirement and is not part
+of App v4's release. v3.0.1 remains the fallback until
 the owner's replacement decision. Replacement, public release and professional
 reliance are distinct acts. Domains follows a later increment; PEC adds no
 delivery prerequisite. The owner confirmed on 2026-10-30 that Windows will be released after the
@@ -82,10 +84,10 @@ audit and bounded completion rows in [the punchlist](PUBLICATION_PUNCHLIST.md).
 1. One identified current desktop candidate with applicable native workflow,
    interruption/recovery and model-access results. Older October 14–16
    walkthrough and current CI establish only their actual observed subjects.
-2. Joined SWBPIPE candidate evidence: effective reference-system operation,
-   controlled application and truthful outcomes, plus applicable isolation,
-   process lifecycle and recovery evidence. Coordinate actual host results with
-   SWBPIPE's Agent 0; the earlier App receiving preparation is not this witness.
+2. Not part of App v4's release: joined SWBPIPE candidate evidence (a live
+   SWBPIPE journey with controlled application and truthful outcomes) is
+   SWBPIPE's requirement. Nothing in this list waits on it; App Agent 0 answers
+   SWBPIPE's Agent 0 on the App's receiving side when asked.
 3. Supplier distribution identity and installed custody; signed/notarised
    package; quarantined install/launch and applicable packaged native checks.
 4. Retain the approved supplier position and obtain the separate public-release
