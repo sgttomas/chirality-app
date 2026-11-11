@@ -21,7 +21,7 @@ It is the DATA_MODEL_CHANGE `DEL-06-01` of PKG-06 in the accepted decomposition,
 | SOW-084 | Each undertaking has one current work graph, kept as a file, with selected work, prerequisites, owners, results and continuation. Serves OBJ-006. | PRD V4-PM-02 |
 | SOW-185 | Coordination file formats have identified versions and consumers, and stay stable for those consumers. Serves OBJ-006 and OBJ-007. | HOST_INTEGRATION V4-HI-63 |
 
-Other sources are PRD V4-PM-05, V4-ROLE-03, V4-AUT-03, V4-REC-02, V4-REC-05 and V4-REC-06; ARCHITECTURE §3, which keeps conversation recovery apart from recovery of an undertaking; OPERATING_METHOD V4-OPS-02 and V4-OPS-30; HOST_INTEGRATION V4-HI-61 and V4-HI-62; and EXAMINATION V4-EXM-13. The draft 4.0.0 release target names no exit criterion for this deliverable.
+Other sources are PRD V4-PM-05, V4-ROLE-03, V4-AUT-03, V4-REC-02, V4-REC-05 and V4-REC-06; ARCHITECTURE §3, which keeps conversation recovery apart from recovery of an undertaking; OPERATING_METHOD V4-OPS-02 and V4-OPS-30; HOST_INTEGRATION V4-HI-61 and V4-HI-62; and EXAMINATION V4-EXM-13.
 
 ## Deliverable Definition — Ontology
 

@@ -13,7 +13,7 @@ package_objective_refs: [OBJ-004, OBJ-005]
 
 This deliverable gives every part of the product one meaning for two things: what an agent may do directly, what it must propose and what only the person may do; and which act happened, who performed it, what it concerned and what evidence supports it. It contributes that meaning as a contract, the policy-class records that carry each adopted value to the catalogs and controls that apply it, and the conformance cases that show an agent can neither perform nor be credited with an act reserved to the person. It performs no human act and builds no host facility.
 
-It covers SOW-074, SOW-079, SOW-082, SOW-179, SOW-180, SOW-181, SOW-182 and SOW-235, for OBJ-004 (host contracts that preserve operation meaning and host authority) and OBJ-005 (useful autonomy with attributable human acts). Its sources are PRD V4-AUT-01, V4-AUT-03, V4-AUT-04 and V4-AUT-05, and HOST_INTEGRATION V4-HI-22, V4-HI-25, V4-HI-30, V4-HI-31, V4-HI-33, V4-HI-40 to V4-HI-42, V4-HI-51 and V4-HI-52. The draft 4.0.0 release target names no exit criterion for this deliverable.
+It covers SOW-074, SOW-079, SOW-082, SOW-179, SOW-180, SOW-181, SOW-182 and SOW-235, for OBJ-004 (host contracts that preserve operation meaning and host authority) and OBJ-005 (useful autonomy with attributable human acts). Its sources are PRD V4-AUT-01, V4-AUT-03, V4-AUT-04 and V4-AUT-05, and HOST_INTEGRATION V4-HI-22, V4-HI-25, V4-HI-30, V4-HI-31, V4-HI-33, V4-HI-40 to V4-HI-42, V4-HI-51 and V4-HI-52.
 
 ## Deliverable Definition — Ontology
 

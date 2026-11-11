@@ -23,7 +23,7 @@ It is the UX_UI_SLICE `DEL-06-02` of PKG-06 in the accepted decomposition, owned
 | SOW-088 | Coordination status is recovered across sessions from files | PRD V4-PM-05 |
 | SOW-089 | Coordination views are built from files, can be rebuilt and are never the authority | PRD V4-PM-06 |
 
-Other sources are PRD V4-AUT-03, V4-CON-03, V4-REC-02, V4-REC-03 and V4-REC-05; HOST_INTEGRATION V4-HI-33 and V4-HI-62; ARCHITECTURE §3, which keeps conversation recovery apart from recovery of an undertaking; and EXAMINATION V4-EXM-13. The draft 4.0.0 release target names no exit criterion for this deliverable.
+Other sources are PRD V4-AUT-03, V4-CON-03, V4-REC-02, V4-REC-03 and V4-REC-05; HOST_INTEGRATION V4-HI-33 and V4-HI-62; ARCHITECTURE §3, which keeps conversation recovery apart from recovery of an undertaking; and EXAMINATION V4-EXM-13.
 
 ## Deliverable Definition — Ontology
 

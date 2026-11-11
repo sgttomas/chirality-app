@@ -15,7 +15,7 @@ This deliverable makes the standalone App a host for stock Codex. The App's Rust
 
 It is the BACKEND_FEATURE_SLICE `DEL-01-01` of PKG-01 in the accepted decomposition. It serves OBJ-002 (the chosen App architecture) through SOW-097, SOW-099, SOW-100, SOW-101, SOW-118, SOW-119, SOW-121, SOW-131 and SOW-135; OBJ-001 through the supplier side of plan visibility and selected-version identification (SOW-128, shared with `DEL-01-03`); and OBJ-004 through qualification of the embedding protocol and the provider requirements it implies (SOW-149, shared with `DEL-01-05`). Its PRD sources are V4-APP-04, V4-CST-01, V4-CST-03, V4-EXE-02 and V4-EXE-03; its architecture sources are V4-ARC-01, V4-ARC-02, V4-ARC-03 and V4-ARC-05, the properties of ARCHITECTURE §3, the supplier assumptions of §6 and principles M-2, M-4, M-6 and M-7.
 
-In the draft 4.0.0 release target it contributes to criterion 3 (requests, interruption, recovery and access produce their results on the candidate), to the supplier half of criterion 4 (supplier custody holds on the installed candidate) and to criterion 6 (the selected supplier pin is qualified).
+It contributes to publication punchlist P3 (requests, interruption, recovery and access produce their results on the candidate), to the supplier custody of P4 (supplier custody holds on the installed candidate) and to P6 (the selected supplier pin is qualified).
 
 ## Deliverable Definition — Ontology
 

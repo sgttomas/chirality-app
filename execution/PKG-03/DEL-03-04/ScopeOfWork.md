@@ -13,7 +13,7 @@ package_objective_refs: [OBJ-004]
 
 This deliverable contributes the one guide an application builder follows to add a host. For each thing a host needs (a catalog, one route for changes, a basis, origins and undo, human acts and records, autonomy, a loop and panel, its own methods, and optionally external access and connectors) it says what the App and shared contracts supply, what the host must supply, who receives each contribution and where, and what evidence supports relying on it. The App/shared host-contract integration owner answers for its completeness. It restates none of the contracts it joins and builds no host.
 
-It serves OBJ-004 (App/shared host contracts and a coordinated SWBPIPE journey that preserve operation meaning, host authority and recovery). Its sources are PRD §§2.2–2.4 and §3.1, V4-WF-01…06, V4-PAR-01…05 and V4-AUT-01…05; HOST_INTEGRATION §§1–11, above all the ownership table of §1 and the new-host checklist of §10; ARCHITECTURE §§4–5; EXAMINATION V4-EXM-20…25 and V4-EXM-30…32; and OPERATING_METHOD §6. The draft 4.0.0 release target names no exit criterion for this deliverable.
+It serves OBJ-004 (App/shared host contracts and a coordinated SWBPIPE journey that preserve operation meaning, host authority and recovery). Its sources are PRD §§2.2–2.4 and §3.1, V4-WF-01…06, V4-PAR-01…05 and V4-AUT-01…05; HOST_INTEGRATION §§1–11, above all the ownership table of §1 and the new-host checklist of §10; ARCHITECTURE §§4–5; EXAMINATION V4-EXM-20…25 and V4-EXM-30…32; and OPERATING_METHOD §6.
 
 | Assigned scope | Local contribution | Output |
 |---|---|---|

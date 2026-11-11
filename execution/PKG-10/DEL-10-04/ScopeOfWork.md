@@ -13,7 +13,7 @@ package_objective_refs: [OBJ-006, OBJ-010]
 
 The project has one production dependency graph. For every deliverable it shows what that deliverable needs, from whom, under what condition and by when, including what is awaited from outside the project. Anyone choosing what to work on next can read from it what is ready and what is held, and can tell the project's production relationships apart from the route an undertaking has chosen and from what is actually executing. This deliverable contributes that graph, the examination that shows it is complete and free of cycles, and the owner's acceptance of an identified version of it.
 
-It is the SOW-211 contribution: one project dependency graph, established before the 30% position (OPERATING_METHOD V4-OPS-02). It serves OBJ-006 by making production relationships and the decisions about them recoverable from files, and OBJ-010 by grounding the order of work in the accepted allocation and each deliverable's own scope. The accepted decomposition assigns it to PKG-10 as a data-model deliverable of the App project dependency owner; the owner accepts the examined current graph. No exit criterion of the draft 4.0.0 release target names it.
+It is the SOW-211 contribution: one project dependency graph, established before the 30% position (OPERATING_METHOD V4-OPS-02). It serves OBJ-006 by making production relationships and the decisions about them recoverable from files, and OBJ-010 by grounding the order of work in the accepted allocation and each deliverable's own scope. The accepted decomposition assigns it to PKG-10 as a data-model deliverable of the App project dependency owner; the owner accepts the examined current graph.
 
 ## Deliverable Definition — Ontology
 

@@ -13,7 +13,7 @@ package_objective_refs: [OBJ-004]
 
 This deliverable contributes the App's side of external host access. Once the person has enabled it, the Chirality App's Codex can inspect a host and submit to it through the host's catalog-derived, machine-local MCP or command-line interface, and until then the App sends that host nothing. What the App receives over the channel keeps the meaning the host gave it: the operation, its availability, the read's standing and basis, the host's validation and autonomy rules, the acts reserved to the person, and outcomes no stronger than the host reported. The App external-host integration owner produces it; the host owner supplies the endpoint.
 
-It serves OBJ-004 (shared operation meaning, host authority and recovery). Its sources are PRD V4-PAR-01…05, V4-AUT-01…05 and V4-HOST-02; ARCHITECTURE V4-ARC-21; HOST_INTEGRATION V4-HI-20…25, V4-HI-30…33, V4-HI-40…42 and V4-HI-50…52; and EXAMINATION V4-EXM-25. The draft 4.0.0 release target names no exit criterion for this deliverable.
+It serves OBJ-004 (shared operation meaning, host authority and recovery). Its sources are PRD V4-PAR-01…05, V4-AUT-01…05 and V4-HOST-02; ARCHITECTURE V4-ARC-21; HOST_INTEGRATION V4-HI-20…25, V4-HI-30…33, V4-HI-40…42 and V4-HI-50…52; and EXAMINATION V4-EXM-25.
 
 | Assigned scope | Local contribution | Output |
 |---|---|---|

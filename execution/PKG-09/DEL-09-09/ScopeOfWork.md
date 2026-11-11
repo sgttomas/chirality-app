@@ -13,7 +13,7 @@ package_objective_refs: [OBJ-004, OBJ-008]
 
 This deliverable examines the boundary at which SWBPIPE's operations are reached from outside it. It contributes two witnesses on identified App and SWBPIPE candidates. In the first, the App's Codex, with SWBPIPE's external interface enabled by the person, inspects the model and submits a proposal, and the engineer accepts it in SWBPIPE; the chain is followed from the basis originally inspected to the host's receipt. In the second, one newly added catalog operation is traced through the human interface, the embedded tools and the external adapter, with an account of what was generated and what extra work each surface took. That account is the evidence for the owner's decision on the catalog-extension promise. The App external-host examination owner integrates it. It builds neither application.
 
-It serves OBJ-004 (shared operation meaning, host authority and recovery) and OBJ-008 (candidate-specific verification that does not overstate partial evidence). Its sources are PRD §§4.4–4.5, V4-PAR-05, OQ-02, OQ-10 and OQ-11, HOST_INTEGRATION V4-HI-01…04, 10…12, 20…25, 30…33, 40…42, 50…52 and 70…71, and EXAMINATION §§1–2, V4-EXM-24 and V4-EXM-25. The draft 4.0.0 release target names no exit criterion for this deliverable.
+It serves OBJ-004 (shared operation meaning, host authority and recovery) and OBJ-008 (candidate-specific verification that does not overstate partial evidence). Its sources are PRD §§4.4–4.5, V4-PAR-05, OQ-02, OQ-10 and OQ-11, HOST_INTEGRATION V4-HI-01…04, 10…12, 20…25, 30…33, 40…42, 50…52 and 70…71, and EXAMINATION §§1–2, V4-EXM-24 and V4-EXM-25.
 
 | Assigned scope | Local contribution | Output |
 |---|---|---|

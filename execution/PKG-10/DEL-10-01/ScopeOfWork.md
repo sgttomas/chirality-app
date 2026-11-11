@@ -13,7 +13,7 @@ package_objective_refs: [OBJ-010]
 
 Someone arriving to work on App v4, whether an agent starting a session, a manager handing out work or an author writing a deliverable's scope, can learn from one maintained account what the project is built on and how it is worked: the basis and decomposition the owner accepted, the editions of the manual and of the shared roles and methods the project has selected, how packages and deliverables are set up and carried, and how the project applies the manual, including where it deliberately departs from it. This deliverable contributes that account and keeps it true as the selections change.
 
-It serves OBJ-010: v4 work is defined and conducted through the accepted composite, manual-led practice and accountable technical contracts (OPERATING_METHOD V4-OPS-01, V4-OPS-04, V4-OPS-10 to V4-OPS-14 and V4-OPS-33; PRD V4-CST-04 and OQ-05). The accepted decomposition assigns it to PKG-10 as a documentation deliverable of the App project-definition manager. No exit criterion of the draft 4.0.0 release target names it; that target reads its direction from the execution basis this deliverable maintains.
+It serves OBJ-010: v4 work is defined and conducted through the accepted composite, manual-led practice and accountable technical contracts (OPERATING_METHOD V4-OPS-01, V4-OPS-04, V4-OPS-10 to V4-OPS-14 and V4-OPS-33; PRD V4-CST-04 and OQ-05). The accepted decomposition assigns it to PKG-10 as a documentation deliverable of the App project-definition manager.
 
 | Accepted scope | Local contribution | Output |
 |---|---|---|

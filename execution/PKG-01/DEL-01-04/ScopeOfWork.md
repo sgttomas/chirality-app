@@ -21,7 +21,7 @@ It is the UX_UI_SLICE `DEL-01-04` of PKG-01 in the accepted decomposition, servi
 | SOW-014 | Requests and responses keep Codex's own meaning; plans, tools and delegation are `DEL-01-03`'s share | PRD V4-APP-04; ARCHITECTURE V4-ARC-05 |
 | SOW-129 | Request, draft, turn-outcome and attachment interactions with the identity of supplied content, and the receiving side of the workflow workspace; the plan interaction is `DEL-01-03`'s share | ARCHITECTURE §3; PRD V4-WF-02 |
 
-Other sources are PRD V4-APP-02 and V4-APP-03 (a new conversation has no model and offers the conversation roles), V4-EXE-01 to V4-EXE-04, V4-AUT-03 to V4-AUT-05 and V4-REC-05, and EXAMINATION V4-EXM-10 and V4-EXM-11. In the draft 4.0.0 release target it contributes to criterion 1 (using an existing workflow), to the registration act of criterion 2, to criterion 3 (request and approval, cancellation, close, reopen and Quit), and it offers the person's keychain protection act of criterion 4, which relies on the signed installed identity `DEL-01-06` supplies.
+Other sources are PRD V4-APP-02 and V4-APP-03 (a new conversation has no model and offers the conversation roles), V4-EXE-01 to V4-EXE-04, V4-AUT-03 to V4-AUT-05 and V4-REC-05, and EXAMINATION V4-EXM-10 and V4-EXM-11. It contributes to publication punchlist P1 (using an existing workflow), to the registration act of P2, to P3 (request and approval, cancellation, close, reopen and Quit), and it offers the person's keychain protection act of P4, which relies on the signed installed identity `DEL-01-06` supplies.
 
 ## Deliverable Definition — Ontology
 

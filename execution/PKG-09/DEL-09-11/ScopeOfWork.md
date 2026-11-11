@@ -13,7 +13,7 @@ package_objective_refs: [OBJ-005, OBJ-008]
 
 This deliverable shows that the records of a host run stand on their own. A week after one identified V4-EXM-20 journey, a named reader who took no part in it reconstructs, from the project's files and the host's receipts alone, what was asked, what the agent proposed, what the engineer accepted and what changed, and says plainly what cannot be known. It contributes that witness and the reader's account. The App evidence examination owner integrates it. It writes no record format and runs no host journey.
 
-SOW-206 serves OBJ-005 (attributable human acts, standing and provenance) and OBJ-008 (candidate-specific examination that does not overstate partial evidence). Its sources are PRD V4-REC-01, V4-REC-03…05 and V4-AUT-01…05, HOST_INTEGRATION V4-HI-25, 30…33 and 70…71, and EXAMINATION §§1–2 and V4-EXM-31. The draft 4.0.0 release target names no exit criterion for this deliverable.
+SOW-206 serves OBJ-005 (attributable human acts, standing and provenance) and OBJ-008 (candidate-specific examination that does not overstate partial evidence). Its sources are PRD V4-REC-01, V4-REC-03…05 and V4-AUT-01…05, HOST_INTEGRATION V4-HI-25, 30…33 and 70…71, and EXAMINATION §§1–2 and V4-EXM-31. This deliverable is outside App v4's release: it reads back a live SWBPIPE journey, which is SWBPIPE's requirement, and work on it is undertaken in support of SWBPIPE.
 
 ## Deliverable Definition — Ontology
 

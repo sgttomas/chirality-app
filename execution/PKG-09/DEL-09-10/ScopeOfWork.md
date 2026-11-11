@@ -13,7 +13,7 @@ package_objective_refs: [OBJ-007, OBJ-008]
 
 This deliverable shows, on an identified App candidate, what the App does when an optional connector feed is limited, stale, partial, failing or absent: the limits stay visible, the same coordination question is answered from the project's source files, and a missing feed is never read as empty work, readiness or permission. Where the receiving consumer has actually adopted a connector, it also traces one source identity through that connector to the action it permits. It contributes the V4-EXM-30 case suite and the candidate-bound account of its results. The App connector examination owner integrates it; provider owners supply their own qualification and response evidence. It builds no connector and no fallback.
 
-SOW-205 serves OBJ-007 (explicit receiving contracts and truthful fallback) and OBJ-008 (candidate-specific outcomes that do not overstate partial or unrun evidence). Its sources are PRD V4-CON-01…05 and §3.1, HOST_INTEGRATION V4-HI-60…65 and §8.1, ARCHITECTURE V4-ARC-22, and EXAMINATION §§1–2 and V4-EXM-30. The draft 4.0.0 release target names no exit criterion for this deliverable.
+SOW-205 serves OBJ-007 (explicit receiving contracts and truthful fallback) and OBJ-008 (candidate-specific outcomes that do not overstate partial or unrun evidence). Its sources are PRD V4-CON-01…05 and §3.1, HOST_INTEGRATION V4-HI-60…65 and §8.1, ARCHITECTURE V4-ARC-22, and EXAMINATION §§1–2 and V4-EXM-30.
 
 ## Deliverable Definition — Ontology
 

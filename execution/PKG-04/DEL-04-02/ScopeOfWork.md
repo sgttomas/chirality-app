@@ -13,7 +13,7 @@ package_objective_refs: [OBJ-005]
 
 This deliverable lets the person see, at any moment of the work, what they have allowed the agent to do for each kind of operation, change that during the work, see where each directly applied change came from and how to undo or check it, and see how far each result can be trusted. What it shows is never stronger than the evidence received, so the person can validate to the degree the situation warrants. It contributes the receiving components that show these things, the conditions a host must supply for them, and the cases that examine them. It sets no policy, writes no record and builds no host control.
 
-It covers SOW-075, SOW-076, SOW-077 and SOW-078, for OBJ-005 (useful autonomy with attributable human acts, result standing and reconstructable provenance). Its sources are PRD V4-AUT-01, V4-AUT-02 and V4-HOST-02, and HOST_INTEGRATION V4-HI-12, V4-HI-21, V4-HI-22, V4-HI-25, V4-HI-32, V4-HI-33, V4-HI-40 and V4-HI-42. The draft 4.0.0 release target names no exit criterion for this deliverable.
+It covers SOW-075, SOW-076, SOW-077 and SOW-078, for OBJ-005 (useful autonomy with attributable human acts, result standing and reconstructable provenance). Its sources are PRD V4-AUT-01, V4-AUT-02 and V4-HOST-02, and HOST_INTEGRATION V4-HI-12, V4-HI-21, V4-HI-22, V4-HI-25, V4-HI-32, V4-HI-33, V4-HI-40 and V4-HI-42.
 
 ## Deliverable Definition — Ontology
 
