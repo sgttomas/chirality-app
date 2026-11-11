@@ -1,3 +1,16 @@
 id: DEL-07-01
 name: Retained PEC receiving compatibility
-needs: []
+needs:
+- from: DEL-07-02
+  condition: Connector material is shown with a standing of envelope, condition and claim tier that names
+    its connector, with its source identity and limits; reliance is supported only for adopted, current
+    material of the connector's reliable tier; absent material is shown as absent with the source-file
+    route; no limitation or absence is shown as empty work, readiness or permission; and an assessment
+    built from constructed input is marked simulated wherever it is shown or recorded.
+  gating: true
+# This deliverable has no module of its own. connector_standing.rs and the standing form are
+# DEL-07-02's. Here: the PEC connector value and its record and presence tiers.
+code_paths:
+- app/src-tauri/src/connector_standing.rs
+- app/src-tauri/resources/connector_route/connector.standing.schema.json
+checks: []

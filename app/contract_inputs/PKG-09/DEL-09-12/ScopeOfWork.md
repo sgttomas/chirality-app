@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-09-12
 package_id: PKG-09
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-207, SOW-208, SOW-209]
 package_objective_refs: [OBJ-008, OBJ-010]
 ---
@@ -11,125 +11,76 @@ package_objective_refs: [OBJ-008, OBJ-010]
 
 ## Purpose and Objective Traceability
 
-Arrange the owner's validation of fitness for realistic design work in both
-the standalone Chirality App and SWBPIPE, preserve what actually happens in
-use, and route learning to the requirement, workflow or method that owns it.
-The owner is the practitioner; the App validation coordinator arranges the
-work and routes observations. This is the local contribution to PKG-09,
-Candidate examination and connected journeys.
+This deliverable finds out whether v4 is fit for real design work, by having the owner do such work with it and keeping what the owner noticed. It contributes three things: the arrangement the owner agreed to (what work, in which applications, over what period, with what material); the account of what the owner actually observed in use; and the disposition of each observation, routed to the requirement, workflow or method that owns it. The owner is the practitioner. The App validation coordinator arranges the work and routes the observations, and judges nothing on the owner's behalf.
 
-SOW-207 supplies the validation arrangement, SOW-208 the observed
-confidence/attention and use account, and SOW-209 the feedback disposition.
-They support OBJ-008, candidate-specific verification and practitioner
-validation without overstating partial or unrun evidence. SOW-209 also
-supports OBJ-010, accountable commitments and manual-led practice.
-
-This contract defines future production and evaluation. It supplies no actual
-owner agreement, observed use, favorable fitness finding or adopted change.
-OI-016/SOW-264 remains an open interface to the arrangement; SOW-264 is not an
-additional locally allocated scope item. Examination follows identified
-candidates when their named contributions are available; this is not a late
-testing phase or an invented schedule.
-
-Source keys below use repository-relative paths. Frozen register rows and
-their decision establish allocation; later explicit directions qualify the
-original seed, and the current clauses express that accepted composite.
-
-| Key | Source and relevant locus |
-|---|---|
-| B1 | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; sibling `canonical/Deliverables.csv` rows DEL-09-12, DEL-09-01, DEL-04-01, DEL-10-01, DEL-10-02 and DEL-11-01; `Packages.csv` rows PKG-09/PKG-10; `ScopeLedger.csv` rows SOW-207–SOW-209 and SOW-264; `Objectives.csv` rows OBJ-008/OBJ-010. |
-| B2 | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md`, `OWNER_DIRECTIONS_EXCERPTS.md` U1/U4/U5 and `DECISION_BRIEF.html` decisions 01, 03, 05 and 07. These preserve composite acceptance and its transcription limits. |
-| B3 | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/EXAMINATION.md` §1 and V4-EXM-40–42, read with B2 and B4 rather than as standalone current authority. |
-| B4 | `projects/chirality-app-v4/docs/EXAMINATION.md` §1, V4-EXM-01/03/05, V4-EXM-40–42 and §7; `projects/chirality-app-v4/docs/PRD.md` §0, V4-EXT-01, V4-AUT-01–04, V4-CST-05/06 and §8. |
-| B5 | `projects/chirality-app-v4/docs/HOST_INTEGRATION.md` §1 and V4-HI-30–33; `projects/chirality-app-v4/docs/OPERATING_METHOD.md` V4-OPS-12–14, V4-OPS-20–23 and V4-OPS-31–34. |
-| B6 | B1's `canonical/Open_Issues.csv` and `projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv` rows OI-001, OI-002, OI-016, OI-021 and OI-024; corresponding frozen/current `External_Dependencies.csv` row DEP-001. The current OI-021/DEP-001 observations qualify external readiness without changing accepted scope. |
-| B7 | `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md`: approved INITIAL setup, definition-only maturity, separate actual-input evidence and lifecycle recording. |
+SOW-207 is the arrangement, SOW-208 the account of use and SOW-209 the dispositions. They serve OBJ-008 (verification and validation kept distinct, without overstating partial or unrun evidence), and SOW-209 also serves OBJ-010 (accountable commitments and manual-led practice). Its sources are EXAMINATION §1 and V4-EXM-40…42, PRD V4-CST-05/06 and §8, and OPERATING_METHOD V4-OPS-20…23 and 31…34. The draft 4.0.0 release target names this deliverable for owner product testing (criterion 10): readiness has been recommended to the owner, the owner has tested the candidate, and each finding has a disposition. AC-002 and AC-004 state that result. Its account also goes into the decision packet (criterion 12).
 
 ## Deliverable Definition — Ontology
 
-- **OUT-001** — A documented agreement on App and SWBPIPE validation activities and period, identifying the owner's selected realistic design work, invented or owner-controlled material, identified candidates and the actual agreement evidence. Pending selections remain explicit until agreed. This serves the owner and App validation coordinator. Scope: SOW-207; objective: OBJ-008. Basis: B1/B3/B4/B6.
-- **OUT-002** — A source-linked account of actual practitioner observations: confidence warranted relative to attention, product workarounds, human/agent perception gaps, and records needed but missing or kept but unused. Identify the expression, candidate, configuration, date, observed conditions and limits of each account; identify unobserved coverage honestly. This serves the owner and responsible product owners. Scope: SOW-208; objective: OBJ-008. Basis: B1/B3/B4.
-- **OUT-003** — Traceable requirement, workflow and method feedback dispositions, linking observations to their owning commitment and responsible recipient, the proposed treatment and any actual decision. Preserve any proposed successor-basis change, including a possible v5.0 basis, with its evidence and current standing. This serves feature owners and PKG-10's method-feedback consumer. Scope: SOW-209; objectives: OBJ-008 and OBJ-010. Basis: B1/B3/B4/B5.
+- **OUT-001** — The validation arrangement: the realistic design work the owner chose, in the Chirality App and in SWBPIPE, the agreed period, the invented or owner-controlled material, the identified candidates, and the evidence that the owner agreed. Supports SOW-207; OBJ-008.
+- **OUT-002** — The account of use: what the owner actually observed, linked to its source, for each application, with candidate, configuration, date, conditions and limits, and with the coverage that was not observed stated. Supports SOW-208; OBJ-008.
+- **OUT-003** — The feedback dispositions: each observation linked to the commitment that owns it and to its recipient, the treatment proposed and any decision actually made, including any proposed change to a successor basis with its standing. Supports SOW-209; OBJ-008 and OBJ-010.
 
-- **CLM-001** — Accepted responsibility is “Owner as practitioner; App validation coordinator routes observations to responsible owners.” OI-016's owner is **Owner**, its point of need is **Before practitioner validation in use**, and its required resolution is **Agree period and owner-selected activities.** The IN arrangement commitment and this unresolved agreement coexist. Basis: B1/B6.
-- **CLM-002** — Validation is practitioners doing realistic work to judge fitness for use; the owner is the principal v4.0 practitioner. Agent-operated scenarios, automated checks and invented verification fixtures support verification but cannot establish actual practitioner use. Invented material can be used during genuine owner validation; its being invented does not make a fixture run into validation or disqualify actual use. Basis: B3 §1 and V4-EXM-40; B4 §1 and V4-CST-06.
-- **CLM-003** — PKG-10 receives method feedback through App `DEL-10-02`, owned by the App undertaking manager with the human at applicable stage decisions; adopted method/edition identity is carried by App `DEL-10-01`, whose App project-definition manager prepares the basis and whose owner decides consequential adoption/departure. Feature owners retain requirement changes and focused checks; App `DEL-09-01` owns reusable examination support with independent reviewer separation. Routing an observation establishes none of those later acts. Basis: B1 and B5 V4-OPS-20–23.
-- **CLM-004** — The external SWBPIPE implementation session owns host implementation, host domain truth, application/validation route, receipts, and the human-act offering/recording/presentation surface. The actual human act belongs to the person performing it. The human relays outside-session coordination; a prepared file is not evidence of delivery, adoption or a joined witness. App `DEL-04-01`'s App/shared human-act contract owner defines and carries adopted policy; owner and host policy owner decide unresolved classes. Basis: B1/B2, B4 V4-EXT-01 and B5 §1/V4-HI-30–33.
-- **CLM-005** — The owner decides fallback replacement on its applicable evidence. App `DEL-11-01`'s App continuity owner with affected project owners carries preservation and continuing obligations; OI-024's **Owner with affected consumers** decides adoption/retirement **Before each adoption/retirement decision**. Replacement does not retire all projects or authenticate professional reliance, which remains with the human. Basis: B1/B2 decision 07, B4 §7 and PRD §8, B5 V4-HI-30, B6.
+Terms:
+
+- **Validation in use.** A practitioner doing realistic work to judge fitness for use. Agent-operated scenarios, automated checks and fixture runs are verification and never establish it. Real use by the owner on invented material is validation.
+- **What to notice.** Four design aims, none of them a score: whether the results warranted confidence for the attention they took (the owner's measure); where the person had to work around the product; where agent and person could not see the same thing; and where a record was needed and missing, or kept and never read.
+- **Disposition.** For one observation: a proposed revision, a scoped departure, or no change, with who decided and in what scope. A proposal stays a proposal until its decision and adoption are evidenced.
+
+Boundary:
+
+- **CLM-001** — The owner is the practitioner and decides the period and the activities; the coordinator routes observations to their owners.
+- **CLM-002** — Agents do development testing. The owner's product testing begins after readiness has been recommended to the owner, and a control operated by an agent establishes no act of the owner.
+- **CLM-003** — `DEL-10-02` receives method feedback and `DEL-10-01` carries the adopted method and edition, with the owner deciding consequential adoption or departure. Feature owners keep changes to their requirements and their focused checks. `DEL-09-01` owns the examination support. Routing an observation performs none of those later acts.
+- **CLM-004** — SWBPIPE's own project builds the host and its surface for offering, recording and presenting human acts; coordination with it is relayed by the human. `DEL-04-01` carries the operation policy: five acts are reserved to a person, and routine tool permission is the person's own Codex setting and never stands for one of them.
+- **CLM-005** — The owner decides replacement and publication on their own evidence, which `DEL-11-03` assembles; `DEL-11-01` carries preservation and continuing obligations. Replacement retires no other project and establishes no professional reliance.
 
 ## Completion and Reliance Basis — Epistemology
 
-- **REQ-001** — Arrange and preserve the actual owner's agreement for both expressions under OUT-001, using realistic work of the owner's choosing and invented or owner-controlled material. Until OI-016 is resolved by the owner at its point of need, distinguish the proposed arrangement from agreement and actual use; a coordinator-authored plan supplies neither. Cite CLM-001 and CLM-002. Basis: SOW-207, B3/B4 V4-EXM-40 and B6.
-- **REQ-002** — Preserve OUT-002 as an account of actual observations and their limits, with candidate/configuration/date and source links sufficient to revisit them. Address confidence relative to attention, workarounds, perception gaps and missing/unused records as design aims, without numerical pass scores or an assumed favorable fitness conclusion. Absence of an observed issue does not prove unobserved use. Cite CLM-002. Basis: SOW-208, B4 V4-EXM-01/03/41.
-- **REQ-003** — Keep observed execution, proposal acceptance, checking, approval and professional reliance attributable to their actual actors and evidence. Faithful recording of a real human act is permitted with the human actor distinguished from the recorder and the subject identified. Do not turn tool success, a proposed action, verification or an agent's inference into a human act, nor impose acceptance as a universal prerequisite for another independently evidenced act. This record consumes the applicable operation policy; it does not settle the open always-reserved list. Cite CLM-002 and CLM-004. Basis: B2 decision 03, B4 V4-AUT-01–04, B5 V4-HI-30–33.
-- **REQ-004** — Route each recorded fitness-for-use observation to the owning requirement, workflow or method, retaining the original observation, relevant conditions, implicated commitment/source identity, recipient and disposition evidence. Method observations cite the relevant selected manual section and existing work-graph node where applicable; use the record that already carries the work. Distinguish proposed revision, scoped departure or no change and who decided what. Keep proposed successor-basis changes proposed until their actual decision and adoption evidence exists. Cite CLM-003. Basis: SOW-209, B4 V4-EXM-42, B5 V4-OPS-20–23/31–32.
-- **REQ-005** — Carry OI-016's owner and point of need exactly and, where selected activities depend on them, preserve the unresolved operation-policy and external connected-activity decisions in TBD-002 and TBD-003. Preserve OI-024 for any transition consequence in TBD-004. Read definition, actual supplied inputs, performed use, decision and receiving adoption as separately evidenced facts. Cite CLM-001, CLM-004 and CLM-005. Basis: B6/B7.
-- **REQ-006** — This deliverable shall perform no act owned by another deliverable or outside actor: building reusable examination infrastructure is App `DEL-09-01`'s responsibility (CLM-003); changing feature requirements and executing their focused checks remain with the relevant feature owners (CLM-003); making method/adoption decisions and revising manuals require their actual author, review and decision scope through App `DEL-10-01` and `DEL-10-02` (CLM-003); implementing SWBPIPE belongs to the external SWBPIPE implementation owner, and deciding unresolved operation classes belongs to the owner and host policy owner rather than App `DEL-04-01` as policy carrier (CLM-004); replacement belongs to the owner, preservation to App `DEL-11-01`, adoption/retirement to the Owner with affected consumers, and professional reliance to the human (CLM-005). Local arrangements, faithful observation records and feedback proposals do not discharge those acts. Basis: B1/B2/B4/B5/B6.
+- **REQ-001** — The arrangement records the owner's actual agreement for both applications, on realistic work of the owner's choosing and invented or owner-controlled material. A plan written by the coordinator is neither agreement nor use.
+- **REQ-002** — The account holds actual observations and their limits, with candidate, configuration, date and source links sufficient to revisit them, addressing the four aims. It carries no numerical pass score and assumes no favourable conclusion. The absence of an observed issue says nothing about use that was not observed.
+- **REQ-003** — Observed execution, acceptance of a proposal, checking, approval and professional reliance stay attributed to their actual actors and evidence. A real human act is recorded faithfully, the human actor apart from the recorder, with its subject. Tool success, a proposed action, a verification pass or an agent's inference is never turned into a human act, and acceptance is not required before another independently evidenced act.
+- **REQ-004** — Each observation is routed to the owning requirement, workflow or method, keeping the original observation, its conditions, the commitment and source it concerns, the recipient and the evidence of disposition. Method observations cite the section of the selected manual and the existing work record. Where like work is compared, preparation, review, repair, integration, recovery and waiting are distinguished by cause; source size or elapsed time alone measures nothing.
+- **REQ-005** — Each undecided matter that a selected activity depends on is carried with its owner, consequence and point of need. Definition, supplied inputs, performed use, decision and adoption are separately evidenced facts.
+- **REQ-006** — This deliverable performs no act owned by another, as allocated in CLM-003, CLM-004 and CLM-005: it changes no requirement, decides no method, policy, replacement, adoption or retirement, builds nothing in SWBPIPE, and performs no person's judgment.
 
-- **AC-001** — OUT-001 identifies both App and SWBPIPE, realistic owner-selected activities, agreed period, eligible material and the actual agreement evidence; if agreement or use has not occurred, the affected obligation remains explicitly unmet rather than presented as validation. Verify with VER-001.
-- **AC-002** — OUT-002 retains actual practitioner observations and unobserved coverage for all four design aims in REQ-002, with candidate/configuration/date, grounds and limitations; automated or fixture-only success cannot pass as practitioner validation, and no numeric score or positive outcome is required. Verify with VER-002.
-- **AC-003** — The records preserve the actor, subject and evidence of each actual act under REQ-003, allow faithful transcription with separate recorder attribution, and reject fabricated human acts or inflated reliance; success of one act supplies no evidence of another and no invented precedence between them. Verify with VER-003.
-- **AC-004** — OUT-003 traces every recorded use observation to its owning requirement, workflow or method and responsible recipient; dispositions preserve proposed versus actual decisions, their actor and scope, and any proposed successor-basis change without presuming acceptance. Method feedback uses the selected source section and existing work record where applicable. Verify with VER-004.
-- **AC-005** — The arrangement and feedback retain each applicable unresolved owner and point of need in REQ-005, with no invented period, selected operation, autonomy policy, candidate environment or retirement decision; independent definition is not represented as satisfying later inputs or human decisions. Verify with VER-005.
-- **AC-006** — OUT-003 and its linked records preserve REQ-006's one-for-one ownership boundaries, including the named App integration/feedback consumers and external SWBPIPE owner, without taking over implementation, policy decisions, transition decisions or professional reliance. Verify with VER-006.
+- **AC-001** — The arrangement names both applications, the work the owner chose, the agreed period, the material and the candidates, and holds the owner's own agreement. Verify by VER-001. [REQ-001; CLM-001]
+- **AC-002** — The account holds what the owner actually observed while using the identified candidate, for each of the four aims, with candidate, configuration and date, grounds and limits, and states what was not observed. No automated or fixture-only result appears as validation. Verify by VER-002. [REQ-002; CLM-002]
+- **AC-003** — Each act in the records names its actual actor, subject and evidence, with the recorder separate; an owner's judgment recorded by the coordinator names the owner as actor and the coordinator as recorder; no agreement, approval or reliance appears that a person did not perform; and an independently evidenced act is not refused for lack of an earlier acceptance. Verify by VER-003. [REQ-003]
+- **AC-004** — Every recorded observation is traced to its owning requirement, workflow or method and to a recipient, and has a disposition that distinguishes a proposal from a decision, with the decider and the scope. A proposed change to a successor basis is kept with its standing. Each method observation cites the section of the selected manual, its observed conditions and the existing work record that carries the work. Where like work is compared, the comparison separates preparation, review, repair, integration, recovery and waiting by cause and draws no conclusion from source size or elapsed time alone. Verify by VER-004. [REQ-004; CLM-003]
+- **AC-005** — The arrangement and the dispositions carry each undecided matter with its owner, consequence and point of need, and contain no period, operation, autonomy policy, candidate environment or retirement that its owner did not decide. Verify by VER-005. [REQ-005]
+- **AC-006** — The dispositions and their links keep each excluded act of REQ-006 with its owner. Verify by VER-006. [REQ-006]
 
-These criteria define completed production, including actual use evidence where
-required. A checked INIT contract is only a definition result. Pending
-agreement, unavailable host contributions, unperformed activities and unknown
-outcomes remain visible; they do not count as a criterion pass. Actual
-unfavorable findings can satisfy faithful-observation obligations while leaving
-product fitness issues unresolved. No volume of checks is a substitute for the
-owner's validation judgment.
+An unfavourable finding, faithfully kept, meets these criteria and leaves the product's fitness issue open with its owner. A criterion that needs agreement or use is unmet until the agreement or the use has happened.
 
 ## Production and Verification Method — Praxeology
 
-Prepare the arrangement with the owner and identify the App and external
-SWBPIPE contributions relevant to the selected work. Obtain the owner's
-agreement at OI-016's stated point of need. Preserve the human-relayed custody
-and actual readiness of external contributions. Then record the owner's real
-work in both expressions over that agreed period, with its conditions and
-gaps. Route observations to the appropriate owners and bring consequential
-method or basis changes to the applicable decision. Revisit affected evidence
-when the candidate or its material basis changes; preserve prior evidence as
-evidence of its own subject. No live validation or waiting through a period is
-performed by this INIT.
+The coordinator prepares the arrangement with the owner and obtains the owner's agreement before any use counts as validation. The owner then does the chosen work in both applications over the agreed period, and the coordinator records what the owner reports, with its conditions and gaps. Observations go to their owners, and consequential method or basis changes go to the decision that owns them. When a candidate or its basis changes, the affected evidence is revisited and the earlier evidence stays evidence of its own subject. Arrangement, observation and disposition are kept as three kinds of record; a method observation stays at the work record that already carries the work (OPERATING_METHOD V4-OPS-20). Where the arrangement, the account and the dispositions are kept is undecided (owner).
 
-- **VER-001** — Inspect the arrangement against B1/B3/B4/B6 and the actual owner agreement source. Confirm both expressions, selected work, period, material and agreement provenance. An unsigned proposal or missing owner evidence remains pending; do not invent a duration or activities. Compare planned coverage with actual performed coverage when use evidence exists. Evaluates AC-001.
-- **VER-002** — Review actual use records and owner observations against V4-EXM-40/41 and the agreed arrangement. Check candidate/configuration/date and each design aim, separating observed absence of an issue from missing observation. Confirm that a replay, invented fixture or automated pass without practitioner use is insufficient; actual owner use with invented material is eligible. Where useful like work is compared, distinguish preparation, review, repair, integration, recovery and waiting by cause; source size or historical elapsed time alone cannot establish lifetime benefit. Record gaps and unfavorable findings without numerical fitness thresholds. Evaluates AC-002.
-- **VER-003** — Trace attributed acts to their real source and concerned content. Check a faithful-recording case: an evidenced owner judgment may be recorded by the coordinator with owner as actor and coordinator as recorder. Check fabrication negatives: a tool receipt alone, prepared proposal or verification pass cannot supply an unperformed human agreement, approval or reliance act. Retain the separate evidence for independently performed checking or execution without demanding unrelated prior acceptance. Missing real-act evidence remains missing; illustrative cases used to inspect the record definition are not actual practitioner observations. Evaluates AC-003.
-- **VER-004** — Follow the observation-to-commitment-to-recipient-to-disposition links. For method feedback inspect the selected section, observed conditions and existing work record, then the actual stage decision if one occurred. Check the distinction among proposed change, scoped departure and no change; verify any successor-basis proposal remains traceable with its actual standing. An unresolved recipient or unmade decision is reported, not invented. Evaluates AC-004.
-- **VER-005** — Compare applicable open matters with B6 and the arrangement/feedback records. Verify exact owners and points of need in TBD-001–004, and actual resolution evidence before a dependent activity relies on it. Confirm that an initialized contract, prepared handoff or independent component pass is not used to infer actual agreement, external readiness, use, adoption or retirement. Evaluates AC-005.
-- **VER-006** — Review each excluded act in REQ-006 against CLM-003–005 and their source rows/clauses. Confirm local coordination and reporting remain distinct from each named owner's act; resolve both deterministic owner-ID results and any prose-owner cases by semantic review. Follow feature changes to their feature owner, method feedback to App `DEL-10-02`, and external contributions through human relay. Evaluates AC-006.
-
-For each evaluation, record what was actually examined, the candidate and
-evidence identity, outcome and limits. Verification outcomes may be passed,
-failed, blocked, not run or inconclusive as applicable; these are not numeric
-validation scores. Independent checking of this contract and its later
-candidate records remains distinct from the owner's use and judgment.
+- **VER-001** — Inspect the arrangement against V4-EXM-40 and the source of the owner's agreement. Compare the coverage planned with the coverage performed.
+- **VER-002** — Review the records of use and the owner's observations against V4-EXM-40/41 and the arrangement: candidate, configuration, date and each aim, with an issue not observed kept apart from use not observed.
+- **VER-003** — Trace each attributed act to its real source and content, including one owner judgment recorded by the coordinator, and check that a receipt, a prepared proposal or a verification pass has supplied no human act, and that an independently evidenced check or execution is kept without demanding a prior acceptance.
+- **VER-004** — Follow each observation to its commitment, recipient and disposition; for method feedback inspect the manual section, the conditions and the work record, and the decision if one was made. Where like work is compared, check that the comparison is by cause and rests on neither source size nor elapsed time alone.
+- **VER-005** — Compare the undecided matters below with the arrangement and the dispositions, and check for evidence of resolution before any activity that depends on one and that no dependent activity starts before its point of need is met.
+- **VER-006** — Review each excluded act in REQ-006 against CLM-003, CLM-004 and CLM-005.
 
 ## Governing Values and Decisions — Axiology
 
-- **AX-001** — Later explicit owner direction qualifies the original seed. B2/B4/B5 govern the composite reading: no reinstated Root-first hierarchy, automatic shared implementation allocation, compulsory historical reuse or blanket reserved-act list. Technical means remain with their responsible contracts where open.
-- **AX-002** — Observe whether results merit the attention they demand. Use observations to improve commitments and practice without assuming that the intended architecture is beneficial, that all findings are favorable, or that a future v5.0 basis must be accepted. Basis: B4 V4-EXM-41/42 and B5 V4-OPS-20–23.
-- **AX-003** — Actual agreement, actual use, faithful recording, independent checking, acceptance/adoption and professional reliance remain distinct. Definition does not promote lifecycle; the governing `_STATUS.md` remains separate and unchanged by this contract's initialization. Basis: CLM-001–005 and B7.
-- **TBD-001** — OI-016 / SOW-264 is OPEN. Owner: **Owner**. Point of need: **Before practitioner validation in use**. Required resolution: **Agree period and owner-selected activities.** Consequence: **Verification and validation remain distinct.** This contract supplies neither value. Basis: B6.
-- **TBD-002** — Where selected work depends on unsettled policy, OI-001 remains OPEN with owner **Owner with App/SWB contract owners**, point of need **Before operation-policy production contracts**, and resolution **Choose always-reserved acts by concrete operation and consequence.** OI-002 remains OPEN with the same owner, point of need **Before permission-policy implementation**, and resolution **Distinguish routine tool permissions from professional acts; settle App/host treatment.** These are external policy interfaces, not additional local scope. Basis: B6 and CLM-004.
-- **TBD-003** — For a selected connected activity, OI-021 remains OPEN. Owner: **Owner via outside SWB session and App/shared owner**. Point of need: **Before connected-activity SoW and execution**. Resolution: **Choose useful operation, permitted autonomy and exact candidate environment.** DEP-001 retains external SWBPIPE ownership and its point of need **Before corresponding connected-journey integration/examination and fallback-replacement decision**. The current owner-reported state is building before agent-action integration; a handoff does not establish delivered/adopted capability or a joined witness. Independent App definition may continue. Basis: B6, B2 U1/U5 and CLM-004.
-- **TBD-004** — If feedback proposes adoption or retirement, OI-024 remains OPEN. Owner: **Owner with affected consumers**. Point of need: **Before each adoption/retirement decision**. Resolution: **Identify first adopters, continuing obligations and end-of-coexistence conditions.** Fallback replacement does not retire all projects or approve professional reliance. Basis: B6 and CLM-005.
-
-The agreement and these conditional interfaces remain at their actual points
-of need. Their inclusion does not create a new repeated acceptance gate for
-the already-authorized definition work. A source conflict discovered later
-must retain its exact loci and reach the responsible owner rather than being
-settled by a favorable interpretation in a validation record.
+- **AX-001** — The question is whether results merit the attention they demand. Observations improve commitments and practice; nothing assumes that the architecture is beneficial, that findings will be favourable, or that a successor basis must follow.
+- **AX-002** — Agreement, use, faithful recording, independent checking, adoption and professional reliance are different facts. Better means a larger share of the owner's observations reaching an owner with a disposition; never by restating an observation more favourably than the owner made it, or by counting a check as use.
+- **AX-003** — The owner's judgment is the result. Better means less of the owner's attention spent on arranging and recording for the same observations kept; never by having an agent stand in for the owner's use.
+- **TBD-001** — The period and the activities of validation are undecided (owner; needed before validation in use; until then verification and validation remain distinct and no use counts as validation). AC-001 is unmet until the owner agrees them.
+- **TBD-003** — The operation, autonomy and environment of the first connected activity are undecided (owner, through the SWBPIPE session, with the App owner). Validation in SWBPIPE waits for them and for a host candidate.
+- **TBD-004** — First adopters, continuing obligations and the end of coexistence are undecided (owner with the affected consumers). A disposition that proposes adoption or retirement goes to that decision.
+- **TBD-005** — Which findings must be closed before publication is undecided (owner, with the 4.0.0 release target). Every observation has a disposition either way (AC-004).
 
 ## Output and Evaluation Matrix
 
 | Output | Objective refs | Requirement/claim refs | Acceptance refs | Verification refs | Evidence expectation |
 |---|---|---|---|---|---|
-| OUT-001 | OBJ-008 | REQ-001, CLM-001, CLM-002 | AC-001 | VER-001 | Actual owner agreement identifying App/SWBPIPE activities, period and eligible material, or explicit unmet agreement/use coverage. |
-| OUT-002 | OBJ-008 | REQ-002, CLM-002 | AC-002 | VER-002 | Candidate-bound real-use observations across all design aims, including gaps and unfavorable findings; no substituted fixture pass or numeric fitness score. |
-| OUT-002 | OBJ-008 | REQ-003, CLM-004 | AC-003 | VER-003 | Attributed act/source/content traces, faithful recording and fabrication-negative examination, each with its actual evidence limit. |
-| OUT-003 | OBJ-008, OBJ-010 | REQ-004, CLM-003 | AC-004 | VER-004 | Observation/owning-commitment/recipient/disposition links, selected-method references where applicable, and successor-basis proposal standing. |
-| OUT-001 | OBJ-008 | REQ-005, CLM-001, CLM-004, CLM-005 | AC-005 | VER-005 | Exact applicable unresolved owners/points of need and separate evidence of any later resolution; no definition-to-use inference. |
-| OUT-003 | OBJ-008, OBJ-010 | REQ-006, CLM-003, CLM-004, CLM-005 | AC-006 | VER-006 | One-for-one source-grounded act/owner account and feedback integration path without transfer of implementation or decision ownership. |
+| OUT-001 | OBJ-008 | REQ-001; CLM-001 | AC-001 | VER-001 | Owner ruling: the owner's own agreement is the expected result, read from the owner's words. |
+| OUT-002 | OBJ-008 | REQ-002; CLM-002 | AC-002 | VER-002 | Outside source: the owner's own observations while using the candidate. EXAMINATION V4-EXM-41 states the four aims. |
+| OUT-002 | OBJ-008 | REQ-003; CLM-004 | AC-003 | VER-003 | Outside source: the act as the person performed it, set against the record. PRD V4-AUT-03 states what may be recorded. |
+| OUT-003 | OBJ-008; OBJ-010 | REQ-004; CLM-003 | AC-004 | VER-004 | Owner ruling: EXAMINATION V4-EXM-42 and OPERATING_METHOD V4-OPS-20…23. Each disposition is read from its recipient's own decision. |
+| OUT-001 | OBJ-008 | REQ-005; CLM-001; CLM-005 | AC-005 | VER-005 | Owner ruling: each matter is decided only by the owner named for it. |
+| OUT-003 | OBJ-008; OBJ-010 | REQ-006; CLM-003; CLM-004; CLM-005 | AC-006 | VER-006 | Owner ruling: the accepted decomposition's allocation of each act. |

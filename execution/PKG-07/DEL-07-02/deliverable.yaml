@@ -2,40 +2,58 @@ id: DEL-07-02
 name: Connector limitation and source-file recovery paths
 needs:
 - from: DEL-07-01
-  condition: Retained PEC compatibility meaning only; no provider delivery, qualification or adoption is required. Use the current scope when maintaining an existing connector consumer.
+  condition: A PEC item is of one of two tiers, a record-tier claim derived from project files or a presence-tier
+    statement that is advisory and never supports reliance; and retained PEC material is constructed
+    compatibility material with no adoption behind it.
   gating: false
-  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
+  when: Retained PEC material is shown or read
 - from: DEL-08-01
-  condition: Consume DEL-08-01's Domains admission/query/provenance/freshness meanings and resolved data-boundary
-    terms when integrating the Domains-specific path; provider allocation, deployment, transport and query
-    readiness remain unresolved, and fallback and independent work continue without Domains.
+  condition: A Domains result is admitted, located and not admitted, or unknown, and its freshness is
+    current, stale or unknown against the source as it stands; only an admitted, current result supports
+    reliance; and there are fixtures for an admitted current result, a located result that is not admitted,
+    a stale result and no response.
   gating: false
-  evidence: execution/PKG-07/DEL-07-02/ScopeOfWork.md
-- from: DEL-07-01
-  condition: Retained PEC compatibility meaning only; no provider delivery, qualification or adoption is required. Use the current scope when maintaining an existing connector consumer.
-  gating: false
-  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
-- from: doc:Question-specific project graphs, decisions, revisions and other source records
-  condition: Use available actual project graphs, decisions, revisions and other source records to reconstruct
-    the affected question and identify source gaps; if necessary records are unavailable retain an explicit
-    unresolved need and responsible route.
-  evidence: execution/PKG-07/DEL-07-02/ScopeOfWork.md
-- from: DEL-07-01
-  condition: Retained PEC compatibility meaning only; no provider delivery, qualification or adoption is required. Use the current scope when maintaining an existing connector consumer.
-  gating: false
-  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
-- from: DEL-08-01
-  condition: Supply Domains-specific admission/query cases to the common connector limitation/source-file
-    recovery contribution.
-  gating: false
-  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
+  when: Domains material is assessed
+- from: DEL-04-03
+  condition: The records store keeps one subtree for each project, outside every project working tree
+    and every Codex home; a project is attached by its stable identity and never on its path alone;
+    and where the store cannot be written, recording is refused visibly and nothing is written elsewhere.
+  gating: true
 code_paths:
+- app/src-tauri/src/connector_standing.rs
 - app/src-tauri/src/connector_route_store.rs
 - app/src-tauri/src/connector_route_view.rs
-- app/src-tauri/src/connector_standing.rs
+- app/src-tauri/src/connector_source.rs
+- app/src-tauri/src/connector_source_fs.rs
+- app/src-tauri/src/connector_git.rs
+- app/src-tauri/src/connector_git_process.rs
+- app/src-tauri/src/connector_materialization.rs
+- app/src-tauri/src/connector_reconstruction.rs
+- app/src-tauri/src/connector_answer_only.rs
+- app/src-tauri/resources/connector_route/*
+- app/src-tauri/schemas/connector.standing.schema.json
+- app/src/ConnectorRoutePanel.tsx
+- app/src/ConnectorSourcePanel.tsx
+- app/src/ConnectorReconstruction.tsx
+# records_store.rs is DEL-04-03's. Here: where a project's route accounts are placed and read,
+# and the listing of accounts found in the project folder.
 - app/src-tauri/src/records_store.rs
+# lib.rs and App.tsx are shared. Here: the connector commands, the source and draft state they
+# hold, and the mounting of the connector panels.
+- app/src-tauri/src/lib.rs
+- app/src/App.tsx
+# r2_snapshot_proof.rs and its test serve no commitment of this scope (TBD-003) and are not listed.
 checks:
 - app/src-tauri/src/connector_route_store_tests.rs
+- app/src-tauri/src/connector_source_tests.rs
+- app/src-tauri/src/connector_git_tests.rs
+- app/src-tauri/src/connector_materialization_tests.rs
+- app/src-tauri/src/connector_answer_only_tests.rs
 - app/tests/connector-route-presentation.test.mjs
+- app/tests/connector-source-presentation.test.mjs
+- app/tests/fixtures/connector-git/*
+- app/tests/fixtures/connector-route-source-walk.json
+- app/tests/fixtures/connector.contribution-message.v0.2.schema.json
+- app/tests/fixtures/contribution_content_review_v02.fixture.json
 - app/contract_inputs/PKG-07/DEL-07-02/Work/check_record_reconstruction_v04.py
 - app/contract_inputs/PKG-07/DEL-07-02/Work/check_route_account_v02.py

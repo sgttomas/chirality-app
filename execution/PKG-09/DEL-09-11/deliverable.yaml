@@ -2,45 +2,31 @@ id: DEL-09-11
 name: Later run reconstruction witness
 needs:
 - from: DEL-04-03
-  condition: Consume DEL-04-03's identified compact run/decision records and reference/lapse fixtures for
-    the actual reconstruction and supporting checks; the implemented App store, package recovery and cold-reader
-    checks do not supply the actual host journey, a separate reconstructing reader or the week-later observation.
+  condition: A run record carries workflow identity and version, conversation, model, autonomy settings,
+    requested operations, observed outcomes and references to host receipts; an act record carries
+    actor, recorder, bound content, scope and purpose; and an act is shown as lapsed when its content
+    changes.
   gating: true
-  evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
-- from: DEL-09-07
-  condition: Consume App DEL-09-07 actual identified V4-EXM-20 host-run evidence and host receipt references,
-    including the source journey date needed for the week-later witness.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
-- from: external:External SWBPIPE implementation owner — authoritative source-journey receipts
-  condition: Receive authoritative host receipt/hash/origin evidence for the identified source journey from
-    the external SWBPIPE owner through the DEL-09-07 receiving contribution.
-  evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
-- from: external:Separate named reconstructing reader — actual week-later account
-  condition: Integrate the actual read-and-compare account returned by a named reader separate from the
-    source-run author, performed a week after the identified host journey with both dates evidenced.
-  evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
 - from: DEL-04-01
-  condition: 'Use the adopted first-increment D2/D3 human-act and routine-permission policy carried by
-    DEL-04-01 for the source journey; no new policy is selected by the reconstruction witness.'
-  evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
-- from: external:Owner with App/SWB contract owners — operation-specific policy additions
-  condition: Receive any additional operation-specific policy under OI-021 when needed to settle an affected
-    reconstruction examination criterion beyond the adopted first-increment D2/D3 rulings.
-  evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
-- from: external:Owner via outside SWB session and App/shared owner — connected activity and affected
-    criterion
-  condition: 'Retain the OI-021 owners'' actual connected-activity choice and settled affected criterion
-    for execution: useful operation, permitted autonomy and exact candidate environment.'
-  evidence: execution/PKG-09/DEL-09-11/ScopeOfWork.md
-- from: DEL-04-03
-  condition: DEL-04-03 supplies compact records to App DEL-09-11 for its separate later reconstruction witness.
+  condition: The operation policy keeps accepting an edit, checking, engineering approval and professional
+    reliance as distinct acts, so a record of one is not read as another.
+  gating: false
+- from: DEL-09-07
+  condition: One V4-EXM-20 journey has run on identified candidates, and its dossier names the journey's
+    date, everyone who took part in it, and the host receipt references for each change.
   gating: true
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 - from: DEL-09-01
-  condition: Supply reusable examination support and evidence interfaces to the named owner of DEL-09-11
-    for its own scoped work.
+  condition: Result records bind candidate, harness, model and model-server configuration and date
+    with one of five outcomes, and distinguish blocked from not run.
   gating: true
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+- from: external:DEP-001
+  condition: SWBPIPE keeps the receipts, hashes and origin marks of the source journey resolvable after
+    the session that produced them has ended, and writes, for the source journey, a run record with
+    the host project in the shared format that names the actor of each human act.
+- from: external:separate reader
+  condition: A named person or agent who took no part in the source journey reads the input set a week
+    after it and returns an account.
+code_paths: []
 checks:
 - app/contract_inputs/PKG-09/DEL-09-11/Work/prototype/run_standing_check.py
+- app/contract_inputs/PKG-09/DEL-09-11/Work/prototype/rrm_compare.py

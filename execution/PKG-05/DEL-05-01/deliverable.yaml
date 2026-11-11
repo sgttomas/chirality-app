@@ -2,128 +2,86 @@ id: DEL-05-01
 name: Minimal-loop and model receiving contract
 needs:
 - from: DEL-03-01
-  condition: Receive the adopted capability-catalog/read-basis schemas and catalog identity for loop argument
-    validation and catalog-bound fixtures; this deliverable does not define those schemas.
+  condition: A catalog edition names its host and edition, and each entry declares its operation identity
+    and version, its class, its exposure on the embedded surface and, for each argument, its name,
+    whether it is required and a schema a received value can be checked against, including the
+    choices of an enumeration and the form of a structured argument; an entry that reaches a network
+    destination carries its external-contact declaration, and the catalog carries the destination-request
+    entry and the results for a destination that is not allowed. The shared fixture catalogue supplies
+    a conforming catalog to run cases on.
   gating: false
-  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
 - from: DEL-03-02
-  condition: Consume the proposal/validation/outcome contract meaning at the loop boundary so schema validity
-    does not substitute for host validation, acceptance or a human act. Actual adopted meaning remains an
-    incoming contract input.
+  condition: A host outcome names one of the defined item states or refusals, a submission reports
+    queued until the host records acceptance and application, a host's refusal is never a person's
+    rejection, and an outcome that was not observed is reported as unknown.
   gating: false
-  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
 - from: DEL-02-01
-  condition: Receive adopted portable workflow/role/checkpoint declarations for loop checkpoint/event definitions
-    and fixtures; consume their shared meaning without deciding common-component allocation.
+  condition: A workflow has a source-qualified identity with its holding library, and each declared
+    checkpoint names one required act, when it is reached, its subject class, its purpose and its
+    scope, so that a loop can associate a run and recognise an arrival.
   gating: false
-  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
 - from: DEL-02-03
-  condition: 'Consume DEL-02-03''s execution/checkpoint receiving behavior at the loop boundary: in the
-    current phase the loop evaluates reached-when and records checkpoint arrivals as observation; in the
-    governance phase it realizes DEL-02-03''s hold machine and hold-support values.'
+  condition: A checkpoint arrival, the request for its act and the act are recorded as separate facts,
+    the act only when the person performs it; in the current phase nothing holds the run, and the
+    hold a governance-phase workflow needs is defined for a loop to realise.
   gating: false
-  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
 - from: DEL-04-01
-  condition: Receive the adopted operation-policy/human-act distinction contract for checkpoint/event/evidence
-    examples; unresolved operation classes remain decisions of the owner and host policy owner, and no generic
-    human-act sequence is introduced.
+  condition: Each act kind has one name and one performer, the acts reserved to the person are named,
+    every catalog operation has one class value, and the route's treatment for a class and grant
+    is defined, so that loop events and cases can keep the acts apart.
   gating: true
-  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
-- from: DEL-04-03
-  condition: Receive adopted shared human-act/run-record meanings and format for loop event/checkpoint and
-    record receiving definitions and examples; actual execution, acceptance, checking, approval and reliance
-    remain separately evidenced.
+- from: DEL-04-02
+  condition: Each settings version has its own identity and gives, for each operation class, the grant
+    value, display state and scope and, for a host's agent, the destination settings, so that a dispatch
+    can cite the settings it was made under.
   gating: false
-  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: DEL-04-03
+  condition: The run-record format has an entry for each destination contacted with the grant or list
+    entry that allowed it, for each destination request, grant, decline and refusal, for a request
+    closed unanswered with its cause and turn binding, and for an operation rejected before the host's
+    validation with its kind.
+  gating: false
 - from: DEL-05-02
-  condition: Receive the App/shared panel receiving needs and meaning at the loop boundary for the receiving/allocation
-    account; host-specific panel assembly remains external and common implementation remains unallocated.
+  condition: The panel contract names, for conversation, workflow selection, the proposal queue and
+    checks, which of the loop's events a host panel shows, so that the account can state what a
+    panel needs of the loop.
   gating: false
-  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+- from: DEL-01-05
+  condition: The capability handoff identifies the interface the App's Codex requires of a local server,
+    with its qualification limits, apart from a host's model interface.
+  gating: true
 - from: external:DEP-001
-  condition: Before claiming actual host conformance, receive identified SWBPIPE host-candidate evidence
-    of native routing/destination enforcement, the destination record, script/key/credential separation,
-    validation/failure behavior and responsiveness; this is needed at host claims and connected receiving/examination
-    points, not for the local receiving definition.
-  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+  condition: SWBPIPE supplies an identified host candidate with its native layer's routing and destination
+    enforcement, its destination record, its custody of keys and sign-in credentials, its handling
+    of invalid and truncated tool calls, the model interface its loop speaks and its observed responsiveness.
+  when: Before conformance is stated for that host.
 - from: external:OI-013
-  condition: The shared contract owner and SWB implementation owner agree host-specific construction and
-    any reusable common contribution, then choose loop placement, streaming/parsing, conversation persistence
-    and panel assembly before the affected shared/host implementation boundary contracts (OI-013, open);
-    receiving definition continues meanwhile.
-  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+  condition: The shared contract owner and the SWBPIPE implementation owner agree the host-specific
+    construction and choose where the loop runs, how it parses and streams, how the conversation
+    persists and how the panel is assembled.
+  when: Before a shared or host implementation boundary is fixed.
 - from: external:OI-014
-  condition: App/shared contract owners and affected consumers allocate shared contracts/components against
-    actual consumer responsibility before affected structural/production allocation; OI-014 remains open,
-    and shared meaning alone selects no common service or implementation.
-  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
-- from: unknown
-  condition: Supply or agree the actual model-interface identity and detailed protocol/fixture representation
-    at their points of fixture/conformance use; exact supplier, version and wire details remain unselected
-    until the actual basis is available.
-  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
-- from: DEL-04-02
-  condition: Receive the autonomy-grant display states and standing exchange from DEL-04-02 and consume
-    them as the grant in force carried on each loop dispatch; this deliverable does not define those states.
-  gating: false
-  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
-- from: DEL-01-05
-  condition: Receive App v4 DEL-01-05's local-server capability requirements and qualification limits (its
-    capability handoff) as information, keeping the App's provider interface distinct from a host's model
-    interface; no requirement of this contract is taken from them.
-  gating: true
-  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
-- from: DEL-01-05
-  condition: DEL-01-05 supplies applicable local-server capability requirements and qualification limits
-    to DEL-05-01 receiving, preserving App-provider versus host-model interface distinctions.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
-- from: DEL-02-01
-  condition: App v4 DEL-05-01 receives this portable workflow/role/checkpoint contract and shared allocation
-    and declares it upstream in its own register; its acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: DEL-02-03
-  condition: App v4 DEL-05-01 receives this slice's report, recording meanings and transfer contract and
-    declares it upstream in its own register; its acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-03-01
-  condition: App v4 DEL-05-01 receives this catalog/read-basis contract (schemas and catalog identity for
-    loop validation) and declares it upstream in its own register; its acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: DEL-03-02
-  condition: App v4 DEL-05-01 receives this contract's proposal, validation and outcome meanings (the loop
-    boundary) and declares them upstream in its own register; its acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
-- from: DEL-04-01
-  condition: DEL-04-01 supplies operation-policy and human-act meaning to DEL-05-01, which the source states
-    declares DEL-04-01 upstream in its own register; actual policy content and applicable adopted decisions
-    must be provided.
-  gating: true
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: DEL-04-02
-  condition: Supply DEL-04-02 visible autonomy state to App DEL-05-01, which the source names as a receiver.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
-- from: DEL-04-03
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-05-01;
-    the receiving documentation identifies how it is consumed.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-- from: external:DEP-001
-  condition: Carry this deliverable's host questions for its loop receiving inputs to the external SWBPIPE
-    owner through the authorized human-relayed file path; preparing a file is not delivery or adoption,
-    and returned answers are recorded separately.
-  direction: downstream
-  gating: false
-  evidence: execution/PKG-05/DEL-05-01/ScopeOfWork.md
+  condition: The App/shared contract owners, with the affected consumers, decide whether any part of
+    the loop is implemented once for several consumers and where shared contracts are placed.
+  when: Before structural or production allocation.
 code_paths:
-- app/src-tauri/src/catalog.rs
+# receiving.rs is shared with DEL-05-02. Here: receiving a host's assembled tool calls, the
+# model choice and destination requests. Panel return inputs and the panel-to-host-table
+# comparison are DEL-05-02's. The schema registry in catalog.rs is DEL-03-01's.
 - app/src-tauri/src/receiving.rs
+# The contract document: OUT-001, the scenario and case definitions of OUT-002 and OUT-003,
+# and the OUT-004 account.
+- app/contract_inputs/PKG-05/DEL-05-01/Work/LOOP_RECEIVING_CONTRACT.md
+- app/src-tauri/resources/catalog_adapter/LOOP_TOOL_CALL.*
+- app/src-tauri/resources/catalog_adapter/LOOP_DESTINATION_REQUEST.*
+- app/contract_inputs/PKG-05/DEL-05-01/Work/LOOP_TOOL_CALL.*
+- app/contract_inputs/PKG-05/DEL-05-01/Work/LOOP_DESTINATION_REQUEST.*
+- app/contract_inputs/PKG-05/DEL-05-01/Work/prototype/assemble_tool_calls.py
 - app/contract_inputs/PKG-05/DEL-05-01/Work/prototype/destination_flow.py
+- app/contract_inputs/PKG-05/DEL-05-01/Work/prototype/schema_subset.py
+- app/contract_inputs/PKG-05/DEL-05-01/Work/prototype/fixtures/stream_fixtures.json
 checks:
 - app/tests/failed_turn_permissions_test.py
 - app/src-tauri/tests/catalog_adapter.rs
+- app/contract_inputs/PKG-05/DEL-05-01/Work/prototype/assemble_tool_calls.py
+- app/contract_inputs/PKG-05/DEL-05-01/Work/prototype/destination_flow.py

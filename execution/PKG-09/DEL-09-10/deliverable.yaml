@@ -1,41 +1,23 @@
 id: DEL-09-10
 name: Optional connector consumption witness
 needs:
-- from: DEL-07-01
-  condition: Retained PEC compatibility meaning only; no provider delivery, qualification or adoption is required. Use the current scope when maintaining an existing connector consumer.
-  gating: false
-  evidence: execution/PKG-07/DEL-07-01/ScopeOfWork.md
 - from: DEL-07-02
-  condition: Consume the applicable connector limitation/fallback implementation for the identified candidate;
-    observe the actual source-file recovery or record its sound-basis limitation.
+  condition: With a connector feed limited, stale, partial, failing or absent, the App shows the feed's
+    coverage, freshness and limits, marks the conclusions it does not support, and offers the source-file
+    route; each connector's availability is handled independently, including PEC absent with a stale
+    Domains index.
   gating: true
-  evidence: execution/PKG-09/DEL-09-10/ScopeOfWork.md
 - from: DEL-08-01
-  condition: Apply the supplied Domains source/admission/freshness contract where the examination needs
-    that interface; preserve independent connector availability and the original absent-PEC/stale-Domains
-    case.
+  condition: The Domains query, admission and freshness contract has fixtures for an unavailable source
+    and for an index older than its sources.
   gating: true
-  evidence: execution/PKG-09/DEL-09-10/ScopeOfWork.md
-- from: 'external:Selected receiving consumer: actual adopted envelope and permitted-action evidence'
-  condition: The qualified-case execution record must be checked against the selected receiving consumer's
-    actual adopted envelope and supporting adoption evidence for the observed permitted receiving action.
-  evidence: execution/PKG-09/DEL-09-10/ScopeOfWork.md
-- from: 'doc:Actual source files for fallback: graphs, decisions and revisions'
-  condition: Actual source-file recovery uses the graphs, decisions and revisions relevant to the same coordination
-    question, where the source basis is sound; retain unavailable basis and unknowns when recovery cannot
-    be established.
-  evidence: execution/PKG-09/DEL-09-10/ScopeOfWork.md
-- from: external:CURRENT OI-022
-  condition: Resolve the stated first-consumer contract and reliance questions with the App consumer and
-    PEC owners before operational consumer reliance; preserve actual release identification/evidence, consumer
-    adoption and D108 limitations.
-  evidence: execution/PKG-09/DEL-09-10/ScopeOfWork.md
-- from: DEL-08-01
-  condition: Supply Domains-specific admission/query cases to the broader optional-connector witness.
-  gating: true
-  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
 - from: DEL-09-01
-  condition: Supply reusable examination support and evidence interfaces to the named owner of DEL-09-10
-    for its own scoped work.
+  condition: Result records bind candidate, configuration and date, allow a part to be declared not
+    applicable before the run, and keep replay, browser and native evidence apart.
   gating: true
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+- from: external:receiving consumer and connector provider
+  condition: The provider has released the connector with its qualification evidence, and the receiving
+    consumer has recorded its adoption for a stated coverage.
+  when: Only for a connector the receiving consumer has adopted.
+code_paths: []
+checks: []

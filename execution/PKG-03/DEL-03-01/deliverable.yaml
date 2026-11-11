@@ -2,59 +2,51 @@ id: DEL-03-01
 name: Capability catalog and read-basis contract
 needs:
 - from: DEL-04-01
-  condition: Receive adopted operation-policy/human-act classes from App v4 DEL-04-01 before fixing the
-    affected operation-policy representation; unresolved assignments remain explicit during definition.
+  condition: The operation policy names the classes an operation may carry (none, may apply within
+    granted autonomy, proposal only, reserved to the person), marks each concrete value as adopted
+    or still open, and names the acts reserved to a person.
   gating: true
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: external:SWBPIPE
-  condition: Receive actual host operation definitions, tables, diagnostics, availability and basis semantics
-    from the host owner before claiming conformance for that host.
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: DEL-04-03
+  condition: A recorded human act has a stated field set (actor, recorder, bound content, scope and
+    purpose) and is shown as lapsed when its bound content changes, so a read's standing can carry
+    it by reference.
+  gating: false
 - from: DEL-03-02
-  condition: Receive App v4 DEL-03-02 proposal refusal/application behavior for VER-004 read-to-action basis
-    comparison; this catalog contract does not implement that behavior.
+  condition: A change request cites the basis of the reads it relied on, and every state the host
+    reports for it names that same basis, so the read-to-action basis fixtures have a later action
+    to follow.
   gating: false
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
+- from: external:DEP-001
+  condition: SWBPIPE publishes its capability catalog and supplies its own operations, tables, diagnostics,
+    availability reasons and read basis.
+  when: Before conformance is stated for that host.
 - from: external:OI-003
-  condition: Receive the owner and host contract owner's retain/narrow/defer disposition (OI-003) before
-    claiming the all-actor/no-separate-work extension promise or fixing its dependent acceptance criterion;
-    the original promise is preserved pending that ruling.
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: unknown
-  condition: Agree catalog/schema placement, host/provider serialization, canonical content-hash representation
-    and adapter realization before the dependent schema implementation and conformance; these choices remain
-    unresolved but do not hold independent definition.
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: external:SWBPIPE
-  condition: Identify the connected operation, autonomy and candidate environment with the owner via the
-    outside SWB session and App/shared owner before live joined examination.
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: DEL-09-09
-  condition: Receive the candidate-bound extension trace and generated/adapted-work account from DEL-09-09
-    before fixing or claiming the dependent extension capability; the owner's retain/narrow/defer ruling
-    is separately required under DEP-03-01-027.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: DEL-04-03
-  condition: Receive the DEL-04-03 act field set and lapse vocabulary that read results carry as standing
-    (human-act evidence and lapse state); this catalog contract consumes and does not define them.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: DEL-04-01
-  condition: DEL-04-01 supplies operation-policy and human-act meaning to DEL-03-01 for its named consuming
-    responsibility; actual policy content and applicable adopted decisions must be provided.
-  gating: true
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: DEL-04-03
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-03-01,
-    which the source states declares it upstream in its own register.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
-checks:
-- app/contract_inputs/PKG-03/DEL-03-01/Work/prototype/validate_all.py
-- app/contract_inputs/PKG-03/DEL-03-01/Work/prototype/run_swbpipe_profile.py
-- app/src-tauri/tests/swbpipe_receiving.rs
+  condition: The owner, with the host contract owner, decides whether the catalog-extension promise
+    is retained, narrowed to defined generated surfaces or deferred.
+  when: Before the extension criterion is fixed or the capability claimed.
+- from: external:OI-014
+  condition: The App/shared contract owners, with the affected host and consumer owners, agree where
+    the catalog schemas are placed, how a host serializes its catalog and reads, and the content-identity
+    method and its designation.
+  when: Before a schema implementation or a conformance claim depends on them.
+- from: external:OI-021
+  condition: The owner chooses the operation, the autonomy permitted and the candidate environment
+    of the first connected activity, and rules any operation-specific class.
+  when: Before a live joined examination.
 code_paths:
 - app/src-tauri/src/catalog.rs
+- app/src-tauri/resources/catalog_adapter/manifest.json
+- app/src-tauri/resources/catalog_adapter/catalog.*
+- app/src-tauri/resources/catalog_adapter/edition_change_event.*
+- app/src-tauri/resources/catalog_adapter/read_result.*
+- app/src-tauri/resources/swbpipe_receiving/manifest.json
+- app/src-tauri/resources/swbpipe_receiving/swbpipe-profile-documents.json
 - app/contract_inputs/PKG-03/DEL-03-01/Work/prototype/simhost.py
 - app/contract_inputs/PKG-03/DEL-03-01/Work/prototype/simhost_swbpipe.py
+- app/contract_inputs/PKG-03/DEL-03-01/Work/prototype/schema_subset.py
+checks:
+- app/contract_inputs/PKG-03/DEL-03-01/Work/prototype/validate_all.py
+- app/contract_inputs/PKG-03/DEL-03-01/Work/prototype/run_fixture.py
+- app/contract_inputs/PKG-03/DEL-03-01/Work/prototype/run_swbpipe_profile.py
+- app/src-tauri/tests/catalog_adapter.rs
+- app/src-tauri/tests/swbpipe_receiving.rs

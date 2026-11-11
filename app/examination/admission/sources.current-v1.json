@@ -6,7 +6,7 @@
   "read_extent": "complete bytes of each source; historical Design locators resolve to Work operationally",
   "sources": {
     "execution/PKG-09/DEL-09-01/Design/EXAMINATION_PROTOCOL.md": "c7aa2fcfcc43558cbcf9244aae576b6ad0911ab17aa1a8f52112053969e4cb83",
-    "execution/PKG-09/DEL-09-01/ScopeOfWork.md": "a60b02a8cfa40abf1819d08420a94e2539c6b1c83fa3e22f045c079dbaaa65fd",
+    "execution/PKG-09/DEL-09-01/ScopeOfWork.md": "fae02d159cd19d84e300ffab7304a2e905229ba1d92bc65e38358aa5163ee6ef",
     "execution/PKG-09/DEL-09-01/Design/prototype/check_exp.py": "f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce",
     "execution/PKG-09/DEL-09-01/Design/exam.change-impact.schema.json": "b8fcb4586aa8d844fd9700d660f8eb66ccd66893724215b0a5d9cd468500f82f",
     "execution/PKG-09/DEL-09-01/Design/exam.review-record.schema.json": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",

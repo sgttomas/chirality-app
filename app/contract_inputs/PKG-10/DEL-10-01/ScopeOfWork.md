@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-10-01
 package_id: PKG-10
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-102, SOW-210, SOW-214, SOW-215, SOW-216, SOW-217, SOW-218, SOW-219, SOW-228]
 package_objective_refs: [OBJ-010]
 ---
@@ -26,14 +26,14 @@ Paths below are repository-relative. Section references identify the applicable 
 
 | Key | Source and use |
 |---|---|
-| B | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/`: `DECISION.md`, `HANDOFF_STATE.md`, and `canonical/Deliverables.csv` row DEL-10-01, `Packages.csv` row PKG-10, `Objectives.csv` row OBJ-010, `ScopeLedger.csv` assigned rows, `Open_Issues.csv` OI-017 and `External_Dependencies.csv` DEP-006. Accepted division and downstream authority. |
-| A | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/`: `ACCEPTANCE.md`, `original-seed/OPERATING_METHOD.md` V4-OPS-01/04/10–13/33, and `DECISION_BRIEF.html` HTML-D01/07 and quoted owner directions A/C. Original seed statements are historical components qualified by later accepted direction. |
-| O | `projects/chirality-app-v4/docs/OPERATING_METHOD.md` V4-OPS-01/04/10–14/31–33 and §7; `PRD.md` §0, V4-CST-04 and OQ-05. Post-act consolidated expression of the accepted composite, not bytes previously hash-approved by the owner. |
-| C | `projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`, settled treatment: required definition stays included while undecided values remain open; method constraints qualify coherent results. |
-| Q | `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md`: actual approved INITIAL setup, DEPENDENCY_TRACKED/FULL_GRAPH, defined-contract maturity and separate lifecycle recording. |
+| B | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/`: `DECISION.md`, `HANDOFF_STATE.md`, and `canonical/Deliverables.csv` row DEL-10-01, `Packages.csv` row PKG-10, `Objectives.csv` row OBJ-010, `ScopeLedger.csv` assigned rows, `Open_Issues.csv` OI-017 and `External_Dependencies.csv` DEP-006. Accepted division and downstream authority. |
+| A | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/`: `ACCEPTANCE.md`, `original-seed/OPERATING_METHOD.md` V4-OPS-01/04/10–13/33, and `DECISION_BRIEF.html` HTML-D01/07 and quoted owner directions A/C. Original seed statements are historical components qualified by later accepted direction. |
+| O | `docs/OPERATING_METHOD.md` V4-OPS-01/04/10–14/31–33 and §7; `PRD.md` §0, V4-CST-04 and OQ-05. Post-act consolidated expression of the accepted composite, not bytes previously hash-approved by the owner. |
+| C | `execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`, settled treatment: required definition stays included while undecided values remain open; method constraints qualify coherent results. |
+| Q | `execution/_Coordination/_COORDINATION.md`: actual approved INITIAL setup, DEPENDENCY_TRACKED/FULL_GRAPH, defined-contract maturity and separate lifecycle recording. |
 | F | Retired by the owner 2026-10-23 (formerly Field Book v2). Its compact route, responsibilities, inputs, examination and delivery are carried by row M's v9 sections. |
 | M | `docs/alignment-manual/README.md#project-management-manual` selects Consolidated v9; chapters 1–8 explain accountable reliance, the basis, production contracts, dependencies, ownership and coordinated execution, examination, change, development positions and delivery. |
-| U | Repository practice, replacing Agent User Manual v4, retired by the owner 2026-10-23: Root `AGENTS.md` sections "Where work happens", "Working cycle", "Deliverables and records", "Verification and authority", "Standing Git grant" and "Roles and workflows"; the role files `agents/AGENT_*.md`; `tools/deliverables/README.md`; `.agents/skills/chirality-change/SKILL.md`; and the loop entry `projects/chirality-app-v4/loop/LOOP_INIT.md`. These apply the method to active repository work; edition selection follows `docs/alignment-manual/README.md` "Discovery and reliance". Cited as U with the section or file named. |
+| U | Repository practice, replacing Agent User Manual v4, retired by the owner 2026-10-23: Root `AGENTS.md` sections "Where work happens", "Working cycle", "Deliverables and records", "Verification and authority", "Standing Git grant" and "Roles and workflows"; the role files `agents/AGENT_*.md`; `tools/deliverables/README.md`; `.agents/skills/chirality-change/SKILL.md`; and the loop entry `loop/LOOP_INIT.md`. These apply the method to active repository work; edition selection follows `docs/alignment-manual/README.md` "Discovery and reliance". Cited as U with the section or file named. |
 | W | Current selected method `chirality-root:bundled:workflow:scope-of-work` at `workflows/scope-of-work/WORKFLOW.md` and `resources/{brief,checks,tools}.md`, governed by `docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md`. Relevant handoff clauses: `chirality-root:bundled:workflow:software-decomp`, `resources/contract.md` downstream use and checkpoint invariants; `chirality-root:bundled:workflow:project-setup`, `WORKFLOW.md` method and `resources/contract.md` lifecycle/coordination invariants. These clauses explain the selected handoff; this contract executes neither workflow nor a new instruction amendment. |
 
 Source U's Root references retain the pre-2026-11-05 combined-repository

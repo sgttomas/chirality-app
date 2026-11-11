@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-11-01
 package_id: PKG-11
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-114, SOW-251, SOW-252, SOW-253, SOW-258]
 package_objective_refs: [OBJ-009]
 ---
@@ -17,17 +17,17 @@ Source keys below identify repository-relative files and exact relevant loci. Fr
 
 | Key | Source and relevant locus |
 |---|---|
-| D0 | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`: accepted subject and downstream limits |
+| D0 | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`: accepted subject and downstream limits |
 | D1 | Same snapshot, `canonical/Deliverables.csv`: DEL-11-01, DEL-10-01, DEL-10-03, DEL-11-02 and DEL-11-03; `Packages.csv`: PKG-11; `Objectives.csv`: OBJ-009; `ScopeLedger.csv`: SOW-114, SOW-251, SOW-252, SOW-253, SOW-258 |
-| D2 | Same snapshot, `canonical/Open_Issues.csv`: OI-017, OI-018, OI-024; current `projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv`, same rows |
-| B0 | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md` and `OWNER_DIRECTIONS_EXCERPTS.md`: composite subject, U1–U5 and transcription custody |
+| D2 | Same snapshot, `canonical/Open_Issues.csv`: OI-017, OI-018, OI-024; current `execution/_Decomposition/Open_Issues.csv`, same rows |
+| B0 | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md` and `OWNER_DIRECTIONS_EXCERPTS.md`: composite subject, U1–U5 and transcription custody |
 | B7 | Same acceptance folder, `DECISION_BRIEF.html#d7`: recommendation, what to carry, accounting, open matters and continuation-evidence limits |
 | S0 | Same acceptance folder, `original-seed/PRD.md` §8 and §11, read as qualified by B0/B7 |
-| P0 | `projects/chirality-app-v4/docs/PRD.md` §0, §6, §8, §9 OQ-05/OQ-12 and §11 |
-| M0 | `projects/chirality-app-v4/docs/OPERATING_METHOD.md` §1; V4-OPS-11 through V4-OPS-14; V4-OPS-31 through V4-OPS-34; §5 closing coexistence paragraph |
-| A0 | `projects/chirality-app-v4/docs/ARCHITECTURE.md` §3 reuse-candidate paragraph and §5 closing renewal paragraph |
-| E0 | `projects/chirality-app-v4/docs/EXAMINATION.md` §2 evidence limits and §7 replacement |
-| H0 | `projects/chirality-app-v4/docs/HOST_INTEGRATION.md` §5 human acts and §9 records |
+| P0 | `docs/PRD.md` §0, §6, §8, §9 OQ-05/OQ-12 and §11 |
+| M0 | `docs/OPERATING_METHOD.md` §1; V4-OPS-11 through V4-OPS-14; V4-OPS-31 through V4-OPS-34; §5 closing coexistence paragraph |
+| A0 | `docs/ARCHITECTURE.md` §3 reuse-candidate paragraph and §5 closing renewal paragraph |
+| E0 | `docs/EXAMINATION.md` §2 evidence limits and §7 replacement |
+| H0 | `docs/HOST_INTEGRATION.md` §5 human acts and §9 records |
 
 ## Deliverable Definition — Ontology
 
@@ -37,7 +37,7 @@ Source keys below identify repository-relative files and exact relevant loci. Fr
 - **CLM-004** — [Adoption responsibility] D1 assigns `DEL-11-02` to the App adoption coordinator; each receiving consumer owner decides and performs its adoption. An instruction publication, prepared notice, selected run basis or file relocation is not evidence of broader adoption or actual supply to an active agent (B7, M0 V4-OPS-11/V4-OPS-14).
 - **CLM-005** — [Replacement responsibility] D1 assigns `DEL-11-03` to the App replacement-evidence coordinator; the owner makes the fallback replacement decision from candidate-specific evidence. This account supplies the continuing-obligation contribution, without duplicating that qualification or decision package (P0 §8; E0 §7).
 - **CLM-006** — [Continuing decisions] The Owner with affected consumers retains OI-024, before each adoption/retirement decision, to identify first adopters, continuing obligations and end-of-coexistence conditions. The Owner with affected consumers also owns P0 OQ-12 before any migration/retirement act. Professional reliance remains with the human under H0; a fallback replacement does not supply it or automatically retire any other project (B7, D2).
-- **CLM-007** — [Thesis standing] P0 §11, as the owner directed on 2026-11-10, states that the thesis is maintained in the Chirality Library at `docs/thesis/` (`sgttomas/chirality-library`, selected edition `library-v3.3.0`); App may export or package it from there and holds no maintained copy. The complete copy formerly at `projects/chirality-app-v4/foundation/thesis/`, tree `47fc49e96c2931ba18090f1a82d56a49f230b3ee`, with attribution and nonbinding standing retained, is no longer in the working tree and remains in this repository's Git history as the preservation basis. The Library edition is a later revision with different file membership and bytes; it is not that tree. This is the source-stated identity of the former copy; no production comparison verifies it (REQ-003), and this INIT run did not independently examine every thesis byte. Historical implementation choices in the thesis do not become v4 requirements by purpose-level citation (B7, S0 §11).
+- **CLM-007** — [Thesis standing] P0 §11, as the owner directed on 2026-11-10, states that the thesis is maintained in the Chirality Library at `docs/thesis/` (`sgttomas/chirality-library`, selected edition `library-v3.3.0`); App may export or package it from there and holds no maintained copy. The complete copy formerly at `foundation/thesis/`, tree `47fc49e96c2931ba18090f1a82d56a49f230b3ee`, with attribution and nonbinding standing retained, is no longer in the working tree and remains in this repository's Git history as the preservation basis. The Library edition is a later revision with different file membership and bytes; it is not that tree. This is the source-stated identity of the former copy; no production comparison verifies it (REQ-003), and this INIT run did not independently examine every thesis byte. Historical implementation choices in the thesis do not become v4 requirements by purpose-level citation (B7, S0 §11).
 
 - **OUT-001** — Current applicability/selectors and focused preservation inventory, recording the retained v3.0.1 fallback, old projects/archives, useful source and reviewed methods, actual work, pending obligations and evidence with source identity, scoped standing and a usable route to current applicability. Consume the supplied PKG-10 map and identified receiving status rather than opening a whole-corpus archival investigation. Contribution: SOW-114, SOW-251, SOW-253; OBJ-009. Basis: D1, B7, P0 §8, M0 §5.
 - **OUT-002** — Content identity checks and their results for the preserved material identified by OUT-001; the complete-thesis comparison formerly in this output is retired (REQ-003, AC-003, VER-003). Bind the compared content and attribution/standing context to the named source and candidate; expose missing or changed material rather than normalizing history. Contribution: SOW-252, SOW-253; OBJ-009. Basis: D1 anticipated TEST artifact, B7, P0 §11, E0 §2.

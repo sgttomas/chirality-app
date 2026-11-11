@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-02-01
 package_id: PKG-02
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-021, SOW-022, SOW-037, SOW-038, SOW-039, SOW-042, SOW-043, SOW-044, SOW-045, SOW-145, SOW-146, SOW-147]
 package_objective_refs: [OBJ-003, OBJ-004, OBJ-005]
 ---
@@ -28,13 +28,13 @@ required by those project objectives.
 
 Source keys below resolve to repository-relative files, not supplier APIs:
 
-- **Accepted decomposition:** `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/`; `DECISION.md` supplies the actual acceptance, and `canonical/Deliverables.csv` (DEL-02-01), `Packages.csv` (PKG-02), `Objectives.csv`, `ScopeLedger.csv`, `Open_Issues.csv` and `External_Dependencies.csv` supply the accepted assignments. Historical draft labels within frozen rows do not reverse that decision.
-- **PRD:** `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md`.
-- **Architecture:** `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md`.
-- **Host integration:** `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md`.
-- **Accepted decision brief:** `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html`, especially HTML-D02 (`#d2`) and HTML-D03 (`#d3`).
-- **Clarification:** `projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`.
-- **Setup authority:** `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md`; authoring uses INIT with NO_STATUS_TOUCH. A valid contract and independent check permit a separately recorded manager lifecycle act; they do not establish product completion, input availability or acceptance of a future graph.
+- **Accepted decomposition:** `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/`; `DECISION.md` supplies the actual acceptance, and `canonical/Deliverables.csv` (DEL-02-01), `Packages.csv` (PKG-02), `Objectives.csv`, `ScopeLedger.csv`, `Open_Issues.csv` and `External_Dependencies.csv` supply the accepted assignments. Historical draft labels within frozen rows do not reverse that decision.
+- **PRD:** `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md`.
+- **Architecture:** `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md`.
+- **Host integration:** `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md`.
+- **Accepted decision brief:** `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html`, especially HTML-D02 (`#d2`) and HTML-D03 (`#d3`).
+- **Clarification:** `execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`.
+- **Setup authority:** `execution/_Coordination/_COORDINATION.md`; authoring uses INIT with NO_STATUS_TOUCH. A valid contract and independent check permit a separately recorded manager lifecycle act; they do not establish product completion, input availability or acceptance of a future graph.
 
 | Accepted scope | Local contribution and source | Output |
 |---|---|---|
@@ -123,9 +123,9 @@ then report results and remaining limits for independent examination.
 - **AX-002** — Preserve open readable guidance and actual source identity. Receiving compatibility is demonstrated against meaning and real consumers, not inferred from a matching filename. This contract defines portable declarations without creating a reusable workflow package or changing the governing workflow library. Basis: PRD V4-SHR-02, V4-WF-01/03 and HTML-D02.
 - **AX-003** — Keep execution, proposal acceptance, checking, approval and professional reliance separately attributable. Their independence prevents success from manufacturing a human act and prevents one act's evidence from suppressing another independently evidenced act. Hosts offer, record and present; people perform their acts. Basis: HTML-D03, PRD V4-AUT-01/03/05, V4-REC-05 and the sealed assignment's pilot clarification.
 - **AX-004** — Included outcomes remain required while open means remain open. Initialization is definition-only under the approved setup; lifecycle changes, graph acceptance, implementation, supplier experiments and external adoption require their own authorized work and actual evidence. Basis: Clarification, Accepted decomposition DECISION.md and Setup authority.
-- **AX-005** — Revised under scope-change amendment `SCA-V4-001` (accepted snapshot `projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-001_2026-09-28_2155`), applying `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, `APP-V4-FIRST-INCREMENT-20260928-DECISION-2` (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md`) and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4` (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md`). Revised: CLM-002, CLM-003, REQ-002, REQ-003, REQ-006, VER-003 and TBD-003. Added: TBD-004 and AX-005. Removed: none.
-- **AX-006** — Revised under scope-change amendment `SCA-V4-002` (accepted snapshot `projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-002_2026-09-29_1901`), applying `APP-V4-BASIS-ALIGN-20260928-DECISION-10` (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/OWNER_DECISIONS.md`), which routed this contract's statement of the proposal-contract outputs it consumes to this amendment. Revised: CLM-002. Added: AX-006. Removed: none.
-- **AX-007** — Revised under scope-change amendment `SCA-V4-003` (accepted snapshot `projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-003_2026-10-03_1827`), which carries the contract proposals of the App v4 design passes `APP-V4-DESIGN-PASS-2-20260930` and `APP-V4-DESIGN-PASS-3-20261001` (closeout records under `projects/chirality-app-v4/execution/_Coordination/AgentRuns/`): the harness-capability supply from `DEL-01-01` and the receivers of this contract. Revised: CLM-002. Added: AX-007. Removed: none.
+- **AX-005** — Revised under scope-change amendment `SCA-V4-001` (accepted snapshot `execution/_ScopeChange/SCA-V4-001_2026-09-28_2155`), applying `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, `APP-V4-FIRST-INCREMENT-20260928-DECISION-2` (record `execution/_Coordination/AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md`) and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4` (record `execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md`). Revised: CLM-002, CLM-003, REQ-002, REQ-003, REQ-006, VER-003 and TBD-003. Added: TBD-004 and AX-005. Removed: none.
+- **AX-006** — Revised under scope-change amendment `SCA-V4-002` (accepted snapshot `execution/_ScopeChange/SCA-V4-002_2026-09-29_1901`), applying `APP-V4-BASIS-ALIGN-20260928-DECISION-10` (record `execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/OWNER_DECISIONS.md`), which routed this contract's statement of the proposal-contract outputs it consumes to this amendment. Revised: CLM-002. Added: AX-006. Removed: none.
+- **AX-007** — Revised under scope-change amendment `SCA-V4-003` (accepted snapshot `execution/_ScopeChange/SCA-V4-003_2026-10-03_1827`), which carries the contract proposals of the App v4 design passes `APP-V4-DESIGN-PASS-2-20260930` and `APP-V4-DESIGN-PASS-3-20261001` (closeout records under `execution/_Coordination/AgentRuns/`): the harness-capability supply from `DEL-01-01` and the receivers of this contract. Revised: CLM-002. Added: AX-007. Removed: none.
 
 ## Output and Evaluation Matrix
 

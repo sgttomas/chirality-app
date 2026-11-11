@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-08-02
 package_id: PKG-08
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-026, SOW-027]
 package_objective_refs: [OBJ-007]
 ---
@@ -32,14 +32,14 @@ the current consolidated clauses carry the retained open matters.
 
 | Source | Exact locator and relevant content |
 |---|---|
-| S1 | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; its `canonical/Deliverables.csv` rows DEL-08-02 and DEL-08-01, `Packages.csv` PKG-08, `ScopeLedger.csv` SOW-026/SOW-027, `Objectives.csv` OBJ-007, `Open_Issues.csv` OI-001/OI-002/OI-023/OI-026, `External_Dependencies.csv` DEP-003 |
-| S2 | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md` J/U1, K/U2, L/U3, M/U4, O/U5 and interpretation; `DECISION_BRIEF.html` in the same directory, decisions 02, 03 and 06; `original-seed/PRD.md` V4-CON-01 and `original-seed/HOST_INTEGRATION.md` V4-HI-60 in that directory, read as historical composite components |
-| S3 | `projects/chirality-app-v4/docs/PRD.md` V4-CON-01, -03, -04, -05; §3.1/V4-EXT-01; V4-HOST-02, -04, -05; V4-SHR-01…03; V4-ROLE-03; V4-AUT-01…05; OQ-02/OQ-03 |
-| S4 | `projects/chirality-app-v4/docs/HOST_INTEGRATION.md` §1; V4-HI-25, -30…33, -40…42, -60, -62, -64, -65; §8.1 responsibilities and points of need |
-| S5 | `projects/chirality-app-v4/docs/EXAMINATION.md` V4-EXM-31 and V4-EXM-32; the latter is the coordinated subsequent-increment source/context/candidate/actual-act witness |
-| S6 | `projects/chirality-app-v4/docs/ARCHITECTURE.md` §2 shared meanings and subsequent Domains activity; V4-ARC-22; `projects/chirality-app-v4/docs/OPERATING_METHOD.md` V4-OPS-03 and §6 external coordination and increments |
-| S7 | `projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv` OI-023/OI-026; `projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv` DEP-003; `projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`, settled treatment of external knowledge development and unresolved deployment/allocation |
-| S8 | `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md`, approved INITIAL setup, defined-contract maturity and separate lifecycle acts |
+| S1 | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; its `canonical/Deliverables.csv` rows DEL-08-02 and DEL-08-01, `Packages.csv` PKG-08, `ScopeLedger.csv` SOW-026/SOW-027, `Objectives.csv` OBJ-007, `Open_Issues.csv` OI-001/OI-002/OI-023/OI-026, `External_Dependencies.csv` DEP-003 |
+| S2 | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md` J/U1, K/U2, L/U3, M/U4, O/U5 and interpretation; `DECISION_BRIEF.html` in the same directory, decisions 02, 03 and 06; `original-seed/PRD.md` V4-CON-01 and `original-seed/HOST_INTEGRATION.md` V4-HI-60 in that directory, read as historical composite components |
+| S3 | `docs/PRD.md` V4-CON-01, -03, -04, -05; §3.1/V4-EXT-01; V4-HOST-02, -04, -05; V4-SHR-01…03; V4-ROLE-03; V4-AUT-01…05; OQ-02/OQ-03 |
+| S4 | `docs/HOST_INTEGRATION.md` §1; V4-HI-25, -30…33, -40…42, -60, -62, -64, -65; §8.1 responsibilities and points of need |
+| S5 | `docs/EXAMINATION.md` V4-EXM-31 and V4-EXM-32; the latter is the coordinated subsequent-increment source/context/candidate/actual-act witness |
+| S6 | `docs/ARCHITECTURE.md` §2 shared meanings and subsequent Domains activity; V4-ARC-22; `docs/OPERATING_METHOD.md` V4-OPS-03 and §6 external coordination and increments |
+| S7 | `execution/_Decomposition/Open_Issues.csv` OI-023/OI-026; `execution/_Decomposition/External_Dependencies.csv` DEP-003; `execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`, settled treatment of external knowledge development and unresolved deployment/allocation |
+| S8 | `execution/_Coordination/_COORDINATION.md`, approved INITIAL setup, defined-contract maturity and separate lifecycle acts |
 
 ## Deliverable Definition — Ontology
 

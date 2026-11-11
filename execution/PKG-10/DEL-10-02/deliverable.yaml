@@ -2,29 +2,24 @@ id: DEL-10-02
 name: Proportionate undertaking controls and practice feedback
 needs:
 - from: DEL-10-01
-  condition: Consume DEL-10-01's applicable project execution basis and identified manual/method adoption
-    when applying the controls and grounding practice observations.
+  condition: The execution basis names the selected edition of the manual and of the shared roles and methods
+    by release and recoverable identity, so that a brief can state its basis and a practice note can cite the
+    section and edition it concerns.
   gating: true
-  evidence: execution/PKG-10/DEL-10-02/ScopeOfWork.md
 - from: DEL-10-04
-  condition: When a current production DAG has been accepted, undertaking work selection uses DEL-10-04's
-    accepted DAG within its scope and currency; independent authorized definition remains permitted before
-    that event.
+  condition: An accepted current version of the project dependency graph exists with its handoff and currency
+    evidence, so that work is selected within its scope and currency. Where no accepted graph covers the work,
+    authorized definition proceeds on the declared conditions.
   gating: false
-  evidence: execution/PKG-10/DEL-10-02/ScopeOfWork.md
 - from: DEL-09-12
-  condition: Hand method observations and traceable proposed/actual dispositions to the method-feedback
-    consumer, preserving selected source section, existing work record, recipient, actor and decision standing.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-12/ScopeOfWork.md
-- from: external:App owner at the applicable selected-method decision or stage discussion
-  condition: At the applicable selected-method decision or stage discussion, provide the relevant node-linked
-    practice notes to the owner for an actual scoped disposition and preserve that disposition when made.
-  direction: downstream
+  condition: Each method observation from the owner's validating use arrives citing the section of the selected
+    manual, its observed conditions and the existing work record that carries the work, with this deliverable
+    named as its recipient.
   gating: false
-  evidence: execution/PKG-10/DEL-10-02/ScopeOfWork.md
-- from: DEL-10-04
-  condition: Once available, supply the accepted current project graph and live satisfaction evidence for
-    the undertaking-route/control contribution in App DEL-10-02, preserving limits and held work.
+- from: external:owner
+  condition: The owner gives each practice note brought to a stage or selected-method discussion its disposition,
+    which is a proposed manual revision, a departure scoped to this project, or no change.
+  when: At the stage or selected-method discussion.
   gating: false
-  evidence: execution/PKG-10/DEL-10-04/ScopeOfWork.md
+code_paths: []
+checks: []

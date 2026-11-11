@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-05-02
 package_id: PKG-05
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-019, SOW-020]
 package_objective_refs: [OBJ-004]
 ---
@@ -19,15 +19,15 @@ Source locators below are repository-root-relative. The frozen decomposition is 
 
 | Source key | Exact source and applicable locus |
 |---|---|
-| D | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; `canonical/Deliverables.csv` row DEL-05-02 and named interface rows; `canonical/Packages.csv` row PKG-05; `canonical/ScopeLedger.csv` rows SOW-019 and SOW-020; `canonical/Objectives.csv` row OBJ-004, all under that snapshot |
-| I | The same snapshot's `canonical/Open_Issues.csv` rows OI-013, OI-014 and consumed-policy rows OI-001, OI-002; `canonical/External_Dependencies.csv` row DEP-001. Current equivalents in `projects/chirality-app-v4/execution/_Decomposition/` retain these dispositions |
-| B | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md`; `OWNER_DIRECTIONS.md` J/U1, M/U4 and O/U5; `DECISION_BRIEF.html` decisions 02–03; `original-seed/PRD.md` V4-HOST-04 and `original-seed/ARCHITECTURE.md` §§4–5, within that composite |
-| C | `projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`, settled treatment of SOW-019/136 and conditional common implementation |
-| P | `projects/chirality-app-v4/docs/PRD.md` §0, V4-HOST-04, V4-AUT-01–05 and OQ-02/OQ-11 |
-| A | `projects/chirality-app-v4/docs/ARCHITECTURE.md` §4 host implementation choices and V4-ARC-20 |
-| H | `projects/chirality-app-v4/docs/HOST_INTEGRATION.md` §1 responsibilities, V4-HI-10–12, V4-HI-20–25, V4-HI-30–33, V4-HI-40–42, V4-HI-70–71 and §10 item 7 |
-| E | `projects/chirality-app-v4/docs/EXAMINATION.md` §4 connected scenarios, V4-EXM-20–22 |
-| O | `projects/chirality-app-v4/docs/OPERATING_METHOD.md` §6 external coordination; `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md` approved INITIAL setup, definition maturity and lifecycle rules |
+| D | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; `canonical/Deliverables.csv` row DEL-05-02 and named interface rows; `canonical/Packages.csv` row PKG-05; `canonical/ScopeLedger.csv` rows SOW-019 and SOW-020; `canonical/Objectives.csv` row OBJ-004, all under that snapshot |
+| I | The same snapshot's `canonical/Open_Issues.csv` rows OI-013, OI-014 and consumed-policy rows OI-001, OI-002; `canonical/External_Dependencies.csv` row DEP-001. Current equivalents in `execution/_Decomposition/` retain these dispositions |
+| B | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md`; `OWNER_DIRECTIONS.md` J/U1, M/U4 and O/U5; `DECISION_BRIEF.html` decisions 02–03; `original-seed/PRD.md` V4-HOST-04 and `original-seed/ARCHITECTURE.md` §§4–5, within that composite |
+| C | `execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`, settled treatment of SOW-019/136 and conditional common implementation |
+| P | `docs/PRD.md` §0, V4-HOST-04, V4-AUT-01–05 and OQ-02/OQ-11 |
+| A | `docs/ARCHITECTURE.md` §4 host implementation choices and V4-ARC-20 |
+| H | `docs/HOST_INTEGRATION.md` §1 responsibilities, V4-HI-10–12, V4-HI-20–25, V4-HI-30–33, V4-HI-40–42, V4-HI-70–71 and §10 item 7 |
+| E | `docs/EXAMINATION.md` §4 connected scenarios, V4-EXM-20–22 |
+| O | `docs/OPERATING_METHOD.md` §6 external coordination; `execution/_Coordination/_COORDINATION.md` approved INITIAL setup, definition maturity and lifecycle rules |
 
 ## Deliverable Definition — Ontology
 
@@ -76,7 +76,7 @@ First compare the accepted local scope, composite qualifications and current sou
 - **AX-001** — Host visibility and domain truth govern the panel contribution: shared meaning does not transfer host ownership. The accepted clarification preserves required receiving work while making common implementation conditional. The older original-seed wording about a shared TypeScript layer and panels built from shared components does not override B/decision 02, C or the accepted D/SOW-019 wording.
 - **AX-002** — Evidence of execution, checking, acceptance, approval and reliance retains its own subject, actor and basis. Truthful recording is permitted; false attribution is prohibited. Exact reserved-act/classifier choices remain with their actual decision owners rather than this panel deliverable or the contract that carries their adopted decision. Sources: B/decision 03, P/V4-AUT-01–05, H/V4-HI-25 and 30–33.
 - **AX-003** — An initialized contract establishes defined-contract maturity only. This INIT run implements no product, performs no host conformance experiment, changes no lifecycle/control file and makes no delivery, adoption or reliance claim. Actual host contributions and policy decisions remain required at their points of need. Sources: O and the task brief's NO_STATUS_TOUCH boundary.
-- **AX-004** — Revised under scope-change amendment `SCA-V4-001` (accepted snapshot `projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-001_2026-09-28_2155`), applying `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`), `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4` (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`). Revised: CLM-002, CLM-004, OUT-003, REQ-001, REQ-003, REQ-005, REQ-006, AC-005, the production-method paragraph, the P/OQ-11 paragraph, TBD-003, TBD-004 and TBD-005. Added: AX-004. Removed: none.
+- **AX-004** — Revised under scope-change amendment `SCA-V4-001` (accepted snapshot `execution/_ScopeChange/SCA-V4-001_2026-09-28_2155`), applying `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (record `execution/_Coordination/AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`), `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3` and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4` (record `execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`). Revised: CLM-002, CLM-004, OUT-003, REQ-001, REQ-003, REQ-005, REQ-006, AC-005, the production-method paragraph, the P/OQ-11 paragraph, TBD-003, TBD-004 and TBD-005. Added: AX-004. Removed: none.
 
 - **TBD-001** — OI-013, Per-host loop placement and persistence, remains OPEN. Owner: **Shared contract owner with SWB implementation owner**. Point of need: **Before shared/host implementation boundary contracts**. Agree host-specific construction and any reusable common contribution, then choose loop placement, parsing, persistence and panel assembly without transferring SWB ownership. This deliverable retains its panel-receiving portion; required definition remains IN. Sources: I/OI-013, A §4.
 - **TBD-002** — OI-014, Shared contract/component placement, remains OPEN. Owner: **App/shared contract owners**. Point of need: **Before structural/production contract allocation**. Place shared contracts/components against actual consumer responsibilities and agree ownership before any common implementation, without presuming a common service. Sources: I/OI-014, B/decision 02, C, A/V4-ARC-20.

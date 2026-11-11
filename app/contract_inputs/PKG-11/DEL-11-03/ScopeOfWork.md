@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-11-03
 package_id: PKG-11
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-111, SOW-112, SOW-113]
 package_objective_refs: [OBJ-009]
 ---
@@ -17,16 +17,16 @@ The accepted Group3 decision changes the standing of its frozen candidate withou
 
 | Source key | Repository-relative source and relevant locus |
 |---|---|
-| S1 | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; `canonical/Deliverables.csv` rows DEL-11-03, DEL-09-02, DEL-09-07, DEL-09-12 and DEL-11-01; `canonical/Packages.csv` PKG-11; `canonical/Objectives.csv` OBJ-009; `canonical/ScopeLedger.csv` SOW-111, SOW-112, SOW-113. Canonical paths are relative to that snapshot directory. |
-| S2 | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md` §8, V4-REP-01; `original-seed/EXAMINATION.md` §§6–7, relative to the same acceptance directory. |
-| S3 | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html` decisions d3, d5, d7; `OWNER_DIRECTIONS.md` J–O in the same directory. |
-| S4 | `projects/chirality-app-v4/docs/PRD.md` §§1.3, 4.5, 6, 8–9: V4-AUT-03/05, V4-REP-01, OQ-02/08/11/12. |
-| S5 | `projects/chirality-app-v4/docs/EXAMINATION.md` §§1–2, V4-EXM-10/11/20, §§6–7: V4-EXM-40/41/42 and the replacement evidence. |
-| S6 | `projects/chirality-app-v4/docs/HOST_INTEGRATION.md` §§1, 5, 11; `projects/chirality-app-v4/docs/ARCHITECTURE.md` §3 historical reuse/retirement boundary; `projects/chirality-app-v4/docs/OPERATING_METHOD.md` §§5–6, coexistence and human-relayed coordination. |
-| S7 | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv` OI-001/016/021/024 and `canonical/External_Dependencies.csv` DEP-001/006. |
-| S8 | `projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv` OI-001/016/021/024 and `External_Dependencies.csv` DEP-001/006; `projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`, current supplied observations, not a new scope ruling. |
+| S1 | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; `canonical/Deliverables.csv` rows DEL-11-03, DEL-09-02, DEL-09-07, DEL-09-12 and DEL-11-01; `canonical/Packages.csv` PKG-11; `canonical/Objectives.csv` OBJ-009; `canonical/ScopeLedger.csv` SOW-111, SOW-112, SOW-113. Canonical paths are relative to that snapshot directory. |
+| S2 | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md` §8, V4-REP-01; `original-seed/EXAMINATION.md` §§6–7, relative to the same acceptance directory. |
+| S3 | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html` decisions d3, d5, d7; `OWNER_DIRECTIONS.md` J–O in the same directory. |
+| S4 | `docs/PRD.md` §§1.3, 4.5, 6, 8–9: V4-AUT-03/05, V4-REP-01, OQ-02/08/11/12. |
+| S5 | `docs/EXAMINATION.md` §§1–2, V4-EXM-10/11/20, §§6–7: V4-EXM-40/41/42 and the replacement evidence. |
+| S6 | `docs/HOST_INTEGRATION.md` §§1, 5, 11; `docs/ARCHITECTURE.md` §3 historical reuse/retirement boundary; `docs/OPERATING_METHOD.md` §§5–6, coexistence and human-relayed coordination. |
+| S7 | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv` OI-001/016/021/024 and `canonical/External_Dependencies.csv` DEP-001/006. |
+| S8 | `execution/_Decomposition/Open_Issues.csv` OI-001/016/021/024 and `External_Dependencies.csv` DEP-001/006; `execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`, current supplied observations, not a new scope ruling. |
 | S9 | This deliverable's identity and reference sections in this scope and its cited accepted decomposition, accepted identity, boundaries and source locators. |
-| S10 | `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md`, approved INITIAL setup and defined-contract-only maturity. |
+| S10 | `execution/_Coordination/_COORDINATION.md`, approved INITIAL setup and defined-contract-only maturity. |
 
 ## Deliverable Definition — Ontology
 

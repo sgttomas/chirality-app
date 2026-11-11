@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-03-02
 package_id: PKG-03
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-070, SOW-090, SOW-091, SOW-170, SOW-171, SOW-172, SOW-173, SOW-174, SOW-175, SOW-176, SOW-177, SOW-178]
 package_objective_refs: [OBJ-004, OBJ-005]
 ---
@@ -19,21 +19,21 @@ Source keys below are repository-relative locators; clause IDs and row IDs ident
 
 | Key | Exact source |
 |---|---|
-| BASIS | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md` |
-| DELIVERABLES | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv` |
-| PACKAGES | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv` |
-| SCOPE | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/ScopeLedger.csv` |
-| OBJECTIVES | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv` |
-| ISSUES | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv` |
-| EXTERNAL | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv` |
-| ACCEPTANCE | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md` |
-| OWNER | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md` |
-| PRD | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md` |
-| HOST | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md` |
-| ARCH | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md` |
-| DECISIONS | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html` |
-| CLARIFICATION | `projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md` |
-| COORDINATION | `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md` |
+| BASIS | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md` |
+| DELIVERABLES | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Deliverables.csv` |
+| PACKAGES | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Packages.csv` |
+| SCOPE | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/ScopeLedger.csv` |
+| OBJECTIVES | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Objectives.csv` |
+| ISSUES | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv` |
+| EXTERNAL | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/External_Dependencies.csv` |
+| ACCEPTANCE | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md` |
+| OWNER | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md` |
+| PRD | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md` |
+| HOST | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md` |
+| ARCH | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/ARCHITECTURE.md` |
+| DECISIONS | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html` |
+| CLARIFICATION | `execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md` |
+| COORDINATION | `execution/_Coordination/_COORDINATION.md` |
 
 ## Deliverable Definition — Ontology
 
@@ -111,8 +111,8 @@ Local fixture results establish only what the exercised contract candidate and t
 - **AX-001** — Host ownership and semantic parity govern the shared contract. Shared types or matching responses do not establish host implementation, a new mutation route, durable duplicate handling, generated UI or automatic catalog extension. Sources: PRD V4-PAR-04/V4-CST-05; HOST §1 and V4-HI-20; DECISIONS #d4; PACKAGES PKG-03.
 - **AX-002** — Autonomy is useful within the person's grant, while execution, acceptance, checking, approval and professional reliance retain separate meanings and evidence. An unanswered policy question does not become a universal permission prompt or a fabricated human act. Sources: DECISIONS #d3; HOST V4-HI-22–25/V4-HI-33; ISSUES OI-001/OI-002.
 - **AX-003** — Defined contracts, implemented artifacts, externally supplied outcomes and human acceptance are separate facts. The accepted setup authorizes this INIT with NO_STATUS_TOUCH; `_STATUS.md` remains authoritative and unchanged by this contract. Independent checking precedes the manager's separate INITIALIZED act. Source: COORDINATION; BASIS. This contract does not supply a project-DAG acceptance or release/qualification decision.
-- **AX-004** — Revised under scope-change amendment `SCA-V4-001` (accepted snapshot `projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-001_2026-09-28_2155`), applying `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`) and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4` (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`). Revised: OUT-001, CLM-003, REQ-004, REQ-008, REQ-012, AC-009, AC-013 and TBD-001. Added: AX-004. Removed: none.
-- **AX-005** — Revised under scope-change amendment `SCA-V4-003` (accepted snapshot `projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-003_2026-10-03_1827`), applying the conformance-fixture clarification of integrator ruling R12-2 of `APP-V4-DESIGN-PASS-2-20260930` (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/R12_RESOLUTIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`), with the visible-autonomy input and the receivers of this contract from that run's closeout. Revised: OUT-001 and CLM-004. Added: AX-005. Removed: none.
+- **AX-004** — Revised under scope-change amendment `SCA-V4-001` (accepted snapshot `execution/_ScopeChange/SCA-V4-001_2026-09-28_2155`), applying `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` (record `execution/_Coordination/AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`) and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4` (record `execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`). Revised: OUT-001, CLM-003, REQ-004, REQ-008, REQ-012, AC-009, AC-013 and TBD-001. Added: AX-004. Removed: none.
+- **AX-005** — Revised under scope-change amendment `SCA-V4-003` (accepted snapshot `execution/_ScopeChange/SCA-V4-003_2026-10-03_1827`), applying the conformance-fixture clarification of integrator ruling R12-2 of `APP-V4-DESIGN-PASS-2-20260930` (record `execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/R12_RESOLUTIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`), with the visible-autonomy input and the receivers of this contract from that run's closeout. Revised: OUT-001 and CLM-004. Added: AX-005. Removed: none.
 - **TBD-001** — OI-001 and OI-002 were ruled for the first increment's App/shared contracts by `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` D2 (five reserved acts) and D3 (in the App, routine tool-permission and sandbox modes are the user's own Codex setting; hosts have no classifier mode), carried by DEL-04-01. Still open: operation-specific additions under OI-021 (owner via the outside SWB session and App/shared owner, before connected-activity SoW and execution) and host adoption and enforcement under DEP-001; this contract can define truthful proposal behavior now but may not select an unruled concrete operation's permission or act class for dependent implementation. Sources: ISSUES OI-001/OI-002; CLM-004; DECISIONS #d3.
 - **TBD-002** — Shared contract/component placement remains OI-014 with App/shared contract owners before structural/production allocation. The exact proposal identity representation, schema encoding, duplicate-effect enforcement and outcome-recovery mechanics must be agreed with the relevant contract and host owners before dependent implementation; the accepted behavior does not select a storage engine, transport field, retry budget or retention interval. Sources: ISSUES OI-014; ARCH V4-ARC-20; DECISIONS #d2/#d4; HOST §4; CLM-002 and CLM-003. These implementation details do not waive REQ-003–REQ-011.
 - **TBD-003** — OI-021 retains the first connected operation, permitted autonomy and candidate environment with the owner via the outside SWB session and App/shared owner before that activity's SoW and execution. DEP-001's host evidence is not yet established by this definition. Sources: ISSUES OI-021; EXTERNAL DEP-001; DECISIONS #d5; OWNER J/O; CLARIFICATION. Independent definition continues; receiving qualification waits for its actual inputs.

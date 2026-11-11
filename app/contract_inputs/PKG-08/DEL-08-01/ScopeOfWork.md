@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-08-01
 package_id: PKG-08
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-023, SOW-024, SOW-025, SOW-247, SOW-249]
 package_objective_refs: [OBJ-007]
 ---
@@ -19,15 +19,15 @@ Source keys below identify the exact source loci used by this contract. Paths ar
 
 | Key | Source and applicable locus |
 |---|---|
-| B1 | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; `canonical/Deliverables.csv` row DEL-08-01, `canonical/Packages.csv` row PKG-08, `canonical/Objectives.csv` row OBJ-007 and `canonical/ScopeLedger.csv` rows SOW-023, SOW-024, SOW-025, SOW-247, SOW-249 under that snapshot |
-| B2 | Same snapshot `canonical/Open_Issues.csv` rows OI-023/OI-026 and `canonical/External_Dependencies.csv` row DEP-003; current receiving counterparts at `projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv` and `External_Dependencies.csv`, same rows |
-| B3 | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md` J/U1, K/U2, L/U3, O/U5 and interpretation; `DECISION_BRIEF.html#d6` in that acceptance directory |
-| B4 | `projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`, settled treatment: required receiving work stays IN; Domains knowledge develops outside this repository without deciding deployment, allocation or data boundary |
-| B5 | `projects/chirality-app-v4/docs/PRD.md` V4-HOST-02, V4-CON-01 through V4-CON-05, section 3.1 points of need, section 6 allocation boundary and OQ-03 |
-| B6 | `projects/chirality-app-v4/docs/HOST_INTEGRATION.md` responsibility table, V4-HI-60, V4-HI-62, V4-HI-64, V4-HI-65 and section 8.1; `projects/chirality-app-v4/docs/ARCHITECTURE.md` V4-ARC-12, V4-ARC-22 and local-operation property |
-| B7 | `projects/chirality-app-v4/docs/EXAMINATION.md` V4-EXM-30 and V4-EXM-32; `projects/chirality-app-v4/docs/OPERATING_METHOD.md` section 6 |
+| B1 | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; `canonical/Deliverables.csv` row DEL-08-01, `canonical/Packages.csv` row PKG-08, `canonical/Objectives.csv` row OBJ-007 and `canonical/ScopeLedger.csv` rows SOW-023, SOW-024, SOW-025, SOW-247, SOW-249 under that snapshot |
+| B2 | Same snapshot `canonical/Open_Issues.csv` rows OI-023/OI-026 and `canonical/External_Dependencies.csv` row DEP-003; current receiving counterparts at `execution/_Decomposition/Open_Issues.csv` and `External_Dependencies.csv`, same rows |
+| B3 | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md` J/U1, K/U2, L/U3, O/U5 and interpretation; `DECISION_BRIEF.html#d6` in that acceptance directory |
+| B4 | `execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`, settled treatment: required receiving work stays IN; Domains knowledge develops outside this repository without deciding deployment, allocation or data boundary |
+| B5 | `docs/PRD.md` V4-HOST-02, V4-CON-01 through V4-CON-05, section 3.1 points of need, section 6 allocation boundary and OQ-03 |
+| B6 | `docs/HOST_INTEGRATION.md` responsibility table, V4-HI-60, V4-HI-62, V4-HI-64, V4-HI-65 and section 8.1; `docs/ARCHITECTURE.md` V4-ARC-12, V4-ARC-22 and local-operation property |
+| B7 | `docs/EXAMINATION.md` V4-EXM-30 and V4-EXM-32; `docs/OPERATING_METHOD.md` section 6 |
 | B8 | Snapshot from B1, `canonical/Deliverables.csv` rows DEL-05-01, DEL-07-02, DEL-08-02, DEL-09-10: adjoining contributions and their actual owners |
-| B9 | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md` V4-CON-01 and V4-HOST-02; `original-seed/HOST_INTEGRATION.md` V4-HI-60 in that acceptance directory, read as historical parts of the accepted composite alongside B3–B6 |
+| B9 | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md` V4-CON-01 and V4-HOST-02; `original-seed/HOST_INTEGRATION.md` V4-HI-60 in that acceptance directory, read as historical parts of the accepted composite alongside B3–B6 |
 
 ## Deliverable Definition — Ontology
 
@@ -83,7 +83,7 @@ Develop the source-grounded receiving definition and decision account from the a
 - **AX-002** — Truthful receiving requires references, standing, freshness and limitations before reliance. Tests implement the accepted requirements; they do not add provider scope, a freshness threshold or a new human gate. A limitation may hold dependent research while separately supported work continues. [B1, B5–B7]
 - **AX-003** — Provider allocation remains open. Knowledge developed outside this repository neither excludes future App/program allocation nor authorizes an extra destination. Definition and later compatibility evidence are different facts; resolution belongs to the actual owners at the stated points of need. [B2–B6]
 - **AX-004** — A recorded actual decision is permitted evidence with its actor and custody stated. Its recorder does not become its decision-maker; execution success, checking, candidate approval and professional reliance do not establish each other. This contract creates no synthetic ordering between independently evidenced acts. [B3, B5/V4-CON-05, B6/V4-HI-65, B7]
-- **AX-005** — Revised under scope-change amendment `SCA-V4-001` (accepted snapshot `projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-001_2026-09-28_2155`), applying `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5` (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md`). Revised: CLM-003. Added: AX-005. Removed: none.
+- **AX-005** — Revised under scope-change amendment `SCA-V4-001` (accepted snapshot `execution/_ScopeChange/SCA-V4-001_2026-09-28_2155`), applying `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5` (record `execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md`). Revised: CLM-003. Added: AX-005. Removed: none.
 - **TBD-001** — OI-023: source admission details, query/provenance/freshness contract details, research workflow/receiving milestone, and a compatible query-tool deployment/data boundary remain to be resolved by Owner with Domains/SWB/App receiving owners before the later Domains-enabled design increment; each interface/source input is needed before its dependent implementation or reliance. The existence of the required receiving work remains IN. [B1, B2, B5, B6]
 - **TBD-002** — OI-026: the provider construction allocation and receiving boundary remain to be resolved by Owner with App/Domains/SWB definition owners before allocating Domains provider production and committing integration. DEP-003 remains an identified external contribution with supplier allocation TBD; its current reported knowledge-development location does not satisfy API or receiving readiness. [B2, B4]
 

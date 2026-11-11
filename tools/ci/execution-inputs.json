@@ -1615,7 +1615,7 @@
     {
       "source": "execution/PKG-01/DEL-01-01/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-01/DEL-01-01/ScopeOfWork.md",
-      "sha256": "37a24285ce086ac5e55fd5caeebbc1c237493e120202df9ad6bb7c7b9b678f84"
+      "sha256": "6a3a401f15b6c5165c3af4d4d430bf9217efed71bc7961d036bc813d4706e4e3"
     },
     {
       "source": "execution/PKG-01/DEL-01-01/Work/DISTRIBUTION_IDENTITY.md",
@@ -1985,7 +1985,7 @@
     {
       "source": "execution/PKG-01/DEL-01-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-01/DEL-01-02/ScopeOfWork.md",
-      "sha256": "7f2f7806f0c20a6f7b092b75f11e96afce248364aabe5317b1ae699fe106bad5"
+      "sha256": "a4edcfffe0d1f95d7f9db79acfcb3e6d80993a6244ec033b36d230bd01d5ffc9"
     },
     {
       "source": "execution/PKG-01/DEL-01-02/Work/EXECUTION_AND_RECOVERY.md",
@@ -2140,7 +2140,7 @@
     {
       "source": "execution/PKG-01/DEL-01-03/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-01/DEL-01-03/ScopeOfWork.md",
-      "sha256": "9f93f0b9b89e285bcc8dcbb5550285d1b9dc91bb088c80e6f505e4c97b3aa28e"
+      "sha256": "2bedd182b6df2d8cb67155f465e30e416f6365d30ca0c814e8e60bb0c7cf070b"
     },
     {
       "source": "execution/PKG-01/DEL-01-03/Work/NATIVE_PLANS_TOOLS_DELEGATION.md",
@@ -2255,7 +2255,7 @@
     {
       "source": "execution/PKG-01/DEL-01-04/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-01/DEL-01-04/ScopeOfWork.md",
-      "sha256": "541547d566953cf4dd342ef40fb38eafba82c28d4dac43d28b06fbdbe71aff30"
+      "sha256": "58ca04d71f86d12c6e0a4930a5a941701167e9b49b582e03867671454a692509"
     },
     {
       "source": "execution/PKG-01/DEL-01-04/Work/APP_ACT_CONTROL.md",
@@ -2375,7 +2375,7 @@
     {
       "source": "execution/PKG-01/DEL-01-05/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-01/DEL-01-05/ScopeOfWork.md",
-      "sha256": "5235d7cedf39d501125b6ebe273a3ba3a80603ee73fb9dcc12ba8e172e41cf55"
+      "sha256": "236ea50d3b2d656c18f165b8cac6d4a17655d9104a898dfe9cf454496a70a54d"
     },
     {
       "source": "execution/PKG-01/DEL-01-05/Work/ACCOUNT_AND_PROVIDER_ACCESS.md",
@@ -2450,7 +2450,7 @@
     {
       "source": "execution/PKG-01/DEL-01-06/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-01/DEL-01-06/ScopeOfWork.md",
-      "sha256": "5bfc6471dbc0c27deb6ebc543b0266e9c313bb8d36867668152cc3eb33d0c585"
+      "sha256": "2dcf8d2b5a399417db545186807330549a9e5129785d9a056b9f11d5fb2ef170"
     },
     {
       "source": "execution/PKG-01/DEL-01-06/Work/PACKAGING_AND_DISTRIBUTION.md",
@@ -2745,7 +2745,7 @@
     {
       "source": "execution/PKG-02/DEL-02-01/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-02/DEL-02-01/ScopeOfWork.md",
-      "sha256": "9479fc882decd3721a346ff5723751091db9965a65d6078baf6562ed1779bd49"
+      "sha256": "757a51aeb7c265462cff0fd39e76a3cd19192d683595d2eabd5085a841543dfc"
     },
     {
       "source": "execution/PKG-02/DEL-02-01/Work/EXAMPLES.md",
@@ -2815,7 +2815,7 @@
     {
       "source": "execution/PKG-02/DEL-02-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-02/DEL-02-02/ScopeOfWork.md",
-      "sha256": "c26e2a9504c2509b86e27cf524f139091c4e05acd8772e1555ffb003b3105bef"
+      "sha256": "aab10b07404e6bcda06c737db8c61438a7edde1918ef0d1bee7d52416a41120d"
     },
     {
       "source": "execution/PKG-02/DEL-02-02/Work/WORKSPACE_AND_REGISTRATION.md",
@@ -2860,7 +2860,7 @@
     {
       "source": "execution/PKG-02/DEL-02-03/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-02/DEL-02-03/ScopeOfWork.md",
-      "sha256": "625b299ec1d48de1b80dff74796774cc95ee466870bec06a196e16b840af6e5f"
+      "sha256": "764c0184faa951f714186ebbb2858e474e971c584f357a937b34f676f5740fde"
     },
     {
       "source": "execution/PKG-02/DEL-02-03/Work/EXECUTION_COMPATIBILITY.md",
@@ -2920,7 +2920,7 @@
     {
       "source": "execution/PKG-02/DEL-02-04/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-02/DEL-02-04/ScopeOfWork.md",
-      "sha256": "da6be9e62813b200a0dd29e09cba511fbce11910ff7aa1e9f77a4e769ec153e8"
+      "sha256": "f893072fb3939582ea2378333268d4474474263cc7f864c8768f18e2ed9240d9"
     },
     {
       "source": "execution/PKG-02/DEL-02-04/Work/INSTRUCTION_RESOURCE_DERIVATION.json",
@@ -3070,7 +3070,7 @@
     {
       "source": "execution/PKG-03/DEL-03-01/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-03/DEL-03-01/ScopeOfWork.md",
-      "sha256": "36d350738c5e7b24a146eb39c78c6759adaea70f8ec52c8776e8725531997ba2"
+      "sha256": "e32e81b2709a61bc2dfc47fc0a7ea8994d1f909653e6c53cc936ace8497ce40d"
     },
     {
       "source": "execution/PKG-03/DEL-03-01/Work/CATALOG_AND_READ_BASIS.md",
@@ -3165,7 +3165,7 @@
     {
       "source": "execution/PKG-03/DEL-03-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-03/DEL-03-02/ScopeOfWork.md",
-      "sha256": "251aac5d5ff32028c6b7809902ac1fc465fe5fcfc4eb8f26ce7c429e5e4fb92c"
+      "sha256": "e4312fc6303f0abc1963f608ddc2cdad20c7ce15b00cafaab75198da31cc51ad"
     },
     {
       "source": "execution/PKG-03/DEL-03-02/Work/PROPOSAL_LIFECYCLE_AND_OUTCOMES.md",
@@ -3255,7 +3255,7 @@
     {
       "source": "execution/PKG-03/DEL-03-03/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-03/DEL-03-03/ScopeOfWork.md",
-      "sha256": "f8b815d11b86ea0dec29e8caf07a456970d2cdd2851adf9671d6aefb5cccb65b"
+      "sha256": "856fcebbfa2f206f506d4cb6e653bc5506e30e39a24697115d7a1db8b4bb6142"
     },
     {
       "source": "execution/PKG-03/DEL-03-03/Work/channel_status.example-invalid.json",
@@ -3320,12 +3320,12 @@
     {
       "source": "execution/PKG-03/DEL-03-04/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-03/DEL-03-04/ScopeOfWork.md",
-      "sha256": "f3d78d0361ac3afbb8fe11f3dfda7da5fead0cb255f8acc8e368ea773ca6ee8e"
+      "sha256": "aaf56061a79db36d96c09ebf8f58666b945e957474f5e6a592cc338886a289c2"
     },
     {
       "source": "execution/PKG-04/DEL-04-01/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-04/DEL-04-01/ScopeOfWork.md",
-      "sha256": "2cd1dc9e542a9ee38ee0dd2a217bd717ecd960b2df009f59b4b2c562d350d862"
+      "sha256": "255e51dbb137d1a5873b96c88849bee4d8247a577bb4bd0c2dadd40021b3ca7f"
     },
     {
       "source": "execution/PKG-04/DEL-04-01/Work/ACT_AND_POLICY_CONTRACT.md",
@@ -3355,7 +3355,7 @@
     {
       "source": "execution/PKG-04/DEL-04-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-04/DEL-04-02/ScopeOfWork.md",
-      "sha256": "19021c464487f5709863cd1f547006a480ee373048502786c4ba5bad333734cc"
+      "sha256": "67feb1f381d2ff7543ca13ed431b35aeec01aa1167eae7a6900f28853e6f3c69"
     },
     {
       "source": "execution/PKG-04/DEL-04-02/Work/AS_SETTINGS_IN.invalid.examples.json",
@@ -3380,7 +3380,7 @@
     {
       "source": "execution/PKG-04/DEL-04-03/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-04/DEL-04-03/ScopeOfWork.md",
-      "sha256": "cf6f328ea3f673426ac080cd1d77007d644b10e88d94e7280bbfdc19362c3a24"
+      "sha256": "fefc2589c2da07c29febcc2f0aef3d2b7bf8a77a12fd18ba9b4bdedbddb9d59d"
     },
     {
       "source": "execution/PKG-04/DEL-04-03/Work/RECORD_SEMANTICS.md",
@@ -3440,7 +3440,7 @@
     {
       "source": "execution/PKG-05/DEL-05-01/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-05/DEL-05-01/ScopeOfWork.md",
-      "sha256": "6cdfba9dc00991e338d7e02f2dc9db46bfc93384a900c4b352bcdbd796e50dd6"
+      "sha256": "f4940174ebe4ec764d49d73cdd93f93ba75b26cbc53631ecabb9ff0fbd684842"
     },
     {
       "source": "execution/PKG-05/DEL-05-01/Work/LOOP_DESTINATION_REQUEST.example.invalid.json",
@@ -3490,7 +3490,7 @@
     {
       "source": "execution/PKG-05/DEL-05-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-05/DEL-05-02/ScopeOfWork.md",
-      "sha256": "c00b344e2c7eab1a04c38c3fe117918cb09077a7b015604f90dba774dd2afaff"
+      "sha256": "53348d21452c75681750ee170c0f37f447a45ff52c69fa4584bdfb102dada6b7"
     },
     {
       "source": "execution/PKG-05/DEL-05-02/Work/PANEL_RECEIVING_CONTRACT.md",
@@ -3525,7 +3525,7 @@
     {
       "source": "execution/PKG-06/DEL-06-01/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-06/DEL-06-01/ScopeOfWork.md",
-      "sha256": "4dbbe6e657e1ff7b4f331e1ac16b6718011dd1d2ccdff035bf3752f862d408be"
+      "sha256": "43dfc7e5d24e76f436f8c5ec714f1db4f3605d97d3f4bb76961f96080c42bffc"
     },
     {
       "source": "execution/PKG-06/DEL-06-01/Work/fleet.native-links.schema.json",
@@ -3625,7 +3625,7 @@
     {
       "source": "execution/PKG-06/DEL-06-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-06/DEL-06-02/ScopeOfWork.md",
-      "sha256": "f95129e61f341750eb14d798031abdaf088429604c46732914ca445cd0fb31fd"
+      "sha256": "98f9591886f237e39cddcb5234b6e7c246ed69d326ca52a1008eb746ca99d5db"
     },
     {
       "source": "execution/PKG-07/DEL-07-01/ScopeOfWork.md",
@@ -3640,7 +3640,7 @@
     {
       "source": "execution/PKG-07/DEL-07-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-07/DEL-07-02/ScopeOfWork.md",
-      "sha256": "4ae8b737826563602b5655908b76a6a0b0165e0502ce4fc8a7eda5927875ec04"
+      "sha256": "4976686ee5dc0e743d6a8ee5b94bcb08e479af4382e5a2472b3453d804d00fa7"
     },
     {
       "source": "execution/PKG-07/DEL-07-02/Work/CONNECTOR_FALLBACK.md",
@@ -3715,7 +3715,7 @@
     {
       "source": "execution/PKG-08/DEL-08-01/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-08/DEL-08-01/ScopeOfWork.md",
-      "sha256": "df2795869011f9364d5acf7541d66e2c32ffdd382c757153ad8d1fe8492607d7"
+      "sha256": "2ec1f4e625c529a8065d984fa6d9e92219494de7863a789b348c5ebca7759245"
     },
     {
       "source": "execution/PKG-08/DEL-08-01/Work/DOMAINS_RECEIVING.md",
@@ -3730,7 +3730,7 @@
     {
       "source": "execution/PKG-08/DEL-08-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-08/DEL-08-02/ScopeOfWork.md",
-      "sha256": "43a769703f235b2605ec176c6c7e42c934b8980fa48148e434c27a42a3632006"
+      "sha256": "70e8c0d7c4993608ba0b5249c1a2718bf398f078888798da6b135d3456cc111c"
     },
     {
       "source": "execution/PKG-08/DEL-08-02/Work/prototype/README.md",
@@ -3765,7 +3765,7 @@
     {
       "source": "execution/PKG-09/DEL-09-01/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-09/DEL-09-01/ScopeOfWork.md",
-      "sha256": "a60b02a8cfa40abf1819d08420a94e2539c6b1c83fa3e22f045c079dbaaa65fd"
+      "sha256": "d7659c59a5f566ad481a518b2b696e6f8c09dccadaaa9452c453b1528791f93a"
     },
     {
       "source": "execution/PKG-09/DEL-09-01/Work/EXAMINATION_PROTOCOL.md",
@@ -3885,7 +3885,7 @@
     {
       "source": "execution/PKG-09/DEL-09-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-09/DEL-09-02/ScopeOfWork.md",
-      "sha256": "7470bcfc0b092d6eaf6cc0f7139dc6e35e3d46ed249fb96fcfa7bc5ff48af7ca"
+      "sha256": "55cf90b04addcce9d3be1477e8e3803d65cbac1e2d7631c3d521b38c4cab52b5"
     },
     {
       "source": "execution/PKG-09/DEL-09-02/Work/STANDALONE_QUALIFICATION.md",
@@ -3925,7 +3925,7 @@
     {
       "source": "execution/PKG-09/DEL-09-05/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-09/DEL-09-05/ScopeOfWork.md",
-      "sha256": "aaaf09671e22e3d7c2b000982ff928dd34d3d63810b8bf695fb9810706eddaac"
+      "sha256": "0dc610d2493e7dd7b93a30c519ab3edf52a515d6c1c7fcabd9b1fec2cdfd4d53"
     },
     {
       "source": "execution/PKG-09/DEL-09-05/Work/prototype/fixtures/examiner_observation.FX-DP1.json",
@@ -3935,7 +3935,7 @@
     {
       "source": "execution/PKG-09/DEL-09-06/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-09/DEL-09-06/ScopeOfWork.md",
-      "sha256": "703104000b6c1ab8e40eb6f8bd76ad2da75fca871af8ee34a41f771064796ff6"
+      "sha256": "55b056f5bcbc9261a37a5ae8228872f9d64a09f801dc3524b5c91668c77cf5f1"
     },
     {
       "source": "execution/PKG-09/DEL-09-06/Work/SWBPIPE_CATALOG_PROPOSAL.json",
@@ -4030,7 +4030,7 @@
     {
       "source": "execution/PKG-09/DEL-09-07/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-09/DEL-09-07/ScopeOfWork.md",
-      "sha256": "4709f5f2f2022e8195f39bebc462eec9f6ea758850e0a7ef09a4b52d1ecd5812"
+      "sha256": "5afe226937cc61e69bd532d06ad6587d99ca388cf8ff78b091b7eea347d236a2"
     },
     {
       "source": "execution/PKG-09/DEL-09-07/Work/lhq.candidate-identification.ci5-violations.examples.json",
@@ -4100,7 +4100,7 @@
     {
       "source": "execution/PKG-09/DEL-09-09/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-09/DEL-09-09/ScopeOfWork.md",
-      "sha256": "bba55c678080756138319d82a86216f95ae699212143a7a96f3d8fd0e374af8a"
+      "sha256": "82215cf3b95dbb800283eb00f5f4477ca81f117e423b54cc6444eb6972032497"
     },
     {
       "source": "execution/PKG-09/DEL-09-09/Work/prototype/README.md",
@@ -4140,12 +4140,12 @@
     {
       "source": "execution/PKG-09/DEL-09-10/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-09/DEL-09-10/ScopeOfWork.md",
-      "sha256": "a250acdfa932ab38b201959becb93a59a3d9754297f152e275e301af96bddcbd"
+      "sha256": "ab6f7db4102defa76226f76c19b1debb68c61f475b8276e7d4269a6100499bee"
     },
     {
       "source": "execution/PKG-09/DEL-09-11/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-09/DEL-09-11/ScopeOfWork.md",
-      "sha256": "86b9727326cb6f2f22af4d4ceb49fe0fb1929f608a74c6d327b835aaa667b202"
+      "sha256": "0c9e90746d42f28a1fae2094c4cd29d1837d66a5dfe6227ccf271c9fc0be72ff"
     },
     {
       "source": "execution/PKG-09/DEL-09-11/Work/prototype/fixtures/IS-FX-DP1-2.input-set.json",
@@ -4320,7 +4320,7 @@
     {
       "source": "execution/PKG-09/DEL-09-12/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-09/DEL-09-12/ScopeOfWork.md",
-      "sha256": "40eaf09fd80f9f3908af710a865b0204948b12f26e71b399cdecfdc3ad598bd1"
+      "sha256": "ea32af5fec52dbb53b435c9aeeb0362825ee2d5f6ed6ac5c75494d2777e12ea2"
     },
     {
       "source": "execution/PKG-09/DEL-09-12/Work/pv.examples.invalid.json",
@@ -4340,7 +4340,7 @@
     {
       "source": "execution/PKG-10/DEL-10-01/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-10/DEL-10-01/ScopeOfWork.md",
-      "sha256": "202480f3041c9d4ee2eab9c8cf49580493d1cdb02e2dd8fed56ae2622ed5e948"
+      "sha256": "62453ea4d296043d9d67aefebb06856797943bd1e6c941d49546c4c69dae1411"
     },
     {
       "source": "execution/PKG-10/DEL-10-01/Work/EXECUTION_BASIS.md",
@@ -4370,12 +4370,12 @@
     {
       "source": "execution/PKG-10/DEL-10-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-10/DEL-10-02/ScopeOfWork.md",
-      "sha256": "ceda2695ddbb4799299a55c114d65c4c328f198c3dfe6780e77409255af8d61b"
+      "sha256": "1a9b9cc24a597790646bb15a95fd79af91d4f03a84d0967eae202bca382ba6d4"
     },
     {
       "source": "execution/PKG-10/DEL-10-03/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-10/DEL-10-03/ScopeOfWork.md",
-      "sha256": "7c5276d21dba109b48f0e0be820111b922cd8e720c790faeb169e32b76d90a1d"
+      "sha256": "532430f6337d7767fc5cc4c240a60c3a5f4ceefb10e4f827d32274b8bea1273a"
     },
     {
       "source": "execution/PKG-10/DEL-10-03/Work/RESPONSIBILITY_ACCOUNT.md",
@@ -4385,12 +4385,12 @@
     {
       "source": "execution/PKG-10/DEL-10-04/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-10/DEL-10-04/ScopeOfWork.md",
-      "sha256": "064c844333e0ceb04b31c2cb91fb44a22e639552cf415f9180e559070911a572"
+      "sha256": "72b1713f0527c65badb3be395728ceb36feb001790bf6fd9b841b68082fc375e"
     },
     {
       "source": "execution/PKG-11/DEL-11-01/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-11/DEL-11-01/ScopeOfWork.md",
-      "sha256": "0d785081ccc557ebf9f4027a0b22a136c20eb3415b25e7f92012a9d30844e668"
+      "sha256": "2e47ca566861cb5e22a53c62058e76056a2cbe8744f91394d3b97952e095e2cf"
     },
     {
       "source": "execution/PKG-11/DEL-11-01/Work/ca.continuity-account.schema.json",
@@ -4400,7 +4400,7 @@
     {
       "source": "execution/PKG-11/DEL-11-02/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-11/DEL-11-02/ScopeOfWork.md",
-      "sha256": "2d962646f8b24a1b76fcd30307859f7c7632c25e78864c28b5fd04fb687a057c"
+      "sha256": "260e44a312318821fca0c628a4b3ba2a2c5f6b113758d8433c7254950a270641"
     },
     {
       "source": "execution/PKG-11/DEL-11-02/Work/aa.adoption-account.schema.json",
@@ -4410,7 +4410,7 @@
     {
       "source": "execution/PKG-11/DEL-11-03/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-11/DEL-11-03/ScopeOfWork.md",
-      "sha256": "dfeb3124f3fdae9bb99a2df067e29be5b6e31aeb6bc28e167aa4f1beeae90f22"
+      "sha256": "1d860835d6fc97d211d13897ef10744b1e376163a737fae67a50fa55f12a3288"
     },
     {
       "source": "execution/PKG-11/DEL-11-03/Work/rp.disposition.schema.json",

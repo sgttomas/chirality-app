@@ -1,53 +1,62 @@
 id: DEL-01-01
 name: Stock Codex hosting and supplier contract
 needs:
-- from: external:chirality-app-v4:OI-008
-  condition: 'Met 2026-10-10: the owner''s OI-008 ruling places writes to the person''s files and the App''s
-    records, Codex interaction and act capture in the Rust host, and limits the web view to presenting and
-    sending what the person initiates (ScopeOfWork TBD-001; docs/ARCHITECTURE.md §3; HOSTING §12).'
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
-- from: external:chirality-app-v4:OI-012
-  condition: Development, definition and generated references use the reviewed SUP1 pin 0.160.0 (ScopeOfWork
-    [S], CLM-003, REQ-006, TBD-002; HOSTING §7.0/U-01). The App implementation owner binds the qualification
-    pin to the identified candidate at build time under R23-22; qualified distribution identity, product
-    qualification and signing/release evidence remain absent.
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
-- from: external:chirality-app-v4:DEP-005
-  condition: Implementation and qualification witnesses need the published stock supplier interfaces on
-    an identified version and environment; DEP-005 remains VERSION_AND_ENVIRONMENT_TO_DEFINE for qualification
-    witnesses. The owner-selected 0.167.0 assessment/integration basis (ScopeOfWork [U], CLM-003, TBD-002) supplies
-    no qualified candidate, endpoint capability or signing/release evidence.
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+- from: external:DEP-005
+  condition: Codex 0.167.0 is published as a stock macOS arm64 distribution whose release archive
+    digest the supplier publishes, with its App Server protocol and the generators that emit that
+    protocol's types.
 - from: DEL-01-05
-  condition: Receive native sign-in and server-substitution evidence from the App v4 DEL-01-05 account/provider
-    owner when needed for the local qualification witness; the source does not impose an unconditional prerequisite.
+  condition: Each App-owned Codex home exists before a child is started for it, has a stable identity
+    that is neither a credential nor a filesystem path, and carries the person's settings and the
+    App's start-up traffic settings the child is to start with.
+  gating: true
+- from: DEL-01-06
+  condition: The installed package carries the supplier's vendor tree byte-equal to the published
+    one, and the App's signature carries the bundle identifier and Developer ID team that the build
+    compiles as its publisher identity.
+  gating: true
+  when: Verifying the supplier on an installed production build
+- from: DEL-04-03
+  condition: The run-record format has entries for a turn's model and destination, for supplied
+    guidance and for tool-permission settlements, and its writer appends them.
   gating: false
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
 code_paths:
 - app/src-tauri/resources/supplier/0.167.0
-- app/src-tauri/src/hosting_probe.rs
-- .gitattributes
-- app/src-tauri/src/desktop_setup_confirmation.rs
-- app/src-tauri/src/lib.rs
-- app/src-tauri/src/desktop_startup.rs
-- app/src-tauri/src/hosting_observer_journal.rs
-- app/src-tauri/src/hosting_observer_rebuild.rs
-- app/supplier_checks/recorded_replay.py
-- app/src-tauri/src/process_group_custody.rs
+- app/src-tauri/resources/hosting
+- app/src-tauri/resources/distribution-reference
+- app/src-tauri/resources/distribution-development-reference
+- app/src-tauri/resources/distribution-successor
+# hosting.rs is shared. Here: verification, child lifecycle, frame exchange, the register and
+# native delivery. Recovery reads and stops are DEL-01-02's, delegation reads DEL-01-03's,
+# answer and handoff sends DEL-01-04's, account and provider carriage DEL-01-05's.
 - app/src-tauri/src/hosting.rs
-- app/src-tauri/src/hosting_observation_facts.rs
+- app/src-tauri/src/hosting_probe.rs
 - app/src-tauri/src/hosting_native_delivery.rs
+- app/src-tauri/src/hosting_observation_facts.rs
+- app/src-tauri/src/hosting_call_custody.rs
+- app/src-tauri/src/hosting_request_event_join.rs
+- app/src-tauri/src/hosting_successor.rs
+- app/src-tauri/src/hosting_s4_export.rs
+- app/src-tauri/src/hosting_terminal_export.rs
+- app/src-tauri/src/process_group_custody.rs
+- app/src-tauri/src/installed_custody.rs
+- app/src-tauri/src/publisher_selection.rs
+- app/src-tauri/src/compiled_development_selection.rs
+- app/src-tauri/src/distribution_preflight.rs
+- app/src-tauri/src/distribution_s1.rs
+- app/src-tauri/src/distribution_selection.rs
+- app/src-tauri/src/distribution_semantics.rs
+- app/src-tauri/src/distribution_store.rs
+- app/src-tauri/src/distribution_store_s1.rs
 - app/src-tauri/src/model_turn_recorder.rs
+# desktop_startup.rs is shared with DEL-01-05, which owns home preparation and the saved
+# request. Here: the supplier selection and standing reported at start.
+- app/src-tauri/src/desktop_startup.rs
+- app/supplier_checks/recorded_replay.py
 checks:
 - app/src-tauri/src/hosting_0167_tests.rs
 - app/src-tauri/src/hosting_probe.rs
 - app/tests/check_git_checkout_bytes.py
-- app/src-tauri/src/desktop_setup_confirmation.rs
-- app/src-tauri/src/desktop_startup.rs
-- app/tests/desktop-setup.test.mjs
-- app/src-tauri/src/hosting_observer_journal.rs
-- app/src-tauri/src/hosting_observer_journal_tests.rs
-- app/src-tauri/src/hosting_observer_rebuild_tests.rs
 - app/src-tauri/src/hosting_native_delivery.rs
 - app/src-tauri/src/hosting_observation_custody_tests.rs
 - app/src-tauri/tests/steering_integration.rs

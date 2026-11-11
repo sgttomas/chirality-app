@@ -2,70 +2,73 @@ id: DEL-11-03
 name: Owner replacement evidence packet
 needs:
 - from: DEL-09-02
-  condition: Consume the actual candidate-specific App qualification dossier to produce the v3.0.1 core-loop
-    comparison and applicable V4-EXM-10/11 observations.
+  condition: The standalone dossier identifies the candidate, gives each planned step's result with
+    its evidence and limits, and maps each step to the core-loop elements (plan, execute, save a
+    workflow, reuse it, approvals, interruption, restart).
   gating: true
-  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
 - from: DEL-09-07
-  condition: Consume the actual joined local host dossier for one live local-model SWBPIPE request-to-human-acceptance
-    journey, preserving original basis, configuration, outcomes and receipts.
+  condition: The local qualification dossier identifies the App and SWBPIPE candidates and their configuration,
+    gives each case's result, records the person's acceptance with its actor apart from the recorder,
+    links the host's receipts, states its gaps, and has been examined independently.
   gating: true
-  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
 - from: DEL-11-01
-  condition: Consume the current App continuity account and continuing obligations in the exact owner replacement
-    decision package.
+  condition: The continuity account gives each continuing obligation's disposition by its accountable
+    owner or its open owner and point of need, the identity-check results for preserved material,
+    and the replacement standing.
   gating: false
-  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
-- from: DEL-09-12
-  condition: Consume the actual practitioner validation account and its standing, retaining absent or unagreed
-    validation, limitations and relevant observations.
-  gating: true
-  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
-- from: unknown
-  condition: Use the named v3.0.1 reference to compare the identified candidate across the required core-loop
-    elements.
-  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
-- from: doc:execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/Open_Issues.csv
-  condition: Compare packet continuity and unresolved-input statements with the accepted open-issue rows,
-    retaining OI-001/016/021/024 owners and actual points of need.
-  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
-- from: doc:execution/_Decomposition/Open_Issues.csv
-  condition: Compare packet continuity and unresolved-input statements with the current open-issue rows,
-    retaining OI-001/016/021/024 owners and actual points of need.
-  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
-- from: external:Owner — App v4 fallback replacement decision-maker
-  condition: Receive an attributable actual owner response tied to the exact presented candidate/evidence
-    subject before recording an actual disposition; otherwise preserve pending standing and the fallback.
-  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
-- from: DEL-09-02
-  condition: Supply the single identified standalone candidate qualification dossier, named scenario outcomes,
-    evidence and remaining limits to DEL-11-03 for its replacement-evidence packet.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-02/ScopeOfWork.md
-- from: DEL-09-07
-  condition: Supply the local-host qualification dossier and linked candidate-specific evidence, including
-    completed live-witness standing, gaps and limitations, to the owner replacement evidence packet.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-07/ScopeOfWork.md
-- from: DEL-11-01
-  condition: DEL-11-01 supplies continuity obligations and the continuing-obligation disposition account
-    to the separately owned DEL-11-03 replacement evidence package.
-  gating: false
-  evidence: execution/PKG-11/DEL-11-01/ScopeOfWork.md
 - from: DEL-11-02
-  condition: Supply truthful adoption status from the received change/verification account to DEL-11-03
-    for its continuity or replacement-evidence contribution.
+  condition: The adoption account states for each affected consumer whether its adoption of the renewed
+    basis is established, and shows an unestablished adoption as such.
   gating: true
-  evidence: execution/PKG-11/DEL-11-02/ScopeOfWork.md
-- from: external:Owner — App v4 fallback replacement decision-maker
-  condition: Present both distinct obligation accounts with actual standing, exact proposed replacement
-    scope/candidate, supplied evidence and continuing obligations to the owner.
+- from: DEL-09-12
+  condition: The validation arrangement shows whether the owner has agreed the period and the activities;
+    the account of use holds what the owner observed on the identified candidate, with its limits
+    and what was not observed; and each recorded observation carries its disposition, a proposal
+    told apart from a decision.
+  gating: true
+- from: DEL-01-06
+  condition: For the final candidate, the package identity record identifies the package and the result
+    of comparing it with an independent reading of the package is recorded; the install-and-launch
+    witness names the package it concerns and what was and was not observed; each shipped component
+    is recorded with its notice or named uncovered; the terms position is recorded with the owner's
+    applicability statement or as unresolved; and the limitations stated with the release are listed.
+  gating: true
+  when: Before the packet is put to the owner for the publication decision.
+- from: DEL-01-01
+  condition: For the final candidate, the result of the supplier qualification at the candidate's
+    pin (whether the embedding protocol behaves on the candidate as the supplier publishes it) is
+    recorded with its outcome, evidence and limits, and the provider requirement account names each
+    requirement as published, observed on a named server or not observed.
+  gating: true
+  when: Before the packet is put to the owner for the publication decision.
+- from: DEL-01-04
+  condition: For the final candidate, the result of the person's keychain protection act on the installed,
+    signed build (enrolment of the key, the approval policy stored in the keychain, admission of
+    a sealed registered workflow after a cold start) is recorded with its outcome, evidence and limits.
+  gating: true
+  when: Before the packet is put to the owner for the publication decision.
+- from: doc:reference/REFERENCES.md
+  condition: The v3.0.1 fallback release is identified by its published release, source revision and
+    installer digest.
+- from: doc:execution/_Decomposition/Open_Issues.csv
+  condition: Each undecided matter the packet carries (OI-016, OI-021, OI-024) names its owner and point
+    of need.
+- from: doc:docs/RELEASE_TARGET_4.0.0.md
+  condition: The exit criteria, and the deliverables that own each, are stated and accepted by the owner.
+  when: Before the packet is put to the owner for the publication decision.
+- from: external:Owner
+  condition: The owner responds to the package presented, choosing or leaving the decision open, in
+    words that can be attributed and quoted.
+  when: Before a disposition is recorded as decided.
+- from: external:Owner
+  condition: The owner receives the package with both obligations and their standing, the exact candidate
+    and proposed scope, the evidence and the continuing obligations.
   direction: downstream
   gating: false
-  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
-- from: external:Affected consumers — App v4 replacement continuity recipients
-  condition: Return the recorded owner disposition and continuing obligations to affected consumers, preserving
-    each later receiving adoption or retirement decision.
+- from: external:Affected consumers
+  condition: The affected consumers receive the owner's recorded disposition and the continuing obligations;
+    each consumer's own adoption or retirement decision stays open.
   direction: downstream
   gating: false
-  evidence: execution/PKG-11/DEL-11-03/ScopeOfWork.md
+code_paths: []
+checks: []

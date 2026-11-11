@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-10-04
 package_id: PKG-10
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-211]
 package_objective_refs: [OBJ-006, OBJ-010]
 ---
@@ -39,15 +39,15 @@ clauses are read with the accepted composite and later directions. [B1, B4]
 
 | Key | Source and applicable locus |
 |---|---|
-| B1 | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; `canonical/Deliverables.csv` row DEL-10-04 and sibling owner rows; `Packages.csv` row PKG-10; `ScopeLedger.csv` row SOW-211; `Objectives.csv` rows OBJ-006 and OBJ-010, all under that snapshot. |
-| B2 | `projects/chirality-app-v4/docs/OPERATING_METHOD.md`, V4-OPS-01/02/04, 10–14, 22/23, 30–34 and §6; historical source `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/OPERATING_METHOD.md`, V4-OPS-02. |
-| B3 | `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md`, actual setup choice and accepted rules. |
-| B4 | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md`, J–O; same acceptance folder `DECISION_BRIEF.html`, decisions 01/05/06/07; `projects/chirality-app-v4/docs/PRD.md`, §0 and open-question table. |
+| B1 | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; `canonical/Deliverables.csv` row DEL-10-04 and sibling owner rows; `Packages.csv` row PKG-10; `ScopeLedger.csv` row SOW-211; `Objectives.csv` rows OBJ-006 and OBJ-010, all under that snapshot. |
+| B2 | `docs/OPERATING_METHOD.md`, V4-OPS-01/02/04, 10–14, 22/23, 30–34 and §6; historical source `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/OPERATING_METHOD.md`, V4-OPS-02. |
+| B3 | `execution/_Coordination/_COORDINATION.md`, actual setup choice and accepted rules. |
+| B4 | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md`, J–O; same acceptance folder `DECISION_BRIEF.html`, decisions 01/05/06/07; `docs/PRD.md`, §0 and open-question table. |
 | B5 | `workflows/project-dag/WORKFLOW.md`; `resources/contract.md`, authority, inputs, outputs and validity; `resources/method.md`, stages and checkpoints; `resources/graph-version.md`, selection, accounting and independent review; `resources/currency.md`, classifications and departures. Selected identity: `chirality-root:bundled:workflow:project-dag`. |
 | B6 | Stable discovery: `docs/alignment-manual/README.md`. Current selection: Consolidated v9 chapters 3 and 7, §§4.3–4.6 and §6.6. Current repository practice, replacing the Field Book and Agent User Manual retired by the owner on 2026-10-23: Root `AGENTS.md` "Deliverables and records", `tools/deliverables/README.md` and the index's "Discovery and reliance". Tools derive current relationships; an index update does not itself approve a new graph or change a product commitment. |
 | B7 | `workflows/construct-local-work-graph/WORKFLOW.md`, §§1–4, especially the pre-DAG register route and the distinction between production obligations and selected execution. Selected reading identity: `chirality-root:bundled:workflow:construct-local-work-graph`. |
-| B8 | Frozen `canonical/External_Dependencies.csv` and `canonical/Open_Issues.csv` under B1; current `projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv` and `Open_Issues.csv`, especially external rows DEP-001 through DEP-006 and open matters OI-017 through OI-023 and OI-026. Current PEC D108 metadata is a later receiving fact, not a change to frozen scope. |
-| B9 | `projects/chirality-app-v4/docs/HOST_INTEGRATION.md`, V4-HI-60–63 and §11; `ARCHITECTURE.md` in the same folder, §6; `EXAMINATION.md` in that folder, §§1–2. |
+| B8 | Frozen `canonical/External_Dependencies.csv` and `canonical/Open_Issues.csv` under B1; current `execution/_Decomposition/External_Dependencies.csv` and `Open_Issues.csv`, especially external rows DEP-001 through DEP-006 and open matters OI-017 through OI-023 and OI-026. Current PEC D108 metadata is a later receiving fact, not a change to frozen scope. |
+| B9 | `docs/HOST_INTEGRATION.md`, V4-HI-60–63 and §11; `ARCHITECTURE.md` in the same folder, §6; `EXAMINATION.md` in that folder, §§1–2. |
 | B10 | `docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md`, §§3–5 and §8; selected `chirality-root:bundled:workflow:scope-of-work`, its brief, checks and tool policy. |
 
 ## Deliverable Definition — Ontology

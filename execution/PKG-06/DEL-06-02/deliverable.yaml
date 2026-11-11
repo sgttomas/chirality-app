@@ -2,63 +2,57 @@ id: DEL-06-02
 name: Return, waiting and human-decision workspace
 needs:
 - from: DEL-06-01
-  condition: Consume the identified brief and current work-graph and coordination records to derive return,
-    waiting and ownership views, as the manual native adapter does with sources, actors and read limits
-    retained (Design/FLEET_VIEWS.md). Full native brief/dispatch/child association remains unavailable and
-    needs actual native association evidence before the view asserts that contribution.
+  condition: The selected project's fleet records are read as one consistent snapshot giving every brief,
+    graph revision and log entry with its source and recorder, which graph is current or why none is,
+    which entries are App observations, and every part that could not be read as a limit; return, review
+    and integration are separate records; and each kind of need has a stated rule for what satisfies
+    it.
   gating: true
-  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
 - from: DEL-04-01
-  condition: Consume the adopted operation-policy and human-act distinctions for each exposed act, as carried
-    by DEL-04-01 (CLM-004, TBD-001/002; decision D2/D3); the view selects no policy. Operation-specific
-    additions remain with OI-021 and host enforcement needs its own evidence.
+  condition: Each act kind has one name and a stated performer; a decision on a proposal is labelled
+    accept and never approve; and marking checked, accepting, approving, relying and deciding are separate
+    acts of the person, evidence of one establishing no other.
   gating: true
-  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
 - from: DEL-04-03
-  condition: Consume DEL-04-03's content-bound decision/run record format and owning reader/writer interface,
-    preserving content/scope/purpose, actor versus recorder and changed-content lapse (Design/DECISION_VIEW.md).
-    The unsealed recorded-decision projection supplies no verified native capture origin; actual human evidence
-    and the joined witness remain separately required.
+  condition: A decision record binds the act to its decision actor, its recorder, the package's content
+    identity and the alternative chosen, and cites the request it answers; a correction is a new entry
+    naming the one it corrects; lapse is reported by comparing the bound and the current content identity,
+    with unknown where they are not comparable or not available; and an entry that cannot be read
+    is reported as such and never used.
   gating: true
-  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
-- from: external:Host owners — receipts and offered/recorded/presented human-act interfaces
-  condition: Receive applicable host receipts and offered/recorded/presented human-act interfaces through
-    their owning contracts when the view uses them, without inferring a host deployment; exact host/interface
-    identity remains unresolved.
-  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
-- from: external:Person performing the attributable human act — VER-004 positive witness
-  condition: For the positive faithful-recording verification case, obtain evidence of an actually performed
-    human act with its actor distinct from the recorder and its content-bound record; preserve independent
-    acts without inferred ordering.
-  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
-- from: external:OI-021
-  condition: Obtain an operation-specific addition to the reserved-act policy from the owner, via the outside
-    SWB session, and the App/shared owner before the connected-activity ScopeOfWork needs it (ScopeOfWork
-    TBD-001). First-increment OI-001 policy is already ruled (D2) and carried by DEL-04-01; only the unruled
-    operation waits.
-  evidence: execution/PKG-06/DEL-06-02/ScopeOfWork.md
-- from: DEL-06-01
-  condition: Supply source coordination files to DEL-06-02 for return-review, waiting-cause and prepared
-    decision-package views, preserving actual ownership and separate returned, reviewed and integrated standing.
-    Missing, torn, conflicting or changed sources keep incomplete/unknown standing; native execution and
-    human-act standing are separate inputs.
+- from: DEL-04-03
+  condition: A decision package file in the project is recorded as an act request that cites the file
+    by path and content identity and carries its act kind, subject, purpose, alternatives and consequences.
   gating: true
-  evidence: execution/PKG-06/DEL-06-01/ScopeOfWork.md
 - from: DEL-07-02
-  condition: Consume declared connector needs through the identified standing vocabulary and source-route
-    reference, retaining missing, unsupported and claim-level limits; this adopts no live connector and
-    file reconstruction proceeds without Fleet views. A future optional connector keeps its own receiving
-    contract.
+  condition: A connector receiving record declares its connector and a standing that tells current, qualified
+    material from absent, stale, partial and failing material, with a standing for each claim it carries
+    and whether the source-file route is still needed.
+  gating: false
+  when: A work item declares a connector need
+- from: DEL-01-04
+  condition: The App act control is offered on a decision package for the decide act, on the alternatives
+    the package names and whether or not an arrival was recorded; only the person's confirmation captures;
+    and each capture yields capture evidence and a direct-capture record with the person's observed
+    identity marked not verified.
   gating: true
-  evidence: execution/PKG-07/DEL-07-02/ScopeOfWork.md
+  when: The positive case of AC-004
+- from: external:person deciding the matter
+  condition: A person performs a decision on a pending package at the App act control, so that the positive
+    case of AC-004 has a performed act and its record to present.
 code_paths:
-- app/src-tauri/src/fleet_records.rs
+# fleet_views.rs is shared with DEL-06-01. Here: the queue, waiting and decision rows; current-graph
+# selection and need-state rules are DEL-06-01's.
 - app/src-tauri/src/fleet_views.rs
-- app/src/FleetRecordsPanel.tsx
-- app/src/App.tsx
 - app/src-tauri/src/decision_view.rs
+- app/src/FleetRecordsPanel.tsx
+# runtime_session.rs, lib.rs and App.tsx are shared. Here: the read of the decision packages, the
+# decision view command, the decision packages panel and the mounting of both panels.
 - app/src-tauri/src/runtime_session.rs
+- app/src-tauri/src/lib.rs
+- app/src/App.tsx
 checks:
+# fleet_views_tests.rs is shared with DEL-06-01. Here: the queue, waiting and decision-wait cases.
 - app/src-tauri/src/fleet_views_tests.rs
 - app/tests/fleet-records.test.mjs
 - app/src-tauri/tests/decision_reader.rs

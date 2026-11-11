@@ -2,76 +2,68 @@ id: DEL-01-05
 name: Native ChatGPT sign-in and oMLX/local-provider access
 needs:
 - from: DEL-01-01
-  condition: DEL-01-05 consumes DEL-01-01's identified selected Codex protocol/pin before its mode/provider
-    implementation and qualification depend on it; OI-012/DEP-005 supplier identity, protocol and endpoint
-    capability evidence remain unresolved.
-  gating: false
-  evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
-- from: DEL-01-01
-  condition: Account/provider and local-server qualification requires DEL-01-01 embedding-qualification
-    input linked to the actual candidate; observed outcomes and limits must remain explicit.
-  gating: false
-  evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
-- from: doc:execution/PKG-01/DEL-01-05/Work/ACCOUNT_HOME_DECISION_RECORD.md
-  condition: 'The account-home decision record carries the owner''s choice before account integration depends
-    on it: APP-V4-DESIGN-PASS-3-20261001-DECISION-K3 K-1 selects shared Codex settings, providers and MCP
-    servers with a separate Codex-custodied sign-in in an App-owned Codex home. The mechanism, observed
-    at 0.158.0 without a credential, is confirmed on the pinned version before account integration.'
-  evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
-- from: doc:execution/PKG-01/DEL-01-05/Work/ACCOUNT_AND_PROVIDER_ACCESS.md
-  condition: Standalone OpenAI API-key access and its qualification are omitted from this increment.
-    Retained protocol definitions apply before any later owner-selected API-key scope; oMLX/local
-    credential support remains required through the adopted Codex-custody dedicated local home; native
-    secure entry and renderer receiving are implemented, while actual keyed oMLX compatibility and
-    candidate-bound qualification remain open.
-  evidence: execution/PKG-01/DEL-01-05/ScopeOfWork.md
-- from: DEL-01-01
-  condition: Supply the selected embedding-protocol qualification and local-provider protocol requirement
-    account to the App v4 DEL-01-05 account/provider receiver, distinguishing published requirements from
-    observed candidate capability.
-  gating: false
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
+  condition: A Codex child is started for each home with no credential in its environment; the
+    supplier's account, model and configuration methods and a conversation's provider selection
+    are carried unchanged; the destination Codex reports for a turn is available; and the embedding
+    protocol qualification and what Codex requires of a provider at the pin are stated, with published
+    requirements kept apart from observed capability.
+  gating: true
+- from: external:OpenAI ChatGPT sign-in service
+  condition: The Codex-managed ChatGPT sign-in completes in the system browser for the person's
+    own account.
+  when: Sign-in on the candidate
+- from: external:local model server
+  condition: A local model server serves the Responses interface at the configured endpoint and
+    accepts the key the person holds.
+  when: A local conversation and the substitution of a second server
 code_paths:
-- app/src-tauri/schemas/sync.py
+- app/src-tauri/src/access.rs
+- app/src-tauri/src/access_settings.rs
+# access_provider.rs is shared with DEL-02-04. Here: admission of the providers Codex reports
+# from the person's settings. The use of a provider's metadata for role guidance is DEL-02-04's.
+- app/src-tauri/src/access_provider.rs
+- app/src-tauri/src/auth_rpc.rs
+- app/src-tauri/src/oauth_control.rs
+- app/src-tauri/src/provider_create.rs
+- app/src-tauri/src/provider_endpoint.rs
+- app/src-tauri/src/provider_endpoint_confirmation.rs
+- app/src-tauri/src/config_resource_continuation.rs
+- app/src-tauri/src/home_resources.rs
 - app/src-tauri/src/native_local_provider.rs
 - app/src-tauri/src/native_secure_entry.rs
-- app/src-tauri/src/home_resources.rs
-- app/src-tauri/src/access.rs
-- app/src-tauri/src/stop_records.rs
-- app/src-tauri/src/waiting_requests.rs
-- app/src/ModelChoice.tsx
-- app/src/LocalProviderAccess.tsx
 - app/src-tauri/src/model_catalog.rs
 - app/src-tauri/src/desktop_setup_confirmation.rs
-- app/src/DesktopSetupPanel.tsx
+# desktop_startup.rs is shared with DEL-01-01. Here: preparation of the homes and the saved
+# desktop setup. Selection of the supplier binary and its start are DEL-01-01's.
 - app/src-tauri/src/desktop_startup.rs
-- app/src-tauri/src/model_turn_recorder.rs
-- app/src-tauri/src/runtime_session.rs
-- app/src-tauri/src/act_control.rs
-- app/src-tauri/src/access_provider.rs
-- app/src-tauri/src/access_settings.rs
-- app/src-tauri/src/access_provider_tests.rs
+- app/src-tauri/resources/runtime_core/access.conversation-selection.schema.json
+# hosting.rs, runtime_session.rs, lib.rs and App.tsx are shared. Here: the account and provider
+# calls, a conversation's selection state, and the commands and mounting of the surfaces below.
 - app/src-tauri/src/hosting.rs
+- app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
-- app/src/ConversationRoles.tsx
 - app/src/App.tsx
+- app/src/ModelChoice.tsx
+- app/src/LocalProviderAccess.tsx
 - app/src/AccountStatus.tsx
+- app/src/DesktopSetupPanel.tsx
 - app/supplier_checks/local_auth.py
-- app/supplier_checks/child_roles.py
-- app/src-tauri/tests/config_write_contract.rs
 checks:
 - app/src-tauri/src/native_local_provider.rs
 - app/src-tauri/src/model_catalog.rs
 - app/src-tauri/src/desktop_setup_confirmation.rs
 - app/src-tauri/src/desktop_startup.rs
 - app/tests/desktop-setup.test.mjs
-- app/src-tauri/src/model_turn_recorder_tests.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/hosting.rs
 - app/tests/conversation-panel.test.mjs
 - app/tests/access-provider.test.mjs
+- app/tests/model-choice.test.mjs
 - app/src-tauri/src/access_provider_tests.rs
+- app/src-tauri/tests/access_integration.rs
+- app/src-tauri/tests/oauth_control.rs
+- app/src-tauri/tests/home_resources.rs
+- app/src-tauri/tests/config_write_contract.rs
 - app/contract_inputs/PKG-01/DEL-01-05/Work/prototype/check_explicit_project_context.py
 - app/supplier_checks/test_local_auth.py
 - app/supplier_checks/local_auth.py
-- app/src-tauri/tests/config_write_contract.rs

@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-10-03
 package_id: PKG-10
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-230, SOW-231, SOW-232, SOW-233, SOW-234]
 package_objective_refs: [OBJ-010]
 ---
@@ -19,17 +19,17 @@ Source keys below identify repository-relative records. The accepted snapshot's 
 
 | Key | Source and relevant locus |
 |---|---|
-| BASIS | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; `canonical/ScopeLedger.csv` SOW-230–234; `canonical/Deliverables.csv` DEL-10-03 and named interface rows; `canonical/Packages.csv` PKG-10; `canonical/Objectives.csv` OBJ-010, all under that snapshot |
-| HTML | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html`, decisions d1, d2 and d7; orientation and evidence e1–e3 |
-| OWNER | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md`, J/U1, M/U4 and O/U5 |
-| PRD | `projects/chirality-app-v4/docs/PRD.md`, §0, V4-CST-04, V4-WF-03/05, V4-AUT-01–05 and V4-REC-01–05 |
-| ARCH | `projects/chirality-app-v4/docs/ARCHITECTURE.md`, §§2–5, V4-ARC-01–05, V4-ARC-10–14 and V4-ARC-20 |
-| HOST | `projects/chirality-app-v4/docs/HOST_INTEGRATION.md`, §1 responsibility table and §§2–4 catalog/basis/application distinctions |
-| OPS | `projects/chirality-app-v4/docs/OPERATING_METHOD.md`, V4-OPS-01, V4-OPS-10–14, V4-OPS-31–34 and §§5–7 |
-| EXAM | `projects/chirality-app-v4/docs/EXAMINATION.md`, §§1–2 and §7 |
-| OPEN | Snapshot `canonical/Open_Issues.csv` OI-013/014/017/018/024 and `canonical/External_Dependencies.csv` DEP-006; current counterparts in `projects/chirality-app-v4/execution/_Decomposition/` retain the affected open allocation/adoption matters |
-| SEED | Original `ARCHITECTURE.md` §5 and `OPERATING_METHOD.md` V4-OPS-11–14 under `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/`; historical wording qualified by HTML/OWNER and current ARCH/OPS |
-| PRACTICE | Stable discovery: `docs/alignment-manual/README.md`. Current selection: Consolidated v9 chapters 1–3 and 8, §§4.1–4.2 and §§6.5–6.6. Current repository practice, replacing the Field Book and Agent User Manual retired by the owner on 2026-10-23: Root `AGENTS.md` "Where work happens", "Working cycle" steps 1–2, "Deliverables and records" and "Roles and workflows"; the role files `agents/AGENT_*.md`; the loop entry `projects/chirality-app-v4/loop/LOOP_INIT.md`; and the index's "Discovery and reliance". Exact earlier inputs remain historical. |
+| BASIS | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; `canonical/ScopeLedger.csv` SOW-230–234; `canonical/Deliverables.csv` DEL-10-03 and named interface rows; `canonical/Packages.csv` PKG-10; `canonical/Objectives.csv` OBJ-010, all under that snapshot |
+| HTML | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html`, decisions d1, d2 and d7; orientation and evidence e1–e3 |
+| OWNER | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md`, J/U1, M/U4 and O/U5 |
+| PRD | `docs/PRD.md`, §0, V4-CST-04, V4-WF-03/05, V4-AUT-01–05 and V4-REC-01–05 |
+| ARCH | `docs/ARCHITECTURE.md`, §§2–5, V4-ARC-01–05, V4-ARC-10–14 and V4-ARC-20 |
+| HOST | `docs/HOST_INTEGRATION.md`, §1 responsibility table and §§2–4 catalog/basis/application distinctions |
+| OPS | `docs/OPERATING_METHOD.md`, V4-OPS-01, V4-OPS-10–14, V4-OPS-31–34 and §§5–7 |
+| EXAM | `docs/EXAMINATION.md`, §§1–2 and §7 |
+| OPEN | Snapshot `canonical/Open_Issues.csv` OI-013/014/017/018/024 and `canonical/External_Dependencies.csv` DEP-006; current counterparts in `execution/_Decomposition/` retain the affected open allocation/adoption matters |
+| SEED | Original `ARCHITECTURE.md` §5 and `OPERATING_METHOD.md` V4-OPS-11–14 under `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/`; historical wording qualified by HTML/OWNER and current ARCH/OPS |
+| PRACTICE | Stable discovery: `docs/alignment-manual/README.md`. Current selection: Consolidated v9 chapters 1–3 and 8, §§4.1–4.2 and §§6.5–6.6. Current repository practice, replacing the Field Book and Agent User Manual retired by the owner on 2026-10-23: Root `AGENTS.md` "Where work happens", "Working cycle" steps 1–2, "Deliverables and records" and "Roles and workflows"; the role files `agents/AGENT_*.md`; the loop entry `loop/LOOP_INIT.md`; and the index's "Discovery and reliance". Exact earlier inputs remain historical. |
 
 ## Deliverable Definition — Ontology
 
@@ -67,7 +67,7 @@ The three outputs may be coherent sections of one maintained account with links 
 - **TBD-001** — OI-014: App/shared contract owners resolve shared contract/component placement before structural/production contract allocation; concrete repeated responsibility and ownership agreement precede common implementation. OI-013 remains with the shared contract owner and SWB implementation owner before shared/host implementation boundary contracts for loop placement, parsing, persistence and panel assembly. This account can identify candidate allocations without deciding them. Sources: OPEN; ARCH §§4–5.
 - **TBD-002** — OI-018: the owner with shared/project instruction owners resolves the exact distribution/adoption mechanism before instruction changes or dependent supply. OI-017: the owning project-definition manager records actual adopted manual editions/content identities before dependent execution relies on them. Reading the current manuals for this INIT is not project adoption. Sources: OPEN; OPS V4-OPS-11/14 and §7.
 
-Source for the definition-run OI-017 edition selection: `projects/chirality-app-v4/execution/_Coordination/CURRENT_EXECUTION_BASIS.md`. It records that run’s existing edition choices and content identities; it neither changes scope nor establishes adoption for another undertaking.
+Source for the definition-run OI-017 edition selection: `execution/_Coordination/CURRENT_EXECUTION_BASIS.md`. It records that run’s existing edition choices and content identities; it neither changes scope nor establishes adoption for another undertaking.
 - **TBD-003** — OI-024: the owner with affected consumers identifies first adopters, continuing obligations and coexistence end conditions before each adoption/retirement decision. DEP-006 requires identified adoption and packaging/tool-path/obligation dispositions before a consumer transitions or the old arrangement retires; a prepared account does not satisfy that input. Sources: OPEN; CLM-005.
 
 ## Production and Verification Method — Praxeology
@@ -88,8 +88,8 @@ Prepare the three outputs for the named contract/adoption readers. Compare the a
 - **AX-001** — Accepted focused renewal preserves promises and their owners. HTML d1–d2 and OWNER U4 authorize definition with open matters, not a Root-wide rearchitecture, new precedence hierarchy, mandatory common service or product implementation. The chosen supplier/shell/host direction remains the starting basis; technical means remain open where their sources leave them open.
 - **AX-002** — Source location, publication and file movement do not confer human authority, receiving adoption or closure of an obligation. Preserve history, thesis standing, original accepted subjects and actual consumer decisions. Sources: HTML d1/d7, OPS V4-OPS-12/14/33, PRACTICE §§6.5–6.6 and Root `AGENTS.md` "Where work happens", "Working cycle" steps 1–2 and the loop entry.
 - **AX-003** — Keep the record proportionate to its readers' decisions, interfaces and recovery needs. Retain stable commitments, qualify historical mechanisms and use links to existing contracts/evidence. Neither test definitions nor present implementation facts silently create product scope. Sources: OPS V4-OPS-31/32; PRACTICE §§2.3 and 3.2.
-- **AX-004** — Independent source/content review and deterministic schema/checklist checks establish different things. Lifecycle remains in `_STATUS.md`; this INIT operates under NO_STATUS_TOUCH. Contract initialization, produced-account completion, human acceptance, adoption, qualification, release and professional reliance remain separate subjects. Sources: `docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md` §§2/5/8/10; `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md`; EXAM §§1–2/7.
-- **AX-005** — Revised under scope-change amendment `SCA-V4-002` (accepted snapshot `projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-002_2026-09-29_1901`), applying `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4` D4-3 (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md`) as routed by `APP-V4-BASIS-ALIGN-20260928-DECISION-8` (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/OWNER_DECISIONS.md`). Revised: REQ-005. Added: AX-005. Removed: none.
+- **AX-004** — Independent source/content review and deterministic schema/checklist checks establish different things. Lifecycle remains in `_STATUS.md`; this INIT operates under NO_STATUS_TOUCH. Contract initialization, produced-account completion, human acceptance, adoption, qualification, release and professional reliance remain separate subjects. Sources: `docs/DELIVERABLE_SCOPE_OF_WORK_STANDARD.md` §§2/5/8/10; `execution/_Coordination/_COORDINATION.md`; EXAM §§1–2/7.
+- **AX-005** — Revised under scope-change amendment `SCA-V4-002` (accepted snapshot `execution/_ScopeChange/SCA-V4-002_2026-09-29_1901`), applying `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4` D4-3 (record `execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md`) as routed by `APP-V4-BASIS-ALIGN-20260928-DECISION-8` (record `execution/_Coordination/AgentRuns/APP-V4-BASIS-ALIGN-20260928/OWNER_DECISIONS.md`). Revised: REQ-005. Added: AX-005. Removed: none.
 
 ## Output and Evaluation Matrix
 

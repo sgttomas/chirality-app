@@ -1,50 +1,34 @@
 id: DEL-10-01
 name: Project execution basis and manual application
 needs:
-- from: doc:execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md
-  condition: Use the actual accepted composite and its recorded standing to produce the execution-basis
-    account; preserve historical source identity.
-  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
-- from: doc:execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md
-  condition: Carry the accepted later clarification into the execution basis, preserving included definition
-    work and coherent treatment of method constraints.
-  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
-- from: doc:execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md
-  condition: Consume the final accepted decomposition and its actual decisions when preparing the basis
-    and setup/local-contract handoff.
-  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
-- from: doc:execution/_Coordination/_COORDINATION.md
-  condition: Use already approved coordination and lifecycle choices for OUT-002 and distinguish missing
-    artifact/input evidence from contract maturity.
-  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
-- from: external:ROOT-PROJECT-MANAGEMENT-MANUAL
-  condition: Use Consolidated v9 (docs/alignment-manual/README.md#project-management-manual) for the manual
-    application account, limited to relevant practice and actual receiving use, identifying the resolved
-    edition where exact content matters. Earlier editions and hashes remain the inputs of their historical
-    runs.
-  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
-- from: external:ROOT-REPOSITORY-INSTRUCTIONS
-  condition: Use current App repository practice (AGENTS.md, selected Library agents/AGENT_*.md,
-    tools/deliverables/README.md, loop/LOOP_INIT.md) for the manual application account, limited to relevant
-    practice and actual receiving use, identifying the resolved revision where exact content matters.
-    The former combined-repository chirality-change skill is a historical input, not current App practice.
-    Earlier manual editions, including the Agent User Manual retired on 2026-10-23, remain the inputs of
-    their historical runs.
-  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
-- from: doc:execution/_Coordination/CURRENT_EXECUTION_BASIS.md
-  condition: Use the owning selection/adoption record and scope to bind actual manual and method edition/content
-    identities before dependent reliance.
-  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
-- from: external:App-v4 owner
-  condition: Where the manual-application account identifies a consequential adoption or departure requiring
-    a decision, retain the actual owner decision at that affected point of need.
-  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
-- from: unknown
-  condition: Provide usable execution-basis and local-contract handoff outputs to the named setup, local-SoW
-    and project-definition readers; no individual Deliverable dependency is inferred.
-  direction: downstream
+- from: doc:docs/PRD.md
+  condition: PRD §0 identifies the accepted basis, the later directions that qualify it and where its acceptance
+    records are archived.
+- from: doc:execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md
+  condition: The pointer names the accepted final decomposition and gives the rule for reading it as amended
+    by the accepted scope-change amendments.
+- from: external:sgttomas/chirality-library Project Management manual
+  condition: The Library publishes the Consolidated edition of the manual at a revision from which the selected
+    text can be recovered, including its chapter on development positions.
+- from: external:sgttomas/chirality-library release
+  condition: The selected Library release publishes its tag, commit and source archive digest, and contains
+    the role files, the workflow index, the project-entry template and the document metadata schema.
+- from: external:owner
+  condition: The owner decides each consequential adoption or departure that the application account identifies.
+  when: Before work relies on that adoption or departure.
+- from: DEL-10-04
+  condition: The project dependency graph names a node for every accepted deliverable and states each relationship
+    with its condition and standing, so that the handoff can refer dependency questions to it.
   gating: false
-  evidence: execution/PKG-10/DEL-10-01/ScopeOfWork.md
+code_paths:
+- AGENTS.md
+- CLAUDE.md
+- init-prompt.md
+- execution/_Coordination/CURRENT_EXECUTION_BASIS.md
+- reference/library-v2.1.0/**
+- reference/library-v3.0.0/**
+- reference/library-v3.1.0/**
+- reference/library-v3.3.0/**
 checks:
 - tools/validation/test_library_v2_1_operational_adoption.py
 - tools/validation/test_library_v3_operational_adoption.py

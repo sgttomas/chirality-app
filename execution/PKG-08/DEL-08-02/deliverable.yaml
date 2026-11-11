@@ -2,51 +2,38 @@ id: DEL-08-02
 name: Later research-to-design receiving activity
 needs:
 - from: DEL-08-01
-  condition: Consumes the App DEL-08-01 source-admission/query/provenance/freshness contract for the later
-    research method.
+  condition: A Domains receiving record has an identity and gives each result an identity, its source
+    reference, its indexed and current revisions, its admission state and a standing that says whether
+    it supports reliance; no response is recorded as absent with no results; and fixtures cover an admitted
+    current source, a located source that is not admitted, a stale source and no response.
   gating: true
-  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
 - from: DEL-02-01
-  condition: Consumes applicable App PKG-02 portable method meanings and evidence in the receiving method.
+  condition: A workflow package's declared part states its expected inputs, required tools, checkpoints,
+    returned outputs and returned evidence, each required tool is a host operation or a harness capability,
+    and a reader reports what a package declares.
   gating: true
-  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
-- from: package:PKG-04
-  condition: Consumes applicable App PKG-04 distinct act identity meanings and evidence in the receiving
-    method.
-  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
-- from: unknown
-  condition: Dependent implementation and the later live witness require a usable compatible Domains provider/query
-    arrangement; provider/tool owner, construction allocation, deployment and receiving boundary remain
-    unresolved under OI-023/OI-026.
-  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
-- from: unknown
-  condition: Requires identified admitted source input before research-context reliance and actual admitted
-    test cases for the later witness, including unavailable or unsuitable input.
-  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
-- from: external:SWBPIPE
-  condition: Requires actually supplied external SWBPIPE host integration with the actual approval route
-    before the connected host witness.
-  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
-- from: external:Human actual content-bound candidate decision and its evidence
-  condition: A completed later live witness requires evidence of an actual content-bound human candidate
-    decision and its scope; negative or partial absence evidence alone leaves that witness incomplete.
-  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
-- from: DEL-02-01
-  condition: App v4 DEL-08-02 receives this portable workflow/role/checkpoint contract and shared allocation
-    and declares it upstream in its own register; its acts are not transferred here.
+- from: DEL-04-01
+  condition: Each act kind has one name and a stated performer, evidence of one kind never establishes
+    another, a request is never the act, and a record that names its recorder as the decision actor is
+    not conformant.
   gating: true
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: DEL-08-01
-  condition: Give DEL-08-02 the identified receiving contract, source/admission/freshness limits, open decisions
-    and actual contribution standing for the later research-to-design activity.
-  gating: true
-  evidence: execution/PKG-08/DEL-08-01/ScopeOfWork.md
-- from: external:SWBPIPE
-  condition: Supply the App/shared receiving integration contribution and host handoff to the external SWB
-    owner through human relay, distinguishing proposed questions from received answers and evidence; transport,
-    fields and deployment remain open.
-  direction: downstream
+- from: DEL-04-03
+  condition: An act record carries the person who decided apart from the recorder, the subject's content
+    identity with the method that produced it and the capture evidence, and shows the act as lapsed when
+    the bound content changes.
   gating: false
-  evidence: execution/PKG-08/DEL-08-02/ScopeOfWork.md
+- from: external:DEP-003
+  condition: A Domains query tool answers under an identified query contract over admitted test sources,
+    and can be made unavailable, return a hit that is not admitted and return a source revised after it
+    was indexed.
+  when: Before the witness of the joined activity. Who builds the provider and who admits sources are
+    unallocated.
+- from: external:SWBPIPE
+  condition: The host's agent calls the Domains query tool through a research workflow, the host gives
+    each candidate a content identity, presents the candidate to the person and captures the person's
+    decision with an evidence reference, and its owner answers the handoff's questions.
+  when: Before the witness of the joined activity.
+code_paths:
+- app/contract_inputs/PKG-08/DEL-08-02/Work/research.context-account.schema.json
 checks:
 - app/contract_inputs/PKG-08/DEL-08-02/Work/prototype/check_rtd.py

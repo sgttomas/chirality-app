@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-06-02
 package_id: PKG-06
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-085, SOW-086, SOW-087, SOW-088, SOW-089]
 package_objective_refs: [OBJ-006]
 ---
@@ -36,13 +36,13 @@ whole fleet journey.
 Source keys below are repository-root-relative source identities, not new
 records or alternative authority:
 
-- **Allocation:** `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md` and its `canonical/Deliverables.csv` rows DEL-06-01, DEL-06-02, DEL-04-01, DEL-04-03, DEL-09-05, DEL-10-02 and DEL-10-04; `canonical/Packages.csv` row PKG-06; `canonical/Objectives.csv` row OBJ-006; `canonical/ScopeLedger.csv` rows SOW-085 through SOW-089. The actual Group3 decision establishes accepted standing despite historical pending labels within frozen rows.
-- **Composite:** `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md`, `OWNER_DIRECTIONS_EXCERPTS.md` U1–U5, `DECISION_BRIEF.html` decisions 03, 05 and 06, and `original-seed/PRD.md` V4-PM-03 through V4-PM-06. Later explicit directions qualify the accepted HTML recommendations and original seed.
-- **PRD:** `projects/chirality-app-v4/docs/PRD.md` §0, V4-AUT-03 through V4-AUT-05, V4-PM-01 through V4-PM-06 and V4-REC-01 through V4-REC-04.
-- **Host:** `projects/chirality-app-v4/docs/HOST_INTEGRATION.md` responsibility table, V4-HI-25, V4-HI-30 through V4-HI-33, V4-HI-61 through V4-HI-63 and §8 file-based fallback.
-- **Recovery:** `projects/chirality-app-v4/docs/ARCHITECTURE.md` §3 properties distinguishing conversation recovery from undertaking recovery; `projects/chirality-app-v4/docs/EXAMINATION.md` V4-EXM-13.
-- **Practice:** `projects/chirality-app-v4/docs/OPERATING_METHOD.md` V4-OPS-30 through V4-OPS-33; `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md` accepted INITIAL setup rules.
-- **Open matters:** the Allocation snapshot's `canonical/Open_Issues.csv` and `canonical/External_Dependencies.csv`, with explicitly later receiving dispositions in `projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv` and `External_Dependencies.csv`.
+- **Allocation:** `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md` and its `canonical/Deliverables.csv` rows DEL-06-01, DEL-06-02, DEL-04-01, DEL-04-03, DEL-09-05, DEL-10-02 and DEL-10-04; `canonical/Packages.csv` row PKG-06; `canonical/Objectives.csv` row OBJ-006; `canonical/ScopeLedger.csv` rows SOW-085 through SOW-089. The actual Group3 decision establishes accepted standing despite historical pending labels within frozen rows.
+- **Composite:** `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/ACCEPTANCE.md`, `OWNER_DIRECTIONS_EXCERPTS.md` U1–U5, `DECISION_BRIEF.html` decisions 03, 05 and 06, and `original-seed/PRD.md` V4-PM-03 through V4-PM-06. Later explicit directions qualify the accepted HTML recommendations and original seed.
+- **PRD:** `docs/PRD.md` §0, V4-AUT-03 through V4-AUT-05, V4-PM-01 through V4-PM-06 and V4-REC-01 through V4-REC-04.
+- **Host:** `docs/HOST_INTEGRATION.md` responsibility table, V4-HI-25, V4-HI-30 through V4-HI-33, V4-HI-61 through V4-HI-63 and §8 file-based fallback.
+- **Recovery:** `docs/ARCHITECTURE.md` §3 properties distinguishing conversation recovery from undertaking recovery; `docs/EXAMINATION.md` V4-EXM-13.
+- **Practice:** `docs/OPERATING_METHOD.md` V4-OPS-30 through V4-OPS-33; `execution/_Coordination/_COORDINATION.md` accepted INITIAL setup rules.
+- **Open matters:** the Allocation snapshot's `canonical/Open_Issues.csv` and `canonical/External_Dependencies.csv`, with explicitly later receiving dispositions in `execution/_Decomposition/Open_Issues.csv` and `External_Dependencies.csv`.
 
 ## Deliverable Definition — Ontology
 

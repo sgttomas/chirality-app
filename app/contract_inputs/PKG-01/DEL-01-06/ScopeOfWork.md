@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-01-06
 package_id: PKG-01
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-098, SOW-117, SOW-134]
 package_objective_refs: [OBJ-002]
 ---
@@ -66,24 +66,24 @@ The methods define future evidence obligations. This INIT contract does not repo
 - **TBD-002** — OI-007 remains OPEN: **Owner and relevant supplier** must **Obtain the stated written supplier position for distributed sign-in**, needed **Before public release beyond owner use**. DEP-004 remains UNCONFIRMED, with OpenAI and conditional future Anthropic supplier scope. The answer remains open; the accepted conditional obligation does not. [B3, B4]
 - **TBD-003** — DEP-005 records the relevant stock supplier protocol/packaging interfaces as VERSION_AND_ENVIRONMENT_TO_DEFINE, needed **Before respective implementation/qualification witnesses**. For this contract, reliance is limited to the selected Codex/Tauri packaging interfaces; other model endpoints and sibling work in that shared dependency row are not additional local outputs. No current upstream version or capability is established here. [B4; B6: §§3, 6]
 
-Source locators below are repository-relative. `Snapshot` means `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z`; `Accepted composite` means `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926`. The final acceptance changes standing without rewriting historical pending labels in the frozen tables. Current open/dependency rows were compared for the assigned issues; their owners, points of need and unresolved dispositions remain the same.
+Source locators below are repository-relative. `Snapshot` means `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z`; `Accepted composite` means `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926`. The final acceptance changes standing without rewriting historical pending labels in the frozen tables. Current open/dependency rows were compared for the assigned issues; their owners, points of need and unresolved dispositions remain the same.
 
 | Key | Source and relevant locus |
 |---|---|
 | B0 | Snapshot `DECISION.md`, accepted downstream basis and limits |
 | B1 | Snapshot `canonical/Deliverables.csv`: App DEL-01-06 and DEL-01-01; `canonical/ScopeLedger.csv`: SOW-098, SOW-117, SOW-134 |
 | B2 | Snapshot `canonical/Packages.csv`: PKG-01, PKG-09; `canonical/Objectives.csv`: OBJ-002 |
-| B3 | Snapshot `canonical/Open_Issues.csv`: OI-007, OI-011; corresponding current rows at `projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv` |
-| B4 | Snapshot `canonical/External_Dependencies.csv`: DEP-004, DEP-005; corresponding current rows at `projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv` |
-| B5 | `projects/chirality-app-v4/docs/PRD.md`: §0 composite reading, V4-CST-02, §6 boundaries, §9 OQ-08 |
-| B6 | `projects/chirality-app-v4/docs/ARCHITECTURE.md`: §3 V4-ARC-01/02 and open signing/entitlement/pin detail; §6 supplier assumptions/terms; §8 package ownership and terms risks |
-| B7 | `projects/chirality-app-v4/docs/EXAMINATION.md`: V4-EXM-01, V4-EXM-03, V4-EXM-04 |
+| B3 | Snapshot `canonical/Open_Issues.csv`: OI-007, OI-011; corresponding current rows at `execution/_Decomposition/Open_Issues.csv` |
+| B4 | Snapshot `canonical/External_Dependencies.csv`: DEP-004, DEP-005; corresponding current rows at `execution/_Decomposition/External_Dependencies.csv` |
+| B5 | `docs/PRD.md`: §0 composite reading, V4-CST-02, §6 boundaries, §9 OQ-08 |
+| B6 | `docs/ARCHITECTURE.md`: §3 V4-ARC-01/02 and open signing/entitlement/pin detail; §6 supplier assumptions/terms; §8 package ownership and terms risks |
+| B7 | `docs/EXAMINATION.md`: V4-EXM-01, V4-EXM-03, V4-EXM-04 |
 | B8 | Accepted composite `original-seed/PRD.md`: V4-CST-02, §6, §9 OQ-08; `original-seed/ARCHITECTURE.md`: §3 historical code-mode entitlement and §6 unconfirmed terms, qualified by B5–B7/B12/B13 |
-| B9 | `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md`: approved INITIAL setup, defined-contract maturity and separate lifecycle/input evidence |
-| B10 | `projects/chirality-app-v4/docs/HOST_INTEGRATION.md`: §1 actual host, App and human coordination responsibilities |
-| B11 | `projects/chirality-app-v4/docs/OPERATING_METHOD.md`: V4-OPS-31–34 and §6 external coordination |
+| B9 | `execution/_Coordination/_COORDINATION.md`: approved INITIAL setup, defined-contract maturity and separate lifecycle/input evidence |
+| B10 | `docs/HOST_INTEGRATION.md`: §1 actual host, App and human coordination responsibilities |
+| B11 | `docs/OPERATING_METHOD.md`: V4-OPS-31–34 and §6 external coordination |
 | B12 | Accepted composite `OWNER_DIRECTIONS.md` and `OWNER_DIRECTIONS_EXCERPTS.md`: U1/U4/U5 and custody; `DECISION_BRIEF.html#d2`: shared implementation requires a concrete repeated responsibility, retained supplier/stack choice |
-| B13 | `projects/chirality-app-v4/execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`: required outcomes IN, unresolved means/allocation retained, conditional sharing and no invented gate |
+| B13 | `execution/_Coordination/Changes/APP-V4-CLARIFICATION-20260927/DIRECTION.md`: required outcomes IN, unresolved means/allocation retained, conditional sharing and no invented gate |
 
 ## Output and Evaluation Matrix
 

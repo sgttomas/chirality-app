@@ -2,69 +2,46 @@ id: DEL-03-02
 name: Proposal, validation and outcome contract
 needs:
 - from: DEL-03-01
-  condition: Consume the actual capability-catalog and read-basis definition from DEL-03-01, preserving
-    operation identity, version, argument/result/error semantics, availability and relied-on basis.
+  condition: The catalog gives each operation a stable identity and version, its arguments, effects
+    and declared errors, and every read carries its basis (workspace identity, generation, model
+    revision, canonical content identity) and a content identity for each subject.
   gating: false
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
 - from: DEL-04-01
-  condition: Consume the adopted operation-policy and human-act distinctions from DEL-04-01; operation-specific
-    additions (OI-021) and host adoption/enforcement (DEP-001) remain open, and an unruled concrete operation
-    cannot select its permission or act class for dependent implementation.
+  condition: The operation policy distinguishes direct application under a grant, proposal and reserved
+    acts, names accepting and rejecting a proposal as the person's acts and withdrawing as the proposer's,
+    and marks an operation with no adopted class as open.
   gating: true
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
-- from: external:EXTERNAL DEP-001
-  condition: Actual host route, views, human-act evidence, receipts and candidate evidence are required
-    only when the corresponding integration or witness relies on them; independent contract definition can
-    proceed.
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
-- from: external:ISSUES OI-014
-  condition: An actual shared contract/component placement decision from the App/shared contract owners
-    (OI-014) is required before structural/production allocation; placement remains unresolved.
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
-- from: 'external:Relevant contract and host owners: agreement on proposal representation and mechanics'
-  condition: Relevant contract and host owners must agree exact proposal identity representation, schema
-    encoding, duplicate-effect enforcement and outcome-recovery mechanics before dependent implementation.
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
 - from: DEL-02-01
-  condition: Consume DEL-02-01's workflow identity (kind, origin, source root, name, revision) for proposal
-    origin and its checkpoint declarations (required act, subject class, reached-when) with the acceptance-checkpoint
-    item rule; the derived checkpoint constraint applies only in the governance phase.
+  condition: A workflow has a source-qualified identity (kind, origin, source root, name, revision)
+    that a change request's origin can name, and declares each checkpoint with its required act,
+    subject class and reached-when.
   gating: false
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
 - from: DEL-04-02
-  condition: Consume DEL-04-02's visible autonomy state (grant display states, grant value and scope, settings
-    version identities) for origin and standing at drafting.
+  condition: The grant in force for a class of operation is shown as an established or an unestablished
+    state with its value and its settings reference, so a request can state its standing at drafting.
   gating: false
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
-- from: DEL-02-01
-  condition: App v4 DEL-03-02 receives this portable workflow/role/checkpoint contract and shared allocation
-    and declares it upstream in its own register; its acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-01/ScopeOfWork.md
-- from: DEL-03-01
-  condition: Supply operation identity and original relied-on read basis to App v4 DEL-03-02 for its proposal
-    contract at the point that input is used.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: external:EXTERNAL DEP-001
-  condition: Provide old/new values, affected objects and reasons to the host proposal-view receiving interface;
-    actual host view and receipt production remain externally owned.
+- from: external:DEP-001
+  condition: SWBPIPE's one route validates and applies every change, records acceptance and application
+    with a receipt, assigns each change item a content identity, states its de-duplication scope
+    and answers an observation by proposal identity.
+  when: Before an integration or a witness relies on that host.
+- from: external:OI-014
+  condition: The App/shared contract owners place the shared proposal contract against its actual
+    consumers.
+  when: Before structural or production allocation.
+- from: external:DEP-001
+  condition: Each proposal's old and new values, affected objects and reason are supplied in the
+    form the host's own proposal view presents.
   direction: downstream
   gating: false
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
-- from: DEL-04-01
-  condition: DEL-04-01 supplies operation-policy and human-act meaning to DEL-03-02, which the source states
-    declares DEL-04-01 upstream in its own register; actual policy content and applicable adopted decisions
-    must be provided.
-  gating: true
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: DEL-04-02
-  condition: Supply DEL-04-02 visible autonomy state to App DEL-03-02, which the source names as a receiver.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
 code_paths:
 - app/src-tauri/src/proposal.rs
-checks:
+- app/src-tauri/resources/catalog_adapter/proposal.*
+- app/src-tauri/resources/catalog_adapter/proposal_state.*
+- app/src-tauri/resources/swbpipe_receiving/swbpipe-corpus-mapping.json
 - app/contract_inputs/PKG-03/DEL-03-02/Work/prototype/swbpipe_corpus_map.py
+checks:
 - app/contract_inputs/PKG-03/DEL-03-02/Work/prototype/proposal_states.py
+- app/contract_inputs/PKG-03/DEL-03-02/Work/prototype/swbpipe_corpus_map.py
+- app/src-tauri/tests/catalog_adapter.rs
 - app/src-tauri/tests/swbpipe_receiving.rs

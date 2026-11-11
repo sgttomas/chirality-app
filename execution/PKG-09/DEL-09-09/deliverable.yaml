@@ -2,129 +2,77 @@ id: DEL-09-09
 name: External control and catalog-extension trace
 needs:
 - from: DEL-03-01
-  condition: Consume the catalog/read-basis contract, operation/model basis and generated-surface/adapter
-    responsibility map for the candidate-bound three-channel examination.
+  condition: The catalog states each operation's meaning and read basis, and a map names, for each
+    surface, what is generated from the catalog and what adapter work a new operation takes.
   gating: false
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
 - from: DEL-03-02
-  condition: Consume proposal, validation and outcome meanings and their catalog/proposal/receiving contract
-    evidence when checking the input account and original-basis-to-receipt witness.
+  condition: A proposal is bound to its read basis, is refused with a reason when stale, stays queued
+    until the host records acceptance and application, and a repeated submission has one effect.
   gating: false
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
 - from: DEL-03-03
-  condition: Consume the App external receiving/configuration contribution and suitable focused fixtures
-    for the actually selected machine-local MCP or CLI seam.
+  condition: The App's Codex can inspect host content and submit a proposal over the machine-local
+    interface the host selected, makes no host request while access is not enabled, and reports
+    a disabled or unavailable channel as such.
   gating: false
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
 - from: DEL-04-01
-  condition: Consume adopted operation-policy and human-act distinctions for the identified candidate and
-    actual external route.
+  condition: The operation policy names the acts reserved to a person, including enabling external
+    access, and applies the same to every channel.
   gating: true
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
-- from: DEL-04-03
-  condition: Consume the App/shared evidence-record contribution and adopted act/record semantics to examine
-    faithful content-bound acceptance recording and false-attribution negatives.
+- from: DEL-04-02
+  condition: The grant in force for a run is displayed in states the three channels can be compared
+    on.
   gating: false
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
-- from: DEL-09-01
-  condition: Use reusable examination infrastructure and its shared WebKit/Chromium and targeted packaged-smoke
-    evidence protocol for candidate-bound observations and affected rechecks.
-  gating: true
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
-- from: external:Identified App and SWBPIPE candidates, configuration and model basis
-  condition: Receive identified App and SWBPIPE candidate/configuration/date and original model-basis evidence
-    for the corresponding live examination.
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
-- from: external:DEP-001
-  condition: Before connected integration/examination, receive SWBPIPE's identified catalog/domain, validation/application,
-    endpoint, views, origins, receipt and human-act recording contributions with channel outcomes, and the
-    fixture set-up and reset the trace cases need, under DEP-001. The relay answers held in DEL-09-06 describe
-    current state and are not that input.
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
-- from: external:Person — actual machine-local external-access enablement
-  condition: Enabled external-route examination requires the person to enable access to the host-selected
-    catalog-derived MCP or CLI interface, and each live external case needs the host's A13 enablement facility
-    with a capture-evidence reference (SQ-28); SWBPIPE has none, so its channel stays not enabled.
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
-- from: external:Engineer — actual proposal acceptance in SWBPIPE
-  condition: Receive evidence of the engineer actually accepting the submitted proposal in SWBPIPE for the
-    completed V4-EXM-25 witness, with actor distinct from recorder.
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
-- from: external:OI-003
-  condition: Receive the actual retain/narrow/defer disposition (OI-003, unresolved) before claiming extension
-    capability or fixing its acceptance criterion, then bind the chosen surfaces/staging and supersession
-    for the affected verification.
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
-- from: external:OI-021
-  condition: Receive the selection of useful operation, permitted autonomy and exact candidate environment
-    before dependent connected-activity SoW and live execution.
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
-- from: external:OI-005
-  condition: Receive the owner resolution of additional essential hosts before freezing any affected wider
-    examination scope.
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
+- from: DEL-04-03
+  condition: An acceptance read from the host is recorded with actor, recorder, bound content, scope
+    and purpose, and is shown as lapsed when its content changes.
+  gating: false
 - from: DEL-05-01
-  condition: Consume the App/shared embedded-loop receiving contribution from App DEL-05-01 for the embedded
-    surface of the three-channel trace.
+  condition: The embedded-loop requirements state how an embedded tool reaches a catalog operation,
+    so the embedded channel can be compared with the other two.
   gating: false
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
-- from: DEL-04-02
-  condition: Consume App DEL-04-02 grant display states for the external-route and three-channel examination.
-  gating: false
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
 - from: DEL-02-03
-  condition: Consume App DEL-02-03's per-surface compatibility report and, for the governance phase only,
-    its hold-support values.
+  condition: A compatibility report states, for each surface, whether a workflow's required tools
+    and checkpoints are supported.
   gating: false
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
-- from: external:APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3
-  condition: Host joins are deferred until the owner resumes SWBPIPE UI-SUCCESSOR (APP-V4-SWBPIPE-INTAKE-20260928-DECISION-3);
-    the live XC cases cannot proceed before then.
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
-- from: DEL-02-03
-  condition: App v4 DEL-09-09 receives this slice's report, recording meanings and transfer contract and
-    declares it upstream in its own register; its acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-02/DEL-02-03/ScopeOfWork.md
-- from: DEL-03-01
-  condition: App v4 DEL-09-09 receives this catalog/read-basis contract (the external trace) and declares
-    it upstream in its own register; its acts are not transferred here.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-01/ScopeOfWork.md
-- from: DEL-03-02
-  condition: Supply local contract fixtures and outcome expectations to DEL-09-09 for its joined external
-    witness.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-02/ScopeOfWork.md
-- from: DEL-03-03
-  condition: Supply the receiving adapter fixture results, identified candidate/contract/policy basis and
-    remaining external requirements to App DEL-09-09 for the independently owned joined witness.
-  gating: false
-  evidence: execution/PKG-03/DEL-03-03/ScopeOfWork.md
-- from: DEL-04-01
-  condition: DEL-04-01 supplies operation-policy and human-act meaning to DEL-09-09, which the source states
-    declares DEL-04-01 upstream in its own register; actual policy content and applicable adopted decisions
-    must be provided.
-  gating: true
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: DEL-04-02
-  condition: Supply DEL-04-02 visible autonomy state to App DEL-09-09, which the source states declares
-    it upstream in its own register.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-02/ScopeOfWork.md
-- from: DEL-04-03
-  condition: DEL-04-03 supplies the shared human-act/run-record format and meaning consumed by App DEL-09-09;
-    the receiving documentation identifies how it is consumed.
-  gating: false
-  evidence: execution/PKG-04/DEL-04-03/ScopeOfWork.md
 - from: DEL-09-01
-  condition: Supply reusable examination support and evidence interfaces to the named owner of DEL-09-09
-    for its own scoped work.
+  condition: Result records bind candidate, harness, model and model-server configuration and date
+    with one of five outcomes, keep definition, replay, live and native evidence apart, and refuse
+    a rehearsal record as a case result.
   gating: true
-  evidence: execution/PKG-09/DEL-09-01/ScopeOfWork.md
+- from: external:DEP-001
+  condition: SWBPIPE provides an identified host candidate with its external interface, a facility
+    by which the person enables that interface and which returns a capture-evidence reference, its
+    views with old and new values, origins and receipts, and the fixture set-up and reset the cases
+    need.
+  when: Before any live case.
+- from: external:person and engineer
+  condition: The person enables external access on the host, and the engineer accepts the submitted
+    proposal in SWBPIPE while the examiner observes.
+- from: external:owner hold on SWBPIPE joins
+  condition: The owner resumes SWBPIPE UI-SUCCESSOR work.
+  when: Before any live case.
 - from: external:OI-003
-  condition: Provide the identified operation trace and generated/adapted-work account as evidence for the
-    owner/host-contract-owner extension disposition while the promise remains unresolved.
+  condition: The owner, with the host contract owner, decides whether the catalog-extension promise
+    is retained, narrowed or deferred.
+  when: Before the extension criterion is verified.
+- from: external:OI-021
+  condition: The owner chooses the operation, the autonomy permitted and the candidate environment
+    of the first connected activity.
+  when: Before any live case.
+- from: external:OI-003
+  condition: The trace of one new operation and the work account go to the owner and the host contract
+    owner as evidence for the extension decision.
   direction: downstream
   gating: false
-  evidence: execution/PKG-09/DEL-09-09/ScopeOfWork.md
+code_paths:
+- app/src-tauri/src/external_trace.rs
+- app/src-tauri/src/trace_receiving.rs
+- app/src-tauri/resources/external_trace/manifest.json
+- app/src-tauri/resources/external_trace/own-code-inputs.json
+- app/src-tauri/resources/external_trace/xt-*
+- app/src-tauri/resources/external_trace/receiving/**
+- app/src-tauri/resources/external_trace/regressions/**
+checks:
+- app/src-tauri/tests/external_trace.rs
+- app/src-tauri/tests/trace_receiving.rs
+- app/src-tauri/tests/trace_integration.rs

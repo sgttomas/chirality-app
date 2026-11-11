@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-11-02
 package_id: PKG-11
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-250, SOW-254, SOW-255, SOW-256, SOW-257]
 package_objective_refs: [OBJ-009]
 ---
@@ -21,7 +21,7 @@ This DOC_UPDATE defines the App adoption coordinator's contribution to carrying 
 | SOW-256 | Carry technical changes through the responsible owners' SoWs and affected verification evidence | OUT-003 |
 | SOW-257 | Check later mainline and consumer changes before using pinned research as a current implementation map | OUT-002 |
 
-Source locators below are repository-relative. D identifies `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/`; A identifies `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/`; P identifies `projects/chirality-app-v4/docs/`. These abbreviations identify existing sources, not new authority levels.
+Source locators below are repository-relative. D identifies `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/canonical/`; A identifies `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/`; P identifies `docs/`. These abbreviations identify existing sources, not new authority levels.
 
 | Source key | Exact source and relevant locus |
 |---|---|
@@ -29,8 +29,8 @@ Source locators below are repository-relative. D identifies `projects/chirality-
 | S2 | A `DECISION_BRIEF.html`: accepted recommendations `#d1` and `#d7`, distinction at `#e1`, and pinned implementation basis in `#sources`; A `ACCEPTANCE.md`, `COMPOSITE_BASIS.json` and `OWNER_DIRECTIONS.md` J–O identify standing and qualifications |
 | S3 | P `OPERATING_METHOD.md`: V4-OPS-11–14, V4-OPS-21–23, V4-OPS-30–33 and §§5–7; P `PRD.md`: §0, V4-SHR-03, OQ-05 and OQ-12 |
 | S4 | P `ARCHITECTURE.md`: §3 source resolution/supply/provider-adoption distinction and §5 shared renewal; P `EXAMINATION.md`: V4-EXM-14; P `HOST_INTEGRATION.md`: §§1 and 11 |
-| S5 | D `Open_Issues.csv`: OI-014, OI-017, OI-018, OI-019, OI-020, OI-024; D `External_Dependencies.csv`: DEP-006; current counterparts in `projects/chirality-app-v4/execution/_Decomposition/` retain these relevant owner/point-of-need boundaries |
-| S6 | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md`: accepted definition/setup scope and lifecycle limits |
+| S5 | D `Open_Issues.csv`: OI-014, OI-017, OI-018, OI-019, OI-020, OI-024; D `External_Dependencies.csv`: DEP-006; current counterparts in `execution/_Decomposition/` retain these relevant owner/point-of-need boundaries |
+| S6 | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; `execution/_Coordination/_COORDINATION.md`: accepted definition/setup scope and lifecycle limits |
 | S7 | A `original-seed/OPERATING_METHOD.md`: V4-OPS-11–14 and V4-OPS-22–23, read as historical wording qualified by S2/S3; its old precedence/thin-loop defaults are not current requirements |
 
 ## Deliverable Definition — Ontology

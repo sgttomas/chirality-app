@@ -1,46 +1,23 @@
 id: DEL-04-01
 name: Operation-policy and human-act distinctions
 needs:
-- from: external:OI-001
-  condition: Carry the owner's adopted OI-001 ruling (DECISION-1 D2) with its basis into OUT-002 before
-    dependent first-increment operation-policy production; the host names and enforces its own list (DEP-001),
-    and operation-specific additions are the separate OI-021 constraint.
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: external:OI-002
-  condition: 'Carry the owner''s adopted OI-002 ruling (DECISION-1 D3) with its decision basis before dependent
-    permission-policy implementation or concrete representation: routine tool-permission and sandbox modes
-    stay the user''s Codex setting and never stand in for a reserved or professional act.'
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: external:projects/chirality-app-v4/execution/_Decomposition/External_Dependencies.csv#DEP-001
-  condition: Receive actual external host implementation/conformance evidence from DEP-001 before asserting
-    corresponding host enforcement or connected behavior. Local contract conformance remains independently
-    possible.
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: external:Person setting operation/consequence scope — recorded grant
-  condition: Use the recorded person-set operation/consequence scope as the comparison input for direct,
-    proposal and declared-checkpoint conformance cases in VER-001.
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: external:Person performing the human act — attributable evidence for faithful-recording case
-  condition: Obtain evidence of an actually performed human act for the positive faithful-recording conformance
-    case required by VER-002, retaining the human decision actor separately from the agent recorder.
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
+- from: external:DEP-001
+  condition: SWBPIPE names its human-act and operation classes, refuses an embedded or external agent's
+    attempt at an act its policy reserves to the person, and returns its own evidence of each refusal
+    and of how it treats a model change with and without a widened grant.
 - from: external:OI-021
-  condition: A concrete operation-specific reserved-act addition awaits its OI-021 decision before dependent
-    operation-policy production; omission or an unresolved value is not permission. Independent definition
-    and the adopted first-increment rulings continue.
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: external:APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4
-  condition: No declared checkpoint is claimed held until the owner takes up the enforced-checkpoint governance
-    layer for the workflow that needs it; in the current phase the VER-001 and VER-006 checkpoint cases
-    are limited to recording the person's actual act.
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
-- from: external:Owner with the host policy owner — adopted consequence vocabulary for operation classes
-    (TBD-005)
-  condition: Before class assignment in DEL-03-01, the owner with the host policy owner adopts a consequence
-    vocabulary for operation classes; until one is adopted no policy value assigns a consequence and the
-    grant's consequence dimension stays a slot.
-  evidence: execution/PKG-04/DEL-04-01/ScopeOfWork.md
+  condition: The owner, through the SWBPIPE session and with the App owner, decides any operation-specific
+    addition to the reserved acts and the class of the first connected operation.
+- from: external:owner with the host policy owner
+  condition: The owner, with the host policy owner, adopts a consequence vocabulary for operation classes.
 code_paths:
-- app/src-tauri/src/act_control.rs
+# act_policy.rs is shared with DEL-04-02. Here: the act kinds, classes, grants, scopes, treatments,
+# the resolver and the policy-class record claim. The settings-in claim and the grant display
+# states with their overlay are DEL-04-02's.
+- app/src-tauri/src/act_policy.rs
+- app/src-tauri/schemas/ACT_POLICY_CLASS_RECORD.schema.json
+- app/src-tauri/resources/policy_standing/ACT_POLICY_CLASS_RECORD.valid.example.json
+- app/src-tauri/resources/policy_standing/ACT_POLICY_CLASS_RECORD.invalid.examples.json
 checks:
+- app/src-tauri/tests/policy_standing.rs
 - app/contract_inputs/PKG-04/DEL-04-01/Work/prototype/validate_policy.py

@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-06-01
 package_id: PKG-06
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-083, SOW-084, SOW-185]
 package_objective_refs: [OBJ-006, OBJ-007]
 ---
@@ -33,16 +33,16 @@ The following source keys identify repository-relative authoritative loci used b
 
 | Key | Source and applicable locus |
 | --- | --- |
-| BASIS | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; `canonical/Deliverables.csv` rows DEL-06-01 and named interfaces, `canonical/Packages.csv` row PKG-06, `canonical/ScopeLedger.csv` rows SOW-083/SOW-084/SOW-185, and `canonical/Objectives.csv` rows OBJ-006/OBJ-007 within that snapshot. |
-| SEED | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md` V4-PM-01/02; sibling `HOST_INTEGRATION.md` V4-HI-63. |
-| COMPOSITE | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html` decisions 01, 03, 05, 06, 07; sibling `OWNER_DIRECTIONS.md` J–O. |
-| PRD | `projects/chirality-app-v4/docs/PRD.md` §0, V4-ROLE-03, V4-AUT-01…04, V4-PM-01…06, V4-REC-02…05 and OQ-06. |
-| ARCH | `projects/chirality-app-v4/docs/ARCHITECTURE.md` §3, V4-ARC-05 and the distinction between conversation recovery and undertaking recovery. |
-| HOST | `projects/chirality-app-v4/docs/HOST_INTEGRATION.md` V4-HI-61…63. |
-| EXAM | `projects/chirality-app-v4/docs/EXAMINATION.md` V4-EXM-13. |
-| OPS | `projects/chirality-app-v4/docs/OPERATING_METHOD.md` V4-OPS-02, V4-OPS-12…14. |
-| OPEN | Snapshot `canonical/Open_Issues.csv` and `canonical/External_Dependencies.csv`, with current receiving observations in `projects/chirality-app-v4/execution/_Decomposition/Open_Issues.csv` and `External_Dependencies.csv`; relevant rows OI-001, OI-002, OI-006, OI-012, OI-022 and DEP-002. |
-| SETUP | `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md`; approved INITIAL setup, DEPENDENCY_TRACKED/FULL_GRAPH and separate lifecycle acts. This governs present definition work rather than prescribing the future product's wire format. |
+| BASIS | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; `canonical/Deliverables.csv` rows DEL-06-01 and named interfaces, `canonical/Packages.csv` row PKG-06, `canonical/ScopeLedger.csv` rows SOW-083/SOW-084/SOW-185, and `canonical/Objectives.csv` rows OBJ-006/OBJ-007 within that snapshot. |
+| SEED | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/PRD.md` V4-PM-01/02; sibling `HOST_INTEGRATION.md` V4-HI-63. |
+| COMPOSITE | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/DECISION_BRIEF.html` decisions 01, 03, 05, 06, 07; sibling `OWNER_DIRECTIONS.md` J–O. |
+| PRD | `docs/PRD.md` §0, V4-ROLE-03, V4-AUT-01…04, V4-PM-01…06, V4-REC-02…05 and OQ-06. |
+| ARCH | `docs/ARCHITECTURE.md` §3, V4-ARC-05 and the distinction between conversation recovery and undertaking recovery. |
+| HOST | `docs/HOST_INTEGRATION.md` V4-HI-61…63. |
+| EXAM | `docs/EXAMINATION.md` V4-EXM-13. |
+| OPS | `docs/OPERATING_METHOD.md` V4-OPS-02, V4-OPS-12…14. |
+| OPEN | Snapshot `canonical/Open_Issues.csv` and `canonical/External_Dependencies.csv`, with current receiving observations in `execution/_Decomposition/Open_Issues.csv` and `External_Dependencies.csv`; relevant rows OI-001, OI-002, OI-006, OI-012, OI-022 and DEP-002. |
+| SETUP | `execution/_Coordination/_COORDINATION.md`; approved INITIAL setup, DEPENDENCY_TRACKED/FULL_GRAPH and separate lifecycle acts. This governs present definition work rather than prescribing the future product's wire format. |
 
 ## Deliverable Definition — Ontology
 

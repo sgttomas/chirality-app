@@ -2,7 +2,7 @@
 schema: chirality-deliverable-sow/v1
 deliverable_id: DEL-03-04
 package_id: PKG-03
-decomposition_basis: projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z@941c4d35f994594ce8aacd81758ab39079bddad6
+decomposition_basis: execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z
 project_scope_refs: [SOW-156, SOW-187]
 package_objective_refs: [OBJ-004]
 ---
@@ -24,18 +24,18 @@ Source keys identify repository-relative files and applicable clauses. Original-
 
 | Key | Source and applicable locus |
 |---|---|
-| D | `projects/chirality-app-v4/execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; its `canonical/Deliverables.csv` row DEL-03-04 and named interface rows, `Packages.csv` PKG-03, `Objectives.csv` OBJ-004, `ScopeLedger.csv` SOW-156/SOW-187 |
-| H | `projects/chirality-app-v4/docs/HOST_INTEGRATION.md` §§1–10, especially ownership §1, new-host checklist §10, and receiving limits §11 |
-| P | `projects/chirality-app-v4/docs/PRD.md` §§2.2–2.4, §3.1, V4-WF-01–06, V4-PAR-01–05, V4-AUT-01–05 |
-| A | `projects/chirality-app-v4/docs/ARCHITECTURE.md` §§4–5, V4-ARC-10–14/V4-ARC-20–22 |
-| E | `projects/chirality-app-v4/docs/EXAMINATION.md` §§1–2, V4-EXM-20–25 and V4-EXM-30–32 |
-| M | `projects/chirality-app-v4/docs/OPERATING_METHOD.md` V4-OPS-14, V4-OPS-30–34 and §6 |
-| B | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md` J–O/U1–U5; same directory `DECISION_BRIEF.html` #d2–#d6 |
-| S | `projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md` §§1/10, with §§2–9 as historical detail qualified by B/H |
-| I | D's `canonical/Open_Issues.csv` and `canonical/External_Dependencies.csv`; current counterparts under `projects/chirality-app-v4/execution/_Decomposition/`, distinguishing later PEC D108 receiving metadata from frozen scope |
-| C | `projects/chirality-app-v4/execution/_Coordination/_COORDINATION.md`: approved INITIAL setup, separate lifecycle act and defined-contract maturity only |
-| K | `projects/chirality-app-v4/execution/PKG-03/DEL-03-01/ScopeOfWork.md`, App v4 DEL-03-01/OUT-001 through DEL-03-01/OUT-003 and DEL-03-01/REQ-001 through DEL-03-01/REQ-007 |
-| Q | `projects/chirality-app-v4/execution/PKG-03/DEL-03-02/ScopeOfWork.md`, App v4 DEL-03-02/REQ-001 through DEL-03-02/REQ-013 and DEL-03-02/OUT-001 through DEL-03-02/OUT-003 |
+| D | `execution/_Decomposition/checkpoint_snapshots/GROUP3-20260928T001055Z/DECISION.md`; its `canonical/Deliverables.csv` row DEL-03-04 and named interface rows, `Packages.csv` PKG-03, `Objectives.csv` OBJ-004, `ScopeLedger.csv` SOW-156/SOW-187 |
+| H | `docs/HOST_INTEGRATION.md` §§1–10, especially ownership §1, new-host checklist §10, and receiving limits §11 |
+| P | `docs/PRD.md` §§2.2–2.4, §3.1, V4-WF-01–06, V4-PAR-01–05, V4-AUT-01–05 |
+| A | `docs/ARCHITECTURE.md` §§4–5, V4-ARC-10–14/V4-ARC-20–22 |
+| E | `docs/EXAMINATION.md` §§1–2, V4-EXM-20–25 and V4-EXM-30–32 |
+| M | `docs/OPERATING_METHOD.md` V4-OPS-14, V4-OPS-30–34 and §6 |
+| B | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md` J–O/U1–U5; same directory `DECISION_BRIEF.html` #d2–#d6 |
+| S | `execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/original-seed/HOST_INTEGRATION.md` §§1/10, with §§2–9 as historical detail qualified by B/H |
+| I | D's `canonical/Open_Issues.csv` and `canonical/External_Dependencies.csv`; current counterparts under `execution/_Decomposition/`, distinguishing later PEC D108 receiving metadata from frozen scope |
+| C | `execution/_Coordination/_COORDINATION.md`: approved INITIAL setup, separate lifecycle act and defined-contract maturity only |
+| K | `execution/PKG-03/DEL-03-01/ScopeOfWork.md`, App v4 DEL-03-01/OUT-001 through DEL-03-01/OUT-003 and DEL-03-01/REQ-001 through DEL-03-01/REQ-007 |
+| Q | `execution/PKG-03/DEL-03-02/ScopeOfWork.md`, App v4 DEL-03-02/REQ-001 through DEL-03-02/REQ-013 and DEL-03-02/OUT-001 through DEL-03-02/OUT-003 |
 
 ## Deliverable Definition — Ontology
 
@@ -103,8 +103,8 @@ Develop the checklist and matrix together against the accepted scope and checked
 - **AX-001** — Shared meanings follow real responsibilities and consumers. Historical fixed shared-loop/panel allocation and compulsory component reuse are qualified by B #d2 and U1/U5, H §§1/10 and A §§4–5. This guide preserves the integration obligation without choosing a common service or silently reassigning SWB implementation.
 - **AX-002** — Human accountability and truthful standing govern every interface. The original blanket reserved-act list is historical, qualified by B #d3 and P §4.5; false attribution is already prohibited, faithful recording is allowed, and exact unruled policy remains with its decision owners. Tests demonstrate an identified claim; they do not create scope or resolve a reserved choice.
 - **AX-003** — A definition, checked candidate, transmitted handoff, delivered capability, receiving adoption and human act remain separate facts. C authorizes this source-grounded INIT with NO_STATUS_TOUCH. No schema pass, checklist or generated report changes `_STATUS.md`, authorizes implementation, passes 30%, accepts a DAG or establishes product release.
-- **AX-004** — Revised under scope-change amendment `SCA-V4-001` (accepted snapshot `projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-001_2026-09-28_2155`), applying `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, `APP-V4-FIRST-INCREMENT-20260928-DECISION-2` (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`), `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4` and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5` (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`). Revised: the receiving-map rows "Basis", "Origin, undo and proposal presentation", "Autonomy" and "Loop and panel", CLM-003, REQ-002, REQ-004, REQ-005, TBD-001 and TBD-002. Added: AX-004. Removed: none.
-- **AX-005** — Revised under scope-change amendment `SCA-V4-003` (accepted snapshot `projects/chirality-app-v4/execution/_ScopeChange/SCA-V4-003_2026-10-03_1827`), applying `APP-V4-DESIGN-PASS-2-20260930-DECISION-K1` K1-1 (record `projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/OWNER_DECISIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`), with the supplier-input corrections of that run's closeout. Revised: CLM-003 and the receiving-map row "Autonomy". Added: AX-005. Removed: none.
+- **AX-004** — Revised under scope-change amendment `SCA-V4-001` (accepted snapshot `execution/_ScopeChange/SCA-V4-001_2026-09-28_2155`), applying `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, `APP-V4-FIRST-INCREMENT-20260928-DECISION-2` (record `execution/_Coordination/AgentRuns/APP-V4-FIRST-INCREMENT-20260928/OWNER_DECISIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`), `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4` and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5` (record `execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`). Revised: the receiving-map rows "Basis", "Origin, undo and proposal presentation", "Autonomy" and "Loop and panel", CLM-003, REQ-002, REQ-004, REQ-005, TBD-001 and TBD-002. Added: AX-004. Removed: none.
+- **AX-005** — Revised under scope-change amendment `SCA-V4-003` (accepted snapshot `execution/_ScopeChange/SCA-V4-003_2026-10-03_1827`), applying `APP-V4-DESIGN-PASS-2-20260930-DECISION-K1` K1-1 (record `execution/_Coordination/AgentRuns/APP-V4-DESIGN-PASS-2-20260930/OWNER_DECISIONS.md` at tag `archive/pre-efficiency-cleanup-2026-10-09`), with the supplier-input corrections of that run's closeout. Revised: CLM-003 and the receiving-map row "Autonomy". Added: AX-005. Removed: none.
 - **TBD-001** — OI-001, Reserved human acts — ruled for the first increment's App/shared contracts by `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` D2 (five reserved acts), carried by App v4 DEL-04-01. The residue is operation-specific additions under OI-021 (TBD-006) and host adoption under DEP-001. False attribution is already prohibited. Source: I OI-001; `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`.
 - **TBD-002** — OI-002, Classifier routine permissions — ruled by `APP-V4-FIRST-INCREMENT-20260928-DECISION-1` D3: in the App, routine tool-permission and sandbox modes are the user's own Codex setting; hosts have no classifier mode in the first increment. The residue is host adoption under DEP-001. Source: I OI-002; `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`.
 - **TBD-003** — OI-003, Automatic catalog extension. Owner: **Owner with host contract owner**. Point of need: **Before claiming extension capability or fixing its acceptance criterion**. Retain, narrow to generated surfaces, or defer the all-actor automatic-extension promise through the identified trace and explicit decision; semantic parity remains included. Sources: I OI-003; B #d4; E V4-EXM-24.

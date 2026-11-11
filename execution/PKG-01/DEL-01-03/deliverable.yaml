@@ -2,64 +2,43 @@ id: DEL-01-03
 name: Native plans, tools and delegation views
 needs:
 - from: DEL-01-01
-  condition: 'Consume DEL-01-01''s generated native types, selected supplier identity and qualification
-    evidence for the native views and pinned fixtures (development basis: reviewed SUP1 0.160.0; DEL-01-01
-    ScopeOfWork [S], CLM-003, REQ-006, TBD-002). A missing input blocks only the affected implementation
-    or qualification witness; qualification stays candidate-bound under R23-22.'
+  condition: Native plan, tool and delegation items reach the views unchanged with their generation
+    and receipt position; each ready announcement carries the version identity record, its verification
+    result and the declared capabilities; and the model list, configuration and thread reads the
+    views need can be made through the boundary.
   gating: true
-  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
 - from: DEL-01-02
-  condition: Consume actual durable execution and outstanding-request/recovery state from App DEL-01-02
-    to define and implement truthful native presentation seams.
+  condition: A window that re-attaches resumes from its position or receives a snapshot and a
+    gap marker; after a generation closes the conversation's state is read back from Codex; and
+    the register state of an item's request is reported.
   gating: true
-  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
-- from: external:OI-008
-  condition: 'Met 2026-10-10: the owner''s OI-008 ruling places file and record writes, Codex interaction
-    and act capture in the Rust host and limits the web view to presentation and person-initiated sends;
-    main-process session/request ownership is retained (ScopeOfWork TBD-001; docs/ARCHITECTURE.md §3).'
-  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
-- from: external:OI-014
-  condition: Resolve any shared contract/component placement with the App/shared contract owners against
-    actual consumer responsibilities before allocating corresponding common implementation.
-  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
-- from: external:OI-001;OI-002
-  condition: Within this scope, reserved acts and classifier permissions follow APP-V4-FIRST-INCREMENT-20260928-DECISION-1
-    D2 and D3 (routine tool permission is the person's own Codex setting). Beyond it they remain open with
-    the owner and affected App/SWB contract owners (OI-001/OI-002) before the affected operation-policy
-    contract or permission implementation.
-  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
-- from: external:OI-006
-  condition: Obtain the owner further-fleet-scope choice during FEED before defining its corresponding production
-    contracts, if that further scope is pursued.
-  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
-- from: DEL-01-01
-  condition: Supply selected-version identity/verification and native plan/revision information at the supplier
-    seam to the App v4 DEL-01-03 presentation receiver; registry/checker implementation remains a choice.
+- from: DEL-01-05
+  condition: The model and provider selected for a conversation are reported, or that none is
+    selected.
   gating: true
-  evidence: execution/PKG-01/DEL-01-01/ScopeOfWork.md
-- from: DEL-01-02
-  condition: Serve App v4 DEL-01-03 with the durable execution and outstanding-request/recovery interfaces
-    this slice owns; the receiving presentation stays with DEL-01-03.
-  gating: true
-  evidence: execution/PKG-01/DEL-01-02/ScopeOfWork.md
-- from: package:PKG-06
-  condition: Provide native delegation identities and visible descendant activity to the PKG-06 fleet receiving
-    interface, without inferring descendant return, review, integration or joined-fleet completion.
-  direction: downstream
+  when: Reading delegation availability and offering the plan-mode element
+- from: DEL-02-04
+  condition: A thread that was given TASK guidance is identified as such, with whether its no-delegation
+    limit is enforced by the supplier, stated and not enforced, or not known.
   gating: false
-  evidence: execution/PKG-01/DEL-01-03/ScopeOfWork.md
 code_paths:
-- app/src/App.tsx
 - app/src-tauri/src/native_items.rs
 - app/src-tauri/src/native_history.rs
-- app/src-tauri/src/runtime_session.rs
+- app/src-tauri/src/delegation_availability.rs
+- app/src-tauri/resources/runtime_core/npt.plan-revision.schema.json
+- app/src/NativeActivity.tsx
+- app/src/PlanMode.tsx
+# NativeHistory.tsx is shared with DEL-01-04. Here: reading pages of native items from Codex
+# history. Finding a conversation and continuing it are DEL-01-04's.
+- app/src/NativeHistory.tsx
+# hosting.rs, host_tick.rs, runtime_session.rs, lib.rs and App.tsx are shared. Here: the
+# delegation availability reads, the view state held for a conversation, and the commands
+# and mounting of these views.
 - app/src-tauri/src/hosting.rs
 - app/src-tauri/src/host_tick.rs
+- app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
-- app/src/NativeActivity.tsx
-- app/src/NativeHistory.tsx
-- app/src/PlanMode.tsx
-- app/src-tauri/src/delegation_availability.rs
+- app/src/App.tsx
 checks:
 - app/src-tauri/tests/native_history.rs
 - app/src-tauri/tests/history_integration.rs
