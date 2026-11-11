@@ -50,10 +50,12 @@ needs:
 - from: external:DEP-001
   condition: SWBPIPE provides an identified host candidate with its embedded agent and states the
     operation policy that candidate has adopted (its reserved list, the class it allows to be applied
-    directly and its default for model changes), runs the journey on it, and returns its own receipts
-    and an observation of all network traffic for the same run with evidence of its native destination
-    enforcement.
+    directly and its default for model changes).
   when: Before any case is run.
+- from: external:DEP-001
+  condition: SWBPIPE runs the journey on that candidate and returns its own receipts and an observation
+    of all network traffic for the same run, with evidence of its native destination enforcement.
+  when: Before the dossier of that run is examined.
 - from: external:local model server
   condition: A local model server of identified version and configuration serves the embedded agent.
 - from: external:engineer performing the acts

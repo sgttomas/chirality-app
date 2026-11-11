@@ -53,9 +53,13 @@ needs:
 - from: external:DEP-001
   condition: SWBPIPE supplies an identified host candidate with its native layer's routing and destination
     enforcement, its destination record, its custody of keys and sign-in credentials, its handling
-    of invalid and truncated tool calls, the model interface its loop speaks and its observed responsiveness.
-  when: Before a case is run on that host or conformance is stated for it; the local contract, fixtures
-    and checker do not wait for it.
+    of invalid and truncated tool calls and the model interface its loop speaks.
+  when: Before a case is run on that host; the local contract, fixtures and checker do not wait for
+    it.
+- from: external:DEP-001
+  condition: The observations made on that host candidate, its responsiveness among them, are available
+    with the candidate, configuration and environment they were made on.
+  when: Before conformance is stated for that host.
 - from: external:OI-013
   condition: The shared contract owner and the SWBPIPE implementation owner agree the host-specific
     construction and choose where the loop runs, how it parses and streams, how the conversation

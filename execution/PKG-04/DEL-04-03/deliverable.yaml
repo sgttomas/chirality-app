@@ -41,8 +41,8 @@ needs:
     catalog edition and surface it was made on.
   gating: false
 - from: DEL-02-04
-  condition: The role guidance supplied at a conversation's start or a fork is identified by its source
-    and content identity, with the limits it states and each observation that a stated limit was not
+  condition: The role guidance supplied at a conversation's start, and for a fork the start supply
+    it inherits, is identified by its source and content identity, with the limits it states and each observation that a stated limit was not
     kept.
   gating: false
 - from: DEL-03-01
