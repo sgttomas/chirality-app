@@ -13,7 +13,7 @@ package_objective_refs: [OBJ-004, OBJ-005]
 
 This deliverable contributes one definition of how a change reaches a host and what may truthfully be said about it afterwards. A change by the person, by the host's embedded agent or by an external agent passes through the host's one validation and application route. Outside an autonomy the person has granted, it is a proposal whose every item the person decides. What is reported about it is never more than the host recorded: queued is not accepted, accepted is not applied, a success is not a person's act, and an outcome nobody observed stays unknown. The App/shared operation-contract owner produces the schemas, the lifecycle and route definition and the fixtures; each host owns its validation, application, receipts and views.
 
-It serves OBJ-004 (shared operation meaning, host authority and recovery) and OBJ-005 (useful autonomy with attributable human acts and result standing). Its sources are PRD V4-PAR-04, V4-AUT-01, V4-AUT-03, V4-REC-01, V4-CST-05 and V4-CST-06, and HOST_INTEGRATION §1, V4-HI-11, V4-HI-20…25, V4-HI-30…33 and V4-HI-70…71. The draft 4.0.0 release target names no exit criterion for this deliverable; the live SWBPIPE journey of its criterion 5 ("controlled application, truthful outcomes") is judged in this contract's terms.
+It serves OBJ-004 (shared operation meaning, host authority and recovery) and OBJ-005 (useful autonomy with attributable human acts and result standing). Its sources are PRD V4-PAR-04, V4-AUT-01, V4-AUT-03, V4-REC-01, V4-CST-05 and V4-CST-06, and HOST_INTEGRATION §1, V4-HI-11, V4-HI-20…25, V4-HI-30…33 and V4-HI-70…71. The draft 4.0.0 release target names no exit criterion for this deliverable.
 
 | Assigned scope | Local contribution | Output |
 |---|---|---|
