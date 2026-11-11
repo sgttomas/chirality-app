@@ -25,9 +25,7 @@ exact documentary paths, and all paths under the guarded declarative `execution/
 
 - `AGENTS.md`
 - `README.md`
-- `init/README.md`
-- `init/init-prompt.md`
-- `loop/LOOP_INIT.md`
+- `init-prompt.md`
 - `docs/CI_SELECTION.md`
 - `docs/OPERATING_METHOD.md`
 - `docs/user-manual/README.md`

@@ -135,9 +135,9 @@ def test_active_selection_and_entry_do_not_depend_on_packaged_instructions():
     agents = (ROOT / "AGENTS.md").read_text()
     assert "ec3ee2d1b398eba1fb3227ccf93e2569df95bacd" in agents and "library-v3.3.0" in agents
     assert (ROOT / "CLAUDE.md").read_bytes() == b"@AGENTS.md\n"
-    prompt = (ROOT / "init/init-prompt.md").read_text()
+    prompt = (ROOT / "init-prompt.md").read_text()
     assert prompt.count("<init-prompt>") == prompt.count("</init-prompt>") == 1
-    assert "loop/LOOP_INIT.md" in prompt and "AGENT_HELP_HUMAN.md" in prompt
+    assert "{REPO_ROOT}/AGENTS.md" in prompt and "AGENT_HELP_HUMAN.md" in prompt
     binding = json.loads((ROOT / "app/src-tauri/resources/instructions/ROLE_SET_SOURCE_BINDING.json").read_text())
     assert binding["basisCommit"] == "89acac6a3983c605820496d0d121c73bb2297706"
 

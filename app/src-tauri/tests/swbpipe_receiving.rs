@@ -258,7 +258,7 @@ fn an_unobservable_submission_stays_unknown_and_is_never_resubmitted_blind() {
     assert!(again.contains("observe_before_resubmission"));
 }
 
-/// A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md).
+/// A deliverable's `Design/` before 2026-10-30 means its `Work/` (AGENTS.md).
 fn work_locality(path: &str) -> String {
     let parts: Vec<&str> = path.splitn(4, '/').collect();
     match parts.as_slice() {

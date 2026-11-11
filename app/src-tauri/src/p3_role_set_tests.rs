@@ -349,7 +349,7 @@ fn p3_actual_package_correspondence_refuses_missing_tampered_and_linked_files() 
     std::fs::remove_dir_all(root).unwrap();
 }
 
-/// A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md).
+/// A deliverable's `Design/` before 2026-10-30 means its `Work/` (AGENTS.md).
 fn work_locality(path: &str) -> String {
     let parts: Vec<&str> = path.splitn(4, '/').collect();
     match parts.as_slice() {

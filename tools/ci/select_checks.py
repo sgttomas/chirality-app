@@ -20,9 +20,7 @@ import sys
 PROSE_PATHS = frozenset({
     "AGENTS.md",
     "README.md",
-    "init/README.md",
-    "init/init-prompt.md",
-    "loop/LOOP_INIT.md",
+    "init-prompt.md",
     "docs/CI_SELECTION.md",
     "docs/OPERATING_METHOD.md",
     "docs/user-manual/README.md",
@@ -34,8 +32,8 @@ PROSE_PATHS = frozenset({
 # These domains contain code, contracts, fixtures or retained source inputs.
 # Documentary exceptions above take precedence; unfamiliar domains stay unmatched.
 PRODUCT_DOMAINS = (
-    ".github/actions/", ".github/workflows/", "app/", "conceptual/", "docs/",
-    "foundation/", "reference/", "tools/", "workflows/",
+    ".github/actions/", ".github/workflows/", "app/", "docs/", "reference/",
+    "tools/", "workflows/",
 )
 PRODUCT_FILES = frozenset({".gitattributes", ".gitignore", "CLAUDE.md", "LICENSE.md"})
 OID = re.compile(r"[0-9a-f]{40}(?:[0-9a-f]{24})?\Z")

@@ -13,17 +13,23 @@ Resolve `REPO_ROOT` with `git rev-parse --show-toplevel`.
 Verify that `{REPO_ROOT}` is the `sgttomas/chirality-app` repository.
 
 Read `{REPO_ROOT}/AGENTS.md`.
-Resolve `CHIRALITY_LIBRARY` from the shared-library selection in that file.
-Read `{CHIRALITY_LIBRARY}/agents/AGENT_HELP_HUMAN.md`.
-Act as `HELP_HUMAN`, Agent 0 for the Chirality App project at `{REPO_ROOT}`.
-Read and follow `{REPO_ROOT}/loop/LOOP_INIT.md`.
-Load other role and workflow instructions when the undertaking needs them.
+Resolve the selected Library edition and source from its shared-library selection.
+Read `agents/AGENT_HELP_HUMAN.md` from that selected source.
+Act as `HELP_HUMAN` and Agent 0 for `{REPO_ROOT}`.
+Read `agents/AGENT_HELPS_HUMANS.md` from the Library.
+Read `agents/AGENT_WORKING_ITEMS.md` from the Library.
+Read `agents/AGENT_INTERLOCUTOR.md` from the Library.
+Read `agents/AGENT_TASK.md` from the Library.
+Knowing those other roles will help you direct them better.
 
 Orient. Report briefly:
+
 - the path from the current state to the release target, and the independent
   lanes you would open;
 - what you need from the owner to keep every lane moving: decisions,
   credentials and host conditions;
 - any open issues labelled `nightly`.
+
 Start no work until the owner's separate steering.
 </init-prompt>
+

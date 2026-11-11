@@ -53,7 +53,7 @@ and workflows.
 from Chirality. The migration does not publish or qualify a v4 release; the
 existing v3.0.1 release remains the fallback.
 
-The [current release pathway](execution/_Coordination/CURRENT_EXECUTION_BASIS.md#current-release-pathway)
+The [current release pathway](execution/_Coordination/CURRENT_EXECUTION_BASIS.md#release-target-and-authority)
 targets the full public v4 release with the live embedded SWBPIPE journey.
 It identifies delivery owners, next results and the evidence still needed.
 
@@ -62,7 +62,8 @@ workflow-authoring App is the exemplar. [Chirality thesis](https://github.com/sg
 develops the reasons for its form; product commitments are in the [PRD](docs/PRD.md),
 its companions and the deliverable Scopes of Work and `Work/` material.
 
-Development enters through the [App v4 loop](loop/LOOP_INIT.md). Deliverables live
+Development enters through the [init prompt](init-prompt.md) and the
+[repository instructions](AGENTS.md). Deliverables live
 in `execution/PKG-nn/DEL-nn-nn/`: `ScopeOfWork.md` holds commitments and acceptance
 criteria, `Work/` holds contracts and open implementation conditions, and
 `deliverable.yaml` states needs and code/check pointers. Query their inputs and
@@ -95,7 +96,9 @@ v4 publication and replacement of v3.0.1 remain separate decisions.
 <summary>Historical source recovery</summary>
 
 The [accepted decomposition](execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md)
-and [project DAG](execution/_DAG/_LATEST.md) retain their original decision records.
+retains its original decision record. The project DAG records, the conceptual
+records and the local thesis copy are no longer in the working tree; they
+remain in this repository's Git history.
 Old setup logs, handoffs and acceptance packets are recoverable in the
 pre-contract-register-retirement archive (`sgttomas/chirality@archive/app-v4-pre-contract-register-retirement-20261011:projects/chirality-app-v4`).
 Earlier AgentRuns are in the
@@ -111,9 +114,7 @@ These sources preserve history; they do not define a standing development backlo
 | [docs/](docs/) | PRD, architecture, host integration, examination and operating method |
 | [app/](app/) | Rust host, web view and maintained product checks |
 | [execution/](execution/) | Deliverable contracts, `Work/` material and dependency conditions |
-| [conceptual/](conceptual/) | Source interpretation and the original conceptual choices |
 | [reference/](reference/) | Identified source revisions and inventories |
-| [foundation/](foundation/) | Preserved thesis and its transfer account |
 
 ## License
 

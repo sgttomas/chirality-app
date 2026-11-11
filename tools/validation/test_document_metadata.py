@@ -19,24 +19,18 @@ RECEIVING = ROOT / "reference/library-v3.3.0"
 MANIFEST = json.loads((RECEIVING / "MANIFEST.json").read_text())
 SCHEMA = json.loads((RECEIVING / "document-metadata.schema.json").read_text())
 VALIDATOR = Draft202012Validator(SCHEMA)
-# These are migration test inputs, not maintained local workflow authoring.
-RETAINED = {
-    "workflows/coordinated-knowledge-work/WORKFLOW.md",
-    "workflows/coordinated-knowledge-work/REVIEW-NOTES.md",
-}
 
 
 def documents():
     paths = {
-        ROOT / "AGENTS.md", ROOT / "init/init-prompt.md",
-        ROOT / "init/README.md", ROOT / "loop/LOOP_INIT.md",
+        ROOT / "AGENTS.md", ROOT / "init-prompt.md",
         *(ROOT / "docs").rglob("*.md"),
         *(ROOT / "tools").rglob("README.md"),
         *(ROOT / "workflows").glob("*/WORKFLOW.md"),
     }
     for home in (".agents/skills", ".claude/skills", "skills", "workflows", "tools"):
         paths.update((ROOT / home).rglob("SKILL.md"))
-    return sorted(p for p in paths if p.relative_to(ROOT).as_posix() not in RETAINED)
+    return sorted(paths)
 
 
 def header(path):
@@ -64,14 +58,10 @@ def test_schema_source_identity_and_contract():
     Draft202012Validator.check_schema(SCHEMA)
 
 
-def test_retained_local_workflow_bytes_are_not_retyped():
-    sources = json.loads((ROOT / "reference/migration/shared-inputs.json").read_text())
-    recorded = {row["path"]: row["sha256"] for row in sources["sources"]}
-    for relative in RETAINED:
-        assert hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() == recorded[relative]
+def test_frozen_and_product_inputs_are_not_retyped():
     selected = {p.relative_to(ROOT).as_posix() for p in documents()}
-    assert not RETAINED & selected
-    assert not any(p.startswith(("execution/", "reference/", "foundation/", "app/")) for p in selected)
+    assert {"AGENTS.md", "init-prompt.md"} <= selected
+    assert not any(p.startswith(("execution/", "reference/", "app/")) for p in selected)
 
 
 @pytest.mark.parametrize("field", ("status", "date", "revision"))
@@ -105,13 +95,12 @@ def test_package_extensions_remain_valid():
 
 
 def test_bootstrap_wrapper_and_claude_pointer():
-    text = (ROOT / "init/init-prompt.md").read_text()
+    text = (ROOT / "init-prompt.md").read_text()
     assert text.index("\n---\n") < text.index("<init-prompt>")
     assert text.count("<init-prompt>") == text.count("</init-prompt>") == 1
     block = text.split("<init-prompt>", 1)[1].split("</init-prompt>", 1)[0]
-    assert "loop/LOOP_INIT.md" in block and "AGENT_HELP_HUMAN.md" in block
+    assert "{REPO_ROOT}/AGENTS.md" in block and "AGENT_HELP_HUMAN.md" in block
     assert "name:" not in block
-    assert "only the `<init-prompt>...</init-prompt>` block" in (ROOT / "init/README.md").read_text()
     assert (ROOT / "CLAUDE.md").read_bytes() == b"@AGENTS.md\n"
 
 
@@ -128,7 +117,7 @@ def test_incomplete_or_unsupported_derivation_metadata_is_rejected(upstream):
         VALIDATOR.validate(data)
 
 
-@pytest.mark.parametrize("name", ("AGENTS.md", "init/init-prompt.md", "loop/LOOP_INIT.md"))
+@pytest.mark.parametrize("name", ("AGENTS.md", "init-prompt.md"))
 def test_reconciled_entry_documents_name_the_canonical_released_template(name):
     data = header(ROOT / name)
     VALIDATOR.validate(data)

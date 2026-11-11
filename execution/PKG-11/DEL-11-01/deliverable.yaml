@@ -16,10 +16,12 @@ needs:
     or uncertainty remains visible rather than being inferred from publication, files or run selection.
   gating: true
   evidence: execution/PKG-11/DEL-11-01/ScopeOfWork.md
-- from: doc:foundation/thesis/
-  condition: Production identity checks require the complete thesis file set and bytes for comparison with
-    preservation basis tree 47fc49e96c2931ba18090f1a82d56a49f230b3ee, retaining attribution and nonbinding
-    standing.
+- from: external:sgttomas/chirality-library docs/thesis/ at the selected edition library-v3.3.0
+  condition: The thesis is maintained in the Library; App may export or package it from there and holds no
+    maintained copy (owner, 2026-11-10; PRD §11). The copy App formerly held, tree
+    47fc49e96c2931ba18090f1a82d56a49f230b3ee, remains in this repository's Git history; no byte-for-byte
+    comparison is required (REQ-003 thesis part, AC-003 and VER-003 retired, owner 2026-11-10). Attribution
+    and nonbinding standing are retained.
   evidence: execution/PKG-11/DEL-11-01/ScopeOfWork.md
 - from: DEL-11-02
   condition: Supply truthful adoption status from the received change/verification account to DEL-11-01

@@ -20,7 +20,6 @@ SOURCES = (
     "app/tests/fixtures/FX-DP1/MANIFEST.sha256",
     "app/packaging/sources.json",
     "reference/migration/shared-inputs.json",
-    "workflows/coordinated-knowledge-work/WORKFLOW.md",
 )
 CRLF_CONTROL = "app/tests/fixtures/checkout-bytes/intentional-crlf.txt"
 UNPROTECTED_CONTROL = "docs/checkout-bytes-unprotected.txt"

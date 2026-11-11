@@ -42,8 +42,8 @@ unconfirmed drafting defaults are not accepted merely by inclusion.
 | B-HTML | [Accepted decision brief][B-HTML], SHA-256 `02d38cb18041c52989d8a2a0b969e6502ce4b25eec85fb0931bbbc100c4420e8`; recommendations 01–07, with their stated qualifications. |
 | U1–U5 | Later owner messages J–O (`sgttomas/chirality@archive/app-v4-pre-contract-register-retirement-20261011:projects/chirality-app-v4/execution/_Coordination/Acceptances/APP-V4-BASIS-20260926/OWNER_DIRECTIONS.md`): recommendations and SWBPIPE boundary; Domains timing/purpose; acceptance; human-relayed coordination. |
 | A–I | Earlier renewal directions, retained through B-HTML's quoted basis: human governance, Root's conceptual role, manuals, SoWs, thesis, PEC and research. |
-| OD-nn / D-nn | Original scoped directions/choices in `../conceptual/DECISIONS.md`, including D-19 and D-20; later direction supersedes only what it addresses. |
-| X-nn / L-nn | Historical exemplars/lessons in `../conceptual/EXEMPLARS_AND_LESSONS.md`; evidence with limits, not automatic additional requirements. |
+| OD-nn / D-nn | Original scoped directions/choices in `conceptual/DECISIONS.md` (`sgttomas/chirality-app@974916b54487af69f17445c582a1aa9ee4fc3b5d:conceptual/DECISIONS.md`), including D-19 and D-20; later direction supersedes only what it addresses. |
+| X-nn / L-nn | Historical exemplars/lessons in `conceptual/EXEMPLARS_AND_LESSONS.md` (`sgttomas/chirality-app@974916b54487af69f17445c582a1aa9ee4fc3b5d:conceptual/EXEMPLARS_AND_LESSONS.md`); evidence with limits, not automatic additional requirements. |
 | R-STORE | Owner directions of 2026-10-12, given in session: "We can't rely on Git for records management, that's not what it's meant for." The owner approved the records-storage recommendations then presented ("I approve your recommendations. Proceed accordingly."): append-only, grouped and hash-chained logs, a derived SQLite index and the App's recovery ledger in SQLite. The owner also asked for "the best way overall, not how to wedge yourself into rulings that may no longer be appropriate", and accepted an App-managed records store outside the project working tree "as a new direction". Revises V4-REC-02 and V4-REC-04 and adds V4-REC-06. |
 | DEC-1 D2/D3 | Existing first-increment owner rulings `APP-V4-FIRST-INCREMENT-20260928-DECISION-1`, carried by [DEL-04-01's current policy contract](../execution/PKG-04/DEL-04-01/ScopeOfWork.md#governing-values-and-decisions--axiology). D2 names the reserved act kinds and D3 settles App/host routine classifier treatment for that increment; operation-specific additions remain with OI-021. |
 | DEC-4 / DEC-5 | Owner decisions (`sgttomas/chirality@archive/pre-efficiency-cleanup-2026-10-09:projects/chirality-app-v4/execution/_Coordination/AgentRuns/APP-V4-SWBPIPE-INTAKE-20260928/OWNER_DECISIONS.md`) `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-4`, with its clarification (phased checkpoints; model access by OAuth sign-in or an API key, with no default), and `APP-V4-SWBPIPE-INTAKE-20260928-DECISION-5`, with its confirmation (host-agent network destinations); applied by scope-change amendment SCA-V4-001. |
@@ -79,7 +79,7 @@ that professional delivery — not software culture — already has the model fo
 organising that work (AT §1 items 5 and 7). Chirality exists to make that
 practical inside the tools professionals actually use, while the person
 remains the one who decides and answers for the result (thesis CF §2.4–2.5,
-preserved in `foundation/thesis/`).
+maintained in the Chirality Library at `docs/thesis/`).
 
 ### 1.3 What changes from v3
 
@@ -312,7 +312,8 @@ with a small declared part the product can observe (D-03).
 
 ### 4.4 Semantic parity
 
-Defined in `conceptual/MAINTAINABILITY_ANALYSIS.md` §10.3 (accepted with
+Defined in `conceptual/MAINTAINABILITY_ANALYSIS.md` §10.3
+(`sgttomas/chirality-app@974916b54487af69f17445c582a1aa9ee4fc3b5d:conceptual/MAINTAINABILITY_ANALYSIS.md`; accepted with
 D-19); the contract is in [host integration](HOST_INTEGRATION.md).
 
 - **V4-PAR-01** Each host describes every operation a person can perform once,
@@ -541,15 +542,22 @@ to repeat already settled direction.
 ## 11. Sources
 
 The source hierarchy for this consolidation is §0. Original OD-01…OD-13 and
-D-01…D-20 remain in `../conceptual/DECISIONS.md`. The accepted HTML retains
+D-01…D-20 remain in this repository's Git history at `conceptual/DECISIONS.md`
+(commit `974916b5`). The accepted HTML retains
 checked historical/current-source observations and their limits: 51
 source-checked claims at repository pin `e548d4cfada4d2105de6231516dc6e5fc4bd4689`
 are not complete product coverage or new behavioral qualification. Original
 T1–T11 and later source checking are evidence, not extra product scope.
 
-The complete thesis in `../foundation/thesis/` remains byte-identical to tree
-`47fc49e96c2931ba18090f1a82d56a49f230b3ee`, retaining attribution and its
-nonbinding stated standing. Purpose-level citation does not convert its
+The thesis is maintained in the Chirality Library at `docs/thesis/`
+(`sgttomas/chirality-library`, selected edition `library-v3.3.0`). App may
+export or package it from there and holds no maintained copy (owner,
+2026-11-10: "The thesis can be exported in the App that's fine, but it then
+otherwise lives in Library. Point to that version. That's what will be
+maintained."). The copy formerly kept at `foundation/thesis/`, tree
+`47fc49e96c2931ba18090f1a82d56a49f230b3ee`, remains in this repository's Git
+history. The thesis retains attribution and its nonbinding stated standing.
+Purpose-level citation does not convert its
 historical implementation choices into mandatory v4 requirements. The
 original author's historical handoff remains available; its old pending
 acceptance position is superseded by B-ACCEPT, not erased from history.
