@@ -47,7 +47,9 @@ RESPONSES = ('root-tree.json', 'third_party-tree.json', 'third_party-v8-tree.jso
              'codex-rs-tree-recursive.json', 'scripts-tree.json', 'scripts-codex_package-tree.json',
              'latest-release.json', 'release-tag-object.json')
 ROOT_TEXTS = 'app/packaging/supplier_notices/codex-0.160.0'
-# rg release selector files of Codex 0.160.0: name -> (size, SHA-256, Git blob SHA-1).
+# rg release selector files of Codex 0.160.0, kept as received beside this reader:
+# name -> (size, SHA-256, Git blob SHA-1).
+SELECTOR_DIR = 'app/packaging/supplier_notices/codex-0.160.0/scripts/codex_package'
 SELECTOR_FILES = {
     'rg': (2592, '41a10ca63365560d899a82b6f825fd7b420a18b34f660a98bffeece77eeae1f1',
            '3b7c34843aaafe4cf26a87b3daf5806195d4bb0e'),
@@ -88,6 +90,13 @@ def blob(raw):
 
 def read(path):
     raw, digest, size = reader.transfer(Path(path).absolute(), retain=True)
+    return raw, digest, size
+
+
+def received_selector(name, directory=None):
+    """Read one received 0.160.0 selector file and refuse it unless its bytes carry the recorded identity."""
+    raw, digest, size = read(Path(directory or ROOT / SELECTOR_DIR) / name)
+    require((size, digest, blob(raw)) == SELECTOR_FILES[name], 'received Codex selector changed: ' + name)
     return raw, digest, size
 
 
@@ -169,11 +178,12 @@ def build(vendor, previous_vendor, metadata):
             'scripts/codex_package tree mismatch')
     selector_entries = {e['path']: e for e in codex_package['tree']}
     selectors = []
-    for name, (size, digest, git_blob) in SELECTOR_FILES.items():
+    for name in SELECTOR_FILES:
+        raw, digest, size = received_selector(name)
         entry = selector_entries[name]
         selectors.append({'path': 'scripts/codex_package/' + name, 'size_bytes': entry['size'],
                           'git_blob_sha1': entry['sha'], 'received_0160_sha256': digest,
-                          'equals_received_0160_text': entry['sha'] == git_blob and entry['size'] == size})
+                          'equals_received_0160_text': entry['sha'] == blob(raw) and entry['size'] == size})
 
     root_notices = []
     for name in ('LICENSE', 'NOTICE'):

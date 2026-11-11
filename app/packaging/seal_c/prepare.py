@@ -45,6 +45,25 @@ def capture(path):
     return successor.legacy.transfer(Path(path), retain=True)[0]
 
 
+SDK_IDENTITY = ('sdk_name', 'sdk_version', 'xcode_version', 'xcode_build', 'sdk_settings_sha256', 'sources')
+
+
+def sdk_basis(path=None):
+    """The Apple SDK edition the keychain reading was made against: its identity fields and the record's digest."""
+    raw = Path(path or HERE / 'sdk-basis.json').read_bytes()
+    value = json.loads(raw)
+    require(isinstance(value, dict) and value.get('format') == 'seal-c-sdk-basis/1', 'unsupported SDK basis record')
+    require(all(isinstance(value.get(key), str) and value[key] for key in SDK_IDENTITY[:4]), 'SDK basis names no SDK and Xcode edition')
+    digest = re.compile(r'[0-9a-f]{64}')
+    sources = value.get('sources')
+    require(isinstance(value.get('sdk_settings_sha256'), str) and digest.fullmatch(value['sdk_settings_sha256'])
+            and isinstance(sources, list) and sources
+            and all(isinstance(s, dict) and set(s) == {'sdk_relative_path', 'sha256'} and isinstance(s['sdk_relative_path'], str)
+                    and s['sdk_relative_path'] and isinstance(s['sha256'], str) and digest.fullmatch(s['sha256']) for s in sources),
+            'SDK basis lacks the SDK settings or source digests')
+    return {key: value[key] for key in SDK_IDENTITY}, sha(raw)
+
+
 def timestamp(value):
     require(isinstance(value, str) and re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z', value), 'explicit UTC assessment time required')
     return dt.datetime.fromisoformat(value[:-1] + '+00:00').replace(tzinfo=None)
@@ -204,6 +223,7 @@ def prepare(request_path, *, evidence_root, package_plan, output, trusted_signer
             'authorized signing then actual signed entitlements/embedded profile/cdhash/effective config and publisher binding joins',
             'authorized fresh-namespace signed witness: no-UI, enrollment/readback/restart, locked/denied/missing and pending recovery',
         ]
+        sdk_identity, sdk_digest = sdk_basis()
         facts = {'format': 'seal-c-signing-plan/1', 'standing': 'offline-proposal-metadata-only',
                  'metadata_state': ('profile-proposal-publisher-gaps' if missing else 'consistent-profile-proposal') if proposal else 'required-metadata-missing',
                  'metadata_gaps_remaining': bool(missing), 'metadata_gaps': missing,
@@ -226,6 +246,7 @@ def prepare(request_path, *, evidence_root, package_plan, output, trusted_signer
                  'tool_sha256': sha(Path(__file__).read_bytes()),
                  'packaging_plan_checker_sha256': sha(capture(ROOT / 'app/packaging/production_inputs/prepare.py')),
                  'packaging_inventory_helper_sha256': sha(capture(ROOT / 'app/packaging/inventory.py')),
+                 'sdk_basis': sdk_identity, 'sdk_basis_sha256': sdk_digest,
                  'reader_sources': ctx.source_dependencies,
                  'remaining': remaining,
                  'limits': ['Profile metadata and unsigned entitlements do not authenticate Apple authorization or prove OS acceptance.',

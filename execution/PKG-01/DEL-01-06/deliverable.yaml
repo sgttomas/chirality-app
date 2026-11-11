@@ -42,6 +42,7 @@ code_paths:
 - app/src-tauri/build_support/**
 checks:
 - app/tests/supplier_notice_observations_test.py
+- app/tests/supplier_notice_selectors_test.py
 - app/tests/production_inputs_test.py
 - app/tests/notice_receipts_test.py
 - app/packaging/sqlite_notice/check.py
