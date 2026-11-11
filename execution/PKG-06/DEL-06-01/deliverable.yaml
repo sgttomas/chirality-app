@@ -7,15 +7,19 @@ needs:
     the views' own state and checked against the Codex identities it was derived from.
   gating: true
 - from: DEL-01-01
-  condition: Each App-owned Codex home has a stable identity that is not a path, every request and response
-    carries its generation, and a request whose response was never observed is reported with an unknown
-    outcome.
+  condition: Every request and response carries its generation, each ready generation carries the version
+    identity record of the Codex in use, and a request whose response was never observed is reported
+    with an unknown outcome.
+  gating: true
+- from: DEL-01-05
+  condition: Each App-owned Codex home has a stable identity that is neither a credential nor a path.
   gating: true
 - from: DEL-01-04
   condition: Continuing a conversation under another role opens a new conversation, forking one opens
     a copy, and each operation's request and Codex's result, with the source conversation and the new
     one, are available when it completes.
   gating: true
+  when: A continued or forked conversation is recorded as a related conversation (AC-003)
 - from: DEL-04-03
   condition: A human-act record names its kind, its decision actor and its recorder, the content, scope
     and purpose it is bound to and the request it answers, and for a decision the package decided and

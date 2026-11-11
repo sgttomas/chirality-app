@@ -54,7 +54,8 @@ needs:
   condition: SWBPIPE supplies an identified host candidate with its native layer's routing and destination
     enforcement, its destination record, its custody of keys and sign-in credentials, its handling
     of invalid and truncated tool calls, the model interface its loop speaks and its observed responsiveness.
-  when: Before conformance is stated for that host.
+  when: Before a case is run on that host or conformance is stated for it; the local contract, fixtures
+    and checker do not wait for it.
 - from: external:OI-013
   condition: The shared contract owner and the SWBPIPE implementation owner agree the host-specific
     construction and choose where the loop runs, how it parses and streams, how the conversation

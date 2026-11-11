@@ -23,7 +23,16 @@ needs:
     and its intended use.
   when: Before fixtures are prepared on admitted test sources and before any result is relied on as research
     context. Who builds the provider and who admits sources are unallocated.
+- from: external:OI-023
+  condition: The owner, with the Domains, SWBPIPE and App receiving owners, decides who admits sources
+    and on what basis, the provider's query contract, any freshness criterion beyond a change of the source,
+    and a query-tool deployment and data boundary compatible with PRD V4-HOST-02.
+  when: Before the Domains-enabled increment, and each before the fixtures, implementation or reliance
+    that depends on it. The receiving contract is defined without them.
+- from: external:OI-026
+  condition: The owner, with the App, Domains and SWBPIPE definition owners, decides who builds the Domains
+    provider and query tool and where the receiving boundary between that provider and this contract lies.
+  when: Before Domains provider production is allocated and its integration committed. The receiving
+    contract is defined without it.
 code_paths: []
-# The two receiving-record fixtures sit in DEL-08-02's folder and are this deliverable's product:
-# records in its format. DEL-08-02 reads them through its need and does not list them.
 checks: []

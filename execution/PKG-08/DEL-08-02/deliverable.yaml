@@ -36,7 +36,15 @@ needs:
     each candidate a content identity, presents the candidate to the person and captures the person's
     decision with an evidence reference, and its owner answers the handoff's questions.
   when: Before the witness of the joined activity.
+- from: external:person deciding on the design candidate
+  condition: The person decides on the joined candidate, approving or declining it for the scope the request
+    states, as the person's own act.
+  when: At the witness of the joined activity.
+- from: external:SWBPIPE
+  condition: The SWBPIPE owner receives, through human relay, the host handoff, with the App and shared contribution and the host's
+    stated separately, the questions the activity needs answered, and answers received kept apart from
+    questions asked; it names no transport, field or deployment.
+  direction: downstream
+  gating: false
 code_paths: []
-# The receiving-record fixtures under prototype/fixtures/ in this folder are DEL-08-01's and are
-# listed in its yaml. Here: the account schema.
 checks: []

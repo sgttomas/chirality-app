@@ -51,11 +51,18 @@ needs:
 - from: external:OI-014
   condition: The App/shared contract owners, with the consumers, agree the repeated purpose, ownership
     and placement of any common panel component.
-  when: Before a component is built.
+  when: Before structural or production allocation of shared panel contracts, and before any common
+    panel component is built.
 - from: external:OI-021
-  condition: The owner chooses the operation, the autonomy permitted and the candidate environment
-    of the first connected activity, and rules any operation-specific reserved act.
-  when: Before a live joined examination.
+  condition: The owner, with the App manager and the SWBPIPE owner, chooses the operation, the autonomy
+    permitted, the candidate environment and the externally supplied interfaces of the first connected
+    activity, and rules any operation-specific reserved act.
+  when: Before panel work that depends on that operation is built, and before a live connected examination.
+- from: external:person performing the act in the faithful-recording case
+  condition: A person actually performs the act shown in the positive faithful-recording case, including
+    one evidenced on its own with no earlier proposal acceptance, and the host captures it with that
+    person as actor and its bound content; the capture record is evidence of the act, not its performer.
+  when: When the positive faithful-recording case is executed on a host candidate.
 code_paths:
 # receiving.rs is shared with DEL-05-01. Here: receiving a panel's return input and the
 # panel-to-host-table comparison. Tool calls, the model choice and destination requests

@@ -20,6 +20,11 @@ needs:
     and every Codex home; a project is attached by its stable identity and never on its path alone;
     and where the store cannot be written, recording is refused visibly and nothing is written elsewhere.
   gating: true
+- from: doc:The project's source records for the affected question
+  condition: The project's graphs, decisions, revisions and other records that bear on the affected question
+    can be read as ordinary files or as Git objects at an identified revision.
+  gating: false
+  when: A question is taken along the source-file route
 code_paths:
 # connector_standing.rs and the standing form are shared with DEL-07-01. Here: everything but the
 # PEC connector value and its record and presence tiers, which are DEL-07-01's.
@@ -34,8 +39,7 @@ code_paths:
 - app/src-tauri/src/connector_reconstruction.rs
 - app/src-tauri/src/connector_answer_only.rs
 - app/src-tauri/resources/connector_route/*
-# The copy of the standing form under schemas/ is the one DEL-06-02's fleet_views.rs reads; it is
-# kept identical to the copy under resources/connector_route/.
+# DEL-06-02's fleet_views.rs reads this standing form.
 - app/src-tauri/resources/connector_route/connector.standing.schema.json
 - app/src/ConnectorRoutePanel.tsx
 - app/src/ConnectorSourcePanel.tsx

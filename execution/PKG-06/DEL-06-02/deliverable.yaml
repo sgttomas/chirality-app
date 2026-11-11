@@ -29,8 +29,8 @@ needs:
     standing, a standing for each claim it carries and whether the source-file route is needed; each standing
     names its connector, conforms to the published form and says whether reliance is supported; and a standing
     that does not conform is treated as unknown.
-  gating: false
-  when: A work item declares a connector need
+  gating: true
+  when: A declared connector need is evaluated and shown (AC-006)
 - from: DEL-01-04
   condition: The App act control is offered on a decision package for the decide act, on the alternatives
     the package names and whether or not an arrival was recorded; only the person's confirmation captures;

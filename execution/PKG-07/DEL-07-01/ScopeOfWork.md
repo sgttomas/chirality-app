@@ -28,7 +28,7 @@ Terms:
 
 Boundary:
 
-- **CLM-004** — `DEL-07-02` owns the standing, the reliance rule, the prohibited conclusions and the source-file route common to every connector, and applies them to retained PEC material; this deliverable supplies only what the PEC tiers mean. `DEL-06-01` owns the fleet records a connector would observe. Execution stays with the agents and managers assigned to it, and every human decision with the person. No PEC provider, adapter, qualification, release or adoption is part of this project.
+- **CLM-004** — `DEL-07-02` owns the standing, the reliance rule, the prohibited conclusions and the source-file route common to every connector, and applies them to retained PEC material; this deliverable supplies only what the PEC tiers mean. `DEL-06-01` owns the fleet records a connector would observe. Execution stays with the agents and managers assigned to it, and every human decision with the person. No PEC provider, adapter, qualification, release or adoption is part of this project, and reintroducing a PEC programme or a new connector provider requires the owner's direction.
 
 ## Completion and Reliance Basis — Epistemology
 
@@ -65,9 +65,9 @@ This deliverable has no module of its own. Its criteria are examined on the App'
 
 | Output | Objective refs | Requirement/claim refs | Acceptance refs | Verification refs | Evidence expectation |
 |---|---|---|---|---|---|
-| OUT-003 | SOW-028 OBJ-007 | REQ-002 | AC-002 | VER-002 | Owner ruling: PRD §2.3 and V4-CON-02 retire PEC delivery and adoption. The comparison is of what the App requires, shows and records against that ruling. |
+| OUT-003 | SOW-028 OBJ-007 | REQ-002 | AC-002 | VER-002 | A run of the App's functions with no PEC provider present, and everything those functions show and record, read by an independent reviewer against PRD §2.3 and V4-CON-02: no function requires a provider, constructed PEC material is marked simulated, and no statement presents a PEC service as available, qualified, released or adopted. The run and the reading cover only the functions exercised. |
 | OUT-003 | SOW-029 OBJ-007 | REQ-003 | AC-003 | VER-003 | Outside source: the constructed input itself, which the product did not write, gives the source identity and limits that must appear. PRD V4-CON-02 states that they are exposed. |
-| OUT-003 | SOW-030 SOW-031 OBJ-007 | REQ-004 | AC-004 | VER-004 | Owner ruling: the accepted decomposition's scope items SOW-030 and SOW-031, and PRD V4-CON-02. |
-| OUT-003 | SOW-244 OBJ-007 | REQ-005 | AC-005 | VER-005 | Owner ruling: PRD V4-CON-03 names what a missing feed may not imply. |
-| OUT-003 | SOW-248 OBJ-007 | REQ-007 CLM-004 | AC-007 | VER-007 | Owner ruling: PRD §2.3 and the accepted decomposition's allocation of each act, read against the retained material. |
+| OUT-003 | SOW-030 SOW-031 OBJ-007 | REQ-004 | AC-004 | VER-004 | Closed form: the presence-tier meaning above and the reliance rule of `DEL-07-02` give, before the run, that a presence-tier statement supports no reliance in any combination of envelope and condition; the App's result for each constructed combination is compared with that, and its records of execution, dispatch, permission and human decision are compared before and after PEC material is read and shown. |
+| OUT-003 | SOW-244 OBJ-007 | REQ-005 | AC-005 | VER-005 | What the App shows and records with the PEC input absent, compared with the absence it must show and with the conclusions PRD V4-CON-03 says a missing feed may not imply: empty work, readiness and permission. |
+| OUT-003 | SOW-248 OBJ-007 | REQ-007 CLM-004 | AC-007 | VER-007 | The retained PEC material, read by an independent reviewer against each act REQ-007 excludes and against the owner CLM-004 and the decomposition rows of `DEL-07-02` and `DEL-06-01` give for it, and against PRD §2.3 for any call for a PEC provider, adapter or successor. |
 | OUT-003 | SOW-029 OBJ-007 | REQ-009 | AC-009 | VER-009 | The product's own earlier output. Sameness is the commitment here; the comparison guards against change and claims no correctness. |
