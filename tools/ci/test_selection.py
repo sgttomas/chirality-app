@@ -164,6 +164,9 @@ def test_repository_has_no_unclassified_tracked_paths():
 @pytest.mark.parametrize("path", [
     "new-domain/README.md", ".github/ISSUE_TEMPLATE/README.md", "init/new-guide.md",
     "loop/new-input.json", "new-root.rs",
+    # Retired entry and record locations no longer have a rule.
+    "init/init-prompt.md", "loop/LOOP_INIT.md", "conceptual/DECISIONS.md",
+    "foundation/thesis/README.md",
 ])
 def test_unknowns_anywhere_keep_every_product_job(repo, path):
     base = git(repo, "rev-parse", "HEAD")

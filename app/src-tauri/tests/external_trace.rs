@@ -96,7 +96,7 @@ fn exp_r1_applicability_sets_reject_duplicates_without_relabeling_results(){
  }
 }
 
-/// A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md).
+/// A deliverable's `Design/` before 2026-10-30 means its `Work/` (AGENTS.md).
 fn work_locality(path: &str) -> String {
     let parts: Vec<&str> = path.splitn(4, '/').collect();
     match parts.as_slice() {

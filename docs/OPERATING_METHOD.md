@@ -171,7 +171,7 @@ examples do not prove efficiency or operation at the intended scale.
   Source-fidelity review of this post-act consolidation checks its relation
   to the accepted composite, not a retroactive human review of these bytes.
 
-Staged coexistence preserves complete thesis bytes and standing, historical
+Staged coexistence preserves thesis standing, historical
 records, current work and continuing obligations. Keep current applicability
 findable. Account for instruction packaging, tools, paths and consumers before
 changing active shared material. The human's eventual fallback replacement

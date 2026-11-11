@@ -8,7 +8,7 @@
   - R23-32: F-R6 (a linked view over existing records), F-R7 (the thesis check method), F-R8 (SCC-006 treated by SCC-CASE-007 R1), F-R11 (consumers come from DEL-10-03), F-R14; and P-1, P-4 as the person's acts;
   - R23-43;
   - R23-44 (vendoring).
-- **ScopeOfWork pin (R23-5):** `ScopeOfWork.md` sha256 `272f76221dd429a52143e51ef4898ce290669b7be1d773a8fba3476282f04309`. This is the INIT contract; no SCA-V4-001/002/003 block changed it. Its TBD-002 reads OI-017 and OI-018 as open. OI-017 is resolved for this definition run (CURRENT_EXECUTION_BASIS), and OI-018's App part is answered (K-9 as amended by L-2). The wording is carried to the next amendment (R23-11).
+- **ScopeOfWork pin (R23-5):** `ScopeOfWork.md` sha256 `0d785081ccc557ebf9f4027a0b22a136c20eb3415b25e7f92012a9d30844e668`. This is the INIT contract with two owner-directed changes of 2026-11-10: CLM-007 points to the Library's thesis, and REQ-003's thesis part, AC-003 and VER-003 are retired (§4). No SCA-V4-001/002/003 block changed it. Its TBD-002 reads OI-017 and OI-018 as open. OI-017 is resolved for this definition run (CURRENT_EXECUTION_BASIS), and OI-018's App part is answered (K-9 as amended by L-2). The wording is carried to the next amendment (R23-11).
 - **Basis pins** (`shasum -a 256`, 2026-10-04):
   - `docs/PRD.md` `bb6e786f7a6c01dc5ce2f16f58e6c600989a12808ff47ce4fd87924bcc6c49bd` (§6, §8, §9 OQ-12, §11);
   - `docs/OPERATING_METHOD.md` `98836b5240ed235ec2ad38b08a9525dc9f2b366145c0736f7c70d22c1c93c5dd` (§5 closing paragraph, V4-OPS-31/32);
@@ -51,11 +51,11 @@ It does not open a whole-corpus archival audit.
 | I-1 | Consumer lanes (X-1: Root, Runtime, App v3, Piping), historical applicability, packaging and tool paths | DEL-10-03 RA (draft, vendored) | DEP-11-01-008, admitted | Before an obligation row is relied on | Rows are kept with the lanes named in DEP-006 and marked provisional |
 | I-2 | Manual and method pins | DEL-10-01 (EB; CURRENT_EXECUTION_BASIS) | DEP-11-01-009, admitted | Before a selector cites a manual edition | No manual selector is written |
 | I-3 | Adoption status | DEL-11-02 | DEP-11-01-010, admitted | Each account version | `not_supplied` |
-| I-4 | Thesis tree identity | git; PRD §11 | DEP-11-01-012 (document) | Each account version | — |
+| I-4 | Thesis location | Chirality Library `docs/thesis/` (`sgttomas/chirality-library`, edition `library-v3.3.0`); PRD §11 | DEP-11-01-012 (document) | When the thesis is cited | — |
 | O-1 | Continuity hand-over `$defs/continuity_handoff` (CA-v0.1) | DEL-11-03 | DEP-11-03-008, held (SCC-006; F-R8, R1) | Each packet version | DEL-11-03 records it *not supplied* |
 | O-2 | The owner's replacement disposition, returned | from DEL-11-03 | DEP-11-03-015, held | After an attributable owner act | Standing stays "pending; v3.0.1 retained" |
 
-The hand-over (O-1) supersedes DEL-11-03's first-cut `$defs/continuity_input`. DEL-11-03 adopts it in RP-v0.4, which is frozen with this file. It carries the commit, the thesis check exactly as the account records it, the fallback identity standing, the archive verify result, the obligations' status, the adoption status and the replacement standing.
+The hand-over (O-1) supersedes DEL-11-03's first-cut `$defs/continuity_input`. DEL-11-03 adopts it in RP-v0.4, which is frozen with this file. It carries the commit, the thesis check exactly as the account records it (a result for the former App copy; that check is retired, §4), the fallback identity standing, the archive verify result, the obligations' status, the adoption status and the replacement standing.
 
 ## 3. Preservation classes (OUT-001; REQ-001, REQ-002)
 
@@ -66,25 +66,22 @@ Seven classes are built from REQ-001's list and B-HTML d7's "What to carry" (F-R
 | C-1 | Fallback release Chirality v3.0.1 | REFERENCES §2; source commit `485051eac9` | `current_fallback` | REFERENCES §2 | The published release; the source in git | **matches**. Local facts: package.json 3.0.1 at the source commit; the release-preparation commit is its ancestor; it is an ancestor of the account's commit; REFERENCES names it and the installer digest. The remote is not re-checked (no network) |
 | C-2 | App v3 project lane | tree of `projects/chirality-app-dev`; its `AGENTS.md` | `active_lane` | The lane's own entry and `_Coordination` | git history | **passed**: tree `3fb53704…`; 225 commits touch it after the v3.0.1 source. Active: recorded at one commit, never frozen |
 | C-3 | Git-ignored archives (19 locations) | ARCHIVES.md; `archive_digests.json`; `archive_digests.py` | `preserved_evidence` | ARCHIVES.md (with its hazard: never `git clean -x/-X` there) | Read-only access in the original checkout | **passed**: `archive_digests.py verify`, 19 of 19 locations OK, exit 0 (≈20 s). Only where the original checkout is present |
-| C-4 | The complete thesis | tree `foundation/thesis`; PRD §11 | `preserved_basis` | PRD §11 | git | **matches** `47fc49e96c2931ba18090f1a82d56a49f230b3ee` (19 files) |
+| C-4 | The thesis | Chirality Library `docs/thesis/` (edition `library-v3.3.0`), where it is maintained; PRD §11. App holds no copy; its former copy, tree `47fc49e96c2931ba18090f1a82d56a49f230b3ee` (19 files), is in this repository's Git history | `preserved_basis` | PRD §11 | The Library edition; git history for the former copy | **not_checked**: the comparison is retired (§4). The former copy matched its tree at `122c5abcf5` |
 | C-5 | Investigation revision and source inventory | REFERENCES §1; SOURCE_INVENTORY; commit `2b0572fe04` | `preserved_basis` | REFERENCES §1, SOURCE_INVENTORY | `git show <commit>:<path>` | **passed**: the commit exists |
 | C-6 | Archived agent-run records | tag `archive/agent-runs-2026-09-25`; REFERENCES §4 | `preserved_evidence` | The tag | `git show <tag>:<path>` | **matches** `8007c592…` |
 | C-7 | External read-only archive named at the 30% gate | HANDOFF_30_PERCENT.md line 18 (its home path is not repeated) | `preserved_evidence` | That line | Read-only where it lives | **not_checked**: no digest record exists (U-CA-2) |
 
 **Standing values (PROPOSED).** The values are `historical`, `current_fallback`, `active_lane`, `preserved_basis` and `preserved_evidence`. None is v4 authority (CLM-001); the schema refuses any other value. An active lane keeps its own scope. The account never imposes v4 rules on it, never erases it, and never treats new v4 files as its retirement (REQ-001).
 
-## 4. Identity checks (OUT-002; REQ-003; VER-003, VER-004)
+## 4. Identity checks (OUT-002; REQ-003; VER-004)
 
-1. **Thesis (F-R7).**
-   - The git tree id at the account's commit equals PRD §11's tree, and so does HEAD's.
-   - The working tree under it is clean, with no modified, deleted or untracked file (`git status --porcelain --untracked-files=all`). Together these compare the complete file membership and bytes.
-   - VER-003's negative cases run **in memory**: the detector compares the per-file listings and names an omitted, an added and a changed file. The thesis itself is never touched.
+1. **Thesis: no comparison.** The thesis is maintained in the Library and App holds no copy, so there is nothing in App to compare byte for byte; the Library edition is a different revision from the former copy. ScopeOfWork REQ-003's thesis part, AC-003 and VER-003 are retired (owner, 2026-11-10). The F-R7 method (tree id equal to PRD §11's tree, a clean working tree, and in-memory detection of an omitted, an added and a changed file) was run on the former copy at `122c5abcf5` and matched; CA-1 carries that result for that commit only.
 2. **Named material.**
    - C-1: local git facts.
    - C-3: the existing `verify` tool, whose committed digests are keyed by hashed subtree paths because the repository is public. The account records only the summary, never a path below a location or the archive root.
    - C-5, C-6: object existence and the tag target.
    - C-7: no check is possible yet.
-3. **Attribution and standing.** PRD §11 states the thesis is kept "retaining attribution and its nonbinding stated standing", and: "Purpose-level citation does not convert its historical implementation choices into mandatory v4 requirements.". The account checks PRD's statement (`check_ca.py` K-7) and never edits the thesis to conform. Reading the thesis's own front matter for its attribution is left for VER-003's production run, as a limit; this unit does not claim it.
+3. **Attribution and standing.** PRD §11 states: "The thesis retains attribution and its nonbinding stated standing.", and: "Purpose-level citation does not convert its historical implementation choices into mandatory v4 requirements.". `check_ca.py` K-7 checked the PRD's statement as it read at `122c5abcf5`. This unit never read the thesis's own front matter for its attribution; the thesis text is the Library's to maintain.
 
 ## 5. Continuing obligations, owner acts and replacement standing (OUT-003; REQ-004, REQ-006)
 
@@ -133,19 +130,19 @@ A fabricated act whose text is not in its record fails the rule, and an act whos
 |---|---|---|---|
 | CF-1 | The archive tool cannot run (no original checkout, or an error) | C-3 `not_run`, with the tool's exit status; never reported as a change | Rerun where the checkout is present |
 | CF-2 | `verify` reports a change | C-3 `changed`; the hand-over carries it | The owner is told: archives are the owner's (OD-09). The account never "repairs" archive content |
-| CF-3 | The thesis tree differs, or its working tree is dirty | C-4 `differs`; `check_ca.py` K-5/K-6 fail | A discrepancy, exposed and not normalised (AC-003) |
+| CF-3 | Retired with VER-003 (§4): App holds no thesis tree that could differ | — | — |
 | CF-4 | A lane owner supplies obligations | A new row version with a disposition only if evidenced; eligibility only under RE-1 | — |
 | CF-5 | DEL-10-03's consumer list changes after the vendored RA-v0.2 | V-1 prints a NOTICE (live moved since vendoring) | Re-pin deliberately (R23-21), as was done for RA-v0.1 → RA-v0.2 |
 
 ## 8. Verification (designed; `check_ca.py` 37/37 at freeze)
 
-Each rule about the account is one function of the account in `check_ca.py` (`rule_errors`). Each negative case breaks the **real** account in memory and runs those same functions, naming the rule that must refuse it.
+Each rule about the account is one function of the account in `check_ca.py` (`rule_errors`). Each negative case breaks the **real** account in memory and runs those same functions, naming the rule that must refuse it. K-5 to K-8 belong to the thesis comparison retired on 2026-11-10 (§4); they are described as the checker stood at freeze.
 
 | VER | Case | Held by |
 |---|---|---|
 | VER-001 | Every REQ-001 class is present, with its route, standing and retention; no lane is treated as replaced | K-1, K-4, N-6, N-8 |
 | VER-002 | Selectors trace to DEL-10-03's consumer list; a historical pin never becomes current authority | K-10, N-8 |
-| VER-003 | Complete thesis comparison; omitted, added and changed files detected in memory; thesis untouched | K-5, K-6, K-7, K-8 |
+| VER-003 | Retired (§4). At freeze: complete comparison of the former copy; omitted, added and changed files detected in memory | K-5, K-6, K-7, K-8 |
 | VER-004 | Named material identities (C-1, C-3, C-5, C-6) with coverage limits (C-7 not checked) | K-4, K-3 (rebuild), C-3 live verify |
 | VER-005 | Obligations to owners; a fallback-only replacement and an empty disposition never establish retirement | K-11, N-1, N-2, N-3 |
 | VER-006 | Two real owner acts faithfully recorded (OD-09 in full; no recorder named where the record names none); fabricated, altered and self-recorded acts refused. K-9's recorder test is a string comparison (limit) | K-9, N-4, N-5, N-9 |
@@ -177,7 +174,7 @@ Each rule about the account is one function of the account in `check_ca.py` (`ru
 | U-CA-2 | C-7 has no inventory or digest record. Recording one would need `archive_digests.py`-style hashed keys and a write outside this unit's area | HELP_HUMAN to route (the owner's archive) | Before C-7's identity is relied on |
 | U-CA-3 | Remote re-check of REFERENCES §2 | DEL-11-03 coordinator | When a real package is prepared for the owner |
 | U-CA-4 | Closed in CA-v0.2: DEL-11-02's AA-1 status is recorded | — | — |
-| U-CA-5 | Reading the thesis front matter for attribution (VER-003's production run) | O-F | Before the account is relied on as VER-003 evidence |
+| U-CA-5 | Closed: VER-003 is retired (§4) and the thesis is maintained in the Library | — | — |
 
 ## 10. Changes
 

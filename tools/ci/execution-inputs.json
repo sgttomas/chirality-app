@@ -1249,6 +1249,366 @@
       "path": "tools/historical_reconstruction/unsigned_release_input_build/12d26b8db5-278899dad62e/build-driver.py.txt",
       "sha256": "2f97e7894e40f16c275beb8667fe07f53b45b9f79d0e70ad559b1809104ee51e",
       "bound": true
+    },
+    {
+      "source": "execution/_DAG/DAG-004/ACCEPTANCE_RECORD.md",
+      "path": "app/contract_inputs/_DAG/DAG-004/ACCEPTANCE_RECORD.md",
+      "sha256": "31f039688b49fcf077519476435ed6de3e89923d54cd4846c297d277c46143e3",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/DAG-004/GRAPH_BASIS.md",
+      "path": "app/contract_inputs/_DAG/DAG-004/GRAPH_BASIS.md",
+      "sha256": "21835c7be4b2d1c65f38dc492aee28f936a31bd5f58d7df9e3ba7cc48c1aad79",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/DAG-004/HANDOFF_STATE.md",
+      "path": "app/contract_inputs/_DAG/DAG-004/HANDOFF_STATE.md",
+      "sha256": "3c374f5e9fa4cfaa479699cddf5191b69bba2e0fe4707cb17acbe27dddc528ba",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/DAG-004/REVIEW_PACKET.md",
+      "path": "app/contract_inputs/_DAG/DAG-004/REVIEW_PACKET.md",
+      "sha256": "af4a77d0cde37da704abebc03eac2fae28e9c13f56f25b1a274b95aaf21dcd5b",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/_LATEST.md",
+      "path": "app/contract_inputs/_DAG/_LATEST.md",
+      "sha256": "b9353a41fe9765a3d8e7548fceddc1679e37775611b7665251b6f1cf55d4ca2d",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-001/Candidate_Remedies.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Candidate_Remedies.csv",
+      "sha256": "8d3bd50648695bfe629a88b3bbd7de536b90ca32b500de259c7b7d5125f4286b",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-001/Case_Contract.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Case_Contract.md",
+      "sha256": "b671b22e67642d4465ef7b6d63d39226a7216f4f45105a7ca0db85127292f89c",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-001/Case_Datasheet.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Case_Datasheet.md",
+      "sha256": "679e8e47e880f99c9219c30fdaba513c228a05267cf2e25472653a824c15e507",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-001/Case_QA.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Case_QA.md",
+      "sha256": "1201ebe57a2fbbef56f21941c0025736c0fea0e33ee0d26c7baee5d18e3ce7b8",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-001/Evidence_Register.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Evidence_Register.csv",
+      "sha256": "5000507b727179fb81e51b2fc0ffe91c442a3a8251416e4047131ce318163f93",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-001/Open_Questions.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Open_Questions.md",
+      "sha256": "d362d85008c5b4d2f233613b5a9dba55ce0d2d03a3ccc7d2d024398aa3a76a20",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-001/Owner_Workflow_Handoff.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Owner_Workflow_Handoff.md",
+      "sha256": "5bcc9f636fef64d65759cee1622dad19d2816fa2e0c69190f8a425a9099c0cb4",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-001/Ruling_Register.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Ruling_Register.csv",
+      "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-001/Task_Findings.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Task_Findings.csv",
+      "sha256": "a7ee0bc6f521321da114d927e12d103a3098c98f0eefffc4add34fef65e34b8d",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-002/Candidate_Remedies.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Candidate_Remedies.csv",
+      "sha256": "633aadd1c2189b8e618fc321e0af8ad102468a1be974355718eb2a173651ab68",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-002/Case_Contract.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Case_Contract.md",
+      "sha256": "3ee3255d3ddd74a60f9589e99cc63ccfc74ad8141146c7ee8a88238d50a2faa1",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-002/Case_Datasheet.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Case_Datasheet.md",
+      "sha256": "95b495cc9160220a08a82fa73c062a23515dbf3f50a434b2cdc919961f37fb38",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-002/Case_QA.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Case_QA.md",
+      "sha256": "9a0fa87c865b57a1918c3c261ba37ca68186b86f68e692e381fd67f914c78848",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-002/Evidence_Register.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Evidence_Register.csv",
+      "sha256": "5080b4d44279813304f4950f3dc056f05831d909700c43b0ac7610f658956689",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-002/Open_Questions.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Open_Questions.md",
+      "sha256": "41dc4c53bef8de7985a02e2f79b8b5e0d277587133e1d71a38e9faa2db380d98",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-002/Owner_Workflow_Handoff.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Owner_Workflow_Handoff.md",
+      "sha256": "f6316a319defb21eef8292986a97bc2d64fd34c234056293f6e9327aa5008a3e",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-002/Ruling_Register.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Ruling_Register.csv",
+      "sha256": "3e7482c25f0703b952dda7e1795fcc43db017e31b352f32e7a7938ff952e70f0",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-002/Task_Findings.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Task_Findings.csv",
+      "sha256": "11b57ec8260988fc3ab24f047a202c4d0bf99f4d4b33a50dbf2aa6750d8b169a",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-003/Candidate_Remedies.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Candidate_Remedies.csv",
+      "sha256": "c6713bd8e55558719ab23de5dd17d89f233603bdad2af495d3d2e2274a17f5ad",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-003/Case_Contract.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Case_Contract.md",
+      "sha256": "c663b1cadfa2b9ebeaf479eb063f4a030069c70fca8ec2de2a36fcb10444b527",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-003/Case_Datasheet.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Case_Datasheet.md",
+      "sha256": "7019dba8f3374a69cb379d47151461d62f74d29395c18b8f148e578fbcacfe98",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-003/Case_QA.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Case_QA.md",
+      "sha256": "4e21ae210a1be7662661fb07220decf2f09eaf29d8d34b1d8287f64c9c961bf5",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-003/Evidence_Register.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Evidence_Register.csv",
+      "sha256": "45eaba906fbd90197894ccb714135aa281653b5d4bec9eae3a1d0d7d0f78a715",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-003/Open_Questions.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Open_Questions.md",
+      "sha256": "0e845271fa7a740d25d1c051b1b5a6cd789a7f88ca5fffc435513ad71ca1bb12",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-003/Owner_Workflow_Handoff.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Owner_Workflow_Handoff.md",
+      "sha256": "bd1b62cd1d442777c2242b66ceb9a3bc99ef104d638ae6c1a73cae34097f8b60",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-003/Ruling_Register.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Ruling_Register.csv",
+      "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-003/Task_Findings.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Task_Findings.csv",
+      "sha256": "5185c85b728754174979fa546476699c27496847281f51199e15a144c17ebd6c",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-005/Candidate_Remedies.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Candidate_Remedies.csv",
+      "sha256": "01ab79da0a99e69378caa5612b0096635a636e4471febfb2cc8cd5e22fc80b31",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-005/Case_Contract.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Case_Contract.md",
+      "sha256": "f898498f8d4227a6076bf9a7cd9804e9bfb0f8e54d979dca1389b9ba6d1247ce",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-005/Case_Datasheet.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Case_Datasheet.md",
+      "sha256": "dfe481e4719b6419824a0f329b17c4e8300740c725041bbff7158181e9c6c93a",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-005/Case_QA.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Case_QA.md",
+      "sha256": "3230c7b2d50abea5745eb91cf1a754249f9ec7755ba693ab65ca0be5d4f6f91a",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-005/Evidence_Register.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Evidence_Register.csv",
+      "sha256": "9e706de2d3e00fb87bf11b9e79680794d972dca14b288980e46216e9221849e7",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-005/Open_Questions.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Open_Questions.md",
+      "sha256": "8cdf25545060886f6c00684a29d1076cf50bf3a5ee896d68f23d05b36c1e725d",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-005/Owner_Workflow_Handoff.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Owner_Workflow_Handoff.md",
+      "sha256": "f7eeebdcb1f04f5b663fe033696d9b44c2d3a7ad217fab69a5242220edb770ea",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-005/Ruling_Register.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Ruling_Register.csv",
+      "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-005/Task_Findings.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Task_Findings.csv",
+      "sha256": "7328bf44010ad9fd8a4cb579e3276de888dca16ae02e259da39b725a7ab3181c",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-006/Candidate_Remedies.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Candidate_Remedies.csv",
+      "sha256": "5c5da15445b81cefaec13d359ad180ee73f403bfbf3fe48e8b33498c5c7bc342",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-006/Case_Contract.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Case_Contract.md",
+      "sha256": "6f0f4649fe8c6c24513ccc31fd2a6552f6ba1df13aa38a6f7565e2adb4036d35",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-006/Case_Datasheet.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Case_Datasheet.md",
+      "sha256": "8ed48ab72d912b6439bb2b004af0be68216357bc68d14980e5bea22b1b729578",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-006/Case_QA.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Case_QA.md",
+      "sha256": "824e6a76444f9e209479ae2f4969612571af327ce5cf88f7d64a4b5a5bbeced3",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-006/Evidence_Register.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Evidence_Register.csv",
+      "sha256": "9b0687212a9af2150c8bb16c93ea71aa7a8f34a5f1c8df6ccf97c735996dc7f6",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-006/Open_Questions.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Open_Questions.md",
+      "sha256": "e1806e2c67fc55933e272a2f583afd775a6a146b2984cd636bdfa36019929c17",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-006/Owner_Workflow_Handoff.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Owner_Workflow_Handoff.md",
+      "sha256": "59290e8d760460361834aca272b295e41b15a48f722cad43894cb60c7cb93b0a",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-006/Ruling_Register.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Ruling_Register.csv",
+      "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-006/Task_Findings.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Task_Findings.csv",
+      "sha256": "e72492cbec9cf39a33628b040a2c329a1923a05da4f5851e68bd727696bd8463",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-007/Candidate_Remedies.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Candidate_Remedies.csv",
+      "sha256": "e399443bf9455926c99dffc2929476a3436b46e9764172d2bc787fcdc608b7d7",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-007/Case_Contract.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Case_Contract.md",
+      "sha256": "aadc681d537e3d234aa08932f5b147d7cb0da0479a3cd293ad69118095996f60",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-007/Case_Datasheet.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Case_Datasheet.md",
+      "sha256": "f4d1563dd23e164e2485f9b3ccee78d6293e527a1e56179bbf3df5546e5b3984",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-007/Case_QA.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Case_QA.md",
+      "sha256": "53dc0df49eaf856fb72f3b695c4e7082875032d2eb11d578cc1322faa9bc463a",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-007/Evidence_Register.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Evidence_Register.csv",
+      "sha256": "ce82f6a99060bd4a4f5d4ea92d1a550131c3f0757eb6d6d1aa9daeaa1eb8577f",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-007/Open_Questions.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Open_Questions.md",
+      "sha256": "c55f52f2a758e3a773ec79afdebdb6d1a9b7b92f70a74221e45d956e8e61b141",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-007/Owner_Workflow_Handoff.md",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Owner_Workflow_Handoff.md",
+      "sha256": "25e48ce8075868bf26020d8f0eafcf403e5f09884e92889bfe482dfb3e1eca5b",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-007/Ruling_Register.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Ruling_Register.csv",
+      "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b",
+      "bound": true
+    },
+    {
+      "source": "execution/_DAG/cases/SCC-CASE-007/Task_Findings.csv",
+      "path": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Task_Findings.csv",
+      "sha256": "22264e4fd7d3e103a9094482b7904f84771fa9632ce4dbf446f9964d7d0fa9b7",
+      "bound": true
+    },
+    {
+      "source": "execution/_Sources/_LATEST.md",
+      "path": "app/contract_inputs/_Sources/_LATEST.md",
+      "sha256": "8eb0519416e80c1016cf464efb86624a42eaa94c867fe2b46ead7e5b80c9bb91",
+      "bound": true
     }
   ],
   "data": [
@@ -4030,7 +4390,7 @@
     {
       "source": "execution/PKG-11/DEL-11-01/ScopeOfWork.md",
       "copy": "app/contract_inputs/PKG-11/DEL-11-01/ScopeOfWork.md",
-      "sha256": "272f76221dd429a52143e51ef4898ce290669b7be1d773a8fba3476282f04309"
+      "sha256": "0d785081ccc557ebf9f4027a0b22a136c20eb3415b25e7f92012a9d30844e668"
     },
     {
       "source": "execution/PKG-11/DEL-11-01/Work/ca.continuity-account.schema.json",
@@ -4075,302 +4435,7 @@
     {
       "source": "execution/_Coordination/WINDOWS_UNDERTAKING.md",
       "copy": "app/contract_inputs/_Coordination/WINDOWS_UNDERTAKING.md",
-      "sha256": "5a62851aa45885cdaf30f84294803bf62bcf400e049c74e6e288c27ffe7ce053"
-    },
-    {
-      "source": "execution/_DAG/DAG-004/ACCEPTANCE_RECORD.md",
-      "copy": "app/contract_inputs/_DAG/DAG-004/ACCEPTANCE_RECORD.md",
-      "sha256": "31f039688b49fcf077519476435ed6de3e89923d54cd4846c297d277c46143e3"
-    },
-    {
-      "source": "execution/_DAG/DAG-004/GRAPH_BASIS.md",
-      "copy": "app/contract_inputs/_DAG/DAG-004/GRAPH_BASIS.md",
-      "sha256": "21835c7be4b2d1c65f38dc492aee28f936a31bd5f58d7df9e3ba7cc48c1aad79"
-    },
-    {
-      "source": "execution/_DAG/DAG-004/HANDOFF_STATE.md",
-      "copy": "app/contract_inputs/_DAG/DAG-004/HANDOFF_STATE.md",
-      "sha256": "3c374f5e9fa4cfaa479699cddf5191b69bba2e0fe4707cb17acbe27dddc528ba"
-    },
-    {
-      "source": "execution/_DAG/DAG-004/REVIEW_PACKET.md",
-      "copy": "app/contract_inputs/_DAG/DAG-004/REVIEW_PACKET.md",
-      "sha256": "af4a77d0cde37da704abebc03eac2fae28e9c13f56f25b1a274b95aaf21dcd5b"
-    },
-    {
-      "source": "execution/_DAG/_LATEST.md",
-      "copy": "app/contract_inputs/_DAG/_LATEST.md",
-      "sha256": "b9353a41fe9765a3d8e7548fceddc1679e37775611b7665251b6f1cf55d4ca2d"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-001/Candidate_Remedies.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Candidate_Remedies.csv",
-      "sha256": "8d3bd50648695bfe629a88b3bbd7de536b90ca32b500de259c7b7d5125f4286b"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-001/Case_Contract.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Case_Contract.md",
-      "sha256": "b671b22e67642d4465ef7b6d63d39226a7216f4f45105a7ca0db85127292f89c"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-001/Case_Datasheet.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Case_Datasheet.md",
-      "sha256": "679e8e47e880f99c9219c30fdaba513c228a05267cf2e25472653a824c15e507"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-001/Case_QA.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Case_QA.md",
-      "sha256": "1201ebe57a2fbbef56f21941c0025736c0fea0e33ee0d26c7baee5d18e3ce7b8"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-001/Evidence_Register.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Evidence_Register.csv",
-      "sha256": "5000507b727179fb81e51b2fc0ffe91c442a3a8251416e4047131ce318163f93"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-001/Open_Questions.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Open_Questions.md",
-      "sha256": "d362d85008c5b4d2f233613b5a9dba55ce0d2d03a3ccc7d2d024398aa3a76a20"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-001/Owner_Workflow_Handoff.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Owner_Workflow_Handoff.md",
-      "sha256": "5bcc9f636fef64d65759cee1622dad19d2816fa2e0c69190f8a425a9099c0cb4"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-001/Ruling_Register.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Ruling_Register.csv",
-      "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-001/Task_Findings.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-001/Task_Findings.csv",
-      "sha256": "a7ee0bc6f521321da114d927e12d103a3098c98f0eefffc4add34fef65e34b8d"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-002/Candidate_Remedies.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Candidate_Remedies.csv",
-      "sha256": "633aadd1c2189b8e618fc321e0af8ad102468a1be974355718eb2a173651ab68"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-002/Case_Contract.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Case_Contract.md",
-      "sha256": "3ee3255d3ddd74a60f9589e99cc63ccfc74ad8141146c7ee8a88238d50a2faa1"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-002/Case_Datasheet.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Case_Datasheet.md",
-      "sha256": "95b495cc9160220a08a82fa73c062a23515dbf3f50a434b2cdc919961f37fb38"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-002/Case_QA.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Case_QA.md",
-      "sha256": "9a0fa87c865b57a1918c3c261ba37ca68186b86f68e692e381fd67f914c78848"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-002/Evidence_Register.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Evidence_Register.csv",
-      "sha256": "5080b4d44279813304f4950f3dc056f05831d909700c43b0ac7610f658956689"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-002/Open_Questions.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Open_Questions.md",
-      "sha256": "41dc4c53bef8de7985a02e2f79b8b5e0d277587133e1d71a38e9faa2db380d98"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-002/Owner_Workflow_Handoff.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Owner_Workflow_Handoff.md",
-      "sha256": "f6316a319defb21eef8292986a97bc2d64fd34c234056293f6e9327aa5008a3e"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-002/Ruling_Register.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Ruling_Register.csv",
-      "sha256": "3e7482c25f0703b952dda7e1795fcc43db017e31b352f32e7a7938ff952e70f0"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-002/Task_Findings.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-002/Task_Findings.csv",
-      "sha256": "11b57ec8260988fc3ab24f047a202c4d0bf99f4d4b33a50dbf2aa6750d8b169a"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-003/Candidate_Remedies.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Candidate_Remedies.csv",
-      "sha256": "c6713bd8e55558719ab23de5dd17d89f233603bdad2af495d3d2e2274a17f5ad"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-003/Case_Contract.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Case_Contract.md",
-      "sha256": "c663b1cadfa2b9ebeaf479eb063f4a030069c70fca8ec2de2a36fcb10444b527"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-003/Case_Datasheet.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Case_Datasheet.md",
-      "sha256": "7019dba8f3374a69cb379d47151461d62f74d29395c18b8f148e578fbcacfe98"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-003/Case_QA.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Case_QA.md",
-      "sha256": "4e21ae210a1be7662661fb07220decf2f09eaf29d8d34b1d8287f64c9c961bf5"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-003/Evidence_Register.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Evidence_Register.csv",
-      "sha256": "45eaba906fbd90197894ccb714135aa281653b5d4bec9eae3a1d0d7d0f78a715"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-003/Open_Questions.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Open_Questions.md",
-      "sha256": "0e845271fa7a740d25d1c051b1b5a6cd789a7f88ca5fffc435513ad71ca1bb12"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-003/Owner_Workflow_Handoff.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Owner_Workflow_Handoff.md",
-      "sha256": "bd1b62cd1d442777c2242b66ceb9a3bc99ef104d638ae6c1a73cae34097f8b60"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-003/Ruling_Register.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Ruling_Register.csv",
-      "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-003/Task_Findings.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-003/Task_Findings.csv",
-      "sha256": "5185c85b728754174979fa546476699c27496847281f51199e15a144c17ebd6c"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-005/Candidate_Remedies.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Candidate_Remedies.csv",
-      "sha256": "01ab79da0a99e69378caa5612b0096635a636e4471febfb2cc8cd5e22fc80b31"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-005/Case_Contract.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Case_Contract.md",
-      "sha256": "f898498f8d4227a6076bf9a7cd9804e9bfb0f8e54d979dca1389b9ba6d1247ce"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-005/Case_Datasheet.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Case_Datasheet.md",
-      "sha256": "dfe481e4719b6419824a0f329b17c4e8300740c725041bbff7158181e9c6c93a"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-005/Case_QA.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Case_QA.md",
-      "sha256": "3230c7b2d50abea5745eb91cf1a754249f9ec7755ba693ab65ca0be5d4f6f91a"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-005/Evidence_Register.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Evidence_Register.csv",
-      "sha256": "9e706de2d3e00fb87bf11b9e79680794d972dca14b288980e46216e9221849e7"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-005/Open_Questions.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Open_Questions.md",
-      "sha256": "8cdf25545060886f6c00684a29d1076cf50bf3a5ee896d68f23d05b36c1e725d"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-005/Owner_Workflow_Handoff.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Owner_Workflow_Handoff.md",
-      "sha256": "f7eeebdcb1f04f5b663fe033696d9b44c2d3a7ad217fab69a5242220edb770ea"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-005/Ruling_Register.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Ruling_Register.csv",
-      "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-005/Task_Findings.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-005/Task_Findings.csv",
-      "sha256": "7328bf44010ad9fd8a4cb579e3276de888dca16ae02e259da39b725a7ab3181c"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-006/Candidate_Remedies.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Candidate_Remedies.csv",
-      "sha256": "5c5da15445b81cefaec13d359ad180ee73f403bfbf3fe48e8b33498c5c7bc342"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-006/Case_Contract.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Case_Contract.md",
-      "sha256": "6f0f4649fe8c6c24513ccc31fd2a6552f6ba1df13aa38a6f7565e2adb4036d35"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-006/Case_Datasheet.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Case_Datasheet.md",
-      "sha256": "8ed48ab72d912b6439bb2b004af0be68216357bc68d14980e5bea22b1b729578"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-006/Case_QA.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Case_QA.md",
-      "sha256": "824e6a76444f9e209479ae2f4969612571af327ce5cf88f7d64a4b5a5bbeced3"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-006/Evidence_Register.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Evidence_Register.csv",
-      "sha256": "9b0687212a9af2150c8bb16c93ea71aa7a8f34a5f1c8df6ccf97c735996dc7f6"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-006/Open_Questions.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Open_Questions.md",
-      "sha256": "e1806e2c67fc55933e272a2f583afd775a6a146b2984cd636bdfa36019929c17"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-006/Owner_Workflow_Handoff.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Owner_Workflow_Handoff.md",
-      "sha256": "59290e8d760460361834aca272b295e41b15a48f722cad43894cb60c7cb93b0a"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-006/Ruling_Register.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Ruling_Register.csv",
-      "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-006/Task_Findings.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-006/Task_Findings.csv",
-      "sha256": "e72492cbec9cf39a33628b040a2c329a1923a05da4f5851e68bd727696bd8463"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-007/Candidate_Remedies.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Candidate_Remedies.csv",
-      "sha256": "e399443bf9455926c99dffc2929476a3436b46e9764172d2bc787fcdc608b7d7"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-007/Case_Contract.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Case_Contract.md",
-      "sha256": "aadc681d537e3d234aa08932f5b147d7cb0da0479a3cd293ad69118095996f60"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-007/Case_Datasheet.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Case_Datasheet.md",
-      "sha256": "f4d1563dd23e164e2485f9b3ccee78d6293e527a1e56179bbf3df5546e5b3984"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-007/Case_QA.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Case_QA.md",
-      "sha256": "53dc0df49eaf856fb72f3b695c4e7082875032d2eb11d578cc1322faa9bc463a"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-007/Evidence_Register.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Evidence_Register.csv",
-      "sha256": "ce82f6a99060bd4a4f5d4ea92d1a550131c3f0757eb6d6d1aa9daeaa1eb8577f"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-007/Open_Questions.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Open_Questions.md",
-      "sha256": "c55f52f2a758e3a773ec79afdebdb6d1a9b7b92f70a74221e45d956e8e61b141"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-007/Owner_Workflow_Handoff.md",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Owner_Workflow_Handoff.md",
-      "sha256": "25e48ce8075868bf26020d8f0eafcf403e5f09884e92889bfe482dfb3e1eca5b"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-007/Ruling_Register.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Ruling_Register.csv",
-      "sha256": "7156878586a26fbeb8a915e6cc5f2f3ab4078d9a30b4869f45cfa4b58b66b77b"
-    },
-    {
-      "source": "execution/_DAG/cases/SCC-CASE-007/Task_Findings.csv",
-      "copy": "app/contract_inputs/_DAG/cases/SCC-CASE-007/Task_Findings.csv",
-      "sha256": "22264e4fd7d3e103a9094482b7904f84771fa9632ce4dbf446f9964d7d0fa9b7"
+      "sha256": "5b323fa0eabb9b94172d9bb18902b2cf55eca19c633ba94498204f6537894eb1"
     },
     {
       "source": "execution/_Decomposition/Allocation_Rationale.csv",
@@ -4581,11 +4646,6 @@
       "source": "execution/_ScopeChange/_LATEST.md",
       "copy": "app/contract_inputs/_ScopeChange/_LATEST.md",
       "sha256": "19cf31f14da259d64c52b33f52598dbe66381f0a887b34a13d3eccce9388e657"
-    },
-    {
-      "source": "execution/_Sources/_LATEST.md",
-      "copy": "app/contract_inputs/_Sources/_LATEST.md",
-      "sha256": "8eb0519416e80c1016cf464efb86624a42eaa94c867fe2b46ead7e5b80c9bb91"
     },
     {
       "source": "execution/PKG-01/DEL-01-06/Evidence/PKG/terms/OpenAI.json",

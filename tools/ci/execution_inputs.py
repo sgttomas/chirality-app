@@ -2,6 +2,9 @@
 
 The manifest records reviewed moves and selected, byte-identical App copies.
 It does not change a historical digest or make an unregistered input available.
+A ``code`` row is a move: the authoring locator no longer exists and ``path``
+holds the bytes. Rows whose authoring source was retired (the ``_DAG`` and
+``_Sources`` records) are moves too, bound to their retained App copy.
 """
 from __future__ import annotations
 

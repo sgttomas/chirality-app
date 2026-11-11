@@ -5,7 +5,7 @@ A few prototypes keep their pre-rename bytes because those bytes are recorded
 identities (the examination support identity and packaged external_trace
 examples). This runner checks the recorded hash, then executes the script with
 a deliverable's former `Design` path components read as `Work`
-(loop/LOOP_INIT.md). The file on disk is never changed.
+(AGENTS.md). The file on disk is never changed.
 
     python3 tools/run_recorded_prototype.py app/contract_inputs/PKG-09/DEL-09-01/Work/prototype/check_exp.py
     python3 tools/run_recorded_prototype.py app/contract_inputs/PKG-03/DEL-03-03/Work/prototype/observe_map.py --run DIR

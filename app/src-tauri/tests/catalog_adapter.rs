@@ -349,7 +349,7 @@ fn invalid_host_claim_retained_raw_then_unknown_no_promoted_act() {
  assert!(matches!(h[2],proposal::SubmissionObservation::OutcomeUnknown { .. }));
 }
 
-/// A deliverable's `Design/` before 2026-10-30 means its `Work/` (loop/LOOP_INIT.md).
+/// A deliverable's `Design/` before 2026-10-30 means its `Work/` (AGENTS.md).
 fn work_locality(path: &str) -> String {
     let parts: Vec<&str> = path.splitn(4, '/').collect();
     match parts.as_slice() {

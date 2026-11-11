@@ -238,7 +238,8 @@ or interfere with the owner's running applications.
 
 Preserve release tags, imported ancestry and existing verification criteria.
 No force pushes, protection bypasses, permission changes or release actions.
-Do not modify `foundation/thesis/`, the shared Chirality library, SWBPIPE or
+Do not modify the shared Chirality library (which maintains the thesis at
+`docs/thesis/`, selected edition `library-v3.3.0`; App holds no maintained copy), SWBPIPE or
 packaged role/workflow assets as incidental portability work. Small platform
 changes may use short-lived branches/PRs; no long-lived Windows fork is selected.
 Completion returns through the host's delegated-task mechanism to Agent 0;
