@@ -76,7 +76,7 @@ Choices that define the product:
 
 - The panel shows what it received. Each display is traced to the definition that owns its meaning, and a missing definition or host input is shown as missing.
 - Names in the contract and its schema are this contract's own labels; no wire field, wording, layout or component is selected by them.
-- No case runs on a SWBPIPE candidate while the owner holds live SWBPIPE joins; only the owner releases that hold, by resuming SWBPIPE UI-SUCCESSOR work. The contract and its panel-double cases do not wait for it.
+- Cases on a SWBPIPE candidate are outside App v4's release and are run in support of SWBPIPE. The contract and its panel-double cases do not wait for them.
 - A person's decisions never travel as panel inputs. They are the host's captures, relayed.
 - Cases run on the panel double until a host candidate exists, and results on the double are kept apart from results on a candidate.
 - Cases use the shared fixture catalogue of `DEL-03-01`.

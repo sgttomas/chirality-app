@@ -70,7 +70,7 @@ Boundary:
 
 ## Production and Verification Method — Praxeology
 
-The definition and the questions come first, from the accepted basis. The owner's choices of operation, autonomy and environment and SWBPIPE's answers are obtained through the human before the dependent definition is closed or anything is run. The workflow is authored and reviewed through the App's own workflow-making. The round trip is run when its contributions exist. No round-trip case joins a SWBPIPE candidate live while the owner holds SWBPIPE joins; only the owner releases that hold, by resuming SWBPIPE UI-SUCCESSOR work. Catalog receiving is an offline check of files SWBPIPE delivered against the revision the App adopted.
+The definition and the questions come first, from the accepted basis. The owner's choices of operation, autonomy and environment and SWBPIPE's answers are obtained through the human before the dependent definition is closed or anything is run. The workflow is authored and reviewed through the App's own workflow-making. The round trip is run when its contributions exist. Catalog receiving is an offline check of files SWBPIPE delivered against the revision the App adopted.
 
 - **VER-001** — Inspect the definition against the seven scope items and trace each user activity and the complete activity to an output, an owner and a check. Compare the operation, autonomy and environment named with the owner's recorded choices.
 - **VER-002** — Examine the workflow and its transfer contract against PRD V4-WF-01…06 and the App's receiving interface: identity, reviewed original bytes, declarations and revision history on both sides, and the treatment of missing tools and checkpoints.

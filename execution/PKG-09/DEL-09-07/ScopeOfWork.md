@@ -66,7 +66,7 @@ Boundary:
 
 ## Production and Verification Method — Praxeology
 
-The activity definition from DEL-09-06 and the contribution received from SWBPIPE fix the candidates and the operation policy before anything dependent is run. No case joins a SWBPIPE candidate live while the owner holds SWBPIPE joins; only the owner releases that hold, by resuming SWBPIPE UI-SUCCESSOR work. The cases are prepared here; SWBPIPE's execution, traffic and receipt observations arrive through the human; the dossier is assembled with linked evidence and an independent examiner checks the join. Records use the DEL-09-01 formats, with one identification record for the candidate pair. Tests implement the criteria above and add none.
+The activity definition from DEL-09-06 and the contribution received from SWBPIPE fix the candidates and the operation policy before anything dependent is run. The cases are prepared here; SWBPIPE's execution, traffic and receipt observations arrive through the human; the dossier is assembled with linked evidence and an independent examiner checks the join. Records use the DEL-09-01 formats, with one identification record for the candidate pair. Tests implement the criteria above and add none.
 
 - **VER-001** — Inspect the case plan and the dossier against the five scope items, V4-EXM-20…23 and the activity definition and configuration actually received.
 - **VER-002** — With SWBPIPE's owner, observe the live embedded journey on the candidates: catalog reads, table views, each accepted row and the rejected row, the applied state, the solve result, origins and receipts. Confirm the request reached the person's acceptance.

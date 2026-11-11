@@ -75,9 +75,6 @@ needs:
     first activity, and any addition
     to the reserved acts or routine-permission treatment that operation needs.
   when: Before the activity definition is closed and before any round-trip case is run.
-- from: external:owner hold on SWBPIPE joins
-  condition: The owner releases the hold on live SWBPIPE joins by resuming SWBPIPE UI-SUCCESSOR work.
-  when: Before any live round-trip case.
 - from: external:person performing the checkpoint act
   condition: A person performs the declared checkpoint act and the acceptance in the round trip while
     the examiner observes.

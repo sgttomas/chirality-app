@@ -65,7 +65,7 @@ Boundary:
 
 ## Production and Verification Method — Praxeology
 
-The examination owner first binds the upstream contributions and the open decisions and prepares the cases. SWBPIPE's evidence arrives through the human. Cases run only when the operation, the policy, the host environment and the contributions exist. No case joins a SWBPIPE candidate live while the owner holds SWBPIPE joins; only the owner releases that hold, by resuming SWBPIPE UI-SUCCESSOR work. The two witnesses are joined around the same operation boundary and may share one evidence set. Result records and the work account have one defined form, checked against its rules before they are relied on, and a rehearsal on a test double never counts toward a witness.
+The examination owner first binds the upstream contributions and the open decisions and prepares the cases. SWBPIPE's evidence arrives through the human. Cases run only when the operation, the policy, the host environment and the contributions exist. The two witnesses are joined around the same operation boundary and may share one evidence set. Result records and the work account have one defined form, checked against its rules before they are relied on, and a rehearsal on a test double never counts toward a witness.
 
 - **VER-001** — Inspect the input account against the catalog, proposal and receiving contracts, the policy in force and the candidate evidence supplied.
 - **VER-002** — On the candidates, exercise access never enabled, unavailable and enabled by the person, and disabling while a proposal is queued; compare the external route with the host's catalog, validation and autonomy policy. Record which interface the host selected.
