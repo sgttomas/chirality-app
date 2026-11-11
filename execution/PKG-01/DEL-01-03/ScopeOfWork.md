@@ -25,7 +25,7 @@ It is the UX_UI_SLICE `DEL-01-03` of PKG-01 in the accepted decomposition, servi
 | SOW-128 | Plan visibility and revision, and the visible supplier version; `DEL-01-01` supplies and verifies the version. Registry storage and checker implementation are design choices | ARCHITECTURE §3 |
 | SOW-129 | The plan interaction the workflow-making experience receives; requests, outcomes, attachments and drafts are `DEL-01-04`'s share. Reuse of earlier interface code is conditional | ARCHITECTURE §3 |
 
-Other sources are PRD V4-EXE-03, V4-AUT-03 and V4-ROLE-03, and the plan, tool and descendant observations of EXAMINATION V4-EXM-10, V4-EXM-11 and V4-EXM-13. It is one of the deliverables whose results publication punchlist P3 gathers, and its plan and execution views are part of the core loop of PRD V4-REP-01.
+Other sources are PRD V4-EXE-03, V4-AUT-03 and V4-ROLE-03, and the plan, tool and descendant observations of EXAMINATION V4-EXM-10, V4-EXM-11 and V4-EXM-13.
 
 ## Deliverable Definition — Ontology
 

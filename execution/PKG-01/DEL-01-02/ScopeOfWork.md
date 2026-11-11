@@ -26,7 +26,7 @@ It is the BACKEND_FEATURE_SLICE `DEL-01-02` of PKG-01 in the accepted decomposit
 | SOW-065 | Observed events and unknown outcomes stay distinct | PRD V4-EXE-03 |
 | SOW-125 | The required restart and request behaviour holds whatever code implements it | ARCHITECTURE §3 reuse candidates |
 
-Its examination scenario is EXAMINATION V4-EXM-11. It contributes to publication punchlist P3 (interruption and recovery; close, reopen and Quit), to the return to unfinished work in P2, and to the interruption and restart elements of the core loop of PRD V4-REP-01.
+Its examination scenario is EXAMINATION V4-EXM-11.
 
 ## Deliverable Definition — Ontology
 

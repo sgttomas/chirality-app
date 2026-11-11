@@ -13,7 +13,7 @@ package_objective_refs: [OBJ-001, OBJ-002, OBJ-003]
 
 A person chooses how the agent in a conversation relates to them: as HELP_HUMAN, HELPS_HUMANS or WORKING_ITEMS, or with no role. The App adds the chosen role's guidance to the harness's own instructions without replacing them, gives delegated children their role and TASK guidance the same way, and tells the truth about which role limits are only stated and which the harness enforces. This deliverable contributes the App's shipped guidance documents and role set, the role choice, the composition and supply of guidance at a conversation's start, the record of what was actually supplied, and the account of role limits and of observed departures from them.
 
-It serves OBJ-003 (the same four roles, supplied additively, with a bounded executor that does not delegate; PRD V4-APP-03, V4-ROLE-01, V4-ROLE-02, V4-ROLE-03), OBJ-001 (the guidance contribution to the native workflow-making loop) and OBJ-002 (the guidance contribution to the chosen App architecture; ARCHITECTURE §3). The accepted decomposition assigns it as a backend feature of PKG-02. Every conversation of the journeys of publication punchlist P1 and P2 starts with its supply.
+It serves OBJ-003 (the same four roles, supplied additively, with a bounded executor that does not delegate; PRD V4-APP-03, V4-ROLE-01, V4-ROLE-02, V4-ROLE-03), OBJ-001 (the guidance contribution to the native workflow-making loop) and OBJ-002 (the guidance contribution to the chosen App architecture; ARCHITECTURE §3). The accepted decomposition assigns it as a backend feature of PKG-02.
 
 | Accepted scope | Local contribution | Output |
 |---|---|---|

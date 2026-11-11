@@ -21,7 +21,7 @@ It is the CI_CD_CHANGE `DEL-01-06` of PKG-01 in the accepted decomposition, the 
 | SOW-117 | The supplier's written sign-in distribution position is held before public release beyond owner use | PRD OQ-08; ARCHITECTURE §6, §8 |
 | SOW-134 | Signing and notarisation of the App and the Codex files, with their entitlements | ARCHITECTURE §3 |
 
-It owns publication punchlist P7 (the final candidate with verified resource, profile and supplier identity, signed, notarised, stapled and launched from a quarantined install), the terms position of the execution basis's release list and the statement of the release's limitations, supplies the notices of P6, and supplies the signed installed identity and the entitlements that the keychain protection of P4 relies on. The target is version 4.0.0 on macOS on Apple Silicon, minimum macOS 15, bundle identifier `com.chirality.app`.
+The target is version 4.0.0 on macOS on Apple Silicon, minimum macOS 15, bundle identifier `com.chirality.app`.
 
 ## Deliverable Definition — Ontology
 

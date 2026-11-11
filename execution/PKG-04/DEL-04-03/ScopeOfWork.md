@@ -13,7 +13,7 @@ package_objective_refs: [OBJ-004, OBJ-005]
 
 This deliverable keeps what the person decided and what each run did recoverable from files alone, without the conversation that produced them. Each recorded human act names who performed it, who recorded it, and the exact content, scope and purpose it concerned, and is shown as lapsed when that content changes. Each run leaves a compact record that links the host's own evidence instead of copying it. The App keeps these records in its own store, outside the working tree an agent edits, and does not rely on version control to manage them. It contributes the record format, the App's writer and reader with the store they keep, the handling of lapse, the cases that examine them, and the shared meaning a host's own run recording uses.
 
-It covers SOW-092, SOW-093, SOW-094, SOW-095, SOW-096, SOW-143 and SOW-186, for OBJ-004 (a shared record contract that preserves host authority) and OBJ-005 (attributable acts, standing and reconstructable provenance). Its sources are PRD V4-REC-01 to V4-REC-06, V4-AUT-03, V4-HOST-02 and V4-PM-06, and HOST_INTEGRATION V4-HI-25, V4-HI-30 to V4-HI-33, V4-HI-70 and V4-HI-71. Publication punchlist P2 rests on these records where a person registers a workflow and later reuses it under their approval policy.
+It covers SOW-092, SOW-093, SOW-094, SOW-095, SOW-096, SOW-143 and SOW-186, for OBJ-004 (a shared record contract that preserves host authority) and OBJ-005 (attributable acts, standing and reconstructable provenance). Its sources are PRD V4-REC-01 to V4-REC-06, V4-AUT-03, V4-HOST-02 and V4-PM-06, and HOST_INTEGRATION V4-HI-25, V4-HI-30 to V4-HI-33, V4-HI-70 and V4-HI-71.
 
 ## Deliverable Definition — Ontology
 
