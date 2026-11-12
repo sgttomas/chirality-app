@@ -364,3 +364,107 @@ test('a press refused before any host command is said under the Run guide\'s Nex
   for(let node=result;node;node=node.parentNode)assert.notEqual(node,studio,'the result is outside the studio');
   await React.act(async()=>root.unmount());
 });
+
+// Review rounds 2 and 3 of pull request 241. A press's command succeeded, the
+// view refresh after it failed, and the guide went on reading the cached run:
+// "Ready to start", "Nothing has been sent yet", Start enabled. Marking the
+// view by object identity was then defeated by a late reply from before the
+// press, and by a first refresh that succeeded before a second one failed.
+const pressView=()=>{
+  const g={home:'account',appSession:'s1',spawnCounter:1};
+  const prepared={reference:'run-1',conversation:'T1',home:'account',generation:g,preparationOrder:0,workflow:{name:'invented-flow'},lifecycle:{state:'prepared; not a run until its start turn is observed'},status:{}};
+  const view=(runs=[prepared])=>({context:{sourceRef:'src',generation:g},projectLibraryAvailable:true,activeLibrary:null,libraries:[],reviews:[],drafts:{drafts:[]},
+    selections:[{sourceRef:'src',threadId:'T1',selection:{state:'selected',reference:'sel',runnable:true,identity:{name:'invented-flow',origin:'project',revision:'rev-1-0123456789'}}}],runs});
+  const opened={...prepared,source:'s',lifecycle:{state:"open (live); only the person's explicit end ends it"}};
+  return {g,view,opened,threads:[{generation:g,threadId:'T1',model:'invented-model',status:{type:'idle'}}]};
+};
+async function pressPanel({observe}){
+  const {g,view,opened,threads}=pressView();
+  const c=document.createElement('div');const root=createRoot(c);const calls=[];
+  // The App's ordered reads, as hostReads.ts gives them: reads are numbered when they start.
+  const order={started:1,applied:1};
+  const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
+  let data=view();
+  const show=()=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host:{state:'ready',generation:g,workflowRoot:data,threads,serverRequests:[]},view:'run',
+    hostReads:{started:()=>order.started,applied:order.applied},
+    act:async(command,args)=>{calls.push([command,args]);return {state:'native workflow-text turn observed; run opened'};},
+    observeView:()=>observe({order,apply:async next=>{data=next;}})})));
+  await show();
+  const guide=()=>c.querySelectorAll(n=>n.getAttribute('aria-label')==='Run a workflow')[0];
+  const button=label=>guide().querySelectorAll(n=>n.localName==='button').find(n=>n.textContent===label);
+  await React.act(async()=>props(guide().querySelectorAll(n=>n.localName==='select')[0]).onChange({target:{value:'T1'}}));
+  return {c,calls,order,view,opened,guide,button,props,show,set:next=>{data=next;},close:()=>React.act(async()=>root.unmount())};
+}
+const WITHHELD=/Next: The App hasn't yet read its state again since your last press/;
+const CACHED=/Ready to start|has not been sent|Nothing has been sent yet|Ready to run/;
+
+test('after a press whose refresh fails, a late reply from before the press does not bring the cached run back',async()=>{
+  const ui=await pressPanel({observe:async({order})=>{order.started++;throw new Error('Controlled view refresh unavailable');}});
+  assert.ok(ui.button('Start the run'));
+  await React.act(async()=>ui.props(ui.button('Start the run')).onClick());
+  assert.deepEqual(ui.calls.map(call=>call[0]),['workflow_send_run']);
+  await ui.show();
+  assert.match(ui.guide().textContent,WITHHELD);assert.doesNotMatch(ui.guide().textContent,CACHED);
+  assert.match(ui.guide().textContent,/Start requested; see Progress for what happened\./,'the press\'s own result');
+  assert.equal(ui.button('Start the run'),undefined);
+  assert.ok(ui.c.querySelectorAll(n=>n.getAttribute('aria-label')==='Workflow observation limit').length>0,'the refresh failure stays visible');
+  // A separately deserialized copy of the view from before the press arrives: a
+  // different object, from a read that started before the press settled.
+  ui.set(structuredClone(ui.view()));
+  await ui.show();
+  assert.match(ui.guide().textContent,WITHHELD,'a different object is not a newer read');assert.doesNotMatch(ui.guide().textContent,CACHED);
+  assert.equal(ui.button('Start the run'),undefined);
+  // A read that started after the press settled is applied: the guide reads from it.
+  ui.order.started++;ui.order.applied=ui.order.started;ui.set(ui.view([ui.opened]));
+  await ui.show();
+  assert.doesNotMatch(ui.guide().textContent,WITHHELD);
+  assert.ok(ui.button('End this run'));
+  await ui.close();
+});
+
+test('a press whose command rejects leaves the view withheld: what the host did is not known',async()=>{
+  const {g,view,threads}=pressView();
+  const c=document.createElement('div');const root=createRoot(c);const order={started:1,applied:1};const data=view();let observes=0;
+  const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
+  const show=()=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host:{state:'ready',generation:g,workflowRoot:data,threads,serverRequests:[]},view:'run',
+    hostReads:{started:()=>order.started,applied:order.applied},act:async()=>{throw new Error('invented start outcome unknown');},
+    observeView:async()=>{observes++;}})));
+  await show();
+  const guide=()=>c.querySelectorAll(n=>n.getAttribute('aria-label')==='Run a workflow')[0];
+  await React.act(async()=>props(guide().querySelectorAll(n=>n.localName==='select')[0]).onChange({target:{value:'T1'}}));
+  await React.act(async()=>props(guide().querySelectorAll(n=>n.localName==='button').find(n=>n.textContent==='Start the run')).onClick());
+  await show();
+  assert.equal(observes,0,'a rejected command attempts no refresh');
+  assert.match(guide().textContent,WITHHELD);assert.doesNotMatch(guide().textContent,CACHED);
+  assert.match(guide().textContent,/Couldn't start the run: invented start outcome unknown/,'the press\'s own result');
+  // The App's next status read, started after the press settled, is applied.
+  order.started++;order.applied=order.started;
+  await show();
+  assert.doesNotMatch(guide().textContent,WITHHELD);
+  await React.act(async()=>root.unmount());
+});
+
+test('a first refresh that succeeds and a follow-up refresh that fails within one press leave the view withheld',async()=>{
+  const {g,view,threads}=pressView();
+  const library={reference:'lib:project',origin:'project',sourceRoot:'project',root:{encoding:'unix_bytes',bytes:[47,112]},registered:[{name:'invented-flow',sequence:1,revision:'rev-1-0123456789',label:'registered',selectable:true}]};
+  const base=()=>({...view(),activeLibrary:'lib:project',libraries:[library]});
+  const c=document.createElement('div');const root=createRoot(c);const order={started:1,applied:1};let data=base();const calls=[];let observes=0;
+  const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
+  const show=()=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host:{state:'ready',generation:g,workflowRoot:data,threads,serverRequests:[]},view:'run',
+    hostReads:{started:()=>order.started,applied:order.applied},act:async(command,args)=>{calls.push(command);return {state:'controlled'};},
+    // The first refresh after the command succeeds and is applied; the one after the follow-up draft observation fails.
+    observeView:async()=>{observes++;order.started++;if(observes===1){order.applied=order.started;data=base();return;}throw new Error('Controlled follow-up refresh unavailable');}})));
+  await show();
+  const refine=c.querySelectorAll(n=>n.localName==='button').find(n=>n.textContent==='Refine from the revision store…');
+  assert.ok(refine,'the studio\'s refine control');
+  await React.act(async()=>props(refine).onClick());
+  assert.deepEqual(calls,['workflow_refine_registered','workflow_observe_drafts']);assert.equal(observes,2);
+  await show();
+  const guide=c.querySelectorAll(n=>n.getAttribute('aria-label')==='Run a workflow')[0];
+  assert.match(guide.textContent,WITHHELD,'the view shown was read before the follow-up command settled');
+  assert.equal(guide.querySelectorAll(n=>n.localName==='button').length,0);
+  order.started++;order.applied=order.started;
+  await show();
+  assert.doesNotMatch(c.querySelectorAll(n=>n.getAttribute('aria-label')==='Run a workflow')[0].textContent,WITHHELD);
+  await React.act(async()=>root.unmount());
+});

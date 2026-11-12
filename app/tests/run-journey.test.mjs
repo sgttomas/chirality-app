@@ -538,6 +538,38 @@ test('a result line says only what the command established', () => {
   assert.equal(guideResultWords({command:'workflow_open_project_library', message:'{}', failed:false, settled:true}).words, "Opened this project's workflow library.", 'opening the library is not having listed it');
 });
 
+// Review rounds 2 and 3 of pull request 241: after a start that succeeded, a
+// view from before the press read "Ready to start", "Nothing has been sent
+// yet" and offered Start again; with a marker set, other steps still showed
+// cached states as current.
+test('while its view may be from before the last press, the guide shows none of its steps and offers nothing', async () => {
+  const preparedRun = {reference:'run-1', conversation:'T1', home:'account', generation:g, preparationOrder:0, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{}};
+  const earlier = {reference:'run-0', conversation:'T1', home:'account', generation:{...g, spawnCounter:0}, source:'s', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}};
+  const view = {data:data({selections:selected(), runs:[preparedRun, earlier]}), outcome:{command:'workflow_send_run', message:'{"state":"native workflow-text turn observed; run opened"}', failed:false, settled:true}};
+  const c = document.createElement('div'); const root = createRoot(c); const calls = [];
+  const render = (viewStale, busy = false) => React.act(async () => root.render(React.createElement(RunWorkflowGuide, {data:view.data, host:host(), thread:'T1', busy, text:'', viewStale,
+    chooseThread:() => {}, setText:() => {}, act:async (command, args) => { calls.push({command, args}); }, outcome:view.outcome, showConversation:() => {}})));
+  await render(false);
+  assert.ok(button(c, 'Start the run'), 'the view alone offers Start');
+  assert.match(region(c, 'Run a workflow').textContent, /Ready to run\./);
+  await render(true);
+  const section = region(c, 'Run a workflow');
+  assert.match(section.textContent, /^Run a workflowNext: The App hasn't yet read its state again since your last press, so it isn't showing this view's steps/);
+  assert.match(region(c, 'Run a workflow — last result').textContent, /^Start requested; see Progress for what happened\./, 'the press\'s own result stays');
+  assert.deepEqual(all(section, 'button').map(node => node.textContent), ['Show the conversation'], 'no start, prepare, end or choice is offered');
+  assert.equal(all(section, 'li').length, 0, 'none of the steps is shown');
+  assert.doesNotMatch(section.textContent, /Ready to start|Ready to run|has not been sent|Nothing has been sent yet|Prepared resolve-spacing|Open —|Working/, 'nothing cached is shown as current, earlier runs included');
+  // While the press is still in progress the steps stay, disabled, and its result is not yet said.
+  await render(true, true);
+  assert.equal(region(c, 'Run a workflow — last result'), undefined, 'no result is claimed beside steps from before the press');
+  for (const node of all(region(c, 'Run a workflow'), 'button')) if (!/Show the conversation/.test(node.textContent)) assert.equal(props(node).disabled, true, `${node.textContent} is disabled while the press is in progress`);
+  await render(false);
+  assert.ok(button(c, 'Start the run'), 'once a read started after the press is applied, the view is shown again');
+  assert.ok(region(c, 'Run a workflow — last result'));
+  assert.deepEqual(calls, []);
+  await React.act(async () => root.unmount());
+});
+
 test('a library folder the App could not list is said where the list would be', async () => {
   const base = data().libraries[0];
   const unavailable = {...base, entryListing:{state:'unavailable', reference:'listing-2', libraryRef:'lib:project', entries:[], limits:['library entry folder unreadable: invented cause']}};

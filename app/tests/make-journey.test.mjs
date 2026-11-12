@@ -498,11 +498,27 @@ for (const replacement of ['draft choice', 'library']) test(`a queued Continue r
   }
 });
 
-// Review round 2 of pull request 241: a reply that resolves with a limit was summarised as plain success.
-test('a drafts folder the App could not read is said in the guide', async () => {
-  const ui = await mount({host:host(), data:data({drafts:{drafts:[], limit:'drafts folder refused (invented cause); nothing outside the library is listed'}})});
-  assert.match(region(ui.c, 'Make a workflow from your work').textContent, /The App couldn't read this library's drafts: drafts folder refused \(invented cause\); nothing outside the library is listed/);
-  await ui.rerender({data:data({drafts:{drafts:[], limit:null}})});
-  assert.doesNotMatch(region(ui.c, 'Make a workflow from your work').textContent, /couldn't read this library's drafts/);
-  await ui.close();
+// Review rounds 2 and 3 of pull request 241: a reply that resolves with a
+// limit was summarised as plain success, and with a not-refreshed marker set
+// the guide still said "Trial … is ready to send".
+test('a drafts folder the App could not read is said in the guide, and a view that may be from before the last press shows no draft, trial or readiness', async () => {
+  const draft = {name:'spacing-summary', state:'draft', content:{value:'8490609ce68a61af'}, findings:[], trials:[{reference:'trial:1', kind:'clean', sequence:1, trialConversation:null, broughtBack:[]}]};
+  const prepared = {pendingTrials:[{reference:'trial:1', kind:'clean', sequence:1, draftName:'spacing-summary'}]};
+  const c = document.createElement('div'); const root = createRoot(c); const calls = [];
+  const render = (view, viewStale, busy = false) => React.act(async () => root.render(React.createElement(MakeWorkflowGuide, {data:view, host:host(), busy, viewStale,
+    outcome:{command:'workflow_trial_prepare', message:'', failed:false, settled:true}, act:async (command, args) => { calls.push({command, args}); }, offerComposer:() => {}})));
+  await render(data({drafts:{drafts:[], limit:'drafts folder refused (invented cause); nothing outside the library is listed'}}), false);
+  assert.match(region(c, 'Make a workflow from your work').textContent, /The App couldn't read this library's drafts: drafts folder refused \(invented cause\); nothing outside the library is listed/);
+  await render(data({drafts:{drafts:[draft]}, ...prepared}), false);
+  assert.match(region(c, 'Make a workflow from your work').textContent, /spacing-summary/);
+  await render(data({drafts:{drafts:[draft]}, ...prepared}), true);
+  const section = region(c, 'Make a workflow from your work');
+  assert.match(next(c) || section.textContent, /The App hasn't yet read its state again since your last press/);
+  assert.equal(all(section, 'button').length, 0, 'nothing is offered');
+  assert.doesNotMatch(section.textContent, /spacing-summary|ready to send|not registered|Trials so far|Unfinished drafts/, 'no draft state, trial or readiness is shown as current');
+  assert.ok(region(c, 'Make a workflow — last result'), 'the press\'s own result stays');
+  await render(data({drafts:{drafts:[draft]}, ...prepared}), true, true);
+  assert.equal(region(c, 'Make a workflow — last result'), undefined, 'no result is claimed while the press is in progress');
+  assert.deepEqual(calls, []);
+  await React.act(async () => root.unmount());
 });

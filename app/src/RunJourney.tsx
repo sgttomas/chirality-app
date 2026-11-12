@@ -2,7 +2,7 @@ import { conversationLabel, nativePathText } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
 import { chatWorkflow, workflowAssurance } from "./workflowSelection";
 import { ProjectFolderSummary, appProjectFolder } from "./WorkflowContext";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 /** What each guide command did, in the person's words. */
 const ACTION_WORDS: Record<string, [string, string]> = {
@@ -169,8 +169,25 @@ function RunResult({ run, host, loaded, showConversation }: { run: Json; host: J
   </li>;
 }
 
-export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, text: personText, setText, outcome, showConversation }: {
-  data: Json; host: Json; thread: string; chooseThread: (thread: string) => void; act: Act; busy: boolean;
+/** Said in a guide while no status read started after the last press has been applied. */
+export const VIEW_NOT_REFRESHED = "The App hasn't yet read its state again since your last press, so it isn't showing this view's steps: they would be from before that press. It reads again by itself; if this stays, see the message below.";
+/**
+ * A guide while what it holds may be from before the last press: its heading,
+ * that statement and the press's own result, and none of its steps. Nothing
+ * cached is shown as current and no control is offered.
+ */
+export function GuideWithheld({ id, label, title, outcome, resultLabel, only, children }: { id: string; label: string; title: string; outcome?: GuideOutcome | null; resultLabel: string; only: string[]; children?: ReactNode }) {
+  return <section id={id} className="workflow-stage run-journey" aria-label={label}>
+    <h2>{title}</h2>
+    <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {VIEW_NOT_REFRESHED}</p>
+    <GuideResult label={resultLabel} outcome={outcome} only={only}/>
+    {children}
+  </section>;
+}
+const RUN_COMMANDS = ["workflow_open_project_library", "workflow_library_entries_refresh", "workflow_review_library_entries", "workflow_select_listed", "workflow_select_production_bundle", "workflow_follow_newer_revision", "workflow_prepare_run", "workflow_send_run", "workflow_end_run"];
+
+export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, text: personText, setText, outcome, showConversation, viewStale = false }: {
+  data: Json; host: Json; thread: string; chooseThread: (thread: string) => void; act: Act; busy: boolean; viewStale?: boolean;
   text: string; setText: (text: string) => void; outcome?: GuideOutcome | null;
   showConversation?: (threadId: string, target?: string) => void;
 }) {
@@ -259,10 +276,14 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
     : orderUnknown && inProgress ? "A run in this conversation is still open, and the App can't tell which run is latest; follow or end it from Results or the workflow studio before preparing another."
     : !latest || starts(latest.lifecycle?.state, "ended") || starts(latest.lifecycle?.state, "start not confirmed") ? "Describe what the workflow should work on, then prepare the run."
     : prepared ? prepared.status?.sent === false && prepared.status?.limit ? "The run didn't start. Progress says why and what to do." : "Check your inputs, then start the run." : orderUnknown ? "This conversation has several runs whose order the App can't tell; see each under Results." : reading?.title ?? "";
+  if (viewStale && !busy) return <GuideWithheld id="run-workflow" label="Run a workflow" title="Run a workflow" outcome={outcome} resultLabel="Run a workflow — last result" only={RUN_COMMANDS}>
+    {thread && <p>{showConversation ? <button onClick={() => showConversation(thread)}>Show the conversation</button> : <a href="#conversation">Go to the conversation</a>}</p>}
+  </GuideWithheld>;
   return <section id="run-workflow" className="workflow-stage run-journey" aria-label="Run a workflow" aria-busy={busy}>
     <h2>Run a workflow</h2>
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {step}</p>
-    <GuideResult label="Run a workflow — last result" outcome={outcome} only={["workflow_open_project_library", "workflow_library_entries_refresh", "workflow_review_library_entries", "workflow_select_listed", "workflow_select_production_bundle", "workflow_follow_newer_revision", "workflow_prepare_run", "workflow_send_run", "workflow_end_run"]}/>
+    {/* While a press is still in progress its result is not said: the steps below are from before it. */}
+    {!busy && <GuideResult label="Run a workflow — last result" outcome={outcome} only={RUN_COMMANDS}/>}
     <ol className="run-journey-steps">
       <li aria-labelledby="run-project-heading"><h3 id="run-project-heading">Project</h3>
         <ProjectFolderSummary host={host} libraryAvailable={projectAvailable}/>
