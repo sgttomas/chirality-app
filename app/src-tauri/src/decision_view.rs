@@ -648,9 +648,12 @@ pub(crate) fn derive_from(
             record["recordId"].as_str().unwrap_or("without an identity")
         ));
     }
+    // Requests of any origin may identify a row; those of unestablished origin
+    // do so only so that the incomplete reading is shown on the package's row.
     let links: Vec<door::RequestLink> = claims
         .iter()
         .filter_map(|(record, source, origin, _)| door::link(record, source, *origin))
+        .chain(not_established.iter().filter_map(|(record, source, _)| door::link(record, source, Origin::Unknown)))
         .collect();
     let derived = derive_rows(&admitted, &links, &complete_logs, package, &mut limits);
     let mut rows = derived.rows;
