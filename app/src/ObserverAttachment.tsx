@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./hostReads";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 type Observe = (source: Json, cursor: Json, after: number) => Promise<Json>;

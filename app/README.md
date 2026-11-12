@@ -690,11 +690,13 @@ implemented behavior and qualification limits.
     including the person's `run_ended`, are written in order. I/O failures still
     hold strict order.
 24. **Conversation roles** (NIR §5.4, §5.8; ROLE §3.2, §3.3, §4.4, §6.2). The
-    start display lists the role set readably, with the `default_for_new_chat`
-    role labelled as a preselection (the bundled set marks none today, U-R11),
-    "No role", and each role's limits as the limit account hands them (TASK
-    "A task agent does not delegate: Stated, not enforced"; a modified copy
-    reads not known). The start display and Continue as offer HELP_HUMAN,
+    start display lists the role set readably, each role with a plain line
+    from its shipped guidance, with the `default_for_new_chat` role shown
+    preselected and clearable (HELP_HUMAN in the bundled set, DEL-02-04
+    TBD-004), "No role", and each role's limits as the limit account hands
+    them, in plain words (TASK "A task agent does not delegate: Stated, not
+    enforced", then that Codex does not enforce it and that approval, sandbox,
+    configuration and depth do not either; a modified copy reads not known). The start display and Continue as offer HELP_HUMAN,
     HELPS_HUMANS and WORKING_ITEMS (the host's `roleSet.conversationRoles`)
     and No role. TASK is not listed as a choice: it is the role a manager
     assigns bounded work to, and its guidance is supplied for that delegation
@@ -855,6 +857,40 @@ implemented behavior and qualification limits.
     currently unsigned and unchained; cold reads restore no conversation or
     role authority.
 
+    The host records what it observes of Codex's **native delegation** the
+    same way, in the same 0.2 format (`fleet.native-links.schema.json`), with
+    no undertaking named. A completed spawn item received live in a
+    conversation of the selected project is written once as
+    `dispatch_observed`: the home-qualified parent and child thread
+    identities, the spawn item, the content identity of the spawn prompt
+    (never its text, or that Codex supplied none) and the association. The
+    association comes only from one line of the prompt,
+    `Chirality-Brief: briefs/<file>.json sha256:<64 lowercase hex>` (path
+    relative to `.chirality/fleet/`, digest of the file's exact bytes),
+    compared with the brief file when the dispatch is recorded, and the dispatch
+    records what that brief record itself states (its record identity, work
+    item and undertaking): brief
+    referenced, brief referenced whose content does not match the
+    reference, brief reference not resolved (with the reason), or no brief
+    reference. A match shows which brief was named, not that the child
+    received or read it. A file that is not a brief record is never a
+    reference that resolves, whatever its digest. `child_observed` is
+    written when the status Codex reports for a child changes, and
+    `observation_ended` when the generation it was observed in closes
+    (Codex stopped or exited) or when the App itself exits (cause "App
+    quit"). A session records the end only of its own observation, and every
+    later fact of a child, in whatever generation of Codex reports it, goes
+    through the recording context frozen when that child was first
+    recorded, with the writer's physical check:
+    nothing is ever written about a child another session recorded, or
+    under another identity or folder, and after a crash or a kill no end is
+    recorded at all. Each child's facts reach
+    the store in the order observed; a later one waits while an earlier one
+    of that child is unwritten. A dispatch establishes a child and its parent only. A spawn seen only in Codex history, or in a
+    conversation whose folder is not the selected project, is not recorded.
+    An observation whose project has no usable records-store attachment
+    waits and is recorded once it has one.
+
 27. **Refresh fleet records** rebuilds the file-based coordination workspace
     for each undertaking: the selected graph, outstanding returns and review
     ownership, recorded integration, selected work and waiting causes. It reads
@@ -867,8 +903,19 @@ implemented behavior and qualification limits.
     Missing, changed or duplicate selections never fall back to an older graph.
     Inputs are contained Fleet-relative files; connector needs are interpreted
     from their declared receiving records with claim/route gaps shown. Decision
-    needs and current native execution remain unknown without their required
-    evidence. An incomplete source packet cannot produce unqualified readiness
+    needs remain unknown without their required evidence. A dispatch is
+    tied by what its own record says: the work item and undertaking the
+    referenced brief named when the dispatch was recorded. Nothing in the
+    project's files is consulted to tie anything, so a brief file changed,
+    replaced or superseded afterwards moves no worker. An item so held, with
+    no return recorded, reads `dispatched` and lists every worker dispatched
+    for it, each with its last recorded status, when it was recorded and
+    that nothing has been recorded since; it reads `unknown` once an end of
+    every such worker's observation is recorded, or where its named brief
+    cannot be found. A dispatch under an earlier brief of the item still
+    holds it and says so. A worker still observed for work that is not
+    selected in the current graph leaves no row plainly ready. A child tied to no brief
+    leaves no item plainly ready while it is observed. An incomplete source packet cannot produce unqualified readiness
     or an apparently complete empty queue. The complete source packet remains
     available beside the derived views.
 
@@ -1160,6 +1207,49 @@ The offline recorded peer and actual Host/recovery tests exercise preserved reda
 including unknown acknowledgment after process loss and a delegated child
 outliving its parent. This is development verification; the existing C1 EXP
 records remain capture-only and no candidate qualification is claimed.
+
+## Supplier intake and recordings at a pin
+
+A pin advance is deliberate (DEL-01-01 REQ-006). One of its steps is a maintained
+tool, `supplier_checks/intake.py`, run from `app/`. It does not sign in, use a
+model or read a person's Codex home, and fetching a release archive is not among
+its acts (a download needs the owner's permission naming the file, source and
+size).
+
+A pin is a key of the table `PINS` in `intake.py`, which holds, for each pin
+that has a consumer today, the release archive's address, size, SHA-256 and
+source commit. The tool accepts no other pin and builds no path from a caller's
+text; adding a pin is a reviewed change to that table.
+
+`intake.py --archive <file> --pin <pin> --out <new directory>` checks the
+archive's size and SHA-256 against the table, extracts regular files and
+directories only, writes the distribution record (`CANONICAL_DISTRIBUTION.json`),
+compares the tree with it, runs the supplier's schema generators and writes the
+manifest, the two compiled bundles and `GENERATION.json`. A refusal at any point
+removes the output directory.
+
+What the generator is given is six variables (HOME, CODEX_HOME and TMPDIR in a
+fresh scratch directory, PATH, LANG and TZ=UTC). Before each execution the tool
+refuses when configuration from outside the fresh homes could reach the
+supplier: a `.git` or `.codex` entry in any ancestor of the scratch working
+directory, the system folder `/etc/codex`, or a managed preference the supplier
+reads. Each is checked by presence alone; a check that cannot be made refuses,
+and the generation record names the checks made. These are controls on what the
+supplier is given, not a sandbox: they do not stop supplier code opening a file
+by an absolute path. The generator's sockets are sampled while it runs, which is
+not network isolation.
+
+This is an operator-run tool on stable inputs. It is built so that a check that
+was not made or that failed cannot come out as a distribution record or a
+generated basis. It is not built to withstand a writer changing the inputs
+during the run, nor someone with write access forging a record.
+
+Recorded exchanges at a pin are kept as evidence under
+`supplier_checks/recordings/<pin>/`, with a note beside them saying how they
+were made and what the files do and do not establish. The harness that made
+them is not maintained; `supplier_checks/test_recordings.py` checks what the
+files themselves establish. Neither a recording nor a generated basis is
+qualification of the pin (DEL-01-01 AC-011).
 
 ## Group B offline examination support
 

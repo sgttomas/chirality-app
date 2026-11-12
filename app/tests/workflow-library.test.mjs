@@ -334,3 +334,75 @@ test('approval evidence labels never infer evidence from registered standing',()
   assert.equal(workflowAssurance(undefined),'Approval evidence unknown (not recorded).');
   assert.equal(workflowAssurance('in-process A15'),'Approval evidence unknown (not recorded).');
 });
+
+// Review of pull request 241: a press the view refuses before any host command
+// (its conversation is no longer loaded) was neither failed nor settled, so
+// the guide said nothing and the only message sat in the closed studio.
+test('a press refused before any host command is said under the Run guide\'s Next line with the studio closed',async()=>{
+  const g={home:'account',appSession:'s1',spawnCounter:1};
+  const data={context:{sourceRef:'src',generation:g},projectLibraryAvailable:true,activeLibrary:null,libraries:[],selections:[],runs:[],reviews:[],drafts:{drafts:[]}};
+  const host=threads=>({state:'ready',generation:g,workflowRoot:data,threads,serverRequests:[]});
+  const loaded=[{generation:g,threadId:'T1',model:'invented-model',status:{type:'idle'}}];
+  const c=document.createElement('div');const root=createRoot(c);const calls=[];
+  const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
+  const show=threads=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host:host(threads),view:'run',act:async(command,args)=>{calls.push([command,args]);return {state:'controlled result'};}})));
+  await show(loaded);
+  const guide=()=>c.querySelectorAll(n=>n.getAttribute('aria-label')==='Run a workflow')[0];
+  const select=guide().querySelectorAll(n=>n.localName==='select')[0];
+  await React.act(async()=>props(select).onChange({target:{value:'T1'}}));
+  await show([]); // same source and generation; the chosen conversation is no longer loaded
+  const press=guide().querySelectorAll(n=>n.localName==='button').find(n=>n.textContent==="Show this project's workflows");
+  assert.equal(!!props(press).disabled,false,'the button is offered');
+  await React.act(async()=>props(press).onClick());
+  assert.deepEqual(calls,[],'no host command was issued');
+  const result=c.querySelectorAll(n=>n.getAttribute('aria-label')==='Run a workflow — last result')[0];
+  assert.ok(result,'the refusal is shown in the guide');
+  assert.equal(result.getAttribute('role'),'alert');
+  assert.match(result.textContent,/^Couldn't show this project's workflows: the conversation chosen here is no longer open in this view, so nothing was done\. Choose the conversation again/);
+  const studio=c.querySelectorAll(n=>n.getAttribute('id')==='workflow-studio')[0];
+  assert.notEqual(props(studio).open,true,'the studio is closed');
+  for(let node=result;node;node=node.parentNode)assert.notEqual(node,studio,'the result is outside the studio');
+  await React.act(async()=>root.unmount());
+});
+
+// Whether what the panel shows may be from before the last command is the App's
+// to say (hostReads.ts: tests/host-reads.test.mjs has its order, the commands
+// that mark and the mounted App). The panel hands that to both guides and
+// keeps no marker of its own, so a command issued outside it withholds them too.
+test('the panel shows its guides only when the App says the view follows the last command, and passes a failed read through',async()=>{
+  const g={home:'account',appSession:'s1',spawnCounter:1};
+  const prepared={reference:'run-1',conversation:'T1',home:'account',generation:g,preparationOrder:0,workflow:{name:'invented-flow'},lifecycle:{state:'prepared; not a run until its start turn is observed'},status:{}};
+  const data={context:{sourceRef:'src',generation:g},projectLibraryAvailable:true,activeLibrary:null,libraries:[],reviews:[],drafts:{drafts:[]},
+    selections:[{sourceRef:'src',threadId:'T1',selection:{state:'selected',reference:'sel',runnable:true,identity:{name:'invented-flow',origin:'project',revision:'rev-1-0123456789'}}}],runs:[prepared]};
+  const host={state:'ready',generation:g,workflowRoot:data,threads:[{generation:g,threadId:'T1',model:'invented-model',status:{type:'idle'}}],serverRequests:[]};
+  const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
+  const WITHHELD=/Next: What this view showed may be from before the App's last operation finished\./,CACHED=/Ready to start|has not been sent|Nothing has been sent yet|Ready to run/;
+  for(const [view,label,offerComposer] of [['run','Run a workflow',undefined],['make','Make a workflow from your work',()=>{}]]){
+    const c=document.createElement('div');const root=createRoot(c);const calls=[];
+    const show=over=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host,view,offerComposer,act:async(command,args)=>{calls.push([command,args]);return {};},...over})));
+    const guide=()=>c.querySelectorAll(n=>n.getAttribute('aria-label')===label)[0];
+    await show({});
+    if(view==='run')await React.act(async()=>props(guide().querySelectorAll(n=>n.localName==='select')[0]).onChange({target:{value:'T1'}}));
+    assert.doesNotMatch(guide().textContent,WITHHELD,`${view}: no marker, the steps are shown`);
+    if(view==='run')assert.match(guide().textContent,CACHED);
+    await show({viewStale:true});
+    assert.match(guide().textContent,WITHHELD,`${view}: withheld on the App's word`);assert.doesNotMatch(guide().textContent,CACHED);
+    assert.deepEqual(guide().querySelectorAll(n=>n.localName==='button').filter(n=>!/Show the conversation/.test(n.textContent)),[],`${view}: nothing from before the command is offered`);
+    assert.doesNotMatch(guide().textContent,/The last read failed/);
+    await show({viewStale:true,readFailure:'Error: invented status failure'});
+    assert.match(guide().textContent,/The last read failed: Error: invented status failure/,`${view}: the failed read is said in the guide`);
+    // A failed read with nothing marked withholds nothing; both guides say it above their steps.
+    await show({viewStale:false,readFailure:'Error: invented status failure'});
+    assert.doesNotMatch(guide().textContent,WITHHELD);
+    assert.match(guide().textContent,/The App's last read of its state failed \(Error: invented status failure\)\. What is shown here was read before that\./,`${view}: a failed read is said above the steps`);
+    await show({viewStale:false,readFailure:null});
+    assert.doesNotMatch(guide().textContent,/read of its state failed/);
+    assert.doesNotMatch(guide().textContent,WITHHELD,`${view}: a later read applied, the steps return`);
+    assert.deepEqual(calls,[],`${view}: showing or withholding issues no command`);
+    await React.act(async()=>root.unmount());
+  }
+});
+// The included-workflows chooser's tests run with this file, which the web
+// suite's script and both hosted presentation steps already list. The script
+// itself is not changed: app/package.json's bytes are pinned by the notices basis.
+await import('./included-workflows.test.mjs');

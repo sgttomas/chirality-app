@@ -1,0 +1,60 @@
+{
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "record_id": "INVENTED-SQ-J2-3",
+  "support_revision": {
+    "exp_version": "EXP-v0.2",
+    "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2",
+    "prototype_digest": "sha256:f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce"
+  },
+  "case": {
+    "owner_deliverable": "DEL-09-02",
+    "case_id": "J2-3"
+  },
+  "criterion": {
+    "source": "INVENTED criterion for J2-3",
+    "identity": "sha256:0428ef1b111d9846edc80094abf906e214bd4ad72a4979b924b005487ac371b1"
+  },
+  "activity": "verification",
+  "run_basis": "candidate",
+  "subject": {
+    "kind": "candidate",
+    "app_candidate": {
+      "revision": "INVENTED-SQ-REVISION",
+      "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+      "packaged": false
+    },
+    "invented_material": "INVENTED fixture, no native run or actual review"
+  },
+  "configuration": {
+    "codex_pin": "0.160.0",
+    "route": {
+      "kind": "native_development",
+      "platform": {
+        "os": "INVENTED macOS",
+        "arch": "INVENTED arm64"
+      },
+      "native_route": {
+        "method": "person_operated",
+        "form_ref": "INVENTED-FORM-J2-3"
+      },
+      "webview": {
+        "name": "WKWebView",
+        "webkit_version": "INVENTED",
+        "os_version": "INVENTED"
+      }
+    },
+    "model": "not_observed",
+    "model_server": "not_observed"
+  },
+  "date": {
+    "value": "2026-10-08",
+    "source": "record_timestamp"
+  },
+  "outcome": "not-run",
+  "evidence": [],
+  "currency": {
+    "state": "current"
+  },
+  "not_run_because": "INVENTED not attempted after earlier block"
+}

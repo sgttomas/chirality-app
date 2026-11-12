@@ -6,7 +6,7 @@ type Json = any;
 // Every row keeps the native item unchanged beside its display reading (TR-1);
 // nothing here infers checking, acceptance, approval, return or reliance.
 
-export type ActivityTurn = { turnId: string; native: Json | null; items: Json[]; checklists: Json[] };
+export type ActivityTurn = { turnId: string; native: Json | null; items: Json[]; checklists: Json[]; errors: Json[]; unreadableErrors: Json[] };
 export type ActivityModel = { threadId: string; turns: ActivityTurn[]; goal: Json | null; checklistGaps: Json[]; children: Json[]; subtree: Json[]; parent: Json | null };
 export type ActivityLocation = { generation: Json; rootThreadId: string; threadId: string; turnId: string; itemId: string };
 export type ActivityReveal = { location: ActivityLocation; isCurrent: () => boolean };
@@ -48,19 +48,28 @@ function descendantsOf(view: Json, root: string): Json[] {
 export function activityModel(view: Json, threadId: string): ActivityModel {
   const turns = new Map<string, ActivityTurn>();
   const turnFor = (turnId: string) => {
-    if (!turns.has(turnId)) turns.set(turnId, { turnId, native: null, items: [], checklists: [] });
+    if (!turns.has(turnId)) turns.set(turnId, { turnId, native: null, items: [], checklists: [], errors: [], unreadableErrors: [] });
     return turns.get(turnId)!;
   };
   for (const row of list(view?.items)) if (row?.threadId === threadId) turnFor(row.turnId).items.push(row);
   // turnRecords associates each native turn with its thread; the turn itself stays in `turns`.
   for (const record of list(view?.turnRecords)) if (record?.threadId === threadId && record.turnId) turnFor(record.turnId).native = list(view?.turns).find((turn: Json) => turn?.id === record.turnId) ?? null;
   for (const revision of list(view?.revisions)) if (revision?.kind === "checklist" && revision.threadId === threadId) turnFor(revision.turnId).checklists.push(revision);
+  // The supplier's error notices for a turn, in the order received. A turn
+  // known only by such a notice is still shown, so the notice is not lost.
+  for (const error of list(view?.turnErrors)) if (error?.threadId === threadId && typeof error.turnId === "string" && error.turnId) turnFor(error.turnId).errors.push(error);
+  for (const error of list(view?.unreadableTurnErrors)) if (error?.threadId === threadId && typeof error.turnId === "string" && error.turnId) turnFor(error.turnId).unreadableErrors.push(error);
   const collected = Array.from(turns.values());
   for (const turn of collected) {
+    turn.errors.sort((a, b) => (a.receiptPosition ?? 0) - (b.receiptPosition ?? 0));
     turn.items.sort((a, b) => order(a) - order(b));
     turn.checklists.sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0));
   }
-  const firstSeen = (turn: ActivityTurn) => Math.min(...turn.items.map(order), Number.MAX_SAFE_INTEGER);
+  // An error notice has its place in the same receiving order as the items.
+  // The host keeps only a turn's newest notices, so each carries the order
+  // of the turn's first one: the turn's place does not move as old ones go.
+  const noticeOrder = (entry: Json) => (typeof entry?.turnFirstObservedOrder === "number" ? entry.turnFirstObservedOrder : order(entry));
+  const firstSeen = (turn: ActivityTurn) => Math.min(...turn.items.map(order), ...turn.errors.map(noticeOrder), ...turn.unreadableErrors.map(noticeOrder), Number.MAX_SAFE_INTEGER);
   const started = (turn: ActivityTurn) => (typeof turn.native?.startedAt === "number" ? turn.native.startedAt : null);
   // Turns with a native start time keep that order. A turn without one goes
   // after every turn this App received before it.
@@ -396,6 +405,62 @@ export function DelegationLine({ delegation, descendants }: { delegation: Json; 
   return null;
 }
 
+/**
+ * A turn's status for its heading. A turn last seen in progress is not in
+ * progress once Codex has stopped: its outcome was not observed.
+ */
+export const turnStatusWords = (native: Json | null, observationEnded: boolean) => !native ? "status unknown"
+  : native.status === "inProgress" && observationEnded ? "in progress when last observed; the App is no longer receiving from that Codex process, so its outcome is unknown"
+  : text(native.status);
+
+/** One error notice in the supplier's own words: its message, then its details where it sent any. */
+const errorWords = (error: Json) => `${text(error?.message)}${typeof error?.additionalDetails === "string" && error.additionalDetails ? ` — ${error.additionalDetails}` : ""}`;
+
+/**
+ * The supplier's `error` notifications for one turn, as received. The words
+ * are Codex's; the App adds only what it received and when: whether Codex
+ * said it will retry, and whether a later frame that itself names the turn
+ * (an item, a delta, the turn's end, or a frame named error it could not
+ * read) arrived after the latest notice. A frame tied to the turn only
+ * through a request or a reply is not counted, and the sentences say so. Nothing here says the turn failed, recovered or
+ * is still trying, or that Codex's process has ended.
+ */
+export function TurnErrors({ errors, unreadable, turn }: { errors: Json[]; unreadable?: Json[]; turn: Json | null }) {
+  const unread = list(unreadable);
+  if (errors.length === 0 && unread.length === 0) return null;
+  // What the host knows of a frame it could not read is its kind, where it
+  // was received, and how many there were; never a meaning or a retry state.
+  const lastUnread = unread[unread.length - 1];
+  const unreadCount = typeof lastUnread?.ordinalInTurn === "number" ? lastUnread.ordinalInTurn : unread.length;
+  const requests = unread.filter((entry: Json) => entry?.kind === "server-request-named-error").length;
+  const refused = unread.length > 0 && <p role="status">
+    Codex sent {unreadCount === 1 ? "a frame" : `${unreadCount} frames`} named <code>error</code> for this turn that the App could not read as the error notice its Codex version defines, so {unreadCount === 1 ? "its" : "their"} meaning and retry state are not established.
+    {requests > 0 && ` ${requests === unread.length && unreadCount === unread.length ? (requests === 1 ? "It was" : "They were") : `${requests} of those kept ${requests === 1 ? "was" : "were"}`} ${requests === 1 ? "a request from Codex and not a notice" : "requests from Codex and not notices"}.`}
+    {unreadCount > unread.length && ` The App kept the latest ${unread.length}.`}
+    {" "}Received at position {unread.map((entry: Json) => text(entry?.receiptPosition)).join(", ")}; the original {unread.length === 1 ? "envelope is" : "envelopes are"} under Host diagnostics only while the host's journal still holds {unread.length === 1 ? "it" : "them"}.
+  </p>;
+  // With nothing readable, no error notice was established: the group is not labelled as one.
+  if (errors.length === 0) return <div aria-label="Frames named error that the App could not read">{refused}</div>;
+  const latest = errors[errors.length - 1];
+  const received = typeof latest?.ordinalInTurn === "number" ? latest.ordinalInTurn : errors.length;
+  const retry = latest?.willRetry === true ? "Codex said it will retry." : latest?.willRetry === false ? "Codex said it will not retry." : "Codex did not say whether it will retry.";
+  const since = latest?.laterFrameForTurn === true ? "The App has since received a later event naming this turn."
+    : latest?.observationEnded === true ? "The App stopped receiving from that Codex process before any later event naming this turn."
+    : turn?.status === "inProgress" || turn === null ? "No later event naming this turn has reached the App." : "";
+  return <div role={latest?.willRetry === false ? "alert" : "status"} aria-label="Errors Codex reported in this turn">
+    <p>Codex reported an error in this turn{received > 1 ? ` ${received} times; the latest` : ""}: <q>{errorWords(latest?.error)}</q> {retry}{since && ` ${since}`}</p>
+    <details><summary>{errors.length === 1 ? "The error notice, with its whole error object" : `The ${errors.length} error notices in the order received, each with its whole error object`}</summary>
+      {received > errors.length && <p><small>{received - errors.length} earlier {received - errors.length === 1 ? "notice is" : "notices are"} no longer kept.</small></p>}
+      <ol>{errors.map((entry: Json, i: number) => <li key={i} value={typeof entry?.ordinalInTurn === "number" ? entry.ordinalInTurn : i + 1}>
+        {errorWords(entry?.error)} · {entry?.willRetry === true ? "will retry" : entry?.willRetry === false ? "will not retry" : "retry not stated"}
+        <small> · received at position {text(entry?.receiptPosition)}</small>
+        <pre style={pre}>{json(entry?.error)}</pre>
+      </li>)}</ol>
+    </details>
+    {refused}
+  </div>;
+}
+
 export function NativeActivityView({ view, threadId, offers, renderOffer, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle> }) {
   const [shown, setShown] = useState<string>("");
   const [pending, setPending] = useState<(ActivityReveal & { revision: number }) | null>(null);
@@ -459,11 +524,12 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
     {model.turns.length === 0 && <p>No activity observed for this conversation in the current Codex generation. This view shows what the App received live in this generation and what it has read from Codex history; earlier generations' observations remain under the native JSON below.</p>}
     {model.turns.map((turn, index) => <section key={text(turn.turnId)} aria-label={`Conversation turn ${index + 1}`} style={{ borderTop: "1px solid #ccc", marginTop: 8 }}>
       {ownRuns.filter((run: Json) => run.turn === turn.turnId).map((run: Json) => <RunStartMarker key={text(run.reference)} run={run} />)}
-      <h4>{`Turn ${index + 1}`} · {turn.native ? text(turn.native.status) : "status unknown"}</h4>
+      <h4>{`Turn ${index + 1}`} · {turnStatusWords(turn.native, view?.observationEnded === true)}</h4>
       <details><summary>Turn source and timing</summary><small>Turn {text(turn.turnId)} · {turn.native ? `native status ${text(turn.native.status)}` : "turn status not observed"}{turn.native?.durationMs != null && ` · ${text(turn.native.durationMs)} ms`}</small></details>
       {turnLabel(target, turn.turnId) && <p role="note"><small>{text(turnLabel(target, turn.turnId))}</small></p>}
       <StopLabel stop={stopLabelFor?.(target, text(turn.turnId)) ?? null} />
       {turn.native?.error?.message && <p role="alert">Turn error: {text(turn.native.error.message)}</p>}
+      <TurnErrors errors={turn.errors} unreadable={turn.unreadableErrors} turn={turn.native} />
       {turn.items.map((row, i) => <NativeItemCard key={text(row.native?.id) || `row-${i}`} row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} after={offersFor(row).map((offer: Json, k: number) => <div key={k}>{renderOffer?.(offer)}</div>)}>
         {!UNLABELLED.has(text(row.native?.type)) && <RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} />}
       </NativeItemCard>)}

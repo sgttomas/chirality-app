@@ -1593,7 +1593,9 @@ impl HistorySession {
                 current.insert(path.clone(), read(&path, role_default(role)));
             }
         }
-        json!({"appRole":self.role(home,thread),"originalRoleSupply":binding.evidence(),"roleRelation":binding.relation(),"futureGuidanceNotices":binding.changes(&current)})
+        // The limit account comes from the binding alone. The comparison with the
+        // current files above is its own statement and selects nothing in it.
+        json!({"appRole":self.role(home,thread),"originalRoleSupply":binding.evidence(),"roleRelation":binding.relation(),"suppliedLimitAccount":binding.supplied_limit_account(),"futureGuidanceNotices":binding.changes(&current)})
     }
     /// ROLE §3.3 F-1: bind a same-role fork from the actual `thread/fork`
     /// request and its correlated response. The fork inherits the source's
@@ -4806,13 +4808,12 @@ impl WorkflowRootSession {
         workflows: &std::sync::Mutex<Self>,
         context: &crate::workflow_selection::Context,
         active_home: impl Fn() -> std::sync::Arc<HomeSession>,
+        wait: crate::workflow_selection::Wait,
         action: impl FnOnce(&mut Self, std::sync::Arc<HomeSession>) -> Result<T, String>,
     ) -> Result<T, String> {
         let home = active_home();
-        context.verify_home(&home)?;
-        let mut root = workflows.lock().unwrap();
-        let current = active_home();
-        context.verify_home(&current)?;
+        context.verify_home_within(&home, wait)?;
+        let (mut root, current, _) = crate::workflow_selection::lock_root(workflows, context, &active_home, wait)?;
         if !std::sync::Arc::ptr_eq(&home, &current) {
             return Err("Workflow App home source changed; no library operation performed".into());
         }
@@ -8121,6 +8122,19 @@ for line in sys.stdin:
     emit({'method':'model/rerouted','params':{'threadId':tid,'turnId':uid,'fromModel':'fixture-model','toModel':'fixture-safe-model','reason':'highRiskCyberActivity'}})
    emit({'method':'turn/completed','params':{'threadId':tid,'turn':{'id':uid,'status':'completed','items':[],'error':None}}})
    continue
+  if mode('notify-mode')=='unreachable':
+   # The exchange observed against an unreachable model: the conversation turns active, the turn starts,
+   # its user message completes, then Codex repeats its retry notice. No end of the turn arrives.
+   tid=f['params']['threadId'];live=dict(result['turn'],status='inProgress');uid=live['id']
+   emit({'method':'thread/status/changed','params':{'threadId':tid,'status':{'type':'active','activeFlags':[]}}})
+   emit({'id':f['id'],'result':{'turn':live}})
+   emit({'method':'turn/started','params':{'threadId':tid,'turn':live}})
+   item={'id':uid+'-user','type':'userMessage','content':[]}
+   emit({'method':'item/started','params':{'threadId':tid,'turnId':uid,'item':item}})
+   emit({'method':'item/completed','params':{'threadId':tid,'turnId':uid,'item':item}})
+   for n in range(3):
+    emit({'method':'error','params':{'threadId':tid,'turnId':uid,'willRetry':True,'error':{'message':'Reconnecting... waiting for network','additionalDetails':'Connection failed: error sending request','codexErrorInfo':{'responseStreamDisconnected':{'httpStatusCode':None}}}}})
+   continue
   if mode('notify-mode')=='spawn':
    emit({'id':f['id'],'result':result})
    item={'id':'spawn-old','type':'collabAgentToolCall','status':'completed','tool':'spawnAgent','senderThreadId':f['params']['threadId'],'receiverThreadIds':['child-old'],'agentsStates':{'child-old':{'status':'running'}}}
@@ -8594,6 +8608,42 @@ for line in sys.stdin:
         assert!(due.len()<=4);
         let results=trial_flows::perform_trial_reads(&peer.home,due);
         root.lock().unwrap().apply_trial_reads(results)
+    }
+    // The exchange observed against an unreachable model, through the owned peer,
+    // the real Host and the view the window reads. While the turn is live the
+    // conversation reads active and the turn in progress with Codex's own retry
+    // notices, as sent; once Codex is stopped neither reads as current, and at
+    // no point does the conversation read idle or the turn done.
+    #[test]
+    fn an_unreachable_model_shows_an_active_conversation_and_codexs_retry_notices_as_sent(){
+        let peer=Peer::new();let g=peer.generation.clone();
+        let row=||peer.home.host.snapshot()["threads"].as_array().unwrap().iter().find(|t|t["generation"]==g&&t["threadId"]=="thread").unwrap().clone();
+        assert_eq!(row()["status"],json!({"type":"idle"}),"the admission reply's status");assert!(row().get("statusSource").is_none());
+        peer.set_mode("notify-mode","unreachable");
+        peer.home.host.turn_start_text(&g,"thread","start the run").unwrap();
+        let deadline=std::time::Instant::now()+Duration::from_secs(5);
+        while crate::host_tick::receive_view(&peer.home)["turnErrors"].as_array().is_none_or(|e|e.len()<3){assert!(std::time::Instant::now()<deadline,"retry notices observed");std::thread::sleep(Duration::from_millis(20));}
+        assert_eq!(row()["status"],json!({"type":"active","activeFlags":[]}));
+        assert_eq!(row()["statusSource"]["method"],"thread/status/changed");
+        let view=crate::host_tick::receive_view(&peer.home);
+        let sent=json!({"message":"Reconnecting... waiting for network","additionalDetails":"Connection failed: error sending request","codexErrorInfo":{"responseStreamDisconnected":{"httpStatusCode":null}}});
+        let errors=view["turnErrors"].as_array().unwrap();
+        assert_eq!(errors.len(),3);
+        for (n,error) in errors.iter().enumerate(){
+            assert_eq!(error["error"],sent,"as the supplier sent it");
+            assert_eq!((error["threadId"].clone(),error["turnId"].clone(),error["willRetry"].clone(),error["laterFrameForTurn"].clone()),(json!("thread"),json!("turn"),json!(true),json!(false)));
+            assert_eq!(error["generation"],g,"the generation the window compares");assert_eq!(error["ordinalInTurn"],n as u64+1);
+        }
+        assert_eq!(view["turns"].as_array().unwrap().iter().find(|t|t["id"]=="turn").unwrap()["status"],"inProgress","no end of the turn was sent and none is shown");
+        // Stopping Codex ends the observation: the last status moves aside and the notices are marked.
+        peer.home.host.stop("fixture:person","codex-stop").unwrap();
+        assert_eq!(row()["status"],Value::Null);assert_eq!(row()["statusObservationEnded"],true);
+        assert_eq!(row()["lastObservedStatus"],json!({"type":"active","activeFlags":[]}));
+        let closed=crate::host_tick::receive_view(&peer.home);
+        assert_eq!(view["observationEnded"],false);assert_eq!(closed["observationEnded"],true,"the turn last seen in progress is no longer a current reading");
+        assert_eq!(closed["turns"].as_array().unwrap().iter().find(|t|t["id"]=="turn").unwrap()["status"],"inProgress","Codex sent no end, and none is invented");
+        assert_eq!(closed["turnErrors"].as_array().unwrap().len(),3,"the stop keeps every notice");
+        assert!(closed["turnErrors"].as_array().unwrap().iter().all(|e|e["observationEnded"]==true),"{}",closed["turnErrors"]);
     }
     // RS R5 / HOSTING §8.3 through the owned peer, the host's record tick and the
     // run's RS writer: the run-start turn is rerouted (model/rerouted names it), a
@@ -9422,6 +9472,107 @@ for line in sys.stdin:
         let mut status=root.lock().unwrap().snapshot();root.lock().unwrap().decorate_status(&mut status,&json!({}));
         assert_eq!(status["pendingBringBacks"].as_array().unwrap().len(),1);
     }
+    // DEL-06-01 AC-003: a spawn the host receives live reaches the delegation
+    // recorder through the record tick's own views, with the identities the
+    // peer reported; stopping Codex ends the child's observation with that cause.
+    #[test]
+    fn the_record_tick_hands_a_live_spawn_and_its_ended_observation_to_the_delegation_recorder(){
+        let store=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("delegation-tick-store-").unwrap());
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store{root:store.clone(),placement:crate::records_store::Placement::Test,limits:vec![]})));
+        struct ResetStore(PathBuf);
+        impl Drop for ResetStore{fn drop(&mut self){crate::records_store::use_store_for_test(None);let _=std::fs::remove_dir_all(&self.0);}}
+        let _reset=ResetStore(store);
+        let peer=Peer::new();let g=peer.generation.clone();
+        let attached=crate::records_store::attach(&peer.fixture.root,true).unwrap();
+        assert!(attached.refusal.is_none()&&attached.dir.is_some(),"the invented project is attached to the invented store");
+        let workflows=Mutex::new(WorkflowRootSession::default());let homes=Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+        let mut links=crate::native_conversation_links::Session::default();
+        let mut recorded=|kind:&str|{
+            let deadline=std::time::Instant::now()+Duration::from_secs(5);
+            loop{
+                for (home,views) in crate::host_tick::tick_project(&homes,&workflows,peer.project()){links.observe_delegation(peer.project(),&home,&views);}
+                links.retry(peer.project());
+                let packet=crate::read_fleet_records_for_workspace(peer.project()).unwrap();
+                let rows:Vec<Value>=packet["coordination"]["nativeDelegation"].as_array().unwrap().iter().map(|row|row["record"].clone()).collect();
+                if rows.iter().any(|row|row["kind"]==kind){return rows;}
+                assert!(std::time::Instant::now()<deadline,"{kind} recorded; limits {}",links.snapshot()["limits"]);
+                std::thread::sleep(Duration::from_millis(20));
+            }
+        };
+        peer.set_mode("notify-mode","spawn");peer.home.host.turn_start_text(&g,"thread","delegate one piece").unwrap();
+        let rows=recorded("child_observed");
+        assert_eq!(rows.len(),2,"{rows:?}");
+        let dispatch=&rows[0]["body"];
+        assert_eq!(rows[0]["kind"],"dispatch_observed");
+        assert_eq!(dispatch["parent"],json!({"threadId":"thread","generation":g}));
+        assert_eq!(dispatch["child"],json!({"threadId":"child-old","generation":g}));
+        assert_eq!(dispatch["nativeHome"]["homeId"],g["home"]);
+        assert_eq!(dispatch["spawnItem"]["itemId"],"spawn-old");
+        assert_eq!(dispatch["spawnPrompt"],json!({"state":"not supplied"}),"the peer's spawn item carries no prompt");
+        assert_eq!(dispatch["association"],json!({"state":"no brief reference"}));
+        assert_eq!(rows[1]["body"]["status"],"running");
+        peer.home.host.stop("person:fixture","codex-stop").unwrap();
+        let rows=recorded("observation_ended");
+        assert_eq!(rows.len(),3,"{rows:?}");
+        assert_eq!(rows[2]["body"],json!({"child":{"threadId":"child-old","generation":g},"cause":"Codex process stopped","lastObserved":"running","nativeHome":dispatch["nativeHome"]}));
+    }
+    // DEL-06-01: at the App's own exit, with Codex still running, the session's
+    // observation of the child it recorded ends with the cause "App quit".
+    #[test]
+    fn the_apps_exit_ends_its_own_observation_of_a_recorded_child(){
+        let store=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("delegation-exit-store-").unwrap());
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store{root:store.clone(),placement:crate::records_store::Placement::Test,limits:vec![]})));
+        struct ResetStore(PathBuf);
+        impl Drop for ResetStore{fn drop(&mut self){crate::records_store::use_store_for_test(None);let _=std::fs::remove_dir_all(&self.0);}}
+        let _reset=ResetStore(store);
+        let peer=Peer::new();let g=peer.generation.clone();
+        assert!(crate::records_store::attach(&peer.fixture.root,true).unwrap().dir.is_some());
+        let workflows=Mutex::new(WorkflowRootSession::default());let homes=Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+        let mut links=crate::native_conversation_links::Session::default();
+        let rows=||crate::read_fleet_records_for_workspace(peer.project()).unwrap()["coordination"]["nativeDelegation"].as_array().unwrap().iter().map(|row|row["record"].clone()).collect::<Vec<Value>>();
+        // An exit before anything was recorded writes nothing.
+        links.end_delegation_at_exit(&[peer.home.clone()]);assert!(rows().is_empty());
+        peer.set_mode("notify-mode","spawn");peer.home.host.turn_start_text(&g,"thread","delegate one piece").unwrap();
+        let deadline=std::time::Instant::now()+Duration::from_secs(5);
+        while rows().len()<2{
+            for (home,views) in crate::host_tick::tick_project(&homes,&workflows,peer.project()){links.observe_delegation(peer.project(),&home,&views);}
+            assert!(std::time::Instant::now()<deadline,"spawn recorded; limits {}",links.snapshot()["limits"]);std::thread::sleep(Duration::from_millis(20));
+        }
+        assert_eq!(peer.home.host.snapshot()["state"],"ready");
+        for _ in 0..2{links.end_delegation_at_exit(&[peer.home.clone()]);}
+        let recorded=rows();assert_eq!(recorded.len(),3,"{recorded:?}");
+        assert_eq!((&recorded[2]["kind"],&recorded[2]["body"]["cause"],&recorded[2]["body"]["lastObserved"]),(&json!("observation_ended"),&json!("App quit"),&json!("running")));
+        assert_eq!(recorded[2]["body"]["child"],json!({"threadId":"child-old","generation":g}));
+    }
+    // DEL-06-01: a child recorded under one project identity is given no end
+    // under a replacement identity (review round 2 of the producer).
+    #[test]
+    fn the_apps_exit_writes_nothing_under_a_replacement_project_identity(){
+        let store=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("delegation-identity-store-").unwrap());
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store{root:store.clone(),placement:crate::records_store::Placement::Test,limits:vec![]})));
+        struct ResetStore(PathBuf);
+        impl Drop for ResetStore{fn drop(&mut self){crate::records_store::use_store_for_test(None);let _=std::fs::remove_dir_all(&self.0);}}
+        let _reset=ResetStore(store);
+        let peer=Peer::new();let g=peer.generation.clone();
+        let original=crate::records_store::attach(&peer.fixture.root,true).unwrap().dir.unwrap();
+        let workflows=Mutex::new(WorkflowRootSession::default());let homes=Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+        let mut links=crate::native_conversation_links::Session::default();
+        let log=|dir:&std::path::Path|std::fs::read_to_string(dir.join("fleet/coordination.fleet.jsonl")).unwrap_or_default();
+        peer.set_mode("notify-mode","spawn");peer.home.host.turn_start_text(&g,"thread","delegate one piece").unwrap();
+        let deadline=std::time::Instant::now()+Duration::from_secs(5);
+        while log(&original).lines().count()<2{
+            for (home,views) in crate::host_tick::tick_project(&homes,&workflows,peer.project()){links.observe_delegation(peer.project(),&home,&views);}
+            assert!(std::time::Instant::now()<deadline,"spawn recorded; limits {}",links.snapshot()["limits"]);std::thread::sleep(Duration::from_millis(20));
+        }
+        let before=log(&original);
+        crate::records_store::new_identity(&peer.fixture.root).unwrap();
+        let replacement=crate::records_store::attach(&peer.fixture.root,false).unwrap().dir.unwrap();
+        assert_ne!(replacement,original);
+        links.end_delegation_at_exit(&[peer.home.clone()]);links.retry(peer.project());
+        assert!(!log(&replacement).contains("observation_ended"),"nothing of that child under the replacement identity");
+        assert_eq!(log(&original),before,"and nothing more under the original, which is no longer in force");
+        assert!(links.snapshot()["limits"].to_string().contains("the context this child was first recorded under no longer holds"));
+    }
     // M6 / H-4: a sub-agent the view showed before the trial was sent is no
     // candidate; the tick's linking read is journalled as the App rule's.
     #[test]
@@ -9541,6 +9692,25 @@ for line in sys.stdin:
         assert_eq!(r["reading"],"not established");assert!(r["reason"].as_str().unwrap().contains("not loaded"));
         // Nothing of the configuration but features.multi_agent is kept.
         assert!(!serde_json::to_string(&peer.home.host.delegation_readings()).unwrap().contains("fixture private configuration text"));
+    }
+    /// DEL-01-05: the model list read at the person's press sends config/read for the
+    /// server's own folder. It leaves the chooser's provider revision as it was and
+    /// still advances the revision the settings reading and confirmations follow.
+    #[test]
+    fn model_catalog_read_keeps_the_choosers_provider_revision_and_advances_the_strict_one(){
+        let peer=Peer::new();let host=&peer.home.host;
+        let cwd=peer.home.host_config.as_ref().unwrap().cwd.to_str().unwrap().to_owned();
+        let settings=host.effective_access_settings_read(&peer.generation,&cwd,"account").unwrap();
+        let read=settings["scope"]["readRevision"].clone();assert!(read.is_string());
+        assert_eq!(host.configured_provider_observation_revision(&peer.generation,&cwd),read);
+        assert_eq!(host.configured_provider_revision(&peer.generation,&cwd),read);
+        let setup=peer.wire().len();
+        assert_eq!(host.model_catalog_read(&peer.generation)["state"],"observed");
+        let wire=peer.wire().split_off(setup);
+        assert!(wire.iter().any(|f|f["method"]=="config/read"&&f["params"]["cwd"]==json!(cwd)),"the model list read names the provider read's folder: {wire:?}");
+        assert_eq!(host.configured_provider_observation_revision(&peer.generation,&cwd),read,"the chooser's provider revision is unchanged by the model list read");
+        let strict=host.configured_provider_revision(&peer.generation,&cwd);
+        assert!(strict.is_string()&&strict!=read,"the settings reading is no longer current after the newer read");
     }
     #[test]
     fn model_catalog_lists_the_server_providers_models_at_a_press_and_keeps_no_configuration(){

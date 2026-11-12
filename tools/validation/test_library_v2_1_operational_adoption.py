@@ -402,4 +402,5 @@ def test_packaged_product_role_set_remains_pinned_four_roles():
     for guidance in binding["guidance"]:
         content = (instructions / guidance["path"]).read_bytes()
         assert hashlib.sha256(content).hexdigest() == guidance["sha256"], guidance["path"]
-    assert all(row["default_for_new_chat"] is False for row in json.loads(raw)["roles"])
+    # DEL-02-04 TBD-004: for 4.0.0 a new conversation preselects HELP_HUMAN, and only it.
+    assert [row["name"] for row in json.loads(raw)["roles"] if row["default_for_new_chat"] is True] == ["HELP_HUMAN"]

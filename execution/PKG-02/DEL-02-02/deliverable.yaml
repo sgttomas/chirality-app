@@ -44,6 +44,13 @@ needs:
     end; the requirement check reports each declared requirement's outcome for the current host;
     and each checkpoint's arrival and disposition in a run is recorded.
   gating: false
+- from: DEL-02-04
+  condition: For the conversation chosen for a run, in its own home, the role the App supplied at
+    its start is reported as App-observed, a start with no role is reported as that and not as
+    unknown, and where this App process holds no record of the supply the role is reported as
+    not established.
+  gating: false
+  when: Showing the conversation's role beside the roles the Library lists for a chosen workflow
 - from: DEL-04-01
   condition: Registering a workflow revision is a distinct act kind reserved to the person, with
     its own name and wording, and it does not say that the revision was examined, checked or
@@ -106,6 +113,10 @@ code_paths:
 - app/src-tauri/src/hosting.rs
 - app/src-tauri/src/host_tick.rs
 - app/src/RunJourney.tsx
+# hostReads.ts is shared by every part of the App shell. Here: the order of status reads and the
+# mark that withholds the Run and Make guides until a read follows the last command.
+- app/src/hostReads.ts
+- app/src/IncludedWorkflows.tsx
 - app/src/MakeJourney.tsx
 - app/src/LibraryEntries.tsx
 - app/src/WorkflowRegistrationReview.tsx
@@ -158,6 +169,8 @@ checks:
 - app/src-tauri/src/hosting.rs
 - app/src-tauri/src/runtime_session.rs
 - app/tests/run-journey.test.mjs
+- app/tests/host-reads.test.mjs
+- app/tests/included-workflows.test.mjs
 - app/tests/make-journey.test.mjs
 - app/tests/journey-navigation.test.mjs
 - app/tests/workflow-library.test.mjs

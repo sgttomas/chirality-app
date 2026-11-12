@@ -256,3 +256,8 @@ test('one pending create owns workflow controls through observation and duplicat
     assert.equal(resultText(view.container),JSON.stringify(view.source.nativeResult));
   } finally {gate.reply.resolve(actualPacket().afterWriteHostStatus);if(pending)await pending;await view.close();}
 });
+
+// The ordered status reads' tests run with this file, which the web suite's
+// script and both hosted presentation steps already list. The script itself
+// is not changed: app/package.json's bytes are pinned by the notices basis.
+await import('./host-reads.test.mjs');
