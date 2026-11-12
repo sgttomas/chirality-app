@@ -325,16 +325,6 @@ the owner decide on what was actually observed.
     App's key) and the signature sentence of AC-011, which wait on the key of
     DEL-04-03 TBD-003.
 
-## Open choices
-
-This decides whether a criterion can be met, and nothing accepted settles it.
-Every other undecided item stands as its owning scope states it.
-
-- **Tying a delegated child to its brief (criterion 5).** How a child is tied
-  to its brief where the supplier exposes neither the dispatch message nor a
-  mark the App can set is undecided (DEL-06-01 TBD-003), and the criterion
-  needs each delegation connected to its brief.
-
 ## What stays the owner's
 
 - Publishing the release, including the decision to distribute it publicly.

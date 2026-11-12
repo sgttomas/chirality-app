@@ -1,4 +1,4 @@
-//! DEL-06-01: observational file reader of quoted 0.1 and native-links 0.2.
+//! DEL-06-01: observational file reader of quoted 0.1 and the App's 0.2 native observations.
 //! Project claims and the App's protected observation order stay distinct.
 use crate::{records_index::Stamp, records_store, storage};
 use serde_json::{json, Value};
@@ -552,18 +552,20 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
     }).collect();
     let protected_rows: Vec<_> = protected_log.as_ref().map(|log|log.rows.iter().map(|row|row.view(if !complete_copy {"configured-store claim; source incomplete/unavailable"} else if row_imported(row) {imported_standing} else if row_trusted(row) {"protected copy; see governing order"} else {quoted_standing})).collect()).unwrap_or_default();
     let native_relationships:Vec<_>=observations.iter().filter(|v|v["record"]["formatVersion"]=="0.2"&&v["record"]["kind"]=="related_conversation").cloned().collect();
-    let recording_events:Vec<_>=observations.iter().filter(|v|v["record"]["formatVersion"]=="0.2"&&v["record"]["kind"]!="related_conversation").cloned().collect();
+    let of_kinds=|kinds:&[&str]|observations.iter().filter(|v|v["record"]["formatVersion"]=="0.2"&&kinds.contains(&v["record"]["kind"].as_str().unwrap_or(""))).cloned().collect::<Vec<_>>();
+    let recording_events=of_kinds(&["recording_limit","recording_recovered"]);
+    let native_delegation=of_kinds(&["dispatch_observed","child_observed","observation_ended"]);
     let workspace = views::derive(&briefs, &graphs, &project_log, &project_duplicates,
         &observations, &view_inputs, snapshot_stable);
     Ok(json!({"format":"chirality.fleet.read","formatVersion":"0.2","standing":STANDING,
         "project":{"configuredRoot":configured.to_string_lossy(),"canonicalRoot":root.to_string_lossy(),"nativeRoot":crate::attachments::native_path_identity(&root),"physical":{"device":before.dev(),"inode":before.ino()}},
-        "schema":{"format":"chirality.fleet.record","versions":["0.1 quoted compatibility","0.2 native-links"]},
+        "schema":{"format":"chirality.fleet.record","versions":["0.1 quoted compatibility","0.2 native links and delegation"]},
         "briefs":briefs.iter().map(|r|r.view("prepared brief; quoted file, no dispatch inferred")).collect::<Vec<_>>(),
         "graphs":graphs.iter().map(|r|r.view("graph revision; quoted file; see workspace for verified selector and derived file claims")).collect::<Vec<_>>(),
         "coordination":{"project":project_log.view,"projectRecords":project_rows,"protected":protected_view,
-            "protectedLog":protected_log.as_ref().map(|log|&log.view),"protectedRecords":protected_rows,"governingStoreRecords":governing_store,"appObservations":observations,"nativeRelationships":native_relationships,"recordingEvents":recording_events},
+            "protectedLog":protected_log.as_ref().map(|log|&log.view),"protectedRecords":protected_rows,"governingStoreRecords":governing_store,"appObservations":observations,"nativeRelationships":native_relationships,"nativeDelegation":native_delegation,"recordingEvents":recording_events},
         "workspace":workspace,
-        "limits":limits,"nativeRecording":"Only actual App Fork/Continue-as source-issued request/result observations produce 0.2 relationships. Source files are quoted on read, never native authority; 0.1 undertaking fields establish no native join. Completed spawn prompt remains unavailable; no current native dispatch or child state is inferred from the derived file workspace."}))
+        "limits":limits,"nativeRecording":"Only actual App Fork/Continue-as source-issued request/result observations produce 0.2 relationships, and only a completed spawn item the App received live produces a 0.2 dispatch, with the child's status as Codex last reported it and the end of its observation. A dispatch is tied to a brief only by the reference in its spawn prompt; the prompt's text is not recorded. Source files are quoted on read, never native authority; 0.1 undertaking fields establish no native join. A dispatch seen only in Codex history is not recorded."}))
 }
 
 #[cfg(test)]
