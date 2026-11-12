@@ -31,8 +31,8 @@ the supplier's own sign-in unchanged.
 **The bar.** The owner's words define it: "you're going to need to use your
 judgment to make something good enough that the PRD will feel substantially
 complete and the user experience is reliable and would feel good for humans."
-The exit criteria below are how that is shown. Where they leave a judgment
-open, this is what the judgment serves.
+This is direction: where the exit criteria leave a judgment open, it is what
+the judgment serves. It is not evidence that any criterion is met.
 
 **What the release is judged on.** App v4 is examined and released on working
 through the user interface it ships with. Two standalone journeys carry that:
@@ -49,9 +49,9 @@ exists to provide (PRD §2.1). The core loop is necessary for publication and
 is not by itself enough: the journeys, the visual design and the owner's
 verdict stand beside it.
 
-**What ships with it.** Every workflow of the selected Library ships. A new
-conversation preselects HELP_HUMAN, and the person can choose another role or
-none.
+**What ships with it.** Every workflow of the selected Library ships.
+HELP_HUMAN is what a new conversation preselects; a person's explicit
+selection, and any specialised workspace, keep their own.
 
 **Outside this release.**
 
@@ -142,27 +142,31 @@ the owner decide on what was actually observed.
 
    *Governed by:* DEL-09-02 AC-004 and AC-005, with the behaviour observed
    owned by DEL-01-02, DEL-01-03 and DEL-01-04.
-5. **Access.** The ChatGPT account and a local model server are configured
+5. **Access.** A person signs in with their ChatGPT account, and the account
+   view shows the account Codex reports. The App offers no standalone OpenAI
+   API-key entry. The ChatGPT account and a local model server are configured
    together. A new conversation has no model until the person chooses. One
    conversation runs with each, and switching between them leaves the other's
    configuration in place. The local conversation runs with its required
    credential held by Codex in the dedicated local home, examined apart from
-   account sign-in. A different compliant local server can be substituted
-   through supported settings. The start-up connections of the App's Codex are
-   listed, and those an App setting stops are absent. No credential appears in
-   anything the App wrote.
+   account sign-in, and the two homes keep their own settings and sign-in. A
+   different compliant local server can be substituted through supported
+   settings. The start-up connections of the App's Codex are listed, and those
+   an App setting stops are absent. No credential appears in anything the App
+   wrote.
 
-   *Governed by:* DEL-09-02 AC-006; DEL-01-05's acceptance criteria.
-6. **Visual design.** Every view a person meets in criteria 1 to 5 follows the
-   overall visual form of v3, which is the reference, and the views are
-   consistent with one another. Function and interaction are designed for v4
-   and are App Agent 0's to decide; the reference fixes the form, not v3's
-   tools or behaviour. The views are compared with the reference on the same
-   build the journeys are observed on.
+   *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005, AC-008 and
+   AC-011.
+6. **Visual design.** A person meeting the App's views in J1 and J2 finds that
+   they share one visual form, drawn from v3.0.1 as installed, that they are
+   consistent with one another, and that nothing reads as unfinished or out of
+   place. Function and interaction are designed for v4 and are App Agent 0's
+   to decide; the reference fixes the form, not v3's tools or behaviour. An
+   examiner who did not build the views compares them with the reference on
+   the build the journeys are observed on. Whether the App feels good to use
+   is the owner's verdict (criterion 12), not this comparison.
 
-   *Governed by:* no scope holds an acceptance criterion for this yet (see
-   Open choices). The views are built by DEL-01-03, DEL-01-04, DEL-01-05 and
-   DEL-02-02.
+   *Governed by:* DEL-02-02 AC-012.
 7. **Installed custody and keychain protection.** On the installed, signed
    package, the App verifies its own Codex before running it and refuses a
    tree that differs from the expected identity. The person's act "Protect
@@ -172,14 +176,18 @@ the owner decide on what was actually observed.
    this, because the act needs the signed installed identity.
 
    *Governed by:* DEL-01-04 AC-009 (the act and its result); DEL-01-01 AC-006
-   (the installed check); DEL-02-02 AC-004 (the approval policy and admission
-   of a registered revision); DEL-01-06 AC-002 (the signed identity it relies
-   on).
+   (the installed check); DEL-02-02 AC-004, for admission of a registered
+   revision under the approval policy with a verifying keychain seal;
+   DEL-01-06 AC-002 (the signed identity it relies on).
 8. **Supplier and notices.** The supplier pin the candidate is built with is
-   qualified, and every component shipped in the package has its notice. The
-   package is not offered for public release while a component is uncovered.
+   qualified: it is the newest Codex version that had passed a version-advance
+   check when the candidate was built, and the supplier-hosting criteria hold
+   on the candidate at that pin. Every component shipped in the package has
+   its notice, and the package is not offered for public release while a
+   component is uncovered.
 
-   *Governed by:* DEL-01-01 AC-011 (the pin); DEL-01-06 AC-007 (the notices).
+   *Governed by:* DEL-01-01 AC-011, which requires AC-001 to AC-010 on the
+   candidate (the pin); DEL-01-06 AC-007 (the notices).
 9. **Final candidate.** The package built from the finished source contains
    the supplier's tree and the bundled resources byte for byte. Every signed
    executable of the supplier's tree keeps the supplier's signature and
@@ -204,11 +212,16 @@ the owner decide on what was actually observed.
 
     *Governed by:* DEL-01-06 AC-008, and for each limitation the deliverable
     whose behaviour it limits.
-12. **The owner's verdict.** Agent 0 has recommended the candidate ready. The
-    owner then uses it and answers yes or no on whether it is ready. The
-    criterion is met on yes.
+12. **The owner's verdict.** After Agent 0 has recommended the candidate
+    ready, the owner uses it and answers yes or no before it is published.
+    What the owner uses it for, and for how long, is the owner's to choose at
+    the time. Agent 0 gives every observation the owner makes a disposition;
+    that is Agent 0's responsibility and not a question returned to the owner.
+    The criterion is met on yes. A yes meets this criterion only: any other
+    criterion that is unmet stays unmet.
 
-    *Governed by:* DEL-09-12, for the owner's use and what the owner observed.
+    *Governed by:* this criterion as stated; DEL-09-12 holds the record of the
+    owner's use, the answer and the dispositions (AC-007).
 13. **Decision packet.** The owner has, for the final candidate, the owning
     deliverable's result for each criterion above, the release limitations and
     the continuing obligations, with every unrun, failed, blocked or limited
