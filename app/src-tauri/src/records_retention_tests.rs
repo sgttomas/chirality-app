@@ -366,7 +366,7 @@ fn records_retention_disposal_relying_on_an_export_with_a_broken_chain_is_not_re
     }
     let summary = crate::records_export::integrity_summary(&p.context["export"]["logIntegrity"]).unwrap();
     assert!(summary.contains("1 limit(s); each is named in full in the App under this confirmation."), "{summary}");
-    assert!(p.context["export"]["verification"].as_str().unwrap().contains("separately, log integrity: limited (1 fault(s)"), "the verification sentence read alone is not a clean pass");
+    assert!(p.context["export"]["verification"].as_str().unwrap().contains("separately, log integrity: limited (1,"), "the verification sentence read alone is not a clean pass");
     // Not refused, and recorded with the act.
     let result = apply(p, &f.actor, &f.observed).unwrap();
     assert_eq!(result["state"], "disposed");

@@ -390,7 +390,7 @@ pub(crate) fn matches_current(source:&Path,folder:&Path,remaining:bool)->Result<
     if BEFORE_LOG_INTEGRITY.with(|b|b.get()) {return Ok(out);}
     // Read alone, this sentence speaks of bytes and says what it does not cover.
     out["verification"]=json!(format!("package bytes, prior administration and recorded chain heads agree with the manifests and match the current store payload; separately, log integrity: {}",
-        match integrity["limits"].as_array() { Some(limits) => format!("limited ({} fault(s), each named in logIntegrity)", limits.len()), None => WHOLE.to_owned() }));
+        match integrity["limits"].as_array() { Some(limits) => format!("limited ({}, each named in logIntegrity)", limits.len()), None => WHOLE.to_owned() }));
     out["logIntegrity"]=integrity;
     Ok(out)
 }

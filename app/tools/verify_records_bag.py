@@ -3,10 +3,6 @@
 
 Usage: python3 verify.py /path/to/bag
 
-Every line this program prints names a check it made and that check's result,
-or says that something was not checked. It prints nothing else about the
-package.
-
 The checks, for a package whose chain-head tag is of profile 0.3:
   1. Manifests and inventory. Every payload file and export tag has the
      SHA-256 its manifest records, and the package holds exactly those files.
@@ -304,12 +300,11 @@ def compare_head(log, name, head, chain, broken):
             raise ChainDisagreement(f"{log}: the break the package records at line {no} is not the break its lines give: "
                                     f"recorded {json.dumps(item)}, recomputed {json.dumps(found[no])}")
     if head.get("method") != METHOD or head.get("head") != chain.last or type(head.get("lines")) is not int or head.get("lines") != chain.lines:
-        raise ChainDisagreement(f"{log}: recomputed chain head {chain.last} after {chain.lines} lines "
-                                f"differs from the recorded head {head.get('head')} after {head.get('lines')} lines")
+        raise ChainDisagreement(f"{log}: method, head, lines: its lines give {METHOD}, {chain.last}, {chain.lines}")
     facts = {"linked": chain.linked, "unchained": chain.unchained, "unchainedLimit": chain.unchained_limit(name)}
     for fact, value in facts.items():
         if fact not in head or type(head[fact]) is not type(value) or head[fact] != value:
-            raise ChainDisagreement(f"{log}: the package records {fact} as {json.dumps(head.get(fact))}, and its lines give {json.dumps(value)}")
+            raise ChainDisagreement(f"{log}: {fact}: its lines give {json.dumps(value)}")
 
 
 def chain_logs(payload, roles):
@@ -370,7 +365,7 @@ def chains(root, payload):
             line, kind = head.get("line"), head.get("kind")
             where = f" at line {line} ({kind})" if type(line) is int and isinstance(kind, str) else ""
             report["stated"].append(f"{log}: the App could not read this log's chain{where} ({head['state']}: {head.get('error')})")
-            report["notChecked"].append(f"{log}: its chain (the package records no head for it)")
+            report["notChecked"].append(f"{log}: its chain")
             continue
         set_aside, torn = sorted(listed_lines(log, head, "setAside")), sorted(listed_lines(log, head, "torn"))
         if set(set_aside) & set(torn):
@@ -380,7 +375,7 @@ def chains(root, payload):
         chain, broken = account_chain(log, data, set(set_aside), set(torn))
         unclosed, stated = unclosed_end(data), head.get("unclosedEnd")
         if "unclosedEnd" not in head or (stated is not None and type(stated) is not int) or stated != unclosed:
-            raise ChainDisagreement(f"{log}: the package's account states an unclosed final part of {json.dumps(stated)} bytes, and the log has {json.dumps(unclosed)}")
+            raise ChainDisagreement(f"{log}: unclosedEnd: the log has {json.dumps(unclosed)}")
         # Check 3.
         compare_head(log, "role supply observations" if role else PurePosixPath(log).name, head, chain, broken)
         report["recomputed"] += 1
@@ -392,9 +387,8 @@ def chains(root, payload):
         # Not limits: what the chain recomputed here does not include.
         report["notes"].extend(f"STATED by the package, not checked here: {log}: line {no} is a torn line the App closed after an interrupted "
                                "write; it is not counted in the chain" for no in torn)
-        if chain.unchained:
-            report["notes"].append(f"FOUND by this verifier: {log}: " + (f"{chain.unchained} lines before the chain starts carry no link"
-                                                                        if chain.linked else "no line carries a chain link"))
+        if chain.unchained and chain.linked:
+            report["notes"].append(f"FOUND by this verifier: {log}: {chain.unchained} lines before the chain starts carry no link")
     return report
 
 
@@ -439,7 +433,7 @@ def not_checked(report):
     parts = ["whether each line is a record or an observation the App accepts (this verifier does not hold those formats)",
              "the package's account of which lines the App set aside or closed as torn"]
     if unread:
-        parts.append(f"the chain of {unread} log{'' if unread == 1 else 's'} the package records no head for")
+        parts.append(f"the chain of {unread} log{'' if unread == 1 else 's'}")
     return "Not checked by this verifier: " + "; ".join(parts) + ". To have them checked, verify the package through the App."
 
 

@@ -1372,19 +1372,12 @@ log's chain head. Store-wide query caches and the two known owning lock controls
 imported connector publication evidence is preserved.
 **Verify an exported package** checks inventories, hashes and RS heads again.
 The included `verify.py`, with standard Python 3 and without the App, checks
-bytes and inventories and recomputes each recorded log's chain from its lines.
-Every verification, by `verify.py`, by **Verify an exported package**, at
-import and at disposal, makes two separate statements and never lets one stand
-for the other: whether the package's bytes agree with its manifests and
-recorded chain heads, and whether the integrity of any log it carries is
-limited. A package faithfully exported from a store whose chain was already
+bytes and inventories.
+A package faithfully exported from a store whose chain was already
 broken is not refused: its bytes are consistent, and the log's integrity is
 limited at the line the package records, which the App's full statement
 names with its log and line and which stays reported by the store's reader
-after import. A chain that
-does not match what the package records for it, in either direction, fails.
-`verify.py` prints only lines that name a check it made and that check's
-result, or that say something was not checked. For a package whose chain-head
+after import. For a package whose chain-head
 tag is of profile 0.3 its checks are three: the manifests and inventory; that
 each chained log's exact length and SHA-256 equal the ones the tag records
 for it; and each chain recomputed from the lines and compared with the
@@ -1397,8 +1390,7 @@ chain it did not recompute). It ends with exit status 0 when every check it
 makes passed and no limit is listed, 2 when every check passed and at least
 one limit is listed, and 1 when a check failed. Exit status 0 means exactly
 that; it does not mean the records are intact, because `verify.py` does not
-hold the record format and does not check the package's account, and it says
-so on every run.
+hold the record format and does not check the package's account.
 
 Three things are kept apart, in the tag, in what either checker says and
 here, and none stands for another: equal bytes say that an exported log is
@@ -1439,7 +1431,7 @@ Packages of profiles 0.1 and 0.2 record neither a log's bytes nor an account
 of its lines. The App reads them as before, and reports a line it sets aside
 as a limit for a package of any profile, since it recomputes the account from
 the payload. `verify.py` checks only the manifests and inventory of such a
-package, lists every chain as NOT CHECKED and ends with exit status 2; it
+package, lists every chain as NOT CHECKED; it
 does not follow their chains, so for them a changed log with regenerated
 manifests is shown only by the App. No release exported those profiles.
 

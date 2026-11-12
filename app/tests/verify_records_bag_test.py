@@ -257,7 +257,7 @@ class VerifyBagTest(unittest.TestCase):
         # The account states the unclosed part; one that states none, or another length, disagrees.
         for stated in (None, 3, 12.0):
             self.write_heads(**{LOG: dict(recorded, unclosedEnd=stated)})
-            with self.assertRaisesRegex(verifier.ChainDisagreement, "states an unclosed final part"):
+            with self.assertRaisesRegex(verifier.ChainDisagreement, "unclosedEnd: the log has"):
                 verifier.verify(self.root)
         # A malformed account, or one naming a line the log does not have, fails.
         for account in ({"setAside": None}, {"setAside": "4"}, {"setAside": [4, 4]}, {"setAside": [0]}, {"setAside": [True]},
@@ -310,12 +310,12 @@ class VerifyBagTest(unittest.TestCase):
         report = verifier.verify(self.root)[2]
         self.assertEqual((report["pinned"], report["recomputed"], report["found"]), (1, 0, []))
         self.assertEqual(report["stated"], [f"{ROLE}: the App could not read this log's chain at line 3 (unreadable line) (unreadable or invalid role supply chain: invented)"])
-        self.assertEqual(report["notChecked"], [f"{ROLE}: its chain (the package records no head for it)"])
+        self.assertEqual(report["notChecked"], [f"{ROLE}: its chain"])
         out = self.output(2)
         # Nothing is said of agreement where no head was compared.
         self.assertEqual(out[1:4], ["Exported log bytes: 1 of 1 chained log equal the length and SHA-256 the chain-head tag records.",
                                     "Chains: 0 of 1 recomputed from the lines.", "Limits: 2."])
-        self.assertIn("; the chain of 1 log the package records no head for. To have them checked, verify the package through the App.", "\n".join(out))
+        self.assertIn("; the chain of 1 log. To have them checked, verify the package through the App.", "\n".join(out))
         # A refusal that records no line is relayed without one.
         self.write_heads(**{ROLE: {"state": "unreadable or invalid role supply chain", "error": "invented"}})
         self.assertEqual(verifier.verify(self.root)[2]["stated"], [f"{ROLE}: the App could not read this log's chain (unreadable or invalid role supply chain: invented)"])
