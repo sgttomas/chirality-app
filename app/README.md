@@ -1305,6 +1305,17 @@ build before this hold, started on the environment route, takes no lock of any
 kind and cannot be excluded or detected; while it runs on the same App data, a
 later App can hold that App data and read its session as ended.
 
+What that reading says of live work. Where a conversation's turn was live when
+the earlier session last recorded it, the custody view carries a restart fact
+(`app_restart_interruption`) with standing `App-recorded`, the turn under
+`liveTurnsLastRecorded`, and `liveAtSessionEnd` `not-known`: it is the record
+as that session left it, not an observation of its end, and the turn may have
+ended after the last record. Only where the App itself recorded at its own quit
+that it lost sight of the live turn does the fact say `recorded-at-quit`. The
+run-limit record the host writes from that fact says the same: what was last
+recorded, that the end was not observed, and that no end of the run is
+inferred. Records written before this change keep what they say.
+
 What that reading records. A request the earlier session left listed is closed
 in the ledger as `open-at-app-session-end` (RECOVERY RQ-06, context
 `app-ended-without-record`), and the custody view shows it as the event
@@ -1354,7 +1365,13 @@ the lock or ends. That the supplier itself keeps the descriptor for as long as
 it runs is an assumption about the supplier: the hosted handshake test
 observes the real supplier holding the lock while it is ready, and nothing
 more. The App's census and settlement of the process groups it
-started are unchanged and are what Quit and the home hold rest on. A build
+started are unchanged and are what Quit and the home hold rest on, and they are
+a second condition on a start, beside the lock: a Host starts no further Codex
+on a home while a process group it started there is not established settled
+(its leader's exit observed and its group known empty), whatever the lock says,
+and none while the lock is held, whatever the Host believes. A start refused on
+the first ground alone, the lock being free, is told that this App is still
+holding the home for a Codex process not confirmed ended. A build
 before this lock takes none and is not excluded by it. The lock is the file:
 if the lock file is removed or replaced in the home while a Codex holds it, a
 later start makes and takes a new file and is not excluded by that earlier

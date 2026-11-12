@@ -1549,6 +1549,12 @@ impl RecoveryCustodyView {
             let live_turn=execution["liveTurn"].as_str().filter(|s|!s.is_empty());
             if is_prior&&matches!(execution["state"].as_str(),Some("turn-live"|"interrupt-pending"|"observation-lost")) {
                 if let Some(turn)=live_turn {
+                    // What this is: the turn was live when an earlier session last
+                    // recorded it, and that session has ended. It is the record as it
+                    // was left (App-recorded), not an observation of the session's end:
+                    // the turn may have ended after the last record. Whether it was
+                    // live at the end is not known, except where the App itself
+                    // recorded, at its own quit, that it lost sight of the live turn.
                     // A clean session end does not prove a live turn survived to
                     // quit. Only a captured app-quit loss supplies that reading.
                     let prior_end=match end {
@@ -1558,7 +1564,7 @@ impl RecoveryCustodyView {
                         _=>None,
                     };
                     if let (Some(prior_end),Some(current))=(prior_end,current) {
-                        events.push(json!({"kind":"app_restart_interruption","eventId":format!("cev:restart:{}:{}:{}",session,row["lastLoadedGeneration"].as_str().unwrap(),thread),"appSession":session,"at":current["at"],"standing":"App-observed","threadId":thread,"home":row["home"],"priorSession":source["appSession"],"priorSessionEnd":prior_end,"liveTurnsAtEnd":[{"threadId":thread,"turnId":turn}]}));
+                        events.push(json!({"kind":"app_restart_interruption","eventId":format!("cev:restart:{}:{}:{}",session,row["lastLoadedGeneration"].as_str().unwrap(),thread),"appSession":session,"at":current["at"],"standing":"App-recorded","threadId":thread,"home":row["home"],"priorSession":source["appSession"],"priorSessionEnd":prior_end,"liveTurnsLastRecorded":[{"threadId":thread,"turnId":turn}],"liveAtSessionEnd":if prior_end=="quit-with-live-work"{"recorded-at-quit"}else{"not-known"}}));
                     } else {limits.push(format!("{thread}: prior loss/live observation retained; live work at clean App end is not established"));}
                 }
             }

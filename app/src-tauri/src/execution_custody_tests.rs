@@ -128,7 +128,14 @@ fn cold03_item_only_competing_turns_and_same_labels_retain_exact_associations(){
         let associations=row["openItemAssociations"].as_array().unwrap();assert_eq!(associations.len(),2);
         for (association,turn) in associations.iter().zip(["turn-A","turn-B"]) {assert_eq!(association["turnId"],turn);assert_eq!(association["fullTuple"]["generation"],f.g);assert_eq!(association["fullTuple"]["home"],"H-acct");assert_eq!(association["fullTuple"]["threadId"],"t");assert_eq!(association["fullTuple"]["itemId"],"same-item");assert_eq!(association["correlation"],"known persisted association");}
         if !competing {assert!(row["index"]["lastObservedExecution"]["liveTurn"].is_null());assert_eq!(view["restartEvents"],json!([]));}
-        else {assert_eq!(row["index"]["lastObservedExecution"]["liveTurn"],"u");assert_eq!(view["restartEvents"][0]["liveTurnsAtEnd"][0]["turnId"],"u");}
+        else {assert_eq!(row["index"]["lastObservedExecution"]["liveTurn"],"u");let event=&view["restartEvents"][0];assert_eq!(event["liveTurnsLastRecorded"][0]["turnId"],"u");
+            // What startup has is the pointer as the earlier session last recorded it: its own
+            // record, not an observation of that session's end, and nothing says the turn was
+            // live when the session ended.
+            assert_eq!((event["standing"].as_str(),event["liveAtSessionEnd"].as_str()),(Some("App-recorded"),Some("not-known")),"{event}");
+            assert!(event.get("liveTurnsAtEnd").is_none()&&!serde_json::to_string(event).unwrap().contains("App-observed"),"{event}");
+            let schema:Value=serde_json::from_str(include_str!("../resources/runtime_core/recovery.custody-event.schema.json")).unwrap();
+            jsonschema::options().offline().build(&schema).unwrap().validate(event).unwrap();}
     }
 }
 #[test]

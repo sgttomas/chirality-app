@@ -521,7 +521,8 @@
         "home",
         "priorSession",
         "priorSessionEnd",
-        "liveTurnsAtEnd"
+        "liveTurnsLastRecorded",
+        "liveAtSessionEnd"
       ],
       "properties": {
         "kind": {
@@ -538,8 +539,8 @@
           "$ref": "#/$defs/nonempty"
         },
         "standing": {
-          "description": "R17-4: the App's own observation, never authority for what Codex holds.",
-          "const": "App-observed"
+          "description": "The App's own record as an earlier session left it, read at a later start. Not an observation of that session's end, and never authority for what Codex holds.",
+          "const": "App-recorded"
         },
         "threadId": {
           "$ref": "#/$defs/nonempty"
@@ -557,12 +558,20 @@
             "system-terminated"
           ]
         },
-        "liveTurnsAtEnd": {
+        "liveTurnsLastRecorded": {
           "type": "array",
           "minItems": 1,
           "items": {
             "$ref": "#/$defs/turnRef"
-          }
+          },
+          "description": "The turns that were live when the earlier session last recorded this conversation. Not the turns live when that session ended."
+        },
+        "liveAtSessionEnd": {
+          "description": "Whether those turns were live when the earlier session ended: not known, unless the App itself recorded at its own quit that it lost sight of them.",
+          "enum": [
+            "not-known",
+            "recorded-at-quit"
+          ]
         }
       }
     },

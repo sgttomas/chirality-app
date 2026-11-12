@@ -45,7 +45,9 @@ use std::{
 /// What a person is told when another process holds the home.
 pub(crate) const IN_USE: &str = "Codex was not started on this home: the home is held by another process on this computer. If another Chirality App is using it, use that App or quit it first.";
 /// What a person is told when this App still holds the home because a process
-/// group an earlier Host of this App started is not established settled.
+/// group it started there is not established settled: one an earlier Host of
+/// this App started, or one the starting Host itself started. The Host's own
+/// check; it is made whatever the home's process lock says.
 pub(crate) const KEPT: &str = "Codex was not started on this home: this App is still holding it because a Codex process it started has not been confirmed ended. Quitting Chirality releases this App's hold; a Codex process still holding the home's lock can refuse a start after that.";
 /// What a person is told when a live Host of this App holds the home and may
 /// still have a start or a Codex process on it.

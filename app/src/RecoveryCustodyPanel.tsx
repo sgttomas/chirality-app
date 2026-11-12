@@ -9,6 +9,12 @@ export const requestEndWords = (event: Json): string => event?.kind === "request
   ? OPEN_AT_APP_SESSION_END_WORDS
   : event?.kind === "request_ended_unanswered" ? "Recorded by an earlier build as ended unanswered when its App session ended without a record:"
   : `${text(event?.kind) || "unnamed event"}:`;
+/** What a restart fact establishes: live work as an earlier App session last recorded it, and
+ *  whether it was live when that session ended only where the App recorded that at its quit. */
+export const LAST_RECORDED_LIVE_WORDS = "Live work as an earlier App session last recorded it. That session has ended; whether the work was still live when it ended was not observed.";
+export const RECORDED_AT_QUIT_WORDS = "Live work an earlier App session recorded losing sight of at its quit.";
+export const restartWords = (event: Json): string => event?.kind !== "app_restart_interruption" ? `${text(event?.kind) || "unnamed event"}:`
+  : event?.liveAtSessionEnd === "recorded-at-quit" ? RECORDED_AT_QUIT_WORDS : LAST_RECORDED_LIVE_WORDS;
 const detail = (value: Json) => <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(value, null, 2)}</pre>;
 
 export function RecoveryCustodyDetails({ data, retry }: { data: Json; retry?: (threadId: string) => void }) {
@@ -37,8 +43,8 @@ export function RecoveryCustodyDetails({ data, retry }: { data: Json; retry?: (t
     <p>A source event is separate from whether its pointer facts reached durable storage. A recovery event reports what Codex history said when the App read it after a restart; the App sent Codex only those history reads, resumed nothing and sent nothing to the conversation.</p>
     {(custody.live?.events ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{event.kind}: {event.cause ?? event.priorEvents ?? event.outcome} · {text(event.generation ?? event.threadId)}</summary>{detail(event)}</details>)}
     <h3>Restart observations derived from persisted prior-session facts</h3>
-    {(custody.restartEvents ?? []).length === 0 && <p>No restart interruption is established by the available persisted facts.</p>}
-    {(custody.restartEvents ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{event.kind}: home {event.home}, thread {event.threadId}, prior session {event.priorSession}</summary>{detail(event)}</details>)}
+    {(custody.restartEvents ?? []).length === 0 && <p>No live work last recorded by an earlier App session is in the available persisted facts.</p>}
+    {(custody.restartEvents ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{restartWords(event)} Home {event.home}, thread {event.threadId}, prior session {event.priorSession}</summary>{detail(event)}</details>)}
     <h3>Requests an earlier App session left recorded open</h3>
     <p>These are endings recorded when a later App session started. They cannot be answered in this App session.</p>
     {(custody.requestEndEvents ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{requestEndWords(event)} {event.entry.method} · {text(event.entry.subject?.threadId)} · recorded {event.at}</summary>{detail(event)}</details>)}

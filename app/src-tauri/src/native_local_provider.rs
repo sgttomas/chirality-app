@@ -454,6 +454,31 @@ mod tests {
         crate::hosting::Host::new().bind_local_destination(&cfg, &plan).unwrap();
         std::fs::remove_dir_all(root).unwrap();
     }
+    /// The App never removes, replaces or recreates a home's process lock file: preparing,
+    /// checking and configuring the dedicated local home again while its lock is held leaves the
+    /// same file, still held. (No other App code removes or renames anything inside a Codex
+    /// home; an account home that already exists is never prepared again.)
+    #[test]
+    fn preparing_the_local_home_again_leaves_a_held_process_lock_file_as_it_is() {
+        use std::os::unix::fs::MetadataExt;
+        let (root, plan) = fixture();
+        prepare(&plan).unwrap();
+        let path = plan.native_path().join(PROCESS_LOCK);
+        let held = take_process_lock(&path).unwrap();
+        let before = std::fs::symlink_metadata(&path).unwrap();
+        let base = HostConfig::new(root.join("not-an-executable"), root.join("account"), root.join("probe"), root.clone());
+        for _ in 0..2 {
+            prepare(&plan).unwrap();
+            check(&plan).unwrap();
+            config(&base, &plan).unwrap();
+        }
+        let after = std::fs::symlink_metadata(&path).unwrap();
+        assert_eq!((after.dev(), after.ino(), after.nlink(), after.mode()), (before.dev(), before.ino(), before.nlink(), before.mode()), "the same file");
+        assert_eq!(take_process_lock(&path).unwrap_err(), EARLIER_PROCESS, "still held by the first holder");
+        drop(held);
+        drop(take_process_lock(&path).expect("free once that holder lets go"));
+        std::fs::remove_dir_all(root).unwrap();
+    }
     #[test]
     fn native_local_provider_fixed_nonsecret_config_is_private_create_only_and_has_no_account_links(
     ) {

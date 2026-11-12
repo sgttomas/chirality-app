@@ -1795,6 +1795,18 @@ impl Host {
             Ok(file) => file,
             Err(reason) => { self.note_start_refusal(actor, &cfg.codex_home, &reason); return Err(reason); }
         };
+        // The Host's own obligation stands beside the lock's, and neither answers for the other
+        // (DEL-01-02 AC-010): a free lock does not settle what this Host itself has not
+        // established about a Codex it started on the home. Until every process group this Host
+        // started there is established settled (its leader's exit observed and its group known
+        // empty), no further start is admitted, whatever the lock says; and with the lock held,
+        // none is admitted whatever this Host believes.
+        if self.own_unsettled_census(&home_identity(&cfg.codex_home)).is_some() {
+            drop(process_lock);
+            let reason = crate::home_hold::KEPT.to_string();
+            self.note_start_refusal(actor, &cfg.codex_home, &reason);
+            return Err(reason);
+        }
         let attempt = {
             let _gate=self.attachment_gate.lock().unwrap();
             self.check_quit_fence()?;
@@ -7310,6 +7322,38 @@ mod local_process_lock_tests {
         assert_eq!(starts(), 2);
         stop_and_wait(&host);
         if let Ok(pid) = std::fs::read_to_string(f.root.join("home/left-behind")).unwrap_or_default().parse::<i32>() { drop(LeftBehind(pid)); }
+    }
+
+    /// The Host's own obligation, beside the lock's: with the lock free, a start is still refused
+    /// while this Host has not established the end of the Codex it started on the home. The
+    /// stand-in has exited and nothing else was given the lock, so an independent attempt takes
+    /// it; the Host, whose settlement of that process's group is unavailable, starts nothing.
+    /// Once the settlement is established the same start is admitted.
+    #[test]
+    fn a_free_lock_does_not_admit_a_start_while_this_hosts_own_codex_is_not_established_ended() {
+        use crate::home_hold::KEPT;
+        use process_group_custody::Census;
+        let f = Fixture::new(false, false);
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        host.model_quit_census(Some(Census::Unknown("modelled: member enumeration failed".into())));
+        let _ = host.stop("fixture", "test");
+        let stopped = host.child.lock().unwrap().clone().expect("the stopped child is retained");
+        until("the stand-in's exit is observed", || stopped.observe_exit().ok().flatten().is_some());
+        assert!(!stopped.settled(), "its group's settlement is not established");
+        assert_eq!(host.snapshot()["state"], "stopped");
+        drop(take_process_lock(&f.lock_path()).expect("the lock is free: nothing holds it"));
+        let starts = || std::fs::read_to_string(f.root.join("home/started")).unwrap().len();
+        for _ in 0..2 {
+            assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), KEPT, "refused by the Host's own check, the lock being free");
+            let status = host.snapshot();
+            assert_eq!((status["state"].as_str(), status["lastStartRefusal"]["reason"].as_str(), starts()), (Some("stopped"), Some(KEPT), 1));
+            drop(take_process_lock(&f.lock_path()).expect("the refused start left the lock free"));
+        }
+        host.model_quit_census(None);
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready", "admitted once the end is established");
+        assert_eq!(starts(), 2);
+        stop_and_wait(&host);
     }
 
     /// The process that served as Codex is itself alive after Stop: a stand-in whose serving
