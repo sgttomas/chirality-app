@@ -502,8 +502,14 @@ fn context(
         _ => return Err("retention action is unavailable for the current project state (legal hold blocks disposal)".into()),
     }
     let attachment = records_store::attach(project, false)?;
+    // No close, legal hold or disposal while the registry's last line is
+    // unread: which identity's records this folder is bound to cannot be
+    // established, and each of these writes to an identity's administration.
+    // A hold written to the wrong identity would be a false record of a
+    // person's act. (Decided by App Agent 0; reversed by letting "hold"
+    // through here.)
     if let Some(registry) = &attachment.registry {
-        return Err(format!("{registry}; nothing changed"));
+        return Err(format!("{registry}. While it stands nothing in this project can be disposed of or changed, so what a legal hold would protect is protected; a hold, a close and a disposal are each refused until the registry is read whole again. This build has no control that clears it; nothing changed"));
     }
     if attachment.refusal.is_some()
         || !attachment.limits.is_empty()

@@ -825,6 +825,9 @@ pub(crate) fn require_attached(root: &Path, bound: &Path) -> Result<(), String> 
 
 /// The store's identity record for `project` (once) and a roots line.
 fn register(store: &Path, project: &str, root: &str, how: &str) -> Result<(), String> {
+    // Whatever the caller checked: no line is ever appended after an
+    // incomplete one, which the append would close and change.
+    require_roots_whole(store)?;
     let dir = project_dir(store, project);
     let record = dir.join("project.json");
     if !record.exists() {
