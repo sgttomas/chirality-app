@@ -284,9 +284,9 @@ the owner decide on what was actually observed.
 
 ## Open choices
 
-Each of these decides whether the criterion named can be met, and nothing
-accepted settles it. Every other undecided item stands as its owning scope
-states it.
+Each of these decides whether a criterion can be met, or whether one is
+added, and nothing accepted settles it. Every other undecided item stands as
+its owning scope states it.
 
 - **Tying a delegated child to its brief (criterion 5).** How a child is tied
   to its brief where the supplier exposes neither the dispatch message nor a
