@@ -865,7 +865,9 @@ implemented behavior and qualification limits.
     association comes only from one line of the prompt,
     `Chirality-Brief: briefs/<file>.json sha256:<64 lowercase hex>` (path
     relative to `.chirality/fleet/`, digest of the file's exact bytes),
-    compared with the brief file when the dispatch is recorded: brief
+    compared with the brief file when the dispatch is recorded, and the dispatch
+    records what that brief record itself states (its record identity, work
+    item and undertaking): brief
     referenced, brief referenced whose content does not match the
     reference, brief reference not resolved (with the reason), or no brief
     reference. A match shows which brief was named, not that the child
@@ -874,13 +876,14 @@ implemented behavior and qualification limits.
     written when the status Codex reports for a child changes, and
     `observation_ended` when the generation it was observed in closes
     (Codex stopped or exited) or when the App itself exits (cause "App
-    quit"). A session records the end only of its own observation, and only
-    under the store and project identity the child was first recorded
-    under: nothing is ever written about a child another session recorded
-    or under a replacement identity, and after a crash or a kill no end is
-    recorded at all. These facts reach the store
-    in the order observed; a later one waits while an earlier one is
-    unwritten. A dispatch establishes a child and its parent only. A spawn seen only in Codex history, or in a
+    quit"). A session records the end only of its own observation, and every
+    later fact of a child goes through the recording context frozen when
+    that child was first recorded, with the writer's physical check:
+    nothing is ever written about a child another session recorded, or
+    under another identity or folder, and after a crash or a kill no end is
+    recorded at all. Each child's facts reach
+    the store in the order observed; a later one waits while an earlier one
+    of that child is unwritten. A dispatch establishes a child and its parent only. A spawn seen only in Codex history, or in a
     conversation whose folder is not the selected project, is not recorded.
     An observation whose project has no usable records-store attachment
     waits and is recorded once it has one.
@@ -898,15 +901,17 @@ implemented behavior and qualification limits.
     Inputs are contained Fleet-relative files; connector needs are interpreted
     from their declared receiving records with claim/route gaps shown. Decision
     needs remain unknown without their required evidence. A dispatch is
-    tied through the brief record its prompt referenced, by that record's
-    own work item and undertaking; which file was referenced is judged by
-    the file's identity, not its spelling. An item so held, with no return
-    recorded, reads `dispatched` with the child's last recorded status, when
-    it was recorded and that nothing has been recorded since, and `unknown`
-    once an end of that child's observation is recorded or where its named
-    brief cannot be found. A dispatch under an earlier brief of the item
-    still holds it and says so; the same brief identifier in another
-    undertaking's file ties nothing here. A child tied to no brief
+    tied by what its own record says: the work item and undertaking the
+    referenced brief named when the dispatch was recorded. Nothing in the
+    project's files is consulted to tie anything, so a brief file changed,
+    replaced or superseded afterwards moves no worker. An item so held, with
+    no return recorded, reads `dispatched` and lists every worker dispatched
+    for it, each with its last recorded status, when it was recorded and
+    that nothing has been recorded since; it reads `unknown` once an end of
+    every such worker's observation is recorded, or where its named brief
+    cannot be found. A dispatch under an earlier brief of the item still
+    holds it and says so. A worker still observed for work that is not
+    selected in the current graph leaves no row plainly ready. A child tied to no brief
     leaves no item plainly ready while it is observed. An incomplete source packet cannot produce unqualified readiness
     or an apparently complete empty queue. The complete source packet remains
     available beside the derived views.

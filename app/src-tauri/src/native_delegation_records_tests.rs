@@ -193,8 +193,9 @@ fn the_association_is_recorded_only_as_the_prompt_and_the_brief_file_establish_i
     let state = |prompt: Option<&str>| associate(&f.project, prompt);
     assert_eq!(state(None), json!({"state":"no brief reference"}));
     assert_eq!(state(Some("briefs/W1.json is mentioned, with no reference line")), json!({"state":"no brief reference"}));
-    assert_eq!(state(Some(&line("briefs/W1.json", &digest))), json!({"state":"brief referenced","brief":"brief:W1","briefFile":"briefs/W1.json",
-        "briefContent":{"method":crate::util::FILE_IDENTITY_METHOD,"value":digest}}));
+    // The tie is recorded: what the brief record itself states, read from the bytes whose identity is recorded.
+    assert_eq!(state(Some(&line("briefs/W1.json", &digest))), json!({"state":"brief referenced","brief":"brief:W1","briefRecord":"fl:brief:W1",
+        "workItem":"W1","undertaking":"FX-U1","briefFile":"briefs/W1.json","briefContent":{"method":crate::util::FILE_IDENTITY_METHOD,"value":digest}}));
     // The file's bytes are not the referenced ones; which of the two is wrong is not known.
     let other = "0".repeat(64);
     let changed = state(Some(&line("briefs/W1.json", &other)));
@@ -222,7 +223,22 @@ fn the_association_is_recorded_only_as_the_prompt_and_the_brief_file_establish_i
         assert_eq!(unresolved["state"], "brief reference not resolved");
         assert!(unresolved["reason"].as_str().unwrap().contains("not a readable brief record"));
     }
-    assert_eq!(changed["brief"], "brief:W1", "a mismatch still names the brief the file holds");
+    assert_eq!((&changed["brief"], &changed["briefRecord"], &changed["workItem"], &changed["undertaking"]),
+        (&json!("brief:W1"), &json!("fl:brief:W1"), &json!("W1"), &json!("FX-U1")), "a mismatch still records what the file held then");
+    // A dispatch record without its tie cannot be read as tied: the format refuses a resolved association that lacks it.
+    let mut untied = f.context(&generation("first"));
+    untied.activity = None;
+    let mut record = super::fact(untied, "dispatch_observed", json!({"mechanism":"Codex native subagent",
+        "parent":{"threadId":"p","generation":generation("first")},"child":{"threadId":"c","generation":generation("first")},
+        "parentSource":"collabAgentToolCall.senderThreadId","nativeHome":{"homeId":"invented-home","root":crate::attachments::native_path_identity(&f.project),"physical":{"device":1,"inode":1}},
+        "spawnItem":{"threadId":"p","turnId":"t","itemId":"i"},"spawnPrompt":{"state":"not supplied"},"association":state(Some(&line("briefs/W1.json", &digest))),
+        "observation":{"source":"item/completed notification, received live","position":1},"typesPin":crate::hosting::DECLARED_PIN})).unwrap().record;
+    validate_record(&record).unwrap();
+    for field in ["workItem", "undertaking", "briefRecord"] {
+        let kept = record["body"]["association"].as_object_mut().unwrap().remove(field).unwrap();
+        assert!(validate_record(&record).is_err(), "a resolved association without {field} is refused");
+        record["body"]["association"][field] = kept;
+    }
     // Every state is one the record format admits, on a recorded dispatch.
     let g = generation("first");
     let malformed = format!("{BRIEF_REFERENCE} briefs/W1.json");
@@ -281,11 +297,11 @@ fn a_session_ends_only_its_own_observation_and_at_its_own_exit() {
     other_view.ready(second.clone(), json!("invented version"), Value::Null).unwrap();
     let mut other = Session::default();
     f.observe(&mut other, &[other_view.snapshot()], None);
-    other.end_own_delegation(&mut |generation| Some((f.context(generation), "App quit")));
+    other.end_own_delegation(&|_| Some("App quit"));
     assert_eq!(f.rows().len(), 2, "one home under two sessions establishes nothing about the first session's child");
     // The session that recorded the child exits: its own observation ends, once.
     for _ in 0..2 {
-        session.end_own_delegation(&mut |generation| Some((f.context(generation), "App quit")));
+        session.end_own_delegation(&|_| Some("App quit"));
     }
     let ended = f.of("observation_ended");
     assert_eq!(ended.len(), 1);
@@ -295,7 +311,7 @@ fn a_session_ends_only_its_own_observation_and_at_its_own_exit() {
     let h = Fixture::new();
     let mut session = Session::default();
     h.observe(&mut session, &[handed(&s, &g, &h.project)], None);
-    session.end_own_delegation(&mut |_| None);
+    session.end_own_delegation(&|_| None);
     assert!(h.of("observation_ended").is_empty());
 }
 
@@ -344,33 +360,39 @@ fn an_observation_whose_recording_context_is_unavailable_waits_and_is_then_recor
     assert_eq!((f.of("dispatch_observed").len(), f.of("child_observed").len()), (1, 1));
 }
 
-// A child is recorded under one project identity; a later status, the close of
-// its generation and the App's exit then find another identity in force.
-// Nothing is written under the other identity, and the recorder says why.
+// Every later fact of a child goes through the context frozen when the child
+// was first recorded, and the writer's own physical check applies to it. Here
+// another folder stands at the project's path with a copy of its link: same
+// identities, same spelling, another place. Nothing is written of the child
+// there; when the original is back, its end is recorded once.
 #[test]
-fn nothing_is_written_of_a_child_under_a_recording_context_other_than_its_own() {
+fn a_later_fact_of_a_child_is_published_only_through_its_first_frozen_context() {
     let f = Fixture::new();
     let g = generation("first");
     let mut s = spawn(&g, None);
     let mut session = Session::default();
     f.observe(&mut session, &[handed(&s, &g, &f.project)], None);
     assert_eq!(f.rows().len(), 2);
-    let elsewhere = |generation: &Value| {
-        let mut context = f.context(generation);
-        let mut scope = f.scope.clone();
-        scope.project_id = "invented-replacement-identity".into();
-        context.scope = Ok(scope);
-        context
-    };
+    let store_log = || std::fs::read_to_string(published_at(&f.scope, 0)).unwrap();
+    let before = store_log();
+    let away = f.root.join("project-moved-away");
+    std::fs::rename(&f.project, &away).unwrap();
+    std::fs::create_dir_all(f.project.join(".chirality")).unwrap();
+    std::fs::copy(away.join(crate::records_store::PROJECT_LINK), f.project.join(crate::records_store::PROJECT_LINK)).unwrap();
     s.view.close(&g).unwrap();
-    session.observe_delegation_views(Some(&f.project), &[handed(&s, &g, &f.project)], &mut |generation| elsewhere(generation), &|_| Some("Codex process stopped"));
-    session.end_own_delegation(&mut |generation| Some((elsewhere(generation), "App quit")));
+    // The tick would freeze the replacement afresh if asked; a child already recorded is never asked.
+    let mut frozen_again = 0;
+    session.observe_delegation_views(Some(&f.project), &[handed(&s, &g, &f.project)], &mut |generation| { frozen_again += 1; f.context(generation) }, &|_| Some("Codex process stopped"));
+    session.end_own_delegation(&|_| Some("App quit"));
     session.retry(Some(&f.project));
-    assert_eq!(f.rows().len(), 2, "no end is written under another identity");
-    assert!(session.snapshot()["limits"].to_string().contains("no longer the one this child was recorded under"));
-    // The original context is in force again: the end is recorded, once.
+    assert_eq!(frozen_again, 0, "the context of a recorded child is not captured again");
+    assert_eq!(store_log(), before, "nothing is written of the child while another folder stands at its project's path");
+    assert!(!f.project.join(FLEET).exists(), "and nothing in the replacement folder");
+    assert!(session.snapshot()["limits"].to_string().contains("the context this child was first recorded under no longer holds"));
+    std::fs::remove_dir_all(&f.project).unwrap();
+    std::fs::rename(&away, &f.project).unwrap();
     f.observe(&mut session, &[handed(&s, &g, &f.project)], Some("Codex process stopped"));
-    session.end_own_delegation(&mut |generation| Some((f.context(generation), "App quit")));
+    session.end_own_delegation(&|_| Some("App quit"));
     assert_eq!(f.of("observation_ended").len(), 1);
     assert_eq!(f.of("observation_ended")[0]["body"]["cause"], "Codex process stopped");
 }

@@ -9448,7 +9448,7 @@ for line in sys.stdin:
         let mut links=crate::native_conversation_links::Session::default();
         let rows=||crate::read_fleet_records_for_workspace(peer.project()).unwrap()["coordination"]["nativeDelegation"].as_array().unwrap().iter().map(|row|row["record"].clone()).collect::<Vec<Value>>();
         // An exit before anything was recorded writes nothing.
-        links.end_delegation_at_exit(peer.project(),&[peer.home.clone()]);assert!(rows().is_empty());
+        links.end_delegation_at_exit(&[peer.home.clone()]);assert!(rows().is_empty());
         peer.set_mode("notify-mode","spawn");peer.home.host.turn_start_text(&g,"thread","delegate one piece").unwrap();
         let deadline=std::time::Instant::now()+Duration::from_secs(5);
         while rows().len()<2{
@@ -9456,7 +9456,7 @@ for line in sys.stdin:
             assert!(std::time::Instant::now()<deadline,"spawn recorded; limits {}",links.snapshot()["limits"]);std::thread::sleep(Duration::from_millis(20));
         }
         assert_eq!(peer.home.host.snapshot()["state"],"ready");
-        for _ in 0..2{links.end_delegation_at_exit(peer.project(),&[peer.home.clone()]);}
+        for _ in 0..2{links.end_delegation_at_exit(&[peer.home.clone()]);}
         let recorded=rows();assert_eq!(recorded.len(),3,"{recorded:?}");
         assert_eq!((&recorded[2]["kind"],&recorded[2]["body"]["cause"],&recorded[2]["body"]["lastObserved"]),(&json!("observation_ended"),&json!("App quit"),&json!("running")));
         assert_eq!(recorded[2]["body"]["child"],json!({"threadId":"child-old","generation":g}));
@@ -9485,10 +9485,10 @@ for line in sys.stdin:
         crate::records_store::new_identity(&peer.fixture.root).unwrap();
         let replacement=crate::records_store::attach(&peer.fixture.root,false).unwrap().dir.unwrap();
         assert_ne!(replacement,original);
-        links.end_delegation_at_exit(peer.project(),&[peer.home.clone()]);links.retry(peer.project());
+        links.end_delegation_at_exit(&[peer.home.clone()]);links.retry(peer.project());
         assert!(!log(&replacement).contains("observation_ended"),"nothing of that child under the replacement identity");
         assert_eq!(log(&original),before,"and nothing more under the original, which is no longer in force");
-        assert!(links.snapshot()["limits"].to_string().contains("no longer the one this child was recorded under"));
+        assert!(links.snapshot()["limits"].to_string().contains("the context this child was first recorded under no longer holds"));
     }
     // M6 / H-4: a sub-agent the view showed before the trial was sent is no
     // candidate; the tick's linking read is journalled as the App rule's.

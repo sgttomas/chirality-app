@@ -380,10 +380,10 @@ impl Session {
     /// The App is exiting: this session's own observation of each child it
     /// recorded ends, with the cause the host's lifecycle gives for that
     /// generation or, where Codex was not seen to end, "App quit".
-    pub(crate) fn end_delegation_at_exit(&mut self, project: Option<&Path>, homes: &[Arc<HomeSession>]) {
-        self.end_own_delegation(&mut |generation| {
+    pub(crate) fn end_delegation_at_exit(&mut self, homes: &[Arc<HomeSession>]) {
+        self.end_own_delegation(&|generation| {
             let home = homes.iter().find(|home| home.host.snapshot()["generation"]["home"] == generation["home"])?;
-            Some((freeze_at(project, home, generation.clone()), generation_end(home, generation).unwrap_or("App quit")))
+            Some(generation_end(home, generation).unwrap_or("App quit"))
         });
     }
     /// The record tick hands over each home's native views as received. What

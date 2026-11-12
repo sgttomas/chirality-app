@@ -214,7 +214,7 @@
       "pattern": "^brief:[A-Za-z0-9._-]+$"
     },
     "association": {
-      "description": "How the observed dispatch is tied to a brief, from the spawn prompt Codex supplied and the brief file's bytes when the dispatch was recorded. A matching reference shows which brief the prompt named and what its bytes were then, not that the child received or read it. A mismatch shows only that the file's bytes are not those referenced, not which of the two changed. Nothing is inferred: an absent prompt, an absent reference and a reference that cannot be resolved are each recorded as such.",
+      "description": "How the observed dispatch is tied to a brief, from the spawn prompt Codex supplied and the brief file's bytes when the dispatch was recorded. A resolved reference records what the brief record itself stated then: its record identity, its work item and its undertaking. That is the tie, and a reader never works it out again from the project's files. A matching reference shows which brief the prompt named and what its bytes were then, not that the child received or read it. A mismatch shows only that the file's bytes are not those referenced, not which of the two changed. Nothing is inferred: an absent prompt, an absent reference and a reference that cannot be resolved are each recorded as such.",
       "oneOf": [
         {
           "type": "object",
@@ -234,6 +234,9 @@
           "required": [
             "state",
             "brief",
+            "briefRecord",
+            "workItem",
+            "undertaking",
             "briefFile",
             "briefContent"
           ],
@@ -249,6 +252,21 @@
             },
             "briefContent": {
               "$ref": "#/$defs/contentIdentity"
+            },
+            "briefRecord": {
+              "description": "The record identity of the brief record the file held when the dispatch was recorded.",
+              "type": "string",
+              "pattern": "^fl:[A-Za-z0-9._:/-]+$"
+            },
+            "workItem": {
+              "description": "The work item that brief record names. With `undertaking`, this is the tie; it is never worked out again from the project's files.",
+              "type": "string",
+              "minLength": 1
+            },
+            "undertaking": {
+              "description": "The undertaking that brief record belongs to.",
+              "type": "string",
+              "minLength": 1
             }
           }
         },
@@ -258,6 +276,9 @@
           "required": [
             "state",
             "brief",
+            "briefRecord",
+            "workItem",
+            "undertaking",
             "briefFile",
             "referencedContent",
             "currentContent"
@@ -277,6 +298,21 @@
             },
             "currentContent": {
               "$ref": "#/$defs/contentIdentity"
+            },
+            "briefRecord": {
+              "description": "The record identity of the brief record the file held when the dispatch was recorded.",
+              "type": "string",
+              "pattern": "^fl:[A-Za-z0-9._:/-]+$"
+            },
+            "workItem": {
+              "description": "The work item that brief record names. With `undertaking`, this is the tie; it is never worked out again from the project's files.",
+              "type": "string",
+              "minLength": 1
+            },
+            "undertaking": {
+              "description": "The undertaking that brief record belongs to.",
+              "type": "string",
+              "minLength": 1
             }
           }
         },

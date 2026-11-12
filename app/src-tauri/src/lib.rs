@@ -3036,7 +3036,7 @@ pub fn run() {
                 }
                 // DEL-06-01: this session's observation of each child it recorded ends with it.
                 if let Ok(mut links) = st.native_links.lock() {
-                    links.end_delegation_at_exit(st.workspace.as_deref(), &homes);
+                    links.end_delegation_at_exit(&homes);
                 }
                 records_index::close_all();
             }

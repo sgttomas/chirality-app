@@ -678,7 +678,7 @@ impl Fixture {
         self.put("inputs/style.txt", b"style");
         self.graph["body"]["items"][0]["brief"] = json!("brief:W1");
         self.select();
-        json!({"state":"brief referenced","brief":"brief:W1","briefFile":"briefs/W1.json",
+        json!({"state":"brief referenced","brief":"brief:W1","briefRecord":"fl:brief:W1","workItem":"W1","undertaking":"U","briefFile":"briefs/W1.json",
             "briefContent":{"method":util::FILE_IDENTITY_METHOD,"value":util::sha256_hex(&bytes)}})
     }
 }
@@ -699,10 +699,11 @@ fn fleet_views_app_dispatch_holds_an_item_until_its_return_and_an_ended_observat
     assert_eq!(held["category"], "dispatched");
     let cause = held["causes"].as_array().unwrap().iter().filter_map(Value::as_str).find(|c| c.contains("child-a")).unwrap().to_owned();
     assert!(cause.contains("invented-parent") && cause.contains("no child status recorded") && cause.contains("has the content the prompt referenced"), "{cause}");
-    assert_eq!(held["dispatch"]["briefContentMatches"], true);
-    assert_eq!((&held["dispatch"]["child"], &held["dispatch"]["observationEnded"]), (&json!("child-a"), &json!(false)));
+    assert_eq!(held["dispatches"][0]["briefContentMatches"], true);
+    assert_eq!((&held["dispatches"][0]["child"], &held["dispatches"][0]["observationEnded"]), (&json!("child-a"), &json!(false)));
+    assert!(!held["causes"].to_string().contains("no dispatch observed"), "the absence sentence is written only where no dispatch was observed");
     assert_eq!(work(v, "W3")["category"], "ready", "a dispatch tied to its brief qualifies no other item");
-    assert!(work(v, "W3")["dispatch"].is_null());
+    assert_eq!(work(v, "W3")["dispatches"], json!([]));
     assert_eq!(v["queue"], json!([]), "a dispatch is not a return");
     f.observed(&[dispatch.clone(), f.status("child-a", "running"), f.status("child-a", "completed")]);
     let w = f.read();
@@ -722,11 +723,12 @@ fn fleet_views_app_dispatch_holds_an_item_until_its_return_and_an_ended_observat
     let w = f.read();
     let held = work(view(&w), "W1");
     assert_eq!(held["category"], "unknown", "an ended generation stays ended");
-    assert_eq!(held["dispatch"]["observationEnded"], true);
+    let worker = &held["dispatches"][0];
+    assert_eq!(worker["observationEnded"], true);
     // Each record that decided the row is among its sources, with its source line and governing order.
-    assert_eq!(held["sources"]["dispatch"]["recordId"], dispatch["observationId"]);
-    assert_eq!(held["sources"]["childObservation"]["recordId"], "fl:app:ended-child-a");
-    assert!(held["sources"]["dispatch"]["protectedOrder"].is_u64() && held["sources"]["dispatch"]["source"]["line"].is_u64());
+    assert_eq!(worker["sources"]["dispatch"]["recordId"], dispatch["observationId"]);
+    assert_eq!(worker["sources"]["lastObservation"]["recordId"], "fl:app:ended-child-a");
+    assert!(worker["sources"]["dispatch"]["protectedOrder"].is_u64() && worker["sources"]["dispatch"]["source"]["line"].is_u64());
     f.ret("fl:return", "W1");
     let w = f.read();
     assert_eq!(work(view(&w), "W1")["category"], "returned");
@@ -765,77 +767,68 @@ fn fleet_views_a_project_line_naming_the_app_or_a_child_tied_to_no_brief_never_r
     assert_eq!(work(view(&w), "W3")["category"], "ready (qualified)");
     assert!(view(&w)["notes"].to_string().contains("child observations with no recorded dispatch: stray-child"));
     // A dispatch recorded with a mismatch (the file's bytes were not the referenced ones) still holds the item, and says so.
-    let changed = json!({"state":"brief referenced; content does not match the reference","brief":"brief:W1","briefFile":"briefs/W1.json",
-        "referencedContent":{"method":util::FILE_IDENTITY_METHOD,"value":"0".repeat(64)},"currentContent":association["briefContent"]});
+    let changed = json!({"state":"brief referenced; content does not match the reference","brief":"brief:W1","briefRecord":"fl:brief:W1","workItem":"W1","undertaking":"U",
+        "briefFile":"briefs/W1.json","referencedContent":{"method":util::FILE_IDENTITY_METHOD,"value":"0".repeat(64)},"currentContent":association["briefContent"]});
     let mut rows = stray.to_vec();
     rows.push(f.dispatch("child-b", changed));
     f.observed(&rows);
     let w = f.read();
     assert_eq!(work(view(&w), "W1")["category"], "dispatched");
     assert!(work(view(&w), "W1")["causes"].to_string().contains("does not have the content the prompt referenced"));
-    assert_eq!(work(view(&w), "W1")["dispatch"]["briefContentMatches"], false, "the mismatch is its own field, not only a sentence");
+    assert_eq!(work(view(&w), "W1")["dispatches"][0]["briefContentMatches"], false, "the mismatch is its own field, not only a sentence");
 }
 
-// A dispatch is tied to an item only where the file its prompt referenced is
-// the file of that item's own brief (DEL-06-01 REQ-001: an association is
-// recorded only as established). Expectations are that rule, not the output.
+// The tie is the one recorded with the dispatch (DEL-06-01 Association): the
+// work item and undertaking the referenced brief named when the dispatch was
+// recorded. Nothing in the project's files moves a worker. Expectations are
+// the scope's words, not the reader's output.
 #[test]
-fn fleet_views_a_dispatch_ties_only_through_the_items_own_brief_file() {
+fn fleet_views_a_worker_is_tied_by_its_record_and_by_nothing_in_the_projects_files() {
     let mut f = Fixture::new();
     let association = f.briefed();
-    // Another undertaking holds a valid brief with the same identifier, in its own file.
-    let mut foreign = brief("brief:W1", "another manager");
-    foreign["recordId"] = json!("fl:foreign-brief");
-    foreign["undertaking"] = json!("OTHER");
-    let foreign_bytes = serde_json::to_vec(&foreign).unwrap();
-    f.put("briefs/OTHER-W1.json", &foreign_bytes);
-    let elsewhere = json!({"state":"brief referenced","brief":"brief:W1","briefFile":"briefs/OTHER-W1.json",
-        "briefContent":{"method":util::FILE_IDENTITY_METHOD,"value":util::sha256_hex(&foreign_bytes)}});
-    let foreign_dispatch = f.dispatch("foreign-child", elsewhere);
-    f.observed(&[foreign_dispatch.clone()]);
+    // A dispatch recorded for another undertaking's brief, even with the same brief identifier and item name, ties nothing here.
+    let mut elsewhere = association.clone();
+    elsewhere["undertaking"] = json!("OTHER");
+    elsewhere["briefRecord"] = json!("fl:foreign-brief");
+    let foreign = f.dispatch("foreign-child", elsewhere);
+    f.observed(&[foreign.clone()]);
     let w = f.read();
-    let item = work(view(&w), "W1");
-    assert_ne!(item["category"], "dispatched", "the same identifier from another file ties nothing");
-    assert!(item["dispatch"].is_null());
-    assert!(item["causes"].to_string().contains("not established as a brief of this item"));
-    // The item's own brief file is referenced: it is held.
-    let own = f.dispatch("own-child", association);
-    f.observed(&[foreign_dispatch.clone(), own.clone()]);
+    assert_eq!(work(view(&w), "W1")["category"], "ready");
+    assert_eq!(work(view(&w), "W1")["dispatches"], json!([]));
+    // The item's own dispatch holds it.
+    let own = f.dispatch("own-child", association.clone());
+    f.observed(&[foreign.clone(), own.clone()]);
+    assert_eq!(work(view(&f.read()), "W1")["category"], "dispatched");
+    // Review round 3: the brief file is replaced by a valid brief for another item, under the same path
+    // and even the same brief identifier. The worker stays with the item it was dispatched for.
+    let mut usurper = brief("brief:W1", "manager");
+    usurper["recordId"] = json!("fl:usurper");
+    usurper["body"]["workItem"] = json!("W3");
+    f.put("briefs/W1.json", &serde_json::to_vec(&usurper).unwrap());
+    f.graph["body"]["items"][2]["brief"] = json!("brief:W1");
+    f.select();
     let w = f.read();
-    assert_eq!(work(view(&w), "W1")["category"], "dispatched");
-    assert_eq!(work(view(&w), "W1")["dispatch"]["child"], "own-child");
-    // The item's brief file is gone: the scope's table says unknown, and the dispatch is shown beside it.
+    let (held, other) = (work(view(&w), "W1"), work(view(&w), "W3"));
+    assert_eq!(held["dispatches"][0]["child"], "own-child", "the worker has not moved");
+    assert_ne!(held["category"], "ready");
+    assert_eq!(other["dispatches"], json!([]), "and no other item has gained it");
+    assert_ne!(other["category"], "dispatched");
+    assert!(held["causes"].to_string().contains("the brief record it named is not among the project's brief files now"));
+    // The brief file removed altogether: the item's named brief cannot be found, so it reads unknown, with its worker still listed.
     std::fs::remove_file(f.project.join(FOLDER).join("briefs/W1.json")).unwrap();
     let w = f.read();
     let item = work(view(&w), "W1");
     assert_eq!(item["category"], "unknown");
     assert!(item["causes"].to_string().contains("named brief absent or ambiguous"));
-    assert!(item["causes"].to_string().contains("not established as a brief of this item"));
+    assert_eq!(item["dispatches"][0]["child"], "own-child");
 }
 
-// Round 2 of review: which file, which item. Expectations are the scope's words:
-// unknown takes precedence over waiting; preparing a new brief releases nothing;
-// a held item is never shown as ready.
 #[test]
-fn fleet_views_a_dispatch_holds_its_item_through_aliases_supersession_and_a_missing_brief() {
-    // The same file named in another case, where the volume treats the two names as one file.
-    let mut f = Fixture::new();
-    let association = f.briefed();
-    if std::fs::metadata(f.project.join(FOLDER).join("briefs/w1.json")).is_ok() {
-        let mut aliased = association.clone();
-        aliased["briefFile"] = json!("briefs/w1.json");
-        f.observed(&[f.dispatch("alias-child", aliased)]);
-        let w = f.read();
-        let item = work(view(&w), "W1");
-        assert_eq!(item["category"], "dispatched", "one file under two spellings is one file");
-        assert_eq!(item["dispatch"]["briefFile"], "briefs/w1.json", "the path stays as the prompt named it");
-    }
-    drop(f);
+fn fleet_views_a_worker_holds_its_item_through_a_new_brief_an_outstanding_input_and_a_later_match() {
     // A new brief supersedes the dispatched one and a new graph revision names it: the worker still holds the item.
     let mut f = Fixture::new();
     let association = f.briefed();
-    let dispatch = f.dispatch("held-child", association.clone());
-    f.observed(&[dispatch.clone()]);
+    f.observed(&[f.dispatch("held-child", association.clone())]);
     let mut newer = brief("brief:W1b", "manager");
     newer["recordId"] = json!("fl:brief-W1b");
     newer["body"]["supersedes"] = json!("brief:W1");
@@ -845,28 +838,76 @@ fn fleet_views_a_dispatch_holds_its_item_through_aliases_supersession_and_a_miss
     let w = f.read();
     let item = work(view(&w), "W1");
     assert_eq!(item["category"], "dispatched", "preparing a new brief releases nothing");
-    assert_eq!((&item["dispatch"]["briefNamed"], &item["dispatch"]["briefIsCurrent"], &item["dispatch"]["currentBrief"]), (&json!("brief:W1"), &json!(false), &json!("brief:W1b")));
+    let worker = &item["dispatches"][0];
+    assert_eq!((&worker["briefNamed"], &worker["briefIsCurrent"], &worker["currentBrief"]), (&json!("brief:W1"), &json!(false), &json!("brief:W1b")));
     assert!(item["causes"].to_string().contains("dispatched under brief:W1, not the item's current brief brief:W1b"));
     drop(f);
-    // The item's brief is gone and an input is outstanding: unknown, not waiting.
+    // An outstanding input does not release a held item; a named brief that cannot be found reads unknown ahead of waiting.
     let mut f = Fixture::new();
     let association = f.briefed();
     f.graph["body"]["items"][0]["needs"] = json!([{"kind":"input","ref":"inputs/absent.txt"}]);
     f.select();
     f.observed(&[f.dispatch("held-child", association.clone())]);
-    assert_eq!(work(view(&f.read()), "W1")["category"], "dispatched", "an outstanding input does not release a held item");
+    assert_eq!(work(view(&f.read()), "W1")["category"], "dispatched");
     std::fs::remove_file(f.project.join(FOLDER).join("briefs/W1.json")).unwrap();
-    let w = f.read();
-    assert_eq!(work(view(&w), "W1")["category"], "unknown", "unknown takes precedence over waiting");
+    assert_eq!(work(view(&f.read()), "W1")["category"], "unknown", "unknown takes precedence over waiting");
     drop(f);
     // Recorded as a mismatch; the file later holds exactly the referenced bytes. Both facts are said.
     let mut f = Fixture::new();
     let association = f.briefed();
-    let mismatch = json!({"state":"brief referenced; content does not match the reference","brief":"brief:W1","briefFile":"briefs/W1.json",
-        "referencedContent":association["briefContent"],"currentContent":{"method":util::FILE_IDENTITY_METHOD,"value":"1".repeat(64)}});
+    let mut mismatch = association.clone();
+    mismatch["state"] = json!("brief referenced; content does not match the reference");
+    mismatch["referencedContent"] = mismatch.as_object_mut().unwrap().remove("briefContent").unwrap();
+    mismatch["currentContent"] = json!({"method":util::FILE_IDENTITY_METHOD,"value":"1".repeat(64)});
     f.observed(&[f.dispatch("held-child", mismatch)]);
     let w = f.read();
     let item = work(view(&w), "W1");
-    assert_eq!((&item["dispatch"]["briefContentMatches"], &item["dispatch"]["briefContentMatchedWhenRecorded"]), (&json!(true), &json!(false)));
+    assert_eq!((&item["dispatches"][0]["briefContentMatches"], &item["dispatches"][0]["briefContentMatchedWhenRecorded"]), (&json!(true), &json!(false)));
     assert!(item["causes"].to_string().contains("did not have the content the prompt referenced when the dispatch was recorded and has it now"));
+}
+
+// Review round 3: a held item that is in the graph but not selected has no row; the rows that are shown must
+// not read plainly ready while its worker is observed. And every worker of an item is shown, each with its own standing.
+#[test]
+fn fleet_views_an_unselected_held_item_qualifies_readiness_and_every_worker_of_an_item_is_shown() {
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    let dispatch = f.dispatch("held-child", association.clone());
+    f.observed(&[dispatch.clone()]);
+    f.graph["body"]["items"][0]["selected"] = json!(false);
+    f.select();
+    let w = f.read();
+    let v = view(&w);
+    assert!(v["waiting"].as_array().unwrap().iter().all(|row| row["item"] != "W1"), "an unselected item has no row");
+    assert_eq!(work(v, "W3")["category"], "ready (qualified)", "a worker is still observed for work outside the selection");
+    assert_eq!(v["queueComplete"], false);
+    assert!(v["notes"].to_string().contains("a worker is still observed for work that is not selected in the current graph: W1"));
+    // Removed from the graph altogether: the same.
+    f.graph["body"]["items"].as_array_mut().unwrap().remove(0);
+    f.graph["body"]["items"][0]["needs"] = json!([]);
+    f.select();
+    assert_eq!(work(view(&f.read()), "W3")["category"], "ready (qualified)");
+    // Once that worker's observation has ended, nothing is observed and the rows read plainly again.
+    f.observed(&[dispatch.clone(), f.ended("held-child", "running")]);
+    assert_eq!(work(view(&f.read()), "W3")["category"], "ready");
+    drop(f);
+    // Two workers for one item: the earlier still observed, the later ended. Both are shown; the item is held.
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    let rows = [f.dispatch("worker-a", association.clone()), f.status("worker-a", "running"),
+        f.dispatch("worker-b", association.clone()), f.ended("worker-b", "pendingInit")];
+    f.observed(&rows);
+    let w = f.read();
+    let item = work(view(&w), "W1");
+    assert_eq!(item["category"], "dispatched", "a worker is still observed");
+    let workers = item["dispatches"].as_array().unwrap();
+    assert_eq!(workers.iter().map(|w| (w["child"].clone(), w["observationEnded"].clone())).collect::<Vec<_>>(),
+        vec![(json!("worker-a"), json!(false)), (json!("worker-b"), json!(true))]);
+    assert!(workers[0]["lastObserved"].as_str().unwrap().contains("child last observed running"));
+    assert_eq!(workers[0]["sources"]["lastObservation"]["recordId"], "fl:app:status-worker-a-running");
+    // Both ended: nothing is observed, and the outcome is unknown.
+    let mut all = rows.to_vec();
+    all.push(f.ended("worker-a", "running"));
+    f.observed(&all);
+    assert_eq!(work(view(&f.read()), "W1")["category"], "unknown");
 }
