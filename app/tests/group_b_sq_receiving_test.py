@@ -80,6 +80,9 @@ class SQReceivingTests(unittest.TestCase):
         step_map = json.loads((APP / 'examination/sq_receiving/sq.step-map.json').read_bytes())
         self.assertEqual([e.message for e in Draft202012Validator(schema).iter_errors(dossier)], [])
         self.assertEqual(rules.violations(dossier, step_map), [])
+        # All five scenarios are carried; the journeys, like run A, are planned and not yet run.
+        self.assertEqual([s['scenario'] for s in dossier['scenarios']], ['V4-EXM-10', 'V4-EXM-11', 'V4-EXM-12', 'J1', 'J2'])
+        self.assertEqual({s['basis'] for s in dossier['scenarios'] if s['scenario'] in ('J1', 'J2')}, {'not_established'})
         run_b = next(s for s in dossier['scenarios'] if s['scenario'] == 'V4-EXM-12')
         self.assertEqual([(m['kind'], m['home']) for m in run_b['access_modes']],
                          [('chatgpt_account', 'H-acct'), ('local_provider', 'H-omlx')])
