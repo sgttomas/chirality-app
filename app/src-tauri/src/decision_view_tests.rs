@@ -478,6 +478,8 @@ fn decision_view_a_record_naming_its_recorder_as_actor_is_listed_as_a_claim() {
     let f = Fixture::new();
     f.in_store("00-request", &[request("rec:r1", "decisions/PKG-1.json", PACKAGE)]);
     f.in_store("10-a", &[self_recorded(act("rec:a1", "rec:r1", "ALT-2", PACKAGE), "agent:invented-manager", "agent:invented-manager")]);
+    let view = f.view();
+    println!("DECISION_VIEW_CLAIM_DTO:{view}");
     let row = f.row("rec:r1");
     let claim = row["claims"].as_array().unwrap().iter().find(|c| c["recordId"] == "rec:a1").cloned();
     let claim = claim.unwrap_or_else(|| panic!("listed as a claim: {row}"));

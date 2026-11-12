@@ -1443,6 +1443,7 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
     {(decision.equivalentCaptureRecords ?? []).length > 1 && <p>Equivalent records of the same agreeing capture: {decision.equivalentCaptureRecords.join(", ")}. Each original record's source and time remains available below.</p>}
     <p>Capture time: {decision.capturedAt ?? "not reported"} · observed at: {decision.observedAt ?? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual observations" : "not reported")} · record written at: {decision.recordedAt ?? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual written times" : "not reported")}. Recorded observation order does not establish human performance chronology.</p>
     <p>{decision.lapse} · {decision.captureProvenance}</p>
+    {decision.currentBytesObservation && <p>{decision.currentBytesObservation}</p>}
     {decision.currentContentComparison && <p>Current file comparison: {JSON.stringify(decision.currentContentComparison)}. This describes current bytes separately from past lapse history.</p>}
     {decision.historyResolution && <p>Recorded lapse history resolution: {JSON.stringify(decision.historyResolution)}.</p>}
     {decision.historyIncomplete && <p>Recorded history is incomplete; unresolved observations remain in the source details below.</p>}
@@ -1467,6 +1468,12 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
       {row.state === "ambiguous current standing" && <p>Current recorded standing is ambiguous. No current act is selected from these claims; this row does not establish a pending human act. The act control retains its current package and offer checks.</p>}
       {row.decision && claim(row.decision)}
       {(row.contenders ?? []).length > 0 && <div><h4>Recorded contenders</h4>{row.contenders.map((contender: Json) => <article key={contender.act}><h5>{contender.act}</h5>{claim(contender)}</article>)}</div>}
+      {(row.claims ?? []).length > 0 && <div><h4>Claims — these decide nothing</h4>
+        <p>Each record below is listed as a claim. None of them decides this package or changes its standing.</p>
+        <ul>{row.claims.map((c: Json, i: number) => <li key={`${c.recordId ?? c.act ?? i}`}>
+          Record {c.recordId ?? c.act ?? "without an identity"} · origin: {c.origin}{c.reason && c.reason !== c.origin ? ` · ${c.reason}` : ""} · recorded by {c.recordedBy ? `${c.recordedBy.role ?? ""} ${c.recordedBy.identity ?? ""}`.trim() || "not recorded" : "not recorded"} · actor it names: {c.actor ?? "none named"} · alternative it chose: {c.alternativeChosen ?? "none"}
+          {c.claimedToCorrect && ` · claimed to correct ${c.claimedToCorrect}`}{c.claimedToSupersede && ` · claimed to supersede ${c.claimedToSupersede}`}{c.claimedToObserve && ` · claimed a lapse of ${c.claimedToObserve}`}
+        </li>)}</ul></div>}
       {row.currentCandidates && <p>Current recorded candidates: {row.currentCandidates.join(", ") || "none established"}.</p>}
       {(row.limits ?? []).length > 0 && <p>Limits: {row.limits.join(" | ")}</p>}
       <button onClick={() => openControl(row.package)}>Open act control (decide)</button>
