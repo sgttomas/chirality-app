@@ -623,6 +623,30 @@ fn a_store_folder_replaced_at_its_path_is_refused_by_the_reading_and_the_creatin
 }
 
 #[test]
+fn a_replaced_identity_file_is_refused_until_the_app_opens_the_store_afresh() {
+    let own = OwnStore::new();
+    let store = own.0.clone();
+    let root = written_project("replaced-identity-project-");
+    let (_, id) = opened().unwrap();
+    // The same identity, put back as a new file (as a restore from a backup does).
+    let bytes = std::fs::read(store.join("store.json")).unwrap();
+    std::fs::remove_file(store.join("store.json")).unwrap();
+    std::fs::write(store.join("store.json"), &bytes).unwrap();
+    for refused in [opened().unwrap_err(), created().unwrap_err(), records::append_project(&root, None, "writer:store", "evidence_limit", &APP_WRITER, body("refused")).unwrap_err()] {
+        assert!(refused.contains("identity file") && refused.contains("was replaced since this App opened the store")
+            && refused.contains("nothing is read or written through it") && refused.contains("reopening the App opens the store afresh"), "{refused}");
+    }
+    // A new process opens the same folder with the same valid identity afresh.
+    new_process();
+    assert_eq!(opened().unwrap(), (store.clone(), id));
+    assert_eq!(storage::read_all(&root).0.len(), 3);
+    records::append_project(&root, None, "writer:store", "evidence_limit", &APP_WRITER, body("after reopening")).unwrap();
+    drop(own);
+    new_process();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
 fn an_index_read_writes_nothing_into_a_folder_put_in_place_of_its_store() {
     let own = OwnStore::new();
     let store = own.0.clone();

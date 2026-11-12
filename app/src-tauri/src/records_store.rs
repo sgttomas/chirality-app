@@ -472,7 +472,7 @@ fn still_bound(bound: &Bound) -> Result<(PathBuf, String), String> {
     let file = bound.root.join("store.json");
     match node(&file) {
         Ok(at) if at == bound.identity => {}
-        Ok(_) => return Err("the opened records store identity file was replaced; no silent reassociation, and nothing is read or written there".into()),
+        Ok(_) => return Err(format!("the records store's identity file {} was replaced since this App opened the store (for example, restored from a backup), so nothing is read or written through it; reopening the App opens the store afresh", file.display())),
         Err(e) => return Err(format!("opened store identity unavailable; no replacement identity minted: {e}")),
     }
     let bytes = crate::records_retention::read_plain(&file).map_err(|e| format!("opened store identity unavailable; no replacement identity minted: {e}"))?;
