@@ -18,7 +18,7 @@ use std::time::Instant;
 const PEER: &str = r#"#!/usr/bin/python3
 import sys,json,threading,time,os
 if '--version' in sys.argv:
- print('codex-cli 0.167.0');sys.exit(0)
+ print('codex-cli 0.167.2');sys.exit(0)
 lock=threading.Lock()
 def emit(v):
  with lock: print(json.dumps(v),flush=True)
@@ -35,7 +35,7 @@ threading.Thread(target=events,daemon=True).start()
 def read(name,default):
  return open(name).read().strip() if os.path.exists(name) else default
 def thread(tid):
- return {'id':tid,'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'recovery fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'notLoaded'},'turns':[]}
+ return {'id':tid,'cliVersion':'0.167.2','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'recovery fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'notLoaded'},'turns':[]}
 for line in sys.stdin:
  f=json.loads(line)
  with open('wire.jsonl','a') as log: log.write(json.dumps(f)+'\n')

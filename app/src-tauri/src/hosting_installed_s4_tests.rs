@@ -16,7 +16,7 @@ fn setup() -> (Fixture, PathBuf, Selected, Value) {
     (f,resources,selected,g)
 }
 fn prepared(f:&Fixture,r:&Path,s:&Selected,g:&Value)->Prepared{
-    prepare_installed(r,&f.cfg,g,Reference::Selected(s),|_,_|Ok("codex-cli 0.167.0\n".into()),crate::installed_custody::synthetic_for_tests).unwrap()
+    prepare_installed(r,&f.cfg,g,Reference::Selected(s),|_,_|Ok("codex-cli 0.167.2\n".into()),crate::installed_custody::synthetic_for_tests).unwrap()
 }
 fn evidence(p:&Prepared,f:&Fixture,s:&Selected,g:&Value)->(Value,Files){
     let(mut o,facts)=p.observation(&f.cfg,g);
@@ -69,7 +69,7 @@ fn installed_s4_noncodex_mutation_and_probe_mutation_refuse(){
     let(f,r,s,g)=setup();let p=prepared(&f,&r,&s,&g);
     std::fs::write(r.join("noncodex.txt"),b"mutated").unwrap();
     assert!(tree::revalidate(&p.root,&p.inventory).is_ok());assert!(p.revalidate().is_err());
-    let result=prepare_installed(&r,&f.cfg,&g,Reference::Selected(&s),|_,_|{std::fs::write(r.join("noncodex.txt"),b"again").unwrap();Ok("codex-cli 0.167.0\n".into())},crate::installed_custody::synthetic_for_tests);
+    let result=prepare_installed(&r,&f.cfg,&g,Reference::Selected(&s),|_,_|{std::fs::write(r.join("noncodex.txt"),b"again").unwrap();Ok("codex-cli 0.167.2\n".into())},crate::installed_custody::synthetic_for_tests);
     assert!(result.is_err());
 }
 #[test]
@@ -96,7 +96,7 @@ fn installed_s4_store_needs_typed_observation_and_projects_verified_pin(){
     let reference=store.publish_observed_with_installed(&g,o,facts,p.installed.as_ref()).unwrap();
     let view=store.read_s1(&g,&reference).unwrap();assert_eq!(view["standing"],"verified-pin");
     let mut native=crate::native_items::NativeView::new(g["home"].as_str().unwrap().into()).unwrap();
-    native.ready(g.clone(),json!("codex-cli 0.167.0"),view["standing"].clone()).unwrap();
+    native.ready(g.clone(),json!("codex-cli 0.167.2"),view["standing"].clone()).unwrap();
     assert_eq!(native.snapshot()["supplierStanding"],"verified-pin");
     let installed_path=data.join("runtime/distribution").join(view["reference"]["publication"].as_str().unwrap()).join(".chirality-s1/installed.json");
     std::fs::write(installed_path,b"{}").unwrap();assert!(store.read_s1(&g,&reference).is_err());
@@ -105,7 +105,7 @@ fn installed_s4_store_needs_typed_observation_and_projects_verified_pin(){
 fn installed_s4_shared_start_preserves_legacy_and_development_standing(){
     for (verified,successor,expected) in [(true,true,"verified-pin"),(true,false,"verified"),(false,true,"unverified-development"),(false,false,"unverified-development")] {
         let mut native=crate::native_items::NativeView::new("synthetic-home".into()).unwrap();
-        native.ready(json!({"appSession":"synthetic","home":"synthetic-home","spawnCounter":1}),json!("codex-cli 0.167.0"),json!(supplier_standing(verified,successor))).unwrap();
+        native.ready(json!({"appSession":"synthetic","home":"synthetic-home","spawnCounter":1}),json!("codex-cli 0.167.2"),json!(supplier_standing(verified,successor))).unwrap();
         assert_eq!(native.snapshot()["supplierStanding"],expected);
     }
     let(f,r,s,g)=setup();let(p,files)=evidence(&prepared(&f,&r,&s,&g),&f,&s,&g);

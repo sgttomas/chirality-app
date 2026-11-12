@@ -61,9 +61,7 @@ fn valid_result(request: &SourceRequest, response: &Value) -> Result<(), String>
     static VALIDATORS: OnceLock<Result<Vec<jsonschema::Validator>, String>> = OnceLock::new();
     let validators = VALIDATORS
         .get_or_init(|| {
-            let schema: Value = serde_json::from_str(include_str!(
-                "../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json"
-            ))
+            let schema: Value = serde_json::from_str(crate::hosting::GENERATED_SCHEMA)
             .map_err(|e| e.to_string())?;
             ["ThreadStartResponse", "ThreadForkResponse"]
                 .iter()

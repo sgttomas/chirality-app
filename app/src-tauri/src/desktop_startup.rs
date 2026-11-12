@@ -1745,9 +1745,9 @@ fn resource_view(plan: &OwnedHomePlan) -> Result<Value, String> {
         .collect::<Vec<_>>()))
 }
 fn development_binary_assertion() -> Result<String, String> {
-    // The installed npm generator identifies the current development main only.
+    // The declared pin's distribution record identifies the current development main only.
     // Historical archive attestations do not qualify this new distribution.
-    Ok(crate::hosting::ASSESSMENT_SUPPLIER_SHA256.to_owned())
+    Ok(crate::hosting::assessment_supplier_sha256().to_owned())
 }
 
 #[cfg(test)]
@@ -5099,7 +5099,7 @@ mod tests {
         assert_eq!(cfg.codex_bin, f.resources.join("codex/bin/codex"));
         assert_eq!(
             cfg.expected_sha256.as_deref(),
-            Some(crate::hosting::ASSESSMENT_SUPPLIER_SHA256)
+            Some(crate::hosting::assessment_supplier_sha256())
         );
         assert!(cfg.allow_unverified_dev);
         assert!(cfg.distribution.is_none());

@@ -156,9 +156,7 @@ fn native_validate(target: &str, value: &Value) -> Result<(), String> {
         OnceLock::new();
     let validators = VALIDATORS
         .get_or_init(|| {
-            let root: Value = serde_json::from_str(include_str!(
-                "../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json"
-            ))
+            let root: Value = serde_json::from_str(crate::hosting::GENERATED_SCHEMA)
             .map_err(|e| e.to_string())?;
             [
                 "ThreadStartParams",

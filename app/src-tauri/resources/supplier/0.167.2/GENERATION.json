@@ -1,0 +1,70 @@
+{
+ "format": "chirality.supplier-json-generation/1",
+ "pin": "0.167.2",
+ "supplier": {
+  "source": "official release archive https://github.com/openai/codex/releases/download/rust-v0.167.2/codex-package-aarch64-apple-darwin.tar.gz",
+  "archive_sha256": "e791290651bce41938fb160b5de2bd9ff8bcf3401ca3e236c73f485fca4be1bb",
+  "main_sha256": "97bc82fd46f117cf10efb95e6ff0c81dc4784f5797bcdc2cb75093ba09e4def0",
+  "tree_manifest_sha256": "7de507bfbf3fa77efc50c9bbe24778b2c0e0a4a8a244fd90220df3cfecf0a905",
+  "verified": "complete vendor tree equal to the expected inventory before execution"
+ },
+ "environment": {
+  "inherit_environment": false,
+  "allowlist": [
+   "CODEX_HOME",
+   "HOME",
+   "LANG",
+   "PATH",
+   "TMPDIR"
+  ],
+  "homes": "fresh private HOME, CODEX_HOME and TMPDIR; plugins and analytics off",
+  "network": "the generator's sockets were sampled every 0.1 s and no sample showed one; a sample is not isolation"
+ },
+ "variants": {
+  "experimental": {
+   "argv": [
+    "<vendor>/bin/codex",
+    "app-server",
+    "generate-json-schema",
+    "--experimental",
+    "--out",
+    "<output>/experimental"
+   ],
+   "exit_code": 0,
+   "timeout_seconds": 45,
+   "files": 470,
+   "bytes": 4654630,
+   "manifest_sha256": "a15d8ad8a1372e783f0e47b34aa297b1b4977b686d55b8c1abd7f32d0429c607",
+   "socket_samples": 1,
+   "failed_samples": 0,
+   "sockets_seen": 0
+  },
+  "stable": {
+   "argv": [
+    "<vendor>/bin/codex",
+    "app-server",
+    "generate-json-schema",
+    "--out",
+    "<output>/stable"
+   ],
+   "exit_code": 0,
+   "timeout_seconds": 45,
+   "files": 322,
+   "bytes": 3751081,
+   "manifest_sha256": "f3d1632c22b3a5f051f014e32f52100a259c8423911611b384ccb0a9e29b4c64",
+   "socket_samples": 1,
+   "failed_samples": 0,
+   "sockets_seen": 0
+  }
+ },
+ "compiled_experimental_bundles": {
+  "codex_app_server_protocol.schemas.json": "486c7c8daa5dc7f3ab2a1fb56de5316804caf7a4210fda1dc28d3f0f4e90cfe1",
+  "codex_app_server_protocol.v2.schemas.json": "b1e5d17224b9d9732b5976012438ba78e2cf7e418b67f8f8a5f5cffe301b875d"
+ },
+ "manifest_sha256": "353ab01c4d92b18c8939c985ea1a8529e70a8d8ee58c8f9818545a13ed5dcc51",
+ "limits": [
+  "One generator pass per variant; determinism is not assessed.",
+  "JSON schema generation only; no TypeScript generation, session, turn, sign-in or provider connection.",
+  "A generated basis is not qualification of the pin."
+ ]
+}

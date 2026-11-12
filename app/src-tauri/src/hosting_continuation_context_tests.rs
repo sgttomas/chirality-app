@@ -20,7 +20,7 @@ fn generation() -> Value {
     json!({"appSession":"continuation-test","home":"continuation-home","spawnCounter":1})
 }
 fn thread() -> Value {
-    json!({"id":"stored","cliVersion":"0.167.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"fixture","preview":"stored work","projectId":null,"sessionId":"fixture-session","source":"appServer","status":{"type":"idle"},"turns":[]})
+    json!({"id":"stored","cliVersion":"0.167.2","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"fixture","preview":"stored work","projectId":null,"sessionId":"fixture-session","source":"appServer","status":{"type":"idle"},"turns":[]})
 }
 fn resume() -> Value {
     json!({"thread":thread(),"model":"fixture","modelProvider":"fixture","cwd":"/invented","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly"},"instructionSources":[]})

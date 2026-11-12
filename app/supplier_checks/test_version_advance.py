@@ -34,6 +34,17 @@ class CommittedResult(unittest.TestCase):
     def test_regenerating_the_committed_result_gives_the_same_bytes(self):
         self.assertEqual(VA.render(VA.compare("0.160.0", "0.167.0")), COMMITTED.read_text(encoding="utf-8"))
 
+    def test_regenerating_the_committed_advance_to_0_167_2_gives_the_same_bytes_and_passed(self):
+        committed = HERE / "version_advance" / "0.167.0-to-0.167.2.json"
+        result = VA.compare("0.167.0", "0.167.2")
+        self.assertEqual(VA.render(result), committed.read_text(encoding="utf-8"))
+        self.assertEqual(result["verdict"]["verdict"], "passed")
+        self.assertEqual(result["verdict"]["reasons"], [])
+        self.assertEqual(result["findings"], [])
+        for key, value in result["inadmissible"].items():
+            if key != "coverage_required":
+                self.assertEqual(value, [], key)
+
 
 class IdentityAndDifference(unittest.TestCase):
     def test_identity_is_exact_content_equality(self):

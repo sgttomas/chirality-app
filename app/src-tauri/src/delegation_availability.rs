@@ -6,8 +6,8 @@
 //! (each home's `Host` keeps its own readings); the web view presents the
 //! reading and its reason.
 //!
-//! Signals at the 0.167.0 pin (generated types under
-//! `resources/supplier/0.167.0/`):
+//! Signals at the declared pin (generated types under
+//! `resources/supplier/<pin>/`):
 //! - `model/list` → `Model.multiAgentVersion` (`disabled` · `v1` · `v2`, or
 //!   null) of the entry whose `model` or `id` is the conversation's reported
 //!   model;
@@ -53,11 +53,12 @@ pub(crate) fn signals(conversation: &Value, model: Result<Value, String>, config
     let other_provider = match &server {
         Ok(provider) if provider.is_string() && provider == conversation_provider => None,
         Ok(provider) => Some(format!(
-            "it takes no provider at Codex 0.167.0 and answers for the app-server's provider ({}), not the conversation's ({})",
+            "it takes no provider at Codex {} and answers for the app-server's provider ({}), not the conversation's ({})",
+            crate::hosting::DECLARED_PIN,
             provider.as_str().unwrap_or("none named in the app-server's configuration"),
             conversation_provider.as_str().unwrap_or("not reported")
         )),
-        Err(cause) => Some(format!("it takes no provider at Codex 0.167.0 and the app-server's provider was not read ({cause})")),
+        Err(cause) => Some(format!("it takes no provider at Codex {} and the app-server's provider was not read ({cause})", crate::hosting::DECLARED_PIN)),
     };
     let version = match (&model, &other_provider) {
         (Err(cause), _) => {
@@ -90,10 +91,10 @@ pub(crate) fn signals(conversation: &Value, model: Result<Value, String>, config
             Value::Null
         }
     };
-    // No provider capability gates delegation at 0.167.0 (openai/codex PR
+    // No provider capability gates delegation at the declared pin (openai/codex PR
     // 50447): nothing of the result is kept, and a failure is only noted.
     if let Err(cause) = &capabilities {
-        notes.push(format!("modelProvider/capabilities/read failed ({cause}); no provider capability gates delegation at Codex 0.167.0, so the reading does not rest on it"));
+        notes.push(format!("modelProvider/capabilities/read failed ({cause}); no provider capability gates delegation at Codex {}, so the reading does not rest on it", crate::hosting::DECLARED_PIN));
     }
     json!({"model_multi_agent_version":version,"effective_config":effective,"limits":limits,"notes":notes,
         "conversation":{"model":conversation["model"],"modelProvider":conversation["modelProvider"],"cwd":conversation["cwd"]}})

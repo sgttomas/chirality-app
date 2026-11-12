@@ -1,7 +1,7 @@
 //! Step 1: the main process hosts the stock Codex App Server and completes
 //! `initialize` then `thread/start` (HOSTING_BOUNDARY.md §4.2, §5, §4.5).
 //!
-//! Needs CHIRALITY_CODEX_BIN (the stock 0.167.0 binary). Fails if it is not set,
+//! Needs CHIRALITY_CODEX_BIN (the stock binary of the declared pin). Fails if it is not set,
 //! unless CHIRALITY_SKIP_CODEX=1 is set explicitly. Uses a scratch CODEX_HOME made
 //! with `mktemp -d` below `std::env::temp_dir()`; never a real Codex home; no sign-in;
 //! no credential. The scratch home's config.toml stands in for the person's own
@@ -135,7 +135,7 @@ fn hosts_codex_initialize_then_thread_start() {
     assert_eq!(ready["supplierStanding"], "unverified-development");
     assert_eq!(ready["verification"]["result"], "unverifiable");
     let vi = &ready["versionIdentity"];
-    assert_eq!(vi["observedVersionLabel"], "codex-cli 0.167.0");
+    assert_eq!(vi["observedVersionLabel"], format!("codex-cli {}", chirality_app_v4_lib::hosting::DECLARED_PIN));
     assert_eq!(vi["handshakeConsistency"], "consistent");
     assert_eq!(vi["handshakeReportedIdentity"]["codexHome"], json!(home.display().to_string()));
     assert_eq!(ready["declaredCapabilities"], json!({"experimentalApi": true, "requestAttestation": false, "explicitGatewayOauth": true}));

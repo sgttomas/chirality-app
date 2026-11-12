@@ -1223,7 +1223,7 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
 /// Explicit local-provider setup; no endpoint/model/key argument and no account resource links.
 #[tauri::command(async)]
 fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> Result<Value, String> {
-    if hosting::DECLARED_PIN!="0.167.0" { return Err(native_local_provider::LIMIT.into()); }
+    if hosting::DECLARED_PIN!="0.167.2" { return Err(native_local_provider::LIMIT.into()); }
     let _operation=state.key_setup.try_lock().map_err(|_| native_local_provider::LIMIT)?;
     if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.into()); }
     provider_endpoint_confirmation::recheck_original(&window)?;

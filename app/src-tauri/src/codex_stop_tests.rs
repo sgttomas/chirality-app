@@ -343,7 +343,7 @@ mod real_host {
     const PEER: &str = r#"#!/usr/bin/python3
 import sys,json,threading,time,os
 if '--version' in sys.argv:
- print('codex-cli 0.167.0');sys.exit(0)
+ print('codex-cli 0.167.2');sys.exit(0)
 lock=threading.Lock()
 def emit(v):
  with lock: print(json.dumps(v),flush=True)
@@ -369,7 +369,7 @@ for line in sys.stdin:
  if m=='initialize': result={'userAgent':'unqualified-stop-fixture'}
  elif m=='thread/start':
   starts[0]+=1
-  t={'id':'thread' if starts[0]==1 else 'thread-%d'%starts[0],'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'stop fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
+  t={'id':'thread' if starts[0]==1 else 'thread-%d'%starts[0],'cliVersion':'0.167.2','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'stop fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
   result={'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
  elif m=='turn/steer': result={'turnId':f['params']['expectedTurnId']}
  elif m=='turn/interrupt':

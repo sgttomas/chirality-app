@@ -7,7 +7,7 @@ fn fixture(successor: bool, body: &str) -> Fixture {
     f
 }
 fn peer(f: &Fixture, body: &str) {
-    let code = format!("#!/usr/bin/env python3\nimport sys,json\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\n{body}\n");
+    let code = format!("#!/usr/bin/env python3\nimport sys,json\nif '--version' in sys.argv:\n print('codex-cli 0.167.2'); sys.exit(0)\n{body}\n");
     std::fs::write(&f.cfg.codex_bin, code).unwrap();
 }
 fn until(h: &Host, predicate: impl Fn(&Host) -> bool) {
@@ -20,7 +20,7 @@ fn until(h: &Host, predicate: impl Fn(&Host) -> bool) {
 fn failures(h: &Host) -> Vec<Value> {
     h.lifecycle_events().into_iter().filter(|e| e["transitionId"] == "LT-11").collect()
 }
-const READY: &str = "for line in sys.stdin:\n f=json.loads(line)\n if 'id' in f: print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.167.0'}}),flush=True)";
+const READY: &str = "for line in sys.stdin:\n f=json.loads(line)\n if 'id' in f: print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.167.2'}}),flush=True)";
 const EARLY_EXIT: &str = "print(json.dumps({'method':'fixture/never-ready','params':{'synthetic':True}}),flush=True)\nprint('invented startup refusal',file=sys.stderr,flush=True)\nsys.exit(7)";
 
 #[test]
@@ -124,7 +124,7 @@ fn startup_refusal_eof_with_initialize_pending_settles_without_second_lt11() {
 #[test]
 fn startup_refusal_known_initialize_reply_then_eof_never_becomes_ready() {
     for successor in [false, true] {
-        let f = fixture(successor, "for line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='initialize':\n  print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.167.0'}}),flush=True)\n  sys.exit(0)");
+        let f = fixture(successor, "for line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='initialize':\n  print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.167.2'}}),flush=True)\n  sys.exit(0)");
         let h = Arc::new(Host::new());
         let (eof, settle_eof) = pause_at(&h.before_eof_gate);
         let (reply, settle_reply) = pause_at(&h.before_successor_settlement);
@@ -143,7 +143,7 @@ fn startup_refusal_known_initialize_reply_then_eof_never_becomes_ready() {
         assert_eq!(failures(&h)[0]["exitFacts"]["exitCode"], 0);
         assert_eq!(failures(&h)[0]["closedGeneration"]["unknownNoResponse"], 0);
         assert!(!h.lifecycle_events().iter().any(|e| e["transitionId"] == "LT-09"));
-        assert!(h.journal().iter().any(|f| f["generation"] == g && f["generationNeverReady"] == true && f["frame"]["result"]["userAgent"] == "codex/0.167.0"));
+        assert!(h.journal().iter().any(|f| f["generation"] == g && f["generationNeverReady"] == true && f["frame"]["result"]["userAgent"] == "codex/0.167.2"));
     }
 }
 
@@ -186,7 +186,7 @@ fn startup_refusal_stale_eof_and_late_handshake_cannot_close_ready_successor() {
         assert_eq!(h.state(), "ready"); assert_eq!(h.lifecycle_events(), events);
         assert!(!h.inner.0.lock().unwrap().server_requests.is_closed(&next));
         let before = h.snapshot();
-        for response in [Ok(json!({"result":{"userAgent":"codex/0.167.0"}})), Err("old error".into()), Ok(json!({"error":{"code":-1,"message":"old error"}}))] {
+        for response in [Ok(json!({"result":{"userAgent":"codex/0.167.2"}})), Err("old error".into()), Ok(json!({"error":{"code":-1,"message":"old error"}}))] {
             assert!(h.finish_start_handshake(&old, attempt, json!({}), response, successor).is_err());
             assert_eq!(h.snapshot(), before);
         }

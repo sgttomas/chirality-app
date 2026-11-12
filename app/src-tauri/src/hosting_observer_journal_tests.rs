@@ -20,7 +20,7 @@ fn host_with_limits(entries: usize, bytes: usize, state: &str) -> Arc<Host> {
             attempt: 1,
             generation: g(1),
         });
-        i.version_identity = Some(json!({"declaredPin":"0.167.0"}));
+        i.version_identity = Some(json!({"declaredPin":"0.167.2"}));
         i.supplier_standing = Some("synthetic source fixture".into());
         i.journal = observer_journal::ObserverJournal::with_limits(entries, bytes);
         i.journal.begin_generation(g(1));
@@ -57,7 +57,7 @@ fn ready(host: &Host) -> Value {
         &g(1),
         1,
         json!({"experimentalApi":true}),
-        Ok(json!({"id":1,"result":{"userAgent":"codex/0.167.0"}})),
+        Ok(json!({"id":1,"result":{"userAgent":"codex/0.167.2"}})),
         false,
     )
     .unwrap()

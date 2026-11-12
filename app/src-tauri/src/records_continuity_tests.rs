@@ -628,10 +628,10 @@ fn records_continuity_unsupported_definition_and_ineligible_start_receive_no_bin
 const PEER: &str = r#"#!/usr/bin/python3
 import sys,json,os
 if '--version' in sys.argv:
- print('codex-cli 0.167.0');sys.exit(0)
+ print('codex-cli 0.167.2');sys.exit(0)
 def emit(v):print(json.dumps(v),flush=True)
 def thread(tid,status='idle',source=None):
- t={'id':tid,'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'invented','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':status},'turns':[]}
+ t={'id':tid,'cliVersion':'0.167.2','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'invented','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':status},'turns':[]}
  if source:t['forkedFromId']=source
  return t
 def result(tid,source=None):return {'thread':thread(tid,source=source),'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}

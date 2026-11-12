@@ -18,7 +18,9 @@ from pathlib import Path
 import capture
 
 HERE = Path(__file__).resolve().parent
-PIN = "0.167.0"
+# The pin the host declares (src-tauri/src/hosting.rs DECLARED_PIN).
+PIN = re.search(r'^pub const DECLARED_PIN: &str = "([0-9.]+)";$',
+                (HERE.parent / "src-tauri" / "src" / "hosting.rs").read_text(encoding="utf-8"), re.M).group(1)
 RECORDINGS = HERE / "recordings" / PIN
 CHILD_PROMPT = capture.CHILD_MARKER + ": count the invented files."
 
@@ -101,7 +103,7 @@ class VendorVerification(unittest.TestCase):
     def test_refuses_without_executing_when_the_pin_has_no_record_or_the_tree_differs(self):
         with self.assertRaisesRegex(capture.Refused, "no expected distribution"):
             capture.verified_vendor(str(self.vendor), "0.0.1")
-        with self.assertRaisesRegex(capture.Refused, "differs from the expected 0.167.0 inventory"):
+        with self.assertRaisesRegex(capture.Refused, "differs from the expected " + re.escape(PIN) + " inventory"):
             capture.verified_vendor(str(self.vendor), PIN)
         resources = Path(self.root.name) / "records"
         (resources / "9.9.9").mkdir(parents=True)
