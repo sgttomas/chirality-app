@@ -450,6 +450,8 @@ pub const INSTRUCTION_RELEASE: &str = "chirality-app-v4-unqualified-group-a-entr
 // Exact current defaults are identified by ROLE_SET_SOURCE_BINDING.json.
 // Historical V0 review does not cover later default-guidance edits.
 pub const COMMON_DEFAULT: &[u8] = include_bytes!("../resources/instructions/AGENTS.md");
+/// The App's own delegation guidance, apart from the role documents and their binding.
+pub const DELEGATION_DEFAULT: &[u8] = include_bytes!("../resources/instructions/DELEGATION_RECORDS.md");
 pub fn role_default(role: crate::role_supply::Role) -> &'static [u8] {
     use crate::role_supply::Role::*;
     match role {
@@ -469,6 +471,7 @@ pub fn verify_production_instructions_root(root: &std::path::Path) -> Result<Val
     if roles != BUNDLED_ROLE_SET { return Err("role-set-invalid: packaged roles differ from compiled candidate".into()); }
     let expected = std::iter::once(("AGENTS.md".to_owned(), COMMON_DEFAULT))
         .chain(Role::ALL.into_iter().map(|r| (format!("agents/AGENT_{}.md", r.name()), role_default(r))))
+        .chain(std::iter::once((crate::role_supply::DELEGATION_GUIDANCE_PATH.to_owned(), DELEGATION_DEFAULT)))
         .chain(std::iter::once(("ROLE_SET_SOURCE_BINDING.json".to_owned(), include_bytes!("../resources/instructions/ROLE_SET_SOURCE_BINDING.json").as_slice())));
     for (path, bytes) in expected {
         if read_packaged_instruction(root, &path)? != bytes {
@@ -539,6 +542,9 @@ fn seed_instructions_with_admission(root: &std::path::Path, after_absence: impl 
     if !initial {
         // First seed is distinct from repairing a known existing user store.
         // Missing, unreadable, non-UTF8 or linked copies are errors, never fallback.
+        // A file this release adds is placed once in a store seeded without it.
+        crate::instruction_store::add_later(root, crate::role_supply::DELEGATION_GUIDANCE_PATH,
+            DELEGATION_DEFAULT, INSTRUCTION_RELEASE)?;
         return validate_instruction_copies(root);
     }
     after_absence();
@@ -546,7 +552,8 @@ fn seed_instructions_with_admission(root: &std::path::Path, after_absence: impl 
         crate::role_supply::Role::ALL
             .into_iter()
             .map(|r| (format!("agents/AGENT_{}.md", r.name()), role_default(r))),
-    ).collect::<Vec<_>>();
+    ).chain(std::iter::once((crate::role_supply::DELEGATION_GUIDANCE_PATH.to_owned(), DELEGATION_DEFAULT)))
+    .collect::<Vec<_>>();
     // A racing create is preserved, then checked as an existing user copy.
     // A failed/partial first seed remains explicit; it is never repaired here.
     crate::instruction_store::seed(root, &defaults, INSTRUCTION_RELEASE,
@@ -558,6 +565,8 @@ fn validate_instruction_copies(root: &std::path::Path) -> Result<(), String> {
         crate::role_supply::Guidance::read_seeded(root, &format!("agents/AGENT_{}.md", role.name()),
             INSTRUCTION_RELEASE, role_default(role))?;
     }
+    crate::role_supply::Guidance::read_seeded(root, crate::role_supply::DELEGATION_GUIDANCE_PATH,
+        INSTRUCTION_RELEASE, DELEGATION_DEFAULT)?;
     Ok(())
 }
 
@@ -581,7 +590,13 @@ pub fn compose_role(
             )
         })
         .transpose()?;
-    Composition::new(&common, role.zip(active.as_ref()), false)
+    // A role that may delegate is also given the delegation guidance; no role
+    // and TASK are not (role set "delegation").
+    let delegation = role
+        .filter(|r| r.may_delegate())
+        .map(|_| Guidance::read_seeded(root, crate::role_supply::DELEGATION_GUIDANCE_PATH, INSTRUCTION_RELEASE, DELEGATION_DEFAULT))
+        .transpose()?;
+    Composition::new(&common, role.zip(active.as_ref()), delegation.as_ref(), false)
 }
 
 /// Memory-only custody of documents picked through the native App boundary.
@@ -1592,6 +1607,10 @@ impl HistorySession {
             if !absent(&path) {
                 current.insert(path.clone(), read(&path, role_default(role)));
             }
+        }
+        let path = crate::role_supply::DELEGATION_GUIDANCE_PATH;
+        if !absent(path) {
+            current.insert(path.into(), read(path, DELEGATION_DEFAULT));
         }
         json!({"appRole":self.role(home,thread),"originalRoleSupply":binding.evidence(),"roleRelation":binding.relation(),"futureGuidanceNotices":binding.changes(&current)})
     }

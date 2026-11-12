@@ -83,7 +83,7 @@ fn actual_start_fork_continue_as_store_and_fresh_quoted_history() {
     )
     .unwrap();
     let composition =
-        Composition::new(&common, Some((Role::HELP_HUMAN, &guidance)), false).unwrap();
+        Composition::new(&common, Some((Role::HELP_HUMAN, &guidance)), crate::role_supply::delegation_for_test(Some(Role::HELP_HUMAN)).as_ref(), false).unwrap();
     let mut native = history_resume("idle", true);
     native["thread"]["id"] = json!("role-origin");
     native["cwd"] = json!(project);
@@ -171,7 +171,7 @@ fn actual_start_fork_continue_as_store_and_fresh_quoted_history() {
         b"default role",
     )
     .unwrap();
-    let next = Composition::new(&common, Some((Role::WORKING_ITEMS, &guidance)), false).unwrap();
+    let next = Composition::new(&common, Some((Role::WORKING_ITEMS, &guidance)), crate::role_supply::delegation_for_test(Some(Role::WORKING_ITEMS)).as_ref(), false).unwrap();
     let mut next_native = history_resume("idle", true);
     next_native["thread"]["id"] = json!("role-continued");
     next_native["cwd"] = json!(project);
@@ -392,7 +392,7 @@ impl RoleFixture {
         )
         .unwrap();
         let composition =
-            Composition::new(&common, Some((Role::HELP_HUMAN, &role)), false).unwrap();
+            Composition::new(&common, Some((Role::HELP_HUMAN, &role)), crate::role_supply::delegation_for_test(Some(Role::HELP_HUMAN)).as_ref(), false).unwrap();
         Self {
             root,
             project,
@@ -742,7 +742,7 @@ fn actual_preselection_flag_and_role_set_identity_are_kept_out_of_native_params(
     )
     .unwrap();
     f.composition =
-        Composition::with_role_set(&common, Some((Role::HELP_HUMAN, &role)), false, &raw).unwrap();
+        Composition::with_role_set(&common, Some((Role::HELP_HUMAN, &role)), crate::role_supply::delegation_for_test(Some(Role::HELP_HUMAN)).as_ref(), false, &raw).unwrap();
     let (result, outbound) = exchange(
         &f.host,
         Some(json!({"result":role_native("preselected")})),

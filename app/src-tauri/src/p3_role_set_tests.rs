@@ -46,7 +46,7 @@ fn p3_exact_role_set_refuses_malformed_supply_for_every_selection() {
                 .unwrap()
             });
             assert!(
-                Composition::with_role_set(&common, role.zip(active.as_ref()), true, &bytes)
+                Composition::with_role_set(&common, role.zip(active.as_ref()), crate::role_supply::delegation_for_test(role).as_ref(), true, &bytes)
                     .unwrap_err()
                     .starts_with("role-set-invalid")
             );
@@ -92,9 +92,18 @@ fn p3_actual_seeded_start_preserves_identity_and_modified_guidance() {
             Some(role) => {
                 let part = &composition.carried["developerInstructions"]["parts"][1];
                 let offset = part["offset"].as_u64().unwrap() as usize;
-                assert_eq!(&composition.text.as_bytes()[offset..], role_default(role));
+                let end = offset + role_default(role).len();
+                assert_eq!(&composition.text.as_bytes()[offset..end], role_default(role));
                 assert_eq!(part["content"], content(role_default(role)));
                 assert_eq!(part["length"], role_default(role).len());
+                // A conversation role may delegate: the delegation guidance
+                // follows the role document under its own heading.
+                let delegation = &composition.carried["developerInstructions"]["parts"][2];
+                let tail = [crate::role_supply::DELEGATION_HEADING.as_bytes(), super::DELEGATION_DEFAULT].concat();
+                assert_eq!(&composition.text.as_bytes()[end..], tail.as_slice());
+                assert_eq!(delegation["kind"], "delegation-guidance");
+                assert_eq!(delegation["content"], content(super::DELEGATION_DEFAULT));
+                assert_eq!(delegation["offset"], end + crate::role_supply::DELEGATION_HEADING.len());
             }
         }
         let params = composition.start_params().unwrap();
@@ -143,7 +152,7 @@ fn p3_identity_hashes_exact_role_set_bytes_and_task_stays_stated() {
     let mut spaced = BUNDLED_ROLE_SET.to_vec();
     spaced.push(b'\n');
     let composition =
-        Composition::with_role_set(&common, Some((Role::TASK, &task)), true, &spaced).unwrap();
+        Composition::with_role_set(&common, Some((Role::TASK, &task)), None, true, &spaced).unwrap();
     assert_eq!(
         &composition.text.as_bytes()[..COMMON_DEFAULT.len()],
         COMMON_DEFAULT

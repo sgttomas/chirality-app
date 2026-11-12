@@ -76,7 +76,9 @@ implemented behavior and qualification limits.
    discloses expected model contact at thread start, before a turn; it does not
    represent that notice as measured socket traffic. Reviewed v4 guidance seeds
    an editable App instruction copy without overwriting edits; new conversations
-   read current bytes. The Rust host prepares additive native child roles
+   read current bytes. A file a later release adds (`DELEGATION_RECORDS.md`) is
+   placed once in a copy seeded without it, with its own addition record; no
+   existing file is touched, and once placed its absence refuses the start. The Rust host prepares additive native child roles
    from that frozen guidance, withholding colliding or unsupported names and
    rechecking configuration/source currentness before dispatch. The opt-in
    [supplier child-carrier check](supplier_checks/child_roles.py)
@@ -700,7 +702,14 @@ implemented behavior and qualification limits.
     assigns bounded work to, and its guidance is supplied for that delegation
     (ROLE SL-1, CA-1; NIR ST-5; owner ruling 2026-10-10, "TASK is not a
     conversational role"). A TASK start that reaches composition anyway is
-    refused before anything is sent. The conversation header shows the role, fixed for the
+    refused before anything is sent. A conversation whose role may delegate
+    (`roles.json` `delegation`) is supplied, after its role document and under
+    the heading `# Delegation guidance`, the App's own `DELEGATION_RECORDS.md`:
+    how to write a brief, the work graph and returns as fleet records and name
+    the brief in the spawn prompt. It is its own part with its own source and
+    identity (composition `chirality.role.compose/0.3`; recorded 0.2
+    compositions still read), is not a role document and is outside the role
+    set's source binding. No role is supplied the product guidance alone. The conversation header shows the role, fixed for the
     conversation's life, and its relation (its own start, continued from, or
     fork of). **Guidance changed since this conversation started** appears
     only when a file the conversation started with now differs or is missing;
@@ -739,7 +748,8 @@ implemented behavior and qualification limits.
     HELPS_HUMANS, WORKING_ITEMS and TASK; HELPS_HUMANS and WORKING_ITEMS offer
     TASK; a conversation with No role offers no child roles. Each
     content-bound App TOML file carries the complete common + child-role
-    `developer_instructions`. Only
+    `developer_instructions`, followed by the parent's delegation guidance for
+    a child role that may itself delegate (never for TASK). Only
     `agents.<ROLE>.description/config_file` is added at `thread/start`;
     person-defined names, features, depth and permissions stay unchanged.
     Conservative name exclusion reads enabled supported declarations,

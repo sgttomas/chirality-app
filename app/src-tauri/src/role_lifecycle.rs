@@ -1,7 +1,7 @@
 //! App-observed role lifetime seam. Private immutable bindings are not deserialized.
 //! Host supplies authentic correlated observations; native history owns transcript data.
 //! Serialization/file validity alone establishes no App supply provenance or adoption.
-use crate::role_supply::{content, Composition, Role, CONTENT_METHOD};
+use crate::role_supply::{content, Composition, Role, COMPOSITION_FORMAT, COMPOSITION_FORMAT_0_2, CONTENT_METHOD, DELEGATION_GUIDANCE_PATH, DELEGATION_HEADING};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -27,36 +27,40 @@ impl FrozenGuidance {
     fn capture(composition: &Composition) -> Result<Self, String> {
         composition.verify()?;
         let raw = &composition.carried;
-        if raw["compositionFormat"] != "chirality.role.compose/0.2"
-            || raw["baseInstructions"] != "not-set"
-        {
+        // 0.2: product guidance, then the role. 0.3 adds the delegation
+        // guidance after the role for a role that may delegate. A recorded 0.2
+        // composition stays readable; a new one is always 0.3.
+        let delegation = if raw["compositionFormat"] == COMPOSITION_FORMAT {
+            composition.role.is_some_and(Role::may_delegate)
+        } else if raw["compositionFormat"] == COMPOSITION_FORMAT_0_2 {
+            false
+        } else {
+            return Err("role composition carrier not established".into());
+        };
+        if raw["baseInstructions"] != "not-set" {
             return Err("role composition carrier not established".into());
         }
         let parts = raw["developerInstructions"]["parts"]
             .as_array()
             .ok_or("role source parts missing")?;
-        let count = if composition.role.is_some() { 2 } else { 1 };
+        let count = 1 + usize::from(composition.role.is_some()) + usize::from(delegation);
         if parts.len() != count {
-            return Err("common/active role source parts incomplete".into());
+            return Err("common/active role/delegation source parts incomplete".into());
         }
         let mut frozen = vec![];
         for (index, part) in parts.iter().enumerate() {
             let path = part["source"]["path"]
                 .as_str()
                 .ok_or("source path absent")?;
-            let expected = if index == 0 {
-                "AGENTS.md".into()
-            } else {
-                format!("agents/AGENT_{}.md", composition.role.unwrap().name())
-            };
-            let kind = if index == 0 {
-                "product-guidance"
-            } else {
-                "role-guidance"
+            let (expected, kind) = match index {
+                0 => ("AGENTS.md".to_owned(), "product-guidance"),
+                1 => (format!("agents/AGENT_{}.md", composition.role.unwrap().name()), "role-guidance"),
+                _ => (DELEGATION_GUIDANCE_PATH.to_owned(), "delegation-guidance"),
             };
             if path != expected
                 || part["kind"] != kind
                 || (index == 1 && part["role"] != json!(composition.role.unwrap()))
+                || (index == 2 && part.get("role").is_some())
             {
                 return Err("role selection/source part mismatch".into());
             }
@@ -123,6 +127,13 @@ impl FrozenGuidance {
                 return Err("role separator/range mismatch".into());
             }
             expected.push_str(&frozen[1].bytes);
+        }
+        if delegation {
+            expected.push_str(DELEGATION_HEADING);
+            if frozen[2].offset != expected.len() {
+                return Err("delegation separator/range mismatch".into());
+            }
+            expected.push_str(&frozen[2].bytes);
         }
         if expected != composition.text {
             return Err("composition does not equal exact source buffers and role framing".into());
@@ -678,7 +689,7 @@ pub(crate) struct CceInserted { pin: crate::hosting::call_custody::StartPin }
 impl CceInserted {pub(crate) fn into_pin(self)->crate::hosting::call_custody::StartPin{self.pin}}
 impl RoleBindings {
     pub(crate) fn insert_cce_original(&mut self,binding:RoleBinding,pin:crate::hosting::call_custody::StartPin)->Result<crate::hosting::call_custody::ManagerOwner,String>{
-        if !matches!(binding.origin,Origin::Start)||binding.original.parts.len()!=2||!pin.role_matches(&binding.home,&binding.thread,&binding.observation.generation,&binding.observation.request_id,&binding.observation.request_ref,&binding.supply_ref,binding.original.role,&binding.original.text,&binding.original.parts[0].bytes,&binding.original.parts[1].bytes){return Err("original manager insertion/source handoff mismatch".into())}
+        if !matches!(binding.origin,Origin::Start)||binding.original.parts.len()<2||!pin.role_matches(&binding.home,&binding.thread,&binding.observation.generation,&binding.observation.request_id,&binding.observation.request_ref,&binding.supply_ref,binding.original.role,&binding.original.text,&binding.original.parts[0].bytes,&binding.original.parts[1].bytes){return Err("original manager insertion/source handoff mismatch".into())}
         self.insert(binding)?;
         Ok(crate::hosting::call_custody::ManagerOwner::from_inserted(CceInserted{pin}))
     }

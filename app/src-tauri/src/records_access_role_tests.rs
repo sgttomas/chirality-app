@@ -533,7 +533,7 @@ fn records_access_role_modified_guidance_and_hidden_context_are_metadata_only() 
         default,
     )
     .unwrap();
-    let composition = Composition::new(&common, Some((Role::HELPS_HUMANS, &role)), false).unwrap();
+    let composition = Composition::new(&common, Some((Role::HELPS_HUMANS, &role)), crate::role_supply::delegation_for_test(Some(Role::HELPS_HUMANS)).as_ref(), false).unwrap();
     let thread = role_r3_start(&peer, &composition);
     let mut root = peer.registered();
     let run = role_r3_open(&peer, &mut root, &thread);

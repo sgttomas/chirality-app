@@ -4,7 +4,7 @@ fn task_binding(thread: &str) -> crate::role_lifecycle::RoleBinding {
     use crate::role_supply::{Composition, Guidance, Role};
     let common = Guidance::seeded("AGENTS.md", "fixture-release", b"Invented common guidance".to_vec(), b"Invented common guidance").unwrap();
     let role = Guidance::seeded("agents/AGENT_TASK.md", "fixture-release", b"Invented TASK guidance".to_vec(), b"Invented TASK guidance").unwrap();
-    let composition = Composition::new(&common, Some((Role::TASK, &role)), true).unwrap();
+    let composition = Composition::new(&common, Some((Role::TASK, &role)), None, true).unwrap();
     let mut native = history_resume("idle", true);
     native["thread"]["id"] = json!(thread);
     crate::role_lifecycle::PreparedStart::new("conversation-home", g(), json!(91), "req:original", "sup:original", &composition).unwrap()

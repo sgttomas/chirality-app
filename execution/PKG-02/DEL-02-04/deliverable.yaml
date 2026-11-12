@@ -30,6 +30,17 @@ needs:
   condition: The default guidance, the role documents and the role set are packaged as supplied.
   gating: false
   when: On an installed build
+- from: DEL-06-01
+  condition: The fleet record format, the project folder and files the App reads briefs, work graphs
+    and coordination lines from, and the one spawn-prompt line that names a brief are each stated
+    once, so that the delegation guidance describes them as the App reads them.
+  gating: false
+  when: Before the delegation guidance's record forms are changed
+- from: DEL-06-02
+  condition: The decision package file an agent writes, and the project folder it is read from, are
+    stated once, so that the delegation guidance describes them as the App reads them.
+  gating: false
+  when: Before the delegation guidance's record forms are changed
 - from: external:owners of the consumers that adopt the guidance
   condition: A consumer's owner decides and performs its adoption of the App's guidance and gives
     evidence of the actor and scope.
@@ -67,6 +78,9 @@ code_paths:
 - app/src-tauri/resources/instructions/**
 checks:
 - tools/test_instruction_resources.py
+# The delegation guidance at start, for children, in the store, in the supply record, and its
+# record forms against the fleet and decision-package schemas.
+- app/src-tauri/src/delegation_guidance_tests.rs
 - app/src-tauri/src/p3_role_set_tests.rs
 - app/src-tauri/src/p3_role_entry_tests.rs
 - app/src-tauri/src/local_role_metadata_tests.rs

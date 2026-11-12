@@ -12,13 +12,16 @@ FILES = (
     "agents/AGENT_HELPS_HUMANS.md", "agents/AGENT_HELP_HUMAN.md",
     "agents/AGENT_TASK.md", "agents/AGENT_WORKING_ITEMS.md", "roles.json",
 )
+# The App's own instruction documents, packaged beside the bound role-set
+# payload but outside it: the role set and its source binding do not name them.
+APP_OWN = {"DELEGATION_RECORDS.md": "01047c738fd12292950341a6576663f1e61b555303f17ba547b9b9ebb6924648"}
 
 
 class PackagedInstructionTests(unittest.TestCase):
     def test_current_payload_and_role_binding_are_preserved(self):
         entries = sorted(INSTRUCTIONS.rglob("*"))
         files = [path for path in entries if not path.is_dir() or path.is_symlink()]
-        self.assertEqual(sorted(path.relative_to(INSTRUCTIONS).as_posix() for path in files), sorted(FILES))
+        self.assertEqual(sorted(path.relative_to(INSTRUCTIONS).as_posix() for path in files), sorted(FILES + tuple(APP_OWN)))
         self.assertEqual([path.name for path in entries if path.is_dir() and not path.is_symlink()], ["agents"])
         for path in files:
             meta = path.lstat()
@@ -34,6 +37,15 @@ class PackagedInstructionTests(unittest.TestCase):
         self.assertTrue(all(r["default_for_new_chat"] is False for r in roles))
         for guidance in binding["guidance"]:
             self.assertEqual(hashlib.sha256(source[guidance["path"]]).hexdigest(), guidance["sha256"])
+
+    def test_app_own_documents_are_named_and_kept_apart_from_the_role_set(self):
+        binding = json.loads((INSTRUCTIONS / "ROLE_SET_SOURCE_BINDING.json").read_bytes())
+        roles = json.loads((INSTRUCTIONS / "roles.json").read_bytes())["roles"]
+        bound = {g["path"] for g in binding["guidance"]} | {binding["roleSet"]["path"]}
+        for path, digest in APP_OWN.items():
+            self.assertNotIn(path, bound)
+            self.assertNotIn(path, {r["guidance_file"] for r in roles})
+            self.assertEqual(hashlib.sha256((INSTRUCTIONS / path).read_bytes()).hexdigest(), digest)
 
 
 if __name__ == "__main__":

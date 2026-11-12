@@ -62,21 +62,18 @@ pub(crate) fn seed(
         Ok((opened, created))
     }
     // Validate every leaf before creating anything. Inputs are the compiled
-    // common/four-role defaults, never a generic path publication interface.
+    // common, four-role and delegation defaults, never a generic path
+    // publication interface.
     let mut names = std::collections::BTreeSet::new();
     for (path, _) in sources {
-        if path != "AGENTS.md"
-            && !crate::role_supply::Role::ALL
-                .iter()
-                .any(|role| path == &format!("agents/AGENT_{}.md", role.name()))
-        {
+        if !crate::role_supply::guidance_path(path) {
             return Err("instruction source name is not allowed".into());
         }
         if !names.insert(path) {
             return Err("duplicate instruction source name".into());
         }
     }
-    if names.len() != crate::role_supply::Role::ALL.len() + 1 || release.is_empty() {
+    if names.len() != crate::role_supply::Role::ALL.len() + 2 || release.is_empty() {
         return Err("complete instruction defaults and release are required".into());
     }
     let leaf = match root.components().next_back() {
@@ -191,11 +188,11 @@ pub(crate) fn seed(
     }
     validate()?;
     verify(&opened, &links)?;
-    let record = serde_json::json!({"format": "chirality.instruction-seed-record/1",
+    let record = serde_json::json!({"format": crate::role_supply::seed_history::SEED_FORMAT,
         "release": release, "created": created_files, "preserved": preserved_files});
     let mut raw = serde_json::to_vec(&record).map_err(|e| e.to_string())?;
     raw.push(b'\n');
-    let leaf = name(std::ffi::OsStr::new(".seed-record.json"))?;
+    let leaf = name(std::ffi::OsStr::new(crate::role_supply::seed_history::SEED_RECORD))?;
     let fd = unsafe { libc::openat(opened[root_index].as_raw_fd(), leaf.as_ptr(),
         libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_NOFOLLOW
             | libc::O_NONBLOCK | libc::O_CLOEXEC | libc::O_NOCTTY, 0o666) };
@@ -210,6 +207,105 @@ pub(crate) fn seed(
         .map_err(|e| format!("instruction seed record publication failed: {e}"))?;
     opened[root_index].sync_all().map_err(|e| e.to_string())?;
     verify(&opened, &links)
+}
+
+/// Place, once, a file this release adds to a store first seeded without it.
+/// Nothing already in the store is opened for writing. The file is created
+/// only when it is absent and no record says the store has had it: neither
+/// the first seed record nor the file's own addition record names it. After
+/// that, its absence is the person's and the start is refused as missing.
+/// The addition record is written once, after the file, naming it as created
+/// or, when a file was already there, as preserved.
+#[cfg(unix)]
+pub(crate) fn add_later(
+    root: &std::path::Path,
+    path: &str,
+    bytes: &[u8],
+    release: &str,
+) -> Result<(), String> {
+    use crate::role_supply::seed_history;
+    use std::{
+        ffi::CString,
+        fs::{File, OpenOptions},
+        io::{Read, Write},
+        os::unix::{
+            fs::OpenOptionsExt,
+            io::{AsRawFd, FromRawFd},
+        },
+    };
+    let record_name = seed_history::addition_record(path)
+        .ok_or("instruction source is not one a later release adds")?;
+    if path.contains('/') || release.is_empty() || bytes.is_empty() {
+        return Err("instruction addition is not a store-root default".into());
+    }
+    let dir = OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC)
+        .open(root)
+        .map_err(|e| e.to_string())?;
+    let open = |leaf: &str, flags: i32| -> Result<Option<File>, String> {
+        let c = CString::new(leaf).map_err(|_| "NUL in instruction name")?;
+        let fd = unsafe {
+            libc::openat(dir.as_raw_fd(), c.as_ptr(),
+                flags | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC | libc::O_NOCTTY, 0o666)
+        };
+        if fd < 0 {
+            let error = std::io::Error::last_os_error();
+            return match error.kind() {
+                std::io::ErrorKind::NotFound | std::io::ErrorKind::AlreadyExists => Ok(None),
+                _ => Err(error.to_string()),
+            };
+        }
+        Ok(Some(unsafe { File::from_raw_fd(fd) }))
+    };
+    let exists = |leaf: &str| -> Result<bool, String> {
+        let c = CString::new(leaf).map_err(|_| "NUL in instruction name")?;
+        let mut m = std::mem::MaybeUninit::<libc::stat>::uninit();
+        if unsafe { libc::fstatat(dir.as_raw_fd(), c.as_ptr(), m.as_mut_ptr(), libc::AT_SYMLINK_NOFOLLOW) } == 0 {
+            return Ok(true);
+        }
+        let error = std::io::Error::last_os_error();
+        if error.kind() == std::io::ErrorKind::NotFound { Ok(false) } else { Err(error.to_string()) }
+    };
+    if exists(record_name)? {
+        return Ok(());
+    }
+    // A first seed record that cannot be read declares nothing of this file.
+    if let Ok(Some(mut file)) = open(seed_history::SEED_RECORD, libc::O_RDONLY) {
+        let mut raw = Vec::new();
+        if (&mut file).take(16 * 1024 + 1).read_to_end(&mut raw).is_ok()
+            && seed_history::seeded_paths(&raw).is_some_and(|paths| paths.contains(path))
+        {
+            return Ok(());
+        }
+    }
+    let entry = match open(path, libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL)? {
+        Some(mut file) => {
+            if !file.metadata().map_err(|e| e.to_string())?.is_file() {
+                return Err("created instruction source is not a regular file".into());
+            }
+            file.write_all(bytes).and_then(|_| file.sync_all()).map_err(|e| e.to_string())?;
+            dir.sync_all().map_err(|e| e.to_string())?;
+            serde_json::json!({"created":[{"path":path,"defaultContent":crate::role_supply::content(bytes)}],"preserved":[]})
+        }
+        None => serde_json::json!({"created":[],"preserved":[{"path":path,"origin":"unknown"}]}),
+    };
+    let record = serde_json::json!({"format":seed_history::ADDITION_FORMAT,"release":release,
+        "created":entry["created"],"preserved":entry["preserved"]});
+    let mut raw = serde_json::to_vec(&record).map_err(|e| e.to_string())?;
+    raw.push(b'\n');
+    // Exclusive, like the first seed record: a concurrent addition keeps its own.
+    if let Some(mut file) = open(record_name, libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL)? {
+        file.write_all(&raw).and_then(|_| file.sync_all())
+            .map_err(|e| format!("instruction addition record publication failed: {e}"))?;
+        dir.sync_all().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+pub(crate) fn add_later(_: &std::path::Path, _: &str, _: &[u8], _: &str) -> Result<(), String> {
+    Err("directory-bound instruction addition is unavailable on this target".into())
 }
 
 #[cfg(not(unix))]

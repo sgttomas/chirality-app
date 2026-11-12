@@ -189,7 +189,7 @@ impl OfferIntent {
         }
         let parts = c.carried["developerInstructions"]["parts"]
             .as_array()
-            .filter(|p| p.len() == 2)
+            .filter(|p| p.len() >= 2)
             .ok_or(Refusal::Origin)?;
         let piece = |n: usize| -> Result<&str, Refusal> {
             let offset = parts[n]["offset"].as_u64().ok_or(Refusal::Origin)? as usize;

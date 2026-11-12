@@ -25,6 +25,17 @@ import time
 BINARY_SHA = "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac6c4dbf1b4b"
 BASE_SHA = "e1bdd4f8f0df4b20f4a0ffc8a861ce819df45325d8cecdfb92e80379cf8d142e"
 RESOURCES = Path(__file__).resolve().parents[1] / "src-tauri/resources/instructions"
+
+
+def composed(role):
+    """What the App composes for a role (DEL-02-04 Composition): product guidance,
+    the role heading and document, and, for a role the role set says may
+    delegate, the delegation heading and the App's delegation guidance."""
+    roles = json.loads((RESOURCES / "roles.json").read_bytes())["roles"]
+    out = (RESOURCES / "AGENTS.md").read_bytes() + ("\n\n# Active role: " + role + "\n\n").encode() + (RESOURCES / ("agents/AGENT_" + role + ".md")).read_bytes()
+    if any(r["name"] == role and r["delegation"] == "may-delegate" for r in roles):
+        out += b"\n\n# Delegation guidance\n\n" + (RESOURCES / "DELEGATION_RECORDS.md").read_bytes()
+    return out
 DESCRIPTION = "Chirality TASK: bounded work; does not delegate (stated, not enforced)"
 USER_DESCRIPTION = "Synthetic person-defined TASK; preserve this definition"
 STANDALONE_DESCRIPTION = "Synthetic standalone person-defined TASK; preserve this definition"
@@ -370,7 +381,7 @@ def run_case(binary, root, case, parent, task, parent_role="WORKING_ITEMS", chil
             save(root / "rust-preparation.json", production)
             assert production["parent"] == parent, "production Rust parent composition differs"
             for child in production["children"]:
-                expected = (RESOURCES / "AGENTS.md").read_bytes() + ("\n\n# Active role: " + child["role"] + "\n\n").encode() + (RESOURCES / ("agents/AGENT_" + child["role"] + ".md")).read_bytes()
+                expected = composed(child["role"])
                 assert child["text"].encode() == expected, "production Rust child composition differs"
             overrides = production["config"]
         else:
@@ -516,13 +527,14 @@ def main():
     common = (RESOURCES / "AGENTS.md").read_bytes()
     manager = (RESOURCES / "agents/AGENT_WORKING_ITEMS.md").read_bytes()
     executor = (RESOURCES / "agents/AGENT_TASK.md").read_bytes()
-    parent = (common + b"\n\n# Active role: WORKING_ITEMS\n\n" + manager).decode()
-    task = (common + b"\n\n# Active role: TASK\n\n" + executor).decode()
+    parent = composed("WORKING_ITEMS").decode()
+    task = composed("TASK").decode()
     root = Path(tempfile.mkdtemp(prefix="chirality-child-roles-", dir="/private/tmp"))
     report = {"format": "chirality.child-carrier-check/1", "binarySha256": BINARY_SHA,
               "checkerSha256": sha(Path(__file__).read_bytes()), "rustHelperSha256": sha(RUST_HELPER.read_bytes()), "invocation": [sys.executable, *sys.argv],
               "sourceComponents": {"AGENTS.md": sha(common), "agents/AGENT_WORKING_ITEMS.md": sha(manager),
-                                   "agents/AGENT_TASK.md": sha(executor)},
+                                   "agents/AGENT_TASK.md": sha(executor),
+                                   "DELEGATION_RECORDS.md": sha((RESOURCES / "DELEGATION_RECORDS.md").read_bytes())},
               "parentComposition": sha(parent.encode()), "childComposition": sha(task.encode()),
               "network": "OS sandbox allows localhost only", "modelPredictions": 0,
               "standing": "production Rust preparation and scripted stock-supplier carriage; private App Host custody tested separately; no adoption, enforcement or qualification"}
@@ -531,8 +543,8 @@ def main():
                        for case in ("baseline", "missing", "invalid", "collision", "standalone-collision", "none", "all", "linked-home", *ORIGIN_CASES)]
     for parent_role, child_role in (("HELP_HUMAN", "HELPS_HUMANS"), ("HELP_HUMAN", "WORKING_ITEMS"), ("HELP_HUMAN", "TASK"), ("HELPS_HUMANS", "TASK")):
         case = "matrix-" + parent_role + "-" + child_role
-        parent_bytes = (common + ("\n\n# Active role: " + parent_role + "\n\n").encode() + (RESOURCES / ("agents/AGENT_" + parent_role + ".md")).read_bytes()).decode()
-        child_bytes = (common + ("\n\n# Active role: " + child_role + "\n\n").encode() + (RESOURCES / ("agents/AGENT_" + child_role + ".md")).read_bytes()).decode()
+        parent_bytes = composed(parent_role).decode()
+        child_bytes = composed(child_role).decode()
         report["cases"].append(run_case(binary, root / case, case, parent_bytes, child_bytes, parent_role, child_role))
     report["cases"].append(run_case(binary, root / "no-role", "no-role", common.decode(), task, None))
     report["rustProductionSources"] = {name: sha((RESOURCES.parents[1] / "src" / name).read_bytes()) for name in ("child_roles.rs", "role_supply.rs", "role_lifecycle.rs", "runtime_session.rs", "access_provider.rs")}

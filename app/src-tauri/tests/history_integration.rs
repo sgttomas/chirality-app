@@ -255,7 +255,10 @@ fn composition(role: Option<Role>) -> Composition {
         )
         .unwrap()
     });
-    Composition::new(&common, role.zip(active.as_ref()), false).unwrap()
+    let delegation = role.filter(|r| r.may_delegate()).map(|_| {
+        Guidance::seeded(chirality_app_v4_lib::role_supply::DELEGATION_GUIDANCE_PATH, "test-release", b"Delegation text\r\n".to_vec(), b"default delegation").unwrap()
+    });
+    Composition::new(&common, role.zip(active.as_ref()), delegation.as_ref(), false).unwrap()
 }
 #[test]
 fn original_mock_role_binding_remains_fixed_and_cold_imported_state_unknown() {

@@ -344,7 +344,7 @@ fn four_roles_supply_only_at_start_preserve_byte_provenance() {
             text.as_bytes(),
         )
         .unwrap();
-        let c = Composition::new(&common, Some((r, &role)), true).unwrap();
+        let c = Composition::new(&common, Some((r, &role)), crate::role_supply::delegation_for_test(Some(r)).as_ref(), true).unwrap();
         c.verify().unwrap();
         assert_eq!(c.carried["baseInstructions"], "not-set");
         assert_eq!(
@@ -352,7 +352,9 @@ fn four_roles_supply_only_at_start_preserve_byte_provenance() {
                 .as_array()
                 .unwrap()
                 .len(),
-            2
+            // Product guidance and the role; a role that may delegate also the
+            // delegation guidance (DEL-02-04 REQ-002).
+            if r.may_delegate() { 3 } else { 2 }
         );
         let params = c.start_params().unwrap();
         assert!(check_role_inputs("thread/resume", &params).is_err());
@@ -374,12 +376,12 @@ fn four_roles_supply_only_at_start_preserve_byte_provenance() {
         assert_eq!(limit(r, &role)["standing"], "stated-not-enforced");
         assert_eq!(Role::TASK.child_roles(), &[]);
         if r == Role::TASK {
-            assert!(Composition::new(&common, Some((r, &role)), false).is_err())
+            assert!(Composition::new(&common, Some((r, &role)), None, false).is_err())
         } else {
-            assert!(Composition::new(&common, Some((r, &role)), false).is_ok())
+            assert!(Composition::new(&common, Some((r, &role)), crate::role_supply::delegation_for_test(Some(r)).as_ref(), false).is_ok())
         }
     }
-    let none = Composition::new(&common, None, false).unwrap();
+    let none = Composition::new(&common, None, None, false).unwrap();
     assert_eq!(
         none.carried["developerInstructions"]["parts"]
             .as_array()
@@ -406,7 +408,7 @@ fn four_roles_supply_only_at_start_preserve_byte_provenance() {
 fn role_records_validate_and_supply_never_adoption() {
     use role_supply::*;
     let common = Guidance::seeded("AGENTS.md", "fixture", b"Common".to_vec(), b"Common").unwrap();
-    let c = Composition::new(&common, None, false).unwrap();
+    let c = Composition::new(&common, None, None, false).unwrap();
     let schema: serde_json::Value = serde_json::from_str(include_str!(
         "../resources/workflow_role/role-supply-record.schema.json"
     ))

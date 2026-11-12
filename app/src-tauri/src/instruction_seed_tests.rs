@@ -202,7 +202,8 @@ fn initial_record_names_only_defaults_this_call_created_and_is_never_rewritten()
     assert_eq!(record["format"], "chirality.instruction-seed-record/1");
     assert_eq!(record["release"], super::INSTRUCTION_RELEASE);
     let created = record["created"].as_array().unwrap();
-    assert_eq!(created.len(), 5);
+    // AGENTS.md, the four role documents and the delegation guidance.
+    assert_eq!(created.len(), 6);
     assert!(record["preserved"].as_array().unwrap().is_empty());
     for entry in created {
         let bytes = fs::read(root.join(entry["path"].as_str().unwrap())).unwrap();
@@ -255,7 +256,7 @@ fn even_byte_equal_racing_copies_have_unknown_seed_origin() {
         fs::write(root.join("AGENTS.md"), COMMON_DEFAULT).unwrap();
     }).unwrap();
     let record = seed_record(&root);
-    assert_eq!(record["created"].as_array().unwrap().len(), 4);
+    assert_eq!(record["created"].as_array().unwrap().len(), 5);
     assert_eq!(record["preserved"], serde_json::json!([{"path":"AGENTS.md","origin":"unknown"}]));
     assert!(record["created"].as_array().unwrap().iter().all(|entry| entry["path"] != "AGENTS.md"));
 }
@@ -296,6 +297,7 @@ fn a_complete_store_preempting_initial_creation_gets_no_invented_record() {
         for role in crate::role_supply::Role::ALL {
             fs::write(root.join(format!("agents/AGENT_{}.md", role.name())), role_default(role)).unwrap();
         }
+        fs::write(root.join(crate::role_supply::DELEGATION_GUIDANCE_PATH), super::DELEGATION_DEFAULT).unwrap();
     }, || panic!("preempting store entered publication")).unwrap();
     assert!(!root.join(".seed-record.json").exists());
 }
@@ -309,6 +311,7 @@ fn root_replacement_during_validation_cannot_redirect_record_publication() {
     let sources = std::iter::once(("AGENTS.md".into(), COMMON_DEFAULT)).chain(
         crate::role_supply::Role::ALL.into_iter().map(|role|
             (format!("agents/AGENT_{}.md", role.name()), role_default(role))))
+        .chain(std::iter::once((crate::role_supply::DELEGATION_GUIDANCE_PATH.to_owned(), super::DELEGATION_DEFAULT)))
         .collect::<Vec<_>>();
     let result = crate::instruction_store::seed(&root, &sources, super::INSTRUCTION_RELEASE, || {}, || {
         super::validate_instruction_copies(&root)?;
