@@ -1356,6 +1356,53 @@ fn latest_by_source(rows:History<'_>,keep:impl Fn(&Value)->bool)->std::collectio
 /// unsettled. Pointer metadata only.
 pub(crate) fn latest_execution_rows(rows:History<'_>)->Vec<Value> {latest_by_source(rows,|_|true).into_values().collect()}
 
+/// One CV-19 restart fact: the `app_restart_interruption` event the custody
+/// view shows, with what it rests on, kept apart from the event so the view's
+/// own shape is unchanged: the full source generation (its App session,
+/// physical home and spawn counter) and the execution row's last recorded
+/// state, which can be a loss observed before that App session ended.
+pub(crate) struct RestartFact { pub(crate) event: Value, pub(crate) source: Value, pub(crate) execution: Value }
+
+/// RECOVERY §3.2 CV-19: the conversations whose latest execution row from an
+/// earlier session, sourced in the App session immediately before `session`,
+/// retains a live-turn pointer, with how that session's end is recorded.
+/// Only the immediately preceding session is read: a conversation an earlier
+/// session left, which that session only carried as recovery state, yields
+/// none. Reads `rows` only; returns the facts and the limits met.
+pub(crate) fn restart_facts(session:&str,rows:&[Value])->(Vec<RestartFact>,Vec<String>) {
+    let mut facts=Vec::new();let mut limits=Vec::new();
+    let current=rows.iter().rev().find(|r|r["kind"]=="session_started"&&r["session"]==session);
+    let prior=current.and_then(|r|r["previousSession"].as_str());
+    let end=prior.and_then(|s|rows.iter().rev().find(|r|r["kind"]=="session_ended"&&r["session"]==s));
+    // A prior session's end is read from what earlier sessions recorded:
+    // a row this session appends (a recovery read's outcome, CV-13) does
+    // not remove the restart fact.
+    for (key,row) in latest_by_source(History::new(rows,&[]),|r|r["session"]!=session) {
+        let thread=&key.2;
+        let execution=&row["lastObservedExecution"];
+        let source=generation_from_ref(row["lastLoadedGeneration"].as_str().unwrap()).unwrap();
+        let is_prior=prior.is_some_and(|p|source["appSession"]==p);
+        let live_turn=execution["liveTurn"].as_str().filter(|s|!s.is_empty());
+        if is_prior&&matches!(execution["state"].as_str(),Some("turn-live"|"interrupt-pending"|"observation-lost")) {
+            if let Some(turn)=live_turn {
+                // A clean session end does not prove a live turn survived to
+                // quit. Only a captured app-quit loss supplies that reading.
+                let prior_end=match end {
+                    None=>Some("ended-without-record"),
+                    Some(e) if e["how"]=="system-terminated"=>Some("system-terminated"),
+                    Some(_) if execution["lostCause"]=="app-quit"=>Some("quit-with-live-work"),
+                    _=>None,
+                };
+                if let (Some(prior_end),Some(current))=(prior_end,current) {
+                    let event=json!({"kind":"app_restart_interruption","eventId":format!("cev:restart:{}:{}:{}",session,row["lastLoadedGeneration"].as_str().unwrap(),thread),"appSession":session,"at":current["at"],"standing":"App-observed","threadId":thread,"home":row["home"],"priorSession":source["appSession"],"priorSessionEnd":prior_end,"liveTurnsAtEnd":[{"threadId":thread,"turnId":turn}]});
+                    facts.push(RestartFact{event,source,execution:execution.clone()});
+                } else {limits.push(format!("{thread}: prior loss/live observation retained; live work at clean App end is not established"));}
+            }
+        }
+    }
+    (facts,limits)
+}
+
 impl RecoveryCustodyView {
     pub fn snapshot(&self)->Value {self.document.clone()}
     /// `ledger`: the host's held ledger entries (None: no ledger).
@@ -1372,9 +1419,6 @@ impl RecoveryCustodyView {
         }
         let request_end_events = recorded_startup_request_events(&rows);
         let starts:Vec<_>=rows.iter().enumerate().filter(|(_,r)|r["kind"]=="session_started").collect();
-        let current=starts.iter().rev().find(|(_,r)|r["session"]==session).map(|(_,r)|*r);
-        let prior=current.and_then(|r|r["previousSession"].as_str());
-        let end=prior.and_then(|s|rows.iter().rev().find(|r|r["kind"]=="session_ended"&&r["session"]==s));
         // Delayed old source appends cannot eclipse a later App session or a
         // later generation of the same physical home. Equal-thread references
         // in different home namespaces are never merged.
@@ -1391,32 +1435,10 @@ impl RecoveryCustodyView {
             let order=(rank,g["spawnCounter"].as_u64().unwrap(),position);
             if latest.get(&key).is_none_or(|(a,b,c,_)|order>(*a,*b,*c)) {latest.insert(key,(order.0,order.1,order.2,row.clone()));}
         }
-        let mut historical=Vec::new();let mut events=Vec::new();
-        // A prior session's end is read from what earlier sessions recorded:
-        // a row this session appends (a recovery read's outcome, CV-13) does
-        // not remove the restart fact.
-        for (key,row) in latest_by_source(History::new(rows,&[]),|r|r["session"]!=session) {
-            let thread=&key.2;
-            let execution=&row["lastObservedExecution"];
-            let source=generation_from_ref(row["lastLoadedGeneration"].as_str().unwrap()).unwrap();
-            let is_prior=prior.is_some_and(|p|source["appSession"]==p);
-            let live_turn=execution["liveTurn"].as_str().filter(|s|!s.is_empty());
-            if is_prior&&matches!(execution["state"].as_str(),Some("turn-live"|"interrupt-pending"|"observation-lost")) {
-                if let Some(turn)=live_turn {
-                    // A clean session end does not prove a live turn survived to
-                    // quit. Only a captured app-quit loss supplies that reading.
-                    let prior_end=match end {
-                        None=>Some("ended-without-record"),
-                        Some(e) if e["how"]=="system-terminated"=>Some("system-terminated"),
-                        Some(_) if execution["lostCause"]=="app-quit"=>Some("quit-with-live-work"),
-                        _=>None,
-                    };
-                    if let (Some(prior_end),Some(current))=(prior_end,current) {
-                        events.push(json!({"kind":"app_restart_interruption","eventId":format!("cev:restart:{}:{}:{}",session,row["lastLoadedGeneration"].as_str().unwrap(),thread),"appSession":session,"at":current["at"],"standing":"App-observed","threadId":thread,"home":row["home"],"priorSession":source["appSession"],"priorSessionEnd":prior_end,"liveTurnsAtEnd":[{"threadId":thread,"turnId":turn}]}));
-                    } else {limits.push(format!("{thread}: prior loss/live observation retained; live work at clean App end is not established"));}
-                }
-            }
-        }
+        let mut historical=Vec::new();
+        let (facts,restart_limits)=restart_facts(session,rows);
+        limits.extend(restart_limits);
+        let events:Vec<Value>=facts.into_iter().map(|fact|fact.event).collect();
         for (key,(_,_,_,row)) in latest {
             let thread=&key.2;
             let execution=&row["lastObservedExecution"];

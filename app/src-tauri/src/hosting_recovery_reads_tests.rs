@@ -302,6 +302,8 @@ fn cv19_relaunch_recovers_an_earlier_session_conversation_and_its_stop_request()
     f.home.host.turn_interrupt_begin(&f.first, "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
     // The App ends without a record; the relaunched App has its own session.
     f.crash();
+    // The loss Codex's exit records reaches the ledger before the App ends.
+    f.until("the loss row in the ledger", || f.states().last().map(String::as_str) == Some("observation-lost"));
     let _ = f.home.host.stop("fixture", "test relaunch");
     // Many turns since: the lost turn is on the second page of history.
     f.history(json!([{"id":"turn-3","status":"completed"},{"id":"turn-2","status":"completed"},{"id":"turn-1","status":"failed"}]));
@@ -310,11 +312,21 @@ fn cv19_relaunch_recovers_an_earlier_session_conversation_and_its_stop_request()
     let wire = f.wire().len();
     let restart = relaunched.host.recovery_custody().snapshot()["restartEvents"].clone();
     assert_eq!(restart[0]["priorSessionEnd"], "ended-without-record");
-    // What the window is told: before the read, the turn is not yet read back, never an outcome.
-    let told = |home: &HomeSession| crate::interrupted_work::read(&home.host.recovery_custody().snapshot())["conversations"].clone();
-    assert_eq!(told(&relaunched), json!([{"threadId":"thread","home":"H-acct","priorSession":restart[0]["priorSession"],"priorSessionEnd":"ended-without-record","turns":[{"turnId":"turn-1","reading":"not-read-yet"}]}]));
+    // What the window is told: this home's restart fact, keyed by its source
+    // generation; before the read, the turn is not read back, never an outcome.
+    let told = |home: &HomeSession| crate::interrupted_work::read_home(home);
+    let before = told(&relaunched);
+    let physical = crate::hosting::physical_home(&f.cfg);
+    assert_eq!((before["home"].as_str(), before["physicalHome"].as_str()), (Some("H-acct"), Some(physical.as_str())));
+    assert_eq!(before["conversations"], json!([{"threadId":"thread","home":"H-acct","physicalHome":physical,"sourceGeneration":f.first,
+        "priorSession":restart[0]["priorSession"],"priorSessionEnd":"ended-without-record","lastRecordedState":"observation-lost","lostBeforeSessionEnd":"supplier-exit",
+        "turns":[{"turnId":"turn-1","current":{"reading":"not-read","attempts":0}}]}]), "Codex ended before the App session did; the record says so: {before}");
     assert_eq!(crate::host_tick::recovery_tick_home(&relaunched), 3, "thread/read and two turn pages");
-    assert_eq!(told(&relaunched)[0]["turns"], json!([{"turnId":"turn-1","reading":"read","codexStatus":"failed"}]), "then Codex's own status for that turn, as its history reported it");
+    let after = told(&relaunched)["conversations"][0]["turns"][0].clone();
+    assert_eq!((after["current"]["reading"].as_str(), after["current"]["codexStatus"].as_str(), after["current"]["attempt"].as_u64()), (Some("read"), Some("failed"), Some(1)),
+        "then Codex's own status for that turn, as its history reported it at that attempt: {after}");
+    assert_eq!(after["current"]["readBy"], json!(crate::recovery::generation_ref(&relaunched.host.snapshot()["generation"]).unwrap()));
+    assert!(after.get("earlier").is_none());
     // The relaunched session's own handshake can still be arriving; everything else
     // written after the relaunch is the recovery reads.
     let reads: Vec<String> = f.wire()[wire..].iter().map(|w| w["method"].as_str().unwrap().to_owned())
@@ -349,6 +361,7 @@ fn cv19_relaunch_recovers_an_earlier_session_conversation_and_its_stop_request()
     // Use this checked snapshot: another read here could absorb unexpected work.
     let wire = startup.len();
     assert_eq!(crate::host_tick::recovery_tick_home(&third), 0);
+    assert_eq!(told(&third)["conversations"], json!([]), "the third session has no restart fact for it");
     assert_eq!(f.wire().len(), wire);
     let _ = third.host.stop("fixture", "test ended");
 }

@@ -46,6 +46,27 @@ test('after Codex ends unexpectedly the controls say which one starts it again',
   assert.doesNotMatch(render({state:'ready',generation:g,codexStops:stops([])}),/ended unexpectedly/);
 });
 
+// Every host state against what the host accepts: Host::start only from absent, stopped or refused
+// (hosting.rs start); a stop (and so Restart) from any other state but stopping, for the current full
+// generation (hosting.rs stop_scoped, stop_inner). A sentence is shown only where its control is enabled.
+test('each host state offers exactly the controls the host accepts from it',()=>{
+  const STATES=[undefined,'absent','verifying','spawning','handshaking','ready','stopping','stopped','refused','exited-unexpectedly','halted-after-repeated-failure'];
+  const exited=/Codex ended unexpectedly, so Start Codex is not available yet\. Choose <b>Restart Codex…<\/b> to start it again, or <b>Stop Codex…<\/b> to settle the ended process first; nothing is sent to it either way\./;
+  const halted=/<p role="status">Codex failed to start, so Start Codex is not available\. Choose <b>Restart Codex…<\/b> to try again, or <b>Stop Codex…<\/b> to settle the failed start first\.<\/p>/;
+  for(const state of STATES) for(const generation of [g,null]){
+    const html=render({state,generation,codexStops:stops([])});
+    const enabled=label=>new RegExp(`<button>${label}</button>`).test(html);
+    const start=state===undefined||['absent','stopped','refused'].includes(state);
+    const stop=!!generation&&!['absent','stopped','refused','stopping',undefined].includes(state);
+    const at=`${state} ${generation?'with':'without'} a generation`;
+    assert.equal(enabled('Start Codex'),start,`${at}: Start`);
+    assert.equal(enabled('Stop Codex…'),stop,`${at}: Stop`);
+    assert.equal(enabled('Restart Codex…'),stop,`${at}: Restart`);
+    assert.equal(exited.test(html),state==='exited-unexpectedly'&&!!generation,`${at}: the unexpected-exit sentence`);
+    assert.equal(halted.test(html),state==='halted-after-repeated-failure'&&!!generation,`${at}: the failed-start sentence`);
+  }
+});
+
 // Stop and Restart wiring is exercised in conversation-panel.test.mjs (mounted).
 
 test('the outcome shows labels from turn status and keeps the acknowledgment apart',()=>{

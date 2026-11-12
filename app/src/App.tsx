@@ -406,7 +406,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     </div>)}
     <NativeActivityView navigationRef={activityNavigationRef} key={`activity:${JSON.stringify([selected?.generation, selected?.threadId])}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
       trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation}
-      restartNoteFor={(thread, turn) => interruptedTurnNote(host, thread, turn)}
+      restartNoteFor={(thread, turn) => interruptedTurnNote(host, selected?.generation, thread, turn)}
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
       renderOffer={offer => <RunOffer offer={offer} generation={host?.generation} ready={host?.state === "ready"} busy={offerBusy} act={offerAct} />} />
     {selected && <div id="conversation-requests" aria-label="Requests from Codex in this conversation">

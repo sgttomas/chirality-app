@@ -1,85 +1,156 @@
-import { hostRequests, requestThread } from "./RequestCards";
+import { answerable, hostRequests, requestThread } from "./RequestCards";
 import { conversationLabel } from "./presentation";
 type Json = any;
 
-// What is running now, and what an earlier App session left running, said
-// once under the connection line so it is seen from every view (DEL-01-02:
-// after a window is lost or the App is relaunched the person sees the actual
-// state). Every word comes from the host's own fields: the status Codex last
-// reported for a conversation, the host's turn and request registers, and
-// `host.interruptedWork`. Nothing here resumes, sends or settles anything.
+// What is running now, and what the App session before this one last
+// recorded as a turn in progress, said once under the connection line so it
+// is seen from every view (DEL-01-02: after a window is lost or the App is
+// relaunched the person sees the actual state). Every word comes from the
+// host's own fields: the status Codex last reported for a conversation, the
+// host's turn and request registers, and `host.interruptedWork`. Nothing here
+// resumes, sends or settles anything.
 
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
 
-/**
- * One conversation's state in a few words, or "" when it is idle or not
- * known. A stopped Codex establishes nothing, so it reads "".
- */
-export function conversationStateWords(host: Json, thread: Json): string {
+/** A conversation's state now, from what Codex and the host report, or "" when it is idle or not known. */
+export type ConversationState = "" | "answer" | "codex-waiting" | "working" | "system-error";
+
+export function conversationState(host: Json, thread: Json): ConversationState {
+  // A stopped or replaced Codex establishes nothing.
   if (!host || host.state !== "ready" || host.generationClosed === true || !same(thread?.generation, host.generation)) return "";
-  const waiting = hostRequests(host).some((request: Json) => request?.state === "outstanding" && requestThread(request) === thread.threadId && (request.generation === undefined || same(request.generation, host.generation)));
-  if (waiting) return "waiting for your answer";
+  // Only a request the person can answer waits for them; a named-service call does not.
+  if (hostRequests(host).some((request: Json) => answerable(request) && requestThread(request) === thread.threadId && same(request.generation, host.generation))) return "answer";
   if (thread.statusObservationEnded === true) return "";
   const status = thread.status?.type;
   // Once Codex has reported a status for the conversation, that is the reading.
   if (thread.statusSource) {
-    if (status === "active") return list(thread.status.activeFlags).some((flag: Json) => flag === "waitingOnApproval" || flag === "waitingOnUserInput") ? "waiting for your answer" : "working";
-    if (status === "systemError") return "Codex reported a system error";
-    return "";
+    if (status === "active") return list(thread.status.activeFlags).some((flag: Json) => flag === "waitingOnApproval" || flag === "waitingOnUserInput") ? "codex-waiting" : "working";
+    return status === "systemError" ? "system-error" : "";
   }
   // Before any status report: a turn the host saw start and has not seen end.
   const live = list(host.conversationTurns).some((turn: Json) => turn?.threadId === thread.threadId && same(turn.generation, host.generation)
     && turn.nativeTurn?.status === "inProgress" && turn.terminalEventObserved !== true && turn.observationEnded !== true);
-  return live || status === "active" ? "working" : status === "systemError" ? "Codex reported a system error" : "";
+  return live || status === "active" ? "working" : status === "systemError" ? "system-error" : "";
 }
 
-const END: Record<string, string> = {
-  "ended-without-record": "the App ended without a normal quit",
-  "system-terminated": "the system ended the App",
-  "quit-with-live-work": "you quit the App while it was in progress",
+const SUFFIX: Record<ConversationState, string> = {
+  "": "",
+  answer: "waiting for your answer",
+  "codex-waiting": "Codex reports it is waiting for an approval or an answer",
+  working: "working",
+  "system-error": "Codex reported a system error",
 };
 
-/** What Codex's history said of one turn an earlier App session left live, or that it is not known. */
-export function interruptedTurnWords(turn: Json): string {
-  const status = typeof turn?.codexStatus === "string" ? turn.codexStatus : "";
-  if (turn?.reading === "read" && status === "inProgress") return "Codex's history still lists that turn as in progress; whether it finished is unknown.";
-  if (turn?.reading === "read" && status) return `Codex's history now reports that turn as ${status}.`;
-  if (turn?.reading === "not-in-history") return "That turn is not in Codex's history; what became of it is unknown.";
-  if (turn?.reading === "not-read-yet") return "The App has not read it back from Codex yet.";
-  if (turn?.reading === "unavailable") return `The App could not read it back from Codex${typeof turn.reason === "string" && turn.reason ? ` (${turn.reason})` : ""}; what became of it is unknown.`;
-  return "What became of it is not established.";
+/** The conversation selector's suffix for one conversation, or "". */
+export function conversationStateWords(host: Json, thread: Json): string {
+  return SUFFIX[conversationState(host, thread)];
 }
 
-/** The note for one turn of the shown conversation that an earlier App session left live, or null. */
-export function interruptedTurnNote(host: Json, threadId: string, turnId: string): string | null {
-  for (const conversation of list(host?.interruptedWork?.conversations)) {
-    if (conversation?.threadId !== threadId) continue;
-    const turn = list(conversation.turns).find((entry: Json) => entry?.turnId === turnId);
-    if (turn) return `This turn was in progress when the App last ran${END[conversation.priorSessionEnd] ? `; ${END[conversation.priorSessionEnd]}` : ""}. ${interruptedTurnWords(turn)} Nothing was resumed or resent.`;
+/** One complete sentence for a conversation's state, naming it as `name`. */
+export function conversationStateSentence(state: ConversationState, name: string): string {
+  switch (state) {
+    case "answer": return `${name} is waiting for your answer.`;
+    case "codex-waiting": return `Codex reports ${name} is waiting for an approval or an answer; the request appears in the conversation once the App has received it.`;
+    case "working": return `${name} is working.`;
+    case "system-error": return `Codex reported a system error in ${name}.`;
+    default: return "";
+  }
+}
+
+/**
+ * The entries of `interruptedWork` that are this home's: each must name the
+ * App-owned home and the physical home the reading itself names. An entry of
+ * any other home, or a reading with either identity missing, gives nothing.
+ */
+export function interruptedEntries(host: Json): Json[] {
+  const work = host?.interruptedWork;
+  if (typeof work?.home !== "string" || typeof work?.physicalHome !== "string") return [];
+  return list(work.conversations).filter((entry: Json) => entry?.home === work.home && entry?.physicalHome === work.physicalHome && typeof entry?.threadId === "string");
+}
+
+/** A conversation loaded now in this home's current generation that is the entry's conversation, or undefined. */
+function loadedFor(host: Json, entry: Json): Json | undefined {
+  if (host?.generation?.home !== entry.physicalHome) return undefined;
+  return list(host?.threads).find((thread: Json) => same(thread?.generation, host.generation) && thread.threadId === entry.threadId);
+}
+
+const LOST: Record<string, string> = {
+  "supplier-exit": "That record was made when Codex ended unexpectedly, before the App session ended.",
+  "supplier-stop": "That record was made when Codex was stopped, before the App session ended.",
+};
+const END: Record<string, string> = {
+  "ended-without-record": "No end of that App session was recorded.",
+  "system-terminated": "The App recorded that the system ended it.",
+  "quit-with-live-work": "The App recorded that you quit it, and that this record was made when it stopped Codex for the quit.",
+};
+
+const reported = (status: string, earlier: boolean) => status === "inProgress"
+  ? `${earlier ? "An earlier read of Codex's history" : "When the App read Codex's history, it"} listed that turn as in progress${earlier ? "." : "; whether it finished is unknown."}`
+  : `${earlier ? "An earlier read of Codex's history" : "When the App read Codex's history, it"} reported that turn as ${status}.`;
+
+/** What the App's reads of Codex's history said of one turn, or that it is not known. */
+export function interruptedTurnWords(turn: Json): string {
+  const current = turn?.current;
+  const status = typeof current?.codexStatus === "string" && current.codexStatus ? current.codexStatus : "";
+  let words: string;
+  if (current?.reading === "read" && status) words = reported(status, false);
+  else if (current?.reading === "not-in-history") words = "When the App read Codex's history, that turn was not in it; what became of it is unknown.";
+  else if (current?.reading === "not-read") words = "The App has not read that turn back from Codex.";
+  else if (current?.reading === "unavailable") words = `The App could not read it back from Codex${typeof current.reason === "string" && current.reason ? ` (${current.reason})` : ""}; what became of it is unknown.`;
+  else if (current?.reading === "turn-not-named") words = "The App read the conversation back from Codex, but that read did not name this turn; what became of it is unknown.";
+  else words = "What became of it is not established.";
+  const earlier = turn?.earlier;
+  if (earlier?.reading === "read" && typeof earlier.codexStatus === "string" && earlier.codexStatus) words += ` ${reported(earlier.codexStatus, true)}`;
+  else if (earlier?.reading === "not-in-history") words += " An earlier read of Codex's history did not find that turn.";
+  return words;
+}
+
+/** Whether a read of Codex's history was attempted for this turn. */
+const readAttempted = (turn: Json) => ["read", "not-in-history", "unavailable", "turn-not-named"].includes(turn?.current?.reading) || !!turn?.earlier;
+const READ_SENT_NOTHING = "Reading it back resumed nothing and resent nothing.";
+
+/** What is recorded of that App session and this entry's record, as sentences. */
+function recordedWords(entry: Json): string {
+  return [LOST[entry.lostBeforeSessionEnd], END[entry.priorSessionEnd]].filter(Boolean).join(" ");
+}
+
+/**
+ * The note for one turn of the shown conversation, or null. `generation`: the
+ * shown conversation's generation; only an entry of its physical home and of
+ * the home this status is for is matched.
+ */
+export function interruptedTurnNote(host: Json, generation: Json, threadId: string, turnId: string): string | null {
+  if (typeof generation?.home !== "string") return null;
+  for (const entry of interruptedEntries(host)) {
+    if (entry.physicalHome !== generation.home || entry.threadId !== threadId) continue;
+    const turn = list(entry.turns).find((candidate: Json) => candidate?.turnId === turnId);
+    if (!turn) continue;
+    return ["The last thing the App recorded of this turn before the previous App session ended was that it was in progress.", recordedWords(entry), interruptedTurnWords(turn), readAttempted(turn) ? READ_SENT_NOTHING : ""].filter(Boolean).join(" ");
   }
   return null;
 }
 
 export function LiveWorkNotice({ host, showConversation, findInHistory }: { host: Json; showConversation?: (threadId: string) => void; findInHistory?: (hint: string) => void }) {
   const current = list(host?.threads).filter((thread: Json) => same(thread?.generation, host?.generation));
-  const live = current.map((thread: Json) => ({ thread, words: conversationStateWords(host, thread) })).filter(row => row.words);
-  const interrupted = list(host?.interruptedWork?.conversations);
+  const live = current.map((thread: Json) => ({ thread, state: conversationState(host, thread) })).filter(row => row.state);
+  const interrupted = interruptedEntries(host);
   if (live.length === 0 && interrupted.length === 0) return null;
   return <section aria-label="Work in progress and interrupted work" role="status">
-    {live.length > 0 && <ul aria-label="Conversations with work in progress">{live.map(({ thread, words }) => <li key={String(thread.threadId)}>
-      <strong>{conversationLabel(host, thread)}</strong> is {words}.{" "}
+    {live.length > 0 && <ul aria-label="Conversations with work in progress">{live.map(({ thread, state }) => <li key={String(thread.threadId)}>
+      {conversationStateSentence(state, conversationLabel(host, thread))}{" "}
       {showConversation && <button onClick={() => showConversation(thread.threadId)}>Show it</button>}
     </li>)}</ul>}
-    {interrupted.length > 0 && <ul aria-label="Conversations interrupted when the App last ran">{interrupted.map((conversation: Json) => {
-      const loaded = current.find((thread: Json) => thread.threadId === conversation.threadId);
-      const turns = list(conversation.turns);
-      return <li key={String(conversation.threadId)}>
-        When the App last ran, {loaded ? <strong>{conversationLabel(host, loaded)}</strong> : <>a conversation (<code>{String(conversation.threadId)}</code>)</>} had {turns.length === 1 ? "a turn" : `${turns.length} turns`} in progress{END[conversation.priorSessionEnd] ? `; ${END[conversation.priorSessionEnd]}` : ""}.{" "}
+    {interrupted.length > 0 && <ul aria-label="Conversations the earlier App session last recorded as working">{interrupted.map((entry: Json) => {
+      const loaded = loadedFor(host, entry);
+      const turns = list(entry.turns);
+      return <li key={JSON.stringify([entry.sourceGeneration, entry.threadId])}>
+        The last thing the App recorded for {loaded ? <strong>{conversationLabel(host, loaded)}</strong> : <>a conversation (<code>{String(entry.threadId)}</code>)</>} before the previous App session ended was {turns.length === 1 ? "a turn" : `${turns.length} turns`} in progress.{" "}
+        {recordedWords(entry) && <>{recordedWords(entry)} </>}
         {turns.map((turn: Json, index: number) => <span key={index}>{interruptedTurnWords(turn)} </span>)}
-        Nothing was resumed or resent.{" "}
-        {loaded ? showConversation && <button onClick={() => showConversation(conversation.threadId)}>Show it</button>
-          : findInHistory && <button onClick={() => findInHistory(String(conversation.threadId))}>Find it in History to continue it</button>}
+        {turns.some(readAttempted) && <>{READ_SENT_NOTHING} </>}
+        {loaded ? showConversation && <button onClick={() => showConversation(entry.threadId)}>Show it</button>
+          : findInHistory && <button onClick={() => findInHistory(String(entry.threadId))}>Find it in History</button>}
       </li>;
     })}</ul>}
   </section>;

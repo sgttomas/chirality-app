@@ -26,6 +26,11 @@ struct Conversation {
     attempts: u64,
     retry: bool,
     reason: Option<String>,
+    /// The last recovery attempt whose reads completed (CV-13): its attempt
+    /// number, the generation that read, when, and what Codex history said
+    /// of the turn last seen live (`supplierStatus` *absent*: not in it).
+    /// In this App process only.
+    read: Option<Value>,
     /// A recovery state not yet queued as a ledger row.
     dirty: bool,
 }
@@ -284,6 +289,7 @@ impl ExecutionCustody {
                 (None,None)=>"outcome unknown (turn not in Codex history)".into(),
             };
             let mut recovered=json!({"turnId":turn,"supplierStatus":status.unwrap_or("absent"),"appReading":reading});
+            row.read=Some(json!({"attempt":row.attempts,"generation":event["generation"],"at":at,"turnId":turn,"supplierStatus":status.unwrap_or("absent")}));
             // G-5: the turn was live when the App stopped the process (closing its input).
             if matches!(row.cause,Some("supplier-stop"|"app-quit")) {recovered["historyNote"]=json!("graceful-stop abort note (Codex 0.158.0, observed OBS-2)");}
             event["turns"]=json!([recovered]);
@@ -293,6 +299,7 @@ impl ExecutionCustody {
             if outcome.is_some()&&!items.is_empty() {outcome_json["itemsNotCompleted"]=json!(items);}
             outcome_event=Some(outcome_json);
         }
+        if row.turn.is_none() {row.read=Some(json!({"attempt":row.attempts,"generation":event["generation"],"at":at,"turnId":null}));}
         // Settled: nothing of this generation remains to recover.
         row.state="indexed";row.turn=None;row.open.clear();row.cause=None;row.reason=None;row.at=at.into();row.dirty=true;
         self.push_event(generation,event);
@@ -319,6 +326,15 @@ impl ExecutionCustody {
             result.push(entry);
         }
         result
+    }
+    /// The recovery reading of one conversation by its full custody key (the
+    /// source generation it was last loaded in, and the thread): the state of
+    /// its latest recovery attempt, how many attempts began, why the last
+    /// failed, and the last attempt whose reads completed. None: this App
+    /// process holds no custody of that key (not adopted, so never read here).
+    pub(super) fn recovery_reading(&self,source:&str,thread:&str)->Option<Value> {
+        let row=self.conversations.get(&(source.to_owned(),thread.to_owned()))?;
+        Some(json!({"state":row.state,"attempts":row.attempts,"unavailableReason":row.reason,"lastRead":row.read}))
     }
     /// The custody events held in this App process, in the order they arose.
     pub(super) fn events(&self)->&[Value] {&self.events}

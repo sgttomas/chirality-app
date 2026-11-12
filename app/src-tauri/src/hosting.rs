@@ -176,6 +176,12 @@ const CREDENTIAL_VARS: &[&str] = &[
     "ANTHROPIC_API_KEY",
 ];
 
+/// The physical home identity a generation carries for the Codex home `cfg`
+/// runs in: the same in every App session for the same directory.
+pub(crate) fn physical_home(cfg: &HostConfig) -> String {
+    format!("app-home:{}", sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()))
+}
+
 #[derive(Clone, Debug)]
 pub struct HostConfig {
     /// The supplier distribution's binary (resolved from CHIRALITY_CODEX_BIN by the caller).
@@ -1167,6 +1173,20 @@ impl Host {
     pub fn custody_events(&self) -> Vec<Value> {
         self.inner.0.lock().unwrap().execution_custody.events().to_vec()
     }
+    /// What the interrupted-work reading needs from under `inner`, and no
+    /// more: this App session's identity and a second handle on the held
+    /// ledger entries (a reference count; nothing is copied or scanned under
+    /// the lock). None: no ledger is held.
+    pub(crate) fn held_ledger(&self)->(String,Option<Arc<Vec<Value>>>) {
+        let i=self.inner.0.lock().unwrap();
+        (i.app_session.clone(),i.recovery_snapshot.as_ref().map(|o|Arc::clone(&o.rows)))
+    }
+    /// Execution custody's recovery reading for each full key (source
+    /// generation reference, thread): one map lookup and one small object each.
+    pub(crate) fn recovery_readings(&self,keys:&[(String,String)])->Vec<Option<Value>> {
+        let i=self.inner.0.lock().unwrap();
+        keys.iter().map(|(source,thread)|i.execution_custody.recovery_reading(source,thread)).collect()
+    }
     /// Read-only App metadata, never admission to native/act/dispatch authority.
     pub fn recovery_custody(&self) -> crate::recovery::RecoveryCustodyView {
         let i=self.inner.0.lock().unwrap();
@@ -1386,7 +1406,7 @@ impl Host {
         if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c| c.end_observation.lock().unwrap().is_some()) {
             return Err("App session ended; successor start refused".into());
         }
-        let home = format!("app-home:{}", sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
+        let home = physical_home(cfg);
         let counter = self.spawn_counters.lock().unwrap().get(&home).copied().unwrap_or(0)
             .checked_add(1).ok_or("home spawn counter exhausted")?;
         Ok(json!({"appSession":i.app_session,"home":home,"spawnCounter":counter}))
@@ -1712,7 +1732,7 @@ impl Host {
             cmd.env_remove(v);
         }
         if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c|c.end_observation.lock().unwrap().is_some()){return Err("App session end observed; native source not spawned".into());}
-        let home_identity=format!("app-home:{}",sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
+        let home_identity=physical_home(cfg);
         if self.spawn_counters.lock().unwrap().get(&home_identity)==Some(&u64::MAX){return Err("home spawn counter exhausted; native source not spawned, no reuse".into());}
         let child = match process_group_custody::OwnedProcess::spawn(&mut cmd) {
             Ok(c) => c,

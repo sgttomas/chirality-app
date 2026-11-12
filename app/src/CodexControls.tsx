@@ -77,7 +77,7 @@ export function StopOutcome({ outcome }: { outcome: Json }) {
 
 export function CodexProcessControls({ host, busy, act }: { host: Json; busy: boolean; act: (command: string, args: Record<string, unknown>) => void }) {
   const state = host?.state;
-  const running = !!host?.generation && !["absent", "stopped", "refused", "stopping"].includes(state);
+  const running = !!host?.generation && !!state && !["absent", "stopped", "refused", "stopping"].includes(state);
   // The host accepts a start only when no Codex process of this home is held.
   const startable = !state || ["absent", "stopped", "refused"].includes(state);
   const stops = host?.codexStops;
@@ -89,7 +89,9 @@ export function CodexProcessControls({ host, busy, act }: { host: Json; busy: bo
       <button disabled={busy || !running} onClick={() => act("codex_stop", { generation: host?.generation, restart: false })}>Stop Codex…</button>{" "}
       <button disabled={busy || !running} onClick={() => act("codex_stop", { generation: host?.generation, restart: true })}>Restart Codex…</button>
     </p>
-    {state === "exited-unexpectedly" && <p role="status">Codex ended unexpectedly, so Start Codex is not available yet. Choose <b>Restart Codex…</b> to start it again, or <b>Stop Codex…</b> to settle the ended process first; nothing is sent to it either way.</p>}
+    {/* Stop and Restart are accepted from these states (Host stop_inner); Start is not (Host::start). */}
+    {running && state === "halted-after-repeated-failure" && <p role="status">Codex failed to start, so Start Codex is not available. Choose <b>Restart Codex…</b> to try again, or <b>Stop Codex…</b> to settle the failed start first.</p>}
+    {running && state === "exited-unexpectedly" && <p role="status">Codex ended unexpectedly, so Start Codex is not available yet. Choose <b>Restart Codex…</b> to start it again, or <b>Stop Codex…</b> to settle the ended process first; nothing is sent to it either way.</p>}
     <p>Stop Codex and Restart Codex ask first. A native question lists the live turns, waiting requests, delegated agents and workflow runs in force, and waits for your answer with no time limit. <b>Keep Codex running</b> (the default) and Cancel change nothing. If you confirm, the App stops sending new turns to this Codex process and checks the list again; if it changed, you are asked again. It then asks Codex to interrupt each live turn, waits up to {text(stops?.stopWaitLimitSeconds) || "10"} s for those turns to end, and stops Codex. Waiting requests are not answered, and no workflow run ends. Restart then starts Codex again; it continues no conversation until you choose <b>Continue selected conversation</b>.</p>
     <p>Stopping Codex is your operational choice, not a recorded act. {text(stops?.records)}</p>
     {latest && <StopOutcome outcome={latest} />}

@@ -5,6 +5,7 @@ import {createRequire} from 'node:module';
 import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
+import {loadSrc} from './support/load-src.mjs';
 const url=new URL('../src/NativeActivity.tsx',import.meta.url);
 const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}});
 const exports={};new Function('require','exports',compiled.outputText)(createRequire(url),exports);
@@ -420,10 +421,141 @@ test('a turn known only by an error notice keeps its place in the receiving orde
  assert.deepEqual(activityModel(v,'T').turns.map(t=>t.turnId),['earliest','later','earlier']);
 });
 
-test('a turn an earlier App session left live carries the note the host supplies, and no other turn does',()=>{
- const note=(thread,turn)=>thread==='T'&&turn==='turn-1'?'This turn was in progress when the App last ran; the App ended without a normal quit. Codex\'s history now reports that turn as interrupted. Nothing was resumed or resent.':null;
- const html=renderToStaticMarkup(React.createElement(NativeActivityView,{view:view(),threadId:'T',restartNoteFor:note}));
- assert.equal(html.match(/This turn was in progress when the App last ran/g).length,1);
- assert.match(html,/<h4>Turn 1 · interrupted<\/h4>.*?<p role="note"><small>This turn was in progress when the App last ran; the App ended without a normal quit\./s);
- assert.doesNotMatch(render(view()),/when the App last ran/);
+// The conversation-state notice, the selector suffix and the interrupted-turn note (LiveWorkNotice.tsx).
+// Invented rows in the host status shape (hosting.rs threads, conversationTurns, serverRequests; interrupted_work.rs).
+const LW=loadSrc('LiveWorkNotice');
+const G={appSession:'s2',home:'app-home:aaaa',spawnCounter:1};
+const lthread=(threadId,extra={})=>({generation:G,threadId,model:'m',...extra});
+const applied=status=>({status,statusSource:{method:'thread/status/changed',receiptPosition:9}});
+const lhost=(threads,extra={})=>({state:'ready',generation:G,threads,...extra});
+const renderNotice=h=>renderToStaticMarkup(React.createElement(LW.LiveWorkNotice,{host:h,showConversation(){},findInHistory(){}}));
+const asks=(threadId,extra={})=>({generation:G,state:'outstanding',classification:'known-answerable',originClass:'codex',nativeParameters:{threadId},...extra});
+
+test('a conversation reads working, waiting or in error only from what Codex and the host report',()=>{
+ const rows=[lthread('idle',applied({type:'idle'})),lthread('active',applied({type:'active',activeFlags:[]})),lthread('flag',applied({type:'active',activeFlags:['waitingOnApproval']})),
+  lthread('error',applied({type:'systemError'})),lthread('admitted',{status:{type:'idle'}}),lthread('turn',{status:{type:'idle'}}),lthread('request',applied({type:'idle'})),
+  lthread('service',applied({type:'idle'})),lthread('foreign',applied({type:'idle'})),lthread('unknown',{...applied(null)})];
+ const h=lhost(rows,{conversationTurns:[{generation:G,threadId:'turn',nativeTurn:{status:'inProgress'}},{generation:G,threadId:'idle',nativeTurn:{status:'inProgress'},terminalEventObserved:false}],
+  serverRequests:[asks('request'),asks('service',{originClass:'named-service'}),asks('foreign',{generation:{...G,spawnCounter:2}}),asks('idle',{classification:'unknown'})]});
+ const words=id=>LW.conversationStateWords(h,rows.find(r=>r.threadId===id));
+ assert.equal(words('idle'),'','Codex’s own idle report stands over a turn row the host has not seen end, and a request the person cannot answer is not waiting for them');
+ assert.equal(words('active'),'working');assert.equal(words('error'),'Codex reported a system error');
+ assert.equal(words('flag'),'Codex reports it is waiting for an approval or an answer','a waiting flag with no request is Codex’s report, as in the Run guide');
+ assert.equal(words('admitted'),'');assert.equal(words('turn'),'working','before any status report, a turn seen starting and not ending');
+ assert.equal(words('request'),'waiting for your answer','only a request the person can answer');
+ assert.equal(words('service'),'','an outstanding named-service call is not the person’s to answer');
+ assert.equal(words('foreign'),'','a request of another generation');
+ assert.equal(words('unknown'),'','a status of unknown shape says nothing');
+});
+
+test('a stopped or replaced Codex establishes no state',()=>{
+ const live=lthread('t',applied({type:'active',activeFlags:[]}));
+ assert.equal(LW.conversationStateWords(lhost([live]),live),'working');
+ assert.equal(LW.conversationStateWords(lhost([live],{generationClosed:true}),live),'');
+ assert.equal(LW.conversationStateWords(lhost([live],{state:'exited-unexpectedly'}),live),'');
+ assert.equal(LW.conversationStateWords(lhost([live],{generation:{...G,spawnCounter:2}}),live),'','a row of an earlier generation');
+ const ended=lthread('t',{status:null,lastObservedStatus:{type:'active',activeFlags:[]},statusObservationEnded:true,statusSource:{method:'thread/status/changed',receiptPosition:9}});
+ assert.equal(LW.conversationStateWords(lhost([ended]),ended),'','the last status seen is not a current reading');
+ assert.equal(renderNotice(lhost([ended])),'');assert.equal(renderNotice(null),'');assert.equal(renderNotice(lhost([lthread('quiet',applied({type:'idle'}))])),'');
+});
+
+test('each state renders as one complete sentence with a way to show the conversation',()=>{
+ const html=renderNotice(lhost([lthread('a',applied({type:'active',activeFlags:[]})),lthread('b',applied({type:'idle'})),lthread('c',applied({type:'systemError'})),
+  lthread('d',applied({type:'active',activeFlags:['waitingOnUserInput']})),lthread('e',applied({type:'idle'}))],{serverRequests:[asks('e')]}));
+ assert.match(html,/<section aria-label="Work in progress and interrupted work" role="status">/);
+ assert.match(html,/<li>Conversation 1 · m is working\. <button>Show it<\/button><\/li>/);
+ assert.match(html,/<li>Codex reported a system error in Conversation 3 · m\. <button>Show it<\/button><\/li>/);
+ assert.match(html,/<li>Codex reports Conversation 4 · m is waiting for an approval or an answer; the request appears in the conversation once the App has received it\. <button>Show it<\/button><\/li>/);
+ assert.match(html,/<li>Conversation 5 · m is waiting for your answer\. <button>Show it<\/button><\/li>/);
+ assert.equal(html.match(/<li>/g).length,4);
+ assert.doesNotMatch(html,/ is Codex /);
+});
+
+// interruptedWork as interrupted_work.rs gives it for home H-acct over physical home app-home:aaaa.
+const SRC={appSession:'s1',home:'app-home:aaaa',spawnCounter:1};
+const entry=(threadId,current,extra={})=>({threadId,home:'H-acct',physicalHome:'app-home:aaaa',sourceGeneration:SRC,priorSession:'s1',priorSessionEnd:'ended-without-record',lastRecordedState:'turn-live',
+ turns:[{turnId:'u',current,...(extra.earlier?{earlier:extra.earlier}:{})}],...extra.entry});
+const work=(...conversations)=>({home:'H-acct',physicalHome:'app-home:aaaa',conversations});
+
+test('after a relaunch the notice says what the App last recorded, how that session ended, and only what Codex’s history said',()=>{
+ const h=lhost([lthread('open')],{interruptedWork:work(entry('gone',{reading:'read',codexStatus:'interrupted',attempt:1}),entry('open',{reading:'not-read',attempts:0},{entry:{priorSessionEnd:'quit-with-live-work',lastRecordedState:'observation-lost'}}))});
+ const html=renderNotice(h);
+ assert.match(html,/The last thing the App recorded for a conversation \(<code>gone<\/code>\) before the previous App session ended was a turn in progress\. No end of that App session was recorded\. <span>When the App read Codex&#x27;s history, it reported that turn as interrupted\. <\/span>Reading it back resumed nothing and resent nothing\. <button>Find it in History<\/button>/);
+ assert.match(html,/The last thing the App recorded for <strong>Conversation 1 · m<\/strong> before the previous App session ended was a turn in progress\. The App recorded that you quit it, and that this record was made when it stopped Codex for the quit\. <span>The App has not read that turn back from Codex\. <\/span><button>Show it<\/button>/);
+ assert.doesNotMatch(html,/is working|now reports|Nothing was resumed|had a turn in progress|without a normal quit/);
+});
+
+test('each recorded end of the earlier session, and a loss before it, is said as recorded and apart from the turn',()=>{
+ const words=e=>renderNotice(lhost([],{interruptedWork:work(e)}));
+ assert.match(words(entry('t',{reading:'not-read'})),/No end of that App session was recorded\./);
+ assert.match(words(entry('t',{reading:'not-read'},{entry:{priorSessionEnd:'system-terminated'}})),/in progress\. The App recorded that the system ended it\. <span>/);
+ assert.match(words(entry('t',{reading:'not-read'},{entry:{priorSessionEnd:'quit-with-live-work'}})),/The App recorded that you quit it, and that this record was made when it stopped Codex for the quit\./);
+ const unknownEnd=words(entry('t',{reading:'not-read'},{entry:{priorSessionEnd:'clean'}}));
+ assert.doesNotMatch(unknownEnd,/The App recorded|No end of/,'an end value the App does not name says nothing');
+ assert.match(words(entry('t',{reading:'not-read'},{entry:{lastRecordedState:'observation-lost',lostBeforeSessionEnd:'supplier-exit'}})),/in progress\. That record was made when Codex ended unexpectedly, before the App session ended\. No end of that App session was recorded\./);
+ assert.match(words(entry('t',{reading:'not-read'},{entry:{lostBeforeSessionEnd:'supplier-stop',priorSessionEnd:'system-terminated'}})),/That record was made when Codex was stopped, before the App session ended\. The App recorded that the system ended it\./);
+});
+
+test('the latest read is the current one; an earlier read stays an earlier read, and nothing unread becomes an outcome',()=>{
+ const W=LW.interruptedTurnWords;
+ assert.equal(W({current:{reading:'read',codexStatus:'completed'}}),'When the App read Codex\'s history, it reported that turn as completed.');
+ assert.equal(W({current:{reading:'read',codexStatus:'inProgress'}}),'When the App read Codex\'s history, it listed that turn as in progress; whether it finished is unknown.');
+ assert.equal(W({current:{reading:'not-in-history'}}),'When the App read Codex\'s history, that turn was not in it; what became of it is unknown.');
+ assert.equal(W({current:{reading:'unavailable',reason:'Codex did not answer'}}),'The App could not read it back from Codex (Codex did not answer); what became of it is unknown.');
+ assert.equal(W({current:{reading:'not-read',attempts:2}}),'The App has not read that turn back from Codex.');
+ assert.equal(W({current:{reading:'turn-not-named'}}),'The App read the conversation back from Codex, but that read did not name this turn; what became of it is unknown.');
+ // A later failed read after an earlier success.
+ const later=W({current:{reading:'unavailable',attempt:2,reason:'no answer'},earlier:{reading:'read',codexStatus:'completed',attempt:1}});
+ assert.equal(later,'The App could not read it back from Codex (no answer); what became of it is unknown. An earlier read of Codex\'s history reported that turn as completed.');
+ assert.match(W({current:{reading:'not-read'},earlier:{reading:'not-in-history'}}),/An earlier read of Codex's history did not find that turn\.$/);
+ for(const turn of [{current:{reading:'not-established'}},{current:{reading:'read'}},{current:{reading:'read',codexStatus:7}},{},null]) assert.equal(W(turn),'What became of it is not established.');
+});
+
+test('the read sentence is only about the read, and stays true after the conversation is continued',()=>{
+ // The person has since continued the conversation: it is working now in this generation.
+ const h=lhost([lthread('t',applied({type:'active',activeFlags:[]}))],{interruptedWork:work(entry('t',{reading:'read',codexStatus:'interrupted',attempt:1}))});
+ const html=renderNotice(h);
+ assert.match(html,/Conversation 1 · m is working\./);
+ assert.match(html,/Reading it back resumed nothing and resent nothing\./);
+ assert.doesNotMatch(html,/Nothing was resumed|resumed or resent/);
+ assert.doesNotMatch(renderNotice(lhost([],{interruptedWork:work(entry('t',{reading:'not-read'}))})),/Reading it back/,'no read, no sentence about one');
+});
+
+test('two homes with equal conversation and turn ids: nothing of the other home is shown, joined or offered',()=>{
+ const loaded=lthread('t',applied({type:'idle'}));
+ const foreignPhysical=entry('t',{reading:'read',codexStatus:'completed'},{entry:{physicalHome:'app-home:bbbb'}});
+ const foreignClass=entry('t',{reading:'read',codexStatus:'failed'},{entry:{home:'H-key'}});
+ const h=lhost([loaded],{interruptedWork:work(foreignPhysical,foreignClass)});
+ assert.equal(renderNotice(h),'','neither another physical home nor another App-owned home is this one');
+ assert.equal(LW.interruptedTurnNote(h,G,'t','u'),null);
+ // This home's own entry beside them: only it is shown, with this home's conversation.
+ const own=entry('t',{reading:'unavailable',reason:'no answer'});
+ const mixed=lhost([loaded],{interruptedWork:work(foreignPhysical,own,foreignClass)});
+ const html=renderNotice(mixed);
+ assert.equal(html.match(/The last thing the App recorded/g).length,1);
+ assert.match(html,/<strong>Conversation 1 · m<\/strong>.*could not read it back from Codex \(no answer\).*<button>Show it<\/button>/s);
+ assert.doesNotMatch(html,/completed|failed/);
+ assert.match(LW.interruptedTurnNote(mixed,G,'t','u'),/could not read it back from Codex \(no answer\)/);
+ // A loaded conversation of another physical home is not this entry's conversation.
+ const elsewhere=lhost([{...loaded,generation:{...G,home:'app-home:bbbb'}}],{generation:{...G,home:'app-home:bbbb'},interruptedWork:work(own)});
+ const apart=renderNotice(elsewhere);
+ assert.match(apart,/a conversation \(<code>t<\/code>\)/);assert.match(apart,/<button>Find it in History<\/button>/);assert.doesNotMatch(apart,/Show it/);
+ assert.equal(LW.interruptedTurnNote(elsewhere,{...G,home:'app-home:bbbb'},'t','u'),null);
+ // A reading that names no home shows nothing as this home's.
+ assert.equal(renderNotice(lhost([loaded],{interruptedWork:{conversations:[own]}})),'');
+ assert.deepEqual(LW.interruptedEntries(lhost([],{interruptedWork:{home:'H-acct',conversations:[own]}})),[]);
+});
+
+test('the interrupted turn carries the note derived from the host’s recovery reading, end to end through the activity view',()=>{
+ const T=(current,extra={})=>({threadId:'T',home:'H-acct',physicalHome:'app-home:aaaa',sourceGeneration:SRC,priorSession:'s1',priorSessionEnd:'ended-without-record',lastRecordedState:'observation-lost',lostBeforeSessionEnd:'supplier-exit',turns:[{turnId:'turn-1',current}],...extra});
+ const h=lhost([],{interruptedWork:work(T({reading:'read',codexStatus:'interrupted',attempt:1}),{...T({reading:'read',codexStatus:'completed'}),physicalHome:'app-home:bbbb',turns:[{turnId:'turn-2',current:{reading:'read',codexStatus:'completed'}}]})});
+ const shown=(host,generation)=>renderToStaticMarkup(React.createElement(NativeActivityView,{view:view(),threadId:'T',restartNoteFor:(thread,turn)=>LW.interruptedTurnNote(host,generation,thread,turn)}));
+ const html=shown(h,G);
+ assert.equal(html.match(/<p role="note"><small>The last thing the App recorded of this turn/g).length,1,'turn-2’s entry belongs to another physical home');
+ assert.match(html,/<h4>Turn 1 · interrupted<\/h4>.*?<p role="note"><small>The last thing the App recorded of this turn before the previous App session ended was that it was in progress\. That record was made when Codex ended unexpectedly, before the App session ended\. No end of that App session was recorded\. When the App read Codex&#x27;s history, it reported that turn as interrupted\. Reading it back resumed nothing and resent nothing\.<\/small><\/p>/s);
+ const unread=shown(lhost([],{interruptedWork:work(T({reading:'not-read',attempts:0}))}),G);
+ assert.match(unread,/<p role="note"><small>[^<]*The App has not read that turn back from Codex\.<\/small><\/p>/);
+ assert.doesNotMatch(unread,/Reading it back|reported that turn as/);
+ assert.doesNotMatch(shown(h,{...G,home:'app-home:bbbb'}),/turn-1.*The last thing/s);
+ assert.doesNotMatch(render(view()),/The last thing the App recorded/);
 });
