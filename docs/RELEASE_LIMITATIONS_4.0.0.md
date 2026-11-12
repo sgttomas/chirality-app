@@ -8,10 +8,10 @@ metadata:
 # Chirality App 4.0.0 release limitations
 
 Companion to [`RELEASE_TARGET_4.0.0.md`](RELEASE_TARGET_4.0.0.md), for its
-exit criterion 11. This is the single list of what the release does not do
+exit criterion 12. This is the single list of what the release does not do
 that a person could expect of it. Agent 0 keeps it, with a reason for each
 entry. The owner sees the whole list with the request for the verdict
-(criterion 12), and what a person receives with the package is written from
+(criterion 13), and what a person receives with the package is written from
 it (DEL-01-06).
 
 An entry states a limitation, its reason and what it means for a person using
@@ -36,7 +36,7 @@ An entry is added in the same pull request that makes the limitation standing.
 ### LIM-001: The capture-seal key cannot be rotated
 
 - **Id:** LIM-001
-- **Exit criteria:** 7
+- **Exit criteria:** 8
 - **What is unavailable:** once a person has protected registered workflows
   with their keychain, the key that seals registrations cannot be replaced
   with a new one.
@@ -49,7 +49,7 @@ An entry is added in the same pull request that makes the limitation standing.
 ### LIM-002: The keychain-held approval policy can be changed a bounded number of times
 
 - **Id:** LIM-002
-- **Exit criteria:** 7
+- **Exit criteria:** 8
 - **What is unavailable:** after 256 changes of the workflow approval policy
   on an installation with keychain protection, the policy can no longer be
   changed and stays as last stored.
@@ -64,7 +64,7 @@ An entry is added in the same pull request that makes the limitation standing.
 ### LIM-003: macOS on Apple Silicon only
 
 - **Id:** LIM-003
-- **Exit criteria:** 9
+- **Exit criteria:** 10
 - **What is unavailable:** the App on Windows, on Intel Macs, or on a macOS
   earlier than 15.
 - **Why:** 4.0.0 targets macOS on Apple Silicon first; Windows follows the
@@ -76,7 +76,7 @@ An entry is added in the same pull request that makes the limitation standing.
 ### LIM-004: No standalone OpenAI API-key access
 
 - **Id:** LIM-004
-- **Exit criteria:** 5
+- **Exit criteria:** 6
 - **What is unavailable:** entering an OpenAI API key in the App as a way to
   reach a model.
 - **Why:** it is omitted from this increment; the access modes are the
@@ -88,7 +88,7 @@ An entry is added in the same pull request that makes the limitation standing.
 ### LIM-005: v3 chats are not imported
 
 - **Id:** LIM-005
-- **Exit criteria:** 13
+- **Exit criteria:** 14
 - **What is unavailable:** bringing conversations from v3 into v4. Existing
   data under the App's identity is left as it is: nothing imports, resets or
   reseals it.
