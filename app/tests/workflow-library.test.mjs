@@ -402,3 +402,7 @@ test('the panel shows its guides only when the App says the view follows the las
     await React.act(async()=>root.unmount());
   }
 });
+// The included-workflows chooser's tests run with this file, which the web
+// suite's script and both hosted presentation steps already list. The script
+// itself is not changed: app/package.json's bytes are pinned by the notices basis.
+await import('./included-workflows.test.mjs');

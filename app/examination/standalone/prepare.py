@@ -73,9 +73,9 @@ def prepare(root=ROOT):
         'scenarios': scenarios,
         'stimuli': step_map['stimuli'],
         'access_mode_requirements': {
-            'kinds': ['chatgpt_account', 'api_key', 'local_provider'],
-            'homes': {'chatgpt_account': 'H-acct', 'api_key': 'H-key'},
-            'distinct_conversations': 3, 'configured_together': True,
+            'kinds': ['chatgpt_account', 'local_provider'],
+            'homes': {'chatgpt_account': 'H-acct', 'local_provider': 'H-omlx'},
+            'distinct_conversations': 2, 'configured_together': True,
             'substitute_mode_satisfies': False},
         'missing_inputs': parse_json(captured['missing-inputs.json']),
         'invented_material': parse_json(captured['invented-inputs.json']),

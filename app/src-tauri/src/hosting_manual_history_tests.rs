@@ -194,7 +194,11 @@ fn history_bridge_manual_malformed_superseded_and_closed_replies_do_not_project(
                 .remove("text");
         }
         let dispatch = f.manual(&query, &raw);
-        let before = f.projection();
+        let mut before = f.projection();
+        // The close itself is observed by the view; nothing else may change.
+        if change == "closed" {
+            before.0["observationEnded"] = json!(true);
+        }
         match change {
             "selection" => f
                 .home
@@ -305,13 +309,15 @@ fn history_bridge_manual_queued_page_rechecks_closed_source_despite_runtime_lag(
     let raw = json!({"data":[plan_entry("turn-a", "accepted-before-close")],"nextCursor":null});
     let dispatch = f.manual(&query, &raw);
     f.home.history.lock().unwrap().reconcile(&f.home.host);
-    let before = f.projection();
+    let mut before = f.projection();
     Host::close_generation(&mut f.home.host.inner.0.lock().unwrap());
     assert!(
         !f.home.runtime.lock().unwrap().native_view().is_null(),
         "runtime has not consumed closure yet"
     );
     f.finish(&dispatch);
+    // The close itself is observed by the view; nothing else may change.
+    before.0["observationEnded"] = json!(true);
     assert_eq!(f.projection(), before);
     assert_eq!(dispatch.source().evidence()["response"]["result"], raw);
     let received = f
