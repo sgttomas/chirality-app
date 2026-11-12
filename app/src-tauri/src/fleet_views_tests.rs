@@ -1058,3 +1058,6 @@ fn fleet_views_decision_need_is_unknown_when_the_act_is_bound_to_other_content_t
     let why = need["why"].as_str().unwrap();
     assert!(why.contains("invented-other-content") && why.contains("package identity"), "{why}");
 }
+
+#[path = "decision_claims_property_tests.rs"]
+mod decision_claims_property;
