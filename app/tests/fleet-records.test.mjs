@@ -6,6 +6,9 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {loadSrc} from './support/load-src.mjs';
 import './support/rust-prebuild.mjs';
+// The decision panel's cases run from this listed file, so that `npm test` and the hosted
+// steps run them without a change to the test script, whose bytes the notices basis pins.
+import './decision-packages-panel.test.mjs';
 const {FleetRecordsPanel,readFleetPacket}=loadSrc('FleetRecordsPanel');
 let packet;
 test('native selected-workspace adapter response is presented in full with provenance and limits',()=>{
