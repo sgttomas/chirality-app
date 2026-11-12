@@ -6445,6 +6445,68 @@ mod tests {
         drop((state, app_home, desktop));
     }
 
+    /// A stand-in for Codex that ends when its input closes but leaves a program holding the
+    /// home's process lock: at its start it runs /bin/sleep in a new session with only the lock's
+    /// descriptor passed to it, as a notifier or a hook left running might hold it. It records
+    /// its own process number in `root/stand-in-pid` and the sleeper's in `root/holder-pid`.
+    fn stand_in_leaving_a_holder(root: &Path) -> PathBuf {
+        let path = root.join("stand-in-leaving-a-holder.py");
+        std::fs::write(&path, "#!/usr/bin/python3\nimport sys,json,os,subprocess\nif '--version' in sys.argv:\n print('codex-cli 0.167.0');sys.exit(0)\nroot=os.path.dirname(os.path.abspath(__file__))\nopen(os.path.join(root,'server-starts'),'a').write(os.environ.get('CODEX_HOME','')+'\\n')\nlock=os.stat(os.path.join(os.environ['CODEX_HOME'],'chirality-codex-process.lock')).st_ino\nfd=[int(n) for n in os.listdir('/dev/fd') if int(n)>2 and os.path.exists('/dev/fd/'+n) and os.fstat(int(n)).st_ino==lock][0]\np=subprocess.Popen(['/bin/sleep','60'],close_fds=True,pass_fds=(fd,),start_new_session=True,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\nopen(os.path.join(root,'holder-pid'),'w').write(str(p.pid))\nopen(os.path.join(root,'stand-in-pid'),'w').write(str(os.getpid()))\nfor line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='initialize': print(json.dumps({'id':f['id'],'result':{'userAgent':'stand-in'}}),flush=True)\n").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        path
+    }
+
+    /// VER-010: an App is killed and its Codex ends, but a program that Codex started still
+    /// holds the home's process lock. The next App's complete launch is admitted on the App
+    /// data and its start of Codex on the home is refused by the lock, with the Codex stand-in
+    /// itself observed gone, and no second stand-in is started. Once the holder has ended the
+    /// same App starts Codex.
+    #[test]
+    fn after_an_app_is_killed_a_program_its_codex_left_holding_the_lock_keeps_the_home_from_a_successor() {
+        use crate::native_local_provider::{take_process_lock, EARLIER_PROCESS, PROCESS_LOCK};
+        let alive = |pid: i32| (unsafe { libc::kill(pid, 0) }) == 0;
+        let until = |what: &str, done: &dyn Fn() -> bool| {
+            let end = std::time::Instant::now() + std::time::Duration::from_secs(10);
+            while !done() { assert!(std::time::Instant::now() < end, "{what}"); std::thread::sleep(std::time::Duration::from_millis(20)); }
+        };
+        let pid_in = |root: &Path, name: &str| std::fs::read_to_string(root.join(name)).ok().and_then(|text| text.trim().parse::<i32>().ok());
+        let f = Fixture::new();
+        let (home, bin) = (f.root.join("environment-home"), stand_in_leaving_a_holder(&f.root));
+        std::fs::create_dir(&home).unwrap();
+        struct EndHolders<'a>(&'a Path);
+        impl Drop for EndHolders<'_> {
+            fn drop(&mut self) {
+                for name in ["holder-pid", "stand-in-pid"] {
+                    if let Some(pid) = std::fs::read_to_string(self.0.join(name)).ok().and_then(|text| text.trim().parse::<i32>().ok()) { unsafe { libc::kill(pid, libc::SIGKILL); } }
+                }
+            }
+        }
+        let _end = EndHolders(&f.root);
+        let (mut peer, seen) = route_peer(json!({"route":"environment","data":f.data,"root":f.root,"resources":f.resources,"home":home,"bin":bin}));
+        assert!(seen.starts_with("ready"), "the first App has Codex ready on the home: {seen}");
+        let (codex, holder) = (pid_in(&f.root, "stand-in-pid").unwrap(), pid_in(&f.root, "holder-pid").unwrap());
+        assert_eq!(unsafe { libc::kill(peer.id() as i32, libc::SIGKILL) }, 0);
+        peer.wait().unwrap();
+        // Observed from outside: the stand-in Codex ended with its App; the program it started
+        // lives on and holds the lock.
+        until("the stand-in Codex has ended", &|| !alive(codex));
+        assert!(alive(holder), "the program it left behind is alive");
+        assert_eq!(take_process_lock(&home.join(PROCESS_LOCK)).unwrap_err(), EARLIER_PROCESS, "an independent attempt finds the lock held");
+        let (state, app_home, desktop, started) = complete_startup(environment_input(&f.data, Some(&home), Some(&bin)), PathBuf::from("/invented/platform-app-data"), f.resources.clone(), &f.root);
+        assert_eq!(desktop.lock().unwrap().view()["launch"]["state"], "environment", "the App data of a killed App is admitted");
+        assert_eq!(started.expect("the automatic start is reached").unwrap_err(), crate::home_hold::PROCESS_HELD);
+        let status = app_home.host.snapshot();
+        assert_eq!((status["state"].as_str(), status["lastStartRefusal"]["reason"].as_str()), (Some("absent"), Some(crate::home_hold::PROCESS_HELD)));
+        assert!(alive(holder) && server_starts(&f.root) == 1, "no second stand-in while the holder lives");
+        unsafe { libc::kill(holder, libc::SIGKILL); }
+        until("the holder has ended", &|| !alive(holder));
+        let cfg = app_home.host_config.clone().unwrap();
+        let ready = crate::automatic_start(&app_home.host, &app_home.recovery_startup, Ok(&f.data), &cfg, &desktop).unwrap();
+        assert_eq!((ready["state"].as_str(), server_starts(&f.root)), (Some("ready"), 2));
+        let _ = app_home.host.stop("fixture", "test ended");
+        drop((state, app_home, desktop));
+    }
+
     /// The child half of the first-save test: an App on never-used App data
     /// (at setup, holding nothing), which saves setup when told to and then
     /// lives until its stdin closes.

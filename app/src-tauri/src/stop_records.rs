@@ -329,22 +329,49 @@ pub(crate) fn codex_stop_entry(session: &str, actor: &Value, home: &str, restart
     Ok(entry)
 }
 
+/// Whose stop request a record is, for what may be said of it.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Source {
+    /// This App session's own request.
+    Current,
+    /// An earlier App session's, whose end this ledger establishes: it has a
+    /// start record here, so a later session start read it as ended under the
+    /// custody rule or found its end recorded.
+    EarlierEnded,
+    /// Another App session's, with no start record in this ledger: nothing
+    /// establishes that the session has ended.
+    OtherEndNotEstablished,
+}
+/// The reading for a request whose source session's end is not established.
+pub(crate) const SOURCE_END_NOT_ESTABLISHED: &str = "Recorded by another App session whose end is not established. No final status is recorded for this turn, and no label is derived.";
+/// The limit shown beside such requests.
+pub(crate) const SOURCE_SESSION_UNAVAILABLE: &str = "A stop request was recorded by an App session this ledger has no start record for; that session's end is not established, and no outcome is derived for the request.";
 /// What the person is shown for one stop request: the record's own label
 /// where it has one, otherwise a reading that claims nothing more than the
-/// record holds. `earlier` is true for a request of an earlier App session.
-/// The third value is true when the label is derived here and is not in any
-/// record (R-2: an earlier session's request with no final status).
-fn reading(record: &Value, earlier: bool) -> (Option<String>, String, bool) {
+/// record holds. `source` says whose request it is. The third value is true
+/// when the label is derived here and is not in any record (R-2: an earlier
+/// session's request with no final status). A label is derived only where
+/// the source session's end is established; a request of another session
+/// whose end is not established is shown as recorded, with no label.
+fn reading(record: &Value, source: Source) -> (Option<String>, String, bool) {
     let cause = record["cause"].as_str().unwrap_or_default();
     if let Some(label) = record["outcomeLabel"].as_str() {
         let reading = match record["state"].as_str() {
-            Some("outcome-unknown") => "No final status was observed before Codex stopped.",
+            // An outcome-unknown record is written when a generation closes or, at a later
+            // start, for an earlier App session's request. Neither establishes here that
+            // Codex's process ended, so the reading does not say it did.
+            Some("outcome-unknown") => "No final turn status is recorded for this stop request. That does not establish that Codex's process ended.",
             Some("outcome-recovered") => "Final status recovered from Codex's history.",
             _ => "Final status observed when the turn ended.",
         };
         return (Some(label.to_owned()), reading.to_owned(), false);
     }
-    let (label, reading) = match (record["state"].as_str().unwrap_or_default(), earlier) {
+    let state = record["state"].as_str().unwrap_or_default();
+    if source == Source::OtherEndNotEstablished && state != "not-sent" {
+        return (None, SOURCE_END_NOT_ESTABLISHED.to_owned(), false);
+    }
+    let earlier = source != Source::Current;
+    let (label, reading) = match (state, earlier) {
         ("not-sent", _) => (None, format!("Stop not sent: {}", record["responseError"].as_str().unwrap_or("reason not recorded"))),
         ("requested", true) => (None, "Stop requested; the App session ended before its send was recorded, so whether it was sent is not known.".into()),
         ("requested", false) => (None, "Stop requested; not yet sent.".into()),
@@ -373,10 +400,14 @@ pub(crate) struct LedgerIndex {
     latest: std::collections::BTreeMap<String, Value>,
     entries: std::collections::HashMap<String, Vec<Value>>,
     limits: Vec<String>,
+    /// The App sessions with a start record among the held entries: the ones
+    /// whose end a later session start established or found recorded.
+    started: std::collections::BTreeSet<String>,
 }
 impl LedgerIndex {
     /// `held`: the ledger's held entries ([`crate::recovery::LedgerObservation`]).
     pub(crate) fn update(&mut self, held: &[Value]) {
+        let started: std::collections::BTreeSet<String> = held.iter().filter(|e| e["kind"] == "session_started").filter_map(|e| e["session"].as_str().map(str::to_owned)).collect();
         let rows: Vec<&Value> = held.iter().filter(|e| e["kind"] == "stop_request").collect();
         let continues = self.seen <= rows.len() && (self.seen == 0 || rows.get(self.seen - 1).copied() == self.last.as_ref());
         if !continues {
@@ -397,6 +428,7 @@ impl LedgerIndex {
         }
         self.seen = rows.len();
         self.last = rows.last().map(|e| (*e).clone());
+        self.started = started;
     }
     /// Every recorded stop request for one turn of one generation, each by its
     /// latest record and its last ledger entry, in request order (SR-09 after
@@ -426,7 +458,7 @@ pub(crate) fn outcomes_indexed(index: &LedgerIndex, live: &[(Value, String)], cu
     let mut order = index.order.clone();
     let mut latest: std::collections::BTreeMap<String, (Value, String)> =
         index.latest.iter().map(|(id, record)| (id.clone(), (record.clone(), "recorded in the App ledger".to_owned()))).collect();
-    let limits = index.limits.clone();
+    let mut limits = index.limits.clone();
     // This process knows more than the ledger about its own requests (a
     // transition that was not recorded, a record still queued): its reading
     // replaces the ledger's, and its newer record is shown.
@@ -437,11 +469,22 @@ pub(crate) fn outcomes_indexed(index: &LedgerIndex, live: &[(Value, String)], cu
         }
         latest.insert(id, (record.clone(), persistence.clone()));
     }
+    let source_of = |record: &Value| {
+        if record["appSession"] == current { Source::Current }
+        else if record["appSession"].as_str().is_some_and(|session| index.started.contains(session)) { Source::EarlierEnded }
+        else { Source::OtherEndNotEstablished }
+    };
+    if order.iter().filter_map(|id| latest.get(id)).any(|(record, _)| source_of(record) == Source::OtherEndNotEstablished) {
+        limits.push(SOURCE_SESSION_UNAVAILABLE.to_owned());
+    }
     let rows: Vec<Value> = order.iter().filter_map(|id| latest.get(id)).map(|(record, persistence)| {
-        let earlier = record["appSession"] != current;
-        let (label, reading, derived) = reading(record, earlier);
+        let source = source_of(record);
+        // "Earlier" is said only of a session whose end is established.
+        let earlier = source == Source::EarlierEnded;
+        let source_end = match source { Source::Current => "current", Source::EarlierEnded => "established", Source::OtherEndNotEstablished => "not-established" };
+        let (label, reading, derived) = reading(record, source);
         let reported = matches!(record["outcomeSource"].as_str(), Some("observed" | "recovered-from-supplier")).then(|| record["turnOutcome"].clone());
-        json!({"stopRequestId":record["stopRequestId"],"appSession":record["appSession"],"earlierSession":earlier,"home":record["home"],
+        json!({"stopRequestId":record["stopRequestId"],"appSession":record["appSession"],"earlierSession":earlier,"sourceSessionEnd":source_end,"home":record["home"],
             "generation":record["generation"],"threadId":record["threadId"],"turnId":record["turnId"],"cause":record["cause"],
             "requestedAt":record["requestedAt"],"state":record["state"],"transition":record["transition"],"send":record["send"],
             "response":record["response"],"waitingEnded":record["waitingEnded"],"label":label,"labelDerived":derived,"reading":reading,"codexReported":reported,

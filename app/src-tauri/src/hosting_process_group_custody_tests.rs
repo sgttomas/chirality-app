@@ -132,10 +132,24 @@ fn process_group_custody_old_slot_replacement_does_not_wait_or_signal_successor(
     // Synthetic admission allows slot replacement while the old reader is held.
     // Production direct exited/halted start policy is unchanged.
     h.inner.0.lock().unwrap().state = "stopped".into();
-    let fresh = h.start(&f.cfg, "synthetic replacement admission").unwrap()["generation"].clone();
+    // The successor is started on a second home: on the old child's own home this Host starts
+    // no further Codex while that child's group is not established settled (DEL-01-02 AC-010),
+    // and here it still has a live member. An unsettled child is moved to the retired list by
+    // a start on another home, which is the replacement this test is about.
+    assert_eq!(h.start(&f.cfg, "same home").unwrap_err(), crate::home_hold::KEPT);
+    let mut second_home = f.cfg.clone();
+    second_home.codex_home = f.cfg.codex_home.with_file_name("second-home");
+    std::fs::create_dir(&second_home.codex_home).unwrap();
+    let fresh = h.start(&second_home, "synthetic replacement admission").unwrap()["generation"].clone();
     let successor = h.child.lock().unwrap().clone().unwrap();
     let _new_cleanup = Cleanup(successor.clone());
     assert_ne!(fresh, g);
+    // Each process keeps the identity of the home it was started on through the move to the
+    // retired list: the old child's is the first home's directory, the successor's the second's.
+    let identity = |path: &std::path::Path| { use std::os::unix::fs::MetadataExt; let m = std::fs::metadata(path).unwrap(); (m.dev(), m.ino()) };
+    assert_eq!(old.home(), Some(identity(&f.cfg.codex_home)));
+    assert_eq!(successor.home(), Some(identity(&second_home.codex_home)));
+    assert_ne!(old.home(), successor.home());
     assert!(h
         .retired_processes
         .lock()

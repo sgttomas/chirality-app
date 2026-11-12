@@ -44,7 +44,7 @@ export function StopRequests({ requests }: { requests: Json }) {
     <summary>Recorded stop requests ({rows.length})</summary>
     <ul>
       {rows.map((r: Json) => <li key={text(r.stopRequestId)}>
-        Conversation {text(r.threadId)} · turn {text(r.turnId)} · {CAUSE[text(r.cause)] ?? text(r.cause)} at {text(r.requestedAt)}{r.earlierSession ? " (earlier App session)" : ""}: {r.label ? <b>{text(r.label)}</b> : null}{r.label && r.labelDerived ? " (derived; not written)" : ""}{r.label ? ". " : ""}{text(r.reading)}{r.codexReported ? ` Codex reported: ${text(r.codexReported)}.` : ""}
+        Conversation {text(r.threadId)} · turn {text(r.turnId)} · {CAUSE[text(r.cause)] ?? text(r.cause)} at {text(r.requestedAt)}{r.earlierSession ? " (earlier App session)" : r.sourceSessionEnd === "not-established" ? " (another App session; its end is not established)" : ""}: {r.label ? <b>{text(r.label)}</b> : null}{r.label && r.labelDerived ? " (derived; not written)" : ""}{r.label ? ". " : ""}{text(r.reading)}{r.codexReported ? ` Codex reported: ${text(r.codexReported)}.` : ""}
         <br /><small>Record: {text(r.persistence)}.</small>
       </li>)}
       {limits.map((l: Json, i: number) => <li key={`limit${i}`}>Limit: {text(l)}</li>)}

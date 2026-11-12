@@ -48,7 +48,7 @@ pub(crate) const IN_USE: &str = "Codex was not started on this home: the home is
 /// group it started there is not established settled: one an earlier Host of
 /// this App started, or one the starting Host itself started. The Host's own
 /// check; it is made whatever the home's process lock says.
-pub(crate) const KEPT: &str = "Codex was not started on this home: this App is still holding it because a Codex process it started has not been confirmed ended. Quitting Chirality releases this App's hold; a Codex process still holding the home's lock can refuse a start after that.";
+pub(crate) const KEPT: &str = "Codex was not started on this home: this App is still holding it because a Codex process it started has not been confirmed ended. Chirality's own Quit waits on the same confirmation and can be withheld for it. When Chirality's process ends, its hold ends; a Codex process still holding the home's lock can refuse a start after that.";
 /// What a person is told when a live Host of this App holds the home and may
 /// still have a start or a Codex process on it.
 pub(crate) const IN_USE_HERE: &str = "Codex was not started on this home: this App is already using it for another start of Codex, or for a Codex process not yet confirmed ended.";

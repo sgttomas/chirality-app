@@ -1316,6 +1316,16 @@ run-limit record the host writes from that fact says the same: what was last
 recorded, that the end was not observed, and that no end of the run is
 inferred. Records written before this change keep what they say.
 
+What that reading says of stop requests. A stop request an earlier session
+left without a final status is closed at the next start (SR-08) only where that
+session has a start record in the ledger, which is what makes its end
+established. The view of stop outcomes follows the same rule: for a request of
+a session with no start record it shows the record as recorded, derives no
+label, does not call the session earlier or ended, and says as a limit that the
+session's end is not established. An outcome-unknown record is read as "No
+final turn status is recorded for this stop request. That does not establish
+that Codex's process ended.", whichever way it came to be written.
+
 What that reading records. A request the earlier session left listed is closed
 in the ledger as `open-at-app-session-end` (RECOVERY RQ-06, context
 `app-ended-without-record`), and the custody view shows it as the event
@@ -1369,7 +1379,10 @@ started are unchanged and are what Quit and the home hold rest on, and they are
 a second condition on a start, beside the lock: a Host starts no further Codex
 on a home while a process group it started there is not established settled
 (its leader's exit observed and its group known empty), whatever the lock says,
-and none while the lock is held, whatever the Host believes. A start refused on
+and none while the lock is held, whatever the Host believes. "There" is the
+directory, by device and inode, recorded for each process when it is started:
+the same home named through another spelling or a link is the same home, and a
+process with no recorded home counts for every home. A start refused on
 the first ground alone, the lock being free, is told that this App is still
 holding the home for a Codex process not confirmed ended. A build
 before this lock takes none and is not excluded by it. The lock is the file:

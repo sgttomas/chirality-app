@@ -47,6 +47,10 @@ struct State {
 pub(crate) struct OwnedProcess {
     pid: i32,
     state: Mutex<State>,
+    /// The Codex home this process was started on, by the held directory's identity (device,
+    /// inode), set once by the start that spawned it. Never a path: two spellings of one home
+    /// are one home. Unset for a process no home was recorded for.
+    home: std::sync::OnceLock<(u64, u64)>,
     #[cfg(test)]
     pub(crate) before_group_operation: Mutex<Option<Box<dyn FnMut(i32, &'static str) + Send>>>,
     #[cfg(test)]
@@ -67,6 +71,7 @@ impl OwnedProcess {
         let pid = child.id() as i32;
         let process = Arc::new(Self {
             pid,
+            home: std::sync::OnceLock::new(),
             state: Mutex::new(State {
                 child: Some(child),
                 exit: None,
@@ -94,6 +99,14 @@ impl OwnedProcess {
             // reap and cannot discard this still-owned spawned Child.
         }
         Ok(process)
+    }
+    /// Records the home this process was started on; the first record stands.
+    pub(crate) fn bind_home(&self, identity: (u64, u64)) {
+        let _ = self.home.set(identity);
+    }
+    /// The identity of the home this process was started on, where one was recorded.
+    pub(crate) fn home(&self) -> Option<(u64, u64)> {
+        self.home.get().copied()
     }
     pub(crate) fn id(&self) -> u32 {
         self.pid as u32

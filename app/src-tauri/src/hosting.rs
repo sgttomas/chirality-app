@@ -1714,29 +1714,31 @@ impl Host {
     /// not established settled, and the refusal says so with the group's census as just taken; or
     /// the App knows nothing of the holder and says only what may hold it. The dedicated local
     /// home (the one whose configuration names its lock) keeps its own sentences.
-    fn process_lock_refusal(&self, cfg: &HostConfig, refusal: crate::native_local_provider::ProcessLockRefusal) -> String {
+    fn process_lock_refusal(&self, cfg: &HostConfig, home: crate::home_hold::Identity, refusal: crate::native_local_provider::ProcessLockRefusal) -> String {
         use crate::native_local_provider::{ProcessLockRefusal, EARLIER_PROCESS, PROCESS_LOCK_UNAVAILABLE};
         let local = cfg.process_lock.is_some();
         match refusal {
             ProcessLockRefusal::Unavailable => if local { PROCESS_LOCK_UNAVAILABLE } else { crate::home_hold::PROCESS_LOCK_UNAVAILABLE }.into(),
             ProcessLockRefusal::Held if self.home_starting.load(std::sync::atomic::Ordering::SeqCst) > 1 => crate::home_hold::IN_USE_HERE.into(),
-            ProcessLockRefusal::Held => match self.own_unsettled_census(&home_identity(&cfg.codex_home)) {
+            ProcessLockRefusal::Held => match self.own_unsettled_census(home) {
                 Some(census) => crate::home_hold::process_held_here(&census),
                 None => if local { EARLIER_PROCESS } else { crate::home_hold::PROCESS_HELD }.into(),
             },
         }
     }
     /// The census of the process groups this Host started on `home` and has not established
-    /// settled, or `None` when there is none. Each unsettled group is asked once, as its
+    /// settled, or `None` when there is none. `home` is the held directory's identity (device,
+    /// inode), never its path: a home reached under another spelling is the same home. A process
+    /// with no recorded home counts for every home. Each unsettled group is asked once, as its
     /// retirement monitor asks, and given that monitor. Of several, live members seen outweigh a
     /// census that could not be taken, which outweighs none seen.
-    fn own_unsettled_census(&self, home: &str) -> Option<process_group_custody::Census> {
+    fn own_unsettled_census(&self, home: crate::home_hold::Identity) -> Option<process_group_custody::Census> {
         use process_group_custody::Census;
         let mut own: Vec<Arc<process_group_custody::OwnedProcess>> = self.child.lock().unwrap().iter().cloned().collect();
         own.extend(self.retired_processes.lock().unwrap().iter().cloned());
         let mut found: Option<Census> = None;
         for process in own {
-            if process.settled() || process.bound_generation().is_some_and(|generation| generation["home"] != home) { continue; }
+            if process.settled() || process.home().is_some_and(|started_on| started_on != home) { continue; }
             let census = process.release_if_empty();
             if process.settled() { continue; }
             process.maintain();
@@ -1779,10 +1781,10 @@ impl Host {
         // the state unchanged, Start can be tried again, and the reason is kept as the last start
         // refusal. A state that admits no start refuses as admission would, before the lock is
         // tried (this Host's own live child holds it). The App's copy is closed as soon as the
-        // child is spawned. The lock decides; what this Host knows of a process it started only
-        // informs what the refusal says. Taking the lock establishes that nothing still holds
-        // it, not that every program Codex started has ended; this Host's settlement of its own
-        // process groups is unchanged by it.
+        // child is spawned. Both the process lock and this Host's settlement of the processes
+        // it started on the home must permit the start; neither answers for the other. Taking
+        // the lock establishes that nothing still holds it, not that every program Codex started
+        // has ended.
         {
             let i = self.inner.0.lock().unwrap();
             if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
@@ -1790,7 +1792,7 @@ impl Host {
             }
         }
         let process_lock = match crate::home_hold::open_held(&home.path, home.identity)
-            .and_then(|directory| crate::native_local_provider::take_process_lock_in(&directory).map_err(|refusal| self.process_lock_refusal(cfg, refusal)))
+            .and_then(|directory| crate::native_local_provider::take_process_lock_in(&directory).map_err(|refusal| self.process_lock_refusal(cfg, home.identity, refusal)))
         {
             Ok(file) => file,
             Err(reason) => { self.note_start_refusal(actor, &cfg.codex_home, &reason); return Err(reason); }
@@ -1801,7 +1803,7 @@ impl Host {
         // started there is established settled (its leader's exit observed and its group known
         // empty), no further start is admitted, whatever the lock says; and with the lock held,
         // none is admitted whatever this Host believes.
-        if self.own_unsettled_census(&home_identity(&cfg.codex_home)).is_some() {
+        if self.own_unsettled_census(home.identity).is_some() {
             drop(process_lock);
             let reason = crate::home_hold::KEPT.to_string();
             self.note_start_refusal(actor, &cfg.codex_home, &reason);
@@ -2039,7 +2041,14 @@ impl Host {
         // lock, for as long as that Codex or anything it passed the descriptor to keeps it open.
         drop(process_lock);
         let child = match spawned {
-            Ok(c) => c,
+            // The one place an app-server process is created. It is tied here, before anything
+            // else can fail, to the identity of the directory this start holds (from the handle
+            // the home hold opened at admission, never from the path again), so that every way
+            // it can be left behind carries it: a failed allocation that retires it at once, a
+            // handshake that fails, a Stop during the start, and its later move to the retired
+            // list when another child takes the slot. Label probes are not given a home: an
+            // unsettled probe refuses every start, on any home.
+            Ok(c) => { c.bind_home(home.identity); c }
             Err(e) => {
                 let mut i = self.inner.0.lock().unwrap();
                 // LT-07/08: the restart bound is not implemented; one failure halts.
@@ -7344,8 +7353,15 @@ mod local_process_lock_tests {
         assert_eq!(host.snapshot()["state"], "stopped");
         drop(take_process_lock(&f.lock_path()).expect("the lock is free: nothing holds it"));
         let starts = || std::fs::read_to_string(f.root.join("home/started")).unwrap().len();
-        for _ in 0..2 {
-            assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), KEPT, "refused by the Host's own check, the lock being free");
+        // The check is on the home's physical identity, not on how its path is spelled: the same
+        // directory named another way, and through a link, is the same home.
+        let mut respelled = f.cfg.clone();
+        respelled.codex_home = f.root.join("home").join("..").join("home");
+        let mut linked = f.cfg.clone();
+        linked.codex_home = f.root.join("home-by-link");
+        std::os::unix::fs::symlink(f.root.join("home"), &linked.codex_home).unwrap();
+        for cfg in [&f.cfg, &respelled, &linked, &f.cfg] {
+            assert_eq!(host.start(cfg, "fixture").unwrap_err(), KEPT, "refused by the Host's own check, the lock being free: {}", cfg.codex_home.display());
             let status = host.snapshot();
             assert_eq!((status["state"].as_str(), status["lastStartRefusal"]["reason"].as_str(), starts()), (Some("stopped"), Some(KEPT), 1));
             drop(take_process_lock(&f.lock_path()).expect("the refused start left the lock free"));
@@ -7354,6 +7370,40 @@ mod local_process_lock_tests {
         assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready", "admitted once the end is established");
         assert_eq!(starts(), 2);
         stop_and_wait(&host);
+    }
+
+    /// A process left by a start that failed after it was created is tied to its home like any
+    /// other: here the stand-in never answers the handshake, the start fails, and the process it
+    /// left carries the identity of the directory the start held. While its end is not
+    /// established it holds that home against a further start, under any spelling of the home.
+    #[test]
+    fn a_process_left_by_a_failed_start_is_tied_to_its_home_and_holds_it_under_any_spelling() {
+        use crate::home_hold::KEPT;
+        use process_group_custody::Census;
+        use std::os::unix::fs::MetadataExt;
+        let f = Fixture::new(false, false);
+        std::fs::write(&f.cfg.codex_bin, "#!/usr/bin/env python3\nimport os,sys,time\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\nopen(os.environ['CODEX_HOME']+'/started','a').write('x')\ntime.sleep(60)\n").unwrap();
+        let host = Arc::new(Host::new());
+        let failed = host.start(&f.cfg, "fixture").unwrap_err();
+        assert!(std::fs::read_to_string(f.root.join("home/started")).is_ok(), "the process was created before the start failed: {failed}");
+        let left = host.child.lock().unwrap().clone().or_else(|| host.retired_processes.lock().unwrap().first().cloned()).expect("the failed start's process is kept by the Host");
+        let _guard = LeftBehind(left.id() as i32);
+        let meta = std::fs::metadata(f.root.join("home")).unwrap();
+        assert_eq!(left.home(), Some((meta.dev(), meta.ino())), "tied to the directory the start held");
+        *left.census_override.lock().unwrap() = Some(Census::Unknown("modelled: member enumeration failed".into()));
+        // Synthetic admission, as a Stop after the failure would give: the question here is only
+        // what the Host's own check answers for the process the failed start left.
+        host.inner.0.lock().unwrap().state = "stopped".into();
+        let mut respelled = f.cfg.clone();
+        respelled.codex_home = f.root.join("home").join("..").join("home");
+        for cfg in [&f.cfg, &respelled] {
+            assert_eq!(host.start(cfg, "fixture").unwrap_err(), KEPT, "{}", cfg.codex_home.display());
+        }
+        assert_eq!(std::fs::read_to_string(f.root.join("home/started")).unwrap().len(), 1, "no second process");
+        // Another home is another home: the process left on the first does not hold it.
+        assert!(host.own_unsettled_census((meta.dev(), meta.ino())).is_some());
+        let other = std::fs::metadata(f.root.join("probe")).unwrap();
+        assert!(host.own_unsettled_census((other.dev(), other.ino())).is_none());
     }
 
     /// The process that served as Codex is itself alive after Stop: a stand-in whose serving
