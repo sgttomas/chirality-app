@@ -7,7 +7,7 @@
     },
     {
       "path": "app/examination/standalone/sources.terms-v1.json",
-      "sha256": "8d5909ccd3728ddd11632e36db986cc35c46834a94874885299a37a52787e267"
+      "sha256": "c124db3e5e01c50ab51f38e17e1d84f93cbc668242798bbae13d05e63127b651"
     },
     {
       "path": "app/examination/standalone/missing-inputs.json",

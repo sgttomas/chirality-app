@@ -1185,13 +1185,7 @@
        "step": "M12-5",
        "state": "awaiting_input",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "missing_input": "identified App candidate (DEP-09-02-022)"
@@ -1918,13 +1912,7 @@
        "step": "M12-5",
        "state": "awaiting_input",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "missing_input": "identified App candidate (DEP-09-02-022)"
@@ -2734,13 +2722,7 @@
        "step": "M12-5",
        "state": "recorded",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
@@ -3632,13 +3614,7 @@
        "step": "M12-5",
        "state": "awaiting_input",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "missing_input": "identified App candidate (DEP-09-02-022)"
@@ -4365,13 +4341,7 @@
        "step": "M12-5",
        "state": "awaiting_input",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "missing_input": "identified App candidate (DEP-09-02-022)"
@@ -5102,13 +5072,7 @@
        "step": "M12-5",
        "state": "awaiting_input",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "missing_input": "identified App candidate (DEP-09-02-022)"
@@ -5835,13 +5799,7 @@
        "step": "M12-5",
        "state": "awaiting_input",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "missing_input": "identified App candidate (DEP-09-02-022)"
@@ -6650,13 +6608,7 @@
        "step": "M12-5",
        "state": "recorded",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
@@ -7630,13 +7582,7 @@
        "step": "M12-5",
        "state": "recorded",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
@@ -8610,13 +8556,7 @@
        "step": "M12-5",
        "state": "recorded",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
@@ -9590,13 +9530,7 @@
        "step": "M12-5",
        "state": "recorded",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
@@ -10487,13 +10421,7 @@
        "step": "M12-5",
        "state": "awaiting_input",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "missing_input": "identified App candidate (DEP-09-02-022)"
@@ -11308,13 +11236,7 @@
        "step": "M12-5",
        "state": "recorded",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
@@ -12023,13 +11945,7 @@
        "step": "M12-5",
        "state": "recorded",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
@@ -12993,13 +12909,7 @@
        "step": "M12-5",
        "state": "recorded",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
@@ -13976,13 +13886,7 @@
        "step": "M12-5",
        "state": "recorded",
        "counts": true,
-       "supplier_cases": [
-        {
-         "deliverable": "DEL-01-05",
-         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-         "case_id": "VC-A04"
-        }
-       ],
+       "supplier_cases": [],
        "core_loop_element": "model access",
        "v3_reference": "none",
        "result_record": "EXP-M12-5 (ILLUSTRATIVE)",

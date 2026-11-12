@@ -53,8 +53,9 @@ class SQDossierRules(unittest.TestCase):
                 # An added step is not counted and gives its reason.
                 self.assertEqual(not step['counts'], step['step'].endswith('R'))
                 self.assertTrue(step['counts'] or step.get('added_reason'))
-                # M12-2's API-key cases were removed with that mode; no case for the local key survives.
-                self.assertEqual(not step['supplier_cases'], step['step'] == 'M12-2')
+                # M12-2's and M12-5's cases were API-key or three-mode cases, removed with that mode;
+                # no surviving case covers the local key or the two-mode switch.
+                self.assertEqual(not step['supplier_cases'], step['step'] in {'M12-2', 'M12-5'})
         cited = [case['case_id'] for step in self.steps for case in step['supplier_cases']]
         self.assertNotIn('VC-AAC-04', cited)
         for step in self.step_map['scenarios']['V4-EXM-11']:
@@ -78,7 +79,7 @@ class SQDossierRules(unittest.TestCase):
                               ('DEL-01-04', 'AC-003'), ('DEL-02-03', 'AC-001')}, cited)
 
     def test_valid_dossiers_pass_schema_and_every_rule(self):
-        self.assertEqual([d['record_id'] for d in self.valid], ['SQ-EX-0%d' % n for n in range(1, 7)])
+        self.assertEqual([d['record_id'] for d in self.valid], ['SQ-EX-0%d' % n for n in range(1, 8)])
         for dossier in self.valid:
             with self.subTest(record=dossier['record_id']):
                 self.assertEqual([s['scenario'] for s in dossier['scenarios']],
@@ -87,7 +88,7 @@ class SQDossierRules(unittest.TestCase):
                 self.assertEqual(self.violations(dossier), [])
 
     def test_an_agent_operated_journey_is_recorded_as_such(self):
-        dossier = next(d for d in self.valid if d['record_id'] == 'SQ-EX-06')
+        dossier = next(d for d in self.valid if d['record_id'] == 'SQ-EX-07')
         for journey in (s for s in dossier['scenarios'] if s['scenario'] in self.rules.JOURNEYS):
             self.assertEqual(journey['basis'], 'agent_operated')
             for step in journey['steps']:
@@ -172,6 +173,21 @@ class SQDossierRules(unittest.TestCase):
         extra = next(item for item in self.rule_violations if item['record']['record_id'] == 'SQ-RV-13')
         self.assertEqual(len(next(s for s in extra['record']['scenarios'] if s['scenario'] == 'V4-EXM-12')['access_modes']), 3)
         self.assertEqual(self.violations(extra['record']), ['SQ-R3'])
+
+    def test_an_observed_difference_is_a_failed_step_not_a_changed_declaration(self):
+        # The modes stay as declared; the local conversation found in the wrong home is
+        # recorded as failed M12-2 and M12-5, and the scenario fails by the aggregate rule.
+        dossier = next(d for d in self.valid if d['record_id'] == 'SQ-EX-06')
+        run_b = next(s for s in dossier['scenarios'] if s['scenario'] == 'V4-EXM-12')
+        self.assertEqual([(m['kind'], m['home']) for m in run_b['access_modes']],
+                         [('chatgpt_account', 'H-acct'), ('local_provider', 'H-omlx')])
+        self.assertEqual({s['step']: s['outcome'] for s in run_b['steps']},
+                         {'M12-1': 'pass', 'M12-2': 'fail', 'M12-3': 'pass',
+                          'M12-4': 'pass', 'M12-5': 'fail', 'M12-6': 'pass'})
+        self.assertEqual(run_b['outcome'], 'fail')
+        self.assertEqual(run_b['outcome'], self.rules.aggregate([s['outcome'] for s in run_b['steps'] if s['counts']]))
+        self.assertEqual([e.message for e in self.validator.iter_errors(dossier)], [])
+        self.assertEqual(self.violations(dossier), [])
 
     def test_a_cited_case_outside_the_step_map_is_refused(self):
         dossier = copy.deepcopy(self.valid[0])

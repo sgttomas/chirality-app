@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-09-02:standalone-dossier:0.2",
   "title": "Standalone qualification dossier (DEL-09-02 SQ-v0.2 §5; OUT-002; PROPOSED)",
-  "description": "One dossier per identified App candidate. It indexes the three named scenarios (V4-EXM-10, V4-EXM-11 inside the same run, V4-EXM-12) and the two journeys (J1, J2) step by step; each step points to DEL-09-01 EXP result records, to the supplier feature cases it joins and to the stimuli declared before the run (R23-27), never copying them. Step states follow EXP §6.1; outcomes are EXP's (HOSTING §9.3 labels). Kept at DEL-09-02 Evidence/EXP/<candidate key>/SQ-dossier.json (EXP §8.4). Rules beyond the schema: SQ-R1…SQ-R14 in sq_dossier_rules.py.",
+  "description": "One dossier per identified App candidate. It indexes the three named scenarios (V4-EXM-10, V4-EXM-11 inside the same run, V4-EXM-12) and the two journeys (J1, J2) step by step; each step points to DEL-09-01 EXP result records, to the supplier feature cases it joins and to the stimuli declared before the run (R23-27), never copying them. Step states follow EXP §6.1; outcomes are EXP's (HOSTING §9.3 labels). Kept at DEL-09-02 Evidence/EXP/<candidate key>/SQ-dossier.json (EXP §8.4). Rules beyond the schema: SQ-R1…SQ-R14 in app/examination/sq_receiving/sq_dossier_rules.py.",
   "type": "object",
   "required": ["record_kind", "format", "record_id", "support_revision", "case_definition", "candidate", "integration_owner", "examiner", "scenarios", "handoff", "currency", "date"],
   "additionalProperties": false,
@@ -98,14 +98,15 @@
         "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/step" } },
         "access_modes": {
           "type": "array",
+          "description": "The access modes run B is defined to exercise, each in the home the scope defines for it (the account home H-acct for the ChatGPT account, the dedicated local home H-omlx for the local model server), with the conversation assigned to each (SQ-R3). A declaration, not an observation: this field asserts nothing about what was observed on the candidate. A home, mode or conversation observed to differ on the candidate is recorded as the failed outcome of the M12 step that observed it, in that step's result record, never by altering this declaration.",
           "items": {
             "type": "object",
             "required": ["kind", "home", "conversation_ref"],
             "additionalProperties": false,
             "properties": {
-              "kind": { "enum": ["chatgpt_account", "local_provider"] },
-              "home": { "enum": ["H-acct", "H-omlx"] },
-              "conversation_ref": { "type": "string", "minLength": 1 }
+              "kind": { "enum": ["chatgpt_account", "local_provider"], "description": "A declared access mode of run B." },
+              "home": { "enum": ["H-acct", "H-omlx"], "description": "The home the scope defines for this mode, as declared; an observed home that differs is a failed M12 step, not a changed value here." },
+              "conversation_ref": { "type": "string", "minLength": 1, "description": "The conversation assigned to this mode, as declared; distinct for each mode." }
             }
           }
         },

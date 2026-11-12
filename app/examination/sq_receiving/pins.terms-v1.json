@@ -22,8 +22,8 @@
     "app/examination/admission/exam.review-record.schema.json": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",
     "app/examination/support_identity/binding.canonical.v1.schema.json": "95ab4a2e79d49d2a269fa20c4be2d385b8693c1c3de18c40416dcfd433b8ea27",
     "app/examination/support_identity/publication-declaration.v1.json": "2bffb100f0836125303009a224881aa89bf840918145a699e617dd7762dacf47",
-    "app/examination/sq_receiving/sq_dossier_rules.py": "b18ea82c596fd82855a068ce46f6ef5acf6ff1384b044d49af4746c1b9d03834",
-    "app/examination/sq_receiving/sq.dossier.schema.json": "79e696f23f4ef48ccbf86932a7a493d7249fd9c47cfd57bb1d00f99f09f4b889",
-    "app/examination/sq_receiving/sq.step-map.json": "c3db7e3ef2ec3d58d9918d7663a6da633f294330a743dbe3bd71f1055aebd6cd"
+    "app/examination/sq_receiving/sq_dossier_rules.py": "98d43c61c018f638dcfc2ab69e22f17489bda94422511cffc477891a31d87753",
+    "app/examination/sq_receiving/sq.dossier.schema.json": "1c6eab653fd1c1714fb9c55fcd173d61eabc1b241427e74988212543b006d2a3",
+    "app/examination/sq_receiving/sq.step-map.json": "74b7272a8d0b41d1ab7a9ac91ddcbb90aca4d22eff64605ddacd9f345f682d7d"
   }
 }
