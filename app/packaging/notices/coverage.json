@@ -18,12 +18,12 @@
  ],
  "inputs_sha256": {
   "app/packaging/font_notice/index.json": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f",
-  "app/packaging/notices/coverage-inputs.json": "dadfcdaad1f5dbf9e7760858b8508ad5d9184ef461419f8e9ea0f7e0df29499e",
-  "app/packaging/notices/coverage-review.json": "3e042d3d4447ebe280ed81a4c5c63212c9a9eafdd4a83384a83ee1a1e9fa8d6f",
+  "app/packaging/notices/coverage-inputs.json": "274361d6b16097e5d6c022f94bbf4b3dd9e882fa93f532fcb05e3b59646f36b6",
+  "app/packaging/notices/coverage-review.json": "43f3341122cd9b87569b2e7fce95190a3d59ffb1e900723650ae65954e78701e",
   "app/packaging/notices/index.json": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",
   "app/packaging/notices/transitive-index.json": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517",
   "app/packaging/sqlite_notice/index.json": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",
-  "app/packaging/supplier_notices/components.json": "3231f87d3aef158b8a5d9ac39085d653b96d03597a85c124357879ebf0cd3aab",
+  "app/packaging/supplier_notices/components.json": "c51b3185a82229c1178b1f6f1edaafafa25507993bed27a8641b59e7ebbffb97",
   "app/packaging/unsigned/tauri.notices.conf.json": "740a195677a7ac3bc190ad8ffe76c5999d89a726f5d02db72cf83d576e245347",
   "app/src-tauri/resources/supplier/0.167.0/CANONICAL_DISTRIBUTION.json": "e6b0cd48c3d77728c44f2b79a2eb319686615b4521abb8585e9267694d380f61"
  },
@@ -144,11 +144,11 @@
   },
   {
    "class": "library-content",
-   "name": "Chirality production workflows",
-   "version": "f3c0a1df5eaa",
+   "name": "Chirality Library 3.4.0 workflows",
+   "version": "1bba3d170e7a",
    "source": {
-    "repository": "https://github.com/sgttomas/chirality",
-    "revision": "f3c0a1df5eaa86df22111e9b0dac53cbfd1bbc64",
+    "repository": "https://github.com/sgttomas/chirality-library",
+    "revision": "1bba3d170e7a25bc2a04e0a4dfe77b624ea440ca",
     "bundled_at": "workflows/"
    },
    "texts": [
@@ -6044,7 +6044,7 @@
      "fetched_with_owner_permission": true
     }
    ],
-   "below_root": "Root LICENSE, LICENSE.v8, LICENSE.fdlibm and LICENSE.strongtalk, and the 16 LICENSE files under third_party/ at d848a2b3, which with three under test/ are all the LICENSE files in the tree (the lane's tree read). The supplier's build file (third_party/v8/engine.BUILD.bazel at 086ccc83) names inspector_protocol, v8 and vtune under third_party; the others ship because V8's root licence points to its subdirectory licences, and whether each is compiled in was not established. The three LICENSE files under test/ are test material and are not shipped.",
+   "below_root": "Root LICENSE, LICENSE.v8, LICENSE.fdlibm and LICENSE.strongtalk, and the 16 LICENSE files under third_party/ at d848a2b3 (the lane's tree read). The supplier's build file (third_party/v8/engine.BUILD.bazel at 086ccc83) names inspector_protocol, v8 and vtune under third_party; the others ship because V8's root licence points to its subdirectory licences, and whether each is compiled in was not established. Four licence files under test/ (SixSpeed/LICENSE.sixspeed, object-keys/LICENSE, regexp-pcre/LICENSE and wasm-js/third_party/LICENSE.testharness, as the retained tree listing names them) are test material and are not shipped.",
    "standing": "covered",
    "basis": "texts recorded at the component's own repository and revision"
   },

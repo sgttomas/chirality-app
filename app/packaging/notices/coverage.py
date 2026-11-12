@@ -45,6 +45,10 @@ ROOT_TEXT_BASIS = ('repository root text at the crate\'s named revision (the pro
 # .json data; package_texts.executables) is a compiled program. Each must be a member of a component of kind
 # compiled-dependencies, covered only with a committed lockfile and texts, or it stands uncovered.
 COMPILED = 'compiled-dependencies'
+# Rows with no route to covered in this change, whatever the table or the review record says. The change that
+# establishes one of them (for example by extracting its texts) removes its id here.
+DEFERRED = ('codex-crate-dependencies', 'ripgrep-crate-dependencies', 'libcxx-credits-and-subdirectories',
+            'libcxxabi-credits-and-subdirectories', 'llvm-libc-subdirectories')
 LIMITS = [
     'An account of what the package is built to carry, from committed inputs; it is not read from a built package.',
     'A notice text is the publisher\'s licence or notice text for the component at the named version or revision; '
@@ -143,6 +147,16 @@ def build(repo=REPO, vendor=None):
     for content in inputs['library_content']:
         require(sha(app_license) == content['license_sha256'], 'Library content licence differs from the App\'s LICENSE.md')
         require((repo / content['resource']).is_dir(), 'bundled Library content missing: ' + content['resource'])
+        # The source each bundle names in its own record must be the one this entry states.
+        source = texts.load(repo, content['source_record']['path'])
+        require(content['source_record']['path'].startswith(content['resource']), 'source record outside its bundle: ' + content['name'])
+        if content['source_record']['kind'] == 'workflow-manifest':
+            require((source['source']['repository'], source['source']['commit'], source['source']['license']['sha256'])
+                    == (content['repository'], content['revision'], content['license_sha256']),
+                    'workflow bundle names another source or licence: ' + content['name'])
+        else:
+            require(content['source_record']['kind'] == 'role-set-binding' and source['basisCommit'] == content['revision'],
+                    'instruction bundle names another source revision: ' + content['name'])
         add({'class': 'library-content', 'name': content['name'], 'version': content['revision'][:12],
              'source': {'repository': content['repository'], 'revision': content['revision'], 'bundled_at': content['destination']},
              'texts': app_text}, COVERED, basis='LICENSE.md at the source revision equals the App\'s LICENSE.md, which ships')
@@ -243,6 +257,7 @@ def build(repo=REPO, vendor=None):
     claimed = {}
     ids = [item['id'] for item in table['components']]
     require(len(ids) == len(set(ids)), 'duplicate supplier component id')
+    require(not reviewed or set(DEFERRED) <= set(ids), 'a deferred supplier row is missing: ' + str(sorted(set(DEFERRED) - set(ids))))
     compiled_members = set()
     for item in table['components']:
         missing = [m for m in item['members'] + item['supplier_tree_texts'] if m not in tree]
@@ -251,7 +266,11 @@ def build(repo=REPO, vendor=None):
             claimed.setdefault(member, []).append(item['id'])
         for member in item['supplier_tree_texts']:
             claimed.setdefault(member, [])
-        exceptions = {e['path']: e['reason'] for e in item.get('text_exceptions', [])}
+        exceptions = {}
+        for exception in item.get('text_exceptions', []):
+            require(isinstance(exception.get('reason'), str) and exception['reason'].strip() and exception.get('path'),
+                    'a text exception needs a path and a non-empty reason: ' + item['id'])
+            exceptions[exception['path']] = exception['reason']
         require(set(exceptions) <= set(item['texts']), 'text exception names a text the component does not ship: ' + item['id'])
         entry = {'class': 'supplier', 'id': item['id'], 'name': item['name'], 'version': item['version'],
                  'source': {'repository': item['repository'], 'revision': item['revision']}, 'members': item['members'],
@@ -271,10 +290,11 @@ def build(repo=REPO, vendor=None):
                    and p not in exceptions]
         if item.get('kind') == COMPILED:
             compiled_members.update(item['members'])
+        if item.get('kind') == COMPILED or item['id'] in DEFERRED:
             # No route to covered in this change: the change that extracts these texts adds the rule (the supplier
             # lockfile bound to the supplier's source commit, and each locked package with its own text or a stated basis).
-            add(entry, UNCOVERED, reason=item.get('reason') or 'compiled-in dependency texts are not held',
-                would_close=item.get('would_close') or 'extract the texts of every package the supplier lockfile locks')
+            add(entry, UNCOVERED, reason=item.get('reason') or 'deferred: this row has no route to covered in this change',
+                would_close=item.get('would_close') or 'the change that establishes this row removes it from coverage.DEFERRED')
         elif item['standing'] == 'covered' and foreign:
             add(entry, UNCOVERED, reason='a shipped text records another repository or revision than the component: ' + ', '.join(foreign),
                 would_close='ship the component\'s own texts, or name each other text as an exception with its reason')
@@ -365,7 +385,9 @@ def check_review_record(repo, table):
     for path, expected in record['files_sha256'].items():
         require(sha((Path(repo) / path).read_bytes()) == expected,
                 f'{path} differs from the review record; its reviewer must update {REVIEW} after reviewing the change')
-    require(set(record['files_sha256']) == set(REVIEWED_FILES), 'review record must bind every curated input and cache-made index')
+    bound = set(REVIEWED_FILES) | {texts.supplier_record(repo)[1]}
+    require(set(record['files_sha256']) == bound, 'review record must bind every curated input, cache-made index and the '
+            'declared pin\'s distribution record (a pin move changes which record is bound): ' + str(sorted(bound ^ set(record['files_sha256']))))
     require(record['supplier_components'] == review_entries(table),
             'supplier components differ from the review record; its reviewer must update ' + REVIEW)
 

@@ -1,15 +1,16 @@
 {
  "format": "notice-coverage-review/1",
- "statement": "A statement of what the reviewer of the change examined, bound to exact content: the curated inputs (the supplier component table; the coverage inputs: owner readings, permitted texts, Library content, icon provenance, stated removals) and the indexes that generators make from caches CI does not hold. The reviewer reruns the cache-reading checks for a changed index. It is not a proof: its truth rests on the review of the pull request that changes it, not on the tool.",
+ "statement": "A statement of what the reviewer of the change examined, bound to exact content: the curated inputs (the supplier component table; the coverage inputs: owner readings, permitted texts, Library content, icon provenance, stated removals), the indexes that generators make from caches CI does not hold, and the declared pin's distribution record, whose digests the account copies. The reviewer reruns the cache-reading checks for a changed index. It is not a proof: the checks are operator-run on stable inputs, and the record's truth rests on the review of the pull request that changes it, not on the tool. A supplier pin move changes which distribution record is bound, so it updates this record in the same change.",
  "updated_by": "The independent reviewer of the pull request that changes any file listed here, after reviewing that change.",
- "reviewed_in": "pull request 243 (review round 3 to confirm or correct this record)",
+ "reviewed_in": "pull request 243: review round 3 confirmed the 33 supplier rows (27 covered, ICU pending, 5 uncovered); round 4 to confirm the added distribution-record binding, the corrected V8 below-root text and the Library content source records",
  "files_sha256": {
-  "app/packaging/supplier_notices/components.json": "3231f87d3aef158b8a5d9ac39085d653b96d03597a85c124357879ebf0cd3aab",
-  "app/packaging/notices/coverage-inputs.json": "dadfcdaad1f5dbf9e7760858b8508ad5d9184ef461419f8e9ea0f7e0df29499e",
+  "app/packaging/supplier_notices/components.json": "c51b3185a82229c1178b1f6f1edaafafa25507993bed27a8641b59e7ebbffb97",
+  "app/packaging/notices/coverage-inputs.json": "274361d6b16097e5d6c022f94bbf4b3dd9e882fa93f532fcb05e3b59646f36b6",
   "app/packaging/notices/index.json": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",
   "app/packaging/notices/transitive-index.json": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517",
   "app/packaging/font_notice/index.json": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f",
-  "app/packaging/sqlite_notice/index.json": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b"
+  "app/packaging/sqlite_notice/index.json": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",
+  "app/src-tauri/resources/supplier/0.167.0/CANONICAL_DISTRIBUTION.json": "e6b0cd48c3d77728c44f2b79a2eb319686615b4521abb8585e9267694d380f61"
  },
  "supplier_components": [
   {

@@ -714,7 +714,7 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "Root LICENSE, LICENSE.v8, LICENSE.fdlibm and LICENSE.strongtalk, and the 16 LICENSE files under third_party/ at d848a2b3, which with three under test/ are all the LICENSE files in the tree (the lane's tree read). The supplier's build file (third_party/v8/engine.BUILD.bazel at 086ccc83) names inspector_protocol, v8 and vtune under third_party; the others ship because V8's root licence points to its subdirectory licences, and whether each is compiled in was not established. The three LICENSE files under test/ are test material and are not shipped."
+   "below_root": "Root LICENSE, LICENSE.v8, LICENSE.fdlibm and LICENSE.strongtalk, and the 16 LICENSE files under third_party/ at d848a2b3 (the lane's tree read). The supplier's build file (third_party/v8/engine.BUILD.bazel at 086ccc83) names inspector_protocol, v8 and vtune under third_party; the others ship because V8's root licence points to its subdirectory licences, and whether each is compiled in was not established. Four licence files under test/ (SixSpeed/LICENSE.sixspeed, object-keys/LICENSE, regexp-pcre/LICENSE and wasm-js/third_party/LICENSE.testharness, as the retained tree listing names them) are test material and are not shipped."
   },
   {
    "id": "rusty_v8",

@@ -56,13 +56,14 @@ class Copy(unittest.TestCase):
         (self.repo / record).parent.mkdir(parents=True); shutil.copyfile(ROOT / record, self.repo / record)
         for content in json.loads((NOTICES / 'coverage-inputs.json').read_text())['library_content']:
             (self.repo / content['resource']).mkdir(parents=True)
+            shutil.copyfile(ROOT / content['source_record']['path'], self.repo / content['source_record']['path'])
 
     def edit(self, relative, change, rebind=True):
         """Edit a JSON input. A curated input's review record is rebound too, as its reviewer would, unless rebind=False,
         so that each test exercises the rule after review rather than only the record's refusal."""
         path = self.repo / relative
         value = json.loads(path.read_text()); change(value); path.write_text(json.dumps(value, indent=1) + '\n')
-        if rebind and relative in coverage.REVIEWED_FILES:
+        if rebind and relative in json.loads((self.repo / coverage.REVIEW).read_text())['files_sha256']:
             self.rebind()
 
     def rebind(self):
@@ -184,13 +185,16 @@ class Account(Copy):
     # Review finding 2: deleting the uncovered supplier groups cannot make the strict check pass.
     def test_deleting_compiled_dependency_rows_leaves_every_executable_uncovered(self):
         self.edit(TABLE, lambda v: v.update(components=[c for c in v['components'] if c.get('kind') != coverage.COMPILED]))
+        with self.assertRaisesRegex(ValueError, 'deferred supplier row is missing'): self.build()
+        # With the rows kept but no longer marked as compiled dependencies, every executable still gets an uncovered row.
+        self.setUp()
+        self.edit(TABLE, lambda v: [c.pop('kind') for c in v['components'] if c.get('kind') == coverage.COMPILED])
         value = self.build()
         executables = texts.executables(texts.supplier_record(self.repo)[2])
         self.assertEqual(len(executables), 5)
         open_names = {o['name'] for o in value['open']}
         for path in executables:
             self.assertIn('Dependencies compiled into ' + path, open_names)
-        with self.assertRaisesRegex(ValueError, 'dropped without a reviewed statement'): coverage.generate(self.repo)
 
     # Round 2 finding 2: no table entry can make compiled-in dependencies covered in this change.
     def test_compiled_dependency_rows_stay_uncovered_whatever_the_table_says(self):
@@ -205,12 +209,12 @@ class Account(Copy):
 
     def test_a_dropped_component_needs_a_reviewed_statement(self):
         base = self.repo.parent / 'base.json'; shutil.copyfile(ROOT / coverage.ACCOUNT, base)
-        self.edit(TABLE, lambda v: v.update(components=[c for c in v['components'] if c['id'] != 'llvm-libc-subdirectories']))
+        self.edit(TABLE, lambda v: v.update(components=[c for c in v['components'] if c['id'] != 'fp16']))
         value = self.build()
         self.assertEqual(coverage.removed(json.loads(base.read_text()), value, json.loads((self.repo / texts.INPUTS).read_text())),
-                         ['supplier:llvm-libc-subdirectories'])
+                         ['supplier:fp16'])
         with self.assertRaisesRegex(ValueError, 'dropped without a reviewed statement'): coverage.generate(self.repo)
-        self.edit(texts.INPUTS, lambda v: v['removed_components'].append({'key': 'supplier:llvm-libc-subdirectories', 'reason': 'invented'}))
+        self.edit(texts.INPUTS, lambda v: v['removed_components'].append({'key': 'supplier:fp16', 'reason': 'invented'}))
         coverage.generate(self.repo)
         coverage.check(self.repo, base_account=base)
 
@@ -300,7 +304,7 @@ class Account(Copy):
         self.edit(table, lambda v: v['components'].pop(next(i for i, c in enumerate(v['components']) if c['id'] == 'zlib')))
         with self.assertRaisesRegex(ValueError, 'claimed by no component'): coverage.build(self.repo)
         self.setUp()
-        self.edit(table, lambda v: next(c for c in v['components'] if c['id'] == 'libcxx-credits-and-subdirectories').pop('would_close'))
+        self.edit(table, lambda v: next(c for c in v['components'] if c['id'] == 'icu').pop('reason'))
         with self.assertRaises((ValueError, KeyError)): coverage.build(self.repo)
         self.setUp()
         self.edit(table, lambda v: next(c for c in v['components'] if c['id'] == 'opus').update(members=['codex-resources/voice/lib/invented.dylib']))
@@ -385,9 +389,60 @@ class Account(Copy):
     # Round 2 finding 6: the executable rule must fit the record's Mach-O count.
     def test_executable_rule_must_fit_the_record_macho_count(self):
         path = texts.supplier_record(self.repo)[1]
-        record = json.loads((self.repo / path).read_text()); record['macho_files'] += 1
-        (self.repo / path).write_text(json.dumps(record))
+        self.edit(path, lambda v: v.update(macho_files=v['macho_files'] + 1))
         with self.assertRaisesRegex(ValueError, 'Mach-O count'): self.build()
+
+    # Round 3 finding 1: the declared pin's distribution record is a reviewed input; its digests cannot drift unseen.
+    def test_distribution_record_drift_refuses(self):
+        path = texts.supplier_record(self.repo)[1]
+        def zero_opus(v):
+            entry = next(e for e in v['inventory']['entries'] if e['path'] == 'codex-resources/voice/licenses/Opus.txt')
+            entry['sha256'] = '0' * 64
+        self.edit(path, zero_opus, rebind=False)
+        with self.assertRaisesRegex(ValueError, 'differs from the review record'): self.build()
+
+    # Round 3 finding 2: the five deferred rows have no route to covered, whatever the table and review record say.
+    def test_deferred_rows_stay_uncovered_whatever_the_table_says(self):
+        parent = {'libcxx-credits-and-subdirectories': 'libcxx', 'libcxxabi-credits-and-subdirectories': 'libcxxabi',
+                  'llvm-libc-subdirectories': 'llvm-libc', 'codex-crate-dependencies': 'codex', 'ripgrep-crate-dependencies': 'ripgrep'}
+        self.assertEqual(set(parent), set(coverage.DEFERRED))
+        for row_id, parent_id in parent.items():
+            with self.subTest(row=row_id):
+                self.setUp()
+                def claim(v, r=row_id, q=parent_id):
+                    source = next(c for c in v['components'] if c['id'] == q)
+                    row = next(c for c in v['components'] if c['id'] == r)
+                    row.update(standing='covered', texts=list(source['texts']), repository=source['repository'], revision=source['revision'])
+                    row.pop('kind', None)
+                self.edit(TABLE, claim)
+                value = self.build()
+                self.assertEqual(next(c for c in value['components'] if c.get('id') == row_id)['standing'], coverage.UNCOVERED)
+        self.setUp(); self.edit(TABLE, lambda v: v.update(components=[c for c in v['components'] if c['id'] != 'llvm-libc-subdirectories']))
+        with self.assertRaisesRegex(ValueError, 'deferred supplier row is missing'): self.build()
+
+    # Round 3 finding 3: an empty exception reason or an absent text identity is not established.
+    def test_empty_exception_reason_and_absent_identity_refuse(self):
+        icu = 'app/packaging/supplier_notices/icu-d578f2e8/LICENSE'
+        def empty_reason(v):
+            v8 = next(c for c in v['components'] if c['id'] == 'v8')
+            v8['texts'].append(icu); v8['text_exceptions'] = [{'path': icu, 'reason': ''}]
+        self.edit(TABLE, empty_reason)
+        with self.assertRaisesRegex(ValueError, 'non-empty reason'): self.build()
+        self.setUp()
+        def null_identity(v):
+            v8 = next(c for c in v['components'] if c['id'] == 'v8')
+            v8.update(repository=None, revision=None)
+            for text in v['texts']:
+                if text['path'] in v8['texts']:
+                    text.update(repository=None, revision=None)
+        self.edit(TABLE, null_identity)
+        with self.assertRaisesRegex(ValueError, 'non-empty repository and revision'): self.build()
+        self.setUp(); self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'v8').update(repository=None, revision=None))
+        self.assertEqual(self.row(self.build(), 'V8')['standing'], coverage.UNCOVERED)
+
+    def test_library_content_must_match_its_bundle_source_record(self):
+        self.edit(texts.INPUTS, lambda v: v['library_content'][1].update(revision='d' * 40))
+        with self.assertRaisesRegex(ValueError, 'another source'): self.build()
 
     def test_another_declared_pin_is_named_as_an_open_review_not_assumed(self):
         pin = texts.declared_pin(ROOT)
@@ -397,6 +452,12 @@ class Account(Copy):
         record['pin'] = '9.9.9'
         target = self.repo / 'app/src-tauri/resources/supplier/9.9.9/CANONICAL_DISTRIBUTION.json'
         target.parent.mkdir(parents=True); target.write_text(json.dumps(record))
+        # A pin move changes which distribution record is bound, so the review record must change with it.
+        with self.assertRaisesRegex(ValueError, 'declared pin\'s distribution record'): coverage.build(self.repo)
+        review = json.loads((self.repo / coverage.REVIEW).read_text())
+        review['files_sha256'].pop(f'app/src-tauri/resources/supplier/{pin}/CANONICAL_DISTRIBUTION.json')
+        review['files_sha256']['app/src-tauri/resources/supplier/9.9.9/CANONICAL_DISTRIBUTION.json'] = hashlib.sha256(target.read_bytes()).hexdigest()
+        (self.repo / coverage.REVIEW).write_text(json.dumps(review))
         value = coverage.build(self.repo)
         self.assertEqual(value['supplier_pin'], '9.9.9')
         self.assertIn('Supplier component table', {o['name'] for o in value['open']})

@@ -117,12 +117,24 @@ Rules `coverage.py` applies, whatever the tables say:
 - **Reviewed inputs.** `../supplier_notices/components.json` and
   `coverage-inputs.json` are curated judgments, not facts a check can prove. The
   direct, transitive, font and SQLite indexes are made by generators from caches CI
-  does not hold, so CI can check texts only against them. `coverage-review.json`
-  binds all six files' SHA-256 and lists every supplier component with its standing,
-  version, revision and exact texts, and `coverage.py` checks it first. The record
-  states what a reviewer examined; it is not a proof. The reviewer of the pull
-  request that changes any of those files updates it, after rerunning the
-  cache-reading checks for a changed index.
+  does not hold, so CI can check texts only against them. The declared pin's
+  `CANONICAL_DISTRIBUTION.json` is bound too, because the account copies the voice
+  licence digests from it. `coverage-review.json` binds those seven files' SHA-256
+  and lists every supplier component with its standing, version, revision and exact
+  texts, and `coverage.py` checks it first. The record states what a reviewer
+  examined; it is not a proof. The reviewer of the pull request that changes any of
+  those files updates it, after rerunning the cache-reading checks for a changed
+  index. **A supplier pin move changes which distribution record is bound, so it
+  must update `coverage-review.json` in the same change.**
+- **Deferred rows.** `coverage.DEFERRED` lists the five supplier rows with no route
+  to covered in this change (the Codex and rg compiled-in crates, and the libc++,
+  libc++abi and llvm-libc texts their licences point to). They stand uncovered
+  whatever the table or the review record says, and must stay in the table. The
+  change that establishes one removes its id from that list.
+- **Identities.** Every committed supplier text needs a non-empty repository and
+  revision; an exception needs a non-empty reason. The Library content rows must
+  match the source each bundle names in its own record (`MANIFEST.json`,
+  `ROLE_SET_SOURCE_BINDING.json`).
 - **Removals.** `generate` refuses to drop a component the committed account has
   unless `removed_components` in `coverage-inputs.json` states it with a reason;
   `check --base-account FILE` applies the same rule against an earlier account.

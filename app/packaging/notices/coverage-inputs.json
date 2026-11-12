@@ -158,20 +158,33 @@
    "repository": "https://github.com/sgttomas/chirality",
    "revision": "89acac6a3983c605820496d0d121c73bb2297706",
    "license_sha256": "495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da",
-   "basis": "ROLE_SET_SOURCE_BINDING.json basisCommit; LICENSE.md at that revision is byte-equal to the App's LICENSE.md"
+   "basis": "ROLE_SET_SOURCE_BINDING.json basisCommit; LICENSE.md at that revision is byte-equal to the App's LICENSE.md (read from a local clone of the source repository when this entry was made)",
+   "source_record": {
+    "path": "app/src-tauri/resources/instructions/ROLE_SET_SOURCE_BINDING.json",
+    "kind": "role-set-binding"
+   }
   },
   {
-   "name": "Chirality production workflows",
+   "name": "Chirality Library 3.4.0 workflows",
    "resource": "app/src-tauri/resources/production_workflows/",
    "destination": "workflows/",
-   "repository": "https://github.com/sgttomas/chirality",
-   "revision": "f3c0a1df5eaa86df22111e9b0dac53cbfd1bbc64",
+   "repository": "https://github.com/sgttomas/chirality-library",
+   "revision": "1bba3d170e7a25bc2a04e0a4dfe77b624ea440ca",
    "license_sha256": "495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da",
-   "basis": "MANIFEST.json source_revision; LICENSE.md at that revision is byte-equal to the App's LICENSE.md"
+   "basis": "MANIFEST.json names the Library release (tag library-v3.4.0, this commit) and records the digest of its LICENSE.md, which equals the App's LICENSE.md",
+   "source_record": {
+    "path": "app/src-tauri/resources/production_workflows/MANIFEST.json",
+    "kind": "workflow-manifest"
+   }
   }
  ],
  "permission": "The owner permitted fetching plain licence and copyright texts from the publisher's source at a fixed revision, kept with the notices and named in the pull request.",
- "removed_components": [],
+ "removed_components": [
+  {
+   "key": "library-content:Chirality production workflows@f3c0a1df5eaa",
+   "reason": "Pull request 230 rebundled the workflows from Chirality Library 3.4.0; the row is replaced by \"Chirality Library 3.4.0 workflows\", bound to its MANIFEST.json."
+  }
+ ],
  "app_assets": [
   {
    "path": "app/src-tauri/icons/icon.png",

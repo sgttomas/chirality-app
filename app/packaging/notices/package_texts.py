@@ -274,6 +274,9 @@ def supplier_texts(repo=REPO):
     prefix = 'app/packaging/supplier_notices/'
     for text in table['texts']:
         require(text['path'].startswith(prefix), 'supplier text outside supplier_notices')
+        # Every committed text names its own source; an absent identity never "matches" a component's.
+        require(all(isinstance(text.get(k), str) and text[k].strip() for k in ('repository', 'revision')),
+                'supplier text needs a non-empty repository and revision: ' + text['path'])
         file_digest(repo, text['path'], text)
     return table['texts']
 
