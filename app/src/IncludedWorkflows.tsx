@@ -5,7 +5,7 @@ const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const text = (value: Json): string => (typeof value === "string" ? value : "");
 
 /** One place in the list: where the Library's own index puts the workflow. */
-type Section = { key: string; label: string; note?: string; order: number; entries: Json[] };
+type Section = { key: string; label: string; order: number; entries: Json[] };
 
 const START = "start", OTHER = "other", REPLACED = "replaced";
 const tierRank = (entry: Json) => (entry?.navigation?.tier === "supporting" ? 1 : 0);
@@ -13,21 +13,22 @@ const orderOf = (entry: Json) => (Number.isFinite(entry?.navigation?.order) ? en
 const byPlace = (a: Json, b: Json) => tierRank(a) - tierRank(b) || orderOf(a) - orderOf(b) || text(a.name).localeCompare(text(b.name));
 
 /**
- * The included workflows in the Library's own grouping: its core workflows
- * first, then its groups in its order, then any without a group, then the ones
- * it marks superseded. Nothing here is the App's judgment of a workflow.
+ * The included workflows in the Library's own grouping: the ones its index
+ * marks core first, then its groups in its order, then any without a group,
+ * then the ones it marks superseded. Each heading says only what the index
+ * says; nothing here is the App's judgment of a workflow or advice to use one.
  */
 export function includedSections(entries: Json[]): Section[] {
   const sections = new Map<string, Section>();
-  const place = (key: string, label: string, order: number, entry: Json, note?: string) => {
-    if (!sections.has(key)) sections.set(key, { key, label, note, order, entries: [] });
+  const place = (key: string, label: string, order: number, entry: Json) => {
+    if (!sections.has(key)) sections.set(key, { key, label, order, entries: [] });
     sections.get(key)!.entries.push(entry);
   };
   for (const entry of entries) {
     const navigation = entry?.navigation ?? {};
     const group = navigation.group;
-    if (navigation.category === "superseded") place(REPLACED, "Replaced by newer workflows", Number.MAX_SAFE_INTEGER, entry, "The Library keeps these for work that already uses them.");
-    else if (navigation.category === "core") place(START, "Start here", -1, entry, "The Library's core workflows.");
+    if (navigation.category === "superseded") place(REPLACED, "Marked superseded by the Library", Number.MAX_SAFE_INTEGER, entry);
+    else if (navigation.category === "core") place(START, "The Library's core workflows", -1, entry);
     else if (group && typeof group.key === "string" && typeof group.label === "string") place(`group:${group.key}`, group.label, Number.isFinite(group.order) ? group.order : Number.MAX_SAFE_INTEGER - 2, entry);
     else place(OTHER, "Other workflows", Number.MAX_SAFE_INTEGER - 1, entry);
   }
@@ -53,6 +54,22 @@ export function includedEntryOf(catalog: Json, selection: Json): Json | undefine
   if (!chosen || typeof chosen !== "object") return undefined;
   return list(catalog?.entries).find(entry => entry?.identity && typeof entry.identity === "object"
     && IDENTITY_FIELDS.every(field => typeof chosen[field] === "string" && chosen[field] === entry.identity[field]));
+}
+
+/**
+ * The conversation's role beside the roles the Library lists for the chosen
+ * workflow: two facts side by side, with no judgment of fit. The role is the
+ * App's own record of what it supplied at the conversation's start; where
+ * this App process holds none, that is said. Shown only for a selection that
+ * is a catalogue entry, since only the catalogue carries the Library's list.
+ */
+export function RoleBesideWorkflow({ entry, conversation }: { entry: Json; conversation: Json }) {
+  const roles = list(entry?.roles).filter(role => typeof role === "string");
+  if (!entry || !roles.length) return null;
+  const appRole = conversation?.appRole;
+  const role = appRole?.standing !== "app-observed" ? "This conversation's role is not known to this App process."
+    : typeof appRole.role === "string" && appRole.role ? `This conversation is in the role ${appRole.role}.` : "This conversation was started with no role.";
+  return <p aria-label="Role and the workflow's listed roles">{role} The Library lists {text(entry.name)} for: {roles.join(", ")}.</p>;
 }
 
 /** Where the included workflows come from, as the catalogue states it. */
@@ -115,7 +132,6 @@ export function IncludedWorkflows({ catalog, chosen, disabled, needsConversation
     {entries.length <= 6 ? <ul>{[...found].sort(byPlace).map(row)}</ul>
       : sections.map(section => <details key={section.key} open={searching || section.key === START || section.entries.some(isChosen) ? true : undefined}>
         <summary>{section.label} ({section.entries.length})</summary>
-        {section.note && <p><small>{section.note}</small></p>}
         <ul>{section.entries.map(row)}</ul>
       </details>)}
   </div>;

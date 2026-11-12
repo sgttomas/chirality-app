@@ -9,7 +9,7 @@ import {loadSrc} from './support/load-src.mjs';
 installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
-const {IncludedWorkflows, includedSections, includedEntryOf, matchesSearch, librarySourceWords} = loadSrc('IncludedWorkflows');
+const {IncludedWorkflows, RoleBesideWorkflow, includedSections, includedEntryOf, matchesSearch, librarySourceWords} = loadSrc('IncludedWorkflows');
 
 const SOURCE = {repository:'https://example.invalid/library', tag:'library-v9.9.9', commit:'c0ffee'};
 const ROOT = 'invented-library:library-v9.9.9', METHOD = 'invented.package.sha256/v1';
@@ -47,11 +47,11 @@ async function mount(view) {
 test('the list follows the Library\'s own grouping: core first, its groups in its order, ungrouped, then superseded', () => {
   const sections = includedSections(entries);
   assert.deepEqual(sections.map(s => [s.label, s.entries.map(e => e.name)]), [
-    ['Start here', ['core-a', 'core-b']],
+    ["The Library's core workflows", ['core-a', 'core-b']],
     ['Plan & organize', ['plan-work', 'broken']],
     ['Review & check', ['beta-check', 'alpha-check', 'zeta-check']],
     ['Other workflows', ['loose']],
-    ['Replaced by newer workflows', ['old-way']],
+    ['Marked superseded by the Library', ['old-way']],
   ], 'primary before supporting, then the Library\'s order');
   assert.equal(librarySourceWords(SOURCE), 'Chirality Library 9.9.9');
   assert.equal(librarySourceWords({tag:'other'}), 'Chirality Library (other)');
@@ -66,7 +66,7 @@ test('each included workflow shows its description, source and revision, and is 
   const list = region(ui.c, 'Workflows included with the App');
   assert.match(list.textContent, /^Included with the App: 9 workflows from Chirality Library 9\.9\.9\./);
   const sections = all(list, 'details').filter(node => /\(\d+\)$/.test(all(node, 'summary')[0]?.textContent ?? ''));
-  assert.deepEqual(sections.map(node => all(node, 'summary')[0].textContent), ['Start here (2)', 'Plan & organize (2)', 'Review & check (3)', 'Other workflows (1)', 'Replaced by newer workflows (1)']);
+  assert.deepEqual(sections.map(node => all(node, 'summary')[0].textContent), ["The Library's core workflows (2)", 'Plan & organize (2)', 'Review & check (3)', 'Other workflows (1)', 'Marked superseded by the Library (1)']);
   assert.equal(props(sections[0]).open, true, 'the core workflows are open to begin with');
   assert.equal(props(sections[2]).open, undefined, 'other groups open when the person opens them');
   const row = region(ui.c, 'Included workflow core-a');
@@ -177,4 +177,21 @@ test('a short catalogue is one plain list with no search, and a catalogue withou
   const none = await mount({catalog:{entries:[]}});
   assert.equal(region(none.c, 'Workflows included with the App'), undefined);
   await none.close();
+});
+
+test('the conversation\'s role is shown beside the roles the Library lists for the chosen workflow, with no judgment of fit', async () => {
+  const {renderToStaticMarkup} = await import('react-dom/server');
+  const h = props => renderToStaticMarkup(React.createElement(RoleBesideWorkflow, props)).replace(/<[^>]+>/g, '').replaceAll('&#x27;', "'");
+  const listed = entry('alpha-check', {category:'specialist'}, {roles:['TASK', 'WORKING_ITEMS']});
+  const conversation = appRole => ({threadId:'chat-1', appRole});
+  assert.equal(h({entry:listed, conversation:conversation({standing:'app-observed', role:'HELP_HUMAN', supply_ref:'sup:1'})}),
+    'This conversation is in the role HELP_HUMAN. The Library lists alpha-check for: TASK, WORKING_ITEMS.', 'a role the workflow is not listed for is shown as the two facts, not as a refusal or a warning');
+  assert.equal(h({entry:listed, conversation:conversation({standing:'app-observed', role:null})}), 'This conversation was started with no role. The Library lists alpha-check for: TASK, WORKING_ITEMS.');
+  // A role this App process did not establish is not known, whatever else the row says.
+  for (const unknown of [conversation({standing:'unknown', reason:'original App supply binding not established'}), conversation(undefined), undefined, {threadId:'chat-1', appRole:{role:'HELP_HUMAN'}}])
+    assert.equal(h({entry:listed, conversation:unknown}), "This conversation's role is not known to this App process. The Library lists alpha-check for: TASK, WORKING_ITEMS.");
+  // Only the catalogue carries the Library's list: no entry, or an entry with no roles, says nothing.
+  assert.equal(h({entry:undefined, conversation:conversation({standing:'app-observed', role:'HELP_HUMAN'})}), '');
+  assert.equal(h({entry:entry('plain', {}, {roles:[]}), conversation:conversation({standing:'app-observed', role:'HELP_HUMAN'})}), '');
+  assert.equal(h({entry:entry('plain', {}, {roles:undefined}), conversation:conversation({standing:'app-observed', role:'HELP_HUMAN'})}), '');
 });
