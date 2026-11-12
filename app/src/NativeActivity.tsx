@@ -66,7 +66,10 @@ export function activityModel(view: Json, threadId: string): ActivityModel {
     turn.checklists.sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0));
   }
   // An error notice has its place in the same receiving order as the items.
-  const firstSeen = (turn: ActivityTurn) => Math.min(...turn.items.map(order), ...turn.errors.map(order), ...turn.unreadableErrors.map(order), Number.MAX_SAFE_INTEGER);
+  // The host keeps only a turn's newest notices, so each carries the order
+  // of the turn's first one: the turn's place does not move as old ones go.
+  const noticeOrder = (entry: Json) => (typeof entry?.turnFirstObservedOrder === "number" ? entry.turnFirstObservedOrder : order(entry));
+  const firstSeen = (turn: ActivityTurn) => Math.min(...turn.items.map(order), ...turn.errors.map(noticeOrder), ...turn.unreadableErrors.map(noticeOrder), Number.MAX_SAFE_INTEGER);
   const started = (turn: ActivityTurn) => (typeof turn.native?.startedAt === "number" ? turn.native.startedAt : null);
   // Turns with a native start time keep that order. A turn without one goes
   // after every turn this App received before it.
@@ -416,22 +419,34 @@ const errorWords = (error: Json) => `${text(error?.message)}${typeof error?.addi
 /**
  * The supplier's `error` notifications for one turn, as received. The words
  * are Codex's; the App adds only what it received and when: whether Codex
- * said it will retry, and whether any further event naming the turn (an
- * item, a delta, the turn's end, or a notice it could not read) arrived
- * after the latest notice. Nothing here says the turn failed, recovered or
+ * said it will retry, and whether a later frame that itself names the turn
+ * (an item, a delta, the turn's end, or a frame named error it could not
+ * read) arrived after the latest notice. A frame tied to the turn only
+ * through a request or a reply is not counted, and the sentences say so. Nothing here says the turn failed, recovered or
  * is still trying, or that Codex's process has ended.
  */
 export function TurnErrors({ errors, unreadable, turn }: { errors: Json[]; unreadable?: Json[]; turn: Json | null }) {
   const unread = list(unreadable);
   if (errors.length === 0 && unread.length === 0) return null;
-  const refused = unread.length > 0 && <p role="status">Codex sent {unread.length === 1 ? "an error notice" : `${unread.length} error notices`} for this turn that the App could not read as the error notice its Codex version defines, so {unread.length === 1 ? "its" : "their"} meaning and retry state are not established. {unread.length === 1 ? "It is" : "They are"} kept unchanged in the native envelopes under Host diagnostics (received at position {unread.map((entry: Json) => text(entry?.receiptPosition)).join(", ")}).</p>;
-  if (errors.length === 0) return <div aria-label="Errors Codex reported in this turn">{refused}</div>;
+  // What the host knows of a frame it could not read is its kind, where it
+  // was received, and how many there were; never a meaning or a retry state.
+  const lastUnread = unread[unread.length - 1];
+  const unreadCount = typeof lastUnread?.ordinalInTurn === "number" ? lastUnread.ordinalInTurn : unread.length;
+  const requests = unread.filter((entry: Json) => entry?.kind === "server-request-named-error").length;
+  const refused = unread.length > 0 && <p role="status">
+    Codex sent {unreadCount === 1 ? "a frame" : `${unreadCount} frames`} named <code>error</code> for this turn that the App could not read as the error notice its Codex version defines, so {unreadCount === 1 ? "its" : "their"} meaning and retry state are not established.
+    {requests > 0 && ` ${requests === unread.length && unreadCount === unread.length ? (requests === 1 ? "It was" : "They were") : `${requests} of those kept ${requests === 1 ? "was" : "were"}`} ${requests === 1 ? "a request from Codex and not a notice" : "requests from Codex and not notices"}.`}
+    {unreadCount > unread.length && ` The App kept the latest ${unread.length}.`}
+    {" "}Received at position {unread.map((entry: Json) => text(entry?.receiptPosition)).join(", ")}; the original {unread.length === 1 ? "envelope is" : "envelopes are"} under Host diagnostics only while the host's journal still holds {unread.length === 1 ? "it" : "them"}.
+  </p>;
+  // With nothing readable, no error notice was established: the group is not labelled as one.
+  if (errors.length === 0) return <div aria-label="Frames named error that the App could not read">{refused}</div>;
   const latest = errors[errors.length - 1];
   const received = typeof latest?.ordinalInTurn === "number" ? latest.ordinalInTurn : errors.length;
   const retry = latest?.willRetry === true ? "Codex said it will retry." : latest?.willRetry === false ? "Codex said it will not retry." : "Codex did not say whether it will retry.";
-  const since = latest?.laterFrameForTurn === true ? "The App has received further events for this turn since."
-    : latest?.observationEnded === true ? "The App stopped receiving from that Codex process before any further event for this turn."
-    : turn?.status === "inProgress" || turn === null ? "The App has received no further event for this turn since." : "";
+  const since = latest?.laterFrameForTurn === true ? "The App has since received a later event naming this turn."
+    : latest?.observationEnded === true ? "The App stopped receiving from that Codex process before any later event naming this turn."
+    : turn?.status === "inProgress" || turn === null ? "No later event naming this turn has reached the App." : "";
   return <div role={latest?.willRetry === false ? "alert" : "status"} aria-label="Errors Codex reported in this turn">
     <p>Codex reported an error in this turn{received > 1 ? ` ${received} times; the latest` : ""}: <q>{errorWords(latest?.error)}</q> {retry}{since && ` ${since}`}</p>
     <details><summary>{errors.length === 1 ? "The error notice, with its whole error object" : `The ${errors.length} error notices in the order received, each with its whole error object`}</summary>
