@@ -24,7 +24,8 @@ def load(name, path):
 texts = load('coverage_test_package_texts', NOTICES / 'package_texts.py')
 coverage = load('coverage_test_coverage', NOTICES / 'coverage.py')
 COPIED_TREES = ('app/packaging/notices', 'app/packaging/unsigned', 'app/packaging/font_notice', 'app/packaging/sqlite_notice',
-                'app/packaging/supplier_notices', 'app/src/fonts')
+                'app/packaging/supplier_notices', 'app/src/fonts', 'app/src-tauri/icons')
+TABLE = 'app/packaging/supplier_notices/components.json'
 COPIED_FILES = ('LICENSE.md', 'app/package.json', 'app/package-lock.json', 'app/src-tauri/Cargo.toml', 'app/src-tauri/Cargo.lock',
                 'app/src-tauri/tauri.conf.json', 'app/src/workspace.css', 'app/index.html', 'app/src-tauri/src/hosting.rs')
 
@@ -117,6 +118,27 @@ class ShippedTexts(Copy):
         lock.write_text(lock.read_text().replace(hashlib.sha256(raw).hexdigest(), '0' * 64))
         with self.assertRaisesRegex(ValueError, 'differs from the lock'): texts.crate_texts(lock, cache, self.repo.parent / 'out2')
 
+    def test_general_extraction_refuses_two_notice_members_for_one_name(self):
+        for members in ({'LICENSE': b'one\n', 'license': b'two\n'}, {'LICENSE-MIT': b'one\n'}):
+            raw = crate('invented-crate', '1.0.0', members)
+            if len(members) == 1:  # the same name twice in one archive
+                buffer = io.BytesIO()
+                with tarfile.open(fileobj=io.BytesIO(raw)) as source, tarfile.open(fileobj=buffer, mode='w:gz') as target:
+                    for member in source.getmembers():
+                        target.addfile(member, source.extractfile(member))
+                    info = tarfile.TarInfo('invented-crate-1.0.0/LICENSE-MIT'); info.size = 4
+                    target.addfile(info, io.BytesIO(b'two\n'))
+                raw = buffer.getvalue()
+            with self.subTest(members=sorted(members)):
+                folder = Path(tempfile.mkdtemp(dir=self.repo.parent))
+                (folder / 'invented-crate-1.0.0.crate').write_bytes(raw)
+                (folder / 'Cargo.lock').write_text('version = 4\n[[package]]\nname = "invented-crate"\nversion = "1.0.0"\n'
+                                                   'source = "registry+https://github.com/rust-lang/crates.io-index"\n'
+                                                   f'checksum = "{hashlib.sha256(raw).hexdigest()}"\n')
+                with self.assertRaisesRegex(ValueError, 'two notice members'):
+                    texts.crate_texts(folder / 'Cargo.lock', folder, folder / 'out')
+                self.assertFalse((folder / 'out').exists())
+
     def test_overlay_maps_every_shipped_text_once(self):
         overlay = json.loads((ROOT / texts.OVERLAY).read_text())
         self.assertEqual(overlay, texts.overlay(ROOT))
@@ -128,6 +150,95 @@ class ShippedTexts(Copy):
 
 
 class Account(Copy):
+    def build(self):
+        (self.repo / texts.OVERLAY).write_text(json.dumps(texts.overlay(self.repo), indent=2) + '\n')
+        return coverage.build(self.repo)
+
+    def row(self, value, name, version=None):
+        return next(c for c in value['components'] if c['name'] == name and (version is None or c['version'] == version))
+
+    # Review finding 1: V8's subdirectory licences ship, and each root-text supplier row says what was looked at below the root.
+    def test_v8_ships_its_third_party_licences_and_root_text_rows_state_their_extent(self):
+        account = json.loads((ROOT / coverage.ACCOUNT).read_text())
+        v8 = self.row(account, 'V8')
+        third = sorted(t['source_path'] for t in v8['texts'] if t['source_path'].startswith('third_party/'))
+        self.assertEqual(len(third), 16)
+        self.assertIn('third_party/inspector_protocol/LICENSE', third)
+        self.assertTrue(all(t['package_path'].startswith('third-party-notices/supplier/') for t in v8['texts']))
+        for component in account['components']:
+            if component['class'] == 'supplier' and component['standing'] == 'covered':
+                self.assertTrue(component.get('below_root'), component['id'])
+        gaps = {c['id'] for c in account['components'] if c['standing'] == 'uncovered'}
+        self.assertTrue({'libcxx-credits-and-subdirectories', 'libcxxabi-credits-and-subdirectories', 'llvm-libc-subdirectories'} <= gaps)
+
+    # Review finding 2: deleting the uncovered supplier groups cannot make the strict check pass.
+    def test_deleting_compiled_dependency_rows_leaves_every_executable_uncovered(self):
+        self.edit(TABLE, lambda v: v.update(components=[c for c in v['components'] if c.get('kind') != coverage.COMPILED]))
+        value = self.build()
+        executables = texts.executables(texts.supplier_record(self.repo)[2])
+        self.assertEqual(len(executables), 5)
+        open_names = {o['name'] for o in value['open']}
+        for path in executables:
+            self.assertIn('Dependencies compiled into ' + path, open_names)
+        with self.assertRaisesRegex(ValueError, 'dropped without a reviewed statement'): coverage.generate(self.repo)
+
+    def test_a_covered_compiled_dependency_row_needs_a_committed_lockfile(self):
+        self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'ripgrep-crate-dependencies').update(
+            standing='covered', texts=['app/packaging/supplier_notices/ripgrep-15.2.0/COPYING']))
+        with self.assertRaisesRegex(ValueError, 'committed lockfile'): self.build()
+
+    def test_a_dropped_component_needs_a_reviewed_statement(self):
+        base = self.repo.parent / 'base.json'; shutil.copyfile(ROOT / coverage.ACCOUNT, base)
+        self.edit(TABLE, lambda v: v.update(components=[c for c in v['components'] if c['id'] != 'llvm-libc-subdirectories']))
+        value = self.build()
+        self.assertEqual(coverage.removed(json.loads(base.read_text()), value, json.loads((self.repo / texts.INPUTS).read_text())),
+                         ['supplier:llvm-libc-subdirectories'])
+        with self.assertRaisesRegex(ValueError, 'dropped without a reviewed statement'): coverage.generate(self.repo)
+        self.edit(texts.INPUTS, lambda v: v['removed_components'].append({'key': 'supplier:llvm-libc-subdirectories', 'reason': 'invented'}))
+        coverage.generate(self.repo)
+        coverage.check(self.repo, base_account=base)
+
+    # Review finding 3: only an affirmative reading in the closed form covers; nothing falls back to covered without one.
+    def test_a_pending_or_missing_reading_is_pending_and_strict_refuses(self):
+        self.edit(texts.INPUTS, lambda v: v['owner_licence_readings'][0].update(answer='INVENTED: pending owner reading'))
+        value = self.build()
+        first = json.loads((ROOT / texts.INPUTS).read_text())['owner_licence_readings'][0]['package']
+        self.assertEqual(self.row(value, first)['standing'], coverage.HELD)
+        self.setUp(); self.edit(texts.INPUTS, lambda v: v['owner_licence_readings'][1].update(statement='INVENTED words'))
+        self.assertEqual(sum(c['standing'] == coverage.HELD for c in self.build()['components']), 1)
+        self.setUp(); self.edit(texts.INPUTS, lambda v: v.update(owner_licence_readings=[]))
+        value = self.build()
+        held = {c['name'] for c in value['components'] if c['standing'] == coverage.HELD}
+        self.assertEqual(len(held), 9)
+        self.assertTrue({'objc2-encode', 'objc2-exception-helper', 'objc2-core-foundation', 'objc2-web-kit'} <= held)
+
+    def test_a_reading_cannot_be_extended_to_a_crate_that_needs_none(self):
+        self.edit(texts.INPUTS, lambda v: v['owner_licence_readings'].append(
+            {**v['owner_licence_readings'][0], 'package': 'serde', 'version': '1.0.229'}))
+        with self.assertRaisesRegex(ValueError, 'needs none'): self.build()
+
+    # Review finding 5: notices join by ecosystem, name and version.
+    def test_direct_notices_join_by_version(self):
+        account = json.loads((ROOT / coverage.ACCOUNT).read_text())
+        cargo = [c for c in account['components'] if c['class'] == 'cargo']
+        self.assertEqual(sum(c['relation'] == 'direct' for c in cargo), 18)
+        self.assertEqual(sum(c['relation'] == 'transitive' for c in cargo), 174)
+        old = self.row(account, 'getrandom', '0.3.4')
+        self.assertEqual(old['relation'], 'transitive')
+        self.assertTrue(all('/getrandom/0.3.4/' in t['package_path'] for t in old['texts']))
+        for component in cargo + [c for c in account['components'] if c['class'] == 'npm']:
+            for text in component['texts']:
+                self.assertIn(f"/{component['name']}/{component['version']}/", text['package_path'])
+
+    # Smaller finding: the bundled icon has a row, and an icon without provenance stands uncovered.
+    def test_bundled_icon_needs_provenance(self):
+        account = json.loads((ROOT / coverage.ACCOUNT).read_text())
+        self.assertEqual(self.row(account, 'App icon icons/icon.png')['standing'], coverage.COVERED)
+        (self.repo / 'app/src-tauri/icons/icon.png').write_bytes(b'INVENTED icon')
+        with self.assertRaisesRegex(ValueError, 'differs from its provenance'): self.build()
+        self.setUp(); self.edit(texts.INPUTS, lambda v: v.update(app_assets=[]))
+        self.assertEqual(self.row(self.build(), 'App icon icons/icon.png')['standing'], coverage.UNCOVERED)
+
     def test_committed_account_is_current_and_counts_add_up(self):
         result = coverage.check(ROOT)
         account = json.loads((ROOT / coverage.ACCOUNT).read_text())
@@ -168,13 +279,8 @@ class Account(Copy):
         self.assertEqual({o['name'] for o in value['open'] if o['standing'] == coverage.UNCOVERED} & {'vsimd', 'uuid-simd'},
                          {'vsimd', 'uuid-simd'})
 
-    def test_owner_reading_cannot_cover_a_crate_without_a_held_text(self):
-        self.edit(texts.INPUTS, lambda v: v['owner_licence_readings'].append(
-            {**v['owner_licence_readings'][0], 'package': 'serde', 'version': '1.0.229'}))
-        with self.assertRaisesRegex(ValueError, 'no held text'): coverage.build(self.repo)
-
     def test_supplier_table_must_claim_every_member_and_justify_gaps(self):
-        table = 'app/packaging/supplier_notices/components.json'
+        table = TABLE
         self.edit(table, lambda v: v['components'].pop(next(i for i, c in enumerate(v['components']) if c['id'] == 'zlib')))
         with self.assertRaisesRegex(ValueError, 'claimed by no component'): coverage.build(self.repo)
         self.setUp()

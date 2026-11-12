@@ -170,5 +170,16 @@
    "basis": "MANIFEST.json source_revision; LICENSE.md at that revision is byte-equal to the App's LICENSE.md"
   }
  ],
- "permission": "The owner permitted fetching plain licence and copyright texts from the publisher's source at a fixed revision, kept with the notices and named in the pull request."
+ "permission": "The owner permitted fetching plain licence and copyright texts from the publisher's source at a fixed revision, kept with the notices and named in the pull request.",
+ "removed_components": [],
+ "app_assets": [
+  {
+   "path": "app/src-tauri/icons/icon.png",
+   "bundle_role": "bundle icon (tauri.conf.json bundle.icon)",
+   "sha256": "a56fcc572bf88c66724b07d82c30a4e607f2f7fa4271dfc9a602c1ede3ddfe60",
+   "size_bytes": 105,
+   "added_by_commit": "657383366595de6ed43eee2d910d64debaeeba89",
+   "provenance": "Added by the App's own first commit with no outside source named; the image is a 32x32 square of one solid colour (RGBA 40,60,90,255), so it carries no third-party artwork. It is the App's own asset under the App's LICENSE.md."
+  }
+ ]
 }

@@ -17,7 +17,7 @@ class ProductionInputs(unittest.TestCase):
         self.root = Path(self.temp.name).resolve()
         self.source = self.root / 'source'
         for relative in ('app/src-tauri/resources', 'app/packaging/unsigned', 'app/packaging/notices', 'app/packaging/sqlite_notice', 'app/packaging/font_notice',
-                         'app/packaging/supplier_notices', 'app/src/fonts', 'app/src-tauri/schemas'):
+                         'app/packaging/supplier_notices', 'app/src/fonts', 'app/src-tauri/schemas', 'app/src-tauri/icons'):
             shutil.copytree(ROOT / relative, self.source / relative)
         for relative in ('app/package.json', 'app/package-lock.json', 'app/src-tauri/Cargo.lock', 'app/src-tauri/Cargo.toml', 'app/src-tauri/tauri.conf.json',
                          'app/src/workspace.css', 'app/index.html', 'app/src-tauri/src/hosting.rs', 'LICENSE.md'):
@@ -403,6 +403,25 @@ class ProductionInputs(unittest.TestCase):
         self.assertEqual(account['release_standing'],'not for public release (named by the caller); notice coverage is incomplete')
         self.assertEqual(result['release_standing'],account['release_standing'])
         self.assertEqual(len(account['notice_coverage']['open']),len(open_items))
+    def test_complete_account_for_another_supplier_cannot_make_a_public_plan(self):
+        # Review finding 4: an account made complete but describing 0.167.0 does not cover the invented 9.9.9 vendor.
+        real_load = module.load_module
+        account = json.loads((ROOT/'app/packaging/notices/coverage.json').read_text())
+        class Complete:
+            __file__ = str(ROOT / 'app/packaging/notices/coverage.py')
+            @staticmethod
+            def check(root): return {'sha256': '0' * 64, 'counts': {'covered': 1}, 'open': [], 'supplier_pin': account['supplier_pin'],
+                                     'supplier_distribution': account['supplier_distribution']}
+        def load(name, path):
+            return Complete if name == 'production_notice_coverage' else real_load(name, path)
+        kw=self.production(); kw.pop('not_for_public_release')
+        with patch.object(module, 'load_module', load):
+            with self.assertRaisesRegex(ValueError, 'describes supplier'): self.run_plan(**kw)
+            self.assertFalse(self.output.exists())
+            self.run_plan(**self.production())
+        inventory=json.loads((self.output/'input-inventory.json').read_text())
+        self.assertFalse(inventory['notice_coverage']['describes_selected_vendor'])
+        self.assertIn('notice coverage is incomplete', inventory['release_standing'])
     def test_stale_coverage_account_refuses_before_output(self):
         path=self.source/'app/packaging/notices/coverage.json'
         value=json.loads(path.read_text()); value['counts']['covered']+=1; path.write_text(json.dumps(value))

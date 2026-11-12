@@ -148,6 +148,182 @@
    "ref": "15.2.124.1"
   },
   {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/colorama/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/colorama/LICENSE",
+   "size_bytes": 1492,
+   "sha256": "15137d6c822e3ab097093a33c3a39a9df699f373f6438867ad534ff60762a947",
+   "git_blob_sha1": "5f567799f395f33acd05abbc5d409dd126ce0dc8",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/disarm/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/disarm/LICENSE",
+   "size_bytes": 1500,
+   "sha256": "4f576036de0aef8e65f1909c2b08411902cd6de1f3b9d35e0cfe9c223aac2155",
+   "git_blob_sha1": "ae40aec38f55c119c2b1edcc4d8845a162614a87",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/fadec/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/fadec/LICENSE",
+   "size_bytes": 1500,
+   "sha256": "859902e8fdb8978c08ddd9b3fd62f9b704f88fc8a696f7bfd451d54bfcd579dc",
+   "git_blob_sha1": "0f97558169968d0dd21ff6d901f4775ecd398f4a",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/fp16/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/fp16/LICENSE",
+   "size_bytes": 1158,
+   "sha256": "c91377adafa2f498211a4fe017788e20c38892124673860f068f2919c289193d",
+   "git_blob_sha1": "9a13c7985502d2f154ef156b822ee2fd92960e36",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/highway/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/highway/LICENSE",
+   "size_bytes": 11356,
+   "sha256": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1",
+   "git_blob_sha1": "f49a4e16e68b128803cc2dcea614603632b04eac",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/inspector_protocol/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/inspector_protocol/LICENSE",
+   "size_bytes": 1537,
+   "sha256": "450ebb9e9e50c2809d9ca581931fc8946d8d5aa0c8c35aae9ac471342fe4a88e",
+   "git_blob_sha1": "1e5610962e92ddd84eaddb72486defbb82732f0d",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/jsoncpp/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/jsoncpp/LICENSE",
+   "size_bytes": 2665,
+   "sha256": "76c45ece83a26117f86f4e349e7df118708e061e87225328fb478ce1e8b3eb86",
+   "git_blob_sha1": "ca2bfe1a03ee5e391f51b1bc4de47114421eec98",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/rapidhash-v8/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/rapidhash-v8/LICENSE",
+   "size_bytes": 1705,
+   "sha256": "db672df7faf793fbe28b8074fdd10822363e1525816b45c9627754885de842b0",
+   "git_blob_sha1": "e70352870fba33e50902c8765cf71e3397b6667c",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/re2/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/re2/LICENSE",
+   "size_bytes": 1558,
+   "sha256": "6040cda75d90b1738292a631d89934c411ef7ffd543c4d6a1b7edfc8edf29449",
+   "git_blob_sha1": "09e5ec1c74c187adc8fde6c74308c3492ef31f77",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/siphash/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/siphash/LICENSE",
+   "size_bytes": 6555,
+   "sha256": "36ffd9dc085d529a7e60e1276d73ae5a030b020313e6c5408593a6ae2af39673",
+   "git_blob_sha1": "670154e3538863b2d9891fd5483160fbdfc89164",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/utf8-decoder/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/utf8-decoder/LICENSE",
+   "size_bytes": 1087,
+   "sha256": "3f712e5fbdfdbd5ee7d9b8c8152580220df55de47f4eba2f26c95c4de19ad096",
+   "git_blob_sha1": "b59bef2fb6a81448fccc34f3d45c9405b70bd0dd",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/v8/builtins/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/v8/builtins/LICENSE",
+   "size_bytes": 12763,
+   "sha256": "b9a6d9320b8f2693e8d41e496ce56caadacaddcca9be2a64a61749278f425cf2",
+   "git_blob_sha1": "1afbedba92b33c6b418c343f7b4c6948318eb197",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/v8/codegen/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/v8/codegen/LICENSE",
+   "size_bytes": 1157,
+   "sha256": "17e4f539024be2749ee729d1e2f01d24cef12ece8c9bf18e91a4349be29c80bf",
+   "git_blob_sha1": "eabec6c86a3c7117090954b3756012b37b7c3786",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/valgrind/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/valgrind/LICENSE",
+   "size_bytes": 2439,
+   "sha256": "ebf25b8ce59c9e8883acd1ca75b6fc121937ca034f666c4077d2be739d2e1622",
+   "git_blob_sha1": "0be0037ca2e9a4e5e46c48703b0c05a39a11c985",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/vtune/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/vtune/LICENSE",
+   "size_bytes": 1925,
+   "sha256": "02aea3ade0c02470335987f7d93ffaed877bcefc8414a416e2e548665bb0bfd0",
+   "git_blob_sha1": "50002e2937126da35754fc64b69213b1ea44b2a0",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/v8-15.2.124.1/third_party/wasm-api/LICENSE",
+   "repository": "https://github.com/v8/v8",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "source_path": "third_party/wasm-api/LICENSE",
+   "size_bytes": 11358,
+   "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08",
+   "git_blob_sha1": "8f71f43fee3f78649d238238cbde51e6d7055c82",
+   "ref": "15.2.124.1",
+   "fetched_with_owner_permission": true
+  },
+  {
    "path": "app/packaging/supplier_notices/rusty_v8-350c5a85/LICENSE",
    "repository": "https://github.com/seanh-oai/rusty_v8",
    "revision": "350c5a859a9b3c84ab8701b3ad51e3b7699b30c0",
@@ -356,7 +532,8 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "declared_license": "Apache-2.0"
+   "declared_license": "Apache-2.0",
+   "below_root": "Root LICENSE and NOTICE. The skill samples embedded in bin/codex and the crates compiled into the executables are their own rows."
   },
   {
    "id": "codex-skill-creator-sample",
@@ -371,7 +548,8 @@
     "app/packaging/supplier_notices/codex-skills-086ccc83/skill-creator/license.txt"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "The sample's own licence file at its path in the source tree."
   },
   {
    "id": "codex-skill-installer-sample",
@@ -386,7 +564,8 @@
     "app/packaging/supplier_notices/codex-skills-086ccc83/skill-installer/LICENSE.txt"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "The sample's own licence file at its path in the source tree."
   },
   {
    "id": "codex-crate-dependencies",
@@ -404,7 +583,8 @@
    "supplier_tree_texts": [],
    "standing": "uncovered",
    "reason": "The supplier publishes no aggregate third-party notice for its executables, and the licence texts of the hundreds of locked crates are not held.",
-   "would_close": "Fetch the archives of the crates codex-rs/Cargo.lock locks at this commit (the owner approved the fetch on 2026-11-12), extract their texts with notices/package_texts.py crates, obtain the 12 Git-sourced packages' texts from their pinned revisions, and ship them per crate."
+   "would_close": "Fetch the archives of the crates codex-rs/Cargo.lock locks at this commit (the owner approved the fetch on 2026-11-12), extract their texts with notices/package_texts.py crates, obtain the 12 Git-sourced packages' texts from their pinned revisions, and ship them per crate.",
+   "kind": "compiled-dependencies"
   },
   {
    "id": "ripgrep",
@@ -421,7 +601,8 @@
     "app/packaging/supplier_notices/ripgrep-15.2.0/UNLICENSE"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "Root COPYING, LICENSE-MIT and UNLICENSE. The retained root listing at e89fff89 has no other licence file; the workspace crates under crates/ are compiled-in crates (row ripgrep-crate-dependencies). The root texts point to no further file."
   },
   {
    "id": "pcre2-sys",
@@ -438,7 +619,8 @@
     "app/packaging/supplier_notices/ripgrep-15.2.0/UNLICENSE"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "COPYING and UNLICENSE (equal to ripgrep's) and pcre2-sys/LICENSE-MIT; the complete listing of the crate directory has no other licence file."
   },
   {
    "id": "pcre2-in-rg",
@@ -453,7 +635,8 @@
     "app/packaging/supplier_notices/pcre2-10.46/LICENCE.md"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "LICENCE.md. The complete recursive listing at b2bd4254 (502 entries) also has AUTHORS.md (3,855 bytes), COPYING (97 bytes) and cmake/COPYING-CMAKE-SCRIPTS (1,326 bytes, build scripts); LICENCE.md points to none of them, and sljit is its own row."
   },
   {
    "id": "sljit-in-rg",
@@ -468,7 +651,8 @@
     "app/packaging/supplier_notices/sljit-e51eabbf/LICENSE"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "Root LICENSE; the complete recursive listing at e51eabbf (73 entries) has no other licence file."
   },
   {
    "id": "ripgrep-crate-dependencies",
@@ -483,7 +667,8 @@
    "supplier_tree_texts": [],
    "standing": "uncovered",
    "reason": "Only ripgrep's own texts and the pcre2-sys/PCRE2/sljit chain are held; the licence texts of the other crates ripgrep's Cargo.lock locks are not.",
-   "would_close": "Fetch the archives of the crates ripgrep 15.2.0's Cargo.lock locks (the owner approved fetching the texts of the supplier's compiled-in dependencies on 2026-11-12), extract their texts with notices/package_texts.py crates and ship them per crate."
+   "would_close": "Fetch the archives of the crates ripgrep 15.2.0's Cargo.lock locks (the owner approved fetching the texts of the supplier's compiled-in dependencies on 2026-11-12), extract their texts with notices/package_texts.py crates and ship them per crate.",
+   "kind": "compiled-dependencies"
   },
   {
    "id": "v8",
@@ -498,10 +683,27 @@
     "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE",
     "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE.v8",
     "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE.fdlibm",
-    "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE.strongtalk"
+    "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE.strongtalk",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/colorama/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/disarm/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/fadec/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/fp16/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/highway/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/inspector_protocol/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/jsoncpp/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/rapidhash-v8/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/re2/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/siphash/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/utf8-decoder/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/v8/builtins/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/v8/codegen/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/valgrind/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/vtune/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/wasm-api/LICENSE"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "Root LICENSE, LICENSE.v8, LICENSE.fdlibm and LICENSE.strongtalk, and the 16 LICENSE files under third_party/ at d848a2b3, which with three under test/ are all the LICENSE files in the tree (the lane's tree read). The supplier's build file (third_party/v8/engine.BUILD.bazel at 086ccc83) names inspector_protocol, v8 and vtune under third_party; the others ship because V8's root licence points to its subdirectory licences, and whether each is compiled in was not established. The three LICENSE files under test/ are test material and are not shipped."
   },
   {
    "id": "rusty_v8",
@@ -516,7 +718,8 @@
     "app/packaging/supplier_notices/rusty_v8-350c5a85/LICENSE"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "Root LICENSE. The retained root listing of the fork at 350c5a85 has no other licence file; subdirectories were not listed. V8, which the crate builds, is its own row. The root licence points to no further file."
   },
   {
    "id": "icu",
@@ -531,7 +734,8 @@
     "app/packaging/supplier_notices/icu-d578f2e8/LICENSE"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "Root LICENSE, which carries ICU's third-party terms in its own section. The retained listing at d578f2e8 is the root only (license.html, 622 bytes, is not held); subdirectories were not listed. The root licence points to no further file."
   },
   {
    "id": "libcxx",
@@ -546,7 +750,8 @@
     "app/packaging/supplier_notices/libcxx-b16984ce/LICENSE.TXT"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "Root LICENSE.TXT. It names the contributors listed in CREDITS.TXT and says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so neither is held (row libcxx-credits-and-subdirectories)."
   },
   {
    "id": "libcxxabi",
@@ -561,7 +766,8 @@
     "app/packaging/supplier_notices/libcxxabi-8f11bb1d/LICENSE.TXT"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "Root LICENSE.TXT. It names the contributors listed in CREDITS.TXT and says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so neither is held (row libcxxabi-credits-and-subdirectories)."
   },
   {
    "id": "llvm-libc",
@@ -576,7 +782,53 @@
     "app/packaging/supplier_notices/llvm-libc-75ae50cd/LICENSE.TXT"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "Root LICENSE.TXT. It says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so those are not enumerated (row llvm-libc-subdirectories)."
+  },
+  {
+   "id": "libcxx-credits-and-subdirectories",
+   "name": "libc++ CREDITS.TXT and subdirectory licences",
+   "version": "b16984ce",
+   "repository": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxx.git",
+   "revision": "b16984ce99c702355a5b2b4c52574e82cec41fb9",
+   "members": [
+    "bin/codex-code-mode-host"
+   ],
+   "texts": [],
+   "supplier_tree_texts": [],
+   "standing": "uncovered",
+   "reason": "libc++'s LICENSE.TXT names the contributors listed in CREDITS.TXT and points to subdirectory LICENSE files for third-party code; CREDITS.TXT is not held and the subdirectories (cmake, docs, include, lib, modules, src, test, utils, vendor) were not listed.",
+   "would_close": "Fetch CREDITS.TXT (blob aa3c8cf1a8c6e3aebf00f4dde627ed429c261640, 4,124 bytes) at b16984ce, and a recursive tree listing at that revision to name the LICENSE files below the root, then fetch those."
+  },
+  {
+   "id": "libcxxabi-credits-and-subdirectories",
+   "name": "libc++abi CREDITS.TXT and subdirectory licences",
+   "version": "8f11bb1d",
+   "repository": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxxabi.git",
+   "revision": "8f11bb1d4438d0239d0dfc1bd9456a9f31629dda",
+   "members": [
+    "bin/codex-code-mode-host"
+   ],
+   "texts": [],
+   "supplier_tree_texts": [],
+   "standing": "uncovered",
+   "reason": "libc++abi's LICENSE.TXT names the contributors listed in CREDITS.TXT and points to subdirectory LICENSE files for third-party code; CREDITS.TXT is not held and the subdirectories were not listed.",
+   "would_close": "Fetch CREDITS.TXT (blob fbb6cbf38baf60a05dcca9025e50f3a25c961b73, 1,660 bytes) at 8f11bb1d, and a recursive tree listing at that revision to name the LICENSE files below the root, then fetch those."
+  },
+  {
+   "id": "llvm-libc-subdirectories",
+   "name": "llvm-libc subdirectory licences",
+   "version": "75ae50cd",
+   "repository": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libc.git",
+   "revision": "75ae50cd48c8a9d70f552ccff040029968778da9",
+   "members": [
+    "bin/codex-code-mode-host"
+   ],
+   "texts": [],
+   "supplier_tree_texts": [],
+   "standing": "uncovered",
+   "reason": "llvm-libc's LICENSE.TXT points to subdirectory LICENSE files for third-party code; the subdirectories were not listed.",
+   "would_close": "A recursive tree listing at 75ae50cd to name the LICENSE files below the root, then fetch those."
   },
   {
    "id": "highway",
@@ -591,7 +843,8 @@
     "app/packaging/supplier_notices/highway-2607d3b5/LICENSE"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file."
   },
   {
    "id": "fast_float",
@@ -609,7 +862,8 @@
     "app/packaging/supplier_notices/fast_float-8.2.10/LICENSE-MIT"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file."
   },
   {
    "id": "simdutf",
@@ -626,7 +880,8 @@
     "app/packaging/supplier_notices/simdutf-7.7.0/LICENSE-MIT"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file."
   },
   {
    "id": "dragonbox",
@@ -642,7 +897,8 @@
     "app/packaging/supplier_notices/dragonbox-beeeef91/LICENSE-Boost"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file."
   },
   {
    "id": "fp16",
@@ -657,7 +913,8 @@
     "app/packaging/supplier_notices/fp16-782eea12/LICENSE"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file."
   },
   {
    "id": "abseil-cpp",
@@ -673,7 +930,8 @@
     "app/packaging/supplier_notices/abseil-cpp-20250814.1/LICENSE"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file."
   },
   {
    "id": "gstreamer",
@@ -691,7 +949,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "gst-plugins-base",
@@ -715,7 +974,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "gst-plugins-good",
@@ -731,7 +991,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "glib",
@@ -749,7 +1010,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "proxy-libintl",
@@ -764,7 +1026,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/proxy-libintl.txt"
    ],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "libffi",
@@ -779,7 +1042,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/libffi.txt"
    ],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "pcre2-voice",
@@ -795,7 +1059,8 @@
     "codex-resources/voice/licenses/PCRE2.md",
     "codex-resources/voice/licenses/sljit.txt"
    ],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "opus",
@@ -810,7 +1075,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/Opus.txt"
    ],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "zlib",
@@ -825,7 +1091,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/zlib.txt"
    ],
-   "standing": "covered"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   }
  ]
 }

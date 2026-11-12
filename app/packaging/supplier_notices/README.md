@@ -17,12 +17,15 @@ names: `codex/` (the supplier's root LICENSE and NOTICE, equal at 0.160.0 and
 0.167.0), `codex-skills-086ccc83/` (the two skill samples embedded in
 `bin/codex`), the ripgrep chain (`ripgrep-15.2.0/`, `pcre2-sys-0.2.10/`,
 `pcre2-10.46/`, `sljit-e51eabbf/`) and the V8 stack behind
-`bin/codex-code-mode-host` (`v8-15.2.124.1/`, `rusty_v8-350c5a85/`, ICU, libc++,
-libc++abi, llvm-libc, and highway, fast_float, simdutf, dragonbox, FP16 and
-abseil-cpp as Codex's `third_party/v8` build files pin them). Texts in
-subdirectories of those repositories are not included, and which component is in
-which binary is the supplier's statement in its source, not read from the binary.
-The crates compiled into the supplier's executables and into `rg` stay uncovered.
+`bin/codex-code-mode-host` (`v8-15.2.124.1/` with V8's 16 `third_party/` LICENSE
+files at the same revision, `rusty_v8-350c5a85/`, ICU, libc++, libc++abi,
+llvm-libc, and highway, fast_float, simdutf, dragonbox, FP16 and abseil-cpp as
+Codex's `third_party/v8` build files pin them). Each row's `below_root` says what
+was examined below the root. Where a root text points to files that are not held
+(libc++ and libc++abi `CREDITS.TXT`, and the LLVM subdirectory licences), that is
+its own uncovered row. Which component is in which binary is the supplier's
+statement in its source, not read from the binary. The crates compiled into the
+supplier's executables and into `rg` stay uncovered.
 
 `codex-0.160.0/scripts/codex_package/` keeps the received rg release selector.
 

@@ -336,15 +336,20 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
     # One account of every shipped component's notice; a public-release plan refuses while any is open.
     coverage = load_module('production_notice_coverage', 'app/packaging/notices/coverage.py')
     notice_coverage = coverage.check(source_root)
-    if notice_coverage['open']:
+    # The account counts only for the supplier it describes: the selected pin and vendor manifest.
+    describes_vendor = (notice_coverage['supplier_pin'] == pin
+                        and notice_coverage['supplier_distribution']['manifest_sha256'] == expected_manifest)
+    gaps = [f"{o['name']} {o['version']}" for o in notice_coverage['open']]
+    if not describes_vendor:
+        gaps.insert(0, f"the account describes supplier {notice_coverage['supplier_pin']}, not the selected vendor")
+    if gaps:
         require(publisher_ref is None or not_for_public_release,
-                'notice coverage is incomplete; a production plan needs --not-for-public-release: '
-                + ', '.join(f"{o['name']} {o['version']}" for o in notice_coverage['open']))
-    release_standing = ('not for public release: notice coverage is incomplete' if notice_coverage['open']
+                'notice coverage is incomplete; a production plan needs --not-for-public-release: ' + ', '.join(gaps))
+    release_standing = ('not for public release: notice coverage is incomplete' if gaps
                         else 'not for public release: package input test' if publisher_ref is None
                         else 'notice coverage complete')
     if not_for_public_release:
-        release_standing = 'not for public release (named by the caller)' + ('; notice coverage is incomplete' if notice_coverage['open'] else '')
+        release_standing = 'not for public release (named by the caller)' + ('; notice coverage is incomplete' if gaps else '')
     tool_paths = [__file__, inventory.__file__, files.__file__, font_notice.__file__, coverage.__file__]
     if supplement is not None: tool_paths.append(receipts.__file__)
     tool_hashes = {str(inventory.anchored(p)): sha(read(Path(p))) for p in tool_paths}
@@ -401,6 +406,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
                    'release_standing': release_standing,
                    'notice_coverage': {'account': 'app/packaging/notices/coverage.json', 'sha256': notice_coverage['sha256'],
                                        'counts': notice_coverage['counts'],
+                                       'supplier_pin': notice_coverage['supplier_pin'], 'describes_selected_vendor': describes_vendor,
                                        'open': [f"{o['name']} {o['version']} ({o['standing']})" for o in notice_coverage['open']]}}
         if supplement is not None: account['upstream_notice_supplement'] = supplement
         if profile_ref: account['provisioning_profile'] = profile_ref

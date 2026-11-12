@@ -28,7 +28,7 @@ supplier tree or network is read.
 | Direct runtime dependencies and the App (`index.json`, `assets/`) | hand-kept, `check.py` | `third-party-notices/index.json`, `assets/` |
 | Transitive runtime closure (`transitive-index.json`) | `transitive.py` | `third-party-notices/transitive-index.json` |
 | Transitive texts (`transitive/<cargo or npm>/<package>/<version>/`) | `package_texts.py extract` | `third-party-notices/transitive/` |
-| Supplier component texts (`../supplier_notices/`, listed in `components.json`) | hand-kept table | `third-party-notices/supplier/` |
+| Supplier component texts (`../supplier_notices/`, listed in `components.json`, with what was examined below each root) | hand-kept table | `third-party-notices/supplier/` |
 | Coverage account (`coverage.json`) | `coverage.py generate` | `third-party-notices/coverage.json` |
 | Font licences and SQLite notice | `../font_notice/`, `../sqlite_notice/` | `third-party-notices/fonts/`, `sqlite-preparation/` (mapped by `prepare.py`) |
 | Voice library licences | the supplier ships them in its tree | `codex/codex-resources/voice/licenses/` |
@@ -75,12 +75,29 @@ names (archives verified against the lock) and writes one row per package:
 
 ## Standings
 
-The nine objc2-family crates ship the objc2 repository's root `LICENSE.md`, a
-licensing overview with no copyright line. They stand covered on the owner's
-licence reading of 2026-11-12, recorded in `coverage-inputs.json` and on each row;
-no other component rests on that reading. The account says for each covered row
-whether its text is a licence file of the locked archive, a root text of the
-repository at the revision the crate names, or that reading.
+Rules `coverage.py` applies, whatever the tables say:
+
+- **Joins** are by ecosystem, name and version; one version never receives another's text.
+- **Owner readings.** The nine objc2-family crates ship the objc2 repository's root
+  `LICENSE.md`, a licensing overview. A crate whose held text comes from that
+  repository, or was received as an upstream text, is covered only by an owner
+  reading in the closed form (`decided_by` owner, a date, an answer from the fixed
+  set in `coverage.py` and that answer's exact words); otherwise it is pending, and
+  never covered by another route. The owner's reading of 2026-11-12 is recorded in
+  `coverage-inputs.json` and on each row. A reading for any other crate refuses.
+- **Repository root texts** at the revision a crate names count as covered with that
+  basis (the project's Agent 0 accepted them as mechanical matches), distinct from
+  licence files inside the crate's archive.
+- **Compiled programs.** Every executable of the declared pin's tree (a regular file
+  with an execute bit that is neither a `.dylib` library nor `.json` data) is a
+  compiled program. Each must belong to a `compiled-dependencies` component in
+  `../supplier_notices/components.json`, covered only with a committed lockfile and
+  texts; otherwise it stands uncovered, whatever the table omits.
+- **Removals.** `generate` refuses to drop a component the committed account has
+  unless `removed_components` in `coverage-inputs.json` states it with a reason;
+  `check --base-account FILE` applies the same rule against an earlier account.
+- **Bundled icons** declared in `tauri.conf.json` need a provenance entry
+  (`app_assets`); one without stands uncovered.
 
 ## Limits
 

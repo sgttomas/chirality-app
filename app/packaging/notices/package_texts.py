@@ -75,6 +75,17 @@ def executables(record):
                   if e['kind'] == 'file' and e['mode'] & 0o111 and not e['path'].endswith(('.dylib', '.json')))
 
 
+def refuse_colliding_notices(archive, name, version):
+    """Two root notice members that would land on one file (same name, or names equal ignoring case) refuse."""
+    prefix, seen = f'{name}-{version}/', {}
+    with tarfile.open(archive) as tar:
+        for member in tar.getmembers():
+            rel = member.name[len(prefix):] if member.name.startswith(prefix) else None
+            if rel and '/' not in rel and transitive.NOTICE_NAME.match(rel):
+                require(rel.casefold() not in seen, f'archive has two notice members for one name: {seen.get(rel.casefold())} and {rel}')
+                seen[rel.casefold()] = rel
+
+
 def crate_texts(lock_path, cargo_cache, out, select=None):
     """General extraction for any Cargo.lock and folder of .crate archives (no index needed).
 
@@ -96,6 +107,7 @@ def crate_texts(lock_path, cargo_cache, out, select=None):
             continue
         archive = Path(cargo_cache) / f'{key[0]}-{key[1]}.crate'
         require(sha(archive.read_bytes()) == package['checksum'], 'cached crate differs from the lock: ' + archive.name)
+        refuse_colliding_notices(archive, *key)
         notices, _, vcs, manifest, _ = transitive.read_crate(archive, *key)
         with tarfile.open(archive) as tar:
             for notice in notices:
@@ -157,8 +169,12 @@ def planned(repo=REPO):
     received = received_subjects(repo, index['cargo'])
     plan = {}
 
+    folded = set()
+
     def add(relative, entry):
-        require(relative not in plan, 'duplicate shipped text: ' + relative)
+        # Case-insensitive file systems would merge names that differ only by case.
+        require(relative.casefold() not in folded, 'duplicate shipped text: ' + relative)
+        folded.add(relative.casefold())
         plan[relative] = entry
 
     for row in index['cargo']:
@@ -208,7 +224,9 @@ def extract(cargo_cache, npm_cache, repo=REPO):
                     raw = (Path(cargo_cache) / source['crate']).read_bytes()
                     require(sha(raw) == source['checksum'], 'cached crate differs from Cargo.lock: ' + source['crate'])
                     with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
-                        crates[source['crate']] = {m.name: archive.extractfile(m).read() for m in archive.getmembers() if m.isfile()}
+                        files = [m for m in archive.getmembers() if m.isfile()]
+                        require(len({m.name for m in files}) == len(files), 'archive repeats a member: ' + source['crate'])
+                        crates[source['crate']] = {m.name: archive.extractfile(m).read() for m in files}
                 data = crates[source['crate']].get(source['member'])
             elif 'integrity' in source:
                 if source['integrity'] not in tarballs:

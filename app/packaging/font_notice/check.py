@@ -301,7 +301,8 @@ def main():
         print(json.dumps({'font_notice_match': True, 'fonts': len(index['fonts']), 'licenses': len(index['licenses']),
                           'name_tables_checked': decoded, 'upstream_members_checked': upstream,
                           'copyright_notices': index['copyright_notices'],
-                          'declared_upstream_verified': index['source']['declared_upstream_verified'],
+                          'index_records_upstream_verified': index['source']['declared_upstream_verified'],
+                          'upstream_rechecked_now': bool(upstream),
                           'standing': 'notice preparation only; no built candidate, legal determination or release approval'}))
         return 0
     except (ValueError, KeyError, TypeError, OSError, UnicodeDecodeError, struct.error, IndexError,
