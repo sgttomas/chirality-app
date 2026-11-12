@@ -111,9 +111,11 @@ fn records_export_standalone_recomputes_chains_and_refuses_a_changed_line_with_r
     let log = f.record();
     export(&f.project, &f.bag()).unwrap();
     let unaltered = standalone(&f.bag());
-    assert!(unaltered.status.success(), "{}", String::from_utf8_lossy(&unaltered.stderr));
+    assert_eq!(unaltered.status.code(), Some(0), "{}", String::from_utf8_lossy(&unaltered.stderr));
     let stdout = String::from_utf8_lossy(&unaltered.stdout);
-    assert!(stdout.contains("Recomputed 1 log chains from the payload: each is whole and ends at its recorded head."), "{stdout}");
+    assert!(stdout.starts_with("Package bytes: consistent."), "{stdout}");
+    assert!(stdout.contains("\nLog integrity: no chain is broken. In every recomputed chain each link names the line before it."), "{stdout}");
+    assert!(stdout.contains("A package whose records, manifests and chain heads were replaced together still verifies."), "{stdout}");
     // Change the first line (same length, still JSON), then recompute both
     // manifests as an alterer would. Only the chain shows the change.
     let dir = records_store::home(&f.project).unwrap().attachment.dir.unwrap();
@@ -128,16 +130,26 @@ fn records_export_standalone_recomputes_chains_and_refuses_a_changed_line_with_r
     std::fs::write(f.bag().join("manifest-sha256.txt"), manifest(&f.bag(), paths.into_iter()).unwrap()).unwrap();
     std::fs::write(f.bag().join("tagmanifest-sha256.txt"), manifest(&f.bag(), TAGS.iter().map(|s| s.to_string())).unwrap()).unwrap();
     let altered = standalone(&f.bag());
-    assert!(!altered.status.success());
+    assert_eq!(altered.status.code(), Some(1));
     let stderr = String::from_utf8_lossy(&altered.stderr);
-    assert!(stderr.contains(&format!("{rel}: chain broken at line 2: it links to")), "{stderr}");
+    assert!(stderr.starts_with("Result: failed (exit status 1).") && stderr.contains(&format!("{rel}: chain broken at line 2: it links to")) && stderr.contains("the package records no break there"), "{stderr}");
     // The App's own verification recomputes the heads and refuses it too.
     assert!(verify(&f.bag()).is_err_and(|e| e.contains("chain heads differ")));
-    // Rewriting the chain-head tag to the broken chain still fails standalone.
+    // With the chain-head tag recomputed as well, the package is the one a
+    // store whose log was already broken would export: it agrees with itself,
+    // which is the unsigned package's stated limit. Neither verification
+    // refuses it, and neither lets consistent bytes stand for a whole log:
+    // each says, separately, that this log's integrity is limited at line 2.
     reprofile_for_test(&f.bag());
+    let app = verify(&f.bag()).unwrap();
+    assert_eq!(app["state"], "package bytes consistent; log integrity limited");
+    assert!(app["logIntegrity"]["limits"][0].as_str().unwrap().starts_with(&format!("{rel}: chain broken at line 2")), "{app}");
     let rewritten = standalone(&f.bag());
-    assert!(!rewritten.status.success());
-    assert!(String::from_utf8_lossy(&rewritten.stderr).contains("also records it broken at export"));
+    assert_eq!(rewritten.status.code(), Some(2), "{}", String::from_utf8_lossy(&rewritten.stderr));
+    let stdout = String::from_utf8_lossy(&rewritten.stdout);
+    assert!(stdout.starts_with("Package bytes: consistent.") && stdout.contains("\nLog integrity: LIMITED in 1 log."), "{stdout}");
+    assert!(stdout.contains(&format!("Integrity limit: {rel}: chain broken at line 2: it links to")), "{stdout}");
+    assert!(!stdout.contains("no chain is broken") && !stdout.contains("exit status 0"), "{stdout}");
 }
 
 #[test]

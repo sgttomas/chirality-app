@@ -983,19 +983,28 @@ pub(crate) fn statement(
         i.project,i.root.display(),i.store_path().display(),i.package_identity,i.payload.len(),i.copied.len(),i.payload.len()-i.copied.len(),
         "Existing differing files and record identity collisions are refused. Source package and project originals stay unchanged. Valid newer local history, holds and closure survive.",
         plan.context["administration"]["resultingRetention"],STANDING,crate::act_control::native_statement::actor_line(&plan.actor));
+    // A chain already broken in the exporting store is imported as it is
+    // and stays reported as broken. The person is told before they decide,
+    // as its own statement: "verified" speaks of the bytes, not of this.
+    let integrity = crate::records_export::integrity_statement(plan.snapshot.log_integrity());
+    let full = match &integrity { Some(limit) => format!("{full}\n\n{limit}"), None => full };
     let full = if let Some(association) = &i.association {
         format!("{full}\n\nIdentity restoration: {}",association.prior.as_ref().map(|q|format!("Release unused startup identity {} from this folder; keep its entire ledger unchanged. Associate this folder with original package identity {}.",q.project,i.project)).unwrap_or_else(||format!("Create the missing project link to original package identity {}.",i.project)))
     } else {
         full
     };
-    let detail = json!({"intent":i,"review":plan.context,"resume":plan.resuming,"actor":plan.actor,"observed":plan.observed});
+    let mut detail = json!({"intent":i,"review":plan.context,"resume":plan.resuming,"actor":plan.actor,"observed":plan.observed});
+    if integrity.is_some() {
+        detail["logIntegrity"] = plan.snapshot.log_integrity().clone();
+    }
     crate::act_control::native_statement::whole_or_in_app(
         "records package import",
         "records package",
         full,
         &detail,
         |digest| {
-            format!("{}\n\nThe complete package, project, destination, actor and retention context is shown in the App under this confirmation. sha-256: {digest}\nUnsigned imported content remains quoted evidence. Changed context refuses publication.",if plan.resuming{"Finish the original package import?"}else{"Import this verified package?"})
+            format!("{}\n\nThe complete package, project, destination, actor and retention context is shown in the App under this confirmation. sha-256: {digest}\nUnsigned imported content remains quoted evidence. Changed context refuses publication.{}",if plan.resuming{"Finish the original package import?"}else{"Import this verified package?"},
+                crate::records_export::integrity_summary(plan.snapshot.log_integrity()).map_or(String::new(), |limit| format!("\n{limit}")))
         },
     )
 }
@@ -1011,8 +1020,9 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
     }
     if plan.noop {
         plan.snapshot.source_unchanged()?;
+        let integrity = plan.snapshot.log_integrity();
         return Ok(
-            json!({"state":"package already present","projectId":i.project,"packageIdentity":i.package_identity,"copied":0,
+            json!({"state":if integrity["state"] == crate::records_export::LIMITED {"package already present; log integrity limited"} else {"package already present"},"logIntegrity":integrity,"projectId":i.project,"packageIdentity":i.package_identity,"copied":0,
             "alreadyPresent":i.payload.len(),"duplicateIdentities":i.duplicates,"retention":retention::view(&dir),"standing":STANDING}),
         );
     }
@@ -1052,11 +1062,15 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
         .unwrap_or_else(|p| p.into_inner())
         .remove(&dir);
     remember(&dir, &i.root);
-    Ok(
+    let mut out =
         json!({"state":"package imported","importId":i.id,"projectId":i.project,"packageIdentity":i.package_identity,
         "copied":i.copied.len(),"alreadyPresent":i.payload.len()-i.copied.len(),"duplicateIdentities":i.duplicates,
-        "retention":retention::view(&dir),"standing":STANDING}),
-    )
+        "retention":retention::view(&dir),"standing":STANDING});
+    out["logIntegrity"] = plan.snapshot.log_integrity().clone();
+    if out["logIntegrity"]["state"] == crate::records_export::LIMITED {
+        out["state"] = json!("package imported; log integrity limited");
+    }
+    Ok(out)
 }
 /// Called by the explicit same-intent recovery route after a native question.
 fn finish(i: &Intent, snapshot: &bag::Snapshot) -> Result<(), String> {

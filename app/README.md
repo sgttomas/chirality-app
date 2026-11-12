@@ -1327,10 +1327,30 @@ log's chain head. Store-wide query caches and the two known owning lock controls
 imported connector publication evidence is preserved.
 **Verify an exported package** checks inventories, hashes and RS heads again.
 The included `verify.py`, with standard Python 3 and without the App, checks
-bytes and inventories and recomputes each recorded log's chain from its lines,
-failing with the log and line where a link does not name the line before it or
-the chain does not end at its recorded head. Exports are unsigned until App
-signing; this verification confers no source authenticity. New packages include a protected
+bytes and inventories and recomputes each recorded log's chain from its lines.
+Every verification, by `verify.py`, by **Verify an exported package**, at
+import and at disposal, makes two separate statements and never lets one stand
+for the other: whether the package's bytes agree with its manifests and
+recorded chain heads, and whether the integrity of any log it carries is
+limited. A package faithfully exported from a store whose chain was already
+broken is not refused: its bytes are consistent, and the log's integrity is
+limited at the line the package records, which is said with the log and line
+each time and stays reported by the store's reader after import. A chain that
+does not match what the package records for it, in either direction, fails.
+`verify.py` ends with exit status 0 when the bytes are consistent and no chain
+is broken, 2 when the bytes are consistent and a log's integrity is limited,
+and 1 when anything disagrees; its output leads with "Package bytes:" and "Log
+integrity:". It validates no record schema, so for a line that is a JSON
+object which the App's reader refuses as nonconformant it may report a broken
+chain where the App reports an invalid line. Disposal may rely on an export
+that carries a limited log: the native disposal question says so as its own
+statement, and the disposal act records it in its `export` member as
+`logIntegrity` (state "no chain recorded broken" or "limited", with each log
+and line); an act recorded before that member existed reads as "not stated".
+Exports are unsigned until App
+signing: the verification compares a package with its own manifests and
+recorded heads, so a package whose records, manifests and heads were replaced
+together still verifies, and it confers no source authenticity. New packages include a protected
 `records-administration.json` tag, reversibly retaining each prior administrative
 event's exact UTF-8 bytes and its project identity. Legacy packages without it
 have unknown retention history and cannot satisfy disposal prerequisites.

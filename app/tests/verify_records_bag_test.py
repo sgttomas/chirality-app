@@ -4,6 +4,8 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -52,8 +54,19 @@ class VerifyBagTest(unittest.TestCase):
         (self.root / "records-chain-heads.json").write_text(json.dumps(heads, indent=2), encoding="utf-8")
         self.seal()
 
+    def run_verifier(self):
+        """Runs the package's own carried copy, as a person without the App would."""
+        return subprocess.run([sys.executable, str(self.root / "verify.py"), str(self.root)], capture_output=True, text=True)
+
     def test_valid_package_and_legacy_history_limit(self):
-        self.assertEqual(verifier.verify(self.root), (1, False, {"profile": "0.2", "logs": 0, "notes": []}))
+        self.assertEqual(verifier.verify(self.root), (1, False, {"profile": "0.2", "logs": 0, "limited": [], "notes": []}))
+        whole = self.run_verifier()
+        self.assertEqual(whole.returncode, 0, whole.stderr)
+        self.assertTrue(whole.stdout.startswith("Package bytes: consistent."), whole.stdout)
+        self.assertIn("\nLog integrity: no chain is broken.", whole.stdout)
+        self.assertIn("\nResult: package bytes consistent; no log integrity limit (exit status 0).", whole.stdout)
+        self.assertNotIn("LIMITED", whole.stdout)
+        self.assertIn("A package whose records, manifests and chain heads were replaced together still verifies.", whole.stdout)
 
     def test_role_log_chain_is_recomputed_in_profile_0_2_and_left_as_a_limit_in_0_1(self):
         lines = linked([{"seq": 1, "observationId": "obs:one"}, {"seq": 2, "observationId": "obs:two"}])
@@ -63,6 +76,15 @@ class VerifyBagTest(unittest.TestCase):
         self.write_heads()
         with self.assertRaisesRegex(ValueError, "observations.jsonl: payload log has no recorded chain head"):
             verifier.verify(self.root)
+        # A role log the App could not read at export is carried as a limit,
+        # as the App's own verification accepts it; never refused.
+        self.write_heads(**{"role-supply/observations.jsonl": {"state": "unreadable or invalid role supply chain", "error": "invented"}})
+        report = verifier.verify(self.root)[2]
+        self.assertEqual(len(report["limited"]), 1)
+        self.assertIn("could not read this log's chain when it was exported", report["limited"][0])
+        unread = self.run_verifier()
+        self.assertEqual(unread.returncode, 2, unread.stderr)
+        self.assertIn("\nLog integrity: LIMITED in 1 log.", unread.stdout)
         # The legacy profile recorded RS heads only and never this log's.
         self.write_log("role-supply/observations.jsonl", b"retained source bytes; schema deliberately unexamined\n")
         self.write_heads(version="0.1")
@@ -78,7 +100,7 @@ class VerifyBagTest(unittest.TestCase):
         lines = linked([{"seq": 1, "body": "first"}, {"seq": 2, "body": "second"}, {"seq": 3, "body": "third"}])
         self.write_log(log, lines)
         self.write_heads(**{log: head(lines)})
-        self.assertEqual(verifier.verify(self.root)[2], {"profile": "0.2", "logs": 1, "notes": []})
+        self.assertEqual(verifier.verify(self.root)[2], {"profile": "0.2", "logs": 1, "limited": [], "notes": []})
         # Same length, still JSON, every checksum recomputed; the chain is not.
         self.write_log(log, lines.replace(b'"first"', b'"FIRST"'))
         self.seal()
@@ -113,14 +135,49 @@ class VerifyBagTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, f"chain broken at line {line}:"):
                     verifier.verify(self.root)
 
-    def test_a_chain_the_store_already_recorded_broken_is_not_verified_whole(self):
+    def test_a_chain_broken_in_the_store_at_export_verifies_only_with_exactly_the_recorded_breaks(self):
         log = "runs/run-one/app-writer.jsonl"
-        lines = linked([{"seq": 1}, {"seq": 2}]).replace(b'"seq": 1', b'"seq": 9')
+        lines = linked([{"seq": 1}, {"seq": 2}, {"seq": 3}]).replace(b'"seq": 1', b'"seq": 9')
         self.write_log(log, lines)
         chain = head(lines)
-        chain["broken"] = ["app-writer.jsonl: chain broken at line 2: recorded by the App"]
+        # As the App records it (record_lines.rs): the faithful package of a
+        # store whose log was already broken. It verifies, the break a limit.
+        chain["broken"] = ["app-writer.jsonl: chain broken at line 2: it links to \"x\", but the preceding line's identity is y; never repaired"]
         self.write_heads(**{log: chain})
-        with self.assertRaisesRegex(ValueError, r"chain broken at line 2: .*also records it broken at export"):
+        report = verifier.verify(self.root)[2]
+        self.assertEqual((report["logs"], len(report["limited"]), report["notes"]), (1, 1, []))
+        self.assertRegex(report["limited"][0], r"app-writer.jsonl: chain broken at line 2: it links to .* records it broken there when exported")
+        # Two statements, never one pass: the bytes are consistent, and this
+        # log's integrity is limited at this line. Its own exit status.
+        limited = self.run_verifier()
+        self.assertEqual(limited.returncode, 2, limited.stderr)
+        first, second = limited.stdout.split("\n")[:2]
+        self.assertTrue(first.startswith("Package bytes: consistent."), limited.stdout)
+        self.assertTrue(second.startswith("Log integrity: LIMITED in 1 log."), limited.stdout)
+        self.assertIn("\n  Integrity limit: runs/run-one/app-writer.jsonl: chain broken at line 2:", limited.stdout)
+        self.assertIn("\nResult: package bytes consistent; log integrity limited (exit status 2).", limited.stdout)
+        for phrase in ("no chain is broken", "each link names the line before it", "Result: verified", "exit status 0"):
+            self.assertNotIn(phrase, limited.stdout)
+        # A further line changed after export is a break the package does not record.
+        self.write_log(log, lines.replace(b'"seq": 2', b'"seq": 8'))
+        self.seal()
+        with self.assertRaisesRegex(ValueError, r"chain broken at line 3: .*the package records no break there"):
+            verifier.verify(self.root)
+        failed = self.run_verifier()
+        self.assertEqual(failed.returncode, 1)
+        self.assertEqual(failed.stdout, "")
+        self.assertTrue(failed.stderr.startswith("Result: failed (exit status 1). Verification failed: runs/run-one/app-writer.jsonl: chain broken at line 3:"), failed.stderr)
+        # A recorded break the lines do not have, and one the verifier cannot place.
+        whole = linked([{"seq": 1}, {"seq": 2}, {"seq": 3}])
+        self.write_log(log, whole)
+        self.write_heads(**{log: dict(head(whole), broken=chain["broken"])})
+        with self.assertRaisesRegex(ValueError, "records a chain broken at line 2, but the recomputed chain is not broken there"):
+            verifier.verify(self.root)
+        self.write_heads(**{log: dict(head(whole), broken=["broken somewhere"])})
+        with self.assertRaisesRegex(ValueError, "cannot compare"):
+            verifier.verify(self.root)
+        self.write_heads(**{log: {k: v for k, v in head(whole).items() if k != "broken"}})
+        with self.assertRaisesRegex(ValueError, "does not say whether the chain was broken at export"):
             verifier.verify(self.root)
 
     def test_legacy_unchained_lines_torn_lines_blank_lines_and_partial_tail_follow_the_app(self):

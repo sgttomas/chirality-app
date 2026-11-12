@@ -5,9 +5,36 @@ Usage: python3 verify.py /path/to/bag
 This checks the inventories and every SHA-256, including the recorded chain-head
 tag, and recomputes each payload log's chain from its lines: every line's link
 must name the SHA-256 of the line before it, and the chain must end at the head
-the package records. The package is unsigned: this shows that its bytes agree
-with its manifests and that its chains are whole, not who produced it, that no
-one rewrote it consistently, nor any human act.
+the package records.
+
+What that shows, and what it does not. A line that was changed, removed or
+reordered is found where the link of the line after it was left as written, and
+a change to a log's last line or lines removed from its end is found by the
+head and line count the package records. A chain that was already broken in the
+store when the package was exported is carried as it stood: the package records
+the lines where it was broken, and when the breaks found are exactly those the
+package bytes are consistent and that log's integrity is limited, which are
+reported as two separate statements. The package is unsigned, so all of
+this compares the package with itself: a package whose records, manifests and
+recorded chain heads were replaced together still verifies. It does not show
+who produced the package, and it shows no human act.
+
+Outcomes. The output always makes two separate statements, "Package bytes:" and
+"Log integrity:", and neither stands for the other.
+  exit status 0  the package bytes are consistent and no chain is broken.
+  exit status 2  the package bytes are consistent, and the integrity of a log is
+                 limited: the package records that its chain was already broken
+                 (or could not be read) in the store at export, and the lines
+                 agree. Each such log and line is named. The package is not
+                 refused, and its logs are not whole.
+  exit status 1  failed: something disagrees. A member, a checksum, an
+                 inventory, or a chain that does not match what the package
+                 records for it, in either direction.
+
+The verifier validates no record schema. A line that is a JSON object is
+examined for its link even where the App's reader would refuse the line as
+nonconformant, so for such a line this may report a broken chain where the App
+reports an invalid line.
 """
 import hashlib
 import json
@@ -190,8 +217,8 @@ def torn_and_named(no, raw, following):
 
 
 def record_chain(data):
-    """A record log's chain and the first break in it, as (line, reason)."""
-    chain, notes, broken = Chain(), [], None
+    """A record log's chain and every break in it, each as (line, reason)."""
+    chain, notes, broken = Chain(), [], []
     lines = data.split(b"\n")
     lines.pop()  # the unclosed final part: a partial, never a line of the chain
     for index, raw in enumerate(lines):
@@ -203,25 +230,43 @@ def record_chain(data):
         if all(byte in WHITESPACE for byte in raw):
             continue
         why = chain.step(no, raw, decoded(raw[:-1] if raw.endswith(b"\r") else raw))
-        if why and broken is None:
-            broken = (no, why)
+        if why:
+            broken.append((no, why))
     return chain, notes, broken
 
 
 def role_chain(data):
-    """The role supply log's chain: every line is a whole JSON object and linked."""
+    """The role supply log's chain: every line is a whole JSON object and linked.
+    The App records a head for this log only when it read it whole, so the
+    first fault ends the reading."""
     chain = Chain()
     lines = data.split(b"\n")
     if lines.pop() != b"":
-        return chain, [], (len(lines) + 1, "a torn final line")
+        return chain, [], [(len(lines) + 1, "a torn final line")]
     for index, raw in enumerate(lines):
         entry = decoded(raw)
         if entry is None:
-            return chain, [], (index + 1, "it is not a readable observation")
+            return chain, [], [(index + 1, "it is not a readable observation")]
         why = chain.step(index + 1, raw, entry)
         if why:
-            return chain, [], (index + 1, why)
-    return chain, [], None
+            return chain, [], [(index + 1, why)]
+    return chain, [], []
+
+
+def recorded_breaks(log, head):
+    """The lines at which the package's recorded head says the chain was already
+    broken when it was exported (the App reports a broken chain and never
+    repairs it, so a faithful package carries one as it stood)."""
+    listed = head.get("broken")
+    if not isinstance(listed, list):
+        raise ValueError(f"{log}: the recorded head does not say whether the chain was broken at export")
+    lines = []
+    for item in listed:
+        found = re.search(r"chain broken at line ([0-9]+):", item) if isinstance(item, str) else None
+        if found is None:
+            raise ValueError(f"{log}: the recorded head records a broken chain this verifier cannot compare: {json.dumps(item)}")
+        lines.append(int(found[1]))
+    return lines
 
 
 def chain_logs(payload, roles):
@@ -232,7 +277,8 @@ def chain_logs(payload, roles):
 
 def chains(root, payload):
     """Recomputes each recorded log's chain from the payload and compares its head
-    with the recorded head. Returns the profile and the notes that limit no chain."""
+    with the recorded head. Returns the profile, the integrity limits the package
+    carries from its store (`limited`) and the notes that limit no chain."""
     heads = decoded(read_bytes(root / HEADS))
     if heads is None or heads.get("format") != "chirality.records-export-chain-heads" or heads.get("method") != METHOD:
         raise ValueError("unsupported chain-head tag")
@@ -256,31 +302,46 @@ def chains(root, payload):
             raise ValueError(f"{log}: recorded chain head names no payload log")
         if log not in expected:
             raise ValueError(f"{log}: recorded chain head for a file that is not a chained log")
-    notes = []
+    notes, limited = [], []
     for log in expected:
         head = recorded[log]
         data = read_bytes(root / "data" / log)
         if hashlib.sha256(data).hexdigest() != names[log]:
             raise ValueError(f"{log}: log changed after its checksum was verified")
         if "state" in head:
-            raise ValueError(f"{log}: recorded at export as {head['state']}: {head.get('error')}")
+            # No head: the App could not read this log's chain at export. For
+            # the role supply log the App's own verification reads the copy
+            # the same way and accepts the package, and this verifier (which
+            # validates no schema) cannot tell a sound log from the one the
+            # App refused, so the log is carried as a limit. A record log's
+            # copy is readable here, so a recorded "unreadable" disagrees.
+            if log != ROLE_LOG:
+                raise ValueError(f"{log}: recorded at export as {head['state']}: {head.get('error')}")
+            limited.append(f"{log}: the package records that the App could not read this log's chain when it was exported "
+                           f"({head['state']}: {head.get('error')}); its lines are carried as they stood and its chain is not recomputed here")
+            continue
         chain, log_notes, broken = (role_chain if log == ROLE_LOG else record_chain)(data)
-        recorded_broken = head.get("broken")
-        if broken is not None:
-            also = " (the recorded head also records it broken at export)" if recorded_broken else ""
-            raise ValueError(f"{log}: chain broken at line {broken[0]}: {broken[1]}{also}")
-        if recorded_broken != []:
-            raise ValueError(f"{log}: the recorded head records a broken chain: {json.dumps(recorded_broken)}")
+        # The breaks found must be exactly the breaks the package records: one
+        # found and not recorded is a line altered since the head was recorded.
+        at_export = recorded_breaks(log, head)
+        for no, why in broken:
+            if no not in at_export:
+                raise ValueError(f"{log}: chain broken at line {no}: {why}; the package records no break there")
+        for no in at_export:
+            if no not in [found for found, _ in broken]:
+                raise ValueError(f"{log}: the package records a chain broken at line {no}, but the recomputed chain is not broken there")
         if head.get("method") != METHOD or head.get("head") != chain.last or type(head.get("lines")) is not int or head.get("lines") != chain.lines:
             raise ValueError(f"{log}: recomputed chain head {chain.last} after {chain.lines} lines "
                              f"differs from the recorded head {head.get('head')} after {head.get('lines')} lines")
+        limited.extend(f"{log}: chain broken at line {no}: {why}; the package records it broken there when exported"
+                       for no, why in broken)
         notes.extend(f"{log}: {note}" for note in log_notes)
         if chain.unchained:
             notes.append(f"{log}: unchained (legacy): {chain.unchained} lines before the chain starts carry no link"
                          if chain.linked else f"{log}: unchained (legacy): no line carries a chain link")
     if profile == "0.1" and ROLE_LOG in names:
         notes.append(f"{ROLE_LOG}: legacy chain-head profile 0.1 records no head for it; its chain was not recomputed")
-    return {"profile": profile, "logs": len(expected), "notes": notes}
+    return {"profile": profile, "logs": len(expected), "limited": limited, "notes": notes}
 
 
 def verify(root):
@@ -304,16 +365,40 @@ def verify(root):
     return len(payload), "records-administration.json" in tags, report
 
 
+LIMITED = 2  # exit status: bytes consistent, and a log's integrity is limited
+
+
+def report_lines(count, administration, report):
+    """What a person is told for a package that agrees with what it records.
+    Two statements, never one: whether the bytes agree with the manifests and
+    recorded heads, and whether any log's own integrity is limited."""
+    logs, limited = report["logs"], report["limited"]
+    chains = f"{logs} log chain{'' if logs == 1 else 's'}"
+    lines = [f"Package bytes: consistent. {count} payload files and the export tags agree with the manifests, "
+             f"and {chains} recomputed from the payload {'ends' if logs == 1 else 'end'} at the head this package records."]
+    if limited:
+        lines.append(f"Log integrity: LIMITED in {len(limited)} log{'' if len(limited) == 1 else 's'}. "
+                     "The store's own records were already limited there when this package was exported, and the package carries them as they stood:")
+        lines.extend(f"  Integrity limit: {limit}" for limit in limited)
+        lines.append("  A broken chain is reported and never repaired. Consistent bytes do not make these logs whole.")
+        lines.append(f"Result: package bytes consistent; log integrity limited (exit status {LIMITED}).")
+    else:
+        lines.append("Log integrity: no chain is broken. In every recomputed chain each link names the line before it.")
+        lines.append("Result: package bytes consistent; no log integrity limit (exit status 0).")
+    lines.extend(f"Note: {note}" for note in report["notes"])
+    lines.append("Protected prior administration bytes included." if administration
+                 else "Administrative history unknown: legacy package has no retention snapshot.")
+    lines.append("Unsigned: this shows that the package agrees with its own manifests and recorded chain heads. "
+                 "A package whose records, manifests and chain heads were replaced together still verifies. "
+                 "It does not show who produced the package, and it shows no human act.")
+    return lines
+
+
 if __name__ == "__main__":
     try:
         count, administration, report = verify(Path(sys.argv[1]))
-        print(f"Verified {count} payload files and export tags, including the recorded chain-head tag.")
-        print(f"Recomputed {report['logs']} log chains from the payload: each is whole and ends at its recorded head.")
-        for note in report["notes"]:
-            print(f"Limit: {note}")
-        print("Protected prior administration bytes included." if administration else "Administrative history unknown: legacy package has no retention snapshot.")
-        print("Unsigned: this shows the bytes agree with the manifests and the chains are whole, "
-              "not who produced them, that no one rewrote the package consistently, nor any human act.")
     except (OSError, ValueError, IndexError, UnicodeError) as error:
-        print(f"Verification failed: {error}", file=sys.stderr)
+        print(f"Result: failed (exit status 1). Verification failed: {error}", file=sys.stderr)
         sys.exit(1)
+    print("\n".join(report_lines(count, administration, report)))
+    sys.exit(LIMITED if report["limited"] else 0)

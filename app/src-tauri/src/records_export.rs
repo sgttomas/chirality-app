@@ -155,7 +155,8 @@ pub fn export(project: &Path, destination: &Path) -> Result<Value, String> {
         sync_dirs(&stage)?;
         publish(&stage, &destination)?;
         crate::storage::sync_dir(&parent).map_err(|e| format!("export published at {}; folder durability not established: {e}", destination.display()))?;
-        Ok(json!({"state":"verified export created","folder":destination,"files":before.len(),"projectId":project_id,"verification":verified,"signing":"unsigned; waits for App signing (OI-011)"}))
+        let limited = verified["logIntegrity"]["state"] == LIMITED;
+        Ok(json!({"state":if limited {"export created: package bytes verified; log integrity limited"} else {"verified export created"},"logIntegrity":verified["logIntegrity"],"folder":destination,"files":before.len(),"projectId":project_id,"verification":verified,"signing":"unsigned; waits for App signing (OI-011)"}))
     })();
     if stage.exists() { let _ = std::fs::remove_dir_all(stage); }
     result
@@ -201,7 +202,72 @@ pub fn verify(folder: &Path) -> Result<Value, String> {
     let role_heads=match expected["formatVersion"].as_str(){Some("0.1")=>false,Some("0.2")=>true,_=>return Err("unsupported chain-head tag profile".into())};
     let observed = heads_profile(&folder.join("data"), actual.iter().map(|p| p.strip_prefix("data/").unwrap().to_owned()),role_heads);
     if observed != expected { return Err("copied log chain heads differ from export manifest".into()); }
-    Ok(json!({"state":"verified package bytes and chain heads","files":payload.len(),"administration":administration,"chainHeadProfile":if role_heads{"0.2: RS and role supply log heads"}else{"0.1: legacy RS-only heads; role supply log heads unestablished"},"signing":"unsigned; no origin or human act authenticated"}))
+    // Two statements, never one: the bytes agree with the manifests and the
+    // recorded heads; and, separately, whether a log's own integrity is
+    // limited. A chain already broken in the store at export is carried as
+    // it stood: the package is not refused, and its log is not whole.
+    let integrity = log_integrity(&expected);
+    let limited = integrity["state"] == LIMITED;
+    Ok(json!({"state":if limited {"package bytes consistent; log integrity limited"} else {"package bytes consistent; no chain recorded broken"},
+        "packageBytes":"consistent with the manifests and the recorded chain heads","logIntegrity":integrity,
+        "files":payload.len(),"administration":administration,"chainHeadProfile":if role_heads{"0.2: RS and role supply log heads"}else{"0.1: legacy RS-only heads; role supply log heads unestablished"},"signing":"unsigned; no origin or human act authenticated"}))
+}
+/// The two states a build that states log integrity writes.
+pub(crate) const LIMITED: &str = "limited";
+pub(crate) const WHOLE: &str = "no chain recorded broken";
+/// What a package's chain-head tag records about its logs' own integrity,
+/// apart from whether the package's bytes are consistent: each chain the
+/// store's reader reported broken at export, as `<log>: chain broken at line
+/// N: ...`, and each log whose chain it could not read.
+pub(crate) fn log_integrity(heads: &Value) -> Value {
+    let limits: Vec<String> = heads["logs"].as_array().into_iter().flatten().flat_map(|item| {
+        let log = item["log"].as_str().unwrap_or_default().to_owned();
+        let chain = &item["chain"];
+        let mut out: Vec<String> = chain["broken"].as_array().into_iter().flatten().filter_map(Value::as_str)
+            .map(|limit| { let at = limit.find("chain broken").unwrap_or(0); format!("{log}: {}", &limit[at..]) }).collect();
+        if let Some(state) = chain["state"].as_str() {
+            out.push(format!("{log}: chain not read at export ({state}: {})", chain["error"].as_str().unwrap_or("no cause recorded")));
+        }
+        out
+    }).collect();
+    if limits.is_empty() { json!({"state":WHOLE}) } else { json!({"state":LIMITED,"limits":limits}) }
+}
+/// A stored `logIntegrity` member as a reader takes it. A record written
+/// before the member existed does not state it: that reads as "not stated",
+/// never as no chain recorded broken.
+pub(crate) fn stored_log_integrity(export: &Value) -> Value {
+    match export.get("logIntegrity") {
+        Some(v) if v["state"] == WHOLE || (v["state"] == LIMITED && v["limits"].is_array()) => v.clone(),
+        _ => json!({"state":"not stated"}),
+    }
+}
+/// The sentence a person is shown where a package they are verifying,
+/// importing or relying on carries a log whose integrity is limited; `None`
+/// when no chain is recorded broken.
+pub(crate) fn integrity_statement(integrity: &Value) -> Option<String> {
+    let limits: Vec<&str> = integrity["limits"].as_array()?.iter().filter_map(Value::as_str).collect();
+    (integrity["state"] == LIMITED).then(|| format!("Log integrity: LIMITED. The package's bytes are consistent, and separately {} of its logs {} already limited in the store when it was exported: {}. The records are kept as they stood; a broken chain is reported and never repaired, and consistent bytes do not make these logs whole.",
+        limits.len(), if limits.len() == 1 { "was" } else { "were" }, limits.join("; ")))
+}
+/// The same statement in a bounded form for a native confirmation's summary,
+/// where the whole context is shown in the App: the count, and the first
+/// log and line. Never longer than a few lines however many logs are named.
+pub(crate) fn integrity_summary(integrity: &Value) -> Option<String> {
+    let limits: Vec<&str> = integrity["limits"].as_array()?.iter().filter_map(Value::as_str).collect();
+    let first: String = limits.first()?.chars().take(160).collect();
+    (integrity["state"] == LIMITED).then(|| format!("Log integrity: LIMITED. The package's bytes are consistent, and separately {} log chain fault(s) were already in the store when it was exported. First: {first}. Every one is named in the App under this confirmation; consistent bytes do not make these logs whole.", limits.len()))
+}
+/// The log integrity recorded by the chain-head tag of a package this module
+/// has verified (`verify`).
+pub(crate) fn package_log_integrity(folder: &Path) -> Result<Value, String> {
+    let heads: Value = serde_json::from_slice(&read_tag(&folder.join(HEADS))?).map_err(|e| e.to_string())?;
+    Ok(log_integrity(&heads))
+}
+#[cfg(test)]
+thread_local! {
+    /// Makes `matches_current` write its result as a build before the
+    /// `logIntegrity` member did (a stored disposal entry of that age).
+    pub(crate) static BEFORE_LOG_INTEGRITY: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 /// A verified bag must match every current retained payload byte, not just RS
@@ -234,7 +300,15 @@ pub(crate) fn matches_current(source:&Path,folder:&Path,remaining:bool)->Result<
     verify(&folder)?;
     if identity!=digest(&folder.join("tagmanifest-sha256.txt"))? {return Err("export changed during verification".into());}
     let bytes=serde_json::to_vec(&payload).map_err(|e|e.to_string())?;
-    Ok(json!({"folder":folder,"folderIdentity":{ "device":std::os::unix::fs::MetadataExt::dev(&std::fs::metadata(&folder).map_err(io)?),"inode":std::os::unix::fs::MetadataExt::ino(&std::fs::metadata(&folder).map_err(io)?)},"identity":identity,"identityMethod":"sha256 exact tagmanifest bytes","payload":{"files":payload.len(),"identity":crate::util::sha256_hex(&bytes),"identityMethod":"sha256 sorted relative file names, exact byte hashes and lengths"},"administrationIdentity":digest(&folder.join(ADMIN))?,"chainHeadProfile":verified["chainHeadProfile"],"verification":"complete package bytes, prior administration and declared chain-head profile verified; matches current store payload"}))
+    // Recorded with a disposal act (decided by App Agent 0, 2026-11-12): what
+    // the export relied on states about its logs' integrity, apart from its
+    // bytes matching. Always written; a reader takes its absence as not stated.
+    let integrity=package_log_integrity(&folder)?;
+    let mut out=json!({"folder":folder,"folderIdentity":{ "device":std::os::unix::fs::MetadataExt::dev(&std::fs::metadata(&folder).map_err(io)?),"inode":std::os::unix::fs::MetadataExt::ino(&std::fs::metadata(&folder).map_err(io)?)},"identity":identity,"identityMethod":"sha256 exact tagmanifest bytes","payload":{"files":payload.len(),"identity":crate::util::sha256_hex(&bytes),"identityMethod":"sha256 sorted relative file names, exact byte hashes and lengths"},"administrationIdentity":digest(&folder.join(ADMIN))?,"chainHeadProfile":verified["chainHeadProfile"],"verification":"complete package bytes, prior administration and declared chain-head profile verified; matches current store payload"});
+    #[cfg(test)]
+    if BEFORE_LOG_INTEGRITY.with(|b|b.get()) {return Ok(out);}
+    out["logIntegrity"]=integrity;
+    Ok(out)
 }
 
 #[cfg(test)]
