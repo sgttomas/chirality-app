@@ -45,11 +45,14 @@ omissions. Bind source and artifact hashes and preserve the actual commands.
 | P1 Contents/Resources/codex | Explicit approved cached vendor tree | Content comparison only; qualification pin not selected here |
 | P2 Contents/Resources/workflows | Full resources/production_workflows tree including MANIFEST.json | Candidate inventory; LS-5/LS-8 not runnable |
 | P3 Contents/Resources/instructions | Full instructions tree including roles.json and ROLE_SET_SOURCE_BINDING.json | Exact received candidate role content; no release default decision |
-| P4 Contents/Info.plist | Tauri generated metadata | Existing skeleton identifier/version; minimum macOS 15.0 remains proposed |
+| P4 Contents/Info.plist | Tauri generated metadata | Development skeleton identifier/version, kept apart from the release identity |
 
 The product label is Chirality App v4 (development candidate), version 0.0.0,
 identifier dev.chirality.app-v4.skeleton. No microphone usage string is requested.
-The production identifier and minimum OS decisions remain with their owners.
+The release package is decided and built separately: `Chirality.app`, identifier
+`com.chirality.app`, version 4.0.0, minimum macOS 15.0, set only in the generated
+release overlay (`app/packaging/release/`). This development route keeps its own
+identifier so that no development run reads a person's existing data.
 
 When an authorized owner later opens this debug bundle without startup
 environment inputs, **Desktop setup** supplies the missing explicit inputs.
