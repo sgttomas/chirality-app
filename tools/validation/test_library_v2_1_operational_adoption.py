@@ -360,9 +360,32 @@ def test_interlocutor_write_needs_explicit_targets_and_host_permission(brief, po
 # --- Operational instructions and product boundary --------------------------------
 
 def test_operational_roster_is_compatible():
+    # AGENTS.md states the roster once, as a table of relationship -> role
+    # texts: Agent 0 is type 0, and "Type n" is type n. The whole table is read:
+    # every row must be one of the three relationships, each exactly once, and
+    # every entry of its cell one backticked role name, so no row or entry goes
+    # unread. Every registry role must appear once, under its type.
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    rows = dict(re.findall(r"^\| ([A-Z_]+) \| ([0-2]) \|", agents, re.MULTILINE))
-    assert rows == {name: str(cfg["type"]) for name, cfg in REGISTRY["roles"].items()}
+    lines = agents.split("\n")
+    cells = lambda line: [cell.strip() for cell in line.strip().strip("|").split("|")]
+    headers = [n for n, line in enumerate(lines)
+               if line.lstrip().startswith("|") and cells(line) == ["Relationship", "Role text"]]
+    assert len(headers) == 1
+    rows = []
+    for line in lines[headers[0] + 2:]:
+        if not line.lstrip().startswith("|"):
+            break
+        rows.append(cells(line))
+    assert all(len(row) == 2 for row in rows)
+    assert sorted(row[0] for row in rows) == ["Agent 0", "Type 1", "Type 2"]
+    pairs = []
+    for relationship, cell in rows:
+        for entry in cell.split(","):
+            role = re.fullmatch(r"\s*`([A-Z_]+)`\s*", entry)
+            assert role, f"unreadable roster entry under {relationship}: {entry!r}"
+            pairs.append((role.group(1), "0" if relationship == "Agent 0" else relationship[-1]))
+    assert len(pairs) == len(dict(pairs))
+    assert dict(pairs) == {name: str(cfg["type"]) for name, cfg in REGISTRY["roles"].items()}
 
 
 def test_packaged_product_role_set_remains_pinned_four_roles():

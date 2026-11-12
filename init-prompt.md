@@ -11,6 +11,10 @@ metadata:
 <init-prompt>
 Resolve `REPO_ROOT` with `git rev-parse --show-toplevel`.
 Verify that `{REPO_ROOT}` is the `sgttomas/chirality-app` repository.
+Confirm that `{REPO_ROOT}/AGENTS.md` is the one on the repository's default
+branch: run `git fetch origin main`, then `git diff --stat origin/main -- AGENTS.md`.
+Report any difference before relying on it. A deliberately older task branch
+can be right; a silently stale checkout is not.
 
 Read `{REPO_ROOT}/AGENTS.md`.
 Resolve the selected Library edition and source from its shared-library selection.
