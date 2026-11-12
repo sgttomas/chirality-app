@@ -494,7 +494,11 @@ fn each_missing_guidance_file_is_refused_as_the_code_does_in_words_a_person_can_
             let no_role_works = compose_role(&store, None).is_ok();
             assert_eq!(reason.contains("start with no role"), no_role_works, "{reason}");
             assert_eq!(no_role_works, path != "AGENTS.md", "{path}");
-            assert!(reason.contains("The shipped default is the copy the App carries."), "{reason}");
+            // With no verified path at hand, the place named is the fixed one
+            // inside an installed application, and nothing about this run.
+            assert!(reason.contains("The shipped default is the copy the App carries"), "{reason}");
+            #[cfg(target_os = "macos")]
+            assert!(reason.ends_with(&format!("in an installed copy it is inside the application, at Contents/Resources/instructions/{path}.")), "{reason}");
             // An installed build names its verified packaged copy.
             let packaged = Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/instructions");
             crate::runtime_session::verify_production_instructions_root(&packaged).unwrap();
@@ -514,5 +518,29 @@ fn each_missing_guidance_file_is_refused_as_the_code_does_in_words_a_person_can_
             assert_offers_only_what_exists(&reason);
             assert!(!reason.contains("no role") && reason.contains("No conversation can start until it is back") && reason.contains("quit and reopen the App"), "{reason}");
         }
+    }
+}
+
+/// The place a refusal names inside an installed application is the one
+/// every bundle configuration gives the instruction defaults.
+#[test]
+fn the_installed_place_a_refusal_names_is_where_every_bundle_configuration_puts_the_defaults() {
+    let app = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut configurations = vec![app.join("tauri.conf.json")];
+    for entry in std::fs::read_dir(app.join("../packaging/unsigned")).unwrap() {
+        let path = entry.unwrap().path();
+        if path.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.starts_with("tauri.") && n.ends_with(".conf.json")) {
+            configurations.push(path);
+        }
+    }
+    assert!(configurations.len() > 1);
+    for configuration in configurations {
+        let value: Value = serde_json::from_slice(&std::fs::read(&configuration).unwrap()).unwrap();
+        assert_eq!(value["bundle"]["resources"]["resources/instructions/"], "instructions/", "{}", configuration.display());
+    }
+    // macOS application bundles hold their resources at Contents/Resources.
+    assert_eq!(crate::runtime_session::PACKAGED_INSTRUCTIONS, "Contents/Resources/instructions");
+    for path in ["AGENTS.md", DELEGATION] {
+        assert!(app.join("resources/instructions").join(path).is_file());
     }
 }

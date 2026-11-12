@@ -452,6 +452,10 @@ pub const INSTRUCTION_RELEASE: &str = "chirality-app-v4-unqualified-group-a-entr
 pub const COMMON_DEFAULT: &[u8] = include_bytes!("../resources/instructions/AGENTS.md");
 /// The App's own delegation guidance, apart from the role documents and their binding.
 pub const DELEGATION_DEFAULT: &[u8] = include_bytes!("../resources/instructions/DELEGATION_RECORDS.md");
+/// Where every bundle configuration places the instruction defaults inside
+/// the macOS application: each maps `resources/instructions/` to
+/// `instructions/` below the application's resources.
+pub(crate) const PACKAGED_INSTRUCTIONS: &str = "Contents/Resources/instructions";
 /// The person's reason when a guidance file is missing from their guidance
 /// folder: what is missing and where, that the App does not put it back, and
 /// what they can do. `at_app_start`: found by the store check when the App
@@ -476,6 +480,10 @@ pub fn missing_guidance_reason(store: &std::path::Path, path: &str, at_app_start
     };
     let default = match shipped {
         Some(dir) => format!("The shipped default to copy from is {}.", dir.join(path).display()),
+        // No verified path is at hand (the check at App start, or a development
+        // build). The place named is relative to an installed application and
+        // claims nothing about this run.
+        None if cfg!(target_os = "macos") => format!("The shipped default is the copy the App carries; in an installed copy it is inside the application, at {PACKAGED_INSTRUCTIONS}/{path}."),
         None => "The shipped default is the copy the App carries.".to_owned(),
     };
     format!("{what} is missing from your guidance folder, {}. The App does not put a guidance file back by itself, because the file is yours to edit or remove. {action} {default}", store.display())
