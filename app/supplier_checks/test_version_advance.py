@@ -24,10 +24,26 @@ def classes(before, after):
     return sorted({change["class"] for change in VA.diff_schema(before, after, "X")})
 
 
+# Every committed comparison result: (prior pin, pin it advanced to).
+COMMITTED_RESULTS = (("0.160.0", "0.167.0"), ("0.167.0", "0.167.2"))
+
+
 class CommittedResult(unittest.TestCase):
-    def test_regenerating_the_committed_result_gives_the_same_bytes(self):
-        result = VA.compare("0.160.0", "0.167.0")
-        self.assertEqual(VA.render(result), COMMITTED.read_text(encoding="utf-8"))
+    def test_regenerating_each_committed_result_gives_the_same_bytes(self):
+        for from_pin, to_pin in COMMITTED_RESULTS:
+            with self.subTest(from_pin=from_pin, to_pin=to_pin):
+                committed = HERE / "version_advance" / ("%s-to-%s.json" % (from_pin, to_pin))
+                result = VA.compare(from_pin, to_pin)
+                self.assertEqual(VA.render(result), committed.read_text(encoding="utf-8"))
+
+    def test_the_advance_to_0_167_2_passed_with_nothing_missing_or_unusable(self):
+        result = json.loads((HERE / "version_advance" / "0.167.0-to-0.167.2.json").read_text(encoding="utf-8"))
+        self.assertEqual(result["verdict"]["verdict"], "passed")
+        self.assertEqual(result["verdict"]["reasons"], [])
+        self.assertEqual(result["findings"], [])
+        for key in ("insufficient_coverage", "missing_inputs", "missing_structure", "unsupported_constructs"):
+            self.assertEqual(result["unusable"][key], [], key)
+        self.assertNotIn("missing", {entry.get("state") for entry in result["inputs"]["read"]})
 
 
 class Classification(unittest.TestCase):

@@ -3,8 +3,6 @@
  "format": "chirality.app-v4.version-advance.v1",
  "from": "0.167.0",
  "inputs": {
-  "missing": [],
-  "problems": [],
   "read": [
    {
     "note": "digest of the relied-on method map; file bytes are not pinned so that the result changes only when what the App relies on changes",
@@ -55,32 +53,32 @@
    {
     "path": "app/supplier_checks/recordings/0.167.0/nv04.recording.json",
     "role": "recording nv04 at 0.167.0",
-    "sha256": "83db12ade29806c7b0c4f33b77eece17e4a218a6f55a7ae50cf2c58da4124155"
+    "sha256": "0a5255d0b32dfa41f1196507c617d1e20a60800740bcd755e91dcd106139c4ab"
    },
    {
     "path": "app/supplier_checks/recordings/0.167.0/st5-race.recording.json",
     "role": "recording st5-race at 0.167.0",
-    "sha256": "0a2b03fc7b6a9a92a551fe988d3794098311254b204bf663c52155f600ac9d44"
+    "sha256": "44b337065ad34b07765bb003491b5271f964175526695dc425c5f17567394cf0"
    },
    {
     "path": "app/supplier_checks/recordings/0.167.0/st5.recording.json",
     "role": "recording st5 at 0.167.0",
-    "sha256": "6cfd8d60c75282478e29ff383589d7b6c768bed55cd36f4b9a6bacb87b079b2e"
+    "sha256": "427de1d2de902780dab2abe1c005cae86f4c9b6c8a9beec552334ca219c6f00f"
    },
    {
     "path": "app/supplier_checks/recordings/0.167.2/nv04.recording.json",
     "role": "recording nv04 at 0.167.2",
-    "sha256": "5ba2ff4713a1fe75ce46f7ae8405eee51502eb7d50393243fd8c8a5b13546d84"
+    "sha256": "2c719cd60b7191769ebddb3e3219523c05eabdeba2b42b67d4766138ad6a6435"
    },
    {
     "path": "app/supplier_checks/recordings/0.167.2/st5-race.recording.json",
     "role": "recording st5-race at 0.167.2",
-    "sha256": "8a4a7b00786fa69e5f047537fdbe7982fea3f3341d0d3dc9415d023cbb302e90"
+    "sha256": "516be6cc566caafa215999143f52fa72b9bcbf0deeef48e9088f507b29ec6670"
    },
    {
     "path": "app/supplier_checks/recordings/0.167.2/st5.recording.json",
     "role": "recording st5 at 0.167.2",
-    "sha256": "6803c16910911c0f9c2ef38bf7b84e83049efafa3b639add28a1c2ed824ce01e"
+    "sha256": "1b21981af38630431cb039f2107f48cbfd8e997a37240e8ba68782e70fcc818e"
    },
    {
     "path": "app/supplier_checks/version_advance/0.167.0-to-0.167.2.dispositions.json",
@@ -100,6 +98,7 @@
     "0.167.0": 65,
     "0.167.2": 65
    },
+   "groups_absent_at_to": {},
    "mechanism": {
     "0.167.0": {
      "context": {
@@ -144,8 +143,8 @@
      "g1 app->codex notification initialized",
      "g1 app->codex request thread/start",
      "g1 codex->app reply thread/start",
-     "g1 app->codex request turn/start",
      "g1 codex->app notification thread/started",
+     "g1 app->codex request turn/start",
      "g1 codex->app notification warning",
      "g1 codex->app reply turn/start",
      "g1 codex->app notification thread/status/changed",
@@ -161,12 +160,12 @@
      "g1 codex->app notification thread/tokenUsage/updated",
      "g1 codex->app notification account/rateLimits/updated",
      "g1 codex->app notification item/started",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification item/started",
      "g1 codex->app notification item/agentMessage/delta",
      "g1 codex->app notification item/completed",
      "g1 codex->app notification thread/tokenUsage/updated",
      "g1 codex->app notification account/rateLimits/updated",
-     "g1 codex->app notification item/started",
-     "g1 codex->app notification item/completed",
      "g1 codex->app notification thread/readState/changed",
      "g1 codex->app notification thread/status/changed",
      "g1 codex->app notification turn/completed",
@@ -230,9 +229,9 @@
      "g1 codex->app notification item/started",
      "g1 codex->app notification item/agentMessage/delta",
      "g1 codex->app notification item/completed",
-     "g1 codex->app notification item/started",
      "g1 codex->app notification thread/tokenUsage/updated",
      "g1 codex->app notification account/rateLimits/updated",
+     "g1 codex->app notification item/started",
      "g1 codex->app notification item/completed",
      "g1 codex->app notification thread/readState/changed",
      "g1 codex->app notification thread/status/changed",
@@ -274,15 +273,9 @@
    },
    "sequence_differences": [
     {
-     "from": [],
-     "op": "insert",
-     "to": [
-      "g1 codex->app notification thread/started"
-     ]
-    },
-    {
      "from": [
-      "g1 codex->app notification thread/started"
+      "g1 codex->app notification item/completed",
+      "g1 codex->app notification item/started"
      ],
      "op": "delete",
      "to": []
@@ -291,15 +284,9 @@
      "from": [],
      "op": "insert",
      "to": [
-      "g1 codex->app notification item/started"
+      "g1 codex->app notification item/started",
+      "g1 codex->app notification item/completed"
      ]
-    },
-    {
-     "from": [
-      "g1 codex->app notification item/started"
-     ],
-     "op": "delete",
-     "to": []
     }
    ],
    "shape_differences": {},
@@ -361,6 +348,7 @@
     "0.167.0": 35,
     "0.167.2": 35
    },
+   "groups_absent_at_to": {},
    "mechanism": {
     "0.167.0": {
      "context": {
@@ -403,9 +391,9 @@
     "0.167.0": [
      "g1 app->codex request initialize",
      "g1 codex->app reply initialize",
-     "g1 codex->app notification remoteControl/status/changed",
      "g1 app->codex notification initialized",
      "g1 app->codex request thread/start",
+     "g1 codex->app notification remoteControl/status/changed",
      "g1 codex->app reply thread/start",
      "g1 codex->app notification thread/started",
      "g1 app->codex request turn/start",
@@ -440,12 +428,12 @@
     "0.167.2": [
      "g1 app->codex request initialize",
      "g1 codex->app reply initialize",
+     "g1 codex->app notification remoteControl/status/changed",
      "g1 app->codex notification initialized",
      "g1 app->codex request thread/start",
-     "g1 codex->app notification remoteControl/status/changed",
      "g1 codex->app reply thread/start",
-     "g1 app->codex request turn/start",
      "g1 codex->app notification thread/started",
+     "g1 app->codex request turn/start",
      "g1 codex->app notification warning",
      "g1 codex->app reply turn/start",
      "g1 codex->app notification thread/status/changed",
@@ -477,13 +465,6 @@
    },
    "sequence_differences": [
     {
-     "from": [
-      "g1 codex->app notification remoteControl/status/changed"
-     ],
-     "op": "delete",
-     "to": []
-    },
-    {
      "from": [],
      "op": "insert",
      "to": [
@@ -491,15 +472,8 @@
      ]
     },
     {
-     "from": [],
-     "op": "insert",
-     "to": [
-      "g1 app->codex request turn/start"
-     ]
-    },
-    {
      "from": [
-      "g1 app->codex request turn/start"
+      "g1 codex->app notification remoteControl/status/changed"
      ],
      "op": "delete",
      "to": []
@@ -561,6 +535,7 @@
     "0.167.0": 35,
     "0.167.2": 35
    },
+   "groups_absent_at_to": {},
    "mechanism": {
     "0.167.0": {
      "context": {
@@ -1410,21 +1385,30 @@
   ]
  },
  "rules": {
+  "absent_groups": "a supplier notification or server request group recorded at the prior pin is judged driven at the new pin when the App-side frame that precedes its first occurrence in the prior recording (same generation, direction, kind and method, counted by occurrence) also occurs in the new recording; a reply group is judged driven when the App request it answers occurs in the new recording; a group that is driven and absent is a finding when its method is relied on, and a group that is not driven is listed as not driven",
   "additive_rule": "additive and documentation-only changes to relied-on elements need no decision because a receiver must accept unknown enum values and extra fields and a sender is not obliged to send new optional fields",
   "classification": {
-   "additive": "a new optional property, a new enum value, a new alternative (anyOf/oneOf member, or the previous form kept as one alternative), a widened type (a type added to the type set, a lower bound lowered or removed, an upper bound raised or removed, a format, enum, allOf member or items constraint removed, additionalProperties opened)",
+   "additive": "a new optional property, a new enum value, a new anyOf member, a new oneOf member that is disjoint from every other member, the previous form kept as one alternative (anyOf, or oneOf with the kept form disjoint from every other member; constraints placed beside the choice are compared with the previous form's separately), a widened type (a type added to the type set, integer to number, a lower bound lowered or removed, an upper bound raised or removed, a format, enum, allOf member or items constraint removed, additionalProperties opened), oneOf turned into anyOf",
    "alternatives": "anyOf/oneOf/allOf members are matched by their method or type discriminator, their $ref, a single enum value, a bare type, their title, or else their exact content",
-   "breaking": "a removed property, enum value or alternative, a narrowed or changed type (a type removed or replaced, a reference to a different definition, a form replaced, a constraint added or tightened, additionalProperties closed), a newly required property",
-   "documentation only": "only description, title or $schema differ",
-   "unclassified": "anything else, including a property that is no longer required, a changed default, a changed format and any other keyword; never counted as additive"
+   "breaking": "a removed property, enum value or alternative, a narrowed or changed type (a type removed or replaced, a reference to a different definition, a form replaced, a constraint added or tightened, additionalProperties closed), a newly required property, anyOf turned into oneOf",
+   "documentation only": "only the description or title keyword of a schema object differs (never a property or definition of that name)",
+   "new_optional_property": "a newly named optional property is classed additive although, where additional properties were open, it constrains a value an earlier sender could have sent under that name; the generated schemas leave additional properties open because the supplier ignores unknown fields, not to admit any value under future names",
+   "oneOf": "two members are shown disjoint when the JSON types they can accept (from type, enum or const; number admits integer) do not overlap, or both require a property whose schema admits one value (a single-value enum or a const) and the values differ, or both are enums or consts with no common value; a member given by $ref is never shown disjoint",
+   "unclassified": "anything else, including a property that is no longer required, a changed default, a changed format, a changed $schema, a type set rewritten with the same effect, a new oneOf member that is not shown disjoint from every other member, and a widening inside a oneOf member that is not shown disjoint from every other member; never counted as additive"
   },
-  "findings": "a breaking or unclassified schema change, a removed method or definition, a standing change, a failed validation, a removed or retyped recorded key path or a changed or unobservable mechanism that involves a relied-on method or definition; its id is VA- and the first 12 hex digits of the SHA-256 of its kind, subject and detail",
+  "findings": "a breaking or unclassified schema change, a removed method or definition, a standing change, a failed validation, a removed or retyped recorded key path, a recorded group absent although driven, or a changed or unobservable mechanism that involves a relied-on method or definition; its id is VA- and the first 12 hex digits of the SHA-256 of its kind, subject and detail",
+  "inputs": "each pin needs a main bundle whose definitions hold the four method unions, each with members, and non-empty v2 definitions; a v2 bundle equal to the main bundle's v2 definitions in both directions (references rewritten to the flat form); a manifest listing files in both variants; a recording of every scenario with frames; the host source must yield at least one relied-on method; a file that is absent where it is optional is read as empty, while a path that exists and cannot be read as a file is an input problem",
   "relied_on": "a protocol method is relied on when its exact name appears as a Rust string literal in the host source outside files ending _tests.rs and outside modules gated by #[cfg(test)] or #[cfg(all(test, ...))]; a definition is relied on when it is reachable by $ref, at either pin, from the params of a relied-on client request or notification, from that request's response definition, or from the params and response of a relied-on server request or the params of a relied-on server notification; a response definition is <Name>Response for params <Name>Params, else the method's segments in PascalCase followed by Response, in the same namespace",
   "shape": "per scenario and per supplier notification, server request and reply to a request made at both pins: the set of key paths with their JSON value types and whether each path is present in every such frame; every scalar value is ignored (so identifiers, times, paths and text), as are array lengths, the order of array items and keys, and object keys that are UUIDs or digit strings (read as <id>)",
   "standing": "read from MANIFEST.sha256 at file level: an element is experimental exactly when its file is in json-schema/experimental and not json-schema/stable; variants_differ says the two variants of a file present in both have different digests; ts/ lines and comment lines are not read",
-  "validation": "jsonschema Draft 7 against the to-pin bundle's ServerNotification (frames from the supplier without an id) and ServerRequest (frames from the supplier with an id and a method); formats are not asserted",
-  "verdict": "passed only when every finding has a disposition and no input was missing or unusable; otherwise returned for decision"
+  "validation": "jsonschema Draft 7 against the to-pin bundle's ServerNotification (frames from the supplier with a method and no id) and ServerRequest (frames from the supplier with an id and a method); the supplier's replies to App requests and the App's own frames are not validated (replies are compared by shape only); formats are not asserted",
+  "verdict": "passed only when every finding has a disposition, every disposition names a finding of this comparison and no input was missing or unusable; otherwise returned for decision"
  },
+ "scenarios": [
+  "nv04",
+  "st5",
+  "st5-race"
+ ],
  "schema": {
   "definitions": {
    "added": [],
@@ -2059,12 +2043,37 @@
   "in_generated_output_at_to": {}
  },
  "to": "0.167.2",
+ "unusable": {
+  "coverage_required": {
+   "nv04": [
+    "a collabAgentToolCall item in an item/started and an item/completed notification",
+    "turn/completed notifications for the spawning thread and for the spawned thread",
+    "at least one supplier notification to validate"
+   ],
+   "st5": [
+    "a supplier server request item/commandExecution/requestApproval with an id in generation 1",
+    "the App's answer to that request in generation 1",
+    "an App thread/resume request in generation 2",
+    "the events process-group-frozen and answer-written",
+    "at least one supplier notification to validate"
+   ],
+   "st5-race": [
+    "a supplier server request item/commandExecution/requestApproval with an id in generation 1",
+    "the App's answer to that request in generation 1",
+    "an App thread/resume request in generation 2",
+    "at least one supplier notification to validate"
+   ]
+  },
+  "insufficient_coverage": [],
+  "missing_inputs": [],
+  "missing_structure": [],
+  "unsupported_constructs": []
+ },
  "verdict": {
   "disposed_findings": [],
   "dispositions": [],
   "dispositions_naming_no_finding": [],
-  "input_problems": 0,
-  "missing_inputs": 0,
+  "reasons": [],
   "undisposed_findings": [],
   "verdict": "passed"
  }
