@@ -133,6 +133,31 @@ class RecordingsAtThePin(unittest.TestCase):
             with self.subTest(scenario):
                 self.assertEqual({g: sorted(methods) for g, methods in answered.items()}, required[scenario])
 
+    def test_every_supplier_reply_answers_exactly_one_earlier_app_request_by_its_id(self):
+        # Matching is by identifier within a generation, not by a reply merely being present: an
+        # App request identifier is used once, and each reply follows the one request it answers.
+        for scenario in SCENARIOS:
+            with self.subTest(scenario):
+                asked, answered = {}, set()
+                for index, row in enumerate(recording(scenario)["frames"]):
+                    frame, key = row["frame"], (row["generation"], json.dumps(row["frame"].get("id")))
+                    if row["direction"] == "app->codex" and "method" in frame and "id" in frame:
+                        self.assertNotIn(key, asked, "an App request identifier is used twice")
+                        asked[key] = index
+                    elif row["direction"] == "codex->app" and "method" not in frame:
+                        self.assertIn(key, asked, "a supplier reply answers no earlier App request")
+                        self.assertNotIn(key, answered, "an App request is answered twice")
+                        answered.add(key)
+
+    def test_each_file_holds_one_begin_event_for_the_pin_and_no_stop_event_as_the_harness_recorded_it(self):
+        # The harness's own record of its run; its refusals are not relied on.
+        for scenario in SCENARIOS:
+            with self.subTest(scenario):
+                events = recording(scenario)["events"]
+                self.assertEqual([(event.get("scenario"), event.get("pin")) for event in events
+                                  if event.get("event") == "begin"], [(scenario, PIN)])
+                self.assertEqual([event for event in events if event.get("event") == "STOP"], [])
+
     def test_no_local_path_or_address_remains(self):
         pattern = re.compile(r"/Users/|/private/|/var/folders|/home/|[A-Za-z0-9._-]+@[A-Za-z0-9-]+\.[a-z]{2,}")
         for scenario in SCENARIOS:
