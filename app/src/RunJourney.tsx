@@ -108,6 +108,9 @@ export function runReading(run: Json, host: Json): RunReading {
     const turns = list(host?.conversationTurns).filter((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation));
     const live = turns.some((row: Json) => row.nativeTurn?.status === "inProgress" && row.terminalEventObserved !== true && row.observationEnded !== true);
     if (thread?.status?.type === "active" || live) return { tone: "working", title: "Working", detail: "Codex is working on this run. Follow its progress in the conversation." };
+    // A turn last seen in progress whose observation ended: the App cannot say it stopped.
+    if (turns.some((row: Json) => row.nativeTurn?.status === "inProgress" && row.terminalEventObserved !== true && row.observationEnded === true))
+      return { tone: "uncertain", title: "Can't tell whether Codex is still working", detail: "The App stopped receiving this run's current step before it ended, so it may still be working. Read the conversation before you reply or end the run." };
     const lastTurn = turns.filter((row: Json) => Number.isFinite(row.receiptPosition)).sort((a: Json, b: Json) => b.receiptPosition - a.receiptPosition)[0];
     if (lastTurn?.nativeTurn?.status === "failed") return { tone: "failed", title: "Codex's last step failed", detail: `${lastTurn.nativeTurn.error?.message ? `Codex reported: ${text(lastTurn.nativeTurn.error.message)}. ` : ""}The run is still open; read the conversation, then reply there to continue or end the run.` };
     if (thread?.status?.type === "systemError") return { tone: "failed", title: "Codex reported an error", detail: "The conversation reported a system error. The run is still open; read the conversation, then continue or end the run." };

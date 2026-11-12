@@ -499,7 +499,9 @@ test('an open run reads as working from its turn in progress, and a failed last 
   assert.equal(runReading(run, host({conversationTurns:[turn({threadId:'T2'})]})).tone, 'idle', 'another conversation\'s turn');
   assert.equal(runReading(run, host({conversationTurns:[turn({generation:{...g, spawnCounter:2}})]})).tone, 'idle', 'an earlier Codex session\'s turn');
   assert.equal(runReading(run, host({conversationTurns:[turn({terminalEventObserved:true}, {status:'completed'})]})).tone, 'idle', 'a completed turn is not working, and never completed work');
-  assert.equal(runReading(run, host({conversationTurns:[turn({observationEnded:true})]})).tone, 'idle', 'an observation that ended says nothing about now');
+  const lost = runReading(run, host({conversationTurns:[turn({observationEnded:true})]}));
+  assert.equal(lost.tone, 'uncertain', 'a turn last seen in progress whose observation ended is never read as stopped');
+  assert.match(lost.title + lost.detail, /Can't tell whether Codex is still working.*may still be working/); assert.doesNotMatch(lost.title + lost.detail, /not working right now|completed|finished/);
   const failed = runReading(run, host({conversationTurns:[turn({receiptPosition:1, terminalEventObserved:true}, {status:'completed'}), turn({receiptPosition:2, terminalEventObserved:true}, {status:'failed', error:{message:'invented failure'}})]}));
   assert.equal(failed.tone, 'failed'); assert.equal(failed.title, "Codex's last step failed");
   assert.match(failed.detail, /^Codex reported: invented failure\. The run is still open/);
