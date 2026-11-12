@@ -343,3 +343,34 @@ fn an_observation_whose_recording_context_is_unavailable_waits_and_is_then_recor
     f.observe(&mut session, &[view], None);
     assert_eq!((f.of("dispatch_observed").len(), f.of("child_observed").len()), (1, 1));
 }
+
+// A child is recorded under one project identity; a later status, the close of
+// its generation and the App's exit then find another identity in force.
+// Nothing is written under the other identity, and the recorder says why.
+#[test]
+fn nothing_is_written_of_a_child_under_a_recording_context_other_than_its_own() {
+    let f = Fixture::new();
+    let g = generation("first");
+    let mut s = spawn(&g, None);
+    let mut session = Session::default();
+    f.observe(&mut session, &[handed(&s, &g, &f.project)], None);
+    assert_eq!(f.rows().len(), 2);
+    let elsewhere = |generation: &Value| {
+        let mut context = f.context(generation);
+        let mut scope = f.scope.clone();
+        scope.project_id = "invented-replacement-identity".into();
+        context.scope = Ok(scope);
+        context
+    };
+    s.view.close(&g).unwrap();
+    session.observe_delegation_views(Some(&f.project), &[handed(&s, &g, &f.project)], &mut |generation| elsewhere(generation), &|_| Some("Codex process stopped"));
+    session.end_own_delegation(&mut |generation| Some((elsewhere(generation), "App quit")));
+    session.retry(Some(&f.project));
+    assert_eq!(f.rows().len(), 2, "no end is written under another identity");
+    assert!(session.snapshot()["limits"].to_string().contains("no longer the one this child was recorded under"));
+    // The original context is in force again: the end is recorded, once.
+    f.observe(&mut session, &[handed(&s, &g, &f.project)], Some("Codex process stopped"));
+    session.end_own_delegation(&mut |generation| Some((f.context(generation), "App quit")));
+    assert_eq!(f.of("observation_ended").len(), 1);
+    assert_eq!(f.of("observation_ended")[0]["body"]["cause"], "Codex process stopped");
+}

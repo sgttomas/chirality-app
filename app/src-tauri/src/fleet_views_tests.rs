@@ -764,9 +764,9 @@ fn fleet_views_a_project_line_naming_the_app_or_a_child_tied_to_no_brief_never_r
     let w = f.read();
     assert_eq!(work(view(&w), "W3")["category"], "ready (qualified)");
     assert!(view(&w)["notes"].to_string().contains("child observations with no recorded dispatch: stray-child"));
-    // A dispatch whose brief file does not have the content referenced still holds the item, and says so.
-    let mut changed = association;
-    changed["briefContent"]["value"] = json!("0".repeat(64));
+    // A dispatch recorded with a mismatch (the file's bytes were not the referenced ones) still holds the item, and says so.
+    let changed = json!({"state":"brief referenced; content does not match the reference","brief":"brief:W1","briefFile":"briefs/W1.json",
+        "referencedContent":{"method":util::FILE_IDENTITY_METHOD,"value":"0".repeat(64)},"currentContent":association["briefContent"]});
     let mut rows = stray.to_vec();
     rows.push(f.dispatch("child-b", changed));
     f.observed(&rows);
@@ -797,7 +797,7 @@ fn fleet_views_a_dispatch_ties_only_through_the_items_own_brief_file() {
     let item = work(view(&w), "W1");
     assert_ne!(item["category"], "dispatched", "the same identifier from another file ties nothing");
     assert!(item["dispatch"].is_null());
-    assert!(item["causes"].to_string().contains("names this brief identifier from another file"));
+    assert!(item["causes"].to_string().contains("not established as a brief of this item"));
     // The item's own brief file is referenced: it is held.
     let own = f.dispatch("own-child", association);
     f.observed(&[foreign_dispatch.clone(), own.clone()]);
@@ -810,5 +810,63 @@ fn fleet_views_a_dispatch_ties_only_through_the_items_own_brief_file() {
     let item = work(view(&w), "W1");
     assert_eq!(item["category"], "unknown");
     assert!(item["causes"].to_string().contains("named brief absent or ambiguous"));
-    assert!(item["causes"].to_string().contains("this item's brief file is not established"));
+    assert!(item["causes"].to_string().contains("not established as a brief of this item"));
+}
+
+// Round 2 of review: which file, which item. Expectations are the scope's words:
+// unknown takes precedence over waiting; preparing a new brief releases nothing;
+// a held item is never shown as ready.
+#[test]
+fn fleet_views_a_dispatch_holds_its_item_through_aliases_supersession_and_a_missing_brief() {
+    // The same file named in another case, where the volume treats the two names as one file.
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    if std::fs::metadata(f.project.join(FOLDER).join("briefs/w1.json")).is_ok() {
+        let mut aliased = association.clone();
+        aliased["briefFile"] = json!("briefs/w1.json");
+        f.observed(&[f.dispatch("alias-child", aliased)]);
+        let w = f.read();
+        let item = work(view(&w), "W1");
+        assert_eq!(item["category"], "dispatched", "one file under two spellings is one file");
+        assert_eq!(item["dispatch"]["briefFile"], "briefs/w1.json", "the path stays as the prompt named it");
+    }
+    drop(f);
+    // A new brief supersedes the dispatched one and a new graph revision names it: the worker still holds the item.
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    let dispatch = f.dispatch("held-child", association.clone());
+    f.observed(&[dispatch.clone()]);
+    let mut newer = brief("brief:W1b", "manager");
+    newer["recordId"] = json!("fl:brief-W1b");
+    newer["body"]["supersedes"] = json!("brief:W1");
+    f.put("briefs/W1b.json", &serde_json::to_vec(&newer).unwrap());
+    f.graph["body"]["items"][0]["brief"] = json!("brief:W1b");
+    f.select();
+    let w = f.read();
+    let item = work(view(&w), "W1");
+    assert_eq!(item["category"], "dispatched", "preparing a new brief releases nothing");
+    assert_eq!((&item["dispatch"]["briefNamed"], &item["dispatch"]["briefIsCurrent"], &item["dispatch"]["currentBrief"]), (&json!("brief:W1"), &json!(false), &json!("brief:W1b")));
+    assert!(item["causes"].to_string().contains("dispatched under brief:W1, not the item's current brief brief:W1b"));
+    drop(f);
+    // The item's brief is gone and an input is outstanding: unknown, not waiting.
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    f.graph["body"]["items"][0]["needs"] = json!([{"kind":"input","ref":"inputs/absent.txt"}]);
+    f.select();
+    f.observed(&[f.dispatch("held-child", association.clone())]);
+    assert_eq!(work(view(&f.read()), "W1")["category"], "dispatched", "an outstanding input does not release a held item");
+    std::fs::remove_file(f.project.join(FOLDER).join("briefs/W1.json")).unwrap();
+    let w = f.read();
+    assert_eq!(work(view(&w), "W1")["category"], "unknown", "unknown takes precedence over waiting");
+    drop(f);
+    // Recorded as a mismatch; the file later holds exactly the referenced bytes. Both facts are said.
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    let mismatch = json!({"state":"brief referenced; content does not match the reference","brief":"brief:W1","briefFile":"briefs/W1.json",
+        "referencedContent":association["briefContent"],"currentContent":{"method":util::FILE_IDENTITY_METHOD,"value":"1".repeat(64)}});
+    f.observed(&[f.dispatch("held-child", mismatch)]);
+    let w = f.read();
+    let item = work(view(&w), "W1");
+    assert_eq!((&item["dispatch"]["briefContentMatches"], &item["dispatch"]["briefContentMatchedWhenRecorded"]), (&json!(true), &json!(false)));
+    assert!(item["causes"].to_string().contains("did not have the content the prompt referenced when the dispatch was recorded and has it now"));
 }

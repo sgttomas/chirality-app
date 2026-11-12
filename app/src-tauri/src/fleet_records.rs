@@ -461,6 +461,8 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
         }
     }
     let view_inputs = views::read_inputs(&mut census, &root, &graphs);
+    let brief_files = views::read_brief_files(&mut census, &root, &briefs,
+        protected_log.iter().flat_map(|log| log.rows.iter()).chain(project_log.rows.iter()));
     #[cfg(test)] AFTER_READ.with(|h| { if let Some(hook) = h.borrow_mut().take() { hook(); } });
     let final_physical = configured.canonicalize().ok().filter(|p|p == &root).and_then(|p|std::fs::metadata(p).ok());
     if final_physical.as_ref().is_none_or(|m|m.dev()!=before.dev() || m.ino()!=before.ino()) {
@@ -550,7 +552,7 @@ pub(crate) fn read_for_workspace(workspace: Option<&Path>) -> Result<Value,Strin
     let recording_events=of_kinds(&["recording_limit","recording_recovered"]);
     let native_delegation=of_kinds(&["dispatch_observed","child_observed","observation_ended"]);
     let workspace = views::derive(&briefs, &graphs, &project_log, &project_duplicates,
-        &observations, &view_inputs, snapshot_stable);
+        &observations, &view_inputs, &brief_files, snapshot_stable);
     Ok(json!({"format":"chirality.fleet.read","formatVersion":"0.2","standing":STANDING,
         "project":{"configuredRoot":configured.to_string_lossy(),"canonicalRoot":root.to_string_lossy(),"nativeRoot":crate::attachments::native_path_identity(&root),"physical":{"device":before.dev(),"inode":before.ino()}},
         "schema":{"format":"chirality.fleet.record","versions":["0.1 quoted compatibility","0.2 native links and delegation"]},

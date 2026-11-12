@@ -302,8 +302,34 @@ struct Delegation<'a> {
     last: BTreeMap<String, &'a Value>,
     /// Children with a status or an end recorded and no dispatch.
     orphaned: Vec<&'a str>,
-    /// Children still observed that no record ties to a brief.
-    unassociated: usize,
+}
+/// Which file each brief record and each dispatch's reference is, by physical
+/// identity taken through the packet's census: `briefs/W1.json` and
+/// `briefs/w1.json` are one file on a case-insensitive volume. Brief records
+/// are keyed by their source path; references by `assoc:<path as the prompt named it>`.
+pub(super) type BriefFiles = BTreeMap<String, (u64, u64)>;
+pub(super) fn read_brief_files<'a>(census: &mut Census, root: &Path, briefs: &[Row], rows: impl Iterator<Item = &'a Row>) -> BriefFiles {
+    use std::os::unix::fs::MetadataExt;
+    let mut out = BriefFiles::new();
+    let mut identity = |census: &mut Census, path: &Path| census.metadata(path).ok().flatten().filter(|m| m.is_file()).map(|m| (m.dev(), m.ino()));
+    for brief in briefs {
+        if let Some(path) = brief.source["path"].as_str() {
+            if let Some(id) = identity(census, &root.join(path)) {
+                out.insert(path.to_owned(), id);
+            }
+        }
+    }
+    for row in rows.filter(|r| r.record["formatVersion"] == "0.2" && r.kind() == "dispatch_observed") {
+        let Some(file) = row.record["body"]["association"]["briefFile"].as_str() else { continue };
+        let rel = Path::new(file);
+        if !file.starts_with("briefs/") || rel.components().any(|p| !matches!(p, Component::Normal(_))) {
+            continue;
+        }
+        if let Some(id) = identity(census, &root.join(FOLDER).join(rel)) {
+            out.insert(format!("assoc:{file}"), id);
+        }
+    }
+    out
 }
 fn observation_source(observation: &Value) -> Value {
     json!({"recordId":observation["record"]["observationId"],"source":observation["source"],
@@ -330,12 +356,12 @@ impl<'a> Delegation<'a> {
             last.insert(child_key(record), row);
         }
         let dispatched: BTreeSet<String> = dispatches.iter().map(|d| child_key(&d["record"])).collect();
-        let ended = |key: &String| last.get(key).is_some_and(|o| o["record"]["kind"] == "observation_ended");
-        let orphans: Vec<(&String, &&Value)> = last.iter().filter(|(key, _)| !dispatched.contains(*key)).collect();
-        let unassociated = dispatches.iter().filter(|d| d["record"]["body"]["association"]["brief"].is_null() && !ended(&child_key(&d["record"]))).count()
-            + orphans.iter().filter(|(key, _)| !ended(key)).count();
-        let orphaned = orphans.iter().map(|(_, o)| text(&o["record"]["body"]["child"]["threadId"])).collect();
-        Self { dispatches, last, orphaned, unassociated }
+        let orphaned = last.iter().filter(|(key, _)| !dispatched.contains(*key)).map(|(_, o)| text(&o["record"]["body"]["child"]["threadId"])).collect();
+        Self { dispatches, last, orphaned }
+    }
+    /// An end of this child's observation is the last thing recorded of it.
+    fn ended(&self, record: &Value) -> bool {
+        self.last.get(&child_key(record)).is_some_and(|o| o["record"]["kind"] == "observation_ended")
     }
     /// What was last recorded of a dispatched child, in words that claim
     /// nothing about the child now, and whether its observation ended.
@@ -357,6 +383,7 @@ pub(super) fn derive(
     duplicates: &BTreeSet<String>,
     observations: &[Value],
     inputs: &Inputs,
+    brief_files: &BriefFiles,
     stable: bool,
 ) -> Value {
     let undertakings: BTreeSet<_> = graphs
@@ -366,6 +393,21 @@ pub(super) fn derive(
         .filter(|s| !s.is_empty())
         .collect();
     let delegation = Delegation::read(observations);
+    // The brief record a dispatch's prompt referenced: the one whose file is
+    // the file referenced. A dispatch is tied through that record's own work
+    // item and undertaking, whatever brief a later graph names for the item.
+    let referenced = |record: &Value| -> Option<&Row> {
+        let file = record["body"]["association"]["briefFile"].as_str()?;
+        let identity = brief_files.get(&format!("assoc:{file}"))?;
+        let mut same = briefs.iter().filter(|b| b.source["path"].as_str().and_then(|p| brief_files.get(p)) == Some(identity));
+        let row = same.next()?;
+        (same.next().is_none() && !duplicates.contains(row.id())).then_some(row)
+    };
+    let tied: Vec<(&Value, Option<&Row>)> = delegation.dispatches.iter().map(|d| (*d, referenced(&d["record"]))).collect();
+    // Children still observed that no record ties to a brief record.
+    let untied = tied.iter().filter(|(d, brief)| brief.is_none() && !delegation.ended(&d["record"])).count()
+        + delegation.last.iter().filter(|(key, o)| o["record"]["kind"] != "observation_ended"
+            && !delegation.dispatches.iter().any(|d| &child_key(&d["record"]) == *key)).count();
     // A project line of an App-only kind is the App's observation only where
     // the protected copy holds the identical line.
     let delegation_claims: Vec<&Row> = log.rows.iter()
@@ -418,7 +460,10 @@ pub(super) fn derive(
         let dispatched: BTreeSet<_> = observed.iter().filter(|o|o["kind"]=="dispatch_observed").map(|o|text(&o["body"]["childThread"])).collect();
         let orphaned: BTreeSet<_> = observed.iter().filter(|o|matches!(text(&o["kind"]),"child_observed"|"observation_ended") && !dispatched.contains(text(&o["body"]["childThread"]))).map(|o|text(&o["body"]["childThread"])).collect();
         let unassociated = observed.iter().filter(|o|o["kind"]=="dispatch_observed" && o["body"]["association"]["brief"].is_null()).count() + orphaned.len()
-            + delegation.unassociated;
+            + untied
+            // A dispatch for an item of this undertaking that its current graph does not hold.
+            + tied.iter().filter(|(d, brief)| !delegation.ended(&d["record"]) && brief.is_some_and(|b| b.record["undertaking"] == undertaking
+                && !ids.contains(text(&b.record["body"]["workItem"])))).count();
         let untrusted = unprotected_claims || rows.iter().any(|r|OBSERVED.contains(&r.kind())
             && !observations.iter().any(|o|array(&o["projectCounterparts"]).contains(&r.source)));
         if incomplete { notes.push("coordination log incomplete or conflicting; non-done states are unknown and the queue is not complete".into()); }
@@ -492,12 +537,13 @@ pub(super) fn derive(
                 category="returned";causes.push(return_state(review).into());
             } else if needs.iter().any(|n|n["state"]=="unknown") {
                 category="unknown";
+            } else if !item["brief"].is_null() && brief.is_none() {
+                // Unknown takes precedence over waiting.
+                category="unknown";causes.push("named brief absent or ambiguous; assignment basis not established".into());
             } else if needs.iter().any(|n|n["state"]=="outstanding") {
                 category="waiting";
             } else if item["owner"]["kind"]=="external" {
                 category="waiting";causes.push(format!("waits for external owner {}; no result recorded",actor(&item["owner"])));
-            } else if !item["brief"].is_null() && brief.is_none() {
-                category="unknown";causes.push("named brief absent or ambiguous; assignment basis not established".into());
             } else {
                 category="ready";causes.push(if brief.is_some(){"inputs satisfied; brief prepared; no dispatch observed"}else{"inputs satisfied; no dispatch observed"}.into());
             }
@@ -517,35 +563,47 @@ pub(super) fn derive(
                 }
                 // The App's own observation: the item is held by a worker until a
                 // return is recorded. Nothing about the work or its outcome follows.
-                // A dispatch is tied to this item only where the file its prompt
-                // referenced is the file of this item's own brief; the same brief
-                // identifier from another file, or another undertaking, ties nothing.
-                let brief_file = brief.and_then(|b| b.source["path"].as_str()).and_then(|path| path.strip_prefix(FOLDER)).map(|path| path.trim_start_matches('/'));
-                let named: Vec<&Value> = delegation.dispatches.iter().copied()
-                    .filter(|d| !item["brief"].is_null() && d["record"]["body"]["association"]["brief"]==item["brief"]).collect();
-                let for_brief: Vec<&Value> = named.iter().copied()
-                    .filter(|d| brief_file.is_some_and(|file| d["record"]["body"]["association"]["briefFile"] == file)).collect();
-                if let Some(dispatch) = for_brief.last().copied() {
+                // A dispatch holds this item where the brief record its prompt
+                // referenced is a brief of this item in this undertaking: its
+                // current brief or an earlier one. Preparing a new brief releases nothing.
+                let of_item = |b: &Row| b.record["undertaking"] == undertaking && b.record["body"]["workItem"] == id;
+                let for_item: Vec<(&Value, &Row)> = tied.iter().filter_map(|(d, b)| b.filter(|b| of_item(b)).map(|b| (*d, b))).collect();
+                if let Some((dispatch, named)) = for_item.last().copied() {
                     let record = &dispatch["record"];
+                    let association = &record["body"]["association"];
                     let (observed, ended, last) = delegation.observed(dispatch);
-                    let same_bytes = brief.is_some_and(|b| record["body"]["association"]["briefContent"]["value"] == crate::util::sha256_hex(&b.bytes));
-                    category = if ended { "unknown" } else { "dispatched" };
+                    let current = brief.is_some_and(|b| b.source == named.source);
+                    // The file now, against the digest the prompt referenced; and what was recorded at dispatch.
+                    let digest = if association["briefContent"].is_object() { &association["briefContent"]["value"] } else { &association["referencedContent"]["value"] };
+                    let matches_now = *digest == crate::util::sha256_hex(&named.bytes);
+                    let matched_then = association["state"] == "brief referenced";
+                    if !ended && category != "unknown" { category = "dispatched"; }
+                    if ended { category = "unknown"; }
+                    let content = match (matched_then, matches_now) {
+                        (true, true) => "the brief file has the content the prompt referenced",
+                        (true, false) => "the brief file had the content the prompt referenced when the dispatch was recorded and does not have it now",
+                        (false, false) => "the brief file does not have the content the prompt referenced",
+                        (false, true) => "the brief file did not have the content the prompt referenced when the dispatch was recorded and has it now",
+                    };
+                    let earlier = if current { String::new() } else {
+                        format!("; dispatched under {}, not the item's current brief {}: preparing a new brief releases nothing",
+                            text(&named.record["body"]["briefId"]), item["brief"].as_str().unwrap_or("(none named)"))
+                    };
                     held = json!({"child":record["body"]["child"]["threadId"],"parent":record["body"]["parent"]["threadId"],
-                        "association":record["body"]["association"]["state"],"briefNamed":item["brief"],"briefFile":record["body"]["association"]["briefFile"],
-                        "briefContentMatches":same_bytes,"recordedAt":record["observedAt"],"lastObserved":observed,"observationEnded":ended,
-                        "dispatchesForBrief":for_brief.len(),"sources":{"dispatch":observation_source(dispatch),"lastObservation":last.map(observation_source)}});
-                    causes.push(format!("App observed dispatch of child {} by {}; its spawn prompt named {} ({}); {observed}{}",
-                        text(&record["body"]["child"]["threadId"]), text(&record["body"]["parent"]["threadId"]), text(&item["brief"]),
-                        if same_bytes { "the brief file has the content the prompt referenced" } else { "the brief file does not have the content the prompt referenced" },
-                        if for_brief.len() > 1 { format!("; {} dispatches recorded for this brief, the latest shown", for_brief.len()) } else { String::new() }));
-                } else if !named.is_empty() {
-                    causes.push(if brief.is_some() {
-                        "a recorded dispatch names this brief identifier from another file; it is tied to no item here".to_owned()
-                    } else {
-                        "a recorded dispatch names this brief identifier, but this item's brief file is not established; it is tied to no item here".to_owned()
-                    });
-                } else if delegation_claims.iter().any(|r| r.kind()=="dispatch_observed" && !item["brief"].is_null() && r.record["body"]["association"]["brief"]==item["brief"]) {
-                    category="unknown";causes.push("project dispatch claim lacks protected App provenance".into());
+                        "association":association["state"],"briefNamed":named.record["body"]["briefId"],"briefFile":association["briefFile"],
+                        "briefIsCurrent":current,"currentBrief":item["brief"],
+                        "briefContentMatches":matches_now,"briefContentMatchedWhenRecorded":matched_then,
+                        "recordedAt":record["observedAt"],"lastObserved":observed,"observationEnded":ended,
+                        "dispatchesForItem":for_item.len(),"sources":{"dispatch":observation_source(dispatch),"lastObservation":last.map(observation_source),"brief":sourced(named)}});
+                    causes.push(format!("App observed dispatch of child {} by {}; its spawn prompt named {} ({}){earlier}; {content}; {observed}{}",
+                        text(&record["body"]["child"]["threadId"]), text(&record["body"]["parent"]["threadId"]),
+                        text(&association["briefFile"]), text(&named.record["body"]["briefId"]),
+                        if for_item.len() > 1 { format!("; {} dispatches recorded for this item, the latest shown", for_item.len()) } else { String::new() }));
+                } else if tied.iter().any(|(d, b)| !item["brief"].is_null() && d["record"]["body"]["association"]["brief"]==item["brief"] && !b.is_some_and(of_item)) {
+                    causes.push("a recorded dispatch names this brief identifier, but the file its prompt referenced is not established as a brief of this item; it is tied to no item here".to_owned());
+                } else if delegation_claims.iter().any(|r| r.kind()=="dispatch_observed" && (referenced(&r.record).is_some_and(of_item)
+                    || (!item["brief"].is_null() && r.record["body"]["association"]["brief"]==item["brief"]))) {
+                    category="unknown";causes.push("a dispatch line in the project's log lacks protected App provenance: the records store now attached holds no identical line. It is its recorder's claim, and nothing further can be recorded of that child here (the project's records identity may have changed)".into());
                 }
             }
             if done.is_none() {
@@ -564,7 +622,7 @@ pub(super) fn derive(
         result["graph"]=json!(graph.id());result["revision"]=graph.record["body"]["revision"].clone();
         result["selector"]=sourced(selector);result["graphSource"]=sourced(graph);
         result["currentGraphEstablished"]=json!(!incomplete);
-        result["queueComplete"]=json!(!incomplete && orphaned.is_empty() && delegation.unassociated==0 && !untrusted);
+        result["queueComplete"]=json!(!incomplete && orphaned.is_empty() && unassociated==0 && !untrusted);
         result["queue"]=json!(queue);result["waiting"]=json!(waiting);result["notes"]=json!(notes);result
     }).collect();
     json!({"standing":"Derived file-based coordination claims, not native execution, permission, human acceptance or authority. Rebuild writes nothing.",

@@ -874,9 +874,11 @@ implemented behavior and qualification limits.
     written when the status Codex reports for a child changes, and
     `observation_ended` when the generation it was observed in closes
     (Codex stopped or exited) or when the App itself exits (cause "App
-    quit"). A session records the end only of its own observation: nothing
-    is ever written about a child another session recorded, and after a
-    crash or a kill no end is recorded at all. These facts reach the store
+    quit"). A session records the end only of its own observation, and only
+    under the store and project identity the child was first recorded
+    under: nothing is ever written about a child another session recorded
+    or under a replacement identity, and after a crash or a kill no end is
+    recorded at all. These facts reach the store
     in the order observed; a later one waits while an earlier one is
     unwritten. A dispatch establishes a child and its parent only. A spawn seen only in Codex history, or in a
     conversation whose folder is not the selected project, is not recorded.
@@ -895,12 +897,16 @@ implemented behavior and qualification limits.
     Missing, changed or duplicate selections never fall back to an older graph.
     Inputs are contained Fleet-relative files; connector needs are interpreted
     from their declared receiving records with claim/route gaps shown. Decision
-    needs remain unknown without their required evidence. An item whose
-    own brief file an App-recorded dispatch referenced, with no return
+    needs remain unknown without their required evidence. A dispatch is
+    tied through the brief record its prompt referenced, by that record's
+    own work item and undertaking; which file was referenced is judged by
+    the file's identity, not its spelling. An item so held, with no return
     recorded, reads `dispatched` with the child's last recorded status, when
     it was recorded and that nothing has been recorded since, and `unknown`
-    once an end of that child's observation is recorded. The same brief
-    identifier from another file ties nothing. A child tied to no brief
+    once an end of that child's observation is recorded or where its named
+    brief cannot be found. A dispatch under an earlier brief of the item
+    still holds it and says so; the same brief identifier in another
+    undertaking's file ties nothing here. A child tied to no brief
     leaves no item plainly ready while it is observed. An incomplete source packet cannot produce unqualified readiness
     or an apparently complete empty queue. The complete source packet remains
     available beside the derived views.

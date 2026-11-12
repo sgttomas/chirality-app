@@ -9461,6 +9461,35 @@ for line in sys.stdin:
         assert_eq!((&recorded[2]["kind"],&recorded[2]["body"]["cause"],&recorded[2]["body"]["lastObserved"]),(&json!("observation_ended"),&json!("App quit"),&json!("running")));
         assert_eq!(recorded[2]["body"]["child"],json!({"threadId":"child-old","generation":g}));
     }
+    // DEL-06-01: a child recorded under one project identity is given no end
+    // under a replacement identity (review round 2 of the producer).
+    #[test]
+    fn the_apps_exit_writes_nothing_under_a_replacement_project_identity(){
+        let store=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("delegation-identity-store-").unwrap());
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store{root:store.clone(),placement:crate::records_store::Placement::Test,limits:vec![]})));
+        struct ResetStore(PathBuf);
+        impl Drop for ResetStore{fn drop(&mut self){crate::records_store::use_store_for_test(None);let _=std::fs::remove_dir_all(&self.0);}}
+        let _reset=ResetStore(store);
+        let peer=Peer::new();let g=peer.generation.clone();
+        let original=crate::records_store::attach(&peer.fixture.root,true).unwrap().dir.unwrap();
+        let workflows=Mutex::new(WorkflowRootSession::default());let homes=Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+        let mut links=crate::native_conversation_links::Session::default();
+        let log=|dir:&std::path::Path|std::fs::read_to_string(dir.join("fleet/coordination.fleet.jsonl")).unwrap_or_default();
+        peer.set_mode("notify-mode","spawn");peer.home.host.turn_start_text(&g,"thread","delegate one piece").unwrap();
+        let deadline=std::time::Instant::now()+Duration::from_secs(5);
+        while log(&original).lines().count()<2{
+            for (home,views) in crate::host_tick::tick_project(&homes,&workflows,peer.project()){links.observe_delegation(peer.project(),&home,&views);}
+            assert!(std::time::Instant::now()<deadline,"spawn recorded; limits {}",links.snapshot()["limits"]);std::thread::sleep(Duration::from_millis(20));
+        }
+        let before=log(&original);
+        crate::records_store::new_identity(&peer.fixture.root).unwrap();
+        let replacement=crate::records_store::attach(&peer.fixture.root,false).unwrap().dir.unwrap();
+        assert_ne!(replacement,original);
+        links.end_delegation_at_exit(peer.project(),&[peer.home.clone()]);links.retry(peer.project());
+        assert!(!log(&replacement).contains("observation_ended"),"nothing of that child under the replacement identity");
+        assert_eq!(log(&original),before,"and nothing more under the original, which is no longer in force");
+        assert!(links.snapshot()["limits"].to_string().contains("no longer the one this child was recorded under"));
+    }
     // M6 / H-4: a sub-agent the view showed before the trial was sent is no
     // candidate; the tick's linking read is journalled as the App rule's.
     #[test]
