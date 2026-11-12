@@ -140,22 +140,33 @@ An entry is added in the same pull request that makes the limitation standing.
   person's own Codex settings; a conversation with a model server on another
   machine; and a local model server that requires no key. In the home that
   uses the ChatGPT account, the App's Codex runs on the built-in OpenAI
-  provider whatever default provider the person's Codex settings name. In the
-  local model home, Codex's plugin traffic is always off, whatever the
-  person's Codex plugin setting. Changing the local server's address removes
-  the saved key. An existing conversation continues only when the model name
-  now set matches the model Codex recorded for it, and then uses the server
-  at the address now set; otherwise it cannot continue under the current
-  settings.
+  provider whatever default provider the person's Codex settings name; a
+  conversation saved earlier on another provider can be opened there and
+  cannot run a message. In the local model home, Codex's plugin traffic is
+  always off, whatever the person's Codex plugin setting. Changing the local
+  server's address removes the saved key. An existing conversation continues
+  only when the model name now set matches the model Codex recorded for it,
+  and then uses the server at the address now set; otherwise it cannot
+  continue under the current settings. In a session already using the local
+  home, a change to the local model settings cannot be used until the App is
+  quit and reopened; the local connection is unavailable meanwhile. Changing
+  an existing server address requires the local connection to be prepared
+  first so Codex can sign out, even if no key was saved. If the local home's
+  settings are changed outside the App while a key is saved, the local
+  connection is unavailable until the earlier address is set again.
 - **Why:** at the selected supplier version, Codex runs conversations only on
   the provider its process started with, so account and local access use
-  separate homes. The release requires a local credential, limits the server
-  to this machine to keep the key and conversation content from travelling
-  off it without the protections that requires, and removes the saved key
-  when the address changes so it cannot be sent to another server.
+  separate homes; the App does not reconfigure a prepared local connection in
+  place. The release requires a local credential, limits the server to this
+  machine to keep the key and conversation content from travelling off it
+  without the protections that requires, and requires a prepared local
+  connection to confirm removal of the saved key before an address change so
+  that key cannot be sent to another server.
 - **What the person does instead:** set the local server's address and model
-  name in the App's local model settings, run the model server on the same
-  machine with a key, enter the key again after changing the address, and
-  start a new conversation to use a different model name.
+  name in the App's local model settings and run the model server on the
+  same machine with a key. To change the address, prepare the local
+  connection, save the new address, quit and reopen the App, prepare the
+  connection again and enter the key again. To use a different model name,
+  save it, quit and reopen the App, and start a new conversation.
 - **Basis:** DEL-01-05 (REQ-003, REQ-010, AC-003, AC-005, AC-008, AC-011);
   PRD V4-APP-02.
