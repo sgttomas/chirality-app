@@ -198,7 +198,10 @@ An entry is added in the same pull request that makes the limitation standing.
   configuration that is no longer in the App's own form cannot be read or
   repaired from the App. If the App's record of the address a saved key was
   entered for is removed outside the App, the key is not used at any address
-  and the App offers no repair.
+  and the App offers no repair. The protection of a saved key rests on the
+  files of the local model home being changed only by the App and its Codex:
+  it does not survive their removal or replacement from outside while an
+  earlier Codex process of that home is still running.
 - **Why:** at the selected supplier version, Codex runs conversations only on
   the provider its process started with, so account and local access use
   separate homes; the App does not reconfigure a prepared local connection in

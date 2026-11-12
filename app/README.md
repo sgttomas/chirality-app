@@ -1319,9 +1319,12 @@ this cannot be put right from the App. To use that home again:
 3. Open the App, prepare the local connection and enter the key again in the
    secure field. The App writes the record before the field opens.
 
-Removing the whole `codex-omlx` folder also discards its local conversations
-and settings; set the address and model name again before preparing the
-connection.
+Do not remove or replace anything else in that folder, and not the folder
+itself. If the App ended unexpectedly before step 1, an earlier Codex process
+of that home may still be running: make sure none is (Activity Monitor, a
+process named `codex`), or log out of the Mac and back in, before removing the
+file. The App's protection of a saved key does not survive files of that home
+being removed or replaced from outside while such a process runs.
 
 ## Storage and remaining work
 
