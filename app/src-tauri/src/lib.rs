@@ -800,6 +800,11 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["currentAppProjectContext"] = state.project_context.view();
     s["configuredProviderReadRevision"] = if home.class() == home_resources::HomeClass::Account {
         home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
+            .map(|cwd|home.host.configured_provider_observation_revision(&s["generation"],cwd)).unwrap_or(Value::Null)
+    } else { Value::Null };
+    // The endpoint and Add reviews follow every configuration read of the folder, as their native checks do.
+    s["providerOfferReadRevision"] = if home.class() == home_resources::HomeClass::Account {
+        home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
             .map(|cwd|home.host.configured_provider_revision(&s["generation"],cwd)).unwrap_or(Value::Null)
     } else { Value::Null };
     s["accessSettingsReadRevision"] = home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
@@ -1117,7 +1122,7 @@ fn read_configured_providers(state:State<'_,AppState>,generation:Value,mode_home
     state.validate_home_source(&home).map_err(|_|refused())?;
     let active=state.homes.lock().unwrap().active();
     if !Arc::ptr_eq(&active,&home) || home.host.snapshot()["generation"]!=generation || state.project_context.view()!=project
-        || home.host.configured_provider_revision(&generation,&cwd)!=view["scope"]["readRevision"] {return Err(refused());}
+        || home.host.configured_provider_observation_revision(&generation,&cwd)!=view["scope"]["readRevision"] {return Err(refused());}
     Ok(view)
 }
 
