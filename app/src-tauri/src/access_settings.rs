@@ -1,4 +1,5 @@
-//! Explicit, private config/read -> two allowlisted supplier-reported settings.
+//! Explicit, private config/read -> two allowlisted supplier-reported settings and
+//! the default provider the person's own settings name.
 //! No auth files, requirements, config writes or inferred defaults/custody.
 use super::access_provider::{PrivateConfigPurpose, PrivateConfigReading, PrivateReflections};
 use super::*;
@@ -66,13 +67,31 @@ fn setting(read: &Value, key: &str, path: &[&str]) -> Value {
     json!({"state":"reported","value":value,"source":source})
 }
 
+/// The default provider the person's own Codex settings name: the user
+/// layer's `model_provider`, a displayable identifier only. "none" when an
+/// enabled user layer names none; "unknown" when no user layer was reported
+/// or the name is not displayable. Never the effective value: in the account
+/// home that is the App's own session setting.
+fn person_default_provider(read: &Value) -> Value {
+    let Some(layers) = read["layers"].as_array() else { return json!({"state":"unknown","value":null}); };
+    let user: Vec<&Value> = layers.iter().filter(|l| l["name"]["type"] == "user" && l["disabledReason"].is_null()).collect();
+    let [layer] = user.as_slice() else { return json!({"state":"unknown","value":null}); };
+    match &layer["config"]["model_provider"] {
+        Value::Null => json!({"state":"none","value":null}),
+        Value::String(name) if name.len() <= 64 && name.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
+            && name.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-')) => json!({"state":"reported","value":name}),
+        _ => json!({"state":"unknown","value":null}),
+    }
+}
+
 fn project(read: &PrivateConfigReading, class: &str) -> Result<Value, String> {
     let reflections = PrivateReflections::new(&read.config).map_err(|_| LIMIT.to_owned())?;
     let view = json!({
         "state":"observed",
         "scope":{"generation":read.source.generation(),"modeHomeClass":class,"readRevision":read.source.request_ref},
         "credentialStore":setting(&read.config,"cli_auth_credentials_store", &["cli_auth_credentials_store"]),
-        "plugins":setting(&read.config,"features.plugins", &["features","plugins"])
+        "plugins":setting(&read.config,"features.plugins", &["features","plugins"]),
+        "personDefaultProvider":person_default_provider(&read.config)
     });
     if reflections.excludes_value(&view) {
         return Err(LIMIT.into());

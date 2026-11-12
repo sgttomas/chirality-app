@@ -267,14 +267,14 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, fork
 
 export type StartChoice = { model: string; modelProvider: string; entryId: string };
 
-/** The model and the configured provider are exact Codex identifiers, sent as
- * typed; the webview must not capitalise or correct them (EXACT_TEXT). Used by
- * the start display and by Continue as. */
-export function ModelProviderFields({ model, modelProvider, setModel, setModelProvider }: { model: string; modelProvider: string; setModel: (model: string) => void; setModelProvider: (provider: string) => void }) {
+/** The model is an exact Codex identifier, sent as typed; the webview must not
+ * capitalise or correct it (EXACT_TEXT). Used by the start display, a clean
+ * trial and Continue as. The provider is never typed: at the pin Codex runs a
+ * conversation only on the provider its process was started with. */
+export function ModelIdField({ model, setModel }: { model: string; setModel: (model: string) => void }) {
   return <>
-    <label>Model <input {...EXACT_TEXT} value={model} onChange={e => setModel(e.target.value)} /></label>{" "}
-    <label>Configured Codex provider <input {...EXACT_TEXT} value={modelProvider} onChange={e => setModelProvider(e.target.value)} /></label>
-    <small> The chosen access entry must match this provider: cloud entries use built-in OpenAI; local entries use a configured Responses provider without credentials. An unavailable definition prevents Start.</small>
+    <label>Model <input {...EXACT_TEXT} value={model} onChange={e => setModel(e.target.value)} /></label>
+    <small> A model ID for the ChatGPT account connection, sent to Codex as typed. Choose “Use my ChatGPT account” above first. If the account does not offer this model, Codex reports an error when the conversation starts or its first message runs.</small>
   </>;
 }
 
@@ -290,16 +290,14 @@ export function ConnectionAndModel({ homeClass, chooser, entries, disabled, loca
   const { route, revise } = chooser;
   return <div aria-label="Connection and model">
     {chooser.stale && <p role="status">Codex, the home or its generation changed since you chose. Your text is kept; choose how it connects and its model again.</p>}
-    <AccessRouteChoice homeClass={homeClass} modelProvider={route.modelProvider} entryId={route.entryId} model={route.model} disabled={disabled} choose={revise} local={local}
-      localHint="Or use a local model server: enter its configured provider under “Advanced: enter IDs yourself”." />
+    <AccessRouteChoice homeClass={homeClass} modelProvider={route.modelProvider} entryId={route.entryId} model={route.model} disabled={disabled} choose={revise} local={local} />
     <AvailableModels packet={chooser.packet} current={chooser.current} reading={chooser.reading} message={chooser.message}
       model={route.model} modelProvider={route.modelProvider} entryId={route.entryId} disabled={disabled} read={chooser.read} choose={chooser.choose}
       setModel={model => revise({ model })} fixedModel={local && route.entryId === local.entryId ? local.model : null}
       localHome={homeClass === "local-provider" ? (local ? "prepared" : "unprepared") : null} />
-    <details><summary>Advanced: enter IDs yourself</summary>
-      <p><ModelProviderFields model={route.model} modelProvider={route.modelProvider} setModel={model => revise({ model })} setModelProvider={modelProvider => revise({ modelProvider })} /></p>
-      <p><label>Access entry <select value={route.entryId} disabled={disabled} onChange={e => revise({ entryId: e.target.value })}><option value="">No entry selected</option>{entries.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}</select></label></p>
-    </details>
+    {homeClass === "account" && <details><summary>Advanced: enter a model ID yourself</summary>
+      <p><ModelIdField model={route.model} setModel={model => revise({ model })} /></p>
+    </details>}
   </div>;
 }
 

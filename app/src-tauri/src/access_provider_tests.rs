@@ -62,6 +62,50 @@ fn access_provider_access_settings_missing_null_invalid_and_layer_only_values_st
     }
 }
 
+/// DEL-01-05 account home: the default provider the person's own settings name is
+/// read from the one enabled user layer, never from the effective value (the App's
+/// own session setting), and anything not established stays unknown, never "none".
+#[test]
+fn access_provider_access_settings_report_the_persons_default_provider_from_the_user_layer_only() {
+    let peer = Peer::new("invented-account-home");
+    let read = |edit: &dyn Fn(&mut Value)| {
+        let mut result = access_settings_config(json!("file"), json!(false));
+        result["config"]["model_provider"] = json!("openai");
+        edit(&mut result);
+        peer.answer(result);
+        peer.host.effective_access_settings_read_within(&peer.g, "/invented/work", "account", Duration::from_millis(30)).map(|v| v["personDefaultProvider"].clone())
+    };
+    assert_eq!(read(&|_| {}).unwrap(), json!({"state":"none","value":null}), "the effective built-in provider is not the person's default");
+    assert_eq!(read(&|r| r["layers"][0]["config"]["model_provider"] = json!("local-lab")).unwrap(), json!({"state":"reported","value":"local-lab"}));
+    for unknown in ["no-layers", "disabled", "two-user-layers", "not-a-name", "not-displayable", "other-layer"] {
+        let value = read(&|r| match unknown {
+            "no-layers" => r["layers"] = Value::Null,
+            "disabled" => { r["layers"][0]["config"]["model_provider"] = json!("local-lab"); r["layers"][0]["disabledReason"] = json!("fixture"); }
+            "two-user-layers" => { let layer = r["layers"][0].clone(); r["layers"].as_array_mut().unwrap().push(layer); }
+            "not-a-name" => r["layers"][0]["config"]["model_provider"] = json!(3),
+            "not-displayable" => r["layers"][0]["config"]["model_provider"] = json!("bad name!"),
+            _ => { r["layers"][0]["name"]["type"] = json!("project"); r["origins"] = json!({}); }
+        });
+        // A reply the supplier's schema refuses withholds the whole view; either way no default is claimed.
+        assert!(value.is_err() || value == Ok(json!({"state":"unknown","value":null})), "{unknown}: {value:?}");
+    }
+    // A default that reflects a private value withholds the whole view.
+    assert!(read(&|r| r["layers"][0]["config"]["model_provider"] = json!(CANARY)).is_err());
+    peer.safe();
+}
+#[test]
+fn every_session_setting_the_app_applies_is_listed_with_a_reason() {
+    let account = HostConfig::new("/x".into(), "/a".into(), "/p".into(), "/w".into());
+    assert_eq!(account.session_flags, ["analytics.enabled=false", "model_provider=\"openai\""]);
+    let listed = applied_session_settings(&account.session_flags);
+    assert_eq!(listed.as_array().unwrap().len(), 2);
+    assert!(listed[1]["reason"].as_str().unwrap().contains("Your files are not changed"));
+    let unknown = applied_session_settings(&["invented.setting=1".into()]);
+    assert_eq!(unknown, json!([{"setting":"invented.setting=1","reason":"No reason is recorded for this setting."}]), "an unrecognised setting is listed, not dropped");
+    for flag in account.session_flags.iter() {
+        assert!(!applied_session_settings(&[flag.clone()])[0]["reason"].as_str().unwrap().starts_with("No reason"), "{flag}");
+    }
+}
 #[test]
 fn access_provider_access_settings_provenance_requires_unique_enabled_matching_origin_and_value() {
     let peer = Peer::new("invented-account-home");

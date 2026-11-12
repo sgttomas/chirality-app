@@ -54,7 +54,7 @@ export function AccessRouteChoice({ homeClass, modelProvider, entryId, model = "
           {local.credentialState === "entry-required" && <><br/><span role="note">No key is saved for this server yet. A conversation can be started, but its messages will fail until the key is entered under Connection &amp; access.</span></>}</p>
         : <p>Prepare the oMLX connection under Connection &amp; access for this Codex session first.</p>)
       : <p>Choose the account connection under Connection &amp; access first.</p>}
-    {homeClass === "account" && <p><small>{localHint ?? "Keyed oMLX uses its own local home: prepare it and switch to it under Connection & access. Anonymous configured local providers connect here."}</small></p>}
+    {homeClass === "account" && <p><small>{localHint ?? "A local model server has its own home: set it up and switch to it under Connection & access."}</small></p>}
     {entryId === "local-provider" && modelProvider && <p>Connects through configured local provider <code>{modelProvider}</code>.</p>}
   </div>;
 }
@@ -82,7 +82,7 @@ export function AvailableModels({ packet, current, reading, message, model, mode
         <p>The App has no list of this server's models: the models Codex lists are its own catalogue. Enter the model's name exactly as your server names it.</p>
         {setModel
           ? <p><label>Model name on the local server <input autoCapitalize="off" autoCorrect="off" autoComplete="off" spellCheck={false} value={model} disabled={disabled} onChange={event => setModel(event.target.value)} /></label></p>
-          : <p>Enter it under “Advanced: enter IDs yourself”.</p>}
+          : null}
         <p><small>The name is sent to Codex as typed. Whether the server has that model is known only when the conversation's first message reaches it.</small></p>
       </>}
   </div>;
@@ -96,7 +96,7 @@ export function AvailableModels({ packet, current, reading, message, model, mode
       <p><strong>{server ? <>Models Codex reports for provider <code>{server}</code></> : "Models Codex reports for its own provider"}</strong>{packet.readAt ? <small> · read {text(packet.readAt)}</small> : null}</p>
       {packet.providerLimit && <p role="note"><small>{text(packet.providerLimit)}.</small></p>}
       {!modelProvider ? <p role="note">Choose how this conversation connects first; then choose a model.</p>
-        : match === "none" ? <p role="note">This list isn't for this conversation's provider (<code>{modelProvider}</code>{server ? <>; the list is for <code>{server}</code></> : ""}). Enter that provider's model ID under “Advanced: enter IDs yourself”.</p>
+        : match === "none" ? <p role="note">This list isn't for this conversation's provider (<code>{modelProvider}</code>{server ? <>; the list is for <code>{server}</code></> : ""}). Enter a model ID under “Advanced: enter a model ID yourself”.</p>
         : match === "unconfirmed" ? <p role="note">Codex's configuration doesn't name its provider, so the App can't confirm these models are for the built-in OpenAI route. You can still choose one. Start re-checks that the built-in OpenAI route is configured; it doesn't confirm this model is offered on it — if it isn't, Codex reports an error when the conversation starts or its first turn runs.</p> : null}
       {rows.length === 0 ? <p>{packet.complete ? "Codex reported no models." : "No models could be read."}</p>
         : <ul aria-label="Models Codex reports">{rows.map((row: Json) => <li key={row.id}>
@@ -171,7 +171,7 @@ export function useBoundModelChoice({ owner, homeClass, generation, ready }: { o
       if (!validModelPacket(packet, original, mode)) throw Error("the reply was not a model list for this Codex source");
       setObservation({ packet, epoch: at, sequence: number });
     }).catch(error => {
-      if (still()) setMessage({ epoch: at, text: `Model list unavailable: ${error instanceof Error ? error.message : String(error)}. You can still enter a model ID under “Advanced: enter IDs yourself”.` });
+      if (still()) setMessage({ epoch: at, text: `Model list unavailable: ${error instanceof Error ? error.message : String(error)}. You can still enter a model ID under “Advanced: enter a model ID yourself”.` });
     }).finally(() => { pending.current = false; if (mounted.current) setReading(false); });
   };
   const choose = (row: Json) => {

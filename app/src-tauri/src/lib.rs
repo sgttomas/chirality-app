@@ -805,6 +805,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["accessSettingsReadRevision"] = home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
         .map(|cwd|home.host.configured_provider_revision(&s["generation"],cwd)).unwrap_or(Value::Null);
 
+    s["codexSessionSettings"] = home.host_config.as_ref().ok().map(|cfg|hosting::applied_session_settings(&cfg.session_flags)).unwrap_or(Value::Null);
     s["currentAppProjectContextLimit"] = json!(state.project_context_limit);
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
         s["instructionsProblem"] = json!(e);

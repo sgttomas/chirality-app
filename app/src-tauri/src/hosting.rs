@@ -203,6 +203,29 @@ pub struct HostConfig {
     pub(crate) require_distribution_artifacts: bool,
 }
 
+/// The account home's provider, as a session setting (see `HostConfig::new`).
+pub(crate) const ACCOUNT_PROVIDER_FLAG: &str = "model_provider=\"openai\"";
+/// DEL-01-05 REQ-010: every setting the App applies to its own Codex when it
+/// starts it, each with its reason, for the person to read. A setting with no
+/// reason here is still listed, marked as such, never left out.
+pub(crate) fn applied_session_settings(flags: &[String]) -> Value {
+    let reason = |flag: &str| -> &'static str {
+        let key = flag.split('=').next().unwrap_or("");
+        match key {
+            "analytics.enabled" => "Turns off Codex's analytics traffic.",
+            "features.plugins" => "Turns off Codex's plugin traffic in the local model home, which shares nothing with your Codex settings.",
+            "features.api_key_model_discovery" => "Stops Codex sending the local server's key to a model catalogue address.",
+            "cli_auth_credentials_store" => "Keeps the local server's key in this home's own Codex file, not your keychain or your own Codex home.",
+            "model_provider" if flag == ACCOUNT_PROVIDER_FLAG => "Codex runs a conversation only on the provider it was started with, so this home's Codex is started on its built-in OpenAI provider, whatever default your Codex settings name. Your files are not changed.",
+            "model_provider" => "Starts this home's Codex on the local model server's provider.",
+            "model" => "Names the local server's model for this home's Codex.",
+            _ if key.starts_with("model_providers.") => "Defines the local model server for this home's Codex: its address, interface and whether it requires a key.",
+            _ => "No reason is recorded for this setting.",
+        }
+    };
+    Value::Array(flags.iter().map(|flag| json!({"setting":flag,"reason":reason(flag)})).collect())
+}
+
 impl HostConfig {
     pub fn new(codex_bin: PathBuf, codex_home: PathBuf, probe_home: PathBuf, cwd: PathBuf) -> Self {
         HostConfig {
@@ -215,7 +238,11 @@ impl HostConfig {
             allow_unverified_dev: false,
             // ACCESS §9 K-12: analytics off in the session flags. Plugins follow the
             // person's own setting (L-3), so the App passes nothing for them.
-            session_flags: vec!["analytics.enabled=false".into()],
+            // DEL-01-05 account home: Codex at the pin runs a conversation only on
+            // the provider its process was started with, so this home's Codex is
+            // started on the built-in provider whatever default the person's
+            // settings name. Nothing is written to the person's files.
+            session_flags: vec!["analytics.enabled=false".into(), ACCOUNT_PROVIDER_FLAG.into()],
             wait_limit: Duration::from_secs(20),
             probe_wait_limit: Duration::from_secs(20),
             distribution: None,

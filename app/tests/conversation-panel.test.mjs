@@ -1021,7 +1021,6 @@ test('matching sign-in completion checks once, including StrictMode and repeated
       await ui.show(withAccountRead(accountHost({homeOAuth:completionPacket()})));
       assert.match(ui.container.textContent,/Codex reports a ChatGPT account for this connection/);
       assert.equal(ui.reads.length,1);
-      assert.doesNotMatch(ui.container.textContent,new RegExp(accountCanary));
       await ui.show(accountHost());await ui.show(accountHost({homeOAuth:completionPacket()}));
       assert.equal(ui.reads.length,1,'a known completion is not retried after an observation gap');
     },{strict,initial:accountHost({homeOAuth:completionPacket()}),read:()=>{complete=deferred();return complete.promise;}});
@@ -1045,6 +1044,15 @@ test('no implicit check on restart, pending, failed, foreign, missing or unavail
   });
 });
 
+test('the account view shows the email and plan Codex reports, says when no email is reported, and never an unrecognised plan',()=>{
+  const {reportedChatgptAccount}=loadSrc('AccountStatus');
+  assert.equal(reportedChatgptAccount({codexAccount:'person@example.invalid',nativeAccount:{type:'chatgpt',planType:'plus'}}),'person@example.invalid · plan plus');
+  assert.equal(reportedChatgptAccount({codexAccount:'ChatGPT account (no email reported)',nativeAccount:{type:'chatgpt',planType:'pro'}}),'ChatGPT account (no email reported) · plan pro');
+  for(const current of [{},{codexAccount:''},{codexAccount:null},{codexAccount:'two\nlines@example.invalid'},{codexAccount:'x'.repeat(255)}])
+    assert.match(reportedChatgptAccount(current),/^ChatGPT account \(no email reported\) · plan not reported$/);
+  for(const planType of ['unknown','INVENTED_PLAN',null,3,undefined])
+    assert.equal(reportedChatgptAccount({codexAccount:'person@example.invalid',nativeAccount:{planType}}),'person@example.invalid · plan not reported');
+});
 test('ordinary account summary distinguishes kinds, absence, omission, pending, invalid and failed latest reads',async()=>{
   const cases=[
     [accountReadPacket('chatgpt'),/reports a ChatGPT account/],
@@ -1063,7 +1071,9 @@ test('ordinary account summary distinguishes kinds, absence, omission, pending, 
       const source=withAccountRead(accountHost(),row);
       source.homeAccess.observations.unshift(accountReadPacket());
       await ui.show(source);assert.match(ui.container.textContent,expected,'latest read controls; no fallback to old success');
-      assert.doesNotMatch(ui.container.textContent,new RegExp(accountCanary));
+      // DEL-01-05 REQ-001: the email and plan appear only with a current ChatGPT account report, never with any other outcome.
+      if(row===cases[0][0]) assert.match(ui.container.textContent,new RegExp(`reports a ChatGPT account for this connection: ${accountCanary.replace('.','\\.')} · plan not reported\\.`));
+      else assert.doesNotMatch(ui.container.textContent,new RegExp(accountCanary));
     }
     const invalidated=withAccountRead(accountHost());invalidated.accountObservation.state='unknown';
     await ui.show(invalidated);assert.match(ui.container.textContent,/changed or is no longer confirmed/);
@@ -1123,7 +1133,7 @@ test('App matching completion dispatches only the existing non-forced read and s
     await ui.press('Sign in with your ChatGPT account (through Codex)…');
     assert.deepEqual(ui.calls.filter(c=>c.command==='read_home_access'),[{command:'read_home_access',args:{generation:g,modeHomeClass:'account'}}]);
     assert.match(ui.summary().textContent,/reports a ChatGPT account/);
-    assert.doesNotMatch(ui.summary().textContent,new RegExp(accountCanary));
+    assert.match(ui.summary().textContent,new RegExp(accountCanary),'the account Codex reports is shown');
     assert.ok(ui.calls.every(c=>['host_status','decision_view','native_confirmation_content','oauth_start','read_home_access'].includes(c.command)),
       'completion never refreshes credentials, signs in again, or calls a model');
     const diagnostics=elements(ui.container,'details').find(d=>d.textContent.startsWith('Source-owned account observations and limits'));

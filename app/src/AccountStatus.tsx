@@ -4,8 +4,18 @@ import { sameActivityGeneration } from "./NativeActivity";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 export type ReadAccountStatus = (generation: Json, modeHomeClass: string, isCurrent: () => boolean) => Promise<void>;
 
-// Read only the existing redacted, source-owned projection. Never summarize
-// arbitrary response strings, nativeAccount details, identity or diagnostics.
+// Read only the existing redacted, source-owned projection. Of the account
+// Codex reports, only the email and plan type are shown (DEL-01-05 REQ-001);
+// no other response string, native detail or diagnostic is summarized.
+const PLAN_TYPES = ["free", "go", "plus", "pro", "prolite", "promax", "team", "self_serve_business_prolite", "self_serve_business_usage_based", "business", "ent26",
+  "enterprise_cbp_automation", "enterprise_cbp_usage_based", "enterprise", "edu", "edu_plus", "edu_pro", "sci", "sci_plus", "unknown"];
+/** The ChatGPT account as Codex reports it for this home: the email, or that none was reported, and the plan type. */
+export function reportedChatgptAccount(current: Json): string {
+  const who = typeof current?.codexAccount === "string" && current.codexAccount !== "" && current.codexAccount.length <= 254 && !/[\u0000-\u001f\u007f]/.test(current.codexAccount)
+    ? current.codexAccount : "ChatGPT account (no email reported)";
+  const plan = PLAN_TYPES.includes(current?.nativeAccount?.planType) && current.nativeAccount.planType !== "unknown" ? current.nativeAccount.planType : null;
+  return `${who} · plan ${plan ?? "not reported"}`;
+}
 function latestAccountRead(host: Json): Json {
   const mode = host?.homeRouting?.activeModeHomeClass, generation = host?.generation;
   const rows = host?.homeAccess?.modeHomeClass === mode && Array.isArray(host?.homeAccess?.observations)
@@ -33,7 +43,7 @@ function accountSummary(host: Json): string {
     return "Codex reports no account for this connection.";
   }
   if (observation?.state === "native account type observed" && observation.account?.type === current.nativeAccount?.type) {
-    if (observation.account.type === "chatgpt") return "Codex reports a ChatGPT account for this connection.";
+    if (observation.account.type === "chatgpt") return `Codex reports a ChatGPT account for this connection: ${reportedChatgptAccount(current)}.`;
     if (observation.account.type === "apiKey") return "Codex reports an API key for this connection.";
   }
   return "Codex did not provide a supported account status. Account status is unknown.";
@@ -83,6 +93,6 @@ export function AccountStatus({ host, navigating, busy, read }: { host: Json; na
     <p role="status">{!ready ? "Account status is unavailable while this connection is changing or stopped."
       : readEpoch === epoch ? "Checking account status…" : failure?.epoch === epoch && failure.checkpoint === accountCheckpoint(host) ? failure.message : accountSummary(host)}</p>
     <button disabled={!ready || busy || readEpoch !== null} onClick={check}>Check account status</button>
-    <p>This check does not sign you in again. Account presence does not verify identity or credential validity.</p>
+    <p>This check does not sign you in again. The email and plan are what Codex reports; the App does not verify identity or that the sign-in is still valid.</p>
   </div>;
 }

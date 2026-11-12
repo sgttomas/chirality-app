@@ -10,7 +10,7 @@ import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteRea
 import { useCallback, useEffect, useRef, useState, type Ref } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
-import { ContinueAsPanel, ModelProviderFields, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus, type ContinueStartOutcome, type HandoffSendOutcome } from "./ConversationRoles";
+import { ContinueAsPanel, ModelIdField, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus, type ContinueStartOutcome, type HandoffSendOutcome } from "./ConversationRoles";
 import { EXACT_TEXT } from "./exactText";
 import { ArrivalRecord, CompatibilityAdvisory, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault, type OpenArrivalFileAct } from "./RunPanel";
 import { chatWorkflow, workflowArguments, workflowContext } from "./workflowSelection";
@@ -57,7 +57,7 @@ const startEntries = (host: Json) => host?.homeRouting?.activeModeHomeClass === 
   ? [{ value: LOCAL_ENTRY, label: "oMLX in the local home (key kept by Codex)" }]
   : host?.homeRouting?.activeModeHomeClass !== "account"
   ? []
-  : [{ value: "chatgpt-account", label: "ChatGPT account in configured account home" }, { value: "local-provider", label: "Configured local provider" }];
+  : [{ value: "chatgpt-account", label: "ChatGPT account" }];
 
 // The ordinary native command resolves only after private receipt admission
 // and finalization, then adds its actual H5 tuple (lib.rs start_conversation).
@@ -1248,11 +1248,12 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
   };
   const entries: Json[] = (routing?.entries ?? []).filter((entry: Json) => entry.modeHomeClass === "account");
   return <section aria-label="Account connection"><h2>Connect to a model</h2>
-    <p>Use your ChatGPT account for cloud conversations, or choose a configured oMLX/local provider.</p>
+    <p>Use your ChatGPT account, or a model server running on this machine. Each has its own home; switching between them leaves the other set up.</p>
     {routing?.activeModeHomeClass === "api-key" && <p role="status">Choose the account connection to continue. An older access home is retained without changing its saved configuration.</p>}
     {routing?.activeModeHomeClass === LOCAL_MODE && <p role="status">The local oMLX home is in use. ChatGPT sign-in applies to the account home.</p>}
     {routing?.activeModeHomeClass !== "account" && entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.state}{entry.configurationLimit ? ` — ${entry.configurationLimit}` : ""}</p><details><summary>Connection source</summary><pre>{JSON.stringify(entry.generation, null, 2)}</pre></details><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
     <AccountStatus host={host} navigating={navigating} busy={busy} read={readAccount}/>
+    {routing?.activeModeHomeClass === "account" && <p aria-label="Provider in this home">In this home Codex runs on its built-in OpenAI provider, whatever default provider your own Codex settings name. Your Codex files are not changed. A local model server is set up below, under “Use oMLX / a local model”.</p>}
     <button className="setup-primary" disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>
     <details><summary>Other sign-in options</summary>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"device-code"})}>Sign in through native device code…</button>
@@ -1263,13 +1264,23 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
       <p>Local providers use their own credentials, separate from ChatGPT sign-in.</p>
       {local && <LocalProviderAccess host={host} view={local.view} attempted={local.attempted} pending={local.pending || busy} message={local.message} navigating={navigating}
         prepare={local.prepare} enterKey={local.enterKey} useHome={() => { void action("select_home", { modeHomeClass: LOCAL_MODE }); }}/>}
-      <p><small>Anonymous configured local providers connect through the account home.</small> <a href="#workspace-start">Choose a configured local provider</a></p>
     </section>
     <details><summary>Safe original sign-in observation</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(oauth ?? {state:"unavailable"},null,2)}</pre></details>
     {error && <p role="alert">{error}</p>}
     <details><summary>Source-owned account observations and limits</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(access, null, 2)}</pre></details>
     <details><summary>Explicit receiving homes and shared-resource observations</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(resources ?? {state:"explicit shared-resource descriptors not configured; existing account path remains available"}, null, 2)}</pre></details>
+    <CodexSessionSettings settings={host?.codexSessionSettings}/>
     <details><summary>Connection and credential boundaries</summary><p>Native login acknowledgment reports presence with validity unknown until actual use. Credential fields, browser URLs and device codes are never accepted through this webview. Resource links do not establish native discovery or authorize a future configuration write.</p></details>
+  </section>;
+}
+
+/** DEL-01-05 REQ-010: every setting the App applies to its own Codex when it starts it, with its reason. */
+export function CodexSessionSettings({ settings }: { settings: Json }) {
+  const rows: Json[] = Array.isArray(settings) ? settings.filter((row: Json) => typeof row?.setting === "string" && typeof row?.reason === "string") : [];
+  return <section aria-label="Settings the App applies to its Codex"><h3>Settings the App applies to its Codex</h3>
+    {!Array.isArray(settings) ? <p>Not available for this connection.</p> : rows.length === 0 ? <p>The App applies no settings of its own to Codex in this home.</p>
+      : <><p>The App starts Codex in this home with these settings and no others. They apply to the App's own Codex process only; your Codex files are not written.</p>
+        <ul>{rows.map((row: Json) => <li key={row.setting}><code>{row.setting}</code> — {row.reason}</li>)}</ul></>}
   </section>;
 }
 
@@ -1343,6 +1354,10 @@ export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { ho
     {current ? <div role="status">
       {row("Credential storage", observation.packet.credentialStore, true)}
       {row("Plugins", observation.packet.plugins, false)}
+      {host.homeRouting.activeModeHomeClass === "account" && (observation.packet.personDefaultProvider?.state === "reported" && observation.packet.personDefaultProvider.value !== "openai"
+        ? <p><strong>Default provider in your Codex settings:</strong> <code>{String(observation.packet.personDefaultProvider.value)}</code>. It is not used in this home, where Codex runs on its built-in OpenAI provider.</p>
+        : observation.packet.personDefaultProvider?.state === "none" || observation.packet.personDefaultProvider?.state === "reported" ? <p><strong>Default provider in your Codex settings:</strong> {observation.packet.personDefaultProvider.state === "none" ? "none named" : "the built-in OpenAI provider"}.</p>
+        : <p><strong>Default provider in your Codex settings:</strong> Unknown / not established.</p>)}
       <p>Read from the selected {host.homeRouting.activeModeHomeClass} home’s current Codex process. A source category is shown only when its reported origin matches an enabled layer and that layer reports the same setting.</p>
     </div> : <p>No current settings observation. An earlier reading is not reused after a source change or a newer configuration read.</p>}
     {error && !current && <p role="alert">{error}</p>}
@@ -1628,7 +1643,7 @@ export function App() {
       if (!validModelPacket(packet, original.generation, mode)) throw Error("the reply was not a model list for this Codex source");
       setModelObservation({ packet, source, epoch, sequence });
     } catch (error) {
-      if (current()) setModelObservationMessage(`Model list unavailable: ${error instanceof Error ? error.message : String(error)}. You can still enter a model ID under “Advanced: enter IDs yourself”.`);
+      if (current()) setModelObservationMessage(`Model list unavailable: ${error instanceof Error ? error.message : String(error)}. You can still enter a model ID under “Advanced: enter a model ID yourself”.`);
     } finally {
       modelReadPending.current = false; setModelReading(false);
     }
@@ -1835,8 +1850,8 @@ export function App() {
     : providerReading ? "Reading configured local providers…"
     : endpointBusy ? "A provider change is in progress."
     : !modelProvider.trim() ? "Choose how this conversation connects (step 1)."
-    : !model.trim() ? (entryId === "local-provider" ? "Enter the model's name on the local server (step 2)." : "Choose a model (step 2).")
-    : !entryCompatible ? (homeClass === "account" ? "Choose an access entry under “Advanced: enter IDs yourself”." : "This choice does not belong to the connection in use. Choose again in step 1.")
+    : !model.trim() ? ("Choose a model (step 2).")
+    : !entryCompatible ? "This choice does not belong to the connection in use. Choose again in step 1."
     : rowChoiceStale ? rowChoiceNote
     : "";
   const [role, setRole] = useState<string>("");
@@ -2510,68 +2525,16 @@ export function App() {
           <h3>1. How it connects</h3>
           <AccessRouteChoice homeClass={homeClass} modelProvider={modelProvider} entryId={entryId} model={model} disabled={startPending || homePending || providerReading || endpointBusy}
             local={fixedLocal} choose={route => reviseChoice(route)}/>
-          {homeClass === "account" && <div aria-label="Configured local providers">
-            <button disabled={host?.state !== "ready" || host?.generationClosed || homeClass !== "account" || providerReading || startPending || homePending || endpointBusy}
-              onClick={readConfiguredProviders}>Read configured local providers</button>
-            <p>Explicit metadata read for the selected account home and current project scope. This does not probe servers, list models, authenticate, or admit Start.</p>
-            {!providerObservationCurrent && !providerReading && <p>No current configured-provider observation. Read explicitly, or use the independent manual fields.</p>}
-            {providerObservationMessage && <p role="status">{providerObservationMessage}</p>}
-            {providerObservationCurrent && <>
-              <p>Observed source: Home {providerObservation.packet.scope.generation.home} · App session {providerObservation.packet.scope.generation.appSession} · spawn {providerObservation.packet.scope.generation.spawnCounter} · working folder {providerObservation.packet.scope.cwd}.</p>
-              <ul>{providerObservation.packet.rows.map((row: Json) => <li key={row.id}>
-                Configured local provider {row.id} · {row.endpoint} · Responses{" "}
-                <button disabled={providerReading || startPending || homePending || endpointBusy} onClick={() => chooseConfiguredProvider(row.id)}>Choose provider {row.id}</button>{" "}
-                <button disabled={providerReading || startPending || homePending || endpointBusy || host?.providerEndpointEdit?.available !== true} onClick={() => openEndpointEditor(row)}>Edit endpoint {row.id}</button>
-              </li>)}</ul>
-              <p>{providerObservation.packet.rows.length ? "Choosing a row changes only this new conversation's provider and access entry; choose its model separately." : "No publishable local-provider metadata was established."}</p>
-              <p>{providerObservation.packet.limit}</p>
-            </>}
-            {providerObservationCurrent && host?.providerEndpointEdit?.available !== true && <p>Endpoint editing is unavailable for this source. Manual conversation choices remain independent.</p>}
-            <button disabled={endpointBusy || providerReading || startPending || homePending || host?.providerCreate?.available !== true} onClick={openProviderCreate}>Add local provider…</button>
-            {endpointEditor?.kind === "add" && endpointSourceCurrent(endpointEditor) && <section aria-label="Provider Add editor">
-              <p>Add exactly one absent provider ID to the shared Codex configuration. Existing choices, models and drafts stay unchanged.</p>
-              <label>Provider ID <input value={endpointEditor.id} disabled={endpointBusy} onChange={e => { expireEndpointPreview(); updateEndpointEditor({ ...endpointEditorRef.current, id: e.target.value }); }} /></label>
-              <label>Submitted name <input value={endpointEditor.name} disabled={endpointBusy} onChange={e => { expireEndpointPreview(); updateEndpointEditor({ ...endpointEditorRef.current, name: e.target.value }); }} /></label>
-              <label>Endpoint URL <input value={endpointEditor.endpoint} disabled={endpointBusy} onChange={e => { expireEndpointPreview(); updateEndpointEditor({ ...endpointEditorRef.current, endpoint: e.target.value }); }} /></label>
-              <button disabled={endpointBusy || providerReading || host?.providerCreate?.available !== true || !createDraftValid(endpointEditor)} onClick={reviewProviderCreate}>Review provider Add</button>
-              {endpointEditor.offer && <div aria-label="Provider Add review">
-                <p>Submitted ID: <code>{endpointEditor.offer.providerId}</code></p>
-                <p>Submitted name (quoted data): <code>{JSON.stringify(endpointEditor.offer.submittedName)}</code></p>
-                <p>Endpoint: <code>{endpointEditor.offer.endpoint}</code></p>
-                <p>Anonymous Responses definition; requires_openai_auth: false. Other Codex clients also read this shared configuration.</p>
-                <button disabled={endpointBusy || providerReading} onClick={saveProviderCreate}>Add provider…</button>
-              </div>}
-              <p role="status">{endpointEditor.message}</p>
-              <button disabled={endpointBusy} onClick={() => { expireEndpointPreview(); updateEndpointEditor(null); }}>Close provider Add</button>
-            </section>}
-            {endpointEditor && endpointEditor.kind !== "add" && endpointSourceCurrent(endpointEditor) && <section aria-label="Provider endpoint editor">
-              <p>Configured local provider {endpointEditor.id}. Endpoint only; this does not choose a provider/model or start a conversation.</p>
-              <label>Endpoint URL <input value={endpointEditor.endpoint} disabled={endpointBusy} onChange={event => {
-                expireEndpointPreview(); updateEndpointEditor({ ...endpointEditorRef.current, endpoint: event.target.value, offer: null, message: "Review this endpoint draft before saving." });
-              }}/></label>
-              <button disabled={endpointBusy || providerReading || host?.providerEndpointEdit?.available !== true || !endpointUrl(endpointEditor.endpoint)} onClick={reviewEndpoint}>Review endpoint change</button>
-              {endpointEditor.offer && <>
-                <p>Selected account source: {endpointEditor.offer.scope.generation.home} · working folder {endpointEditor.offer.scope.cwd}</p>
-                <p>Current endpoint: {endpointEditor.offer.currentEndpoint}</p><p>Proposed endpoint: {endpointEditor.offer.proposedEndpoint}</p>
-                <p>This changes your shared Codex configuration, which other Codex clients also read. Existing conversations are not reloaded.</p>
-                <button disabled={endpointBusy || providerReading} onClick={saveEndpoint}>Save endpoint…</button>
-              </>}
-              <button disabled={endpointBusy} onClick={() => { expireEndpointPreview(); updateEndpointEditor(null); }}>Close endpoint editor</button>
-              <p role="status">{endpointEditor.message}</p>
-            </section>}
-            {rowChoiceStale ? <p role="status">{rowChoiceNote} Start always reads the current configuration again.</p>
-              : providerObservation && !providerObservationCurrent && <p role="status">The provider list shown before is out of date: the configuration was read again or the connection changed. Read configured local providers to see it again.</p>}
-          </div>}
+          {homeClass === "account" && <p aria-label="Local model servers">A local model server is not used from this home: Codex here runs only on its built-in OpenAI provider. <a href="#workspace-connection">Set up a local model server</a> under Connection &amp; access, and switch to its home to start a conversation with it.</p>}
           <h3>2. Model</h3>
           <AvailableModels packet={modelObservation?.packet ?? null} current={modelObservationCurrent} reading={modelReading} message={modelObservationMessage}
             model={model} modelProvider={modelProvider} entryId={entryId} read={() => { void readAvailableModels(); }} choose={chooseListedModel}
             setModel={model => reviseChoice({ model })} fixedModel={fixedLocal && entryId === fixedLocal.entryId ? fixedLocal.model : null}
             localHome={homeClass === LOCAL_MODE ? (fixedLocal ? "prepared" : "unprepared") : null}
             disabled={host?.state !== "ready" || !!host?.generationClosed || homeClass !== "account" || startPending || homePending || endpointBusy}/>
-          <details className="workflow-stage"><summary>Advanced: enter IDs yourself</summary>
-          <p><ModelProviderFields model={model} modelProvider={modelProvider} setModel={model => reviseChoice({ model })} setModelProvider={modelProvider => reviseChoice({ modelProvider })}/></p>
-          <p><label>Access entry <select value={entryId} onChange={e => reviseChoice({ entryId: e.target.value })}><option value="">No entry selected</option>{startEntries(host).map(entry => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></label></p>
-          </details>
+          {homeClass === "account" && <details className="workflow-stage"><summary>Advanced: enter a model ID yourself</summary>
+          <p><ModelIdField model={model} setModel={model => reviseChoice({ model })}/></p>
+          </details>}
           <p>Choose how this conversation connects and a model, then a role. Switching homes never transfers an existing conversation.</p>
           <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>
           <p><small>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}.</small></p></div>
