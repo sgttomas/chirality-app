@@ -1254,7 +1254,7 @@ fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> 
     bootstrap.revalidate()?;
     let home=match state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider) { Ok(home)=>Some(home),Err(_)=>None };
     // Settings saved after this session bound the home take effect only after the App is reopened.
-    if home.as_ref().is_some_and(|home| home.host.local_settings().ok().as_ref()!=Some(&settings)) { return Err(native_local_provider::RELAUNCH.into()); }
+    if home.as_ref().is_some_and(|home| home.host.local_superseded() || home.host.local_settings().ok().as_ref()!=Some(&settings)) { return Err(native_local_provider::RELAUNCH.into()); }
     let home=if let Some(home)=home { home } else {
         let config=native_local_provider::config(account.host_config.as_ref().map_err(Clone::clone)?,plan)?;
         let host=Arc::new(Host::new_with_app_custody(account.host.app_runtime_custody()?)?);
@@ -1285,16 +1285,18 @@ fn submit_local_provider_key(app: tauri::AppHandle, window: tauri::Window, state
     let field_home=home.clone(); let field_generation=generation.clone(); let field_window=window.clone();
     native_local_provider::submit(&home,bootstrap.local_plan()?,&generation,&state.local_credentials,
         || provider_endpoint_confirmation::recheck_original(&window),
-        || native_secure_entry::local(&app,field_window,move || field_home.host.snapshot()["generation"]==field_generation && field_home.host.snapshot()["state"]=="ready"))
+        |address| native_secure_entry::local(&app,field_window,address,move || !field_home.host.local_superseded() && field_home.host.snapshot()["generation"]==field_generation && field_home.host.snapshot()["state"]=="ready"))
 }
 
 /// The local model settings: the App-owned file and the settings in force for this session.
 /// Reads only the dedicated local home's config.toml; starts nothing; never a key.
 #[tauri::command(async)]
 fn local_model_settings_read(state: State<'_, AppState>) -> Value {
-    let in_force=state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider).ok().and_then(|home| home.host.local_settings().ok());
-    let stored=state.home_bootstrap.lock().unwrap().clone().and_then(|bootstrap| native_local_provider::stored(bootstrap.local_plan()?));
-    native_local_provider::settings_view(stored,in_force.as_ref())
+    let home=state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider).ok();
+    let in_force=home.as_ref().and_then(|home| home.host.local_settings().ok());
+    let superseded=home.as_ref().is_some_and(|home| home.host.local_superseded());
+    let reading=state.home_bootstrap.lock().unwrap().clone().and_then(|bootstrap| native_local_provider::read(bootstrap.local_plan()?));
+    native_local_provider::settings_view(reading,in_force.as_ref(),superseded)
 }
 /// Saves the server address and model name after one native confirmation in the invoking
 /// window. Never takes a key. An address change first has Codex sign out of the saved key.
@@ -1329,7 +1331,7 @@ fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str
     invalidate_endpoint_edits(state)?;
     let cfg = home.host_config.clone()?;
     state.validate_home_source(home)?;
-    if home.class()==home_resources::HomeClass::LocalProvider { native_local_provider::check(state.home_bootstrap.lock().unwrap().as_ref().map_err(Clone::clone)?.local_plan()?,&home.host.local_settings()?)?; native_local_provider::require_no_admin_layers()?; }
+    if home.class()==home_resources::HomeClass::LocalProvider { if home.host.local_superseded() { return Err(native_local_provider::RELAUNCH.into()); } native_local_provider::check(state.home_bootstrap.lock().unwrap().as_ref().map_err(Clone::clone)?.local_plan()?,&home.host.local_settings()?)?; native_local_provider::require_no_admin_layers()?; }
     let root = state.app_user_data_root.lock().unwrap().clone();
     runtime_session::start_with_recovery(
         &home.host,

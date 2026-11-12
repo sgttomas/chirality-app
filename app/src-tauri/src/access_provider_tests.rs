@@ -3098,7 +3098,12 @@ fn native_local_provider_one_private_login_frame_and_safe_receipts_without_suppl
     let entry = local_route::CredentialEntry::default();
     let generation = peer.g.clone();
     let result=std::thread::scope(|scope| {
-        let work=scope.spawn(||local_route::submit(&home,&plan,&generation,&entry,||Ok(()),||Ok(Some(CANARY.into()))));
+        let work=scope.spawn(||local_route::submit(&home,&plan,&generation,&entry,||Ok(()),|address:&str|{
+            // The field names the bound address, and its record already exists when the field opens.
+            assert_eq!(address,local_route::ENDPOINT);
+            assert_eq!(std::fs::read(plan.native_path().join("key-address")).unwrap(),format!("{}\n",local_route::ENDPOINT).into_bytes());
+            Ok(Some(CANARY.into()))
+        }));
         assert_eq!(peer.frame()["method"],"config/read");
         let policy=peer.frame();assert_eq!(policy["method"],"configRequirements/read");
         peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":null}})).unwrap(),&peer.g);
@@ -3127,6 +3132,9 @@ fn native_local_provider_one_private_login_frame_and_safe_receipts_without_suppl
         !plan.native_path().join("auth.json").exists(),
         "App does not persist a key; the synthetic pipe is no supplier custody witness"
     );
+    let record = std::fs::read_to_string(plan.native_path().join("key-address")).unwrap();
+    assert_eq!(record, "http://127.0.0.1:8000/v1\n", "the record holds the address and a newline only");
+    assert!(!record.contains(CANARY));
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -3578,7 +3586,7 @@ fn native_local_provider_cancel_window_or_source_change_never_writes_or_replays_
         let cfg=HostConfig::new(root.join("not-run"),plan.native_path().into(),root.join("probe"),"/invented/work".into());
         let home=crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider,peer.host.clone(),Ok(cfg)).unwrap();let g=peer.g.clone();let entry=route::CredentialEntry::default();let current=AtomicBool::new(true);
         let result=std::thread::scope(|scope|{
-            let worker=scope.spawn(||route::submit(&home,&plan,&g,&entry,||if current.load(Ordering::SeqCst){Ok(())}else{Err("original window closed".into())},||{
+            let worker=scope.spawn(||route::submit(&home,&plan,&g,&entry,||if current.load(Ordering::SeqCst){Ok(())}else{Err("original window closed".into())},|_|{
                 if case=="cancel" {return Ok(None);}
                 if case=="window" {current.store(false,Ordering::SeqCst);}else{home.host.inner.0.lock().unwrap().generation["spawnCounter"]=json!(2);}
                 Ok(Some(CANARY.into()))
@@ -3663,12 +3671,17 @@ fn native_local_settings_address_change_signs_out_through_codex_before_any_write
     use local_route::LocalSettings;
     use tauri_plugin_dialog::MessageDialogResult;
     let legacy_bytes = local_route::canonical(&LocalSettings::legacy());
-    for case in ["positive", "model-only", "cancel", "not-ready", "logout-error", "logout-timeout", "logout-stale", "account-remains", "read-error", "read-timeout"] {
+    let record_bytes = format!("{}\n", local_route::ENDPOINT);
+    for case in ["positive", "model-only", "cancel", "not-ready", "logout-error", "logout-timeout", "logout-stale", "account-remains", "read-error", "read-timeout", "record-not-removed"] {
         let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("local-settings-save-").unwrap());
         std::fs::create_dir(&root).unwrap();
         let plan = crate::home_resources::OwnedHomePlan::new(root.clone(), root.join("local"), crate::home_resources::HomeClass::LocalProvider, None).unwrap();
         local_route::prepare_for_test(&plan, &LocalSettings::legacy());
         let config_path = plan.native_path().join("config.toml");
+        // The record a key entry for the former address left (no key file: the stand-in has no Codex).
+        let record_path = plan.native_path().join("key-address");
+        std::fs::write(&record_path, &record_bytes).unwrap();
+        std::fs::set_permissions(&record_path, std::os::unix::fs::PermissionsExt::from_mode(0o600)).unwrap();
         let mut peer = Peer::new(&plan.opaque_home_id());
         canonical_167_peer(&peer);
         peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding::for_test(&plan.opaque_home_id(), "/invented/work"));
@@ -3707,6 +3720,10 @@ fn native_local_settings_address_change_signs_out_through_codex_before_any_write
                     let read = peer.frame();
                     assert_eq!((read["method"].as_str(), &read["params"]), (Some("account/read"), &json!({"refreshToken":false})));
                     assert_eq!(std::fs::read_to_string(&config_path).unwrap(), legacy_bytes, "{case}: no write before Codex reports no account");
+                    assert_eq!(std::fs::read_to_string(&record_path).unwrap(), record_bytes, "{case}: the record stays until Codex reports no account");
+                    if case == "record-not-removed" {
+                        std::fs::set_permissions(plan.native_path(), std::os::unix::fs::PermissionsExt::from_mode(0o500)).unwrap();
+                    }
                     match case {
                         "account-remains" => peer.host.on_line(&serde_json::to_vec(&json!({"id":read["id"],"result":{"account":{"type":"apiKey"},"requiresOpenaiAuth":true}})).unwrap(), &peer.g),
                         "read-error" => peer.host.on_line(&serde_json::to_vec(&json!({"id":read["id"],"error":{"code":-32603,"message":CANARY}})).unwrap(), &peer.g),
@@ -3725,6 +3742,8 @@ fn native_local_settings_address_change_signs_out_through_codex_before_any_write
                 assert_eq!((out["outcome"].as_str(), out["keyRemoved"].as_bool()), (Some("saved"), Some(true)));
                 assert_eq!(written, local_route::canonical(&next));
                 assert_eq!(methods, ["account/logout", "account/read"]);
+                assert!(!record_path.exists(), "no key, no record");
+                assert!(peer.host.local_superseded(), "the bound home is superseded by the save");
                 assert_eq!(out["inForce"], LocalSettings::legacy().json());
                 assert_eq!(out["relaunchRequired"], true);
                 // The bound home refuses every local operation until it is bound again.
@@ -3741,11 +3760,22 @@ fn native_local_settings_address_change_signs_out_through_codex_before_any_write
                 assert_eq!((out["outcome"].as_str(), out["keyRemoved"].as_bool()), (Some("saved"), Some(false)));
                 assert!(methods.is_empty(), "a model-only change keeps the key: no sign-out");
                 assert_eq!(written, local_route::canonical(&next));
+                assert_eq!(std::fs::read_to_string(&record_path).unwrap(), record_bytes, "a model-only change leaves the record");
+                assert!(peer.host.local_superseded());
             }
             "cancel" => {
                 assert_eq!(result.unwrap()["outcome"], "cancelled");
                 assert!(methods.is_empty());
                 assert_eq!(written, legacy_bytes);
+                assert!(!peer.host.local_superseded(), "nothing changed, nothing superseded");
+            }
+            "record-not-removed" => {
+                std::fs::set_permissions(plan.native_path(), std::os::unix::fs::PermissionsExt::from_mode(0o700)).unwrap();
+                let error = result.unwrap_err();
+                assert!(error.contains("could not remove its record") && error.contains("were not changed"), "{error}");
+                assert_eq!(written, legacy_bytes, "an unconfirmed removal writes nothing to config.toml");
+                assert_eq!(std::fs::read_to_string(&record_path).unwrap(), record_bytes);
+                assert!(peer.host.local_superseded(), "Codex removed the key: the binding was superseded before the removal was tried");
             }
             "not-ready" => {
                 assert_eq!(result.unwrap_err(), local_route::PREPARE_FIRST);
@@ -3756,6 +3786,8 @@ fn native_local_settings_address_change_signs_out_through_codex_before_any_write
                 let error = result.unwrap_err();
                 assert!(!error.contains(CANARY), "{case}");
                 assert_eq!(written, legacy_bytes, "{case}: nothing written");
+                assert_eq!(std::fs::read_to_string(&record_path).unwrap(), record_bytes, "{case}: no removal without Codex's report of no account");
+                assert!(!peer.host.local_superseded(), "{case}");
             }
         }
         assert!(!plan.native_path().join("auth.json").exists(), "the App never writes the key's file");
@@ -3763,4 +3795,274 @@ fn native_local_settings_address_change_signs_out_through_codex_before_any_write
         peer.safe();
         std::fs::remove_dir_all(root).unwrap();
     }
+}
+
+#[test]
+fn native_local_settings_key_entry_records_the_bound_address_before_the_field_and_a_failed_record_opens_nothing() {
+    use crate::native_local_provider::{self as route, LocalSettings};
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    let set = LocalSettings::new("http://[::1]:9100/api/v1", "org/chosen-model").unwrap();
+    for case in ["entered", "record-fails"] {
+        let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("local-key-address-").unwrap());
+        std::fs::create_dir(&root).unwrap();
+        let plan = crate::home_resources::OwnedHomePlan::new(root.clone(), root.join("local"), crate::home_resources::HomeClass::LocalProvider, None).unwrap();
+        route::prepare_for_test(&plan, &set);
+        let mut peer = Peer::new(&plan.opaque_home_id());
+        canonical_167_peer(&peer);
+        peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding::with_settings(&plan.opaque_home_id(), "/invented/work", set.clone()));
+        peer.answer(local_config_for(&set));
+        let cfg = HostConfig::new(root.join("not-run"), plan.native_path().into(), root.join("probe"), "/invented/work".into());
+        let home = crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider, peer.host.clone(), Ok(cfg)).unwrap();
+        let generation = peer.g.clone();
+        let entry = route::CredentialEntry::default();
+        if case == "record-fails" {
+            // The home stays private (0500) but nothing can be created in it.
+            std::fs::set_permissions(plan.native_path(), std::fs::Permissions::from_mode(0o500)).unwrap();
+        }
+        let opened = std::sync::atomic::AtomicBool::new(false);
+        let result = std::thread::scope(|scope| {
+            let work = scope.spawn(|| route::submit(&home, &plan, &generation, &entry, || Ok(()), |address: &str| {
+                opened.store(true, std::sync::atomic::Ordering::SeqCst);
+                assert_eq!(address, set.endpoint(), "the field names the address the receiving process is bound to");
+                assert_eq!(std::fs::read(plan.native_path().join("key-address")).unwrap(), format!("{}\n", set.endpoint()).into_bytes());
+                Ok(Some(CANARY.into()))
+            }));
+            assert_eq!(peer.frame()["method"], "config/read");
+            let policy = peer.frame();
+            assert_eq!(policy["method"], "configRequirements/read");
+            peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":null}})).unwrap(), &peer.g);
+            if case == "entered" {
+                let login = peer.frame();
+                assert_eq!(login["method"], "account/login/start");
+                peer.host.on_line(&serde_json::to_vec(&json!({"id":login["id"],"result":{"type":"apiKey"}})).unwrap(), &peer.g);
+                let read = peer.frame();
+                peer.host.on_line(&serde_json::to_vec(&json!({"id":read["id"],"result":{"account":{"type":"apiKey"},"requiresOpenaiAuth":true}})).unwrap(), &peer.g);
+            }
+            work.join().unwrap()
+        });
+        std::fs::set_permissions(plan.native_path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+        let record = plan.native_path().join("key-address");
+        match case {
+            "entered" => {
+                assert_eq!(result.unwrap()["credentialState"], "configured-not-verified");
+                assert!(opened.load(std::sync::atomic::Ordering::SeqCst));
+                let bytes = std::fs::read_to_string(&record).unwrap();
+                assert_eq!(bytes, "http://[::1]:9100/api/v1\n", "one validated address and a newline, nothing else");
+                assert!(!bytes.contains(CANARY));
+                let m = std::fs::symlink_metadata(&record).unwrap();
+                assert_eq!((m.mode() & 0o777, m.nlink(), m.file_type().is_symlink()), (0o600, 1, false));
+            }
+            _ => {
+                let error = result.unwrap_err();
+                assert!(error.contains("could not record the server address") && error.contains("not opened"), "{error}");
+                assert!(!opened.load(std::sync::atomic::Ordering::SeqCst), "the native field is never invoked");
+                assert!(!record.exists());
+                assert!(peer.host.client_requests().iter().all(|r| r["method"] != "account/login/start"), "no login frame");
+                // The entry attempt was not consumed by a refusal before the field.
+                assert!(entry_attempt_free(&entry, &generation));
+            }
+        }
+        assert!(!json!(peer.host.journal()).to_string().contains(CANARY));
+        peer.safe();
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+fn entry_attempt_free(entry: &crate::native_local_provider::CredentialEntry, generation: &Value) -> bool {
+    entry.begin_for_test(generation)
+}
+#[test]
+fn native_local_settings_superseded_home_refuses_every_model_or_conversation_request_and_keeps_interrupt_and_reads() {
+    use crate::native_local_provider::{self as route, LocalSettings, MODEL, PROVIDER, RELAUNCH};
+    use tauri_plugin_dialog::MessageDialogResult;
+    let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("local-superseded-").unwrap());
+    std::fs::create_dir(&root).unwrap();
+    let plan = crate::home_resources::OwnedHomePlan::new(root.clone(), root.join("local"), crate::home_resources::HomeClass::LocalProvider, None).unwrap();
+    route::prepare_for_test(&plan, &LocalSettings::legacy());
+    let native = root.join("native");
+    let mut peer = Peer::new(&plan.opaque_home_id());
+    canonical_167_peer(&peer);
+    {
+        let mut i = peer.host.inner.0.lock().unwrap();
+        i.local_provider = Some(LocalProviderBinding::for_test(&plan.opaque_home_id(), "/invented/work"));
+        i.threads.push(json!({"generation":peer.g,"threadId":"local-thread","modelProvider":PROVIDER,"model":MODEL,"cwd":"/invented/work"}));
+        i.conversation_turns.push(json!({"generation":peer.g,"threadId":"local-thread","turnId":"u","nativeTurn":{"status":"inProgress"}}));
+    }
+    let cfg = HostConfig::new(root.join("not-run"), plan.native_path().into(), root.join("probe"), "/invented/work".into());
+    let home = crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider, peer.host.clone(), Ok(cfg)).unwrap();
+    let turn = json!({"threadId":"local-thread","input":[{"type":"text","text":"fixture only","text_elements":[]}]});
+    let refused: Vec<(&str, Value)> = vec![
+        ("thread/start", json!({"cwd":"/invented/work","modelProvider":PROVIDER,"model":MODEL})),
+        ("turn/start", turn.clone()),
+        ("turn/steer", json!({"threadId":"local-thread","expectedTurnId":"u","input":[]})),
+        ("thread/resume", json!({"threadId":"local-thread","excludeTurns":true,"cwd":"/invented/work"})),
+        ("thread/fork", json!({"threadId":"local-thread","deferGoalContinuation":true,"cwd":"/invented/work"})),
+        ("account/login/start", json!({"type":"apiKey"})),
+        ("model/list", json!({})),
+    ];
+    let allowed: Vec<(&str, Value)> = vec![
+        ("turn/interrupt", json!({"threadId":"local-thread","turnId":"u"})),
+        ("account/read", json!({"refreshToken":false})),
+        ("account/logout", json!({})),
+        ("thread/list", json!({})),
+        ("thread/read", json!({"threadId":"local-thread","includeTurns":false})),
+        ("thread/items/list", json!({"threadId":"local-thread","turnId":"u","sortDirection":"asc"})),
+    ];
+    let guard = |method: &str, params: &Value| {
+        let i = peer.host.inner.0.lock().unwrap();
+        Host::check_local_request(&i, method, params, Some(&peer.g), false, false, false, None)
+    };
+    let before: Vec<_> = refused.iter().chain(allowed.iter()).map(|(m, p)| guard(m, p)).collect();
+    assert!(before[1].is_ok(), "without a save the current turn is admitted as before");
+    // An attachment turn prepared before the save is the one the save must stop at dispatch.
+    let custody = Arc::new(crate::hosting::attachment_custody::AttachmentCustody::open(&root.join("app"), &native).unwrap());
+    let text = root.join("fixture.txt");
+    std::fs::write(&text, "synthetic local attachment").unwrap();
+    let selected = crate::attachments::SelectedTextAttachment::from_native_selection(text, None).unwrap();
+    let prepared = peer.host.prepare_attachment_turn(custody.clone(), &peer.g, "local-thread", None, "fixture text", &[selected.clone()]).unwrap();
+    // A model-only save while the home is bound in this session (no sign-out, so no Codex frames).
+    let next = LocalSettings::new(route::ENDPOINT, "org/next-model").unwrap();
+    let saved = route::save_within(&plan, next, Some(&home), || Ok(()), |_, action: &str| Ok(MessageDialogResult::Custom(action.into())), Duration::from_millis(50)).unwrap();
+    assert_eq!(saved["outcome"], "saved");
+    assert!(peer.host.local_superseded());
+    assert_eq!(saved["relaunchRequired"], true);
+    // Saving the original values back leaves the file equal to the settings in force, but the
+    // binding stays superseded and the reading still says a relaunch is required.
+    let back = route::save_within(&plan, LocalSettings::legacy(), Some(&home), || Ok(()), |_, action: &str| Ok(MessageDialogResult::Custom(action.into())), Duration::from_millis(50)).unwrap();
+    assert_eq!((back["outcome"].as_str(), back["relaunchRequired"].as_bool()), (Some("saved"), Some(true)));
+    assert_eq!(back["settings"], LocalSettings::legacy().json());
+    let requests = peer.host.inner.0.lock().unwrap().source_requests.len();
+    for (index, (method, params)) in refused.iter().enumerate() {
+        assert_eq!(guard(method, params).unwrap_err(), RELAUNCH, "{method}");
+        let sent = peer.host.request_begin_scoped(method, params.clone(), json!({"kind":"synthetic"}), false, Some(&peer.g)).err().unwrap();
+        // A key login never takes the generic route at all; the private route meets the guard above.
+        if *method != "account/login/start" { assert_eq!(sent, RELAUNCH, "{method}"); }
+        let _ = index;
+    }
+    assert_eq!(peer.host.inner.0.lock().unwrap().source_requests.len(), requests, "nothing captured for a refused request");
+    let dispatched = peer.host.dispatch_attachment_turn(&prepared);
+    assert!(dispatched.is_err());
+    assert_eq!(prepared.source.evidence()["actualWriteAttemptObserved"], false);
+    assert!(prepared.source.evidence()["sentFrame"].is_null());
+    let text = root.join("fixture-2.txt");
+    std::fs::write(&text, "synthetic local attachment").unwrap();
+    let again = crate::attachments::SelectedTextAttachment::from_native_selection(text, None).unwrap();
+    assert_eq!(peer.host.prepare_attachment_turn(custody, &peer.g, "local-thread", None, "fixture text", &[again]).err().unwrap(), RELAUNCH);
+    for (offset, (method, params)) in allowed.iter().enumerate() {
+        assert_eq!(guard(method, params), before[refused.len() + offset], "{method}: unchanged by the save");
+        assert!(guard(method, params).is_ok(), "{method}");
+    }
+    let interrupt = peer.host.request_begin_scoped("turn/interrupt", allowed[0].1.clone(), json!({"kind":"synthetic"}), false, Some(&peer.g)).unwrap();
+    assert_eq!(interrupt.evidence()["writeResult"], "written");
+    assert_eq!(peer.frame()["method"], "turn/interrupt", "a running turn can still be interrupted");
+    let read = peer.host.request_begin_scoped("account/read", allowed[1].1.clone(), json!({"kind":"synthetic"}), false, Some(&peer.g)).unwrap();
+    assert_eq!(read.evidence()["writeResult"], "written");
+    assert_eq!(peer.frame()["method"], "account/read");
+    // Key entry, observation, fork and resume admission refuse with the same sentence, before any frame.
+    let entry = route::CredentialEntry::default();
+    assert_eq!(route::submit(&home, &plan, &peer.g, &entry, || Ok(()), |_| panic!("no field")).unwrap_err(), RELAUNCH);
+    assert_eq!(route::observe(&home, &plan, &peer.g).unwrap_err(), RELAUNCH);
+    assert_eq!(peer.host.local_fork_admission(&peer.g, "local-thread").err().unwrap(), RELAUNCH);
+    assert_eq!(peer.host.require_local_destination(&peer.g).unwrap_err(), RELAUNCH);
+    assert_eq!(peer.host.client_requests().iter().filter(|r| r["writeResult"] == "written").count(), 2, "only the interrupt and the read were sent");
+    peer.safe();
+    std::fs::remove_dir_all(root).unwrap();
+}
+/// One bound local fixture: the plan's home prepared with `settings`, the Peer bound to them.
+fn bound_local(prefix: &str, settings: &crate::native_local_provider::LocalSettings) -> (std::path::PathBuf, crate::home_resources::OwnedHomePlan, Peer, crate::runtime_session::HomeSession) {
+    use crate::native_local_provider::PROVIDER;
+    let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id(prefix).unwrap());
+    std::fs::create_dir(&root).unwrap();
+    let plan = crate::home_resources::OwnedHomePlan::new(root.clone(), root.join("local"), crate::home_resources::HomeClass::LocalProvider, None).unwrap();
+    crate::native_local_provider::prepare_for_test(&plan, settings);
+    let peer = Peer::new(&plan.opaque_home_id());
+    canonical_167_peer(&peer);
+    {
+        let mut i = peer.host.inner.0.lock().unwrap();
+        i.local_provider = Some(LocalProviderBinding::with_settings(&plan.opaque_home_id(), "/invented/work", settings.clone()));
+        i.threads.push(json!({"generation":peer.g,"threadId":"t","modelProvider":PROVIDER,"model":settings.model(),"cwd":"/invented/work"}));
+    }
+    let cfg = HostConfig::new(root.join("not-run"), plan.native_path().into(), root.join("probe"), "/invented/work".into());
+    let home = crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider, peer.host.clone(), Ok(cfg)).unwrap();
+    (root, plan, peer, home)
+}
+#[test]
+fn native_local_settings_a_send_queued_behind_the_writer_across_a_save_is_refused_at_its_final_check() {
+    use crate::native_local_provider::{self as route, LocalSettings, RELAUNCH};
+    use tauri_plugin_dialog::MessageDialogResult;
+    let set = LocalSettings::new("http://127.0.0.1:9100/v1", "org/m").unwrap();
+    let (root, plan, peer, home) = bound_local("local-queued-save-", &set);
+    let gate = peer.host.frame_write.lock().unwrap();
+    let host = peer.host.clone();
+    let g = peer.g.clone();
+    let worker = std::thread::spawn(move || host.request_begin_scoped("turn/start", json!({"threadId":"t","input":[]}), json!({"kind":"synthetic"}), false, Some(&g)));
+    let deadline = std::time::Instant::now() + Duration::from_secs(2);
+    while peer.host.inner.0.lock().unwrap().source_requests.is_empty() {
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::yield_now();
+    }
+    // Admitted by the first check and now waiting for the writer; the settings change meanwhile.
+    let next = LocalSettings::new(set.endpoint(), "org/next").unwrap();
+    let saved = route::save_within(&plan, next, Some(&home), || Ok(()), |_, action: &str| Ok(MessageDialogResult::Custom(action.into())), Duration::from_millis(50)).unwrap();
+    assert_eq!(saved["outcome"], "saved");
+    drop(gate);
+    match worker.join().unwrap() {
+        Ok(request) => {
+            let e = request.evidence();
+            assert_eq!(e["actualWriteAttemptObserved"], false, "the final check refused after the writer wait");
+            assert!(e["sentFrame"].is_null());
+            assert!(e.to_string().contains("quit and reopen"), "{e}");
+        }
+        Err(error) => assert_eq!(error, RELAUNCH),
+    }
+    assert!(peer.host.client_requests().iter().all(|r| r["writeResult"] != "written"), "nothing reaches the pipe");
+    peer.safe();
+    std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+fn native_local_settings_key_entry_across_a_prepared_send_is_admitted_only_for_the_bound_address() {
+    use crate::native_local_provider::{self as route, LocalSettings, RELAUNCH};
+    let set = LocalSettings::new("http://127.0.0.1:9100/v1", "org/m").unwrap();
+    // 1. A prepared attachment send, then a key entry for the bound address, then the dispatch.
+    let (root, plan, mut peer, home) = bound_local("local-queued-key-", &set);
+    peer.answer(local_config_for(&set));
+    let custody = Arc::new(crate::hosting::attachment_custody::AttachmentCustody::open(&root.join("app"), &root.join("native")).unwrap());
+    let text = root.join("fixture.txt");
+    std::fs::write(&text, "synthetic local attachment").unwrap();
+    let selected = crate::attachments::SelectedTextAttachment::from_native_selection(text, None).unwrap();
+    let prepared = peer.host.prepare_attachment_turn(custody, &peer.g, "t", None, "fixture text", &[selected]).unwrap();
+    let entry = route::CredentialEntry::default();
+    let generation = peer.g.clone();
+    let entered = std::thread::scope(|scope| {
+        let work = scope.spawn(|| route::submit(&home, &plan, &generation, &entry, || Ok(()), |address: &str| {
+            assert_eq!(address, set.endpoint());
+            Ok(Some(CANARY.into()))
+        }));
+        assert_eq!(peer.frame()["method"], "config/read");
+        let policy = peer.frame();
+        peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":null}})).unwrap(), &peer.g);
+        let login = peer.frame();
+        assert_eq!(login["method"], "account/login/start");
+        peer.host.on_line(&serde_json::to_vec(&json!({"id":login["id"],"result":{"type":"apiKey"}})).unwrap(), &peer.g);
+        let read = peer.frame();
+        peer.host.on_line(&serde_json::to_vec(&json!({"id":read["id"],"result":{"account":{"type":"apiKey"},"requiresOpenaiAuth":true}})).unwrap(), &peer.g);
+        work.join().unwrap()
+    });
+    assert_eq!(entered.unwrap()["credentialState"], "configured-not-verified");
+    assert_eq!(std::fs::read_to_string(plan.native_path().join("key-address")).unwrap(), "http://127.0.0.1:9100/v1\n");
+    let sent = peer.host.dispatch_attachment_turn(&prepared).unwrap();
+    assert_eq!(sent.evidence()["writeResult"], "written", "the bound process's address is the recorded one");
+    assert_eq!(peer.frame()["method"], "turn/start");
+    peer.safe();
+    std::fs::remove_dir_all(root).unwrap();
+    // 2. The file is changed to another address mid-session (not through the App): no key entry is
+    //    admitted, the field never opens and no record is written for either address.
+    let (root, plan, peer, home) = bound_local("local-queued-key-edit-", &set);
+    let other = LocalSettings::new("http://127.0.0.1:9200/v1", "org/m").unwrap();
+    std::fs::write(plan.native_path().join("config.toml"), route::canonical(&other)).unwrap();
+    let entry = route::CredentialEntry::default();
+    let error = route::submit(&home, &plan, &peer.g, &entry, || Ok(()), |_| panic!("no field for another address")).unwrap_err();
+    assert_eq!(error, RELAUNCH);
+    assert!(!plan.native_path().join("key-address").exists());
+    assert!(peer.host.client_requests().is_empty(), "nothing sent");
+    std::fs::remove_dir_all(root).unwrap();
 }

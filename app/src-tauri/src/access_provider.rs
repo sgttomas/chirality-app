@@ -724,6 +724,8 @@ impl Host {
         }
         // The settings frozen for this Codex process, never the file's current contents.
         let local = if entry == crate::native_local_provider::ENTRY { Some(self.local_settings()?) } else { None };
+        // A superseded local home admits no start, Continue or fork: refuse before any reading is sent.
+        if local.is_some() && self.local_superseded() { return Err(crate::native_local_provider::RELAUNCH.into()); }
         let reading = self.private_provider_config_read(generation, cwd, wait, PrivateConfigPurpose::Admission)?;
         classify(&reading.config, entry, provider, local.as_ref())?;
         if let Some(settings) = &local {
@@ -1093,12 +1095,14 @@ fn child_supplier_subject(i: &Inner) -> Value {
 
 /// Constructed only for the dedicated local HomeSession, never hydrated from public DTOs. The
 /// settings read when the home was bound are frozen for this Host: every Codex process it starts
-/// carries their session flags, and every guard compares with them.
-pub(super) struct LocalProviderBinding { home: String, cwd: String, settings: crate::native_local_provider::LocalSettings }
+/// carries their session flags, and every guard compares with them. `superseded` is set, under
+/// Inner's lock, when the App changes the settings file during this session, and is never cleared:
+/// from then on nothing that can reach a model or load a conversation is admitted in this home.
+pub(super) struct LocalProviderBinding { home: String, cwd: String, settings: crate::native_local_provider::LocalSettings, superseded: bool }
 #[cfg(test)]
 impl LocalProviderBinding {
     pub(super) fn for_test(home:&str,cwd:&str)->Self { Self::with_settings(home,cwd,crate::native_local_provider::LocalSettings::legacy()) }
-    pub(super) fn with_settings(home:&str,cwd:&str,settings:crate::native_local_provider::LocalSettings)->Self { Self{home:home.into(),cwd:cwd.into(),settings} }
+    pub(super) fn with_settings(home:&str,cwd:&str,settings:crate::native_local_provider::LocalSettings)->Self { Self{home:home.into(),cwd:cwd.into(),settings,superseded:false} }
 }
 impl Host {
     pub(crate) fn bind_local_destination(&self, config: &HostConfig, plan: &crate::home_resources::OwnedHomePlan) -> Result<(), String> {
@@ -1107,7 +1111,19 @@ impl Host {
         if config.codex_home != plan.native_path() || config.session_flags != crate::native_local_provider::session_flags(&settings) { return Err(unavailable()); }
         let mut i=self.inner.0.lock().map_err(|_| unavailable())?;
         if i.local_provider.is_some() || i.state!="absent" || !i.generation.is_null() { return Err(unavailable()); }
-        i.local_provider=Some(LocalProviderBinding{home:plan.opaque_home_id(),cwd:config.cwd.to_str().ok_or_else(unavailable)?.into(),settings}); Ok(())
+        i.local_provider=Some(LocalProviderBinding{home:plan.opaque_home_id(),cwd:config.cwd.to_str().ok_or_else(unavailable)?.into(),settings,superseded:false}); Ok(())
+    }
+    /// The settings file changed through the App while this home is bound: refuse every model or
+    /// conversation-loading request in it for the rest of this process. Never cleared.
+    pub(crate) fn supersede_local(&self) -> Result<(), String> {
+        let mut i = self.inner.0.lock().map_err(|_| unavailable())?;
+        let binding = i.local_provider.as_mut().ok_or_else(|| crate::native_local_provider::LIMIT.to_owned())?;
+        binding.superseded = true;
+        Ok(())
+    }
+    /// Whether this Host's local binding was superseded; a poisoned lock reads as superseded.
+    pub(crate) fn local_superseded(&self) -> bool {
+        self.inner.0.lock().map_or(true, |i| i.local_provider.as_ref().is_some_and(|b| b.superseded))
     }
     /// The local model settings in force for this Host's Codex processes; refused without a local binding.
     pub(crate) fn local_settings(&self) -> Result<crate::native_local_provider::LocalSettings, String> {
@@ -1118,6 +1134,11 @@ impl Host {
     pub(super) fn check_local_request(i:&Inner,method:&str,params:&Value,expected:Option<&Value>,handshake:bool,private_credential:bool,private_config:bool,admission:Option<&ProviderAdmission>)->Result<(),String> {
         let Some(binding)=&i.local_provider else {return Ok(());};
         let refuse=||Err(crate::native_local_provider::LIMIT.to_owned());
+        // Superseded settings: only what sends nothing to a model and loads no conversation passes;
+        // a running turn can still be interrupted and the page can still read state.
+        if binding.superseded && !matches!(method,"turn/interrupt"|"account/read"|"account/logout"|"config/read"|"configRequirements/read"|"modelProvider/capabilities/read"|"collaborationMode/list"|"thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/loaded/list"|"thread/name/set"|"thread/archive"|"thread/unarchive"|"thread/unsubscribe") {
+            return Err(crate::native_local_provider::RELAUNCH.into());
+        }
         if i.generation["home"]!=binding.home || expected!=Some(&i.generation) || i.server_requests.is_closed(&i.generation) {return refuse();}
         if method=="initialize" {return if handshake && i.state=="handshaking" {Ok(())}else{refuse()};}
         if handshake || i.state!="ready" || !canonical_167(i) {return refuse();}
@@ -1232,6 +1253,7 @@ impl Host {
     pub(crate) fn require_local_destination(&self,generation:&Value)->Result<(),String>{
         self.require_canonical_167(generation)?;
         let i=self.inner.0.lock().map_err(|_|unavailable())?;
-        if i.generation!=*generation || i.local_provider.as_ref().is_none_or(|b|generation["home"]!=b.home) {return Err(unavailable());} Ok(())
+        if i.generation!=*generation || i.local_provider.as_ref().is_none_or(|b|generation["home"]!=b.home) {return Err(unavailable());}
+        if i.local_provider.as_ref().is_some_and(|b|b.superseded) {return Err(crate::native_local_provider::RELAUNCH.into());} Ok(())
     }
 }

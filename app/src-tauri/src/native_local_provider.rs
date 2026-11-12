@@ -37,6 +37,14 @@ pub(crate) const UNSET: &str = "Local model settings are not set; set the server
 pub(crate) const RELAUNCH: &str = "The local model settings changed in this session; quit and reopen the App to use them. The local connection is unavailable until then.";
 pub(crate) const EARLIER: &str =
     "This conversation was started under earlier local model settings; it is not continued.";
+/// The refusal for a key file with no record. It names no address: the App cannot establish one.
+pub(crate) const KEY_ADDRESS_UNRECORDED: &str = "A key is saved in the dedicated local home, but the App has no record of the server address it was entered for, so it will not use that key. Nothing was started.";
+/// The settings_view reason token for a key-address mismatch.
+const KEY_ADDRESS_MISMATCH_REASON: &str = "key-address-mismatch";
+const RECORD_UNWRITTEN: &str = "The App could not record the server address the key is entered for; the key field was not opened and nothing was sent.";
+const RECORD_NOT_REMOVED: &str = "Codex removed the saved key, but the App could not remove its record of the server address the key was entered for; the local model settings were not changed.";
+/// App-owned, beside config.toml: the one address the saved key was entered for, and a newline.
+const KEY_ADDRESS: &str = "key-address";
 pub(crate) const PREPARE_FIRST: &str = "Prepare the local connection first, so that Codex can remove the saved key; the local model settings were not changed.";
 const SIGN_OUT_UNCONFIRMED: &str = "Codex's removal of the saved key could not be confirmed; the local model settings were not changed. Prepare the local connection and try again.";
 const ADDRESS_RULE: &str = "The server address must be http:// or https:// on 127.0.0.1 or [::1], with an optional port from 1 to 65535 and a path of letters, digits and . _ ~ / - only; nothing was saved.";
@@ -194,6 +202,11 @@ impl CredentialEntry {
         attempts.push(generation.clone());
         Ok(())
     }
+    /// Whether an attempt for this generation can still begin (and begins it).
+    #[cfg(test)]
+    pub(crate) fn begin_for_test(&self, generation: &Value) -> bool {
+        self.begin(generation).is_ok()
+    }
 }
 fn private_metadata(path: &Path, directory: bool) -> Result<(), String> {
     let m = std::fs::symlink_metadata(path).map_err(|_| LIMIT)?;
@@ -264,10 +277,164 @@ fn read_config(plan: &OwnedHomePlan) -> Result<LocalSettings, String> {
         .map_err(|_| LIMIT)?;
     parse(&bytes).ok_or_else(|| LIMIT.to_owned())
 }
-/// The settings the home's file holds now, with every home condition checked.
-pub(crate) fn current(plan: &OwnedHomePlan) -> Result<LocalSettings, String> {
+/// The one byte form of the key-address record.
+fn record_bytes(address: &str) -> String {
+    format!("{address}\n")
+}
+/// Strict reader of the key-address record: absent, or private and exactly one validated address
+/// and a newline. Anything else refuses; nothing is repaired.
+fn read_key_address(plan: &OwnedHomePlan) -> Result<Option<String>, String> {
+    let path = plan.native_path().join(KEY_ADDRESS);
+    match std::fs::symlink_metadata(&path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(_) => return Err(LIMIT.into()),
+        Ok(_) => private_metadata(&path, false)?,
+    }
+    let mut options = std::fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(libc::O_NOFOLLOW);
+    }
+    let mut bytes = Vec::new();
+    options
+        .open(&path)
+        .map_err(|_| LIMIT)?
+        .take(4096)
+        .read_to_end(&mut bytes)
+        .map_err(|_| LIMIT)?;
+    let address = std::str::from_utf8(&bytes)
+        .ok()
+        .and_then(|text| text.strip_suffix('\n'))
+        .filter(|address| valid_endpoint(address))
+        .ok_or(LIMIT)?;
+    if record_bytes(address).as_bytes() != bytes.as_slice() {
+        return Err(LIMIT.into());
+    }
+    Ok(Some(address.to_owned()))
+}
+/// Records the address a key is about to be entered for: a private temporary file, written and
+/// synced, renamed over the record, the directory synced, then read back strictly. Holds the
+/// address only; never a key or anything derived from one.
+fn write_key_address(plan: &OwnedHomePlan, address: &str) -> Result<(), String> {
+    if !valid_endpoint(address) {
+        return Err(RECORD_UNWRITTEN.into());
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        let home = plan.native_path();
+        let temporary = home.join(format!(
+            ".{}.tmp",
+            crate::util::opaque_id("key-address-").map_err(|_| RECORD_UNWRITTEN)?
+        ));
+        let staged = (|| -> Result<(), String> {
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .custom_flags(libc::O_NOFOLLOW)
+                .open(&temporary)
+                .map_err(|_| RECORD_UNWRITTEN)?;
+            file.write_all(record_bytes(address).as_bytes())
+                .map_err(|_| RECORD_UNWRITTEN)?;
+            file.sync_all().map_err(|_| RECORD_UNWRITTEN)?;
+            drop(file);
+            private_metadata(&temporary, false).map_err(|_| RECORD_UNWRITTEN)?;
+            std::fs::rename(&temporary, home.join(KEY_ADDRESS)).map_err(|_| RECORD_UNWRITTEN)?;
+            Ok(())
+        })();
+        if staged.is_err() {
+            let _ = std::fs::remove_file(&temporary);
+        }
+        staged?;
+        crate::storage::sync_dir(home).map_err(|_| RECORD_UNWRITTEN)?;
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = plan;
+        return Err(RECORD_UNWRITTEN.into());
+    }
+    if read_key_address(plan).ok().flatten().as_deref() != Some(address) {
+        return Err(RECORD_UNWRITTEN.into());
+    }
+    Ok(())
+}
+/// Removes the record after Codex itself reported no account. Removal is confirmed by absence.
+fn remove_key_address(plan: &OwnedHomePlan) -> Result<(), String> {
+    let path = plan.native_path().join(KEY_ADDRESS);
+    match std::fs::remove_file(&path) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(_) => return Err(RECORD_NOT_REMOVED.into()),
+    }
+    crate::storage::sync_dir(plan.native_path()).map_err(|_| RECORD_NOT_REMOVED)?;
+    if !absent(&path) {
+        return Err(RECORD_NOT_REMOVED.into());
+    }
+    Ok(())
+}
+/// A saved key is used only at the address it was entered for, as the App's own record states.
+///
+/// The record is always valid or absent. While auth.json is absent (by metadata; a slot that
+/// cannot be established absent counts as present) there is no key and the record does not
+/// decide anything. With a key file, the record must name exactly the address set.
+///
+/// The record is written and read back before the native key field opens (submit), so a key file
+/// this build helped create always has one. A key file without a record has no address the App
+/// can establish, and refuses at every address: there is no exception.
+fn key_address_state(plan: &OwnedHomePlan, settings: &LocalSettings) -> Result<Option<KeyMismatch>, String> {
+    let record = read_key_address(plan)?;
+    if absent(&plan.native_path().join("auth.json")) {
+        return Ok(None);
+    }
+    Ok(match record {
+        Some(address) if address == settings.endpoint => None,
+        recorded => Some(KeyMismatch {
+            set: settings.endpoint.clone(),
+            recorded,
+        }),
+    })
+}
+fn key_address_check(plan: &OwnedHomePlan, settings: &LocalSettings) -> Result<(), String> {
+    match key_address_state(plan, settings)? {
+        None => Ok(()),
+        Some(mismatch) => Err(mismatch.sentence()),
+    }
+}
+/// A saved key whose address is not the one set. Both values are validated, nonsecret addresses;
+/// `recorded` is None for a key file without a record.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct KeyMismatch {
+    set: String,
+    recorded: Option<String>,
+}
+impl KeyMismatch {
+    pub(crate) fn sentence(&self) -> String {
+        match &self.recorded {
+            Some(recorded) => format!("The local model server address now set is {}, and the saved key was entered for {recorded}. The App will not use that key with another address. Set the address back to {recorded}.", self.set),
+            None => KEY_ADDRESS_UNRECORDED.into(),
+        }
+    }
+}
+/// Whether Codex's key file is positively present and private (metadata only; never opened).
+fn key_file_present(plan: &OwnedHomePlan) -> bool {
+    let path = plan.native_path().join("auth.json");
+    std::fs::symlink_metadata(&path).is_ok() && private_metadata(&path, false).is_ok()
+}
+/// The file's settings with every home condition checked, apart from the key's address: only for
+/// the compare-and-replace of a save, whose caller has established that condition itself.
+fn settings_file(plan: &OwnedHomePlan) -> Result<LocalSettings, String> {
     check_home(plan)?;
     read_config(plan)
+}
+/// The settings the home's file holds now, with every home condition checked, including that a
+/// saved key was entered for the address set. Every binding and use reads through here.
+pub(crate) fn current(plan: &OwnedHomePlan) -> Result<LocalSettings, String> {
+    let settings = settings_file(plan)?;
+    key_address_check(plan, &settings)?;
+    Ok(settings)
 }
 /// Every bound operation: the file must still hold exactly the settings in force for this
 /// Codex process. A file changed after binding refuses until the App is reopened.
@@ -291,6 +458,20 @@ pub(crate) fn stored(plan: &OwnedHomePlan) -> Result<Option<LocalSettings>, Stri
         return Ok(None);
     }
     read_config(plan).map(Some)
+}
+/// The page's reading: the stored settings and, when a saved key was entered for another
+/// address, that mismatch.
+pub(crate) struct Reading {
+    settings: Option<LocalSettings>,
+    mismatch: Option<KeyMismatch>,
+}
+pub(crate) fn read(plan: &OwnedHomePlan) -> Result<Reading, String> {
+    let settings = stored(plan)?;
+    let mismatch = match &settings {
+        Some(settings) => key_address_state(plan, settings)?,
+        None => None,
+    };
+    Ok(Reading { settings, mismatch })
 }
 /// Prepare an already-set home for binding. Never writes settings or defaults.
 pub(crate) fn prepare(plan: &OwnedHomePlan) -> Result<LocalSettings, String> {
@@ -361,7 +542,7 @@ fn write_initial(plan: &OwnedHomePlan, settings: &LocalSettings) -> Result<(), S
 }
 /// Changed settings: atomic replacement in the same directory. Nothing else in the home is touched.
 fn replace(plan: &OwnedHomePlan, before: &LocalSettings, after: &LocalSettings) -> Result<(), String> {
-    if current(plan)? != *before {
+    if settings_file(plan)? != *before {
         return Err(CHANGED.into());
     }
     #[cfg(unix)]
@@ -381,7 +562,7 @@ fn replace(plan: &OwnedHomePlan, before: &LocalSettings, after: &LocalSettings) 
             file.sync_all().map_err(|_| LIMIT)?;
             drop(file);
             private_metadata(&temporary, false)?;
-            if current(plan)? != *before {
+            if settings_file(plan)? != *before {
                 return Err(CHANGED.into());
             }
             std::fs::rename(&temporary, home.join("config.toml")).map_err(|_| LIMIT)?;
@@ -398,7 +579,7 @@ fn replace(plan: &OwnedHomePlan, before: &LocalSettings, after: &LocalSettings) 
         let _ = after;
         return Err(LIMIT.into());
     }
-    if current(plan).ok().as_ref() != Some(after) {
+    if settings_file(plan).ok().as_ref() != Some(after) {
         return Err(UNCONFIRMED.into());
     }
     Ok(())
@@ -495,6 +676,9 @@ pub(crate) fn view(settings: &LocalSettings, generation: Value, configured: bool
     json!({"modeHomeClass":"local-provider","entryId":ENTRY,"providerId":PROVIDER,"endpoint":settings.endpoint,"model":settings.model,"generation":generation,"credentialState":if configured {"configured-not-verified"} else {"entry-required"},"credentialCustody":"Codex auth.json in the dedicated local home; App never reads it","validity":"not verified by configuration, login acknowledgment or account type"})
 }
 fn source(home: &HomeSession, plan: &OwnedHomePlan, generation: &Value) -> Result<LocalSettings, String> {
+    if home.host.local_superseded() {
+        return Err(RELAUNCH.into());
+    }
     let settings = home.host.local_settings()?;
     check(plan, &settings)?;
     require_no_admin_layers()?;
@@ -515,7 +699,7 @@ pub(crate) fn submit(
     generation: &Value,
     entry_state: &CredentialEntry,
     window_current: impl Fn() -> Result<(), String>,
-    entry: impl FnOnce() -> Result<Option<String>, ()>,
+    entry: impl FnOnce(&str) -> Result<Option<String>, ()>,
 ) -> Result<Value, String> {
     let settings = source(home, plan, generation)?;
     window_current()?;
@@ -536,12 +720,19 @@ pub(crate) fn submit(
         .map_err(|_| LIMIT)?;
     source(home, plan, generation)?;
     window_current()?;
+    // Before a key can exist: record the address in force for the Codex process that will receive
+    // it, and read it back. Without that record the key field is not opened. A cancelled or failed
+    // entry leaves a record with no key file, which decides nothing and is rewritten at next entry.
+    write_key_address(plan, settings.endpoint())?;
+    source(home, plan, generation)?;
+    window_current()?;
     // Consumed even on cancel or unknown outcome. A replacement source is a separate explicit act.
     entry_state.begin(generation)?;
     let request = home
         .host
         .account_login_api_key_from_native_entry(generation, Some(&policy), || {
-            let input = entry()?;
+            // The field names the address this process is bound to, from the checked source above.
+            let input = entry(settings.endpoint())?;
             if source(home, plan, generation).is_err() || window_current().is_err() {
                 return Err(());
             }
@@ -642,24 +833,39 @@ fn sign_out(home: &HomeSession, plan: &OwnedHomePlan, generation: &Value, wait: 
         return Err(SIGN_OUT_UNCONFIRMED.into());
     }
     source(home, plan, generation).map_err(|_| SIGN_OUT_UNCONFIRMED)?;
+    // Codex itself reported no account. The binding is superseded first, so nothing in this home
+    // reaches a model once the record is gone; then the record is removed, before config.toml is
+    // written. Unconfirmed removal changes no settings.
+    home.host.supersede_local()?;
+    remove_key_address(plan)?;
     Ok(())
 }
 /// The read the web view calls: the App-owned file only; nothing is started.
+/// With a key-address mismatch the state is "unavailable" but the stored settings are still shown,
+/// with the reason token and the recorded address (null without a record), so the page can say
+/// what the refusal says and offer setting the address back.
+/// `superseded`: the bound home's settings were changed through the App in this session, so a
+/// relaunch is required even when the file again equals the settings in force.
 pub(crate) fn settings_view(
-    stored: Result<Option<LocalSettings>, String>,
+    reading: Result<Reading, String>,
     in_force: Option<&LocalSettings>,
+    superseded: bool,
 ) -> Value {
-    let (state, settings) = match &stored {
-        Ok(None) => ("unset", None),
-        Ok(Some(settings)) => ("set", Some(settings)),
-        Err(_) => ("unavailable", None),
+    let (state, settings, mismatch) = match &reading {
+        Ok(Reading { settings: None, .. }) => ("unset", None, None),
+        Ok(Reading { settings: Some(settings), mismatch: None }) => ("set", Some(settings), None),
+        Ok(Reading { settings: Some(settings), mismatch: Some(m) }) => ("unavailable", Some(settings), Some(m)),
+        Err(_) => ("unavailable", None, None),
     };
-    json!({"state":state,"settings":settings.map(LocalSettings::json),"offered":{"endpoint":OFFERED_ENDPOINT},"inForce":in_force.map(LocalSettings::json),"relaunchRequired":matches!((settings,in_force),(Some(s),Some(f)) if s!=f)})
+    let reason = mismatch.map(|_| KEY_ADDRESS_MISMATCH_REASON);
+    let key_address = mismatch.and_then(|m| m.recorded.clone());
+    json!({"state":state,"settings":settings.map(LocalSettings::json),"offered":{"endpoint":OFFERED_ENDPOINT},"inForce":in_force.map(LocalSettings::json),"relaunchRequired":superseded || matches!((settings,in_force),(Some(s),Some(f)) if s!=f),"reason":reason,"keyAddress":key_address})
 }
 fn effects(
     before: Option<&LocalSettings>,
     after: &LocalSettings,
     sign_out: bool,
+    restore: bool,
     in_use: bool,
 ) -> Result<ns::NativeStatement, String> {
     let row = |name: &str, old: &str, new: &str| {
@@ -684,6 +890,9 @@ fn effects(
             if sign_out {
                 lines.push("The saved key is removed first, through Codex's own sign-out, so a key entered for one server is not sent to another. The key must be entered again.".into());
                 lines.push(format!("Conversations already started with model name {} continue, with the server at the new address.", after.model));
+            } else if restore {
+                lines.push(format!("The server address is set back to {}, the address the saved key was entered for. The saved key is kept.", after.endpoint));
+                lines.push(format!("Conversations already started with model name {} continue.", after.model));
             } else {
                 lines.push("The saved key is kept.".into());
                 lines.push(format!("Conversations already started with model name {} continue.", after.model));
@@ -730,7 +939,8 @@ pub(crate) fn save_within(
 ) -> Result<Value, String> {
     let in_force = in_use.and_then(|home| home.host.local_settings().ok());
     let outcome = |outcome: &str, removed: bool| {
-        let mut view = settings_view(stored(plan), in_force.as_ref());
+        let superseded = in_use.is_some_and(|home| home.host.local_superseded());
+        let mut view = settings_view(read(plan), in_force.as_ref(), superseded);
         view["outcome"] = json!(outcome);
         view["keyRemoved"] = json!(removed);
         view
@@ -742,9 +952,27 @@ pub(crate) fn save_within(
     if before.is_none() && (in_use.is_some() || !absent(&plan.native_path().join("auth.json"))) {
         return Err(LIMIT.into());
     }
-    let needs_sign_out = before
+    let address_changes = before
         .as_ref()
         .is_some_and(|b| b.endpoint != proposed.endpoint);
+    // The one address change that keeps the key: back to exactly the address the App recorded for
+    // the saved key, with Codex's key file present. Every read is strict; anything not
+    // established is an ordinary change, which removes the key first.
+    let restoring = || {
+        address_changes
+            && matches!(read_key_address(plan), Ok(Some(recorded)) if recorded == proposed.endpoint)
+            && key_file_present(plan)
+    };
+    let restore = restoring();
+    let needs_sign_out = address_changes && !restore;
+    // A change that keeps the key keeps it only where it was entered for. (An address change
+    // establishes this through the bound home's source check before Codex signs out.)
+    let key_kept = || match (&before, needs_sign_out, restore) {
+        (_, _, true) if !restoring() => Err(CHANGED.to_owned()),
+        (Some(b), false, false) => key_address_check(plan, b),
+        _ => Ok(()),
+    };
+    key_kept()?;
     // The bound, ready home whose settings in force are still the file's: Codex can sign out there.
     let ready = || -> Result<(&HomeSession, Value), String> {
         let home = in_use.ok_or(PREPARE_FIRST)?;
@@ -761,7 +989,7 @@ pub(crate) fn save_within(
     };
     let signing = if needs_sign_out { Some(ready()?) } else { None };
     window_current()?;
-    let statement = effects(before.as_ref(), &proposed, needs_sign_out, in_use.is_some())?;
+    let statement = effects(before.as_ref(), &proposed, needs_sign_out, restore, in_use.is_some())?;
     let result = ns::showing_in_app(statement.in_app.as_ref(), || confirm(&statement, SAVE_ACTION))?;
     if !ns::chose(&result, SAVE_ACTION) {
         return Ok(outcome("cancelled", false));
@@ -770,12 +998,18 @@ pub(crate) fn save_within(
     if stored(plan)? != before {
         return Err(CHANGED.into());
     }
+    key_kept()?;
     if let Some((home, generation)) = &signing {
         let (again, now) = ready()?;
         if !std::ptr::eq(again, *home) || now != *generation {
             return Err(PREPARE_FIRST.into());
         }
         sign_out(home, plan, generation, wait)?;
+    }
+    // A home bound in this session is superseded before the new file can exist: from here the
+    // central guard admits nothing to a model in it, whether or not the write below completes.
+    if let Some(home) = in_use {
+        home.host.supersede_local()?;
     }
     let written = match &before {
         None => write_initial(plan, &proposed),
@@ -1169,8 +1403,8 @@ mod tests {
         assert_eq!(stored(&plan), Ok(None));
         assert_eq!(prepare(&plan).unwrap_err(), UNSET);
         assert!(!plan.native_path().exists(), "no defaults written");
-        let view = settings_view(stored(&plan), None);
-        assert_eq!(view, json!({"state":"unset","settings":null,"offered":{"endpoint":"http://127.0.0.1:8000/v1"},"inForce":null,"relaunchRequired":false}));
+        let view = settings_view(read(&plan), None, false);
+        assert_eq!(view, json!({"state":"unset","settings":null,"offered":{"endpoint":"http://127.0.0.1:8000/v1"},"inForce":null,"relaunchRequired":false,"reason":null,"keyAddress":null}));
         let chosen = LocalSettings::new("http://127.0.0.1:9000/v1", "org/model").unwrap();
         for cancel in [MessageDialogResult::Cancel, MessageDialogResult::Custom(LEAVE.into()), MessageDialogResult::Custom(format!("{SAVE_ACTION} "))] {
             let mut asked = None;
@@ -1210,6 +1444,7 @@ mod tests {
         seed(&plan);
         std::fs::write(plan.native_path().join("auth.json"), CANARY).unwrap();
         std::fs::set_permissions(plan.native_path().join("auth.json"), std::fs::Permissions::from_mode(0o600)).unwrap();
+        write_key_address(&plan, ENDPOINT).unwrap();
         let auth_before = std::fs::metadata(plan.native_path().join("auth.json")).unwrap();
         // An address change: without a prepared, ready home Codex cannot remove the key.
         for endpoint in ["http://127.0.0.1:9000/v1", "http://[::1]:8000/v1", "https://127.0.0.1:8000/v1"] {
@@ -1232,17 +1467,17 @@ mod tests {
         let auth_after = std::fs::metadata(plan.native_path().join("auth.json")).unwrap();
         assert_eq!((auth_before.ino(), auth_before.mtime(), auth_before.len()), (auth_after.ino(), auth_after.mtime(), auth_after.len()), "the key's file is not touched");
         let names: Vec<_> = std::fs::read_dir(plan.native_path()).unwrap().map(|e| e.unwrap().file_name().into_string().unwrap()).collect();
-        assert!(names.iter().all(|n| ["config.toml", "auth.lock", "auth.json"].contains(&n.as_str())), "no temporary left: {names:?}");
+        assert!(names.iter().all(|n| ["config.toml", "auth.lock", "auth.json", "key-address"].contains(&n.as_str())), "no temporary left: {names:?}");
         assert!(!format!("{out}{asked}").contains(CANARY));
         // A file changed after binding refuses every bound check until the App binds again.
         assert_eq!(check(&plan, &LocalSettings::legacy()).unwrap_err(), RELAUNCH);
         assert!(check(&plan, &next).is_ok());
-        let view = settings_view(stored(&plan), Some(&LocalSettings::legacy()));
+        let view = settings_view(read(&plan), Some(&LocalSettings::legacy()), false);
         assert_eq!(view["relaunchRequired"], true);
         assert_eq!(view["inForce"], LocalSettings::legacy().json());
-        assert_eq!(settings_view(stored(&plan), Some(&next))["relaunchRequired"], false);
+        assert_eq!(settings_view(read(&plan), Some(&next), false)["relaunchRequired"], false);
         std::fs::write(plan.native_path().join("config.toml"), "hand edited\n").unwrap();
-        let view = settings_view(stored(&plan), Some(&next));
+        let view = settings_view(read(&plan), Some(&next), false);
         assert_eq!((view["state"].as_str(), view["settings"].is_null()), (Some("unavailable"), true));
         std::fs::remove_dir_all(root).unwrap();
     }
@@ -1250,12 +1485,12 @@ mod tests {
     fn native_local_settings_question_states_every_consequence_and_requires_the_original_window() {
         let before = LocalSettings::legacy();
         let after = LocalSettings::new("http://[::1]:9000/v1", "other").unwrap();
-        let s = effects(Some(&before), &after, true, true).unwrap();
+        let s = effects(Some(&before), &after, true, false, true).unwrap();
         for part in ["Server address: http://127.0.0.1:8000/v1, changes to http://[::1]:9000/v1", "Model name: mlx-community/Qwen3.6-35B-A3B-8bit, changes to other", "Codex's own sign-out", "must be entered again", "model name other continue, with the server at the new address", "including mlx-community/Qwen3.6-35B-A3B-8bit, will not be continued", "quit and reopen", "never one of these settings"] {
             assert!(s.text.contains(part), "{part}");
         }
         let long = LocalSettings::new(&format!("http://127.0.0.1/{}", "a".repeat(1900)), "m").unwrap();
-        let s = effects(Some(&before), &long, true, false).unwrap();
+        let s = effects(Some(&before), &long, true, false, false).unwrap();
         assert!(s.in_app.is_some() && s.text.contains("sha-256"), "long effects are shown whole in the App");
         struct Handles(bool, bool);
         impl HasWindowHandle for Handles {
@@ -1275,5 +1510,255 @@ mod tests {
             assert!(with_parent(&Handles(w, d), |_| ()).is_err());
         }
         assert!(result_in_parent(&Handles(true, true), MessageDialogResult::Custom(SAVE_ACTION.into()), SAVE_ACTION).is_ok());
+    }
+
+    fn private_write(path: &std::path::Path, bytes: &str) {
+        std::fs::write(path, bytes).unwrap();
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    }
+    fn base(root: &std::path::Path) -> HostConfig {
+        HostConfig::new(root.join("not-run"), root.join("account"), root.join("probe"), root.to_path_buf())
+    }
+    #[test]
+    fn native_local_settings_key_address_refuses_a_hand_edited_address_while_a_key_is_saved() {
+        let (root, plan) = fixture();
+        let a = LocalSettings::new("http://127.0.0.1:9100/v1", "org/m").unwrap();
+        let b = LocalSettings::new("http://127.0.0.1:9200/v1", "org/m").unwrap();
+        prepare_for_test(&plan, &a);
+        assert!(!plan.native_path().join(KEY_ADDRESS).exists(), "a first save creates no record");
+        write_key_address(&plan, a.endpoint()).unwrap();
+        let record = plan.native_path().join(KEY_ADDRESS);
+        assert_eq!(std::fs::read(&record).unwrap(), b"http://127.0.0.1:9100/v1\n", "exactly one address and a newline");
+        let m = std::fs::metadata(&record).unwrap();
+        assert_eq!((m.mode() & 0o777, m.nlink()), (0o600, 1));
+        private_write(&plan.native_path().join("auth.json"), CANARY);
+        assert_eq!(current(&plan).unwrap(), a);
+        assert!(check(&plan, &a).is_ok() && prepare(&plan).is_ok() && config(&base(&root), &plan).is_ok());
+        // The hand edit: only base_url, canonical form, private mode kept.
+        private_write(&plan.native_path().join("config.toml"), &canonical(&b));
+        assert_eq!(stored(&plan), Ok(Some(b.clone())), "the file itself is canonical");
+        let refusal = "The local model server address now set is http://127.0.0.1:9200/v1, and the saved key was entered for http://127.0.0.1:9100/v1. The App will not use that key with another address. Set the address back to http://127.0.0.1:9100/v1.";
+        assert_eq!(current(&plan).unwrap_err(), refusal, "the two addresses and nothing else");
+        assert!(!refusal.contains(CANARY) && !refusal.contains("org/m"));
+        assert_eq!(check(&plan, &b).unwrap_err(), refusal);
+        assert_eq!(prepare(&plan).unwrap_err(), refusal);
+        assert_eq!(config(&base(&root), &plan).unwrap_err(), refusal);
+        let mut flags = base(&root);
+        flags.codex_home = plan.native_path().into();
+        flags.session_flags = session_flags(&b);
+        assert_eq!(crate::hosting::Host::new().bind_local_destination(&flags, &plan).unwrap_err(), refusal, "nothing is bound to B");
+        let view = settings_view(read(&plan), None, false);
+        assert_eq!((view["state"].as_str(), view["reason"].as_str(), view["keyAddress"].as_str()), (Some("unavailable"), Some("key-address-mismatch"), Some("http://127.0.0.1:9100/v1")));
+        assert_eq!(view["settings"], b.json(), "the address set, for the page's sentence");
+        assert!(!view.to_string().contains(CANARY));
+        // A model-only change cannot keep the key at B either.
+        let model_only = LocalSettings::new(b.endpoint(), "org/other").unwrap();
+        assert_eq!(save(&plan, model_only, None, || Ok(()), |_, _| panic!("no question")).unwrap_err(), refusal);
+        assert_eq!(std::fs::read_to_string(plan.native_path().join("config.toml")).unwrap(), canonical(&b));
+        // A Restart Codex re-checks with the settings in force (A): a record changed by hand refuses too.
+        private_write(&plan.native_path().join("config.toml"), &canonical(&a));
+        assert!(check(&plan, &a).is_ok());
+        private_write(&record, "http://127.0.0.1:9200/v1\n");
+        assert!(check(&plan, &a).unwrap_err().starts_with("The local model server address now set is http://127.0.0.1:9100/v1, and the saved key was entered for http://127.0.0.1:9200/v1."));
+        private_write(&record, "http://127.0.0.1:9100/v1\n");
+        assert!(check(&plan, &a).is_ok());
+        assert_eq!(settings_view(read(&plan), None, false)["reason"], Value::Null);
+        // Without a key file the record decides nothing; a stale one is harmless but must be valid.
+        std::fs::remove_file(plan.native_path().join("auth.json")).unwrap();
+        private_write(&plan.native_path().join("config.toml"), &canonical(&b));
+        assert_eq!(current(&plan).unwrap(), b);
+        assert!(!std::fs::read_to_string(&record).unwrap().contains(CANARY));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn native_local_settings_key_file_without_a_record_refuses_at_every_address() {
+        for endpoint in [
+            "http://127.0.0.1:8000/v1",
+            "http://127.0.0.1:9100/v1",
+            "http://[::1]:8000/v1",
+            "https://127.0.0.1:8000/v1",
+        ] {
+            let (root, plan) = fixture();
+            seed(&plan);
+            private_write(&plan.native_path().join("auth.json"), CANARY);
+            let settings = LocalSettings::new(endpoint, MODEL).unwrap();
+            private_write(&plan.native_path().join("config.toml"), &canonical(&settings));
+            assert_eq!(current(&plan).unwrap_err(), KEY_ADDRESS_UNRECORDED, "{endpoint}");
+            assert_eq!(check(&plan, &settings).unwrap_err(), KEY_ADDRESS_UNRECORDED, "{endpoint}");
+            assert_eq!(prepare(&plan).unwrap_err(), KEY_ADDRESS_UNRECORDED, "{endpoint}");
+            assert!(config(&base(&root), &plan).is_err(), "{endpoint}");
+            let view = settings_view(read(&plan), None, false);
+            assert_eq!((view["state"].as_str(), view["reason"].as_str(), view["keyAddress"].is_null()), (Some("unavailable"), Some("key-address-mismatch"), true), "{endpoint}: no record, no recorded address");
+            assert_eq!(view["settings"], settings.json());
+            // No record: no address change through the App keeps or reaches the key.
+            let other = LocalSettings::new(if endpoint.contains("9100") { "http://127.0.0.1:8000/v1" } else { "http://127.0.0.1:9100/v1" }, MODEL).unwrap();
+            assert_eq!(save(&plan, other, None, || Ok(()), |_, _| panic!("no question")).unwrap_err(), PREPARE_FIRST);
+            let model_only = LocalSettings::new(endpoint, "org/other").unwrap();
+            assert_eq!(save(&plan, model_only, None, || Ok(()), |_, _| panic!("no question")).unwrap_err(), KEY_ADDRESS_UNRECORDED);
+            assert_eq!(std::fs::read_to_string(plan.native_path().join("config.toml")).unwrap(), canonical(&settings));
+            std::fs::remove_dir_all(root).unwrap();
+        }
+        assert!(!KEY_ADDRESS_UNRECORDED.contains("http"), "names no address");
+    }
+    #[test]
+    fn native_local_settings_key_address_record_that_is_not_exact_and_private_refuses() {
+        for with_key in [true, false] {
+            for case in ["no-newline", "two-newlines", "crlf", "two-addresses", "not-loopback", "empty", "garbage", "key-like", "mode", "symlink", "hardlink", "directory"] {
+                let (root, plan) = fixture();
+                seed(&plan);
+                if with_key {
+                    private_write(&plan.native_path().join("auth.json"), CANARY);
+                }
+                let record = plan.native_path().join(KEY_ADDRESS);
+                match case {
+                    "no-newline" => private_write(&record, ENDPOINT),
+                    "two-newlines" => private_write(&record, &format!("{ENDPOINT}\n\n")),
+                    "crlf" => private_write(&record, &format!("{ENDPOINT}\r\n")),
+                    "two-addresses" => private_write(&record, &format!("{ENDPOINT}\n{ENDPOINT}\n")),
+                    "not-loopback" => private_write(&record, "http://localhost:8000/v1\n"),
+                    "empty" => private_write(&record, ""),
+                    "garbage" => private_write(&record, "\u{feff}http://127.0.0.1:8000/v1\n"),
+                    "key-like" => private_write(&record, &format!("{ENDPOINT}\n{CANARY}\n")),
+                    "mode" => {
+                        std::fs::write(&record, format!("{ENDPOINT}\n")).unwrap();
+                        std::fs::set_permissions(&record, std::fs::Permissions::from_mode(0o644)).unwrap();
+                    }
+                    "symlink" => {
+                        private_write(&root.join("elsewhere"), &format!("{ENDPOINT}\n"));
+                        std::os::unix::fs::symlink(root.join("elsewhere"), &record).unwrap();
+                    }
+                    "hardlink" => {
+                        private_write(&record, &format!("{ENDPOINT}\n"));
+                        std::fs::hard_link(&record, root.join("alias")).unwrap();
+                    }
+                    "directory" => std::fs::create_dir(&record).unwrap(),
+                    _ => unreachable!(),
+                }
+                let label = format!("{case} with key {with_key}");
+                assert!(current(&plan).is_err(), "{label}");
+                assert!(check(&plan, &LocalSettings::legacy()).is_err(), "{label}");
+                assert!(prepare(&plan).is_err(), "{label}");
+                let view = settings_view(read(&plan), None, false);
+                assert_eq!(view["state"], "unavailable", "{label}");
+                assert!(!view.to_string().contains(CANARY));
+                std::fs::remove_dir_all(root).unwrap();
+            }
+        }
+        let (root, plan) = fixture();
+        seed(&plan);
+        assert_eq!(write_key_address(&plan, "http://localhost/v1").unwrap_err(), RECORD_UNWRITTEN, "only a validated address is written");
+        assert!(!plan.native_path().join(KEY_ADDRESS).exists());
+        assert!(remove_key_address(&plan).is_ok(), "absence is removal");
+        write_key_address(&plan, ENDPOINT).unwrap();
+        write_key_address(&plan, "http://[::1]:9/x").unwrap();
+        assert_eq!(std::fs::read(plan.native_path().join(KEY_ADDRESS)).unwrap(), b"http://[::1]:9/x\n");
+        remove_key_address(&plan).unwrap();
+        assert!(absent(&plan.native_path().join(KEY_ADDRESS)));
+        let names: Vec<_> = std::fs::read_dir(plan.native_path()).unwrap().map(|e| e.unwrap().file_name().into_string().unwrap()).collect();
+        assert!(names.iter().all(|n| ["config.toml", "auth.lock"].contains(&n.as_str())), "no temporary left: {names:?}");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(all(test, unix))]
+mod restore_tests {
+    use super::*;
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    const CANARY: &str = "INVENTED_LOCAL_RESTORE_KEY_CANARY_419";
+    fn private_write(path: &std::path::Path, bytes: &str) {
+        std::fs::write(path, bytes).unwrap();
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    }
+    /// A key entered for A, then config.toml hand-edited to B.
+    fn mismatched(key: bool) -> (std::path::PathBuf, OwnedHomePlan, LocalSettings, LocalSettings) {
+        let root = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("local-restore-").unwrap());
+        std::fs::create_dir(&root).unwrap();
+        let plan = OwnedHomePlan::new(root.clone(), root.join("local"), HomeClass::LocalProvider, None).unwrap();
+        let a = LocalSettings::new("http://127.0.0.1:9100/v1", "org/m").unwrap();
+        let b = LocalSettings::new("http://127.0.0.1:9200/v1", "org/m").unwrap();
+        prepare_for_test(&plan, &a);
+        write_key_address(&plan, a.endpoint()).unwrap();
+        if key {
+            private_write(&plan.native_path().join("auth.json"), CANARY);
+        }
+        private_write(&plan.native_path().join("config.toml"), &canonical(&b));
+        (root, plan, a, b)
+    }
+    fn file(plan: &OwnedHomePlan) -> String {
+        std::fs::read_to_string(plan.native_path().join("config.toml")).unwrap()
+    }
+    #[test]
+    fn native_local_settings_restore_to_the_recorded_address_keeps_the_key_after_confirmation() {
+        let (root, plan, a, b) = mismatched(true);
+        let auth = plan.native_path().join("auth.json");
+        let auth_before = std::fs::metadata(&auth).unwrap();
+        let back = LocalSettings::new(a.endpoint(), "org/m").unwrap();
+        // Cancel changes nothing; the question says what is done.
+        let mut asked = String::new();
+        let out = save(&plan, back.clone(), None, || Ok(()), |s, _| { asked = s.text.clone(); Ok(MessageDialogResult::Cancel) }).unwrap();
+        assert_eq!(out["outcome"], "cancelled");
+        assert_eq!(file(&plan), canonical(&b));
+        assert!(asked.contains("set back to http://127.0.0.1:9100/v1, the address the saved key was entered for") && asked.contains("The saved key is kept."), "{asked}");
+        assert!(!asked.contains("sign-out") && !asked.contains("entered again") && !asked.contains(CANARY));
+        // Confirmed: the address is set back, no sign-out (no home is bound at all here), key kept.
+        let out = save(&plan, back.clone(), None, || Ok(()), |s, action| Ok(MessageDialogResult::Custom(if s.text.contains("set back") { action.into() } else { "no".into() }))).unwrap();
+        assert_eq!((out["outcome"].as_str(), out["keyRemoved"].as_bool(), out["state"].as_str(), out["reason"].is_null()), (Some("saved"), Some(false), Some("set"), true));
+        assert_eq!(file(&plan), canonical(&back));
+        assert_eq!(current(&plan).unwrap(), back);
+        assert_eq!(std::fs::read(plan.native_path().join(KEY_ADDRESS)).unwrap(), b"http://127.0.0.1:9100/v1\n", "the record is unchanged");
+        let auth_after = std::fs::metadata(&auth).unwrap();
+        assert_eq!((auth_before.ino(), auth_before.mtime(), auth_before.len()), (auth_after.ino(), auth_after.mtime(), auth_after.len()), "the key's file is not touched");
+        // The restore may also carry a model change; the key stays at its own address.
+        std::fs::remove_dir_all(root).unwrap();
+        let (root, plan, a, _) = mismatched(true);
+        let back = LocalSettings::new(a.endpoint(), "org/other").unwrap();
+        assert_eq!(save(&plan, back.clone(), None, || Ok(()), |_, action| Ok(MessageDialogResult::Custom(action.into()))).unwrap()["outcome"], "saved");
+        assert_eq!(current(&plan).unwrap(), back);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn native_local_settings_restore_is_refused_for_any_other_address_or_an_unestablished_record_or_key() {
+        let confirm = |_: &ns::NativeStatement, _: &str| -> Result<MessageDialogResult, String> { panic!("no question that cannot be acted on") };
+        // Any other address is an ordinary change: it needs Codex's sign-out in a bound home.
+        for other in ["http://127.0.0.1:9300/v1", "http://127.0.0.1:9100/v1/", "http://[::1]:9100/v1", "https://127.0.0.1:9100/v1"] {
+            let (root, plan, _, b) = mismatched(true);
+            assert_eq!(save(&plan, LocalSettings::new(other, "org/m").unwrap(), None, || Ok(()), confirm).unwrap_err(), PREPARE_FIRST, "{other}");
+            assert_eq!(file(&plan), canonical(&b));
+            std::fs::remove_dir_all(root).unwrap();
+        }
+        for case in ["record-missing", "record-malformed", "record-link", "record-mode", "key-absent", "key-link", "key-mode"] {
+            let (root, plan, a, b) = mismatched(!case.starts_with("key-absent"));
+            let record = plan.native_path().join(KEY_ADDRESS);
+            let auth = plan.native_path().join("auth.json");
+            match case {
+                "record-missing" => std::fs::remove_file(&record).unwrap(),
+                "record-malformed" => private_write(&record, "http://127.0.0.1:9100/v1"),
+                "record-link" => {
+                    std::fs::rename(&record, root.join("elsewhere")).unwrap();
+                    std::os::unix::fs::symlink(root.join("elsewhere"), &record).unwrap();
+                }
+                "record-mode" => std::fs::set_permissions(&record, std::fs::Permissions::from_mode(0o644)).unwrap(),
+                "key-absent" => {}
+                "key-link" => {
+                    std::fs::rename(&auth, root.join("not-read")).unwrap();
+                    std::os::unix::fs::symlink(root.join("not-read"), &auth).unwrap();
+                }
+                "key-mode" => std::fs::set_permissions(&auth, std::fs::Permissions::from_mode(0o644)).unwrap(),
+                _ => unreachable!(),
+            }
+            let back = LocalSettings::new(a.endpoint(), "org/m").unwrap();
+            let error = save(&plan, back, None, || Ok(()), confirm).unwrap_err();
+            assert!(!error.contains(CANARY), "{case}");
+            assert_eq!(file(&plan), canonical(&b), "{case}: nothing written");
+            std::fs::remove_dir_all(root).unwrap();
+        }
+        // The record changing while the person decides refuses the restore without writing.
+        let (root, plan, a, b) = mismatched(true);
+        let back = LocalSettings::new(a.endpoint(), "org/m").unwrap();
+        let record = plan.native_path().join(KEY_ADDRESS);
+        let error = save(&plan, back, None, || Ok(()), |_, action| { private_write(&record, "http://127.0.0.1:9200/v1\n"); Ok(MessageDialogResult::Custom(action.into())) }).unwrap_err();
+        assert_eq!(error, CHANGED);
+        assert_eq!(file(&plan), canonical(&b));
+        std::fs::remove_dir_all(root).unwrap();
     }
 }
