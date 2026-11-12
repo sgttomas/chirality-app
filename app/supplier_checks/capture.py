@@ -80,7 +80,8 @@ COMMAND = "mkdir st5-marker-pump-skid"
 CHILD_MARKER = "st5-child-brief-marker"
 SYSTEM_PATH = "/usr/bin:/bin:/usr/sbin:/sbin"
 MARKERS = ["<HOME>", "<WORKSPACE>", "<SCRATCH>", "<TMP>", "<USER-HOME>", "<USER>", "<HOST>", "<VENDOR>",
-           "<REDACTED-USER-AGENT>", "<REDACTED-HOST>", "<REDACTED-INSTALLATION-ID>"]
+           "<REDACTED-USER-AGENT>", "<REDACTED-HOST>", "<REDACTED-INSTALLATION-ID>",
+           "<REDACTED-TEXT-HOLDING-IDENTITY>"]
 
 CONFIG = """# Scratch stand-in for a person's Codex configuration (supplier capture).
 model_provider = "st5_stub"
@@ -167,7 +168,7 @@ def metadata_members(record):
         parts = value.split("/") if isinstance(value, str) else [""]
         entry = members.get(value) if isinstance(value, str) else None
         if (not isinstance(value, str) or value.startswith("/") or any(part in ("", ".", "..") for part in parts)
-                or entry is None or entry["kind"] != kind):
+                or os.pathsep in value or "\x00" in value or entry is None or entry["kind"] != kind):
             raise Refused("package metadata %s %r is not a %s of the verified inventory" % (field, value, kind))
         if field == "entrypoint" and not entry["mode"] & 0o100:
             raise Refused("package metadata entrypoint %r is not executable in the inventory" % value)
@@ -214,6 +215,31 @@ def verified_vendor(vendor, pin, resources=None):
         raise Refused("the vendor tree differs from the expected %s inventory: %s%s" % (
             pin, "; ".join(differences[:6]), "; %d more" % (len(differences) - 6) if len(differences) > 6 else ""))
     return record, admitted_path(vendor, record, "entrypoint"), admitted_path(vendor, record, "pathDir")
+
+
+def supplier_environment(path_directory, vendor, user_home, codex_home, tmp):
+    """The whole environment the supplier is given: five variables, built here and not inherited.
+
+    PATH is the admitted path directory followed by the fixed system directories, and is checked
+    after composition: exactly those entries, the first inside the vendor root.
+    """
+    path = path_directory + os.pathsep + SYSTEM_PATH
+    entries, root = path.split(os.pathsep), os.path.realpath(vendor)
+    if (entries != [path_directory] + SYSTEM_PATH.split(os.pathsep) or not os.path.isabs(path_directory)
+            or os.path.commonpath([root, path_directory]) != root or path_directory == root):
+        raise Refused("the supplier's PATH would name a directory other than the admitted one")
+    for name, value in (("HOME", user_home), ("CODEX_HOME", codex_home), ("TMPDIR", tmp)):
+        if not os.path.isabs(value) or os.pathsep in value or os.path.realpath(value) != value:
+            raise Refused("the supplier's %s is not a plain private directory" % name)
+    return {"HOME": user_home, "CODEX_HOME": codex_home, "TMPDIR": tmp, "PATH": path, "LANG": "en_US.UTF-8"}
+
+
+def group_members(group, run=subprocess.run):
+    """How many processes remain in the group, or None when the process list could not be read."""
+    result = run(["/bin/ps", "-axo", "pgid="], capture_output=True, text=True)
+    if result.returncode != 0 or result.stderr.strip() or not result.stdout.strip():
+        return None
+    return result.stdout.split().count(str(group))
 
 
 def kill_group(group):
@@ -308,17 +334,17 @@ class Generation:
         self.proc.stdin.write((raw + "\n").encode("utf-8"))
         self.proc.stdin.flush()
 
-    def request(self, method, params, timeout=60):
+    def request(self, method, params, timeout=None):
         self.next_id += 1
         request_id = self.next_id
         self.send({"jsonrpc": "2.0", "id": request_id, "method": method, "params": params})
-        reply = self.wait(lambda: self.results.get(request_id), timeout)
+        reply = self.wait(lambda: self.results.get(request_id), timeout or self.h.step_timeout)
         if reply is None:
             # A reply that never came is an observation that was not made: no recording is written.
             raise Refused("no reply to %s in generation %d (stop reason %r)" % (method, self.number, self.h.stop_reason))
         return reply
 
-    def result(self, method, params, timeout=60):
+    def result(self, method, params, timeout=None):
         """A request the script cannot continue without: an error reply refuses."""
         reply = self.request(method, params, timeout)
         if "result" not in reply:
@@ -346,13 +372,15 @@ class Generation:
 
 
 class Harness:
-    def __init__(self, vendor, record, out, child_hold):
+    def __init__(self, vendor, record, out, child_hold, step_timeout=60.0):
         self.vendor, self.record, self.child_hold = os.path.realpath(vendor), record, child_hold
+        self.step_timeout = step_timeout
         self.binary = admitted_path(self.vendor, record, "entrypoint")
         self.codex_path = admitted_path(self.vendor, record, "pathDir")
         self.frames, self.events, self.provider_log, self.gens = [], [], [], []
         self.stderr, self.stop_reason, self.started = {}, None, time.monotonic()
         self.socket_samples, self.failed_samples, self.loopback_peers = 0, 0, set()
+        self.samples_by_generation, self.sample_lock = {}, threading.Lock()
         self.out = os.path.realpath(out)
         os.makedirs(self.out, exist_ok=True)
         self.scratch = os.path.realpath(tempfile.mkdtemp(prefix="supplier-capture-"))
@@ -369,8 +397,7 @@ class Harness:
         return admitted_path(self.vendor, self.record, "entrypoint")
 
     def environment(self):
-        return {"HOME": self.user_home, "CODEX_HOME": self.home, "TMPDIR": self.tmp,
-                "PATH": self.codex_path + os.pathsep + SYSTEM_PATH, "LANG": "en_US.UTF-8"}
+        return supplier_environment(self.codex_path, self.vendor, self.user_home, self.home, self.tmp)
 
     def elapsed(self):
         return round((time.monotonic() - self.started) * 1000, 1)
@@ -387,30 +414,39 @@ class Harness:
             self.event("STOP", reason=reason)
         kill_group(generation.pgid)
 
+    def sample(self, generation):
+        """One socket sample of a generation's process group; a sample that cannot be taken stops the run."""
+        try:
+            peers = socket_peers(generation.pgid)
+        except OSError as error:
+            peers, detail = None, type(error).__name__
+        else:
+            detail = "lsof reported an error"
+        with self.sample_lock:
+            if peers is None:
+                # Every sample that could not be taken counts, also one that coincides with the
+                # group ending: a group that is gone lists nothing, which is a taken sample.
+                self.failed_samples += 1
+                self.stop(generation, "the socket watch could not take a sample (%s)" % detail)
+                return
+            self.socket_samples += 1
+            self.samples_by_generation[generation.number] = self.samples_by_generation.get(generation.number, 0) + 1
+            for peer in peers:
+                if peer in ("127.0.0.1", "::1"):
+                    self.loopback_peers.add(peer)
+                else:
+                    self.stop(generation, "non-loopback socket: " + peer)
+
     def watch_sockets(self, done):
         while not done.is_set():
             for generation in list(self.gens):
-                if generation.proc.poll() is not None:
-                    continue
-                try:
-                    peers = socket_peers(generation.pgid)
-                except OSError as error:
-                    peers = None
-                    detail = type(error).__name__
-                else:
-                    detail = "lsof reported an error"
-                if peers is None:
-                    if generation.proc.poll() is None:  # a group that ended mid-sample is not a failed watch
-                        self.failed_samples += 1
-                        self.stop(generation, "the socket watch could not take a sample (%s)" % detail)
-                    continue
-                self.socket_samples += 1
-                for peer in peers:
-                    if peer in ("127.0.0.1", "::1"):
-                        self.loopback_peers.add(peer)
-                    else:
-                        self.stop(generation, "non-loopback socket: " + peer)
+                if generation.proc.poll() is None:
+                    self.sample(generation)
             done.wait(0.25)
+
+    def unsampled_generations(self):
+        return [generation.number for generation in self.gens
+                if not self.samples_by_generation.get(generation.number)]
 
     def write_config(self, port):
         with open(os.path.join(self.home, "config.toml"), "w") as handle:
@@ -420,6 +456,7 @@ class Harness:
         generation = Generation(self, len(self.gens) + 1)
         generation.start()  # the watcher sees a generation only once its process exists
         self.gens.append(generation)
+        self.sample(generation)  # every generation is sampled at least once, however short its life
         return generation
 
     def end(self, generation, how):
@@ -434,10 +471,10 @@ class Harness:
             code = generation.proc.wait()
         generation.eof.wait(5)
         time.sleep(0.3)
-        groups = subprocess.run(["/bin/ps", "-axo", "pgid="], capture_output=True, text=True).stdout.split()
-        left = groups.count(str(generation.pgid))
-        if left:
-            kill_group(generation.pgid)
+        left = group_members(generation.pgid)
+        kill_group(generation.pgid)
+        if left is None:
+            raise Refused("the process list could not be read after generation %d ended" % generation.number)
         self.event("exit", generation=generation.number, how=how, returncode=code, group_members_left=left)
 
 
@@ -513,7 +550,7 @@ def scenario_st5(h, freeze):
                                           "sandbox": SANDBOX})["thread"]["id"]
     g1.result("turn/start", {"threadId": thread_id, "input": [{"type": "text", "text": PROMPT}]})
     request = g1.wait(lambda: next((r for r in g1.server_requests
-                                    if r["method"] == "item/commandExecution/requestApproval"), None), 60)
+                                    if r["method"] == "item/commandExecution/requestApproval"), None), h.step_timeout)
     if not request:
         raise Refused("no command approval request was raised (stop reason %r)" % (h.stop_reason,))
     h.event("server-request-received", generation=1, method=request["method"])
@@ -553,11 +590,11 @@ def scenario_st5(h, freeze):
 
 
 def history_reads(generation, parent, turn, child):
-    generation.request("thread/read", {"threadId": parent, "includeTurns": True})
-    generation.request("thread/turns/list", {"threadId": parent, "itemsView": "full"})
-    generation.request("thread/items/list", {"threadId": parent, "turnId": turn})
-    if child:
-        generation.request("thread/read", {"threadId": child, "includeTurns": True})
+    """The four reads the delegation views rely on; an error reply to any of them refuses."""
+    generation.result("thread/read", {"threadId": parent, "includeTurns": True})
+    generation.result("thread/turns/list", {"threadId": parent, "itemsView": "full"})
+    generation.result("thread/items/list", {"threadId": parent, "turnId": turn})
+    generation.result("thread/read", {"threadId": child, "includeTurns": True})
 
 
 def scenario_nv04(h):
@@ -568,21 +605,28 @@ def scenario_nv04(h):
     parent = g1.result("thread/start", {"cwd": h.work, "approvalPolicy": "never", "sandbox": SANDBOX})["thread"]["id"]
     turn = g1.result("turn/start", {"threadId": parent,
                                     "input": [{"type": "text", "text": "Delegate the count."}]})["turn"]["id"]
-    done = g1.wait(lambda: next((n for n in g1.notes if n.get("method") == "turn/completed"
-                                 and n["params"].get("threadId") == parent), None), 60)
+    def completion(thread):
+        return lambda: next((n for n in g1.notes if n.get("method") == "turn/completed"
+                             and n["params"].get("threadId") == thread), None)
+
+    done = g1.wait(completion(parent), h.step_timeout)
     h.event("parent-turn-completed", observed=bool(done))
-    child_done = g1.wait(lambda: next((n for n in g1.notes if n.get("method") == "turn/completed"
-                                       and n["params"].get("threadId") != parent), None), h.child_hold + 20)
-    if not done or not child_done:
-        # The scenario is the parent's turn ending before the child's; without both it was not observed.
-        raise Refused("nv04 did not observe both turn completions (parent %s, child %s)" % (bool(done), bool(child_done)))
-    g1.request("thread/loaded/list", {})
+    if not done:
+        raise Refused("nv04 did not observe the parent's turn completion")
     receivers = [thread for n in g1.notes if n.get("method") == "item/completed"
                  and n["params"]["item"].get("type") == "collabAgentToolCall"
                  for thread in n["params"]["item"].get("receiverThreadIds") or []]
-    if not receivers:
-        raise Refused("nv04 observed no completed spawn item naming a receiver thread")
+    if len(receivers) != 1 or receivers[0] == parent:
+        raise Refused("nv04 observed %d receiver threads on the completed spawn item, not one" % len(receivers))
     child = receivers[0]
+    # The scenario is the parent's turn ending before the child's: only the spawned thread's own
+    # completion counts, and it must come after the parent's in received order.
+    child_done = g1.wait(completion(child), h.child_hold + h.step_timeout)
+    if not child_done:
+        raise Refused("nv04 did not observe the spawned thread's turn completion")
+    if g1.notes.index(child_done) < g1.notes.index(done):
+        raise Refused("nv04 observed the child's turn completion before the parent's")
+    g1.request("thread/loaded/list", {})
     h.event("history-reads", generation=1, child_thread_known=bool(child))
     history_reads(g1, parent, turn, child)
     h.end(g1, "stdin")
@@ -596,22 +640,27 @@ def scenario_nv04(h):
 
 
 # ---------- redaction and recording ----------
+TEXT_MARKER = "<REDACTED-TEXT-HOLDING-IDENTITY>"
 IDENTITY_KEYS = {"userAgent": ("<REDACTED-USER-AGENT>", "userAgent client identity"),
-                 "serverName": ("<REDACTED-HOST>", "serverName"),
+                 "serverName": ("<REDACTED-HOST>", "server name"),
                  "installationId": ("<REDACTED-INSTALLATION-ID>", "installation identifier")}
 
 
 def redactor(replacements, user, host):
     """Return (redact, leaks, counts). `replacements` is [(literal, marker)], longest literal first.
 
-    `redact` takes a parsed frame or a string. In a parsed frame every string value and every key is
-    redacted wherever it occurs, and the value of an identity key is replaced whole, whatever the
-    frame's spacing was. `leaks(text)` names what a finished text still holds; the caller refuses.
+    `redact` takes a parsed frame or a string. In a parsed frame every key and every string value is
+    redacted wherever it occurs; the value of an identity key is replaced whole, whatever its type;
+    and a string that itself holds JSON is redacted as JSON. Every identity value met is remembered.
+    `leaks(text)` names what a finished text still holds: a local literal, the host or user name, a
+    remembered identity value, or an identity key followed by anything but its marker. The caller
+    refuses when it is not empty.
     """
     ordered = sorted(((literal, marker) for literal, marker in replacements if literal and len(literal) > 1),
                      key=lambda pair: len(pair[0]), reverse=True)
     hosts = [name for name in dict.fromkeys((host, host.split(".")[0])) if name]
-    counts = {}
+    markers = {marker for marker, _ in IDENTITY_KEYS.values()}
+    counts, identities = {}, set()
 
     def count(category, number):
         if number:
@@ -620,7 +669,31 @@ def redactor(replacements, user, host):
     def word(name):
         return re.compile(r"(?<![A-Za-z0-9_])%s(?![A-Za-z0-9_])" % re.escape(name))
 
+    def remember(value):
+        if isinstance(value, dict):
+            for inner in value.values():
+                remember(inner)
+        elif isinstance(value, list):
+            for inner in value:
+                remember(inner)
+        elif isinstance(value, str) and len(value) > 3 and value not in markers:
+            identities.add(value)
+
     def text(value):
+        if value[:1] in "{[":
+            try:
+                held = json.loads(value)
+            except ValueError:
+                held = None
+            if isinstance(held, (dict, list)):
+                changed = redact(held)
+                return json.dumps(changed, separators=(",", ":"), ensure_ascii=False) if changed != held else value
+        # Text that is not JSON and names an identity key cannot be redacted field by field with
+        # certainty, so the whole string is withheld.
+        for key, (_, category) in IDENTITY_KEYS.items():
+            if re.search(r'\\*"%s\\*"\s*:' % key, value):
+                count(category, 1)
+                return TEXT_MARKER
         for literal, marker in ordered:
             count("personal path", value.count(literal))
             value = value.replace(literal, marker)
@@ -630,26 +703,28 @@ def redactor(replacements, user, host):
         if user:
             value, number = word(user).subn("<USER>", value)
             count("user name", number)
-        for key, (marker, category) in IDENTITY_KEYS.items():
-            value, number = re.subn(r'(\\?"%s\\?"\s*:\s*\\?")[^"\\]*(\\?")' % key, r"\g<1>%s\g<2>" % marker, value)
-            count(category, number)
         return value
 
     def redact(value, key=None):
+        if key in IDENTITY_KEYS:
+            remember(value)
+            count(IDENTITY_KEYS[key][1], 1)
+            return IDENTITY_KEYS[key][0]
         if isinstance(value, dict):
             return {text(name): redact(inner, name) for name, inner in value.items()}
         if isinstance(value, list):
             return [redact(inner) for inner in value]
         if isinstance(value, str):
-            if key in IDENTITY_KEYS:
-                count(IDENTITY_KEYS[key][1], 1)
-                return IDENTITY_KEYS[key][0]
             return text(value)
         return value
 
     def leaks(finished):
         found = [literal for literal, _ in ordered if literal in finished]
         found += [name for name in hosts + ([user] if user else []) if word(name).search(finished)]
+        found += sorted(value for value in identities if value in finished)
+        for key, (marker, _) in IDENTITY_KEYS.items():
+            if re.search(r'\\*"%s\\*"\s*:(?!\s*\\*"%s\\*")' % (key, re.escape(marker)), finished):
+                found.append("%s not replaced by its marker" % key)
         return found
     return redact, leaks, counts
 
@@ -706,8 +781,11 @@ def write_recording(h, scenario, pin, record, init, version, vendor):
                                "sandbox_mode": SANDBOX, "features.plugins": False, "analytics.enabled": False,
                                "environment": sorted(h.environment()),
                                "note": "scratch stand-ins, not a person's settings"},
-        "socket_watch": {"method": "lsof of the supplier process group every 0.25 s; a sample, not isolation",
+        "socket_watch": {"method": "lsof of the supplier process group at each start and every 0.25 s; "
+                                   "a sample, not isolation",
                          "samples": h.socket_samples, "failed_samples": h.failed_samples,
+                         "samples_by_generation": {str(number): count for number, count
+                                                   in sorted(h.samples_by_generation.items())},
                          "loopback_peers": sorted(h.loopback_peers), "non_loopback_peers": []},
         "redaction_record": {"categories_replaced": counts, "markers": MARKERS,
                              "not_present": "no credential, token, account identifier or secret answer was used"},
@@ -733,11 +811,12 @@ def main(argv=None):
                                                 "the repository's supplier resources by default")
     parser.add_argument("--out", required=True)
     parser.add_argument("--child-hold", type=float, default=8.0)
+    parser.add_argument("--step-timeout", type=float, default=60.0, help="seconds to wait for each reply or step")
     parser.add_argument("scenario", choices=SCENARIOS)
     args = parser.parse_args(argv)
     try:
         record, _, _ = verified_vendor(args.vendor, args.pin, args.expected_root)
-        h = Harness(args.vendor, record, args.out, args.child_hold)
+        h = Harness(args.vendor, record, args.out, args.child_hold, args.step_timeout)
     except Refused as refusal:
         sys.stderr.write("refused: %s\n" % refusal)
         return 2
@@ -750,8 +829,9 @@ def main(argv=None):
             raise Refused("the version label %r is not the pin" % version)
         h.event("begin", scenario=args.scenario, pin=args.pin)
         init = scenario_nv04(h) if args.scenario == "nv04" else scenario_st5(h, args.scenario == "st5")
-        if h.stop_reason or h.failed_samples or not h.socket_samples:
-            raise Refused("stopped: " + (h.stop_reason or "the socket watch took no sample"))
+        if h.stop_reason or h.failed_samples or not h.socket_samples or h.unsampled_generations():
+            raise Refused("stopped: " + (h.stop_reason or "the socket watch took no sample of generation %s"
+                                         % (h.unsampled_generations() or "any")))
         print(write_recording(h, args.scenario, args.pin, record, init, version, os.path.realpath(args.vendor)))
         return 0
     except Refused as refusal:

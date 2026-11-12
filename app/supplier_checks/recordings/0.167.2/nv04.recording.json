@@ -165,9 +165,13 @@
   "note": "scratch stand-ins, not a person's settings"
  },
  "socket_watch": {
-  "method": "lsof of the supplier process group every 0.25 s; a sample, not isolation",
-  "samples": 22,
+  "method": "lsof of the supplier process group at each start and every 0.25 s; a sample, not isolation",
+  "samples": 29,
   "failed_samples": 0,
+  "samples_by_generation": {
+   "1": 28,
+   "2": 1
+  },
   "loopback_peers": [
    "127.0.0.1"
   ],
@@ -177,7 +181,7 @@
   "categories_replaced": {
    "userAgent client identity": 2,
    "personal path": 25,
-   "serverName": 2,
+   "server name": 2,
    "installation identifier": 2
   },
   "markers": [
@@ -191,7 +195,8 @@
    "<VENDOR>",
    "<REDACTED-USER-AGENT>",
    "<REDACTED-HOST>",
-   "<REDACTED-INSTALLATION-ID>"
+   "<REDACTED-INSTALLATION-ID>",
+   "<REDACTED-TEXT-HOLDING-IDENTITY>"
   ],
   "not_present": "no credential, token, account identifier or secret answer was used"
  },
@@ -199,18 +204,18 @@
  "events": [
   {
    "event": "begin",
-   "t_ms": 307.2,
+   "t_ms": 165.4,
    "scenario": "nv04",
    "pin": "0.167.2"
   },
   {
    "event": "spawn",
-   "t_ms": 571.7,
+   "t_ms": 274.2,
    "generation": 1
   },
   {
    "event": "spawn-tool-parameters",
-   "t_ms": 961.3,
+   "t_ms": 755.6,
    "parameters": [
     "fork_context",
     "items",
@@ -222,18 +227,18 @@
   },
   {
    "event": "parent-turn-completed",
-   "t_ms": 1266.9,
+   "t_ms": 860.6,
    "observed": true
   },
   {
    "event": "history-reads",
-   "t_ms": 9249.7,
+   "t_ms": 8868.6,
    "generation": 1,
    "child_thread_known": true
   },
   {
    "event": "exit",
-   "t_ms": 9692.8,
+   "t_ms": 9262.8,
    "generation": 1,
    "how": "stdin",
    "returncode": 0,
@@ -241,18 +246,18 @@
   },
   {
    "event": "spawn",
-   "t_ms": 9904.1,
+   "t_ms": 9397.0,
    "generation": 2
   },
   {
    "event": "history-reads",
-   "t_ms": 9995.1,
+   "t_ms": 9488.8,
    "generation": 2,
    "child_thread_known": true
   },
   {
    "event": "exit",
-   "t_ms": 10412.7,
+   "t_ms": 9858.1,
    "generation": 2,
    "how": "stdin",
    "returncode": 0,
@@ -268,7 +273,7 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 1,
-   "t_ms": 572.7,
+   "t_ms": 331.3,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -291,7 +296,7 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 1,
-   "t_ms": 743.5,
+   "t_ms": 634.6,
    "redacted": true,
    "frame": {
     "id": 1,
@@ -307,7 +312,7 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 2,
-   "t_ms": 746.5,
+   "t_ms": 634.8,
    "redacted": true,
    "frame": {
     "method": "remoteControl/status/changed",
@@ -317,14 +322,14 @@
      "installationId": "<REDACTED-INSTALLATION-ID>",
      "environmentId": null
     },
-    "emittedAtMs": 1794473193899
+    "emittedAtMs": 1794475821670
    }
   },
   {
    "generation": 1,
    "direction": "app->codex",
    "position": 2,
-   "t_ms": 749.0,
+   "t_ms": 634.9,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -335,7 +340,7 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 3,
-   "t_ms": 749.1,
+   "t_ms": 635.0,
    "redacted": true,
    "frame": {
     "jsonrpc": "2.0",
@@ -352,13 +357,13 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 3,
-   "t_ms": 868.3,
+   "t_ms": 657.6,
    "redacted": true,
    "frame": {
     "id": 2,
     "result": {
      "thread": {
-      "id": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+      "id": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
       "environments": [
        {
         "environmentId": "local",
@@ -369,7 +374,7 @@
        }
       ],
       "extra": null,
-      "sessionId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+      "sessionId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "",
@@ -381,13 +386,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794473193,
-      "updatedAt": 1794473193,
-      "recencyAt": 1794473193,
+      "createdAt": 1794475821,
+      "updatedAt": 1794475821,
+      "recencyAt": 1794475821,
       "status": {
        "type": "idle"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T02-46-33-01a1ceef-f1c6-7dc1-8b1b-10df65947101.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-21-01a1cf18-0a68-7cc2-93ef-1c61ee826047.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.2",
       "originator": "chirality-st5-harness",
@@ -424,15 +429,36 @@
   },
   {
    "generation": 1,
+   "direction": "app->codex",
+   "position": 4,
+   "t_ms": 657.7,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "turn/start",
+    "params": {
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
+     "input": [
+      {
+       "type": "text",
+       "text": "Delegate the count."
+      }
+     ]
+    }
+   }
+  },
+  {
+   "generation": 1,
    "direction": "codex->app",
    "position": 4,
-   "t_ms": 868.4,
+   "t_ms": 657.8,
    "redacted": true,
    "frame": {
     "method": "thread/started",
     "params": {
      "thread": {
-      "id": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+      "id": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
       "environments": [
        {
         "environmentId": "local",
@@ -443,7 +469,7 @@
        }
       ],
       "extra": null,
-      "sessionId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+      "sessionId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "",
@@ -455,13 +481,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794473193,
-      "updatedAt": 1794473193,
-      "recencyAt": 1794473193,
+      "createdAt": 1794475821,
+      "updatedAt": 1794475821,
+      "recencyAt": 1794475821,
       "status": {
        "type": "idle"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T02-46-33-01a1ceef-f1c6-7dc1-8b1b-10df65947101.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-21-01a1cf18-0a68-7cc2-93ef-1c61ee826047.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.2",
       "originator": "chirality-st5-harness",
@@ -476,57 +502,36 @@
       "turns": []
      }
     },
-    "emittedAtMs": 1794473194017
-   }
-  },
-  {
-   "generation": 1,
-   "direction": "app->codex",
-   "position": 4,
-   "t_ms": 872.5,
-   "redacted": false,
-   "frame": {
-    "jsonrpc": "2.0",
-    "id": 3,
-    "method": "turn/start",
-    "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
-     "input": [
-      {
-       "type": "text",
-       "text": "Delegate the count."
-      }
-     ]
-    }
+    "emittedAtMs": 1794475821692
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 5,
-   "t_ms": 897.5,
+   "t_ms": 662.7,
    "redacted": false,
    "frame": {
     "method": "warning",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
      "message": "Model metadata for `st5-stub-model` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
     },
-    "emittedAtMs": 1794473194055
+    "emittedAtMs": 1794475821698
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 6,
-   "t_ms": 898.8,
+   "t_ms": 663.7,
    "redacted": false,
    "frame": {
     "id": 3,
     "result": {
      "turn": {
-      "id": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
-      "rootTurnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+      "id": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
+      "rootTurnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
       "items": [],
       "itemsView": "notLoaded",
       "status": "inProgress",
@@ -542,57 +547,57 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 7,
-   "t_ms": 919.8,
+   "t_ms": 737.8,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
      "status": {
       "type": "active",
       "activeFlags": []
      }
     },
-    "emittedAtMs": 1794473194077
+    "emittedAtMs": 1794475821773
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 8,
-   "t_ms": 920.1,
+   "t_ms": 737.8,
    "redacted": false,
    "frame": {
     "method": "turn/started",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
      "turn": {
-      "id": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
-      "rootTurnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+      "id": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
+      "rootTurnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
       "items": [],
       "itemsView": "notLoaded",
       "status": "inProgress",
       "error": null,
-      "startedAt": 1794473194,
+      "startedAt": 1794475821,
       "completedAt": null,
       "durationMs": null
      }
     },
-    "emittedAtMs": 1794473194077
+    "emittedAtMs": 1794475821773
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 9,
-   "t_ms": 946.4,
+   "t_ms": 749.1,
    "redacted": false,
    "frame": {
     "method": "item/started",
     "params": {
      "item": {
       "type": "userMessage",
-      "id": "01a1ceef-f275-7891-b429-0fe78b7e8370",
+      "id": "01a1cf18-0ad7-7ad2-9e17-328f90999bc6",
       "clientId": null,
       "content": [
        {
@@ -601,28 +606,28 @@
         "text_elements": []
        }
       ],
-      "startedAtMs": 1794473194103,
+      "startedAtMs": 1794475821784,
       "completedAtMs": null
      },
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
-     "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
-     "startedAtMs": 1794473194103
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
+     "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
+     "startedAtMs": 1794475821784
     },
-    "emittedAtMs": 1794473194104
+    "emittedAtMs": 1794475821784
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 10,
-   "t_ms": 948.5,
+   "t_ms": 750.5,
    "redacted": false,
    "frame": {
     "method": "item/completed",
     "params": {
      "item": {
       "type": "userMessage",
-      "id": "01a1ceef-f275-7891-b429-0fe78b7e8370",
+      "id": "01a1cf18-0ad7-7ad2-9e17-328f90999bc6",
       "clientId": null,
       "content": [
        {
@@ -631,21 +636,21 @@
         "text_elements": []
        }
       ],
-      "startedAtMs": 1794473194103,
-      "completedAtMs": 1794473194104
+      "startedAtMs": 1794475821784,
+      "completedAtMs": 1794475821784
      },
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
-     "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
-     "completedAtMs": 1794473194104
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
+     "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
+     "completedAtMs": 1794475821784
     },
-    "emittedAtMs": 1794473194106
+    "emittedAtMs": 1794475821786
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 11,
-   "t_ms": 995.2,
+   "t_ms": 770.1,
    "redacted": false,
    "frame": {
     "method": "item/started",
@@ -655,59 +660,59 @@
       "id": "call_spawn_1",
       "tool": "spawnAgent",
       "status": "inProgress",
-      "senderThreadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+      "senderThreadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
       "receiverThreadIds": [],
       "prompt": "st5-child-brief-marker: count the invented files.",
       "model": "",
       "reasoningEffort": "medium",
       "agentsStates": {},
-      "startedAtMs": 1794473194152,
+      "startedAtMs": 1794475821805,
       "completedAtMs": null
      },
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
-     "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
-     "startedAtMs": 1794473194152
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
+     "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
+     "startedAtMs": 1794475821805
     },
-    "emittedAtMs": 1794473194153
+    "emittedAtMs": 1794475821805
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 12,
-   "t_ms": 1055.1,
+   "t_ms": 779.8,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
+     "threadId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
      "status": {
       "type": "idle"
      }
     },
-    "emittedAtMs": 1794473194213
+    "emittedAtMs": 1794475821815
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 13,
-   "t_ms": 1055.2,
+   "t_ms": 779.9,
    "redacted": false,
    "frame": {
     "method": "warning",
     "params": {
-     "threadId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
+     "threadId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
      "message": "Model metadata for `st5-stub-model` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
     },
-    "emittedAtMs": 1794473194213
+    "emittedAtMs": 1794475821815
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 14,
-   "t_ms": 1064.8,
+   "t_ms": 785.2,
    "redacted": false,
    "frame": {
     "method": "item/completed",
@@ -717,83 +722,83 @@
       "id": "call_spawn_1",
       "tool": "spawnAgent",
       "status": "completed",
-      "senderThreadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+      "senderThreadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
       "receiverThreadIds": [
-       "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d"
+       "01a1cf18-0aed-7be3-ac59-df8396a7ea43"
       ],
       "prompt": "st5-child-brief-marker: count the invented files.",
       "model": "st5-stub-model",
       "reasoningEffort": "medium",
       "agentsStates": {
-       "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d": {
+       "01a1cf18-0aed-7be3-ac59-df8396a7ea43": {
         "status": "pendingInit",
         "message": null
        }
       },
-      "startedAtMs": 1794473194152,
-      "completedAtMs": 1794473194201
+      "startedAtMs": 1794475821805,
+      "completedAtMs": 1794475821814
      },
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
-     "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
-     "completedAtMs": 1794473194201
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
+     "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
+     "completedAtMs": 1794475821814
     },
-    "emittedAtMs": 1794473194222
+    "emittedAtMs": 1794475821820
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 15,
-   "t_ms": 1122.4,
+   "t_ms": 794.5,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
+     "threadId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
      "status": {
       "type": "active",
       "activeFlags": []
      }
     },
-    "emittedAtMs": 1794473194280
+    "emittedAtMs": 1794475821830
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 16,
-   "t_ms": 1122.8,
+   "t_ms": 794.5,
    "redacted": false,
    "frame": {
     "method": "turn/started",
     "params": {
-     "threadId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
+     "threadId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
      "turn": {
-      "id": "01a1ceef-f2c5-7a10-83fc-595293d4765f",
-      "rootTurnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+      "id": "01a1cf18-0af5-7c50-a8af-3db732a1f125",
+      "rootTurnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
       "items": [],
       "itemsView": "notLoaded",
       "status": "inProgress",
       "error": null,
-      "startedAt": 1794473194,
+      "startedAt": 1794475821,
       "completedAt": null,
       "durationMs": null
      }
     },
-    "emittedAtMs": 1794473194280
+    "emittedAtMs": 1794475821830
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 17,
-   "t_ms": 1144.0,
+   "t_ms": 802.0,
    "redacted": false,
    "frame": {
     "method": "thread/tokenUsage/updated",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
-     "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
+     "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
      "tokenUsage": {
       "total": {
        "totalTokens": 2,
@@ -814,14 +819,14 @@
       "modelContextWindow": 258400
      }
     },
-    "emittedAtMs": 1794473194302
+    "emittedAtMs": 1794475821837
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 18,
-   "t_ms": 1144.1,
+   "t_ms": 802.0,
    "redacted": false,
    "frame": {
     "method": "account/rateLimits/updated",
@@ -839,14 +844,14 @@
       "rateLimitReachedType": null
      }
     },
-    "emittedAtMs": 1794473194302
+    "emittedAtMs": 1794475821837
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 19,
-   "t_ms": 1155.8,
+   "t_ms": 807.6,
    "redacted": false,
    "frame": {
     "method": "item/started",
@@ -859,38 +864,38 @@
       "memoryCitation": null,
       "delivery": null,
       "questions": null,
-      "startedAtMs": 1794473194313,
+      "startedAtMs": 1794475821843,
       "completedAtMs": null
      },
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
-     "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
-     "startedAtMs": 1794473194313
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
+     "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
+     "startedAtMs": 1794475821843
     },
-    "emittedAtMs": 1794473194313
+    "emittedAtMs": 1794475821843
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 20,
-   "t_ms": 1156.2,
+   "t_ms": 807.7,
    "redacted": false,
    "frame": {
     "method": "item/agentMessage/delta",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
-     "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
+     "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
      "itemId": "msg_parent_done",
      "delta": "Parent turn done; child still working."
     },
-    "emittedAtMs": 1794473194313
+    "emittedAtMs": 1794475821843
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 21,
-   "t_ms": 1161.3,
+   "t_ms": 813.2,
    "redacted": false,
    "frame": {
     "method": "item/completed",
@@ -903,27 +908,87 @@
       "memoryCitation": null,
       "delivery": null,
       "questions": null,
-      "startedAtMs": 1794473194313,
-      "completedAtMs": 1794473194313
+      "startedAtMs": 1794475821843,
+      "completedAtMs": 1794475821843
      },
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
-     "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
-     "completedAtMs": 1794473194313
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
+     "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
+     "completedAtMs": 1794475821843
     },
-    "emittedAtMs": 1794473194319
+    "emittedAtMs": 1794475821848
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 22,
-   "t_ms": 1191.0,
+   "t_ms": 816.8,
+   "redacted": false,
+   "frame": {
+    "method": "item/started",
+    "params": {
+     "item": {
+      "type": "userMessage",
+      "id": "01a1cf18-0b16-75d3-8f4c-a39dbe6f6554",
+      "clientId": null,
+      "content": [
+       {
+        "type": "text",
+        "text": "st5-child-brief-marker: count the invented files.",
+        "text_elements": []
+       }
+      ],
+      "startedAtMs": 1794475821852,
+      "completedAtMs": null
+     },
+     "threadId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
+     "turnId": "01a1cf18-0af5-7c50-a8af-3db732a1f125",
+     "startedAtMs": 1794475821852
+    },
+    "emittedAtMs": 1794475821852
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 23,
+   "t_ms": 825.7,
+   "redacted": false,
+   "frame": {
+    "method": "item/completed",
+    "params": {
+     "item": {
+      "type": "userMessage",
+      "id": "01a1cf18-0b16-75d3-8f4c-a39dbe6f6554",
+      "clientId": null,
+      "content": [
+       {
+        "type": "text",
+        "text": "st5-child-brief-marker: count the invented files.",
+        "text_elements": []
+       }
+      ],
+      "startedAtMs": 1794475821852,
+      "completedAtMs": 1794475821852
+     },
+     "threadId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
+     "turnId": "01a1cf18-0af5-7c50-a8af-3db732a1f125",
+     "completedAtMs": 1794475821852
+    },
+    "emittedAtMs": 1794475821861
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 24,
+   "t_ms": 841.7,
    "redacted": false,
    "frame": {
     "method": "thread/tokenUsage/updated",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
-     "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
+     "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
      "tokenUsage": {
       "total": {
        "totalTokens": 4,
@@ -944,14 +1009,14 @@
       "modelContextWindow": 258400
      }
     },
-    "emittedAtMs": 1794473194349
+    "emittedAtMs": 1794475821877
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
-   "position": 23,
-   "t_ms": 1191.0,
+   "position": 25,
+   "t_ms": 841.8,
    "redacted": false,
    "frame": {
     "method": "account/rateLimits/updated",
@@ -969,120 +1034,60 @@
       "rateLimitReachedType": null
      }
     },
-    "emittedAtMs": 1794473194349
-   }
-  },
-  {
-   "generation": 1,
-   "direction": "codex->app",
-   "position": 24,
-   "t_ms": 1192.5,
-   "redacted": false,
-   "frame": {
-    "method": "item/started",
-    "params": {
-     "item": {
-      "type": "userMessage",
-      "id": "01a1ceef-f36c-7fb3-93c1-1f0f57200307",
-      "clientId": null,
-      "content": [
-       {
-        "type": "text",
-        "text": "st5-child-brief-marker: count the invented files.",
-        "text_elements": []
-       }
-      ],
-      "startedAtMs": 1794473194349,
-      "completedAtMs": null
-     },
-     "threadId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
-     "turnId": "01a1ceef-f2c5-7a10-83fc-595293d4765f",
-     "startedAtMs": 1794473194349
-    },
-    "emittedAtMs": 1794473194350
-   }
-  },
-  {
-   "generation": 1,
-   "direction": "codex->app",
-   "position": 25,
-   "t_ms": 1193.8,
-   "redacted": false,
-   "frame": {
-    "method": "item/completed",
-    "params": {
-     "item": {
-      "type": "userMessage",
-      "id": "01a1ceef-f36c-7fb3-93c1-1f0f57200307",
-      "clientId": null,
-      "content": [
-       {
-        "type": "text",
-        "text": "st5-child-brief-marker: count the invented files.",
-        "text_elements": []
-       }
-      ],
-      "startedAtMs": 1794473194349,
-      "completedAtMs": 1794473194349
-     },
-     "threadId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
-     "turnId": "01a1ceef-f2c5-7a10-83fc-595293d4765f",
-     "completedAtMs": 1794473194349
-    },
-    "emittedAtMs": 1794473194351
+    "emittedAtMs": 1794475821877
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 26,
-   "t_ms": 1223.6,
+   "t_ms": 860.5,
    "redacted": false,
    "frame": {
     "method": "thread/readState/changed",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
      "readState": {
       "firstUnread": {
        "type": "turn",
-       "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0"
+       "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31"
       },
-      "revision": "cf8a3943-3acf-4a2b-8b06-db2e4423aab9"
+      "revision": "1c1d10a7-b6d9-49fd-ac58-ff5ed8f51522"
      }
     },
-    "emittedAtMs": 1794473194381
+    "emittedAtMs": 1794475821896
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 27,
-   "t_ms": 1224.9,
+   "t_ms": 860.6,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
      "status": {
       "type": "idle"
      }
     },
-    "emittedAtMs": 1794473194381
+    "emittedAtMs": 1794475821896
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 28,
-   "t_ms": 1238.4,
+   "t_ms": 860.6,
    "redacted": false,
    "frame": {
     "method": "turn/completed",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
      "turn": {
-      "id": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
-      "rootTurnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+      "id": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
+      "rootTurnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
       "items": [
        {
         "type": "agentMessage",
@@ -1092,26 +1097,26 @@
         "memoryCitation": null,
         "delivery": null,
         "questions": null,
-        "startedAtMs": 1794473194313,
-        "completedAtMs": 1794473194313
+        "startedAtMs": 1794475821843,
+        "completedAtMs": 1794475821843
        }
       ],
       "itemsView": "summary",
       "status": "completed",
       "error": null,
-      "startedAt": 1794473194,
-      "completedAt": 1794473194,
-      "durationMs": 296
+      "startedAt": 1794475821,
+      "completedAt": 1794475821,
+      "durationMs": 179
      }
     },
-    "emittedAtMs": 1794473194381
+    "emittedAtMs": 1794475821896
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 29,
-   "t_ms": 9203.4,
+   "t_ms": 8835.2,
    "redacted": false,
    "frame": {
     "method": "item/started",
@@ -1124,38 +1129,38 @@
       "memoryCitation": null,
       "delivery": null,
       "questions": null,
-      "startedAtMs": 1794473202361,
+      "startedAtMs": 1794475829870,
       "completedAtMs": null
      },
-     "threadId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
-     "turnId": "01a1ceef-f2c5-7a10-83fc-595293d4765f",
-     "startedAtMs": 1794473202361
+     "threadId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
+     "turnId": "01a1cf18-0af5-7c50-a8af-3db732a1f125",
+     "startedAtMs": 1794475829870
     },
-    "emittedAtMs": 1794473202361
+    "emittedAtMs": 1794475829870
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 30,
-   "t_ms": 9203.5,
+   "t_ms": 8835.2,
    "redacted": false,
    "frame": {
     "method": "item/agentMessage/delta",
     "params": {
-     "threadId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
-     "turnId": "01a1ceef-f2c5-7a10-83fc-595293d4765f",
+     "threadId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
+     "turnId": "01a1cf18-0af5-7c50-a8af-3db732a1f125",
      "itemId": "msg_child",
      "delta": "Child finished counting."
     },
-    "emittedAtMs": 1794473202361
+    "emittedAtMs": 1794475829870
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 31,
-   "t_ms": 9211.7,
+   "t_ms": 8844.5,
    "redacted": false,
    "frame": {
     "method": "item/completed",
@@ -1168,27 +1173,27 @@
       "memoryCitation": null,
       "delivery": null,
       "questions": null,
-      "startedAtMs": 1794473202361,
-      "completedAtMs": 1794473202361
+      "startedAtMs": 1794475829870,
+      "completedAtMs": 1794475829870
      },
-     "threadId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
-     "turnId": "01a1ceef-f2c5-7a10-83fc-595293d4765f",
-     "completedAtMs": 1794473202361
+     "threadId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
+     "turnId": "01a1cf18-0af5-7c50-a8af-3db732a1f125",
+     "completedAtMs": 1794475829870
     },
-    "emittedAtMs": 1794473202369
+    "emittedAtMs": 1794475829880
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 32,
-   "t_ms": 9240.0,
+   "t_ms": 8860.4,
    "redacted": false,
    "frame": {
     "method": "thread/tokenUsage/updated",
     "params": {
-     "threadId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
-     "turnId": "01a1ceef-f2c5-7a10-83fc-595293d4765f",
+     "threadId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
+     "turnId": "01a1cf18-0af5-7c50-a8af-3db732a1f125",
      "tokenUsage": {
       "total": {
        "totalTokens": 2,
@@ -1209,14 +1214,14 @@
       "modelContextWindow": 258400
      }
     },
-    "emittedAtMs": 1794473202398
+    "emittedAtMs": 1794475829896
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 33,
-   "t_ms": 9240.1,
+   "t_ms": 8860.4,
    "redacted": false,
    "frame": {
     "method": "account/rateLimits/updated",
@@ -1234,39 +1239,39 @@
       "rateLimitReachedType": null
      }
     },
-    "emittedAtMs": 1794473202398
+    "emittedAtMs": 1794475829896
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 34,
-   "t_ms": 9248.8,
+   "t_ms": 8868.1,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
+     "threadId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
      "status": {
       "type": "idle"
      }
     },
-    "emittedAtMs": 1794473202406
+    "emittedAtMs": 1794475829903
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 35,
-   "t_ms": 9248.9,
+   "t_ms": 8868.2,
    "redacted": false,
    "frame": {
     "method": "turn/completed",
     "params": {
-     "threadId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
+     "threadId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
      "turn": {
-      "id": "01a1ceef-f2c5-7a10-83fc-595293d4765f",
-      "rootTurnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+      "id": "01a1cf18-0af5-7c50-a8af-3db732a1f125",
+      "rootTurnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
       "items": [
        {
         "type": "agentMessage",
@@ -1276,26 +1281,26 @@
         "memoryCitation": null,
         "delivery": null,
         "questions": null,
-        "startedAtMs": 1794473202361,
-        "completedAtMs": 1794473202361
+        "startedAtMs": 1794475829870,
+        "completedAtMs": 1794475829870
        }
       ],
       "itemsView": "summary",
       "status": "completed",
       "error": null,
-      "startedAt": 1794473194,
-      "completedAt": 1794473202,
-      "durationMs": 8202
+      "startedAt": 1794475821,
+      "completedAt": 1794475829,
+      "durationMs": 8082
      }
     },
-    "emittedAtMs": 1794473202406
+    "emittedAtMs": 1794475829903
    }
   },
   {
    "generation": 1,
    "direction": "app->codex",
    "position": 5,
-   "t_ms": 9249.2,
+   "t_ms": 8868.4,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -1308,14 +1313,14 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 36,
-   "t_ms": 9249.6,
+   "t_ms": 8868.6,
    "redacted": false,
    "frame": {
     "id": 4,
     "result": {
      "data": [
-      "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
-      "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d"
+      "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
+      "01a1cf18-0aed-7be3-ac59-df8396a7ea43"
      ],
      "nextCursor": null
     }
@@ -1325,14 +1330,14 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 6,
-   "t_ms": 9249.7,
+   "t_ms": 8868.7,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 5,
     "method": "thread/read",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
      "includeTurns": true
     }
    }
@@ -1341,7 +1346,7 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 37,
-   "t_ms": 9263.0,
+   "t_ms": 8877.7,
    "redacted": false,
    "frame": {
     "method": "deprecationNotice",
@@ -1349,20 +1354,20 @@
      "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
      "details": null
     },
-    "emittedAtMs": 1794473202418
+    "emittedAtMs": 1794475829913
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 38,
-   "t_ms": 9263.6,
+   "t_ms": 8877.8,
    "redacted": true,
    "frame": {
     "id": 5,
     "result": {
      "thread": {
-      "id": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+      "id": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
       "environments": [
        {
         "environmentId": "local",
@@ -1373,7 +1378,7 @@
        }
       ],
       "extra": null,
-      "sessionId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+      "sessionId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "Delegate the count.",
@@ -1385,13 +1390,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794473193,
-      "updatedAt": 1794473194,
-      "recencyAt": 1794473194,
+      "createdAt": 1794475821,
+      "updatedAt": 1794475821,
+      "recencyAt": 1794475821,
       "status": {
        "type": "idle"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T02-46-33-01a1ceef-f1c6-7dc1-8b1b-10df65947101.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-21-01a1cf18-0a68-7cc2-93ef-1c61ee826047.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.2",
       "originator": "chirality-st5-harness",
@@ -1405,12 +1410,12 @@
       "daybreakEnabled": null,
       "turns": [
        {
-        "id": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
-        "rootTurnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+        "id": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
+        "rootTurnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
         "items": [
          {
           "type": "userMessage",
-          "id": "01a1ceef-f275-7891-b429-0fe78b7e8370",
+          "id": "01a1cf18-0ad7-7ad2-9e17-328f90999bc6",
           "clientId": null,
           "content": [
            {
@@ -1419,29 +1424,29 @@
             "text_elements": []
            }
           ],
-          "startedAtMs": 1794473194103,
-          "completedAtMs": 1794473194104
+          "startedAtMs": 1794475821784,
+          "completedAtMs": 1794475821784
          },
          {
           "type": "collabAgentToolCall",
           "id": "call_spawn_1",
           "tool": "spawnAgent",
           "status": "completed",
-          "senderThreadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+          "senderThreadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
           "receiverThreadIds": [
-           "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d"
+           "01a1cf18-0aed-7be3-ac59-df8396a7ea43"
           ],
           "prompt": "st5-child-brief-marker: count the invented files.",
           "model": "st5-stub-model",
           "reasoningEffort": "medium",
           "agentsStates": {
-           "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d": {
+           "01a1cf18-0aed-7be3-ac59-df8396a7ea43": {
             "status": "pendingInit",
             "message": null
            }
           },
-          "startedAtMs": 1794473194152,
-          "completedAtMs": 1794473194201
+          "startedAtMs": 1794475821805,
+          "completedAtMs": 1794475821814
          },
          {
           "type": "agentMessage",
@@ -1451,25 +1456,25 @@
           "memoryCitation": null,
           "delivery": null,
           "questions": null,
-          "startedAtMs": 1794473194313,
-          "completedAtMs": 1794473194313
+          "startedAtMs": 1794475821843,
+          "completedAtMs": 1794475821843
          }
         ],
         "itemsView": "full",
         "status": "completed",
         "error": null,
-        "startedAt": 1794473194,
-        "completedAt": 1794473194,
-        "durationMs": 296
+        "startedAt": 1794475821,
+        "completedAt": 1794475821,
+        "durationMs": 179
        }
       ]
      },
      "readState": {
       "firstUnread": {
        "type": "turn",
-       "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0"
+       "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31"
       },
-      "revision": "cf8a3943-3acf-4a2b-8b06-db2e4423aab9"
+      "revision": "1c1d10a7-b6d9-49fd-ac58-ff5ed8f51522"
      }
     }
    }
@@ -1478,14 +1483,14 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 7,
-   "t_ms": 9263.8,
+   "t_ms": 8877.8,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 6,
     "method": "thread/turns/list",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
      "itemsView": "full"
     }
    }
@@ -1494,19 +1499,19 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 39,
-   "t_ms": 9266.3,
+   "t_ms": 8878.8,
    "redacted": false,
    "frame": {
     "id": 6,
     "result": {
      "data": [
       {
-       "id": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
-       "rootTurnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+       "id": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
+       "rootTurnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
        "items": [
         {
          "type": "userMessage",
-         "id": "01a1ceef-f275-7891-b429-0fe78b7e8370",
+         "id": "01a1cf18-0ad7-7ad2-9e17-328f90999bc6",
          "clientId": null,
          "content": [
           {
@@ -1515,29 +1520,29 @@
            "text_elements": []
           }
          ],
-         "startedAtMs": 1794473194103,
-         "completedAtMs": 1794473194104
+         "startedAtMs": 1794475821784,
+         "completedAtMs": 1794475821784
         },
         {
          "type": "collabAgentToolCall",
          "id": "call_spawn_1",
          "tool": "spawnAgent",
          "status": "completed",
-         "senderThreadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+         "senderThreadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
          "receiverThreadIds": [
-          "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d"
+          "01a1cf18-0aed-7be3-ac59-df8396a7ea43"
          ],
          "prompt": "st5-child-brief-marker: count the invented files.",
          "model": "st5-stub-model",
          "reasoningEffort": "medium",
          "agentsStates": {
-          "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d": {
+          "01a1cf18-0aed-7be3-ac59-df8396a7ea43": {
            "status": "pendingInit",
            "message": null
           }
          },
-         "startedAtMs": 1794473194152,
-         "completedAtMs": 1794473194201
+         "startedAtMs": 1794475821805,
+         "completedAtMs": 1794475821814
         },
         {
          "type": "agentMessage",
@@ -1547,20 +1552,20 @@
          "memoryCitation": null,
          "delivery": null,
          "questions": null,
-         "startedAtMs": 1794473194313,
-         "completedAtMs": 1794473194313
+         "startedAtMs": 1794475821843,
+         "completedAtMs": 1794475821843
         }
        ],
        "itemsView": "full",
        "status": "completed",
        "error": null,
-       "startedAt": 1794473194,
-       "completedAt": 1794473194,
-       "durationMs": 296
+       "startedAt": 1794475821,
+       "completedAt": 1794475821,
+       "durationMs": 179
       }
      ],
      "nextCursor": null,
-     "backwardsCursor": "{\"requestedThreadId\":\"01a1ceef-f1c6-7dc1-8b1b-10df65947101\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1cf18-0a68-7cc2-93ef-1c61ee826047\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
     }
    }
   },
@@ -1568,15 +1573,15 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 8,
-   "t_ms": 9266.3,
+   "t_ms": 8878.8,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 7,
     "method": "thread/items/list",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
-     "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0"
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
+     "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31"
     }
    }
   },
@@ -1584,17 +1589,17 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 40,
-   "t_ms": 9266.9,
+   "t_ms": 8879.2,
    "redacted": false,
    "frame": {
     "id": 7,
     "result": {
      "data": [
       {
-       "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+       "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
        "item": {
         "type": "userMessage",
-        "id": "01a1ceef-f275-7891-b429-0fe78b7e8370",
+        "id": "01a1cf18-0ad7-7ad2-9e17-328f90999bc6",
         "clientId": null,
         "content": [
          {
@@ -1603,40 +1608,40 @@
           "text_elements": []
          }
         ],
-        "startedAtMs": 1794473194103,
-        "completedAtMs": 1794473194104
+        "startedAtMs": 1794475821784,
+        "completedAtMs": 1794475821784
        },
-       "startedAtMs": 1794473194103,
-       "completedAtMs": 1794473194104
+       "startedAtMs": 1794475821784,
+       "completedAtMs": 1794475821784
       },
       {
-       "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+       "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
        "item": {
         "type": "collabAgentToolCall",
         "id": "call_spawn_1",
         "tool": "spawnAgent",
         "status": "completed",
-        "senderThreadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+        "senderThreadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
         "receiverThreadIds": [
-         "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d"
+         "01a1cf18-0aed-7be3-ac59-df8396a7ea43"
         ],
         "prompt": "st5-child-brief-marker: count the invented files.",
         "model": "st5-stub-model",
         "reasoningEffort": "medium",
         "agentsStates": {
-         "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d": {
+         "01a1cf18-0aed-7be3-ac59-df8396a7ea43": {
           "status": "pendingInit",
           "message": null
          }
         },
-        "startedAtMs": 1794473194152,
-        "completedAtMs": 1794473194201
+        "startedAtMs": 1794475821805,
+        "completedAtMs": 1794475821814
        },
-       "startedAtMs": 1794473194152,
-       "completedAtMs": 1794473194201
+       "startedAtMs": 1794475821805,
+       "completedAtMs": 1794475821814
       },
       {
-       "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+       "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
        "item": {
         "type": "agentMessage",
         "id": "msg_parent_done",
@@ -1645,15 +1650,15 @@
         "memoryCitation": null,
         "delivery": null,
         "questions": null,
-        "startedAtMs": 1794473194313,
-        "completedAtMs": 1794473194313
+        "startedAtMs": 1794475821843,
+        "completedAtMs": 1794475821843
        },
-       "startedAtMs": 1794473194313,
-       "completedAtMs": 1794473194313
+       "startedAtMs": 1794475821843,
+       "completedAtMs": 1794475821843
       }
      ],
      "nextCursor": null,
-     "backwardsCursor": "{\"requestedThreadId\":\"01a1ceef-f1c6-7dc1-8b1b-10df65947101\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1cf18-0a68-7cc2-93ef-1c61ee826047\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
     }
    }
   },
@@ -1661,14 +1666,14 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 9,
-   "t_ms": 9266.9,
+   "t_ms": 8879.3,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 8,
     "method": "thread/read",
     "params": {
-     "threadId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
+     "threadId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
      "includeTurns": true
     }
    }
@@ -1677,7 +1682,7 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 41,
-   "t_ms": 9268.9,
+   "t_ms": 8881.3,
    "redacted": false,
    "frame": {
     "method": "deprecationNotice",
@@ -1685,20 +1690,20 @@
      "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
      "details": null
     },
-    "emittedAtMs": 1794473202427
+    "emittedAtMs": 1794475829916
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 42,
-   "t_ms": 9269.0,
+   "t_ms": 8881.4,
    "redacted": true,
    "frame": {
     "id": 8,
     "result": {
      "thread": {
-      "id": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
+      "id": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
       "environments": [
        {
         "environmentId": "local",
@@ -1709,9 +1714,9 @@
        }
       ],
       "extra": null,
-      "sessionId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+      "sessionId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
       "forkedFromId": null,
-      "parentThreadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+      "parentThreadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
       "preview": "st5-child-brief-marker: count the invented files.",
       "ephemeral": false,
       "section": null,
@@ -1721,42 +1726,42 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794473194,
-      "updatedAt": 1794473202,
-      "recencyAt": 1794473194,
+      "createdAt": 1794475821,
+      "updatedAt": 1794475829,
+      "recencyAt": 1794475821,
       "status": {
        "type": "idle"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T02-46-34-01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-21-01a1cf18-0aed-7be3-ac59-df8396a7ea43.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.2",
       "originator": "chirality-st5-harness",
       "source": {
        "subAgent": {
         "thread_spawn": {
-         "parent_thread_id": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+         "parent_thread_id": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
          "depth": 1,
          "agent_path": null,
-         "agent_nickname": "Lovelace",
+         "agent_nickname": "Lagrange",
          "agent_role": null
         }
        }
       },
       "canAcceptDirectInput": true,
       "threadSource": "subagent",
-      "agentNickname": "Lovelace",
+      "agentNickname": "Lagrange",
       "agentRole": null,
       "gitInfo": null,
       "name": null,
       "daybreakEnabled": null,
       "turns": [
        {
-        "id": "01a1ceef-f2c5-7a10-83fc-595293d4765f",
-        "rootTurnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+        "id": "01a1cf18-0af5-7c50-a8af-3db732a1f125",
+        "rootTurnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
         "items": [
          {
           "type": "userMessage",
-          "id": "01a1ceef-f36c-7fb3-93c1-1f0f57200307",
+          "id": "01a1cf18-0b16-75d3-8f4c-a39dbe6f6554",
           "clientId": null,
           "content": [
            {
@@ -1765,8 +1770,8 @@
             "text_elements": []
            }
           ],
-          "startedAtMs": 1794473194349,
-          "completedAtMs": 1794473194349
+          "startedAtMs": 1794475821852,
+          "completedAtMs": 1794475821852
          },
          {
           "type": "agentMessage",
@@ -1776,16 +1781,16 @@
           "memoryCitation": null,
           "delivery": null,
           "questions": null,
-          "startedAtMs": 1794473202361,
-          "completedAtMs": 1794473202361
+          "startedAtMs": 1794475829870,
+          "completedAtMs": 1794475829870
          }
         ],
         "itemsView": "full",
         "status": "completed",
         "error": null,
-        "startedAt": 1794473194,
-        "completedAt": 1794473202,
-        "durationMs": 8202
+        "startedAt": 1794475821,
+        "completedAt": 1794475829,
+        "durationMs": 8082
        }
       ]
      },
@@ -1797,7 +1802,7 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 1,
-   "t_ms": 9904.5,
+   "t_ms": 9474.4,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -1820,7 +1825,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 1,
-   "t_ms": 9959.7,
+   "t_ms": 9488.5,
    "redacted": true,
    "frame": {
     "id": 1,
@@ -1834,26 +1839,9 @@
   },
   {
    "generation": 2,
-   "direction": "codex->app",
-   "position": 2,
-   "t_ms": 9976.9,
-   "redacted": true,
-   "frame": {
-    "method": "remoteControl/status/changed",
-    "params": {
-     "status": "disabled",
-     "serverName": "<REDACTED-HOST>",
-     "installationId": "<REDACTED-INSTALLATION-ID>",
-     "environmentId": null
-    },
-    "emittedAtMs": 1794473203117
-   }
-  },
-  {
-   "generation": 2,
    "direction": "app->codex",
    "position": 2,
-   "t_ms": 9988.8,
+   "t_ms": 9488.7,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -1864,14 +1852,14 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 3,
-   "t_ms": 10010.4,
+   "t_ms": 9488.9,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 2,
     "method": "thread/read",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
      "includeTurns": true
     }
    }
@@ -1879,8 +1867,25 @@
   {
    "generation": 2,
    "direction": "codex->app",
+   "position": 2,
+   "t_ms": 9488.9,
+   "redacted": true,
+   "frame": {
+    "method": "remoteControl/status/changed",
+    "params": {
+     "status": "disabled",
+     "serverName": "<REDACTED-HOST>",
+     "installationId": "<REDACTED-INSTALLATION-ID>",
+     "environmentId": null
+    },
+    "emittedAtMs": 1794475830524
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
    "position": 3,
-   "t_ms": 10022.1,
+   "t_ms": 9499.4,
    "redacted": false,
    "frame": {
     "method": "deprecationNotice",
@@ -1888,23 +1893,23 @@
      "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
      "details": null
     },
-    "emittedAtMs": 1794473203180
+    "emittedAtMs": 1794475830535
    }
   },
   {
    "generation": 2,
    "direction": "codex->app",
    "position": 4,
-   "t_ms": 10022.2,
+   "t_ms": 9499.5,
    "redacted": true,
    "frame": {
     "id": 2,
     "result": {
      "thread": {
-      "id": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+      "id": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
       "environments": null,
       "extra": null,
-      "sessionId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+      "sessionId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "Delegate the count.",
@@ -1916,13 +1921,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794473193,
-      "updatedAt": 1794473202,
-      "recencyAt": 1794473194,
+      "createdAt": 1794475821,
+      "updatedAt": 1794475829,
+      "recencyAt": 1794475821,
       "status": {
        "type": "notLoaded"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T02-46-33-01a1ceef-f1c6-7dc1-8b1b-10df65947101.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-21-01a1cf18-0a68-7cc2-93ef-1c61ee826047.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.2",
       "originator": "chirality-st5-harness",
@@ -1936,12 +1941,12 @@
       "daybreakEnabled": null,
       "turns": [
        {
-        "id": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
-        "rootTurnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+        "id": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
+        "rootTurnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
         "items": [
          {
           "type": "userMessage",
-          "id": "01a1ceef-f275-7891-b429-0fe78b7e8370",
+          "id": "01a1cf18-0ad7-7ad2-9e17-328f90999bc6",
           "clientId": null,
           "content": [
            {
@@ -1950,29 +1955,29 @@
             "text_elements": []
            }
           ],
-          "startedAtMs": 1794473194103,
-          "completedAtMs": 1794473194104
+          "startedAtMs": 1794475821784,
+          "completedAtMs": 1794475821784
          },
          {
           "type": "collabAgentToolCall",
           "id": "call_spawn_1",
           "tool": "spawnAgent",
           "status": "completed",
-          "senderThreadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+          "senderThreadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
           "receiverThreadIds": [
-           "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d"
+           "01a1cf18-0aed-7be3-ac59-df8396a7ea43"
           ],
           "prompt": "st5-child-brief-marker: count the invented files.",
           "model": "st5-stub-model",
           "reasoningEffort": "medium",
           "agentsStates": {
-           "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d": {
+           "01a1cf18-0aed-7be3-ac59-df8396a7ea43": {
             "status": "pendingInit",
             "message": null
            }
           },
-          "startedAtMs": 1794473194152,
-          "completedAtMs": 1794473194201
+          "startedAtMs": 1794475821805,
+          "completedAtMs": 1794475821814
          },
          {
           "type": "agentMessage",
@@ -1982,25 +1987,25 @@
           "memoryCitation": null,
           "delivery": null,
           "questions": null,
-          "startedAtMs": 1794473194313,
-          "completedAtMs": 1794473194313
+          "startedAtMs": 1794475821843,
+          "completedAtMs": 1794475821843
          }
         ],
         "itemsView": "full",
         "status": "completed",
         "error": null,
-        "startedAt": 1794473194,
-        "completedAt": 1794473194,
-        "durationMs": 296
+        "startedAt": 1794475821,
+        "completedAt": 1794475821,
+        "durationMs": 179
        }
       ]
      },
      "readState": {
       "firstUnread": {
        "type": "turn",
-       "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0"
+       "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31"
       },
-      "revision": "cf8a3943-3acf-4a2b-8b06-db2e4423aab9"
+      "revision": "1c1d10a7-b6d9-49fd-ac58-ff5ed8f51522"
      }
     }
    }
@@ -2009,14 +2014,14 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 4,
-   "t_ms": 10027.6,
+   "t_ms": 9500.2,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 3,
     "method": "thread/turns/list",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
      "itemsView": "full"
     }
    }
@@ -2025,19 +2030,19 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 5,
-   "t_ms": 10031.7,
+   "t_ms": 9501.7,
    "redacted": false,
    "frame": {
     "id": 3,
     "result": {
      "data": [
       {
-       "id": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
-       "rootTurnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+       "id": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
+       "rootTurnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
        "items": [
         {
          "type": "userMessage",
-         "id": "01a1ceef-f275-7891-b429-0fe78b7e8370",
+         "id": "01a1cf18-0ad7-7ad2-9e17-328f90999bc6",
          "clientId": null,
          "content": [
           {
@@ -2046,29 +2051,29 @@
            "text_elements": []
           }
          ],
-         "startedAtMs": 1794473194103,
-         "completedAtMs": 1794473194104
+         "startedAtMs": 1794475821784,
+         "completedAtMs": 1794475821784
         },
         {
          "type": "collabAgentToolCall",
          "id": "call_spawn_1",
          "tool": "spawnAgent",
          "status": "completed",
-         "senderThreadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+         "senderThreadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
          "receiverThreadIds": [
-          "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d"
+          "01a1cf18-0aed-7be3-ac59-df8396a7ea43"
          ],
          "prompt": "st5-child-brief-marker: count the invented files.",
          "model": "st5-stub-model",
          "reasoningEffort": "medium",
          "agentsStates": {
-          "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d": {
+          "01a1cf18-0aed-7be3-ac59-df8396a7ea43": {
            "status": "pendingInit",
            "message": null
           }
          },
-         "startedAtMs": 1794473194152,
-         "completedAtMs": 1794473194201
+         "startedAtMs": 1794475821805,
+         "completedAtMs": 1794475821814
         },
         {
          "type": "agentMessage",
@@ -2078,20 +2083,20 @@
          "memoryCitation": null,
          "delivery": null,
          "questions": null,
-         "startedAtMs": 1794473194313,
-         "completedAtMs": 1794473194313
+         "startedAtMs": 1794475821843,
+         "completedAtMs": 1794475821843
         }
        ],
        "itemsView": "full",
        "status": "completed",
        "error": null,
-       "startedAt": 1794473194,
-       "completedAt": 1794473194,
-       "durationMs": 296
+       "startedAt": 1794475821,
+       "completedAt": 1794475821,
+       "durationMs": 179
       }
      ],
      "nextCursor": null,
-     "backwardsCursor": "{\"requestedThreadId\":\"01a1ceef-f1c6-7dc1-8b1b-10df65947101\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1cf18-0a68-7cc2-93ef-1c61ee826047\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
     }
    }
   },
@@ -2099,15 +2104,15 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 5,
-   "t_ms": 10038.2,
+   "t_ms": 9501.8,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 4,
     "method": "thread/items/list",
     "params": {
-     "threadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
-     "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0"
+     "threadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
+     "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31"
     }
    }
   },
@@ -2115,17 +2120,17 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 6,
-   "t_ms": 10039.4,
+   "t_ms": 9502.8,
    "redacted": false,
    "frame": {
     "id": 4,
     "result": {
      "data": [
       {
-       "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+       "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
        "item": {
         "type": "userMessage",
-        "id": "01a1ceef-f275-7891-b429-0fe78b7e8370",
+        "id": "01a1cf18-0ad7-7ad2-9e17-328f90999bc6",
         "clientId": null,
         "content": [
          {
@@ -2134,40 +2139,40 @@
           "text_elements": []
          }
         ],
-        "startedAtMs": 1794473194103,
-        "completedAtMs": 1794473194104
+        "startedAtMs": 1794475821784,
+        "completedAtMs": 1794475821784
        },
-       "startedAtMs": 1794473194103,
-       "completedAtMs": 1794473194104
+       "startedAtMs": 1794475821784,
+       "completedAtMs": 1794475821784
       },
       {
-       "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+       "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
        "item": {
         "type": "collabAgentToolCall",
         "id": "call_spawn_1",
         "tool": "spawnAgent",
         "status": "completed",
-        "senderThreadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+        "senderThreadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
         "receiverThreadIds": [
-         "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d"
+         "01a1cf18-0aed-7be3-ac59-df8396a7ea43"
         ],
         "prompt": "st5-child-brief-marker: count the invented files.",
         "model": "st5-stub-model",
         "reasoningEffort": "medium",
         "agentsStates": {
-         "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d": {
+         "01a1cf18-0aed-7be3-ac59-df8396a7ea43": {
           "status": "pendingInit",
           "message": null
          }
         },
-        "startedAtMs": 1794473194152,
-        "completedAtMs": 1794473194201
+        "startedAtMs": 1794475821805,
+        "completedAtMs": 1794475821814
        },
-       "startedAtMs": 1794473194152,
-       "completedAtMs": 1794473194201
+       "startedAtMs": 1794475821805,
+       "completedAtMs": 1794475821814
       },
       {
-       "turnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+       "turnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
        "item": {
         "type": "agentMessage",
         "id": "msg_parent_done",
@@ -2176,15 +2181,15 @@
         "memoryCitation": null,
         "delivery": null,
         "questions": null,
-        "startedAtMs": 1794473194313,
-        "completedAtMs": 1794473194313
+        "startedAtMs": 1794475821843,
+        "completedAtMs": 1794475821843
        },
-       "startedAtMs": 1794473194313,
-       "completedAtMs": 1794473194313
+       "startedAtMs": 1794475821843,
+       "completedAtMs": 1794475821843
       }
      ],
      "nextCursor": null,
-     "backwardsCursor": "{\"requestedThreadId\":\"01a1ceef-f1c6-7dc1-8b1b-10df65947101\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1cf18-0a68-7cc2-93ef-1c61ee826047\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
     }
    }
   },
@@ -2192,14 +2197,14 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 6,
-   "t_ms": 10039.8,
+   "t_ms": 9502.9,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 5,
     "method": "thread/read",
     "params": {
-     "threadId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
+     "threadId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
      "includeTurns": true
     }
    }
@@ -2208,7 +2213,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 7,
-   "t_ms": 10041.7,
+   "t_ms": 9506.0,
    "redacted": false,
    "frame": {
     "method": "deprecationNotice",
@@ -2216,25 +2221,25 @@
      "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
      "details": null
     },
-    "emittedAtMs": 1794473203199
+    "emittedAtMs": 1794475830541
    }
   },
   {
    "generation": 2,
    "direction": "codex->app",
    "position": 8,
-   "t_ms": 10041.7,
+   "t_ms": 9506.1,
    "redacted": true,
    "frame": {
     "id": 5,
     "result": {
      "thread": {
-      "id": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
+      "id": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
       "environments": null,
       "extra": null,
-      "sessionId": "01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d",
+      "sessionId": "01a1cf18-0aed-7be3-ac59-df8396a7ea43",
       "forkedFromId": null,
-      "parentThreadId": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+      "parentThreadId": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
       "preview": "st5-child-brief-marker: count the invented files.",
       "ephemeral": false,
       "section": null,
@@ -2244,42 +2249,42 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794473194,
-      "updatedAt": 1794473202,
-      "recencyAt": 1794473194,
+      "createdAt": 1794475821,
+      "updatedAt": 1794475829,
+      "recencyAt": 1794475821,
       "status": {
        "type": "notLoaded"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T02-46-34-01a1ceef-f2a8-7a23-b88e-e7bbc4b37c2d.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-21-01a1cf18-0aed-7be3-ac59-df8396a7ea43.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.2",
       "originator": "chirality-st5-harness",
       "source": {
        "subAgent": {
         "thread_spawn": {
-         "parent_thread_id": "01a1ceef-f1c6-7dc1-8b1b-10df65947101",
+         "parent_thread_id": "01a1cf18-0a68-7cc2-93ef-1c61ee826047",
          "depth": 1,
          "agent_path": null,
-         "agent_nickname": "Lovelace",
+         "agent_nickname": "Lagrange",
          "agent_role": null
         }
        }
       },
       "canAcceptDirectInput": null,
       "threadSource": "subagent",
-      "agentNickname": "Lovelace",
+      "agentNickname": "Lagrange",
       "agentRole": null,
       "gitInfo": null,
       "name": null,
       "daybreakEnabled": null,
       "turns": [
        {
-        "id": "01a1ceef-f2c5-7a10-83fc-595293d4765f",
-        "rootTurnId": "01a1ceef-f245-7831-a69f-95602ddf9fe0",
+        "id": "01a1cf18-0af5-7c50-a8af-3db732a1f125",
+        "rootTurnId": "01a1cf18-0a80-74e1-9a69-7f2aa1207c31",
         "items": [
          {
           "type": "userMessage",
-          "id": "01a1ceef-f36c-7fb3-93c1-1f0f57200307",
+          "id": "01a1cf18-0b16-75d3-8f4c-a39dbe6f6554",
           "clientId": null,
           "content": [
            {
@@ -2288,8 +2293,8 @@
             "text_elements": []
            }
           ],
-          "startedAtMs": 1794473194349,
-          "completedAtMs": 1794473194349
+          "startedAtMs": 1794475821852,
+          "completedAtMs": 1794475821852
          },
          {
           "type": "agentMessage",
@@ -2299,16 +2304,16 @@
           "memoryCitation": null,
           "delivery": null,
           "questions": null,
-          "startedAtMs": 1794473202361,
-          "completedAtMs": 1794473202361
+          "startedAtMs": 1794475829870,
+          "completedAtMs": 1794475829870
          }
         ],
         "itemsView": "full",
         "status": "completed",
         "error": null,
-        "startedAt": 1794473194,
-        "completedAt": 1794473202,
-        "durationMs": 8202
+        "startedAt": 1794475821,
+        "completedAt": 1794475829,
+        "durationMs": 8082
        }
       ]
      },

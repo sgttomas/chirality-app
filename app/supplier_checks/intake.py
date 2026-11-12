@@ -169,9 +169,8 @@ def run_generator(argv, environment, cwd):
             if rows:
                 raise Refused("the generator opened a socket")
             if listing.stderr.strip() or listing.returncode not in (0, 1):
-                if process.poll() is None:  # a group that ended mid-sample is not a failed watch
-                    raise Refused("the socket watch could not take a sample")
-                break
+                # Every sample that could not be taken refuses, also one that coincides with the exit.
+                raise Refused("the socket watch could not take a sample")
             samples += 1
             if time.monotonic() > end:
                 raise Refused("the generator did not finish in %d seconds" % GENERATOR_TIMEOUT)
@@ -192,10 +191,10 @@ def generate(vendor, pin, expected_root, out):
     os.makedirs(out)  # must be new
     scratch = os.path.realpath(tempfile.mkdtemp(prefix="supplier-generate-"))
     try:
-        environment = {"LANG": "en_US.UTF-8", "PATH": codex_path + os.pathsep + capture.SYSTEM_PATH}
-        for variable, name in (("HOME", "user-home"), ("CODEX_HOME", "home"), ("TMPDIR", "tmp")):
-            environment[variable] = os.path.join(scratch, name)
-            os.makedirs(environment[variable])
+        homes = [os.path.join(scratch, name) for name in ("user-home", "home", "tmp")]
+        for folder in homes:
+            os.makedirs(folder)
+        environment = capture.supplier_environment(codex_path, vendor, *homes)
         with open(os.path.join(environment["CODEX_HOME"], "config.toml"), "w") as handle:
             handle.write("[features]\nplugins = false\n\n[analytics]\nenabled = false\n")
         variants, lines = {}, []

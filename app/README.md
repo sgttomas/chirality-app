@@ -1181,19 +1181,25 @@ download needs the owner's permission naming the file, source and size).
    inventory, and again immediately before each execution. A socket sample that
    cannot be taken, a reply that never comes, or a scenario step that is not
    observed refuses, and no recording is written. A recording's socket sample
-   establishes only what was sampled; it is not network isolation. Recordings
-   are kept under `supplier_checks/recordings/<pin>/` and are made once, not
-   regenerated.
-4. `version_advance.py compare --from <prior> --to <new>` compares generated
-   schema, supplement and recorded exchanges, derives what the App relies on from
-   the host source, and gives a verdict: `passed` only when every finding that
-   touches what the App relies on has a disposition citing a recorded decision.
-   A finding without one is `returned for decision`; the tool never decides.
-   An input that lacks a required structure, a schema construct the classifier
-   does not support, and a recording that does not cover what the comparison
-   relies on each prevent `passed` and are named in the result. Supplier
-   notifications and server requests are validated against the new schema;
-   replies are compared by shape only.
+   establishes only what was sampled; it is not network isolation. Redaction
+   replaces known local values and named identity fields and refuses when one
+   remains; it cannot show that nothing else specific to the machine is present,
+   so a recording is read by an independent reviewer before it is committed.
+   Recordings are kept under `supplier_checks/recordings/<pin>/` and are made
+   once, not regenerated.
+4. `version_advance.py compare --from <prior> --to <new>` is an inventory,
+   difference and evidence check. It derives what the App relies on from the
+   host source, and reports each relied-on definition, and each definition one
+   reaches by reference, as unchanged (identical content) or changed, with the
+   exact difference. It classifies nothing as compatible or breaking. Every
+   change is a finding that needs a disposition by a named decider, naming
+   exactly that change; a finding without one is `returned for decision`.
+   Evidence is not disposable: a missing or unusable input, a recording that
+   lacks a step of its script or whose socket observation is missing or failed,
+   a recorded supplier notification or server request that fails the new schema,
+   or a mechanism that was not observed prevents `passed` whatever is disposed.
+   Replies are compared by shape, not validated. A supplier surface the host
+   never names is outside the relied-on set and invisible to the comparison.
    Results and their authored dispositions are in `supplier_checks/version_advance/`.
 
 For a version that is not the pin, steps 1 to 3 write outside the repository and
