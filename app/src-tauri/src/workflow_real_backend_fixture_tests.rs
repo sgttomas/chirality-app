@@ -20,7 +20,13 @@ const BINARY_SHA: &str = "112fae7a5a1223e673c8a1791d32338f37df8b527ff1159bb8adac
 const MODEL: &str = "chirality-fixture-model";
 const PROVIDER: &str = "chirality-workflow-local";
 const PERSON_TEXT: &str = "Synthetic fixture request (no model): run the included workflow.";
-const BEGIN: &str = "<<<chirality-workflow coordinated-knowledge-work@3730d84debb5 begin>>>";
+/// The begin marker of the bundled workflow's run text, at its manifest revision.
+fn begin_marker() -> String {
+    format!("<<<chirality-workflow coordinated-knowledge-work@{} begin>>>", &bundled_revision()[..12])
+}
+fn bundled_revision() -> &'static str {
+    &crate::workflow_workspace::production_catalog::ProductionCatalog::load().unwrap().identity(BUNDLED).unwrap().revision
+}
 const TOOL_PATH: &str = "fixture-output/real-codex-tool-result.txt";
 const TOOL_LINE: &str = "Invented fixture output, written by stock Codex's own apply_patch execution.";
 const CALL_ID: &str = "call_fixture_exec_apply_patch_1";
@@ -160,7 +166,7 @@ fn parent_authorized_stock_native_bundled_workflow_fixture() -> Result<(), Strin
             // Steps 2+: the scripted reply to each later ordinary message.
             vec![responses_fixture::message("msg_fixture_ordinary", FOLLOW_REPLY)],
         ],
-        vec![("begin", BEGIN.to_string()), ("person", PERSON_TEXT.to_string()), ("supply", ".chirality/workflow-supply/coordinated-knowledge-work/".to_string()), ("callId", CALL_ID.to_string()),
+        vec![("begin", begin_marker()), ("person", PERSON_TEXT.to_string()), ("supply", ".chirality/workflow-supply/coordinated-knowledge-work/".to_string()), ("callId", CALL_ID.to_string()),
             ("notice", NOTICE_START.to_string()), ("follow", FOLLOW_TEXT.to_string()), ("later", LATER_TEXT.to_string())],
     )?;
     // A fresh private Codex home: the App's local-provider literal plus the
@@ -199,7 +205,7 @@ fn parent_authorized_stock_native_bundled_workflow_fixture() -> Result<(), Strin
         let choice = root.select_production_bundle(Some(&chat), installed.0.clone(), BUNDLED)?["choice"].clone();
         assert_eq!(choice["runnable"], true, "{choice}");
         assert_eq!(choice["identity"]["origin"], "bundled");
-        assert_eq!(choice["identity"]["revision"], crate::workflow_workspace::production_catalog::SELECTED_BUNDLED_REVISION);
+        assert_eq!(choice["identity"]["revision"], bundled_revision());
         root.prepare_run(home.clone(), &generation, &thread, PERSON_TEXT.into(), Some(&project))?
     };
     assert!(!project.join(TOOL_PATH).exists(), "the tool result is not pre-created");
@@ -279,7 +285,7 @@ fn parent_authorized_stock_native_bundled_workflow_fixture() -> Result<(), Strin
     let body = selection.body();
     assert_eq!(body["standing"], "bundled");
     assert_eq!(body["identity"]["origin"], "bundled");
-    assert_eq!(body["identity"]["revision"], crate::workflow_workspace::production_catalog::SELECTED_BUNDLED_REVISION);
+    assert_eq!(body["identity"]["revision"], bundled_revision());
     assert_eq!(body["holding_library"], installed.0.to_str().unwrap());
     let supply = crate::records::supply::read_project_supply(&records);
     let wr_kinds: Vec<Value> = supply["records"].as_array().into_iter().flatten().map(|r| r["kind"].clone()).collect();
@@ -324,7 +330,7 @@ fn parent_authorized_stock_native_bundled_workflow_fixture() -> Result<(), Strin
     let items = &history[0].1;
     let texts = user_texts(items);
     assert_eq!(texts.len(), 2, "run text and the person's text");
-    assert!(texts[0].contains(BEGIN) && texts[0].contains(".chirality/workflow-supply/coordinated-knowledge-work/"));
+    assert!(texts[0].contains(&begin_marker()) && texts[0].contains(".chirality/workflow-supply/coordinated-knowledge-work/"));
     assert!(!texts[0].contains(installed.0.to_str().unwrap()), "no App-bundle path reaches the agent");
     assert_eq!(texts[1], PERSON_TEXT);
     let change = items.iter().find(|i| i["type"] == "fileChange").ok_or_else(|| format!("no fileChange item: {}", json!(items.iter().map(|i| &i["type"]).collect::<Vec<_>>())))?;
@@ -370,7 +376,7 @@ fn parent_authorized_stock_native_bundled_workflow_fixture() -> Result<(), Strin
     assert_eq!(recorded.conversation.as_deref(), Some(thread.as_str()));
     assert_eq!(recorded.lifecycle, crate::records::supply::RecordedLifecycle::Ended { stopped_by: "the person".into(), cause: "completed".into() });
     assert_eq!((recorded.workflow["origin"].as_str(), recorded.workflow["name"].as_str(), recorded.workflow["revision"].as_str()),
-        (Some("bundled"), Some(BUNDLED), Some(crate::workflow_workspace::production_catalog::SELECTED_BUNDLED_REVISION)));
+        (Some("bundled"), Some(BUNDLED), Some(bundled_revision())));
     assert!(reopened.live_in(&thread).is_empty() && reopened.possibly_live_in(&thread).is_empty(), "nothing live in the conversation");
     let mut fresh = WorkflowRootSession::default();
     let repeat = fresh.end_recorded_run(&project, &reference, &thread, false, None).err().ok_or("an ended run was ended again")?;
