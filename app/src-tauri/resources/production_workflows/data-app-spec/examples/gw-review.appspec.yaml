@@ -1,0 +1,789 @@
+# Worked example: specification of a NEW application (illustrative)
+#
+# Compiled by the author from the design record gw-review.design.yaml, against schema
+# app-spec 0.1 (sha256 9eb52386...; ontology sha256 49de38f4...), which is unchanged
+# since it was frozen for the first schema test. Fields the schema did not provide are
+# visible `x-` extensions, as needs for a later ontology version. The intent is
+# illustrative; the guideline values, trend rules and decision rules are open, so the
+# specification is not buildable, by construction. It was compiled from proposed design
+# choices as a draft; a candidate for checkpoint B is compiled only from ruled choices.
+
+appspec_version: "0.1"
+ontology_version: app_family 0.1.0-draft
+
+app:
+  id: gw_review
+  title: Groundwater monitoring review
+  short_description: Annual review of groundwater monitoring results for one remediation site.
+  sector: Environmental remediation
+  keywords: [groundwater monitoring, guideline screening, trend test, sampling plan]
+  owner: Owner of the illustrative example (no real owner)
+
+purpose:
+  intended_use: >-
+    Help a monitoring consultant and the professional of record review one site's
+    groundwater results for a year: check the uploaded files, see which wells exceed
+    the applicable Tier 1 guideline, which show increasing or decreasing trends, and
+    where they are, and prepare a proposed sampling plan for the professional to
+    decide.
+  decisions_supported:
+    - For each well, whether to continue, reduce, increase or stop sampling. The professional of record decides.
+  intended_users:
+    - id: consultant_role
+      name: Monitoring consultant
+    - id: professional_role
+      name: Professional of record
+  non_uses:
+    - Not a risk assessment and not a determination of compliance.
+    - The app does not decide the sampling plan; the professional of record does.
+    - Not for drinking-water compliance.
+    - Does not review laboratory QA/QC.
+  archetypes:
+    - {archetype: qc_compliance, role: primary}
+    - {archetype: analysis_workbench, role: secondary}
+    - {archetype: decision_support, role: secondary}
+
+consequence:
+  tier: T3_professional_reliance
+  rationale: Regulatory reporting under professional authentication; the worst error (a missed increase) is hard to detect. The tier is proposed in the design record.
+  error_consequences:
+    - Sampling reduced or stopped where contamination is increasing.
+    - Unnecessary sampling or remediation cost from a false exceedance.
+  detectability: Low for a missed increase; moderate for a false exceedance.
+  affected_parties: [people and environment near the site, site owner, regulator]
+  accountable_role: Professional of record
+  standing: PROPOSAL
+
+domain:
+  entity_types:
+    - id: monitoring_well_entity
+      label: Monitoring well
+      geometry: point
+      instances_from: well_registry_upload
+  observable_properties:
+    - id: dissolved_concentration
+      label: Dissolved concentration
+      value_semantics: censored
+      definition: Concentration of a monitored parameter in a groundwater sample, as reported by the laboratory, with its detection limit.
+  methods:
+    - id: mann_kendall_method
+      name: Mann-Kendall trend test with Sen's slope
+      family: trend_analysis
+      description: A rank-based test for a monotonic trend, with the median of pairwise slopes as the rate.
+      assumptions: [a_independent_results]
+      limitations:
+        - Weak with short records.
+        - Seasonality is not modelled.
+      references: [ref_epa_ug_2009]
+      standing: PROPOSAL
+  assumptions:
+    - id: a_independent_results
+      statement: Results at a well are serially independent at the sampling interval.
+      consequence_if_violated: Trend significance is overstated.
+      standing: ASSUMPTION
+  caveats:
+    - id: cav_seasonality
+      statement: Trend tests do not account for seasonal patterns in concentrations.
+      applies_to: [trend_analysis]
+      display: txt_cav_seasonality
+    - id: cav_decision
+      statement: Candidates are produced by rules the professional of record adopts; the professional decides the plan.
+      applies_to: [well_screen]
+      display: txt_cav_decision
+    - id: cav_authentication
+      statement: A report made with this app goes to the regulator only under the professional of record's authentication of that report.
+      applies_to: [review_export]
+      display: txt_cav_authentication
+
+data_sources:
+  - kind: UploadSource
+    id: lab_results_upload
+    title: Laboratory results for the site
+    formats: [csv]
+    max_size_mb: 20
+    parse: {delimiter: ",", header: true, decimal: ".", encoding: utf-8, na_values: [""]}
+    template: asset_results_template
+    control: results_upload_control
+    schema:
+      fields:
+        - {name: well_id, type: string, role: identifier}
+        - {name: sample_date, type: date, format: "%Y-%m-%d", role: time}
+        - {name: parameter, type: string, role: group}
+        - {name: result, type: number, role: value, observable: dissolved_concentration, semantics: censored}
+        - {name: unit, type: string, role: other, description: Unit as reported by the laboratory.}
+        - {name: detect_flag, type: string, role: detect_flag, constraints: {enum: [detected, not_detected]}}
+        - {name: detection_limit, type: number, role: detection_limit}
+    rules:
+      - {id: rule_required_columns, rule: "has_fields(well_id, sample_date, parameter, result, unit, detect_flag, detection_limit)", message: msg_rule_columns, severity: error}
+      - {id: rule_dates, rule: "parses_as_date(sample_date, '%Y-%m-%d')", message: msg_rule_dates, severity: error}
+      - {id: rule_detect_flag, rule: "detect_flag in ('detected', 'not_detected')", message: msg_rule_detect_flag, severity: error}
+      - {id: rule_detection_limit, rule: "detect_flag != 'not_detected' or detection_limit != null", message: msg_rule_detection_limit, severity: error}
+  - kind: UploadSource
+    id: well_registry_upload
+    title: Well registry with locations, site context and current sampling frequency
+    formats: [csv]
+    max_size_mb: 2
+    parse: {delimiter: ",", header: true, decimal: ".", encoding: utf-8, na_values: [""]}
+    template: asset_registry_template
+    control: registry_upload_control
+    schema:
+      primary_key: [well_id]
+      fields:
+        - {name: well_id, type: string, role: identifier}
+        - {name: easting, type: number, role: x}
+        - {name: northing, type: number, role: y}
+        - {name: crs, type: string, role: other, description: "EPSG code of easting and northing, e.g. EPSG:<code>; one value per file."}
+        - {name: land_use, type: string, role: group}
+        - {name: soil_texture, type: string, role: group}
+        - {name: pathway, type: string, role: group}
+        - {name: samples_per_year, type: number, role: other, description: Current sampling frequency.}
+    rules:
+      - {id: rule_unique_wells, rule: "unique(well_id)", message: msg_rule_unique_wells, severity: error}
+      - {id: rule_one_crs, rule: "distinct_count(crs) == 1 and matches(crs, '^EPSG:[0-9]+$')", message: msg_rule_one_crs, severity: error}
+      - {id: rule_context, rule: "land_use != null and soil_texture != null and pathway != null", message: msg_rule_context, severity: error}
+  - kind: DataProductSource
+    id: tier1_groundwater
+    title: Tier 1 groundwater guideline values (knowledge pack)
+    product_id: at1_groundwater_guidelines
+    product_version: TBD
+    standing: TBD
+    citation: ref_at1_2019
+    description: Produced by domain-knowledge-intake and accepted by a domain reviewer before use.
+    schema:
+      primary_key: [parameter, land_use, soil_texture, pathway]
+      fields:
+        - {name: parameter, type: string, role: group}
+        - {name: land_use, type: string, role: group}
+        - {name: soil_texture, type: string, role: group}
+        - {name: pathway, type: string, role: group}
+        - {name: guideline_value, type: number, role: value}
+        - {name: guideline_unit, type: string, role: other}
+        - {name: edition, type: string, role: label}
+    x-criterion_semantics: {criterion_type: guideline_value, bound: upper, compared_per: sample, edition_field: edition}
+
+transforms:
+  - kind: JoinTransform
+    id: results_with_well
+    inputs: [lab_results_upload]
+    right: well_registry_upload
+    keys: [well_id]
+    how: left
+  - kind: ReprojectTransform
+    id: wells_wgs84
+    inputs: [well_registry_upload]
+    to_crs: "EPSG:4326"
+    x_field: easting
+    y_field: northing
+    x-from_crs_field: crs
+  - kind: JoinTransform
+    id: results_with_guideline
+    inputs: [results_with_well]
+    right: tier1_groundwater
+    keys: [parameter, land_use, soil_texture, pathway]
+    how: left
+  - kind: DeriveTransform
+    id: results_flagged
+    inputs: [results_with_guideline]
+    derivations:
+      - {field: has_guideline, expression: "guideline_value != null"}
+      - {field: assessable, expression: "has_guideline and not (detect_flag == 'not_detected' and detection_limit > guideline_value)"}
+      - {field: exceeds, expression: "has_guideline and detect_flag == 'detected' and result > guideline_value"}
+      - {field: row_status, expression: "if(not has_guideline, 'no_guideline', if(not assessable, 'not_assessable', if(exceeds, 'exceeds', 'below')))"}
+      - {field: issue, expression: "if(has_guideline and unit != guideline_unit, 'unit differs from the guideline unit', if(well_id not in well_registry_upload.well_id, 'well not in the registry', null))"}
+  - kind: FilterTransform
+    id: issues_rows
+    inputs: [results_flagged]
+    condition: "issue != null"
+  - kind: FilterTransform
+    id: usable_results
+    inputs: [results_flagged]
+    condition: "issue == null"
+  - kind: DeriveTransform
+    id: plotted_results
+    inputs: [usable_results]
+    derivations:
+      - {field: plotted_value, expression: "if(detect_flag == 'not_detected', detection_limit, result)"}
+  - kind: FilterTransform
+    id: review_year_results
+    inputs: [usable_results]
+    condition: "year_of(sample_date) == $review_year"
+  - kind: TemporalAggregateTransform
+    id: well_year_summary
+    inputs: [review_year_results]
+    time_field: sample_date
+    period: P1Y
+    group_by: [well_id, parameter]
+    statistics:
+      - {field: exceeds, statistic: sum, output_field: n_exceed}
+      - {field: assessable, statistic: sum, output_field: n_assessable}
+      - {field: result, statistic: count, output_field: n_samples}
+      - {field: result, statistic: max, output_field: max_result}
+      - {field: guideline_value, statistic: first, output_field: guideline_value}
+      - {field: unit, statistic: first, output_field: unit}
+  - kind: DeriveTransform
+    id: well_summary
+    inputs: [well_year_summary]
+    derivations:
+      - {field: status, expression: "if(guideline_value == null, 'no_guideline', if(n_exceed > 0, 'exceeds', if(n_assessable == 0, 'not_assessable', 'below')))"}
+  - kind: JoinTransform
+    id: well_evidence
+    inputs: [well_summary]
+    right: trend_results
+    keys: [well_id, parameter]
+    how: left
+  - kind: FilterTransform
+    id: evidence_selected
+    inputs: [well_evidence]
+    condition: "parameter == $selected_parameter"
+  - kind: JoinTransform
+    id: map_wells
+    inputs: [wells_wgs84]
+    right: evidence_selected
+    keys: [well_id]
+    how: left
+  - kind: DeriveTransform
+    id: well_screen
+    inputs: [well_evidence]
+    standing: TBD
+    description: >-
+      One row per well. Applies the adopted decision rules to the well's evidence over
+      all parameters and gives the candidate action, the rule that produced it, and the
+      candidate sampling frequency. The rules are not adopted (gap g_rules_not_adopted).
+    derivations:
+      - {field: candidate_action, expression: "lookup(decision_rules, worst_status, any_increasing, min_record, 'action')"}
+      - {field: rule_id, expression: "lookup(decision_rules, worst_status, any_increasing, min_record, 'rule_id')"}
+      - {field: candidate_samples_per_year, expression: "lookup(decision_rules, worst_status, any_increasing, min_record, 'samples_per_year')"}
+    x-group_aggregate:
+      group_by: [well_id]
+      statistics:
+        - {field: status, statistic: worst, ordering: [exceeds, not_assessable, below, no_guideline], output_field: worst_status}
+        - {field: trend_class, statistic: any_equal, value: increasing, output_field: any_increasing}
+        - {field: n, statistic: min, output_field: min_record}
+    x-rules_table: decision_rules
+  - kind: JoinTransform
+    id: plan_rows
+    inputs: [well_screen]
+    right: well_registry_upload
+    keys: [well_id]
+    how: left
+
+components:
+  - id: trend_component
+    version: 0.1.0
+    title: Mann-Kendall trend test with Sen's slope, per group, with censored values
+    implements: mann_kendall_method
+    standing: TBD
+    implementation:
+      language: r
+      bundle_tbd: g_trend_component
+    inputs:
+      - name: series
+        kind: table
+        required: true
+        schema:
+          fields:
+            - {name: group_well, type: string, role: group}
+            - {name: group_parameter, type: string, role: group}
+            - {name: time, type: date, role: time}
+            - {name: value, type: number, role: value}
+            - {name: detected, type: boolean, role: detect_flag}
+            - {name: detection_limit, type: number, role: detection_limit}
+    parameters:
+      - {name: alpha, value_type: number, description: Two-sided significance level for classifying a trend.}
+      - {name: min_n, value_type: integer, description: Minimum results for a test; fewer gives the class insufficient_record.}
+      - {name: nondetect_rule, value_type: category, description: How non-detects enter the test.}
+    outputs:
+      - name: trends
+        kind: table
+        schema:
+          fields:
+            - {name: well_id, type: string}
+            - {name: parameter, type: string}
+            - {name: n, type: integer}
+            - {name: s, type: number}
+            - {name: var_s, type: number}
+            - {name: z, type: number, description: Normal-approximation statistic with continuity correction.}
+            - {name: p_value, type: number}
+            - {name: sen_slope, type: number, description: Result unit per year.}
+            - {name: trend_class, type: string, constraints: {enum: [increasing, decreasing, no_trend, insufficient_record]}}
+    determinism: deterministic
+    known_answer_tests: [kat_mk_published]
+    known_limitations:
+      - The implementation is not chosen; censored-data handling depends on it.
+
+analyses:
+  - id: trend_analysis
+    title: Trend per well and parameter over the full record
+    component: trend_component
+    method: mann_kendall_method
+    inputs:
+      - port: series
+        node: usable_results
+        field_map:
+          - {target: group_well, source_field: well_id}
+          - {target: group_parameter, source_field: parameter}
+          - {target: time, source_field: sample_date}
+          - {target: value, source_field: result}
+          - {target: detected, expression: "detect_flag == 'detected'"}
+          - {target: detection_limit, source_field: detection_limit}
+    parameters:
+      - {name: alpha, tbd: g_trend_rule_open}
+      - {name: min_n, tbd: g_trend_rule_open}
+      - {name: nondetect_rule, tbd: g_trend_rule_open}
+    outputs:
+      - {id: trend_results, port: trends, result_type: table}
+    recompute: {mode: on_change}
+    result_semantics:
+      - One row per well and parameter.
+      - The slope is in the result's unit per year.
+      - A record shorter than min_n gives insufficient_record and no p-value.
+
+metrics:
+  - id: m_exceeding_wells
+    label: Wells exceeding a guideline (selected parameter)
+    expression: "count_distinct(evidence_selected.well_id where status == 'exceeds')"
+    unit: "1"
+  - id: m_increasing_wells
+    label: Wells with an increasing trend (selected parameter)
+    expression: "count_distinct(evidence_selected.well_id where trend_class == 'increasing')"
+    unit: "1"
+  - id: m_samples_current
+    label: Sampling events per year, current plan
+    expression: "sum(well_registry_upload.samples_per_year)"
+    unit: /a
+  - id: m_samples_candidate
+    label: Sampling events per year, candidate plan
+    expression: "sum(well_screen.candidate_samples_per_year)"
+    unit: /a
+    missing_when: "row_count(well_screen) == 0"
+    missing_display: no rules adopted
+
+state:
+  - id: review_year
+    label: Review year
+    value_type: integer
+    domain: {kind: from_data, source: usable_results, field: sample_date}
+    initial_expression: "max(year_of(usable_results.sample_date))"
+    x-domain_transform: year_of
+  - id: selected_parameter
+    label: Parameter
+    value_type: category
+    domain: {kind: from_data, source: usable_results, field: parameter}
+  - id: selected_well
+    label: Well
+    value_type: string
+
+controls:
+  - kind: FileUploadControl
+    id: results_upload_control
+    label: Laboratory results (CSV)
+    upload: lab_results_upload
+    widget: file_input
+  - kind: FileUploadControl
+    id: registry_upload_control
+    label: Well registry (CSV)
+    upload: well_registry_upload
+    widget: file_input
+  - kind: ChoiceControl
+    id: year_select
+    label: Review year
+    sets: review_year
+    widget: select
+  - kind: ChoiceControl
+    id: parameter_select
+    label: Parameter
+    sets: selected_parameter
+    widget: select
+
+interactions:
+  - id: select_well_on_map
+    event: {kind: view_event, source: site_map, event: marker_click}
+    effects:
+      - {kind: set_state, target: selected_well, value: event.id}
+  - id: select_well_in_table
+    event: {kind: view_event, source: well_summary_table, event: row_select}
+    effects:
+      - {kind: set_state, target: selected_well, value: event.row.well_id}
+
+color_scales:
+  - id: cs_status
+    kind: categorical
+    domain: [exceeds, not_assessable, below, no_guideline]
+    labels: [Exceeds, Not assessable, Below, No guideline]
+    colors: ["#c0392b", "#e6a700", "#2e7d32", "#9e9e9e"]
+    na_color: "#ffffff"
+    title: Review-year status
+
+views:
+  - kind: TableView
+    id: issues_table
+    title: Rows that cannot be used
+    inputs: [issues_rows]
+    data: issues_rows
+    columns:
+      - {field: well_id, title: Well}
+      - {field: sample_date, title: Date}
+      - {field: parameter, title: Parameter}
+      - {field: issue, title: Issue}
+    empty_message: msg_no_issues
+    x-includes_upload_rule_violations: "Rows that break lab_results_upload.rules are listed here with the rule's message."
+  - kind: KpiView
+    id: kpi_exceeding_wells
+    title: Wells exceeding
+    metric: m_exceeding_wells
+  - kind: KpiView
+    id: kpi_increasing_wells
+    title: Wells increasing
+    metric: m_increasing_wells
+  - kind: MapView
+    id: site_map
+    title: Wells by review-year status
+    display_crs: "EPSG:4326"
+    basemap: {provider_tbd: g_basemap}
+    initial_view: {fit_to: map_wells}
+    layers:
+      - kind: PointLayer
+        id: well_points
+        data: map_wells
+        lat_field: y
+        lon_field: x
+        id_field: well_id
+        label_field: well_id
+        popup_fields: [well_id, status, n_exceed, n_samples, trend_class, sen_slope]
+        marker: circle
+        color: {field: status, type: nominal, color_scale: cs_status}
+        emits: [marker_click]
+    empty_message: msg_no_wells
+  - kind: TableView
+    id: well_summary_table
+    title: Status and trend by well (selected parameter)
+    inputs: [evidence_selected]
+    data: evidence_selected
+    columns:
+      - {field: well_id, title: Well}
+      - {field: status, title: Review-year status, style_rules: [{when: "status == 'exceeds'", color: "#c0392b"}]}
+      - {field: n_exceed, title: Samples exceeding}
+      - {field: n_samples, title: Samples in year}
+      - {field: max_result, title: Highest result}
+      - {field: guideline_value, title: Guideline}
+      - {field: unit, title: Unit}
+      - {field: trend_class, title: Trend}
+      - {field: sen_slope, title: Slope per year}
+      - {field: p_value, title: p}
+      - {field: n, title: Results in record}
+    sortable: true
+  - kind: ChartView
+    id: well_series_chart
+    title: Results at the selected well
+    inputs: [plotted_results]
+    visible_when: "$selected_well != null"
+    empty_message: msg_select_well
+    x_title: Sample date
+    layers:
+      - mark: point
+        data: plotted_results
+        where: "well_id == $selected_well and parameter == $selected_parameter"
+        encoding:
+          x: {field: sample_date, type: temporal}
+          y: {field: plotted_value, type: quantitative}
+          shape: {field: detect_flag, type: nominal}
+        label: Results; non-detects at the detection limit, open markers
+      - mark: rule
+        data: plotted_results
+        where: "well_id == $selected_well and parameter == $selected_parameter"
+        encoding:
+          y: {field: guideline_value, type: quantitative}
+        style: {stroke_dash: [4, 4]}
+        label: Guideline
+    x-y_title_template: "{selected_parameter} ({unit})"
+  - kind: TableView
+    id: plan_table
+    title: Candidate sampling changes by well
+    inputs: [plan_rows]
+    data: plan_rows
+    columns:
+      - {field: well_id, title: Well}
+      - {field: samples_per_year, title: Current samples per year}
+      - {field: worst_status, title: Worst status}
+      - {field: any_increasing, title: Any increasing trend}
+      - {field: candidate_action, title: Candidate}
+      - {field: rule_id, title: Rule}
+      - {field: candidate_samples_per_year, title: Candidate samples per year}
+    empty_message: msg_no_rules
+  - kind: KpiView
+    id: kpi_samples_current
+    title: Sampling events per year, current plan
+    metric: m_samples_current
+  - kind: KpiView
+    id: kpi_samples_candidate
+    title: Sampling events per year, candidate plan
+    metric: m_samples_candidate
+  - kind: ProvenanceView
+    id: about_results
+    title: About these results
+    shows: [data_sources, data_vintage, methods, component_versions, spec_identity, acceptance_status, disclaimer]
+  - kind: TextView
+    id: txt_home_view
+    content: txt_home
+  - kind: TextView
+    id: txt_non_uses_view
+    content: txt_non_uses
+  - kind: TextView
+    id: plan_caveat_view
+    content: txt_cav_decision
+  - kind: TextView
+    id: about_caveats_view
+    content: txt_cav_seasonality
+  - kind: TextView
+    id: export_caveat_view
+    content: txt_cav_authentication
+
+layout:
+  shell: navbar_tabs
+  nav:
+    - id: tab_home
+      label: Home
+      default: true
+      content:
+        - {ref: txt_home_view}
+        - {ref: txt_non_uses_view}
+    - id: tab_data
+      label: Data
+      content:
+        - {ref: results_upload_control}
+        - {ref: registry_upload_control}
+        - {ref: issues_table}
+    - id: tab_review
+      label: Review
+      content:
+        - group: row
+          items:
+            - {ref: year_select}
+            - {ref: parameter_select}
+            - {ref: kpi_exceeding_wells}
+            - {ref: kpi_increasing_wells}
+        - group: row
+          items:
+            - {ref: site_map, height_px: 480}
+            - {ref: well_series_chart, height_px: 480}
+        - {ref: well_summary_table}
+    - id: tab_plan
+      label: Plan
+      content:
+        - group: row
+          items:
+            - {ref: kpi_samples_current}
+            - {ref: kpi_samples_candidate}
+        - {ref: plan_caveat_view}
+        - {ref: plan_table}
+        - {ref: export_caveat_view}
+        - {ref: review_export}
+    - id: tab_about
+      label: About
+      content:
+        - {ref: about_results}
+        - {ref: about_caveats_view}
+
+content:
+  - id: txt_home
+    purpose: intro
+    format: markdown
+    text: >-
+      Upload the year's laboratory results and the well registry on the Data tab and
+      fix any listed issues. The Review tab shows each well's status against the Tier 1
+      guideline for the review year, its trend over the record, and where it is. The
+      Plan tab shows candidate sampling changes once decision rules are adopted.
+  - id: txt_non_uses
+    purpose: limitation
+    format: markdown
+    verbatim: true
+    text: >-
+      Not a risk assessment and not a determination of compliance.
+      The app does not decide the sampling plan; the professional of record does.
+      Not for drinking-water compliance.
+      Does not review laboratory QA/QC.
+  - id: txt_cav_seasonality
+    purpose: limitation
+    format: plain
+    verbatim: true
+    text: Trend tests do not account for seasonal patterns in concentrations.
+  - id: txt_cav_decision
+    purpose: limitation
+    format: plain
+    verbatim: true
+    text: Candidates are produced by rules the professional of record adopts; the professional decides the plan.
+  - id: txt_cav_authentication
+    purpose: limitation
+    format: plain
+    verbatim: true
+    text: A report made with this app goes to the regulator only under the professional of record's authentication of that report.
+
+assets:
+  - id: asset_results_template
+    path: assets/gw_review/results_template.csv
+    media_type: text/csv
+    sha256_tbd: g_templates
+  - id: asset_registry_template
+    path: assets/gw_review/registry_template.csv
+    media_type: text/csv
+    sha256_tbd: g_templates
+
+messages:
+  - {id: msg_upload_blocked, text: "The file has errors. Fix the rows listed on the Data tab and upload it again; review is blocked until then.", severity: error}
+  - {id: msg_no_issues, text: "No issues found.", severity: info}
+  - {id: msg_no_wells, text: "Upload a well registry to see the wells.", severity: info}
+  - {id: msg_select_well, text: "Select a well on the map or in the table.", severity: info}
+  - {id: msg_no_rules, text: "No decision rules have been adopted, so no candidates are shown.", severity: info}
+  - {id: msg_rule_columns, text: "The file must have the columns well_id, sample_date, parameter, result, unit, detect_flag and detection_limit.", severity: error}
+  - {id: msg_rule_dates, text: "Dates must be written as YYYY-MM-DD.", severity: error}
+  - {id: msg_rule_detect_flag, text: "detect_flag must be detected or not_detected.", severity: error}
+  - {id: msg_rule_detection_limit, text: "A non-detect needs its detection limit.", severity: error}
+  - {id: msg_rule_unique_wells, text: "Each well must appear once.", severity: error}
+  - {id: msg_rule_one_crs, text: "All rows must share one CRS, written as EPSG:<code>.", severity: error}
+  - {id: msg_rule_context, text: "Every well needs land use, soil texture and pathway to select its guideline.", severity: error}
+
+exports:
+  - id: review_export
+    label: Download review workbook
+    format: xlsx
+    filename_pattern: "gw_review_{review_year}.xlsx"
+    include_provenance: [app_version, spec_sha256, analysis_date, settings, data_vintage, component_versions]
+    x-include_input_identities: [uploaded file names and sha256, guideline knowledge-pack id, version and edition]
+    sheets:
+      - {name: Well summary, content: [well_evidence]}
+      - {name: Exceedances, content: [review_year_results]}
+      - {name: Trends, content: [trend_results]}
+      - {name: Issues, content: [issues_rows]}
+
+provenance:
+  display: [data_sources, data_vintage, methods, app_version, spec_identity, component_versions, acceptance_status, disclaimer]
+  result_provenance: on_request
+  data_currency_note: The data are the files uploaded in this session; the about panel shows their sampling period and upload time.
+
+verification:
+  known_answer_tests:
+    - id: kat_mk_published
+      subject: trend_component
+      oracle: published_value
+      source: ref_epa_ug_2009
+      locator: "§17.3.2, Example 17-6, pp. 17-33 to 17-34 (23 sulfate values, ppm; dates yr.mon from 89.6 to 96.8)"
+      inputs:
+        - port: series
+          values:
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1989-06-01", value: 480, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1989-08-01", value: 450, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1990-01-01", value: 490, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1990-03-01", value: 520, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1990-06-01", value: 485, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1990-08-01", value: 510, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1991-01-01", value: 510, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1991-03-01", value: 530, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1991-06-01", value: 510, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1991-08-01", value: 560, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1992-01-01", value: 560, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1992-06-01", value: 540, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1993-01-01", value: 590, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1993-06-01", value: 550, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1994-01-01", value: 600, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1994-06-01", value: 700, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1995-01-01", value: 570, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1995-06-01", value: 610, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1995-08-01", value: 650, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1996-01-01", value: 620, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1996-03-01", value: 830, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1996-06-01", value: 720, detected: true}
+            - {group_well: example_17_6, group_parameter: sulfate, time: "1996-08-01", value: 590, detected: true}
+      expected:
+        - {output: trends.s, value: 194, comparison: exact}
+        - {output: trends.var_s, value: 1428, tolerance: {absolute: 0.5}, comparison: approximate}
+        - {output: trends.z, value: 5.11, tolerance: {absolute: 0.005}, comparison: approximate}
+      confirmation: >-
+        Published values reproduced by two independent recomputations (Unified Guidance
+        Example 17-6). The day of each date is
+        assumed to be the first of the month; S and its variance depend only on order
+        and ties. The example has no non-detects, so it does not exercise
+        g_trend_rule_open's non-detect rule. Run against the bound component once chosen.
+  property_tests:
+    - id: pt_mk_time_reversal
+      subject: trend_component
+      statement: Reversing the time order of a series changes the sign of S and of Sen's slope and leaves var(S) unchanged.
+      basis:
+        - {kind: derived, statement: "Follows from S being a sum of sign(x_j - x_i) over pairs j > i and the slope being a median of pairwise slopes."}
+    - id: pt_mk_shift
+      subject: trend_component
+      statement: Adding a constant to every value leaves S, var(S), the p-value and Sen's slope unchanged.
+      basis:
+        - {kind: derived, statement: Pairwise differences are unchanged by a common shift.}
+    - id: pt_exceedance_nondetect
+      subject: results_flagged
+      statement: No row with detect_flag not_detected has exceeds true.
+  data_contract_checks:
+    - id: dc_results
+      subject: lab_results_upload
+    - id: dc_registry
+      subject: well_registry_upload
+    - id: dc_guidelines
+      subject: tier1_groundwater
+  review_requirements:
+    - {gate: domain_pack_acceptance, examiner: domain_expert, subject: tier1_groundwater, required: true}
+    - {gate: independent_numerical_review, examiner: separate_agent, subject: trend_component, required: true}
+    - {gate: domain_expert_review, examiner: domain_expert, subject: results_flagged, required: true}
+    - {gate: domain_expert_review, examiner: accountable_professional, required: true}
+    - {gate: spec_acceptance, examiner: owner, required: true}
+
+references:
+  - id: ref_at1_2019
+    kind: standard
+    title: Alberta Tier 1 Soil and Groundwater Remediation Guidelines
+    publisher: Alberta Environment and Parks
+    date: "2019"
+    status_note: Not retrieved for this example; URL TBD.
+  - id: ref_epa_ug_2009
+    kind: standard
+    title: "Statistical Analysis of Groundwater Monitoring Data at RCRA Facilities: Unified Guidance (EPA 530/R-09-007)"
+    publisher: US Environmental Protection Agency
+    date: "2009"
+    url: https://archive.epa.gov/epawaste/hazard/web/pdf/unified-guid.pdf
+    status_note: §17.3.2 and Example 17-6 were read for this example.
+
+gaps:
+  - id: g_guideline_values
+    statement: The guideline values, edition and keys are not yet in an accepted knowledge pack.
+    affects: [tier1_groundwater]
+    blocking: [build, acceptance]
+    resolution_route: domain-knowledge-intake, then domain-pack acceptance.
+    status: open
+  - id: g_trend_component
+    statement: The trend test implementation is not chosen, so its bundle and censored-data handling are unknown.
+    affects: [trend_component]
+    blocking: [build, verification]
+    resolution_route: analysis-binding.
+    status: open
+  - id: g_trend_rule_open
+    statement: The significance level, minimum record and non-detect rule are not adopted (design record gaps g_trend_rule, g_min_record, g_nondetect_trend).
+    affects: [trend_analysis]
+    blocking: [build]
+    resolution_route: Rulings recorded in the design record.
+    status: open
+  - id: g_rules_not_adopted
+    statement: No decision rules are adopted (design record gap g_decision_rules).
+    affects: [well_screen]
+    blocking: [build]
+    resolution_route: Elicitation and a ruling recorded in the design record; or a ruling for the evidence-only option, which removes well_screen.
+    status: open
+  - id: g_templates
+    statement: The upload templates have not been produced.
+    affects: [asset_results_template, asset_registry_template]
+    blocking: [build]
+    status: open
+  - id: g_basemap
+    statement: The basemap provider and its terms are not chosen.
+    affects: [site_map]
+    blocking: [build]
+    status: open
+
+build_profile:
+  target: shiny_r
+  runtimes:
+    - {name: R, version_tbd: g_trend_component}
+  access: private
