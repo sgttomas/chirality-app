@@ -67,6 +67,10 @@ code_paths:
 # intake.py checks and inventories a supplier release archive of a pin of its table and runs
 # the supplier's generators.
 - app/supplier_checks/intake.py
+# version_advance.py compares a pin's generated schema, supplement and recorded exchanges with
+# the prior pin's; version_advance/ holds each comparison's result and its authored dispositions.
+- app/supplier_checks/version_advance.py
+- app/supplier_checks/version_advance
 # recordings/<pin>/ holds exchanges recorded from the stock supplier at a pin, kept as evidence
 # with a note of how they were made; the harness that made them is not maintained.
 - app/supplier_checks/recordings
@@ -80,6 +84,7 @@ checks:
 - app/supplier_checks/test_recorded_replay.py
 - app/supplier_checks/test_recordings.py
 - app/supplier_checks/test_intake.py
+- app/supplier_checks/test_version_advance.py
 - app/src-tauri/src/hosting_recorded_replay_tests.rs
 - app/src-tauri/src/hosting_process_group_custody_tests.rs
 - app/tests/process-group-custody.test.mjs
