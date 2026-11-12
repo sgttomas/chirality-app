@@ -4068,20 +4068,24 @@ fn native_local_settings_a_send_queued_behind_the_writer_across_a_save_is_refuse
     use tauri_plugin_dialog::MessageDialogResult;
     let set = LocalSettings::new("http://127.0.0.1:9100/v1", "org/m").unwrap();
     let (root, plan, peer, home) = bound_local("local-queued-save-", &set);
-    let gate = peer.host.frame_write.lock().unwrap();
-    let host = peer.host.clone();
-    let g = peer.g.clone();
-    let worker = std::thread::spawn(move || host.request_begin_scoped("turn/start", json!({"threadId":"t","input":[]}), json!({"kind":"synthetic"}), false, Some(&g)));
-    let deadline = std::time::Instant::now() + Duration::from_secs(2);
-    while peer.host.inner.0.lock().unwrap().source_requests.is_empty() {
-        assert!(std::time::Instant::now() < deadline);
-        std::thread::yield_now();
-    }
-    // Admitted by the first check and now waiting for the writer; the settings change meanwhile.
+    // The save holds the frame writer lock and has not yet set the mark: the send is admitted by its
+    // first check (registration) and waits for the writer; the save then sets the mark and lets go.
+    let (host, g) = (peer.host.clone(), peer.g.clone());
+    let worker: Arc<Mutex<Option<std::thread::JoinHandle<Result<SourceRequest, String>>>>> = Arc::default();
+    let slot = worker.clone();
+    *peer.host.supersede_marking.lock().unwrap() = Some(Box::new(move |_| {
+        let sender = host.clone();
+        *slot.lock().unwrap() = Some(std::thread::spawn(move || sender.request_begin_scoped("turn/start", json!({"threadId":"t","input":[]}), json!({"kind":"synthetic"}), false, Some(&g))));
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        while host.inner.0.lock().unwrap().source_requests.is_empty() {
+            assert!(std::time::Instant::now() < deadline);
+            std::thread::yield_now();
+        }
+    }));
     let next = LocalSettings::new(set.endpoint(), "org/next").unwrap();
-    let saved = route::save_within(&plan, next, Some(&home), || Ok(()), |_, action: &str| Ok(MessageDialogResult::Custom(action.into())), Duration::from_millis(50)).unwrap();
+    let saved = route::save_within(&plan, next, Some(&home), || Ok(()), |_, action: &str| Ok(MessageDialogResult::Custom(action.into())), Duration::from_secs(5)).unwrap();
     assert_eq!(saved["outcome"], "saved");
-    drop(gate);
+    let worker = worker.lock().unwrap().take().expect("the send was started while the save held the writer");
     match worker.join().unwrap() {
         Ok(request) => {
             let e = request.evidence();
