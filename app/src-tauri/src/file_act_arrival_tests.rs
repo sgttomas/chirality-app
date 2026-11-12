@@ -768,8 +768,10 @@ fn inventory(dir: &std::path::Path) -> std::collections::BTreeMap<std::path::Pat
         for entry in std::fs::read_dir(&at).unwrap() {
             let path = entry.unwrap().path();
             if path.strip_prefix(dir).is_ok_and(|rel| rel.starts_with("indexes")) { continue; }
-            if std::fs::symlink_metadata(&path).unwrap().is_dir() { out.insert(path.clone(), None); todo.push(path); }
-            else { out.insert(path.clone(), Some(std::fs::read(&path).unwrap())); }
+            // A temporary file gone between listing and reading was not kept.
+            let Ok(meta) = std::fs::symlink_metadata(&path) else { continue };
+            if meta.is_dir() { out.insert(path.clone(), None); todo.push(path); }
+            else if let Ok(bytes) = std::fs::read(&path) { out.insert(path.clone(), Some(bytes)); }
         }
     }
     out
@@ -777,8 +779,12 @@ fn inventory(dir: &std::path::Path) -> std::collections::BTreeMap<std::path::Pat
 
 #[test]
 fn file_act_arrival_preview_finds_its_log_through_the_read_home_and_writes_nothing() {
+    // The test's own store, so no other test's writer shares it.
+    let own = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("arrival-preview-store-").unwrap());
+    crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: own.clone(), placement: crate::records_store::Placement::Test, limits: vec![] })));
     let (peer, state, run, arrival) = fixture("A7");
     let store = crate::records_store::store_root().unwrap();
+    assert_eq!(store, own);
     // The writer made the store-wide lock when it minted the project's
     // identity. A preview, before the person has done anything, is a read:
     // it takes no writer admission and makes no lock again.
@@ -794,4 +800,6 @@ fn file_act_arrival_preview_finds_its_log_through_the_read_home_and_writes_nothi
     assert_eq!(crate::records::supply::run_log_for_read(&peer.fixture.root, &run).unwrap(), crate::records::supply::run_log(&peer.fixture.root, &run).unwrap());
     drop(state);
     drop(peer);
+    crate::records_store::use_store_for_test(None);
+    let _ = std::fs::remove_dir_all(own);
 }

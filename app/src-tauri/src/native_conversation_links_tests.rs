@@ -551,7 +551,9 @@ fn native_links_payload_and_store_identity_refusal_matches_reader_and_retains_or
         assert_eq!(p.record, original_record);
         assert_eq!(p.bytes, original_bytes);
         assert!(p.context.activity.is_some());
-        std::fs::remove_file(&path).ok();
+        // The store's identity file is put back in place (the same file, as
+        // the open store is bound to it); every other member is made again.
+        if mode != "store-version" { std::fs::remove_file(&path).ok(); }
         std::fs::write(&path, &original_identity).unwrap();
         settle(&mut p);
         assert!(p.store_done && p.project_done, "{mode}");
