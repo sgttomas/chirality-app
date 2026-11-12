@@ -26,6 +26,12 @@ needs:
     item identities, and the harness-capability account states what the selected supplier version
     supports.
   gating: true
+- from: DEL-01-03
+  condition: For a conversation, the delegation availability reading at the pin (present, missing,
+    or not established with its reason) is offered with the model, provider and folder it answers
+    for, without reading the delegation view's state.
+  when: Before a declared agent-delegation requirement is checked.
+  gating: false
 - from: DEL-01-02
   condition: Custody facts (an observation lost and recovered, a Codex stop, a relaunch) are handed
     over as observed events with stated unknowns, and an opaque tag attached to a conversation
@@ -92,6 +98,8 @@ code_paths:
 - app/src-tauri/src/run_restart.rs
 - app/src-tauri/resources/workflow_role/compatibility-report.schema.json
 - app/src-tauri/schemas/checkpoint-record-entries.schema.json
+# The requirement check as the person's guide shows it; RunJourney.tsx (DEL-02-02's) mounts it.
+- app/src/RequirementCheck.tsx
 # runtime_session.rs, lib.rs and host_tick.rs are shared. Here: opening and ending a run, its
 # run reference and tag, the occasions of the requirement check, and feeding observed items
 # to the checkpoint recorder. Run preparation, run text and the supply check are DEL-02-02's;
@@ -116,4 +124,5 @@ checks:
 - app/tests/selected-chain-disclosure.test.mjs
 - app/tests/proposed-run-disclosure.test.mjs
 - app/tests/run-panel.test.mjs
+- app/tests/requirement-check.test.mjs
 - app/tests/validate-records.test.mjs

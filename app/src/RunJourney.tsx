@@ -5,6 +5,7 @@ import { chatWorkflow, workflowAssurance, workflowContext } from "./workflowSele
 import { WorkflowTextControl, useWorkflowTexts } from "./WorkflowText";
 import { ProjectFolderSummary, appProjectFolder } from "./WorkflowContext";
 import { IncludedWorkflows, RoleBesideWorkflow, includedEntryOf, librarySourceWords } from "./IncludedWorkflows";
+import { RequirementCheck } from "./RequirementCheck";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 /** What each guide command did, in the person's words. */
@@ -413,6 +414,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
           target={{ kind: "selection", revision: chosen.identity?.revision }} context={() => workflowContext(data, host, thread)}/>}
         {chosen && <RoleBesideWorkflow entry={includedEntryOf(data?.productionCatalog, chosen)} conversation={conversations.find((row: Json) => row.threadId === thread)}/>}
         {chosen && chosen.identity?.origin !== "bundled" && <p role="note" aria-label="Approval evidence">{workflowAssurance(chosen.assurance)}</p>}
+        {chosen && <RequirementCheck selection={chosen}/>}
         {chosen && newer && !(newer.limit && chosen.identity?.origin === "bundled") && (newer.limit ? <p role="note">Newer revisions of {text(chosen.identity?.name)} can't be checked: {text(newer.limit)}</p>
           : <p role="note" aria-label="Newer revision for this conversation">A newer revision of <strong>{text(chosen.identity?.name)}</strong> is registered ({text(newer.notice)}). This conversation keeps using the one shown above until you choose the newer one.{" "}
             {newer.selectable === true ? <button disabled={!canAct} onClick={() => perform("workflow_follow_newer_revision", { selectionRef: chosen.reference, revision: newer.revision })}>{text(newer.offered)}</button> : <small>{text(newer.offered)}.</small>}</p>)}
