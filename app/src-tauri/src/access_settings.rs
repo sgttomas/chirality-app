@@ -67,20 +67,22 @@ fn setting(read: &Value, key: &str, path: &[&str]) -> Value {
     json!({"state":"reported","value":value,"source":source})
 }
 
-/// The default provider the person's own Codex settings name: the user
-/// layer's `model_provider`, a displayable identifier only. "none" when an
-/// enabled user layer names none; "unknown" when no user layer was reported
-/// or the name is not displayable. Never the effective value: in the account
-/// home that is the App's own session setting.
-fn person_default_provider(read: &Value) -> Value {
-    let Some(layers) = read["layers"].as_array() else { return json!({"state":"unknown","value":null}); };
+/// What the person's own Codex settings name as their default provider: the `model_provider` field
+/// of the one enabled user layer's configuration, a displayable identifier only. "none" only when
+/// that layer's configuration is an object without the field (or with it null); "unknown" when no
+/// single enabled user layer was reported, its configuration is not an object, or the name is not
+/// displayable. Never the effective value: in the account home that is the App's own session setting.
+fn user_layer_model_provider(read: &Value) -> Value {
+    let unknown = || json!({"state":"unknown","value":null});
+    let Some(layers) = read["layers"].as_array() else { return unknown(); };
     let user: Vec<&Value> = layers.iter().filter(|l| l["name"]["type"] == "user" && l["disabledReason"].is_null()).collect();
-    let [layer] = user.as_slice() else { return json!({"state":"unknown","value":null}); };
-    match &layer["config"]["model_provider"] {
+    let [layer] = user.as_slice() else { return unknown(); };
+    let Some(config) = layer["config"].as_object() else { return unknown(); };
+    match config.get("model_provider").unwrap_or(&Value::Null) {
         Value::Null => json!({"state":"none","value":null}),
         Value::String(name) if name.len() <= 64 && name.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
             && name.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-')) => json!({"state":"reported","value":name}),
-        _ => json!({"state":"unknown","value":null}),
+        _ => unknown(),
     }
 }
 
@@ -91,7 +93,7 @@ fn project(read: &PrivateConfigReading, class: &str) -> Result<Value, String> {
         "scope":{"generation":read.source.generation(),"modeHomeClass":class,"readRevision":read.source.request_ref},
         "credentialStore":setting(&read.config,"cli_auth_credentials_store", &["cli_auth_credentials_store"]),
         "plugins":setting(&read.config,"features.plugins", &["features","plugins"]),
-        "personDefaultProvider":person_default_provider(&read.config)
+        "personDefaultProvider":user_layer_model_provider(&read.config)
     });
     if reflections.excludes_value(&view) {
         return Err(LIMIT.into());
@@ -132,5 +134,21 @@ impl Host {
         self.check_provider_read(&self.inner.0.lock().unwrap(), &read.source, cwd)
             .map_err(|_| LIMIT.to_owned())?;
         Ok(view)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn access_settings_user_layer_model_provider_is_none_only_for_an_object_configuration_without_one() {
+        let read = |config: Value| user_layer_model_provider(&json!({"layers":[{"name":{"type":"user"},"disabledReason":null,"config":config}]}));
+        assert_eq!(read(json!({})), json!({"state":"none","value":null}));
+        assert_eq!(read(json!({"model_provider":null})), json!({"state":"none","value":null}));
+        assert_eq!(read(json!({"model_provider":"local-lab"})), json!({"state":"reported","value":"local-lab"}));
+        for config in [Value::Null, json!("model_provider = \"x\""), json!([]), json!(3), json!(true)] {
+            assert_eq!(read(config.clone()), json!({"state":"unknown","value":null}), "{config}");
+        }
+        assert_eq!(user_layer_model_provider(&json!({"layers":[{"name":{"type":"user"},"disabledReason":null}]})), json!({"state":"unknown","value":null}), "no configuration at all");
     }
 }

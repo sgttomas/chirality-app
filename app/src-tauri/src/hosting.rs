@@ -2084,6 +2084,8 @@ impl Host {
         if let Some(write)=endpoint_write {if params!=write.params(){return Err("Typed endpoint payload differs".into());}write.before_write()?;}
         #[cfg(test)] let cce_selected=cce_intent.is_some();
         if let Some(proof)=provider_admission { self.recheck_child_sources(proof)?; }
+        // The dedicated local home's files are read again for every request that can reach a model.
+        if !handshake { self.check_local_files(method)?; }
         let (tx, rx) = channel();
         let mut i = self.inner.0.lock().unwrap();
         if let Some(write)=endpoint_write {write.check(self,&i)?;}
@@ -2154,6 +2156,9 @@ impl Host {
             // attachment/Stop gate. Recheck cheap context/receipt custody below.
             if let Some(proof)=provider_admission { self.recheck_child_sources(proof)?; }
             if let Some(write)=endpoint_write {write.before_write()?;}
+            // After the writer wait: the local home's settings file and key-address record must still
+            // establish the address in force, or nothing is written.
+            if !handshake { self.check_local_files(method)?; }
             {let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;
                 Self::check_local_request(&i,method,&frame["params"],expected_generation,handshake,private_credential,private_config,provider_admission)?;
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
@@ -2737,6 +2742,7 @@ impl Host {
         let method=if expected_turn.is_some(){"turn/steer"}else{"turn/start"};let mut params=json!({"threadId":thread,"input":input});if let Some(turn)=expected_turn{params["expectedTurnId"]=json!(turn);}
         if let Some((_,client))=lead{params["clientUserMessageId"]=json!(client);}
         Self::validate_native_result(if expected_turn.is_some(){"TurnSteerParams"}else{"TurnStartParams"},&params)?;
+        self.check_local_files(method)?;
         let(tx,rx)=channel();let(source,client,pipe_identity,pipe_epoch)={
             let mut i=self.inner.0.lock().unwrap();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation){return Err("attachment preparation scope is stale/closed/non-ready".into());}
             Self::check_local_request(&i,method,&params,Some(generation),false,false,false,None)?;
@@ -2768,6 +2774,8 @@ impl Host {
             let serial=self.frame_write.lock().unwrap();
             let source_lock=prepared.custody.lock_sources(&namespace_lease)?;
             prepared.custody.check_prepared_leased(&namespace_lease,&prepared.list.supply_records(),&prepared.client)?;
+            // After the writer wait, before the commit: the local home's files are read again.
+            self.check_local_files(frame["method"].as_str().unwrap_or_default())?;
             let gate=self.attachment_gate.lock().unwrap();let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
             let mut i=self.inner.0.lock().unwrap();let generation=prepared.source.generation();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation)||i.attachment_pipe_epoch!=prepared.pipe_epoch{return Err("attachment generation/pipe drift before commit; nothing sent".into());}
             Self::check_local_request(&i,frame["method"].as_str().unwrap(),&frame["params"],Some(generation),false,false,false,None)?;

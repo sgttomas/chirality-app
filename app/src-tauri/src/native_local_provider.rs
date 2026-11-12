@@ -34,7 +34,9 @@ pub(crate) const ENTRY: &str = "local-provider-keyed";
 pub(crate) const LIMIT: &str =
     "Local oMLX source unavailable; no fallback or automatic credential retry";
 pub(crate) const UNSET: &str = "Local model settings are not set; set the server address and model name first. Nothing was prepared.";
-pub(crate) const RELAUNCH: &str = "The local model settings changed in this session; quit and reopen the App to use them. The local connection is unavailable until then.";
+/// True both when the settings changed and when a change was begun and did not complete, and when
+/// the file was changed outside the App after the connection was prepared.
+pub(crate) const RELAUNCH: &str = "The local model settings changed, or a change to them was begun, after the local connection was prepared in this session; quit and reopen the App to use the local connection. It is unavailable until then.";
 pub(crate) const EARLIER: &str =
     "This conversation was started under earlier local model settings; it is not continued.";
 /// The refusal for a key file with no record. It names no address: the App cannot establish one.
@@ -43,6 +45,8 @@ pub(crate) const KEY_ADDRESS_UNRECORDED: &str = "A key is saved in the dedicated
 const KEY_ADDRESS_MISMATCH_REASON: &str = "key-address-mismatch";
 const RECORD_UNWRITTEN: &str = "The App could not record the server address the key is entered for; the key field was not opened and nothing was sent.";
 const RECORD_NOT_REMOVED: &str = "Codex removed the saved key, but the App could not remove its record of the server address the key was entered for; the local model settings were not changed.";
+/// As RECORD_NOT_REMOVED, where no key file was present before Codex's sign-out.
+const RECORD_NOT_REMOVED_NO_KEY: &str = "Codex reports no saved key, but the App could not remove its record of the server address a key was entered for; the local model settings were not changed.";
 /// App-owned, beside config.toml: the one address the saved key was entered for, and a newline.
 const KEY_ADDRESS: &str = "key-address";
 pub(crate) const PREPARE_FIRST: &str = "Prepare the local connection first, so that Codex can remove the saved key; the local model settings were not changed.";
@@ -498,13 +502,26 @@ pub(crate) fn prepare(plan: &OwnedHomePlan) -> Result<LocalSettings, String> {
     }
     current(plan)
 }
-/// First settings: create the home and its config.toml create-only, private and synced.
+/// First settings: create the home, then put a complete, private, synced config.toml in place
+/// only where none exists. The file is staged in a private temporary file in the same folder and
+/// renamed with RENAME_EXCL (one atomic rename that fails with EEXIST if config.toml exists), so
+/// config.toml is never seen partly written; the folder is synced and the file read back strictly.
+/// A failure before the rename leaves neither config.toml nor the temporary file.
 fn write_initial(plan: &OwnedHomePlan, settings: &LocalSettings) -> Result<(), String> {
+    write_initial_staged(plan, settings, |_| Ok(()))
+}
+/// `staged` runs after the temporary file is complete and synced, before it is put in place: the
+/// tests' point of failure.
+fn write_initial_staged(
+    plan: &OwnedHomePlan,
+    settings: &LocalSettings,
+    staged: impl FnOnce(&Path) -> Result<(), String>,
+) -> Result<(), String> {
     if plan.class() != HomeClass::LocalProvider {
         return Err(LIMIT.into());
     }
     crate::storage::check_path(plan.native_path()).map_err(|_| LIMIT)?;
-    #[cfg(unix)]
+    #[cfg(target_os = "macos")]
     {
         use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
         let mut builder = std::fs::DirBuilder::new();
@@ -519,26 +536,59 @@ fn write_initial(plan: &OwnedHomePlan, settings: &LocalSettings) -> Result<(), S
         if !absent(&plan.native_path().join("auth.json")) {
             return Err(LIMIT.into());
         }
-        let mut file = std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .mode(0o600)
-            .open(plan.native_path().join("config.toml"))
-            .map_err(|_| CHANGED)?;
-        file.write_all(canonical(settings).as_bytes())
-            .map_err(|_| UNCONFIRMED)?;
-        file.sync_all().map_err(|_| UNCONFIRMED)?;
-        crate::storage::sync_dir(plan.native_path()).map_err(|_| UNCONFIRMED)?;
+        let home = plan.native_path();
+        let target = home.join("config.toml");
+        if !absent(&target) {
+            return Err(CHANGED.into());
+        }
+        let temporary = home.join(format!(".{}.tmp", crate::util::opaque_id("config-")?));
+        let placed = (|| -> Result<(), String> {
+            let mut file = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .custom_flags(libc::O_NOFOLLOW)
+                .open(&temporary)
+                .map_err(|_| UNCONFIRMED)?;
+            file.write_all(canonical(settings).as_bytes())
+                .map_err(|_| UNCONFIRMED)?;
+            file.sync_all().map_err(|_| UNCONFIRMED)?;
+            drop(file);
+            private_metadata(&temporary, false).map_err(|_| UNCONFIRMED)?;
+            staged(&temporary)?;
+            rename_exclusive(&temporary, &target)
+        })();
+        if placed.is_err() {
+            let _ = std::fs::remove_file(&temporary);
+            let _ = crate::storage::sync_dir(home);
+        }
+        placed?;
+        crate::storage::sync_dir(home).map_err(|_| UNCONFIRMED)?;
     }
-    #[cfg(not(unix))]
+    #[cfg(not(target_os = "macos"))]
     {
-        let _ = settings;
+        let _ = (settings, staged);
         return Err(LIMIT.into());
     }
     if read_config(plan).ok().as_ref() != Some(settings) {
         return Err(UNCONFIRMED.into());
     }
     Ok(())
+}
+/// rename(2) with RENAME_EXCL: atomic, and EEXIST when `to` exists (an existing target is never
+/// replaced). A file system without RENAME_EXCL refuses (ENOTSUP), which also fails closed.
+#[cfg(target_os = "macos")]
+fn rename_exclusive(from: &Path, to: &Path) -> Result<(), String> {
+    use std::os::unix::ffi::OsStrExt;
+    let from = std::ffi::CString::new(from.as_os_str().as_bytes()).map_err(|_| LIMIT)?;
+    let to = std::ffi::CString::new(to.as_os_str().as_bytes()).map_err(|_| LIMIT)?;
+    if unsafe { libc::renamex_np(from.as_ptr(), to.as_ptr(), libc::RENAME_EXCL) } == 0 {
+        return Ok(());
+    }
+    Err(match std::io::Error::last_os_error().raw_os_error() {
+        Some(libc::EEXIST) => CHANGED.into(),
+        _ => UNCONFIRMED.into(),
+    })
 }
 /// Changed settings: atomic replacement in the same directory. Nothing else in the home is touched.
 fn replace(plan: &OwnedHomePlan, before: &LocalSettings, after: &LocalSettings) -> Result<(), String> {
@@ -802,8 +852,9 @@ pub(crate) fn observe(
     Ok(view(&settings, generation.clone(), configured))
 }
 /// Codex's own sign-out in the bound home, then Codex's own report of no account. Never reads,
-/// moves or deletes auth.json itself.
-fn sign_out(home: &HomeSession, plan: &OwnedHomePlan, generation: &Value, wait: Duration) -> Result<(), String> {
+/// moves or deletes auth.json itself. `key_present`: Codex's key file was positively present
+/// (metadata only) before the sign-out, so a removal can be claimed.
+fn sign_out(home: &HomeSession, plan: &OwnedHomePlan, generation: &Value, wait: Duration, key_present: bool) -> Result<(), String> {
     source(home, plan, generation).map_err(|_| PREPARE_FIRST)?;
     let request = home
         .host
@@ -837,15 +888,18 @@ fn sign_out(home: &HomeSession, plan: &OwnedHomePlan, generation: &Value, wait: 
     // reaches a model once the record is gone; then the record is removed, before config.toml is
     // written. Unconfirmed removal changes no settings.
     home.host.supersede_local()?;
-    remove_key_address(plan)?;
+    remove_key_address(plan).map_err(|error| if key_present { error } else { RECORD_NOT_REMOVED_NO_KEY.to_owned() })?;
     Ok(())
 }
 /// The read the web view calls: the App-owned file only; nothing is started.
 /// With a key-address mismatch the state is "unavailable" but the stored settings are still shown,
 /// with the reason token and the recorded address (null without a record), so the page can say
 /// what the refusal says and offer setting the address back.
-/// `superseded`: the bound home's settings were changed through the App in this session, so a
-/// relaunch is required even when the file again equals the settings in force.
+/// `superseded`: a change to the bound home's settings was begun through the App in this session,
+/// so a relaunch is required even when the file again equals the settings in force (or the change
+/// did not complete). `relaunchReason` says which is established: "settings-differ" when the file's
+/// settings differ from those in force, otherwise "change-begun" when only the begun change requires
+/// it; null when no relaunch is required.
 pub(crate) fn settings_view(
     reading: Result<Reading, String>,
     in_force: Option<&LocalSettings>,
@@ -859,7 +913,9 @@ pub(crate) fn settings_view(
     };
     let reason = mismatch.map(|_| KEY_ADDRESS_MISMATCH_REASON);
     let key_address = mismatch.and_then(|m| m.recorded.clone());
-    json!({"state":state,"settings":settings.map(LocalSettings::json),"offered":{"endpoint":OFFERED_ENDPOINT},"inForce":in_force.map(LocalSettings::json),"relaunchRequired":superseded || matches!((settings,in_force),(Some(s),Some(f)) if s!=f),"reason":reason,"keyAddress":key_address})
+    let differ = matches!((settings, in_force), (Some(s), Some(f)) if s != f);
+    let relaunch_reason = if differ { Some("settings-differ") } else if superseded { Some("change-begun") } else { None };
+    json!({"state":state,"settings":settings.map(LocalSettings::json),"offered":{"endpoint":OFFERED_ENDPOINT},"inForce":in_force.map(LocalSettings::json),"relaunchRequired":relaunch_reason.is_some(),"relaunchReason":relaunch_reason,"reason":reason,"keyAddress":key_address})
 }
 fn effects(
     before: Option<&LocalSettings>,
@@ -938,16 +994,20 @@ pub(crate) fn save_within(
     wait: Duration,
 ) -> Result<Value, String> {
     let in_force = in_use.and_then(|home| home.host.local_settings().ok());
-    let outcome = |outcome: &str, removed: bool| {
+    // `signedOut`: Codex's sign-out ran in this save and Codex then reported no account.
+    // `keyRemoved`: that, and Codex's key file was positively present before it (metadata only);
+    // without a key file present nothing is claimed removed.
+    let outcome = |outcome: &str, signed_out: bool, removed: bool| {
         let superseded = in_use.is_some_and(|home| home.host.local_superseded());
         let mut view = settings_view(read(plan), in_force.as_ref(), superseded);
         view["outcome"] = json!(outcome);
-        view["keyRemoved"] = json!(removed);
+        view["signedOut"] = json!(signed_out);
+        view["keyRemoved"] = json!(signed_out && removed);
         view
     };
     let before = stored(plan)?;
     if before.as_ref() == Some(&proposed) {
-        return Ok(outcome("unchanged", false));
+        return Ok(outcome("unchanged", false, false));
     }
     if before.is_none() && (in_use.is_some() || !absent(&plan.native_path().join("auth.json"))) {
         return Err(LIMIT.into());
@@ -992,19 +1052,21 @@ pub(crate) fn save_within(
     let statement = effects(before.as_ref(), &proposed, needs_sign_out, restore, in_use.is_some())?;
     let result = ns::showing_in_app(statement.in_app.as_ref(), || confirm(&statement, SAVE_ACTION))?;
     if !ns::chose(&result, SAVE_ACTION) {
-        return Ok(outcome("cancelled", false));
+        return Ok(outcome("cancelled", false, false));
     }
     window_current()?;
     if stored(plan)? != before {
         return Err(CHANGED.into());
     }
     key_kept()?;
+    let mut key_present = false;
     if let Some((home, generation)) = &signing {
         let (again, now) = ready()?;
         if !std::ptr::eq(again, *home) || now != *generation {
             return Err(PREPARE_FIRST.into());
         }
-        sign_out(home, plan, generation, wait)?;
+        key_present = key_file_present(plan);
+        sign_out(home, plan, generation, wait, key_present)?;
     }
     // A home bound in this session is superseded before the new file can exist: from here the
     // central guard admits nothing to a model in it, whether or not the write below completes.
@@ -1015,15 +1077,13 @@ pub(crate) fn save_within(
         None => write_initial(plan, &proposed),
         Some(before) => replace(plan, before, &proposed),
     };
-    // Codex's removal of the key is already observed; never let a write failure hide it.
-    written.map_err(|error| {
-        if signing.is_some() {
-            format!("Codex removed the saved key; {error}")
-        } else {
-            error
-        }
+    // Codex's sign-out is already observed; never let a write failure hide it.
+    written.map_err(|error| match (signing.is_some(), key_present) {
+        (true, true) => format!("Codex removed the saved key; {error}"),
+        (true, false) => format!("Codex reports no saved key; {error}"),
+        _ => error,
     })?;
-    Ok(outcome("saved", signing.is_some()))
+    Ok(outcome("saved", signing.is_some(), key_present))
 }
 
 /// The plugin's parent() silently ignores failed handle lookups. Only these already successful
@@ -1404,7 +1464,7 @@ mod tests {
         assert_eq!(prepare(&plan).unwrap_err(), UNSET);
         assert!(!plan.native_path().exists(), "no defaults written");
         let view = settings_view(read(&plan), None, false);
-        assert_eq!(view, json!({"state":"unset","settings":null,"offered":{"endpoint":"http://127.0.0.1:8000/v1"},"inForce":null,"relaunchRequired":false,"reason":null,"keyAddress":null}));
+        assert_eq!(view, json!({"state":"unset","settings":null,"offered":{"endpoint":"http://127.0.0.1:8000/v1"},"inForce":null,"relaunchRequired":false,"relaunchReason":null,"reason":null,"keyAddress":null}));
         let chosen = LocalSettings::new("http://127.0.0.1:9000/v1", "org/model").unwrap();
         for cancel in [MessageDialogResult::Cancel, MessageDialogResult::Custom(LEAVE.into()), MessageDialogResult::Custom(format!("{SAVE_ACTION} "))] {
             let mut asked = None;
@@ -1656,6 +1716,64 @@ mod tests {
         assert!(absent(&plan.native_path().join(KEY_ADDRESS)));
         let names: Vec<_> = std::fs::read_dir(plan.native_path()).unwrap().map(|e| e.unwrap().file_name().into_string().unwrap()).collect();
         assert!(names.iter().all(|n| ["config.toml", "auth.lock"].contains(&n.as_str())), "no temporary left: {names:?}");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod first_save_tests {
+    use super::*;
+    fn fixture() -> (std::path::PathBuf, OwnedHomePlan) {
+        let root = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("local-first-save-").unwrap());
+        std::fs::create_dir(&root).unwrap();
+        let plan = OwnedHomePlan::new(root.clone(), root.join("local"), HomeClass::LocalProvider, None).unwrap();
+        (root, plan)
+    }
+    fn names(plan: &OwnedHomePlan) -> Vec<String> {
+        let mut names: Vec<_> = std::fs::read_dir(plan.native_path()).unwrap().map(|e| e.unwrap().file_name().into_string().unwrap()).collect();
+        names.sort();
+        names
+    }
+    #[test]
+    fn native_local_settings_first_save_failing_after_the_temporary_file_is_written_leaves_no_config_and_no_temporary() {
+        let (root, plan) = fixture();
+        let settings = LocalSettings::new("http://127.0.0.1:9100/v1", "org/m").unwrap();
+        let mut seen = None;
+        let error = write_initial_staged(&plan, &settings, |temporary| {
+            // The staged file is whole, private and synced before anything is put in place.
+            seen = Some(std::fs::read_to_string(temporary).unwrap());
+            assert!(absent(&plan.native_path().join("config.toml")));
+            Err(UNCONFIRMED.into())
+        })
+        .unwrap_err();
+        assert_eq!(error, UNCONFIRMED);
+        assert_eq!(seen.as_deref(), Some(canonical(&settings).as_str()));
+        assert!(names(&plan).is_empty(), "no config.toml and no temporary file: {:?}", names(&plan));
+        assert_eq!(stored(&plan), Ok(None), "the home reads as unset, so a later save is a first save again");
+        write_initial(&plan, &settings).unwrap();
+        assert_eq!(stored(&plan), Ok(Some(settings)));
+        assert_eq!(names(&plan), ["config.toml"]);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn native_local_settings_first_save_never_replaces_an_existing_config() {
+        let (root, plan) = fixture();
+        let settings = LocalSettings::new("http://127.0.0.1:9100/v1", "org/m").unwrap();
+        let earlier = canonical(&LocalSettings::new("http://127.0.0.1:9200/v1", "org/other").unwrap());
+        let target = plan.native_path().join("config.toml");
+        // A config.toml appearing between the check and the rename: RENAME_EXCL refuses it.
+        let error = write_initial_staged(&plan, &settings, |_| {
+            std::fs::write(&target, &earlier).unwrap();
+            Ok(())
+        })
+        .unwrap_err();
+        assert_eq!(error, CHANGED);
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), earlier, "the existing file is untouched");
+        assert_eq!(names(&plan), ["config.toml"], "no temporary file left");
+        // One already there before the save: refused before anything is staged.
+        assert_eq!(write_initial_staged(&plan, &settings, |_| panic!("nothing staged")).unwrap_err(), CHANGED);
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), earlier);
+        assert_eq!(names(&plan), ["config.toml"]);
         std::fs::remove_dir_all(root).unwrap();
     }
 }

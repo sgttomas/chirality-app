@@ -32,7 +32,7 @@ async function mounted(handler, check, changed = () => {}) {
 }
 
 test('only a complete reply is a settings reading; anything else shows nothing as set', () => {
-  assert.deepEqual(localSettingsFrom(reading()), {state:'unset', settings:null, offered, inForce:null, relaunchRequired:false, outcome:undefined, keyRemoved:false, keyMismatch:null});
+  assert.deepEqual(localSettingsFrom(reading()), {state:'unset', settings:null, offered, inForce:null, relaunchRequired:false, relaunchReason:null, outcome:undefined, signedOut:false, keyRemoved:false, keyMismatch:null});
   assert.equal(localSettingsFrom(set('http://127.0.0.1:9/v1', 'm')).settings.model, 'm');
   for (const bad of [null, {}, reading({state:'saved'}), reading({state:'set'}), set('http://127.0.0.1:9/v1', 'm', {state:'unset'}), reading({offered:{}}), reading({relaunchRequired:'no'}),
     reading({state:'set', settings:{endpoint:'http://127.0.0.1:9/v1'}}), reading({outcome:'written'})]) assert.equal(localSettingsFrom(bad), null, JSON.stringify(bad));
@@ -45,6 +45,33 @@ test('only a complete reply is a settings reading; anything else shows nothing a
     mismatch({reason:'other'}), set('http://127.0.0.1:9/v1', 'm', {keyAddress:'http://127.0.0.1:9100/v1'}), reading({state:'unavailable', settings:{endpoint:'http://127.0.0.1:9/v1', model:'m'}})]) assert.equal(localSettingsFrom(bad), null, JSON.stringify(bad));
   // A key removal is claimed only when the host says exactly true.
   assert.equal(localSettingsFrom(set('http://127.0.0.1:9/v1', 'm', {outcome:'saved', keyRemoved:'yes'})).keyRemoved, false);
+  assert.equal(localSettingsFrom(set('http://127.0.0.1:9/v1', 'm', {outcome:'saved', signedOut:'yes'})).signedOut, false);
+  // Why a relaunch is required: only the host's two tokens, and only with a required relaunch.
+  for (const reason of ['settings-differ', 'change-begun']) assert.equal(localSettingsFrom(set('http://127.0.0.1:9/v1', 'm', {relaunchRequired:true, relaunchReason:reason})).relaunchReason, reason);
+  assert.equal(localSettingsFrom(set('http://127.0.0.1:9/v1', 'm', {relaunchRequired:true, relaunchReason:'other'})).relaunchReason, null);
+  assert.equal(localSettingsFrom(set('http://127.0.0.1:9/v1', 'm', {relaunchRequired:false, relaunchReason:'change-begun'})), null);
+});
+
+test('after a save the relaunch sentence is the one the host establishes', async () => {
+  const replies = [];
+  await mounted(async (command, args) => {
+    if (command === 'local_model_settings_read') return replies.shift();
+    throw Error(`unexpected ${command}`);
+  }, async ui => {
+    const inForce = {endpoint:'http://127.0.0.1:8000/v1', model:'first-model'};
+    // Changed and changed back: the files equal the settings in use, but a change was begun.
+    replies.push(set('http://127.0.0.1:8000/v1', 'first-model', {inForce, relaunchRequired:true, relaunchReason:'change-begun'}));
+    await ui.press('Show local model settings');
+    assert.match(ui.c.textContent, /A change to the local model settings was begun in this session\. Quit and reopen the App to use the local connection; until then it is unavailable\./);
+    assert.doesNotMatch(ui.c.textContent, /differ from those in use/, 'not said when the settings are the same');
+    replies.push(set('http://[::1]:9000/v1', 'first-model', {inForce, relaunchRequired:true, relaunchReason:'settings-differ'}));
+    await ui.press('Read local model settings again');
+    assert.match(ui.c.textContent, /The saved settings differ from those in use in this session\. Quit and reopen the App to use the saved ones/);
+    assert.doesNotMatch(ui.c.textContent, /was begun in this session/);
+    replies.push(set('http://127.0.0.1:8000/v1', 'first-model', {inForce, relaunchRequired:false, relaunchReason:null}));
+    await ui.press('Read local model settings again');
+    assert.doesNotMatch(ui.c.textContent, /Quit and reopen/);
+  });
 });
 
 test('the early checks accept only a same-machine address and a plain model name', () => {
@@ -103,21 +130,29 @@ test('Save sends exactly the two typed values, and each outcome is said as what 
     assert.equal(notified, 1, 'the route and key state beside it are withdrawn');
     await ui.press('Show local model settings');
     await ui.change('Server address ', 'http://[::1]:9000/v1');
+    // Saved after Codex's sign-out where Codex reported no saved key: no removal is claimed.
+    replies.push(args => set(args.endpoint, args.model, {outcome:'saved', signedOut:true, keyRemoved:false, inForce:{endpoint:'http://127.0.0.1:8000/v1', model:'first-model'}, relaunchRequired:true, relaunchReason:'settings-differ'}));
+    await ui.press('Save local model settings…');
+    assert.match(ui.c.textContent, /Saved\. Codex reports no saved key; enter the key after preparing the connection\./);
+    assert.doesNotMatch(ui.c.textContent, /Codex removed the saved key/);
+    assert.equal(notified, 2);
+    await ui.change('Server address ', 'http://127.0.0.1:8000/v1');
+    await ui.change('Server address ', 'http://[::1]:9001/v1');
     // Saved with the key removed, in a session that was using the old settings.
-    replies.push(args => set(args.endpoint, args.model, {outcome:'saved', keyRemoved:true, inForce:{endpoint:'http://127.0.0.1:8000/v1', model:'first-model'}, relaunchRequired:true}));
+    replies.push(args => set(args.endpoint, args.model, {outcome:'saved', signedOut:true, keyRemoved:true, inForce:{endpoint:'http://127.0.0.1:8000/v1', model:'first-model'}, relaunchRequired:true, relaunchReason:'settings-differ'}));
     await ui.press('Save local model settings…');
     assert.match(ui.c.textContent, /Saved\. Codex removed the saved key for the earlier address; enter the key again/);
-    assert.match(ui.c.textContent, /Saved: server http:\/\/\[::1\]:9000\/v1 · model first-model\./);
+    assert.match(ui.c.textContent, /Saved: server http:\/\/\[::1\]:9001\/v1 · model first-model\./);
     assert.match(ui.c.textContent, /In use in this session: server http:\/\/127\.0\.0\.1:8000\/v1/);
     assert.match(ui.c.textContent, /Quit and reopen the App to use the saved ones/);
-    assert.equal(notified, 2);
+    assert.equal(notified, 3);
     // A reply that is not a settings reading shows nothing new as set.
     await ui.change('Model name on the server ', 'second-model');
     replies.push(() => ({state:'set'}));
     await ui.press('Save local model settings…');
     assert.match(ui.c.textContent, /The reply was not a local model settings reading; nothing is shown as set\./);
     assert.doesNotMatch(ui.c.textContent, /Saved: server/);
-    assert.equal(notified, 3);
+    assert.equal(notified, 4);
   }, () => { notified++; });
 });
 

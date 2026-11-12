@@ -71,7 +71,12 @@ export const localEndpointValid = (value: string) => {
 };
 export const localModelValid = (value: string) => /^[A-Za-z0-9._:\/@+-]{1,128}$/.test(value);
 type LocalSettingsView = { state: "unset" | "set" | "unavailable"; settings: { endpoint: string; model: string } | null; offered: { endpoint: string };
-  inForce: { endpoint: string; model: string } | null; relaunchRequired: boolean; outcome?: "saved" | "unchanged" | "cancelled"; keyRemoved?: boolean;
+  inForce: { endpoint: string; model: string } | null; relaunchRequired: boolean;
+  /** Why a relaunch is required, as the host establishes it; null when it gives no reason it knows. */
+  relaunchReason: "settings-differ" | "change-begun" | null;
+  outcome?: "saved" | "unchanged" | "cancelled";
+  /** `signedOut`: Codex's sign-out ran in this save and Codex then reported no account. `keyRemoved`: and a key file was present before it. */
+  signedOut?: boolean; keyRemoved?: boolean;
   /** Set only when a saved key was entered for another address than the one set; `recorded` is null when the App has no record of that address. */
   keyMismatch: { recorded: string | null } | null };
 const pair = (value: Json) => typeof value?.endpoint === "string" && typeof value?.model === "string" ? { endpoint: value.endpoint as string, model: value.model as string } : null;
@@ -86,8 +91,11 @@ export function localSettingsFrom(value: Json): LocalSettingsView | null {
   if (mismatch ? value.state !== "unavailable" || !settings || !(value.keyAddress === null || (typeof value.keyAddress === "string" && localEndpointValid(value.keyAddress) && value.keyAddress !== settings.endpoint))
     : value.keyAddress != null || (value.state === "set") !== !!settings) return null;
   if (value.outcome !== undefined && !["saved", "unchanged", "cancelled"].includes(value.outcome)) return null;
-  return { state: value.state, settings, offered: { endpoint: value.offered.endpoint }, inForce: pair(value.inForce), relaunchRequired: value.relaunchRequired,
-    outcome: value.outcome, keyRemoved: value.keyRemoved === true, keyMismatch: mismatch ? { recorded: value.keyAddress } : null };
+  // A reason without a required relaunch contradicts itself; an unknown reason is not shown as known.
+  const relaunchReason = value.relaunchReason === "settings-differ" || value.relaunchReason === "change-begun" ? value.relaunchReason : null;
+  if (relaunchReason && !value.relaunchRequired) return null;
+  return { state: value.state, settings, offered: { endpoint: value.offered.endpoint }, inForce: pair(value.inForce), relaunchRequired: value.relaunchRequired, relaunchReason,
+    outcome: value.outcome, signedOut: value.signedOut === true, keyRemoved: value.keyRemoved === true, keyMismatch: mismatch ? { recorded: value.keyAddress } : null };
 }
 
 /** The local model server's address and model name: read at the person's press, saved only through the host's native question. */
@@ -107,7 +115,8 @@ export function LocalModelSettings({ disabled, changed }: { disabled: boolean; c
       setView(next);
       if (command === "local_model_settings_read" || next.outcome === "saved") setDraft({ endpoint: next.settings?.endpoint ?? next.offered.endpoint, model: next.settings?.model ?? "" });
       if (next.outcome === "saved") {
-        setNote({ kind: "status", text: next.keyRemoved ? "Saved. Codex removed the saved key for the earlier address; enter the key again after preparing the connection." : "Saved." });
+        setNote({ kind: "status", text: next.keyRemoved ? "Saved. Codex removed the saved key for the earlier address; enter the key again after preparing the connection."
+          : next.signedOut ? "Saved. Codex reports no saved key; enter the key after preparing the connection." : "Saved." });
         changed?.();
       } else if (next.outcome === "cancelled") setNote({ kind: "status", text: "Not saved: you cancelled. Nothing was changed." });
       else if (next.outcome === "unchanged") setNote({ kind: "status", text: "These are already the saved settings. Nothing was changed." });
@@ -140,7 +149,9 @@ export function LocalModelSettings({ disabled, changed }: { disabled: boolean; c
             <small>Asks you to confirm in a native question first. The saved key is kept and the model name is not changed.</small></p></>
         : <p role="alert">A key is saved, and the App has no record of the server address it was entered for, so it will not use that key at any address. This cannot be put right from the App.</p>)}
       {view.inForce && <p>In use in this session: server <code>{view.inForce.endpoint}</code> · model <code>{view.inForce.model}</code>.</p>}
-      {view.relaunchRequired && <p role="status">The saved settings differ from those in use in this session. Quit and reopen the App to use the saved ones; until then the local connection is unavailable.</p>}
+      {view.relaunchRequired && <p role="status">{view.relaunchReason === "settings-differ" ? "The saved settings differ from those in use in this session. Quit and reopen the App to use the saved ones; until then the local connection is unavailable."
+        : view.relaunchReason === "change-begun" ? "A change to the local model settings was begun in this session. Quit and reopen the App to use the local connection; until then it is unavailable."
+        : "Quit and reopen the App to use the local connection; until then it is unavailable."}</p>}
       {view.state !== "unavailable" && draft && <>
         <p><label>Server address <input autoCapitalize="off" autoCorrect="off" autoComplete="off" spellCheck={false} value={draft.endpoint} disabled={disabled || busy}
           onChange={event => setDraft({ ...draft, endpoint: event.target.value })} aria-describedby="local-endpoint-rule" /></label>
