@@ -165,7 +165,7 @@ test('omitted OpenAI-key mode offers no product entry or dispatch; account and l
     assert.ok(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'));
     assert.ok(!nodes(ui.c, 'option').some(n => props(n).value === 'local-provider'), 'the account home offers no local-provider entry');
     assert.match(region(ui.c, 'Local model servers').textContent, /Codex here runs only on its built-in OpenAI provider/);
-    assert.match(region(ui.c, 'Account connection').textContent, /Keyed oMLX runs Codex in a separate local home/);
+    assert.match(region(ui.c, 'Account connection').textContent, /A local model server \(oMLX or another that serves the same interface\) runs with Codex in a separate local home/);
     assert.ok(button(ui.c, 'Prepare the oMLX connection'), 'keyed local access is offered separately from account sign-in');
     assert.equal(button(ui.c, 'Enter oMLX key in a secure field…'), undefined, 'no key entry before a current local source exists');
     const advanced=nodes(ui.c,'details').find(n=>n.textContent.startsWith('Other sign-in options'));
