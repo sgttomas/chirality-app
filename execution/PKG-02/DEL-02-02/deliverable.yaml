@@ -14,7 +14,13 @@ needs:
   gating: true
 - from: DEL-01-03
   condition: Delegation availability is read for a conversation at run time, and each descendant
-    thread is shown with the identity, parent and role Codex reports.
+    thread is shown with the identity, parent and role Codex reports. Of the error notices Codex
+    sends for a conversation's turns, those the host has kept (the latest for each turn, up to
+    its limit) are reported with the conversation, turn and Codex session each belongs to, the
+    order in which they were received, how many were accepted for the turn, what Codex said of
+    retrying, whether a later frame naming the turn was received and whether the App's receiving
+    ended; and each turn the host holds is reported with its conversation, and with the status
+    the host holds for it from Codex's reports.
   gating: true
 - from: DEL-01-04
   condition: The act control captures a registration the person performs, for one draft, one
