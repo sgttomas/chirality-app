@@ -3,23 +3,31 @@
 //! A development build can be told, by the startup input
 //! `CHIRALITY_DEV_OPENAI_BASE_URL`, to pass a same-machine address to the
 //! account home's Codex as the command-line session setting
-//! `openai_base_url`. A session setting outranks every configuration file, so
-//! the built-in provider's model requests go to that address whatever a file
-//! in the home says. The release configuration never consults the input
-//! (`development_inputs_admitted` in `lib.rs`).
+//! `openai_base_url`. At the pin a session setting outranks the person's and
+//! the project's configuration files, so the built-in provider's model
+//! requests go to that address whatever a file in the home says. A system
+//! managed configuration and managed preferences outrank a session setting
+//! (supplier `codex-rs/config/src/loader/mod.rs`), so a home is not started
+//! with the setting while either is present. The release configuration never
+//! consults the input (`development_inputs_admitted` in `lib.rs`).
 //!
-//! What this holds: where the built-in provider's model requests and model
-//! list are addressed. What it does not hold: sign-in, token, plugin,
-//! connector and analytics addresses, clients the supplier builds for direct
-//! routing, redirects, and anything Codex itself starts. Loopback restricts
-//! where the request goes; it does not make whatever listens there trusted.
+//! What this holds: where the built-in provider's model requests are
+//! addressed, and its model list unless a model catalogue address is
+//! configured. What it does not hold: that catalogue address
+//! (`model_providers.openai.model_catalog_url`), sign-in, token,
+//! plugin, connector and analytics addresses, clients the supplier builds for
+//! direct routing, redirects, and anything Codex itself starts. Loopback
+//! restricts where the request goes; it does not make whatever listens there
+//! trusted.
 //!
 //! A home started with the setting must hold no credential, because the
 //! listener may be a stand-in that records what it receives. So: a home whose
 //! start configuration carries the setting is not started while its sign-in
 //! file is present (by name only, never opened); sign-in is refused in it; and
 //! the separate key home is not prepared at all. Not held: a sign-in kept in
-//! the login keychain, and a file placed from outside the App after start.
+//! the login keychain, and a file placed from outside the App after the last
+//! check (a start refused for that at App start-up, after the setting was
+//! applied, does not show its reason until the person starts Codex).
 
 use crate::hosting::HostConfig;
 use std::ffi::OsString;
@@ -31,6 +39,7 @@ const SETTING: &str = "openai_base_url=";
 
 pub(crate) const INVALID: &str = "The development model address in CHIRALITY_DEV_OPENAI_BASE_URL is not a literal same-machine address (http or https on 127.0.0.1 or [::1], with an optional port and a plain path). Codex was not started.";
 pub(crate) const HOLDS_SIGN_IN: &str = "This development launch sends this home's model requests to a local stand-in, and the home holds a sign-in file, or it could not be established that it holds none. Codex was not started in it.";
+pub(crate) const MANAGED: &str = "This development launch sends this home's model requests to a local stand-in, and a system or managed Codex configuration, which could send them elsewhere, is present, or it could not be established that none is. Codex was not started in it.";
 pub(crate) const SIGN_IN_OFF: &str = "This development launch sends the account home's model requests to a local stand-in, so sign-in is off. Nothing was sent.";
 pub(crate) const KEY_ENTRY_OFF: &str = "This development launch sends the account home's model requests to a local stand-in, so key entry is off. No key home was prepared or started.";
 
@@ -80,9 +89,10 @@ pub(crate) fn loopback_address(text: &str) -> bool {
 /// `admitted` is `development_inputs_admitted`: when it is false the input is
 /// not consulted at all. When the input is set, its value is passed as a
 /// session setting if it is a literal loopback address; any other value is a
-/// refusal, never a fallback to unset. The sign-in file is looked at here as
-/// well as at every start, so that at startup the reason is the home's stated
-/// configuration problem and not a start that silently did not happen.
+/// refusal, never a fallback to unset. The start conditions are checked here
+/// as well as at every start, so that at startup the reason is the home's
+/// stated configuration problem and not a start that silently did not happen.
+/// An earlier refusal of the configuration is kept as it was.
 pub(crate) fn apply(
     config: Result<HostConfig, String>,
     admitted: bool,
@@ -115,13 +125,22 @@ pub(crate) fn set(config: &HostConfig) -> bool {
 }
 
 /// Before every start: a home whose Codex would carry the setting is started
-/// only when its sign-in file is established absent. The file is looked at by
-/// name only (`symlink_metadata`, which cannot open it). Anything other than
-/// "not found" refuses, an unreadable folder included.
+/// only when no system or managed Codex configuration is present (either
+/// outranks a session setting) and its sign-in file is established absent.
+/// The sign-in file is looked at by name only (`symlink_metadata`, which
+/// cannot open it). Anything other than "not found" refuses, an unreadable
+/// folder included.
 pub(crate) fn check_start(config: &HostConfig) -> Result<(), String> {
+    check_start_with(config, crate::native_local_provider::require_no_admin_layers)
+}
+fn check_start_with(
+    config: &HostConfig,
+    no_managed_configuration: impl FnOnce() -> Result<(), String>,
+) -> Result<(), String> {
     if !set(config) {
         return Ok(());
     }
+    no_managed_configuration().map_err(|_| MANAGED)?;
     match std::fs::symlink_metadata(config.codex_home.join("auth.json")) {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
         _ => Err(HOLDS_SIGN_IN.into()),
@@ -365,10 +384,15 @@ for line in sys.stdin:
         host.start(&cfg, "fixture").unwrap();
         assert!(carries_setting(&started_with(&root)[0]));
         host.stop("fixture", "test ended").unwrap();
-        // Without the setting the file is not looked at and the home starts as before.
+        // A system or managed Codex configuration outranks the setting: present, or not
+        // established absent, refuses, before the sign-in file is considered.
+        assert_eq!(check_start_with(&cfg, || Err("present".into())).unwrap_err(), MANAGED);
+        assert!(check_start_with(&cfg, || Ok(())).is_ok());
+        // Without the setting neither is looked at and the home starts as before.
         let (plain_root, plain) = fixture();
         std::fs::write(plain.codex_home.join("auth.json"), b"INVENTED").unwrap();
         assert!(check_start(&plain).is_ok());
+        assert!(check_start_with(&plain, || panic!("not consulted without the setting")).is_ok());
         let host = Arc::new(Host::new());
         host.start(&plain, "fixture").unwrap();
         host.stop("fixture", "test ended").unwrap();

@@ -1255,12 +1255,15 @@ So a launch that is not the owner's sitting also sets
 `CHIRALITY_DEV_OPENAI_BASE_URL` to a same-machine address, for example
 `http://127.0.0.1:9/v1` (nothing listens there) or a loopback stub's address.
 A development build passes it to the account home's Codex at every start as
-the command-line setting `openai_base_url`, which no configuration file
-overrides and which replaces either default address. The rule for the value:
-`http://` or `https://`, then `127.0.0.1` or `[::1]` written literally (no
-name is accepted, `localhost` included, so nothing is resolved), an optional
-port, and a plain path; no user or password part. With any other value Codex
-is not started. Loopback restricts where the request goes; it does not make
+the command-line setting `openai_base_url`, which outranks the person's and
+the project's configuration files and replaces either default address. A
+system managed configuration or managed preference outranks it, so such a home
+is not started while either is present. The rule for the value: at most
+2048 bytes; `http://` or `https://`; then `127.0.0.1` or `[::1]` written
+literally (no name is accepted, `localhost` included, so nothing is resolved);
+an optional port from 1 to 65535 without leading zeroes; and an optional path
+containing only ASCII letters, digits and `._~/-`. No user or password part,
+query or fragment. With any other value Codex is not started. Loopback restricts where the request goes; it does not make
 whatever listens there trusted. The release configuration (built with
 `distribution-successor`, and not a development run) never consults the input.
 The dedicated local home never carries the setting; its provider has its own
@@ -1272,12 +1275,19 @@ carry the setting is not started while it holds a sign-in file (looked at by
 name only); sign-in is refused in it; and the separate key home is not
 prepared at all. Two things the App does not detect: a sign-in kept in the
 login keychain instead of the file, and a sign-in file put there from outside
-the App after start. The launch helper's home kind is the first hold: a home
+the App after its last check (if that happens between App start-up and the
+first start, Codex is not started and the reason shows only when the person
+starts it). The launch helper's home kind is the first hold: a home
 made for the owner's sitting never carries the input.
 
-The setting replaces the built-in provider's address for model requests and
-the model list, and nothing else. Sign-in, token, plugin, connector and
-analytics addresses are separate. For those, such a launch also sets the proxy
+The setting replaces the built-in provider's address for model requests, and
+for the model list unless a model catalogue address is configured
+(`model_providers.openai.model_catalog_url`, which it does not replace).
+Nothing else: the sign-in, token, plugin, connector and analytics addresses
+are separate. As far as the supplier's source shows, a home with no sign-in
+does not ask for the model list at all and lists the catalogue bundled with
+Codex; where a request is made and fails, Codex logs the failure and still
+lists the bundled catalogue. For those, such a launch also sets the proxy
 variables to a loopback port where nothing listens and exempts loopback, as
 the examination launch helper does: `HTTPS_PROXY`, `HTTP_PROXY`, `ALL_PROXY`
 and their lower-case forms to `http://127.0.0.1:9`, and `NO_PROXY` and
