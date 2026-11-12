@@ -203,7 +203,9 @@ pub struct HostConfig {
     pub(crate) require_distribution_artifacts: bool,
     /// The dedicated local home only (None for every other home): the App's lock file there. A
     /// start takes an exclusive, non-waiting lock on it and the Codex child inherits that one
-    /// descriptor, so the lock is held while any process of that Codex lives; held, nothing starts.
+    /// descriptor, so the lock is held while that Codex, or anything it started that kept the
+    /// descriptor, lives; held, nothing starts. A home folder that holds the lock file is locked
+    /// at every start whatever this field says (`native_local_provider::process_lock_for`).
     pub(crate) process_lock: Option<PathBuf>,
 }
 
@@ -1567,7 +1569,9 @@ impl Host {
         // refusal is an ordinary early refusal: nothing is recorded and the state is unchanged, and
         // Prepare or Start can be tried again. A state that admits no start refuses as admission
         // would, before the lock is tried. The App's copy is closed as soon as the child is spawned.
-        let process_lock = match &cfg.process_lock {
+        // The lock follows the folder, not only the configuration: a start whose home folder holds
+        // the App's lock file takes it whatever its configuration names.
+        let process_lock = match crate::native_local_provider::process_lock_for(cfg.process_lock.as_deref(), &cfg.codex_home)? {
             None => None,
             Some(path) => {
                 {
@@ -1576,7 +1580,7 @@ impl Host {
                         return Err(format!("start not accepted in state {}", i.state));
                     }
                 }
-                Some(crate::native_local_provider::take_process_lock(path)?)
+                Some(crate::native_local_provider::take_process_lock(&path)?)
             }
         };
         let attempt = {
@@ -6878,6 +6882,48 @@ mod local_process_lock_tests {
             // No copy is kept by the App: with the child gone the lock is free at once.
             drop(take_process_lock(&f.lock_path()).expect("free: the App keeps no descriptor"));
         }
+    }
+
+    /// The lock follows the folder: a start whose configuration names no lock, pointed at a home
+    /// folder that holds the App's lock file (the development environment route can name the
+    /// local home's folder as the account home), still takes it.
+    #[test]
+    fn local_process_lock_is_taken_by_any_start_in_a_folder_that_holds_the_lock_file() {
+        use crate::native_local_provider::{process_lock_for, PROCESS_LOCK_UNAVAILABLE};
+        let f = Fixture::new(false, false);
+        assert!(f.cfg.process_lock.is_none());
+        // An earlier Codex of that home holds the lock (a stand-in holder here).
+        let earlier = take_process_lock(&f.lock_path()).unwrap();
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), EARLIER_PROCESS);
+        assert!(!f.started() && host.inner.0.lock().unwrap().state == "absent" && host.lifecycle_events().is_empty());
+        drop(earlier);
+        // Free: the same configuration starts, and its child now holds the lock itself.
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by the child");
+        stop_and_wait(&host);
+        drop(take_process_lock(&f.lock_path()).expect("free once the child has exited"));
+        // The rule itself: the folder's lock file is the lock whatever the configuration names;
+        // without one it is the configured lock, or none; a name that cannot be examined refuses.
+        let (home, elsewhere) = (f.root.join("home"), std::path::Path::new("/elsewhere/lock"));
+        assert_eq!(process_lock_for(Some(elsewhere), &home).unwrap(), Some(f.lock_path()));
+        assert_eq!(process_lock_for(None, &home).unwrap(), Some(f.lock_path()));
+        assert_eq!(process_lock_for(Some(elsewhere), &f.root.join("probe")).unwrap().as_deref(), Some(elsewhere));
+        assert_eq!(process_lock_for(None, &f.root.join("probe")).unwrap(), None);
+        assert_eq!(process_lock_for(None, &f.root.join("no-such-home")).unwrap(), None);
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let unexaminable = process_lock_for(None, &home);
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(unexaminable.unwrap_err(), PROCESS_LOCK_UNAVAILABLE);
+    }
+    /// The sentence for a held lock says what may hold it and asserts neither which nor how long.
+    #[test]
+    fn local_process_lock_refusal_asserts_only_what_a_held_lock_shows() {
+        for claim in ["has not ended", "is still running", "ends by itself", "within a minute", "does not end it"] {
+            assert!(!EARLIER_PROCESS.contains(claim), "{claim}");
+        }
+        assert!(EARLIER_PROCESS.contains("is held") && EARLIER_PROCESS.contains("may hold it") && EARLIER_PROCESS.contains("cannot tell which program"));
+        assert!(!EARLIER_PROCESS.contains('/') && !EARLIER_PROCESS.chars().any(|c| c.is_ascii_digit()));
     }
 
     #[test]

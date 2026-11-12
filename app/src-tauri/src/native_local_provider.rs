@@ -158,12 +158,30 @@ pub(crate) fn config(base: &HostConfig, plan: &OwnedHomePlan) -> Result<HostConf
     ];
     Ok(config)
 }
-/// App-owned lock file in the dedicated local home, held by every process of a Codex the App
-/// started there (the child inherits the locked descriptor). Not auth.lock, not Codex's.
+/// App-owned lock file in the dedicated local home. A Codex the App starts there inherits the
+/// locked descriptor, so the lock is held while that Codex, or anything it started that kept the
+/// descriptor, lives. Not auth.lock, not Codex's.
 pub(crate) const PROCESS_LOCK: &str = "chirality-codex-process.lock";
-pub(crate) const EARLIER_PROCESS: &str = "An earlier Codex process for the local model home has not ended, so Codex was not started there. It normally ends by itself within a minute; start Codex again once it has. Quitting and reopening the App does not end it.";
+/// What a held lock establishes is only that something holds it: the sentence names what may,
+/// and asserts neither which nor for how long.
+pub(crate) const EARLIER_PROCESS: &str = "The App's lock for the local model home is held, so Codex was not started there. A Codex process started earlier for that home, a program it started, or another copy of the App may hold it. Try again in a minute. If it stays held, whatever holds it has to end before Codex can start there; the App cannot tell which program it is.";
 /// The refusal when the App cannot open or lock its lock file at all.
 pub(crate) const PROCESS_LOCK_UNAVAILABLE: &str = "The App could not check that no earlier Codex process for the local model home is running, so Codex was not started there.";
+/// The lock a start in this home must take. The lock follows the folder and not the route that
+/// reached it: where the home folder holds the App's lock file, that file is the lock, whatever
+/// the configuration names, so a start pointed at a locked home by any configuration meets an
+/// earlier Codex's lock. Where the folder holds none, it is the one the configuration names (the
+/// dedicated local home's first start creates it), and none where it names none. The name is
+/// looked at only (`symlink_metadata`); presence that cannot be established refuses. Expected to
+/// be folded away when every home's configuration names its lock.
+pub(crate) fn process_lock_for(configured: Option<&Path>, home: &Path) -> Result<Option<std::path::PathBuf>, String> {
+    let path = home.join(PROCESS_LOCK);
+    match std::fs::symlink_metadata(&path) {
+        Ok(_) => Ok(Some(path)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(configured.map(Path::to_path_buf)),
+        Err(_) => Err(PROCESS_LOCK_UNAVAILABLE.into()),
+    }
+}
 /// Opens (creating it private if absent) the App's lock file and takes an exclusive, non-waiting
 /// flock. The returned descriptor is close-on-exec (std opens with O_CLOEXEC); the start clears that
 /// in the Codex child only. Held by another open file description: EARLIER_PROCESS. A link, a file
@@ -393,6 +411,22 @@ mod tests {
         )
         .unwrap();
         (root, plan)
+    }
+    /// The typed route: the dedicated local home is bound only with its own lock file's path.
+    #[test]
+    fn local_process_lock_binding_requires_the_homes_own_lock_path() {
+        let (root, plan) = fixture();
+        prepare(&plan).unwrap();
+        let base = HostConfig::new(root.join("not-an-executable"), root.join("account"), root.join("probe"), root.clone());
+        let cfg = config(&base, &plan).unwrap();
+        assert_eq!(cfg.process_lock.as_deref(), Some(plan.native_path().join(PROCESS_LOCK).as_path()));
+        for wrong in [None, Some(root.join("account").join(PROCESS_LOCK)), Some(plan.native_path().join("auth.lock"))] {
+            let mut changed = cfg.clone();
+            changed.process_lock = wrong;
+            assert!(crate::hosting::Host::new().bind_local_destination(&changed, &plan).is_err());
+        }
+        crate::hosting::Host::new().bind_local_destination(&cfg, &plan).unwrap();
+        std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn native_local_provider_fixed_nonsecret_config_is_private_create_only_and_has_no_account_links(
