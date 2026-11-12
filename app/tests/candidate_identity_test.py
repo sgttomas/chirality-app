@@ -149,12 +149,14 @@ class Scratch(unittest.TestCase):
 class AncestryBinding(Scratch):
     """What the reader requires of the directories above an examined tree, between examining one by name and opening it."""
 
-    def between_stat_and_open(self, name, act):
-        """Run act once, just before the reader opens the path component called name."""
-        real, done = os.open, []
+    def between_stat_and_open(self, name, act, occurrence=1):
+        """Run act once, just before the reader opens the path component called name for the nth time."""
+        real, done, seen = os.open, [], []
         def opening(path, flags, mode=0o777, *, dir_fd=None):
             if path == name and dir_fd is not None and not done:
-                done.append(True); act()
+                seen.append(True)
+                if len(seen) == occurrence:
+                    done.append(True); act()
             return real(path, flags, mode, dir_fd=dir_fd)
         return mock.patch.object(identify.os, 'open', opening), done
 
@@ -187,7 +189,8 @@ class AncestryBinding(Scratch):
 
     def test_an_ancestor_replaced_or_with_changed_access_is_still_refused(self):
         def replace(busy):
-            busy.rename(busy.with_name('moved')); busy.mkdir()
+            # A whole bundle at the old name, so that a missing child is not what refuses.
+            busy.rename(busy.with_name('moved')); write_bundle(busy)
         cases = [('replaced', replace), ('mode', lambda busy: busy.chmod(0o700)),
                  ('group', lambda busy: os.chown(busy, -1, next(g for g in os.getgroups() if g != busy.stat().st_gid)))]
         if hasattr(os, 'chflags'):
@@ -200,11 +203,14 @@ class AncestryBinding(Scratch):
                     busy, app = self.tree()
                     busy.chmod(0o755)
                     patch, done = self.between_stat_and_open('busy', lambda: act(busy))
+                    entered = []
                     try:
-                        with patch, self.assertRaisesRegex(ValueError, 'ancestry changed'):
+                        with patch, self.assertRaises(ValueError):
                             with identify._open_directory(app, bundle=bundle):
-                                pass
+                                entered.append(True)
                         self.assertTrue(done)
+                        # Refused where the directory is opened, before the caller reads anything.
+                        self.assertFalse(entered)
                     finally:
                         if label == 'flags': os.chflags(busy, 0)
                         shutil.rmtree(self.tmp / 'outer')
@@ -212,9 +218,47 @@ class AncestryBinding(Scratch):
     def test_the_bundle_root_keeps_its_full_stamp(self):
         busy, app = self.tree()
         patch, done = self.between_stat_and_open('Test.app', lambda: (app / 'added').write_bytes(b'x'))
-        with patch, self.assertRaisesRegex(ValueError, 'ancestry changed'):
+        entered = []
+        with patch, self.assertRaises(ValueError):
             with identify._open_directory(app, bundle=True):
-                pass
+                entered.append(True)
+        self.assertTrue(done)
+        self.assertFalse(entered)
+
+    @unittest.skipUnless(MAC, 'a bundle identity needs live macOS metadata')
+    def test_a_bundle_put_at_the_name_before_the_reader_reaches_it_is_identified_whole(self):
+        # What identification binds, and what it does not (independent review of this change).
+        # While the reader is between examining and opening the folder ABOVE the bundle, the
+        # bundle is renamed away and another put at its name. The reader has not yet seen the
+        # bundle; it identifies the one now there, whole, and nothing of the first.
+        busy, app = self.tree()
+        first = identify.identity(identify.inventory(app))
+        other = write_bundle(self.tmp / 'spare', extra={'Contents/Resources/other': b'a different bundle'})
+        def swap():
+            app.rename(busy / 'Old.app'); other.rename(app)
+        patch, done = self.between_stat_and_open('busy', swap)
+        with patch:
+            inventory = identify.inventory(app)
+        self.assertTrue(done)
+        second = identify.identity(identify.inventory(app))  # read again with nothing moving
+        self.assertEqual(identify.identity(inventory), second)
+        self.assertNotEqual(second, first)
+        self.assertEqual(identify.identity(identify.inventory(busy / 'Old.app')), first)
+        # The same replacement in the second pass only: the two passes describe different bundles.
+        third = write_bundle(self.tmp / 'spare1', extra={'Contents/Resources/other': b'another bundle again'})
+        def swap_later():
+            app.rename(busy / 'Old1.app'); third.rename(app)
+        patch, done = self.between_stat_and_open('busy', swap_later, occurrence=2)
+        with patch, self.assertRaisesRegex(ValueError, 'between identification passes'):
+            identify.inventory(app)
+        self.assertTrue(done)
+        # The same replacement once the reader HAS reached the bundle is refused.
+        again = write_bundle(self.tmp / 'spare2', extra={'Contents/Resources/other': b'a third bundle'})
+        def swap_inside():
+            app.rename(busy / 'Older.app'); again.rename(app)
+        patch, done = self.between_stat_and_open('Contents', swap_inside)
+        with patch, self.assertRaises(ValueError):
+            identify.inventory(app)
         self.assertTrue(done)
 
     def test_an_ancestor_replaced_while_held_is_refused_and_one_written_in_is_not(self):
@@ -710,6 +754,30 @@ class CandidateRecord(GitScratch):
         (self.app / 'Contents/Resources/instructions/AGENTS.md').write_text('changed\n')
         code, out, _ = self.check(); self.assertEqual(code, 1)
         self.assertIn('Contents/Resources/instructions/AGENTS.md', json.loads(out)['changed'])
+
+    def test_a_record_does_not_transfer_to_a_bundle_put_at_its_name(self):
+        # An identification record is of the bundle that was examined. Another bundle put at the same
+        # name, even in the instant before a later reading reaches it, has its own identity and does
+        # not check against that record.
+        code, _, err = self.record(); self.assertEqual(code, 0, err)
+        recorded = json.loads((self.tmp / 'rec/candidate-identification.json').read_text())['app_candidate']['build_identity']
+        other = write_bundle(self.tmp / 'spare', extra={'Contents/Resources/other': b'a different bundle'})
+        real, done = os.open, []
+        def opening(path, flags, mode=0o777, *, dir_fd=None):
+            if path == 'build' and dir_fd is not None and not done:
+                done.append(True)
+                self.app.rename(self.app.with_name('Old.app')); other.rename(self.app)
+            return real(path, flags, mode, dir_fd=dir_fd)
+        with mock.patch.object(identify.os, 'open', opening):
+            code, out, _ = self.check()
+        self.assertTrue(done)
+        self.assertEqual(code, 1)
+        report = json.loads(out)
+        self.assertFalse(report['equal'])
+        self.assertEqual(report['recorded_build_identity'], recorded)
+        self.assertNotEqual(report['build_identity'], recorded)
+        self.assertEqual(report['build_identity'], identify.identity(identify.inventory(self.app)))
+        self.assertEqual(identify.identity(identify.inventory(self.app.with_name('Old.app'))), recorded)
 
     def test_shared_development_bundle_rule(self):
         judge = identify.judge_development_bundle

@@ -112,6 +112,13 @@ inventory P1 must also equal; it records no acquirer or authorization, and the
 identification states both as not recorded. The complete bundle inventory
 includes P1. The supplier-absent v2 format remains available for its original route.
 
+Identify a candidate when nothing is rebuilding or replacing it, and keep it so
+through its intended use; take the identity recorded for a walk or for the
+owner's own use from the bundle in the place it will be opened from, after it
+is put there. An identity describes the bundle the tool actually examined, not
+whatever occupied that pathname when the tool was asked; the tool's docstring
+says which comparisons it makes and when.
+
 The default `tauri.conf.json` maps the same P2 and P3 trees (the governing
 PKG §4.1 P-2/P-3), so a bundle built without this overlay carries
 them too; the overlay repeats the mapping so this route reads whole. The test

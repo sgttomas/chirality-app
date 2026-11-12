@@ -4,6 +4,28 @@
 Reads an already built, unpackaged App bundle without executing it, computes its
 tree identity and writes or checks a candidate identification record. It builds
 nothing, launches nothing, opens no examination and establishes no qualification.
+
+What an identity describes: the bundle the reader actually examined, not whatever
+occupied its pathname when the caller asked. The reader makes two complete passes
+and requires their results to be equal. In each pass:
+- It opens each directory on the way to the bundle relative to the handle of its
+  parent, without following links, and holds those handles until the pass ends.
+- When it opens one, it compares what it opened with what it had just examined
+  by that name: device, inode, mode, owner, group and flags for a directory above
+  the bundle; the full stamp for the bundle root and for everything inside it.
+- It reads the bundle through its held root, comparing each entry's stamp before
+  and after reading it.
+- When the pass ends it examines each directory on the way once more by its name
+  under its held parent, and compares that with the held handle and with the
+  first examination.
+It does not watch a pathname between those points or between the passes. A bundle
+put at the name before a pass first examined it is what that pass describes, as
+one whole bundle: if both passes describe it, it is the bundle identified, and if
+only the second does, the passes differ and the reading is refused. A record made
+of another bundle does not check against it. So whoever identifies
+a candidate sees to it that nothing rebuilds or replaces the bundle during
+identification and its intended use, and identifies it in the place it will be
+opened from.
 """
 import argparse
 import contextlib
@@ -200,11 +222,12 @@ def _stamp(info):
 
 
 def _binding(info):
-    """What identifies a directory and governs access to it; never its contents.
+    """A directory's identity with its mode, owner, group and flags.
 
-    An ancestor of an examined tree (a temporary folder, a home, a build root) is
-    written by other processes: an entry made or removed there changes its times,
-    size and link count and says nothing about the tree. It is bound by this.
+    Not its access list or extended attributes, and never its contents. An ancestor
+    of an examined tree (a temporary folder, a home, a build root) is written by
+    other processes: an entry made or removed there changes its times, size and
+    link count and says nothing about the tree. It is bound by this.
     """
     return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
             getattr(info, 'st_flags', None))
@@ -231,9 +254,12 @@ def _open_directory(root, bundle=False):
             held.append(child)
             # The directory opened must be the one just examined by name. For a bundle
             # root that is its full stamp, as for everything inside it. For a directory
-            # above or outside the examined tree it is identity and access: its contents
-            # are other processes' to change, and a busy one must not refuse a bundle
-            # nobody touched.
+            # above or outside the examined tree it is _binding: its contents are other
+            # processes' to change, and a busy one must not refuse a bundle nobody
+            # touched. What this gives up: an entry changed in such a directory in the
+            # instant between these two calls is not refused, including the next
+            # component itself being put there; that component is first examined after
+            # this (see the module docstring for which comparisons follow).
             same = _stamp if bundle and index == len(parts) - 1 else _binding
             if same(info) != same(os.fstat(child)):
                 raise ValueError('bundle ancestry changed during identification')
