@@ -12,6 +12,54 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 
 
+class MemoryWriter:
+    """An injected private writer for tests: it keeps what it was handed in memory, so no test needs
+    the private folder at all. Tests assert through `handed`."""
+
+    instances = []
+
+    def __init__(self, root):
+        self.root, self.handed = root, []
+        MemoryWriter.instances.append(self)
+
+    def write(self, label, raw):
+        self.handed.append((label, raw if isinstance(raw, bytes) else str(raw).encode()))
+        return None
+
+
+def install_private_folder_guard(folder_name):
+    """Refuse, in this test process, any listing, walking or read-open of a path inside a folder with
+    this name. Writes by the real writer (create-only opens) stay possible."""
+    import builtins, io
+    if getattr(os, '_chirality_private_guard', False):
+        return
+    def private(path):
+        try:
+            return folder_name in os.fspath(path)
+        except TypeError:
+            return False
+    def refuse(path):
+        raise PermissionError('test guard: the private folder is never read or listed')
+    real_listdir, real_scandir, real_open, real_io_open, real_walk = os.listdir, os.scandir, os.open, io.open, os.walk
+    def listdir(path='.'):
+        if private(path): refuse(path)
+        return real_listdir(path)
+    def scandir(path='.'):
+        if private(path): refuse(path)
+        return real_scandir(path)
+    def os_open(path, flags, *args, **kw):
+        if private(path) and (flags & (os.O_WRONLY | os.O_RDWR)) == 0: refuse(path)
+        return real_open(path, flags, *args, **kw)
+    def io_open(file, mode='r', *args, **kw):
+        if private(file) and not any(c in mode for c in 'wax'): refuse(file)
+        return real_io_open(file, mode, *args, **kw)
+    def walk(top, *args, **kw):
+        if private(top): refuse(top)
+        return real_walk(top, *args, **kw)
+    os.listdir, os.scandir, os.open, io.open, builtins.open, os.walk = listdir, scandir, os_open, io_open, io_open, walk
+    os._chirality_private_guard = True
+
+
 def release(name):
     key = 'chirality_release_' + name
     if key not in sys.modules:
@@ -21,6 +69,7 @@ def release(name):
 
 
 common = release('common')
+install_private_folder_guard(common.PRIVATE_FOLDER)
 sha = common.sha
 Result = common.Result
 TEAM = '8A7JL35U4S'  # the publisher team already public in app/src-tauri/src/capture_seal_keychain.rs
@@ -238,12 +287,14 @@ class FakeApple:
         if '--verify' in rest:
             return Result(0, b'', f'{target}: valid on disk\n{target}: satisfies its Designated Requirement\n{target}: explicit requirement satisfied\n'.encode())
         kind = self.kind(target)
+        executable = target / 'Contents/MacOS/chirality-app-v4' if kind == 'app' else target
+        named = f'Executable={executable}\n'.encode()
         if '--entitlements' in rest:
             if kind == 'vendor':
-                return Result(0, plistlib.dumps(self.supplier.get(target.name, {}).get('entitlements', {})))
+                return Result(0, plistlib.dumps(self.supplier.get(target.name, {}).get('entitlements', {})), named)
             if kind == 'app':
-                return Result(0, self.app_entitlements_override or self.app_entitlements or b'')
-            return Result(0, b'')
+                return Result(0, self.app_entitlements_override or self.app_entitlements or b'', named)
+            return Result(0, b'', named)
         if kind == 'vendor':
             facts = {'team': '2DC432GLL2', 'flags': '0x10000(runtime)', 'timestamp': 'Timestamp=Jan 1, 2026 at 00:00:00'}
             facts.update(self.supplier.get(target.name, {}))
@@ -255,7 +306,7 @@ class FakeApple:
             return Result(0, b'', text.encode())
         identifier = 'com.chirality.app' if kind == 'app' else 'Chirality-4.0.0'
         flags = '0x10000(runtime)' if kind == 'app' else '0x0(none)'
-        text = (f'Executable={target}\nIdentifier={identifier}\nCodeDirectory v=20500 size=1 flags={flags} hashes=1+1\n'
+        text = (f'Executable={executable}\nIdentifier={identifier}\nCodeDirectory v=20500 size=1 flags={flags} hashes=1+1\n'
                 f'CDHash={"d" * 40}\nAuthority={self.identity}\nAuthority=Developer ID Certification Authority\n'
                 f'Timestamp=Jan 1, 2026 at 00:00:00\nTeamIdentifier={self.team}\n{self.display_extra}')
         return Result(0, b'', text.encode())

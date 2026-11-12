@@ -38,7 +38,12 @@ Each run writes two kinds of file into its own output folder.
   These files hold only values the tool builds itself or picks out of a
   tool's output: digests, return codes, shaped identifiers, the two public
   team identifiers, known entitlement keys, and fixed words and reasons. Each
-  value is checked against a stated form before it is written. The command
+  value is checked against a stated form, with a length bound, before it is
+  written. That check confirms a value's form, not where it came from: a value
+  of valid form that the code selected passes, even if the text inside it is
+  something you would not want to send (for example an identifier a tool
+  printed, or a file name in the supplier's tree). Read the files before you
+  send them. The command
   log holds the commands as the tool built them, with each return code and
   the length and SHA-256 of each output, never the output itself. The
   identity name and the profile name appear only as the values of `--sign`
@@ -47,14 +52,21 @@ Each run writes two kinds of file into its own output folder.
   holds the raw command output, the raw notarization logs and full error
   traces, for your own diagnosis. It **may contain account details**.
   - It stays on your machine and is not sent back.
-  - Agents do not open it: no tool or test of ours reads it after writing.
-    That is a rule, not a protection; agents run as your user on your
-    machine.
+  - Agents do not open it. No tool of ours reads it back. Our tests give the
+    tools an in-memory writer instead, and run under a guard that refuses any
+    listing, walk or read of a folder with this name. That is a rule, not a
+    protection: agents run as your user on your machine.
   - When the run is done, delete it or move it somewhere of your own.
 
 A failure prints one fixed reason, which names the step and the observation
 that failed. You can usually act on it without sending anything. The detail
 is in the private folder.
+
+A refusal that comes before the output folder exists (a wrong argument, a
+location inside `/Applications` or `~/Library`, an existing `--out`) writes
+nothing at all: it prints its fixed reason and runs nothing, and there is no
+`STOPPED.json` or `BUILD_FAILED.json`. Those files exist only for runs that
+created their output folder.
 
 ## Building the candidate (agents)
 
@@ -184,8 +196,18 @@ expectation, not a promise.
   That publishes nothing, and nothing is stapled after an interruption.
 - Run again into a new `--out` folder; that submits again.
 
-This procedure installs nothing. Installing the package, which replaces an
-installed v3.0.1, is your act at the installed-package observation.
+This procedure installs nothing and launches nothing. Installing the
+package, which replaces an installed v3.0.1, is your act at the
+installed-package observation.
+
+**Launching writes into your Library.** The package carries the identifier
+`com.chirality.app`, the same one your installed v3.0.1 uses. Launching it is
+your act. When it runs, the system web view inside the App writes its website
+data and caches under `~/Library`, in folders named for that identifier, as
+any launch of an App with that identifier does. Redirecting `HOME` or the
+App's data folder does not change that. No tool or test of ours launches the
+package, and nothing of ours removes any such folder; they are yours to
+clean or keep.
 
 A successful run does not show that the installed App will accept itself.
 Only the installed observation shows that: at its start the App checks its
@@ -232,16 +254,18 @@ Send back the returnable files from the `--out` folder:
 
 Do not send the private folder.
 
-To check a saved notarization log against the record, fetch the original
-again:
+**The original notarization logs are not compared by any tool here.** The
+record holds each original log's SHA-256 (`original_log_sha256` under
+`notarization` in `PACKAGE_IDENTITY.json`), computed when the log was fetched.
+To compare one yourself, on your own machine, fetch it again and hash it:
 
 ```sh
 xcrun notarytool log <submission-id> --keychain-profile <profile-name> original-log.json
+shasum -a 256 original-log.json
 ```
 
-The submission ids are in `PACKAGE_IDENTITY.json` under `notarization`. Pass
-the file to `record.py check` with `--app-original-log` or
-`--disk-image-original-log`.
+The digest should equal the recorded one. The submission ids are in the same
+record.
 
 ## Checking a package against its record
 
@@ -251,7 +275,7 @@ Mount the disk image read-only, then:
 hdiutil attach -readonly -nobrowse -mountpoint /path/mnt Chirality-4.0.0.dmg
 python3 app/packaging/release/record.py check /path/release-folder/PACKAGE_IDENTITY.json \
   --dmg Chirality-4.0.0.dmg --app /path/mnt/Chirality.app \
-  [--candidate /path/to/candidate] [--app-original-log FILE] [--disk-image-original-log FILE]
+  [--candidate /path/to/candidate]
 hdiutil detach /path/mnt
 ```
 
@@ -266,9 +290,18 @@ recorded facts with a new reading of the package:
 - the notarization summaries, and the App archive, which is always compared
 
 Every observation must succeed; a failed one is reported as a failure, never
-as equal. Its output lists the differences and, under `not_checked`, what it
-did not compare, such as candidate provenance without `--candidate`, or the
-original log digests without the logs.
+as equal.
+
+Its output is fixed text and counts, grouped by category. It names a
+differing location only when the name is a field of the record's own shape,
+or a path in the committed distribution record's inventory for the pin.
+Anything else, such as an unexpected file name in the package or an unknown
+key in the record, is counted and not named. No value read from a file or a
+tool is printed.
+
+Under `not_checked` it always lists the original notarization logs (compare
+them by hand, as above), and candidate provenance unless you give
+`--candidate`.
 
 It exits 0 when there is no difference, 1 when there are differences, and 2
 with a fixed message when it cannot read its inputs. It runs `codesign -d`,

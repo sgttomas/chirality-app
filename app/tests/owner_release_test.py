@@ -36,6 +36,11 @@ SECRETS = ['abcd-efgh-ijkl-mnop', 'MIIEinvented', 'someone@example.com', 'invent
            'other-notary-profile', 'ABCDEFGHIJ', 'invented-owner-alias', 'invented-owner@example.invalid', 'Apple ID']
 
 
+DISPLAY_TAIL = (b'Identifier=com.chirality.app\nCodeDirectory v=20500 size=1 flags=0x10000(runtime) hashes=1+1\nCDHash=' + b'd' * 40
+                + b'\nAuthority=Developer ID Application: Invented Publisher (8A7JL35U4S)\nTimestamp=Jan 1, 2026 at 00:00:00\n'
+                + b'TeamIdentifier=8A7JL35U4S\n')
+
+
 def is_app(argv):
     return argv[-1].endswith('.app')
 
@@ -60,7 +65,7 @@ class Base(unittest.TestCase):
         return argparse.Namespace(**values)
 
     def sign(self, environ=ENV, host=HOST, **changes):
-        return owner.sign(self.args(**changes), runner=self.fake, environ=environ, host=host, now=NOW)[0]
+        return owner.sign(self.args(**changes), runner=self.fake, environ=environ, host=host, now=NOW, private=fx.MemoryWriter)[0]
 
     def argv(self, notary_profile=fx.NOTARY):
         return ['--identity', fx.IDENTITY, '--notary-profile', notary_profile, '--candidate', str(self.candidate), '--profile',
@@ -69,8 +74,11 @@ class Base(unittest.TestCase):
 
     def main(self, *extra, runner=None, notary_profile=fx.NOTARY):
         stdout, stderr = io.StringIO(), io.StringIO()
+        self.private = []
+        def private(root):
+            writer = fx.MemoryWriter(root); self.private.append(writer); return writer
         code = owner.main(self.argv(notary_profile) + list(extra), stdout=stdout, stderr=stderr, runner=runner or self.fake,
-                          environ=ENV, host=HOST, now=NOW)
+                          environ=ENV, host=HOST, now=NOW, private=private)
         return code, stdout.getvalue(), stderr.getvalue()
 
     def log(self):
@@ -99,20 +107,77 @@ class Assessment(Base):
     """The most serious finding of round 2: an assessment saying "not accepted" with return code 0 was recorded as accepted."""
 
     def test_a_negative_assessment_with_return_code_zero_is_never_accepted(self):
-        negative = Result(0, b'', b'<subject>: not accepted\nsource=Notarized Developer ID\n')
-        for text in (b'x: rejected\nsource=Notarized Developer ID\n', b'x: accepted\nsource=Unnotarized Developer ID\n',
-                     b'x: not accepted\nsource=Notarized Developer ID\n', b'x: accepted\n', b''):
+        negative = lambda argv: Result(0, b'', f'{argv[-1]}: not accepted\nsource=Notarized Developer ID\n'.encode())
+        for text in (b'/x: rejected\nsource=Notarized Developer ID\n', b'/x: accepted\nsource=Unnotarized Developer ID\n',
+                     b'/x: not accepted\nsource=Notarized Developer ID\n', b'/x: accepted\n', b'', b'accepted\nsource=Notarized Developer ID\n'):
             with self.subTest(text=text), self.assertRaises(common.ObservationFailed):
-                common.observe('assessment', Result(0, b'', text), subjects=['x'])
-        common.observe('assessment', Result(0, b'', b'x: accepted\nsource=Notarized Developer ID\norigin=Developer ID Application: Errorless (8A7JL35U4S)\n'),
-                       subjects=['x'])
+                common.observe('assessment', Result(0, b'', text), subject='/x')
+        common.observe('assessment', Result(0, b'', b'/x: accepted\nsource=Notarized Developer ID\norigin=Developer ID Application: Errorless (8A7JL35U4S)\n'),
+                       subject='/x')
         self.failing(('-t', 'open'), negative, 'S12_OPEN')
         self.setUp()
         self.failing(('-t', 'exec'), negative, 'S12_EXEC')
         self.setUp()
-        stopped, _ = self.failing(('-t', 'exec'), lambda argv: negative if sum(c[1] == 'detach' for c in self.fake.calls) == 1 else None,
+        stopped, _ = self.failing(('-t', 'exec'), lambda argv: negative(argv) if sum(c[1] == 'detach' for c in self.fake.calls) == 1 else None,
                                   'S13_OBSERVATION')
         self.assertIn({'observation': 'gatekeeper', 'subject': 'app'}, stopped['failed_observations'])
+
+
+class Binding(Base):
+    """Round 3 finding 3: an observation counts only when it names the object asked about and is unambiguous."""
+
+    def test_the_rule_refuses_other_objects_and_ambiguity(self):
+        asked = '/invented/asked'
+        refused = {
+            'assessment of another path': ('assessment', Result(0, b'', b'/invented/other: accepted\nsource=Notarized Developer ID\n')),
+            'two assessment sources': ('assessment', Result(0, b'', b'/invented/asked: accepted\nsource=Notarized Developer ID\nsource=Developer ID\n')),
+            'verify of another path': ('verify', Result(0, b'', b'/invented/other: valid on disk\n')),
+            'requirement of another path': ('requirement', Result(0, b'', b'/invented/other: valid on disk\n/invented/other: explicit requirement satisfied\n')),
+            'staple of another path': ('staple', Result(0, b'Processing: /invented/other\nThe staple and validate action worked!\n')),
+            'validate of another path': ('validate', Result(0, b'Processing: /invented/other\nThe validate action worked!\n')),
+            'display of another executable': ('signature', Result(0, b'', b'Executable=/invented/other\n' + DISPLAY_TAIL)),
+            'display naming no executable': ('signature', Result(0, b'', DISPLAY_TAIL)),
+            'conflicting identifiers': ('signature', Result(0, b'', b'Executable=/invented/asked\n' + DISPLAY_TAIL + b'Identifier=other\n')),
+            'conflicting teams': ('signature', Result(0, b'', b'Executable=/invented/asked\n' + DISPLAY_TAIL + b'TeamIdentifier=OTHER00001\n')),
+            'entitlements of another executable': ('entitlements', Result(0, plistlib.dumps({}), b'Executable=/invented/other\n')),
+            'duplicate JSON status': ('submit', Result(0, b'{"id":"00000001-89ab-cdef-0123-456789abcdef","status":"Invalid","status":"Accepted"}')),
+            'no object asked about': ('verify', Result(0, b'', b'/invented/asked: valid on disk\n')),
+        }
+        for name, (kind, result) in refused.items():
+            with self.subTest(name), self.assertRaises(common.ObservationFailed):
+                common.observe(kind, result, subject=None if name == 'no object asked about' or kind == 'submit' else asked)
+        common.observe('signature', Result(0, b'', b'Executable=/invented/asked\n' + DISPLAY_TAIL + b'Identifier=com.chirality.app\n'), subject=asked)
+        common.observe('verify', Result(0, b'', b'--prepared:/invented/x.app/Contents/Resources/codex/bin/codex\n/invented/x.app: valid on disk\n'),
+                       subject='/invented/x.app')
+
+    def test_a_run_whose_tools_report_another_object_stops(self):
+        """The reviewer's whole-run probe: every reported path replaced with another object's."""
+        real = self.fake.__call__
+        def elsewhere(argv, **kw):
+            result = real(argv, **kw)
+            target = argv[-1].encode()
+            swap = lambda raw: raw.replace(target, b'/invented/different-object')
+            return Result(result.returncode, swap(result.stdout), swap(result.stderr))
+        code, stdout, stderr = self.main(runner=elsewhere)
+        self.assertEqual(code, 3)
+        self.assertFalse((self.out / 'RESULT.json').exists())
+        self.assertFalse((self.out / 'PACKAGE_IDENTITY.json').exists())
+
+    def test_hardened_runtime_off_at_record_time_stops(self):
+        """Round 3 finding 4: a reading at record time without hardened runtime stops; it is never recorded as false."""
+        for target, failed in (('.app', 'hardened runtime'), ('codex', 'supplier signature changed')):
+            with self.subTest(target=target):
+                self.setUp()
+                real = self.fake.codesign
+                def display(rest, target=target, real=real):
+                    result = real(rest)
+                    if rest[:2] == ['-d', '--verbose=4'] and '/mount/' in rest[-1] and rest[-1].endswith(target):
+                        return Result(0, b'', result.stderr.replace(b'flags=0x10000(runtime)', b'flags=0x0(none)'))
+                    return result
+                self.fake.codesign = display
+                stopped, _ = self.failing(None, None, 'S13_OBSERVATION')
+                self.assertIn(failed, [f['observation'] for f in stopped['failed_observations']])
+                self.assertFalse((self.out / 'PACKAGE_IDENTITY.json').exists())
 
 
 class OwnerSign(Base):
@@ -178,19 +243,32 @@ class OwnerSign(Base):
         self.assertEqual({k: v['submission_id'] for k, v in identity['notarization'].items()}, {'app': APP_ID, 'disk_image': DMG_ID})
         self.assertEqual(identity['notarization']['app']['submitted'], 'notary/Chirality-4.0.0-app.zip')
         mounted = fx.make_mount_copy(self.out / 'staging', self.root / 'mounted')
-        found, not_checked = record.check(identity, dmg=self.out / 'Chirality-4.0.0.dmg', app=mounted / common.APP_NAME,
-                                          run=self.fake, record_dir=self.out)
-        self.assertEqual(found, [])
-        self.assertEqual(not_checked, list(record.NOT_CHECKED.values()))
+        result = record.check(identity, dmg=self.out / 'Chirality-4.0.0.dmg', app=mounted / common.APP_NAME,
+                              run=self.fake, record_dir=self.out)
+        self.assertTrue(result['equal'], result)
+        self.assertIn(record.NOT_CHECKED_LOGS, result['not_checked'])
+        self.assertFalse((self.out / common.PRIVATE_FOLDER).exists())  # the injected writer kept the raw output in memory
 
-    def test_private_folder_is_written_with_private_modes(self):
-        self.sign()
-        folder = self.out / common.PRIVATE_FOLDER
-        self.assertEqual(stat.S_IMODE(os.stat(folder).st_mode), 0o700)
-        names = os.listdir(folder)  # listing and modes only; no test reads a private file
-        self.assertTrue(names)
-        for name in names:
-            self.assertEqual(stat.S_IMODE(os.stat(folder / name).st_mode), 0o600)
+    def test_raw_output_is_handed_to_the_private_writer_only(self):
+        self.inject = 'invented-owner-account'
+        self.fake.submit_extra = {'developerAccount': self.inject}
+        code, stdout, stderr = self.main()
+        self.assertEqual(code, 0, stderr)
+        handed = [raw for writer in self.private for _, raw in writer.handed]
+        self.assertTrue(any(self.inject.encode() in raw for raw in handed))
+        for name in ('log.jsonl', 'notary/app-notarization.json', 'PACKAGE_IDENTITY.json', 'RESULT.json'):
+            self.assertNotIn(self.inject, (self.out / name).read_text())
+
+    def test_the_real_private_writer_uses_private_modes(self):
+        out = self.root / 'writer-out'; out.mkdir()
+        writer = common.PrivateWriter(out)
+        paths = [writer.write('first', b'invented raw'), writer.write('second', b'more')]
+        self.assertEqual(stat.S_IMODE(os.stat(writer.folder).st_mode), 0o700)
+        for path in paths:  # by the paths the writer returned: stat only, never a listing or a read
+            self.assertEqual(stat.S_IMODE(os.stat(path).st_mode), 0o600)
+        for path in paths:
+            os.unlink(path)
+        os.rmdir(writer.folder)
 
     def test_refusals_run_no_command(self):
         cases = {
@@ -342,7 +420,7 @@ class OwnerSign(Base):
             if app.suffix == '.app':
                 (app / 'Contents/CodeResources').write_bytes(b'ticket')
                 (app / 'Contents/Resources/codex/codex-resources/input.txt').write_bytes(b'changed by stapling')
-                return Result(0, b'The staple and validate action worked!\n')
+                return Result(0, f'Processing: {app}\nThe staple and validate action worked!\n'.encode())
         self.failing(('stapler', 'staple'), careless, 'S7_ONLY_TICKET')
 
     def test_archiving_for_submission_may_not_change_the_app(self):
@@ -372,7 +450,7 @@ class OwnerSign(Base):
             self.failing(None, None, 'S1_COPY')
 
     def test_interruption_and_timeout_stop_with_a_record(self):
-        for error, code in ((KeyboardInterrupt(), 'INTERRUPTED'), (TimeoutError('invented-owner-alias QQQQ11111Q'), 'UNEXPECTED')):
+        for error, code in ((KeyboardInterrupt(), 'INTERRUPTED'), (TimeoutError('invented-owner-alias QQQQ11111Q'), 'S6_UNEXPECTED')):
             with self.subTest(code=code):
                 self.setUp()
                 def run(argv, **kw):
@@ -425,7 +503,17 @@ class Reasons(unittest.TestCase):
 
 
 class NoPrivateReader(unittest.TestCase):
-    """No code path reads the private folder: only PrivateWriter names it, and it has no read method."""
+    """No code path reads the private folder: only PrivateWriter names it, it has no read method, and this
+    suite runs under a guard that refuses any listing, walk or read-open inside such a folder."""
+
+    def test_the_suite_guard_refuses_reading_or_listing_the_private_folder(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp) / common.PRIVATE_FOLDER
+            for attempt in (lambda: os.listdir(folder), lambda: os.scandir(folder), lambda: list(os.walk(folder)),
+                            lambda: open(folder / 'x', 'rb'), lambda: (folder / 'x').read_bytes(), lambda: list(folder.iterdir()),
+                            lambda: os.open(folder, os.O_RDONLY)):
+                with self.assertRaises(PermissionError):
+                    attempt()
 
     def test_only_the_writer_touches_the_private_folder(self):
         for path in sorted(RELEASE_DIR.glob('*.py')):
@@ -442,12 +530,14 @@ class NoPrivateReader(unittest.TestCase):
 class Secrets(Base):
     """Nothing a tool did not construct or select reaches a returnable file or an output stream."""
 
+    RETURNABLE = ('log.jsonl', 'notary/app-notarization.json', 'notary/disk-image-notarization.json', 'PACKAGE_IDENTITY.json',
+                  'RESULT.json', 'STOPPED.json')
+
     def returnable(self, *streams):
         texts = list(streams)
-        for path in sorted(self.out.rglob('*')) if self.out.exists() else []:
-            if common.PRIVATE_FOLDER in path.parts or not path.is_file():
-                continue
-            if path.suffix in ('.json', '.jsonl'):
+        for name in self.RETURNABLE:  # the named returnable files; the output folder is never walked
+            path = self.out / name
+            if path.is_file():
                 text = path.read_text()
                 texts.append(text)
                 values = [json.loads(line) for line in text.splitlines()] if path.suffix == '.jsonl' else [json.loads(text)]
@@ -511,7 +601,7 @@ class Secrets(Base):
                         raise error
                     return self.fake(argv, **kw)
                 code, stdout, stderr = self.main(runner=explode)
-                self.assertEqual(stderr, 'STOP: ' + common.REASONS['UNEXPECTED'] + '\n')
+                self.assertEqual(stderr, 'STOP: ' + common.REASONS['S6_UNEXPECTED'] + '\n')
                 self.assert_clean(self.returnable(stdout, stderr))
 
     def test_unknown_arguments_are_not_echoed(self):
@@ -529,7 +619,7 @@ class Secrets(Base):
 
 
 class RecordCheck(unittest.TestCase):
-    """`check` validates the record's structure and reports each kind of difference."""
+    """`check` validates the record's structure and reports differences by fixed category."""
 
     def setUp(self):
         self.case = OwnerSign('test_full_run_follows_the_plan_and_writes_a_record_that_checks')
@@ -541,17 +631,23 @@ class RecordCheck(unittest.TestCase):
         self.mounted = fx.make_mount_copy(self.out / 'staging', self.case.root / 'mounted')
         self.app = self.mounted / common.APP_NAME
 
-    def differences(self, **kw):
-        return record.check(self.identity, dmg=self.dmg, app=self.app, run=self.case.fake, record_dir=self.out, **kw)[0]
+    def result(self, **kw):
+        return record.check(self.identity, dmg=self.dmg, app=self.app, run=self.case.fake, record_dir=self.out, **kw)
 
-    def assert_found(self, *prefixes, **kw):
-        found = self.differences(**kw)
-        self.assertTrue(found, 'no difference reported')
+    def assert_found(self, *prefixes, failed=(), **kw):
+        result = self.result(**kw)
+        self.assertFalse(result['equal'])
         for prefix in prefixes:
-            self.assertTrue(any(f.startswith(prefix) for f in found), (prefix, found))
+            self.assertTrue(any(k.startswith(prefix) for k in result['differences']), (prefix, result['differences']))
+        for name in failed:
+            self.assertIn(name, result['failed_observations'])
+        return result
 
-    def test_unchanged_package_has_no_difference(self):
-        self.assertEqual(self.differences(), [])
+    def test_unchanged_package_is_equal_and_names_what_it_did_not_check(self):
+        result = self.result()
+        self.assertEqual((result['equal'], result['differences'], result['failed_observations']), (True, {}, {}))
+        self.assertEqual(result['not_checked'], [record.NOT_CHECKED_LOGS, record.NOT_CHECKED_CANDIDATE])
+        self.assertEqual(self.result(candidate_dir=self.case.candidate)['not_checked'], [record.NOT_CHECKED_LOGS])
 
     def test_package_bytes(self):
         with open(self.dmg, 'ab') as handle: handle.write(b'x')
@@ -559,49 +655,81 @@ class RecordCheck(unittest.TestCase):
 
     def test_vendor_file(self):
         (self.app / 'Contents/Resources/codex/codex-resources/input.txt').write_bytes(b'changed')
-        self.assert_found('observed.vendor.', 'observed.app_as_signed.', 'observed.app_as_stapled.')
+        self.assert_found('observed.vendor', 'observed.app_as_signed', 'observed.app_as_stapled')
 
     def test_app_ticket(self):
         (self.app / 'Contents/CodeResources').write_bytes(b'another ticket')
-        self.assert_found('observed.app_as_stapled.', 'observed.stapled_tickets.app.ticket_sha256')
+        self.assert_found('observed.app_as_stapled', 'observed.stapled_tickets.app.ticket_sha256')
         (self.app / 'Contents/CodeResources').unlink()
-        self.assert_found('observation failed: ticket validation (app)', 'observation failed: stapled ticket absent')
+        self.assert_found(failed=('ticket validation', 'stapled ticket absent'))
 
     def test_signer_and_profile(self):
         self.case.fake.app_entitlements_override = plistlib.dumps({'com.apple.security.get-task-allow': True})
-        self.assert_found('observed.signatures..', 'observation failed: entitlements (.)')
+        self.assert_found('observed.signatures..', failed=('entitlements', 'debugging entitlement'))
         self.case.fake.app_entitlements_override = None
         (self.app / 'Contents/embedded.provisionprofile').write_bytes(fx.profile_bytes(team='OTHER00001', prefix='OTHER00001'))
-        self.assert_found('observed.provisioning_profile.')
+        self.assert_found('observed.provisioning_profile')
 
     def test_incomplete_display_and_negative_assessment_are_failures(self):
         fake = self.case.fake
         fake.override[('-d', '--verbose=4')] = Result(0, b'', b'Identifier=com.chirality.app\nTeamIdentifier=8A7JL35U4S\n')
-        fake.override[('-t', 'open')] = Result(0, b'', b'x: not accepted\nsource=Notarized Developer ID\n')
-        self.assert_found('observation failed: signature (.)', 'observation failed: gatekeeper (disk_image)', 'observed.gatekeeper')
+        fake.override[('-t', 'open')] = lambda argv: Result(0, b'', f'{argv[-1]}: not accepted\nsource=Notarized Developer ID\n'.encode())
+        self.assert_found('observed.gatekeeper', failed=('signature', 'gatekeeper'))
+
+    def test_hardened_runtime_off_at_reading_is_a_failure_not_a_fact(self):
+        """Round 3 finding 4, at check time: runtime false is never reported as equal or recorded beside success."""
+        fake = self.case.fake
+        real = fake.codesign
+        fake.codesign = lambda rest: Result(0, b'', real(rest).stderr.replace(b'flags=0x10000(runtime)', b'flags=0x0(none)')) \
+            if rest[:2] == ['-d', '--verbose=4'] else real(rest)
+        self.assert_found(failed=('hardened runtime',))
 
     def test_record_structure_is_required_and_the_archive_always_compared(self):
         broken = json.loads(json.dumps(self.identity))
         del broken['notarization']['app']['submitted']
-        found, not_checked = record.check(broken, dmg=self.dmg, app=self.app, run=self.case.fake, record_dir=self.out)
-        self.assertEqual(found, ['record structure: lacks notarization.app.submitted'])
+        result = record.check(broken, dmg=self.dmg, app=self.app, run=self.case.fake, record_dir=self.out)
+        self.assertEqual(result['record_structure_missing'], ['notarization.app.submitted'])
+        self.assertFalse(result['equal'])
         (self.out / 'notary/Chirality-4.0.0-app.zip').write_bytes(b'wrong archive')
-        self.assert_found('notarization.app: submitted file')
+        self.assert_found(failed=('submitted file',))
 
-    def test_notarization_fields_provenance_and_original_logs(self):
+    def test_notarization_fields_and_provenance(self):
         for key, field, value in (('app', 'status', 'Invalid'), ('app', 'submission_id', 'x'), ('disk_image', 'submitted_sha256', '0' * 64),
                                   ('disk_image', 'summary_sha256', '0' * 64), ('app', 'original_log_sha256', '0' * 64)):
             with self.subTest(key=key, field=field):
                 original = self.identity['notarization'][key][field]
                 self.identity['notarization'][key][field] = value
-                self.assert_found(f'notarization.{key}')
+                self.assert_found(f'notarization.{key}.{field}')
                 self.identity['notarization'][key][field] = original
         self.identity['candidate']['source_revision'] = '0' * 40
-        self.assertEqual(self.differences(), [])  # without --candidate, provenance is listed as not checked
+        self.assertTrue(self.result()['equal'])  # without --candidate, provenance is listed as not checked
         self.assert_found('candidate.source_revision', candidate_dir=self.case.candidate)
-        self.identity['candidate']['source_revision'] = 'a' * 40
-        given = self.case.root / 'refetched.json'; given.write_bytes(b'{"a different": "log"}')
-        self.assert_found('notarization.app.original_log_sha256', original_logs={'app': given})
+
+    def run_cli(self, record_path):
+        out, err = io.StringIO(), io.StringIO()
+        code = record.main(['check', str(record_path), '--dmg', str(self.dmg), '--app', str(self.app)], run=self.case.fake, stdout=out, stderr=err)
+        return code, out.getvalue(), err.getvalue()
+
+    def test_names_read_from_files_never_reach_the_output(self):
+        """Round 3 finding 2: a vendor file or a record key named like a secret is counted, not named."""
+        secret = 'password=invented-secret someone@example.invalid'
+        (self.app / 'Contents/Resources/codex/codex-resources' / secret).write_bytes(b'x')
+        tampered = json.loads(json.dumps(self.identity))
+        tampered['observed'][secret] = 'x'
+        tampered['notarization']['app'][secret] = 'x'
+        path = self.case.root / 'tampered.json'
+        path.write_text(json.dumps(tampered))
+        code, out, err = self.run_cli(path)
+        self.assertEqual(code, 1)
+        self.assertNotIn('invented-secret', out + err)
+        self.assertNotIn('someone@example.invalid', out + err)
+        result = json.loads(out)
+        self.assertTrue(any('(an entry not named)' in k for k in result['differences']))
+        vendor_paths = record.committed_vendor_paths('9.9.9')
+        for key in result['differences']:
+            location = key.rsplit(': ', 1)[0].replace(' (an entry not named)', '')
+            for segment in location.split('.'):
+                self.assertTrue(segment in record.FIELD_NAMES or segment in vendor_paths or segment == '', (segment, key))
 
     def test_command_line_reports_a_fixed_message_without_a_traceback(self):
         out, err = io.StringIO(), io.StringIO()
@@ -611,6 +739,13 @@ class RecordCheck(unittest.TestCase):
         self.assertNotIn('invented-owner', err.getvalue())
         self.assertNotIn('Traceback', err.getvalue())
         self.assertNotIn(str(self.case.root), err.getvalue())
+
+    def test_the_original_log_options_are_gone(self):
+        err = io.StringIO()
+        with patch('sys.stderr', err), self.assertRaises(SystemExit):
+            record.main(['check', str(self.out / 'PACKAGE_IDENTITY.json'), '--dmg', str(self.dmg), '--app', str(self.app),
+                         '--app-original-log', str(self.case.root / 'any.json')], run=self.case.fake)
+        self.assertIn('usage error', err.getvalue())
 
 
 if __name__ == '__main__':

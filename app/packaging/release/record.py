@@ -3,13 +3,20 @@
 `build_record` reads the package and the operating system's reports through
 the one observation rule (common.observe) and selects every value it records:
 digests, shaped identifiers, public team identifiers, known entitlements, fixed
-words. No free text from a tool is recorded. When any observation the record
-states fails, it raises RecordFailed with the failed observations named by
-fixed words; owner_sign.py then stops and writes no record.
+words. No free text from a tool is recorded. A fact the scope requires is
+recorded only as read positive: the App's own code must show the publisher
+identity, hardened runtime, a timestamp and no debugging entitlement, and each
+supplier executable must equal what was read from the supplier's tree before
+signing. When any observation fails, it raises RecordFailed with the failed
+observations named by fixed words; owner_sign.py then stops and writes no record.
 
 `check` validates a record's required structure, re-reads a package and the
-returnable notarization summaries, and lists every difference and every
-failed observation, together with what it did not check.
+returnable notarization summaries, and prints fixed messages and counts by
+category. It names a differing location only when it is a field of the record's
+own stated shape or a path of the committed distribution record's inventory;
+anything else is counted, not named. It never compares the original
+notarization logs: the record holds their digests, and the owner compares a
+refetched log by hand (see the owner's page).
 
 Reading signatures runs `codesign -d`, `xcrun stapler validate` and
 `spctl --assess`. Only the owner, or an examiner the owner authorises, runs
@@ -22,7 +29,6 @@ that drift and mistakes are caught. They are not a filesystem snapshot and are n
 a writer changing the inputs during the run, nor someone with write access forging a record: a
 completion marker or a recorded digest is not authentication.
 """
-import argparse
 import importlib.util
 import json
 import os
@@ -42,7 +48,7 @@ def sibling(name):
 common = sibling('common')
 prepare, inventory, require, sha = common.prepare, common.inventory, common.require, common.sha
 
-FORMAT = 'chirality-package-identity/3'
+FORMAT = 'chirality-package-identity/4'
 STAPLED_TICKET = 'Contents/CodeResources'
 NOTARIZED = ('app', 'disk_image')
 NOT_OBSERVED = [
@@ -54,15 +60,27 @@ NOT_OBSERVED = [
     'whether the installed App accepts its own signature and Codex: only the installed observation shows it',
     'notice completeness (REQ-006), v3.0.1 data preservation (REQ-008) and the bundle after a run (AC-001) are not observed',
 ]
-NOT_CHECKED = {
-    'candidate': 'not checked: candidate provenance (give --candidate with the build output folder)',
-    'original_logs': 'not checked: the original notarization log digests (fetch each log again and give --app-original-log and --disk-image-original-log)',
-}
+NOT_CHECKED_LOGS = ('not checked by this tool: the original notarization logs; the record holds each log\'s digest '
+                    '(original_log_sha256), which the owner compares by hand with shasum -a 256')
+NOT_CHECKED_CANDIDATE = 'not checked: candidate provenance (give --candidate with the build output folder)'
 FAILURES = ['bundle identity', 'signature', 'entitlements', 'unexpected entitlement', 'other team', 'ticket validation',
             'stapled ticket absent', 'gatekeeper', 'provisioning profile', 'notarization summary', 'notarization status',
             'notarization issues', 'notarization digest', 'submitted file', 'app as signed', 'workflow manifest',
-            'record structure', 'candidate provenance', 'original log digest']
-common.VOCABULARY.update(NOT_OBSERVED, NOT_CHECKED.values(), FAILURES)
+            'hardened runtime', 'ad hoc signature', 'signer', 'identifier', 'debugging entitlement', 'supplier signature changed']
+# Every field name the record's stated shape uses: the only keys `check` prints by name.
+FIELD_NAMES = {
+    'format', 'package', 'file_name', 'sha256', 'size', 'public_teams', 'publisher_team', 'candidate', 'source_revision', 'pin',
+    'expected_manifest', 'build_environment_sha256', 'unsigned_executable_sha256', 'limitations_source', 'limitations_sha256',
+    'observed', 'bundle', 'name', 'identifier', 'version', 'bundle_version', 'minimum_system_version', 'executable',
+    'info_plist_sha256', 'executable_sha256', 'app_as_signed', 'app_as_stapled', 'digest', 'inventory', 'root_mode',
+    'manifest_sha256', 'files', 'entries', 'vendor', 'resources', 'workflows', 'shipped_revisions',
+    'historical_shipped_revision_count', 'roles_sha256', 'limitations', 'disk_image', 'equal_to_candidate_source', 'signatures',
+    'team', 'cdhash', 'flags', 'runtime', 'adhoc', 'timestamp', 'signer', 'signer_team', 'entitlements', 'unexpected_entitlements',
+    'provisioning_profile', 'decoded', 'uuid', 'app_id', 'allowed_entitlements', 'expiration', 'stapled_tickets', 'app',
+    'validated', 'ticket_sha256', 'gatekeeper', 'accepted', 'source', 'notarization', 'summary', 'summary_sha256', 'submission_id',
+    'status', 'issue_count', 'submitted_sha256', 'original_log_sha256', 'submitted', 'not_observed', 'mode', 'kind', 'target_sha256',
+}
+common.VOCABULARY.update(NOT_OBSERVED, FAILURES, {NOT_CHECKED_LOGS, NOT_CHECKED_CANDIDATE})
 
 
 class RecordFailed(ValueError):
@@ -101,30 +119,55 @@ def as_signed(stapled):
             'files': sum(v['kind'] == 'file' for v in entries.values()), 'entries': entries}
 
 
-def signature(run, path, where, failures, public_teams, expect_team, exact_entitlements=None):
-    """One signed executable: display and entitlements, each through the one observation rule."""
+def read_signature(run, path, public_teams):
+    """(facts, failure name or None): one signed executable's display and entitlements, through the one observation rule."""
     try:
-        fields = common.observe('signature', run(common.display_argv(path)))
+        fields = common.observe('signature', run(common.display_argv(path)), subject=path)
     except common.ObservationFailed:
-        failures.append(failure('signature', where))
-        return 'not observed'
+        return None, 'signature'
     facts = common.signature_facts(fields, public_teams)
-    if facts['team'] != expect_team or facts['signer_team'] != expect_team:
-        failures.append(failure('other team', where))
     try:
-        raw = common.observe('entitlements', run(common.entitlements_argv(path)))
-        chosen, unexpected = common.select_entitlements(raw, public_teams)
-        facts['entitlements'] = chosen
-        if unexpected:
-            facts['unexpected_entitlements'] = unexpected
-            if exact_entitlements is not None:
-                failures.append(failure('unexpected entitlement', where))
-        if exact_entitlements is not None and chosen != exact_entitlements:
-            failures.append(failure('entitlements', where))
+        raw = common.observe('entitlements', run(common.entitlements_argv(path)), subject=path)
     except common.ObservationFailed:
-        failures.append(failure('entitlements', where))
-        facts['entitlements'] = 'not observed'
-    return facts
+        return facts, 'entitlements'
+    chosen, unexpected = common.select_entitlements(raw, public_teams)
+    facts['entitlements'] = chosen
+    facts['unexpected_entitlements'] = unexpected
+    return facts, None
+
+
+def app_signature_failures(facts, publisher_team):
+    """AC-002 for the App's own code: publisher identity, hardened runtime, a timestamp, exactly the two entitlements."""
+    expected = {common.APP_ID_KEY: f'{publisher_team}.{common.RELEASE["identifier"]}', common.TEAM_KEY: publisher_team}
+    found = []
+    if facts['team'] != publisher_team or facts['signer_team'] != publisher_team:
+        found.append('other team')
+    if facts['signer'] != 'Developer ID Application':
+        found.append('signer')
+    if facts['identifier'] != common.RELEASE['identifier']:
+        found.append('identifier')
+    if not facts['runtime']:
+        found.append('hardened runtime')
+    if facts['adhoc']:
+        found.append('ad hoc signature')
+    entitlements = facts.get('entitlements') or {}
+    if entitlements.get('com.apple.security.get-task-allow') or entitlements.get('get-task-allow'):
+        found.append('debugging entitlement')
+    if facts.get('unexpected_entitlements'):
+        found.append('unexpected entitlement')
+    if entitlements != expected:
+        found.append('entitlements')
+    return found
+
+
+def supplier_signature_failures(facts, expected):
+    """The supplier's executables: the supplier's signer and team, and equal to what was read before signing."""
+    found = []
+    if facts['team'] != common.SUPPLIER_TEAM or facts['signer_team'] != common.SUPPLIER_TEAM or facts['signer'] != 'Developer ID Application':
+        found.append('other team')
+    if expected is not None and facts != expected:
+        found.append('supplier signature changed')
+    return found
 
 
 def profile_facts(app, public_teams, failures):
@@ -158,8 +201,12 @@ def limitation_copy(path, source_sha256):
     return {'sha256': sha(raw), 'equal_to_candidate_source': source_sha256 is not None and sha(raw) == source_sha256}
 
 
-def observe_package(dmg, app, run, public_teams, publisher_team, limitations_source_sha256=None):
-    """Everything the record states that can be read back from the package; returns (facts, failures)."""
+def observe_package(dmg, app, run, public_teams, publisher_team, limitations_source_sha256=None, supplier_expected=None):
+    """Everything the record states that can be read back from the package; returns (facts, failures).
+
+    `supplier_expected` maps each supplier executable to its signature facts as read before signing;
+    when given, each must be equal at this reading.
+    """
     dmg, app = Path(dmg), Path(app)
     failures = []
     raw = dmg.read_bytes()
@@ -194,15 +241,26 @@ def observe_package(dmg, app, run, public_teams, publisher_team, limitations_sou
     stapled = inv(inventory.scan(app))
     if STAPLED_TICKET not in stapled['entries']:
         failures.append(failure('stapled ticket absent'))
-    publisher_entitlements = {common.APP_ID_KEY: f'{publisher_team}.{common.RELEASE["identifier"]}', common.TEAM_KEY: publisher_team}
-    signatures = {'.': signature(run, app, '.', failures, public_teams, publisher_team, exact_entitlements=publisher_entitlements)}
+    signatures = {}
+    facts, failed = read_signature(run, app, public_teams)
+    if failed:
+        failures.append(failure(failed, '.'))
+    if facts is not None and not failed:
+        failures += [failure(name, '.') for name in app_signature_failures(facts, publisher_team)]
+    signatures['.'] = facts if facts is not None else 'not observed'
     for relative in common.macho_paths(vendor_tree):
         where = common.VENDOR_DESTINATION + '/' + relative
-        signatures[where] = signature(run, app / common.VENDOR_DESTINATION / relative, where, failures, public_teams, common.SUPPLIER_TEAM)
+        facts, failed = read_signature(run, app / common.VENDOR_DESTINATION / relative, public_teams)
+        if failed:
+            failures.append(failure(failed, where))
+        if facts is not None and not failed:
+            expected = None if supplier_expected is None else supplier_expected.get(relative)
+            failures += [failure(name, where) for name in supplier_signature_failures(facts, expected)]
+        signatures[where] = facts if facts is not None else 'not observed'
     tickets = {}
     for key, target in (('app', app), ('disk_image', dmg)):
         try:
-            common.observe('validate', run(['/usr/bin/xcrun', 'stapler', 'validate', str(target)]), subjects=[target])
+            common.observe('validate', run(['/usr/bin/xcrun', 'stapler', 'validate', str(target)]), subject=target)
             tickets[key] = {'validated': True}
         except common.ObservationFailed:
             tickets[key] = {'validated': False}
@@ -213,7 +271,7 @@ def observe_package(dmg, app, run, public_teams, publisher_team, limitations_sou
     for key, argv, target in (('disk_image', ['/usr/sbin/spctl', '-a', '-t', 'open', '--context', 'context:primary-signature', '-vv', str(dmg)], dmg),
                               ('app', ['/usr/sbin/spctl', '-a', '-t', 'exec', '-vv', str(app)], app)):
         try:
-            common.observe('assessment', run(argv), subjects=[target])
+            common.observe('assessment', run(argv), subject=target)
             gatekeeper[key] = {'accepted': True, 'source': 'Notarized Developer ID'}
         except common.ObservationFailed:
             gatekeeper[key] = {'accepted': False}
@@ -243,9 +301,9 @@ SUMMARY_FIELDS = ('job', 'status', 'sha256', 'issue_count', 'original_log_sha256
 def notarization_facts(record_dir, entry):
     """Facts from a returnable notarization summary (never the raw log) and, for the App, the submitted archive."""
     failures = []
-    path = Path(record_dir) / prepare.files.relative(entry.get('summary', 'missing'))
     try:
-        summary = json.loads(path.read_bytes())
+        path = Path(record_dir) / prepare.files.relative(entry.get('summary', 'missing'))
+        summary = json.loads(path.read_bytes(), object_pairs_hook=common._unique_json)
         require(isinstance(summary, dict) and set(summary) == set(SUMMARY_FIELDS), 'summary shape')
     except (OSError, ValueError):
         failures.append(failure('notarization summary'))
@@ -267,9 +325,9 @@ def notarization_facts(record_dir, entry):
     return facts, failures
 
 
-def build_record(*, dmg, app, run, candidate, notarizations, signed_tree, record_dir, public_teams, publisher_team):
+def build_record(*, dmg, app, run, candidate, notarizations, signed_tree, record_dir, public_teams, publisher_team, supplier_expected):
     """The record, in memory. Raises RecordFailed when any observation it would state failed."""
-    facts, failures = observe_package(dmg, app, run, public_teams, publisher_team, candidate['limitations']['sha256'])
+    facts, failures = observe_package(dmg, app, run, public_teams, publisher_team, candidate['limitations']['sha256'], supplier_expected)
     if facts['app_as_signed'] != bundle_state(inv(signed_tree)):
         failures.append(failure('app as signed'))
     notarization = {}
@@ -319,54 +377,85 @@ def structure_errors(record):
     return missing
 
 
-def differences(recorded, observed, where=''):
+def committed_vendor_paths(pin):
+    """Paths of the committed distribution record's inventory for `pin` (the repository's own reference files)."""
+    paths = set()
+    for expected in sorted((common.ROOT / 'app/src-tauri/resources/distribution-reference').rglob('expected.json')):
+        try:
+            value = json.loads(expected.read_bytes())
+            if value.get('pin') == pin:
+                paths |= {e['path'] for e in value['inventory']['entries'] if isinstance(e.get('path'), str)}
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            continue
+    return paths
+
+
+def differences(recorded, observed, where=()):
+    """[(location segments, kind)] for every difference; kinds are fixed words."""
     if isinstance(recorded, dict) and isinstance(observed, dict):
         found = []
-        for key in sorted(set(recorded) | set(observed), key=str):
-            here = f'{where}.{key}' if where else str(key)
+        for key in set(recorded) | set(observed):
+            here = where + (key,)
             if key not in observed:
-                found.append(f'{here}: in the record, not in the package')
+                found.append((here, 'in the record only'))
             elif key not in recorded:
-                found.append(f'{here}: in the package, not in the record')
+                found.append((here, 'in the package only'))
             else:
                 found += differences(recorded[key], observed[key], here)
         return found
-    if recorded != observed:
-        return [f'{where}: differs']
-    return []
+    return [] if recorded == observed else [(where, 'differs')]
 
 
-def check(record, *, dmg, app, run, record_dir, candidate_dir=None, original_logs=None):
-    """(differences, not_checked): every difference from the record and every failed observation, and what was not checked."""
+def location(segments, vendor_paths):
+    """The printable prefix of a difference's location: record field names and committed inventory paths only."""
+    shown, previous = [], None
+    for segment in segments:
+        named = isinstance(segment, str) and (
+            segment in FIELD_NAMES
+            or (previous == 'entries' and shown[:2] == ['observed', 'vendor'] and segment in vendor_paths)
+            or (previous == 'signatures' and (segment == '.' or (segment.startswith(common.VENDOR_DESTINATION + '/')
+                                                                 and segment[len(common.VENDOR_DESTINATION) + 1:] in vendor_paths))))
+        if not named:
+            return '.'.join(shown) + ' (an entry not named)'
+        shown.append(segment)
+        previous = segment
+    return '.'.join(shown)
+
+
+def check(record, *, dmg, app, run, record_dir, candidate_dir=None):
+    """A summary of differences and failed observations by fixed category, and what was not checked."""
     missing = structure_errors(record)
     if missing:
-        return [f'record structure: lacks {m}' for m in missing], ['nothing else: the record lacks required fields']
+        return {'equal': False, 'record_structure_missing': sorted(missing), 'differences': {}, 'failed_observations': {},
+                'not_checked': ['everything else: the record lacks required fields', NOT_CHECKED_LOGS]}
     public_teams = set(record['public_teams'])
+    vendor_paths = committed_vendor_paths(record['candidate'].get('pin'))
     facts, failures = observe_package(dmg, app, run, public_teams, record['publisher_team'], record['candidate']['limitations_sha256'])
-    found = [f'observation failed: {f["observation"]} ({f["subject"]})' for f in failures]
-    found += differences(record['package'], facts.pop('package'), 'package')
-    found += differences(record['observed'], facts, 'observed')
+    found = differences(record['package'], facts.pop('package'), ('package',))
+    found += differences(record['observed'], facts, ('observed',))
     for key in NOTARIZED:
         observed, more = notarization_facts(record_dir, record['notarization'][key])
-        found += [f'notarization.{key}: {f["observation"]}' for f in more]
-        found += differences(record['notarization'][key], observed, f'notarization.{key}')
-    not_checked = []
+        failures += [failure(f['observation'], key) for f in more]
+        found += differences(record['notarization'][key], observed, ('notarization', key))
+    not_checked = [NOT_CHECKED_LOGS]
     if candidate_dir is not None:
         description = json.loads((Path(candidate_dir) / common.CANDIDATE_FILE).read_bytes())
         provenance = {'source_revision': description['source_revision'], 'pin': description['pin'],
                       'expected_manifest': description['expected_manifest'], 'build_environment_sha256': description['build']['environment_sha256'],
                       'unsigned_executable_sha256': description['bundle']['executable_sha256'],
                       'limitations_source': description['limitations']['source'], 'limitations_sha256': description['limitations']['sha256']}
-        found += differences(record['candidate'], provenance, 'candidate')
+        found += differences(record['candidate'], provenance, ('candidate',))
     else:
-        not_checked.append(NOT_CHECKED['candidate'])
-    if original_logs:
-        for key, path in original_logs.items():
-            if sha(Path(path).read_bytes()) != record['notarization'][key]['original_log_sha256']:
-                found.append(f'notarization.{key}.original_log_sha256: differs from the log given')
-    else:
-        not_checked.append(NOT_CHECKED['original_logs'])
-    return found, not_checked
+        not_checked.append(NOT_CHECKED_CANDIDATE)
+    summary = {}
+    for segments, kind in found:
+        key = location(segments, vendor_paths) + ': ' + kind
+        summary[key] = summary.get(key, 0) + 1
+    observations = {}
+    for item in failures:
+        observations[item['observation']] = observations.get(item['observation'], 0) + 1
+    return {'equal': not found and not failures, 'differences': dict(sorted(summary.items())),
+            'failed_observations': dict(sorted(observations.items())), 'not_checked': not_checked}
 
 
 def system_run(argv):
@@ -376,26 +465,23 @@ def system_run(argv):
 
 def main(argv=None, *, run=None, stdout=None, stderr=None):
     stdout, stderr = stdout or sys.stdout, stderr or sys.stderr
-    parser = common.FixedParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = common.FixedParser(description=__doc__, formatter_class=__import__('argparse').RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest='command', required=True, parser_class=common.FixedParser)
     c = sub.add_parser('check', help='compare a package with its record')
     c.add_argument('record', help='PACKAGE_IDENTITY.json, in the folder that also holds notary/')
     c.add_argument('--dmg', required=True)
     c.add_argument('--app', required=True, help='the App on the read-only mounted disk image')
     c.add_argument('--candidate', help='the build output folder holding CANDIDATE.json, to check provenance')
-    c.add_argument('--app-original-log', help='the App\'s notarization log fetched again with notarytool log')
-    c.add_argument('--disk-image-original-log', help='the disk image\'s notarization log fetched again with notarytool log')
     args = parser.parse_args(argv)
     try:
-        record = json.loads(Path(args.record).read_bytes())
-        logs = {k: v for k, v in (('app', args.app_original_log), ('disk_image', args.disk_image_original_log)) if v}
-        found, not_checked = check(record, dmg=args.dmg, app=args.app, run=run or system_run, record_dir=Path(args.record).resolve().parent,
-                                   candidate_dir=args.candidate, original_logs=logs or None)
+        record = json.loads(Path(args.record).read_bytes(), object_pairs_hook=common._unique_json)
+        result = check(record, dmg=args.dmg, app=args.app, run=run or system_run, record_dir=Path(args.record).resolve().parent,
+                       candidate_dir=args.candidate)
     except Exception:  # a fixed message: no traceback, no path, no tool text
-        print(json.dumps({'equal': False, 'error': 'the record, the package, a saved summary or a given file could not be read'}), file=stderr)
+        print(json.dumps({'equal': False, 'error': 'the record, the package, a saved summary or the candidate could not be read'}), file=stderr)
         return 2
-    print(json.dumps({'equal': not found, 'differences': found, 'not_checked': not_checked}, indent=2), file=stdout)
-    return 0 if not found else 1
+    print(json.dumps(result, indent=2), file=stdout)
+    return 0 if result['equal'] else 1
 
 
 if __name__ == '__main__':

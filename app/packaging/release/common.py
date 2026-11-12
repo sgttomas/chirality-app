@@ -137,7 +137,7 @@ REASONS = {
     'S13_OBSERVATION': 'step 13: an observation the record states failed; no record was written',
     'S13_DETACH': 'step 13: the disk image did not detach; no record was written; detach it with hdiutil detach',
     'GUARD_SIGNING': 'guard: a signing call other than the one on the App and the one on the disk image was refused',
-    'UNEXPECTED': 'unexpected: an error no check covers; the private folder holds the trace',
+    'REFUSED_UNREADABLE': 'refused: an argument file or the candidate could not be read; nothing ran',
     'INTERRUPTED': 'interrupted: the run was interrupted; nothing ran after the interruption',
     'BUILD_HOST': 'build: this host is not Apple Silicon macOS',
     'BUILD_OUT': 'build: --out exists, or the folder that would hold it does not, or it is inside /Applications or ~/Library',
@@ -160,9 +160,19 @@ REASONS = {
     'BUILD_BUNDLE': 'build: not exactly one Chirality.app bundle was built',
     'BUILD_CHECKS': 'build: a check of the built bundle failed; BUILD_REFUSED.json names each check',
     'BUILD_FINAL': 'build: the final reading of the described candidate did not verify',
-    'BUILD_UNEXPECTED': 'build: an error no check covers; the private folder holds the trace',
     'BUILD_INTERRUPTED': 'build: the build was interrupted before it finished',
 }
+STEP_NAMES = {0: 'reading the supplier signatures', 1: 'copying the App', 2: 'placing the profile', 3: 'writing the entitlements',
+              4: 'signing the App', 5: 'verifying the signed App', 6: 'notarizing the App', 7: 'stapling the App',
+              8: 'verifying the stapled App', 9: 'making the disk image', 10: 'notarizing the disk image',
+              11: 'stapling the disk image', 12: 'the Gatekeeper assessments', 13: 'reading the package for the record'}
+BUILD_STAGES = {'INPUTS': 'reading the inputs', 'COPY': 'copying the inputs', 'PLAN': 'preparing the plan', 'ENVIRONMENT': 'preparing the build environment',
+                'INSTALL': 'the offline dependency install', 'RUN': 'the recipe build', 'CHECKS': 'checking the built bundle',
+                'PUBLISH': 'publishing the candidate'}
+for _number, _name in STEP_NAMES.items():
+    REASONS[f'S{_number}_UNEXPECTED'] = f'step {_number}: an error no check covers while {_name}; the private folder holds the trace'
+for _stage, _name in BUILD_STAGES.items():
+    REASONS[f'BUILD_UNEXPECTED_{_stage}'] = f'build: an error no check covers during {_name}; the private folder holds the trace'
 for _number, _subject in ((5, 'signed App'), (8, 'stapled App')):
     REASONS.update({
         f'S{_number}_DEEP': f'step {_number}: codesign did not report the {_subject} valid on deep strict verification',
@@ -219,7 +229,7 @@ SHAPES = {
     'sha256': r'[0-9a-f]{64}', 'cdhash': r'[0-9a-f]{40}', 'revision': r'[0-9a-f]{40}',
     'uuid': r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
     'profile_uuid': r'[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}',
-    'identifier': r'[A-Za-z0-9](?:[A-Za-z0-9._-]{0,200}[A-Za-z0-9])?',
+    'identifier': r'[A-Za-z0-9](?:[A-Za-z0-9._-]{0,253}[A-Za-z0-9])?',
     'version': r'\d+(?:\.\d+){0,3}',
     'mode': r'0o[0-7]{3,4}',
     'timestamp': r'[A-Z][a-z]{2} \d{1,2}, \d{4} at \d{1,2}:\d{2}:\d{2}(?: [AP]M)?',
@@ -243,8 +253,11 @@ VOCABULARY = set(REASONS.values()) | STATUS_WORDS | AUTHORITY_KINDS | {
 }
 
 
+MAX_LENGTH = 1024  # every string field, paths and identifiers included, is bounded
+
+
 def is_shape(value, name):
-    return isinstance(value, str) and COMPILED_SHAPES[name].fullmatch(value) is not None
+    return isinstance(value, str) and len(value) <= MAX_LENGTH and COMPILED_SHAPES[name].fullmatch(value) is not None
 
 
 def selected(value, name):
@@ -279,7 +292,7 @@ def select_entitlements(value, public_teams):
         return None, 0
     chosen, unexpected = {}, 0
     def app_id(text):
-        match = isinstance(text, str) and APP_ID.fullmatch(text)
+        match = isinstance(text, str) and len(text) <= 255 and APP_ID.fullmatch(text)
         return text if match and match.group(1) in public_teams else None
     for key, item in value.items():
         kind = KNOWN_ENTITLEMENTS.get(key)
@@ -297,31 +310,36 @@ def select_entitlements(value, public_teams):
 
 
 # --- The one rule for observations --------------------------------------------
-# An observation counts only when its command returned zero, its output parsed into every
-# required field with a value of the expected form, and, for an assessment, the output holds an
-# unambiguous positive form and no negative marker. OBSERVATIONS declares each one as data.
+# An observation counts only when:
+#   1. its command returned zero;
+#   2. its output names the object asked about wherever the output carries a path, and names no
+#      other object (a bundle's own nested code inside it is the same object);
+#   3. it is unambiguous: no field appears twice with different values, JSON output has no
+#      duplicate key, and an assessment has exactly one source;
+#   4. every required field is present with a value of its expected form;
+#   5. it holds the positive form its declaration requires and no negative marker.
+# OBSERVATIONS declares each observation as data; `observe` is the only function that applies the rule.
 
 NEGATIVE = re.compile(r'(?i)\b(?:rejected|not accepted|denied|invalid|error|failed|failure|not signed|does not|unnotarized|'
                       r'no ticket|unable|cannot|could not|not satisfy|not valid|modified|revoked|malformed|truncated|corrupt)\b')
-TIMESTAMP_FIELD = SHAPES['timestamp']
 OBSERVATIONS = {
-    # codesign -d --verbose=4: key=value lines on standard error.
-    'signature': {'format': 'lines', 'stream': 'stderr', 'fields': {
+    # codesign -d --verbose=4: key=value lines on standard error; Executable names the object.
+    'signature': {'format': 'lines', 'fields': {
         'identifier': ('Identifier', SHAPES['identifier']),
         'team': ('TeamIdentifier', r'[A-Z0-9]{10}'),
         'cdhash': ('CDHash', SHAPES['cdhash']),
         'code_directory': ('CodeDirectory v', r'\d+ size=\d+ flags=0x[0-9a-f]+\([a-z,-]*\).*'),
-        'timestamp': ('Timestamp', TIMESTAMP_FIELD),
+        'timestamp': ('Timestamp', SHAPES['timestamp']),
         'authority': ('Authority', r'(?:Developer ID Application: .+ \([A-Z0-9]{10}\)|Developer ID Certification Authority|Apple Root CA)'),
     }},
-    # codesign -d --entitlements - --xml: one XML property list dictionary on standard output.
+    # codesign -d --entitlements - --xml: one property list dictionary on standard output; Executable on standard error.
     'entitlements': {'format': 'plist'},
-    'verify': {'format': 'text', 'positive': [r'valid on disk']},
-    'requirement': {'format': 'text', 'positive': [r'valid on disk', r'explicit requirement satisfied']},
-    'assessment': {'format': 'text', 'positive': [r'(?m)^.*: accepted$', r'(?m)^source=Notarized Developer ID$'], 'ignore': ('origin=',)},
-    'staple': {'format': 'text', 'positive': [r'The staple and validate action worked!']},
-    'validate': {'format': 'text', 'positive': [r'The validate action worked!']},
-    'dyld_validate': {'format': 'text', 'positive': []},
+    'verify': {'format': 'text', 'subject_messages': ['valid on disk']},
+    'requirement': {'format': 'text', 'subject_messages': ['valid on disk', 'explicit requirement satisfied']},
+    'assessment': {'format': 'text', 'subject_messages': ['accepted'], 'single': ('source', 'Notarized Developer ID'), 'ignore': ('origin=',)},
+    'staple': {'format': 'text', 'processing': True, 'phrases': ['The staple and validate action worked!']},
+    'validate': {'format': 'text', 'processing': True, 'phrases': ['The validate action worked!']},
+    'dyld_validate': {'format': 'text'},
     'submit': {'format': 'json', 'fields': {'id': ('id', SHAPES['uuid']), 'status': ('status', None)}},
     'notary_log': {'format': 'json', 'fields': {'job': ('jobId', SHAPES['uuid']), 'status': ('status', None), 'sha256': ('sha256', SHAPES['sha256'])},
                    'keys': ('issues',)},
@@ -334,90 +352,159 @@ class ObservationFailed(ValueError):
         self.name, self.missing = name, missing
 
 
-def observe(name, result, subjects=()):
-    """Apply the one rule to one command result. Returns the parsed fields; raises ObservationFailed.
+def _same(reported, subject):
+    return reported == str(subject) or os.path.realpath(reported) == os.path.realpath(str(subject))
 
-    `subjects` are the paths the command was given; they are removed before negative markers are
-    looked for, so that a folder name cannot make an observation fail or pass.
-    """
+
+def _inside(reported, subject):
+    """The object asked about, or (for a bundle) its own nested code."""
+    if _same(reported, subject):
+        return True
+    root = os.path.realpath(str(subject))
+    return str(subject).endswith('.app') and os.path.realpath(reported).startswith(root + os.sep)
+
+
+def _executable_matches(reported, subject):
+    return _same(reported, subject) or (str(subject).endswith('.app') and _same(reported, Path(subject) / 'Contents/MacOS' / MAIN_EXECUTABLE))
+
+
+def _reported_path(line):
+    """(path, message) when the line reports about a path, else (None, line)."""
+    for prefix in ('Processing: ', '--prepared:', '--validated:'):
+        if line.startswith(prefix):
+            return line[len(prefix):], ''
+    if line.startswith('/'):
+        path, sep, message = line.rpartition(': ')
+        return (path, message) if sep else (line, '')
+    return None, line
+
+
+def _unique_json(pairs):
+    value = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError('duplicate key')
+        value[key] = item
+    return value
+
+
+def _lines(stream, failures, subject):
+    """key=value lines: a key that repeats with a different value is ambiguous (Authority is the chain)."""
+    found, authorities = {}, []
+    for line in stream.decode('utf-8', 'replace').splitlines():
+        key, sep, item = line.partition('=')
+        if not sep:
+            continue
+        if key == 'Authority':
+            authorities.append(item)
+        elif key in found and found[key] != item:
+            failures.append('ambiguous ' + key)
+        else:
+            found[key] = item
+    if subject is not None and not ('Executable' in found and _executable_matches(found['Executable'], subject)):
+        failures.append('another or no object named')
+    return found, authorities
+
+
+def observe(name, result, subject=None):
+    """Apply the one rule to one command result about `subject`. Returns the parsed fields; raises ObservationFailed."""
     spec = OBSERVATIONS[name]
+    failures = []
+    if spec['format'] != 'json' and subject is None:
+        raise ObservationFailed(name, ['no object asked about'])
     if result.returncode != 0:
         raise ObservationFailed(name, ['return code'])
     if spec['format'] == 'text':
-        text = result.text()
-        for subject in subjects:
-            text = text.replace(str(subject), '<subject>')
-        lines = [l for l in text.splitlines() if not l.startswith(spec.get('ignore', ()) or ('\0',))]
-        scanned = '\n'.join(lines)
-        missing = [p for p in spec['positive'] if not re.search(p, scanned)]
-        if NEGATIVE.search(scanned):
-            missing.append('negative marker present')
-        if missing:
-            raise ObservationFailed(name, missing)
+        lines = [l for l in result.text().splitlines() if l.strip() and not l.startswith(spec.get('ignore', ()) or ('\0',))]
+        about_subject, messages = [], []
+        for line in lines:
+            path, message = _reported_path(line)
+            if path is not None:
+                if subject is None or not _inside(path, subject):
+                    failures.append('another object named')
+                elif _same(path, subject):
+                    about_subject.append(message)
+                if line.startswith('Processing: ') and subject is not None and _same(path, subject):
+                    about_subject.append('processing')
+            messages.append(message)
+        for message in spec.get('subject_messages', []):
+            if message not in about_subject:
+                failures.append('missing: ' + message)
+        if spec.get('processing') and 'processing' not in about_subject:
+            failures.append('missing: processing line for the object')
+        for phrase in spec.get('phrases', []):
+            if phrase not in messages:
+                failures.append('missing: ' + phrase)
+        if 'single' in spec:
+            key, wanted = spec['single']
+            sources = [m for m in messages if m.startswith(key + '=')]
+            if sources != [key + '=' + wanted]:
+                failures.append('not exactly one ' + key)
+        if any(NEGATIVE.search(m) for m in messages):
+            failures.append('negative marker present')
+        if failures:
+            raise ObservationFailed(name, failures)
         return {}
     if spec['format'] == 'plist':
+        if subject is not None:
+            _lines(result.stderr, failures, subject)
         try:
             value = plistlib.loads(result.stdout) if result.stdout.strip() else None
         except (plistlib.InvalidFileException, ExpatError, ValueError):
             value = None
         if not isinstance(value, dict):
-            raise ObservationFailed(name, ['property list dictionary'])
+            failures.append('property list dictionary')
+        if failures:
+            raise ObservationFailed(name, failures)
         return value
     if spec['format'] == 'json':
         try:
-            value = json.loads(result.stdout)
+            value = json.loads(result.stdout, object_pairs_hook=_unique_json)
         except ValueError:
             value = None
         if not isinstance(value, dict):
-            raise ObservationFailed(name, ['JSON object'])
-        fields, missing = {}, []
+            raise ObservationFailed(name, ['one JSON object without duplicate keys'])
+        fields = {}
         for field, (key, pattern) in spec['fields'].items():
             item = value.get(key)
-            if pattern is None:
-                ok = item in STATUS_WORDS
-            else:
-                ok = isinstance(item, str) and re.fullmatch(pattern, item) is not None
+            ok = item in STATUS_WORDS if pattern is None else isinstance(item, str) and re.fullmatch(pattern, item) is not None
             if ok:
                 fields[field] = item
             else:
-                missing.append(field)
+                failures.append(field)
         for key in spec.get('keys', ()):
             if key not in value:
-                missing.append(key)
+                failures.append(key)
         if 'issues' in spec.get('keys', ()) and 'issues' in value:
             issues = value['issues']
-            if issues is None or (isinstance(issues, list)):
+            if issues is None or isinstance(issues, list):
                 fields['issue_count'] = 0 if issues is None else len(issues)
             else:
-                missing.append('issues')
-        if missing:
-            raise ObservationFailed(name, missing)
+                failures.append('issues')
+        if failures:
+            raise ObservationFailed(name, failures)
         return fields
-    # 'lines': key=value lines; every required field present once (Authority: the first) with its form.
-    found = {}
-    for line in getattr(result, spec['stream']).decode('utf-8', 'replace').splitlines():
-        key, sep, item = line.partition('=')
-        if sep and key not in found:
-            found[key] = item
-    fields, missing = {}, []
+    # 'lines': codesign display on standard error.
+    found, authorities = _lines(result.stderr, failures, subject)
+    found['Authority'] = authorities[0] if authorities else None
+    fields = {}
     for field, (key, pattern) in spec['fields'].items():
         item = found.get(key)
         if isinstance(item, str) and re.fullmatch(pattern, item):
             fields[field] = item
         else:
-            missing.append(field)
-    if missing:
-        raise ObservationFailed(name, missing)
+            failures.append(field)
+    if failures:
+        raise ObservationFailed(name, failures)
     flags = re.search(r'flags=(0x[0-9a-f]+)\(([a-z,-]*)\)', fields['code_directory'])
     fields['flags'] = int(flags.group(1), 16)
     fields['flag_names'] = [n for n in flags.group(2).split(',') if n]
     fields['runtime'] = bool(fields['flags'] & CS_RUNTIME) and 'runtime' in fields['flag_names']
     fields['adhoc'] = bool(fields['flags'] & CS_ADHOC) or 'adhoc' in fields['flag_names']
-    authority = fields['authority']
-    leaf = re.fullmatch(r'Developer ID Application: (.+) \(([A-Z0-9]{10})\)', authority)
-    fields['signer_kind'] = 'Developer ID Application' if leaf else authority
+    leaf = re.fullmatch(r'Developer ID Application: (.+) \(([A-Z0-9]{10})\)', fields['authority'])
+    fields['signer_kind'] = 'Developer ID Application' if leaf else fields['authority']
     fields['signer_team'] = leaf.group(2) if leaf else None
-    fields['leaf_authority'] = authority  # compared in memory only; never recorded
+    fields['leaf_authority'] = fields['authority']  # compared in memory only; never recorded
     return fields
 
 
@@ -453,6 +540,7 @@ def validate_returnable(value, public_teams, where='', argv_allowed=None, in_arg
     if value is None or isinstance(value, bool) or isinstance(value, int):
         return
     require(isinstance(value, str), 'unshaped value in returnable file')
+    require(len(value) <= MAX_LENGTH, 'over-long value in returnable file')
     app_id = APP_ID.fullmatch(value)
     require(value in VOCABULARY or value in public_teams or value in KNOWN_ENTITLEMENTS or any(is_shape(value, s) for s in SHAPES)
             or (app_id is not None and app_id.group(1) in public_teams), 'unshaped value in returnable file at ' + where)
@@ -517,6 +605,7 @@ class PrivateWriter:
             os.write(fd, raw if isinstance(raw, bytes) else str(raw).encode('utf-8', 'replace')); os.fsync(fd)
         finally:
             os.close(fd)
+        return path
 
 
 # --- Info.plist and locations ---------------------------------------------------

@@ -145,9 +145,14 @@ class ReleaseBuild(unittest.TestCase):
     def run_build(self, **changes):
         kw = dict(source_root=self.source, revision='a' * 40, vendor=self.vendor, expected_manifest=self.kw['expected_manifest'],
                   pin='9.9.9', out=self.candidate, environment=self.environment, tools=self.tools,
-                  cargo_cache=self.cargo_cache, npm_cache=self.npm_cache, runner=self.fake, host=('Darwin', 'arm64'))
+                  cargo_cache=self.cargo_cache, npm_cache=self.npm_cache, runner=self.fake, host=('Darwin', 'arm64'),
+                  private=self.private_writer)
         kw.update(changes)
         return build.build(**kw)
+
+    def private_writer(self, root):
+        self.private = fx.MemoryWriter(root)
+        return self.private
 
     def test_overlay_identity_is_the_release_identity(self):
         self.run_build()
@@ -343,7 +348,18 @@ class ReleaseBuild(unittest.TestCase):
             outside = case.root / 'outside-export'; outside.mkdir()
             (case.source / 'app/escape').symlink_to(outside, target_is_directory=True)
             return outside
-        for name, make in (('npm _logs link', npm_logs_link), ('cargo registry link', cargo_registry_link), ('export link', export_link)):
+        def absolute_link_inside_export(case):
+            # The reviewer's case: source/app/dist is an absolute link to a sibling folder inside the export.
+            old = case.source / 'old-dist'; old.mkdir()
+            (case.source / 'app/dist').symlink_to(old.resolve(), target_is_directory=True)
+            return old
+        def relative_link_inside_export(case):
+            (case.source / 'app/inside-link').symlink_to('src-tauri')
+            empty = case.root / 'nothing-written-here'; empty.mkdir()
+            return empty
+        for name, make in (('npm _logs link', npm_logs_link), ('cargo registry link', cargo_registry_link), ('export link', export_link),
+                           ('absolute link inside the export', absolute_link_inside_export),
+                           ('relative link inside the export', relative_link_inside_export)):
             with self.subTest(name):
                 self.setUp()
                 outside = make(self)
@@ -352,10 +368,6 @@ class ReleaseBuild(unittest.TestCase):
                 self.assertEqual(raised.exception.code, 'BUILD_LINK')
                 self.assertEqual(list(outside.iterdir()), [])
                 self.assertFalse(self.candidate.exists())
-        self.setUp()
-        (self.source / 'app/inside-link').symlink_to('src-tauri')  # a link that stays inside the export is copied as it is
-        self.run_build()
-        self.assertTrue((self.candidate / 'source/app/inside-link').is_symlink())
 
     def walk_returnable(self, path):
         common.validate_returnable(json.loads(path.read_text()), {self.team, common.SUPPLIER_TEAM})
@@ -364,11 +376,12 @@ class ReleaseBuild(unittest.TestCase):
         secrets = ['invented-owner@example.invalid', 'invented-secret', 'QQQQ11111Q']
         self.fake.install = Result(1, b'invented-owner@example.invalid\n', b'password=invented-secret QQQQ11111Q\n')
         out, err = io.StringIO(), io.StringIO()
-        self.assertEqual(build.main(self.cli_args(), stdout=out, stderr=err, runner=self.fake, host=('Darwin', 'arm64')), 2)
+        self.assertEqual(build.main(self.cli_args(), stdout=out, stderr=err, runner=self.fake, host=('Darwin', 'arm64'),
+                                    private=self.private_writer), 2)
         self.assertEqual(err.getvalue(), 'FAILED: ' + common.REASONS['BUILD_INSTALL'] + '\n')
-        self.assertFalse(list(self.candidate.glob('install-*.log')))
-        names = os.listdir(self.candidate / common.PRIVATE_FOLDER)  # listing only; the private files are never read
-        self.assertTrue(any('install' in n for n in names))
+        self.assertFalse((self.candidate / 'install-stdout.log').exists())
+        self.assertTrue(any(label == 'install' and b'invented-secret' in raw for label, raw in self.private.handed))
+        self.assertFalse((self.candidate / common.PRIVATE_FOLDER).exists())
         failed = self.candidate / 'BUILD_FAILED.json'
         self.walk_returnable(failed)
         for secret in secrets:
@@ -380,10 +393,12 @@ class ReleaseBuild(unittest.TestCase):
                 raise ValueError('password=invented-secret invented-owner@example.invalid')
             return original(argv, **kw)
         out, err = io.StringIO(), io.StringIO()
-        self.assertEqual(build.main(self.cli_args(), stdout=out, stderr=err, runner=explode, host=('Darwin', 'arm64')), 2)
-        self.assertEqual(err.getvalue(), 'FAILED: ' + common.REASONS['BUILD_UNEXPECTED'] + '\n')
+        self.assertEqual(build.main(self.cli_args(), stdout=out, stderr=err, runner=explode, host=('Darwin', 'arm64'),
+                                    private=self.private_writer), 2)
+        self.assertEqual(err.getvalue(), 'FAILED: ' + common.REASONS['BUILD_UNEXPECTED_INSTALL'] + '\n')
         text = (self.candidate / 'BUILD_FAILED.json').read_text()
-        self.assertEqual(json.loads(text)['reason_code'], 'BUILD_UNEXPECTED')
+        self.assertEqual((json.loads(text)['reason_code'], json.loads(text)['stage']), ('BUILD_UNEXPECTED_INSTALL', 'INSTALL'))
+        self.assertTrue(any(label == 'trace' for label, _ in self.private.handed))
         for secret in secrets:
             self.assertNotIn(secret, text + out.getvalue() + err.getvalue())
 

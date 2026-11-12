@@ -71,9 +71,6 @@ ARGUMENT_CREDENTIAL = [re.compile(p) for p in (
 # the only inventory change is that file, and the App is then verified again (step 8).
 SIGNED_EXTRA = {'Contents/_CodeSignature', 'Contents/_CodeSignature/CodeResources', 'Contents/embedded.provisionprofile'}
 STAPLED_EXTRA = SIGNED_EXTRA | {record.STAPLED_TICKET}
-STEP_NAMES = {0: 'supplier signatures', 1: 'copy', 2: 'profile', 3: 'entitlements', 4: 'sign App', 5: 'verify App',
-              6: 'notarize App', 7: 'staple App', 8: 'verify stapled App', 9: 'disk image', 10: 'notarize disk image',
-              11: 'staple disk image', 12: 'Gatekeeper', 13: 'record'}
 common.VOCABULARY.update({'-R', '-c', '-k', '--sequesterRsrc', '--keepParent', '--deep', '--strict', '--verify', '-vv'})
 
 
@@ -139,13 +136,13 @@ def shown(argv, out, candidate):
 class Session:
     """Runs and logs commands. The command log is returnable; raw output goes only to the private folder."""
 
-    def __init__(self, out, runner, environ, paths, candidate, argv_allowed, public_teams):
+    def __init__(self, out, runner, environ, paths, candidate, argv_allowed, public_teams, private):
         self.out, self.runner, self.paths, self.candidate = out, runner, paths, candidate
         self.argv_allowed, self.public_teams = argv_allowed, public_teams
         self.env = {'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'HOME': environ.get('HOME', '/'), 'LANG': 'en_US.UTF-8',
                     'TMPDIR': str(out / 'tmp')}
         self.signed = []
-        self.private = common.PrivateWriter(out)
+        self.private = private
 
     def run(self, step, argv):
         argv = [str(a) for a in argv]
@@ -160,10 +157,11 @@ class Session:
         common.write_returnable(self.out / 'log.jsonl', entry, self.out, self.public_teams, argv_allowed=self.argv_allowed, append=True)
         return result
 
-    def observe(self, step, name, argv, code, subjects=()):
-        """Run one command and apply the one observation rule; a failure stops with `code`."""
+    def observe(self, step, name, argv, code):
+        """Run one command and apply the one observation rule about its last argument; a failure stops with `code`."""
+        subject = None if name in ('submit', 'notary_log') else Path(str(argv[-1]))
         try:
-            return observe(name, self.run(step, argv), subjects=subjects)
+            return observe(name, self.run(step, argv), subject=subject)
         except ObservationFailed:
             raise Failure(code)
 
@@ -253,8 +251,13 @@ def plan(identity, profile, paths, candidate_app, vendor_paths, requirement):
     return steps
 
 
-def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None):
-    """The signing run. Raises Failure (a fixed reason) on any failed step; returns the result written."""
+def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None, private=common.PrivateWriter, progress=None):
+    """The signing run. Raises Failure (a fixed reason) on any failed step; returns the result written.
+
+    `private` makes the writer of the private folder (tests inject an in-memory one); `progress`
+    receives the current step, so that an error no check covers names its step.
+    """
+    progress = {} if progress is None else progress
     environ = dict(os.environ if environ is None else environ)
     host = host or (platform.system(), platform.machine())
     team = refusals(args, environ, host)
@@ -283,7 +286,7 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
         return value, None
 
     out.mkdir(mode=0o700)
-    session = Session(out, runner, environ, paths, candidate_dir, argv_allowed, public_teams)
+    session = Session(out, runner, environ, paths, candidate_dir, argv_allowed, public_teams, private(out))
     for name in ('tmp', 'notary'):
         common.require_inside(out / name, out, name)
         (out / name).mkdir(mode=0o700)
@@ -297,19 +300,24 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
             handle.write(raw)
         os.chmod(path, mode)
 
-    # 0. The supplier's signature metadata, read before anything is copied.
+    # 0. The supplier's signature metadata, read before anything is copied. These readings are what the
+    # supplier published; the record requires each supplier executable to equal them at the end.
+    progress['step'] = 0
     check(vendor_paths, 'S0_NO_MACHO')
     supplier = {}
     for relative in vendor_paths:
         path = candidate_app / common.VENDOR_DESTINATION / relative
-        fields = session.observe(0, 'signature', common.display_argv(path), 'S0_SIGNATURE')
-        check(fields['team'] == common.SUPPLIER_TEAM and fields['signer_team'] == common.SUPPLIER_TEAM
-              and fields['signer_kind'] == 'Developer ID Application' and fields['runtime'] and not fields['adhoc'], 'S0_SIGNATURE')
-        entitlements = session.observe(0, 'entitlements', common.entitlements_argv(path), 'S0_ENTITLEMENTS')
-        check(not entitlements.get('com.apple.security.get-task-allow') and not entitlements.get('get-task-allow'), 'S0_ENTITLEMENTS')
-        supplier[relative] = fields['cdhash']
+        facts, failed = record.read_signature(lambda argv: session.run(0, argv), path, public_teams)
+        check(failed != 'signature', 'S0_SIGNATURE')
+        check(failed != 'entitlements', 'S0_ENTITLEMENTS')
+        check(facts['team'] == common.SUPPLIER_TEAM and facts['signer_team'] == common.SUPPLIER_TEAM
+              and facts['signer'] == 'Developer ID Application' and facts['runtime'] and not facts['adhoc'], 'S0_SIGNATURE')
+        check(not facts['entitlements'].get('com.apple.security.get-task-allow') and not facts['entitlements'].get('get-task-allow'),
+              'S0_ENTITLEMENTS')
+        supplier[relative] = facts
 
     # 1. Copy with modes preserved under umask 022, and check the copy equal.
+    progress['step'] = 1
     previous = os.umask(0o022)
     try:
         common.require_inside(paths['staging'], out, 'the staging folder')
@@ -320,6 +328,7 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     check(inventory.compare(inventory.scan(app), candidate['bundle']['inventory'])['equal'], 'S1_COPY')
 
     # 2. The provisioning profile at Contents/embedded.provisionprofile, mode 0644.
+    progress['step'] = 2
     selected = {'developer_id_team_identifier': team, 'production_bundle_identifier': binding['production_bundle_identifier']}
     try:
         profile = prepare.profile_consistency(profile_raw, args.profile_sha256, selected, now=now)
@@ -330,17 +339,20 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     check(os.stat(destination).st_mode & 0o7777 == 0o644 and sha(destination.read_bytes()) == args.profile_sha256, 'S2_PLACED')
 
     # 3. Entitlements from the binding: exactly the two keys.
+    progress['step'] = 3
     entitlements = {common.APP_ID_KEY: team + '.' + binding['production_bundle_identifier'], common.TEAM_KEY: team}
     check(profile['application_identifier'] == entitlements[common.APP_ID_KEY], 'S3_APP_ID')
     write_bytes(paths['entitlements'], plistlib.dumps(entitlements, sort_keys=True))
 
     # 4. One signing call, on the bundle path.
+    progress['step'] = 4
     session.act(4, sign_app_argv(args.identity, paths['entitlements'], app), 'S4_SIGN')
 
     def verify_app(n, allowed_extra):
-        session.observe(n, 'verify', [CODESIGN, '--verify', '--deep', '--strict', '--verbose=4', app], f'S{n}_DEEP', [app])
+        progress['step'] = n
+        session.observe(n, 'verify', [CODESIGN, '--verify', '--deep', '--strict', '--verbose=4', app], f'S{n}_DEEP')
         session.observe(n, 'requirement', [CODESIGN, '--verify', '--strict', '--verbose=4', '-R', '=' + requirement, app],
-                        f'S{n}_REQUIREMENT', [app])
+                        f'S{n}_REQUIREMENT')
         fields = session.observe(n, 'signature', common.display_argv(app), f'S{n}_DISPLAY')
         check(fields['runtime'] and not fields['adhoc'] and fields['team'] == team and fields['signer_team'] == team
               and fields['identifier'] == binding['production_bundle_identifier'] and fields['leaf_authority'] == args.identity, f'S{n}_SIGNER')
@@ -352,10 +364,11 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
         check(inventory.compare(inventory.scan(app / common.VENDOR_DESTINATION), candidate['vendor']['inventory'])['equal'], f'S{n}_VENDOR')
         for relative in vendor_paths:
             shown_fields = session.observe(n, 'signature', common.display_argv(app / common.VENDOR_DESTINATION / relative), f'S{n}_CDHASH')
-            check(shown_fields['cdhash'] == supplier[relative], f'S{n}_CDHASH')
+            check(shown_fields['cdhash'] == supplier[relative]['cdhash'], f'S{n}_CDHASH')
 
     def notarize(n, submitted, kind):
         """Submit, wait, fetch the log; require Accepted, an explicit issues list that is empty and this exact digest."""
+        progress['step'] = n
         submitted_sha256 = sha(submitted.read_bytes())
         result = session.observe(n, 'submit', submit_argv(submitted, args.notary_profile), f'S{n}_SUBMIT')
         check(result['status'] == 'Accepted', f'S{n}_STATUS')
@@ -380,8 +393,9 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
         return entry
 
     def staple(n, target):
-        session.observe(n, 'staple', [XCRUN, 'stapler', 'staple', target], f'S{n}_STAPLE', [target])
-        session.observe(n, 'validate', [XCRUN, 'stapler', 'validate', target], f'S{n}_VALIDATE', [target])
+        progress['step'] = n
+        session.observe(n, 'staple', [XCRUN, 'stapler', 'staple', target], f'S{n}_STAPLE')
+        session.observe(n, 'validate', [XCRUN, 'stapler', 'validate', target], f'S{n}_VALIDATE')
 
     def detach(n, code):
         session.act(n, [HDIUTIL, 'detach', mount], code)
@@ -392,6 +406,7 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     signed_vendor = inventory.scan(app / common.VENDOR_DESTINATION)
 
     # 6. Notarize the App: an archive of it in the output; the bundle must not change.
+    progress['step'] = 6
     before = inventory.scan(app)
     common.require_inside(paths['archive'], out, 'the App archive')
     session.act(6, archive_argv(app, paths['archive']), 'S6_ARCHIVE')
@@ -410,12 +425,13 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     stapled_tree = inventory.scan(app)
 
     # 9. The disk image: the stapled App and the limitations, signed with a timestamp.
+    progress['step'] = 9
     write_bytes(paths['staging'] / common.LIMITATIONS_IN_IMAGE, limitations)
     common.require_inside(dmg, out, 'the disk image')
     session.act(9, [HDIUTIL, 'create', '-volname', common.VOLUME_NAME, '-srcfolder', paths['staging'], '-format', 'UDZO', dmg], 'S9_CREATE')
     check(dmg.is_file() and not dmg.is_symlink(), 'S9_CREATE')
     session.act(9, sign_dmg_argv(args.identity, dmg), 'S9_SIGN')
-    session.observe(9, 'verify', [CODESIGN, '--verify', '--strict', '--verbose=4', dmg], 'S9_VERIFY', [dmg])
+    session.observe(9, 'verify', [CODESIGN, '--verify', '--strict', '--verbose=4', dmg], 'S9_VERIFY')
     image = session.observe(9, 'signature', common.display_argv(dmg), 'S9_DISPLAY')
     check(image['team'] == team and image['signer_team'] == team and image['leaf_authority'] == args.identity, 'S9_DISPLAY')
     check(inventory.compare(inventory.scan(app), stapled_tree)['equal'], 'S9_APP_CHANGED')
@@ -425,7 +441,8 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     staple(11, dmg)
 
     # 12. Gatekeeper on the disk image, and on the App from a read-only mount.
-    session.observe(12, 'assessment', open_argv(dmg), 'S12_OPEN', [dmg])
+    progress['step'] = 12
+    session.observe(12, 'assessment', open_argv(dmg), 'S12_OPEN')
     common.require_inside(mount, out, 'the mount point')
     mount.mkdir(mode=0o700)
     session.act(12, attach_argv(dmg, mount), 'S12_ATTACH')
@@ -433,7 +450,7 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
         mounted = mount / common.APP_NAME
         check(inventory.compare(inventory.scan(mounted), stapled_tree)['equal'], 'S12_MOUNTED')
         check((mount / common.LIMITATIONS_IN_IMAGE).read_bytes() == limitations, 'S12_LIMITATIONS')
-        session.observe(12, 'assessment', exec_argv(mounted), 'S12_EXEC', [mounted])
+        session.observe(12, 'assessment', exec_argv(mounted), 'S12_EXEC')
     except BaseException:
         run(12, [HDIUTIL, 'detach', mount])  # clean-up while already stopping; its output is in the command log
         raise
@@ -441,11 +458,12 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
 
     # 13. The record, read from the package itself, built in memory; written only after the last
     # observation succeeded and the disk image detached.
+    progress['step'] = 13
     session.act(13, attach_argv(dmg, mount), 'S13_ATTACH')
     try:
         identity_record = record.build_record(dmg=dmg, app=mount / common.APP_NAME, run=lambda argv: run(13, argv), candidate=candidate,
                                               notarizations=notarizations, signed_tree=signed_tree, record_dir=out,
-                                              public_teams=public_teams, publisher_team=team)
+                                              public_teams=public_teams, publisher_team=team, supplier_expected=supplier)
     except record.RecordFailed as failed:
         run(13, [HDIUTIL, 'detach', mount])
         error = Failure('S13_OBSERVATION')
@@ -483,18 +501,26 @@ def main(argv=None, *, stdout=None, stderr=None, **kw):
     args = parser().parse_args(argv)
     out = Path(os.path.abspath(args.out))
     existed = os.path.lexists(out)
+    progress = {}
+    private = kw.pop('private', common.PrivateWriter)
     try:
-        result, public_teams = sign(args, **kw)
+        result, public_teams = sign(args, private=private, progress=progress, **kw)
     except BaseException as error:  # every failure, interruption included, is a STOP with a fixed reason
         if isinstance(error, SystemExit):
             raise
-        stop = error if isinstance(error, Failure) else Failure('INTERRUPTED' if isinstance(error, KeyboardInterrupt) else 'UNEXPECTED')
+        step = progress.get('step')
+        if isinstance(error, Failure):
+            stop = error
+        elif isinstance(error, KeyboardInterrupt):
+            stop = Failure('INTERRUPTED')
+        else:
+            stop = Failure('REFUSED_UNREADABLE' if step is None else f'S{step}_UNEXPECTED')
         print('STOP: ' + stop.reason, file=stderr)
         if not existed and out.is_dir():
             try:
                 if not isinstance(error, Failure):
-                    common.PrivateWriter(out).write('trace', ''.join(traceback.format_exception(error)))
-                value = {'result': 'stopped', 'reason_code': stop.code, 'reason': stop.reason,
+                    private(out).write('trace', ''.join(traceback.format_exception(error)))
+                value = {'result': 'stopped', 'step': step, 'reason_code': stop.code, 'reason': stop.reason,
                          'failed_observations': getattr(stop, 'failures', []),
                          'private_folder': common.PRIVATE_FOLDER}  # named only; never opened or examined
                 common.write_returnable(out / 'STOPPED.json', value, out, set())

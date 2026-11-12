@@ -113,13 +113,9 @@ def placeholder(value, out):
     return value
 
 
-def refuse_links(tree, root, allow_inside):
-    """Refuse links in a copied input: any link in the caches, and any link in the export that leaves it."""
-    for entry in tree['entries']:
-        if entry['kind'] == 'symlink':
-            check(allow_inside, 'BUILD_LINK')
-            target = Path(os.path.realpath(Path(root) / entry['path']))
-            check(target == Path(os.path.realpath(root)) or target.is_relative_to(Path(os.path.realpath(root))), 'BUILD_LINK')
+def refuse_links(tree):
+    """No link of any kind in a copied input (the source export, the Cargo home, the npm cache)."""
+    check(not any(entry['kind'] == 'symlink' for entry in tree['entries']), 'BUILD_LINK')
 
 
 def observe_scope(runner, env, private):
@@ -156,7 +152,7 @@ def bundle_errors(app, plan, vendor, source_root, runner, env, private):
         result = runner(['/usr/bin/dyld_info', '-validate_only', str(app / relative)], env=env)
         private.write('dyld_info ' + relative, result.stdout + result.stderr)
         try:
-            common.observe('dyld_validate', result, subjects=[app / relative])
+            common.observe('dyld_validate', result, subject=app / relative)
             validated.append({'path': relative, 'valid': True})
         except common.ObservationFailed:
             validated.append({'path': relative, 'valid': False})
@@ -212,25 +208,32 @@ def find_publisher_outputs(target):
     return next(iter(found.values())) if len(found) == 1 else None
 
 
-def build(*, out, **kw):
-    """Build and publish a candidate. Any failure leaves INCOMPLETE.txt and BUILD_FAILED.json and no CANDIDATE.json."""
+def build(*, out, private=common.PrivateWriter, **kw):
+    """Build and publish a candidate. Any failure after the output folder exists leaves INCOMPLETE.txt and
+    BUILD_FAILED.json and no CANDIDATE.json; a refusal before it exists leaves nothing but the message."""
     out = Path(os.path.abspath(out))
     existed = os.path.lexists(out)
+    stage = {}
     try:
-        return _build(out=out, **kw)
+        return _build(out=out, private=private, stage=stage, **kw)
     except BaseException as error:
         if isinstance(error, SystemExit):
             raise
-        failure = error if isinstance(error, Failure) else Failure('BUILD_INTERRUPTED' if isinstance(error, KeyboardInterrupt) else 'BUILD_UNEXPECTED')
+        if isinstance(error, Failure):
+            failure = error
+        elif isinstance(error, KeyboardInterrupt):
+            failure = Failure('BUILD_INTERRUPTED')
+        else:
+            failure = Failure('BUILD_UNEXPECTED_' + stage.get('stage', 'INPUTS'))
         if not existed and out.is_dir() and not os.path.lexists(out / common.CANDIDATE_FILE):
             try:
                 if not isinstance(error, Failure):
-                    common.PrivateWriter(out).write('trace', ''.join(traceback.format_exception(error)))
+                    private(out).write('trace', ''.join(traceback.format_exception(error)))
                 if not os.path.lexists(out / 'INCOMPLETE.txt'):
                     write_private_input(out / 'INCOMPLETE.txt', b'No candidate: the build failed; see BUILD_FAILED.json.\n')
                 if not os.path.lexists(out / 'BUILD_FAILED.json'):
-                    common.write_returnable(out / 'BUILD_FAILED.json', {'result': 'failed', 'reason_code': failure.code,
-                                                                        'reason': failure.reason}, out, set())
+                    common.write_returnable(out / 'BUILD_FAILED.json', {'result': 'failed', 'stage': stage.get('stage'),
+                                                                        'reason_code': failure.code, 'reason': failure.reason}, out, set())
             except BaseException:
                 pass
         raise failure from None
@@ -238,7 +241,8 @@ def build(*, out, **kw):
 
 def _build(*, source_root, revision, vendor, expected_manifest, pin, out, environment, tools, cargo_cache, npm_cache,
            publisher_input=None, publisher_sha256=None, cargo_build_input=prepare.CARGO_BUILD_PRESET,
-           runner=common.system_runner, host=None):
+           runner=common.system_runner, host=None, private=common.PrivateWriter, stage=None):
+    stage = {} if stage is None else stage
     host = host or (platform.system(), platform.machine())
     check(host == ('Darwin', 'arm64'), 'BUILD_HOST')
     try:
@@ -260,12 +264,12 @@ def _build(*, source_root, revision, vendor, expected_manifest, pin, out, enviro
     check(not os.path.lexists(export / 'app/node_modules'), 'BUILD_NODE_MODULES')
     check(not any(os.path.lexists(cargo_cache / n) for n in CARGO_CACHE_REFUSED), 'BUILD_CARGO_CACHE')
     # Inputs the build would write through are copied in: no link may lead out of them.
-    refuse_links(inventory.scan(cargo_cache), cargo_cache, allow_inside=False)
-    refuse_links(inventory.scan(npm_cache), npm_cache, allow_inside=False)
-    refuse_links(inventory.scan(export), export, allow_inside=True)
+    for tree in (cargo_cache, npm_cache, export):
+        refuse_links(inventory.scan(tree))
+    stage['stage'] = 'COPY'
     out.mkdir(mode=0o700)
     write_private_input(out / 'INCOMPLETE.txt', b'No candidate until CANDIDATE.json is published and this marker is removed.\n')
-    private = common.PrivateWriter(out)
+    private = private(out)
     source_root = out / 'source'
     shutil.copytree(export, source_root, symlinks=True, copy_function=shutil.copy2)
     shutil.copytree(cargo_cache, out / 'cargo-home', symlinks=True, copy_function=shutil.copy2)
@@ -285,6 +289,7 @@ def _build(*, source_root, revision, vendor, expected_manifest, pin, out, enviro
     except ValueError:
         raise Failure('BUILD_PUBLISHER_SOURCE')
     plan = out / 'plan'
+    stage['stage'] = 'PLAN'
     try:
         prepare.prepare(source_root, vendor, expected_manifest, pin, revision, plan, publisher_input=publisher_input,
                         publisher_sha256=publisher_sha256, cargo_build_input=cargo_build_input)
@@ -299,6 +304,7 @@ def _build(*, source_root, revision, vendor, expected_manifest, pin, out, enviro
           and config['bundle']['macOS']['minimumSystemVersion'] == common.RELEASE['minimum_system_version']
           and config['bundle']['macOS']['signingIdentity'] is None, 'BUILD_OVERLAY')
     recipe = prepare.parse((plan / 'build-recipe.json').read_bytes())
+    stage['stage'] = 'ENVIRONMENT'
     env = dict(recipe['environment']) | environment | isolated_environment(out)
     check(recipe['inherit_environment'] is False and '--no-sign' in recipe['argv'] and set(env) == set(recipe['environment_allowlist'])
           and not set(env) & set(recipe['unset_environment']) and Path(recipe['working_directory']) == source_root / 'app', 'BUILD_RECIPE')
@@ -316,15 +322,18 @@ def _build(*, source_root, revision, vendor, expected_manifest, pin, out, enviro
         cargo_config_sha256 = prepare.verify_cargo_build_input(plan, cargo_home, scope, tools)
     except (ValueError, OSError):
         raise Failure('BUILD_CARGO_INPUT')
+    stage['stage'] = 'INSTALL'
     installed = runner(INSTALL_ARGV, env=env, cwd=recipe['working_directory'])
     private.write('install', installed.stdout + b'\n--- stderr\n' + installed.stderr)
     check(installed.returncode == 0, 'BUILD_INSTALL')
+    stage['stage'] = 'RUN'
     result = runner(recipe['argv'], env=env, cwd=recipe['working_directory'])
     private.write('build', result.stdout + b'\n--- stderr\n' + result.stderr)
     check(result.returncode == 0, 'BUILD_RUN')
     bundles = sorted((out / 'target/release/bundle/macos').glob('*.app'))
     check([b.name for b in bundles] == [common.APP_NAME], 'BUILD_BUNDLE')
     app = bundles[0]
+    stage['stage'] = 'CHECKS'
     facts, errors = bundle_errors(app, plan, vendor, source_root, runner, env, private)
     # The publisher binding and requirement the build compiled in.
     produced = find_publisher_outputs(out / 'target')
@@ -374,6 +383,7 @@ def _build(*, source_root, revision, vendor, expected_manifest, pin, out, enviro
                         'bundled': bundled_state},
     }
     # Publish last: write the pending description, verify it, remove the marker, then rename atomically.
+    stage['stage'] = 'PUBLISH'
     digest = common.write_returnable(out / common.CANDIDATE_PENDING, description, out, public_teams)
     try:
         common.load_candidate(out, name=common.CANDIDATE_PENDING, finishing=True)
@@ -422,7 +432,7 @@ def main(argv=None, *, stdout=None, stderr=None, **kw):
     except Failure as failure:
         print('FAILED: ' + failure.reason, file=stderr)
         return 2
-    except ValueError:
+    except (ValueError, OSError):
         print('FAILED: ' + common.REASONS['BUILD_ENVIRONMENT'], file=stderr)
         return 2
     print(json.dumps(result, indent=2), file=stdout)
