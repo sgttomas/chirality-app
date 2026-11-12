@@ -256,6 +256,23 @@ runpy.run_path({peer},run_name='__main__')
                 .iter()
                 .any(|r| r["requestIdentity"] == 0)
         });
+        // The conversation's status as the supplier last reported it before
+        // the approval request, applied unchanged. Found in the recording by
+        // what the frames are, not by their index.
+        let frames = self.recording["frames"].as_array().unwrap();
+        let request = frames.iter().position(|f| f["frame"]["method"] == "item/commandExecution/requestApproval").unwrap();
+        let sent = frames[..request].iter().rev().map(|f| &f["frame"])
+            .find(|f| f["method"] == "thread/status/changed" && f["params"]["threadId"] == self.thread())
+            .expect("the recording reports this conversation's status before its approval request");
+        let row = self.home.host.snapshot()["threads"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["generation"] == self.generation && t["threadId"] == self.thread())
+            .cloned()
+            .unwrap();
+        assert_eq!(row["status"], sent["params"]["status"], "{row}");
+        assert_eq!(row["statusSource"]["method"], "thread/status/changed");
         assert!(
             self.home
                 .host
@@ -851,6 +868,23 @@ fn recorded_nv04_parent_completion_keeps_its_child_live_until_separate_completio
             .any(|t| t["id"] == child_turn && t["status"] == "inProgress"),
         "{before}"
     );
+    // The parent's row carries the status the supplier last reported for it
+    // among the frames delivered so far (the peer pauses after frame 28), as
+    // sent; it says nothing about the child, whose turn is still in progress.
+    // The frame is found by what it is: the order of the frames around the
+    // parent's completion is not the supplier's settled behaviour.
+    let sent = f.recording["frames"].as_array().unwrap()[..=28].iter().rev().map(|r| &r["frame"])
+        .find(|r| r["method"] == "thread/status/changed" && r["params"]["threadId"] == f.thread())
+        .expect("the recording reports the parent's status before the pause");
+    let parent = f.home.host.snapshot()["threads"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|t| t["generation"] == f.generation && t["threadId"] == f.thread())
+        .cloned()
+        .unwrap();
+    assert_eq!(parent["status"], sent["params"]["status"], "{parent}");
+    assert_eq!(parent["statusSource"]["method"], "thread/status/changed");
     assert!(before["turnRecords"]
         .as_array()
         .unwrap()
