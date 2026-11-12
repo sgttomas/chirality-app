@@ -617,7 +617,13 @@ pub fn recover_at_startup() -> Result<Vec<String>, String> {
         }
         left.extend(recover_file(&path)?);
     }
-    left.extend(witness::begin(&store)?);
+    // A witness that cannot begin now (the projects present could not be
+    // listed whole) is a limit shown, not a failed recovery: it begins at a
+    // later start, or the act that needs it is refused.
+    match witness::begin(&store) {
+        Ok(not_established) => left.extend(not_established),
+        Err(e) => left.push(e),
+    }
     Ok(left)
 }
 /// The readable lines of a store line file (the shared reading), or the

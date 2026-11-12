@@ -4,8 +4,22 @@
 //! survives the disposal of a project's payload and the loss of the project's
 //! own import account (`imports.jsonl`, unchanged in form).
 //!
-//! - Its first line records when the witness began and whether the store
-//!   already existed then ([`BEGAN_FORMAT`]). The file is created whole, with
+//! - Its first line records when the witness began, whether the store
+//!   already existed then, and the store folder key of every project present
+//!   at that moment (`projectsPresent`), listed under the store lock from the
+//!   store's project folders and from its registry ([`BEGAN_FORMAT`]). That
+//!   list is the boundary: a project named in it predates the witness, a
+//!   project not named in it was made after, and no time is compared. A
+//!   project's store folder key comes from its identity and no act changes
+//!   it: giving a folder a new identity makes a new project with its own
+//!   folder and leaves the earlier project, its records and its key as they
+//!   were. If the projects cannot be listed whole (a folder that cannot be
+//!   read, a registry not read whole) the witness does not begin and the act
+//!   that would have begun it is refused; a partial list is never written.
+//!   The list is never changed afterwards, and a witness begins once: if the
+//!   file is lost and a new one begins, every project then present is in the
+//!   new list, which errs toward "origin not established" and never toward
+//!   "no import". The file is created whole, with
 //!   that line and, for every project whose import account was readable and
 //!   held an import then, one line per import marked as established from that
 //!   account when the witness began ([`FROM_ACCOUNT`]) — never taken for a line
@@ -18,11 +32,12 @@
 //!   before its "started" account line and before any copy: wherever imported
 //!   bytes exist in a subtree, the witness exists.
 //!
-//! The reader ([`legacy_import_origin`]): a witness line shows an import; for
-//! a project created at or after the witness began, no witness line means no
-//! import; for a project that existed before it, no witness line and no
-//! readable account showing an import means the origin is not established,
-//! never "no import". A witness not read whole is an error, never "no import".
+//! The reader ([`legacy_import_origin`]): a witness line shows an import
+//! was begun (not that anything was copied); for a project not named in the
+//! first line's list, no witness line means no import; for a project named
+//! there, no witness line and no readable account showing an import means
+//! the origin is not established, never "no import". A witness not read
+//! whole is an error, never "no import".
 use super::*;
 
 pub(crate) const WITNESS_FILE: &str = "legacy-imports.jsonl";
@@ -58,7 +73,8 @@ pub(crate) struct WitnessedImport {
 /// What the store shows of a project's legacy import.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum LegacyOrigin {
-    /// The project was created at or after the witness began, and no import is witnessed.
+    /// The project was not present when the witness began (it is not in the
+    /// first line's list), and no import is witnessed.
     NoImport,
     /// Imports shown by the witness (or, failing it, by the project's account).
     Imported(Vec<WitnessedImport>),
@@ -77,14 +93,36 @@ pub(crate) fn begin(store: &Path) -> Result<Vec<String>, String> {
     }
     let existed = ["roots.jsonl", "projects"].iter().any(|n| std::fs::symlink_metadata(store.join(n)).is_ok());
     let at = now_rfc3339();
-    let mut lines = vec![json!({"format":BEGAN_FORMAT,"formatVersion":VERSION,"at":at,"storeExisted":existed,"by":"writer"})];
-    let mut left = Vec::new();
-    let mut dirs: Vec<PathBuf> = match std::fs::read_dir(store.join("projects")) {
-        Ok(rd) => rd.filter_map(|e| e.ok().map(|e| e.path())).collect(),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => vec![],
-        Err(e) => return Err(format!("records store unreadable: projects: {e}; the witness was not begun")),
-    };
+    // The projects present now, listed whole or not at all: every project
+    // folder in the store, and every project the registry names.
+    let not_begun = "the store's witness of legacy imports was not begun, and nothing changed";
+    let mut dirs: Vec<PathBuf> = Vec::new();
+    match std::fs::read_dir(store.join("projects")) {
+        Ok(rd) => {
+            for entry in rd {
+                dirs.push(entry.map_err(|e| format!("the store's project folders could not be listed whole ({e}); {not_begun}"))?.path());
+            }
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+        Err(e) => return Err(format!("the store's project folders could not be listed ({e}); {not_begun}")),
+    }
     dirs.sort();
+    let mut present = std::collections::BTreeSet::new();
+    for dir in &dirs {
+        present.insert(dir.file_name().and_then(|n| n.to_str()).ok_or_else(|| format!("a project folder's name in the store is not Unicode; {not_begun}"))?.to_owned());
+    }
+    let (registered, whole, limits) = roots_read(store).map_err(|e| format!("{e}; {not_begun}"))?;
+    if !whole {
+        return Err(format!("{}; so the projects present cannot be listed whole, and {not_begun}", lines::not_read_whole(&store.join("roots.jsonl"), &limits)));
+    }
+    for line in &registered {
+        if let Some(project) = line["projectId"].as_str() {
+            present.insert(folder_key(store, project)?);
+        }
+    }
+    let mut lines = vec![json!({"format":BEGAN_FORMAT,"formatVersion":VERSION,"at":at,"storeExisted":existed,
+        "projectsPresent":present.into_iter().collect::<Vec<_>>(),"by":"writer"})];
+    let mut left = Vec::new();
     for dir in dirs {
         let Some(project) = project_identity(&dir) else {
             left.push(format!("{}: no readable project identity; no witness line established", dir.display()));
@@ -137,7 +175,7 @@ pub(crate) fn legacy_import_origin(store: &Path, project: &str) -> Result<Legacy
     };
     if !present {
         return Ok(from_account(&dir).unwrap_or_else(|| LegacyOrigin::NotEstablished(
-            "The origin of this project's records is not established: the store's witness of legacy imports has not begun yet, and the project's own import account shows no import. Until the witness has begun, nothing in this project reads as the person's decision.".into())));
+            "The origin of this project's records is not established: the store's witness of legacy imports has not begun yet, and the project's own import account shows no import. Until the witness has begun, whether it holds imported records cannot be known.".into())));
     }
     let read = read_store_file(&path)?;
     let values = read.require_whole(&path)?;
@@ -161,18 +199,24 @@ pub(crate) fn legacy_import_origin(store: &Path, project: &str) -> Result<Legacy
     if let Some(found) = from_account(&dir) {
         return Ok(found);
     }
-    if began["storeExisted"] == false {
-        return Ok(LegacyOrigin::NoImport);
-    }
-    let began_at = began["at"].as_str().filter(|t| is_app_time(t)).ok_or("the witness's first line has no time in the App's form; nothing is concluded from it")?;
-    let created = project_created(&dir);
-    if created.as_deref().is_some_and(|c| is_app_time(c) && c >= began_at) {
+    // The boundary is a recorded fact: the projects present when the witness
+    // began. No time is compared, and a first line without the list concludes
+    // nothing.
+    let present = began["projectsPresent"].as_array()
+        .and_then(|listed| listed.iter().map(Value::as_str).collect::<Option<Vec<&str>>>())
+        .ok_or("the first line of the store's witness of legacy imports does not list the projects present when it began; nothing is concluded from it")?;
+    if !present.contains(&folder_key(store, project)?.as_str()) {
         return Ok(LegacyOrigin::NoImport);
     }
     Ok(LegacyOrigin::NotEstablished(format!(
-        "The origin of this project's records is not established: the project {} the store's witness of legacy imports began ({began_at}), no witness line names an import for it, and its own import account is {}. So whether it holds imported records cannot be known, and nothing in this project reads as the person's decision. This does not change.",
-        if created.is_some() { "existed before" } else { "has no readable creation time, so may predate" },
+        "The origin of this project's records is not established: the project was present in the store when the store's witness of legacy imports began ({}), no witness line names an import for it, and its own import account is {}. So whether it holds imported records cannot be known. This does not change.",
+        began["at"].as_str().unwrap_or("at a time its first line does not give"),
         if dir.join("imports.jsonl").exists() { "unreadable or shows no import" } else { "absent" })))
+}
+/// The name of `project`'s folder in the store: what the witness's first line
+/// lists. It comes from the project's identity and no act changes it.
+fn folder_key(store: &Path, project: &str) -> Result<String, String> {
+    project_dir(store, project).file_name().and_then(|n| n.to_str()).map(str::to_owned).ok_or_else(|| "project store folder has no name".into())
 }
 
 /// The imports a readable account shows, as witnessed by it alone.
@@ -224,15 +268,4 @@ fn project_identity(dir: &Path) -> Option<String> {
     let bytes = crate::records_retention::read_plain(&dir.join("project.json")).ok()?;
     let v: Value = serde_json::from_slice(&bytes).ok()?;
     (v["format"] == PROJECT_FORMAT).then(|| v["projectId"].as_str().map(str::to_owned)).flatten()
-}
-fn project_created(dir: &Path) -> Option<String> {
-    let bytes = crate::records_retention::read_plain(&dir.join("project.json")).ok()?;
-    let v: Value = serde_json::from_slice(&bytes).ok()?;
-    (v["format"] == PROJECT_FORMAT).then(|| v["createdAt"].as_str().map(str::to_owned)).flatten()
-}
-/// The App's own time form (`now_rfc3339`), whose texts order as their times do.
-fn is_app_time(t: &str) -> bool {
-    let b = t.as_bytes();
-    b.len() == 24 && b[4] == b'-' && b[7] == b'-' && b[10] == b'T' && b[13] == b':' && b[16] == b':' && b[19] == b'.' && b[23] == b'Z'
-        && b.iter().enumerate().all(|(i, c)| [4, 7, 10, 13, 16, 19, 23].contains(&i) || c.is_ascii_digit())
 }

@@ -39,6 +39,15 @@ impl Legacy {
         }).collect()
     }
 }
+fn key_of(dir: &Path) -> String {
+    dir.file_name().unwrap().to_str().unwrap().to_owned()
+}
+fn set_created(dir: &Path, at: &str) {
+    let record = dir.join("project.json");
+    let mut identity: Value = serde_json::from_slice(&std::fs::read(&record).unwrap()).unwrap();
+    identity["createdAt"] = json!(at);
+    std::fs::write(&record, serde_json::to_vec(&identity).unwrap()).unwrap();
+}
 fn imported_files(origin: &LegacyOrigin) -> Vec<WitnessedFile> {
     match origin {
         LegacyOrigin::Imported(imports) => imports.iter().flat_map(|i| i.files.clone()).collect(),
@@ -156,16 +165,11 @@ fn a_project_from_before_the_witness_with_no_account_reads_not_established_and_a
     // The store as it was before the witness existed: this project predates it.
     std::fs::remove_file(l.store.join(witness::WITNESS_FILE)).unwrap();
     assert!(matches!(l.origin().unwrap(), LegacyOrigin::NotEstablished(_)), "the witness has not begun");
-    // An identity record from before the witness, as an earlier App wrote it.
-    let record = l.dir.join("project.json");
-    let mut identity: Value = serde_json::from_slice(&std::fs::read(&record).unwrap()).unwrap();
-    identity["createdAt"] = json!("2026-01-01T00:00:00.000Z");
-    std::fs::write(&record, serde_json::to_vec(&identity).unwrap()).unwrap();
     recover_at_startup().unwrap();
     match l.origin().unwrap() {
         LegacyOrigin::NotEstablished(reason) => {
-            assert!(reason.contains("existed before") && reason.contains("absent"), "{reason}");
-            assert!(reason.contains("nothing in this project reads as the person's decision") && reason.contains("This does not change."), "{reason}");
+            assert!(reason.contains("was present in the store when the store's witness of legacy imports began") && reason.contains("absent"), "{reason}");
+            assert!(reason.contains("whether it holds imported records cannot be known") && reason.contains("This does not change."), "{reason}");
             for instruction in ["repair", "restore", "import them", "run ", "fix"] {
                 assert!(!reason.to_lowercase().contains(instruction), "no instruction to repair: {reason}");
             }
@@ -222,8 +226,10 @@ fn a_project_registered_in_the_same_startup_that_begins_the_witness_is_known_to_
     assert_eq!(first["formatVersion"], "0.1");
     assert_eq!(first["storeExisted"], true);
     assert_eq!(first["by"], "writer");
-    let record: Value = serde_json::from_slice(&std::fs::read(fresh.dir.as_ref().unwrap().join("project.json")).unwrap()).unwrap();
-    assert!(record["createdAt"].as_str().unwrap() >= first["at"].as_str().unwrap(), "created at or after the witness began");
+    // The witness began before the new project's folder and registry line
+    // existed: the list names the earlier project and not the new one.
+    assert_eq!(first["projectsPresent"], json!([key_of(&l.dir)]));
+    assert_ne!(key_of(fresh.dir.as_ref().unwrap()), key_of(&l.dir));
     assert_eq!(legacy_import_origin(&l.store, fresh.project.as_deref().unwrap()).unwrap(), LegacyOrigin::NoImport);
 }
 
@@ -257,8 +263,94 @@ fn a_store_created_by_this_build_has_the_witness_from_its_first_line() {
     let read = store_lines::read(&std::fs::read(&path).unwrap(), &path);
     assert_eq!(read.values.len(), 1, "only its first line");
     assert_eq!(read.values[0]["storeExisted"], false, "the witness began with the store");
-    let record: Value = serde_json::from_slice(&std::fs::read(attachment.dir.as_ref().unwrap().join("project.json")).unwrap()).unwrap();
-    assert!(record["createdAt"].as_str().unwrap() >= read.values[0]["at"].as_str().unwrap());
+    assert_eq!(read.values[0]["projectsPresent"], json!([]), "no project was present when it began");
     assert_eq!(legacy_import_origin(&store, attachment.project.as_deref().unwrap()).unwrap(), LegacyOrigin::NoImport);
     drop(own);
+}
+
+/// Review round 1, finding 4, as App Agent 0 decided it: the boundary is the
+/// list of projects present that the witness's first line records, and no
+/// time is compared. The reviewer's two states: a project that predates the
+/// witness, with imported payload and a lost account, whose creation time is
+/// not before the witness's, still reads "origin not established"; a project
+/// made after the witness began, with a creation time before it (a clock set
+/// back), reads "no import". Then the three conditions of the decision.
+#[test]
+fn the_witness_boundary_is_the_recorded_list_of_projects_present_and_no_clock() {
+    let l = Legacy::new();
+    import(&l.root).unwrap();
+    assert!(!l.present().is_empty(), "the project holds imported payload");
+    // The store as it was before the witness existed, with the account lost.
+    std::fs::remove_file(l.store.join(witness::WITNESS_FILE)).unwrap();
+    std::fs::remove_file(l.dir.join("imports.jsonl")).unwrap();
+    set_created(&l.dir, "2099-01-01T00:00:00.000Z");
+    recover_at_startup().unwrap();
+    let path = l.store.join(witness::WITNESS_FILE);
+    let first_line = |bytes: &[u8]| store_lines::read(bytes, &path).values[0].clone();
+    let began = l.witness();
+    assert_eq!(first_line(&began)["projectsPresent"], json!([key_of(&l.dir)]));
+    assert!(matches!(l.origin().unwrap(), LegacyOrigin::NotEstablished(_)), "never \"no import\", whatever its creation time says");
+    let later = attach(&folder("witness-clock-set-back-"), true).unwrap();
+    set_created(later.dir.as_ref().unwrap(), "2000-01-01T00:00:00.000Z");
+    assert_eq!(legacy_import_origin(&l.store, later.project.as_deref().unwrap()).unwrap(), LegacyOrigin::NoImport, "made after the witness began, whatever its creation time says");
+    // Condition 2. What the list records is the project's store folder key,
+    // which comes from its identity and which no act changes. The folder is
+    // given a new identity: that is a new project with its own folder and
+    // none of the imported payload; the earlier project, its payload and its
+    // standing are as they were.
+    std::fs::remove_file(l.root.join(PROJECT_LINK)).unwrap();
+    new_identity(&l.root).unwrap();
+    let renamed = attach(&l.root, false).unwrap();
+    let new_project = renamed.project.clone().expect("the folder has its new identity");
+    assert_ne!(new_project, l.project);
+    assert!(matches!(l.origin().unwrap(), LegacyOrigin::NotEstablished(_)), "the earlier project still reads not established");
+    assert!(!l.present().is_empty(), "its imported payload is where it was");
+    let new_dir = project_dir(&l.store, &new_project);
+    for copy in l.copies() {
+        assert!(!new_dir.join(&copy).exists(), "{copy}: nothing imported is under the new identity");
+    }
+    assert_eq!(legacy_import_origin(&l.store, &new_project).unwrap(), LegacyOrigin::NoImport);
+    // Condition 3. The list is never changed, and the witness begins once.
+    recover_at_startup().unwrap();
+    assert_eq!(first_line(&l.witness()), first_line(&began), "the first line is as it was written");
+    // If the witness is lost and a new one begins, every project then present
+    // is in the new list: it errs toward "not established", never "no import".
+    std::fs::remove_file(&path).unwrap();
+    recover_at_startup().unwrap();
+    let again = first_line(&l.witness());
+    let listed: Vec<String> = again["projectsPresent"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_owned()).collect();
+    for dir in [&l.dir, later.dir.as_ref().unwrap(), &new_dir] {
+        assert!(listed.contains(&key_of(dir)), "{}", dir.display());
+    }
+    assert!(matches!(legacy_import_origin(&l.store, later.project.as_deref().unwrap()).unwrap(), LegacyOrigin::NotEstablished(_)));
+    // A first line that does not carry the list concludes nothing.
+    let mut stripped = again.clone();
+    stripped.as_object_mut().unwrap().remove("projectsPresent");
+    std::fs::write(&path, format!("{stripped}\n")).unwrap();
+    assert!(l.origin().unwrap_err().contains("does not list the projects present"));
+}
+
+/// Condition 1 of that decision: the listing is whole or the witness does not
+/// begin. With the registry not read whole, the projects present cannot be
+/// listed whole: the startup recovery shows that as a limit and writes no
+/// witness, and an import, which would have begun it, is refused before any
+/// copy. No partial list is ever written.
+#[test]
+fn a_witness_whose_listing_cannot_be_taken_whole_does_not_begin_and_refuses_the_act() {
+    let l = Legacy::new();
+    let path = l.store.join(witness::WITNESS_FILE);
+    std::fs::remove_file(&path).unwrap();
+    let registry = l.store.join("roots.jsonl");
+    let mut bytes = std::fs::read(&registry).unwrap();
+    bytes.extend(b"{\"damaged from outside\n");
+    std::fs::write(&registry, &bytes).unwrap();
+    *ROOTS.lock().unwrap() = None;
+    let left = recover_at_startup().unwrap();
+    assert!(left.iter().any(|l| l.contains("the projects present cannot be listed whole") && l.contains("was not begun")), "{left:?}");
+    assert!(!path.exists(), "no witness, and so no partial list");
+    let refused = import(&l.root).unwrap_err();
+    assert!(refused.contains("not read whole"), "{refused}");
+    assert!(!path.exists());
+    assert!(l.present().is_empty(), "nothing was copied");
+    assert!(matches!(l.origin().unwrap(), LegacyOrigin::NotEstablished(_)), "with no witness, never \"no import\"");
 }
