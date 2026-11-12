@@ -280,6 +280,13 @@ Each declared form names its source: Apple's published technical notes and
 notarization documentation, and real outputs kept in this repository. No form
 was taken from running the tools, and none was invented.
 
+Some commands are actions, not observations: the two signings, the archive
+made with `ditto`, and `hdiutil create`, `attach` and `detach`. Their output
+is not read. Each counts only when it returns zero, and what it did is then
+observed: the signature verified and displayed, the archive and the disk
+image present and assessed, the mounted contents compared with the stapled
+App, and the mount point empty and no longer mounted after a detach.
+
 Those sources do not show every line the real tools print. For example, no
 source shows the line of `codesign -d` that names the executable. So **a
 first real run may stop on a line of output nobody declared**. The reason

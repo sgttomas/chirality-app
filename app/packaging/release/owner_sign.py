@@ -417,7 +417,10 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
         session.observe(n, 'validate', [XCRUN, 'stapler', 'validate', target], f'S{n}_VALIDATE')
 
     def detach(n, code):
+        """An action whose output is not read; its effect is observed: the mount point is no longer a
+        mount and holds nothing."""
         session.act(n, [HDIUTIL, 'detach', mount], code)
+        check(not os.path.ismount(mount) and not any(mount.iterdir()), code)
 
     # 5. Verify the signed App, and keep its inventory: the App as signed.
     verify_app(5, SIGNED_EXTRA)

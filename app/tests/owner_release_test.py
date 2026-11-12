@@ -493,6 +493,14 @@ class OwnerSign(Base):
         second_detach = lambda argv: Result(16) if sum(c[1] == 'detach' for c in self.fake.calls) == 2 else None
         self.failing(('detach',), second_detach, 'S13_DETACH')
         self.assertFalse((self.out / 'PACKAGE_IDENTITY.json').exists())
+        # a detach that returns zero but leaves the image mounted: the action's output is not read, its effect is
+        for count, code in ((1, 'S12_DETACH'), (2, 'S13_DETACH')):
+            with self.subTest(code=code):
+                self.setUp()
+                still_mounted = lambda argv, count=count: Result(0, b'', b'hdiutil: detach failed - invented\n') \
+                    if sum(c[1] == 'detach' for c in self.fake.calls) == count else None
+                self.failing(('detach',), still_mounted, code)
+                self.assertFalse((self.out / 'PACKAGE_IDENTITY.json').exists())
 
     def test_supplier_signature_problems_stop_with_the_clm_002_question(self):
         for problem, code in (({'flags': '0x0(none)'}, 'S0_SIGNATURE'), ({'timestamp': 'Signed Time=Jan 1, 2026'}, 'S0_SIGNATURE'),
