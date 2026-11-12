@@ -8,7 +8,7 @@
     {
       "role": "step_operations",
       "path": "app/examination/standalone/step-operations.json",
-      "sha256": "sha256:76338f9128209fb6bd8c20e07be45827cf96c4c9f9f70e21f7564abc376b2ddf"
+      "sha256": "sha256:8b5a4b84d75490dcfb23595992faf862a37c8092ebb6b1a564c2e17ca7b7d05a"
     },
     {
       "role": "missing-inputs.json",
