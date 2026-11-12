@@ -164,7 +164,7 @@ export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHom
     }
     // `generation` is the one the choice was made for. The current native
     // receiver ignores it; a native follow-up will require it at admission.
-    pressSend(act, "workflow_trial_start_clean", { reference: pending?.reference, model: route.model, modelProvider: route.modelProvider, entryId: route.entryId, modeHomeClass: binding.modeHomeClass ?? modeHomeClass, generation: binding.generation, role: choice.role === "" ? null : choice.role, personText: message }, setOutcome, result => cleanSentWords(result?.thread?.threadId ?? result?.conversation?.threadId ?? "not named by the host"));
+    pressSend(act, "workflow_trial_start_clean", { reference: pending?.reference, model: route.model, modelProvider: route.modelProvider, entryId: route.entryId, modeHomeClass: binding.modeHomeClass ?? modeHomeClass, generation: binding.generation, role: choice.role === "" ? null : choice.role, preselected: !choice.roleTouched && !!choice.role && choice.role === roleSet?.defaultRole, personText: message }, setOutcome, result => cleanSentWords(result?.thread?.threadId ?? result?.conversation?.threadId ?? "not named by the host"));
   };
   return <section id={cleanTrialAnchor(pending?.reference)} aria-label="New trial conversation" style={{ border: "1px solid #888", padding: 8, margin: "8px 0" }}>
     <h3>New trial conversation: trial {text(pending?.sequence)} of draft {text(pending?.draftName)}</h3>

@@ -364,3 +364,8 @@ test('a press refused before any host command is said under the Run guide\'s Nex
   for(let node=result;node;node=node.parentNode)assert.notEqual(node,studio,'the result is outside the studio');
   await React.act(async()=>root.unmount());
 });
+
+// The included-workflows chooser's tests run with this file, which the web
+// suite's script and both hosted presentation steps already list. The script
+// itself is not changed: app/package.json's bytes are pinned by the notices basis.
+await import('./included-workflows.test.mjs');

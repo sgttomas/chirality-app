@@ -71,7 +71,7 @@ test('a clean trial chooses the built-in route and a reported model, and Send st
     assert.match(region(ui.c, 'Available models').textContent, /Model B model-b · chosen/);
     assert.deepEqual(acts, [], 'choosing a model sends nothing');
     await ui.press('Send'); await ui.settle();
-    assert.deepEqual(acts, [['workflow_trial_start_clean', {reference:'trial:7', model:'model-b', modelProvider:'openai', entryId:'chatgpt-account', modeHomeClass:'account', generation:g, role:null, personText:'my edited inputs'}]]);
+    assert.deepEqual(acts, [['workflow_trial_start_clean', {reference:'trial:7', model:'model-b', modelProvider:'openai', entryId:'chatgpt-account', modeHomeClass:'account', generation:g, role:null, preselected:false, personText:'my edited inputs'}]]);
     assert.match(panel.textContent, /Sent in the new trial conversation clean-1/);
     assert.equal(ui.issued().length, 1, 'nothing re-reads on its own');
   });

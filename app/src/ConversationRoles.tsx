@@ -7,7 +7,8 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 // ROLE §3.1–§3.3, §4.4, §6.2). A conversation's role is fixed for its life
 // (L-2): nothing here changes it. "Continue as" starts a new conversation with
 // another role; "Fork" is a same-role copy. The role's limits are shown as the
-// limit account hands them ("Stated, not enforced").
+// limit account hands them ("Stated, not enforced"), and always under the
+// guidance that account describes (see LimitSubject).
 
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
@@ -33,15 +34,103 @@ export function guidanceChange(notices: Json): { changed: Json[]; notRead: Json[
   };
 }
 
-/** LA-4: the limits as handed by the limit account, per role. */
-export function RoleLimits({ limits, role }: { limits: Json; role: string | null }) {
-  if (!role) return <p><small>No role: the conversation gets the product guidance only. No role limits are stated.</small></p>;
+/** What each conversation role does, in one line, taken from the opening of
+ * its shipped guidance document (resources/instructions/agents/AGENT_<ROLE>.md).
+ * The role set's own meaning stays beside the name; this says it plainly. */
+export const ROLE_PLAIN_MEANING: Record<string, string> = {
+  HELP_HUMAN: "Understands the outcome you intend, your commitments and the work already in progress, and keeps that understanding current.",
+  HELPS_HUMANS: "Helps you conceive and design workflows, tools and projects.",
+  WORKING_ITEMS: "Carries a bounded undertaking through implementation.",
+};
+
+/** The limit account's `notEnforcement` codes in plain words: things that may
+ * restrict the agent but are not this limit's enforcement (AC-004). */
+const NOT_ENFORCED_BY: Record<string, string> = {
+  "approval-policy": "your approval setting",
+  "sandbox": "your sandbox setting",
+  "user-configuration": "your Codex configuration",
+  "depth-limit": "your delegation depth limit",
+  "worktree": "working in a separate worktree",
+  "brief-text": "the brief itself",
+};
+const inWords = (items: string[]): string => items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} or ${items[items.length - 1]}`;
+
+/** One limit as the account hands it, in plain words. "Stated, not enforced"
+ * is the scope's own label and stays; the codes beside it are explained. */
+export function limitWords(l: Json): string {
+  const standing = text(l?.standing);
+  const others = list(l?.notEnforcement).map(c => NOT_ENFORCED_BY[text(c)] ?? text(c));
+  const separate = (either: string) => others.length ? `None of these enforces it${either}: ${inWords(others)}.` : "";
+  if (standing === "stated-not-enforced") return `It is stated in that guidance; Codex does not enforce it. ${separate(" either")}`.trim();
+  if (standing === "enforced-by-supplier") return l?.mechanism ? `Codex enforces it through ${text(l.mechanism)}.` : "";
+  return separate("");
+}
+
+/** Which guidance an account of limits describes. The host makes every
+ * account and names its subject: the guidance files as the App last read them,
+ * or the guidance supplied at one named conversation's start or for one child.
+ * The view shows an account only under that subject and never attaches it to
+ * another, by comparison or otherwise. */
+export type LimitSubject =
+  | { of: "current-files" }
+  | { of: "conversation-supply"; thread: string; own: boolean }
+  | { of: "child-supply" };
+export function limitSubjectWords(subject: LimitSubject, role: string | null): string {
+  const guidance = role ? `the ${role} guidance` : "the guidance";
+  if (subject.of === "current-files") return `Limits of ${role ?? "no role"} in its guidance file as the App last read it`;
+  if (subject.of === "child-supply") return `Limits in ${guidance} the App supplied for this child`;
+  return subject.own ? `Limits in ${guidance} the App supplied when this conversation started`
+    : `This fork was sent no guidance of its own. Limits in ${guidance} the App supplied when conversation ${subject.thread} started`;
+}
+
+/** LA-4: one account of limits, under the guidance it describes. This is the
+ * only place a limit's standing becomes a sentence about what guidance states.
+ * `entry` is the account's row for `role` ({role, limits}); with none, or one
+ * for another role, the limits are not known and the reason is given. */
+export function RoleLimits({ subject, role, entry, notKnown }: { subject: LimitSubject; role: string | null; entry?: Json; notKnown?: string }) {
+  if (subject.of === "current-files" && !role) return <p><small>No role: the conversation gets the product guidance only. No role limits are stated.</small></p>;
+  const lead = limitSubjectWords(subject, role);
+  const mine = !!entry && (role ? entry.role === role : entry.role === "none");
+  if (!mine) return <p><small>{lead}: {notKnown || "not known"}.</small></p>;
+  if (!role) return <p><small>{subject.of === "conversation-supply" && !subject.own ? `This fork was sent no guidance of its own. Conversation ${subject.thread} was started with no role: the App supplied it` : "Started with no role: the App supplied"} the product guidance only, and no role's limits.</small></p>;
+  return <div>
+    <p><small>{lead}:</small></p>
+    <ul aria-label={lead}>
+      {list(entry.limits).map((l: Json) => <li key={text(l.limitId)}><small>{text(l.statement)}: <b>{text(l.presentedAs)}</b>. {limitWords(l)}</small></li>)}
+    </ul>
+  </div>;
+}
+
+/** The current guidance files' account for one role: what the role choice and
+ * Continue as show. A file the host could not read is reported, never guessed. */
+export function CurrentFileLimits({ limits, role }: { limits: Json; role: string | null }) {
   const entry = list(limits?.account?.roles).find((r: Json) => r?.role === role);
   const unread = list(limits?.notRead).find((r: Json) => r?.role === role);
-  if (!entry) return <p><small>Limits of {role}: {unread ? `${text(unread.reading)} (${text(unread.reason)})` : "not available"}.</small></p>;
-  return <ul aria-label={`Limits of ${role}`}>
-    {list(entry.limits).map((l: Json) => <li key={text(l.limitId)}><small>{text(l.statement)}: <b>{text(l.presentedAs)}</b>. Not this limit's enforcement: {list(l.notEnforcement).map(text).join(", ")}.</small></li>)}
-  </ul>;
+  return <RoleLimits subject={{ of: "current-files" }} role={role} entry={entry} notKnown={unread ? `${text(unread.reading)} (${text(unread.reason)})` : "not available"} />;
+}
+
+/** The limits of the guidance a conversation runs under, from the account the
+ * host made when that guidance was supplied and kept with the role binding.
+ * Without one (the binding is held only by the App process that made it) the
+ * limits are not known; the current files are never shown in its place.
+ * `childAccountHeld`: the App holds this conversation's supply as a child,
+ * which is shown under its own subject line, so nothing is denied here. */
+export function SuppliedLimits({ supplied, childAccountHeld = false }: { supplied: Json; childAccountHeld?: boolean }) {
+  const to = supplied?.subject?.kind === "original-supply" ? supplied.subject.suppliedTo : undefined;
+  if (typeof to !== "string" || !to) return childAccountHeld ? null
+    : <p><small>Limits in the guidance this conversation was given: not known. This App process holds no account of guidance it supplied to this conversation.</small></p>;
+  const account = supplied.standing === "established" ? supplied.account : undefined;
+  const role = account && account.role !== "none" ? text(account.role) : null;
+  return <RoleLimits subject={{ of: "conversation-supply", thread: to, own: supplied.subject.thisConversation === true }} role={role} entry={account}
+    notKnown={`not known${supplied.reason ? ` (${text(supplied.reason)})` : ""}`} />;
+}
+
+/** What the label means, under a role choice. It says nothing of what any
+ * guidance states: that is said with each limit, under its own subject. */
+function LimitsNote({ limits }: { limits: Json }) {
+  const all = list(limits?.account?.roles).flatMap((r: Json) => list(r?.limits));
+  if (!limits?.available || !all.some((l: Json) => l?.standing === "stated-not-enforced")) return null;
+  return <p><small>A limit shown as “Stated, not enforced” is an instruction to the agent. Codex does not enforce it, and your approval and sandbox settings are a separate matter that does not enforce it either.</small></p>;
 }
 
 /** ST-5: the start display's role choice, readable. The default is shown as a
@@ -58,11 +147,12 @@ export function RoleChoice({ roleSet, limits, role, setRole, preselected, group 
       const name = text(r.name);
       return <div key={name}>
         <label><input type="radio" name={group} value={name} checked={role === name} onChange={() => setRole(name)} /> <b>{name}</b>: {text(r.meaning)}{r.default_for_new_chat ? (role === name && preselected ? " (preselected; change or clear it before starting)" : " (the default for a new conversation)") : ""}</label>
-        {role === name && <RoleLimits limits={limits} role={name} />}
+        {ROLE_PLAIN_MEANING[name] && <p><small>{ROLE_PLAIN_MEANING[name]}</small></p>}
+        {role === name && <CurrentFileLimits limits={limits} role={name} />}
       </div>;
     })}
     <label><input type="radio" name={group} value="" checked={role === ""} onChange={() => setRole("")} /> <b>No role</b>: product guidance only.</label>
-    <p><small>{text(limits?.standing)}</small></p>
+    <LimitsNote limits={limits} />
     <p><small>TASK is not a conversation role: a manager assigns bounded work to it, and its guidance is supplied for that delegation.</small></p>
   </fieldset>;
 }
@@ -109,7 +199,7 @@ export function NativeChildRoles({ supply }: { supply: Json }) {
       {Array.isArray(namespace.candidateNames) && <p>Observed role names: {namespace.candidateNames.length ? namespace.candidateNames.map(text).join(", ") : "none"}. Sources observed: {text(namespace.sourceCount)}.</p>}
       {namespace.config && <p>Configuration identity: {text(namespace.config.method)} · {text(namespace.config.value)}</p>}
     </details>}
-    <p><small>Child supply does not establish that a child was started, provider uptake or consumer adoption. The App preserves the person's roles, features, depth and permissions. TASK's default nondelegation limit is stated, not enforced.</small></p>
+    <p><small>Child supply does not establish that a child was started, provider uptake or consumer adoption. The App leaves your own roles, features, delegation depth and permissions as they are. The TASK guidance document shipped with the App says a task agent does not delegate; that limit is stated, not enforced: Codex does not enforce it. That describes the shipped document, not what any child was given: each child's own limits are shown with it.</small></p>
   </section>;
 }
 
@@ -120,7 +210,7 @@ export function ChildGuidance({ guidance }: { guidance: Json }) {
   if (guidance.standing !== "app-observed-child-supply") return <p>Child guidance unknown: {text(guidance.reason) || "no original App supply association"}.</p>;
   return <div aria-label="Original child guidance">
     <p>Original App child guidance: <b>{text(guidance.role)}</b> (observed). Parent conversation: {text(guidance.native?.parentThreadId ?? guidance.parentThreadId)}. Provider uptake remains unknown.</p>
-    <RoleLimits limits={{ account: { roles: [guidance.limitAccount] } }} role={text(guidance.role)} />
+    <RoleLimits subject={{ of: "child-supply" }} role={text(guidance.role)} entry={guidance.limitAccount} />
     <p><small>This is evidence of the original child supply. It does not set the primary conversation role or restore current role authority. Resume, fork and later generations do not authorize new child associations from this catalog.</small></p>
     {guidance.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">Child association history was not confirmed: {text(guidance.roleSupplyRecord.limit)}.</p>}
     <details><summary>Original child supply evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(guidance, null, 2)}</pre></details>
@@ -146,16 +236,18 @@ export function RoleLimitObservations({ observations }: { observations: Json }) 
   const rows = list(observations);
   if (rows.length === 0) return null;
   return <section aria-label="Observed TASK delegations">
-    <p><b>Native delegation compared with original TASK guidance</b></p>
+    <p><b>Delegations by an agent given TASK guidance</b></p>
     {rows.map((row, i) => {
       const original = row.originalAssociation;
       const originalGeneration = original?.generation ?? row.root?.generation;
       const actionGeneration = row.actionGeneration ?? row.generation;
       return <div key={i}>
-        <p>Child {text(row.parentThreadId)} started child {text(row.threadId)}. Original TASK limit standing: <b>{row.standing === "stated-not-enforced" ? "Stated, not enforced" : text(row.standing) || "unknown"}</b>. The App did not prevent this delegation.</p>
+        <p>Child {text(row.parentThreadId)} started child {text(row.threadId)}. {row.standing === "stated-not-enforced" ? <>The TASK guidance it was given says a task agent does not delegate: <b>Stated, not enforced</b>. Codex does not enforce this limit.</>
+          : row.standing === "enforced-by-supplier" ? <>The TASK guidance it was given says a task agent does not delegate: <b>Enforced by Codex</b>.</>
+          : <>Whether the TASK guidance this child was given says a task agent does not delegate: <b>Not known whether the supplied guidance states this</b>. The App could not establish what that guidance states.</>} The App recorded this delegation and did not prevent it.</p>
         <p><small>Native event: {text(row.itemId)} · {text(row.source)} · receipt position {text(row.receiptPosition)}. Original root parent: {text(row.root?.parentThreadId)} · original parent supply: {text(original?.parentSupplyRef ?? row.parentSupplyRef)}{original?.associationId ? ` · original TASK association: ${text(original.associationId)}` : ""}.</small></p>
         {originalGeneration && actionGeneration && JSON.stringify(originalGeneration) !== JSON.stringify(actionGeneration) && <p><small>Original guidance generation: {text(originalGeneration)}. Native action generation: {text(actionGeneration)}.</small></p>}
-        <p><small>Comparison with original guidance only; no renewed supply, provider uptake or current role authority is established.</small></p>
+        <p><small>This compares the delegation with the guidance the child was given when it started. It does not show that guidance was sent again, that the model took it up, or that the role still applies.</small></p>
         {row.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">TASK delegation history was not confirmed: {text(row.roleSupplyRecord.limit)}.</p>}
         <details><summary>TASK delegation evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(row, null, 2)}</pre></details>
       </div>;
@@ -241,6 +333,10 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, fork
   const [target, setTarget] = useState<string>(own === undefined ? CONVERSATION_ROLES[0] : (own ?? ""));
   const relation = thread?.roleRelation;
   const { changed, notRead } = guidanceChange(thread?.futureGuidanceNotices);
+  // `changed` and `notRead` are the comparison's own statement below. They select
+  // no account: this conversation's limits come only from what it was supplied.
+  // The role set's short meaning, as the limit account hands it with each role.
+  const meaningOf = (name: string) => text(list(limits?.account?.roles).find((r: Json) => r?.role === name)?.meaning);
   return <div aria-label="Conversation role">
     <p>Role: <b>{roleName(appRole)}</b>. It is fixed for this conversation's life; native role hints do not set it.</p>
     <ChildGuidance guidance={thread?.childGuidance} />
@@ -248,20 +344,23 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, fork
     <RoleHistoryReader read={readSupplyHistory} scope={JSON.stringify([thread?.generation, thread?.threadId])} ready={ready} />
     <TrialHeader trialConversation={trialConversation} trialsStartedHere={trialsStartedHere} />
     {relation?.kind === "continued-from" && <p><small>Continues conversation {text(relation.from?.sourceThread)} (its role: {roleName(relation.from?.sourceRole)}); a relation only: no history was carried.</small></p>}
-    {(relation?.kind === "inherited-fork" || thread?.forkedFrom) && <p><small>Fork of conversation {text(relation?.sourceThread ?? thread?.forkedFrom?.threadId)} (same role): the fork was sent no instructions, so it keeps the source's guidance.</small></p>}
-    {own !== undefined && <RoleLimits limits={limits} role={own} />}
+    {(relation?.kind === "inherited-fork" || thread?.forkedFrom) && <p><small>Fork of conversation {text(relation?.sourceThread ?? thread?.forkedFrom?.threadId)} (same role): the App sent the fork no instructions of its own.</small></p>}
+    <SuppliedLimits supplied={thread?.suppliedLimitAccount} childAccountHeld={thread?.childGuidance?.standing === "app-observed-child-supply"} />
     {changed.length > 0 && <p role="status"><b>Guidance changed since this conversation started</b>: {changed.map((n: Json) => `${text(n.path)} (${n.kind === "missing" ? "missing now" : "edited"})`).join(", ")}. Nothing was sent to this conversation; it keeps the guidance it started with. New conversations use the current guidance.{" "}
       {own !== undefined && <button disabled={busy || !ready} onClick={() => continueAs(own)}>Continue as {own ?? "no role"}…</button>}</p>}
     {notRead.length > 0 && <p><small>Current guidance could not be read ({notRead.map((n: Json) => text(n.path)).join(", ")}), so it was not compared.</small></p>}
     <p>
       <label>Continue as <select value={target} disabled={busy} onChange={e => setTarget(e.target.value)}>
-        {CONVERSATION_ROLES.map(r => <option key={r} value={r}>{r}</option>)}<option value="">No role</option>
+        {CONVERSATION_ROLES.map(r => <option key={r} value={r}>{meaningOf(r) ? `${r}: ${meaningOf(r)}` : r}</option>)}<option value="">No role: product guidance only</option>
       </select></label>{" "}
       <button disabled={busy || !ready} onClick={() => continueAs(target === "" ? null : target)}>Continue as {target || "no role"}…</button>{" "}
       <button disabled={busy || !ready || !!forkUnavailable} onClick={fork}>Fork (same role)</button>
     </p>
+    {ROLE_PLAIN_MEANING[target] && <p><small>{target}: {ROLE_PLAIN_MEANING[target]}</small></p>}
+    <p><small>A conversation continued as {target || "no role"} is given the guidance files as they stand when it starts.</small></p>
+    <CurrentFileLimits limits={limits} role={target || null} />
     {forkUnavailable && <p role="status">{forkUnavailable}</p>}
-    <p><small>Continue as starts a new conversation with that role; this conversation keeps its role. The App first asks this conversation's agent for a handoff summary in a visible turn here, and you edit it before anything is sent. Fork copies this conversation with the same role and guidance.</small></p>
+    <p><small>Continue as starts a new conversation with that role; this conversation keeps its role. The App first asks this conversation's agent for a handoff summary in a visible turn here, and you edit it before anything is sent. Fork copies this conversation with the same role; the App sends the copy no guidance of its own.</small></p>
   </div>;
 }
 

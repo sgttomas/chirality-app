@@ -167,12 +167,11 @@ test('an unregistered library entry is reviewed singly; the bundled candidate is
   await ui.press('Look for other workflows in this library');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_library_entries_refresh', args:{libraryRef:'lib:project'}});
   const guide = region(ui.c, 'Run a workflow');
-  assert.match(guide.textContent, /Included with the App: coordinated-knowledge-work\. This build can't run it directly; you can inspect it in the workflow studio\./);
-  const why = all(guide, 'details').find(d => d.textContent.startsWith('Why'));
-  assert.match(why.textContent, /production bundle candidate; not a published release/, 'the host reason stays available under Why');
+  const included = region(guide, 'Included workflow coordinated-knowledge-work');
+  assert.match(included.textContent, /Can't be used in this App: production bundle candidate; not a published release\./, 'the host reason is said beside the workflow');
   assert.equal(all(guide, 'button').some(b => b.textContent.includes('coordinated-knowledge-work')), false);
   await ui.rerender({data:data({productionCatalog:{standing:'released', entries:[{name:'coordinated-knowledge-work', revision:'bundled-rev-0123456789', runnable:true, runLimit:null}]}})});
-  await ui.press('Use coordinated-knowledge-work (included with the App)');
+  await ui.press('Use coordinated-knowledge-work');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_select_production_bundle', args:{name:'coordinated-knowledge-work'}}, 'a host-runnable bundled entry uses the existing bundled selection');
   await ui.rerender({data:data()});
   await ui.rerender({data:data({selections:selected(false)})});
@@ -491,10 +490,31 @@ test('a refused press is said in plain words under Next only where nothing was d
   await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: refused-not-sent: turn/start generation changed before request registration', failed:true, settled:true}});
   assert.match(region(ui.c, 'Run a workflow — last result').textContent, /\. Progress may still show the state from before this press\.$/);
 
-  const bundled = [{...selected()[0], selection:{...selected()[0].selection, identity:{name:'coordinated-knowledge-work', origin:'bundled', revision:'3730d84debb5aa'},
+  const included = {kind:'workflow', origin:'bundled', source_root:'invented-library:library-v9.9.9', name:'coordinated-knowledge-work', revision:'3730d84debb5aa', revision_method:'invented/v1', derived_from:null};
+  const bundled = [{...selected()[0], selection:{...selected()[0].selection, identity:included,
     newerRevision:{limit:"the selection's library is not open in this App session; newer revisions not read"}}}];
-  await ui.rerender({data:data({selections:bundled}), outcome:null});
+  const catalogue = source => ({standing:'s', ...(source ? {source} : {}), entries:[{name:included.name, revision:included.revision, identity:included, runnable:true}]});
+  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue()}), outcome:null});
   assert.doesNotMatch(section.textContent, /can't be checked/, 'an included workflow has no library revisions to follow');
+  assert.match(region(ui.c, 'Workflow chosen for this run').textContent, /^coordinated-knowledge-work — included with the App, revision 3730d84debb5…\. Ready to run\./, 'source and revision of an included workflow, with no library named');
+  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue({tag:'library-v9.9.9'})})});
+  assert.match(region(ui.c, 'Workflow chosen for this run').textContent, /^coordinated-knowledge-work — included with the App, from Chirality Library 9\.9\.9, revision 3730d84debb5…\./);
+  // The role line: the conversation's role beside the roles the Library lists for the chosen included workflow.
+  const withRoles = source => ({...catalogue(source), entries:[{...catalogue(source).entries[0], roles:['TASK', 'WORKING_ITEMS']}]});
+  const roleLine = () => region(ui.c, "Role and the workflow's listed roles");
+  await ui.rerender({data:data({selections:bundled, productionCatalog:withRoles({tag:'library-v9.9.9'})})});
+  assert.equal(roleLine().textContent, "This conversation's role is not known to this App process. The Library lists coordinated-knowledge-work for: TASK, WORKING_ITEMS.", 'a conversation row with no role established by the App');
+  await ui.rerender({host:host({threads:[{threadId:'T1', generation:g, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:'HELP_HUMAN', supply_ref:'sup:1'}}, {threadId:'T2', generation:g, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:'TASK'}}]})});
+  assert.equal(roleLine().textContent, 'This conversation is in the role HELP_HUMAN. The Library lists coordinated-knowledge-work for: TASK, WORKING_ITEMS.', 'the chosen conversation\'s own role, not another conversation\'s');
+  await ui.rerender({host:host()});
+  // Review round 1: the development holding copy also has the bundled origin, with another source root.
+  const development = [{...bundled[0], selection:{...bundled[0].selection, identity:{...included, source_root:'chirality-root', revision:'1b1733864cd8aa'}}}];
+  await ui.rerender({data:data({selections:development, productionCatalog:catalogue({tag:'library-v9.9.9'})})});
+  const other = region(ui.c, 'Workflow chosen for this run').textContent;
+  assert.match(other, /^coordinated-knowledge-work — a bundled copy \(source chirality-root\), revision 1b1733864cd8…\./, 'a selection that is not a catalogue entry is described by its own source');
+  assert.doesNotMatch(other, /included with the App|Chirality Library/);
+  assert.equal(roleLine(), undefined, 'a selection that is not a catalogue entry gets no role line: the Library\'s list is the catalogue\'s');
+  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue()})});
   await ui.rerender({data:data({selections:[{...bundled[0], selection:{...bundled[0].selection, identity:{name:'resolve-spacing', origin:'project', revision:'rev-2-abcdef0123456789'}}}]})});
   assert.match(section.textContent, /Newer revisions of resolve-spacing can't be checked/, 'a library workflow still says when newer revisions could not be read');
   await ui.close();
@@ -545,4 +565,50 @@ test('a library folder the App could not list is said where the list would be', 
   assert.match(region(ui.c, 'Run a workflow').textContent, /The App couldn't look in this library's folder for other workflows: library entry folder unreadable: invented cause/);
   assert.equal(region(ui.c, 'Workflows that need a first review'), undefined);
   await ui.close();
+});
+
+// Each reading of an open run says what Codex reported for this conversation and nothing that would follow from it.
+test('an open run is read from what Codex reported for its conversation and no more', () => {
+  const run = {conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}};
+  const reading = (row, extra = {}) => runReading(run, host({threads:row ? [{threadId:'T1', generation:g, ...row}] : [], ...extra}));
+  // Idle is Codex's report for this conversation; it is not a claim that nothing is working (a delegated agent may be).
+  const idle = reading({status:{type:'idle'}, statusSource:{method:'thread/status/changed', receiptPosition:9}});
+  assert.equal(idle.tone, 'idle'); assert.equal(idle.title, 'Open — Codex reports this conversation idle');
+  assert.match(idle.detail, /says nothing about agents it delegated work to/);
+  assert.doesNotMatch(idle.title + idle.detail, /not working/);
+  assert.equal(reading({status:{type:'idle'}}).title, 'Open — Codex reports this conversation idle', 'the admission reply is Codex\'s report too');
+  // A status that was never reported, cannot be read, or is not one the guide knows says nothing.
+  for (const row of [{}, {status:null}, {status:{type:'notLoaded'}}, {status:{type:'invented'}}, {status:'idle'}, null]) {
+    const unknown = reading(row);
+    assert.equal(unknown.tone, 'uncertain', JSON.stringify(row)); assert.equal(unknown.title, 'Open — what Codex is doing is not known');
+    assert.doesNotMatch(unknown.title + unknown.detail, /idle|Working|waiting/);
+  }
+  const limited = reading({status:null, statusSource:{method:'thread/status/changed', receiptPosition:9, limit:'the notification does not match the pinned ThreadStatusChangedNotification; status unknown'}});
+  assert.match(limited.detail, /The App cannot establish what Codex is doing in this conversation: the notification does not match the pinned ThreadStatusChangedNotification; status unknown\./);
+  // A report that was received but could not be ordered against the admission reply is said as that, not as "nothing readable".
+  const unordered = reading({status:null, statusSource:{method:'thread/status/changed', limit:'a status report was received for this conversation and its order relative to the admission reply is not established; status unknown'}});
+  assert.match(unordered.detail, /cannot establish what Codex is doing in this conversation: a status report was received for this conversation and its order relative to the admission reply is not established/);
+  assert.doesNotMatch(unordered.detail, /no status from Codex|has not reported/);
+  assert.match(reading({status:{type:'notLoaded'}}).detail, /: Codex reports the conversation as not loaded\./);
+  assert.match(reading({}).detail, /: it holds no status from Codex for it that it can read\./);
+  // The end of the App's observation: the last status seen is not a reading, and nothing is claimed about Codex's process.
+  for (const [row, extra] of [[{status:null, lastObservedStatus:{type:'active', activeFlags:[]}, statusObservationEnded:true}, {}], [{status:{type:'idle'}}, {generationClosed:true}], [{status:{type:'active', activeFlags:[]}}, {generationClosed:true}], [{status:{type:'idle'}, statusObservationEnded:true}, {}]]) {
+    const ended = reading(row, extra);
+    assert.equal(ended.tone, 'uncertain', JSON.stringify([row, extra])); assert.equal(ended.title, 'Open — the App is no longer receiving from Codex');
+    assert.match(ended.detail, /no longer receiving from the Codex process this run was in/);
+    assert.doesNotMatch(ended.title + ended.detail, /Codex has stopped|has ended|exited/);
+  }
+  // Active is working; active with a waiting flag is Codex's own word that it waits, before any request has reached the App.
+  assert.equal(reading({status:{type:'active', activeFlags:[]}}).tone, 'working');
+  for (const flag of ['waitingOnApproval', 'waitingOnUserInput']) {
+    const waits = reading({status:{type:'active', activeFlags:[flag]}});
+    assert.equal(waits.tone, 'waiting', flag); assert.equal(waits.title, 'Codex reports it is waiting for an approval or an answer');
+    assert.match(waits.detail, /The request appears in the conversation once the App has received it\./);
+    assert.notEqual(waits.title, 'Working');
+  }
+});
+
+test('a run recorded open in an earlier Codex session carries the uncertain tone its words describe', () => {
+  const reading = runReading({reference:'run-old', conversation:'same-id', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}}, host({generation:{...g, spawnCounter:2}, threads:[{threadId:'same-id', generation:{...g, spawnCounter:2}, status:{type:'idle'}}]}));
+  assert.equal(reading.title, 'Open in an earlier Codex session'); assert.equal(reading.tone, 'uncertain');
 });
