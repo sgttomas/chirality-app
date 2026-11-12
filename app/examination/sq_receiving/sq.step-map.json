@@ -1,4 +1,5 @@
 {
+ "description": "The steps of the standalone scenarios and journeys, in order, with what each relies on. A step is given planned parts only when those parts are together the whole of the step: everything done and observed in carrying out the step is done and observed in carrying out one of its parts. A gap met while carrying out such a step was therefore met in carrying out one of its parts, and that part is not passed. A step whose parts would not be exhaustive must not be declared with planned parts.",
  "stimuli": [
   {
    "id": "ST-1",

@@ -209,13 +209,13 @@ class SQReceivingTests(unittest.TestCase):
         self.assertEqual(planned,['supplied-as-selected','changed-file-held'])
         self.assertEqual([p['part'] for p in self.value('result-J2-7')['parts']],['allow-disk-records','require-verified-approval'])
         v=self.value('result-J1-4');v['parts'].pop();self.schema_valid(v);self.save('result-J1-4',v)
-        self.refused('journey step outcome not permitted by its recorded facts (SQ-R18)')
+        self.refused('planned journey parts missing, repeated or set aside')
 
     def test_planned_part_cannot_be_declared_not_applicable(self):
         v=self.value('result-J2-7');gone=v['parts'].pop()
         v['parts_not_applicable']=[{'part':gone['part'],'reason':'INVENTED keychain protection unavailable','declared_in':{'case_definition':'INVENTED-SQ-CASE-DEFINITION','identity':'sha256:'+'0'*64}}]
         self.schema_valid(v);self.save('result-J2-7',v)
-        self.refused('journey step outcome not permitted by its recorded facts (SQ-R18)')
+        self.refused('planned journey parts missing, repeated or set aside')
 
     def test_a_blocked_part_cannot_yield_a_passed_step(self):
         st=self.jstep('J1-4');st['outcome']='pass'
@@ -265,14 +265,14 @@ class SQReceivingTests(unittest.TestCase):
         for kwargs in ({'route':'seam_replay','needs_native':None},{'route':'interface_webkit','needs_native':None},{'needs_native':False}):
             with self.subTest(**kwargs):
                 self.setUp();self.run_j2_7(**kwargs)
-                self.refused('journey step outcome not permitted by its recorded facts (SQ-R18)')
+                self.refused('journey step accepted as passed although its recorded facts forbid it (SQ-R18)')
         # Stated as needing native evidence, EXP-R4 refuses it first.
         self.setUp();self.run_j2_7(route='seam_replay');self.refused('EXP-R4')
         self.setUp();self.run_j2_7(needs_native=None)
         v=self.value('result-J2-7')
         for part in v['parts']: part['evidence']=[]
         self.save('result-J2-7',v)
-        self.refused('journey step outcome not permitted by its recorded facts (SQ-R18)')
+        self.refused('journey step accepted as passed although its recorded facts forbid it (SQ-R18)')
 
     def test_one_policy_blocked_leaves_j2_7_blocked_and_not_passed(self):
         self.run_j2_7(second='blocked');r=self.check();self.assertTrue(r['selection_consistent'],r)
@@ -285,7 +285,46 @@ class SQReceivingTests(unittest.TestCase):
         for name in ('worker.py','worker_packages.py','sq_dossier_rules.py'):
             tree=ast.parse((APP/'examination/sq_receiving'/name).read_text())
             called={n.func.attr if isinstance(n.func,ast.Attribute) else getattr(n.func,'id',None) for n in ast.walk(tree) if isinstance(n,ast.Call)}
-            self.assertIn('permitted_outcomes',called,name)
+            self.assertIn('pass_forbidden',called,name)
+
+    def j1_4_gap_with_parts(self, second):
+        # The reviewer's round 3 case on J1-4: an interface gap, the changed file not arranged.
+        st=self.jstep('J1-4')
+        st['operation']['interface_gaps']=['INVENTED the App did not say the changed file would be held']
+        st['operation']['observations']=[{'id':'file-changed-after-selection','status':'not_made'}]
+        v=self.value('result-J1-4');v['parts'][0].pop('blocked_by')
+        v['parts'][0].update(outcome='pass',evidence=[{'ref':'INVENTED supplied as selected','provenance':'test_definition','route':'native_development'}])
+        if second=='pass':
+            v['parts'][1].pop('blocked_by');v['parts'][1].update(outcome='pass',evidence=list(v['parts'][0]['evidence']))
+            v['outcome']='pass';v.pop('blocked_by');st['outcome']='pass'
+            j1=next(s for s in self.dossier['scenarios'] if s['scenario']=='J1');j1['outcome']='blocked'
+        self.schema_valid(v);self.save('result-J1-4',v)
+
+    def test_gap_with_one_part_blocked_is_received_as_blocked(self):
+        self.j1_4_gap_with_parts('blocked');r=self.check()
+        self.assertTrue(r['selection_consistent'],r);self.assertEqual(r['reported_outcomes']['result-J1-4'],'blocked')
+
+    def test_gap_with_every_part_passed_is_refused(self):
+        # The parts are the whole of the step, so the part in which the gap was met is not passed.
+        self.j1_4_gap_with_parts('pass')
+        self.refused('journey step accepted as passed although its recorded facts forbid it (SQ-R18)')
+
+    def earlier_error(self):
+        # An agent-operated result missing its tool-definition check: refused by the result schema first.
+        v=self.value('result-J1-1');v['configuration']['route']['native_route'].pop('tool_definition_check');self.save('result-J1-1',v)
+
+    def assert_nothing_unadmitted_published(self, result, *absent):
+        self.assertFalse(result['selection_consistent'],result)
+        self.assertNotIn('reported_outcomes',result);self.assertNotIn('reported_journey_basis',result)
+        for text in absent: self.assertNotIn(text,json.dumps(result))
+
+    def test_forbidden_pass_on_replay_evidence_is_not_reported_after_an_earlier_error(self):
+        self.run_j2_7(route='seam_replay',needs_native=None);self.earlier_error()
+        self.assert_nothing_unadmitted_published(self.check(),'"result-J2-7": "pass"')
+
+    def test_forged_person_basis_is_not_reported_after_an_earlier_error(self):
+        next(s for s in self.dossier['scenarios'] if s['scenario']=='J1')['basis']='person_observed';self.earlier_error()
+        self.assert_nothing_unadmitted_published(self.check(),'person_observed')
 
     def test_dossier_without_a_journey_refused(self):
         slots={'result-'+st['step'] for s in self.dossier['scenarios'] if s['scenario']=='J2' for st in s['steps']}

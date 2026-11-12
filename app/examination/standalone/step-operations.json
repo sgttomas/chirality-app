@@ -146,7 +146,7 @@
     "The unfinished work is found again; no draft is lost; read-only history is not presented as a continuing conversation; no completed action is replayed"
   ],
   "J2-7": [
-    "Select the saved workflow and run it with new inputs under each workflow approval policy in turn, \"Allow disk records\" and \"Require verified approval\", each a planned part with its own outcome; a re-confirmation for use, or lowering the policy, where needed, is made at the act control; a part the candidate cannot carry out is blocked with its cause",
+    "Select the saved workflow and run it with new inputs under each workflow approval policy in turn, \"Allow disk records\" and \"Require verified approval\"; each run, with its selection and any re-confirmation for use or lowering of the policy it needs at the act control, is a planned part with its own outcome; a part the candidate cannot carry out is blocked with its cause",
     "For each part: the same source and revision as registered; the policy requested and the approval evidence applied, as the candidate's selection and run records state them; the agent received the saved workflow byte for byte (independent observation outside the App's controls, two comparisons: the run-start turn the supplier's history returns against the composed run text, and that text's workflow body against the stored workflow file)"
   ]
 }

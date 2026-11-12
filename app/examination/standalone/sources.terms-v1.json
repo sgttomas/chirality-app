@@ -3,12 +3,12 @@
     {
       "role": "step_map",
       "path": "app/examination/sq_receiving/sq.step-map.json",
-      "sha256": "sha256:10c84dc7c8c581d57a76b50ea92672086fcc06e97fc89ef40281e37b141f1476"
+      "sha256": "sha256:ee3f9f43c5d76457bfbb2ada81043259ec9ea22c5391d95ee21b41876bc7be78"
     },
     {
       "role": "step_operations",
       "path": "app/examination/standalone/step-operations.json",
-      "sha256": "sha256:056388257d0d09725876798aecde5c7dd0cfb91d04b5866742ccf59fb9b4eb64"
+      "sha256": "sha256:cd05d6bf6f15382f6356ce1d502886a5bbb9ec60cbe4dfae4c82ce27110120d6"
     },
     {
       "role": "missing-inputs.json",

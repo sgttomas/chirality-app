@@ -6,9 +6,6 @@ These inspect declared facts, not their truth.
 SCENARIOS = ["V4-EXM-10", "V4-EXM-11", "V4-EXM-12"]
 JOURNEYS = ["J1", "J2"]
 NATIVE = {"native_development", "native_packaged"}
-# The closed results of a required observation, by its kind; the first is the one a definition expects.
-OBSERVATION_RESULTS = {"preparation": ("arranged", "not_arranged"),
-                       "independent_observation": ("equal", "differs")}
 NOT_CLAIMED = {"joined_host_witness", "replacement", "public_release", "retirement",
                "professional_reliance", "practitioner_validation"}
 
@@ -120,10 +117,10 @@ def violations(d, step_map):
         # SQ-R13 the journey's basis is the one its attempted steps give (journey_basis)
         if s.get("basis") != journey_basis(tried):
             v.append("SQ-R13")
-        # SQ-R18 a recorded journey step states only an outcome its structured facts permit
-        # (permitted_outcomes; it retired SQ-R14 to SQ-R17)
+        # SQ-R18 a journey step is not accepted as passed when its recorded facts forbid it
+        # (pass_forbidden; it retired SQ-R14 to SQ-R17)
         for st in s["steps"]:
-            if st["state"] == "recorded" and st["outcome"] not in permitted_outcomes(ms.get(st["step"]), st):
+            if st["state"] == "recorded" and st["outcome"] == "pass" and pass_forbidden(ms.get(st["step"]), st):
                 v.append("SQ-R18")
     return sorted(set(v))
 
@@ -153,70 +150,63 @@ def journey_basis(tried):
 
 
 
-def permitted_outcomes(definition, step, result=None):
-    """SQ-R18: the outcomes a recorded J1 or J2 step may state, from its structured facts.
+
+def pass_forbidden(definition, step, result=None):
+    """SQ-R18: the reasons a recorded J1 or J2 step's facts forbid "pass"; empty when they do not.
 
     `definition` is the step's step-map entry, `step` the dossier step and `result` its EXP result
-    record where the caller has it (the receivers do; the dossier rules alone do not, and then the
-    planned parts are judged by the receivers). Everything that could waive a requirement is read
-    from the definition, never from what the recorder sets. Malformed facts permit nothing.
-
-    The checks guarantee that no stated outcome is accepted that the structured facts do not
-    permit, and no more. They do not judge prose.
+    record where the caller has it (the receivers do; the dossier rules alone do not). Every
+    requirement is read from the definition, never from what the recorder sets. It prescribes
+    nothing among fail, blocked and inconclusive: which of those a record states is DEL-09-01's
+    aggregate of its parts, and whether it is right is the independent reviewer's (VER-007).
     """
-    attempted_outcomes = frozenset(ATTEMPTED)
     if definition is None:
-        return frozenset()
-    planned = {p["part"]: p for p in definition.get("parts", [])}
-    if result is not None:
-        # Every planned part is carried with its own outcome, none set aside or marked not native.
-        parts = {p["part"]: p for p in result.get("parts", [])}
-        set_aside = {p["part"] for p in result.get("parts_not_applicable", [])}
-        if (set(parts) != set(planned) or len(parts) != len(result.get("parts", [])) or set_aside & set(planned)
-                or any(planned[n].get("needs_native") and parts[n].get("needs_native") is False for n in parts)):
-            return frozenset()
+        return ["step not defined in the step map"]
     op = step.get("operation")
-    # 1. Not attempted: no one operated it.
     if op is None:
-        return frozenset({"not-run"})
+        return ["not attempted"]
+    reasons = []
+    if op["interface_gaps"]:
+        reasons.append("interface gap recorded")
+    if op["examination_limits"]:
+        reasons.append("examination limit recorded")
+    if op["means"] == "not_through_app_controls":
+        reasons.append("not performed through the App's controls")
     required = {o["id"]: o for o in definition.get("required_observations", [])}
     recorded = {}
     for o in op.get("observations", []):
-        defined = required.get(o["id"])
-        if defined is None or o["id"] in recorded:
-            return frozenset()
-        if o["status"] == "made" and o.get("result") not in OBSERVATION_RESULTS[defined["kind"]]:
-            return frozenset()
-        recorded[o["id"]] = o
-    contradicted = unresolved = False
+        if o["id"] not in required:
+            reasons.append("observation not in the definition: " + o["id"])
+        elif o["id"] in recorded:
+            reasons.append("observation recorded twice: " + o["id"])
+        recorded.setdefault(o["id"], o)
     for oid, defined in required.items():
         o = recorded.get(oid)
-        if o is None or o["status"] != "made":
-            unresolved = True                       # not made: the step could not be evaluated
-        elif o["result"] != defined["expected"]:
-            if defined["kind"] == "independent_observation":
-                contradicted = True                 # made, and what the App did differs: not met
-            else:
-                unresolved = True                   # a preparation not arranged stops the step
+        if o is None:
+            reasons.append("required observation missing: " + oid)
+        elif o["status"] != "made":
+            reasons.append("required observation not made: " + oid)
+        elif o.get("result") != defined["expected"] or not str(o.get("evidence", "")).strip():
+            reasons.append("required observation not as expected: " + oid)
     if result is not None:
+        planned = {p["part"]: p for p in definition.get("parts", [])}
+        parts = result.get("parts", [])
+        names = [p["part"] for p in parts]
+        set_aside = {p["part"] for p in result.get("parts_not_applicable", [])}
+        for name in planned:
+            if names.count(name) != 1:
+                reasons.append("planned part missing or repeated: " + name)
+            if name in set_aside:
+                reasons.append("planned part set aside: " + name)
         route = result["configuration"]["route"]["kind"]
-        for name, part in parts.items():
-            # EXP-R4's evidence rule, applied because the definition marks the part native
-            native = {e.get("route", route) for e in part.get("evidence", [])} & NATIVE
-            if part["outcome"] == "fail":
-                contradicted = True
-            elif part["outcome"] != "pass" or (planned[name].get("needs_native") and not native):
-                unresolved = True
-    # 2. An interface gap is an interface failure.
-    if op["interface_gaps"]:
-        return frozenset({"fail"})
-    # A contradicted observation or a failed part: evaluated and not met.
-    if contradicted:
-        return frozenset({"fail"})
-    # 3. An examination limit, or anything unresolved: stopped (blocked) or insufficient (inconclusive).
-    if op["examination_limits"] or unresolved:
-        return frozenset({"blocked", "inconclusive"})
-    # 4. Everything the definition requires holds; pass needs the App's own controls as well.
-    if op["means"] == "not_through_app_controls":
-        return attempted_outcomes - {"pass"}
-    return attempted_outcomes
+        for part in parts:
+            defined = planned.get(part["part"])
+            if defined is None:
+                reasons.append("part not in the definition: " + part["part"])
+            elif defined.get("needs_native"):
+                if part.get("needs_native") is False:
+                    reasons.append("native part marked not native: " + part["part"])
+                # EXP-R4's evidence rule, applied because the definition marks the part native
+                if part["outcome"] == "pass" and not {e.get("route", route) for e in part.get("evidence", [])} & NATIVE:
+                    reasons.append("part passed without native evidence: " + part["part"])
+    return reasons

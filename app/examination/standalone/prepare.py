@@ -12,7 +12,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 RUN_LABELS = {'V4-EXM-12': 'RUN-B', 'J1': 'RUN-J1', 'J2': 'RUN-J2'}
 JOURNEYS = ('J1', 'J2')
-# What every recorded J1 or J2 step and journey states (sq.dossier.schema.json, SQ-R11 to SQ-R14).
+# What every recorded J1 or J2 step and journey states (sq.dossier.schema.json, SQ-R11 to SQ-R13 and SQ-R18).
 JOURNEY_RECORD_REQUIREMENTS = {
     'journeys': list(JOURNEYS),
     'limits': 'No time or step limit applies to either journey.',
@@ -42,11 +42,11 @@ JOURNEY_RECORD_REQUIREMENTS = {
     'not_through_app_controls_can_pass': False,
     'planned_parts': 'A step with planned parts records each part with its own outcome in its result; none is '
                      'left out, declared not applicable or marked as not needing native evidence.',
-    'outcome_rule': 'SQ-R18: a step states only an outcome its structured facts permit. Not attempted: not-run. '
-                    'An interface gap: fail. A required observation that differs, or a failed part: fail. An '
-                    'examination limit, a required observation not made or a preparation not arranged, or a part '
-                    'not passed on native evidence: blocked or inconclusive. Otherwise pass, fail, blocked or '
-                    "inconclusive, and pass only through the App's controls.",
+    'outcome_rule': "SQ-R18: a step is not accepted as passed when its facts forbid it: an interface gap, an "
+                    "examination limit, a step not through the App's controls, a required observation missing, not "
+                    'made or not as expected, or a planned part missing, set aside, marked not native or passed '
+                    "without native evidence. Which other outcome is DEL-09-01's aggregate of its parts.",
+    'parts_rule': 'A step is given planned parts only when those parts are together the whole of the step: everything done and observed in carrying out the step is done and observed in carrying out one of its parts. A gap met while carrying out such a step was therefore met in carrying out one of its parts, and that part is not passed. A step whose parts would not be exhaustive must not be declared with planned parts.',
     'basis': ['person_observed', 'agent_operated', 'not_established'],
     'basis_from': 'attempted steps only; none attempted is not_established',
     'person_observed_only_when': "every attempted step was operated by a person by their own hand through the "

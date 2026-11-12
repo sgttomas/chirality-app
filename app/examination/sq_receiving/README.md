@@ -41,19 +41,21 @@ a join the result format cannot express truthfully, such as a step recorded as
 not done through the App's controls, is reported through `coverage` as
 unsupported. The report carries each journey's basis beside its outcomes.
 
-A journey step's stated outcome is not an independent assertion. One function,
-`permitted_outcomes` in `sq_dossier_rules.py`, returns the outcomes a step's
-structured facts permit; the dossier rules call it as SQ-R18 and both workers
-call it again with the step's result record, so planned parts and their native
-evidence are judged from the step map's definition. SQ-R18 retired SQ-R14 to
-SQ-R17, whose numbers are not reused. The checks guarantee that no stated
-outcome is accepted that the structured facts do not permit, and no more. They
-do not judge prose: whether an intervention filed as kind other was really an
-explanation, whether a difficulty written in free text belongs in a list,
-whether the evidence referenced shows what it is said to show. Those are the
-independent reviewer's under DEL-09-02 VER-007, whose evaluation row says the
-record-format checks guard only against change. The checker is a guard, not
-the evidence.
+One function, `pass_forbidden` in `sq_dossier_rules.py`, returns the reasons a
+journey step's recorded facts forbid "pass": an interface gap, an examination
+limit, a step not performed through the App's controls, a required observation
+missing, not made or not as expected, and (with the result) a planned part
+missing, repeated, set aside, marked not native or passed without native
+evidence. The dossier rules call it as SQ-R18; both workers call it again with
+the step's result record and then refuse a stated pass and, on a step with
+planned parts, a pass that EXP-R1 yields from those parts. SQ-R18 retired SQ-R14
+to SQ-R17, whose numbers are not reused. Stated outcomes and journey bases are
+reported only when the selection is admitted; a failed selection's report
+carries neither.
+
+A step is given planned parts only when those parts are together the whole of the step: everything done and observed in carrying out the step is done and observed in carrying out one of its parts. A gap met while carrying out such a step was therefore met in carrying out one of its parts, and that part is not passed. A step whose parts would not be exhaustive must not be declared with planned parts.
+
+The check guarantees only that a journey step is not accepted as passed when its recorded facts forbid it; which other outcome a record states is DEL-09-01's aggregate of its parts, and whether that outcome and the record's prose are right is the independent reviewer's under DEL-09-02 VER-007.
 
 In a selection, `review.results` is an object
 mapping direct result slots to their full subject/configuration/criterion basis;

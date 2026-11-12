@@ -60,15 +60,17 @@ def check(selection_path, expected):
                 if isinstance(s, dict) and s.get('scenario') in sq.JOURNEYS}
 
     def report(consistent):
-        return {'selection_consistent': consistent and not errors,
+        admitted = consistent and not errors
+        return {'selection_consistent': admitted,
                 'coverage': 'incomplete' if missing or errors else ('unsupported' if unsupported else 'complete'),
                 'errors': errors, 'missing_selected_inputs': sorted(set(missing)),
                 'unsupported_joins': sorted(set(unsupported)), 'unresolved_external_references': external,
                 'existing_checks': checks, 'selection_sha256': expected,
                 'fixed_support': selected['support'],
-                'reported_outcomes': {slot: v['outcome'] for slot, v in records.items() if 'outcome' in v},
-                # A journey's outcomes travel with who operated it, so an agent's run never reads as a person's.
-                'reported_journey_basis': journey_basis(),
+                # Stated outcomes and journey bases are published only once the checks admitted them;
+                # a failed selection's report carries neither.
+                **({'reported_outcomes': {slot: v['outcome'] for slot, v in records.items() if 'outcome' in v},
+                    'reported_journey_basis': journey_basis()} if admitted else {}),
                 'reported_currency': {'dossier': dossier.get('currency') if dossier else None,
                                       **{slot: v['currency'] for slot, v in records.items() if 'currency' in v}},
                 'current_reliance': False, 'qualification_established': False,
@@ -187,10 +189,19 @@ def check(selection_path, expected):
                 # The result format has no way to say the step was not done through the App's controls.
                 unsupported.append('journey step not through the App controls: ' + slot)
         if key[0] in sq.JOURNEYS:
-            # SQ-R18 with the result: the stated outcome must be one the step's facts permit,
-            # judged against the step's definition, its planned parts and their native evidence.
-            require(st['outcome'] in sq.permitted_outcomes(step_defs.get(key[1]), st, value),
-                    'journey step outcome not permitted by its recorded facts (SQ-R18)')
+            definition = step_defs.get(key[1]) or {}
+            planned = [p['part'] for p in definition.get('parts', [])]
+            names = [p['part'] for p in value.get('parts', [])]
+            # A planned part is carried once with its own outcome; it is never left out or set aside.
+            require(sorted(names) == sorted(planned) and
+                    not {p['part'] for p in value.get('parts_not_applicable', [])} & set(planned),
+                    'planned journey parts missing, repeated or set aside')
+            # SQ-R18 with the result: where the step's facts forbid pass, neither the stated outcome nor,
+            # on a step with planned parts, the outcome EXP-R1 yields from them may be pass.
+            if sq.pass_forbidden(definition or None, st, value):
+                require(st['outcome'] != 'pass' and
+                        not (planned and sq.aggregate([p['outcome'] for p in value['parts']]) == 'pass'),
+                        'journey step accepted as passed although its recorded facts forbid it (SQ-R18)')
         require(value['run_basis'] == 'candidate', 'direct result is not candidate basis')
         app = value['subject'].get('app_candidate', {})
         require(all(app.get(k) == candidate[k] for k in ('revision', 'build_identity')) and
