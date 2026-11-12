@@ -1,0 +1,1397 @@
+# Application design ontology (0.1.0)
+#
+# The namespace below is a placeholder.
+#
+# This is the level above the application-family ontology (app_family.linkml.yaml).
+# app_family says what an app specification contains. This ontology says what problem
+# a specification answers: who needs to find out or decide what, about which subjects,
+# from which data, and with what consequence. It also holds the design knowledge
+# (patterns) and the choices that turn those needs into specification elements.
+# DESIGN_ONTOLOGY.md explains it; the JSON Schemas app-design.schema.json
+# and app-patterns.schema.json are projected from it by
+# ../tools/project_schema.py.
+#
+# Two kinds of document conform to it:
+#   AppDesign        - the design record of one application;
+#   PatternCatalogue - reusable design knowledge shared across applications.
+# The builder reads neither: it reads only the specification closure. The design
+# record is the basis for validation (does the specified app answer the needs?); the
+# specification is the basis for verification (does the build conform to it?).
+#
+# Class annotation `perspective` organises the design problem by the thesis's four
+# perspectives (docs/thesis/CHIRALITY_FRAMEWORK.md §3.2):
+#   ontology      - what the app is about
+#   epistemology  - what users need to find out, and what would support an answer
+#   praxeology    - what users do with the answers
+#   axiology      - what matters, to whom, and with what consequences
+#   design        - options, choices and traces that connect needs to the specification
+# Class annotation `level` keeps its app_family meaning.
+
+id: https://chirality.ai/ns/app-design
+name: app_design
+title: Interactive data application design ontology
+description: >-
+  Needs, design knowledge and design choices for interactive data applications of the
+  family described by the app_family ontology. A design record states what an
+  application is for and why its specification has the shape it has; it does not
+  establish that the application is adequate for its intended use.
+version: 0.1.0-draft
+prefixes:
+  linkml: https://w3id.org/linkml/
+  appd: https://chirality.ai/ns/app-design/
+  appf: https://chirality.ai/ns/app-family/
+  sosa: http://www.w3.org/ns/sosa/
+default_prefix: appd
+default_range: string
+imports:
+  - linkml:types
+  - app_family.linkml
+
+# --------------------------------------------------------------------------
+# Types
+# --------------------------------------------------------------------------
+types:
+  SpecRef:
+    typeof: string
+    pattern: "^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)*$"
+    description: >-
+      Identifier of an element in the application's specification, optionally followed
+      by a dotted slot path. Resolved against the specification named in
+      AppDesign.specification, not against the design record.
+  PatternRef:
+    typeof: string
+    pattern: "^[a-z][a-z0-9_]*$"
+    description: Identifier of a DesignPattern in the catalogue named in AppDesign.catalogue.
+
+# --------------------------------------------------------------------------
+# Enumerations
+# --------------------------------------------------------------------------
+enums:
+  DesignMode:
+    permissible_values:
+      new: {description: Designed from intent, conversation and supplied sources.}
+      derive: {description: Recovered from an existing application; the reference supplies evidence, not requirements.}
+      revise: {description: An amendment of an accepted design.}
+  # Task facets. A task is a record of independent facets, not one
+  # label: "the same motive can be pursued through different actions and the same action
+  # can be performed for different motives" (Schulz et al. 2013 §3.2.1).
+  TaskGoal:
+    description: Why the user performs the task (Brehmer & Munzner 2013 "why"; Schulz et al. 2013 goal).
+    permissible_values:
+      discover_explore: {description: Discover by exploration, without a hypothesis.}
+      discover_confirm: {description: Discover by confirming or rejecting a hypothesis or criterion.}
+      present: {description: Communicate a known result to others.}
+      enjoy: {}
+      produce: {description: Generate new material, such as derived data or a report.}
+  SearchMode:
+    description: Brehmer & Munzner's search modes, defined by whether the target and its location are known.
+    permissible_values:
+      lookup: {description: Target known, location known.}
+      browse: {description: Target unknown, location known.}
+      locate: {description: Target known, location unknown.}
+      explore: {description: Target unknown, location unknown.}
+  QueryAction:
+    description: Brehmer & Munzner's query actions, ordered by cardinality.
+    permissible_values:
+      identify: {description: "Return characteristics of targets. Brehmer & Munzner associate identify with a single target; this ontology also allows identify over all items, meaning each item's characteristics are reported, as a recorded departure."}
+      compare: {description: Set multiple targets side by side; needs cardinality multiple or all (Schulz et al. §4.2).}
+      summarise: {description: Characterise a whole set of targets.}
+  TaskTarget:
+    description: What the task is about in the data (Munzner's targets; Schulz et al.'s characteristics).
+    permissible_values:
+      value: {description: Values of items, including values against a benchmark.}
+      extremes: {description: Extremes or range.}
+      distribution: {description: A distribution, including a spatial distribution (Schulz et al. pair "distribution" with space as "trend" with time).}
+      outliers: {description: Departures from expected values.}
+      clusters: {description: Features or groups.}
+      trend: {description: Direction or rate of change over time.}
+      correlation: {description: Dependency or correlation between attributes.}
+      similarity: {}
+      topology: {description: Topology or paths in network data.}
+      shape: {description: Shape of spatial features.}
+  Cardinality:
+    description: How many instances the task concerns (Schulz et al. 2013).
+    permissible_values:
+      single: {}
+      multiple: {}
+      all: {}
+  AnalyticTemplate:
+    description: Amar, Eagan & Stasko's ten low-level analytic tasks, usable as question templates with slots.
+    permissible_values:
+      retrieve_value: {}
+      filter: {}
+      compute_derived_value: {}
+      find_extremum: {}
+      sort: {}
+      determine_range: {}
+      characterize_distribution: {}
+      find_anomalies: {}
+      cluster: {}
+      correlate: {}
+  DecisionStage:
+    description: Simon's decision stages as used by Dimara & Stasko (2022); the choice itself stays the decision maker's act.
+    permissible_values:
+      intelligence: {description: Understanding the situation.}
+      design: {description: Developing possible courses of action.}
+      choice: {description: Informing the selection among alternatives.}
+      review: {description: Reviewing a past decision.}
+  LocalTask:
+    description: >-
+      This ontology's own facet, for tasks the cited typologies lack. It is not one of
+      Schulz et al.'s adaptation operations, which keep their five dimensions unchanged.
+      Deciding is not a task here: it is a Decision, made by a person.
+    permissible_values:
+      monitor: {description: Detect a change or exceedance over time against a benchmark.}
+      verify_inputs: {description: Check supplied data against a contract before relying on them.}
+      forecast: {description: Project values beyond the observed period under stated assumptions.}
+      simulate: {description: Evaluate a model under user-set parameters.}
+      solve: {description: Find the input that makes an outcome reach a target.}
+      teach: {description: Show how a method or system behaves.}
+  MeasureType:
+    description: Kinds of performance measure in structured decision making.
+    permissible_values:
+      natural: {description: Directly measures the concern.}
+      proxy: {description: Measures something correlated with the concern.}
+      constructed: {description: A scale built for the concern.}
+  ActorRole:
+    permissible_values:
+      user: {description: Uses the application directly.}
+      decision_maker: {description: Makes a decision the application informs.}
+      affected_party: {description: Bears consequences of decisions or errors without necessarily using the app.}
+      data_custodian: {description: Supplies or controls data the app uses.}
+      domain_expert: {description: Supplies or examines domain knowledge.}
+      accountable_professional: {description: Is professionally accountable for reliance on results.}
+      reviewer: {description: Examines results or the specification, e.g. a regulator.}
+      front_line_analyst: {description: Does the analysis day to day (Sedlmair et al. 2012 PF-12).}
+      gatekeeper: {description: Can approve or block the app's adoption (Sedlmair et al. 2012 PF-12).}
+  Expertise:
+    permissible_values:
+      general_public: {}
+      practitioner: {}
+      specialist: {}
+  SubjectKind:
+    permissible_values:
+      site: {description: A fixed location such as a station or well.}
+      area: {description: A region, zone or polygon.}
+      asset: {description: An engineered thing such as a pipe or vessel.}
+      population: {description: A population of organisms or people.}
+      process: {description: A process or production line.}
+      material: {description: A sampled medium or material, e.g. groundwater.}
+      event: {description: Something that happens, e.g. a sampling event or exceedance.}
+      other: {}
+  DataCharacteristic:
+    description: Characteristics of data that make a design pattern applicable or inapplicable.
+    permissible_values:
+      time_series: {description: Repeated values over time for the same subject.}
+      irregular_sampling: {description: Sampling times are uneven.}
+      spatial_points: {description: Subjects have point locations.}
+      spatial_areas: {description: Subjects are areas or polygons.}
+      raster: {description: Gridded surfaces.}
+      depth: {description: Values vary with depth or elevation.}
+      categorical_dimensions: {description: Categorical keys such as parameter, group or region.}
+      multiple_properties: {description: Several measured properties per subject.}
+      censored_values: {description: Values below detection or reporting limits.}
+      criteria_available: {description: Issued criteria apply to the measured properties.}
+      user_supplied: {description: Users supply the data, e.g. by upload.}
+      live_source: {description: Data change while the app runs.}
+      model_parameters: {description: A model with parameters the user can set.}
+      alternatives_defined: {description: Courses of action to compare are defined.}
+      uncertainty_available: {description: Uncertainty estimates exist or can be computed.}
+  AvailabilityStatus:
+    permissible_values:
+      available: {description: Exists and may be used for the intended purpose.}
+      obtainable: {description: Exists; access or permission is still needed.}
+      to_be_collected: {description: Does not exist yet.}
+      unavailable: {description: Cannot be obtained for this application.}
+      unknown: {}
+  AnswerForm:
+    permissible_values:
+      value: {}
+      list: {}
+      table: {}
+      map: {}
+      time_series: {}
+      comparison: {}
+      ranking: {}
+      classification: {description: Each item assigned to a class, e.g. increasing / no trend / decreasing.}
+      distribution: {}
+      narrative: {}
+  UncertaintyNeed:
+    permissible_values:
+      must_show: {description: An answer without its uncertainty would mislead the intended use.}
+      should_show: {}
+      not_needed: {}
+      tbd: {}
+  Priority:
+    permissible_values:
+      essential: {}
+      important: {}
+      optional: {}
+  ActivityKind:
+    permissible_values:
+      explore: {}
+      investigate: {}
+      monitor: {}
+      screen: {description: Check items against criteria or rules.}
+      report: {description: Produce an output for someone else.}
+      decide: {}
+      communicate: {}
+      learn: {}
+  AppRole:
+    description: >-
+      What the application contributes to a decision. The application never decides;
+      the decision stays with the decision maker (thesis Framework §2.5). Structured
+      decision making draws the same line: "Science can quantify risk and tradeoffs, but
+      not determine which risks and tradeoffs are worth taking".
+    permissible_values:
+      inform: {description: Shows evidence relevant to the decision.}
+      compare: {description: Shows alternatives side by side against concerns.}
+      screen: {description: Classifies items against adopted criteria without proposing a course of action, e.g. exceedance screening.}
+      rank: {description: Orders alternatives by adopted logic or weights; needs a made ruling, by the decision makers' authority, that adopts them.}
+      recommend: {description: Proposes an alternative, overall or per subject, by adopted logic; needs a made ruling, by the decision makers' authority, that adopts it.}
+  ConcernDirection:
+    permissible_values:
+      maximise: {}
+      minimise: {}
+      maintain: {}
+      avoid: {}
+      satisfy: {description: Meet a threshold or obligation.}
+  ConcernKind:
+    permissible_values:
+      fundamental: {description: Matters in itself to the actor holding it.}
+      means: {description: Matters because it serves another concern.}
+  MeasureKind:
+    permissible_values:
+      quantitative: {}
+      qualitative: {}
+  ObligationKind:
+    permissible_values:
+      regulatory: {}
+      professional: {}
+      contractual: {}
+      licence: {}
+      privacy: {}
+      accessibility: {}
+      security: {}
+      organisational: {}
+  Detectability:
+    description: How readily the intended users would notice a wrong answer.
+    permissible_values:
+      obvious: {}
+      on_review: {description: Noticed by a careful reviewer.}
+      hard: {description: Unlikely to be noticed without independent checking.}
+      undetectable: {description: Not noticeable from the app or its outputs.}
+      tbd: {}
+  KnowledgeKind:
+    permissible_values:
+      criterion: {}
+      method: {}
+      parameter_values: {}
+      definition: {}
+      classification: {}
+      reference_data: {}
+      decision_rule: {description: A rule that maps evidence to a candidate course of action.}
+      expert_judgment: {}
+  ChoiceCategory:
+    description: >-
+      Consequential choices change meaning, results or reliance; each binds only under a
+      made ruling whose scope names it (one checkpoint ruling may name several).
+      Presentation and routine choices may bind under a made delegation. The category is
+      the author's proposal, shown to the human at the design checkpoint.
+    permissible_values:
+      consequential: {}
+      presentation: {description: Changes appearance, not meaning.}
+      routine: {description: Applies an adopted pattern's settled form without changing meaning.}
+  ExclusionKind:
+    permissible_values:
+      out_of_family: {description: Outside the application family (ONTOLOGY.md §7).}
+      deferred: {}
+      owner_excluded: {}
+  PropertyOrigin:
+    permissible_values:
+      observed: {}
+      derived: {}
+      modelled: {}
+      judged: {}
+
+# --------------------------------------------------------------------------
+# Classes
+# --------------------------------------------------------------------------
+classes:
+
+  # ---------- design record root ----------
+  AppDesign:
+    tree_root: true
+    description: >-
+      Design record of one interactive data application: its needs organised by the
+      four perspectives, the options considered, the choices made and the traces from
+      each need to the specification elements that answer it. It is a proposal until
+      its choices are bound by rulings; it never records its own acceptance.
+    annotations:
+      level: representation
+      perspective: design
+      title: App design record
+    attributes:
+      design_version:
+        range: string
+        required: true
+        pattern: "^0\\.1$"
+        description: Design record format version this document conforms to.
+      ontology_version:
+        range: string
+      id:
+        identifier: true
+        range: Identifier
+      app:
+        range: Identifier
+        required: true
+        description: Identifier of the application, equal to the specification's app.id.
+      title:
+        range: string
+        required: true
+      mode:
+        range: DesignMode
+        required: true
+      owner:
+        range: string
+        required: true
+        description: Accountable owner (person or role) of purpose, choices and acceptance.
+      catalogue:
+        range: CatalogueRef
+        inlined: true
+      specification:
+        range: SpecTarget
+        inlined: true
+      intent:
+        range: IntentStatement
+        required: true
+        inlined: true
+      actors:
+        range: Actor
+        multivalued: true
+        inlined_as_list: true
+      subjects:
+        range: Subject
+        multivalued: true
+        inlined_as_list: true
+      properties:
+        range: PropertyOfInterest
+        multivalued: true
+        inlined_as_list: true
+      data:
+        range: DataHolding
+        multivalued: true
+        inlined_as_list: true
+      needs:
+        range: InformationNeed
+        multivalued: true
+        inlined_as_list: true
+      activities:
+        range: Activity
+        multivalued: true
+        inlined_as_list: true
+      decisions:
+        range: Decision
+        multivalued: true
+        inlined_as_list: true
+      alternatives:
+        range: Alternative
+        multivalued: true
+        inlined_as_list: true
+      concerns:
+        range: Concern
+        multivalued: true
+        inlined_as_list: true
+      obligations:
+        range: Obligation
+        multivalued: true
+        inlined_as_list: true
+      preferences:
+        range: Preference
+        multivalued: true
+        inlined_as_list: true
+      consequences:
+        range: ErrorConsequence
+        multivalued: true
+        inlined_as_list: true
+      tier:
+        range: TierProposal
+        inlined: true
+      non_uses:
+        range: NonUse
+        multivalued: true
+        inlined_as_list: true
+      knowledge_needs:
+        range: KnowledgeNeed
+        multivalued: true
+        inlined_as_list: true
+      options:
+        range: DesignOption
+        multivalued: true
+        inlined_as_list: true
+      choices:
+        range: DesignChoice
+        multivalued: true
+        inlined_as_list: true
+      delegations:
+        range: Delegation
+        multivalued: true
+        inlined_as_list: true
+      supporting:
+        range: SupportingElement
+        multivalued: true
+        inlined_as_list: true
+        description: Specification elements that answer no need directly (home text, navigation), with the reason they exist.
+      exclusions:
+        range: ScopeExclusion
+        multivalued: true
+        inlined_as_list: true
+      references:
+        range: SourceReference
+        multivalued: true
+        inlined_as_list: true
+      gaps:
+        range: Gap
+        multivalued: true
+        inlined_as_list: true
+      conflicts:
+        range: Conflict
+        multivalued: true
+        inlined_as_list: true
+      rulings:
+        range: Ruling
+        multivalued: true
+        inlined_as_list: true
+
+  CatalogueRef:
+    annotations:
+      level: representation
+      perspective: design
+    attributes:
+      catalogue:
+        range: string
+        required: true
+        description: Identifier of the pattern catalogue.
+      version:
+        range: string
+        required: true
+      path:
+        range: string
+      sha256:
+        range: Sha256
+
+  SpecTarget:
+    annotations:
+      level: representation
+      perspective: design
+    attributes:
+      path:
+        range: string
+        required: true
+      appspec_version:
+        range: string
+      sha256:
+        range: Sha256
+        description: Content identity of the specification the traces were checked against, once frozen.
+
+  IntentStatement:
+    description: >-
+      The owner's words and the agent's separately identified interpretation. The words
+      are evidence of what was asked, not proof that the need is well founded.
+    annotations:
+      level: domain
+      perspective: design
+    attributes:
+      words:
+        range: string
+        required: true
+        description: The owner's words, verbatim.
+      source:
+        range: SourceReference
+        description: Where the words were said or written.
+      date:
+        range: date
+      interpretation:
+        range: string
+        description: The agent's interpretation, kept apart from the words.
+      illustrative:
+        range: boolean
+        description: True when no owner said these words, e.g. in a worked example; then nothing in the record carries owner direction.
+
+  # ---------- ontology perspective: what the app is about ----------
+  Actor:
+    mixins:
+      - Claimable
+    description: A person or role who uses the app, decides with it, is affected by it, or supplies or examines its content.
+    annotations:
+      level: domain
+      perspective: ontology
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      name:
+        range: string
+        required: true
+      roles:
+        range: ActorRole
+        multivalued: true
+        required: true
+      description:
+        range: string
+      expertise:
+        range: Expertise
+      context_of_use:
+        range: string
+        description: Where and how the actor uses the app, e.g. at a desk during an annual review.
+      frequency:
+        range: string
+
+  Subject:
+    mixins:
+      - Claimable
+    description: A kind of thing the application is about. Realised in the specification as an EntityType.
+    close_mappings:
+      - sosa:FeatureOfInterest
+    annotations:
+      level: domain
+      perspective: ontology
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      name:
+        range: string
+        required: true
+      kind:
+        range: SubjectKind
+      description:
+        range: string
+      identity:
+        range: string
+        description: How instances are identified, e.g. by well identifier.
+      geometry:
+        range: GeometryKind
+      represented_by:
+        range: SpecRef
+        multivalued: true
+
+  PropertyOfInterest:
+    mixins:
+      - Claimable
+    description: A property of a subject that matters to some need. Realised as an ObservableProperty, field or result.
+    close_mappings:
+      - sosa:ObservableProperty
+    annotations:
+      level: domain
+      perspective: ontology
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      name:
+        range: string
+        required: true
+      of_subjects:
+        range: Subject
+        multivalued: true
+      unit:
+        range: UcumCode
+      value_semantics:
+        range: ValueSemantics
+      origin:
+        range: PropertyOrigin
+      represented_by:
+        range: SpecRef
+        multivalued: true
+
+  DataHolding:
+    mixins:
+      - Claimable
+    description: Data that exists or must be obtained, with what it covers and on what terms. Realised as data sources.
+    annotations:
+      level: domain
+      perspective: ontology
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      name:
+        range: string
+        required: true
+      covers_subjects:
+        range: Subject
+        multivalued: true
+      covers_properties:
+        range: PropertyOfInterest
+        multivalued: true
+      characteristics:
+        range: DataCharacteristic
+        multivalued: true
+      temporal_extent:
+        range: string
+      spatial_extent:
+        range: string
+      grain:
+        range: string
+        description: The resolution at which values exist, e.g. quarterly samples per well.
+      refresh:
+        range: string
+      custodian:
+        range: Actor
+      licence:
+        range: string
+      access:
+        range: Access
+      availability:
+        range: AvailabilityStatus
+        required: true
+      quality_notes:
+        range: string
+      realized_by:
+        range: SpecRef
+        multivalued: true
+
+  Alternative:
+    mixins:
+      - Claimable
+    description: >-
+      A course of action a decision chooses among. The specification realises it either
+      as a scenario (an evaluation context) or as an output series or category of one
+      evaluation.
+    annotations:
+      level: domain
+      perspective: praxeology
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      label:
+        range: string
+        required: true
+      description:
+        range: string
+      status_quo:
+        range: boolean
+        description: True for the course followed if nothing changes.
+      varies:
+        range: string
+        description: What differs from the status quo.
+      realized_by:
+        range: SpecRef
+        multivalued: true
+
+  # ---------- epistemology perspective: what users need to find out ----------
+  InformationNeed:
+    mixins:
+      - Claimable
+    description: >-
+      A question an actor needs the application to help answer, with what would
+      support an answer. The question is stated in the actor's terms; the task names
+      what answering it asks of the user.
+    annotations:
+      level: domain
+      perspective: epistemology
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      question:
+        range: string
+        required: true
+      asked_by:
+        range: Actor
+        multivalued: true
+        required: true
+      task:
+        range: TaskFacets
+        required: true
+        inlined: true
+      interpretation:
+        range: string
+        description: >-
+          For an evaluative need, what counts as met or missed: the benchmark, its
+          direction and what follows (the interpretation model of GQM+Strategies).
+      about_subjects:
+        range: Subject
+        multivalued: true
+      about_properties:
+        range: PropertyOfInterest
+        multivalued: true
+      scope:
+        range: string
+        description: Which subjects, period and area the answer covers.
+      answer_form:
+        range: AnswerForm
+      resolution:
+        range: string
+        description: The precision or grain the answer needs to be useful.
+      uncertainty:
+        range: UncertaintyNeed
+      needs_knowledge:
+        range: KnowledgeNeed
+        multivalued: true
+      priority:
+        range: Priority
+      for_activities:
+        range: Activity
+        multivalued: true
+      for_decisions:
+        range: Decision
+        multivalued: true
+      answered_by:
+        range: SpecRef
+        multivalued: true
+        description: Specification elements (views, metrics, exports) that answer the question.
+
+  TaskFacets:
+    description: >-
+      The task a need poses, as independent facets (Brehmer & Munzner 2013; Schulz et
+      al. 2013; Amar et al. 2005).
+    annotations:
+      level: domain
+      perspective: epistemology
+    attributes:
+      goal:
+        range: TaskGoal
+      search:
+        range: SearchMode
+      query:
+        range: QueryAction
+        required: true
+      target:
+        range: TaskTarget
+        required: true
+      cardinality:
+        range: Cardinality
+        required: true
+      template:
+        range: AnalyticTemplate
+      decision_stage:
+        range: DecisionStage
+      local_task:
+        range: LocalTask
+
+  KnowledgeNeed:
+    mixins:
+      - Claimable
+    description: Domain knowledge an answer depends on, such as a criterion edition, method, parameter set or decision rule.
+    annotations:
+      level: domain
+      perspective: epistemology
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      kind:
+        range: KnowledgeKind
+        required: true
+      statement:
+        range: string
+        required: true
+      source_candidates:
+        range: SourceReference
+        multivalued: true
+      route:
+        range: string
+        description: How it will be obtained, e.g. domain-knowledge-intake, expert elicitation, owner ruling.
+      satisfied_by:
+        range: SpecRef
+        multivalued: true
+        description: Specification domain elements or knowledge-pack references that supply it.
+      adopted_content:
+        range: ContentIdentity
+        inlined: true
+        description: >-
+          The identified content a ruling adopts for this need, such as an elicited rule
+          table. A ruling cannot adopt a knowledge need without it (rule D-RUL5).
+
+  ContentIdentity:
+    description: Identified content, by path and SHA-256, such as a rule table a ruling adopts.
+    annotations:
+      level: epistemic
+      perspective: design
+    attributes:
+      path:
+        range: string
+      sha256:
+        range: Sha256
+        required: true
+
+  # ---------- praxeology perspective: what users do with answers ----------
+  Activity:
+    mixins:
+      - Claimable
+    description: Work an actor does with the answers, in an order, at a cadence.
+    annotations:
+      level: domain
+      perspective: praxeology
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      kind:
+        range: ActivityKind
+        required: true
+      statement:
+        range: string
+        required: true
+      actors:
+        range: Actor
+        multivalued: true
+      cadence:
+        range: string
+      trigger:
+        range: string
+      steps:
+        range: InformationNeed
+        multivalued: true
+        description: Information needs in the order the activity takes them up.
+      produces:
+        range: string
+        description: What the activity hands to someone else, e.g. an annual monitoring report.
+      supported_by:
+        range: SpecRef
+        multivalued: true
+
+  Decision:
+    mixins:
+      - Claimable
+    description: >-
+      A choice the application informs. The decision maker decides; the app's role is
+      stated explicitly and never extends to deciding (thesis Framework §2.5). Choosing
+      among management actions can be a social choice that analysis informs but does not make.
+    annotations:
+      level: domain
+      perspective: praxeology
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      statement:
+        range: string
+        required: true
+      decision_makers:
+        range: Actor
+        multivalued: true
+        required: true
+      alternatives:
+        range: Alternative
+        multivalued: true
+      concerns:
+        range: Concern
+        multivalued: true
+      timing:
+        range: string
+      reversibility:
+        range: string
+      app_role:
+        range: AppRole
+        required: true
+      outside_the_app:
+        range: string
+        multivalued: true
+        description: Considerations the decision weighs that the app does not model.
+      decision_disclosure:
+        range: NonUse
+        description: The non-use that tells users this decision is the decision maker's, not the app's (rule D-D4).
+      consequences_shown_by:
+        range: SpecRef
+        multivalued: true
+
+  # ---------- axiology perspective: what matters, to whom ----------
+  Concern:
+    mixins:
+      - Claimable
+    description: Something that matters to an actor and against which outcomes or alternatives are judged.
+    annotations:
+      level: domain
+      perspective: axiology
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      statement:
+        range: string
+        required: true
+      held_by:
+        range: Actor
+        multivalued: true
+      kind:
+        range: ConcernKind
+      direction:
+        range: ConcernDirection
+      measure:
+        range: string
+        description: How attainment is judged, in words.
+      measure_kind:
+        range: MeasureKind
+      measure_type:
+        range: MeasureType
+      measured_by:
+        range: SpecRef
+        multivalued: true
+
+  Obligation:
+    mixins:
+      - Claimable
+    description: An applicable obligation or adopted constraint. It governs what can be accepted; it is not traded off.
+    annotations:
+      level: domain
+      perspective: axiology
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      kind:
+        range: ObligationKind
+        required: true
+      statement:
+        range: string
+        required: true
+      source:
+        range: SourceReference
+      addressed_by:
+        range: SpecRef
+        multivalued: true
+        description: Where the specification addresses the obligation. Addressing is not meeting it.
+      met_by_act:
+        range: boolean
+        description: >-
+          True when the obligation is met only by a human act, such as professional
+          authentication; it is then carried as a condition of acceptance.
+
+  Preference:
+    mixins:
+      - Claimable
+    description: A negotiable preference that supports choices among permissible alternatives.
+    annotations:
+      level: domain
+      perspective: axiology
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      statement:
+        range: string
+        required: true
+      held_by:
+        range: Actor
+        multivalued: true
+
+  ErrorConsequence:
+    mixins:
+      - Claimable
+    description: What a wrong or misread answer would cause, for whom, and how detectable it is.
+    annotations:
+      level: domain
+      perspective: axiology
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      failure:
+        range: string
+        required: true
+      effect:
+        range: string
+        required: true
+      affects:
+        range: Actor
+        multivalued: true
+      detectability:
+        range: Detectability
+      related_needs:
+        range: InformationNeed
+        multivalued: true
+
+  TierProposal:
+    mixins:
+      - Claimable
+    description: The proposed consequence tier with its grounds. The tier is the owner's ruling.
+    annotations:
+      level: domain
+      perspective: axiology
+    attributes:
+      tier:
+        range: ConsequenceTier
+        required: true
+      grounds:
+        range: ErrorConsequence
+        multivalued: true
+      rationale:
+        range: string
+      ruling:
+        range: Ruling
+
+  NonUse:
+    mixins:
+      - Claimable
+    description: A use the application must not be relied on for. Disclosed in the app unless stated otherwise.
+    annotations:
+      level: domain
+      perspective: axiology
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      statement:
+        range: string
+        required: true
+      reason:
+        range: string
+      disclose:
+        range: boolean
+        description: Whether the app must show the statement. Treated as true when absent.
+      disclosed_by:
+        range: SpecRef
+        multivalued: true
+
+  # ---------- design: options, choices and traces ----------
+  DesignOption:
+    mixins:
+      - Claimable
+    description: A candidate way of answering needs or informing a decision, usually an application of a catalogue pattern.
+    annotations:
+      level: representation
+      perspective: design
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      for_needs:
+        range: InformationNeed
+        multivalued: true
+      for_decisions:
+        range: Decision
+        multivalued: true
+      for_activities:
+        range: Activity
+        multivalued: true
+      pattern:
+        range: PatternRef
+      description:
+        range: string
+        required: true
+      strengths:
+        range: string
+        multivalued: true
+      weaknesses:
+        range: string
+        multivalued: true
+      prerequisites:
+        range: string
+        multivalued: true
+
+  DesignChoice:
+    mixins:
+      - Claimable
+    description: >-
+      The selection of an option. It binds only under a made ruling whose scope names
+      it, or for presentation and routine choices under a made delegation; until then it
+      is a proposal (rules D-CH2, D-CH4).
+    annotations:
+      level: representation
+      perspective: design
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      selects:
+        range: DesignOption
+        required: true
+      rejected:
+        range: DesignOption
+        multivalued: true
+      category:
+        range: ChoiceCategory
+        required: true
+      reason:
+        range: string
+      settled:
+        range: SettledQuestion
+        multivalued: true
+        inlined_as_list: true
+        description: Answers to the selected pattern's authoring questions.
+      ruling:
+        range: Ruling
+      delegation:
+        range: Delegation
+
+  SettledQuestion:
+    mixins:
+      - Claimable
+    description: >-
+      The answer to one authoring question of a pattern: the hidden semantics a design
+      must settle, such as an averaging period or a non-detect rule.
+    annotations:
+      level: representation
+      perspective: design
+    attributes:
+      key:
+        range: Identifier
+        required: true
+        description: The authoring question's key in the selected pattern.
+      answer:
+        range: string
+      realized_by:
+        range: SpecRef
+        multivalued: true
+      gap:
+        range: Gap
+        description: The gap recording why the question cannot yet be answered.
+      authority:
+        range: RulingAuthority
+        description: >-
+          Who must rule the answer when it is a domain or professional judgment. An answer
+          with a specialist authority binds only under a made ruling by that authority
+          that names it (rule D-CH6); absent means the owner.
+
+  Delegation:
+    mixins:
+      - Claimable
+    description: >-
+      A made ruling that lets the author settle a category of choices without a
+      separate ruling for each. It cannot cover consequential choices.
+    annotations:
+      level: epistemic
+      perspective: design
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      covers:
+        range: ChoiceCategory
+        multivalued: true
+        required: true
+      conditions:
+        range: string
+      ruling:
+        range: Ruling
+        required: true
+
+  SupportingElement:
+    annotations:
+      level: representation
+      perspective: design
+    attributes:
+      element:
+        range: SpecRef
+        required: true
+      reason:
+        range: string
+        required: true
+
+  ScopeExclusion:
+    mixins:
+      - Claimable
+    annotations:
+      level: representation
+      perspective: design
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      statement:
+        range: string
+        required: true
+      kind:
+        range: ExclusionKind
+        required: true
+      reason:
+        range: string
+
+  # ---------- pattern catalogue ----------
+  PatternCatalogue:
+    description: >-
+      Reusable design knowledge: patterns that connect kinds of need to specification
+      elements, with the authoring questions each pattern forces a design to settle and
+      the evidence behind them. Every pattern is a design hypothesis with grounds.
+    annotations:
+      level: representation
+      perspective: design
+      title: App design pattern catalogue
+    attributes:
+      catalogue_version:
+        range: string
+        required: true
+        pattern: "^0\\.1$"
+      id:
+        identifier: true
+        range: Identifier
+      title:
+        range: string
+        required: true
+      version:
+        range: string
+        required: true
+      patterns:
+        range: DesignPattern
+        multivalued: true
+        inlined_as_list: true
+      derivations:
+        range: ArchetypeDerivation
+        multivalued: true
+        inlined_as_list: true
+      references:
+        range: SourceReference
+        multivalued: true
+        inlined_as_list: true
+
+  DesignPattern:
+    mixins:
+      - Claimable
+    description: A recurring way of answering a kind of need, with its preconditions, elements, authoring questions and pitfalls.
+    annotations:
+      level: representation
+      perspective: design
+    attributes:
+      id:
+        identifier: true
+        range: Identifier
+      name:
+        range: string
+        required: true
+      intent:
+        range: string
+        required: true
+      addresses:
+        range: TaskSubspace
+        multivalued: true
+        inlined_as_list: true
+        required: true
+        description: Task subspaces the pattern answers; a need matches when each constrained facet takes a listed value.
+      question_form:
+        range: string
+        description: A template of the questions the pattern answers.
+      applies_when:
+        range: DataCharacteristic
+        multivalued: true
+      provides:
+        range: PatternElement
+        multivalued: true
+        inlined_as_list: true
+      settles:
+        range: AuthoringQuestion
+        multivalued: true
+        inlined_as_list: true
+      pitfalls:
+        range: Pitfall
+        multivalued: true
+        inlined_as_list: true
+      alternatives:
+        range: DesignPattern
+        multivalued: true
+        description: Other patterns that answer the same kind of need differently.
+      composes_with:
+        range: DesignPattern
+        multivalued: true
+      corpus:
+        range: string
+        multivalued: true
+        description: Surveyed applications that show the pattern.
+
+  TaskSubspace:
+    description: >-
+      A set of tasks, written as allowed values per facet; an unlisted facet is
+      unconstrained (Schulz et al.'s compound tasks).
+    annotations:
+      level: representation
+      perspective: design
+    attributes:
+      goals:
+        range: TaskGoal
+        multivalued: true
+      searches:
+        range: SearchMode
+        multivalued: true
+      queries:
+        range: QueryAction
+        multivalued: true
+      targets:
+        range: TaskTarget
+        multivalued: true
+      cardinalities:
+        range: Cardinality
+        multivalued: true
+      templates:
+        range: AnalyticTemplate
+        multivalued: true
+      decision_stages:
+        range: DecisionStage
+        multivalued: true
+      local_tasks:
+        range: LocalTask
+        multivalued: true
+
+  PatternElement:
+    description: A specification element a pattern contributes, named by its app_family class.
+    annotations:
+      level: representation
+      perspective: design
+    attributes:
+      kind:
+        range: string
+        required: true
+        description: An app_family class name, e.g. TemporalAggregateTransform or MapView.
+      role:
+        range: string
+        required: true
+      optional:
+        range: boolean
+
+  AuthoringQuestion:
+    mixins:
+      - Claimable
+    description: >-
+      A question the pattern forces a design to settle because the answer changes
+      results or meaning and is not visible in the interface.
+    annotations:
+      level: representation
+      perspective: design
+    attributes:
+      key:
+        range: Identifier
+        required: true
+      question:
+        range: string
+        required: true
+      why:
+        range: string
+      default_authority:
+        range: RulingAuthority
+        description: >-
+          Who usually must rule the answer: a specialist (domain_expert or
+          accountable_professional) for a domain or professional judgment; absent means a
+          design choice for the owner. A design that answers a specialist question without
+          naming an authority is warned (rule D-CH8).
+
+  Pitfall:
+    mixins:
+      - Claimable
+    description: A failure seen in the corpus or the sources when the pattern is applied carelessly.
+    annotations:
+      level: representation
+      perspective: design
+    attributes:
+      statement:
+        range: string
+        required: true
+
+  ArchetypeDerivation:
+    mixins:
+      - Claimable
+    description: An archetype explained as a recurring composition of patterns.
+    annotations:
+      level: representation
+      perspective: design
+    attributes:
+      archetype:
+        range: Archetype
+        required: true
+      patterns:
+        range: DesignPattern
+        multivalued: true
+        required: true
+      notes:
+        range: string
