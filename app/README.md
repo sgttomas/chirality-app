@@ -1305,12 +1305,14 @@ project (U-STORE-6, "Split by who writes"): `connectors/route-accounts/`
 records read log). The project is linked to it by
 `.chirality/project.json`, an identity the App mints once; the store's own
 record of the project's roots governs. A link that is missing or unreadable,
-that names another identity than the store records for the folder, that is a
-duplicate, or that belongs to a moved project attaches nothing until the
-person restores the link, adopts the project or gives the folder a new
-identity; the host status names which of those acts apply, and the panel
-offers only those. A link that names another store with the recorded
-identity stays attached and is shown as a limit. Records an earlier App wrote at the §13.7 paths
+that names another identity or another store than the store records for the
+folder, that is a duplicate, or that belongs to a moved project attaches
+nothing until the person restores the link, adopts the project or gives the
+folder a new identity; the host status names which of those acts apply, and
+the panel offers only those. A folder is not given another identity while
+the project it was recorded for is still in use (a running Codex, an open
+run, a record waiting to be written); restoring the link is never refused
+for that, and reads no record, so it stays possible when a disposal stands. Records an earlier App wrote at the §13.7 paths
 (`.chirality/records/runs/`, `…/acts/`, `…/workflow/`, `.chirality/captures/`,
 the registered `records/coordination.rs.jsonl`, and connector route accounts
 in `.chirality/records/connectors/route-accounts/`) are read in place, and

@@ -300,6 +300,34 @@ fn records_retention_partial_disposal_recovery_requires_original_unchanged_bag_a
     assert!(!dir.exists());
 }
 #[test]
+fn records_retention_a_link_changed_during_an_unfinished_disposal_can_be_restored_and_the_disposal_finished() {
+    let f = Fixture::new();
+    f.act("close", None).unwrap();
+    let bag = f.export("bag");
+    let dir = f.dir();
+    let project = records_store::attach(&f.project, false).unwrap().project.unwrap();
+    fail_remove_for_test(true);
+    assert!(f.act("dispose", Some(&bag)).unwrap_err().contains("disposal incomplete"));
+    fail_remove_for_test(false);
+    // The project file is edited while the disposal stands unfinished.
+    let link = f.project.join(records_store::PROJECT_LINK);
+    let mut changed: Value = serde_json::from_slice(&std::fs::read(&link).unwrap()).unwrap();
+    changed["projectId"] = json!("chirality-project:invented-other");
+    std::fs::write(&link, serde_json::to_vec(&changed).unwrap()).unwrap();
+    let attachment = records_store::attach(&f.project, false).unwrap();
+    assert_eq!((attachment.fault, attachment.recorded.as_deref()), (Some("link changed"), Some(project.as_str())));
+    assert!(attachment.resolutions.contains(&"restore-link"));
+    assert!(f.act("resume-disposal", None).is_err(), "the disposal cannot be finished for a folder that is not attached");
+    // Restoring the link reads no record, so the standing disposal does not
+    // refuse it; then the same disposal is finished.
+    assert_eq!(records_store::restore_link(&f.project).unwrap()["projectId"], project.as_str());
+    assert_eq!(f.act("resume-disposal", None).unwrap()["state"], "disposed");
+    assert!(!dir.exists());
+    // And after the disposal is complete the link can still be put back.
+    std::fs::remove_file(&link).unwrap();
+    assert_eq!(records_store::restore_link(&f.project).unwrap()["projectId"], project.as_str());
+}
+#[test]
 fn records_retention_strict_history_and_uncertain_publication_never_enable_disposal() {
     let f = Fixture::new();
     f.act("close", None).unwrap();

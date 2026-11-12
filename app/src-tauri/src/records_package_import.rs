@@ -281,8 +281,13 @@ pub(crate) fn quoted_prefix(dir: &Path, relative: &str, bytes: &[u8]) -> Result<
 pub(crate) fn status(root: &Path) -> Value {
     let result = (|| -> Result<Value, String> {
         let (store, _) = opened()?;
+        // This folder's own package state: the identity the store records for
+        // the folder governs. A project file that names another project does
+        // not bring that project's unfinished import (at its own folder) here.
+        let recorded = listed(&roots(&store)?, root.to_str().ok_or("project root is not UTF-8")?);
         let project = match identity::resolve_root(root)? {
             Some(intent) => intent.project,
+            None if recorded.len() == 1 => recorded[0].clone(),
             None => match read_link(root) {
                 Link::Present { project, .. } => project,
                 _ => return Ok(json!({"state":"none","identity":identity::context(root)})),

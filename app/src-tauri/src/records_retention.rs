@@ -376,6 +376,23 @@ pub(crate) fn read_path(path: &Path) -> Result<Option<storage::Ownership>, Strin
     }
     Ok(Some(guard))
 }
+/// Admission for writing a project's link file only: no record is read, so a
+/// disposal that stands does not refuse it; it only excludes a disposal
+/// running at the same moment.
+pub(crate) fn link_path(path: &Path) -> Result<Option<storage::Ownership>, String> {
+    let Some(dir) = records_store::configured_project_dir(path) else {
+        return Ok(None);
+    };
+    if records_store::package::owns(&dir) { return Ok(None); }
+    Ok(Some(storage::lock_shared(&gate(&dir)?)?))
+}
+/// Held while a folder is released from `project`: refused while anything
+/// still holds that project's activity (a running Codex, an open workflow
+/// run, a capture or a record waiting to be written), in this or another App
+/// process, so that nothing pending is written into another identity.
+pub(crate) fn idle_for_reassociation(dir: &Path, project: &str) -> Result<storage::Ownership, String> {
+    storage::try_lock_exclusive(&control(dir)?.join(".activity.lock"))?.ok_or_else(|| format!("project {project}, which the records store recorded at this folder, is still in use: Codex is running for it, or a workflow run, a captured act or a record of it is still open or waiting to be written, in this or another App window. Stop Codex and end the run; if a record is waiting, restore the project file so it can be written. Then try again; nothing changed"))
+}
 pub(crate) fn check_write(dir: &Path) -> Result<(), String> {
     state(dir)?.writable()
 }

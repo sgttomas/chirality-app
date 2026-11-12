@@ -157,6 +157,35 @@ fn control_repair_preserves_later_local_appends_and_newer_legal_hold() {
 }
 
 #[test]
+fn a_folder_whose_link_names_a_project_with_an_unfinished_import_elsewhere_keeps_its_own_package_state_and_its_way_back() {
+    // Q's import is interrupted at its own folder.
+    let f = Fixture::new(false);
+    let plan = f.original_plan();
+    STOP.with(|flag| *flag.borrow_mut() = Some("payload"));
+    assert!(super::super::apply(plan, &actor(), &observed()).is_err());
+    assert_eq!(super::super::status(&f.root)["state"], "incomplete");
+    // Another folder, recorded for its own project P, gets a link naming Q.
+    let other = f.base.join("other-project");
+    std::fs::create_dir_all(&other).unwrap();
+    crate::records::append_project(&other,None,"app-writer:local","evidence_limit",&crate::records::APP_WRITER,
+        json!({"label":"unresolvable reference","subjectRef":"invented P entry"})).unwrap();
+    let p = attach(&other, false).unwrap().project.unwrap();
+    let store_id = opened().unwrap().1;
+    std::fs::write(other.join(PROJECT_LINK), serde_json::to_vec(&link_value(&f.project, &store_id)).unwrap()).unwrap();
+    let view = crate::records_store::status(Some(&other));
+    assert_eq!(view["project"]["attachment"]["fault"], "link changed");
+    assert!(view["project"]["attachment"]["resolutions"].as_array().unwrap().contains(&json!("restore-link")));
+    // Its package state is its own project's: Q's unfinished import, which
+    // can only be finished at Q's folder, is not shown as this folder's.
+    assert_ne!(view["packageImport"]["state"], "incomplete", "{}", view["packageImport"]);
+    assert_ne!(view["packageImport"]["state"], "unavailable", "{}", view["packageImport"]);
+    assert_eq!(restore_link(&other).unwrap()["projectId"], p.as_str());
+    assert_eq!(attach(&other, false).unwrap().project.as_deref(), Some(p.as_str()));
+    // Q's own folder still shows its unfinished import.
+    assert_eq!(super::super::status(&f.root)["state"], "incomplete");
+}
+
+#[test]
 fn incomplete_original_import_finishes_from_retained_or_reselected_exact_package() {
     for reselect in [false, true] {
         let f = Fixture::new(false);

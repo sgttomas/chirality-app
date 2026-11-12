@@ -323,21 +323,103 @@ fn a_changed_link_copied_from_a_project_still_at_its_folder_is_not_adopted_and_a
 }
 
 #[test]
-fn a_link_naming_another_store_with_the_recorded_identity_stays_attached_with_a_limit() {
+fn a_link_naming_another_store_with_the_recorded_identity_is_a_changed_link_and_attaches_nothing() {
     let root = folder("store-named-");
     records::append_project(&root, None, "writer:s", "evidence_limit", &APP_WRITER, body("entry")).unwrap();
     let id = attach(&root, false).unwrap().project.unwrap();
     std::fs::write(root.join(PROJECT_LINK), serde_json::to_vec(&link_value(&id, "records-store:another")).unwrap()).unwrap();
-    let named = attach(&root, true).unwrap();
-    assert_eq!(named.project.as_deref(), Some(id.as_str()), "the identity agrees, so the folder stays attached");
-    assert!(named.refusal.is_none());
-    assert!(named.limits[0].contains("names another records store (records-store:another)"), "{:?}", named.limits);
-    assert_eq!((named.fault, named.resolutions.as_slice()), (Some("link names another store"), ["restore-link"].as_slice()));
-    assert_eq!(storage::read_all(&root).0.len(), 1);
+    for mint in [true, false] {
+        let named = attach(&root, mint).unwrap();
+        assert!(named.dir.is_none() && named.project.is_none(), "{named:?}");
+        assert!(named.refusal.as_deref().unwrap().starts_with("link changed; not attached") && named.refusal.as_deref().unwrap().contains("names another records store (records-store:another)"), "{named:?}");
+        assert_eq!((named.fault, named.resolutions.as_slice(), named.recorded.as_deref()), (Some("link names another store"), ["restore-link"].as_slice(), Some(id.as_str())));
+    }
+    assert!(records::append_project(&root, None, "writer:s", "evidence_limit", &APP_WRITER, body("x")).unwrap_err().contains("link changed; not attached"));
+    assert_eq!(storage::read_all(&root).0.len(), 0);
     restore_link(&root).unwrap();
     let restored = attach(&root, false).unwrap();
-    assert!(restored.limits.is_empty() && restored.fault.is_none(), "{restored:?}");
+    assert!(restored.refusal.is_none() && restored.limits.is_empty() && restored.fault.is_none(), "{restored:?}");
+    assert_eq!(storage::read_all(&root).0.len(), 1);
     let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn a_link_file_written_with_the_earlier_note_still_reads() {
+    // The note in a link file is for a person reading the file; readers do
+    // not take it. A file an earlier build wrote attaches as before.
+    let root = folder("old-note-");
+    records::append_project(&root, None, "writer:n", "evidence_limit", &APP_WRITER, body("entry")).unwrap();
+    let mut link: Value = serde_json::from_slice(&std::fs::read(root.join(PROJECT_LINK)).unwrap()).unwrap();
+    assert_eq!(link["note"], "A link to this project's records in the Chirality App's records store. The store's own record governs; a changed or missing file attaches nothing until you resolve it in the App.");
+    link["note"] = json!("A link to this project's records in the Chirality App's records store. The store's own record governs; editing this file only produces a limit.");
+    std::fs::write(root.join(PROJECT_LINK), serde_json::to_vec(&link).unwrap()).unwrap();
+    let attached = attach(&root, false).unwrap();
+    assert!(attached.dir.is_some() && attached.refusal.is_none() && attached.limits.is_empty(), "{attached:?}");
+    assert_eq!(storage::read_all(&root).0.len(), 1);
+    link.as_object_mut().unwrap().remove("note");
+    std::fs::write(root.join(PROJECT_LINK), serde_json::to_vec(&link).unwrap()).unwrap();
+    assert!(attach(&root, false).unwrap().dir.is_some(), "nor is the note required");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn a_folder_is_not_given_another_identity_while_its_recorded_project_is_still_in_use() {
+    // P is recorded here and something still holds its activity (a running
+    // Codex, an open run, a record waiting to be written). Q's link arrives.
+    let here = folder("in-use-here-");
+    records::append_project(&here, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let p = attach(&here, false).unwrap().project.unwrap();
+    let elsewhere = folder("in-use-elsewhere-");
+    records::append_project(&elsewhere, None, "writer:q", "evidence_limit", &APP_WRITER, body("Q's entry")).unwrap();
+    let in_use = crate::records_retention::activity(&here).unwrap().expect("P's activity lease");
+    std::fs::rename(elsewhere.join(PROJECT_LINK), here.join(PROJECT_LINK)).unwrap();
+    let store = opened().unwrap().0;
+    let roots_before = std::fs::read(store.join("roots.jsonl")).unwrap();
+    let link_before = std::fs::read(here.join(PROJECT_LINK)).unwrap();
+    for refused in [adopt(&here).unwrap_err(), new_identity(&here).unwrap_err()] {
+        assert!(refused.contains(&format!("project {p}, which the records store recorded at this folder, is still in use")), "{refused}");
+        assert!(refused.contains("Stop Codex and end the run") && refused.contains("restore the project file so it can be written") && refused.ends_with("nothing changed"), "{refused}");
+    }
+    assert_eq!(std::fs::read(store.join("roots.jsonl")).unwrap(), roots_before, "a refused act releases and registers nothing");
+    assert_eq!(std::fs::read(here.join(PROJECT_LINK)).unwrap(), link_before);
+    // Restoring the link is never refused for this: it is what lets P's waiting records be written.
+    restore_link(&here).unwrap();
+    records::append_project(&here, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's waiting entry")).unwrap();
+    assert_eq!(storage::read_all(&here).0.len(), 2);
+    // Once nothing holds P, the person may give the folder another identity.
+    drop(in_use);
+    std::fs::write(here.join(PROJECT_LINK), &link_before).unwrap();
+    assert!(adopt(&here).is_ok());
+    let _ = (std::fs::remove_dir_all(&here), std::fs::remove_dir_all(&elsewhere));
+}
+
+#[test]
+fn an_adoption_stopped_after_its_release_lines_is_offered_to_the_person_to_complete() {
+    // The state an interrupted adoption leaves: every earlier root of Q
+    // released, this folder not yet registered, its link naming Q.
+    let before = folder("stopped-before-");
+    records::append_project(&before, None, "writer:q", "evidence_limit", &APP_WRITER, body("Q's entry")).unwrap();
+    let q = attach(&before, false).unwrap().project.unwrap();
+    let after = before.with_file_name(format!("{}-moved", before.file_name().unwrap().to_string_lossy()));
+    std::fs::rename(&before, &after).unwrap();
+    let store = opened().unwrap().0;
+    append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":q,"root":before.display().to_string(),"at":now_rfc3339(),"how":"released","by":"adopt"})).unwrap();
+    let stopped = attach(&after, false).unwrap();
+    assert!(stopped.dir.is_none() && stopped.refusal.is_none(), "{stopped:?}");
+    assert_eq!((stopped.how, stopped.fault, stopped.resolutions.as_slice(), stopped.linked.as_deref()), ("none", Some("no folder recorded"), ["adopt"].as_slice(), Some(q.as_str())));
+    assert_eq!(status(Some(&after))["project"]["attachment"]["resolutions"], json!(["adopt"]));
+    assert_eq!(adopt(&after).unwrap()["projectId"], q.as_str());
+    let done = attach(&after, false).unwrap();
+    assert_eq!(done.project.as_deref(), Some(q.as_str()));
+    assert!(done.resolutions.is_empty() && done.fault.is_none());
+    assert_eq!(storage::read_all(&after).0.len(), 1, "Q's history");
+    // A folder with a link to an identity the store does not hold at all is offered nothing of the kind.
+    let unknown = folder("stopped-unknown-");
+    std::fs::create_dir_all(unknown.join(".chirality")).unwrap();
+    std::fs::write(unknown.join(PROJECT_LINK), serde_json::to_vec(&link_value("chirality-project:never-held", &opened().unwrap().1)).unwrap()).unwrap();
+    let none = attach(&unknown, false).unwrap();
+    assert!(none.resolutions.is_empty() && none.fault.is_none(), "{none:?}");
+    let _ = (std::fs::remove_dir_all(&after), std::fs::remove_dir_all(&unknown));
 }
 
 #[test]

@@ -27,16 +27,17 @@ const identityCases=[
  {fault:'link changed',resolutions:['restore-link','adopt','new-identity'],recordedHere:'invented-P',linkedIdentity:'invented-Q',says:/names a different project than the one recorded for this folder/},
  {fault:'link changed',resolutions:['restore-link','new-identity'],recordedHere:'invented-P',linkedIdentity:'invented-Q',says:/names a different project/},
  {fault:'moved',resolutions:['adopt','new-identity'],linkedIdentity:'invented-Q',says:/recorded for another folder/},
- {fault:'duplicated',resolutions:['new-identity'],linkedIdentity:'invented-Q',says:/treated as a copy/},
+ {fault:'duplicated',resolutions:['new-identity'],linkedIdentity:'invented-Q',says:/treated as a copy/,one:true},
  {fault:'another store',resolutions:['adopt','new-identity'],linkedIdentity:'invented-Q',says:/kept in another records store/},
- {fault:'several identities',resolutions:['new-identity'],says:/recorded for more than one project/},
+ {fault:'several identities',resolutions:['new-identity'],says:/recorded for more than one project/,one:true},
+ {fault:'link names another store',resolutions:['restore-link'],recordedHere:'invented-P',linkedIdentity:'invented-P',says:/names another records store than this one, so its records are not attached/,one:true},
 ];
 test('an unattached project offers exactly the acts that resolve its fault, in plain words',async()=>{
  for (const item of identityCases){
   const value=store(undefined);value.project.attachment={projectId:null,refusal:`${item.fault}; not attached`,limits:[],...item};
   const calls=[];
   const html=renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:value,act:async(...args)=>{calls.push(args);}}));
-  assert.match(html,item.says);assert.match(html,/Nothing is recorded for this project until you choose one of these/);
+  assert.match(html,item.says);assert.match(html,item.one?/Nothing is recorded for this project until you do this/:/Nothing is recorded for this project until you choose one of these/);
   for (const [action,button] of [['restore-link',RESTORE],['adopt',ADOPT],['new-identity',FRESH]]){
    if (item.resolutions.includes(action)) assert.match(html,button,`${item.fault} offers ${action}`);
    else assert.doesNotMatch(html,button,`${item.fault} does not offer ${action}`);
@@ -51,7 +52,7 @@ test('each identity control sends only its offered action and says what it does 
  assert.match(html,/written again to name the project recorded for this folder \(invented-P\)/);
  assert.match(html,/attached to the project its file names \(invented-Q\)/);
  assert.match(html,/records of invented-P stay in the store under that identity and are no longer attached to this folder/);
- assert.match(html,/This folder starts with no records/);
+ assert.match(html,/takes none of the records kept in the store under an earlier identity/);assert.doesNotMatch(html,/starts with no records/);
  for (const [label,action] of [['Restore the project file','restore-link'],['This folder is the project its file names','adopt'],['Give this folder a new identity','new-identity']]){
   const calls=[];
   const group=buttons(loadSrc('RecordsStorePanel').IdentityResolution({attachment:value.project.attachment,act:async(...args)=>{calls.push(args);}}));
@@ -60,15 +61,31 @@ test('each identity control sends only its offered action and says what it does 
   assert.deepEqual(calls,[['records_store_identity',{action}]]);
  }
 });
-test('an attached project with no fault, or one whose file only names another store, is offered no more than applies',()=>{
+test('an attached project with no fault is offered no identity act',()=>{
  const plain=store({closed:false,legalHold:false,disposition:'kept'});
  assert.doesNotMatch(renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:plain,act:async()=>{}})),/Restore the project file|This folder is the project|Give this folder a new identity/);
- const named=store({closed:false,legalHold:false,disposition:'kept'});
- named.project.attachment={projectId:'invented-P',limits:['project file names another records store'],fault:'link names another store',resolutions:['restore-link']};
- const html=renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:named,act:async()=>{}}));
- assert.match(html,RESTORE);assert.match(html,/stay attached/);assert.doesNotMatch(html,ADOPT);assert.doesNotMatch(html,FRESH);
- assert.doesNotMatch(html,/Nothing is recorded for this project/);
- assert.match(html,/Export project records/);
+});
+test('an adoption that stopped part-way is offered to complete, without saying recording is refused',()=>{
+ const value=store(undefined);
+ value.project.attachment={projectId:null,how:'none',limits:[],fault:'no folder recorded',resolutions:['adopt'],linkedIdentity:'invented-Q'};
+ const html=renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:value,act:async()=>{}}));
+ assert.match(html,/holds the project this folder’s file names and has no folder recorded for it/);
+ assert.match(html,ADOPT);assert.doesNotMatch(html,RESTORE);assert.doesNotMatch(html,FRESH);
+ assert.doesNotMatch(html,/Nothing is recorded for this project until/);
+});
+test('with a disposal standing only the project file can be restored, and an unfinished own import withholds every identity act',()=>{
+ for (const disposition of ['disposal incomplete','disposed','completion durability uncertain']){
+  const value=store({closed:true,legalHold:false,disposition});
+  value.project.attachment={projectId:null,refusal:'link changed; not attached',limits:[],fault:'link changed',resolutions:['restore-link','adopt','new-identity'],recordedHere:'invented-P',linkedIdentity:'invented-Q'};
+  const html=renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:value,act:async()=>{}}));
+  assert.match(html,RESTORE,disposition);assert.doesNotMatch(html,ADOPT,disposition);assert.doesNotMatch(html,FRESH,disposition);
+  assert.match(html,/Nothing is recorded for this project until you do this/);
+ }
+ const value=store({closed:false,legalHold:false,disposition:'kept'});
+ value.project.attachment={projectId:null,refusal:'link changed; not attached',limits:[],fault:'link changed',resolutions:['restore-link','adopt','new-identity']};
+ value.packageImport={state:'incomplete',importId:'invented-import'};
+ const html=renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:value,act:async()=>{}}));
+ assert.doesNotMatch(html,RESTORE);assert.doesNotMatch(html,ADOPT);assert.doesNotMatch(html,FRESH);assert.match(html,/Finish package import/);
 });
 test('uncertain completion publication retains a reconciliation offer',()=>{
  const html=render({closed:true,legalHold:false,disposition:'completion durability uncertain'});

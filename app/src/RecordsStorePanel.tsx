@@ -10,20 +10,24 @@ const IDENTITY_FAULTS: Record<string, string> = {
   "moved": "This project’s records are recorded for another folder, so they are not attached here.",
   "duplicated": "Another folder already holds this project’s identity, so this folder is treated as a copy and no records are attached.",
   "another store": "This project’s records were kept in another records store, so nothing is attached here.",
-  "link names another store": "This folder’s project file names another records store. This store’s records for the project stay attached.",
+  "link names another store": "This folder’s project file names another records store than this one, so its records are not attached.",
+  "no folder recorded": "The records store holds the project this folder’s file names and has no folder recorded for it, so its records are not attached here yet.",
 };
 
 /** RS §13.8 "Project identity": only the acts the host says resolve this
  *  folder's fault are offered, each with what it does. Nothing is attached,
  *  read or written for an unattached folder until the person chooses one. */
-export function IdentityResolution({ attachment, act }: { attachment: Json; act: (command: string, args?: Record<string, unknown>) => Promise<void> }) {
-  const offered: string[] = Array.isArray(attachment?.resolutions) ? attachment.resolutions : [];
+export function IdentityResolution({ attachment, act, linkOnly = false }: { attachment: Json; act: (command: string, args?: Record<string, unknown>) => Promise<void>; linkOnly?: boolean }) {
+  // With a disposal standing for the recorded project, only the project file
+  // can be put back (it reads no record); the folder's identity stays as it is.
+  const named: string[] = Array.isArray(attachment?.resolutions) ? attachment.resolutions : [];
+  const offered = linkOnly ? named.filter(act_ => act_ === "restore-link") : named;
   if (offered.length === 0) return null;
   const recorded = attachment?.recordedHere ? String(attachment.recordedHere) : null;
   const linked = attachment?.linkedIdentity ? String(attachment.linkedIdentity) : null;
   const identity = (act_: string) => () => act("records_store_identity", { action: act_ });
   return <div role="group" aria-label="Resolve this project’s identity">
-    {attachment?.fault && <p role="note">{IDENTITY_FAULTS[String(attachment.fault)] ?? String(attachment.fault)}{attachment?.refusal ? " Nothing is recorded for this project until you choose one of these." : ""}</p>}
+    {attachment?.fault && <p role="note">{IDENTITY_FAULTS[String(attachment.fault)] ?? String(attachment.fault)}{attachment?.refusal ? (offered.length === 1 ? " Nothing is recorded for this project until you do this." : " Nothing is recorded for this project until you choose one of these.") : ""}</p>}
     {offered.includes("restore-link") && <p>
       <button onClick={identity("restore-link")}>Restore the project file</button>{" "}
       <small>For a file that was deleted or edited by mistake. The file is written again to name the project recorded for this folder{recorded ? ` (${recorded})` : ""}, and that project’s records are attached.</small>
@@ -34,7 +38,7 @@ export function IdentityResolution({ attachment, act }: { attachment: Json; act:
     </p>}
     {offered.includes("new-identity") && <p>
       <button onClick={identity("new-identity")}>Give this folder a new identity</button>{" "}
-      <small>For a copy or a new project. This folder starts with no records. Records kept under any earlier identity stay in the store under that identity.</small>
+      <small>For a copy or a new project. This folder takes none of the records kept in the store under an earlier identity; they stay in the store under that identity.</small>
     </p>}
   </div>;
 }
@@ -49,7 +53,11 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
   const packageImport = store.packageImport;
   const packageBlocked = packageImport?.state === "incomplete" || packageImport?.state === "unavailable";
   const kept = retention?.disposition === "kept";
-  const identityRepair = !packageBlocked && (retention == null || kept);
+  // The identity acts are for this folder's own state: withheld while its own
+  // package import is unfinished. Once a disposal stands, only the project
+  // file can be restored.
+  const identityRepair = !packageBlocked;
+  const linkOnly = !(retention == null || kept);
   const holdable = kept || retention?.disposition === "disposal incomplete";
   const terminalDisposition = ["disposed", "disposal incomplete", "completion durability uncertain"].includes(retention?.disposition);
   const packageImportable = store.state === "available" && !packageBlocked && !terminalDisposition;
@@ -103,7 +111,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
         <button onClick={() => act("records_store_import")}>Import {String(project.notImported)} record file(s){project.notImportedKinds ? ` (${String(project.notImportedKinds)})` : ""}</button>{" "}
         <small>{String(project.importStanding ?? "")}</small>
       </p>}
-      {identityRepair && <IdentityResolution attachment={attachment} act={act}/>}
+      {identityRepair && <IdentityResolution attachment={attachment} act={act} linkOnly={linkOnly}/>}
     </>}
     <p><button onClick={() => act("records_store_verify_export")}>Verify an exported package</button></p>
   </section>;

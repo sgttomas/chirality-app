@@ -668,7 +668,7 @@ fn native_links_link_naming_another_identity_attaches_nothing_until_the_person_r
 }
 
 #[test]
-fn native_links_link_naming_another_store_keeps_original_registry_governing() {
+fn native_links_link_naming_another_store_attaches_nothing_until_the_person_restores_it() {
     let f = Fixture::new();
     let mut p = f.pending();
     let link = f
@@ -679,9 +679,19 @@ fn native_links_link_naming_another_store_keeps_original_registry_governing() {
     let mut claim: Value = serde_json::from_slice(&std::fs::read(&link).unwrap()).unwrap();
     claim["storeId"] = json!("chirality-store:invented-file-claim");
     std::fs::write(&link, serde_json::to_vec(&claim).unwrap()).unwrap();
-    let scope = Scope::capture(&f.scope.project.path).unwrap();
-    assert_eq!(scope.project_id, f.scope.project_id);
-    assert_eq!(scope.store_id, f.scope.store_id);
+    let refused = Scope::capture(&f.scope.project.path).err().unwrap();
+    assert!(refused.contains("link changed; not attached") && refused.contains("names another records store"), "{refused}");
+    let before = [0, 1].map(|phase| std::fs::read(published_at(&f.scope, phase)).ok());
+    settle(&mut p);
+    assert!(!p.store_done && !p.project_done, "the pending line waits");
+    assert_eq!([0, 1].map(|phase| std::fs::read(published_at(&f.scope, phase)).ok()), before);
+    let unread = crate::read_fleet_records_for_workspace(Some(&f.scope.project.path)).unwrap();
+    assert_ne!(unread["coordination"]["protected"]["state"], "attached");
+    assert!(unread["limits"].as_array().unwrap().iter().any(|v| v["reason"]
+        .as_str()
+        .unwrap_or("")
+        .contains("project link names another records store than the protected root association")));
+    crate::records_store::restore_link(&f.scope.project.path).unwrap();
     settle(&mut p);
     assert!(p.store_done && p.project_done);
     let dto = crate::read_fleet_records_for_workspace(Some(&f.scope.project.path)).unwrap();
@@ -696,8 +706,4 @@ fn native_links_link_naming_another_store_keeps_original_registry_governing() {
         dto["coordination"]["protected"]["projectId"],
         f.scope.project_id
     );
-    assert!(dto["limits"].as_array().unwrap().iter().any(|v| v["reason"]
-        .as_str()
-        .unwrap_or("")
-        .contains("names another records store; the protected root association governs")));
 }
