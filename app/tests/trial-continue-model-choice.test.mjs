@@ -13,6 +13,7 @@ const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {CleanTrialPanel} = loadSrc('TrialComposer');
 const {ContinueAsPanel} = loadSrc('ConversationRoles');
+const {AvailableModels, modelMatch} = loadSrc('ModelChoice');
 
 const g = {home:'account', appSession:'s1', spawnCounter:1};
 const g2 = {...g, spawnCounter:2};
@@ -29,7 +30,7 @@ const models = [
 const packet = (over = {}) => ({state:'observed', generation:g, modeHomeClass:'account', serverProvider:'openai', serverProviderState:'named', models, complete:true, limits:[], readAt:'2026-11-04T00:00:00Z',
   standing:'Models Codex reports for the app-server\'s own provider; not your account\'s entitlement or access.', ...over});
 const roleSet = {available:true, defaultRole:null, roles:[{name:'HELP_HUMAN', meaning:'fixture role'}, {name:'WORKING_ITEMS', meaning:'fixture role'}], conversationRoles:['HELP_HUMAN', 'WORKING_ITEMS']};
-const entries = [{value:'chatgpt-account', label:'ChatGPT account'}, {value:'local-provider', label:'Local provider'}];
+const entries = [{value:'chatgpt-account', label:'ChatGPT account'}];
 const pending = (over = {}) => ({reference:'trial:7', sequence:4, kind:'clean', draftName:'load-check', location:'project', card:'trial 4 of draft load-check — not registered; not a workflow run',
   text:'[Chirality] Workflow trial 4', textIdentity:{value:'feedface'}, bytes:30, message:'Inputs for this trial: …', authoring:null, cleanConversation:null, delegation:null, runInForce:null, draftChanged:null,
   workFolder:'.chirality/workflow-trials/w1', state:'pre-filled', limit:null, ...over});
@@ -109,7 +110,7 @@ test('a home or generation change keeps the clean trial inputs, makes the choice
   });
 });
 
-test('a clean trial refuses lists for another provider or generation, marks an unnamed provider and keeps manual IDs under Advanced', async () => {
+test('a clean trial refuses lists for another provider or generation, marks an unnamed provider and keeps a typed model ID under Advanced', async () => {
   const acts = []; let reply = packet({serverProvider:'local-lab'});
   await mounted(CleanTrialPanel, cleanProps(async (command, args) => { acts.push([command, args]); return {}; }),
     async command => { if (command === 'read_available_models') { if (reply instanceof Error) throw reply; return reply; } throw Error(`unexpected ${command}`); }, async ui => {
@@ -122,18 +123,18 @@ test('a clean trial refuses lists for another provider or generation, marks an u
     assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: the reply was not a model list for this Codex source/);
     reply = Error('invented: model/list answered with an error');
     await ui.press('Read available models'); await ui.settle();
-    assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: .*invented: model\/list answered with an error.*Advanced: enter IDs yourself/);
+    assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: .*invented: model\/list answered with an error.*Advanced: enter a model ID yourself/);
     reply = packet({serverProvider:null, serverProviderState:'unnamed', providerLimit:'the app-server\'s configuration names no provider'});
     await ui.press('Read available models'); await ui.settle();
     await ui.press('Use Model A (provider not confirmed)');
     assert.equal(!!props(button(ui.c, 'Send')).disabled, false);
-    const advanced = nodes(ui.c, 'details').find(node => node.textContent.startsWith('Advanced: enter IDs yourself'));
-    assert.ok(advanced, 'manual IDs are under Advanced');
-    await ui.change(labelled(advanced, 'input', 'Model '), 'lab-model');
-    await ui.change(labelled(advanced, 'input', 'Configured Codex provider '), 'local-lab');
-    await ui.change(labelled(advanced, 'select', 'Access entry '), 'local-provider');
+    const advanced = nodes(ui.c, 'details').find(node => node.textContent.startsWith('Advanced: enter a model ID yourself'));
+    assert.ok(advanced, 'a typed model ID is under Advanced');
+    assert.equal(labelled(advanced, 'input', 'Configured Codex provider '), undefined, 'the provider is never typed');
+    assert.equal(labelled(advanced, 'select', 'Access entry '), undefined, 'there is no access-entry select');
+    await ui.change(labelled(advanced, 'input', 'Model '), 'Typed/Model-ID:8bit');
     await ui.press('Send'); await ui.settle();
-    assert.deepEqual(acts.map(([command, args]) => [command, args.model, args.modelProvider, args.entryId]), [['workflow_trial_start_clean', 'lab-model', 'local-lab', 'local-provider']]);
+    assert.deepEqual(acts.map(([command, args]) => [command, args.model, args.modelProvider, args.entryId]), [['workflow_trial_start_clean', 'Typed/Model-ID:8bit', 'openai', 'chatgpt-account']], 'the typed ID is sent as typed on the built-in route');
   });
 });
 
@@ -161,25 +162,28 @@ test('in the dedicated local home a clean trial offers the prepared oMLX route a
   });
 });
 
-test('a local server\'s model is named by the person in the model step; Codex\'s list is never offered as that server\'s', async () => {
-  const acts = [];
-  await mounted(CleanTrialPanel, cleanProps(async (command, args) => { acts.push([command, args]); return {thread:{threadId:'clean-2'}}; }),
-    async command => { if (command === 'read_available_models') return packet({serverProvider:'local-lab'}); throw Error(`unexpected ${command}`); }, async ui => {
-    // The list is read while no route is chosen, for the provider the local route will then name.
-    await ui.press('Read available models');
-    assert.equal(buttons(ui.c, 'Use Model').length, 0);
-    await React.act(async () => { nodes(ui.c, 'details')[0].open = true; });
-    await ui.change(labelled(ui.c, 'input', 'Configured Codex provider '), 'local-lab');
-    await ui.change(labelled(ui.c, 'select', 'Access entry '), 'local-provider');
+// The account home can no longer choose a local entry; what remains true of the
+// model step is that Codex's list is never matched to a local entry, and that a
+// local entry with a model setter asks for the server's model name, not a list.
+test('Codex\'s list is never offered for a local entry; the model step asks for the server\'s model name', async () => {
+  for (const entryId of ['local-provider', 'local-provider-keyed']) {
+    assert.equal(modelMatch(packet({serverProvider:'local-lab'}), 'local-lab', entryId), 'none', `${entryId}: a list named for the same provider is not the server's`);
+    assert.equal(modelMatch(packet({serverProvider:null, serverProviderState:'unnamed'}), 'openai', entryId), 'none', `${entryId}: an unnamed provider is never matched`);
+  }
+  let typed = null;
+  const shown = {packet:packet({serverProvider:'local-lab'}), current:true, reading:false, message:'', model:'', modelProvider:'local-lab', entryId:'local-provider', disabled:false,
+    read:() => assert.fail('no read'), choose:() => assert.fail('no list choice'), setModel:value => { typed = value; }};
+  await mounted(AvailableModels, shown, async command => { throw Error(`unexpected ${command}`); }, async ui => {
     const step = region(ui.c, 'Available models');
     assert.match(step.textContent, /The App has no list of this server's models/);
     assert.doesNotMatch(step.textContent, /Model A|Model B|Models Codex reports/);
-    assert.equal(buttons(ui.c, 'Use Model').length, 0, 'a provider named like the server provider is still not offered the list');
+    assert.equal(buttons(ui.c, 'Use Model').length, 0, 'a provider named like the list\'s provider is still not offered the list');
     assert.equal(button(ui.c, 'Read available models'), undefined);
     await ui.change(labelled(step, 'input', 'Model name on the local server '), 'Exact/Server-Model:8bit');
-    assert.equal(props(labelled(ui.c, 'input', 'Model ')).value, 'Exact/Server-Model:8bit', 'the same choice as the Advanced field, as typed');
-    await ui.press('Send');
-    assert.deepEqual(acts.map(([command, args]) => [command, args.model, args.modelProvider, args.entryId]), [['workflow_trial_start_clean', 'Exact/Server-Model:8bit', 'local-lab', 'local-provider']]);
+    assert.equal(typed, 'Exact/Server-Model:8bit', 'the name is passed on as typed');
+    await ui.render({model:typed});
+    assert.equal(props(labelled(region(ui.c, 'Available models'), 'input', 'Model name on the local server ')).value, 'Exact/Server-Model:8bit');
+    assert.deepEqual(ui.calls, [], 'the model step issues nothing');
   });
 });
 
@@ -348,8 +352,10 @@ test('retained callbacks from an earlier render stay refused after reselecting o
     const earlierRoute = props(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)') ?? nodes(ui.c, 'button').find(node => node.textContent.startsWith('Use my ChatGPT'))).onClick;
     await ui.render({modeHomeClass:'api-key', generation:{...g, home:'api-key'}});
     await React.act(async () => { earlierRoute(); });
-    assert.equal(props(labelled(ui.c, 'select', 'Access entry ')).value, '', 'an earlier route control chooses nothing in the new home');
+    assert.equal(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'), undefined, 'the retained legacy home offers no route');
+    assert.equal(!!props(button(ui.c, 'Send')).disabled, true, 'an earlier route control chooses nothing in the new home');
     await ui.render({modeHomeClass:'account', generation:g2});
+    assert.equal(props(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'))['aria-pressed'], false, 'nor in the home after it');
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     await ui.press('Read available models'); await ui.settle();
     await ui.press('Use Model B');

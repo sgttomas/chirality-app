@@ -7,7 +7,7 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
-const {RoleHeader,RoleChoice,RoleLimits,ContinueAsPanel,SupplyStatus,NativeChildRoles,ChildAssociations,RoleLimitObservations,ModelProviderFields,guidanceChange,roleName,attemptSend,SendOutcome}=load('ConversationRoles.tsx');
+const {RoleHeader,RoleChoice,RoleLimits,ContinueAsPanel,SupplyStatus,NativeChildRoles,ChildAssociations,RoleLimitObservations,ModelIdField,guidanceChange,roleName,attemptSend,SendOutcome}=load('ConversationRoles.tsx');
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
 const noop=()=>{};
 
@@ -99,7 +99,7 @@ test('Continue as: an editable unsent draft, no model chosen, nothing sent until
   const handoff={id:'continue-as:1',sourceThread:'thread',sourceRoleLabel:'role HELP_HUMAN',targetRole:'WORKING_ITEMS',requestText:'Please draft a handoff summary…',request:{state:'sent',turnId:'turn-1'},
     header:'Handoff from conversation thread (role HELP_HUMAN).',draft:{state:'drafted',reading:'Drafted by the source conversation\'s agent in a visible turn there. Edit it before you send it.'},
     draftText:'Handoff from conversation thread (role HELP_HUMAN).\n\nThe summary.',started:null};
-  const entries=[{value:'local-provider',label:'Configured local provider'}];
+  const entries=[{value:'chatgpt-account',label:'ChatGPT account'}];
   const html=h(ContinueAsPanel,{handoff,entries,busy:false,ready:true,start:noop,send:noop,open:noop,dismiss:noop});
   assert.ok(html.includes('Handoff from conversation thread (role HELP_HUMAN).\n\nThe summary.</textarea>'));
   assert.ok(html.includes('it keeps its role'));
@@ -134,21 +134,21 @@ test('the existing boolean send helper preserves its result and refusal presenta
   // existing boolean contract remains unchanged.
 });
 
-test('model and provider are exact strings: no capitalisation, autocorrect, spell-check or autofill (witness D-2)',()=>{
+test('the model ID is an exact string: no capitalisation, autocorrect, spell-check or autofill (witness D-2)',()=>{
   const inputs=html=>html.match(/<input[^>]*>/g)??[];
   const exact=tag=>tag.includes('autoCapitalize="off"')&&tag.includes('autoCorrect="off"')&&tag.includes('spellCheck="false"')&&tag.includes('autoComplete="off"');
-  const pair=inputs(h(ModelProviderFields,{model:'gpt-6-luna',modelProvider:'openai',setModel:noop,setModelProvider:noop}));
-  assert.equal(pair.length,2);
-  assert.ok(pair[0].includes('value="gpt-6-luna"')&&pair[1].includes('value="openai"'));
-  assert.ok(pair.every(exact),pair.join('\n'));
-  // Continue as asks for the new conversation's model and provider through the same fields.
+  const field=inputs(h(ModelIdField,{model:'gpt-6-luna',setModel:noop}));
+  assert.equal(field.length,1,'the provider is never typed');
+  assert.ok(field[0].includes('value="gpt-6-luna"'));
+  assert.ok(field.every(exact),field.join('\n'));
+  // Continue as asks for the new conversation's model through the same field, in the account home only.
   const handoff={id:'continue-as:1',sourceThread:'thread',sourceRoleLabel:'no role',targetRole:'HELPS_HUMANS',requestText:'r',request:{state:'sent'},draft:{state:'drafted',reading:'d'},draftText:'t',started:null};
-  const panel=inputs(h(ContinueAsPanel,{handoff,entries:[],busy:false,ready:true,start:noop,send:noop,open:noop,dismiss:noop}));
-  assert.equal(panel.length,2);
+  const panel=inputs(h(ContinueAsPanel,{handoff,entries:[],homeClass:'account',generation:g,busy:false,ready:true,start:noop,send:noop,open:noop,dismiss:noop}));
+  assert.equal(panel.length,1);
   assert.ok(panel.every(exact),panel.join('\n'));
-  // The start display uses the same fields; no other model or provider input exists.
-  // In the App, the start display's model and provider fields are exercised in
-  // conversation-panel.test.mjs; Continue as uses them in trial-continue-model-choice.
+  // The start display uses the same field; no other model or provider input exists.
+  // In the App, the start display's model field is exercised in
+  // conversation-panel.test.mjs; Continue as uses it in trial-continue-model-choice.
 });
 
 test('the header shows the host’s trial header and the trials started here (TT-3b, TT-4)',()=>{

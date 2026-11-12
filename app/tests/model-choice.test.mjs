@@ -144,7 +144,7 @@ test('a list for another provider, an unnamed provider and a stale or failed rea
     assert.deepEqual(buttons(ui.c, 'Use Model'), [], 'a stale list offers nothing');
     reply = Error('invented: model/list answered with an error');
     await ui.press('Read available models');
-    assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: .*invented: model\/list answered with an error.*Advanced: enter IDs yourself/);
+    assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: .*invented: model\/list answered with an error.*Advanced: enter a model ID yourself/);
     reply = packet({generation:g});
     await ui.press('Read available models');
     assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: the reply was not a model list for this Codex source/, 'a reply for another generation is refused');
@@ -163,7 +163,8 @@ test('omitted OpenAI-key mode offers no product entry or dispatch; account and l
     assert.equal(ui.issued().filter(x => ['add_api_key','read_available_models','thread_start'].includes(x.command)).length, 0);
     ui.setSnapshot(snapshotFor()); await ui.refresh();
     assert.ok(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'));
-    assert.ok(nodes(ui.c, 'option').some(n => props(n).value === 'local-provider'));
+    assert.ok(!nodes(ui.c, 'option').some(n => props(n).value === 'local-provider'), 'the account home offers no local-provider entry');
+    assert.match(region(ui.c, 'Local model servers').textContent, /Codex here runs only on its built-in OpenAI provider/);
     assert.match(region(ui.c, 'Account connection').textContent, /Keyed oMLX runs Codex in a separate local home/);
     assert.ok(button(ui.c, 'Prepare the oMLX connection'), 'keyed local access is offered separately from account sign-in');
     assert.equal(button(ui.c, 'Enter oMLX key in a secure field…'), undefined, 'no key entry before a current local source exists');

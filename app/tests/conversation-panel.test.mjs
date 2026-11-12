@@ -56,6 +56,10 @@ const elements = (container, tag) => container.querySelectorAll(element => eleme
 const button = (container, text) => elements(container, 'button').find(element => element.textContent === text);
 const labelled = (container, tag, text) => elements(container, tag).find(element => element.parentNode.textContent.startsWith(text));
 const change = (element, value) => React.act(() => props(element).onChange({target: {value}}));
+// The account home's one connection route: the built-in OpenAI provider with the ChatGPT account entry.
+const ROUTE = 'Use my ChatGPT account (built-in OpenAI)';
+const routeChosen = container => { const route = button(container, ROUTE); return !!route && props(route)['aria-pressed'] === true; };
+const chooseRoute = async container => { if (!routeChosen(container)) await React.act(async () => { await props(button(container, ROUTE)).onClick(); }); };
 
 async function ordinaryStartCase({initialThread = false, startGeneration = g, outcome = 'success'}) {
   const container = document.createElement('div');
@@ -84,9 +88,8 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
     const conversation = () => container.querySelectorAll(element => element.getAttribute('id') === 'conversation')[0];
     const selectedKey = () => props(elements(conversation(), 'select')[0]).value;
     if (initialThread) await change(elements(conversation(), 'select')[0], key('existing'));
+    await chooseRoute(container);
     await change(labelled(container, 'input', 'Model '), 'chosen-model');
-    await change(labelled(container, 'input', 'Configured Codex provider '), 'openai');
-    await change(labelled(container, 'select', 'Access entry '), 'chatgpt-account');
     const draft = 'Unsent person text é / 家';
     await change(elements(conversation(), 'textarea')[0], draft);
     const start = button(container, 'Start thread');
@@ -102,8 +105,7 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
       // ACCESS REQ-004/CS-9: admission consumes this new-conversation choice;
       // it does not apply the same choice to another conversation.
       assert.equal(props(labelled(container, 'input', 'Model ')).value, '', 'the next conversation has no model selected');
-      assert.equal(props(labelled(container, 'input', 'Configured Codex provider ')).value, '');
-      assert.equal(props(labelled(container, 'select', 'Access entry ')).value, '');
+      assert.equal(routeChosen(container), false, 'the next conversation has no connection chosen');
       assert.equal(props(button(container, 'Start thread')).disabled, true, 'a second start needs a fresh explicit choice');
       assert.equal(props(button(conversation(), 'Send text')).disabled, false, 'the displayed new conversation can receive an explicit send');
       const headers = conversation().querySelectorAll(element => element.getAttribute('aria-label') === 'Conversation role');
@@ -111,8 +113,8 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
       assert.ok(headers[0].textContent.startsWith('Role: HELP_HUMAN.'), 'shows the new conversation');
     } else {
       assert.equal(selectedKey(), initialThread ? key('existing') : '', 'unsuccessful start keeps the selection');
-      assert.deepEqual(['Model ', 'Configured Codex provider ', 'Access entry '].map((label,index)=>props(labelled(container,index===2?'select':'input',label)).value),
-        ['chosen-model','openai','chatgpt-account'],'a refused, unknown or incomplete attempt keeps its explicit chooser for retry');
+      assert.deepEqual([props(labelled(container,'input','Model ')).value, routeChosen(container)],
+        ['chosen-model', true],'a refused, unknown or incomplete attempt keeps its explicit chooser for retry');
       assert.equal(props(button(container,'Start thread')).disabled,false);
       assert.equal(props(button(conversation(), 'Send text')).disabled, !initialThread);
       if (outcome === 'refused' || outcome === 'failed') assert.ok(container.textContent.includes('thread_start: Error: Native start'));
@@ -171,8 +173,9 @@ async function withStartChooser(check, startReply, {homeReply,decisionReply}={})
     return startReply?startReply(args,index,admitted):admitted(args,index);
   });
   const field=(tag,label)=>labelled(container,tag,label);
-  const values=()=>({model:props(field('input','Model ')).value,modelProvider:props(field('input','Configured Codex provider ')).value,entryId:props(field('select','Access entry ')).value});
-  const edit=async(patch)=>{for(const [key,value] of Object.entries(patch)){const [tag,label]=key==='model'?['input','Model ']:key==='modelProvider'?['input','Configured Codex provider ']:['select','Access entry '];await change(field(tag,label),value);}};
+  // The model field and the route button exist only in the account home.
+  const values=()=>({model:field('input','Model ')?props(field('input','Model ')).value:null,route:routeChosen(container)});
+  const edit=async(patch)=>{if(patch.route)await chooseRoute(container);if(patch.model!==undefined)await change(field('input','Model '),patch.model);};
   const press=async(text)=>React.act(async()=>{await props(button(container,text)).onClick();});
   try {
     await React.act(async()=>root.render(React.createElement(App)));
@@ -181,8 +184,8 @@ async function withStartChooser(check, startReply, {homeReply,decisionReply}={})
       failStatus:()=>{statusFailure=true;},generation:()=>homes[active].generation});
   } finally {const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);}
 }
-const selectedChoice={model:'chosen-model',modelProvider:'openai',entryId:'chatgpt-account'};
-const blankChoice={model:'',modelProvider:'',entryId:''};
+const selectedChoice={model:'chosen-model',route:true};
+const blankChoice={model:'',route:false};
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 
 test('each successful ordinary Start consumes only its choice and a second conversation needs a new explicit choice',async()=>{
@@ -229,7 +232,8 @@ test('refused, unknown and incomplete ordinary starts retain a usable choice for
 });
 
 test('a pending ordinary Start latches queued duplicate presses and preserves every newer edit, including away and back',async()=>{
-  for(const patch of [{model:'new-model'},{modelProvider:'new-provider'},{entryId:'local-provider'},null]) {
+  // The route cannot be unchosen or changed in the account home, so the newer edits are of the model.
+  for(const patch of [{model:'new-model'},null]) {
     const reply=deferred();let complete;
     await withStartChooser(async ui=>{
       await ui.edit(selectedChoice);
@@ -253,11 +257,11 @@ test('home choices during a pending Start neither reuse the old choice nor let i
   await withStartChooser(async ui=>{
     await ui.edit(selectedChoice);let pending;
     await React.act(()=>{pending=props(ui.start()).onClick();});
-    await ui.observeHome('api-key');assert.deepEqual(ui.values(),blankChoice);
-    const keyChoice={model:'key-model',modelProvider:'openai',entryId:'api-key'};
-    await ui.edit(keyChoice);
+    // The omitted legacy home offers no route and no model field, so no choice can be made there.
+    await ui.observeHome('api-key');assert.deepEqual(ui.values(),{model:null,route:false});
+    assert.equal(button(ui.container,ROUTE),undefined);
     reply.resolve();await React.act(async()=>{await pending;});
-    assert.deepEqual(ui.values(),keyChoice);assert.equal(props(ui.start()).disabled,true,'omitted legacy mode cannot dispatch');
+    assert.deepEqual(ui.values(),{model:null,route:false});assert.equal(props(ui.start()).disabled,true,'omitted legacy mode cannot dispatch');
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
     await ui.press('Start thread');assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
     await ui.press('Use account home');assert.deepEqual(ui.values(),blankChoice,'returning does not restore an invalidated choice');
@@ -287,13 +291,12 @@ test('a home transition invalidates prior-home edits but preserves newer target-
     await React.act(()=>{pendingStart=props(ui.start()).onClick();});
     await ui.observeHome('api-key');
     await React.act(()=>{pendingHome=props(button(ui.container,'Use account home')).onClick();});
-    assert.deepEqual(ui.values(),blankChoice);
-    await ui.edit({...selectedChoice,model:'edited-before-target-was-active'});
-    assert.equal(props(ui.start()).disabled,true,'the prior-home draft cannot start during selection');
+    assert.deepEqual(ui.values(),{model:null,route:false},'the legacy home offers no choice while the account home is selected');
+    assert.equal(props(ui.start()).disabled,true,'nothing can start during selection');
     await React.act(async()=>{homeReply.resolve();await targetReadReached.promise;});
     assert.ok(button(ui.container,'Use my ChatGPT account (built-in OpenAI)'));
     assert.deepEqual(ui.values(),blankChoice,'edits made in the legacy source do not become account-home choices');
-    const targetChoice={model:'target-home-model',modelProvider:'openai',entryId:'chatgpt-account'};
+    const targetChoice={model:'target-home-model',route:true};
     await ui.edit(targetChoice);
     startReply.resolve();await React.act(async()=>{await pendingStart;});
     assert.deepEqual(ui.values(),targetChoice,'the earlier account admission cannot consume the visible account-home draft');
@@ -947,7 +950,7 @@ test('Continue as begins through continue_as_begin for the selected conversation
   } finally { await React.act(() => root.unmount()); document.body.removeChild(c); }
 });
 
-test('the App start display has its own role group and one shared model and provider field pair', async () => {
+test('the App start display has its own role group and one shared model field and the built-in route', async () => {
   const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
   const snapshot = {...host, threads: [], homeRouting: {activeModeHomeClass: 'account'},
     roleSet: {available: true, defaultRole: 'HELP_HUMAN', roles: [{name: 'HELP_HUMAN', meaning: 'Alignment', default_for_new_chat: true}, {name: 'TASK', meaning: 'Bounded', default_for_new_chat: false}]}};
@@ -964,10 +967,12 @@ test('the App start display has its own role group and one shared model and prov
     assert.deepEqual([...new Set(radios.map(element => props(element).name))], ['start-thread-role'], 'the Start thread picker keeps its own group');
     const field = label => elements(container, 'input').filter(element => element.parentNode.textContent.startsWith(label));
     assert.equal(field('Model ').length, 1);
-    assert.equal(field('Configured Codex provider ').length, 1);
+    assert.equal(field('Configured Codex provider ').length, 0, 'the provider is never typed');
+    assert.equal(elements(container, 'select').filter(element => element.parentNode.textContent.startsWith('Access entry ')).length, 0, 'there is no access-entry select');
+    await chooseRoute(container);
     await change(field('Model ')[0], 'chosen-model');
-    await change(field('Configured Codex provider ')[0], 'openai');
-    assert.deepEqual([props(field('Model ')[0]).value, props(field('Configured Codex provider ')[0]).value], ['chosen-model', 'openai']);
+    assert.deepEqual([props(field('Model ')[0]).value, routeChosen(container)], ['chosen-model', true]);
+    assert.match(container.querySelectorAll(e => e.getAttribute('aria-label') === 'New conversation choice')[0].textContent, /chosen-model via openai \(chatgpt-account\)/);
   } finally {
     const renderedText = container.textContent;
     await React.act(() => root.unmount());

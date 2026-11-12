@@ -20,6 +20,8 @@ const {App}=loadSrc('App');
 const props=e=>e[Object.keys(e).find(k=>k.startsWith('__reactProps$'))];
 const elements=(c,tag)=>c.querySelectorAll(e=>e.localName===tag);
 const labelled=(c,tag,label)=>elements(c,tag).find(e=>e.parentNode.textContent.startsWith(label));
+// The account home's one connection route (built-in OpenAI with the ChatGPT account).
+const ROUTE='Use my ChatGPT account (built-in OpenAI)';
 const region=(c,label)=>c.querySelectorAll(e=>e.getAttribute('aria-label')===label)[0];
 const conversation=c=>c.querySelectorAll(e=>e.getAttribute('id')==='conversation')[0];
 const visible=e=>{for(let n=e;n;n=n.parentNode)if(props(n)?.hidden)return false;return true;};
@@ -113,7 +115,10 @@ async function mounted(options,check){
  const poll=async()=>React.act(async()=>{const p=[...timers.values()].find(p=>p.fn.toString().includes('host_status'));assert.ok(p);p.fn();});
  const selected=()=>props(elements(conversation(c),'select')[0]).value;
  const choose=async id=>change(elements(conversation(c),'select')[0],key(id));
- const editChoice=async(value='newer-choice')=>{await change(labelled(c,'input','Model '),value);await change(labelled(c,'input','Configured Codex provider '),'configured');await change(labelled(c,'select','Access entry '),'local-provider');};
+ const editChoice=async(value='newer-choice')=>{
+  const start=c.querySelectorAll(e=>e.getAttribute('id')==='workspace-start')[0];const route=elements(start,'button').find(e=>e.textContent===ROUTE);assert.ok(route,ROUTE);
+  if(props(route)['aria-pressed']!==true)await press(ROUTE,start);await change(labelled(c,'input','Model '),value);
+ };
  const model=()=>props(labelled(c,'input','Model ')).value;
  const composer=label=>region(conversation(c),label??'Trial composer');
  const assertIndependent=()=>{
@@ -163,7 +168,7 @@ test('library-only inspection and a different current authoring choice remain in
 test('authoring A → explicit clean trial B → feedback A remains an unsent original composer with local Send target D',async()=>{
  await mounted({cleanJourney:true,trials:[pending({reference:'trial:clean',sequence:2,kind:'clean',authoring:ref('A')})]},async ui=>{
   const clean=region(ui.c,'New trial conversation');assert.ok(visible(clean));assert.equal(button(ui.c,'View prepared message in conversation B'),undefined,'a clean preparation invents no existing B target');
-  await ui.change(labelled(clean,'input','Model '),'chosen');await ui.change(labelled(clean,'input','Configured Codex provider '),'configured');await ui.change(labelled(clean,'select','Access entry '),'local-provider');await ui.press('Send',clean);assert.equal(ui.selected(),key('B'));
+  await ui.press(ROUTE,clean);await ui.change(labelled(clean,'input','Model '),'chosen');await ui.press('Send',clean);assert.equal(ui.selected(),key('B'));
   await ui.press('Bring trial back');assert.doesNotMatch(ui.c.textContent,/STALE returned transcript card/);assert.equal(ui.selected(),key('B'));
   await ui.open('A');const original=ui.composer('Bring back composer');assert.equal(visible(original),true);await ui.change(elements(original,'textarea')[0],'Edited feedback');await ui.change(labelled(original,'select','Send to '),key('D'));
   await ui.choose('C');const before=ui.calls.length;await ui.open('A');assert.equal(ui.composer('Bring back composer'),original);assert.equal(props(elements(original,'textarea')[0]).value,'Edited feedback');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));ui.assertIndependent();
@@ -493,9 +498,11 @@ for(const state of ['absent','ready'])test(`first use with Codex ${state} expose
   const start=byId(ui.c,'workspace-start');assert.ok(displayed(start));
   for(const label of ['How this conversation connects','Available models'])assert.ok(displayed(region(start,label)),label);
   assert.ok(displayed(button(start,'Read available models')));assert.ok(displayed(button(start,'Start thread')));
-  const advanced=start.querySelectorAll(e=>e.localName==='details'&&e.childNodes.some(n=>n.localName==='summary'&&n.textContent==='Advanced: enter IDs yourself'))[0];assert.ok(advanced,'manual IDs remain available');
-  for(const label of ['Model ','Configured Codex provider '])assert.ok(advanced.contains(labelled(start,'input',label)),label);assert.ok(advanced.contains(labelled(start,'select','Access entry ')));
-  assert.equal(displayed(labelled(start,'input','Model ')),false,'manual IDs are an advanced fallback, not the first-use route');
+  assert.ok(displayed(button(start,ROUTE)),'the built-in route is the first-use connection');
+  const advanced=start.querySelectorAll(e=>e.localName==='details'&&e.childNodes.some(n=>n.localName==='summary'&&n.textContent==='Advanced: enter a model ID yourself'))[0];assert.ok(advanced,'a typed model ID remains available');
+  assert.ok(advanced.contains(labelled(start,'input','Model ')));
+  assert.equal(labelled(start,'input','Configured Codex provider '),undefined,'the provider is never typed');assert.equal(labelled(start,'select','Access entry '),undefined,'there is no access-entry select');
+  assert.equal(displayed(labelled(start,'input','Model ')),false,'a typed model ID is an advanced fallback, not the first-use route');
   const connection=byId(ui.c,'workspace-connection');if(state==='absent'){assert.equal(disclosureOpen(connection),true,'connection setup is exposed before Codex is ready');assert.ok(displayed(button(ui.c,'Start Codex')));}
   const before=ui.calls.length;await toggleDisclosure(ui.c,'workspace-connection',false);assert.equal(disclosureOpen(connection),false);await followWorkspaceLink(ui.c,'Set up access or start Codex');assert.equal(disclosureOpen(connection),true);assert.ok(displayed(button(ui.c,'Start Codex')));assert.equal(ui.calls.length,before,'setup navigation never starts a supplier');
  });
