@@ -5610,7 +5610,6 @@ mod conversation_transport_tests {
                     let result=op(&home);
                     match case {
                         "built-in"=>assert!(result.is_ok(),"{class:?} {method}: sent as before"),
-                        "unreadable"=>assert!(result.is_err(),"{class:?} {method}: unreadable refuses"),
                         _=>assert_eq!(result.unwrap_err(),refusal,"{class:?} {method} {case}"),
                     }
                     let written=home.written();

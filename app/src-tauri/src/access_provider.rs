@@ -1327,14 +1327,16 @@ impl Host {
     /// report the built-in provider, the fact the cloud entries' start admission rests on. Read at
     /// the folder this Codex was started in: the provider is the session setting unless a managed
     /// requirement names another, and managed requirements do not depend on the folder. A reading
-    /// that cannot be made refuses. The dedicated local home has its own admissions: nothing here.
+    /// that cannot be made refuses with the same sentence (no report was obtained). The dedicated
+    /// local home has its own admissions: nothing here.
     pub(super) fn cloud_continuation_admission(&self, generation: &Value, refusal: &str) -> Result<(), String> {
         let cwd = {
             let i = self.inner.0.lock().map_err(|_| unavailable())?;
             if i.local_provider.is_some() { return Ok(()); }
-            i.server_cwd.clone().filter(|cwd| !cwd.is_empty()).ok_or_else(unavailable)?
+            // No folder, no reading: Codex has not reported the built-in provider.
+            i.server_cwd.clone().filter(|cwd| !cwd.is_empty()).ok_or_else(|| refusal.to_owned())?
         };
-        let reading = self.private_provider_config_read(generation, &cwd, Duration::from_secs(10), PrivateConfigPurpose::Admission)?;
+        let reading = self.private_provider_config_read(generation, &cwd, Duration::from_secs(10), PrivateConfigPurpose::Admission).map_err(|_| refusal.to_owned())?;
         if reading.config["config"]["model_provider"] != "openai" { return Err(refusal.into()); }
         Ok(())
     }
