@@ -333,6 +333,7 @@ pub(crate) fn applied_session_settings(flags: &[String]) -> Value {
             "model_provider" => "Starts this home's Codex on the local model server's provider.",
             "model" => "Names the local server's model for this home's Codex.",
             _ if key.starts_with("model_providers.") => "Defines the local model server for this home's Codex: its address, interface and whether it requires a key.",
+            "openai_base_url" => "Set from a development build's startup input: replaces the built-in OpenAI provider's address with an address on this machine.",
             _ => "No reason is recorded for this setting.",
         }
     };

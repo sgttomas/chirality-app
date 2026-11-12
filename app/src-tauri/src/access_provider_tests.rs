@@ -98,6 +98,20 @@ fn access_provider_access_settings_report_the_persons_default_provider_from_the_
     assert!(read(&|r| r["layers"][0]["config"]["model_provider"] = json!(CANARY)).is_err());
     peer.safe();
 }
+/// The development input's setting is listed with its reason where the account home's start
+/// configuration carries it, and not otherwise.
+#[test]
+fn the_development_model_address_setting_is_listed_with_its_reason_only_where_applied() {
+    let account = || HostConfig::new("/x".into(), "/a".into(), "/p".into(), "/w".into());
+    let applied = crate::dev_model_address::apply(Ok(account()), true, |_| Some("http://127.0.0.1:9/v1".into())).unwrap();
+    let listed = applied_session_settings(&applied.session_flags);
+    let row = listed.as_array().unwrap().iter().find(|r| r["setting"] == "openai_base_url=\"http://127.0.0.1:9/v1\"").expect("listed");
+    assert_eq!(row["reason"], "Set from a development build's startup input: replaces the built-in OpenAI provider's address with an address on this machine.");
+    assert!(!row["reason"].as_str().unwrap().contains("held"), "says nothing about holding requests to this machine");
+    for config in [account(), crate::dev_model_address::apply(Ok(account()), false, |_| Some("http://127.0.0.1:9/v1".into())).unwrap(), crate::dev_model_address::apply(Ok(account()), true, |_| None).unwrap()] {
+        assert!(applied_session_settings(&config.session_flags).as_array().unwrap().iter().all(|r| !r["setting"].as_str().unwrap().starts_with("openai_base_url")));
+    }
+}
 #[test]
 fn every_session_setting_the_app_applies_is_listed_with_a_reason() {
     let account = HostConfig::new("/x".into(), "/a".into(), "/p".into(), "/w".into());
