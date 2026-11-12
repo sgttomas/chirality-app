@@ -3,6 +3,8 @@
 // `prepare_local_provider()` and `submit_local_provider_key(generation)`, the
 // latter opening a native secure field. This webview never receives a key; it
 // shows only the named nonsecret fields of the returned view.
+import { useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 type Json = any;
 
 export const LOCAL_MODE = "local-provider";
@@ -60,18 +62,92 @@ export function localRoute(view: LocalView | null, host: Json): LocalView | null
     && !host?.generationClosed && sameGeneration(host?.generation, view.generation) ? view : null;
 }
 
-export function LocalProviderAccess({ host, view, attempted, pending, message, navigating, prepare, enterKey, useHome }: {
+// Local model settings (DEL-01-05): the server address and the model name, both
+// nonsecret. The host validates and is the authority; these two checks only
+// say early what it will refuse. A key is never entered or shown here.
+export const localEndpointValid = (value: string) => value.length <= 2048
+  && /^https?:\/\/(127\.0\.0\.1|\[::1\])(:[1-9][0-9]{0,4})?(\/[A-Za-z0-9._~\/-]*)?$/.test(value);
+export const localModelValid = (value: string) => /^[A-Za-z0-9._:\/@+-]{1,128}$/.test(value);
+type LocalSettingsView = { state: "unset" | "set" | "unavailable"; settings: { endpoint: string; model: string } | null; offered: { endpoint: string };
+  inForce: { endpoint: string; model: string } | null; relaunchRequired: boolean; outcome?: "saved" | "unchanged" | "cancelled"; keyRemoved?: boolean };
+const pair = (value: Json) => typeof value?.endpoint === "string" && typeof value?.model === "string" ? { endpoint: value.endpoint as string, model: value.model as string } : null;
+/** Only a complete reply is a settings view; anything else is shown as not read. */
+export function localSettingsFrom(value: Json): LocalSettingsView | null {
+  if (!["unset", "set", "unavailable"].includes(value?.state) || typeof value?.offered?.endpoint !== "string" || typeof value?.relaunchRequired !== "boolean") return null;
+  const settings = pair(value.settings);
+  if ((value.state === "set") !== !!settings) return null;
+  if (value.outcome !== undefined && !["saved", "unchanged", "cancelled"].includes(value.outcome)) return null;
+  return { state: value.state, settings, offered: { endpoint: value.offered.endpoint }, inForce: pair(value.inForce), relaunchRequired: value.relaunchRequired,
+    outcome: value.outcome, keyRemoved: value.keyRemoved === true };
+}
+
+/** The local model server's address and model name: read at the person's press, saved only through the host's native question. */
+export function LocalModelSettings({ disabled, changed }: { disabled: boolean; changed?: () => void }) {
+  const [view, setView] = useState<LocalSettingsView | null>(null);
+  const [draft, setDraft] = useState<{ endpoint: string; model: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<{ kind: "status" | "alert"; text: string } | null>(null);
+  const pending = useRef(false);
+  const run = async (command: "local_model_settings_read" | "local_model_settings_save", args?: Record<string, unknown>) => {
+    if (pending.current) return;
+    pending.current = true; setBusy(true); setNote(null);
+    try {
+      const next = localSettingsFrom(await invoke(command, args));
+      if (!next) throw "The reply was not a local model settings reading; nothing is shown as set.";
+      setView(next);
+      if (command === "local_model_settings_read" || next.outcome === "saved") setDraft({ endpoint: next.settings?.endpoint ?? next.offered.endpoint, model: next.settings?.model ?? "" });
+      if (next.outcome === "saved") {
+        setNote({ kind: "status", text: next.keyRemoved ? "Saved. Codex removed the saved key for the earlier address; enter the key again after preparing the connection." : "Saved." });
+        changed?.();
+      } else if (next.outcome === "cancelled") setNote({ kind: "status", text: "Not saved: you cancelled. Nothing was changed." });
+      else if (next.outcome === "unchanged") setNote({ kind: "status", text: "These are already the saved settings. Nothing was changed." });
+    } catch (error) {
+      setNote({ kind: "alert", text: typeof error === "string" ? error : "Local model settings are unavailable; nothing was changed." });
+    } finally { pending.current = false; setBusy(false); }
+  };
+  const endpointOk = !!draft && localEndpointValid(draft.endpoint), modelOk = !!draft && localModelValid(draft.model);
+  const same = !!draft && !!view?.settings && draft.endpoint === view.settings.endpoint && draft.model === view.settings.model;
+  return <div aria-label="Local model settings">
+    <h4>Local model settings</h4>
+    <p>The address of a model server on this machine and the name of its model. The server's key is not entered here; Codex keeps it.</p>
+    <p><button disabled={disabled || busy} onClick={() => { void run("local_model_settings_read"); }}>{view ? "Read local model settings again" : "Show local model settings"}</button></p>
+    {view && <>
+      <p role="status">{view.state === "set" && view.settings ? <>Saved: server <code>{view.settings.endpoint}</code> · model <code>{view.settings.model}</code>.</>
+        : view.state === "unset" ? "No local model server is set yet."
+        : "The saved local model settings could not be read, so nothing is shown as set. The local connection is unavailable until they can be."}</p>
+      {view.inForce && <p>In use in this session: server <code>{view.inForce.endpoint}</code> · model <code>{view.inForce.model}</code>.</p>}
+      {view.relaunchRequired && <p role="status">The saved settings differ from those in use in this session. Quit and reopen the App to use the saved ones; until then the local connection is unavailable.</p>}
+      {view.state !== "unavailable" && draft && <>
+        <p><label>Server address <input autoCapitalize="off" autoCorrect="off" autoComplete="off" spellCheck={false} value={draft.endpoint} disabled={disabled || busy}
+          onChange={event => setDraft({ ...draft, endpoint: event.target.value })} aria-describedby="local-endpoint-rule" /></label>
+          <br/><small id="local-endpoint-rule">On this machine only: <code>http://127.0.0.1:</code>port<code>/v1</code> (or <code>[::1]</code>). A server on another machine cannot be used.</small>
+          {!endpointOk && draft.endpoint !== "" && <><br/><span role="alert">This address cannot be used: it must begin with http://127.0.0.1 or http://[::1], with a port and path only.</span></>}</p>
+        <p><label>Model name on the server <input autoCapitalize="off" autoCorrect="off" autoComplete="off" spellCheck={false} value={draft.model} disabled={disabled || busy}
+          onChange={event => setDraft({ ...draft, model: event.target.value })} aria-describedby="local-model-rule" /></label>
+          <br/><small id="local-model-rule">Exactly as the server names it. Letters, digits and <code>. _ : / @ + -</code> only.</small>
+          {!modelOk && draft.model !== "" && <><br/><span role="alert">This name cannot be used: only letters, digits and . _ : / @ + - are accepted, at most 128.</span></>}</p>
+        <p><button disabled={disabled || busy || !endpointOk || !modelOk || same} onClick={() => { void run("local_model_settings_save", { endpoint: draft.endpoint, model: draft.model }); }}>Save local model settings…</button>{" "}
+          <small>{same ? "No change to save." : "Asks you to confirm in a native question first. Changing the address removes a saved key, which you then enter again. A conversation already started continues only if the model name is unchanged, and then with the server at the new address."}</small></p>
+      </>}
+    </>}
+    {busy && <p role="status">Working…</p>}
+    {note && <p role={note.kind}>{note.text}</p>}
+  </div>;
+}
+
+export function LocalProviderAccess({ host, view, attempted, pending, message, navigating, prepare, enterKey, useHome, settingsChanged }: {
   host: Json; view: LocalView | null; attempted: string[]; pending: boolean; message: { kind: "status" | "alert"; text: string } | null; navigating: boolean;
-  prepare: () => void; enterKey: (generation: Json) => void; useHome: () => void;
+  prepare: () => void; enterKey: (generation: Json) => void; useHome: () => void; settingsChanged?: () => void;
 }) {
   const entry = localEntry(host);
   const current = localViewCurrent(view, host);
   const used = current && attempted.includes(generationKey(view.generation));
   const active = host?.homeRouting?.activeModeHomeClass === LOCAL_MODE;
   return <div aria-label="Keyed oMLX connection">
-    <p>Keyed oMLX runs Codex in a separate local home. Codex keeps the key there; this window never receives it.</p>
+    <p>A local model server (oMLX or another that serves the same interface) runs with Codex in a separate local home. Codex keeps the server's key there; this window never receives it.</p>
+    <LocalModelSettings disabled={pending || navigating} changed={settingsChanged}/>
     <p><button disabled={pending || navigating} onClick={prepare}>Prepare the oMLX connection</button>{" "}
-      <small>Sets up the local home with its fixed settings and starts Codex there. It asks for no key and starts no conversation.</small></p>
+      <small>Sets up the local home with the saved local model settings and starts Codex there. It asks for no key and starts no conversation.</small></p>
     {current ? <>
       <p aria-label="oMLX destination">Destination <code>{view.endpoint}</code> · provider <code>{view.providerId}</code> · model <code>{view.model}</code></p>
       {view.credentialState === "configured-not-verified"
