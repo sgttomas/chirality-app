@@ -337,22 +337,33 @@ fn role_only_payload_exports_without_hiding_new_in_place_legacy() {
         .as_str()
         .unwrap()
         .contains("role supply log heads unestablished"));
+    // Unestablished is not clean: both verifications say, apart from the
+    // bytes being consistent, that this log's chain was not checked.
+    assert_eq!(verified["state"], "package bytes consistent; log integrity limited");
+    assert!(verified["logIntegrity"]["limits"][0]
+        .as_str()
+        .unwrap()
+        .starts_with("role-supply/observations.jsonl: this package's legacy chain-head profile (0.1) records no head"));
     let standalone = std::process::Command::new("python3")
         .arg(bag.join("verify.py"))
         .arg(&bag)
         .output()
         .unwrap();
-    assert!(
-        standalone.status.success(),
+    assert_eq!(
+        standalone.status.code(),
+        Some(2),
         "{}",
         String::from_utf8_lossy(&standalone.stderr)
     );
-    assert!(String::from_utf8_lossy(&standalone.stdout)
-        .contains("It does not show who produced the package, and it shows no human act."));
+    let stdout = String::from_utf8_lossy(&standalone.stdout);
+    assert!(stdout.starts_with("Package bytes: consistent.") && stdout.contains("\nLog integrity: LIMITED in 1 log."), "{stdout}");
+    assert!(stdout.contains("role-supply/observations.jsonl: this package's legacy chain-head profile (0.1) records no head for this log, so its chain was not checked"), "{stdout}");
+    assert!(stdout.contains("It does not show who produced the package, and it shows no human act."));
     let current =
         crate::records_export::matches_current(&f.directory().parent().unwrap(), &bag, false)
             .unwrap();
     assert_eq!(current["chainHeadProfile"], verified["chainHeadProfile"]);
+    assert_eq!(current["logIntegrity"], verified["logIntegrity"]);
     let legacy = f.project.join("records/coordination.rs.jsonl");
     std::fs::create_dir_all(legacy.parent().unwrap()).unwrap();
     std::fs::write(&legacy, b"in-place original\n").unwrap();

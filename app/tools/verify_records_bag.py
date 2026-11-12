@@ -21,12 +21,15 @@ who produced the package, and it shows no human act.
 
 Outcomes. The output always makes two separate statements, "Package bytes:" and
 "Log integrity:", and neither stands for the other.
-  exit status 0  the package bytes are consistent and no chain is broken.
+  exit status 0  the package bytes are consistent and no chain is broken (or
+                 the package carries no chained log, which is said as such).
   exit status 2  the package bytes are consistent, and the integrity of a log is
                  limited: the package records that its chain was already broken
                  (or could not be read) in the store at export, and the lines
-                 agree. Each such log and line is named. The package is not
-                 refused, and its logs are not whole.
+                 agree; or the package's legacy profile records no head for a
+                 log, so its chain was not checked. Each such log and line is
+                 named. The package is not refused, and its logs are not whole.
+                 A log that was not checked is never counted as unbroken.
   exit status 1  failed: something disagrees. A member, a checksum, an
                  inventory, or a chain that does not match what the package
                  records for it, in either direction.
@@ -340,7 +343,9 @@ def chains(root, payload):
             notes.append(f"{log}: unchained (legacy): {chain.unchained} lines before the chain starts carry no link"
                          if chain.linked else f"{log}: unchained (legacy): no line carries a chain link")
     if profile == "0.1" and ROLE_LOG in names:
-        notes.append(f"{ROLE_LOG}: legacy chain-head profile 0.1 records no head for it; its chain was not recomputed")
+        # Not checked is not clean: a log this verifier could not examine is
+        # an integrity limit, never part of "no chain is broken".
+        limited.append(f"{ROLE_LOG}: this package's legacy chain-head profile (0.1) records no head for this log, so its chain was not checked")
     return {"profile": profile, "logs": len(expected), "limited": limited, "notes": notes}
 
 
@@ -382,8 +387,15 @@ def report_lines(count, administration, report):
         lines.extend(f"  Integrity limit: {limit}" for limit in limited)
         lines.append("  A broken chain is reported and never repaired. Consistent bytes do not make these logs whole.")
         lines.append(f"Result: package bytes consistent; log integrity limited (exit status {LIMITED}).")
+    elif logs == 0:
+        # Nothing examined is said as nothing examined, not as a clean result.
+        lines.append("Log integrity: nothing to check. This package carries no chained log.")
+        lines.append("Result: package bytes consistent; no chained log in the package (exit status 0).")
     else:
-        lines.append("Log integrity: no chain is broken. In every recomputed chain each link names the line before it.")
+        unlinked = sum(1 for note in report["notes"] if "unchained (legacy)" in note)
+        lines.append("Log integrity: no chain is broken. Every line that carries a link names the line before it." + (
+            f" {unlinked} log{' has' if unlinked == 1 else 's have'} lines with no link, written before chaining began: "
+            "the chain shows nothing about those lines. They are named in the notes." if unlinked else ""))
         lines.append("Result: package bytes consistent; no log integrity limit (exit status 0).")
     lines.extend(f"Note: {note}" for note in report["notes"])
     lines.append("Protected prior administration bytes included." if administration

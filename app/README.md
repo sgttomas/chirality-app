@@ -1340,7 +1340,10 @@ does not match what the package records for it, in either direction, fails.
 `verify.py` ends with exit status 0 when the bytes are consistent and no chain
 is broken, 2 when the bytes are consistent and a log's integrity is limited,
 and 1 when anything disagrees; its output leads with "Package bytes:" and "Log
-integrity:". It validates no record schema, so for a line that is a JSON
+integrity:". What was not checked or not stated is never counted as unbroken:
+a log a legacy package records no head for is an integrity limit, a package
+with no chained log says there was nothing to check, and lines written before
+chaining began are named as outside what the chain shows. It validates no record schema, so for a line that is a JSON
 object which the App's reader refuses as nonconformant it may report a broken
 chain where the App reports an invalid line. Disposal may rely on an export
 that carries a limited log: the native disposal question says so as its own

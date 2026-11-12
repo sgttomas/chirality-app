@@ -114,7 +114,7 @@ fn records_export_standalone_recomputes_chains_and_refuses_a_changed_line_with_r
     assert_eq!(unaltered.status.code(), Some(0), "{}", String::from_utf8_lossy(&unaltered.stderr));
     let stdout = String::from_utf8_lossy(&unaltered.stdout);
     assert!(stdout.starts_with("Package bytes: consistent."), "{stdout}");
-    assert!(stdout.contains("\nLog integrity: no chain is broken. In every recomputed chain each link names the line before it."), "{stdout}");
+    assert!(stdout.contains("\nLog integrity: no chain is broken. Every line that carries a link names the line before it.\n"), "{stdout}");
     assert!(stdout.contains("A package whose records, manifests and chain heads were replaced together still verifies."), "{stdout}");
     // Change the first line (same length, still JSON), then recompute both
     // manifests as an alterer would. Only the chain shows the change.
@@ -204,4 +204,36 @@ fn records_export_verifier_refuses_fifo_tags_without_waiting_for_a_writer() {
         std::fs::remove_file(&path).unwrap();
         std::fs::write(path, original).unwrap();
     }
+}
+
+#[test]
+fn records_export_log_integrity_never_reads_a_missing_or_unreadable_statement_as_no_chain_broken() {
+    let whole = json!({"logs":[{"log":"runs/a/b.jsonl","chain":{"head":"x","lines":1,"broken":[]}}]});
+    assert_eq!(log_integrity(&whole, false), json!({"state":"no chain recorded broken"}));
+    assert_eq!(log_integrity(&json!({"logs":[]}), false), json!({"state":"no chain recorded broken"}), "a package with no chained log records no break");
+    // Every other shape is a limit that names what is not stated.
+    for (heads, says) in [
+        (json!({}), "lists no logs"),
+        (json!({"logs":"none"}), "lists no logs"),
+        (json!({"logs":[{"log":"runs/a/b.jsonl","chain":{"head":"x","lines":1}}]}), "runs/a/b.jsonl: the package does not state whether this chain was broken"),
+        (json!({"logs":[{"log":"runs/a/b.jsonl","chain":{"broken":"no"}}]}), "does not state whether this chain was broken"),
+        (json!({"logs":[{"log":"runs/a/b.jsonl","chain":{"broken":[7]}}]}), "a recorded break that is not text"),
+        (json!({"logs":[{"chain":{"broken":["chain broken at line 2: x"]}}]}), "a log the tag does not name: chain broken at line 2"),
+        (json!({"logs":[{"log":"role-supply/observations.jsonl","chain":{"state":"unreadable or invalid role supply chain","error":"invented"}}]}), "chain not read at export (unreadable or invalid role supply chain: invented)"),
+    ] {
+        let integrity = log_integrity(&heads, false);
+        assert_eq!(integrity["state"], "limited", "{heads}");
+        assert!(integrity["limits"][0].as_str().unwrap().contains(says), "{integrity}");
+    }
+    // A log the legacy profile records no head for was not checked, which is a limit.
+    let legacy = log_integrity(&whole, true);
+    assert_eq!(legacy["state"], "limited");
+    assert!(legacy["limits"][0].as_str().unwrap().contains("role-supply/observations.jsonl: this package's legacy chain-head profile (0.1) records no head"), "{legacy}");
+    // A stored member is read only in its two written forms; anything else is not stated.
+    for stored in [json!({}), json!({"logIntegrity":null}), json!({"logIntegrity":{"state":"limited"}}), json!({"logIntegrity":{"state":"fine"}}), json!({"logIntegrity":"no chain recorded broken"})] {
+        assert_eq!(stored_log_integrity(&stored), json!({"state":"not stated"}), "{stored}");
+    }
+    assert!(integrity_statement(&json!({"state":"not stated"})).unwrap().starts_with("Log integrity: NOT STATED."));
+    assert!(integrity_summary(&json!({"state":"not stated"})).unwrap().starts_with("Log integrity: NOT STATED."));
+    assert!(integrity_statement(&json!({"state":"no chain recorded broken"})).is_none());
 }

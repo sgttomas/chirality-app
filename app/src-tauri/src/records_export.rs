@@ -206,7 +206,7 @@ pub fn verify(folder: &Path) -> Result<Value, String> {
     // recorded heads; and, separately, whether a log's own integrity is
     // limited. A chain already broken in the store at export is carried as
     // it stood: the package is not refused, and its log is not whole.
-    let integrity = log_integrity(&expected);
+    let integrity = log_integrity(&expected, !role_heads && actual.contains(&format!("data/{}", crate::role_observations::RELATIVE_LOG)));
     let limited = integrity["state"] == LIMITED;
     Ok(json!({"state":if limited {"package bytes consistent; log integrity limited"} else {"package bytes consistent; no chain recorded broken"},
         "packageBytes":"consistent with the manifests and the recorded chain heads","logIntegrity":integrity,
@@ -219,17 +219,30 @@ pub(crate) const WHOLE: &str = "no chain recorded broken";
 /// apart from whether the package's bytes are consistent: each chain the
 /// store's reader reported broken at export, as `<log>: chain broken at line
 /// N: ...`, and each log whose chain it could not read.
-pub(crate) fn log_integrity(heads: &Value) -> Value {
-    let limits: Vec<String> = heads["logs"].as_array().into_iter().flatten().flat_map(|item| {
-        let log = item["log"].as_str().unwrap_or_default().to_owned();
-        let chain = &item["chain"];
-        let mut out: Vec<String> = chain["broken"].as_array().into_iter().flatten().filter_map(Value::as_str)
-            .map(|limit| { let at = limit.find("chain broken").unwrap_or(0); format!("{log}: {}", &limit[at..]) }).collect();
-        if let Some(state) = chain["state"].as_str() {
-            out.push(format!("{log}: chain not read at export ({state}: {})", chain["error"].as_str().unwrap_or("no cause recorded")));
-        }
-        out
-    }).collect();
+pub(crate) fn log_integrity(heads: &Value, role_log_without_head: bool) -> Value {
+    // Anything not stated, not readable or not checked is a limit: only a
+    // head that states an empty list of breaks counts as not recorded broken.
+    let mut limits: Vec<String> = Vec::new();
+    match heads["logs"].as_array() {
+        None => limits.push("the chain-head tag lists no logs, so whether any chain was broken at export is not stated".into()),
+        Some(items) => for item in items {
+            let log = item["log"].as_str().unwrap_or("a log the tag does not name");
+            let chain = &item["chain"];
+            if let Some(state) = chain["state"].as_str() {
+                limits.push(format!("{log}: chain not read at export ({state}: {})", chain["error"].as_str().unwrap_or("no cause recorded")));
+            } else if let Some(broken) = chain["broken"].as_array() {
+                limits.extend(broken.iter().map(|limit| match limit.as_str() {
+                    Some(limit) => { let at = limit.find("chain broken").unwrap_or(0); format!("{log}: {}", &limit[at..]) }
+                    None => format!("{log}: a recorded break that is not text"),
+                }));
+            } else {
+                limits.push(format!("{log}: the package does not state whether this chain was broken at export"));
+            }
+        },
+    }
+    if role_log_without_head {
+        limits.push(format!("{}: this package's legacy chain-head profile (0.1) records no head for this log, so its chain is not established", crate::role_observations::RELATIVE_LOG));
+    }
     if limits.is_empty() { json!({"state":WHOLE}) } else { json!({"state":LIMITED,"limits":limits}) }
 }
 /// A stored `logIntegrity` member as a reader takes it. A record written
@@ -245,14 +258,20 @@ pub(crate) fn stored_log_integrity(export: &Value) -> Value {
 /// importing or relying on carries a log whose integrity is limited; `None`
 /// when no chain is recorded broken.
 pub(crate) fn integrity_statement(integrity: &Value) -> Option<String> {
+    if integrity["state"] == "not stated" {
+        return Some("Log integrity: NOT STATED. The package's bytes are consistent; whether any of its logs was already limited when it was exported is not stated, and consistent bytes do not show it.".into());
+    }
     let limits: Vec<&str> = integrity["limits"].as_array()?.iter().filter_map(Value::as_str).collect();
-    (integrity["state"] == LIMITED).then(|| format!("Log integrity: LIMITED. The package's bytes are consistent, and separately {} of its logs {} already limited in the store when it was exported: {}. The records are kept as they stood; a broken chain is reported and never repaired, and consistent bytes do not make these logs whole.",
+    (integrity["state"] == LIMITED).then(|| format!("Log integrity: LIMITED. The package's bytes are consistent, and separately {} log chain fault(s) {} already in the store when it was exported: {}. The records are kept as they stood; a broken chain is reported and never repaired, and consistent bytes do not make these logs whole.",
         limits.len(), if limits.len() == 1 { "was" } else { "were" }, limits.join("; ")))
 }
 /// The same statement in a bounded form for a native confirmation's summary,
 /// where the whole context is shown in the App: the count, and the first
 /// log and line. Never longer than a few lines however many logs are named.
 pub(crate) fn integrity_summary(integrity: &Value) -> Option<String> {
+    if integrity["state"] == "not stated" {
+        return integrity_statement(integrity);
+    }
     let limits: Vec<&str> = integrity["limits"].as_array()?.iter().filter_map(Value::as_str).collect();
     let first: String = limits.first()?.chars().take(160).collect();
     (integrity["state"] == LIMITED).then(|| format!("Log integrity: LIMITED. The package's bytes are consistent, and separately {} log chain fault(s) were already in the store when it was exported. First: {first}. Every one is named in the App under this confirmation; consistent bytes do not make these logs whole.", limits.len()))
@@ -261,7 +280,12 @@ pub(crate) fn integrity_summary(integrity: &Value) -> Option<String> {
 /// has verified (`verify`).
 pub(crate) fn package_log_integrity(folder: &Path) -> Result<Value, String> {
     let heads: Value = serde_json::from_slice(&read_tag(&folder.join(HEADS))?).map_err(|e| e.to_string())?;
-    Ok(log_integrity(&heads))
+    let role_log = match std::fs::symlink_metadata(folder.join("data").join(crate::role_observations::RELATIVE_LOG)) {
+        Ok(_) => true,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+        Err(e) => return Err(format!("package role supply log unavailable: {e}")),
+    };
+    Ok(log_integrity(&heads, role_log && heads["formatVersion"] != "0.2"))
 }
 #[cfg(test)]
 thread_local! {

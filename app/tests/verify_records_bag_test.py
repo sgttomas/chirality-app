@@ -63,8 +63,11 @@ class VerifyBagTest(unittest.TestCase):
         whole = self.run_verifier()
         self.assertEqual(whole.returncode, 0, whole.stderr)
         self.assertTrue(whole.stdout.startswith("Package bytes: consistent."), whole.stdout)
-        self.assertIn("\nLog integrity: no chain is broken.", whole.stdout)
-        self.assertIn("\nResult: package bytes consistent; no log integrity limit (exit status 0).", whole.stdout)
+        # A package with no chained log says nothing was there to check; it
+        # does not report unbroken chains it never examined.
+        self.assertIn("\nLog integrity: nothing to check. This package carries no chained log.", whole.stdout)
+        self.assertIn("\nResult: package bytes consistent; no chained log in the package (exit status 0).", whole.stdout)
+        self.assertNotIn("no chain is broken", whole.stdout)
         self.assertNotIn("LIMITED", whole.stdout)
         self.assertIn("A package whose records, manifests and chain heads were replaced together still verifies.", whole.stdout)
 
@@ -88,9 +91,14 @@ class VerifyBagTest(unittest.TestCase):
         # The legacy profile recorded RS heads only and never this log's.
         self.write_log("role-supply/observations.jsonl", b"retained source bytes; schema deliberately unexamined\n")
         self.write_heads(version="0.1")
-        notes = verifier.verify(self.root)[2]["notes"]
-        self.assertEqual(len(notes), 1)
-        self.assertIn("legacy chain-head profile 0.1", notes[0])
+        report = verifier.verify(self.root)[2]
+        # Not checked is not clean: an integrity limit and its own exit
+        # status, never part of "no chain is broken".
+        self.assertEqual((report["notes"], len(report["limited"])), ([], 1))
+        self.assertIn("legacy chain-head profile (0.1) records no head for this log, so its chain was not checked", report["limited"][0])
+        unchecked = self.run_verifier()
+        self.assertEqual(unchecked.returncode, 2, unchecked.stderr)
+        self.assertNotIn("no chain is broken", unchecked.stdout)
         self.write_heads()
         with self.assertRaises(ValueError):
             verifier.verify(self.root)
@@ -101,6 +109,10 @@ class VerifyBagTest(unittest.TestCase):
         self.write_log(log, lines)
         self.write_heads(**{log: head(lines)})
         self.assertEqual(verifier.verify(self.root)[2], {"profile": "0.2", "logs": 1, "limited": [], "notes": []})
+        clean = self.run_verifier()
+        self.assertEqual(clean.returncode, 0, clean.stderr)
+        self.assertIn("\nLog integrity: no chain is broken. Every line that carries a link names the line before it.\n", clean.stdout)
+        self.assertIn("\nResult: package bytes consistent; no log integrity limit (exit status 0).", clean.stdout)
         # Same length, still JSON, every checksum recomputed; the chain is not.
         self.write_log(log, lines.replace(b'"first"', b'"FIRST"'))
         self.seal()
@@ -196,6 +208,10 @@ class VerifyBagTest(unittest.TestCase):
         self.assertEqual(len(notes), 2)
         self.assertIn("line 2 is a torn line W-0 terminated", notes[0])
         self.assertIn("unchained (legacy): 1 lines", notes[1])
+        # Lines with no link are said to be outside what the chain shows.
+        legacy_run = self.run_verifier()
+        self.assertEqual(legacy_run.returncode, 0, legacy_run.stderr)
+        self.assertIn("1 log has lines with no link, written before chaining began: the chain shows nothing about those lines.", legacy_run.stdout)
 
     def test_recorded_heads_must_cover_exactly_the_payload_logs(self):
         log = "runs/run-one/app-writer.jsonl"
