@@ -1248,9 +1248,33 @@ plugins = false
 enabled = false
 ```
 
-Without `openai_base_url` at a loopback address, a message sent in this home
-is addressed to the supplier's real endpoint, signed in or not. Port 9 has no
-listener; point it at a loopback stub to see a reply.
+Without a loopback address for the built-in provider, a message sent in this
+home is addressed to the supplier's real service, signed in or not: the API
+address, or with a ChatGPT sign-in the ChatGPT service address. Port 9 has no
+listener; point the address at a loopback stub to see a reply.
+
+A configuration file is not enough to hold a development launch to this
+machine: the first-use route writes its own configuration, and the App can
+rewrite one while it runs. Set `CHIRALITY_DEV_OPENAI_BASE_URL` to the same
+loopback address as well. A development build passes it to the account home's
+Codex at every start as the command-line setting `openai_base_url`, which no
+configuration file overrides and which replaces either default address. The
+value must be `http://` or `https://` on `127.0.0.1` or `[::1]`, with an
+optional port and a plain path; with any other value Codex is not started.
+The release configuration (built with `distribution-successor`, not a
+development run) never reads it. The dedicated local home does not use it:
+its provider has its own address, set in the local model settings.
+
+That setting holds model requests only. Sign-in, token, plugin, connector and
+analytics addresses are separate. For those, a launch that is not the owner's
+sitting also sets the proxy variables to a loopback port where nothing listens
+and exempts loopback, as the examination launch helper does: `HTTPS_PROXY`,
+`HTTP_PROXY`, `ALL_PROXY` and their lower-case forms to `http://127.0.0.1:9`,
+and `NO_PROXY` and `no_proxy` to `127.0.0.1,localhost,::1`. The supplier's own
+HTTP and websocket clients honour these by default. They do not hold a home
+whose configuration turns on the supplier's system proxy feature, clients the
+supplier builds for direct routing, anything Codex itself starts, the web
+view's helper processes, or the system.
 
 Copy the maintained `tests/fixtures/FX-DP1/project/decisions` files into the
 scratch workspace's `project/decisions/`, then run `npx --offline tauri dev`.
