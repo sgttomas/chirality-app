@@ -90,12 +90,91 @@ def release_identity_errors(info):
     return errors
 
 
-def refuse_installed_location(path, what):
-    """These tools never install: no candidate or output inside /Applications or ~/Library."""
+def protected_places():
+    """Where an installed App or a person's data lives; these tools never write there or take a candidate from there."""
+    return [Path('/Applications'), Path('/System/Applications'), Path.home() / 'Library']
+
+
+def physical_ancestry(path):
+    """(device, inode) of the nearest existing ancestor of `path` and of each of its parents.
+
+    Symlinks are resolved first; case aliases and macOS firmlinks are caught
+    because the comparison is by filesystem identity, as prepare.py does.
+    """
     path = Path(os.path.realpath(path))
-    places = [Path('/Applications'), Path('/System/Applications'), Path(os.path.realpath(Path.home() / 'Library'))]
-    for place in places:
-        require(path != place and not path.is_relative_to(place), f'{what} may not be inside {place}; installing is the owner\'s act')
+    while not os.path.lexists(path):
+        require(path != path.parent, 'no existing ancestor')
+        path = path.parent
+    return prepare.ancestors(path)
+
+
+def refuse_installed_location(path, what):
+    """Refuse a path physically inside /Applications, /System/Applications or ~/Library."""
+    ancestry = physical_ancestry(path)
+    for place in protected_places():
+        if os.path.exists(place):
+            require(prepare.identity(Path(os.path.realpath(place))) not in ancestry,
+                    f'{what} may not be inside {place}; installing is the owner\'s act')
+
+
+def require_inside(path, root, what):
+    """Every path a tool writes must be physically inside its own new output directory."""
+    refuse_installed_location(path, what)
+    require(prepare.identity(Path(os.path.realpath(root))) in physical_ancestry(Path(path).parent),
+            f'{what} is not inside the output directory')
+
+
+# --- One redaction path for everything written ------------------------------
+
+CREDENTIAL_PATTERNS = [re.compile(p) for p in (
+    r'\b[a-z]{4}-[a-z]{4}-[a-z]{4}-[a-z]{4}\b',                       # app-specific password shape
+    r'-----BEGIN [A-Z0-9 ]+-----[\s\S]*?(?:-----END [A-Z0-9 ]+-----|$)',  # PEM material
+    r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}',                 # an Apple account e-mail
+    r'\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]+\.?[A-Za-z0-9_-]*',        # JSON web token
+    r'(?i)["\']?\b(?:password|passwd|secret|api[_-]?key|private[_-]?key|token|apple[_-]?id|username)\b["\']?\s*[=:]\s*("[^"]*"|\'[^\']*\'|\S+)',
+)]
+TEAM_LIKE = re.compile(r'\b(?=[A-Z0-9]{10}\b)(?=[A-Z0-9]*[0-9])(?=[A-Z0-9]*[A-Z])[A-Z0-9]{10}\b')
+SENSITIVE_KEY = re.compile(r'(?i)pass(?:word|wd)|secret|token|api[_-]?key|private[_-]?key|apple[_-]?id|user(?:name)?$|e-?mail|account|credential|issuer|key[_-]?id|provider')
+
+
+class Redactor:
+    """Removes credential-shaped text, account names and team identifiers other than the public ones.
+
+    `allowed` strings (the identity name and the notary profile name, which the
+    owner passes as arguments) are kept verbatim. `public_teams` are the team
+    identifiers published in source: the compiled publisher team and the
+    supplier's.
+    """
+
+    def __init__(self, allowed=(), public_teams=()):
+        self.allowed = sorted({a for a in allowed if a}, key=len, reverse=True)
+        self.public_teams = set(public_teams)
+
+    def text(self, value):
+        value = str(value)
+        held = {}
+        for index, allowed in enumerate(self.allowed):
+            token = f'\x00{index}\x00'
+            if allowed in value:
+                value, held[token] = value.replace(allowed, token), allowed
+        for pattern in CREDENTIAL_PATTERNS:
+            value = pattern.sub('[redacted]', value)
+        value = TEAM_LIKE.sub(lambda m: m.group(0) if m.group(0) in self.public_teams else '[redacted]', value)
+        for token, allowed in held.items():
+            value = value.replace(token, allowed)
+        return value
+
+    def json(self, value, structural=False):
+        """Redacted copy of a JSON value. `structural` also blanks values under sensitive keys (external JSON)."""
+        if isinstance(value, dict):
+            return {self.text(k) if structural else k:
+                    ('[redacted]' if structural and SENSITIVE_KEY.search(str(k)) else self.json(v, structural))
+                    for k, v in value.items()}
+        if isinstance(value, list):
+            return [self.json(v, structural) for v in value]
+        if isinstance(value, str):
+            return self.text(value)
+        return value
 
 
 # --- Mach-O code signature, read from the bytes (no Apple tool) -------------
@@ -198,10 +277,8 @@ def parse_display(result):
 
 def parse_entitlements(result):
     """Entitlements from `codesign -d --entitlements - --xml PATH`; None when unreadable."""
-    if result.returncode != 0:
-        return None
-    if not result.stdout.strip():
-        return {}
+    if result.returncode != 0 or not result.stdout.strip():
+        return None  # empty output is not an empty entitlement set
     try:
         value = plistlib.loads(result.stdout)
     except (plistlib.InvalidFileException, ExpatError, ValueError):
@@ -246,7 +323,9 @@ def macho_paths(tree):
     return [e['path'] for e in tree['entries'] if e.get('macho')]
 
 
-def write_json_new(path, value, mode=0o644):
+def write_json_new(path, value, mode=0o644, redactor=None):
+    if redactor is not None:
+        value = redactor.json(value)
     raw = (json.dumps(value, indent=2, sort_keys=True) + '\n').encode()
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, mode)
     with os.fdopen(fd, 'wb') as output:
@@ -263,6 +342,8 @@ def load_candidate(candidate):
     """
     candidate = inventory.anchored(candidate)
     refuse_installed_location(candidate, 'candidate')
+    for marker in ('INCOMPLETE.txt', 'BUILD_FAILED.json', 'BUILD_REFUSED.json'):
+        require(not os.path.lexists(candidate / marker), 'the build did not finish: ' + marker + ' is present')
     raw = (candidate / CANDIDATE_FILE).read_bytes()
     value = parse(raw)
     require(value.get('format') == CANDIDATE_FORMAT, 'unknown candidate description format')

@@ -23,11 +23,11 @@ def release(name):
 common = release('common')
 sha = common.sha
 Result = common.Result
-TEAM = 'EXAMPLE001'
-IDENTITY = 'Developer ID Application: Invented Publisher (EXAMPLE001)'
+TEAM = '8A7JL35U4S'  # the publisher team already public in app/src-tauri/src/capture_seal_keychain.rs
+IDENTITY = 'Developer ID Application: Invented Publisher (8A7JL35U4S)'
 NOTARY = 'invented-notary-profile'
 REQUIREMENT = ('anchor apple generic and identifier com.chirality.app and certificate 1[field.1.2.840.113635.100.6.2.6] '
-               'and certificate leaf[field.1.2.840.113635.100.6.1.13] and certificate leaf[subject.OU] = EXAMPLE001')
+               'and certificate leaf[field.1.2.840.113635.100.6.1.13] and certificate leaf[subject.OU] = 8A7JL35U4S')
 LIMITATIONS = b'# Invented limitations\n\n- LIM-001 key rotation is unavailable.\n'
 
 
@@ -152,6 +152,13 @@ def profile_bytes(team=TEAM, prefix=TEAM, identifier='com.chirality.app'):
     return tlv(0x30, tlv(0x06, prep.SIGNED_DATA_OID) + tlv(0xa0, signed))
 
 
+DELETE = object()
+
+
+def submission_id(n):
+    return f'{n:08x}-89ab-cdef-0123-456789abcdef'
+
+
 class FakeApple:
     """Answers codesign, hdiutil, notarytool, stapler and spctl argv with invented outputs and file effects.
 
@@ -165,12 +172,20 @@ class FakeApple:
         self.submit_extra = {}
         self.log_changes = {}
         self.app_entitlements_override = None
+        self.submissions = []
+        self.ditto_effect = None
+        self.spctl_extra = ''
+        self.display_extra = ''
 
     def __call__(self, argv, *, env=None, cwd=None, timeout=None):
         self.calls.append(list(argv))
         for words, result in self.override.items():
             if all(w in argv for w in words):
-                return result
+                answer = result(argv) if callable(result) else result
+                if answer is not None:
+                    return answer
+        if self.ditto_effect and argv[0] == '/usr/bin/ditto':
+            self.ditto_effect(Path(argv[-2]))
         tool, rest = argv[0], argv[1:]
         if tool == '/usr/bin/codesign':
             return self.codesign(rest)
@@ -179,11 +194,22 @@ class FakeApple:
         if tool == '/usr/bin/xcrun' and rest[0] == 'notarytool':
             return self.notarytool(rest[1:])
         if tool == '/usr/bin/xcrun' and rest[0] == 'stapler':
+            target = Path(rest[2])
             if rest[1] == 'staple':
-                with open(rest[2], 'ab') as handle: handle.write(b'STAPLED-TICKET')
+                if target.suffix == '.app':
+                    (target / 'Contents/CodeResources').write_bytes(b'INVENTED STAPLED TICKET')
+                else:
+                    with open(target, 'ab') as handle: handle.write(b'STAPLED-TICKET')
+            elif target.suffix == '.app' and not (target / 'Contents/CodeResources').is_file():
+                return Result(65, b'', b'does not have a ticket stapled to it\n')
             return Result(0, b'The validate action worked!\n')
+        if tool == '/usr/bin/ditto':
+            app, archive = Path(rest[-2]), Path(rest[-1])
+            tree = common.inventory.scan(app)
+            archive.write_bytes(b'INVENTED-ZIP:' + json.dumps(tree['entries'], sort_keys=True).encode())
+            return Result(0)
         if tool == '/usr/sbin/spctl':
-            return Result(0, b'', f'{rest[-1]}: accepted\nsource=Notarized Developer ID\n'.encode())
+            return Result(0, b'', f'{rest[-1]}: accepted\nsource=Notarized Developer ID{self.spctl_extra}\n'.encode())
         raise AssertionError('unexpected command ' + repr(argv))
 
     def kind(self, path):
@@ -222,14 +248,15 @@ class FakeApple:
             facts.update(self.supplier.get(target.name, {}))
             authority = f'Authority=Developer ID Application: OpenAI, L.L.C. ({facts["team"]})'
             cdhash = sha(target.read_bytes())[:40]
+            cdhash = facts.get('cdhash', 'CDHash=' + cdhash)
             text = (f'Executable={target}\nIdentifier={target.name}\nCodeDirectory v=20500 size=1 flags={facts["flags"]} hashes=1+1\n'
-                    f'CDHash={cdhash}\n{authority}\n{facts["timestamp"]}\nTeamIdentifier={facts["team"]}\n')
+                    f'{cdhash}\n{authority}\n{facts["timestamp"]}\nTeamIdentifier={facts["team"]}\n')
             return Result(0, b'', text.encode())
         identifier = 'com.chirality.app' if kind == 'app' else 'Chirality-4.0.0'
         flags = '0x10000(runtime)' if kind == 'app' else '0x0(none)'
         text = (f'Executable={target}\nIdentifier={identifier}\nCodeDirectory v=20500 size=1 flags={flags} hashes=1+1\n'
                 f'CDHash={"d" * 40}\nAuthority={self.identity}\nAuthority=Developer ID Certification Authority\n'
-                f'Timestamp=Jan 1, 2026 at 00:00:00\nTeamIdentifier={self.team}\n')
+                f'Timestamp=Jan 1, 2026 at 00:00:00\nTeamIdentifier={self.team}\n{self.display_extra}')
         return Result(0, b'', text.encode())
 
     def hdiutil(self, rest):
@@ -256,14 +283,17 @@ class FakeApple:
 
     def notarytool(self, rest):
         if rest[0] == 'submit':
-            self.dmg = Path(rest[1])
-            value = {'id': '01234567-89ab-cdef-0123-456789abcdef', 'status': 'Accepted', 'message': 'Processing complete'}
+            self.submissions.append(Path(rest[1]))
+            value = {'id': submission_id(len(self.submissions)), 'status': 'Accepted', 'message': 'Processing complete'}
             value.update(self.submit_extra)
             return Result(0, json.dumps(value).encode())
         if rest[0] == 'log':
-            value = {'jobId': rest[1], 'status': 'Accepted', 'issues': None, 'sha256': sha(self.dmg.read_bytes()),
-                     'archiveFilename': self.dmg.name}
+            submitted = self.submissions[-1]
+            value = {'logFormatVersion': 1, 'jobId': rest[1], 'status': 'Accepted', 'issues': None,
+                     'sha256': sha(submitted.read_bytes()), 'archiveFilename': submitted.name}
             value.update(self.log_changes)
+            for key in [k for k, v in value.items() if v is DELETE]:
+                del value[key]
             return Result(0, json.dumps(value).encode())
         raise AssertionError(rest)
 

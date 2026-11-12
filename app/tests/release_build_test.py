@@ -40,6 +40,15 @@ class FakeBuild:
         self.case, self.calls, self.dyld = case, [], {}
         self.mutate = None
         self.executable = None
+        self.install = Result(0)
+
+    @staticmethod
+    def touch_writable(env, stage):
+        (Path(env['NPM_CONFIG_CACHE']) / '_logs').mkdir(exist_ok=True)
+        (Path(env['NPM_CONFIG_CACHE']) / '_logs' / f'{stage}-debug.log').write_text('invented npm log')
+        (Path(env['NPM_CONFIG_CACHE']) / '_update-notifier-last-checked').write_text('')
+        for name in ('HOME', 'TMPDIR', 'CODEX_HOME'):
+            (Path(env[name]) / f'.{stage}-wrote-here').write_text(stage)
 
     def __call__(self, argv, *, env, cwd=None, timeout=None):
         self.calls.append({'argv': list(argv), 'env': dict(env), 'cwd': cwd})
@@ -51,7 +60,16 @@ class FakeBuild:
             return Result(0, b'27.2\n')
         if argv[0] == '/usr/bin/dyld_info':
             return self.dyld.get(Path(argv[-1]).name, Result(0))
+        if argv[:2] == ['npm', 'ci']:
+            # What a real offline install writes, at the places the environment names.
+            self.touch_writable(env, 'install')
+            (Path(cwd) / 'node_modules/@tauri-apps/cli').mkdir(parents=True)
+            return self.install
         if argv[0] == 'node':
+            self.touch_writable(env, 'build')
+            registry = Path(env['CARGO_HOME']) / 'registry'
+            registry.mkdir(exist_ok=True)
+            (registry / '.package-cache').write_text('lock')
             self.place(env, cwd, argv)
             return Result(0, b'invented build output\n')
         raise AssertionError(argv)
@@ -107,19 +125,25 @@ class ReleaseBuild(unittest.TestCase):
         contract['tool_sha256'] = {name: fx.sha(Path(path).read_bytes()) for name, path in self.tools.items()}
         patcher = patch.object(prepare, 'cargo_build_input_contract', lambda preset: json.loads(json.dumps(contract)))
         patcher.start(); self.addCleanup(patcher.stop)
-        for name in ('home', 'cargo-home', 'npm-cache'):
-            (self.root / name).mkdir()
-        (self.root / 'npmrc').write_text('')
-        self.environment = {'PATH': str(tools), 'HOME': str(self.root / 'home'), 'LANG': 'en_US.UTF-8',
-                            'CARGO_HOME': str(self.root / 'cargo-home'), 'NPM_CONFIG_CACHE': str(self.root / 'npm-cache'),
-                            'NPM_CONFIG_USERCONFIG': str(self.root / 'npmrc'), 'NPM_CONFIG_GLOBALCONFIG': str(self.root / 'npmrc')}
+        # Sentinels for what belongs to the caller: their home, and the prepared caches given as inputs.
+        self.caller_home = self.root / 'caller-home'
+        for relative in ('.npm/_logs', '.cargo/registry'):
+            (self.caller_home / relative).mkdir(parents=True)
+        (self.caller_home / '.npm/_logs/earlier.log').write_text('the caller\'s own log')
+        self.cargo_cache = self.root / 'prepared-cargo-cache'
+        (self.cargo_cache / 'registry/cache').mkdir(parents=True)
+        (self.cargo_cache / 'registry/cache/invented.crate').write_bytes(b'INVENTED crate')
+        self.npm_cache = self.root / 'prepared-npm-cache'
+        (self.npm_cache / '_cacache').mkdir(parents=True)
+        (self.npm_cache / '_cacache/index').write_text('invented index')
+        self.environment = {'PATH': str(tools), 'LANG': 'en_US.UTF-8'}
         self.candidate = self.root / 'candidate'
         self.fake = FakeBuild(self)
 
     def run_build(self, **changes):
         kw = dict(source_root=self.source, revision='a' * 40, vendor=self.vendor, expected_manifest=self.kw['expected_manifest'],
                   pin='9.9.9', out=self.candidate, environment=self.environment, tools=self.tools,
-                  runner=self.fake, host=('Darwin', 'arm64'))
+                  cargo_cache=self.cargo_cache, npm_cache=self.npm_cache, runner=self.fake, host=('Darwin', 'arm64'))
         kw.update(changes)
         return build.build(**kw)
 
@@ -155,7 +179,10 @@ class ReleaseBuild(unittest.TestCase):
         self.assertFalse(any(k.startswith(('APPLE_', 'TAURI_SIGNING_')) for k in call['env']))
         self.assertEqual(call['env']['CODEX_HOME'], str(self.candidate / 'codex-home'))
         self.assertEqual(call['env']['CHIRALITY_PUBLISHER_SELECTION'], 'production-v1')
-        self.assertEqual((self.root / 'cargo-home/config.toml').read_text(), recipe['cargo_build_input']['text'])
+        self.assertEqual((self.candidate / 'cargo-home/config.toml').read_text(), recipe['cargo_build_input']['text'])
+        install = next(c for c in self.fake.calls if c['argv'][:2] == ['npm', 'ci'])
+        self.assertEqual(install['env'], call['env'])
+        self.assertEqual(Path(install['cwd']), self.candidate / 'source/app')
 
     def test_publisher_input_is_generated_from_the_source_keychain_selection(self):
         self.run_build()
@@ -213,11 +240,59 @@ class ReleaseBuild(unittest.TestCase):
                 self.assertFalse((self.candidate / 'CANDIDATE.json').exists())
                 self.assertTrue((self.candidate / 'INCOMPLETE.txt').exists())
 
+    def credentials_cache(self):
+        cache = self.root / 'cargo-cache-with-credentials'
+        cache.mkdir(exist_ok=True)
+        (cache / 'credentials.toml').write_text('[registry]\n')
+        return cache
+
+    def test_install_and_build_write_only_under_the_run_folder(self):
+        watched = {name: common.inventory.scan(path) for name, path in (
+            ('caller home', self.caller_home), ('cargo cache', self.cargo_cache), ('npm cache', self.npm_cache),
+            ('source export', self.source), ('vendor', self.vendor))}
+        with patch.dict(os.environ, {'HOME': str(self.caller_home)}):
+            self.run_build()
+        for name, before in watched.items():
+            with self.subTest(name):
+                self.assertTrue(common.inventory.compare(common.inventory.scan(before['root']), before)['equal'])
+        description = json.loads((self.candidate / 'CANDIDATE.json').read_text())
+        out = self.candidate.resolve()
+        for call in self.fake.calls:
+            for name in build.WRITABLE_ENVIRONMENT:
+                with self.subTest(name=name, argv=call['argv'][:2]):
+                    self.assertTrue(Path(call['env'][name]).resolve().is_relative_to(out))
+            self.assertTrue(call['cwd'] is None or Path(call['cwd']).resolve().is_relative_to(out))
+            self.assertNotIn('RUSTUP_HOME', call['env'])
+        self.assertEqual(set(description['build']['writable_environment']), set(build.WRITABLE_ENVIRONMENT))
+        self.assertTrue((self.candidate / 'npm-cache/_logs/install-debug.log').is_file())
+        self.assertTrue((self.candidate / 'cargo-home/registry/.package-cache').is_file())
+        self.assertFalse((self.source / 'app/node_modules').exists())
+
+    def test_a_failed_install_or_build_never_reads_as_a_finished_candidate(self):
+        for stage in ('install', 'build'):
+            with self.subTest(stage):
+                self.setUp()
+                if stage == 'install':
+                    self.fake.install = Result(1, b'', b'npm ERR! invented offline miss')
+                else:
+                    self.fake.dyld = {'chirality-app-v4': Result(1)}
+                with self.assertRaises(ValueError):
+                    self.run_build()
+                self.assertFalse((self.candidate / 'CANDIDATE.json').exists())
+                self.assertTrue((self.candidate / 'INCOMPLETE.txt').exists())
+                self.assertEqual(json.loads((self.candidate / 'BUILD_FAILED.json').read_text())['result'], 'failed')
+                with self.assertRaisesRegex(ValueError, 'did not finish'):
+                    common.load_candidate(self.candidate)
+                if stage == 'install':
+                    self.assertFalse(any(c['argv'][0] == 'node' for c in self.fake.calls))
+
     def test_refusals_before_building(self):
         cases = {
             'host': dict(host=('Darwin', 'x86_64')),
             'missing environment': dict(environment={k: v for k, v in self.environment.items() if k != 'LANG'}),
-            'codex home': dict(environment=self.environment | {'HOME': str(Path.home() / '.codex')}),
+            'caller home': dict(environment=self.environment | {'HOME': str(self.caller_home)}),
+            'relative PATH': dict(environment=self.environment | {'PATH': 'bin'}),
+            'cargo credentials': dict(cargo_cache=self.credentials_cache()),
             'tools': dict(tools={k: v for k, v in self.tools.items() if k != 'ld'}),
             'path rustc': dict(environment=self.environment | {'PATH': '/usr/bin'}),
             'half publisher': dict(publisher_input='/nonexistent'),

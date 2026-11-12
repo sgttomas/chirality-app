@@ -32,7 +32,7 @@ common = sibling('common')
 prepare, inventory, require, sha = common.prepare, common.inventory, common.require, common.sha
 
 KEYCHAIN_SOURCE = 'app/src-tauri/src/capture_seal_keychain.rs'
-CALLER_ENVIRONMENT = ('PATH', 'HOME', 'LANG', 'CARGO_HOME', 'NPM_CONFIG_CACHE', 'NPM_CONFIG_USERCONFIG', 'NPM_CONFIG_GLOBALCONFIG')
+CALLER_ENVIRONMENT = ('PATH', 'LANG')
 TOOLS = ('rustc', 'cargo', 'clang', 'ld')
 
 
@@ -146,26 +146,66 @@ def find_publisher_outputs(target):
     return next(iter(found.values()))
 
 
-def build(*, source_root, revision, vendor, expected_manifest, pin, out, environment, tools,
-          publisher_input=None, publisher_sha256=None, cargo_build_input=prepare.CARGO_BUILD_PRESET,
-          runner=common.system_runner, host=None):
+WRITABLE_ENVIRONMENT = ('HOME', 'TMPDIR', 'CARGO_HOME', 'CARGO_TARGET_DIR', 'CODEX_HOME', 'NPM_CONFIG_CACHE',
+                        'NPM_CONFIG_USERCONFIG', 'NPM_CONFIG_GLOBALCONFIG')
+INSTALL_ARGV = ['npm', 'ci', '--offline', '--ignore-scripts', '--no-audit', '--no-fund']
+CARGO_CACHE_REFUSED = ('config', 'config.toml', 'credentials', 'credentials.toml', 'env')
+
+
+def isolated_environment(out):
+    """Every location the install and the build may write: all inside the run's own folder."""
+    return {'HOME': str(out / 'home'), 'TMPDIR': str(out / 'tmp'), 'CARGO_HOME': str(out / 'cargo-home'),
+            'CARGO_TARGET_DIR': str(out / 'target'), 'CODEX_HOME': str(out / 'codex-home'),
+            'NPM_CONFIG_CACHE': str(out / 'npm-cache'), 'NPM_CONFIG_USERCONFIG': str(out / 'npm-config/userconfig'),
+            'NPM_CONFIG_GLOBALCONFIG': str(out / 'npm-config/globalconfig')}
+
+
+def build(*, out, **kw):
+    """Build and describe a candidate; any failure leaves BUILD_FAILED.json and INCOMPLETE.txt, never CANDIDATE.json."""
+    out = Path(os.path.abspath(out))
+    existed = os.path.lexists(out)
+    try:
+        return _build(out=out, **kw)
+    except BaseException as error:
+        if not existed and out.is_dir() and not (out / common.CANDIDATE_FILE).exists() and not (out / 'BUILD_FAILED.json').exists():
+            (out / 'BUILD_FAILED.json').write_text(json.dumps({'result': 'failed', 'reason': f'{type(error).__name__}: {error}'}, indent=2) + '\n')
+        raise
+
+
+def _build(*, source_root, revision, vendor, expected_manifest, pin, out, environment, tools, cargo_cache, npm_cache,
+           publisher_input=None, publisher_sha256=None, cargo_build_input=prepare.CARGO_BUILD_PRESET,
+           runner=common.system_runner, host=None):
     host = host or (platform.system(), platform.machine())
     require(host == ('Darwin', 'arm64'), 'the release build runs on arm64 macOS only')
-    source_root, vendor, out = map(inventory.anchored, (source_root, vendor, out))
+    export, vendor, out, cargo_cache, npm_cache = map(inventory.anchored, (source_root, vendor, out, cargo_cache, npm_cache))
     common.refuse_installed_location(out, 'output')
     require(not os.path.lexists(out) and out.parent.is_dir(), 'a new output directory with an existing parent is required')
     require(set(environment) == set(CALLER_ENVIRONMENT), 'exactly these caller environment entries are required: ' + ', '.join(CALLER_ENVIRONMENT))
     require(all(isinstance(v, str) and v and '\n' not in v for v in environment.values()), 'environment values must be non-empty single lines')
-    require('.codex' not in Path(environment['HOME']).parts, 'build HOME may not be a Codex home')
+    require(all(Path(p).is_absolute() for p in environment['PATH'].split(':')), 'PATH entries must be absolute')
     require(set(tools) == set(TOOLS), 'exact resolved tool paths required for: ' + ', '.join(TOOLS))
     for name in ('rustc', 'cargo'):
         resolved = shutil.which(name, path=environment['PATH'])
         require(resolved is not None and os.path.samefile(resolved, tools[name]), name + ' on the build PATH is not the selected tool')
+        proxy = Path(resolved).parent / 'rustup'
+        require(not (proxy.exists() and os.path.samefile(proxy, resolved)) and Path(os.path.realpath(resolved)).name != 'rustup',
+                name + ' on the build PATH is a rustup proxy; put the toolchain\'s own bin directory on PATH')
     require((publisher_input is None) == (publisher_sha256 is None), 'supply the publisher input file and its digest together')
-    limitations_source = source_root / common.LIMITATIONS_SOURCE
-    require(limitations_source.is_file() and not limitations_source.is_symlink(), 'source export lacks ' + common.LIMITATIONS_SOURCE)
+    require(not os.path.lexists(export / 'app/node_modules'), 'the source export holds node_modules; dependencies come from the npm cache')
+    require(not any(os.path.lexists(cargo_cache / n) for n in CARGO_CACHE_REFUSED), 'the Cargo cache input holds configuration or credentials')
     out.mkdir(mode=0o700)
     (out / 'INCOMPLETE.txt').write_text('No candidate until CANDIDATE.json is written and this marker is removed.\n')
+    # Inputs are copied in; nothing the build writes reaches the export, the caches or the caller's home.
+    source_root = out / 'source'
+    shutil.copytree(export, source_root, symlinks=True, copy_function=shutil.copy2)
+    shutil.copytree(cargo_cache, out / 'cargo-home', symlinks=True, copy_function=shutil.copy2)
+    shutil.copytree(npm_cache, out / 'npm-cache', symlinks=True, copy_function=shutil.copy2)
+    for name in ('home', 'tmp', 'codex-home', 'npm-config'):
+        (out / name).mkdir(mode=0o700)
+    for name in ('userconfig', 'globalconfig'):
+        (out / 'npm-config' / name).write_text('')
+    limitations_source = source_root / common.LIMITATIONS_SOURCE
+    require(limitations_source.is_file() and not limitations_source.is_symlink(), 'source export lacks ' + common.LIMITATIONS_SOURCE)
     if publisher_input is None:
         publisher_input, publisher_sha256 = generate_publisher_input(source_root, out / 'publisher-input')
         publisher_origin = 'generated from ' + KEYCHAIN_SOURCE + ' of the source export'
@@ -182,19 +222,22 @@ def build(*, source_root, revision, vendor, expected_manifest, pin, out, environ
             and config['bundle']['macOS']['signingIdentity'] is None, 'plan overlay is not the 4.0.0 release identity')
     recipe = prepare.parse((plan / 'build-recipe.json').read_bytes())
     require(recipe['inherit_environment'] is False and '--no-sign' in recipe['argv'], 'recipe must build unsigned from an empty environment')
-    env = dict(recipe['environment']) | environment | {
-        'CARGO_TARGET_DIR': str(out / 'target'), 'TMPDIR': str(out / 'tmp'), 'CODEX_HOME': str(out / 'codex-home')}
+    env = dict(recipe['environment']) | environment | isolated_environment(out)
     require(set(env) == set(recipe['environment_allowlist']), 'build environment is not exactly the allowlist')
     require(not set(env) & set(recipe['unset_environment']), 'a refused variable is in the build environment')
-    (out / 'tmp').mkdir(mode=0o700); (out / 'codex-home').mkdir(mode=0o700)
+    for name in WRITABLE_ENVIRONMENT:
+        common.require_inside(env[name], out, name)
     cargo_home = inventory.anchored(env['CARGO_HOME'])
     contract = recipe['cargo_build_input']
-    config_path = cargo_home / 'config.toml'
-    if not os.path.lexists(config_path):
-        fd = os.open(config_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644)
-        with os.fdopen(fd, 'wb') as handle: handle.write(contract['text'].encode())
+    # The run's own Cargo home gets exactly the contract's configuration (the cache input may hold none).
+    fd = os.open(cargo_home / 'config.toml', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644)
+    with os.fdopen(fd, 'wb') as handle: handle.write(contract['text'].encode())
     scope = observe_scope(runner, env)
     cargo_config_sha256 = prepare.verify_cargo_build_input(plan, cargo_home, scope, tools)
+    require(Path(recipe['working_directory']) == source_root / 'app', 'the recipe does not build the copied source')
+    installed = runner(INSTALL_ARGV, env=env, cwd=recipe['working_directory'])
+    (out / 'install-stdout.log').write_bytes(installed.stdout); (out / 'install-stderr.log').write_bytes(installed.stderr)
+    require(installed.returncode == 0, 'the offline dependency install failed; see install-stderr.log')
     result = runner(recipe['argv'], env=env, cwd=recipe['working_directory'])
     (out / 'build-stdout.log').write_bytes(result.stdout); (out / 'build-stderr.log').write_bytes(result.stderr)
     require(result.returncode == 0, 'the recipe build failed; see build-stderr.log')
@@ -234,7 +277,8 @@ def build(*, source_root, revision, vendor, expected_manifest, pin, out, environ
     description = {
         'format': common.CANDIDATE_FORMAT, 'source_revision': revision, 'pin': pin, 'expected_manifest': expected_manifest,
         'plan': completion['files'],
-        'build': {'argv': recipe['argv'], 'working_directory': recipe['working_directory'],
+        'build': {'install_argv': INSTALL_ARGV, 'argv': recipe['argv'], 'working_directory': recipe['working_directory'],
+                  'writable_environment': {k: env[k] for k in WRITABLE_ENVIRONMENT},
                   'environment_sha256': sha(json.dumps(env, sort_keys=True).encode()), 'environment_keys': sorted(env),
                   'returncode': result.returncode, 'cargo_config_sha256': cargo_config_sha256, 'observed_scope': scope,
                   'tool_sha256': contract['tool_sha256'], 'publisher_input_origin': publisher_origin,
@@ -269,6 +313,8 @@ def main(argv=None):
     for key in ('source-root', 'revision', 'vendor', 'expected-manifest', 'pin', 'out'):
         parser.add_argument('--' + key, required=True)
     parser.add_argument('--env', action='append', metavar='KEY=VALUE', help='one of ' + ', '.join(CALLER_ENVIRONMENT))
+    parser.add_argument('--cargo-cache', required=True, help='prepared offline Cargo home (registry and git); copied in, never written')
+    parser.add_argument('--npm-cache', required=True, help='prepared offline npm cache; copied in, never written')
     parser.add_argument('--tool', action='append', metavar='NAME=PATH', help='resolved path of ' + ', '.join(TOOLS))
     parser.add_argument('--publisher-input', help='optional supplied publisher-build-selection.s1 file; default generated from source')
     parser.add_argument('--publisher-sha256')
@@ -279,9 +325,9 @@ def main(argv=None):
                        expected_manifest=args.expected_manifest, pin=args.pin, out=args.out,
                        environment=pairs(args.env, 'environment entry'), tools=pairs(args.tool, 'tool'),
                        publisher_input=args.publisher_input, publisher_sha256=args.publisher_sha256,
-                       cargo_build_input=args.cargo_build_input)
+                       cargo_build_input=args.cargo_build_input, cargo_cache=args.cargo_cache, npm_cache=args.npm_cache)
     except (ValueError, OSError) as error:
-        print('REFUSED: ' + str(error), file=sys.stderr)
+        print('FAILED: ' + str(error) + ' (no candidate; the output, if created, holds BUILD_FAILED.json)', file=sys.stderr)
         return 2
     print(json.dumps(result, indent=2))
     return 0
