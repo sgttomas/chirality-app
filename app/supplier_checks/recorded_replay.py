@@ -12,10 +12,14 @@ Use --recording PATH --sha256 HEX --generation N --audit PATH, optionally
 inert. --version reports the required synthetic development label. The optional
 NV04 --pause-after-frame 28 --release PATH gate lets a test inspect the real
 consumer between parent completion and the following child frames.
-ST5 generation 2 app-continue keeps the full tape and requires one constructed
-thread/list catalog between captured loaded/list and resume. Its envelope and
-membership are not captured; its sole thread is copied unchanged from source
-frame 25. Optional gate 32 pauses after idle, before the recorded resume reply.
+ST5 generation 2 app-continue keeps the full tape and requires two constructed
+frames, in order, between captured loaded/list and resume: first one thread/list
+catalog, whose envelope and membership are not captured and whose sole thread is
+copied unchanged from source frame 25; then exactly one config/read for the
+folder this peer runs in, answered with a constructed, fixed reply. No such
+config/read frame was captured from the supplier: its reply stands in only so the
+recorded Continue can proceed, and is not evidence of any supplier reply.
+Optional gate 32 pauses after idle, before the recorded resume reply.
 The current App resume request adds exactly excludeTurns:true (0.160.0 native
 metadata/live-resume response coverage). This request-only adaptation is audited;
 the tape's full-history reply and deprecation notice are kept unchanged, not
@@ -49,6 +53,11 @@ PROTOTYPE_CLIENT = {"name": "chirality-st5-harness", "title": "Chirality ST-5 ca
 CAPABILITIES = {"experimentalApi": True, "requestAttestation": False}
 CATALOG_RECIPE = "thread-list-envelope-from-thread-read"
 CATALOG_STANDING = "constructed-catalog-prerequisite; envelope/membership not captured"
+PROVIDER_READING_RECIPE = "config-read-reply-constructed-for-continue"
+PROVIDER_READING_STANDING = ("constructed-provider-reading; no such frame was captured from the supplier; "
+                             "stands in so the recorded Continue can proceed; not evidence of a supplier reply")
+# Fixed: the least the App's Continue admission reads. Not configurable.
+PROVIDER_READING_RESULT = {"config": {"model_provider": "openai"}, "origins": {}}
 
 
 class ReplayError(Exception):
@@ -318,6 +327,7 @@ class Replay:
         self.consumed, self.current_index = [], None
         self.id_map, self.actual_ids, self.pending_server = {}, set(), set()
         self.catalog_request_id = None
+        self.provider_reading_request_id = None
         self.catalog_result = self.continue_catalog_result() if profile == "app-continue" else None
         self.audit.emit("binding", sha256=sha256, scenario=recording["scenario"], generation=generation,
                         profile=profile, recorded_standing=recording["fixture_standing"],
@@ -365,6 +375,36 @@ class Replay:
                   "constructed_standing": CATALOG_STANDING}
         self.audit.emit("constructed-frame", direction="app->codex", kind="request", **fields)
         write_protocol_frame(writer, {"id": actual["id"], "result": copy.deepcopy(self.catalog_result)})
+        self.audit.emit("constructed-frame", direction="codex->app", kind="reply", **fields)
+
+    def receive_provider_reading(self, reader, writer):
+        """The App's configuration reading before an account Continue: required exactly once,
+        after the constructed catalog and before the recorded resume, in app-continue only.
+        Matched exactly except the folder, which must be this peer's own working directory
+        (the folder the App started it in), compared after resolving links."""
+        require(self.profile == "app-continue" and self.current_index == 30 and self.catalog_request_id is not None,
+                "unsupported-constructed-provider-reading")
+        require(self.provider_reading_request_id is None, "duplicate-constructed-provider-reading")
+        actual = reader.read()
+        require(actual is not None, "missing-constructed-provider-reading")
+        require(frame_kind(actual) == "request", "constructed-provider-reading-request-mismatch")
+        actual_id = rpc_id(actual["id"])
+        require(actual_id not in self.actual_ids, "duplicate-actual-request-id")
+        params = actual.get("params")
+        require(isinstance(params, dict) and set(params) == {"cwd", "includeLayers"}
+                and params["includeLayers"] is True and isinstance(params["cwd"], str)
+                and os.path.isabs(params["cwd"])
+                and os.path.realpath(params["cwd"]) == os.path.realpath(os.getcwd()),
+                "constructed-provider-reading-request-mismatch")
+        require(exact(without_envelope(actual), {"id": actual["id"], "method": "config/read", "params": params}),
+                "constructed-provider-reading-request-mismatch")
+        self.provider_reading_request_id = actual_id
+        self.actual_ids.add(actual_id)
+        fields = {"method": "config/read", "recipe": PROVIDER_READING_RECIPE,
+                  "actual_rpc_id": actual["id"], "actual_rpc_id_type": actual_id[0],
+                  "constructed_standing": PROVIDER_READING_STANDING}
+        self.audit.emit("constructed-frame", direction="app->codex", kind="request", **fields)
+        write_protocol_frame(writer, {"id": actual["id"], "result": copy.deepcopy(PROVIDER_READING_RESULT)})
         self.audit.emit("constructed-frame", direction="codex->app", kind="reply", **fields)
 
     def adapted_params(self, expected, actual):
@@ -479,6 +519,7 @@ class Replay:
                 self.current_index = index
                 if self.profile == "app-continue" and index == 30:
                     self.receive_catalog_prerequisite(reader, writer)
+                    self.receive_provider_reading(reader, writer)
                 row, info = self.recording["frames"][index], {}
                 frame = row["frame"]
                 if row["direction"] == "app->codex":
