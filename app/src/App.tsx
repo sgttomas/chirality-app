@@ -102,7 +102,7 @@ const ordinaryConversationRef = (generation: Json, thread: string | undefined) =
   ? JSON.stringify([generation.home, generation.appSession, generation.spawnCounter, thread]) : "";
 type PreparedComposerReveal = { sequence: number; item: PreparedMessage; isCurrent: () => boolean; finish: (shown: boolean) => void };
 
-export function ConversationPanel({ focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void> }) {
+export function ConversationPanel({ localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { localRoute?: LocalView | null; focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -370,7 +370,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
       fork={() => { void forkSelected(); }} /></details>}
     {selected && <ContinuationContext key={`prior-work:${JSON.stringify([selected.generation, selected.threadId, selected.resumeRequestRef])}`} host={host} thread={selected} />}
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
-    {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} homeClass={host?.homeRouting?.activeModeHomeClass ?? null} generation={host?.generation ?? null} busy={!!busy} ready={host?.state === "ready"}
+    {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} homeClass={host?.homeRouting?.activeModeHomeClass ?? null} generation={host?.generation ?? null} busy={!!busy} ready={host?.state === "ready"} local={localRoute}
       start={(choice, source) => startContinueAs({ ...choice, modeHomeClass: source.modeHomeClass, generation: source.generation, role: handoff.targetRole ?? null, preselected: false, continueAs: handoff.id })}
       send={draft => handoffSend ? handoffSend(handoff.id, draft) : Promise.resolve({ state: "unknown", reason: "The original handoff sender is unavailable." })}
       read={handoffRead ? () => handoffRead(handoff.id) : undefined}
@@ -399,7 +399,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
         <details><summary>Exact scope</summary><p><small>Trial reference <code>{item.pending?.reference ?? "not reported"}</code>. Its composer belongs to no existing conversation; Send starts the new conversation with the connection and model you choose.</small></p></details></div>
         : <ConversationContext label="Original composer owner" host={host} reference={item.owner} workflow limit={preparedMessageLimit(host, item)} />}
       {item.kind === "clean" ? <CleanTrialPanel pending={item.pending} roleSet={host?.roleSet} limits={host?.roleLimits} entries={startEntries(host)}
-        modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />
+        modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} local={localRoute} />
         : item.kind === "delegated" ? <DelegatedTrialComposer pending={item.pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />
         : <BringBackComposer pending={item.pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />}
     </div>)}
@@ -1797,6 +1797,11 @@ export function App() {
         || (currentHost.current?.configuredProviderReadRevision !== original.configuredProviderReadRevision
           && currentHost.current?.configuredProviderReadRevision !== packet.scope.readRevision)) return;
       setHost(latest);
+      // A row chosen from an earlier read in this home stays chosen when this
+      // read still lists it; otherwise it stays retired.
+      const chosen = providerRowChoice.current, choice = choiceRef.current;
+      if (chosen && chosen.epoch === epoch && choice.modelProvider === chosen.id && choice.entryId === "local-provider"
+        && packet.rows.some((row: Json) => row.id === chosen.id)) providerRowChoice.current = { id: chosen.id, source, epoch, sequence, revision: packet.scope.readRevision };
       setProviderObservation({ packet, source, epoch, sequence });
     } catch {
       if (current()) setProviderObservationMessage("Configured provider observation unavailable; private diagnostic withheld. Manual explicit choices remain independent.");
@@ -1818,6 +1823,22 @@ export function App() {
   const fixedLocal = localRoute(localView, host);
   const entryCompatible = startEntries(host).some(entry => entry.value === entryId) && (homeClass === "account"
     || (homeClass === LOCAL_MODE && !!fixedLocal && model === fixedLocal.model && modelProvider === fixedLocal.providerId));
+  // Why the provider row chosen earlier no longer counts, and what restores it.
+  const rowChoiceNote = !rowChoiceStale ? "" : providerObservationCurrent
+    ? `Provider ${modelProvider} is not in the list just read. Choose a provider from the list, or enter one under “Advanced: enter IDs yourself”.`
+    : providerReading ? "Reading configured local providers…"
+    : `Provider ${modelProvider} was chosen from a provider list that is now out of date. Read configured local providers again: the choice is kept if ${modelProvider} is still listed.`;
+  // The first thing that keeps Start unavailable, in the order a person meets it.
+  const startBlocked = host?.state !== "ready" ? "Codex is not connected. Start it under Connection and access."
+    : startPending ? "Starting the conversation…"
+    : homePending ? "Changing the connection…"
+    : providerReading ? "Reading configured local providers…"
+    : endpointBusy ? "A provider change is in progress."
+    : !modelProvider.trim() ? "Choose how this conversation connects (step 1)."
+    : !model.trim() ? (entryId === "local-provider" ? "Enter the model's name on the local server (step 2)." : "Choose a model (step 2).")
+    : !entryCompatible ? (homeClass === "account" ? "Choose an access entry under “Advanced: enter IDs yourself”." : "This choice does not belong to the connection in use. Choose again in step 1.")
+    : rowChoiceStale ? rowChoiceNote
+    : "";
   const [role, setRole] = useState<string>("");
   const [roleTouched, setRoleTouched] = useState(false);
   const [threadKey, updateThreadKey] = useState<string>("");
@@ -2489,7 +2510,7 @@ export function App() {
           <h3>1. How it connects</h3>
           <AccessRouteChoice homeClass={homeClass} modelProvider={modelProvider} entryId={entryId} model={model} disabled={startPending || homePending || providerReading || endpointBusy}
             local={fixedLocal} choose={route => reviseChoice(route)}/>
-          <div aria-label="Configured local providers">
+          {homeClass === "account" && <div aria-label="Configured local providers">
             <button disabled={host?.state !== "ready" || host?.generationClosed || homeClass !== "account" || providerReading || startPending || homePending || endpointBusy}
               onClick={readConfiguredProviders}>Read configured local providers</button>
             <p>Explicit metadata read for the selected account home and current project scope. This does not probe servers, list models, authenticate, or admit Start.</p>
@@ -2538,11 +2559,14 @@ export function App() {
               <button disabled={endpointBusy} onClick={() => { expireEndpointPreview(); updateEndpointEditor(null); }}>Close endpoint editor</button>
               <p role="status">{endpointEditor.message}</p>
             </section>}
-            {(rowChoiceStale || (providerObservation && !providerObservationCurrent)) && <p role="status">Configured provider observation superseded or source unavailable. Read again, or explicitly enter a manual provider and access entry. Start always reads current configuration again.</p>}
-          </div>
+            {rowChoiceStale ? <p role="status">{rowChoiceNote} Start always reads the current configuration again.</p>
+              : providerObservation && !providerObservationCurrent && <p role="status">The provider list shown before is out of date: the configuration was read again or the connection changed. Read configured local providers to see it again.</p>}
+          </div>}
           <h3>2. Model</h3>
           <AvailableModels packet={modelObservation?.packet ?? null} current={modelObservationCurrent} reading={modelReading} message={modelObservationMessage}
             model={model} modelProvider={modelProvider} entryId={entryId} read={() => { void readAvailableModels(); }} choose={chooseListedModel}
+            setModel={model => reviseChoice({ model })} fixedModel={fixedLocal && entryId === fixedLocal.entryId ? fixedLocal.model : null}
+            localHome={homeClass === LOCAL_MODE ? (fixedLocal ? "prepared" : "unprepared") : null}
             disabled={host?.state !== "ready" || !!host?.generationClosed || homeClass !== "account" || startPending || homePending || endpointBusy}/>
           <details className="workflow-stage"><summary>Advanced: enter IDs yourself</summary>
           <p><ModelProviderFields model={model} modelProvider={modelProvider} setModel={model => reviseChoice({ model })} setModelProvider={modelProvider => reviseChoice({ modelProvider })}/></p>
@@ -2553,13 +2577,14 @@ export function App() {
           <p><small>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}.</small></p></div>
           <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose an access entry for the current home."}</p>
           <p>
-            <button onClick={startConversation} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryCompatible || startPending || homePending || providerReading || endpointBusy || rowChoiceStale}>Start thread</button>
+            <button onClick={startConversation} disabled={!!startBlocked} aria-describedby={startBlocked ? "start-conversation-blocked" : undefined}>Start thread</button>
+            {startBlocked && <>{" "}<span id="start-conversation-blocked" role="status">{startBlocked}</span></>}
           </p>
           <a href="#workspace-connection">Set up access or start Codex</a>
         </WorkspaceDisclosure>
         <div className="workspace-primary">
           <div className="workspace-primary-column" aria-label="Conversation workspace">
-            <ConversationPanel focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
+            <ConversationPanel localRoute={fixedLocal} focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
           try {
               await invoke("collaboration_modes_read", { generation });
           }

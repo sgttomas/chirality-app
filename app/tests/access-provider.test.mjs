@@ -246,6 +246,32 @@ test('superseding real config read retires row and Start handlers while an expli
   assert.equal(props(labelled(c,'input','Model ')).value,'explicit-current-model');
  });}finally{await native.close();}
 });
+test('Start says why it is unavailable, and reading providers again keeps a chosen row that is still listed',async()=>{
+ const native=await joinedPeer('unchanged');let latest;
+ try{await mountedChooser(native,async(command,args,view)=>{
+  const result=await native.call(command,args);latest=result;view.setSnapshot({...view.snapshot,...result.host,roleSet:view.snapshot.roleSet,roleLimits:view.snapshot.roleLimits});
+  if(!result.response.ok)throw Error(result.response.error);return result.response.value;
+ },async(c,calls,view)=>{
+  const why=()=>c.querySelectorAll(node=>node.getAttribute('id')==='start-conversation-blocked')[0]?.textContent;
+  assert.equal(props(button(c,'Start thread')).disabled,true);assert.match(why(),/Choose how this conversation connects \(step 1\)/);
+  await press(c,'Read configured local providers');await press(c,'Choose provider anonymous');
+  assert.match(why(),/Enter the model's name on the local server \(step 2\)/);
+  await change(labelled(c,'input','Model '),'person-model');
+  assert.equal(props(button(c,'Start thread')).disabled,false);assert.equal(why(),undefined,'no reason is shown while Start is available');
+  // Another private read of the same folder is a newer observation: the row choice is retired, with what restores it.
+  const newer=await native.call('read_configured_providers',{generation:native.initial.generation,modeHomeClass:'account'});
+  view.setSnapshot({...view.snapshot,...newer.host,roleSet:view.snapshot.roleSet,roleLimits:view.snapshot.roleLimits});await view.refresh();
+  assert.equal(props(button(c,'Start thread')).disabled,true);
+  assert.match(why(),/Provider anonymous was chosen from a provider list that is now out of date\. Read configured local providers again/);
+  assert.equal(props(button(c,'Start thread'))['aria-describedby'],'start-conversation-blocked');
+  // The person's own re-read lists the row again: the choice stands without choosing twice.
+  await press(c,'Read configured local providers');
+  assert.ok(button(c,'Choose provider anonymous'));
+  assert.equal(props(labelled(c,'input','Configured Codex provider ')).value,'anonymous');
+  assert.equal(props(button(c,'Start thread')).disabled,false,'a still-listed row stays chosen after the re-read');assert.equal(why(),undefined);
+  assert.equal(calls.filter(call=>call.command==='thread_start').length,0);
+ });}finally{await native.close();}
+});
 test('read failures and malformed projections cannot echo diagnostics, restore old rows or erase newer manual input',async()=>{
  for(const bad of ['error','malformed']) {
   const native=await joinedPeer();let release,ready;

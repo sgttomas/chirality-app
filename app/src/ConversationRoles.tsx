@@ -282,16 +282,20 @@ export function ModelProviderFields({ model, modelProvider, setModel, setModelPr
  * that starts one (a clean trial, Continue as): the explicit access route, the
  * models Codex reports read at the person's press, and the manual IDs under
  * Advanced. Nothing is preselected; nothing here starts or sends. */
-export function ConnectionAndModel({ homeClass, chooser, entries, disabled }: {
+export function ConnectionAndModel({ homeClass, chooser, entries, disabled, local = null }: {
   homeClass: string | null; chooser: BoundModelChoice; entries: { value: string; label: string }[]; disabled: boolean;
+  /** The keyed oMLX route of the local home in use, when it is prepared. */
+  local?: { entryId: string; providerId: string; endpoint: string; model: string; credentialState?: string } | null;
 }) {
   const { route, revise } = chooser;
   return <div aria-label="Connection and model">
     {chooser.stale && <p role="status">Codex, the home or its generation changed since you chose. Your text is kept; choose how it connects and its model again.</p>}
-    <AccessRouteChoice homeClass={homeClass} modelProvider={route.modelProvider} entryId={route.entryId} disabled={disabled} choose={revise}
+    <AccessRouteChoice homeClass={homeClass} modelProvider={route.modelProvider} entryId={route.entryId} model={route.model} disabled={disabled} choose={revise} local={local}
       localHint="Or use a local model server: enter its configured provider under “Advanced: enter IDs yourself”." />
     <AvailableModels packet={chooser.packet} current={chooser.current} reading={chooser.reading} message={chooser.message}
-      model={route.model} modelProvider={route.modelProvider} entryId={route.entryId} disabled={disabled} read={chooser.read} choose={chooser.choose} />
+      model={route.model} modelProvider={route.modelProvider} entryId={route.entryId} disabled={disabled} read={chooser.read} choose={chooser.choose}
+      setModel={model => revise({ model })} fixedModel={local && route.entryId === local.entryId ? local.model : null}
+      localHome={homeClass === "local-provider" ? (local ? "prepared" : "unprepared") : null} />
     <details><summary>Advanced: enter IDs yourself</summary>
       <p><ModelProviderFields model={route.model} modelProvider={route.modelProvider} setModel={model => revise({ model })} setModelProvider={modelProvider => revise({ modelProvider })} /></p>
       <p><label>Access entry <select value={route.entryId} disabled={disabled} onChange={e => revise({ entryId: e.target.value })}><option value="">No entry selected</option>{entries.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}</select></label></p>
@@ -351,8 +355,8 @@ export function HandoffSendStatus({ outcome }: { outcome: HandoffSendOutcome }) 
 /** CA-2, CA-3: one open handoff. The draft is editable and unsent; the new
  * conversation starts with no model chosen; its first message is sent only
  * when the person sends it. */
-export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy, ready, start, send, read, open, dismiss }: {
-  handoff: Json; entries: { value: string; label: string }[]; homeClass?: string | null; generation?: Json; busy: boolean; ready: boolean;
+export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy, ready, start, send, read, open, dismiss, local = null }: {
+  handoff: Json; entries: { value: string; label: string }[]; homeClass?: string | null; generation?: Json; busy: boolean; ready: boolean; local?: { entryId: string; providerId: string; endpoint: string; model: string; credentialState?: string } | null;
   start: (choice: StartChoice, source: { generation: Json; modeHomeClass: string | null }) => void | Promise<ContinueStartOutcome>; send: (text: string) => Promise<HandoffSendOutcome>; read?: () => Promise<HandoffSendOutcome>; open: () => void; dismiss: () => void;
 }) {
   const [draft, setDraft] = useState<string>(text(handoff?.draftText));
@@ -435,7 +439,7 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
     <label>Handoff message {blocked ? "(original draft retained)" : "(editable; not sent)"} <textarea value={draft} disabled={busy || blocked || text(handoff?.draft?.state) === "waiting"} onChange={e => setDraft(e.target.value)} rows={6} style={{ display: "block", width: "100%" }} /></label>
     {!started && <div>
       <p>The new conversation starts with no model selected; choose how it connects and its model.</p>
-      <ConnectionAndModel homeClass={homeClass ?? null} chooser={chooser} entries={entries} disabled={busy || !ready} />
+      <ConnectionAndModel homeClass={homeClass ?? null} chooser={chooser} entries={entries} disabled={busy || !ready} local={local} />
       <p><button disabled={busy || !ready || startHeld || !choice.model.trim() || !choice.modelProvider.trim() || !choice.entryId} onClick={startChosen}>Start new conversation as {target}</button>{" "}
         <button disabled={busy} onClick={dismiss}>Close without starting</button></p>
       {(!choice.model.trim() || !choice.modelProvider.trim()) && <p><small>Not started — no model selected.</small></p>}

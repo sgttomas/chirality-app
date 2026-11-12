@@ -147,8 +147,8 @@ export const cleanTrialAnchor = (reference: Json): string => `new-trial-${Array.
 /** TT-3b, SQ-FT FT-3/FT-4: a new trial conversation, like Continue as but
  * without a handoff turn. Its role and model are the person's; it starts and
  * the trial message is sent only when the person presses Send. */
-export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHomeClass, choice, setChoice, chooser, message, setMessage, outcome, setOutcome, busy, ready, act }: {
-  pending: Json; roleSet: Json; limits: Json; entries: { value: string; label: string }[]; modeHomeClass: Json;
+export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHomeClass, choice, setChoice, chooser, message, setMessage, outcome, setOutcome, busy, ready, act, local = null }: {
+  pending: Json; roleSet: Json; limits: Json; entries: { value: string; label: string }[]; modeHomeClass: Json; local?: { entryId: string; providerId: string; endpoint: string; model: string; credentialState?: string } | null;
   choice: CleanChoice; setChoice: (c: CleanChoice) => void; chooser?: BoundModelChoice; message: string; setMessage: (m: string) => void;
   outcome: SendState; setOutcome: (o: SendState) => void; busy: boolean; ready: boolean; act: TrialAct;
 }) {
@@ -179,7 +179,7 @@ export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHom
       <RoleChoice group={`clean-trial-role:${text(pending?.reference)}`} roleSet={roleSet} limits={limits} role={choice.role} preselected={!choice.roleTouched && !!choice.role && choice.role === roleSet?.defaultRole}
         setRole={role => setChoice({ ...choice, role, roleTouched: true })} />
       <p>The new conversation starts with no model selected; choose how it connects and its model.</p>
-      <ConnectionAndModel homeClass={typeof modeHomeClass === "string" ? modeHomeClass : null} chooser={models} entries={entries} disabled={busy || !ready || sent} />
+      <ConnectionAndModel homeClass={typeof modeHomeClass === "string" ? modeHomeClass : null} chooser={models} entries={entries} disabled={busy || !ready || sent} local={local} />
       <p><button disabled={busy || !ready || noModel || !choice.entryId || sent} onClick={startClean}>Send</button>
         <small> Starts the new conversation, then sends the trial text and your inputs once.</small></p>
       {noModel && <p><small>Not started — no model selected.</small></p>}
@@ -194,14 +194,14 @@ export function fixedModelChoice(route: ModelRoute, revise: (patch: Partial<Mode
   return { route: value, stale: false, revise, packet: null, current: false, reading: false, message: "", read: () => {}, choose: () => {}, bound: () => ({ route: value, generation: null, modeHomeClass: null }) };
 }
 
-export function CleanTrialPanel({ pending, roleSet, limits, entries, modeHomeClass, generation, busy, ready, act }: { pending: Json; roleSet: Json; limits: Json; entries: { value: string; label: string }[]; modeHomeClass: Json; generation?: Json; busy: boolean; ready: boolean; act: TrialAct }) {
+export function CleanTrialPanel({ pending, roleSet, limits, entries, modeHomeClass, generation, busy, ready, act, local = null }: { pending: Json; roleSet: Json; limits: Json; entries: { value: string; label: string }[]; modeHomeClass: Json; generation?: Json; busy: boolean; ready: boolean; act: TrialAct; local?: { entryId: string; providerId: string; endpoint: string; model: string; credentialState?: string } | null }) {
   const chooser = useBoundModelChoice({ owner: `clean-trial:${text(pending?.reference)}`, homeClass: typeof modeHomeClass === "string" ? modeHomeClass : null, generation: generation ?? null, ready });
   const [role, setRole] = useState({ role: roleSet?.available ? text(roleSet.defaultRole) : "", roleTouched: false });
   const choice: CleanChoice = { ...chooser.route, ...role };
   const setChoice = (next: CleanChoice) => setRole({ role: next.role, roleTouched: next.roleTouched });
   const [message, setMessage] = useState<string>(text(pending?.message));
   const [outcome, setOutcome] = useState<SendState>({ state: "unsent" });
-  return <CleanTrialPanelView pending={pending} roleSet={roleSet} limits={limits} entries={entries} modeHomeClass={modeHomeClass} choice={choice} setChoice={setChoice} chooser={chooser}
+  return <CleanTrialPanelView pending={pending} roleSet={roleSet} limits={limits} entries={entries} modeHomeClass={modeHomeClass} choice={choice} setChoice={setChoice} chooser={chooser} local={local}
     message={message} setMessage={setMessage} outcome={outcome} setOutcome={setOutcome} busy={busy} ready={ready} act={act} />;
 }
 

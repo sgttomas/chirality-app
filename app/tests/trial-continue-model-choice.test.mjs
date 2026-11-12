@@ -137,6 +137,52 @@ test('a clean trial refuses lists for another provider or generation, marks an u
   });
 });
 
+test('in the dedicated local home a clean trial offers the prepared oMLX route and Send starts it with that fixed choice', async () => {
+  const acts = [], gl = {home:'local', appSession:'s1', spawnCounter:1};
+  const local = {entryId:'local-provider-keyed', providerId:'chirality-omlx', endpoint:'http://127.0.0.1:8000/v1', model:'invented-local-model', credentialState:'entry-required'};
+  const base = {...cleanProps(async (command, args) => { acts.push([command, args]); return {thread:{threadId:'clean-local'}}; }),
+    entries:[{value:'local-provider-keyed', label:'oMLX in the local home'}], modeHomeClass:'local-provider', generation:gl};
+  await mounted(CleanTrialPanel, {...base, local}, async command => { throw Error(`unexpected ${command}`); }, async ui => {
+    assert.equal(!!props(button(ui.c, 'Send')).disabled, true, 'nothing preselected');
+    assert.equal(button(ui.c, 'Read available models'), undefined, 'no Codex list is offered before a route is chosen in the local home');
+    assert.match(region(ui.c, 'How this conversation connects').textContent, /No key is saved for this server yet/);
+    await ui.press('Use oMLX model invented-local-model');
+    assert.match(region(ui.c, 'Available models').textContent, /This connection uses one model: invented-local-model — chosen/);
+    assert.equal(nodes(region(ui.c, 'Available models'), 'input').length, 0, 'the fixed route takes no typed model');
+    await ui.press('Send');
+    assert.deepEqual(acts.map(([command, args]) => [command, args.model, args.modelProvider, args.entryId, args.modeHomeClass, args.generation]),
+      [['workflow_trial_start_clean', 'invented-local-model', 'chirality-omlx', 'local-provider-keyed', 'local-provider', gl]]);
+    assert.equal(ui.issued().length, 0, 'no model list is read for the local route');
+  });
+  // Not prepared: nothing to choose and nothing starts.
+  await mounted(CleanTrialPanel, {...base, local:null}, async command => { throw Error(`unexpected ${command}`); }, async ui => {
+    assert.match(region(ui.c, 'How this conversation connects').textContent, /Prepare the oMLX connection/);
+    assert.equal(!!props(button(ui.c, 'Send')).disabled, true);
+  });
+});
+
+test('a local server\'s model is named by the person in the model step; Codex\'s list is never offered as that server\'s', async () => {
+  const acts = [];
+  await mounted(CleanTrialPanel, cleanProps(async (command, args) => { acts.push([command, args]); return {thread:{threadId:'clean-2'}}; }),
+    async command => { if (command === 'read_available_models') return packet({serverProvider:'local-lab'}); throw Error(`unexpected ${command}`); }, async ui => {
+    // The list is read while no route is chosen, for the provider the local route will then name.
+    await ui.press('Read available models');
+    assert.equal(buttons(ui.c, 'Use Model').length, 0);
+    await React.act(async () => { nodes(ui.c, 'details')[0].open = true; });
+    await ui.change(labelled(ui.c, 'input', 'Configured Codex provider '), 'local-lab');
+    await ui.change(labelled(ui.c, 'select', 'Access entry '), 'local-provider');
+    const step = region(ui.c, 'Available models');
+    assert.match(step.textContent, /The App has no list of this server's models/);
+    assert.doesNotMatch(step.textContent, /Model A|Model B|Models Codex reports/);
+    assert.equal(buttons(ui.c, 'Use Model').length, 0, 'a provider named like the server provider is still not offered the list');
+    assert.equal(button(ui.c, 'Read available models'), undefined);
+    await ui.change(labelled(step, 'input', 'Model name on the local server '), 'Exact/Server-Model:8bit');
+    assert.equal(props(labelled(ui.c, 'input', 'Model ')).value, 'Exact/Server-Model:8bit', 'the same choice as the Advanced field, as typed');
+    await ui.press('Send');
+    assert.deepEqual(acts.map(([command, args]) => [command, args.model, args.modelProvider, args.entryId]), [['workflow_trial_start_clean', 'Exact/Server-Model:8bit', 'local-lab', 'local-provider']]);
+  });
+});
+
 test('a started clean trial still retries in its own conversation without a new model choice', async () => {
   const acts = [];
   await mounted(CleanTrialPanel, {...cleanProps(async (command, args) => { acts.push([command, args]); return {}; }), pending:pending({cleanConversation:{generation:g, threadId:'clean-1'}, state:'started; trial message not sent'})},
