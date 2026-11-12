@@ -29,8 +29,10 @@ needs:
 - from: DEL-04-03
   condition: The records store keeps one subtree for each project, outside every project working tree,
     and holds the App's coordination observations there; a project is attached by its stable identity
-    and never on its path alone; an export package carries the store's files byte for byte; and records
-    that entered by import are identified as quoted evidence of their source.
+    and never on its path alone; an export package carries the store's files byte for byte; records
+    that entered by import are identified as quoted evidence of their source; and the store's
+    administrative files and its registry of project folders are read through the store's shared
+    reading, with naming lines and set-aside lines left out and a file not read whole refused.
   gating: true
 - from: DEL-02-04
   condition: A thread given TASK guidance is identified as such, with whether its no-delegation limit

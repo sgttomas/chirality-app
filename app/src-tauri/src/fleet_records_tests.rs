@@ -605,3 +605,36 @@ fn replacing_a_package_origin_receipt_with_identical_bytes_during_read_withholds
     assert_eq!(view["coordination"]["governingStoreRecords"].as_array().unwrap().len(), 2,
         "stable Fleet bytes keep their quoted store order when only provenance sources change");
 }
+
+/// The registry holding a closed fragment and its naming line (the store's own
+/// recovery): refused while the fragment is unclosed, then read as before,
+/// with the fragment left out and nothing in its place.
+#[test]
+fn fleet_reader_registry_with_a_closed_and_named_fragment_reads_the_association_as_before() {
+    let f=Fixture::new();f.pair(&[f.row("fl:registry","fixture")]);
+    let ids=|v:&Value|observations(v).iter().map(|r|r["record"]["recordId"].clone()).collect::<Vec<_>>();
+    let before=f.read();assert_eq!(ids(&before),vec![json!("fl:registry")]);
+    let roots=f.store.root.join("roots.jsonl");
+    let mut torn=std::fs::read(&roots).unwrap();torn.extend(b"{\"format\":\"chirality.records-store.root\",\"how\":\"rel");f.put(&roots,&torn);
+    let view=f.read();assert!(observations(&view).is_empty());assert!(has_limit(&view,"unclosed final line"));
+    records_store::recover_at_startup().unwrap();
+    let closed=std::fs::read(&roots).unwrap();assert!(closed.starts_with(&torn)&&closed.len()>torn.len());
+    let after=f.read();assert_eq!(ids(&after),ids(&before));
+    assert!(!has_limit(&after,"protected root registry"),"{:?}",after["limits"]);
+    assert_eq!(after["project"],before["project"],"the same association, nothing invented");
+}
+
+/// The shared reading has not widened what the registry reader accepts: a line
+/// of an unknown format, a naming line that names nothing, an unnamed closed
+/// line and an empty line each still refuse.
+#[test]
+fn fleet_reader_registry_unknown_line_stray_naming_unnamed_closure_or_empty_line_still_refuses() {
+    let stray=String::from_utf8(records_store::lines::naming_line(1,b"invented other bytes").unwrap()).unwrap();
+    for extra in [b"{\"format\":\"unknown\",\"formatVersion\":\"0.1\"}\n".to_vec(),stray.into_bytes(),b"{\"cut\x1e\n".to_vec(),b"\n".to_vec()] {
+        let f=Fixture::new();f.pair(&[f.row("fl:registry","fixture")]);
+        let roots=f.store.root.join("roots.jsonl");
+        let mut bytes=std::fs::read(&roots).unwrap();bytes.extend(&extra);f.put(&roots,&bytes);
+        let view=f.read();assert!(observations(&view).is_empty(),"{}",String::from_utf8_lossy(&extra));
+        assert!(has_limit(&view,"protected root registry"),"{:?}",view["limits"]);
+    }
+}

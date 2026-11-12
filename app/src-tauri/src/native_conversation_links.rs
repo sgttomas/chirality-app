@@ -991,11 +991,13 @@ fn administrative_lines(path: &Path, format: &str) -> Result<Vec<Value>, String>
     if !bytes.is_empty() && !bytes.ends_with(b"\n") {
         return Err("original association/import source has an unclosed final line; no new Fleet publication".into());
     }
-    bytes
-        .split_inclusive(|b| *b == b'\n')
-        .map(|line| {
-            let row: Value = serde_json::from_slice(line)
-                .map_err(|_| "original association/import source is not JSON")?;
+    // The store's one reading of its line files: a naming line and the closed
+    // fragment it names are not rows; anything else not read is refused.
+    crate::records_store::lines::read(&bytes, path)
+        .require_settled(&bytes, path)
+        .map_err(|_| "original association/import source is not JSON".to_string())?
+        .into_iter()
+        .map(|row| {
             if row["format"] != format || row["formatVersion"] != "0.1" {
                 return Err("original association/import format is unknown".into());
             }

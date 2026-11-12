@@ -649,3 +649,53 @@ fn native_links_supported_link_disagreement_keeps_original_registry_governing() 
         .unwrap_or("")
         .contains("protected root association, which governs")));
 }
+
+/// The registry and an import account holding a closed fragment and its
+/// naming line: refused while the fragment is unclosed, then read with only
+/// the rows written whole, the fragment left out and nothing in its place.
+#[test]
+fn native_links_registry_and_import_account_with_a_closed_and_named_fragment_read_only_their_rows() {
+    let f = Fixture::new();
+    let roots = f.scope.store.path.join("roots.jsonl");
+    let imports = f.scope.dir.path.join("imports.jsonl");
+    let account = b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"started\",\"importId\":\"import:invented\",\"census\":[],\"storeHeld\":false}\n";
+    f.put(&imports, account);
+    for (path, format) in [(&roots, "chirality.records-store.root"), (&imports, "chirality.records-store.import")] {
+        let rows = administrative_lines(path, format).unwrap();
+        assert!(!rows.is_empty());
+        let mut torn = std::fs::read(path).unwrap();
+        torn.extend_from_slice(b"{\"format\":\"chirality.records-store.root\",\"how\":\"rel");
+        f.put(path, &torn);
+        assert!(administrative_lines(path, format).unwrap_err().contains("unclosed final line"));
+        crate::records_store::recover_at_startup().unwrap();
+        let closed = std::fs::read(path).unwrap();
+        assert!(closed.starts_with(&torn) && closed.len() > torn.len(), "closed and named, bytes kept");
+        assert_eq!(administrative_lines(path, format).unwrap(), rows, "{format}: the fragment left out, nothing invented");
+    }
+    assert!(check_import_source(&f.scope.dir.path).is_ok());
+    std::fs::remove_file(&imports).unwrap();
+    assert!(Scope::capture(&f.scope.project.path).is_ok());
+    let mut p = f.pending();
+    settle(&mut p);
+    assert!(p.store_done && p.project_done);
+}
+
+/// The shared reading has not widened what these readers accept: a line of an
+/// unknown format, a naming line that names nothing, an unnamed closed line
+/// and an empty line each still refuse.
+#[test]
+fn native_links_unknown_line_stray_naming_unnamed_closure_or_empty_line_still_refuses() {
+    let stray = crate::records_store::lines::naming_line(1, b"invented other bytes").unwrap();
+    for extra in [b"{\"format\":\"unknown\",\"formatVersion\":\"0.1\"}\n".to_vec(), stray, b"{\"cut\x1e\n".to_vec(), b"\n".to_vec()] {
+        let f = Fixture::new();
+        let roots = f.scope.store.path.join("roots.jsonl");
+        let mut bytes = std::fs::read(&roots).unwrap();
+        bytes.extend(&extra);
+        f.put(&roots, &bytes);
+        assert!(administrative_lines(&roots, "chirality.records-store.root").is_err(), "{}", String::from_utf8_lossy(&extra));
+        assert!(Scope::capture(&f.scope.project.path).is_err());
+        let imports = f.scope.dir.path.join("imports.jsonl");
+        f.put(&imports, &extra);
+        assert!(administrative_lines(&imports, "chirality.records-store.import").is_err());
+    }
+}
