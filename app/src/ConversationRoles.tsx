@@ -81,6 +81,10 @@ export function RoleLimits({ limits, role }: { limits: Json; role: string | null
 function LimitsNote({ limits }: { limits: Json }) {
   const all = list(limits?.account?.roles).flatMap((r: Json) => list(r?.limits));
   if (!limits?.available || all.length === 0 || !all.every((l: Json) => l?.standing === "stated-not-enforced" || l?.standing === "unknown")) return null;
+  // What the guidance states is said only where the account read it. Changed
+  // guidance has limits the App cannot tell (REQ-003, AC-004).
+  if (all.some((l: Json) => l?.standing === "unknown"))
+    return <p><small>Some role guidance has been changed from the shipped text, so the App can't tell what limits it states. Where a limit is shown as “Stated, not enforced”, it is written in that role's guidance and Codex does not enforce it; your approval and sandbox settings are a separate matter that does not enforce it either.</small></p>;
   return <p><small>A role's limits are written in its guidance for the agent to follow. Codex does not enforce them, and your approval and sandbox settings are a separate matter that does not enforce them either.</small></p>;
 }
 
@@ -150,7 +154,7 @@ export function NativeChildRoles({ supply }: { supply: Json }) {
       {Array.isArray(namespace.candidateNames) && <p>Observed role names: {namespace.candidateNames.length ? namespace.candidateNames.map(text).join(", ") : "none"}. Sources observed: {text(namespace.sourceCount)}.</p>}
       {namespace.config && <p>Configuration identity: {text(namespace.config.method)} · {text(namespace.config.value)}</p>}
     </details>}
-    <p><small>Child supply does not establish that a child was started, provider uptake or consumer adoption. The App leaves your own roles, features, delegation depth and permissions as they are. TASK's guidance says a task agent does not delegate; that limit is stated, not enforced: Codex does not enforce it.</small></p>
+    <p><small>Child supply does not establish that a child was started, provider uptake or consumer adoption. The App leaves your own roles, features, delegation depth and permissions as they are. The shipped TASK guidance says a task agent does not delegate; that limit is stated, not enforced: Codex does not enforce it. If the TASK guidance has been changed, the App can't tell what it states; each child's own limits are shown with it.</small></p>
   </section>;
 }
 
@@ -193,7 +197,9 @@ export function RoleLimitObservations({ observations }: { observations: Json }) 
       const originalGeneration = original?.generation ?? row.root?.generation;
       const actionGeneration = row.actionGeneration ?? row.generation;
       return <div key={i}>
-        <p>Child {text(row.parentThreadId)} started child {text(row.threadId)}. The TASK guidance it was given says a task agent does not delegate: <b>{row.standing === "stated-not-enforced" ? "Stated, not enforced" : row.standing === "enforced-by-supplier" ? "Enforced by Codex" : "Not known whether the supplied guidance states this"}</b>.{row.standing === "stated-not-enforced" ? " Codex does not enforce this limit." : ""} The App recorded this delegation and did not prevent it.</p>
+        <p>Child {text(row.parentThreadId)} started child {text(row.threadId)}. {row.standing === "stated-not-enforced" ? <>The TASK guidance it was given says a task agent does not delegate: <b>Stated, not enforced</b>. Codex does not enforce this limit.</>
+          : row.standing === "enforced-by-supplier" ? <>The TASK guidance it was given says a task agent does not delegate: <b>Enforced by Codex</b>.</>
+          : <>The shipped TASK guidance says a task agent does not delegate. For this child: <b>Not known whether the supplied guidance states this</b>; its guidance was changed or could not be read.</>} The App recorded this delegation and did not prevent it.</p>
         <p><small>Native event: {text(row.itemId)} · {text(row.source)} · receipt position {text(row.receiptPosition)}. Original root parent: {text(row.root?.parentThreadId)} · original parent supply: {text(original?.parentSupplyRef ?? row.parentSupplyRef)}{original?.associationId ? ` · original TASK association: ${text(original.associationId)}` : ""}.</small></p>
         {originalGeneration && actionGeneration && JSON.stringify(originalGeneration) !== JSON.stringify(actionGeneration) && <p><small>Original guidance generation: {text(originalGeneration)}. Native action generation: {text(actionGeneration)}.</small></p>}
         <p><small>This compares the delegation with the guidance the child was given when it started. It does not show that guidance was sent again, that the model took it up, or that the role still applies.</small></p>

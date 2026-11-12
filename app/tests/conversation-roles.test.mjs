@@ -124,6 +124,13 @@ test('each conversation role is offered with a plain meaning from its shipped gu
   const enforced={...limits,account:{roles:[{role:'HELP_HUMAN',limits:[{...all,standing:'enforced-by-supplier',presentedAs:'Enforced by Codex',mechanism:'a named control'}]}]}};
   const withEnforced=h(RoleChoice,{group:'g',roleSet,limits:enforced,role:'HELP_HUMAN',setRole:noop,preselected:false});
   assert.ok(withEnforced.includes('<b>Enforced by Codex</b>. Codex enforces it through a named control.')&&!withEnforced.includes('Codex does not enforce'));
+  // Review round 1: with any limit of unknown standing, the note does not say what guidance states in general.
+  const stated='A role&#x27;s limits are written in its guidance for the agent to follow.';
+  assert.ok(h(RoleChoice,{group:'g',roleSet,limits,role:'HELP_HUMAN',setRole:noop,preselected:false}).includes(stated));
+  const someUnknown={...limits,account:{roles:[{role:'HELP_HUMAN',limits:[all]},{role:'WORKING_ITEMS',limits:[{...all,standing:'unknown',presentedAs:'Not known whether the supplied guidance states this'}]}]}};
+  const withUnknown=h(RoleChoice,{group:'g',roleSet,limits:someUnknown,role:'WORKING_ITEMS',setRole:noop,preselected:false});
+  assert.ok(!withUnknown.includes(stated)&&withUnknown.includes('Some role guidance has been changed from the shipped text, so the App can&#x27;t tell what limits it states.'),'changed guidance: the App says it cannot tell');
+  assert.ok(withUnknown.includes('<b>Not known whether the supplied guidance states this</b>')&&!withUnknown.includes('It is stated in the role&#x27;s guidance'),'the changed role\'s own limit claims nothing about what its guidance states');
   // The start display carries no engineering status line for the role set.
   const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
   assert.ok(!app.includes('Role set: {host?.roleSet?.standing'));
@@ -272,7 +279,7 @@ test('child catalog presents the host matrix without adding TASK to primary role
     assert.equal((html.match(/Not supplied\. Not offered by this conversation&#x27;s role\./g)??[]).length,4-count);
     assert.ok(html.includes('PERSON_ROLE')&&html.includes('Sources observed: 4')&&html.includes(identity('e').value));
     assert.ok(html.includes('not a lock on later changes'));
-    assert.ok(html.includes('TASK&#x27;s guidance says a task agent does not delegate; that limit is stated, not enforced: Codex does not enforce it.'));
+    assert.ok(html.includes('The shipped TASK guidance says a task agent does not delegate; that limit is stated, not enforced: Codex does not enforce it. If the TASK guidance has been changed, the App can&#x27;t tell what it states'));
     assert.ok(!/<(input|option|button)/.test(html),'catalog is evidence, with no role-changing or delegation control');
     assert.ok(h(SupplyStatus,{supply}).includes('aria-label="Native child role supply"'),'the ordinary supply display consumes the catalog');
   }
@@ -345,7 +352,10 @@ test('TASK delegation shows the observed event, original standing and root prove
   assert.ok(html.includes('native-item:2')&&html.includes('receipt position 21')&&html.includes('Original root parent: parent · original parent supply: sup:parent'));
   assert.ok(html.includes('original TASK association: sup:child:1')&&!html.includes('Original guidance generation:'),'same-generation comparison keeps generation detail in raw evidence');
   const unknown=h(RoleLimitObservations,{observations:[{...observed,standing:'unknown',presentedAs:'TASK prohibition stated, not enforced'}]});
-  assert.ok(unknown.includes('<b>Not known whether the supplied guidance states this</b>')&&!unknown.includes('<b>Stated, not enforced</b>'),'a modified original limit is not relabeled as default guidance');
+  assert.ok(unknown.includes('For this child: <b>Not known whether the supplied guidance states this</b>')&&!unknown.includes('<b>Stated, not enforced</b>'),'a modified original limit is not relabeled as default guidance');
+  // Review round 1: an unknown standing was preceded by "The TASK guidance it was given says…".
+  assert.ok(!unknown.includes('guidance it was given says')&&unknown.includes('The shipped TASK guidance says a task agent does not delegate.'),'with an unknown standing only the shipped default is described, never what this child was given');
+  assert.ok(!unknown.includes('Codex does not enforce')&&!unknown.includes('Enforced by Codex'));
   assert.ok(header(thread({roleLimitObservations:[observed]})).includes('aria-label="Observed TASK delegations"'),'shown in the source conversation');
   assert.ok(h(SupplyStatus,{supply:{roleLimitObservations:[observed]}}).includes('Delegations by an agent given TASK guidance'),'shown in the home supply display');
 });

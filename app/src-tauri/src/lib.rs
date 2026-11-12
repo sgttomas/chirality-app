@@ -2219,11 +2219,12 @@ fn workflow_trial_send(state:State<'_,AppState>,reference:String,generation:Valu
 /// then its first turn carries the trial text first and the person's text.
 #[tauri::command(async)]
 #[allow(clippy::too_many_arguments)]
-fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,mode_home_class:String,role:Option<role_supply::Role>,person_text:String,generation:Value)->Result<Value,SendRefusal>{
+fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,mode_home_class:String,role:Option<role_supply::Role>,preselected:Option<bool>,person_text:String,generation:Value)->Result<Value,SendRefusal>{
     let class=home_class(&mode_home_class).map_err(SendRefusal::kept)?;
     // The source is bound before the trial's begin step: a mismatch keeps the pre-fill.
     runtime_session::trial_flows::start_bound_clean_trial(&state.workflows,&state.homes,class,&generation,&reference,
-        |_|start_conversation(&app,&state,&generation,model,model_provider,entry_id,&mode_home_class,role,None,None),
+        // As an ordinary start: the record says whether the role was the preselection or the person's choice.
+        |_|start_conversation(&app,&state,&generation,model,model_provider,entry_id,&mode_home_class,role,None,preselected),
         |home,started,thread|runtime_session::trial_flows::send_trial(&state.workflows,home,&reference,started,thread,&person_text))
 }
 fn trial_home(state:&AppState,reference:&str)->Result<Arc<runtime_session::HomeSession>,String>{
