@@ -802,6 +802,11 @@ fn host_status(state: State<'_, AppState>) -> Value {
         home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
             .map(|cwd|home.host.configured_provider_observation_revision(&s["generation"],cwd)).unwrap_or(Value::Null)
     } else { Value::Null };
+    // The endpoint and Add reviews follow every configuration read of the folder, as their native checks do.
+    s["providerOfferReadRevision"] = if home.class() == home_resources::HomeClass::Account {
+        home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
+            .map(|cwd|home.host.configured_provider_revision(&s["generation"],cwd)).unwrap_or(Value::Null)
+    } else { Value::Null };
     s["accessSettingsReadRevision"] = home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
         .map(|cwd|home.host.configured_provider_revision(&s["generation"],cwd)).unwrap_or(Value::Null);
 

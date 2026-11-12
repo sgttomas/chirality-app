@@ -868,6 +868,9 @@ fn access_provider_configured_observation_mounted_join() {
         view["configuredProviderReadRevision"] = peer
             .host
             .configured_provider_observation_revision(&peer.g, "/invented/work");
+        view["providerOfferReadRevision"] = peer
+            .host
+            .configured_provider_revision(&peer.g, "/invented/work");
         view
     };
     let write = |name: &str, value: &Value| {

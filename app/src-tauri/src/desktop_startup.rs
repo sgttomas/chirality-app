@@ -1946,6 +1946,9 @@ mod tests {
             view["configuredProviderReadRevision"] = home
                 .host
                 .configured_provider_observation_revision(&peer.g, f.project.to_str().unwrap());
+            view["providerOfferReadRevision"] = home
+                .host
+                .configured_provider_revision(&peer.g, f.project.to_str().unwrap());
             let available = desktop
                 .lock()
                 .unwrap()
@@ -3125,6 +3128,9 @@ mod tests {
             view["configuredProviderReadRevision"] = home
                 .host
                 .configured_provider_observation_revision(&generation, f.project.to_str().unwrap());
+            view["providerOfferReadRevision"] = home
+                .host
+                .configured_provider_revision(&generation, f.project.to_str().unwrap());
             view
         };
         let write = |name: &str, value: &Value| {
