@@ -57,7 +57,7 @@ Boundary:
 - **REQ-004** — Before public release beyond owner use, the terms position for the offering is held with the exact publication or response, its supplier, its dates, where it is kept, its conditions and exclusions, and the owner's statement of whether it applies. Either an official publication or a direct response serves; a product-specific reply is not required when an applicable publication is held. A missing position or an unstated applicability reads as unresolved.
 - **REQ-005** — This deliverable performs no act that CLM-001, CLM-003 and CLM-004 give elsewhere: it defines no pin, qualifies no protocol, writes no supplier position, makes no distribution decision and authors no bundled content.
 - **REQ-006** — Every component shipped in the package has its notice in the package: the supplier's Codex and the components inside it, the App's own compiled and bundled dependencies, and bundled fonts and assets. A component whose notice cannot be established is named as uncovered, and the package is not offered for public release while one remains.
-- **REQ-007** — Every limitation the owner accepted for the release is stated with it. For 4.0.0, rotation of the capture-seal key is unavailable, and the release says so.
+- **REQ-007** — Every limitation the release carries is listed in `docs/RELEASE_LIMITATIONS_4.0.0.md`, which Agent 0 keeps with a reason for each entry and the owner sees with the request for the verdict, and each is stated with the release. For 4.0.0, rotation of the capture-seal key is unavailable, and the release says so.
 
 - **AC-001** — The package's bundle declares the stated target, identifier and version; the inventory of its vendor tree equals the expected inventory for the pin; the inventory of each bundled resource equals the inventory of the input its supplier maintains; and the bundle read after a run equals the bundle as signed. Verify by VER-001. [REQ-001]
 - **AC-002** — Every signed executable of the packaged vendor tree carries the supplier's signature and the supplier's entitlements unchanged; the App's own code carries the publisher identity, hardened runtime and a timestamp, with no debugging entitlement; the entitlements on the App's own code equal the set its named features need, including what keychain protection needs; a provisioning profile in the bundle names the publisher identity's App ID and team and allows those entitlements; the notarisation ticket is stapled; and the package identity record states the same facts as an independent reading of the package. Verify by VER-002. [REQ-001, REQ-002]
@@ -66,7 +66,7 @@ Boundary:
 - **AC-005** — The terms record keeps the supplier's position, the owner's obtaining and applicability statement, and the owner's distribution decision as three separate things, the last shown as made or not made by the owner alone; no package result or recorder's statement appears as any of them. Verify by VER-004. [REQ-004, REQ-005]
 - **AC-006** — None of the acts in REQ-005 is produced by this deliverable's code or records, and no result here is presented as Windows support, as a qualification of the SWBPIPE host, or as the joined examination of the candidate. Verify by VER-005. [REQ-005]
 - **AC-007** — For the package, every component found in it by reading the package has a notice whose text equals the component's own published licence, or is named as uncovered. Verify by VER-006. [REQ-006]
-- **AC-008** — The material a person receives with the package lists every limitation the owner accepted for the release, including that key rotation is unavailable. Verify by VER-007. [REQ-007]
+- **AC-008** — The material a person receives with the package lists every limitation in the release's limitations list, including that key rotation is unavailable. Verify by VER-007. [REQ-007]
 
 ## Production and Verification Method — Praxeology
 
@@ -78,14 +78,14 @@ A package is produced from one candidate in a fixed order: the vendor tree is pl
 - **VER-004** — Comparison with the supplier's publication at its source: compare the held text, source and dates with the publication or response, and read the applicability statement against the offering and the sign-in flow the candidate actually uses.
 - **VER-005** — Judgment by an independent reviewer: trace each act of REQ-005 to its owner, and read the package's results for claims they do not support.
 - **VER-006** — Comparison with each component's own published licence: list the components by reading the package and the dependency lists it was built from, and compare each shipped notice with the licence its publisher distributes for that version.
-- **VER-007** — Comparison with the limitations the owner accepted for the release: read the limitation text in the material shipped with the package against each accepted limitation.
+- **VER-007** — Comparison with the release's limitations list: read the limitation text in the material shipped with the package against each entry of the list.
 
 ## Governing Values and Decisions — Axiology
 
 - **AX-001** — What is shipped is what was identified. Better means more of the package read back from the package itself and tied to its candidate, and never by carrying a result over from an earlier package, a development run, a browser build or another project's package.
 - **AX-002** — The supplier's Codex reaches the person as the supplier made it. Better means fewer steps between the supplier's publication and the installed tree, and never by altering, re-signing or wrapping the supplier's files to make a build pass.
 - **AX-003** — A package result, a supplier's position and the owner's decision are different facts. Better means each is shown with who made it, and never by letting one stand for another or by reading a supplier's publication as approval of this product.
-- **TBD-004** — The 4.0.0 release target is a draft. Its list of limitations is a working value until the owner accepts it; REQ-007 covers only limitations the owner has accepted.
+- **TBD-004** — What the limitations list holds beyond key rotation is Agent 0's to decide as each limitation becomes standing; REQ-007 covers the entries the list holds.
 
 ## Output and Evaluation Matrix
 
@@ -98,4 +98,4 @@ A package is produced from one candidate in a fixed order: the vendor tree is pl
 | OUT-004 | OBJ-002 | REQ-004, REQ-005, CLM-003 | AC-005 | VER-004 | The terms record read for the supplier's position, the owner's applicability statement and the owner's distribution decision as three entries, each with its actor, as PRD OQ-08 separates them; a package result or recorder's statement in place of any of them fails. |
 | OUT-002 | OBJ-002 | REQ-005, CLM-001, CLM-003, CLM-004 | AC-006 | VER-005 | An independent reviewer's trace of each act of REQ-005 to its owner under CLM-001, CLM-003 and CLM-004, and reading of the package's results for any claim beyond the macOS Apple Silicon target of PRD V4-CST-02. |
 | OUT-001 | OBJ-002 | REQ-006 | AC-007 | VER-006 | Outside source: each component's licence as its publisher distributes it. The component list is read from the package under examination. |
-| OUT-004 | OBJ-002 | REQ-007 | AC-008 | VER-007 | The limitation text shipped with the package compared with the limitations the owner accepted for the release, including key rotation left unavailable for 4.0.0. It establishes that the shipped text matches that list, not that the list is complete. |
+| OUT-004 | OBJ-002 | REQ-007 | AC-008 | VER-007 | The limitation text shipped with the package compared with the release's limitations list, including key rotation left unavailable for 4.0.0. It establishes that the shipped text matches that list, not that the list is complete. |

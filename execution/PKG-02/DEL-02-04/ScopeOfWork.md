@@ -68,7 +68,7 @@ Boundary:
 - **TBD-001** — Each consumer's adoption of the App's guidance, the consequences for its instruction packaging and tool paths, and the retirement of its earlier arrangement are decided by that consumer's owner. Until an adoption is evidenced, AC-005's adoption case has no positive instance.
 - **TBD-002** — How role guidance is distributed to and adopted by hosts is undecided (owner with the instruction owners), as is how a host's single seat maps to the four roles (DEL-02-01).
 - **TBD-003** — What an unmodified copy in the guidance store does when a new release ships a different default is undecided: take the new default, or ask the person.
-- **TBD-004** — Which role, if any, a new conversation preselects in a release is the release's decision.
+- **TBD-004** — Which role, if any, a new conversation preselects in a release is the release's decision. For 4.0.0, a new conversation preselects HELP_HUMAN.
 
 ## Production and Verification Method — Praxeology
 
