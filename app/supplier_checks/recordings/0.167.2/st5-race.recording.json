@@ -1,0 +1,1150 @@
+{
+ "format": "chirality.app-v4.supplier-capture.v2",
+ "scenario": "st5-race",
+ "pin": "0.167.2",
+ "standing_note": "Exchanges recorded from the stock Codex 0.167.2 App Server by a capture harness that stands in for the App side, with a scripted loopback provider. No App candidate, no model, no sign-in; it qualifies nothing. Redacted frames never claim byte identity.",
+ "date": "2026-11-12",
+ "version_identity": {
+  "version_output": "codex-cli 0.167.2",
+  "binary_sha256": "97bc82fd46f117cf10efb95e6ff0c81dc4784f5797bcdc2cb75093ba09e4def0",
+  "distribution": {
+   "archive_sha256": "e791290651bce41938fb160b5de2bd9ff8bcf3401ca3e236c73f485fca4be1bb",
+   "inventory_manifest_sha256": "7de507bfbf3fa77efc50c9bbe24778b2c0e0a4a8a244fd90220df3cfecf0a905",
+   "verified": "complete vendor tree equal to the committed expected inventory before execution"
+  },
+  "platform": {
+   "platformFamily": "unix",
+   "platformOs": "macos"
+  }
+ },
+ "app_candidate": null,
+ "app_side": "supplier_checks/capture.py",
+ "declared_capabilities": {
+  "experimentalApi": true,
+  "requestAttestation": false
+ },
+ "provider": {
+  "kind": "local loopback stub (stub_provider.py), Responses wire API, scripted invented output",
+  "requests": [
+   {
+    "index": 1,
+    "path": "/v1/responses",
+    "header_names": [
+     "accept",
+     "content-length",
+     "content-type",
+     "host",
+     "originator",
+     "session-id",
+     "thread-id",
+     "user-agent",
+     "x-client-request-id",
+     "x-codex-beta-features",
+     "x-codex-turn-metadata",
+     "x-codex-window-id"
+    ],
+    "answered_with": "shell call",
+    "tools": [
+     "exec_command",
+     "write_stdin",
+     "request_user_input",
+     "view_image",
+     "multi_agent_v1.close_agent",
+     "multi_agent_v1.resume_agent",
+     "multi_agent_v1.send_input",
+     "multi_agent_v1.spawn_agent",
+     "multi_agent_v1.wait_agent",
+     "get_goal",
+     "create_goal",
+     "update_goal",
+     "web_search"
+    ],
+    "input_item_types": [
+     "message",
+     "message",
+     "message",
+     "message"
+    ],
+    "body": "not kept (carries instructions, environment context and identifiers)"
+   }
+  ]
+ },
+ "settings_in_effect": {
+  "approval_policy": "on-request",
+  "sandbox_mode": "read-only",
+  "features.plugins": false,
+  "analytics.enabled": false,
+  "environment": [
+   "CODEX_HOME",
+   "HOME",
+   "LANG",
+   "PATH",
+   "TMPDIR"
+  ],
+  "note": "scratch stand-ins, not a person's settings"
+ },
+ "socket_watch": {
+  "method": "lsof of the supplier process group every 0.25 s; a sample, not isolation",
+  "samples": 10,
+  "loopback_peers": [],
+  "non_loopback_peers": []
+ },
+ "redaction_record": {
+  "categories_replaced": {
+   "personal path": 23,
+   "host name": 4,
+   "userAgent client identity": 2,
+   "serverName": 2,
+   "installation identifier": 2
+  },
+  "markers": [
+   "<HOME>",
+   "<WORKSPACE>",
+   "<SCRATCH>",
+   "<TMP>",
+   "<USER-HOME>",
+   "<USER>",
+   "<HOST>",
+   "<VENDOR>",
+   "<REDACTED-USER-AGENT>",
+   "<REDACTED-HOST>",
+   "<REDACTED-INSTALLATION-ID>"
+  ],
+  "not_present": "no credential, token, account identifier or secret answer was used"
+ },
+ "material": "invented: pump-skid marker folder and README",
+ "events": [
+  {
+   "event": "begin",
+   "t_ms": 49.0,
+   "scenario": "st5-race",
+   "pin": "0.167.2"
+  },
+  {
+   "event": "spawn",
+   "t_ms": 57.3,
+   "generation": 1
+  },
+  {
+   "event": "server-request-received",
+   "t_ms": 226.8,
+   "generation": 1,
+   "method": "item/commandExecution/requestApproval"
+  },
+  {
+   "event": "answer-written",
+   "t_ms": 430.1,
+   "generation": 1,
+   "request_position": 0,
+   "decision": "accept",
+   "origin": "capture harness (stands in for the person's answer)"
+  },
+  {
+   "event": "client-request-written",
+   "t_ms": 430.2,
+   "generation": 1,
+   "method": "thread/turns/list",
+   "note": "left un-responded by the process end"
+  },
+  {
+   "event": "process-group-killed",
+   "t_ms": 430.2,
+   "generation": 1,
+   "signal": "SIGKILL"
+  },
+  {
+   "event": "exit",
+   "t_ms": 779.2,
+   "generation": 1,
+   "how": "SIGKILL",
+   "returncode": -9,
+   "group_members_left": 0
+  },
+  {
+   "event": "acknowledgment-reading",
+   "t_ms": 779.3,
+   "generation": 1,
+   "serverRequest_resolved_observed": false,
+   "turn_completed_observed": false
+  },
+  {
+   "event": "workspace-reading",
+   "t_ms": 779.4,
+   "marker_folder_exists": false
+  },
+  {
+   "event": "spawn",
+   "t_ms": 788.0,
+   "generation": 2
+  },
+  {
+   "event": "re-raised-request-reading",
+   "t_ms": 3903.4,
+   "generation": 2,
+   "server_requests_after_resume": 0
+  },
+  {
+   "event": "exit",
+   "t_ms": 4267.7,
+   "generation": 2,
+   "how": "stdin",
+   "returncode": 0,
+   "group_members_left": 0
+  },
+  {
+   "event": "workspace-reading-end",
+   "t_ms": 4709.3,
+   "marker_folder_exists": false
+  }
+ ],
+ "stderr_bytes_by_generation": {
+  "1": 0,
+  "2": 0
+ },
+ "frames": [
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 1,
+   "t_ms": 57.7,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+     "clientInfo": {
+      "name": "chirality-st5-harness",
+      "title": "Chirality ST-5 capture harness",
+      "version": "0.0.0-st5"
+     },
+     "capabilities": {
+      "experimentalApi": true,
+      "requestAttestation": false
+     }
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 1,
+   "t_ms": 139.0,
+   "redacted": true,
+   "frame": {
+    "id": 1,
+    "result": {
+     "userAgent": "<REDACTED-USER-AGENT>",
+     "codexHome": "<HOME>",
+     "platformFamily": "unix",
+     "platformOs": "macos"
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 2,
+   "t_ms": 139.0,
+   "redacted": true,
+   "frame": {
+    "method": "remoteControl/status/changed",
+    "params": {
+     "status": "disabled",
+     "serverName": "<REDACTED-HOST>",
+     "installationId": "<REDACTED-INSTALLATION-ID>",
+     "environmentId": null
+    },
+    "emittedAtMs": 1794469793817
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 2,
+   "t_ms": 139.1,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "method": "initialized"
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 3,
+   "t_ms": 139.2,
+   "redacted": true,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "thread/start",
+    "params": {
+     "cwd": "<WORKSPACE>",
+     "approvalPolicy": "on-request",
+     "sandbox": "read-only"
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 3,
+   "t_ms": 169.5,
+   "redacted": true,
+   "frame": {
+    "id": 2,
+    "result": {
+     "thread": {
+      "id": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+      "environments": [
+       {
+        "environmentId": "local",
+        "cwd": "<WORKSPACE>",
+        "runtimeWorkspaceRoots": [
+         "<WORKSPACE>"
+        ]
+       }
+      ],
+      "extra": null,
+      "sessionId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+      "forkedFromId": null,
+      "parentThreadId": null,
+      "preview": "",
+      "ephemeral": false,
+      "section": null,
+      "sectionEnteredAt": null,
+      "projectId": null,
+      "historyMode": "paginated",
+      "modelProvider": "st5_stub",
+      "model": "st5-stub-model",
+      "reasoningEffort": null,
+      "createdAt": 1794469793,
+      "updatedAt": 1794469793,
+      "recencyAt": 1794469793,
+      "status": {
+       "type": "idle"
+      },
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T01-49-53-01a1cebc-101f-7e80-bad1-a7d11593f07e.jsonl",
+      "cwd": "<WORKSPACE>",
+      "cliVersion": "0.167.2",
+      "originator": "chirality-st5-harness",
+      "source": "vscode",
+      "canAcceptDirectInput": true,
+      "threadSource": null,
+      "agentNickname": null,
+      "agentRole": null,
+      "gitInfo": null,
+      "name": null,
+      "daybreakEnabled": null,
+      "turns": []
+     },
+     "model": "st5-stub-model",
+     "modelProvider": "st5_stub",
+     "serviceTier": null,
+     "disabledPluginIds": [],
+     "cwd": "<WORKSPACE>",
+     "runtimeWorkspaceRoots": [
+      "<WORKSPACE>"
+     ],
+     "instructionSources": [],
+     "approvalPolicy": "on-request",
+     "approvalsReviewer": "user",
+     "sandbox": {
+      "type": "readOnly",
+      "networkAccess": false
+     },
+     "activePermissionProfile": null,
+     "reasoningEffort": null,
+     "multiAgentMode": "explicitRequestOnly"
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 4,
+   "t_ms": 169.6,
+   "redacted": true,
+   "frame": {
+    "method": "thread/started",
+    "params": {
+     "thread": {
+      "id": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+      "environments": [
+       {
+        "environmentId": "local",
+        "cwd": "<WORKSPACE>",
+        "runtimeWorkspaceRoots": [
+         "<WORKSPACE>"
+        ]
+       }
+      ],
+      "extra": null,
+      "sessionId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+      "forkedFromId": null,
+      "parentThreadId": null,
+      "preview": "",
+      "ephemeral": false,
+      "section": null,
+      "sectionEnteredAt": null,
+      "projectId": null,
+      "historyMode": "paginated",
+      "modelProvider": "st5_stub",
+      "model": "st5-stub-model",
+      "reasoningEffort": null,
+      "createdAt": 1794469793,
+      "updatedAt": 1794469793,
+      "recencyAt": 1794469793,
+      "status": {
+       "type": "idle"
+      },
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T01-49-53-01a1cebc-101f-7e80-bad1-a7d11593f07e.jsonl",
+      "cwd": "<WORKSPACE>",
+      "cliVersion": "0.167.2",
+      "originator": "chirality-st5-harness",
+      "source": "vscode",
+      "canAcceptDirectInput": true,
+      "threadSource": null,
+      "agentNickname": null,
+      "agentRole": null,
+      "gitInfo": null,
+      "name": null,
+      "daybreakEnabled": null,
+      "turns": []
+     }
+    },
+    "emittedAtMs": 1794469793847
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 4,
+   "t_ms": 169.7,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "turn/start",
+    "params": {
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+     "input": [
+      {
+       "type": "text",
+       "text": "Create the marker folder for the invented pump-skid example."
+      }
+     ]
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 5,
+   "t_ms": 173.0,
+   "redacted": false,
+   "frame": {
+    "method": "warning",
+    "params": {
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+     "message": "Model metadata for `st5-stub-model` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+    },
+    "emittedAtMs": 1794469793851
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 6,
+   "t_ms": 173.9,
+   "redacted": false,
+   "frame": {
+    "id": 3,
+    "result": {
+     "turn": {
+      "id": "01a1cebc-103a-7a32-b83c-81634c139daf",
+      "rootTurnId": "01a1cebc-103a-7a32-b83c-81634c139daf",
+      "items": [],
+      "itemsView": "notLoaded",
+      "status": "inProgress",
+      "error": null,
+      "startedAt": null,
+      "completedAt": null,
+      "durationMs": null
+     }
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 7,
+   "t_ms": 185.3,
+   "redacted": false,
+   "frame": {
+    "method": "thread/status/changed",
+    "params": {
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+     "status": {
+      "type": "active",
+      "activeFlags": []
+     }
+    },
+    "emittedAtMs": 1794469793863
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 8,
+   "t_ms": 185.4,
+   "redacted": false,
+   "frame": {
+    "method": "turn/started",
+    "params": {
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+     "turn": {
+      "id": "01a1cebc-103a-7a32-b83c-81634c139daf",
+      "rootTurnId": "01a1cebc-103a-7a32-b83c-81634c139daf",
+      "items": [],
+      "itemsView": "notLoaded",
+      "status": "inProgress",
+      "error": null,
+      "startedAt": 1794469793,
+      "completedAt": null,
+      "durationMs": null
+     }
+    },
+    "emittedAtMs": 1794469793863
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 9,
+   "t_ms": 190.5,
+   "redacted": false,
+   "frame": {
+    "method": "item/started",
+    "params": {
+     "item": {
+      "type": "userMessage",
+      "id": "01a1cebc-104b-7f43-a1c0-768f3960e559",
+      "clientId": null,
+      "content": [
+       {
+        "type": "text",
+        "text": "Create the marker folder for the invented pump-skid example.",
+        "text_elements": []
+       }
+      ],
+      "startedAtMs": 1794469793868,
+      "completedAtMs": null
+     },
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+     "turnId": "01a1cebc-103a-7a32-b83c-81634c139daf",
+     "startedAtMs": 1794469793868
+    },
+    "emittedAtMs": 1794469793868
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 10,
+   "t_ms": 192.4,
+   "redacted": false,
+   "frame": {
+    "method": "item/completed",
+    "params": {
+     "item": {
+      "type": "userMessage",
+      "id": "01a1cebc-104b-7f43-a1c0-768f3960e559",
+      "clientId": null,
+      "content": [
+       {
+        "type": "text",
+        "text": "Create the marker folder for the invented pump-skid example.",
+        "text_elements": []
+       }
+      ],
+      "startedAtMs": 1794469793868,
+      "completedAtMs": 1794469793868
+     },
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+     "turnId": "01a1cebc-103a-7a32-b83c-81634c139daf",
+     "completedAtMs": 1794469793868
+    },
+    "emittedAtMs": 1794469793870
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 11,
+   "t_ms": 226.7,
+   "redacted": false,
+   "frame": {
+    "method": "thread/status/changed",
+    "params": {
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+     "status": {
+      "type": "active",
+      "activeFlags": [
+       "waitingOnApproval"
+      ]
+     }
+    },
+    "emittedAtMs": 1794469793904
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 12,
+   "t_ms": 226.7,
+   "redacted": true,
+   "frame": {
+    "method": "item/started",
+    "params": {
+     "item": {
+      "type": "commandExecution",
+      "id": "call_st5_1",
+      "pluginId": null,
+      "scriptPath": null,
+      "command": "/bin/zsh -lc 'mkdir st5-marker-pump-skid'",
+      "cwd": "<WORKSPACE>",
+      "processId": null,
+      "source": "agent",
+      "status": "inProgress",
+      "commandActions": [
+       {
+        "type": "unknown",
+        "command": "mkdir st5-marker-pump-skid"
+       }
+      ],
+      "aggregatedOutput": null,
+      "exitCode": null,
+      "durationMs": null,
+      "startedAtMs": 1794469793904,
+      "completedAtMs": null
+     },
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+     "turnId": "01a1cebc-103a-7a32-b83c-81634c139daf",
+     "startedAtMs": 1794469793904
+    },
+    "emittedAtMs": 1794469793905
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 13,
+   "t_ms": 226.7,
+   "redacted": true,
+   "frame": {
+    "method": "item/commandExecution/requestApproval",
+    "id": 0,
+    "params": {
+     "kind": "command",
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+     "turnId": "01a1cebc-103a-7a32-b83c-81634c139daf",
+     "itemId": "call_st5_1",
+     "startedAtMs": 1794469793904,
+     "environmentId": "local",
+     "reason": "Create the invented marker folder.",
+     "command": "/bin/zsh -lc 'mkdir st5-marker-pump-skid'",
+     "cwd": "<WORKSPACE>",
+     "commandActions": [
+      {
+       "type": "unknown",
+       "command": "mkdir st5-marker-pump-skid"
+      }
+     ],
+     "proposedExecpolicyAmendment": [
+      "mkdir",
+      "st5-marker-pump-skid"
+     ],
+     "availableDecisions": [
+      "accept",
+      {
+       "acceptWithExecpolicyAmendment": {
+        "execpolicy_amendment": [
+         "mkdir",
+         "st5-marker-pump-skid"
+        ]
+       }
+      },
+      "cancel"
+     ]
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 5,
+   "t_ms": 430.0,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+     "decision": "accept"
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 6,
+   "t_ms": 430.1,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "thread/turns/list",
+    "params": {
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+     "limit": 1
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 1,
+   "t_ms": 788.3,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+     "clientInfo": {
+      "name": "chirality-st5-harness",
+      "title": "Chirality ST-5 capture harness",
+      "version": "0.0.0-st5"
+     },
+     "capabilities": {
+      "experimentalApi": true,
+      "requestAttestation": false
+     }
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 1,
+   "t_ms": 861.9,
+   "redacted": true,
+   "frame": {
+    "id": 1,
+    "result": {
+     "userAgent": "<REDACTED-USER-AGENT>",
+     "codexHome": "<HOME>",
+     "platformFamily": "unix",
+     "platformOs": "macos"
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 2,
+   "t_ms": 862.0,
+   "redacted": true,
+   "frame": {
+    "method": "remoteControl/status/changed",
+    "params": {
+     "status": "disabled",
+     "serverName": "<REDACTED-HOST>",
+     "installationId": "<REDACTED-INSTALLATION-ID>",
+     "environmentId": null
+    },
+    "emittedAtMs": 1794469794540
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 2,
+   "t_ms": 862.1,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "method": "initialized"
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 3,
+   "t_ms": 862.2,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "thread/read",
+    "params": {
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+     "includeTurns": true
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 3,
+   "t_ms": 871.0,
+   "redacted": false,
+   "frame": {
+    "method": "deprecationNotice",
+    "params": {
+     "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
+     "details": null
+    },
+    "emittedAtMs": 1794469794549
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 4,
+   "t_ms": 871.0,
+   "redacted": true,
+   "frame": {
+    "id": 2,
+    "result": {
+     "thread": {
+      "id": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+      "environments": null,
+      "extra": null,
+      "sessionId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+      "forkedFromId": null,
+      "parentThreadId": null,
+      "preview": "Create the marker folder for the invented pump-skid example.",
+      "ephemeral": false,
+      "section": null,
+      "sectionEnteredAt": null,
+      "projectId": null,
+      "historyMode": "paginated",
+      "modelProvider": "st5_stub",
+      "model": "st5-stub-model",
+      "reasoningEffort": null,
+      "createdAt": 1794469793,
+      "updatedAt": 1794469793,
+      "recencyAt": 1794469793,
+      "status": {
+       "type": "notLoaded"
+      },
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T01-49-53-01a1cebc-101f-7e80-bad1-a7d11593f07e.jsonl",
+      "cwd": "<WORKSPACE>",
+      "cliVersion": "0.167.2",
+      "originator": "chirality-st5-harness",
+      "source": "vscode",
+      "canAcceptDirectInput": null,
+      "threadSource": null,
+      "agentNickname": null,
+      "agentRole": null,
+      "gitInfo": null,
+      "name": null,
+      "daybreakEnabled": null,
+      "turns": [
+       {
+        "id": "01a1cebc-103a-7a32-b83c-81634c139daf",
+        "rootTurnId": "01a1cebc-103a-7a32-b83c-81634c139daf",
+        "items": [
+         {
+          "type": "userMessage",
+          "id": "01a1cebc-104b-7f43-a1c0-768f3960e559",
+          "clientId": null,
+          "content": [
+           {
+            "type": "text",
+            "text": "Create the marker folder for the invented pump-skid example.",
+            "text_elements": []
+           }
+          ],
+          "startedAtMs": 1794469793868,
+          "completedAtMs": 1794469793868
+         }
+        ],
+        "itemsView": "full",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1794469793,
+        "completedAt": null,
+        "durationMs": null
+       }
+      ]
+     },
+     "readState": {
+      "firstUnread": null,
+      "revision": "initial:01a1cebc-101f-7e80-bad1-a7d11593f07e"
+     }
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 4,
+   "t_ms": 871.1,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "thread/turns/list",
+    "params": {
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+     "itemsView": "full"
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 5,
+   "t_ms": 872.2,
+   "redacted": false,
+   "frame": {
+    "id": 3,
+    "result": {
+     "data": [
+      {
+       "id": "01a1cebc-103a-7a32-b83c-81634c139daf",
+       "rootTurnId": "01a1cebc-103a-7a32-b83c-81634c139daf",
+       "items": [
+        {
+         "type": "userMessage",
+         "id": "01a1cebc-104b-7f43-a1c0-768f3960e559",
+         "clientId": null,
+         "content": [
+          {
+           "type": "text",
+           "text": "Create the marker folder for the invented pump-skid example.",
+           "text_elements": []
+          }
+         ],
+         "startedAtMs": 1794469793868,
+         "completedAtMs": 1794469793868
+        }
+       ],
+       "itemsView": "full",
+       "status": "interrupted",
+       "error": null,
+       "startedAt": 1794469793,
+       "completedAt": null,
+       "durationMs": null
+      }
+     ],
+     "nextCursor": null,
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1cebc-101f-7e80-bad1-a7d11593f07e\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 5,
+   "t_ms": 872.3,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "thread/loaded/list",
+    "params": {}
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 6,
+   "t_ms": 872.4,
+   "redacted": false,
+   "frame": {
+    "id": 4,
+    "result": {
+     "data": [],
+     "nextCursor": null
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 6,
+   "t_ms": 872.4,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "thread/resume",
+    "params": {
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e"
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 7,
+   "t_ms": 873.9,
+   "redacted": false,
+   "frame": {
+    "method": "deprecationNotice",
+    "params": {
+     "summary": "Full-history hydration is deprecated for paginated threads; use `excludeTurns: true`, then page with `thread/turns/list` and `thread/items/list`.",
+     "details": null
+    },
+    "emittedAtMs": 1794469794552
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 8,
+   "t_ms": 895.3,
+   "redacted": false,
+   "frame": {
+    "method": "thread/status/changed",
+    "params": {
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+     "status": {
+      "type": "idle"
+     }
+    },
+    "emittedAtMs": 1794469794573
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 9,
+   "t_ms": 896.0,
+   "redacted": true,
+   "frame": {
+    "id": 5,
+    "result": {
+     "thread": {
+      "id": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+      "environments": [
+       {
+        "environmentId": "local",
+        "cwd": "<WORKSPACE>",
+        "runtimeWorkspaceRoots": [
+         "<WORKSPACE>"
+        ]
+       }
+      ],
+      "extra": null,
+      "sessionId": "01a1cebc-101f-7e80-bad1-a7d11593f07e",
+      "forkedFromId": null,
+      "parentThreadId": null,
+      "preview": "Create the marker folder for the invented pump-skid example.",
+      "ephemeral": false,
+      "section": null,
+      "sectionEnteredAt": null,
+      "projectId": null,
+      "historyMode": "paginated",
+      "modelProvider": "st5_stub",
+      "model": "st5-stub-model",
+      "reasoningEffort": null,
+      "createdAt": 1794469793,
+      "updatedAt": 1794469793,
+      "recencyAt": 1794469793,
+      "status": {
+       "type": "idle"
+      },
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T01-49-53-01a1cebc-101f-7e80-bad1-a7d11593f07e.jsonl",
+      "cwd": "<WORKSPACE>",
+      "cliVersion": "0.167.2",
+      "originator": "chirality-st5-harness",
+      "source": "vscode",
+      "canAcceptDirectInput": true,
+      "threadSource": null,
+      "agentNickname": null,
+      "agentRole": null,
+      "gitInfo": null,
+      "name": null,
+      "daybreakEnabled": null,
+      "turns": [
+       {
+        "id": "01a1cebc-103a-7a32-b83c-81634c139daf",
+        "rootTurnId": "01a1cebc-103a-7a32-b83c-81634c139daf",
+        "items": [
+         {
+          "type": "userMessage",
+          "id": "01a1cebc-104b-7f43-a1c0-768f3960e559",
+          "clientId": null,
+          "content": [
+           {
+            "type": "text",
+            "text": "Create the marker folder for the invented pump-skid example.",
+            "text_elements": []
+           }
+          ],
+          "startedAtMs": 1794469793868,
+          "completedAtMs": 1794469793868
+         }
+        ],
+        "itemsView": "full",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1794469793,
+        "completedAt": null,
+        "durationMs": null
+       }
+      ]
+     },
+     "model": "st5-stub-model",
+     "modelProvider": "st5_stub",
+     "serviceTier": null,
+     "disabledPluginIds": [],
+     "cwd": "<WORKSPACE>",
+     "runtimeWorkspaceRoots": [
+      "<WORKSPACE>"
+     ],
+     "instructionSources": [],
+     "approvalPolicy": "on-request",
+     "approvalsReviewer": "user",
+     "sandbox": {
+      "type": "readOnly",
+      "networkAccess": false
+     },
+     "activePermissionProfile": null,
+     "reasoningEffort": null,
+     "collaborationMode": {
+      "mode": "default",
+      "settings": {
+       "model": "st5-stub-model",
+       "reasoning_effort": null,
+       "developer_instructions": null
+      }
+     },
+     "multiAgentMode": "explicitRequestOnly",
+     "initialTurnsPage": null,
+     "turnsBackwardsCursor": "{\"requestedThreadId\":\"01a1cebc-101f-7e80-bad1-a7d11593f07e\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}",
+     "itemsBackwardsCursor": "{\"requestedThreadId\":\"01a1cebc-101f-7e80-bad1-a7d11593f07e\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 10,
+   "t_ms": 896.0,
+   "redacted": false,
+   "frame": {
+    "method": "thread/goal/cleared",
+    "params": {
+     "threadId": "01a1cebc-101f-7e80-bad1-a7d11593f07e"
+    },
+    "emittedAtMs": 1794469794574
+   }
+  }
+ ]
+}
