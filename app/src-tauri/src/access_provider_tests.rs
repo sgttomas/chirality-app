@@ -3694,7 +3694,7 @@ fn native_local_settings_address_change_signs_out_through_codex_before_any_write
     use tauri_plugin_dialog::MessageDialogResult;
     let legacy_bytes = local_route::canonical(&LocalSettings::legacy());
     let record_bytes = format!("{}\n", local_route::ENDPOINT);
-    for case in ["positive", "positive-with-key", "model-only", "cancel", "not-ready", "logout-error", "logout-timeout", "logout-stale", "account-remains", "read-error", "read-timeout", "record-not-removed", "record-not-removed-with-key"] {
+    for case in ["positive", "positive-with-key", "model-only", "cancel", "not-ready", "logout-error", "logout-timeout", "logout-stale", "account-remains", "read-error", "read-timeout", "record-not-removed", "record-not-removed-with-key", "write-in-progress", "write-in-progress-with-key", "model-only-write-in-progress"] {
         let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("local-settings-save-").unwrap());
         std::fs::create_dir(&root).unwrap();
         let plan = crate::home_resources::OwnedHomePlan::new(root.clone(), root.join("local"), crate::home_resources::HomeClass::LocalProvider, None).unwrap();
@@ -3717,7 +3717,23 @@ fn native_local_settings_address_change_signs_out_through_codex_before_any_write
         if case == "not-ready" { peer.host.inner.0.lock().unwrap().state = "exited".into(); }
         let cfg = HostConfig::new(root.join("not-run"), plan.native_path().into(), root.join("probe"), "/invented/work".into());
         let home = crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider, peer.host.clone(), Ok(cfg.clone())).unwrap();
-        let next = if case == "model-only" {
+        // A write to Codex's input that is admitted and still in progress when the save comes to set
+        // the mark, for longer than the save waits (here, the frame writer lock held throughout).
+        let (release, released) = std::sync::mpsc::channel::<()>();
+        let holder: Arc<Mutex<Option<std::thread::JoinHandle<()>>>> = Arc::default();
+        if case.contains("write-in-progress") {
+            let (writer, slot) = (peer.host.clone(), holder.clone());
+            *peer.host.supersede_waiting.lock().unwrap() = Some(Box::new(move |_| {
+                let (held, holding) = std::sync::mpsc::channel();
+                *slot.lock().unwrap() = Some(std::thread::spawn(move || {
+                    let _writing = writer.frame_write.lock().unwrap();
+                    held.send(()).unwrap();
+                    let _ = released.recv();
+                }));
+                holding.recv().unwrap();
+            }));
+        }
+        let next = if case.starts_with("model-only") {
             LocalSettings::new(local_route::ENDPOINT, "org/next-model").unwrap()
         } else {
             LocalSettings::new("http://127.0.0.1:9100/v1", local_route::MODEL).unwrap()
@@ -3728,7 +3744,7 @@ fn native_local_settings_address_change_signs_out_through_codex_before_any_write
         };
         let result = std::thread::scope(|scope| {
             let work = scope.spawn(|| local_route::save_within(&plan, next.clone(), Some(&home), || Ok(()), confirm, Duration::from_millis(200)));
-            if matches!(case, "model-only" | "cancel" | "not-ready") {
+            if matches!(case, "model-only" | "model-only-write-in-progress" | "cancel" | "not-ready") {
                 return work.join().unwrap();
             }
             let logout = peer.frame();
@@ -3763,6 +3779,8 @@ fn native_local_settings_address_change_signs_out_through_codex_before_any_write
             }
             work.join().unwrap()
         });
+        let _ = release.send(());
+        if let Some(holder) = holder.lock().unwrap().take() { holder.join().unwrap(); }
         let written = std::fs::read_to_string(&config_path).unwrap();
         let methods: Vec<_> = peer.host.client_requests().iter().map(|r| r["method"].as_str().unwrap_or("").to_owned()).collect();
         match case {
@@ -3813,6 +3831,24 @@ fn native_local_settings_address_change_signs_out_through_codex_before_any_write
                 assert_eq!(written, legacy_bytes, "an unconfirmed removal writes nothing to config.toml");
                 assert_eq!(std::fs::read_to_string(&record_path).unwrap(), record_bytes);
                 assert!(peer.host.local_superseded(), "Codex removed the key: the binding was superseded before the removal was tried");
+            }
+            "write-in-progress" | "write-in-progress-with-key" | "model-only-write-in-progress" => {
+                // At the bound the save is refused: the mark is not set and nothing is changed.
+                let expected = match case {
+                    "write-in-progress" => local_route::WRITE_IN_PROGRESS_NO_KEY,
+                    "write-in-progress-with-key" => local_route::WRITE_IN_PROGRESS_KEY_REMOVED,
+                    _ => local_route::WRITE_IN_PROGRESS,
+                };
+                assert_eq!(result.unwrap_err(), expected, "{case}");
+                assert_eq!(methods, if case.starts_with("model-only") { vec![] } else { vec!["account/logout", "account/read"] }, "{case}");
+                assert_eq!(written, legacy_bytes, "{case}: config.toml unchanged");
+                assert_eq!(std::fs::read_to_string(&record_path).unwrap(), record_bytes, "{case}: the record stays");
+                assert!(!peer.host.local_superseded(), "{case}: not marked");
+                // Nothing in flight now: the next save is not held up.
+                let started = std::time::Instant::now();
+                peer.host.supersede_local(Duration::from_secs(5)).unwrap();
+                assert!(started.elapsed() < Duration::from_secs(1), "{case}");
+                assert!(peer.host.local_superseded());
             }
             "not-ready" => {
                 assert_eq!(result.unwrap_err(), local_route::PREPARE_FIRST);
@@ -4350,41 +4386,175 @@ fn native_local_settings_a_session_that_has_seen_a_key_requires_the_record_even_
         std::fs::remove_dir_all(root).unwrap();
     }
 }
+/// A write held after its final admission, holding the frame writer lock: `hook` is installed in
+/// the write's test slot; `admitted` waits until the writer is there and `go` lets it write.
+struct WritePause { admitted: std::sync::mpsc::Receiver<()>, go: std::sync::mpsc::Sender<()> }
+fn write_pause() -> (WritePause, Box<dyn FnOnce(&Host) + Send>) {
+    let (at, admitted) = std::sync::mpsc::channel();
+    let (go, going) = std::sync::mpsc::channel::<()>();
+    (WritePause { admitted, go }, Box::new(move |_| { at.send(()).unwrap(); going.recv().unwrap(); }))
+}
+/// A save started while `pause` holds an admitted write. It must wait for the frame writer lock
+/// without setting the mark and without finishing; then the write is let go, and this returns
+/// once the save holds the writer lock with the mark still unset (`finish` lets it set the mark).
+struct SaveAtMark<T> { save: std::thread::JoinHandle<T>, proceed: std::sync::mpsc::Sender<()> }
+impl<T> SaveAtMark<T> { fn finish(self) -> T { self.proceed.send(()).unwrap(); self.save.join().unwrap() } }
+fn save_across_write<T: Send + 'static>(host: &Arc<Host>, pause: WritePause, save: impl FnOnce() -> T + Send + 'static) -> SaveAtMark<T> {
+    pause.admitted.recv_timeout(Duration::from_secs(5)).expect("the write reaches its pause after admission");
+    let (waiting_at, waiting) = std::sync::mpsc::channel();
+    let (marking_at, marking) = std::sync::mpsc::channel();
+    let (proceed, proceeding) = std::sync::mpsc::channel::<()>();
+    *host.supersede_waiting.lock().unwrap() = Some(Box::new(move |_| waiting_at.send(()).unwrap()));
+    *host.supersede_marking.lock().unwrap() = Some(Box::new(move |_| { marking_at.send(()).unwrap(); proceeding.recv().unwrap(); }));
+    let save = std::thread::spawn(save);
+    waiting.recv_timeout(Duration::from_secs(5)).expect("the save comes to the frame writer lock");
+    std::thread::sleep(Duration::from_millis(150));
+    assert!(!host.local_superseded(), "no mark while an admitted write is in progress");
+    assert!(!save.is_finished(), "the save waits for the write");
+    pause.go.send(()).unwrap();
+    marking.recv_timeout(Duration::from_secs(5)).expect("the save takes the writer lock once the write is done");
+    assert!(!host.local_superseded(), "the save holds the writer lock; the mark is not yet set");
+    SaveAtMark { save, proceed }
+}
+/// DEL-01-05: the supersession mark and a reply to the local home's Codex exclude each other
+/// through the frame writer lock, which the reply holds from its final admission through its write
+/// and the save holds to set the mark. A save that comes while a reply is admitted waits for it,
+/// and the reply's bytes are on Codex's input before the mark; with the mark set first the reply is
+/// refused, nothing is written and the request waits again; a save is not held up when nothing is
+/// in flight; and at the bound the save is refused and nothing changes.
 #[test]
-fn native_local_settings_a_reply_held_across_an_address_save_is_refused_under_the_lock_that_marks_the_binding() {
-    use crate::native_local_provider::{self as route, LocalSettings, RELAUNCH};
+fn native_local_settings_a_save_and_a_reply_to_codex_exclude_each_other_through_the_frame_writer() {
+    use crate::native_local_provider::{self as route, LocalSettings, RELAUNCH, WRITE_IN_PROGRESS};
     use tauri_plugin_dialog::MessageDialogResult;
     let set = LocalSettings::new("http://127.0.0.1:9100/v1", "org/m").unwrap();
-    for held in [true, false] {
-        let (root, plan, mut peer, home) = bound_local("local-reply-held-", &set);
+    for case in ["in-flight", "marked-first", "idle", "bound-reached"] {
+        let (root, plan, mut peer, home) = bound_local("local-reply-save-", &set);
         let dir = plan.native_path().to_path_buf();
         private_file(&dir.join("auth.json"), "invented key file; never opened");
         private_file(&dir.join("key-address"), &format!("{}\n", set.endpoint()));
         peer.host.inner.0.lock().unwrap().conversation_turns.push(json!({"generation":peer.g,"threadId":"t","turnId":"u","nativeTurn":{"status":"inProgress"}}));
         peer.host.on_line(&approval("ask-1"), &peer.g);
+        let before = std::fs::read_to_string(dir.join("config.toml")).unwrap();
         let next = LocalSettings::new(set.endpoint(), "org/next").unwrap();
-        let save = move |plan: &crate::home_resources::OwnedHomePlan, home: &crate::runtime_session::HomeSession| {
-            assert_eq!(route::save_within(plan, next.clone(), Some(home), || Ok(()), |_, action: &str| Ok(MessageDialogResult::Custom(action.into())), Duration::from_millis(50)).unwrap()["outcome"], "saved");
-        };
-        if held {
-            // The reply has passed its file check; the save completes before its locked admission.
-            let (save_plan, save_home) = (plan.clone(), std::sync::Arc::new(home));
-            let in_hook = save_home.clone();
-            *peer.host.before_reply_admission.lock().unwrap() = Some(Box::new(move |_| save(&save_plan, &in_hook)));
-            let error = peer.host.answer_server_request(&peer.g, &json!("ask-1"), &json!({"decision":"decline"}), "person-via-interaction", Some(PERSON)).unwrap_err();
-            assert_eq!(error, RELAUNCH);
-            assert!(peer.host.local_superseded());
-            assert_eq!(request_state(&peer, "ask-1"), "outstanding", "the refused reply is withdrawn: the request waits again");
-            assert!(received_after_close(&mut peer).is_empty(), "zero bytes reached Codex's input");
-            drop(save_home);
-        } else {
-            // Admitted before the mark: written as before, then the save.
-            assert_eq!(peer.host.answer_server_request(&peer.g, &json!("ask-1"), &json!({"decision":"decline"}), "person-via-interaction", Some(PERSON)).unwrap()["replyWriteResult"], "written");
-            assert_eq!(peer.frame()["id"], "ask-1");
-            save(&plan, &home);
-            assert!(peer.host.local_superseded());
+        let home = Arc::new(home);
+        let save = { let (plan, home) = (plan.clone(), home.clone()); move |wait: Duration| route::save_within(&plan, next.clone(), Some(&home), || Ok(()), |_, action: &str| Ok(MessageDialogResult::Custom(action.into())), wait) };
+        let answer = { let (host, g) = (peer.host.clone(), peer.g.clone()); move || host.answer_server_request(&g, &json!("ask-1"), &json!({"decision":"decline"}), "person-via-interaction", Some(PERSON)) };
+        match case {
+            "in-flight" => {
+                let (pause, hook) = write_pause();
+                *peer.host.before_reply_write.lock().unwrap() = Some(hook);
+                let replying = std::thread::spawn(answer);
+                let at_mark = save_across_write(&peer.host, pause, move || save(Duration::from_secs(5)));
+                assert_eq!(peer.frame()["id"], "ask-1", "the reply's bytes are on Codex's input before the mark");
+                assert_eq!(replying.join().unwrap().unwrap()["replyWriteResult"], "written");
+                assert_eq!(at_mark.finish().unwrap()["outcome"], "saved");
+                assert!(peer.host.local_superseded());
+            }
+            "marked-first" => {
+                assert_eq!(save(Duration::from_secs(5)).unwrap()["outcome"], "saved");
+                assert_eq!(answer().unwrap_err(), RELAUNCH);
+                assert_eq!(request_state(&peer, "ask-1"), "outstanding", "the refused reply is withdrawn: the request waits again");
+                assert!(received_after_close(&mut peer).is_empty(), "zero bytes reached Codex's input");
+            }
+            "idle" => {
+                let started = std::time::Instant::now();
+                assert_eq!(save(Duration::from_secs(5)).unwrap()["outcome"], "saved");
+                assert!(started.elapsed() < Duration::from_secs(1), "nothing in flight: the save is not held up");
+            }
+            _ => {
+                // The admitted reply is still being written when the save comes, for longer than it waits.
+                let (pause, hook) = write_pause();
+                *peer.host.before_reply_write.lock().unwrap() = Some(hook);
+                let replying = std::thread::spawn(answer);
+                pause.admitted.recv_timeout(Duration::from_secs(5)).unwrap();
+                assert_eq!(save(Duration::from_millis(100)).unwrap_err(), WRITE_IN_PROGRESS);
+                assert!(!peer.host.local_superseded(), "not marked");
+                assert_eq!(std::fs::read_to_string(dir.join("config.toml")).unwrap(), before, "nothing changed");
+                pause.go.send(()).unwrap();
+                assert_eq!(replying.join().unwrap().unwrap()["replyWriteResult"], "written", "the reply admitted before the save completes");
+                assert_eq!(peer.frame()["id"], "ask-1");
+            }
         }
         peer.safe();
+        drop(home);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+/// DEL-01-05: the same for a request to the local home's Codex. The request path holds the frame
+/// writer lock from its final admission (the central guard, under the attachment gate and Inner)
+/// through its write.
+#[test]
+fn native_local_settings_a_save_and_a_request_to_codex_exclude_each_other_through_the_frame_writer() {
+    use crate::native_local_provider::{self as route, LocalSettings, RELAUNCH, WRITE_IN_PROGRESS};
+    use tauri_plugin_dialog::MessageDialogResult;
+    let set = LocalSettings::new("http://127.0.0.1:9100/v1", "org/m").unwrap();
+    let turn = || json!({"threadId":"t","input":[{"type":"text","text":"fixture only","text_elements":[]}]});
+    for case in ["in-flight", "marked-first", "bound-reached"] {
+        let (root, plan, mut peer, home) = bound_local("local-request-save-", &set);
+        let dir = plan.native_path().to_path_buf();
+        let before = std::fs::read_to_string(dir.join("config.toml")).unwrap();
+        let next = LocalSettings::new(set.endpoint(), "org/next").unwrap();
+        let home = Arc::new(home);
+        let save = { let (plan, home) = (plan.clone(), home.clone()); move |wait: Duration| route::save_within(&plan, next.clone(), Some(&home), || Ok(()), |_, action: &str| Ok(MessageDialogResult::Custom(action.into())), wait) };
+        let send = { let (host, g) = (peer.host.clone(), peer.g.clone()); move || host.request_begin_scoped("turn/start", turn(), json!({"kind":"synthetic"}), false, Some(&g)).map(|r| r.evidence()["writeResult"].clone()) };
+        match case {
+            "in-flight" => {
+                let (pause, hook) = write_pause();
+                *peer.host.before_request_write.lock().unwrap() = Some(hook);
+                let sending = std::thread::spawn(send);
+                let at_mark = save_across_write(&peer.host, pause, move || save(Duration::from_secs(5)));
+                assert_eq!(peer.frame()["method"], "turn/start", "the request's bytes are on Codex's input before the mark");
+                assert_eq!(sending.join().unwrap().unwrap(), "written");
+                assert_eq!(at_mark.finish().unwrap()["outcome"], "saved");
+                assert!(peer.host.local_superseded());
+            }
+            "marked-first" => {
+                assert_eq!(save(Duration::from_secs(5)).unwrap()["outcome"], "saved");
+                assert_eq!(send().unwrap_err(), RELAUNCH);
+                assert!(peer.host.client_requests().is_empty(), "nothing sent");
+                assert!(received_after_close(&mut peer).is_empty(), "zero bytes reached Codex's input");
+            }
+            _ => {
+                let (pause, hook) = write_pause();
+                *peer.host.before_request_write.lock().unwrap() = Some(hook);
+                let sending = std::thread::spawn(send);
+                pause.admitted.recv_timeout(Duration::from_secs(5)).unwrap();
+                assert_eq!(save(Duration::from_millis(100)).unwrap_err(), WRITE_IN_PROGRESS);
+                assert!(!peer.host.local_superseded(), "not marked");
+                assert_eq!(std::fs::read_to_string(dir.join("config.toml")).unwrap(), before, "nothing changed");
+                pause.go.send(()).unwrap();
+                assert_eq!(sending.join().unwrap().unwrap(), "written");
+                assert_eq!(peer.frame()["method"], "turn/start");
+            }
+        }
+        peer.safe();
+        drop(home);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+/// DEL-01-05: the two frames the App writes without a request's or reply's own admission, the
+/// handshake's `initialized` notification and the error refusing an external-token request, are
+/// also refused with nothing written once the local binding is marked, checked holding the frame
+/// writer lock through the write; before the mark they are written as before.
+#[test]
+fn native_local_settings_the_handshake_notification_and_the_token_refusal_are_not_written_after_the_mark() {
+    use crate::native_local_provider::{LocalSettings, RELAUNCH};
+    let set = LocalSettings::new("http://127.0.0.1:9100/v1", "org/m").unwrap();
+    for marked in [false, true] {
+        let (root, _plan, mut peer, home) = bound_local("local-unadmitted-frames-", &set);
+        if marked { peer.host.supersede_local(Duration::from_secs(5)).unwrap(); }
+        let initialized = peer.host.write_frame_scoped(&json!({"jsonrpc":"2.0","method":"initialized"}), Some(&peer.g));
+        let bound = peer.host.capture_pipe(&peer.host.inner.0.lock().unwrap()).unwrap();
+        let refusal = peer.host.write_private_auth_rejection(bound, json!(7), true);
+        if marked {
+            assert_eq!((initialized.unwrap_err(), refusal.unwrap_err()), (RELAUNCH.to_owned(), RELAUNCH.to_owned()));
+            assert!(received_after_close(&mut peer).is_empty(), "zero bytes reached Codex's input");
+        } else {
+            assert!(initialized.is_ok() && refusal.is_ok());
+            assert_eq!(peer.frame()["method"], "initialized");
+            assert_eq!(peer.frame()["id"], 7);
+        }
+        drop(home);
         std::fs::remove_dir_all(root).unwrap();
     }
 }

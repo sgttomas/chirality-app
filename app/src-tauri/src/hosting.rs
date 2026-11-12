@@ -866,6 +866,19 @@ pub struct Host {
     runtime_custody:Mutex<Option<Arc<AppRuntimeCustody>>>,
     spawn_counters:Arc<Mutex<HashMap<String,u64>>>,
     submission_contexts:Arc<Mutex<Vec<Value>>>,
+    /// The frame writer lock. Every write to this Codex's input holds it from that write's final
+    /// admission through the end of the write: `write_frame_scoped`, `write_reply`, the request
+    /// path in `request_begin_with_access_offer`, `cce_reply_unavailable`, the attachment dispatch
+    /// and `write_private_auth_rejection`. Each reads the local home's supersession mark while
+    /// holding it, and `supersede_local` sets the mark only while holding it, so nothing admitted
+    /// or queued before the mark is written after it unchecked: after the mark only what the central
+    /// guard admits while superseded (requests that send nothing to a model and load no
+    /// conversation) is written. It is held for the write of the bytes only, never across a wait
+    /// for Codex's reply.
+    ///
+    /// Lock order, on every path: frame_write -> (attachment custody sources) -> attachment_gate ->
+    /// Inner. Nothing takes frame_write while holding the attachment gate or Inner, and a holder
+    /// of frame_write waits only for bounded work and for the locks after it.
     frame_write: Mutex<()>,
     attachment_gate: Mutex<()>,
     /// One stop request at a time for this Host (SR-11): its guard, SR-01 and
@@ -902,6 +915,16 @@ pub struct Host {
     /// Runs in write_reply between the local file check and the locked admission.
     #[cfg(test)]
     before_reply_admission: Mutex<Option<Box<dyn FnOnce(&Host)+Send>>>,
+    #[cfg(test)]
+    pub(crate) before_reply_write: Mutex<Option<Box<dyn FnOnce(&Host)+Send>>>,
+    #[cfg(test)]
+    pub(crate) before_request_write: Mutex<Option<Box<dyn FnOnce(&Host)+Send>>>,
+    #[cfg(test)]
+    pub(crate) supersede_waiting: Mutex<Option<Box<dyn FnOnce(&Host)+Send>>>,
+    #[cfg(test)]
+    pub(crate) supersede_marking: Mutex<Option<Box<dyn FnOnce(&Host)+Send>>>,
+    #[cfg(test)]
+    pub(crate) after_continuation_reading: Mutex<Option<Box<dyn FnOnce(&Host)+Send>>>,
     #[cfg(test)]
     cce_after_cut: Mutex<Option<Box<dyn FnOnce(&Host,&call_custody::IncomingCall)+Send>>>,
     #[cfg(test)]
@@ -992,6 +1015,11 @@ impl Host {
             #[cfg(test)] cce_before_prepare: Mutex::new(None),
             #[cfg(test)] cce_before_cut: Mutex::new(None),
             #[cfg(test)] before_reply_admission: Mutex::new(None),
+            #[cfg(test)] before_reply_write: Mutex::new(None),
+            #[cfg(test)] before_request_write: Mutex::new(None),
+            #[cfg(test)] supersede_waiting: Mutex::new(None),
+            #[cfg(test)] supersede_marking: Mutex::new(None),
+            #[cfg(test)] after_continuation_reading: Mutex::new(None),
             #[cfg(test)] cce_after_cut: Mutex::new(None),
             #[cfg(test)] cce_after_write: Mutex::new(None),
             #[cfg(test)] cce_simulated_write: Mutex::new(None),
@@ -2186,7 +2214,10 @@ impl Host {
     fn write_frame(&self,frame:&Value)->Result<(),String>{ self.write_frame_scoped(frame,None) }
     fn write_frame_scoped(&self,frame:&Value,expected:Option<&Value>)->Result<(),String>{
         let mut bound={let i=self.inner.0.lock().unwrap();if expected.is_some_and(|g|g!=&i.generation){return Err("frame source generation changed; nothing sent".into());}self.capture_pipe(&i)?};let bytes=Self::frame_bytes(frame)?;let serial=self.frame_write.lock().unwrap();
-        {let _gate=self.attachment_gate.lock().unwrap();let i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;}
+        // Holding the frame writer lock through the write: in a local home whose binding is marked
+        // superseded nothing more is written, so no frame captured before the mark is written after it.
+        {let _gate=self.attachment_gate.lock().unwrap();let i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;
+            if Self::local_binding_superseded(&i){return Err(crate::native_local_provider::RELAUNCH.into());}}
         let result=Self::write_complete(&mut bound.file,&bytes);drop(serial);result
     }
     /// A prepared reply refused by the local home's safeguard goes back to waiting, if it is still
@@ -2222,7 +2253,7 @@ impl Host {
         let bytes=Self::frame_bytes(frame)?;let serial=self.frame_write.lock().unwrap();
         // After the writer wait, holding neither Inner nor the gate: a reply to the local home's
         // Codex is written only while its files still establish the address in force. A refusal here
-        // writes nothing; an already prepared reply stays prepared and unwritten (not waiting).
+        // writes nothing; the prepared reply is withdrawn and the request is waiting again.
         if let Err(reason)=self.check_local_reply(){
             drop(serial);
             let mut i=self.inner.0.lock().unwrap();
@@ -2231,10 +2262,12 @@ impl Host {
         }
         #[cfg(test)] {let hook=self.before_reply_admission.lock().unwrap().take();if let Some(h)=hook{h(self);}}
         let observation={let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;if !Self::reply_eligible(&i,&bound.generation,frame){return Err("reply no longer eligible after source/frame wait; nothing sent".into());}
-            // Under the lock the save takes to mark the binding superseded: admitted before the mark,
-            // or refused.
+            // The frame writer lock is held from here through the write, and the save sets the mark
+            // only while holding it: this reply is written wholly before the mark, or refused here
+            // (withdrawn, the request waiting again) with nothing written.
             if Self::local_binding_superseded(&i){let reason=crate::native_local_provider::RELAUNCH.to_owned();Self::withdraw_local_reply(&mut i,&bound.generation,frame,&reason);return Err(reason);}
             i.server_requests.begin_reply_write(&bound.generation,&frame["id"])?};
+        #[cfg(test)] {let hook=self.before_reply_write.lock().unwrap().take();if let Some(h)=hook{h(self);}}
         let result=Self::write_complete(&mut bound.file,&bytes);observation.complete(result.is_ok());drop(serial);
         let mut i=self.inner.0.lock().unwrap();Self::observe_reply_writes(&mut i);if i.generation!=bound.generation||i.server_requests.is_closed(&bound.generation){drop(i);self.flush_recovery_observations();return Err("reply write finished for closed/superseded source; original result retained, no successor settlement inferred".into());}
         i.server_requests.written(&bound.generation,&frame["id"],result.is_ok());Self::persist_requests(&mut i);drop(i);self.flush_recovery_observations();result
@@ -2305,7 +2338,7 @@ impl Host {
         }
         if expected_generation.map(|g|g!=&i.generation||i.server_requests.is_closed(g)).unwrap_or(false) {return Err(format!("refused-not-sent: {method} generation changed before request registration"));}
         Self::check_send_admitted(&i,method)?;
-        if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_local_resume_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,&params)?;}}
+        if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_continuation_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,&params)?;}}
         if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer") {Self::check_conversation_request(&i,method,&params)?;}
         let oauth_mode=if method=="account/login/start" {match params["type"].as_str(){Some("chatgpt")=>Some(oauth_control::OAuthMode::Chatgpt),Some("chatgptDeviceCode")=>Some(oauth_control::OAuthMode::DeviceCode),_=>None}}else{None};
         if oauth_mode.is_some(){
@@ -2367,7 +2400,7 @@ impl Host {
                 Self::check_local_request(&i,method,&frame["params"],expected_generation,handshake,private_credential,private_config,provider_admission)?;
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
                 Self::check_send_admitted(&i,method)?;
-                if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_local_resume_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,&frame["params"])?;}}
+                if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_continuation_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,&frame["params"])?;}}
                 if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.provider_read_revisions.remove(write.cwd());i.provider_observation_revisions.remove(write.cwd());}
                 if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,&frame["params"],Some(&json!(id)))?;}
                 if let Some(original)=oauth_cancel{
@@ -2387,6 +2420,7 @@ impl Host {
                 let epoch=i.aa_epoch;let cut=i.receipt_position;
                 if let Some(c)=i.aa_capture.as_mut(){c.prewrite(&request.generation,epoch,request.request_ref(),(bound.epoch,bound.identity),cut);}}
             #[cfg(test)] if aa_selected {let hook=self.aa_before_write.lock().unwrap().take();if let Some(h)=hook{h(self,&request);}}
+            #[cfg(test)] {let hook=self.before_request_write.lock().unwrap().take();if let Some(h)=hook{h(self);}}
             #[cfg(test)] let simulated=if aa_selected{self.aa_simulated_write.lock().unwrap().take()}else if cce_selected{self.cce_start_simulated_write.lock().unwrap().take()}else{None};
             #[cfg(test)] let result=match simulated{Some(reason)=>Err(format!("simulated write settlement: {reason}")),None=>Self::write_complete(&mut bound.file,&bytes)};
             #[cfg(not(test))] let result=Self::write_complete(&mut bound.file,&bytes);
@@ -2622,7 +2656,7 @@ impl Host {
         if query.generation()["home"]!=query.home() {return Err("history home and full generation differ".into());}
         if !matches!(query.method(),"thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/resume") {return Err("unsupported history factory method".into());}
         // An account or key-home Continue rests on Codex reporting the built-in provider; nothing for a local home.
-        if query.method()=="thread/resume" {self.cloud_continuation_admission(query.generation(),access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME)?;}
+        let cloud=if query.method()=="thread/resume" {self.cloud_continuation_admission(query.generation(),access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME)?} else {None};
         // A local saved-thread Continue gets the same effective provider-definition admission as a new start.
         if let Some(proof)=(query.method()=="thread/resume").then(||self.local_resume_admission(query.generation(),&query.params()["threadId"])).transpose()?.flatten() {
             // The wire packet names the classified cwd so Codex cannot load another history-derived cwd.
@@ -2631,7 +2665,12 @@ impl Host {
             let source=self.request_begin_with_access_offer(query.method(),params,initiator,false,Some(query.generation()),false,None,None,None,None,false,Some(&proof))?;
             return Ok(HistoryDispatch {query:query.clone(),source,local_config:Some(proof.source().clone())});
         }
-        let source=self.request_begin_scoped(query.method(),query.params().clone(),initiator,false,Some(query.generation()))?;
+        // The reading travels with the request: refused at registration or final write if a newer reading
+        // of the folder, or a confirmed provider write, came in between.
+        let source=match &cloud {
+            Some(proof)=>{auth_rpc::generic_guard(query.method(),query.params())?;self.request_begin_with_access_offer(query.method(),query.params().clone(),initiator,false,Some(query.generation()),false,None,None,None,None,false,Some(proof))?},
+            None=>self.request_begin_scoped(query.method(),query.params().clone(),initiator,false,Some(query.generation()))?,
+        };
         Ok(HistoryDispatch {query:query.clone(),source,local_config:None})
     }
     pub fn history_wait(&self, dispatch: &HistoryDispatch, wait: Duration) -> Result<Value,String> {self.source_request_wait(&dispatch.source,wait)}
@@ -2805,8 +2844,11 @@ impl Host {
             return Ok(request);
         }
         // An account or key-home fork rests on Codex reporting the built-in provider.
-        self.cloud_continuation_admission(generation,access_provider::BUILT_IN_PROVIDER_UNREPORTED_FORK)?;
-        self.request_begin_scoped("thread/fork",params,json!({"kind":"person-directed"}),false,Some(generation))
+        // The reading travels with the request into its registration and final-write checks.
+        match self.cloud_continuation_admission(generation,access_provider::BUILT_IN_PROVIDER_UNREPORTED_FORK)? {
+            Some(proof)=>{auth_rpc::generic_guard("thread/fork",&params)?;self.request_begin_with_access_offer("thread/fork",params,json!({"kind":"person-directed"}),false,Some(generation),false,None,None,None,None,false,Some(&proof))},
+            None=>self.request_begin_scoped("thread/fork",params,json!({"kind":"person-directed"}),false,Some(generation)),
+        }
     }
     /// Admits the forked conversation operationally from the correlated
     /// `thread/fork` result only. The fork must be a new thread reporting the
@@ -2910,8 +2952,9 @@ impl Host {
             let observation={let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;Self::cce_check_call(&i,call)?;
                 let e=i.server_requests.original_offered(f.index,&i.generation,&f.rpc.view()).ok_or("original offered entry absent")?;
                 if e["state"]!="settling"||e["replyWriteResult"]!="not-attempted"||f.resolution.load(Ordering::SeqCst)!=0{return Err("original offered reply no longer eligible".into())}
-                // Under the lock the save takes to mark the binding superseded: admitted before the
-                // mark, or refused and withdrawn.
+                // The frame writer lock is held from here through the write, and the save sets the
+                // mark only while holding it: written wholly before the mark, or refused and
+                // withdrawn here with nothing written.
                 if Self::local_binding_superseded(&i){
                     let reason=crate::native_local_provider::RELAUNCH.to_owned();let generation=i.generation.clone();
                     if i.server_requests.withdraw_prepared(&generation,&f.rpc.view()).is_ok(){Self::persist_requests(&mut i);}
@@ -4567,7 +4610,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let message=if token_refresh{"External-token login is not adopted"}else{"Unrecognized supplier request"};
         let bytes=Self::frame_bytes(&json!({"id":id,"error":{"code":-32601,"message":message}}))?;
         let serial=self.frame_write.lock().unwrap();
-        {let _gate=self.attachment_gate.lock().unwrap();let i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;}
+        // As every write: refused, with nothing written, once the local home's binding is marked.
+        {let _gate=self.attachment_gate.lock().unwrap();let i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;
+            if Self::local_binding_superseded(&i){return Err(crate::native_local_provider::RELAUNCH.into());}}
         let result=Self::write_complete(&mut bound.file,&bytes);drop(serial);result
     }
 
@@ -5751,11 +5796,79 @@ mod conversation_transport_tests {
         }
         assert!(access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME.ends_with("no thread/resume sent")&&access_provider::BUILT_IN_PROVIDER_UNREPORTED_FORK.ends_with("no thread/fork sent"));
     }
+    /// DEL-01-05 AC-005: an account or key-home Continue or fork carries the reading it was admitted
+    /// on into the registration and final-write checks a new start's reading passes: a newer reading
+    /// of the same folder, or a confirmed provider write, after that reading refuses with nothing
+    /// but the readings sent; with no competitor the request is sent.
+    #[test]
+    fn cloud_resume_and_fork_carry_their_reading_to_registration_and_the_final_write(){
+        use crate::home_resources::HomeClass;
+        let refused="Access entry unavailable: original provider reading superseded/unavailable or destination/source differs; no thread/start sent";
+        fn resumed(home:&ReportingHome)->Result<SourceRequest,String>{let mut view=history_selected();let query=view.continue_query().unwrap();home.home.host.history_dispatch(&query).map(|d|d.source)}
+        fn forked(home:&ReportingHome)->Result<SourceRequest,String>{home.home.host.thread_fork_dispatch(&g(),"thread")}
+        let ops:[(&str,fn(&ReportingHome)->Result<SourceRequest,String>);2]=[("thread/resume",resumed),("thread/fork",forked)];
+        for class in [HomeClass::Account,HomeClass::ApiKey] {
+            let settings_class=if class==HomeClass::Account{"account"}else{"api-key"};
+            for (method,op) in ops {
+                for case in ["no-competitor","competing-settings-read","competing-provider-write","provider-write-before-final-write"] {
+                    let home=ReportingHome::new(class);
+                    let host=Arc::clone(&home.home.host);
+                    match case {
+                        "competing-settings-read"=>{*host.after_continuation_reading.lock().unwrap()=Some(Box::new(move|h:&Host|{
+                            // The effective-settings reading of the same folder, made after this admission's reading.
+                            let _=h.effective_access_settings_read_within(&g(),"/invented",settings_class,Duration::from_secs(2));
+                        }));}
+                        "competing-provider-write"=>{*host.after_continuation_reading.lock().unwrap()=Some(Box::new(|h:&Host|{
+                            // What a confirmed provider write does to the folder's current reading at its attempt.
+                            let mut i=h.inner.0.lock().unwrap();i.provider_read_revisions.remove("/invented");i.provider_observation_revisions.remove("/invented");
+                        }));}
+                        _=>{}
+                    }
+                    let result=if case=="provider-write-before-final-write" {
+                        // After its reading the frame writer is held, so the request registers and then waits
+                        // for it: the confirmed write comes between registration and the final check.
+                        let (release,released)=channel::<()>();
+                        let holder:Arc<Mutex<Option<std::thread::JoinHandle<()>>>>=Arc::default();
+                        let (slot,writer_host)=(Arc::clone(&holder),Arc::clone(&host));
+                        *host.after_continuation_reading.lock().unwrap()=Some(Box::new(move|_:&Host|{
+                            let (held,holding)=channel();
+                            *slot.lock().unwrap()=Some(std::thread::spawn(move||{let _writer=writer_host.frame_write.lock().unwrap();held.send(()).unwrap();let _=released.recv();}));
+                            holding.recv().unwrap();
+                        }));
+                        std::thread::scope(|scope|{
+                            let running=scope.spawn(||op(&home));
+                            let deadline=std::time::Instant::now()+Duration::from_secs(5);
+                            while !host.inner.0.lock().unwrap().source_requests.values().any(|e|e.request.frame["method"]==method) {assert!(std::time::Instant::now()<deadline,"{method} registers");std::thread::sleep(Duration::from_millis(5));}
+                            {let mut i=host.inner.0.lock().unwrap();i.provider_read_revisions.remove("/invented");i.provider_observation_revisions.remove("/invented");}
+                            release.send(()).unwrap();
+                            let result=running.join().unwrap();
+                            holder.lock().unwrap().take().unwrap().join().unwrap();
+                            result
+                        })
+                    } else { op(&home) };
+                    match case {
+                        "no-competitor"=>assert_eq!(result.unwrap().evidence()["writeResult"],"written","{class:?} {method}"),
+                        "provider-write-before-final-write"=>{
+                            // Refused at the final write as every request is there: kept, with no write attempt.
+                            let source=result.unwrap();
+                            assert_ne!(source.evidence()["writeResult"],"written","{class:?} {method}");
+                            let limit=host.inner.0.lock().unwrap().source_requests[&source.request_id().to_string()].source_limit.clone().unwrap_or_default();
+                            assert!(limit.starts_with("No actual write attempt")&&limit.contains(refused),"{class:?} {method}: {limit}");
+                        }
+                        _=>assert_eq!(result.err().as_deref(),Some(refused),"{class:?} {method} {case}"),
+                    }
+                    let written=home.written();
+                    let expected:Vec<&str>=match case {"no-competitor"=>vec!["config/read",method],"competing-settings-read"=>vec!["config/read","config/read"],_=>vec!["config/read"]};
+                    assert_eq!(written,expected,"{class:?} {method} {case}: nothing for it is sent once its reading is no longer the folder's current one");
+                }
+            }
+        }
+    }
     /// The dedicated local home's resume and fork keep their own admissions: this check reads nothing there.
     #[test]
     fn cloud_continuation_admission_sends_nothing_for_a_local_home(){
         let host=host();host.inner.0.lock().unwrap().local_provider=Some(access_provider::LocalProviderBinding::for_test("conversation-home","/invented/work"));
-        assert!(host.cloud_continuation_admission(&g(),access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME).is_ok());
+        assert!(host.cloud_continuation_admission(&g(),access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME).unwrap().is_none());
         assert!(host.client_requests().is_empty(),"no reading, nothing sent");
     }
     fn history_exchange(host: &Arc<Host>, query: &HistoryQuery, response: Option<Value>) -> (HistoryDispatch, Value, Value) {

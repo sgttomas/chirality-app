@@ -13,6 +13,8 @@ pub(crate) struct ProviderAdmission {
     config_link: Option<crate::child_roles::ConfigLink>,
 }
 struct ChildStartGuard { namespace: crate::child_roles::Namespace, config: Value, files: Vec<crate::child_roles::ChildSupply>, supplier: Value }
+/// The marker of a proof made by `cloud_continuation_admission`; no entry the person chooses has it.
+const CLOUD_CONTINUATION: &str = "cloud-continuation";
 const LIMIT: &str = "Access entry unavailable: current provider configuration could not be established; no thread/start sent";
 fn unavailable() -> String {
     LIMIT.into()
@@ -1107,8 +1109,9 @@ fn child_supplier_subject(i: &Inner) -> Value {
 
 /// Constructed only for the dedicated local HomeSession, never hydrated from public DTOs. The
 /// settings read when the home was bound are frozen for this Host: every Codex process it starts
-/// carries their session flags, and every guard compares with them. `superseded` is set, under
-/// Inner's lock, when the App changes the settings file during this session, and is never cleared:
+/// carries their session flags, and every guard compares with them. `superseded` is set, holding
+/// the frame writer lock and then Inner (`Host::supersede_local`), when the App changes the settings
+/// file during this session, and is never cleared:
 /// from then on nothing that can reach a model or load a conversation is admitted in this home.
 /// `plan` is the bound home: every request that can make this Codex send to the model server
 /// reads its settings file and key-address record again, through `check_local_files`.
@@ -1155,7 +1158,33 @@ impl Host {
     }
     /// The settings file changed through the App while this home is bound: refuse every model or
     /// conversation-loading request in it for the rest of this process. Never cleared.
-    pub(crate) fn supersede_local(&self) -> Result<(), String> {
+    ///
+    /// The mark is set while holding the frame writer lock (`Host::frame_write`), which every write
+    /// to this Codex's input holds from its final admission through the end of its write. So a
+    /// write is either wholly written before the mark or admitted after it and refused, with
+    /// nothing written. The save holds nothing else this Host takes while it waits for that lock
+    /// (frame writer, then Inner, never the reverse). It waits at most `wait`; at the bound the mark
+    /// is not set and the save is refused with `native_local_provider::WRITE_IN_PROGRESS`, so a
+    /// Codex that has stopped reading its input cannot hold the save up without bound. Once set,
+    /// the mark is final, and asking again returns at once without waiting.
+    pub(crate) fn supersede_local(&self, wait: Duration) -> Result<(), String> {
+        {
+            let i = self.inner.0.lock().map_err(|_| unavailable())?;
+            let binding = i.local_provider.as_ref().ok_or_else(|| crate::native_local_provider::LIMIT.to_owned())?;
+            if binding.superseded { return Ok(()); }
+        }
+        #[cfg(test)] {let hook=self.supersede_waiting.lock().unwrap().take();if let Some(h)=hook{h(self);}}
+        let deadline = std::time::Instant::now() + wait;
+        let _writer = loop {
+            match self.frame_write.try_lock() {
+                Ok(writer) => break writer,
+                // A writer that panicked holds nothing in progress.
+                Err(std::sync::TryLockError::Poisoned(poisoned)) => break poisoned.into_inner(),
+                Err(std::sync::TryLockError::WouldBlock) if std::time::Instant::now() < deadline => std::thread::sleep(Duration::from_millis(5)),
+                Err(std::sync::TryLockError::WouldBlock) => return Err(crate::native_local_provider::WRITE_IN_PROGRESS.to_owned()),
+            }
+        };
+        #[cfg(test)] {let hook=self.supersede_marking.lock().unwrap().take();if let Some(h)=hook{h(self);}}
         let mut i = self.inner.0.lock().map_err(|_| unavailable())?;
         let binding = i.local_provider.as_mut().ok_or_else(|| crate::native_local_provider::LIMIT.to_owned())?;
         binding.superseded = true;
@@ -1187,9 +1216,10 @@ impl Host {
         if !self.local_bound()? { return Ok(()); }
         self.check_local_home()
     }
-    /// Under Inner, the lock `supersede_local` takes to set the mark: a reply admitted to its
-    /// write after this returns false was admitted before the mark (and so before the save removed
-    /// the record); once it returns true no reply is admitted in this home again.
+    /// Read under Inner by a writer that holds the frame writer lock through its write;
+    /// `supersede_local` sets the mark only while holding that lock. So false here means the whole
+    /// write completes before the mark (and so before the save removes the record); once it returns
+    /// true no reply is admitted in this home again.
     pub(super) fn local_binding_superseded(i:&Inner)->bool {
         i.local_provider.as_ref().is_some_and(|b| b.superseded)
     }
@@ -1328,17 +1358,43 @@ impl Host {
     /// the folder this Codex was started in: the provider is the session setting unless a managed
     /// requirement names another, and managed requirements do not depend on the folder. A reading
     /// that cannot be made refuses with the same sentence (no report was obtained). The dedicated
-    /// local home has its own admissions: nothing here.
-    pub(super) fn cloud_continuation_admission(&self, generation: &Value, refusal: &str) -> Result<(), String> {
+    /// local home has its own admissions: nothing here (`None`).
+    ///
+    /// The reading is returned as a proof, carried by `thread/resume` or `thread/fork` into the
+    /// registration and final-write checks every start's proof passes (`check_continuation_proof`,
+    /// through `check_provider_read`): a newer reading of the same folder, or a confirmed provider
+    /// write, between this reading and the write refuses with nothing sent.
+    pub(super) fn cloud_continuation_admission(&self, generation: &Value, refusal: &str) -> Result<Option<ProviderAdmission>, String> {
         let cwd = {
             let i = self.inner.0.lock().map_err(|_| unavailable())?;
-            if i.local_provider.is_some() { return Ok(()); }
+            if i.local_provider.is_some() { return Ok(None); }
             // No folder, no reading: Codex has not reported the built-in provider.
             i.server_cwd.clone().filter(|cwd| !cwd.is_empty()).ok_or_else(|| refusal.to_owned())?
         };
         let reading = self.private_provider_config_read(generation, &cwd, Duration::from_secs(10), PrivateConfigPurpose::Admission).map_err(|_| refusal.to_owned())?;
         if reading.config["config"]["model_provider"] != "openai" { return Err(refusal.into()); }
-        Ok(())
+        #[cfg(test)] {let hook=self.after_continuation_reading.lock().unwrap().take();if let Some(h)=hook{h(self);}}
+        Ok(Some(ProviderAdmission {
+            source: reading.source,
+            cwd,
+            provider: "openai".into(),
+            model: String::new(),
+            entry: CLOUD_CONTINUATION.into(),
+            config: reading.config,
+            children: None,
+            config_link: None,
+        }))
+    }
+    /// Registration and final-write check of a `thread/resume` or `thread/fork` proof, the same
+    /// check as a start's: the admitting reading is still the current reading of its folder
+    /// (`check_provider_read`). The dedicated local home's proof is its local one; any other host's
+    /// is the cloud continuation's, read at the folder this Codex was started in.
+    pub(super) fn check_continuation_proof(&self, i: &Inner, proof: &ProviderAdmission) -> Result<(), String> {
+        if i.local_provider.is_some() { return self.check_local_resume_proof(i, proof); }
+        if proof.entry != CLOUD_CONTINUATION || proof.provider != "openai" || i.server_cwd.as_deref() != Some(proof.cwd.as_str()) {
+            return Err(unavailable());
+        }
+        self.check_provider_read(i, &proof.source, &proof.cwd)
     }
     /// Operational admission of a local Continue or fork still requires its admitting reading to be current.
     pub(super) fn check_local_reading_current(&self, i: &Inner, source: Option<&SourceRequest>) -> Result<(), String> {

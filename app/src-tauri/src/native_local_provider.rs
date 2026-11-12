@@ -54,6 +54,11 @@ const RECORD_NOT_REMOVED_NO_KEY: &str = "Codex reports no saved key, but the App
 const KEY_ADDRESS: &str = "key-address";
 pub(crate) const KEY_ENTRY_BEGUN: &str = "Key entry was used in this Codex session, and Codex may still be saving that key. Restart Codex for the local model home, then change the address. The local model settings were not changed.";
 pub(crate) const PREPARE_FIRST: &str = "Prepare the local connection first, so that Codex can remove the saved key; the local model settings were not changed.";
+/// The save waited `ACCOUNT_WAIT` for a write to this Codex's input that had already been admitted
+/// and stopped waiting; the binding was not marked, so nothing was changed.
+pub(crate) const WRITE_IN_PROGRESS: &str = "The App was still sending something to Codex for the local model home after 20 seconds, so the local model settings were not changed. Try again.";
+pub(crate) const WRITE_IN_PROGRESS_KEY_REMOVED: &str = "Codex removed the saved key, but the App was still sending something to Codex for the local model home after 20 seconds, so the local model settings were not changed. Try again.";
+pub(crate) const WRITE_IN_PROGRESS_NO_KEY: &str = "Codex reports no saved key, but the App was still sending something to Codex for the local model home after 20 seconds, so the local model settings were not changed. Try again.";
 const SIGN_OUT_UNCONFIRMED: &str = "Codex's removal of the saved key could not be confirmed; the local model settings were not changed. Prepare the local connection and try again.";
 const ADDRESS_RULE: &str = "The server address must be http:// or https:// on 127.0.0.1 or [::1], with an optional port from 1 to 65535 and a path of letters, digits and . _ ~ / - only; nothing was saved.";
 const MODEL_RULE: &str = "The model name must be 1 to 128 characters of letters, digits and . _ : / @ + - only; nothing was saved.";
@@ -1007,7 +1012,11 @@ fn sign_out(home: &HomeSession, plan: &OwnedHomePlan, generation: &Value, wait: 
     // Codex itself reported no account. The binding is superseded first, so nothing in this home
     // reaches a model once the record is gone; then the record is removed, before config.toml is
     // written. Unconfirmed removal changes no settings.
-    home.host.supersede_local()?;
+    home.host.supersede_local(wait).map_err(|error| match (error == WRITE_IN_PROGRESS, key_present) {
+        (true, true) => WRITE_IN_PROGRESS_KEY_REMOVED.to_owned(),
+        (true, false) => WRITE_IN_PROGRESS_NO_KEY.to_owned(),
+        _ => error,
+    })?;
     remove_key_address(plan).map_err(|error| if key_present { error } else { RECORD_NOT_REMOVED_NO_KEY.to_owned() })?;
     Ok(())
 }
@@ -1206,8 +1215,9 @@ pub(crate) fn save_within(
     }
     // A home bound in this session is superseded before the new file can exist: from here the
     // central guard admits nothing to a model in it, whether or not the write below completes.
+    // After a sign-out in this save the mark is already set and this returns at once.
     if let Some(home) = in_use {
-        home.host.supersede_local()?;
+        home.host.supersede_local(wait)?;
     }
     let written = match &before {
         None => write_initial(plan, &proposed),

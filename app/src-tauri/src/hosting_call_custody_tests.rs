@@ -45,6 +45,30 @@ fn resolution(h: &Host) {
         &json!({"method":"serverRequest/resolved","params":{"threadId":"thread","requestId":10}}),
     );
 }
+fn drain_from(reader: &mut std::fs::File) -> Value {
+    let mut bytes = Vec::new();
+    let deadline = Instant::now() + Duration::from_millis(1000);
+    while bytes.last() != Some(&b'\n') {
+        let remaining = deadline
+            .checked_duration_since(Instant::now())
+            .expect("pipe deadline");
+        let mut poll = libc::pollfd {
+            fd: reader.as_raw_fd(),
+            events: libc::POLLIN,
+            revents: 0,
+        };
+        assert!(
+            unsafe { libc::poll(&mut poll, 1, remaining.as_millis().min(1000) as i32) } > 0
+        );
+        let mut buf = [0; 4096];
+        let n = reader.read(&mut buf[..4096 - bytes.len()]).unwrap();
+        assert!(n > 0);
+        bytes.extend_from_slice(&buf[..n]);
+        assert!(bytes.len() <= 4096);
+    }
+    assert!(bytes.len() <= 2048, "small actual fixture frame");
+    serde_json::from_slice(&bytes).unwrap()
+}
 struct Fixture {
     host: Host,
     reader: std::fs::File,
@@ -86,28 +110,7 @@ impl Fixture {
         }
     }
     fn drain(&mut self) -> Value {
-        let mut bytes = Vec::new();
-        let deadline = Instant::now() + Duration::from_millis(1000);
-        while bytes.last() != Some(&b'\n') {
-            let remaining = deadline
-                .checked_duration_since(Instant::now())
-                .expect("pipe deadline");
-            let mut poll = libc::pollfd {
-                fd: self.reader.as_raw_fd(),
-                events: libc::POLLIN,
-                revents: 0,
-            };
-            assert!(
-                unsafe { libc::poll(&mut poll, 1, remaining.as_millis().min(1000) as i32) } > 0
-            );
-            let mut buf = [0; 4096];
-            let n = self.reader.read(&mut buf[..4096 - bytes.len()]).unwrap();
-            assert!(n > 0);
-            bytes.extend_from_slice(&buf[..n]);
-            assert!(bytes.len() <= 4096);
-        }
-        assert!(bytes.len() <= 2048, "small actual fixture frame");
-        serde_json::from_slice(&bytes).unwrap()
+        drain_from(&mut self.reader)
     }
     fn empty(&self) {
         let mut p = libc::pollfd {
@@ -734,27 +737,62 @@ fn call_custody_rejected_second_invocation_cannot_cancel_first_preparation() {
     assert_eq!(f.view()["canonicalUpdated"], true);
 }
 
-/// DEL-01-05: in the dedicated local home, the offered-call reply's admission takes the lock the
-/// settings save takes to mark the binding superseded: admitted before the mark, or refused.
+/// DEL-01-05: in the dedicated local home, the offered-call reply holds the frame writer lock from
+/// its final admission through its write, and the save sets the supersession mark only while
+/// holding it. A mark that comes while the reply is admitted waits for it, and the reply's bytes
+/// are on Codex's input first; a mark set first refuses the reply, withdrawn with nothing written so
+/// the call waits; at the bound the mark is refused and the reply is written.
 #[test]
-fn call_custody_local_offered_reply_is_refused_when_the_binding_is_superseded_before_its_admission() {
-    for held in [true, false] {
+fn call_custody_local_offered_reply_and_the_supersession_mark_exclude_each_other_through_the_frame_writer() {
+    use std::sync::mpsc::channel;
+    for case in ["in-flight", "marked-first", "bound-reached"] {
         let mut f = Fixture::new(Role::WORKING_ITEMS);
         f.start(true);
         f.host.inner.0.lock().unwrap().local_provider = Some(crate::hosting::access_provider::LocalProviderBinding::for_test("call-home", "/synthetic"));
-        if held {
-            // Between the reply's file check and its locked admission, the save marks the binding.
-            *f.host.cce_before_cut.lock().unwrap() = Some(Box::new(|h, _| h.supersede_local().unwrap()));
-        }
-        feed(&f.host, &call(json!(10)));
-        let entry = f.host.inner.0.lock().unwrap().server_requests.entries()[0].clone();
-        if held {
+        if case == "marked-first" {
+            f.host.supersede_local(Duration::from_secs(5)).unwrap();
+            feed(&f.host, &call(json!(10)));
             f.empty();
-            assert_eq!((entry["state"].as_str(), entry["replyWriteResult"].as_str()), (Some("outstanding"), Some("not-attempted")), "withdrawn: zero bytes written, the call waits");
-            assert!(f.host.journal().iter().any(|e| e["class"] == "local-reply-refused"));
-        } else {
-            assert_eq!(f.drain(), json!({"id":10,"result":unavailable()}), "admitted before any mark: written as before");
-            assert_eq!(entry["state"], "answered");
+            let entry = f.host.inner.0.lock().unwrap().server_requests.entries()[0].clone();
+            // Refused before it is prepared (the reply's first check reads the mark): zero bytes, the call waits.
+            assert_eq!((entry["state"].as_str(), entry["replyWriteResult"].as_str()), (Some("outstanding"), Some("not-attempted")), "zero bytes written, the call waits");
+            continue;
         }
+        // The reply pauses after its admission, holding the frame writer lock.
+        let (at, admitted) = channel();
+        let (go, going) = channel::<()>();
+        *f.host.cce_after_cut.lock().unwrap() = Some(Box::new(move |_, _| { at.send(()).unwrap(); going.recv().unwrap(); }));
+        let (host, reader) = (&f.host, &mut f.reader);
+        std::thread::scope(|scope| {
+            let replying = scope.spawn(|| feed(host, &call(json!(10))));
+            admitted.recv_timeout(Duration::from_secs(5)).unwrap();
+            if case == "bound-reached" {
+                assert_eq!(host.supersede_local(Duration::from_millis(100)).unwrap_err(), crate::native_local_provider::WRITE_IN_PROGRESS);
+                assert!(!host.local_superseded(), "not marked at the bound");
+                go.send(()).unwrap();
+                replying.join().unwrap();
+                assert_eq!(drain_from(reader), json!({"id":10,"result":unavailable()}), "the admitted reply is written");
+                return;
+            }
+            let (waiting_at, waiting) = channel();
+            let (marking_at, marking) = channel();
+            let (proceed, proceeding) = channel::<()>();
+            *host.supersede_waiting.lock().unwrap() = Some(Box::new(move |_| waiting_at.send(()).unwrap()));
+            *host.supersede_marking.lock().unwrap() = Some(Box::new(move |_| { marking_at.send(()).unwrap(); proceeding.recv().unwrap(); }));
+            let saving = scope.spawn(|| host.supersede_local(Duration::from_secs(5)));
+            waiting.recv_timeout(Duration::from_secs(5)).unwrap();
+            std::thread::sleep(Duration::from_millis(150));
+            assert!(!host.local_superseded() && !saving.is_finished(), "the mark waits for the admitted reply");
+            go.send(()).unwrap();
+            marking.recv_timeout(Duration::from_secs(5)).unwrap();
+            assert_eq!(drain_from(reader), json!({"id":10,"result":unavailable()}), "the reply's bytes are on Codex's input before the mark");
+            assert!(!host.local_superseded());
+            proceed.send(()).unwrap();
+            saving.join().unwrap().unwrap();
+            replying.join().unwrap();
+            assert!(host.local_superseded());
+        });
+        f.empty();
+        assert_eq!(f.host.inner.0.lock().unwrap().server_requests.entries()[0]["state"], "answered");
     }
 }
