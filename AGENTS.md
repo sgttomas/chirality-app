@@ -257,8 +257,9 @@ silently switching sources. Roles grant no host permissions.
 A method serves the INTERLOCUTOR only when that method's `compatible_roles`
 name it.
 
-Use plain prose with spaced identifiers in assignments and messages to other
-agents.
+An assignment refers only to repository files and host
+facts. Use plain prose with spaced identifiers in assignments and messages
+to other agents. Lead owner updates with the result or decision needed.
 
 The Library's own work locations, duties and Git grants do not transfer to
 this project. Shared-method consultation does not authorize changes to another
@@ -283,13 +284,17 @@ and 9.
 ## Root relationship
 
 Root measures and improves how agents deliver work across the Chirality
-projects and hosts shared services. Its agents may evaluate App from session
-telemetry, read-only; the owner reviews every finding. Root's Agent 0 and
-agents working under its assignment may change App's files within work the owner has authorised, through
-a PR here under these instructions, and tell App's Agent 0. What Root writes in a public repository is cleared
-for publication first. Root may also open
-a GitHub issue for an owner-approved finding cleared for publication. Routine adherence checks of
-App's deliverables stay with App's Agent 0 under these standing instructions.
+projects and hosts shared services. Root reads session telemetry read-only, segregated by
+repository: session metadata in any repository, to attribute sessions, and
+message and tool content only for the repositories a query selects, leaving
+out a session that spans several repositories unless the owner selects it by
+name. The owner reviews every finding before it reaches this project. Root's Agent 0 and agents working under its assignment may change
+this project's files within work the owner has authorised, through a PR here
+under these instructions, this project's checks and its Git grant, and tell
+this project's Agent 0. What Root writes in a public repository is cleared
+for publication first. Root may also open an issue for an owner-approved
+finding cleared for publication. Routine adherence checks of this project's deliverables are
+run by this project's Agent 0 through a Library workflow.
 
 ## Verification and authority
 
