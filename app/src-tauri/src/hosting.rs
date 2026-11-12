@@ -754,9 +754,6 @@ pub struct Host {
     submission_contexts:Arc<Mutex<Vec<Value>>>,
     frame_write: Mutex<()>,
     attachment_gate: Mutex<()>,
-    /// The App's own close-on-exec descriptor of the local home's process lock, kept for the
-    /// child it was taken for until the next start in this Host releases it before locking again.
-    process_lock: Mutex<Option<std::fs::File>>,
     /// One stop request at a time for this Host (SR-11): its guard, SR-01 and
     /// its send are not interleaved with another. Per Host, so a home whose
     /// Codex stops reading holds up only its own interrupts.
@@ -853,7 +850,6 @@ impl Host {
             submission_contexts:Arc::new(Mutex::new(Vec::new())),
             frame_write: Mutex::new(()),
             attachment_gate: Mutex::new(()),
-            process_lock: Mutex::new(None),
             interrupt_gate: Mutex::new(()),
             this: Mutex::new(std::sync::Weak::new()),
             #[cfg(test)]
@@ -1589,6 +1585,23 @@ impl Host {
     pub fn start(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
         let records_activity=if cfg.records_project {crate::records_retention::activity(&cfg.cwd)?}else{None};
         *self.this.lock().unwrap() = Arc::downgrade(self);
+        // The dedicated local home: an earlier Codex there must be known ended before another
+        // starts. The exclusive, non-waiting lock is taken before the attempt is admitted, so a
+        // refusal is an ordinary early refusal: nothing is recorded and the state is unchanged, and
+        // Prepare or Start can be tried again. A state that admits no start refuses as admission
+        // would, before the lock is tried. The App's copy is closed as soon as the child is spawned.
+        let process_lock = match &cfg.process_lock {
+            None => None,
+            Some(path) => {
+                {
+                    let i = self.inner.0.lock().unwrap();
+                    if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
+                        return Err(format!("start not accepted in state {}", i.state));
+                    }
+                }
+                Some(crate::native_local_provider::take_process_lock(path)?)
+            }
+        };
         let attempt = {
             let _gate=self.attachment_gate.lock().unwrap();
             self.check_quit_fence()?;
@@ -1752,38 +1765,22 @@ impl Host {
         if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c|c.end_observation.lock().unwrap().is_some()){return Err("App session end observed; native source not spawned".into());}
         let home_identity=format!("app-home:{}",sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
         if self.spawn_counters.lock().unwrap().get(&home_identity)==Some(&u64::MAX){return Err("home spawn counter exhausted; native source not spawned, no reuse".into());}
-        // The dedicated local home: an earlier Codex there must be known ended before another
-        // starts. The App's descriptor from this Host's previous start is released first (its child
-        // keeps its own inherited copy while it lives); then an exclusive, non-waiting lock.
-        let process_lock = match &cfg.process_lock {
-            None => None,
-            Some(path) => {
-                self.process_lock.lock().unwrap().take();
-                match crate::native_local_provider::take_process_lock(path) {
-                    Ok(file) => {
-                        use std::os::fd::AsRawFd;
-                        let fd = file.as_raw_fd();
-                        // In the child only, after process_group(0)'s setpgid and before exec: clear
-                        // close-on-exec on this one descriptor. One fcntl; async-signal-safe.
-                        unsafe {
-                            cmd.pre_exec(move || {
-                                if libc::fcntl(fd, libc::F_SETFD, 0) == -1 { Err(std::io::Error::last_os_error()) } else { Ok(()) }
-                            });
-                        }
-                        Some(file)
-                    }
-                    Err(reason) => {
-                        let mut i = self.inner.0.lock().unwrap();
-                        // Recorded as the spawn failure it is (no child was started), so Restart
-                        // Codex can try again once the earlier process has ended.
-                        self.lt(&mut i, "LT-08", "spawn-failed", "halted-after-repeated-failure",
-                                json!({"failure": reason, "failureCount": 1}));
-                        return Err(reason);
-                    }
-                }
+        if let Some(file) = &process_lock {
+            use std::os::fd::AsRawFd;
+            let fd = file.as_raw_fd();
+            // In the child only, after process_group(0)'s setpgid and before exec: clear
+            // close-on-exec on this one descriptor. One fcntl; async-signal-safe.
+            unsafe {
+                cmd.pre_exec(move || {
+                    if libc::fcntl(fd, libc::F_SETFD, 0) == -1 { Err(std::io::Error::last_os_error()) } else { Ok(()) }
+                });
             }
-        };
-        let child = match process_group_custody::OwnedProcess::spawn(&mut cmd) {
+        }
+        let spawned = process_group_custody::OwnedProcess::spawn(&mut cmd);
+        // The App's copy is closed at once, spawned or not: the child's inherited copy is what holds
+        // the lock, for as long as that Codex or anything it left holding the descriptor lives.
+        drop(process_lock);
+        let child = match spawned {
             Ok(c) => c,
             Err(e) => {
                 let mut i = self.inner.0.lock().unwrap();
@@ -1810,8 +1807,6 @@ impl Host {
                 return Err(e);
             }
         }
-        // Kept with the child it was taken for; dropped (unlocking only the App's copy) at the next start.
-        if let Some(file) = process_lock { *self.process_lock.lock().unwrap() = Some(file); }
         let stdout = child.take_stdout().unwrap();
         let stderr = child.take_stderr().unwrap();
         let source_gate = match successor_gate { Some(guard) => guard, None => self.attachment_gate.lock().unwrap() };
@@ -2021,11 +2016,14 @@ impl Host {
     /// Origin/answer admission remains the register's; actual IO is outside
     /// lifecycle/state locks, bound to the source captured at preparation.
     pub fn answer_server_request(&self, generation:&Value,id:&Value,answer:&Value,origin:&str,actor:Option<&str>)->Result<Value,String>{
+        // The local home: checked before the answer is prepared, so a refusal leaves the request waiting.
+        self.check_local_reply()?;
         let(frame,bound)={let mut i=self.inner.0.lock().unwrap();let frame=i.server_requests.prepare(generation,id,answer,origin,actor)?;let bound=self.capture_pipe(&i);(frame,bound)};
         let result=bound.and_then(|bound|self.write_reply(bound,&frame));
         self.flush_recovery_observations();result?;Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
     }
     pub fn error_server_request(&self,generation:&Value,id:&Value,error:&Value,origin:&str)->Result<Value,String>{
+        self.check_local_reply()?;
         let(frame,bound)={let mut i=self.inner.0.lock().unwrap();let frame=i.server_requests.prepare_error(generation,id,error,origin)?;let bound=self.capture_pipe(&i);(frame,bound)};
         let result=bound.and_then(|bound|self.write_reply(bound,&frame));
         self.flush_recovery_observations();result?;Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
@@ -2072,6 +2070,14 @@ impl Host {
     }
     fn write_reply(&self,mut bound:BoundPipe,frame:&Value)->Result<(),String>{
         let bytes=Self::frame_bytes(frame)?;let serial=self.frame_write.lock().unwrap();
+        // After the writer wait, holding neither Inner nor the gate: a reply to the local home's
+        // Codex is written only while its files still establish the address in force. A refusal here
+        // writes nothing; an already prepared reply stays prepared and unwritten (not waiting).
+        if let Err(reason)=self.check_local_reply(){
+            drop(serial);
+            self.inner.0.lock().unwrap().journal.push(json!({"generation":bound.generation,"class":"local-reply-refused","requestIdentity":frame["id"],"reason":reason}));
+            return Err(reason);
+        }
         let observation={let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;if !Self::reply_eligible(&i,&bound.generation,frame){return Err("reply no longer eligible after source/frame wait; nothing sent".into());}i.server_requests.begin_reply_write(&bound.generation,&frame["id"])?};
         let result=Self::write_complete(&mut bound.file,&bytes);observation.complete(result.is_ok());drop(serial);
         let mut i=self.inner.0.lock().unwrap();Self::observe_reply_writes(&mut i);if i.generation!=bound.generation||i.server_requests.is_closed(&bound.generation){drop(i);self.flush_recovery_observations();return Err("reply write finished for closed/superseded source; original result retained, no successor settlement inferred".into());}
@@ -2723,6 +2729,8 @@ impl Host {
         let f=&call.facts;
         let mut owns_preparation=false;
         let result=(||{
+            // The local home: checked before preparing, so a refusal leaves the call waiting.
+            self.check_local_reply()?;
             let (mut bound,frame)={let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();Self::cce_check_call(&i,call)?;
                 if f.resolution.load(Ordering::SeqCst)!=0{return Err("original call resolved before prepare".into())}
                 f.state.compare_exchange(0,1,Ordering::SeqCst,Ordering::SeqCst).map_err(|_|"original call already attempted")?;
@@ -2730,6 +2738,8 @@ impl Host {
                 let generation=i.generation.clone();let reply=i.server_requests.prepare_offered_unavailable(f.index,&generation,&f.rpc.view())?;let bound=self.capture_pipe(&i)?;(bound,reply)};
             let bytes=Self::frame_bytes(&frame)?;if bytes.len()>2048{return Err("offered response frame limit".into())}
             let serial=self.frame_write.lock().unwrap();
+            // After the writer wait, holding neither Inner nor the gate.
+            self.check_local_reply()?;
             #[cfg(test)] {let hook=self.cce_before_cut.lock().unwrap().take();if let Some(h)=hook{h(self,call);}}
             let observation={let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;Self::cce_check_call(&i,call)?;
                 let e=i.server_requests.original_offered(f.index,&i.generation,&f.rpc.view()).ok_or("original offered entry absent")?;
@@ -4054,6 +4064,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         // Validate/retain only minimal child identities outside Inner.
         // Disposable observer replay is not this receiver's recording source.
         let child_event=parsed.as_ref().and_then(|frame|NativeChildStart::capture(generation,frame));
+        // The one reply prepared here by the App's own rule (current time): the local home's files
+        // are checked before Inner is taken, and a refusal leaves the request waiting.
+        let local_reply_refused=parsed.as_ref().filter(|f|f["method"]=="currentTime/read"&&f.get("id").is_some()).and_then(|_|self.check_local_reply().err());
         let mut i = self.inner.0.lock().unwrap();
         let correlated_method=parsed.as_ref().and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).and_then(|e|e.request.frame["method"].as_str()).map(str::to_owned);
         // The reply can beat public client-record publication. Its registered
@@ -4134,9 +4147,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 }
                 Ok(None) => {
                     if frame["method"] == "currentTime/read" && capabilities["experimentalApi"] == true {
+                        if let Some(reason) = &local_reply_refused {
+                            i.journal.push(json!({"generation":gen,"class":"local-reply-refused","requestIdentity":frame["id"],"reason":reason}));
+                        } else {
                         let seconds = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs();
                         if let Ok(reply) = i.server_requests.prepare(&gen, &frame["id"], &json!({"currentTimeAt":seconds}), "app-rule:current-time", None) {
                             match self.capture_pipe(&i){Ok(bound)=>automatic_reply=Some((bound,reply)),Err(reason)=>i.journal.push(json!({"generation":gen,"class":"request-reply-not-attempted","reason":reason,"requestIdentity":frame["id"]}))}
+                        }
                         }
                     }
                 }
@@ -4293,6 +4310,12 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let text=answer["contentItems"][0]["text"].as_str().unwrap_or_default();
         let read_id=serde_json::from_str::<Value>(text).ok().map(|v|v["readId"].clone()).unwrap_or(Value::Null);
         let reference=json!({"readId":read_id,"bytes":text.len(),"content":{"method":"chirality.app.exact-bytes.sha256/v1","value":sha256_hex(text.as_bytes())},"success":answer["success"]});
+        // The local home: checked before preparing, so a refusal leaves the call waiting.
+        if let Err(reason)=self.check_local_reply(){
+            self.inner.0.lock().unwrap().journal.push(json!({"generation":generation,"class":"local-reply-refused","requestIdentity":call.request,"reason":reason}));
+            self.flush_recovery_observations();
+            return;
+        }
         let prepared={let mut i=self.inner.0.lock().unwrap();
             match i.server_requests.prepare_named_tool(&generation,&call.request,&answer,"app-rule:records-read",reference){
                 Ok(frame)=>match self.capture_pipe(&i){Ok(bound)=>Some((bound,frame)),Err(reason)=>{i.journal.push(json!({"generation":generation,"class":"records-call-reply-not-attempted","reason":reason,"requestIdentity":call.request}));None}},
@@ -6545,13 +6568,17 @@ mod supplier_0167_tests;
 mod local_process_lock_tests {
     use super::*;
     use crate::native_local_provider::{take_process_lock, EARLIER_PROCESS, PROCESS_LOCK};
-    use std::os::fd::AsRawFd;
     use std::os::unix::fs::PermissionsExt;
     struct Fixture { root: PathBuf, cfg: HostConfig }
+    /// Ends a left-behind stand-in if a test fails before it does.
+    struct LeftBehind(i32);
+    impl Drop for LeftBehind { fn drop(&mut self) { if self.0 > 0 { unsafe { libc::kill(self.0, libc::SIGKILL); } } } }
     impl Fixture {
-        /// A stand-in "codex" that answers every request and stays alive until its input closes;
-        /// in app-server mode it first leaves a marker in its CODEX_HOME.
-        fn new(local: bool) -> Self {
+        /// A stand-in "codex" that answers every request and stays alive until its input closes; in
+        /// app-server mode it first leaves a marker in its CODEX_HOME. With `leave_behind` it also
+        /// starts a /bin/sleep in a new session that inherits only the lock descriptor, as a command
+        /// Codex ran and left behind might.
+        fn new(local: bool, leave_behind: bool) -> Self {
             let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("local-lock-").unwrap());
             for d in ["vendor/bin", "vendor/codex-path", "vendor/codex-resources", "home", "probe"] {
                 std::fs::create_dir_all(root.join(d)).unwrap();
@@ -6559,7 +6586,8 @@ mod local_process_lock_tests {
             std::fs::set_permissions(root.join("home"), std::fs::Permissions::from_mode(0o700)).unwrap();
             std::fs::write(root.join("vendor/codex-package.json"), b"{}\n").unwrap();
             let bin = root.join("vendor/bin/codex");
-            std::fs::write(&bin, "#!/usr/bin/env python3\nimport os,sys,json\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\nopen(os.environ['CODEX_HOME']+'/started','a').write('x')\nfor line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.167.0'}}),flush=True)\n").unwrap();
+            let left = if leave_behind { "import subprocess\nlock=os.stat(os.environ['CODEX_HOME']+'/app-codex-process.lock').st_ino\nfd=[int(n) for n in os.listdir('/dev/fd') if int(n)>2 and os.path.exists('/dev/fd/'+n) and os.fstat(int(n)).st_ino==lock][0]\np=subprocess.Popen(['/bin/sleep','30'],close_fds=True,pass_fds=(fd,),start_new_session=True,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\nopen(os.environ['CODEX_HOME']+'/left-behind','w').write(str(p.pid))\n" } else { "" };
+            std::fs::write(&bin, format!("#!/usr/bin/env python3\nimport os,sys,json\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\nopen(os.environ['CODEX_HOME']+'/started','a').write('x')\n{left}for line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.167.0'}}}}),flush=True)\n")).unwrap();
             std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o700)).unwrap();
             let mut cfg = HostConfig::new(bin.clone(), root.join("home"), root.join("probe"), root.clone());
             cfg.distribution = Some(successor::Distribution::development_from_binary(&bin).unwrap());
@@ -6576,25 +6604,25 @@ mod local_process_lock_tests {
         let end = std::time::Instant::now() + Duration::from_secs(5);
         while !done() { assert!(std::time::Instant::now() < end, "{what}"); std::thread::sleep(Duration::from_millis(10)); }
     }
+    fn alive(pid: i32) -> bool { (unsafe { libc::kill(pid, 0) }) == 0 }
+    /// Stop, then wait until the child itself is gone: Stop's word is not relied on.
+    fn stop_and_wait(host: &Host) {
+        let pid = host.inner.0.lock().unwrap().child_pid.expect("a spawned child");
+        let _ = host.stop("fixture", "test");
+        until("the stand-in Codex has ended", || !alive(pid));
+    }
 
     #[test]
-    fn local_process_lock_is_held_by_the_child_after_the_apps_descriptor_closes_and_freed_when_it_exits() {
-        let f = Fixture::new(true);
+    fn local_process_lock_is_held_by_the_child_alone_and_freed_when_it_exits() {
+        let f = Fixture::new(true, false);
         let host = Arc::new(Host::new());
         assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
         assert!(f.started());
-        {
-            let mine = host.process_lock.lock().unwrap();
-            let fd = mine.as_ref().expect("the App keeps its descriptor with the child").as_raw_fd();
-            assert_ne!(unsafe { libc::fcntl(fd, libc::F_GETFD) } & libc::FD_CLOEXEC, 0, "the App's own descriptor stays close-on-exec");
-        }
-        // A second child started the ordinary way while the first lives inherits nothing.
+        // The App closed its own copy at spawn: the lock is held by the child alone.
+        assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS);
+        // A child started the ordinary way while the first lives inherits nothing.
         let mut ordinary = Command::new("/bin/sleep").arg("30").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();
-        // The stand-in for the App dying: its own descriptor closes; the child still holds the lock.
-        drop(host.process_lock.lock().unwrap().take());
-        assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by the Codex child alone");
-        // The child ends: the lock is free although the ordinary child still runs.
-        host.stop("fixture", "test complete").unwrap();
+        stop_and_wait(&host);
         let lock = take_process_lock(&f.lock_path()).expect("free once the child has exited");
         assert!(ordinary.try_wait().unwrap().is_none(), "the ordinary child is still running and does not hold the lock");
         drop(lock);
@@ -6603,68 +6631,89 @@ mod local_process_lock_tests {
     }
 
     #[test]
-    fn local_start_while_the_lock_is_held_is_refused_with_the_fixed_sentence_and_starts_nothing() {
-        let f = Fixture::new(true);
+    fn local_process_lock_lasts_until_what_the_child_left_behind_has_ended_too() {
+        let f = Fixture::new(true, true);
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        until("the stand-in left a process behind", || std::fs::read_to_string(f.root.join("home/left-behind")).is_ok_and(|v| v.parse::<i32>().is_ok()));
+        let mut left = LeftBehind(std::fs::read_to_string(f.root.join("home/left-behind")).unwrap().parse().unwrap());
+        stop_and_wait(&host);
+        assert!(alive(left.0), "the left-behind process is in its own session and outlives the stop");
+        assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by what the child left behind");
+        let lifecycle = host.lifecycle_events().len();
+        let state = host.snapshot()["state"].clone();
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), EARLIER_PROCESS, "no successor while it lives");
+        assert_eq!((host.snapshot()["state"].clone(), host.lifecycle_events().len()), (state, lifecycle), "an early refusal changes nothing");
+        unsafe { libc::kill(left.0, libc::SIGKILL); }
+        until("the left-behind process has ended", || !alive(left.0));
+        left.0 = 0;
+        drop(take_process_lock(&f.lock_path()).expect("free once the last holder has ended"));
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready", "the same Host starts again");
+        stop_and_wait(&host);
+        // The second stand-in left one behind too.
+        if let Ok(pid) = std::fs::read_to_string(f.root.join("home/left-behind")).unwrap_or_default().parse::<i32>() { drop(LeftBehind(pid)); }
+    }
+
+    #[test]
+    fn local_start_while_the_lock_is_held_is_an_early_refusal_that_leaves_the_state_unchanged() {
+        let f = Fixture::new(true, false);
         let host = Arc::new(Host::new());
         let earlier = take_process_lock(&f.lock_path()).unwrap();
-        let error = host.start(&f.cfg, "fixture").unwrap_err();
-        assert_eq!(error, EARLIER_PROCESS);
-        assert!(!f.started(), "no Codex was started, so nothing was written to one");
-        assert!(host.child.lock().unwrap().is_none() && host.stdin.lock().unwrap().is_none(), "no child and no input pipe");
-        assert!(host.process_lock.lock().unwrap().is_none());
-        assert_eq!(host.snapshot()["state"], "halted-after-repeated-failure");
-        let last = host.lifecycle_events().last().cloned().unwrap();
-        assert_eq!((last["transitionId"].as_str(), last["failure"].as_str()), (Some("LT-08"), Some(EARLIER_PROCESS)));
+        for _ in 0..2 {
+            assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), EARLIER_PROCESS);
+            assert_eq!(host.snapshot()["state"], "absent", "the state is as it was");
+            assert!(host.lifecycle_events().is_empty(), "no attempt was admitted or recorded");
+            assert!(!f.started(), "no Codex was started, so nothing was written to one");
+            assert!(host.child.lock().unwrap().is_none() && host.stdin.lock().unwrap().is_none(), "no child and no input pipe");
+        }
         for absent in ["/", ".lock", "pid", "PID", "home/"] {
             assert!(!EARLIER_PROCESS.contains(absent), "the sentence carries no path or process detail: {absent}");
         }
         assert!(!EARLIER_PROCESS.bytes().any(|b| b.is_ascii_digit()), "no process number");
-        // Not stranded: Restart Codex (Stop, then start) succeeds once the earlier process is gone.
+        // Once the earlier holder is gone, the same start route starts Codex: nothing to undo.
         drop(earlier);
-        host.stop("fixture", "restart").unwrap();
         assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
         assert!(f.started());
-        host.stop("fixture", "test complete").unwrap();
+        // A state that admits no start refuses as admission would, without trying the lock.
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), "start not accepted in state ready");
+        stop_and_wait(&host);
     }
 
     #[test]
-    fn local_restart_after_the_apps_own_stop_does_not_trip_over_the_lock_of_the_process_it_ended() {
-        let f = Fixture::new(true);
+    fn local_restart_after_the_apps_own_stop_is_not_refused_by_the_apps_own_hand() {
+        let f = Fixture::new(true, false);
         let host = Arc::new(Host::new());
         for round in 1..=3 {
             let ready = host.start(&f.cfg, "fixture").unwrap();
             assert_eq!(ready["generation"]["spawnCounter"], round);
-            let pid = host.inner.0.lock().unwrap().child_pid.expect("a spawned child");
-            host.stop("fixture", "restart").unwrap();
-            // Stop returned after the group was observed empty: the ended child holds nothing.
-            until("the stopped child has ended", || unsafe { libc::kill(pid, 0) } != 0);
+            stop_and_wait(&host);
+            // No copy is kept by the App: with the child gone the lock is free at once.
+            drop(take_process_lock(&f.lock_path()).expect("free: the App keeps no descriptor"));
         }
-        assert!(take_process_lock(&f.lock_path()).is_err(), "the App's descriptor for the last child is still kept");
-        drop(host.process_lock.lock().unwrap().take());
-        assert!(take_process_lock(&f.lock_path()).is_ok());
     }
 
     #[test]
     fn account_home_start_takes_no_process_lock() {
-        let f = Fixture::new(false);
+        let f = Fixture::new(false, false);
         assert!(f.cfg.process_lock.is_none() && HostConfig::new("/x".into(), "/a".into(), "/p".into(), "/w".into()).process_lock.is_none());
         // A held lock file elsewhere is never consulted by an account start.
-        let elsewhere = f.root.join("probe").join(PROCESS_LOCK);
-        let held = take_process_lock(&elsewhere).unwrap();
+        let held = take_process_lock(&f.root.join("probe").join(PROCESS_LOCK)).unwrap();
         let host = Arc::new(Host::new());
         assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
-        assert!(host.process_lock.lock().unwrap().is_none(), "no lock taken");
         assert!(!f.lock_path().exists(), "no lock file in the account home");
-        host.stop("fixture", "test complete").unwrap();
+        stop_and_wait(&host);
         drop(held);
     }
 
     #[test]
     fn local_process_lock_file_that_is_not_the_apps_private_file_refuses() {
-        let f = Fixture::new(true);
+        let f = Fixture::new(true, false);
         let path = f.lock_path();
         std::os::unix::fs::symlink(f.root.join("elsewhere"), &path).unwrap();
         assert_eq!(take_process_lock(&path).unwrap_err(), crate::native_local_provider::PROCESS_LOCK_UNAVAILABLE, "a link");
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), crate::native_local_provider::PROCESS_LOCK_UNAVAILABLE);
+        assert_eq!(host.snapshot()["state"], "absent", "an early refusal");
         std::fs::remove_file(&path).unwrap();
         std::fs::write(&path, "").unwrap();
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
@@ -6673,8 +6722,7 @@ mod local_process_lock_tests {
         std::fs::hard_link(&path, f.root.join("alias")).unwrap();
         assert_eq!(take_process_lock(&path).unwrap_err(), crate::native_local_provider::PROCESS_LOCK_UNAVAILABLE, "hard-linked");
         std::fs::remove_file(f.root.join("alias")).unwrap();
-        let host = Arc::new(Host::new());
         assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready", "the private file works");
-        host.stop("fixture", "test complete").unwrap();
+        stop_and_wait(&host);
     }
 }

@@ -1100,7 +1100,11 @@ fn child_supplier_subject(i: &Inner) -> Value {
 /// from then on nothing that can reach a model or load a conversation is admitted in this home.
 /// `plan` is the bound home: every request that can make this Codex send to the model server
 /// reads its settings file and key-address record again, through `check_local_files`.
-pub(super) struct LocalProviderBinding { home: String, cwd: String, settings: crate::native_local_provider::LocalSettings, superseded: bool, plan: crate::home_resources::OwnedHomePlan, #[cfg(test)] _scratch: Option<ScratchHome> }
+/// `key_seen`: this bound session has seen a key (a check found the key file present, or a key
+/// entry was begun or acknowledged by Codex). Codex may hold that key in memory after its file is
+/// gone, so from then on every check requires the App's record to name the address in force. Set
+/// under Inner; never cleared: only a new binding (a new bound session) starts without it.
+pub(super) struct LocalProviderBinding { home: String, cwd: String, settings: crate::native_local_provider::LocalSettings, superseded: bool, plan: crate::home_resources::OwnedHomePlan, key_seen: bool, #[cfg(test)] _scratch: Option<ScratchHome> }
 /// A test binding without a caller's plan gets its own seeded home, removed with the binding.
 #[cfg(test)]
 pub(super) struct ScratchHome(std::path::PathBuf);
@@ -1115,11 +1119,11 @@ impl LocalProviderBinding {
         std::fs::create_dir(&root).unwrap();
         let plan=crate::home_resources::OwnedHomePlan::new(root.clone(),root.join("local"),crate::home_resources::HomeClass::LocalProvider,None).unwrap();
         crate::native_local_provider::prepare_for_test(&plan,&settings);
-        Self{home:home.into(),cwd:cwd.into(),settings,superseded:false,plan,_scratch:Some(ScratchHome(root))}
+        Self{home:home.into(),cwd:cwd.into(),settings,superseded:false,plan,key_seen:false,_scratch:Some(ScratchHome(root))}
     }
     /// A binding to the caller's own prepared home, as `bind_local_destination` makes one.
     pub(super) fn for_plan(plan:&crate::home_resources::OwnedHomePlan,cwd:&str,settings:crate::native_local_provider::LocalSettings)->Self {
-        Self{home:plan.opaque_home_id(),cwd:cwd.into(),settings,superseded:false,plan:plan.clone(),_scratch:None}
+        Self{home:plan.opaque_home_id(),cwd:cwd.into(),settings,superseded:false,plan:plan.clone(),key_seen:false,_scratch:None}
     }
 }
 /// What a superseded binding still admits: requests that send nothing to a model and load no
@@ -1135,7 +1139,7 @@ impl Host {
             || config.process_lock.as_deref() != Some(plan.native_path().join(crate::native_local_provider::PROCESS_LOCK).as_path()) { return Err(unavailable()); }
         let mut i=self.inner.0.lock().map_err(|_| unavailable())?;
         if i.local_provider.is_some() || i.state!="absent" || !i.generation.is_null() { return Err(unavailable()); }
-        i.local_provider=Some(LocalProviderBinding{home:plan.opaque_home_id(),cwd:config.cwd.to_str().ok_or_else(unavailable)?.into(),settings,superseded:false,plan:plan.clone(),#[cfg(test)] _scratch:None}); Ok(())
+        i.local_provider=Some(LocalProviderBinding{home:plan.opaque_home_id(),cwd:config.cwd.to_str().ok_or_else(unavailable)?.into(),settings,superseded:false,plan:plan.clone(),key_seen:false,#[cfg(test)] _scratch:None}); Ok(())
     }
     /// The settings file changed through the App while this home is bound: refuse every model or
     /// conversation-loading request in it for the rest of this process. Never cleared.
@@ -1160,11 +1164,38 @@ impl Host {
     /// write (and at registration); a read-only request the guard admits while superseded reads
     /// nothing. Without a local binding there is nothing to read.
     pub(super) fn check_local_files(&self,method:&str)->Result<(),String> {
-        let (plan,settings)={
+        if local_read_only(method) || !self.local_bound()? { return Ok(()); }
+        self.check_local_home()
+    }
+    /// A reply to one of this Codex's own requests can release a waiting turn to call the model, so
+    /// in the dedicated local home it is written only while the binding is not superseded and the
+    /// files still establish the address in force (the same full check as a send). Without a local
+    /// binding there is nothing to check. Never called with Inner or the attachment gate held.
+    pub(super) fn check_local_reply(&self)->Result<(),String> {
+        if !self.local_bound()? { return Ok(()); }
+        self.check_local_home()
+    }
+    fn local_bound(&self)->Result<bool,String> {
+        Ok(self.inner.0.lock().map_err(|_| crate::native_local_provider::LIMIT.to_owned())?.local_provider.is_some())
+    }
+    /// The bound session's full check of the home's files: refused while superseded; otherwise the
+    /// settings file and key-address record must establish the settings in force, and once this
+    /// session has seen a key the record must be present whether or not the key file still is.
+    /// A key file found present is remembered. Refused without a local binding. Reads files with
+    /// no lock held.
+    pub(crate) fn check_local_home(&self)->Result<(),String> {
+        let (plan,settings,seen)={
             let i=self.inner.0.lock().map_err(|_| crate::native_local_provider::LIMIT.to_owned())?;
-            match &i.local_provider { None=>return Ok(()), Some(_) if local_read_only(method)=>return Ok(()), Some(b) if b.superseded=>return Err(crate::native_local_provider::RELAUNCH.into()), Some(b)=>(b.plan.clone(),b.settings.clone()) }
+            let b=i.local_provider.as_ref().ok_or(crate::native_local_provider::LIMIT)?;
+            if b.superseded { return Err(crate::native_local_provider::RELAUNCH.into()); }
+            (b.plan.clone(),b.settings.clone(),b.key_seen)
         };
-        crate::native_local_provider::check(&plan,&settings)
+        if crate::native_local_provider::check_seen(&plan,&settings,seen)? { self.note_local_key(); }
+        Ok(())
+    }
+    /// Remember that this bound session has seen a key. Never cleared.
+    pub(crate) fn note_local_key(&self) {
+        if let Ok(mut i)=self.inner.0.lock() { if let Some(b)=i.local_provider.as_mut() { b.key_seen=true; } }
     }
     // Pure state/parameter guard. Caller already holds Inner; no recursion, IO or public capture.
     #[allow(clippy::too_many_arguments)]

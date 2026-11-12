@@ -39,6 +39,9 @@ pub(crate) const UNSET: &str = "Local model settings are not set; set the server
 pub(crate) const RELAUNCH: &str = "The local model settings changed, or a change to them was begun, after the local connection was prepared in this session; quit and reopen the App to use the local connection. It is unavailable until then.";
 pub(crate) const EARLIER: &str =
     "This conversation was started under earlier local model settings; it is not continued.";
+/// The refusal once this App session has seen a key and the App's record of its address is gone
+/// together with the key file: Codex may still hold the key. It names no address.
+pub(crate) const KEY_ADDRESS_LOST: &str = "A key was saved or entered for the local model home in this App session, and the App no longer has its record of the server address it was entered for, so nothing more is sent there. Quit and reopen the App, then prepare the local connection again.";
 /// The refusal for a key file with no record. It names no address: the App cannot establish one.
 pub(crate) const KEY_ADDRESS_UNRECORDED: &str = "A key is saved in the dedicated local home, but the App has no record of the server address it was entered for, so it will not use that key. Nothing was started.";
 /// The settings_view reason token for a key-address mismatch.
@@ -404,17 +407,27 @@ fn remove_key_address(plan: &OwnedHomePlan) -> Result<(), String> {
 /// this build helped create always has one. A key file without a record has no address the App
 /// can establish, and refuses at every address: there is no exception.
 fn key_address_state(plan: &OwnedHomePlan, settings: &LocalSettings) -> Result<Option<KeyMismatch>, String> {
+    key_address_state_seen(plan, settings, false).map(|(mismatch, _)| mismatch)
+}
+/// As `key_address_state`, for a bound session. `key_seen`: this session has seen a key (a key
+/// file found present by an earlier check, or a key entry begun or acknowledged). Codex may still
+/// hold that key in memory after its file is gone, so once seen the record must be present and name
+/// the address set whether or not the key file is still there. Also returns whether the key file
+/// is present now (metadata only), so the caller can remember it.
+fn key_address_state_seen(plan: &OwnedHomePlan, settings: &LocalSettings, key_seen: bool) -> Result<(Option<KeyMismatch>, bool), String> {
     let record = read_key_address(plan)?;
-    if absent(&plan.native_path().join("auth.json")) {
-        return Ok(None);
+    let present = !absent(&plan.native_path().join("auth.json"));
+    if !present && !key_seen {
+        return Ok((None, false));
     }
-    Ok(match record {
+    Ok((match record {
         Some(address) if address == settings.endpoint => None,
         recorded => Some(KeyMismatch {
             set: settings.endpoint.clone(),
             recorded,
+            file_present: present,
         }),
-    })
+    }, present))
 }
 fn key_address_check(plan: &OwnedHomePlan, settings: &LocalSettings) -> Result<(), String> {
     match key_address_state(plan, settings)? {
@@ -428,12 +441,15 @@ fn key_address_check(plan: &OwnedHomePlan, settings: &LocalSettings) -> Result<(
 pub(crate) struct KeyMismatch {
     set: String,
     recorded: Option<String>,
+    /// Whether the key file is present; false only for a key this session has seen whose file is gone.
+    file_present: bool,
 }
 impl KeyMismatch {
     pub(crate) fn sentence(&self) -> String {
         match &self.recorded {
             Some(recorded) => format!("The local model server address now set is {}, and the saved key was entered for {recorded}. The App will not use that key with another address. Set the address back to {recorded}.", self.set),
-            None => KEY_ADDRESS_UNRECORDED.into(),
+            None if self.file_present => KEY_ADDRESS_UNRECORDED.into(),
+            None => KEY_ADDRESS_LOST.into(),
         }
     }
 }
@@ -458,10 +474,20 @@ pub(crate) fn current(plan: &OwnedHomePlan) -> Result<LocalSettings, String> {
 /// Every bound operation: the file must still hold exactly the settings in force for this
 /// Codex process. A file changed after binding refuses until the App is reopened.
 pub(crate) fn check(plan: &OwnedHomePlan, in_force: &LocalSettings) -> Result<(), String> {
-    if current(plan)? != *in_force {
+    check_seen(plan, in_force, false).map(|_| ())
+}
+/// `check` for a bound session that may have seen a key (see `key_address_state_seen`). Returns
+/// whether the key file is present now, for the session to remember.
+pub(crate) fn check_seen(plan: &OwnedHomePlan, in_force: &LocalSettings, key_seen: bool) -> Result<bool, String> {
+    let settings = settings_file(plan)?;
+    let (mismatch, present) = key_address_state_seen(plan, &settings, key_seen)?;
+    if let Some(mismatch) = mismatch {
+        return Err(mismatch.sentence());
+    }
+    if settings != *in_force {
         return Err(RELAUNCH.into());
     }
-    Ok(())
+    Ok(present)
 }
 /// The settings as stored, without starting anything: None when no settings file exists yet.
 pub(crate) fn stored(plan: &OwnedHomePlan) -> Result<Option<LocalSettings>, String> {
@@ -784,7 +810,8 @@ fn source(home: &HomeSession, plan: &OwnedHomePlan, generation: &Value) -> Resul
         return Err(RELAUNCH.into());
     }
     let settings = home.host.local_settings()?;
-    check(plan, &settings)?;
+    // The bound session's own check: it remembers a key once seen (see `check_seen`).
+    home.host.check_local_home()?;
     require_no_admin_layers()?;
     if generation["home"] != plan.opaque_home_id()
         || home.class() != HomeClass::LocalProvider
@@ -832,6 +859,8 @@ pub(crate) fn submit(
     window_current()?;
     // Consumed even on cancel or unknown outcome. A replacement source is a separate explicit act.
     entry_state.begin(generation)?;
+    // From here a key may exist for this session even before its file does.
+    home.host.note_local_key();
     let request = home
         .host
         .account_login_api_key_from_native_entry(generation, Some(&policy), || {
@@ -857,6 +886,7 @@ pub(crate) fn submit(
     {
         return Err(LIMIT.into());
     }
+    home.host.note_local_key();
     let observed = observe(home, plan, generation)?;
     if observed["credentialState"] != "configured-not-verified" {
         return Err(LIMIT.into());

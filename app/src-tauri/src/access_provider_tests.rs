@@ -4201,3 +4201,135 @@ fn native_local_settings_a_send_waiting_for_the_writer_is_refused_when_the_recor
     peer.safe();
     std::fs::remove_dir_all(root).unwrap();
 }
+const PERSON: &str = "person:synthetic (identity not verified)";
+fn private_file(path: &std::path::Path, bytes: &str) {
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::write(path, bytes).unwrap();
+    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).unwrap();
+}
+fn request_state(peer: &Peer, id: &str) -> String {
+    peer.host.inner.0.lock().unwrap().server_requests.entries().into_iter().find(|e| e["requestId"] == id).map(|e| e["state"].as_str().unwrap_or("").to_owned()).unwrap_or_default()
+}
+fn approval(id: &str) -> Vec<u8> {
+    serde_json::to_vec(&json!({"id":id,"method":"item/commandExecution/requestApproval","params":{"threadId":"t","turnId":"u","itemId":id}})).unwrap()
+}
+#[test]
+fn native_local_settings_a_reply_to_codex_is_refused_when_the_files_no_longer_hold_or_the_binding_is_superseded() {
+    use crate::native_local_provider::{self as route, LocalSettings, KEY_ADDRESS_UNRECORDED, RELAUNCH};
+    use tauri_plugin_dialog::MessageDialogResult;
+    let set = LocalSettings::new("http://127.0.0.1:9100/v1", "org/m").unwrap();
+    let other = "http://127.0.0.1:9200/v1";
+    let mismatch = |set_now: &str, recorded: &str| format!("The local model server address now set is {set_now}, and the saved key was entered for {recorded}. The App will not use that key with another address. Set the address back to {recorded}.");
+    for case in ["record-removed", "record-changed", "superseded"] {
+        let (root, plan, mut peer, home) = bound_local("local-reply-", &set);
+        let dir = plan.native_path().to_path_buf();
+        private_file(&dir.join("auth.json"), "invented key file; never opened");
+        private_file(&dir.join("key-address"), &format!("{}\n", set.endpoint()));
+        {
+            let mut i = peer.host.inner.0.lock().unwrap();
+            i.conversation_turns.push(json!({"generation":peer.g,"threadId":"t","turnId":"u","nativeTurn":{"status":"inProgress"}}));
+            i.declared_capabilities = Some(json!({"experimentalApi":true}));
+        }
+        // A local turn waits on Codex's approval request.
+        peer.host.on_line(&approval("ask-1"), &peer.g);
+        assert_eq!(request_state(&peer, "ask-1"), "outstanding");
+        let expected = match case {
+            "record-removed" => { std::fs::remove_file(dir.join("key-address")).unwrap(); KEY_ADDRESS_UNRECORDED.to_owned() }
+            "record-changed" => { private_file(&dir.join("key-address"), &format!("{other}\n")); mismatch(set.endpoint(), other) }
+            _ => {
+                let next = LocalSettings::new(set.endpoint(), "org/next").unwrap();
+                assert_eq!(route::save_within(&plan, next, Some(&home), || Ok(()), |_, action: &str| Ok(MessageDialogResult::Custom(action.into())), Duration::from_millis(50)).unwrap()["outcome"], "saved");
+                RELAUNCH.to_owned()
+            }
+        };
+        // The person's answer: refused before it is prepared, so the request stays waiting.
+        let answer = peer.host.answer_server_request(&peer.g, &json!("ask-1"), &json!({"decision":"decline"}), "person-via-interaction", Some(PERSON));
+        assert_eq!(answer.unwrap_err(), expected, "{case}: person");
+        assert_eq!(request_state(&peer, "ask-1"), "outstanding", "{case}: still waiting");
+        assert_eq!(peer.host.error_server_request(&peer.g, &json!("ask-1"), &json!({"code":-32000,"message":"invented"}), "app-rule:invented").unwrap_err(), expected, "{case}: App rule error");
+        // An automatic reply (the register's error for an unsupported tool call): refused at the write.
+        peer.host.on_line(&serde_json::to_vec(&json!({"id":"tool-1","method":"item/tool/call","params":{"threadId":"t","turnId":"u","callId":"c","tool":"invented","arguments":{}}})).unwrap(), &peer.g);
+        // The register prepared it at receipt; refused at the write, it stays prepared and unwritten.
+        assert_eq!(request_state(&peer, "tool-1"), "settling", "{case}: the automatic reply was not written");
+        // The App's current-time reply: refused before it is prepared, the request stays waiting.
+        peer.host.on_line(&serde_json::to_vec(&json!({"id":"time-1","method":"currentTime/read","params":{}})).unwrap(), &peer.g);
+        assert_eq!(request_state(&peer, "time-1"), "outstanding", "{case}: current time not prepared");
+        let refused = peer.host.journal().iter().filter(|e| e["class"] == "local-reply-refused").count();
+        assert_eq!(refused, 2, "{case}: the automatic and current-time refusals are journalled");
+        // An interrupt still goes through.
+        assert_eq!(peer.host.request_begin_scoped("turn/interrupt", json!({"threadId":"t","turnId":"u"}), json!({"kind":"synthetic"}), false, Some(&peer.g)).unwrap().evidence()["writeResult"], "written");
+        assert_eq!(peer.frame()["method"], "turn/interrupt");
+        // Restoring the files lets a reply through only where the full check passes.
+        if case != "superseded" {
+            private_file(&dir.join("key-address"), &format!("{other}\n"));
+            assert!(peer.host.answer_server_request(&peer.g, &json!("ask-1"), &json!({"decision":"decline"}), "person-via-interaction", Some(PERSON)).is_err(), "{case}: another address");
+            private_file(&dir.join("key-address"), &format!("{}\n", set.endpoint()));
+            assert_eq!(peer.host.answer_server_request(&peer.g, &json!("ask-1"), &json!({"decision":"decline"}), "person-via-interaction", Some(PERSON)).unwrap()["replyWriteResult"], "written", "{case}: restored");
+            let reply = peer.frame();
+            assert_eq!((reply["id"].as_str(), &reply["result"]), (Some("ask-1"), &json!({"decision":"decline"})));
+        } else {
+            assert_eq!(peer.host.answer_server_request(&peer.g, &json!("ask-1"), &json!({"decision":"decline"}), "person-via-interaction", Some(PERSON)).unwrap_err(), RELAUNCH, "superseded is never cleared");
+        }
+        let rest = received_after_close(&mut peer);
+        assert!(rest.is_empty(), "{case}: nothing else reached Codex's input: {rest}");
+        peer.safe();
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+#[test]
+fn native_local_settings_account_home_replies_are_unaffected() {
+    let mut peer = Peer::new("invented-account-home");
+    peer.host.on_line(&approval("ask-1"), &peer.g);
+    assert_eq!(peer.host.answer_server_request(&peer.g, &json!("ask-1"), &json!({"decision":"decline"}), "person-via-interaction", Some(PERSON)).unwrap()["replyWriteResult"], "written");
+    assert_eq!(peer.frame()["id"], "ask-1");
+    peer.host.on_line(&serde_json::to_vec(&json!({"id":"tool-1","method":"item/tool/call","params":{"threadId":"t","turnId":"u","callId":"c","tool":"invented","arguments":{}}})).unwrap(), &peer.g);
+    assert_eq!(peer.frame()["id"], "tool-1", "the automatic reply is written");
+    assert!(peer.host.journal().iter().all(|e| e["class"] != "local-reply-refused"));
+    peer.safe();
+}
+#[test]
+fn native_local_settings_a_session_that_has_seen_a_key_requires_the_record_even_after_the_key_file_is_gone() {
+    use crate::native_local_provider::{LocalSettings, KEY_ADDRESS_LOST};
+    let set = LocalSettings::new("http://127.0.0.1:9100/v1", "org/m").unwrap();
+    let turn = || json!({"threadId":"t","input":[{"type":"text","text":"fixture only","text_elements":[]}]});
+    for case in ["both-removed", "key-file-only-removed", "never-saw-a-key", "entry-begun"] {
+        let (root, plan, mut peer, _home) = bound_local("local-key-seen-", &set);
+        let dir = plan.native_path().to_path_buf();
+        peer.host.inner.0.lock().unwrap().conversation_turns.push(json!({"generation":peer.g,"threadId":"t","turnId":"u","nativeTurn":{"status":"inProgress"}}));
+        match case {
+            "never-saw-a-key" => {}
+            "entry-begun" => { private_file(&dir.join("key-address"), &format!("{}\n", set.endpoint())); peer.host.note_local_key(); }
+            _ => {
+                private_file(&dir.join("auth.json"), "invented key file; never opened");
+                private_file(&dir.join("key-address"), &format!("{}\n", set.endpoint()));
+            }
+        }
+        // A send while the files hold: the check sees the key file and remembers it.
+        assert_eq!(peer.host.request_begin_scoped("turn/start", turn(), json!({"kind":"synthetic"}), false, Some(&peer.g)).unwrap().evidence()["writeResult"], "written", "{case}");
+        assert_eq!(peer.frame()["method"], "turn/start");
+        peer.host.on_line(&approval("ask-1"), &peer.g);
+        match case {
+            "both-removed" | "entry-begun" => {
+                let _ = std::fs::remove_file(dir.join("auth.json"));
+                std::fs::remove_file(dir.join("key-address")).unwrap();
+                assert_eq!(peer.host.request_begin_scoped("turn/start", turn(), json!({"kind":"synthetic"}), false, Some(&peer.g)).err().unwrap(), KEY_ADDRESS_LOST, "{case}: the next send");
+                assert_eq!(peer.host.answer_server_request(&peer.g, &json!("ask-1"), &json!({"decision":"decline"}), "person-via-interaction", Some(PERSON)).unwrap_err(), KEY_ADDRESS_LOST, "{case}: the next reply");
+                assert!(!KEY_ADDRESS_LOST.contains("http"), "names no address");
+            }
+            "key-file-only-removed" => {
+                std::fs::remove_file(dir.join("auth.json")).unwrap();
+                assert_eq!(peer.host.request_begin_scoped("turn/start", turn(), json!({"kind":"synthetic"}), false, Some(&peer.g)).unwrap().evidence()["writeResult"], "written", "the record still establishes the address");
+                assert_eq!(peer.frame()["method"], "turn/start");
+            }
+            _ => {
+                // No key seen: an absent record decides nothing, as before.
+                assert!(!dir.join("key-address").exists());
+                assert_eq!(peer.host.answer_server_request(&peer.g, &json!("ask-1"), &json!({"decision":"decline"}), "person-via-interaction", Some(PERSON)).unwrap()["replyWriteResult"], "written");
+                assert_eq!(peer.frame()["id"], "ask-1");
+            }
+        }
+        let _ = received_after_close(&mut peer);
+        peer.safe();
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}

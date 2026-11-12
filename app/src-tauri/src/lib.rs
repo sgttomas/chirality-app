@@ -1334,7 +1334,7 @@ fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str
     invalidate_endpoint_edits(state)?;
     let cfg = home.host_config.clone()?;
     state.validate_home_source(home)?;
-    if home.class()==home_resources::HomeClass::LocalProvider { if home.host.local_superseded() { return Err(native_local_provider::RELAUNCH.into()); } native_local_provider::check(state.home_bootstrap.lock().unwrap().as_ref().map_err(Clone::clone)?.local_plan()?,&home.host.local_settings()?)?; native_local_provider::require_no_admin_layers()?; }
+    if home.class()==home_resources::HomeClass::LocalProvider { if home.host.local_superseded() { return Err(native_local_provider::RELAUNCH.into()); } home.host.check_local_home()?; native_local_provider::require_no_admin_layers()?; }
     let root = state.app_user_data_root.lock().unwrap().clone();
     runtime_session::start_with_recovery(
         &home.host,
@@ -1647,7 +1647,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
         .map_err(Clone::clone)?
         .cwd.to_str().ok_or("Native working directory is not Unicode; thread/start cannot carry a lossless JSON cwd, no request sent")?.to_owned();
     let allowed = match home.class() { home_resources::HomeClass::Account=>matches!(entry_id.as_str(),"chatgpt-account"|"local-provider"),home_resources::HomeClass::ApiKey=>entry_id=="api-key",home_resources::HomeClass::LocalProvider=>home.host.local_settings().is_ok_and(|settings|native_local_provider::fixed_selection(&settings,&entry_id,&model_provider,&model).is_ok()),home_resources::HomeClass::Probe=>false };
-    if home.class()==home_resources::HomeClass::LocalProvider { native_local_provider::check(state.home_bootstrap.lock().unwrap().as_ref().map_err(Clone::clone)?.local_plan()?,&home.host.local_settings()?)?; }
+    if home.class()==home_resources::HomeClass::LocalProvider { home.host.check_local_home()?; }
     if !allowed { return Err("Access entry differs from the selected actual home class; no native transfer/fallback".into()); }
     if let Ok(set) = &*state.home_bootstrap.lock().unwrap() { set.validate_binding(home.class(),home.host_config.as_ref().map_err(Clone::clone)?)?; }
     else if home.class()==home_resources::HomeClass::ApiKey {return Err("Explicit key source binding is unavailable".into());}
