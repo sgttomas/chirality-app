@@ -167,18 +167,17 @@ An entry is added in the same pull request that makes the limitation standing.
 - **Id:** LIM-013
 - **Exit criteria:** 5, 15
 - **What is unavailable:** a check that a decision the App shows as decided
-  was captured at its own act control. A decision package reads as decided,
-  and a work item waiting on it as no longer waiting, from an act record held
-  in this installation's records store outside the parts its import account
-  names. The App does not verify that a record in that folder was captured at
-  its act control. So a record file placed in the App's data folder by another
-  program is not distinguished from the person's own recorded act. An act
-  record in the project folder, in an imported package, or in a
-  legacy-imported copy that the import account names is shown as a claim and
-  decides nothing.
+  was captured at its own act control. A conforming act record in this
+  installation's project records subtree, outside imported parts, can make a
+  package read as decided and, where the decision is not lapsed, satisfy a
+  work item's decision need. The App does not verify that a record in that
+  folder was captured at its act control. So a record file placed in the App's
+  data folder by another program is not distinguished from the person's own
+  recorded act. An act record in the project folder, in an imported package,
+  or in a legacy-imported copy that the import account names is shown as a
+  claim and decides nothing.
 - **Why:** the decision view reads act records without resolving their
-  capture evidence under the capture seal, which exists only in a signed App
-  with its keychain.
+  capture evidence or verifying its seal.
 - **What the person does instead:** the App's data folder is what the word
   "decided" rests on, and a record placed there by anything other than the
   App is not told apart from the App's own. Where a decision matters, decide
