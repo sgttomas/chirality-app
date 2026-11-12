@@ -105,18 +105,29 @@ the owner decide on what was actually observed.
    a project, selects an existing workflow, sees its source and revision,
    supplies its inputs, runs it to completion and finds the results, with real
    execution doing useful work and without an agent interpreting or operating
-   the App's controls. No time or step limit applies.
+   the App's controls. Before the run the App says which of the workflow's
+   declared required tools are available and which are missing, and a workflow
+   that declares none reads as undeclared. What the agent receives is the
+   selected workflow, byte for byte. No time or step limit applies.
 
-   *Governed by:* DEL-02-02 AC-010 (the journey as product); DEL-09-02 AC-009
-   (a person observed carrying it out).
+   *Governed by:* DEL-02-02 AC-010 (the journey as product) and AC-005 (what
+   the agent received); DEL-01-04 AC-011 (the run text reaches Codex
+   unchanged); DEL-02-03 AC-001 (the required-tool check); DEL-09-02 AC-009 (a
+   person observed carrying it out).
 2. **Create, save, return and reuse (J2).** Through the App alone and as one
    sequence, a person does useful work, turns it into a workflow draft,
    trials, reviews and registers it, returns to unfinished work after closing
    and reopening, and in a later session runs the saved workflow with new
-   inputs under their workflow approval policy. No time or step limit applies.
+   inputs under their workflow approval policy, the agent receiving that saved
+   workflow byte for byte. No time or step limit applies.
 
-   *Governed by:* DEL-02-02 AC-011; DEL-09-02 AC-010.
-3. **The core loop at least at v3.0.1's level.** In one continuous journey
+   *Governed by:* DEL-02-02 AC-011 and AC-005; DEL-01-04 AC-011; DEL-09-02
+   AC-010.
+3. **The core loop at least at v3.0.1's level.** A conversation starts in a
+   role: HELP_HUMAN is preselected and can be cleared, HELPS_HUMANS,
+   WORKING_ITEMS and no role are offered, TASK is not, and the chosen role's
+   guidance is added to the supplier's own instructions without replacing
+   them. In one continuous journey
    from an empty project folder, a person develops and revises a plan with the
    agent, has it carried out with real tools including one delegated sub-task,
    creates a workflow draft, trials and reviews it, registers it, runs it on
@@ -127,12 +138,15 @@ the owner decide on what was actually observed.
    selected. Each act is recorded as the person performed it, and where the
    act was not performed (the control left unconfirmed, the agent claiming it,
    a tool reporting success, an act of another kind) the App shows it as not
-   performed. Together with criterion 4, this is the condition under which v4
+   performed. Only the person's own confirmation captures an act: an attempt
+   by an agent tool, an MCP operation or an App rule does not. Together with criterion 4, this is the condition under which v4
    may replace v3.0.1 (PRD §8, V4-REP-01), and it is also a condition of
    publishing.
 
    *Governed by:* DEL-09-02 AC-001, AC-002 and AC-003; DEL-02-02 AC-004 (the
-   identity a selection keeps, on the project, user and bundled origins).
+   identity a selection keeps, on the project, user and bundled origins);
+   DEL-02-04 AC-001 and AC-002 (the roles offered and the guidance supplied);
+   DEL-01-04 AC-008 (only the person's confirmation captures).
 4. **Requests, interruption and recovery.** Inside that journey, a turn is
    stopped while a delegated child is active, the window is closed and
    reopened with a request waiting, one request is denied and a later one
@@ -144,8 +158,9 @@ the owner decide on what was actually observed.
    unavailable outcome is shown as unknown. A failure is repaired or brought
    to the owner for disposition; it is never passed over.
 
-   *Governed by:* DEL-09-02 AC-004 and AC-005, with the behaviour observed
-   owned by DEL-01-02, DEL-01-03 and DEL-01-04.
+   *Governed by:* DEL-09-02 AC-004 and AC-005; DEL-01-02 AC-001 to AC-006
+   (window loss, interrupt, requests, acknowledgment, restart and quit), with
+   the views of that behaviour owned by DEL-01-03 and DEL-01-04.
 5. **Coordinating delegated work.** A person delegates two bounded pieces of
    work, each with a complete brief, to agents that actually run. The person
    follows them on the undertaking's work graph, examines what they return
@@ -216,8 +231,10 @@ the owner decide on what was actually observed.
     states what an independent reading of the package finds. From a quarantined
     download the operating system accepts it without an override, and it
     installs and launches through to a Codex child reported ready and verified.
+    Where data written by v3.0.1 is present under the App's identity, it is
+    unchanged after the package has been installed and run.
 
-    *Governed by:* DEL-01-06 AC-001, AC-002 and AC-003.
+    *Governed by:* DEL-01-06 AC-001, AC-002, AC-003 and AC-009.
 11. **Terms position.** The supplier's written position on distributing the
     offering is held with the owner's statement that it applies, and the
     candidate's offering and sign-in flow are the ones that statement covers.
@@ -243,10 +260,11 @@ the owner decide on what was actually observed.
 14. **Decision packet.** The owner has, for the final candidate, the owning
     deliverable's result for each criterion above, the release limitations and
     the continuing obligations, with every unrun, failed, blocked or limited
-    result shown as such. Publication and replacement are put as two separate
-    decisions.
+    result shown as such. A result from another candidate appears only with
+    the assessment that joins it. Publication and replacement are put as two
+    separate decisions.
 
-    *Governed by:* DEL-11-03 AC-001 and AC-007, with DEL-11-01 for the
+    *Governed by:* DEL-11-03 AC-001, AC-003 and AC-007, with DEL-11-01 for the
     continuing obligations.
 
 ## Open choices
@@ -260,10 +278,25 @@ states it.
   off or filtered, and whether the loop may itself refuse a call the catalog
   marks as not exposed (DEL-05-01 TBD-004 to TBD-006), and who owns a panel's
   network-destination surfaces (DEL-05-02 TBD-006).
+- **Tying a delegated child to its brief (criterion 5).** How a child is tied
+  to its brief where the supplier exposes neither the dispatch message nor a
+  mark the App can set is undecided (DEL-06-01 TBD-003), and the criterion
+  needs each delegation connected to its brief.
 - **Ledger retention and deletion (criterion 4).** How long ledger entries are
   kept and what deleting a conversation removes (DEL-01-02 TBD-002).
 - **Plugin traffic in the dedicated local home (criterion 6).** Whether it
   follows the person's plugin setting or is always off (DEL-01-05 TBD-004).
+- **The records the App keeps (no criterion yet).** The PRD commits to where
+  decisions and run records are kept, that they are append-only and report a
+  changed line, and that they export as a package that verifies without the
+  App and import without overwriting (V4-REC-02, V4-REC-04, V4-REC-06). The
+  missing fact is whether the App's records store is implemented; it is
+  established from the code. If it is, this becomes a criterion governed by
+  DEL-04-03 AC-001, AC-009 and AC-011 at least, observable on a development
+  build. If it is not, it is stated as outside this release, with a
+  limitations entry for what a person cannot do. Until a signing key is chosen
+  (DEL-04-03 TBD-003) an exported package is unsigned, which is a limitation
+  to list either way.
 
 ## What stays the owner's
 
