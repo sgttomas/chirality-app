@@ -226,7 +226,10 @@ fn records_retention_hold_close_export_dispose_and_tombstone_preserve_other_evid
     assert!(records_store::write_dir(&f.project).is_err());
     assert!(records_store::import(&f.project).is_err());
     assert!(records_store::new_identity(&f.project).is_err());
-    assert!(records_store::restore_link(&f.project).is_err());
+    // Putting the project file back reads no record and reopens nothing: it
+    // stays possible, and the disposed payload stays gone and unwritable.
+    assert!(records_store::restore_link(&f.project).is_ok());
+    assert!(records_store::write_dir(&f.project).is_err());
     assert!(storage::create_json(&dir.join("captures/resurrection.json"), &json!({})).is_err());
     assert!(!dir.exists());
     assert!(storage::sources(&f.project).is_err());

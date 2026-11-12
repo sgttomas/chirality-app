@@ -291,6 +291,7 @@ fn package_import_second_interruption_resumes_only_its_own_intent() {
         let f = Fixture::new();
         f.import();
         Fixture::choose(&f.source);
+        if attach(&f.root, false).is_ok_and(|a| a.fault == Some("link names another store")) { restore_link(&f.root).unwrap(); }
         std::fs::write(
             project_dir(&f.source, &f.project).join("additional-evidence.json"),
             b"new exact source member",
@@ -299,6 +300,7 @@ fn package_import_second_interruption_resumes_only_its_own_intent() {
         let second = f.base.join("export/second");
         crate::records_export::export(&f.root, &second).unwrap();
         Fixture::choose(&f.destination);
+        if attach(&f.root, false).is_ok_and(|a| a.fault == Some("link names another store")) { restore_link(&f.root).unwrap(); }
         let plan = prepare(&f.root, &second, &actor(), &observed()).unwrap();
         let id = plan.intent.id.clone();
         STOP.with(|s| *s.borrow_mut() = Some(at));

@@ -483,7 +483,9 @@ fn safe_prior_derivative_repair_unblocks_but_does_not_complete_a_later_original_
     let f = Fixture::new(false);
     f.import();
     let first = f.row();
+    let destination_link = std::fs::read(f.root.join(PROJECT_LINK)).unwrap();
     Fixture::choose(&f.source);
+    restore_link(&f.root).unwrap(); // the source installation's own project file
     for run in ["run:later-one", "run:later-two"] {
         crate::records::append_project(
             &f.root,
@@ -498,6 +500,7 @@ fn safe_prior_derivative_repair_unblocks_but_does_not_complete_a_later_original_
     let later = f.base.join("later-package");
     crate::records_export::export(&f.root, &later).unwrap();
     Fixture::choose(&f.destination);
+    std::fs::write(f.root.join(PROJECT_LINK), &destination_link).unwrap(); // the destination's, byte for byte
     let later_plan = super::super::prepare(&f.root, &later, &actor(), &observed()).unwrap();
     let later_id = later_plan.intent.id.clone();
     assert!(later_plan.intent.copied.len() >= 2);
@@ -596,7 +599,12 @@ fn cold_missing_prior_association_reference_keeps_imported_prefix_after_later_im
     f.restore_identity = true;
     f.import();
     let first = f.row();
+    // Each store stands for its own installation. The folder's project file
+    // is as that installation left it: restored for the source while it makes
+    // its later package, and put back byte for byte for the destination.
+    let destination_link = std::fs::read(f.root.join(PROJECT_LINK)).unwrap();
     Fixture::choose(&f.source);
+    restore_link(&f.root).unwrap();
     crate::records::append_project(
         &f.root,
         Some("run:later-association"),
@@ -609,6 +617,7 @@ fn cold_missing_prior_association_reference_keeps_imported_prefix_after_later_im
     let later = f.base.join("later-association-package");
     crate::records_export::export(&f.root, &later).unwrap();
     Fixture::choose(&f.destination);
+    std::fs::write(f.root.join(PROJECT_LINK), &destination_link).unwrap();
     let plan = super::super::prepare_restore(&f.root, &later, &actor(), &observed()).unwrap();
     assert!(!plan.intent.copied.contains_key(fleet_relative));
     let later_id = plan.intent.id.clone();
@@ -847,6 +856,7 @@ fn cold_loss_of_an_ordinary_native_import_without_roots_rows_keeps_its_receipt_h
     let f = Fixture::new(false);
     f.import();
     Fixture::choose(&f.source);
+    if attach(&f.root, false).is_ok_and(|a| a.fault == Some("link names another store")) { restore_link(&f.root).unwrap(); }
     let fleet = json!({"format":"chirality.fleet.record","formatVersion":"0.1","recordId":"fl:ordinary-lost-import-fixture",
         "kind":"child_observed","undertaking":"invented historical fixture","recorder":{"kind":"App","identity":"app-writer:local"},
         "writtenAt":"invented fixture time","body":{"childThread":"invented-child","status":"invented observation",
@@ -860,6 +870,7 @@ fn cold_loss_of_an_ordinary_native_import_without_roots_rows_keeps_its_receipt_h
     let ordinary_bag = f.base.join("ordinary-native-fleet-package");
     crate::records_export::export(&f.root, &ordinary_bag).unwrap();
     Fixture::choose(&f.destination);
+    if attach(&f.root, false).is_ok_and(|a| a.fault == Some("link names another store")) { restore_link(&f.root).unwrap(); }
     let ordinary = super::super::prepare(&f.root, &ordinary_bag, &actor(), &observed()).unwrap();
     assert!(ordinary.intent.association.is_none());
     assert!(ordinary.intent.copied.contains_key(relative));
@@ -872,6 +883,7 @@ fn cold_loss_of_an_ordinary_native_import_without_roots_rows_keeps_its_receipt_h
         .find(|row| row.intent.id == lost_id)
         .unwrap();
     Fixture::choose(&f.source);
+    if attach(&f.root, false).is_ok_and(|a| a.fault == Some("link names another store")) { restore_link(&f.root).unwrap(); }
     crate::records::append_project(
         &f.root,
         Some("run:after-ordinary-native-import"),
@@ -884,6 +896,7 @@ fn cold_loss_of_an_ordinary_native_import_without_roots_rows_keeps_its_receipt_h
     let later_bag = f.base.join("later-ordinary-native-package");
     crate::records_export::export(&f.root, &later_bag).unwrap();
     Fixture::choose(&f.destination);
+    if attach(&f.root, false).is_ok_and(|a| a.fault == Some("link names another store")) { restore_link(&f.root).unwrap(); }
     let later = super::super::prepare(&f.root, &later_bag, &actor(), &observed()).unwrap();
     assert!(!later.intent.copied.contains_key(relative));
     assert!(!later
