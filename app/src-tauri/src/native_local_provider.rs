@@ -164,16 +164,32 @@ pub(crate) fn config(base: &HostConfig, plan: &OwnedHomePlan) -> Result<HostConf
 pub(crate) const PROCESS_LOCK: &str = "chirality-codex-process.lock";
 /// What a held lock establishes is only that something holds it: the sentence names what may,
 /// and asserts neither which nor for how long.
-pub(crate) const EARLIER_PROCESS: &str = "The App's lock for the local model home is held, so Codex was not started there. A Codex process started earlier for that home, a program it started, or another copy of the App may hold it. Try again in a minute. If it stays held, whatever holds it has to end before Codex can start there; the App cannot tell which program it is.";
+pub(crate) const EARLIER_PROCESS: &str = "The App's lock for the local model home is held, so Codex was not started there. A Codex process started earlier for that home, a program it started, or another copy of the App may hold it. Try again in a minute. If it stays held, whatever holds it has to let go of it or end before Codex can start there; the App cannot tell which program it is.";
 /// The refusal when the App cannot open or lock its lock file at all.
 pub(crate) const PROCESS_LOCK_UNAVAILABLE: &str = "The App could not check that no earlier Codex process for the local model home is running, so Codex was not started there.";
+/// The same two refusals for a start that meets the lock by the folder rule alone (its
+/// configuration names none): such a start is not known to be the local model home's, so the
+/// sentences name the folder and not that home.
+pub(crate) const EARLIER_PROCESS_BY_FOLDER: &str = "The App's lock in this home's folder is held, so Codex was not started there. A Codex process started earlier in that folder, a program it started, or another copy of the App may hold it. Try again in a minute. If it stays held, whatever holds it has to let go of it or end before Codex can start there; the App cannot tell which program it is.";
+pub(crate) const PROCESS_LOCK_UNAVAILABLE_BY_FOLDER: &str = "The App could not check its lock in this home's folder, so Codex was not started there.";
+pub(crate) fn folder_wording(reason: String) -> String {
+    if reason == EARLIER_PROCESS {
+        EARLIER_PROCESS_BY_FOLDER.into()
+    } else if reason == PROCESS_LOCK_UNAVAILABLE {
+        PROCESS_LOCK_UNAVAILABLE_BY_FOLDER.into()
+    } else {
+        reason
+    }
+}
 /// The lock a start in this home must take. The lock follows the folder and not the route that
-/// reached it: where the home folder holds the App's lock file, that file is the lock, whatever
-/// the configuration names, so a start pointed at a locked home by any configuration meets an
-/// earlier Codex's lock. Where the folder holds none, it is the one the configuration names (the
-/// dedicated local home's first start creates it), and none where it names none. The name is
-/// looked at only (`symlink_metadata`); presence that cannot be established refuses. Expected to
-/// be folded away when every home's configuration names its lock.
+/// reached it: where the home folder already holds the App's lock file, that file is the lock,
+/// whatever the configuration names, so a start pointed at such a folder by another configuration
+/// meets an earlier Codex's lock. Where the folder holds none, it is the one the configuration
+/// names (the dedicated local home's first start creates it), and none where it names none. The
+/// name is looked at only (`symlink_metadata`); presence that cannot be established refuses.
+/// What this does not cover: absence is decided once, so a start with no lock configured that
+/// looks before the file's first creation takes none. That is closed only when every start takes
+/// its home's lock and creates the file, and this rule is expected to be removed by that change.
 pub(crate) fn process_lock_for(configured: Option<&Path>, home: &Path) -> Result<Option<std::path::PathBuf>, String> {
     let path = home.join(PROCESS_LOCK);
     match std::fs::symlink_metadata(&path) {

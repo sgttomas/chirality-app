@@ -1570,17 +1570,24 @@ impl Host {
         // Prepare or Start can be tried again. A state that admits no start refuses as admission
         // would, before the lock is tried. The App's copy is closed as soon as the child is spawned.
         // The lock follows the folder, not only the configuration: a start whose home folder holds
-        // the App's lock file takes it whatever its configuration names.
-        let process_lock = match crate::native_local_provider::process_lock_for(cfg.process_lock.as_deref(), &cfg.codex_home)? {
-            None => None,
-            Some(path) => {
+        // the App's lock file takes it whatever its configuration names. The folder looked in is
+        // the one the child will use: it is given `cfg.cwd` as its working folder and resolves a
+        // relative CODEX_HOME there, so the home is resolved the same way here.
+        let process_lock = match crate::native_local_provider::process_lock_for(cfg.process_lock.as_deref(), &cfg.cwd.join(&cfg.codex_home)) {
+            Ok(None) => None,
+            found => {
                 {
                     let i = self.inner.0.lock().unwrap();
                     if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
                         return Err(format!("start not accepted in state {}", i.state));
                     }
                 }
-                Some(crate::native_local_provider::take_process_lock(&path)?)
+                // Met by the folder rule alone, the refusals name the folder, not the local home.
+                let worded = |reason: String| if cfg.process_lock.is_none() { crate::native_local_provider::folder_wording(reason) } else { reason };
+                match found.map_err(worded)? {
+                    Some(path) => Some(crate::native_local_provider::take_process_lock(&path).map_err(worded)?),
+                    None => None,
+                }
             }
         };
         let attempt = {
@@ -6889,13 +6896,13 @@ mod local_process_lock_tests {
     /// local home's folder as the account home), still takes it.
     #[test]
     fn local_process_lock_is_taken_by_any_start_in_a_folder_that_holds_the_lock_file() {
-        use crate::native_local_provider::{process_lock_for, PROCESS_LOCK_UNAVAILABLE};
+        use crate::native_local_provider::{process_lock_for, EARLIER_PROCESS_BY_FOLDER, PROCESS_LOCK_UNAVAILABLE, PROCESS_LOCK_UNAVAILABLE_BY_FOLDER};
         let f = Fixture::new(false, false);
         assert!(f.cfg.process_lock.is_none());
         // An earlier Codex of that home holds the lock (a stand-in holder here).
         let earlier = take_process_lock(&f.lock_path()).unwrap();
         let host = Arc::new(Host::new());
-        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), EARLIER_PROCESS);
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), EARLIER_PROCESS_BY_FOLDER);
         assert!(!f.started() && host.inner.0.lock().unwrap().state == "absent" && host.lifecycle_events().is_empty());
         drop(earlier);
         // Free: the same configuration starts, and its child now holds the lock itself.
@@ -6912,18 +6919,53 @@ mod local_process_lock_tests {
         assert_eq!(process_lock_for(None, &f.root.join("probe")).unwrap(), None);
         assert_eq!(process_lock_for(None, &f.root.join("no-such-home")).unwrap(), None);
         std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o000)).unwrap();
-        let unexaminable = process_lock_for(None, &home);
+        let unexaminable = (process_lock_for(None, &home), Arc::new(Host::new()).start(&f.cfg, "fixture"));
         std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
-        assert_eq!(unexaminable.unwrap_err(), PROCESS_LOCK_UNAVAILABLE);
+        assert_eq!(unexaminable.0.unwrap_err(), PROCESS_LOCK_UNAVAILABLE);
+        assert_eq!(unexaminable.1.unwrap_err(), PROCESS_LOCK_UNAVAILABLE_BY_FOLDER, "a start by the folder rule names the folder");
     }
-    /// The sentence for a held lock says what may hold it and asserts neither which nor how long.
+    /// A relative home is looked up where the child will resolve it (its working folder), not in
+    /// the App's own working folder, which here holds no folder of that name.
     #[test]
-    fn local_process_lock_refusal_asserts_only_what_a_held_lock_shows() {
-        for claim in ["has not ended", "is still running", "ends by itself", "within a minute", "does not end it"] {
-            assert!(!EARLIER_PROCESS.contains(claim), "{claim}");
+    fn local_process_lock_is_looked_for_where_the_child_resolves_a_relative_home() {
+        let f = Fixture::new(false, false);
+        let mut cfg = f.cfg.clone();
+        assert!(cfg.process_lock.is_none() && cfg.codex_home == f.root.join("home") && cfg.cwd.is_absolute());
+        cfg.cwd = f.root.clone();
+        cfg.codex_home = PathBuf::from("home");
+        assert!(!std::env::current_dir().unwrap().join("home").join(PROCESS_LOCK).exists());
+        let earlier = take_process_lock(&f.lock_path()).unwrap();
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&cfg, "fixture").unwrap_err(), crate::native_local_provider::EARLIER_PROCESS_BY_FOLDER);
+        assert!(!f.started() && host.inner.0.lock().unwrap().state == "absent" && host.lifecycle_events().is_empty());
+        drop(earlier);
+    }
+    /// A state that admits no start refuses as admission would, before a folder that cannot be
+    /// searched is reported.
+    #[test]
+    fn local_process_lock_lookup_failure_does_not_precede_the_states_own_refusal() {
+        let f = Fixture::new(false, false);
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        let home = f.root.join("home");
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let refused = host.start(&f.cfg, "fixture");
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(refused.unwrap_err(), "start not accepted in state ready");
+        stop_and_wait(&host);
+    }
+    /// Lexical only: the claims withdrawn from this sentence stay out of it. Whether the sentence
+    /// is true of what was observed is a reader's judgment, not this test's.
+    #[test]
+    fn local_process_lock_refusal_does_not_carry_the_withdrawn_claims() {
+        for sentence in [EARLIER_PROCESS, crate::native_local_provider::EARLIER_PROCESS_BY_FOLDER] {
+            for claim in ["has not ended", "is still running", "ends by itself", "within a minute", "does not end it", "has to end before"] {
+                assert!(!sentence.contains(claim), "{claim}");
+            }
+            assert!(!sentence.contains('/') && !sentence.chars().any(|c| c.is_ascii_digit()));
         }
-        assert!(EARLIER_PROCESS.contains("is held") && EARLIER_PROCESS.contains("may hold it") && EARLIER_PROCESS.contains("cannot tell which program"));
-        assert!(!EARLIER_PROCESS.contains('/') && !EARLIER_PROCESS.chars().any(|c| c.is_ascii_digit()));
+        assert!(!crate::native_local_provider::EARLIER_PROCESS_BY_FOLDER.contains("local model"));
+        assert!(!crate::native_local_provider::PROCESS_LOCK_UNAVAILABLE_BY_FOLDER.contains("local model"));
     }
 
     #[test]
