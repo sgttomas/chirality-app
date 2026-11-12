@@ -1,10 +1,11 @@
-"""The examination launcher for first launches on new homes, with invented material only.
+"""The examination launcher for first launches on new homes under one homes root, with invented material only.
 
-A shell script plays the App, and folders stand in for the real home and the
-per-user cache folder. Every fixture, including stand-in launch folders, lives
-in a temporary folder under the account's home, outside any checkout, and is
-removed by the test that made it. No App, window, socket or real home Library
-is touched; nothing here launches a real build.
+A shell script plays the App; folders stand in for the real home, the homes
+root and the per-user cache folder. Every fixture, including stand-in launch
+folders, lives in a temporary folder under the account's home, outside any
+checkout, and is removed by the test that made it. No test creates anything
+under the real homes root. No App, window, socket or real home Library is
+touched; nothing here launches a real build.
 """
 import builtins
 import contextlib
@@ -33,6 +34,7 @@ SPEC = importlib.util.spec_from_file_location('examination_launch', HELPER)
 launch = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(launch)
 identify = launch.identify
+REAL_HOMES_ROOT = launch.homes_root  # the function itself, before any test replaces it
 
 MAC = sys.platform == 'darwin'
 IDENTIFIER = 'dev.chirality.app-v4.candidate.invented'
@@ -49,10 +51,10 @@ echo invented > "$HOME/Library/WebKit/{id}/WebsiteData/store"
 '''
 SHELL_OWN = {'PWD', 'SHLVL', '_', 'OLDPWD', '__CF_USER_TEXT_ENCODING'}  # set by /bin/sh or the macOS runtime itself
 OVERRIDES = {**{n: v for n, (v, _) in launch.PROXY_OVERRIDES.items()}, launch.MODEL_ADDRESS: 'http://127.0.0.1:9/v1'}
-CLEAN_RECORD_FIELDS = {'note', 'helper', 'candidate_key', 'identifier', 'bundle', 'candidate_folder', 'launch_folder',
-                       'home', 'address_override', 'environment_constructed_for_the_app', 'output', 'started_at', 'pid',
-                       'ended_at', 'process_group_after_settle', 'disclosed', 'app_started', 'ended', 'real_library',
-                       'signals_received', 'failures', 'outcome'}
+CLEAN_RECORD_FIELDS = {'note', 'made_by', 'made_at', 'candidate_key', 'identifier', 'candidate_folder', 'bundle',
+                       'launch_folder', 'home', 'codex', 'address_override', 'environment_constructed_for_the_app',
+                       'output', 'started_at', 'pid', 'ended_at', 'process_group_after_settle', 'disclosed',
+                       'app_started', 'ended', 'real_library', 'signals_received', 'failures', 'outcome'}
 
 _PRIVATE_TMP = None
 
@@ -78,8 +80,7 @@ def remove_fixture(path):
 
 
 def fake_identification(app, record_path):
-    """Stands in for identify_candidate (identification has its own tests): returns the invented record."""
-    return json.loads(Path(record_path).read_text())
+    """Stands in for identification's own validation and check (which have their own tests)."""
 
 
 def fd_path(fd):
@@ -90,7 +91,6 @@ def fd_path(fd):
 
 
 def identities(root):
-    """(device, inode) of every folder under root, root included."""
     found = set()
     for current, _, _ in os.walk(root):
         info = os.stat(current)
@@ -109,18 +109,17 @@ class Fixture(unittest.TestCase):
         (self.real / 'Library/Preferences/com.apple.dock.plist').write_bytes(b'invented system preference')
         self.cache = self.tmp / 'user-cache'
         self.cache.mkdir()
-        for name, value in (('real_home', self.real), ('user_cache_dir', self.cache), ('SETTLE_SECONDS', 0.0)):
-            patch = mock.patch.object(launch, name, return_value=value) if callable(getattr(launch, name)) \
-                else mock.patch.object(launch, name, value)
-            patch.start()
-            self.addCleanup(patch.stop)
+        self.root = self.tmp / 'homes-root'  # stands in for the homes root
+        self.root.mkdir()
+        patches = [mock.patch.object(launch, 'real_home', return_value=self.real),
+                   mock.patch.object(launch, 'homes_root', return_value=self.root),
+                   mock.patch.object(launch, 'user_cache_dir', return_value=self.cache),
+                   mock.patch.object(launch, 'SETTLE_SECONDS', 0.0)]
         if self.identification is not None:
-            patch = mock.patch.object(launch, 'identify_candidate', self.identification)
+            patches.append(mock.patch.object(launch, 'identify_candidate', self.identification))
+        for patch in patches:
             patch.start()
             self.addCleanup(patch.stop)
-        self.parent = self.tmp / 'parent'
-        self.parent.mkdir()
-        self.runs = 0
         self.groups = []
         self.addCleanup(self.kill_groups)
 
@@ -130,7 +129,7 @@ class Fixture(unittest.TestCase):
                 os.killpg(group, signal.SIGKILL)
 
     def candidate(self, script='', where='build', exit_status=0, shebang='#!/bin/sh', executable=EXECUTABLE,
-                  plays=True, name=PRODUCT + '.app'):
+                  plays=True, name=PRODUCT + '.app', record_name=None):
         root = self.tmp / where
         app = root.joinpath(*launch.BUNDLE_FOLDER, name)
         (app / 'Contents/MacOS').mkdir(parents=True)
@@ -144,7 +143,7 @@ class Fixture(unittest.TestCase):
                        + f'exit {exit_status}\n')
         exe.chmod(0o755)
         record = {'candidate_key': '0123456789-abcdefabcdef',
-                  'bundle': {'identifier': IDENTIFIER, 'name': name,
+                  'bundle': {'identifier': IDENTIFIER, 'name': record_name if record_name is not None else name,
                              'executable': {'path': 'Contents/MacOS/' + executable,
                                             'sha256': hashlib.sha256(exe.read_bytes()).hexdigest()}}}
         (root / 'identification').mkdir()
@@ -152,19 +151,19 @@ class Fixture(unittest.TestCase):
         (root / 'identification' / launch.INVENTORY).write_text('{}')
         return root
 
-    def argv(self, candidate, *extra, run_dir=None, parent=None):
-        return ['launch', '--candidate', str(candidate), '--run-dir', str(run_dir), '--parent', str(parent or self.parent),
-                *extra]
+    def folders(self):
+        return set(self.root.glob('launch-*'))
 
-    def run_helper(self, candidate, *extra, run_dir=None, parent=None):
-        self.runs += 1
-        run_dir = Path(run_dir or self.tmp / f'run-{self.runs}')
-        code, out = self.call(*self.argv(candidate, *extra, run_dir=run_dir, parent=parent))
-        saved = run_dir / launch.RECORD
-        record = json.loads(saved.read_text()) if saved.exists() and not saved.is_symlink() else None
+    def run_helper(self, candidate, *extra):
+        before = self.folders()
+        code, out = self.call('launch', '--candidate', str(candidate), *extra)
+        new = sorted(self.folders() - before)
+        folder = new[0] if new else None
+        saved = folder / launch.RECORD_FOLDER / launch.RECORD if folder else None
+        record = json.loads(saved.read_text()) if saved and saved.exists() else None
         if record and record.get('pid'):
             self.groups.append(record['pid'])
-        return code, record, out, run_dir
+        return code, record, out, folder
 
     def call(self, *argv):
         out, err = io.StringIO(), io.StringIO()
@@ -202,9 +201,10 @@ class EnvironmentFromNothing(Fixture):  # STATEMENT 1
 
     def test_no_option_passes_another_name_and_the_nine_are_on_every_launch(self):
         candidate = self.candidate()
-        for option in ('--app-env', '--owner-sitting', '--reuse', '--lang', '--settle-seconds'):
+        for option in ('--app-env', '--owner-sitting', '--reuse', '--lang', '--settle-seconds', '--parent', '--run-dir',
+                       '--label'):
             with self.subTest(option), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
-                launch.main(self.argv(candidate, option, 'CHIRALITY_WORKSPACE=/x', run_dir=self.tmp / 'r'))
+                launch.main(['launch', '--candidate', str(candidate), option, 'x'])
         for extra in ((), ('--model-address', 'http://127.0.0.1:8080/v1')):
             with self.subTest(extra=extra):
                 code, record, out, _ = self.run_helper(candidate, *extra)
@@ -215,12 +215,12 @@ class EnvironmentFromNothing(Fixture):  # STATEMENT 1
                 self.assertIn(launch.MODEL_ADDRESS, env)
 
     def test_the_exact_mapping_is_checked_immediately_before_the_start(self):
-        home, tmp = self.parent / 'h', '.chirality-launch-tmp-x'
+        home, tmp = self.tmp / 'h', '.chirality-launch-tmp-x'
         good = launch.child_environment(home, tmp, launch.DEFAULT_MODEL_ADDRESS)
         launch.check_environment(good, home, tmp)
         cases = {'an added name': {**good, 'SSH_AUTH_SOCK': '/x'},
                  'HOME alone': {k: v for k, v in good.items() if k != 'CFFIXED_USER_HOME'},
-                 'homes differ': {**good, 'CFFIXED_USER_HOME': str(self.parent / 'other')},
+                 'homes differ': {**good, 'CFFIXED_USER_HOME': str(self.tmp / 'other')},
                  'TMPDIR elsewhere': {**good, 'TMPDIR': str(home / 'other')},
                  'other PATH': {**good, 'PATH': '/opt/x:' + launch.SYSTEM_PATH},
                  'other LANG': {**good, 'LANG': 'fr_FR.UTF-8'}}
@@ -233,19 +233,21 @@ class EnvironmentFromNothing(Fixture):  # STATEMENT 1
         built = launch.child_environment
         with mock.patch.object(launch, 'child_environment', lambda *a: {**built(*a), 'SSH_AUTH_SOCK': '/x'}):
             code, record, _, _ = self.run_helper(self.candidate(where='added'))
-        self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', False))
+        self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', 'not started'))
         self.assertFalse((Path(record['home']) / 'received-env.txt').exists())
 
 
 class CleanRun(Fixture):  # STATEMENTS 2 and 3
-    def test_a_clean_run_records_exactly_the_tabled_fields(self):
-        code, record, out, run_dir = self.run_helper(self.candidate())
+    def test_a_clean_run_records_exactly_the_tabled_fields_in_its_record_folder(self):
+        code, record, out, folder = self.run_helper(self.candidate())
         self.assertEqual((code, record['outcome']), (0, 'clean'), out)
         self.assertEqual(set(record), CLEAN_RECORD_FIELDS)
         self.assertEqual(set(record['disclosed']), {'preferences', 'user_cache'})
         self.assertEqual((record['real_library']['result'], record['signals_received'], record['app_started']),
-                         ('unchanged', [], True))
-        self.assertEqual(os.listdir(run_dir), [launch.RECORD])
+                         ('unchanged', [], 'started'))
+        self.assertEqual(record['codex'], launch.CODEX_NOTE)
+        self.assertEqual(sorted(os.listdir(folder)), [launch.HOME, launch.RECORD_FOLDER])
+        self.assertEqual(os.listdir(folder / launch.RECORD_FOLDER), [launch.RECORD])
 
     def test_links_at_or_beneath_a_watched_place_make_the_comparison_incomplete(self):
         lib = self.real / 'Library'
@@ -292,13 +294,13 @@ class CleanRun(Fixture):  # STATEMENTS 2 and 3
                     undo()
                 self.assertEqual((code, record['real_library']['result']), (1, 'not made'), out)
 
-    def test_an_interrupted_record_write_leaves_no_record_under_its_name(self):
+    def test_an_interrupted_record_write_leaves_no_record_and_an_empty_record_folder(self):
         with mock.patch.object(launch.os, 'link', side_effect=OSError(28, 'No space left on device')):
-            code, record, out, run_dir = self.run_helper(self.candidate())
+            code, record, out, folder = self.run_helper(self.candidate())
         self.assertIsNone(record)
         self.assertEqual(code, 2)
-        self.assertFalse((run_dir / launch.RECORD).exists())
-        self.assertTrue(all(n.startswith('.' + launch.RECORD + '.partial-') for n in os.listdir(run_dir)))
+        self.assertTrue(all(n.startswith('.' + launch.RECORD + '.partial-')
+                            for n in os.listdir(folder / launch.RECORD_FOLDER)))
 
     def test_a_signal_received_before_the_outcome_is_fixed_makes_the_run_not_clean(self):
         for step in ('while the App runs', 'settle', 'compare'):
@@ -327,7 +329,7 @@ class CleanRun(Fixture):  # STATEMENTS 2 and 3
                 if step == 'while the App runs':
                     def later():
                         deadline = time.monotonic() + 10
-                        while time.monotonic() < deadline and not list(self.parent.glob('launch-*/home/received-env.txt')):
+                        while time.monotonic() < deadline and not list(self.root.glob('launch-*/home/received-env.txt')):
                             real_sleep(0.05)
                         real_sleep(0.3)
                         if launch._forwarding.is_set():
@@ -350,26 +352,27 @@ from unittest import mock
 spec = importlib.util.spec_from_file_location('launch_under_test', sys.argv[1])
 launch = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(launch)
-stage, real, cache, sentinel = sys.argv[2], Path(sys.argv[3]), Path(sys.argv[4]), Path(sys.argv[5])
+stage, real, cache, root, sentinel = sys.argv[2], Path(sys.argv[3]), Path(sys.argv[4]), Path(sys.argv[5]), Path(sys.argv[6])
 def reached(*args, **kwargs):
     sentinel.write_text('reached')
     time.sleep(60)
 patches = [mock.patch.object(launch, 'SETTLE_SECONDS', 0.0),
            mock.patch.object(launch, 'real_home', return_value=real),
+           mock.patch.object(launch, 'homes_root', return_value=root),
            mock.patch.object(launch, 'user_cache_dir', return_value=cache),
-           mock.patch.object(launch, 'identify_candidate', lambda app, record: json.loads(Path(record).read_text()))]
+           mock.patch.object(launch, 'identify_candidate', lambda app, record: None)]
 if stage == 'before start':
     patches.append(mock.patch.object(launch, 'check_environment', reached))
 if stage == 'finalizing':
     patches.append(mock.patch.object(launch, 'compare', reached))
 for patch in patches:
     patch.start()
-sys.exit(launch.main(sys.argv[6:]))
+sys.exit(launch.main(sys.argv[7:]))
 '''
 
 
-class KilledHelper(Fixture):  # STATEMENT 2: a killed helper leaves no record
-    def test_a_helper_killed_at_each_stage_leaves_no_record(self):
+class KilledLauncher(Fixture):  # STATEMENT 2: a killed launcher leaves no record
+    def test_a_launcher_killed_at_each_stage_leaves_no_record(self):
         runner = self.tmp / 'runner.py'
         runner.write_text(KILLED_RUNNER)
         for stage in ('before start', 'running', 'finalizing'):
@@ -378,9 +381,10 @@ class KilledHelper(Fixture):  # STATEMENT 2: a killed helper leaves no record
                 sentinel = self.tmp / f'sentinel-{slug}'
                 script = f'echo $$ > "{sentinel}"\nsleep 60\n' if stage == 'running' else ''
                 candidate = self.candidate(script, where=f'killed-{slug}', plays=False)
-                run_dir = self.tmp / f'killed-run-{slug}'
+                before = self.folders()
                 helper = subprocess.Popen([sys.executable, '-B', str(runner), str(HELPER), stage, str(self.real),
-                                           str(self.cache), str(sentinel), *self.argv(candidate, run_dir=run_dir)],
+                                           str(self.cache), str(self.root), str(sentinel),
+                                           'launch', '--candidate', str(candidate)],
                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 deadline = time.monotonic() + 20
                 while not (sentinel.exists() and sentinel.read_text().strip()) and time.monotonic() < deadline:
@@ -390,48 +394,47 @@ class KilledHelper(Fixture):  # STATEMENT 2: a killed helper leaves no record
                 helper.wait()
                 if stage == 'running':
                     self.groups.append(int(sentinel.read_text().strip()))
-                self.assertFalse((run_dir / launch.RECORD).exists())
-                for name in (os.listdir(run_dir) if run_dir.exists() else []):
+                [folder] = sorted(self.folders() - before)
+                for name in os.listdir(folder / launch.RECORD_FOLDER):
                     self.assertTrue(name.startswith('.' + launch.RECORD + '.partial-'), name)
 
 
 @contextlib.contextmanager
-def reads_under(paths, dirs=()):
-    """Instrumentation, lexical and resolved: every listing, read or stat of one of `paths` or of anything under one
-    of `dirs` (exclusive write-only creation is not counted)."""
-    paths = {os.path.realpath(p) for p in paths}
+def touches(names=(), dirs=()):
+    """Instrumentation, lexical and resolved: every open, listing or stat whose path or last component is one of
+    `names`, or that lies under one of `dirs` (exclusive write-only creation is not counted)."""
     dirs = [os.path.realpath(d) for d in dirs]
     touched = []
 
-    def hit(text):
-        return text is not None and (text in paths or any(text.startswith(d + os.sep) for d in dirs))
+    def hit(text, raw):
+        if text is None:
+            return False
+        return os.path.basename(raw) in names or raw in names or any(text.startswith(d + os.sep) for d in dirs)
 
     def resolve(path, dir_fd):
         if isinstance(path, int):
-            return fd_path(path)
-        text = os.fsdecode(path)
-        if dir_fd is not None and not os.path.isabs(text):
-            return os.path.normpath(os.path.join(fd_path(dir_fd), text))
-        return os.path.abspath(text)
+            return fd_path(path), ''
+        raw = os.fsdecode(path)
+        if dir_fd is not None and not os.path.isabs(raw):
+            return os.path.normpath(os.path.join(fd_path(dir_fd), raw)), raw
+        return os.path.abspath(raw), raw
 
     real = {name: getattr(os, name) for name in ('listdir', 'scandir', 'stat', 'lstat', 'open')}
 
     def wrap(name):
         def spied(*args, **kwargs):
-            lexical = resolve(args[0] if args else kwargs.get('path', '.'), kwargs.get('dir_fd'))
+            lexical, raw = resolve(args[0] if args else kwargs.get('path', '.'), kwargs.get('dir_fd'))
             flags = (args[1] if len(args) > 1 else kwargs.get('flags', 0)) if name == 'open' else 0
             creating = name == 'open' and flags & os.O_ACCMODE == os.O_WRONLY and flags & os.O_CREAT and flags & os.O_EXCL
-            result = real[name](*args, **kwargs)
-            resolved = fd_path(result) if name == 'open' else None
-            if not creating and (hit(lexical) or hit(resolved)):
-                touched.append((name, lexical, resolved))
-            return result
+            if not creating and hit(lexical, raw):
+                touched.append((name, lexical))
+            return real[name](*args, **kwargs)
         return spied
     real_open = builtins.open
 
     def spied_open(file, *args, **kwargs):
-        if not isinstance(file, int) and hit(os.path.realpath(os.fsdecode(file))):
-            touched.append(('open', file, None))
+        if not isinstance(file, int) and hit(os.path.abspath(os.fsdecode(file)), os.fsdecode(file)):
+            touched.append(('open', file))
         return real_open(file, *args, **kwargs)
     with contextlib.ExitStack() as stack:
         for name in real:
@@ -441,108 +444,120 @@ def reads_under(paths, dirs=()):
         yield touched
 
 
-class NewHomeOnly(Fixture):  # the home is new: an exclusive create, never a reuse
-    def test_the_new_home_is_never_read(self):
+class TheHomesRoot(Fixture):  # the root: existing, the user's, reached without links; never created
+    def test_without_the_root_the_launcher_refuses_before_creating_anything(self):
         candidate = self.candidate()
-        with reads_under((), dirs=[self.parent]) as touched:
-            code, record, out, _ = self.run_helper(candidate)
-        self.assertEqual(code, 0, out)
-        self.assertEqual([t for t in touched if (t[1] or '').startswith(record['home'] + os.sep)
-                          or (t[2] or '').startswith(record['home'] + os.sep)], [])
+        stand_in_real_home = self.tmp / 'another-real-home'
+        stand_in_real_home.mkdir()
+        target = self.tmp / 'elsewhere'
+        target.mkdir()
+        for name, setup in (('absent', lambda: None),
+                            ('a link', lambda: (stand_in_real_home.joinpath(*launch.HOMES_ROOT[:-1]).mkdir(parents=True),
+                                                stand_in_real_home.joinpath(*launch.HOMES_ROOT).symlink_to(target)))):
+            with self.subTest(name), mock.patch.object(launch, 'homes_root', REAL_HOMES_ROOT), \
+                    mock.patch.object(launch, 'real_home', return_value=stand_in_real_home):
+                setup()
+                before = identities(self.tmp)
+                code, out = self.call('launch', '--candidate', str(candidate))
+                self.assert_refused(code, out, 'the homes root')
+                self.assertEqual(identities(self.tmp), before)
+                self.assertEqual(os.listdir(target), [])
 
-    def test_reviewer_round5_a_launch_folder_named_in_another_case_in_parent_gets_a_new_home_inside_it(self):
-        existing = self.tmp / 'existing'
-        old_home = existing / launch.new_folder_name().upper() / launch.HOME
-        (old_home / 'kept').mkdir(parents=True)
-        (old_home / 'kept/auth.json').write_text(SECRET)
+    def test_the_real_root_function_is_under_the_account_home(self):
+        with mock.patch.object(launch, 'real_home', return_value=Path('/invented/account-home')):
+            self.assertEqual(REAL_HOMES_ROOT(), Path('/invented/account-home/dev/chirality-t3/scratch/app/homes/examination'))
+
+
+class NewHomeOnly(Fixture):  # the home is new: exclusive creates under the root's handle
+    def test_a_normal_run_launches_into_a_home_that_did_not_exist_before(self):
+        (self.root / launch.new_folder_name()).mkdir()  # an earlier launch folder
         before = identities(self.tmp)
-        old_entries = [str(p) for p in old_home.rglob('*')]
-        with reads_under(old_entries) as touched:
-            code, record, out, _ = self.run_helper(self.candidate(), parent=old_home)
+        with touches(dirs=[str(self.root)]) as touched:
+            code, record, out, folder = self.run_helper(self.candidate())
         self.assertEqual(code, 0, out)
-        launched_into = os.stat(record['home'])
-        self.assertNotIn((launched_into.st_dev, launched_into.st_ino), before)  # the App's home did not exist before
-        self.assertTrue(record['home'].startswith(str(old_home) + '/launch-'))
-        self.assertEqual(touched, [])  # the existing home's own entries were neither listed nor read
-        self.assertEqual((old_home / 'kept/auth.json').read_text(), SECRET)
-        self.assertNotIn(SECRET, out)
+        home = os.stat(record['home'])
+        self.assertNotIn((home.st_dev, home.st_ino), before)
+        self.assertEqual([t for t in touched if str(t[1]).startswith(record['home'] + os.sep)], [])
 
-    def test_a_home_path_that_already_exists_is_refused_by_the_create_itself(self):
+    def test_a_launch_folder_name_that_already_exists_in_any_spelling_is_refused_by_the_create(self):
         name = launch.new_folder_name()
-        case_insensitive = (self.tmp / 'CaseProbe').write_text('') or (self.tmp / 'caseprobe').exists()
-        spellings = [name] + ([name.upper()] if case_insensitive else [])
-        for index, spelling in enumerate(spellings):
+        (self.tmp / 'CaseProbe').write_text('')
+        spellings = [name] + ([name.upper()] if (self.tmp / 'caseprobe').exists() else [])
+        for spelling in spellings:
             with self.subTest(spelling):
-                parent = self.tmp / f'p-{index}'
-                (parent / spelling / launch.HOME).mkdir(parents=True)
-                before = identities(parent)
+                (self.root / spelling / launch.HOME).mkdir(parents=True)
+                (self.root / spelling / launch.HOME / 'kept').write_text(SECRET)
+                before = identities(self.root)
                 with mock.patch.object(launch, 'new_folder_name', return_value=name):
-                    code, record, out, run_dir = self.run_helper(self.candidate(where=f'c-{index}'), parent=parent)
+                    code, out = self.call('launch', '--candidate', str(self.candidate(where=f'c-{len(spelling)}-'
+                                                                                        f'{spelling == name}')))
                 self.assert_refused(code, out, 'could not be created: something already exists there')
-                self.assertIsNone(record)
-                self.assertEqual(identities(parent), before)
+                self.assertEqual(identities(self.root), before)
+                self.assertFalse((self.root / spelling / launch.HOME / 'received-env.txt').exists())
+                shutil.rmtree(self.root / spelling)
 
 
-class ListedPathChecks(Fixture):  # a listed, not exhaustive, set of refusals
-    def test_a_path_whose_written_ancestry_names_a_launch_folder_is_refused_untouched(self):
-        code, record, out, _ = self.run_helper(self.candidate())
-        folder = Path(record['launch_folder'])
-        home = folder / launch.HOME
-        (home / 'sessions').mkdir()
-        inner = self.candidate(where=f'{folder.relative_to(self.tmp)}/home/cand')
-        cases = {'candidate folder under a launch folder': self.argv(inner, run_dir=self.tmp / 'r1'),
-                 'run folder under a launch folder': self.argv(self.candidate(where='c2'), run_dir=home / 'sessions/run'),
-                 'parent under a launch folder': self.argv(self.candidate(where='c3'), run_dir=self.tmp / 'r3', parent=home)}
-        for name, argv in cases.items():
-            with self.subTest(name):
-                with reads_under([str(home)], dirs=[str(home)]) as touched:
-                    code, out = self.call(*argv)
-                self.assert_refused(code, out, 'names a launch folder')
-                self.assertEqual(touched, [])
-        self.assertFalse((home / 'sessions/run').exists())
-
+class CandidateAdmission(Fixture):  # the only caller path
     def test_ambiguous_syntax_is_refused_before_normalisation(self):
         candidate = self.candidate()
-        (self.tmp / 'other/deep').mkdir(parents=True)
-        (self.tmp / 'linked').symlink_to(self.tmp / 'other/deep')
-        for name, text in (('".." through a link', f'{self.tmp}/linked/../parent'), ('"."', f'{self.tmp}/./parent'),
-                           ('empty component', f'{self.tmp}//parent'), ('trailing slash', f'{self.parent}/'),
-                           ('relative', 'parent')):
+        (self.tmp / 'linked').symlink_to(self.tmp / 'build')
+        for name, text in (('".." through a link', f'{self.tmp}/linked/../build'), ('"."', f'{self.tmp}/./build'),
+                           ('empty component', f'{self.tmp}//build'), ('trailing slash', f'{candidate}/'),
+                           ('relative', 'build')):
             with self.subTest(name):
-                code, out = self.call(*self.argv(candidate, run_dir=self.tmp / 'r', parent=text))
+                code, out = self.call('launch', '--candidate', text)
                 self.assert_refused(code, out, 'written ambiguously' if text.startswith('/') else 'absolute')
-                self.assertFalse((self.tmp / 'r').exists())
-        self.assertEqual(os.listdir(self.tmp / 'other/deep'), [])
+        self.assertEqual(self.folders(), set())
 
-    def test_links_in_an_access_path_and_protected_places_are_refused(self):
+    def test_a_link_in_the_access_path_or_the_layout_is_refused(self):
         candidate = self.candidate()
+        (self.tmp / 'aliased').symlink_to(candidate)
+        self.assert_refused(*self.call('launch', '--candidate', str(self.tmp / 'aliased')), 'no link')
         outside = self.tmp / 'outside-identification'
-        shutil.copytree(candidate / 'identification', outside)
-        shutil.rmtree(candidate / 'identification')
+        shutil.move(str(candidate / 'identification'), outside)
         (candidate / 'identification').symlink_to(outside)
-        self.assert_refused(*self.call(*self.argv(candidate, run_dir=self.tmp / 'r')), 'identification folder')
-        plain = self.candidate(where='plain')
-        (self.tmp / 'aliased').symlink_to(plain)
-        self.assert_refused(*self.call(*self.argv(self.tmp / 'aliased', run_dir=self.tmp / 'r')), 'no link')
-        checkout = self.tmp / 'checkout'
-        (checkout / '.git').mkdir(parents=True)
-        self.assert_refused(*self.call(*self.argv(plain, run_dir=checkout / 'run')), 'checkout')
-        self.assert_refused(*self.call(*self.argv(plain, run_dir=launch.REPOSITORY / 'launch-run')), 'checkout')
-        self.assert_refused(*self.call(*self.argv(plain, run_dir=self.real / 'Library/run')), 'real home Library')
-        self.assert_refused(*self.call(*self.argv(self.candidate(where='x/Applications/c'), run_dir=self.tmp / 'r')),
-                            'Applications folder')
-        code, record, out, run_dir = self.run_helper(plain)
-        self.assert_refused(*self.call(*self.argv(plain, run_dir=run_dir)), 'already exists')
-        self.assertFalse((launch.REPOSITORY / 'launch-run').exists())
+        self.assert_refused(*self.call('launch', '--candidate', str(candidate)), 'identification folder')
+        self.assertEqual(self.folders(), set())
+
+    def test_a_candidate_under_the_homes_root_is_refused_by_identity_in_any_spelling(self):
+        inner = self.candidate(where='homes-root/kept-candidate')
+        spellings = [str(inner)]
+        (self.tmp / 'CaseProbe').write_text('')
+        if (self.tmp / 'caseprobe').exists():
+            spellings.append(str(self.tmp / 'HOMES-ROOT' / 'kept-candidate'))
+        for text in spellings:
+            with self.subTest(text):
+                with touches(dirs=[str(self.root / 'kept-candidate')]) as touched:
+                    code, out = self.call('launch', '--candidate', text)
+                self.assert_refused(code, out, 'under the homes root')
+                self.assertEqual(touched, [])  # nothing beneath the root was examined
+        self.assertEqual(self.folders(), set())
+
+    def test_a_bundle_name_from_the_record_that_is_not_a_plain_name_is_refused_before_it_is_opened(self):
+        for bad in ('../x.app', 'a/b.app', '.', '/absolute/x.app', '', 'x.notapp'):
+            with self.subTest(bad):
+                candidate = self.candidate(where=f'bad-{abs(hash(bad))}', record_name=bad)
+                with touches(names=[n for n in (bad, 'x.app', 'b.app', 'a') if n not in ('', '.', '/')]) as touched:
+                    code, out = self.call('launch', '--candidate', str(candidate))
+                self.assert_refused(code, out, "the record's bundle name")
+                self.assertEqual(touched, [])
+        self.assertEqual(self.folders(), set())
+
+    def test_a_bundle_folder_that_does_not_hold_exactly_the_records_bundle_is_refused(self):
+        candidate = self.candidate(record_name='Other.app')
+        self.assert_refused(*self.call('launch', '--candidate', str(candidate)), "exactly the record's bundle")
+        candidate = self.candidate(where='two')
+        candidate.joinpath(*launch.BUNDLE_FOLDER, 'Extra.app').mkdir()
+        self.assert_refused(*self.call('launch', '--candidate', str(candidate)), "exactly the record's bundle")
 
 
 class WatchedByExactName(Fixture):
     def test_an_executable_name_that_does_not_discriminate_is_refused(self):
         for index, name in enumerate(('a', 'app', 'chirality', 'Chirality-x')):
             with self.subTest(name):
-                code, record, out, run_dir = self.run_helper(self.candidate(executable=name, where=f'short{index}'))
+                code, record, out, folder = self.run_helper(self.candidate(executable=name, where=f'short{index}'))
                 self.assert_refused(code, out, 'does not discriminate')
-                self.assertFalse(run_dir.exists())
+                self.assertIsNone(folder)
 
     def test_the_rule_names_entries_exactly(self):
         helper = 'com.apple.WebKit.{}+chirality_app_v4-0a1b2c'
@@ -598,9 +613,9 @@ class AddressOverride(Fixture):
                          ('the default (nothing listens there)', launch.DEFAULT_MODEL_ADDRESS))
         for value in ('', '   '):
             with self.subTest(repr(value)):
-                code, _, out, run_dir = self.run_helper(candidate, '--model-address', value)
+                code, _, out, folder = self.run_helper(candidate, '--model-address', value)
                 self.assert_refused(code, out, launch.MODEL_ADDRESS)
-                self.assertFalse(run_dir.exists())
+                self.assertIsNone(folder)
         code, record, out, _ = self.run_helper(candidate, '--model-address', 'http://127.0.0.1:8080/v1')
         self.assertEqual((record['address_override'], self.received(record)[launch.MODEL_ADDRESS]),
                          ('given by the caller', 'http://127.0.0.1:8080/v1'))
@@ -621,7 +636,7 @@ class OnlyTheIdentifiedCandidate(Fixture):
     def record_path(self, candidate):
         return candidate / 'identification/candidate-identification.json'
 
-    def test_unknown_format_or_missing_key_is_refused_and_no_record_value_is_quoted(self):
+    def test_an_invalid_record_is_refused_and_no_record_value_is_quoted(self):
         candidate = self.candidate()
         record = json.loads(self.record_path(candidate).read_text())
         for name, value in (('unknown format', {**record, 'format': 'invented/v9', 'candidate_key': SECRET}),
@@ -629,10 +644,10 @@ class OnlyTheIdentifiedCandidate(Fixture):
                             ('empty candidate key', {**record, 'candidate_key': ''})):
             with self.subTest(name):
                 self.record_path(candidate).write_text(json.dumps(value))
-                code, _, out, run_dir = self.run_helper(candidate)
+                code, out = self.call('launch', '--candidate', str(candidate))
                 self.assertEqual(code, 2, out)
                 self.assertNotIn(SECRET, out)
-                self.assertFalse(run_dir.exists())
+        self.assertEqual(self.folders(), set())
 
     def test_a_check_that_finds_a_difference_is_refused_by_counts_and_field_names(self):
         candidate = self.candidate()
@@ -642,13 +657,13 @@ class OnlyTheIdentifiedCandidate(Fixture):
                              ('record fields differ', {**same, 'record_fields_mismatched': ['identifier']})):
             with self.subTest(name), mock.patch.object(identify, 'validate_record'), \
                     mock.patch.object(identify, 'check', return_value=result):
-                code, _, out, _ = self.run_helper(candidate)
+                code, out = self.call('launch', '--candidate', str(candidate))
                 self.assert_refused(code, out, 'differs from its identification record')
                 self.assertNotIn(SECRET, out)
         for error in (plistlib.InvalidFileException(), ExpatError('invented')):
             with self.subTest(type(error).__name__), mock.patch.object(identify, 'validate_record'), \
                     mock.patch.object(identify, 'check', side_effect=error):
-                self.assertEqual(self.run_helper(candidate)[0], 2)
+                self.assertEqual(self.call('launch', '--candidate', str(candidate))[0], 2)
 
     @unittest.skipUnless(MAC, "identification's check reads live macOS metadata")
     def test_a_changed_resource_is_refused_and_the_identified_bundle_launches(self):
@@ -679,9 +694,8 @@ class OnlyTheIdentifiedCandidate(Fixture):
         code, record, out, _ = self.run_helper(candidate)
         self.assertEqual((code, record['outcome']), (0, 'clean'), out)
         (app / 'Contents/Resources/instructions/AGENTS.md').write_text('changed after identification\n')
-        code, _, out, run_dir = self.run_helper(candidate)
+        code, out = self.call('launch', '--candidate', str(candidate))
         self.assert_refused(code, out, '1 changed')
-        self.assertFalse(run_dir.exists())
 
 
 class Housekeeping(unittest.TestCase):
@@ -693,7 +707,8 @@ class Housekeeping(unittest.TestCase):
         for command in ('stop', 'remove'):
             with self.subTest(command), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 launch.main([command])
-        for name in ('stop', 'remove', 'own_folder', 'claim', 'lock', 'in_use', 'read_own', 'APP_INPUTS', 'KINDS'):
+        for name in ('stop', 'remove', 'own_folder', 'claim', 'lock', 'in_use', 'read_own', 'APP_INPUTS', 'KINDS',
+                     'refuse_launch_folder_ancestry', 'check_place', 'LAUNCH_FOLDER_NAME'):
             self.assertFalse(hasattr(launch, name), name)
 
     def test_running_the_helper_writes_no_bytecode(self):
