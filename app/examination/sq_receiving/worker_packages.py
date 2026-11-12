@@ -79,7 +79,7 @@ def check(selection_path, expected, configuration, configuration_sha256):
                 'configuration_sha256': configuration_sha256,
                 'package_reports': package_reports, 'package_routes': package_routes,
                 # Stated outcomes and journey bases are published only once the checks admitted them;
-                # a failed selection's report carries neither.
+                # a refused selection's report has neither field. Its error messages may quote the rejected record.
                 **({'reported_outcomes': {slot: v['outcome'] for slot, v in records.items() if 'outcome' in v},
                     'reported_journey_basis': journey_basis()} if admitted else {}),
                 'reported_currency': {'dossier': dossier.get('currency') if dossier else None,

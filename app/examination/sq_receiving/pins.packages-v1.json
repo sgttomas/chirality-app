@@ -56,12 +56,12 @@
     "app/packaging/terms/terms-position.v1.schema.json": "7a47f1e75453e8df3778e7c59628932f96791906dbe378b8aa2d8db72eecbb08",
     "app/examination/package_receiving/sources.package-v1.json": "b6f755986a7c248b4e7f242c9768107321405a7617c92e41571ebb597200f162",
     "app/examination/package_receiving/adapter.py": "dd32097f5979c8eb11b7a3dc2baad120c31f5997f7eb2ecdcc959a1b9a721107",
-    "app/examination/sq_receiving/worker_packages.py": "f5d05948962b3349d3b3a6b53b97da0c9ff101c8bd854fa52a186e863bc00266",
+    "app/examination/sq_receiving/worker_packages.py": "c3a9c80b277314247f45e054fdeb0d2e78328ba6df2328c34112e8db379c8262",
     "app/src-tauri/resources/distribution-successor/lifecycle-transitions.s1.json": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14"
   },
   "predecessor": {
     "path": "app/examination/sq_receiving/pins.terms-v1.json",
-    "sha256": "498d54490da063859a1194c7bff3ce8383e8bf63e2ddc123a36824ea1db65516"
+    "sha256": "09e0a707bc3f83898812a07b4f9698451cc891e3165dc5a2ca93b8573eabf1fb"
   },
   "package_source_profile": {
     "path": "app/examination/package_receiving/sources.package-v1.json",
