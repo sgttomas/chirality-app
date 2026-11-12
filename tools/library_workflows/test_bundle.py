@@ -257,18 +257,67 @@ def test_the_tree_is_listed_once_so_files_and_folders_agree(tmp_path, monkeypatc
     tree = built(tmp_path, FILES)
     output = tmp_path / "out"
     bundle.write_tree(tree, output)
-    walks = []
-    walk = bundle.os.walk
+    listed = []
+    listdir = bundle.os.listdir
 
-    def counted(top, *arguments, **options):
-        walks.append(top)
-        for step in walk(top, *arguments, **options):
-            yield step
-        # A file that appears once the listing is done must not be able to
+    def counted(folder):
+        names = listdir(folder)
+        listed.append(Path(folder))
+        # A folder that appears once a listing is done must not be able to
         # make a second listing disagree with the first.
         (output / "late").mkdir(exist_ok=True)
+        return names
 
-    monkeypatch.setattr(bundle.os, "walk", counted)
+    monkeypatch.setattr(bundle.os, "listdir", counted)
     read, other = bundle.read_tree(output)
-    assert walks == [output] and other == []
-    assert read == tree
+    folders = [output, output / "alpha", output / "alpha/resources", output / "alpha/tools", output / "beta"]
+    assert sorted(listed) == sorted(folders), "every folder is listed exactly once"
+    assert other == [] and read == tree
+
+
+def test_an_entry_that_cannot_be_classified_or_read_stops_every_command(tmp_path, monkeypatch):
+    tree = built(tmp_path, FILES)
+    output = tmp_path / "out"
+    bundle.write_tree(tree, output)
+    (output / "unread-folder").mkdir()
+    (output / "unread-folder/unseen").write_bytes(b"not in the release\n")
+    stale = output / "stale.md"
+    stale.write_bytes(b"not in the release\n")
+    lstat = bundle.os.lstat
+
+    def failing(path, *arguments, **options):
+        # The entry's kind cannot be established: an input or output error.
+        if Path(path).name == "unread-folder":
+            raise OSError(5, "Input/output error", str(path))
+        return lstat(path, *arguments, **options)
+
+    monkeypatch.setattr(bundle.os, "lstat", failing)
+    for reading in (lambda: bundle.differences(tree, output), lambda: bundle.verify_tree(output), lambda: bundle.write_tree(tree, output)):
+        with pytest.raises(bundle.BundleError, match="cannot read .*unread-folder"):
+            reading()
+    # The writer stopped before deleting or rewriting anything.
+    assert stale.read_bytes() == b"not in the release\n" and (output / "unread-folder/unseen").is_file()
+    monkeypatch.setattr(bundle.os, "lstat", lstat)
+    # Read normally, the same tree is reported as holding what the release does not.
+    assert bundle.differences(tree, output) == ["not in the release: stale.md", "not in the release: unread-folder/unseen"]
+    # A file that cannot be read stops the reading as well.
+    (output / "alpha/WORKFLOW.md").chmod(0)
+    try:
+        with pytest.raises(bundle.BundleError, match="cannot read .*WORKFLOW.md"):
+            bundle.differences(tree, output)
+    finally:
+        (output / "alpha/WORKFLOW.md").chmod(0o600)
+
+
+def test_a_tree_that_is_a_link_is_refused_by_every_command(tmp_path):
+    tree = built(tmp_path, FILES)
+    target = tmp_path / "elsewhere"
+    bundle.write_tree(tree, target)
+    stale = target / "stale.md"
+    stale.write_bytes(b"would be deleted through the link\n")
+    output = tmp_path / "out"
+    output.symlink_to(target)
+    for reading in (lambda: bundle.differences(tree, output), lambda: bundle.verify_tree(output), lambda: bundle.write_tree(tree, output)):
+        with pytest.raises(bundle.BundleError, match="is a link"):
+            reading()
+    assert stale.is_file()

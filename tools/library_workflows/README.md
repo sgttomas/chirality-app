@@ -57,9 +57,11 @@ names no workflow.
 A reading that cannot be made is a refusal, never a pass: an archive that is
 not the selected one, a tree folder or file that cannot be read, a missing
 tree, a manifest that names no workflow, and a folder holding no file are
-each reported and make the command fail. Each command reads the tree in one
-traversal and requires a stable tree: do not change it while a command runs,
-because a file added after its folder was listed is not seen.
+each reported and make the command fail. So does an entry whose kind cannot
+be established, and a tree that is itself a link. Each reading of the tree
+lists every folder once (`generate` reads it before writing and again after),
+and the commands require a stable tree: do not change it while a command
+runs, because a file added after its folder was listed is not seen.
 
 ## What the manifest records
 

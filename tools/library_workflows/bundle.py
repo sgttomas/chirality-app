@@ -23,6 +23,7 @@ import json
 import os
 import posixpath
 import re
+import stat
 import struct
 import sys
 import tarfile
@@ -311,32 +312,41 @@ def build(files: dict[str, bytes], selection: dict) -> dict[str, bytes]:
 def read_tree(output: Path) -> tuple[dict[str, bytes], list[str]]:
     """The committed tree as path -> bytes, and what else is found in it:
     every entry that is not a regular file or a folder, and every folder that
-    holds no file. A folder or file that cannot be read stops the reading: an
-    unreadable tree is never an empty one. The tree is traversed once, so the
-    files and the folders reported come from the same listing; it must not be
-    changed while it is read."""
+    holds no file. Each folder is listed once and every entry is classified
+    by its own status, so the files and folders reported come from one
+    reading. Anything that cannot be listed, classified or read stops the
+    reading: an unreadable tree is never an empty one. A link is reported and
+    never followed, and a tree that is itself a link is refused. The tree must
+    not be changed while it is read."""
     tree: dict[str, bytes] = {}
     other: list[str] = []
     visited: list[str] = []
+    if output.is_symlink():
+        raise BundleError(f"{output} is a link; the bundled tree must be a folder")
     if not output.is_dir():
         return tree, other
 
-    def unreadable(error: OSError) -> None:
-        raise BundleError(f"cannot read {error.filename}: {error.strerror}")
-
-    for folder, folders, names in os.walk(output, onerror=unreadable, followlinks=False):
-        here = Path(folder)
-        if here != output:
-            visited.append(here.relative_to(output).as_posix())
-        for name in sorted(folders + names):
-            path = here / name
+    def read(folder: Path) -> None:
+        try:
+            names = sorted(os.listdir(folder))
+        except OSError as error:
+            raise BundleError(f"cannot read {folder}: {error.strerror}") from None
+        for name in names:
+            path = folder / name
             relative = path.relative_to(output).as_posix()
-            if path.is_symlink() or not (path.is_file() or path.is_dir()):
+            try:
+                mode = os.lstat(path).st_mode
+                if stat.S_ISREG(mode):
+                    tree[relative] = path.read_bytes()
+            except OSError as error:
+                raise BundleError(f"cannot read {path}: {error.strerror}") from None
+            if stat.S_ISDIR(mode):
+                visited.append(relative)
+                read(path)
+            elif not stat.S_ISREG(mode):
                 other.append(f"not a regular file: {relative}")
-            elif path.is_file():
-                tree[relative] = path.read_bytes()
-        # A link to a folder is reported above and never entered.
-        folders[:] = [name for name in folders if not (here / name).is_symlink()]
+
+    read(output)
     other += [
         f"folder without a file: {relative}"
         for relative in visited
@@ -346,7 +356,7 @@ def read_tree(output: Path) -> tuple[dict[str, bytes], list[str]]:
 
 
 def differences(expected: dict[str, bytes], output: Path) -> list[str]:
-    if not output.is_dir():
+    if not output.is_symlink() and not output.is_dir():
         return [f"not a folder: {output}"]
     actual, found = read_tree(output)
     found += [f"missing: {path}" for path in sorted(set(expected) - set(actual))]
