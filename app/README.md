@@ -1434,9 +1434,14 @@ not a regular, singly linked file is refused without waiting. A store whose
 state cannot be read reads as unavailable, never as empty or as "no records
 yet": a project's import account is read whole and only as line forms the
 App has written (a started line, a completed line, and the single line with
-no event that the first store builds wrote for a completed import); an
-unclosed last line, a blank line or any other content makes the account
-unknown. The capability's read-log write makes only its own folder beneath
+no event that the first store builds wrote for a completed import), each line
+being one JSON object and nothing else, in UTF-8, with no key given twice;
+an account that exists and is empty, an unclosed last line, a blank line or
+any other content makes the account unknown, and only an account that is not
+there is "no import". (The store's appender creates the file and then
+writes, so a stop between the two leaves an empty account, which is then an
+error for that project until the safe-append change, which makes a new file
+whole or not at all, has landed.) The capability's read-log write makes only its own folder beneath
 parents that exist. A read writes
 only two things below an existing store: the records read log that the
 agents' records capability writes for each call (`reads/records-reads.jsonl`),
