@@ -15,13 +15,37 @@ const ACTION_WORDS: Record<string, [string, string]> = {
   workflow_prepare_run: ["Prepared the run; nothing has been sent", "prepare the run"],
   workflow_send_run: ["Start requested; see Progress for what happened", "start the run"],
   workflow_end_run: ["Ending requested; see Progress", "end the run"],
+  workflow_observe_drafts: ["Looked for drafts in this library", "look for drafts"],
+  workflow_review_draft: ["Opened the review", "open the review"],
+  workflow_trial_prepare: ["Prepared the trial message; nothing has been sent", "prepare the trial"],
+  workflow_trial_bring_back: ["Prepared the trial's results as a message; nothing has been sent", "bring the trial back"],
 };
+/** Refusals a person can meet from a guide's button, in their words. The host's exact reply stays under details. */
+const REFUSAL_WORDS: [RegExp, string][] = [
+  [/history context is busy/i, "the App was busy reading conversation history, so nothing was changed. Press the button again."],
+  [/(generation|history selection|home source|App source) changed|refresh the displayed/i, "this view was out of date, so nothing was changed. Press the button again."],
+  [/not durably recorded; nothing sent|pre-send publication failed/i, "the App couldn't save the run's record, so nothing was sent."],
+];
+const refusalWords = (reply: string): string | undefined => REFUSAL_WORDS.find(([pattern]) => pattern.test(reply))?.[1];
+export type GuideOutcome = { command: string; message: string; failed?: boolean; settled?: boolean };
 /** The last guide action's result without raw host JSON; the exact reply stays under details. */
-export function guideResultWords(outcome: { command: string; message: string; failed?: boolean; settled?: boolean }): { words: string; detail: string } | null {
+export function guideResultWords(outcome: GuideOutcome): { words: string; detail: string; failed: boolean } | null {
   if (!outcome?.settled) return null;
-  const [done, verb] = ACTION_WORDS[outcome.command] ?? [`Finished ${outcome.command}`, outcome.command];
-  if (outcome.failed) return { words: `Couldn't ${verb}: ${outcome.message.replace(/^Error: /, "")}`, detail: "" };
-  return { words: `${done}.`, detail: outcome.message };
+  const [done, verb] = ACTION_WORDS[outcome.command] ?? ["Done", "do that"];
+  if (outcome.failed) {
+    const reply = outcome.message.replace(/^Error: /, "");
+    const plain = refusalWords(reply);
+    return plain ? { words: `Couldn't ${verb}: ${plain}`, detail: reply, failed: true } : { words: `Couldn't ${verb}: ${reply}`, detail: "", failed: true };
+  }
+  return { words: `${done}.`, detail: outcome.message, failed: false };
+}
+/** The last press's result, shown under a guide's Next line where the person is looking. */
+export function GuideResult({ label, outcome, only }: { label: string; outcome?: GuideOutcome | null; only?: string[] }) {
+  // A guide that names its own commands stays silent about another view's press.
+  const result = outcome && (!only || only.includes(outcome.command)) ? guideResultWords(outcome) : null;
+  if (!result) return null;
+  return <div role={result.failed ? "alert" : "status"} aria-label={label} className={`run-journey-state${result.failed ? " run-journey-failed" : ""}`}><p>{result.words}</p>
+    {result.detail && <details><summary>What the App reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{result.detail}</pre></details>}</div>;
 }
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -79,12 +103,22 @@ export function runReading(run: Json, host: Json): RunReading {
     const waiting = hostRequests(host).filter((request: Json) => requestThread(request) === run.conversation && request.state === "outstanding" && (request.generation === undefined || same(request.generation, run.generation))).length;
     if (waiting > 0) return { tone: "waiting", title: "Waiting for your answer", detail: `Codex is asking ${waiting === 1 ? "a question or approval" : `${waiting} questions or approvals`} in the conversation. Nothing continues until you answer there.` };
     const thread = list(host?.threads).find((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation));
-    if (thread?.status?.type === "active") return { tone: "working", title: "Working", detail: "Codex is working on this run. Follow its progress in the conversation." };
+    // The conversation's own turns, as the host observed them. A turn in
+    // progress is Codex working, whatever status the conversation row keeps.
+    const turns = list(host?.conversationTurns).filter((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation));
+    const live = turns.some((row: Json) => row.nativeTurn?.status === "inProgress" && row.terminalEventObserved !== true && row.observationEnded !== true);
+    if (thread?.status?.type === "active" || live) return { tone: "working", title: "Working", detail: "Codex is working on this run. Follow its progress in the conversation." };
+    const lastTurn = turns.filter((row: Json) => Number.isFinite(row.receiptPosition)).sort((a: Json, b: Json) => b.receiptPosition - a.receiptPosition)[0];
+    if (lastTurn?.nativeTurn?.status === "failed") return { tone: "failed", title: "Codex's last step failed", detail: `${lastTurn.nativeTurn.error?.message ? `Codex reported: ${text(lastTurn.nativeTurn.error.message)}. ` : ""}The run is still open; read the conversation, then reply there to continue or end the run.` };
     if (thread?.status?.type === "systemError") return { tone: "failed", title: "Codex reported an error", detail: "The conversation reported a system error. The run is still open; read the conversation, then continue or end the run." };
     return { tone: "idle", title: "Open — Codex is not working right now", detail: "The run stays open until you end it. Reply in the conversation to continue, or end the run when you are done." };
   }
   if (run?.source) return { tone: "working", title: "Starting", detail: "The starting message was sent. The run opens when Codex begins it." };
-  if (status.sent === false && status.limit) return { tone: "failed", title: "Not started", detail: `${text(status.state)}: ${text(status.limit)}` };
+  if (status.sent === false && status.limit) {
+    const reported = `${text(status.state)}: ${text(status.limit)}`;
+    const plain = refusalWords(reported);
+    return { tone: "failed", title: "Not started", detail: `Nothing was sent${plain ? `: ${plain}` : "."} You can start it again. The App reported: ${reported}` };
+  }
   return { tone: "idle", title: "Ready to start", detail: "The run is prepared and has not been sent. Start it when your inputs are ready." };
 }
 
@@ -115,7 +149,7 @@ function RunResult({ run, host, loaded, showConversation }: { run: Json; host: J
 
 export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, text: personText, setText, outcome, showConversation }: {
   data: Json; host: Json; thread: string; chooseThread: (thread: string) => void; act: Act; busy: boolean;
-  text: string; setText: (text: string) => void; outcome?: { command: string; message: string; failed?: boolean; settled?: boolean } | null;
+  text: string; setText: (text: string) => void; outcome?: GuideOutcome | null;
   showConversation?: (threadId: string, target?: string) => void;
 }) {
   // The unknown-start acknowledgement names one run; a later run starts unacknowledged.
@@ -174,7 +208,6 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
     if (landing === "start" && startButton.current) { startButton.current.focus?.(); setLanding(null); }
     else if (landing === "progress" && progressNode.current) { progressNode.current.focus?.(); setLanding(null); }
   });
-  const result = outcome ? guideResultWords(outcome) : null;
   // Runs that started in this conversation, newest first (a prepared, unsent one is not a run yet).
   const sent = (run: Json) => !(starts(run?.lifecycle?.state, "prepared") && !run.source);
   const resultOrder = orderRuns(runs.filter(sent));
@@ -203,10 +236,11 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
       : "Read the conversation: a start here has an unknown outcome and may have run; the App can't tell which run is latest.")
     : orderUnknown && inProgress ? "A run in this conversation is still open, and the App can't tell which run is latest; follow or end it from Results or the workflow studio before preparing another."
     : !latest || starts(latest.lifecycle?.state, "ended") || starts(latest.lifecycle?.state, "start not confirmed") ? "Describe what the workflow should work on, then prepare the run."
-    : prepared ? "Check your inputs, then start the run." : orderUnknown ? "This conversation has several runs whose order the App can't tell; see each under Results." : reading?.title ?? "";
+    : prepared ? prepared.status?.sent === false && prepared.status?.limit ? "The run didn't start and nothing was sent. See why under Progress, then start it again." : "Check your inputs, then start the run." : orderUnknown ? "This conversation has several runs whose order the App can't tell; see each under Results." : reading?.title ?? "";
   return <section id="run-workflow" className="workflow-stage run-journey" aria-label="Run a workflow" aria-busy={busy}>
     <h2>Run a workflow</h2>
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {step}</p>
+    <GuideResult label="Run a workflow — last result" outcome={outcome}/>
     <ol className="run-journey-steps">
       <li aria-labelledby="run-project-heading"><h3 id="run-project-heading">Project</h3>
         <ProjectFolderSummary host={host} libraryAvailable={projectAvailable}/>
@@ -226,7 +260,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
       <li aria-labelledby="run-workflow-heading"><h3 id="run-workflow-heading">Workflow</h3>
         {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {text(chosen.identity?.origin)} library, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : ""}<code title={text(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosenReady ? "Ready to run." : `Can't run: ${text(chosenLimit)}`}</p>}
         {chosen && chosen.identity?.origin !== "bundled" && <p role="note" aria-label="Approval evidence">{workflowAssurance(chosen.assurance)}</p>}
-        {chosen && newer && (newer.limit ? <p role="note">Newer revisions of {text(chosen.identity?.name)} can't be checked: {text(newer.limit)}</p>
+        {chosen && newer && !(newer.limit && chosen.identity?.origin === "bundled") && (newer.limit ? <p role="note">Newer revisions of {text(chosen.identity?.name)} can't be checked: {text(newer.limit)}</p>
           : <p role="note" aria-label="Newer revision for this conversation">A newer revision of <strong>{text(chosen.identity?.name)}</strong> is registered ({text(newer.notice)}). This conversation keeps using the one shown above until you choose the newer one.{" "}
             {newer.selectable === true ? <button disabled={!canAct} onClick={() => perform("workflow_follow_newer_revision", { selectionRef: chosen.reference, revision: newer.revision })}>{text(newer.offered)}</button> : <small>{text(newer.offered)}.</small>}</p>)}
         {active && registered.length > 0 && <ul aria-label="Workflows ready to use">{registered.map((row: Json) => <li key={`${row.name}@${row.revision}`}>
@@ -279,8 +313,6 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
           {starts(latest.lifecycle?.state, "open") && <p><button disabled={!canAct} onClick={() => perform("workflow_end_run", { runRef: latest.reference, finishedReport: null })}>End this run</button>{" "}
             <small>Ending here records that you ended it — not that it completed. To stop only Codex's current step, use Stop in the conversation; the run stays open.</small></p>}
         </div> : orderUnknown ? <p role="status">This conversation has several runs, and the App can't tell which one is the latest. Each is listed under Results.</p> : <p>No run in this conversation yet.</p>}
-        {result && <div role="status" aria-label="Run a workflow — last result"><p>{result.words}</p>
-          {result.detail && <details><summary>What the App reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{result.detail}</pre></details>}</div>}
       </li>
       <li aria-labelledby="run-results-heading"><h3 id="run-results-heading">Results</h3>
         {(resultOrder.ordered.length + resultOrder.unordered.length) > 0 && <ul aria-label="Runs in this conversation">

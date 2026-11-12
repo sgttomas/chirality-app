@@ -456,3 +456,53 @@ test('a saved desktop setup shows the project folder only when its projection ma
   }
   assert.deepEqual(ui.calls,[]);await ui.close();
 });
+
+// Walk of the development App at main 4bb28164: a press that met a passing
+// history reader failed with the host's own words under Progress, a start the
+// App could not record left "Check your inputs, then start the run", and an
+// included workflow showed a library's "newer revisions can't be checked".
+test('a refused press is said in plain words under Next, a start that did not go names what to do, and an included workflow shows no library revision note', async () => {
+  const busy = {command:'workflow_select_production_bundle', message:'Error: Native history context is busy; refresh the workflow choice', failed:true, settled:true};
+  const ui = await mount({host:host(), data:data(), thread:'T1', outcome:busy});
+  const last = region(ui.c, 'Run a workflow — last result');
+  assert.equal(all(last, 'p')[0].textContent, "Couldn't choose the included workflow: the App was busy reading conversation history, so nothing was changed. Press the button again.");
+  assert.match(last.textContent, /What the App reportedNative history context is busy; refresh the workflow choice$/, 'the exact reply stays under details');
+  assert.equal(last.getAttribute('role'), 'alert');
+  const section = region(ui.c, 'Run a workflow');
+  const children = Array.from(section.childNodes);
+  assert.equal(children.indexOf(last), children.findIndex(node => /^Next:/.test(node.textContent)) + 1, 'the result follows the Next line, before the steps');
+
+  const unsent = {reference:'run-1', conversation:'T1', home:'account', generation:g, preparationOrder:0, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED},
+    status:{sent:false, state:'WR pre-send publication failed; nothing sent', limit:'nothing written: no records store'}};
+  await ui.rerender({data:data({selections:selected(), runs:[unsent]}), outcome:{command:'workflow_send_run', message:'Error: WR selection/run_text not durably recorded; nothing sent: nothing written: no records store', failed:true, settled:true}});
+  assert.match(section.textContent, /Next: The run didn't start and nothing was sent\. See why under Progress, then start it again\./);
+  assert.match(region(ui.c, 'Run a workflow — last result').textContent, /^Couldn't start the run: the App couldn't save the run's record, so nothing was sent\./);
+  assert.match(region(ui.c, 'Run progress').textContent, /Not started\. Nothing was sent: the App couldn't save the run's record, so nothing was sent\. You can start it again\. The App reported: WR pre-send publication failed; nothing sent: nothing written: no records store/);
+  assert.ok(button(ui.c, 'Start the run'), 'the prepared run can be started again');
+
+  const bundled = [{...selected()[0], selection:{...selected()[0].selection, identity:{name:'coordinated-knowledge-work', origin:'bundled', revision:'3730d84debb5aa'},
+    newerRevision:{limit:"the selection's library is not open in this App session; newer revisions not read"}}}];
+  await ui.rerender({data:data({selections:bundled}), outcome:null});
+  assert.doesNotMatch(section.textContent, /can't be checked/, 'an included workflow has no library revisions to follow');
+  await ui.rerender({data:data({selections:[{...bundled[0], selection:{...bundled[0].selection, identity:{name:'resolve-spacing', origin:'project', revision:'rev-2-abcdef0123456789'}}}]})});
+  assert.match(section.textContent, /Newer revisions of resolve-spacing can't be checked/, 'a library workflow still says when newer revisions could not be read');
+  await ui.close();
+});
+
+// Walk at main 4bb28164 with a run started against an unreachable model: the
+// turn was in progress while the conversation row still read idle, and the
+// guide said "Codex is not working right now".
+test('an open run reads as working from its turn in progress, and a failed last turn is said as failed', () => {
+  const run = {conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}};
+  const turn = (over, native) => ({threadId:'T1', generation:g, receiptPosition:1, terminalEventObserved:false, observationEnded:false, nativeTurn:{status:'inProgress', error:null, ...native}, ...over});
+  assert.equal(runReading(run, host({conversationTurns:[turn()]})).tone, 'working', 'the conversation row is idle; its turn is in progress');
+  assert.equal(runReading(run, host({conversationTurns:[turn({threadId:'T2'})]})).tone, 'idle', 'another conversation\'s turn');
+  assert.equal(runReading(run, host({conversationTurns:[turn({generation:{...g, spawnCounter:2}})]})).tone, 'idle', 'an earlier Codex session\'s turn');
+  assert.equal(runReading(run, host({conversationTurns:[turn({terminalEventObserved:true}, {status:'completed'})]})).tone, 'idle', 'a completed turn is not working, and never completed work');
+  assert.equal(runReading(run, host({conversationTurns:[turn({observationEnded:true})]})).tone, 'idle', 'an observation that ended says nothing about now');
+  const failed = runReading(run, host({conversationTurns:[turn({receiptPosition:1, terminalEventObserved:true}, {status:'completed'}), turn({receiptPosition:2, terminalEventObserved:true}, {status:'failed', error:{message:'invented failure'}})]}));
+  assert.equal(failed.tone, 'failed'); assert.equal(failed.title, "Codex's last step failed");
+  assert.match(failed.detail, /^Codex reported: invented failure\. The run is still open/);
+  assert.equal(runReading(run, host({conversationTurns:[turn({receiptPosition:2, terminalEventObserved:true}, {status:'completed'}), turn({receiptPosition:1, terminalEventObserved:true}, {status:'failed'})]})).tone, 'idle', 'only the latest turn');
+  assert.equal(runReading(run, host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}], conversationTurns:[turn()]})).tone, 'waiting', 'a waiting request comes first');
+});
