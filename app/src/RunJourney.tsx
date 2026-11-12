@@ -297,6 +297,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {step}</p>
     {/* While a press is still in progress its result is not said: the steps below are from before it. */}
     {!busy && <GuideResult label="Run a workflow — last result" outcome={outcome} only={RUN_COMMANDS}/>}
+    {readFailure && <p role="alert" aria-label="Last status read failed">The App's last read of its state failed ({readFailure}). What is shown here was read before that.</p>}
     <ol className="run-journey-steps">
       <li aria-labelledby="run-project-heading"><h3 id="run-project-heading">Project</h3>
         <ProjectFolderSummary host={host} libraryAvailable={projectAvailable}/>

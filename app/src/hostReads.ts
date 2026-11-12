@@ -11,11 +11,21 @@ const STATUS = "host_status";
  *
  * After a command whose own effect could change what the guides show settles,
  * both guides are withheld until a status read started after it has been
- * applied. What the host learns by itself is not a command's effect: a
- * notification from Codex, a turn ending, or a reply write that finished and
- * that the host reconciles the next time anything observes it, the status
- * read included. The view follows those at the next status read, as it always
- * has; the App reads its status every POLL_MS.
+ * applied. One exception: while a press made in the workflow panel is still
+ * in progress, the steps from before it stay on screen with every control
+ * disabled, the panel announced as busy and the press's result not yet said;
+ * once that press is no longer in progress, whichever way its refresh ended,
+ * the rule applies. A command issued outside the panel withholds at once. If
+ * the refresh after a press neither resolves nor rejects, the earlier steps
+ * stay on screen, disabled and marked busy, for as long as it hangs.
+ *
+ * What the host learns by itself is not a command's effect: a notification
+ * from Codex, a turn ending, or a reply write that finished and that the host
+ * reconciles the next time anything observes it, the status read included.
+ * The view follows those at the next status read that succeeds and is
+ * applied, as it always has. The App starts one every POLL_MS, which is a
+ * schedule and not a bound: a read that fails leaves the previous view in
+ * place, and the guides then say that their last read failed.
  *
  * So every command marks when it settles, except the ones below. They are the
  * commands the web view issues by itself (on a timer, or from an effect that
@@ -29,7 +39,7 @@ export const POLL_MS = 1000;
 export const SELF_ISSUED_QUIET: Readonly<Record<string, string>> = {
   checkpoint_native_waiting_ui: "the waiting-navigation registry only, which neither guide shows",
   claim_native_waiting_intent: "claim ownership in the waiting-navigation registry; reconciliation only",
-  decision_view: "none",
+  decision_view: "reads the decision projection; where the records store was not opened at startup, opening it can create the store's folder and store.json; neither guide shows either",
   finish_native_waiting_intent: "the waiting-navigation registry only, which neither guide shows",
   host_observe: "queues an observer reconstruction kept apart from live activity; reconciliation only",
   native_confirmation_content: "none",

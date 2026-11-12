@@ -289,6 +289,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
     <h2>Make a workflow from your work</h2>
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {nextLine ?? "Put the request in the conversation, read it, and send it when you're happy with it."}</p>
     {!busy && <GuideResult label="Make a workflow — last result" outcome={outcome} only={MAKE_COMMANDS}/>}
+    {readFailure && <p role="alert" aria-label="Last status read failed">The App's last read of its state failed ({readFailure}). What is shown here was read before that.</p>}
     <ol className="run-journey-steps">
       <li><h3>Where you did the work</h3>
         {conversations.length ? <label>Conversation with the work <select value={conversation} disabled={!canAct} onChange={event => setConversation(event.target.value)}>

@@ -391,7 +391,12 @@ test('the panel shows its guides only when the App says the view follows the las
     assert.doesNotMatch(guide().textContent,/The last read failed/);
     await show({viewStale:true,readFailure:'Error: invented status failure'});
     assert.match(guide().textContent,/The last read failed: Error: invented status failure/,`${view}: the failed read is said in the guide`);
+    // A failed read with nothing marked withholds nothing; both guides say it above their steps.
+    await show({viewStale:false,readFailure:'Error: invented status failure'});
+    assert.doesNotMatch(guide().textContent,WITHHELD);
+    assert.match(guide().textContent,/The App's last read of its state failed \(Error: invented status failure\)\. What is shown here was read before that\./,`${view}: a failed read is said above the steps`);
     await show({viewStale:false,readFailure:null});
+    assert.doesNotMatch(guide().textContent,/read of its state failed/);
     assert.doesNotMatch(guide().textContent,WITHHELD,`${view}: a later read applied, the steps return`);
     assert.deepEqual(calls,[],`${view}: showing or withholding issues no command`);
     await React.act(async()=>root.unmount());

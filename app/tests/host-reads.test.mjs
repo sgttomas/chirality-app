@@ -111,7 +111,7 @@ test('the commands that mark nothing are a closed table of self-issued commands,
   assert.deepEqual(SELF_ISSUED_QUIET, {
     checkpoint_native_waiting_ui:'the waiting-navigation registry only, which neither guide shows',
     claim_native_waiting_intent:'claim ownership in the waiting-navigation registry; reconciliation only',
-    decision_view:'none',
+    decision_view:"reads the decision projection; where the records store was not opened at startup, opening it can create the store's folder and store.json; neither guide shows either",
     finish_native_waiting_intent:'the waiting-navigation registry only, which neither guide shows',
     host_observe:'queues an observer reconstruction kept apart from live activity; reconciliation only',
     native_confirmation_content:'none',
@@ -157,6 +157,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     if (command === 'decision_view') return {rows:[]};
     if (command === 'native_confirmation_content') return [];
     if (command === 'workflow_end_run') { runs = [run('ended by the person')]; return {state:'ended'}; }
+    if (command === 'workflow_open_project_library') return {state:'opened'};
     assert.fail(`Unexpected IPC: ${command}`);
   });
   const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
@@ -173,7 +174,44 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     await React.act(async () => { for (const fire of timers) fire(); await new Promise(resolve => setTimeout(resolve, 0)); });
     assert.deepEqual([...issued].filter(command => command !== 'host_status' && !Object.hasOwn(SELF_ISSUED_QUIET, command)), [], 'a self-issued command that is not classified');
     assert.doesNotMatch(guide().textContent, /may be from before the App's last operation finished/);
-    // The shell's command function, as the conversation's own End run uses it; the status read that follows is held.
+    // The invariant's one exception, and its end, for a press made in the panel (Agent 0's decision on round 3).
+    const settle = () => React.act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+    const press = label => React.act(async () => { props(nodes('button').find(b => b.textContent === label)).onClick(); await new Promise(resolve => setTimeout(resolve, 0)); });
+    const result = () => c.querySelectorAll(node => node.getAttribute('aria-label') === 'Run a workflow — last result')[0];
+    const WITHHELD = /may be from before the App's last operation finished/;
+    // (1) While the press is in progress (its command settled, the refresh that follows held): the steps from
+    // before it stay, every control that could change the host is disabled, and its result is not yet said.
+    let free; hold = new Promise(resolve => { free = resolve; });
+    await press("Show this project's workflows");
+    assert.doesNotMatch(guide().textContent, WITHHELD, 'in progress: the steps stay');
+    assert.equal(result(), undefined, 'in progress: the result is not yet said');
+    for (const label of ["Show this project's workflows", 'End this run']) assert.equal(props(nodes('button').find(b => b.textContent === label)).disabled, true, `in progress: ${label} is disabled`);
+    // The refresh resolves: no longer in progress, and the read that followed the command is applied.
+    hold = null; free(); await settle();
+    assert.doesNotMatch(guide().textContent, WITHHELD); assert.match(result().textContent, /^Opened this project's workflow library\./);
+    // (2) The refresh after a press rejects: the press is no longer in progress (not busy for ever), and the
+    // guide is withheld, with the failed read said in it.
+    failStatus = true;
+    await press("Show this project's workflows");
+    assert.match(guide().textContent, WITHHELD, 'a rejected refresh ends the press; the guide is withheld, which it is only when the panel is not busy');
+    assert.match(guide().textContent, /The last read failed: Error: invented status failure/);
+    assert.ok(!nodes('button').some(b => b.textContent === 'End this run'));
+    failStatus = false;
+    await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
+    assert.doesNotMatch(guide().textContent, WITHHELD, 'a read started after the command, applied: the steps return');
+    assert.doesNotMatch(guide().textContent, /read failed|read of its state failed/, 'and the failure is behind it');
+    // A status read that fails with no command outstanding withholds nothing, and the guide says so above its steps:
+    // one second is the poll's schedule, not a bound on how old the view is.
+    failStatus = true;
+    await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
+    assert.doesNotMatch(guide().textContent, WITHHELD);
+    assert.match(guide().textContent, /The App's last read of its state failed \(Error: invented status failure\)\. What is shown here was read before that\./);
+    assert.ok(nodes('button').some(b => b.textContent === 'End this run'), 'the steps stay: nothing says they are wrong');
+    failStatus = false;
+    await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
+    assert.doesNotMatch(guide().textContent, /read of its state failed/);
+    // (3) A command issued outside the panel withholds at once. The shell's command function, as the conversation's
+    // own End run uses it; the status read that follows is held.
     let release; hold = new Promise(resolve => { release = resolve; });
     await React.act(async () => { await invoke('workflow_end_run', {runRef:'run-1', finishedReport:null}); poll(); });
     assert.match(guide().textContent, /^Run a workflowNext: What this view showed may be from before the App's last operation finished\./);
