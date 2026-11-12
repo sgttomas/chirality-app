@@ -2903,10 +2903,7 @@ fn native_local_provider_admission_requires_exact_source_destination_and_codex_c
     ] {
         let mut peer = Peer::new("invented-local-home");
         canonical_167_peer(&peer);
-        peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding {
-            home: "invented-local-home".into(),
-            cwd: "/invented/work".into(),
-        });
+        peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding::for_test("invented-local-home", "/invented/work"));
         let mut cfg = local_167_config();
         match case {
             "env" => cfg["config"]["model_providers"][PROVIDER]["env_key"] = json!(CANARY),
@@ -3065,13 +3062,10 @@ fn native_local_provider_one_private_login_frame_and_safe_receipts_without_suppl
         None,
     )
     .unwrap();
-    local_route::prepare(&plan).unwrap();
+    local_route::prepare_for_test(&plan, &local_route::LocalSettings::legacy());
     let mut peer = Peer::new(&plan.opaque_home_id());
     canonical_167_peer(&peer);
-    peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding {
-        home: plan.opaque_home_id(),
-        cwd: "/invented/work".into(),
-    });
+    peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding::for_test(&plan.opaque_home_id(), "/invented/work"));
     peer.answer(local_167_config());
     let cfg = HostConfig::new(
         root.join("not-run"),
@@ -3127,10 +3121,10 @@ fn native_local_provider_restart_observes_codex_saved_key_kind_without_reading_o
         let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("local-observe-").unwrap());
         std::fs::create_dir(&root).unwrap();
         let plan = crate::home_resources::OwnedHomePlan::new(root.clone(), root.join("local"), crate::home_resources::HomeClass::LocalProvider, None).unwrap();
-        local_route::prepare(&plan).unwrap();
+        local_route::prepare_for_test(&plan, &local_route::LocalSettings::legacy());
         let mut peer = Peer::new(&plan.opaque_home_id());
         canonical_167_peer(&peer);
-        peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding { home: plan.opaque_home_id(), cwd: "/invented/work".into() });
+        peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding::for_test(&plan.opaque_home_id(), "/invented/work"));
         let cfg = HostConfig::new(root.join("not-run"), plan.native_path().into(), root.join("probe"), "/invented/work".into());
         let home = crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider, peer.host.clone(), Ok(cfg)).unwrap();
         let generation = peer.g.clone();
@@ -3179,10 +3173,7 @@ fn native_local_provider_central_guard_refuses_cross_entry_overrides_before_capt
     canonical_167_peer(&peer);
     {
         let mut i = peer.host.inner.0.lock().unwrap();
-        i.local_provider = Some(LocalProviderBinding {
-            home: "local-guard".into(),
-            cwd: "/invented/work".into(),
-        });
+        i.local_provider = Some(LocalProviderBinding::for_test("local-guard", "/invented/work"));
         i.threads.push(json!({"generation":peer.g,"threadId":"local-thread","modelProvider":PROVIDER,"model":MODEL}));
     }
     let cases = [
@@ -3321,7 +3312,7 @@ fn native_local_provider_resume_and_fork_name_only_the_classified_cwd_even_with_
     canonical_167_peer(&peer);
     {
         let mut i = peer.host.inner.0.lock().unwrap();
-        i.local_provider = Some(LocalProviderBinding { home: "local-cwd".into(), cwd: "/invented/work".into() });
+        i.local_provider = Some(LocalProviderBinding::for_test("local-cwd", "/invented/work"));
         i.threads.push(json!({"generation":peer.g,"threadId":"local-thread","modelProvider":PROVIDER,"model":MODEL,"cwd":"/invented/work"}));
     }
     peer.answer(local_167_config());
@@ -3357,10 +3348,7 @@ fn native_local_provider_central_guard_rechecks_original_thread_after_writer_wai
     canonical_167_peer(&peer);
     {
         let mut i = peer.host.inner.0.lock().unwrap();
-        i.local_provider = Some(LocalProviderBinding {
-            home: "local-queue".into(),
-            cwd: "/invented/work".into(),
-        });
+        i.local_provider = Some(LocalProviderBinding::for_test("local-queue", "/invented/work"));
         i.threads.push(
             json!({"generation":peer.g,"threadId":"t","modelProvider":PROVIDER,"model":MODEL}),
         );
@@ -3475,10 +3463,7 @@ fn native_local_provider_reserved_attachment_rechecks_destination_before_actual_
         canonical_167_peer(&peer);
         {
             let mut i = peer.host.inner.0.lock().unwrap();
-            i.local_provider = Some(LocalProviderBinding {
-                home: native_id,
-                cwd: "/invented/work".into(),
-            });
+            i.local_provider = Some(LocalProviderBinding::for_test(&native_id, "/invented/work"));
             i.threads.push(
                 json!({"generation":peer.g,"threadId":"t","modelProvider":PROVIDER,"model":MODEL}),
             );
@@ -3572,8 +3557,8 @@ fn native_local_provider_cancel_window_or_source_change_never_writes_or_replays_
     use std::sync::atomic::{AtomicBool,Ordering};
     for case in ["cancel","window","source"] {
         let root=std::env::temp_dir().canonicalize().unwrap().join(opaque_id("local-entry-limit-").unwrap());std::fs::create_dir(&root).unwrap();
-        let plan=crate::home_resources::OwnedHomePlan::new(root.clone(),root.join("local"),crate::home_resources::HomeClass::LocalProvider,None).unwrap();route::prepare(&plan).unwrap();
-        let mut peer=Peer::new(&plan.opaque_home_id());canonical_167_peer(&peer);peer.host.inner.0.lock().unwrap().local_provider=Some(LocalProviderBinding{home:plan.opaque_home_id(),cwd:"/invented/work".into()});peer.answer(local_167_config());
+        let plan=crate::home_resources::OwnedHomePlan::new(root.clone(),root.join("local"),crate::home_resources::HomeClass::LocalProvider,None).unwrap();route::prepare_for_test(&plan,&route::LocalSettings::legacy());
+        let mut peer=Peer::new(&plan.opaque_home_id());canonical_167_peer(&peer);peer.host.inner.0.lock().unwrap().local_provider=Some(LocalProviderBinding::for_test(&plan.opaque_home_id(), "/invented/work"));peer.answer(local_167_config());
         let cfg=HostConfig::new(root.join("not-run"),plan.native_path().into(),root.join("probe"),"/invented/work".into());
         let home=crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider,peer.host.clone(),Ok(cfg)).unwrap();let g=peer.g.clone();let entry=route::CredentialEntry::default();let current=AtomicBool::new(true);
         let result=std::thread::scope(|scope|{
@@ -3588,5 +3573,178 @@ fn native_local_provider_cancel_window_or_source_change_never_writes_or_replays_
         assert_eq!(result.is_ok(),case=="cancel");
         assert!(peer.host.client_requests().iter().all(|r|r["method"]!="account/login/start"));peer.safe();
         assert!(!json!(peer.host.journal()).to_string().contains(CANARY));std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+fn local_config_for(settings: &crate::native_local_provider::LocalSettings) -> Value {
+    let mut cfg = local_167_config();
+    cfg["config"]["model_providers"][crate::native_local_provider::PROVIDER]["base_url"] = json!(settings.endpoint());
+    cfg["config"]["model"] = json!(settings.model());
+    cfg
+}
+#[test]
+fn native_local_settings_admission_and_central_guard_follow_the_settings_in_force_not_the_old_constants() {
+    use crate::native_local_provider::{LocalSettings, EARLIER, ENDPOINT, ENTRY, MODEL, PROVIDER};
+    let set = LocalSettings::new("http://[::1]:9100/api/v1", "org/chosen-model").unwrap();
+    for case in ["positive", "old-address", "old-model-config", "old-model-request", "key-not-required", "legacy-binding"] {
+        let mut peer = Peer::new("local-settings");
+        canonical_167_peer(&peer);
+        let bound = if case == "legacy-binding" { LocalSettings::legacy() } else { set.clone() };
+        peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding::with_settings("local-settings", "/invented/work", bound));
+        let mut cfg = local_config_for(&set);
+        let mut model = set.model();
+        match case {
+            "old-address" => cfg["config"]["model_providers"][PROVIDER]["base_url"] = json!(ENDPOINT),
+            "old-model-config" => cfg["config"]["model"] = json!(MODEL),
+            "old-model-request" => model = MODEL,
+            "key-not-required" => cfg["config"]["model_providers"][PROVIDER]["requires_openai_auth"] = json!(false),
+            _ => {}
+        }
+        peer.answer(cfg);
+        let proof = peer.host.provider_admission_read_within(&peer.g, "/invented/work", ENTRY, PROVIDER, model, Duration::from_millis(30));
+        assert_eq!(proof.is_ok(), case == "positive", "{case}");
+        if !peer.host.client_requests().is_empty() {
+            assert_eq!(peer.frame()["method"], "config/read");
+        }
+        peer.safe();
+    }
+    let mut peer = Peer::new("local-settings");
+    canonical_167_peer(&peer);
+    {
+        let mut i = peer.host.inner.0.lock().unwrap();
+        i.local_provider = Some(LocalProviderBinding::with_settings("local-settings", "/invented/work", set.clone()));
+        i.threads.push(json!({"generation":peer.g,"threadId":"current","modelProvider":PROVIDER,"model":set.model(),"cwd":"/invented/work"}));
+        i.threads.push(json!({"generation":peer.g,"threadId":"earlier","modelProvider":PROVIDER,"model":MODEL,"cwd":"/invented/work"}));
+    }
+    let turn = |thread: &str, extra: Value| {
+        let mut params = json!({"threadId":thread,"input":[{"type":"text","text":"fixture only","text_elements":[]}]});
+        if let Some(extra) = extra.as_object() { for (k, v) in extra { params[k] = v.clone(); } }
+        params
+    };
+    for method in ["turn/start", "turn/steer", "turn/interrupt"] {
+        let error = peer.host.request_begin_scoped(method, turn("earlier", json!({})), json!({"kind":"synthetic"}), false, Some(&peer.g)).err().unwrap();
+        assert_eq!(error, EARLIER, "{method}: a fixed sentence, no values");
+    }
+    for refused in [turn("current", json!({"model":MODEL})), turn("current", json!({"collaborationMode":{"settings":{"model":MODEL}}}))] {
+        assert!(peer.host.request_begin_scoped("turn/start", refused, json!({"kind":"synthetic"}), false, Some(&peer.g)).is_err());
+    }
+    assert!(peer.host.request_begin_scoped("thread/start", json!({"cwd":"/invented/work","modelProvider":PROVIDER,"model":MODEL}), json!({"kind":"synthetic"}), false, Some(&peer.g)).is_err());
+    assert_eq!(peer.host.local_fork_admission(&peer.g, "earlier").err().unwrap(), EARLIER);
+    {
+        let i = peer.host.inner.0.lock().unwrap();
+        assert_eq!(Host::check_local_reported(&i, &json!({"modelProvider":PROVIDER,"model":MODEL,"cwd":"/invented/work"})).unwrap_err(), EARLIER);
+        assert!(Host::check_local_reported(&i, &json!({"modelProvider":PROVIDER,"model":set.model(),"cwd":"/invented/work"})).is_ok());
+        assert!(Host::check_local_reported(&i, &json!({"modelProvider":PROVIDER,"cwd":"/invented/work"})).is_err());
+    }
+    let sent = peer.host.request_begin_scoped("turn/start", turn("current", json!({})), json!({"kind":"synthetic"}), false, Some(&peer.g)).unwrap();
+    assert_eq!(sent.evidence()["writeResult"], "written");
+    assert_eq!(peer.frame()["params"]["threadId"], "current", "a conversation with the model in force continues");
+    peer.safe();
+}
+#[test]
+fn native_local_settings_address_change_signs_out_through_codex_before_any_write_and_writes_nothing_otherwise() {
+    use crate::native_local_provider as local_route;
+    use local_route::LocalSettings;
+    use tauri_plugin_dialog::MessageDialogResult;
+    let legacy_bytes = local_route::canonical(&LocalSettings::legacy());
+    for case in ["positive", "model-only", "cancel", "not-ready", "logout-error", "logout-timeout", "logout-stale", "account-remains", "read-error", "read-timeout"] {
+        let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("local-settings-save-").unwrap());
+        std::fs::create_dir(&root).unwrap();
+        let plan = crate::home_resources::OwnedHomePlan::new(root.clone(), root.join("local"), crate::home_resources::HomeClass::LocalProvider, None).unwrap();
+        local_route::prepare_for_test(&plan, &LocalSettings::legacy());
+        let config_path = plan.native_path().join("config.toml");
+        let mut peer = Peer::new(&plan.opaque_home_id());
+        canonical_167_peer(&peer);
+        peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding::for_test(&plan.opaque_home_id(), "/invented/work"));
+        if case == "not-ready" { peer.host.inner.0.lock().unwrap().state = "exited".into(); }
+        let cfg = HostConfig::new(root.join("not-run"), plan.native_path().into(), root.join("probe"), "/invented/work".into());
+        let home = crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider, peer.host.clone(), Ok(cfg.clone())).unwrap();
+        let next = if case == "model-only" {
+            LocalSettings::new(local_route::ENDPOINT, "org/next-model").unwrap()
+        } else {
+            LocalSettings::new("http://127.0.0.1:9100/v1", local_route::MODEL).unwrap()
+        };
+        let generation = peer.g.clone();
+        let confirm = |_: &crate::act_control::native_statement::NativeStatement, action: &str| {
+            Ok(if case == "cancel" { MessageDialogResult::Cancel } else { MessageDialogResult::Custom(action.into()) })
+        };
+        let result = std::thread::scope(|scope| {
+            let work = scope.spawn(|| local_route::save_within(&plan, next.clone(), Some(&home), || Ok(()), confirm, Duration::from_millis(200)));
+            if matches!(case, "model-only" | "cancel" | "not-ready") {
+                return work.join().unwrap();
+            }
+            let logout = peer.frame();
+            assert_eq!((logout["method"].as_str(), &logout["params"]), (Some("account/logout"), &json!({})));
+            assert_eq!(std::fs::read_to_string(&config_path).unwrap(), legacy_bytes, "{case}: sign-out precedes any write");
+            match case {
+                "logout-error" => peer.host.on_line(&serde_json::to_vec(&json!({"id":logout["id"],"error":{"code":-32603,"message":CANARY}})).unwrap(), &peer.g),
+                "logout-timeout" => {}
+                "logout-stale" => {
+                    let mut i = peer.host.inner.0.lock().unwrap();
+                    Host::close_generation(&mut i);
+                    i.generation["spawnCounter"] = json!(2);
+                    drop(i);
+                    peer.host.on_line(&serde_json::to_vec(&json!({"id":logout["id"],"result":{}})).unwrap(), &peer.g);
+                }
+                _ => {
+                    peer.host.on_line(&serde_json::to_vec(&json!({"id":logout["id"],"result":{}})).unwrap(), &peer.g);
+                    let read = peer.frame();
+                    assert_eq!((read["method"].as_str(), &read["params"]), (Some("account/read"), &json!({"refreshToken":false})));
+                    assert_eq!(std::fs::read_to_string(&config_path).unwrap(), legacy_bytes, "{case}: no write before Codex reports no account");
+                    match case {
+                        "account-remains" => peer.host.on_line(&serde_json::to_vec(&json!({"id":read["id"],"result":{"account":{"type":"apiKey"},"requiresOpenaiAuth":true}})).unwrap(), &peer.g),
+                        "read-error" => peer.host.on_line(&serde_json::to_vec(&json!({"id":read["id"],"error":{"code":-32603,"message":CANARY}})).unwrap(), &peer.g),
+                        "read-timeout" => {}
+                        _ => peer.host.on_line(&serde_json::to_vec(&json!({"id":read["id"],"result":{"account":null,"requiresOpenaiAuth":true}})).unwrap(), &peer.g),
+                    }
+                }
+            }
+            work.join().unwrap()
+        });
+        let written = std::fs::read_to_string(&config_path).unwrap();
+        let methods: Vec<_> = peer.host.client_requests().iter().map(|r| r["method"].as_str().unwrap_or("").to_owned()).collect();
+        match case {
+            "positive" => {
+                let out = result.unwrap();
+                assert_eq!((out["outcome"].as_str(), out["keyRemoved"].as_bool()), (Some("saved"), Some(true)));
+                assert_eq!(written, local_route::canonical(&next));
+                assert_eq!(methods, ["account/logout", "account/read"]);
+                assert_eq!(out["inForce"], LocalSettings::legacy().json());
+                assert_eq!(out["relaunchRequired"], true);
+                // The bound home refuses every local operation until it is bound again.
+                assert_eq!(local_route::observe(&home, &plan, &generation).unwrap_err(), local_route::RELAUNCH);
+                assert_eq!(peer.host.client_requests().len(), 2, "nothing sent after the change");
+                let fresh = Host::new();
+                let rebound = local_route::config(&cfg, &plan).unwrap();
+                fresh.bind_local_destination(&rebound, &plan).unwrap();
+                assert_eq!(fresh.local_settings().unwrap(), next);
+                assert!(fresh.bind_local_destination(&cfg, &plan).is_err());
+            }
+            "model-only" => {
+                let out = result.unwrap();
+                assert_eq!((out["outcome"].as_str(), out["keyRemoved"].as_bool()), (Some("saved"), Some(false)));
+                assert!(methods.is_empty(), "a model-only change keeps the key: no sign-out");
+                assert_eq!(written, local_route::canonical(&next));
+            }
+            "cancel" => {
+                assert_eq!(result.unwrap()["outcome"], "cancelled");
+                assert!(methods.is_empty());
+                assert_eq!(written, legacy_bytes);
+            }
+            "not-ready" => {
+                assert_eq!(result.unwrap_err(), local_route::PREPARE_FIRST);
+                assert!(methods.is_empty());
+                assert_eq!(written, legacy_bytes);
+            }
+            _ => {
+                let error = result.unwrap_err();
+                assert!(!error.contains(CANARY), "{case}");
+                assert_eq!(written, legacy_bytes, "{case}: nothing written");
+            }
+        }
+        assert!(!plan.native_path().join("auth.json").exists(), "the App never writes the key's file");
+        assert!(!json!(peer.host.journal()).to_string().contains(CANARY));
+        peer.safe();
+        std::fs::remove_dir_all(root).unwrap();
     }
 }
