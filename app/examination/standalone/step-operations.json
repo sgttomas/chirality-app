@@ -54,9 +54,9 @@
     "Work continued; the request is still listed; closing an observer is not stopping work"
   ],
   "S11-3": [
-    "J-7, first request",
-    "**Deny** it on its card",
-    "Denial settled with its origin; not a human act"
+    "J-7, first request, and a further tool-permission request",
+    "**Deny** the first on its card; answer the further one with **cancel**",
+    "Denial settled with its origin; not a human act. After the cancel answer Codex ends the turn; the turn's outcome carries that cause, and it is not shown as an interrupt by the person"
   ],
   "S11-4": [
     "J-7, a later request",

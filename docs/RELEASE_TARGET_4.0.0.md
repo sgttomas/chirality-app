@@ -59,8 +59,8 @@ selection, and any specialised workspace, keep their own.
   v4. DEL-09-07 and DEL-09-11, which examine that journey, are held outside
   4.0.0; they may be worked on in support of SWBPIPE, and nothing in this
   target waits on them. App Agent 0 answers SWBPIPE's Agent 0 on the App's
-  receiving side when asked. Workflows of the host origin are held outside
-  4.0.0 with it.
+  receiving side when asked. Workflows of the host origin are a separate
+  obligation, held outside 4.0.0 with it (DEL-02-02 AC-013).
 - **Windows.** It follows the macOS release and adds no gate to it.
 - **Domains.** It follows in a later increment and is no condition of release
   or of replacement. PEC adds no delivery prerequisite.
@@ -132,7 +132,7 @@ the owner decide on what was actually observed.
    publishing.
 
    *Governed by:* DEL-09-02 AC-001, AC-002 and AC-003; DEL-02-02 AC-004 (the
-   identity a selection keeps; the host origin is held outside 4.0.0).
+   identity a selection keeps, on the project, user and bundled origins).
 4. **Requests, interruption and recovery.** Inside that journey, a turn is
    stopped while a delegated child is active, the window is closed and
    reopened with a request waiting, one request is denied and a later one
@@ -174,14 +174,15 @@ the owner decide on what was actually observed.
 
    *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005, AC-008 and
    AC-011.
-7. **Visual design.** A person meeting the App's views in J1 and J2 finds that
-   they share one visual form, drawn from v3.0.1 as installed, that they are
-   consistent with one another, and that nothing reads as unfinished or out of
-   place. Function and interaction are designed for v4 and are App Agent 0's
-   to decide; the reference fixes the form, not v3's tools or behaviour. An
-   examiner who did not build the views compares them with the reference on
-   the build the journeys are observed on. Whether the App feels good to use
-   is the owner's verdict (criterion 13), not this comparison.
+7. **Visual design.** A person meeting the App's views in the journeys and
+   examinations of criteria 1 to 6 finds that they share one visual form,
+   drawn from v3.0.1 as installed, that they are consistent with one another,
+   and that nothing reads as unfinished or out of place. Function and
+   interaction are designed for v4 and are App Agent 0's to decide; the
+   reference fixes the form, not v3's tools or behaviour. An examiner who did
+   not build the views compares them with the reference on the build those
+   journeys and examinations are observed on. Whether the App feels good to
+   use is the owner's verdict (criterion 13), not this comparison.
 
    *Governed by:* DEL-02-02 AC-012.
 8. **Installed custody and keychain protection.** On the installed, signed
@@ -194,7 +195,8 @@ the owner decide on what was actually observed.
 
    *Governed by:* DEL-01-04 AC-009 (the act and its result); DEL-01-01 AC-006
    (the installed check); DEL-02-02 AC-004 (admission of a registered
-   revision under the approval policy); DEL-01-06 AC-002 (the signed identity it relies on).
+   revision under the approval policy); DEL-01-06 AC-002 (the signed identity
+   it relies on).
 9. **Supplier and notices.** The supplier pin the candidate is built with is
    qualified: it is the newest Codex version that had passed a version-advance
    check when the candidate was built, and the supplier-hosting criteria hold

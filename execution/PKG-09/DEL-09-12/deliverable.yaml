@@ -19,11 +19,12 @@ needs:
     note; its disposition completes that observation's entry in the feedback dispositions.
   gating: false
 - from: external:OI-016
-  condition: The owner agrees the period and the realistic activities of validation.
+  condition: The owner chooses the work and the period of their use at the time; neither is fixed
+    in advance.
   when: Before any use counts as validation.
 - from: external:owner as practitioner
-  condition: The owner does the chosen work in the Chirality App and in SWBPIPE and reports what they
-    observed.
+  condition: The owner does the chosen work in the Chirality App and reports what they observed;
+    the owner's work in SWBPIPE is held outside 4.0.0.
 - from: external:DEP-001
   condition: SWBPIPE provides an identified host candidate the owner can do the chosen work in.
   when: Before validation in SWBPIPE.
