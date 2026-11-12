@@ -21,6 +21,16 @@ PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/coverage.py generate    
 runs the direct, transitive, shipped-text and font checks on the way. No cache,
 supplier tree or network is read.
 
+## What these checks withstand
+
+They are operator-run checks on stable inputs. They are built so that a component
+that was not accounted for, a text that was not verified, or a reading that was not
+given cannot come out as covered, and so that drift and mistakes are caught. They are
+not built to withstand someone with write access deliberately forging a consistent
+account, table and review record together. The review record is a statement of what
+was reviewed, bound to exact content; its truth rests on the review of the pull
+request that changes it, not on the tool.
+
 ## What ships and where
 
 | Inputs | Generator | Package path under `Contents/Resources/` |
@@ -88,11 +98,31 @@ Rules `coverage.py` applies, whatever the tables say:
 - **Repository root texts** at the revision a crate names count as covered with that
   basis (the project's Agent 0 accepted them as mechanical matches), distinct from
   licence files inside the crate's archive.
-- **Compiled programs.** Every executable of the declared pin's tree (a regular file
-  with an execute bit that is neither a `.dylib` library nor `.json` data) is a
-  compiled program. Each must belong to a `compiled-dependencies` component in
-  `../supplier_notices/components.json`, covered only with a committed lockfile and
-  texts; otherwise it stands uncovered, whatever the table omits.
+- **Compiled programs.** For this distribution record, a regular file with an
+  execute bit that is neither a `.dylib` library nor `.json` data is taken as a
+  compiled program. The rule fits this record: executables plus `.dylib` members must
+  equal the record's Mach-O count, and every one of them must belong to a component.
+  It is not a general proof that a file is a compiled program. Each executable must
+  belong to a `compiled-dependencies` component, and those stand uncovered in this
+  change whatever the table says. The change that extracts their texts adds the rule
+  for covering them: the supplier lockfile bound to the supplier's source commit, and
+  every locked package with its own extracted text or a stated basis.
+- **Supplier texts are bound to their component.** Each committed text records its
+  repository and revision; a voice text is a member of the supplier tree with the
+  record's digest. A component is covered only when each committed text's repository
+  and revision equal the component's own, or the text is a named exception with its
+  reason (pcre2-sys ships two texts blob-equal to its own, kept once under ripgrep).
+- **Fonts** are covered only with recorded upstream evidence (package, integrity and
+  a tarball member for every file and the licence); otherwise uncovered.
+- **Reviewed inputs.** `../supplier_notices/components.json` and
+  `coverage-inputs.json` are curated judgments, not facts a check can prove. The
+  direct, transitive, font and SQLite indexes are made by generators from caches CI
+  does not hold, so CI can check texts only against them. `coverage-review.json`
+  binds all six files' SHA-256 and lists every supplier component with its standing,
+  version, revision and exact texts, and `coverage.py` checks it first. The record
+  states what a reviewer examined; it is not a proof. The reviewer of the pull
+  request that changes any of those files updates it, after rerunning the
+  cache-reading checks for a changed index.
 - **Removals.** `generate` refuses to drop a component the committed account has
   unless `removed_components` in `coverage-inputs.json` states it with a reason;
   `check --base-account FILE` applies the same rule against an earlier account.

@@ -50,7 +50,7 @@ LIMITS = [
     'A notice text is the publisher\'s licence or notice text for the component at the named version or revision; '
     'whether it satisfies the licence is not decided here, except where an owner licence reading is recorded.',
     'Supplier components inside an executable are as the supplier\'s build files and package records state; '
-    'they are not read from the binaries. Texts in subdirectories of a component\'s repository are not included.',
+    'they are not read from the binaries. Below a repository\'s root, only the texts a row lists are included.',
 ]
 
 
@@ -85,6 +85,8 @@ def text_entry(repo, path, destination):
 
 def build(repo=REPO, vendor=None):
     repo = Path(repo)
+    # First: the curated inputs and cache-made indexes must be the content the review record names.
+    check_review_record(repo, texts.load(repo, texts.SUPPLIER))
     direct = direct_check.check(repo / 'app/packaging/notices', repo)
     index = transitive.check(repo / 'app/packaging/notices/transitive-index.json', repo)
     texts.check(repo)
@@ -210,11 +212,19 @@ def build(repo=REPO, vendor=None):
         family = license['family']
         files = [f['path'] for f in fonts['fonts'] if f['family'] == family]
         upstream = packages.get(family, {})
-        add({'class': 'font', 'name': 'IBM Plex ' + family.capitalize(), 'version': upstream.get('version'),
-             'source': {'package': upstream.get('package'), 'integrity': upstream.get('integrity')}, 'files': files,
-             'texts': [text_entry(repo, license['path'], FONT_DESTINATION + PurePosixPath(license['path']).name)]},
-            COVERED, basis=('the OFL text of the family\'s @fontsource tarball (the tarball members are recorded in the font index)'
-                            if fonts['source']['declared_upstream_verified'] else 'the OFL text kept with the fonts; its upstream is not verified'))
+        row = {'class': 'font', 'name': 'IBM Plex ' + family.capitalize(), 'version': upstream.get('version'),
+               'source': {'package': upstream.get('package'), 'integrity': upstream.get('integrity')}, 'files': files,
+               'texts': [text_entry(repo, license['path'], FONT_DESTINATION + PurePosixPath(license['path']).name)]}
+        # font_notice/check.py has already required, for a verified index, a tarball member for every file and licence.
+        evidence = (fonts['source']['declared_upstream_verified'] and upstream.get('package') and upstream.get('integrity')
+                    and license.get('upstream') and all(f.get('upstream') for f in fonts['fonts'] if f['family'] == family))
+        if evidence:
+            add(row, COVERED, basis='the OFL text of the family\'s @fontsource tarball; the font index records the tarball member of '
+                                    'every file and of the licence')
+        else:
+            row['texts'] = []
+            add(row, UNCOVERED, reason='no recorded upstream evidence ties the family\'s files and licence text to a published package',
+                would_close='record the upstream package, integrity and tarball members with font_notice/check.py --generate --npm-cache')
     sqlite = texts.load(repo, 'app/packaging/sqlite_notice/index.json')
     header = next(a for a in sqlite['assets'] if a['path'] == 'sqlite3-source-header.txt')
     entry = text_entry(repo, 'app/packaging/sqlite_notice/' + header['path'], SQLITE_DESTINATION + header['path'])
@@ -241,29 +251,40 @@ def build(repo=REPO, vendor=None):
             claimed.setdefault(member, []).append(item['id'])
         for member in item['supplier_tree_texts']:
             claimed.setdefault(member, [])
+        exceptions = {e['path']: e['reason'] for e in item.get('text_exceptions', [])}
+        require(set(exceptions) <= set(item['texts']), 'text exception names a text the component does not ship: ' + item['id'])
         entry = {'class': 'supplier', 'id': item['id'], 'name': item['name'], 'version': item['version'],
                  'source': {'repository': item['repository'], 'revision': item['revision']}, 'members': item['members'],
                  'texts': [{**text_entry(repo, p, mapping[source_key(p)]),
                             **{k: by_path[p][k] for k in ('repository', 'revision', 'source_path', 'git_blob_sha1')},
-                            **({'fetched_with_owner_permission': True} if by_path[p].get('fetched_with_owner_permission') else {})}
+                            **({'fetched_with_owner_permission': True} if by_path[p].get('fetched_with_owner_permission') else {}),
+                            **({'exception': exceptions[p]} if p in exceptions else {})}
                            for p in item['texts']]
-                          + [{'supplier_member': m, 'package_path': VENDOR_DESTINATION + m, 'size_bytes': tree[m]['size'],
-                              'sha256': tree[m]['sha256']} for m in item['supplier_tree_texts'] if m in tree]}
+                          + [{'supplier_member': m, 'source': 'inside the supplier tree', 'package_path': VENDOR_DESTINATION + m,
+                              'size_bytes': tree[m]['size'], 'sha256': tree[m]['sha256']} for m in item['supplier_tree_texts'] if m in tree]}
         for key in ('declared_license', 'below_root', 'kind'):
             if key in item:
                 entry[key] = item[key]
+        require(item['standing'] in ('covered', 'uncovered', 'pending'), 'unknown supplier standing: ' + item['id'])
+        # Every committed text must come from the component's own repository and revision, or be a named exception.
+        foreign = [p for p in item['texts'] if (by_path[p]['repository'], by_path[p]['revision']) != (item['repository'], item['revision'])
+                   and p not in exceptions]
         if item.get('kind') == COMPILED:
             compiled_members.update(item['members'])
-        require(item['standing'] in ('covered', 'uncovered'), 'unknown supplier standing: ' + item['id'])
-        if item['standing'] == 'covered' and item.get('kind') == COMPILED:
-            lock = item.get('lockfile')
-            require(isinstance(lock, dict) and lock.get('path') and sha((repo / lock['path']).read_bytes()) == lock.get('sha256')
-                    and item['texts'], 'covered compiled-in dependencies need a committed lockfile and texts: ' + item['id'])
-            entry['lockfile'] = lock
-            add(entry, COVERED, basis='licence texts of the packages the named lockfile locks')
+            # No route to covered in this change: the change that extracts these texts adds the rule (the supplier
+            # lockfile bound to the supplier's source commit, and each locked package with its own text or a stated basis).
+            add(entry, UNCOVERED, reason=item.get('reason') or 'compiled-in dependency texts are not held',
+                would_close=item.get('would_close') or 'extract the texts of every package the supplier lockfile locks')
+        elif item['standing'] == 'covered' and foreign:
+            add(entry, UNCOVERED, reason='a shipped text records another repository or revision than the component: ' + ', '.join(foreign),
+                would_close='ship the component\'s own texts, or name each other text as an exception with its reason')
+        elif item['standing'] == 'covered' and not item['texts'] and not item['supplier_tree_texts']:
+            raise ValueError('covered supplier component ships no text: ' + item['id'])
         elif item['standing'] == 'covered':
-            add(entry, COVERED, basis='texts of the repository and revision named' if item['texts']
+            add(entry, COVERED, basis='texts recorded at the component\'s own repository and revision' if item['texts']
                 else 'licence texts the supplier ships in its tree, identified by the distribution record\'s digests')
+        elif item['standing'] == 'pending':
+            add(entry, HELD, reason=item['reason'])
         else:
             add(entry, UNCOVERED, reason=item['reason'], would_close=item['would_close'])
     unclaimed = sorted(set(tree) - set(claimed))
@@ -274,8 +295,14 @@ def build(repo=REPO, vendor=None):
              'source': {'table': texts.SUPPLIER}, 'members': unclaimed, 'texts': []}, UNCOVERED,
             reason=f'the supplier component table was reviewed for {table["reviewed_for_pin"]}, not for the declared pin {pin}',
             would_close='review components.json against the declared pin\'s tree and set reviewed_for_pin')
-    # The expectation that does not come from the table: every executable has a compiled-in dependency component.
+    # Expectations that do not come from the table. The executable rule fits this distribution record; the record's own
+    # Mach-O count must equal executables plus .dylib members, and every one of them must belong to a component.
     executables = texts.executables(record)
+    machos = executables + sorted(p for p in tree if p.endswith('.dylib'))
+    require(len(machos) == record['macho_files'], f'executables and libraries ({len(machos)}) differ from the record\'s '
+            f'Mach-O count ({record["macho_files"]}); the executable rule does not fit this record')
+    for path in machos:
+        require(claimed.get(path) or not reviewed, 'Mach-O member belongs to no component: ' + path)
     for path in executables:
         if path not in compiled_members:
             claimed.setdefault(path, []).append('compiled-in:' + path)
@@ -289,16 +316,17 @@ def build(repo=REPO, vendor=None):
         check_vendor(vendor, table, tree)
 
     for path in ('app/packaging/notices/index.json', 'app/packaging/notices/transitive-index.json', texts.INPUTS, texts.SUPPLIER,
-                 'app/packaging/font_notice/index.json', 'app/packaging/sqlite_notice/index.json', texts.OVERLAY):
+                 'app/packaging/font_notice/index.json', 'app/packaging/sqlite_notice/index.json', texts.OVERLAY, REVIEW):
         digest(path)
     counts = {s: sum(c['standing'] == s for c in components) for s in (COVERED, HELD, UNCOVERED)}
     keys = [component_key(c) for c in components]
     require(len(keys) == len(set(keys)), 'duplicate component in the account')
     return {'format': FORMAT, 'package': 'Chirality.app, macOS arm64', 'supplier_pin': pin,
             'supplier_distribution': {'record': record_path, 'manifest_sha256': record['inventory']['manifest_sha256']},
-            'compiled_program_rule': 'every regular file of the tree with an execute bit that is neither a .dylib library nor .json '
-                                     'data is a compiled program; each needs a compiled-dependencies component (covered only with a '
-                                     'committed lockfile and texts) or stands uncovered',
+            'compiled_program_rule': 'for this distribution record, every regular file with an execute bit that is neither a .dylib '
+                                     'library nor .json data is a compiled program (checked against the record\'s Mach-O count); '
+                                     'each has a compiled-dependencies component, which stands uncovered in this change',
+            'review_record': REVIEW,
             'supplier_table_reviewed_for_pin': table['reviewed_for_pin'], 'supplier_executables': executables,
             'inputs_sha256': dict(sorted(inputs_read.items())), 'counts': {**counts, 'total': len(components)},
             'open': [{'name': c['name'], 'version': c['version'], 'standing': c['standing'], 'reason': c['reason'],
@@ -307,6 +335,39 @@ def build(repo=REPO, vendor=None):
             'standings': {COVERED: 'its notice text ships in the package', HELD: 'a text ships; its adequacy awaits the owner\'s licence reading',
                           UNCOVERED: 'no notice text ships'},
             'components': components, 'supplier_members': members, 'limits': LIMITS + table['limits']}
+
+
+REVIEW = 'app/packaging/notices/coverage-review.json'
+# Curated judgments, and the indexes generators make from caches CI does not hold (their archive claims are rechecked
+# only by the cache-reading checks: transitive.py check --cargo-home/--npm-cache, check.py --archives,
+# font_notice/check.py --npm-cache, sqlite_notice/check.py --archive). Binding them makes a change to what they
+# claim a visible, reviewed change.
+REVIEWED_FILES = ('app/packaging/supplier_notices/components.json', 'app/packaging/notices/coverage-inputs.json',
+                  'app/packaging/notices/index.json', 'app/packaging/notices/transitive-index.json',
+                  'app/packaging/font_notice/index.json', 'app/packaging/sqlite_notice/index.json')
+
+
+def review_entries(table):
+    """What the review record must list: each supplier component's identity, standing and exact texts."""
+    rows = []
+    for item in table['components']:
+        rows.append({'id': item['id'], 'standing': item['standing'], 'version': item['version'], 'revision': item['revision'],
+                     'texts': item['texts'], 'supplier_tree_texts': item['supplier_tree_texts'],
+                     'text_exceptions': sorted(e['path'] for e in item.get('text_exceptions', []))})
+    return rows
+
+
+def check_review_record(repo, table):
+    """The curated inputs must equal what the review record says was reviewed (a statement, not a proof)."""
+    record = texts.load(repo, REVIEW)
+    require(set(record) == {'format', 'statement', 'updated_by', 'reviewed_in', 'files_sha256', 'supplier_components'}
+            and record['format'] == 'notice-coverage-review/1', 'unknown review record shape')
+    for path, expected in record['files_sha256'].items():
+        require(sha((Path(repo) / path).read_bytes()) == expected,
+                f'{path} differs from the review record; its reviewer must update {REVIEW} after reviewing the change')
+    require(set(record['files_sha256']) == set(REVIEWED_FILES), 'review record must bind every curated input and cache-made index')
+    require(record['supplier_components'] == review_entries(table),
+            'supplier components differ from the review record; its reviewer must update ' + REVIEW)
 
 
 def component_key(component):

@@ -57,9 +57,19 @@ class Copy(unittest.TestCase):
         for content in json.loads((NOTICES / 'coverage-inputs.json').read_text())['library_content']:
             (self.repo / content['resource']).mkdir(parents=True)
 
-    def edit(self, relative, change):
+    def edit(self, relative, change, rebind=True):
+        """Edit a JSON input. A curated input's review record is rebound too, as its reviewer would, unless rebind=False,
+        so that each test exercises the rule after review rather than only the record's refusal."""
         path = self.repo / relative
         value = json.loads(path.read_text()); change(value); path.write_text(json.dumps(value, indent=1) + '\n')
+        if rebind and relative in coverage.REVIEWED_FILES:
+            self.rebind()
+
+    def rebind(self):
+        record = json.loads((self.repo / coverage.REVIEW).read_text())
+        record['files_sha256'] = {f: hashlib.sha256((self.repo / f).read_bytes()).hexdigest() for f in record['files_sha256']}
+        record['supplier_components'] = coverage.review_entries(json.loads((self.repo / TABLE).read_text()))
+        (self.repo / coverage.REVIEW).write_text(json.dumps(record, indent=1) + '\n')
 
 
 class ShippedTexts(Copy):
@@ -182,10 +192,16 @@ class Account(Copy):
             self.assertIn('Dependencies compiled into ' + path, open_names)
         with self.assertRaisesRegex(ValueError, 'dropped without a reviewed statement'): coverage.generate(self.repo)
 
-    def test_a_covered_compiled_dependency_row_needs_a_committed_lockfile(self):
-        self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'ripgrep-crate-dependencies').update(
-            standing='covered', texts=['app/packaging/supplier_notices/ripgrep-15.2.0/COPYING']))
-        with self.assertRaisesRegex(ValueError, 'committed lockfile'): self.build()
+    # Round 2 finding 2: no table entry can make compiled-in dependencies covered in this change.
+    def test_compiled_dependency_rows_stay_uncovered_whatever_the_table_says(self):
+        lock = 'app/src-tauri/Cargo.lock'
+        for item_id in ('codex-crate-dependencies', 'ripgrep-crate-dependencies'):
+            self.edit(TABLE, lambda v, i=item_id: next(c for c in v['components'] if c['id'] == i).update(
+                standing='covered', texts=['app/packaging/supplier_notices/codex/LICENSE'],
+                lockfile={'path': lock, 'sha256': hashlib.sha256((self.repo / lock).read_bytes()).hexdigest()}))
+        value = self.build()
+        for item_id in ('codex-crate-dependencies', 'ripgrep-crate-dependencies'):
+            self.assertEqual(next(c for c in value['components'] if c.get('id') == item_id)['standing'], coverage.UNCOVERED)
 
     def test_a_dropped_component_needs_a_reviewed_statement(self):
         base = self.repo.parent / 'base.json'; shutil.copyfile(ROOT / coverage.ACCOUNT, base)
@@ -205,10 +221,10 @@ class Account(Copy):
         first = json.loads((ROOT / texts.INPUTS).read_text())['owner_licence_readings'][0]['package']
         self.assertEqual(self.row(value, first)['standing'], coverage.HELD)
         self.setUp(); self.edit(texts.INPUTS, lambda v: v['owner_licence_readings'][1].update(statement='INVENTED words'))
-        self.assertEqual(sum(c['standing'] == coverage.HELD for c in self.build()['components']), 1)
+        self.assertEqual(sum(c['standing'] == coverage.HELD for c in self.build()['components'] if c['class'] == 'cargo'), 1)
         self.setUp(); self.edit(texts.INPUTS, lambda v: v.update(owner_licence_readings=[]))
         value = self.build()
-        held = {c['name'] for c in value['components'] if c['standing'] == coverage.HELD}
+        held = {c['name'] for c in value['components'] if c['standing'] == coverage.HELD and c['class'] == 'cargo'}
         self.assertEqual(len(held), 9)
         self.assertTrue({'objc2-encode', 'objc2-exception-helper', 'objc2-core-foundation', 'objc2-web-kit'} <= held)
 
@@ -284,11 +300,94 @@ class Account(Copy):
         self.edit(table, lambda v: v['components'].pop(next(i for i, c in enumerate(v['components']) if c['id'] == 'zlib')))
         with self.assertRaisesRegex(ValueError, 'claimed by no component'): coverage.build(self.repo)
         self.setUp()
-        self.edit(table, lambda v: next(c for c in v['components'] if c['standing'] == 'uncovered').pop('would_close'))
+        self.edit(table, lambda v: next(c for c in v['components'] if c['id'] == 'libcxx-credits-and-subdirectories').pop('would_close'))
         with self.assertRaises((ValueError, KeyError)): coverage.build(self.repo)
         self.setUp()
         self.edit(table, lambda v: next(c for c in v['components'] if c['id'] == 'opus').update(members=['codex-resources/voice/lib/invented.dylib']))
         with self.assertRaisesRegex(ValueError, 'not in the tree'): coverage.build(self.repo)
+
+    # Round 2 finding 1: a curated input cannot change without its review record; removals fail a test in the same change.
+    def test_curated_input_changes_refuse_without_the_review_record(self):
+        def drop_icu(v):
+            v['components'] = [c for c in v['components'] if c['id'] != 'icu']
+            v['texts'] = [t for t in v['texts'] if 'icu-d578f2e8' not in t['path']]
+        self.edit(TABLE, drop_icu, rebind=False)
+        shutil.rmtree(self.repo / 'app/packaging/supplier_notices/icu-d578f2e8')
+        with self.assertRaisesRegex(ValueError, 'differs from the review record'): self.build()
+        self.setUp(); self.edit(texts.INPUTS, lambda v: v['owner_licence_readings'].pop(), rebind=False)
+        with self.assertRaisesRegex(ValueError, 'differs from the review record'): self.build()
+        # A cache-made index claiming a text that was never extracted is a change the record must also make.
+        self.setUp()
+        self.edit('app/packaging/notices/transitive-index.json', lambda v: next(r for r in v['cargo'] if r['package'] == 'vsimd')
+                  ['text'].update(kind='archive-member'), rebind=False)
+        with self.assertRaisesRegex(ValueError, 'differs from the review record'): self.build()
+        self.setUp()
+        record = json.loads((self.repo / coverage.REVIEW).read_text())
+        record['supplier_components'] = [c for c in record['supplier_components'] if c['id'] != 'icu']
+        (self.repo / coverage.REVIEW).write_text(json.dumps(record))
+        with self.assertRaisesRegex(ValueError, 'differ from the review record'): self.build()
+
+    def test_expected_supplier_components(self):
+        expected = {
+            'codex': 'covered', 'codex-skill-creator-sample': 'covered', 'codex-skill-installer-sample': 'covered',
+            'codex-crate-dependencies': 'uncovered', 'ripgrep': 'covered', 'pcre2-sys': 'covered', 'pcre2-in-rg': 'covered',
+            'sljit-in-rg': 'covered', 'ripgrep-crate-dependencies': 'uncovered', 'v8': 'covered', 'rusty_v8': 'covered',
+            'icu': 'pending', 'libcxx': 'covered', 'libcxxabi': 'covered', 'llvm-libc': 'covered',
+            'libcxx-credits-and-subdirectories': 'uncovered', 'libcxxabi-credits-and-subdirectories': 'uncovered',
+            'llvm-libc-subdirectories': 'uncovered', 'highway': 'covered', 'fast_float': 'covered', 'simdutf': 'covered',
+            'dragonbox': 'covered', 'fp16': 'covered', 'abseil-cpp': 'covered', 'gstreamer': 'covered',
+            'gst-plugins-base': 'covered', 'gst-plugins-good': 'covered', 'glib': 'covered', 'proxy-libintl': 'covered',
+            'libffi': 'covered', 'pcre2-voice': 'covered', 'opus': 'covered', 'zlib': 'covered'}
+        table = json.loads((ROOT / TABLE).read_text())
+        self.assertEqual({c['id']: c['standing'] for c in table['components']}, expected)
+        account = json.loads((ROOT / coverage.ACCOUNT).read_text())
+        standing = {'covered': coverage.COVERED, 'pending': coverage.HELD, 'uncovered': coverage.UNCOVERED}
+        self.assertEqual({c['id']: c['standing'] for c in account['components'] if c['class'] == 'supplier'},
+                         {k: standing[v] for k, v in expected.items()})
+
+    # Round 2 finding 3: a supplier text is bound to its component's repository and revision.
+    def test_supplier_texts_must_match_their_component(self):
+        icu = 'app/packaging/supplier_notices/icu-d578f2e8/LICENSE'
+        self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'v8')['texts'].append(icu))
+        self.assertEqual(self.row(self.build(), 'V8')['standing'], coverage.UNCOVERED)
+        self.setUp(); self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'v8').update(version='99.0', revision='c' * 40))
+        self.assertEqual(self.row(self.build(), 'V8')['standing'], coverage.UNCOVERED)
+        self.setUp(); self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'pcre2-sys').pop('text_exceptions'))
+        self.assertEqual(self.row(self.build(), 'pcre2-sys')['standing'], coverage.UNCOVERED)
+
+    def test_removing_a_v8_text_needs_the_review_record(self):
+        self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'v8')['texts'].remove(
+            'app/packaging/supplier_notices/v8-15.2.124.1/third_party/inspector_protocol/LICENSE'), rebind=False)
+        with self.assertRaisesRegex(ValueError, 'review record'): self.build()
+
+    # Round 2 finding 4: fonts without recorded upstream evidence are uncovered.
+    def test_unverified_fonts_are_uncovered(self):
+        def unverify(v):
+            v['source']['declared_upstream_verified'] = False
+            v['upstream_packages'] = []
+            for entry in v['licenses'] + v['fonts']:
+                entry.pop('upstream')
+        self.edit('app/packaging/font_notice/index.json', unverify)
+        fonts = [c for c in self.build()['components'] if c['class'] == 'font']
+        self.assertEqual(len(fonts), 3)
+        self.assertTrue(all(c['standing'] == coverage.UNCOVERED and not c['texts'] for c in fonts))
+
+    # Round 2 finding 5: ICU is pending the owner's reading, and the strict check names it.
+    def test_icu_is_pending_with_the_named_files_stated(self):
+        account = json.loads((ROOT / coverage.ACCOUNT).read_text())
+        icu = next(c for c in account['components'] if c.get('id') == 'icu')
+        self.assertEqual(icu['standing'], coverage.HELD)
+        for name in ('aclocal.m4', 'config.guess', 'icu.BUILD.bazel', 'not held'):
+            self.assertIn(name, icu['reason'])
+        self.assertEqual([o['name'] for o in account['open'] if o['standing'] == coverage.HELD], ['ICU (V8 dependency)'])
+        self.assertEqual(account['counts'][coverage.UNCOVERED], 5)
+
+    # Round 2 finding 6: the executable rule must fit the record's Mach-O count.
+    def test_executable_rule_must_fit_the_record_macho_count(self):
+        path = texts.supplier_record(self.repo)[1]
+        record = json.loads((self.repo / path).read_text()); record['macho_files'] += 1
+        (self.repo / path).write_text(json.dumps(record))
+        with self.assertRaisesRegex(ValueError, 'Mach-O count'): self.build()
 
     def test_another_declared_pin_is_named_as_an_open_review_not_assumed(self):
         pin = texts.declared_pin(ROOT)

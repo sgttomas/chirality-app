@@ -6,7 +6,8 @@
   "record": "app/src-tauri/resources/supplier/0.167.0/CANONICAL_DISTRIBUTION.json",
   "manifest_sha256": "158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"
  },
- "compiled_program_rule": "every regular file of the tree with an execute bit that is neither a .dylib library nor .json data is a compiled program; each needs a compiled-dependencies component (covered only with a committed lockfile and texts) or stands uncovered",
+ "compiled_program_rule": "for this distribution record, every regular file with an execute bit that is neither a .dylib library nor .json data is a compiled program (checked against the record's Mach-O count); each has a compiled-dependencies component, which stands uncovered in this change",
+ "review_record": "app/packaging/notices/coverage-review.json",
  "supplier_table_reviewed_for_pin": "0.167.0",
  "supplier_executables": [
   "bin/codex",
@@ -18,16 +19,17 @@
  "inputs_sha256": {
   "app/packaging/font_notice/index.json": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f",
   "app/packaging/notices/coverage-inputs.json": "dadfcdaad1f5dbf9e7760858b8508ad5d9184ef461419f8e9ea0f7e0df29499e",
+  "app/packaging/notices/coverage-review.json": "3e042d3d4447ebe280ed81a4c5c63212c9a9eafdd4a83384a83ee1a1e9fa8d6f",
   "app/packaging/notices/index.json": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",
   "app/packaging/notices/transitive-index.json": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517",
   "app/packaging/sqlite_notice/index.json": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",
-  "app/packaging/supplier_notices/components.json": "205f63d55c99fbc250be09fd997357c3a6553b00ef05d12d82a8a673883b09e3",
+  "app/packaging/supplier_notices/components.json": "3231f87d3aef158b8a5d9ac39085d653b96d03597a85c124357879ebf0cd3aab",
   "app/packaging/unsigned/tauri.notices.conf.json": "740a195677a7ac3bc190ad8ffe76c5999d89a726f5d02db72cf83d576e245347",
   "app/src-tauri/resources/supplier/0.167.0/CANONICAL_DISTRIBUTION.json": "e6b0cd48c3d77728c44f2b79a2eb319686615b4521abb8585e9267694d380f61"
  },
  "counts": {
-  "covered": 232,
-  "held-pending-owner-licence-reading": 0,
+  "covered": 231,
+  "held-pending-owner-licence-reading": 1,
   "uncovered": 5,
   "total": 237
  },
@@ -45,6 +47,12 @@
    "standing": "uncovered",
    "reason": "Only ripgrep's own texts and the pcre2-sys/PCRE2/sljit chain are held; the licence texts of the other crates ripgrep's Cargo.lock locks are not.",
    "would_close": "Fetch the archives of the crates ripgrep 15.2.0's Cargo.lock locks (the owner approved fetching the texts of the supplier's compiled-in dependencies on 2026-11-12), extract their texts with notices/package_texts.py crates and ship them per crate."
+  },
+  {
+   "name": "ICU (V8 dependency)",
+   "version": "d578f2e8",
+   "standing": "held-pending-owner-licence-reading",
+   "reason": "Pending the owner's licence reading. ICU's root LICENSE names five files with their own terms: vendor/json/upstream/single_include/nlohmann/json.hpp, aclocal.m4, config.guess and install-sh (each 'only for ICU4C') and sorttable.js ('only for ICU4J'). aclocal.m4 (GPL-2.0-or-later) and config.guess (GPL-3.0-or-later) carry GNU GPL notices, each with the Autoconf exception; both are Autoconf build-system files. The supplier's ICU build file (third_party/v8/icu.BUILD.bazel of openai/codex at 086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, blob 833c2f027a06d89fa322f5433358383d286682f5, read from a retained copy whose blob equals its tree entry) compiles source/common/**/*.h and *.cpp, source/i18n/**/*.h and *.cpp and source/stubdata/stubdata.cpp, and carries common/icudtl.dat as data; it names none of the five files. The GPL texts those notices refer to are not held. Whether the notices concern anything in the shipped library is a question of licence applicability, not decided here."
   },
   {
    "name": "libc++ CREDITS.TXT and subdirectory licences",
@@ -5437,7 +5445,7 @@
     }
    ],
    "standing": "covered",
-   "basis": "the OFL text of the family's @fontsource tarball (the tarball members are recorded in the font index)"
+   "basis": "the OFL text of the family's @fontsource tarball; the font index records the tarball member of every file and of the licence"
   },
   {
    "class": "font",
@@ -5463,7 +5471,7 @@
     }
    ],
    "standing": "covered",
-   "basis": "the OFL text of the family's @fontsource tarball (the tarball members are recorded in the font index)"
+   "basis": "the OFL text of the family's @fontsource tarball; the font index records the tarball member of every file and of the licence"
   },
   {
    "class": "font",
@@ -5487,7 +5495,7 @@
     }
    ],
    "standing": "covered",
-   "basis": "the OFL text of the family's @fontsource tarball (the tarball members are recorded in the font index)"
+   "basis": "the OFL text of the family's @fontsource tarball; the font index records the tarball member of every file and of the licence"
   },
   {
    "class": "sqlite",
@@ -5553,7 +5561,7 @@
    "declared_license": "Apache-2.0",
    "below_root": "Root LICENSE and NOTICE. The skill samples embedded in bin/codex and the crates compiled into the executables are their own rows.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -5582,7 +5590,7 @@
    ],
    "below_root": "The sample's own licence file at its path in the source tree.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -5611,7 +5619,7 @@
    ],
    "below_root": "The sample's own licence file at its path in the source tree.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -5680,7 +5688,7 @@
    ],
    "below_root": "Root COPYING, LICENSE-MIT and UNLICENSE. The retained root listing at e89fff89 has no other licence file; the workspace crates under crates/ are compiled-in crates (row ripgrep-crate-dependencies). The root texts point to no further file.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -5713,7 +5721,8 @@
      "repository": "https://github.com/BurntSushi/ripgrep",
      "revision": "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
      "source_path": "COPYING",
-     "git_blob_sha1": "bb9c20a094e41b7632d63bcff20c0b4b95e80777"
+     "git_blob_sha1": "bb9c20a094e41b7632d63bcff20c0b4b95e80777",
+     "exception": "Blob-equal to pcre2-sys/COPYING at the crate's revision (ripgrep_0167.py TERMS); the committed copy is kept once, under ripgrep."
     },
     {
      "repository_path": "app/packaging/supplier_notices/ripgrep-15.2.0/UNLICENSE",
@@ -5723,12 +5732,13 @@
      "repository": "https://github.com/BurntSushi/ripgrep",
      "revision": "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
      "source_path": "UNLICENSE",
-     "git_blob_sha1": "68a49daad8ff7e35068f2b7a97d643aab440eaec"
+     "git_blob_sha1": "68a49daad8ff7e35068f2b7a97d643aab440eaec",
+     "exception": "Blob-equal to pcre2-sys/UNLICENSE at the crate's revision (ripgrep_0167.py TERMS); the committed copy is kept once, under ripgrep."
     }
    ],
    "below_root": "COPYING and UNLICENSE (equal to ripgrep's) and pcre2-sys/LICENSE-MIT; the complete listing of the crate directory has no other licence file.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -5756,7 +5766,7 @@
    ],
    "below_root": "LICENCE.md. The complete recursive listing at b2bd4254 (502 entries) also has AUTHORS.md (3,855 bytes), COPYING (97 bytes) and cmake/COPYING-CMAKE-SCRIPTS (1,326 bytes, build scripts); LICENCE.md points to none of them, and sljit is its own row.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -5784,7 +5794,7 @@
    ],
    "below_root": "Root LICENSE; the complete recursive listing at e51eabbf (73 entries) has no other licence file.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -6036,7 +6046,7 @@
    ],
    "below_root": "Root LICENSE, LICENSE.v8, LICENSE.fdlibm and LICENSE.strongtalk, and the 16 LICENSE files under third_party/ at d848a2b3, which with three under test/ are all the LICENSE files in the tree (the lane's tree read). The supplier's build file (third_party/v8/engine.BUILD.bazel at 086ccc83) names inspector_protocol, v8 and vtune under third_party; the others ship because V8's root licence points to its subdirectory licences, and whether each is compiled in was not established. The three LICENSE files under test/ are test material and are not shipped.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -6064,7 +6074,7 @@
    ],
    "below_root": "Root LICENSE. The retained root listing of the fork at 350c5a85 has no other licence file; subdirectories were not listed. V8, which the crate builds, is its own row. The root licence points to no further file.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -6090,9 +6100,9 @@
      "git_blob_sha1": "5a2eda629500c36c75377c1d693d8b584fcf40e6"
     }
    ],
-   "below_root": "Root LICENSE, which carries ICU's third-party terms in its own section. The retained listing at d578f2e8 is the root only (license.html, 622 bytes, is not held); subdirectories were not listed. The root licence points to no further file.",
-   "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "below_root": "Root LICENSE, which carries ICU's third-party terms in its own sections, including notices for five named files (see reason). The retained listing at d578f2e8 is the root only (license.html, 622 bytes, is not held); subdirectories were not listed.",
+   "standing": "held-pending-owner-licence-reading",
+   "reason": "Pending the owner's licence reading. ICU's root LICENSE names five files with their own terms: vendor/json/upstream/single_include/nlohmann/json.hpp, aclocal.m4, config.guess and install-sh (each 'only for ICU4C') and sorttable.js ('only for ICU4J'). aclocal.m4 (GPL-2.0-or-later) and config.guess (GPL-3.0-or-later) carry GNU GPL notices, each with the Autoconf exception; both are Autoconf build-system files. The supplier's ICU build file (third_party/v8/icu.BUILD.bazel of openai/codex at 086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, blob 833c2f027a06d89fa322f5433358383d286682f5, read from a retained copy whose blob equals its tree entry) compiles source/common/**/*.h and *.cpp, source/i18n/**/*.h and *.cpp and source/stubdata/stubdata.cpp, and carries common/icudtl.dat as data; it names none of the five files. The GPL texts those notices refer to are not held. Whether the notices concern anything in the shipped library is a question of licence applicability, not decided here."
   },
   {
    "class": "supplier",
@@ -6120,7 +6130,7 @@
    ],
    "below_root": "Root LICENSE.TXT. It names the contributors listed in CREDITS.TXT and says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so neither is held (row libcxx-credits-and-subdirectories).",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -6148,7 +6158,7 @@
    ],
    "below_root": "Root LICENSE.TXT. It names the contributors listed in CREDITS.TXT and says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so neither is held (row libcxxabi-credits-and-subdirectories).",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -6176,7 +6186,7 @@
    ],
    "below_root": "Root LICENSE.TXT. It says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so those are not enumerated (row llvm-libc-subdirectories).",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -6256,7 +6266,7 @@
    ],
    "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -6318,7 +6328,7 @@
    ],
    "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -6369,7 +6379,7 @@
    ],
    "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -6409,7 +6419,7 @@
    ],
    "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -6438,7 +6448,7 @@
    ],
    "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -6478,7 +6488,7 @@
    ],
    "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file.",
    "standing": "covered",
-   "basis": "texts of the repository and revision named"
+   "basis": "texts recorded at the component's own repository and revision"
   },
   {
    "class": "supplier",
@@ -6498,6 +6508,7 @@
    "texts": [
     {
      "supplier_member": "codex-resources/voice/licenses/LGPL-2.1.txt",
+     "source": "inside the supplier tree",
      "package_path": "codex/codex-resources/voice/licenses/LGPL-2.1.txt",
      "size_bytes": 26431,
      "sha256": "ad2eec519ebd4b5df86ea84dff24ae3bfa2edea846a703b58902dd221ae375db"
@@ -6531,6 +6542,7 @@
    "texts": [
     {
      "supplier_member": "codex-resources/voice/licenses/LGPL-2.1.txt",
+     "source": "inside the supplier tree",
      "package_path": "codex/codex-resources/voice/licenses/LGPL-2.1.txt",
      "size_bytes": 26431,
      "sha256": "ad2eec519ebd4b5df86ea84dff24ae3bfa2edea846a703b58902dd221ae375db"
@@ -6556,6 +6568,7 @@
    "texts": [
     {
      "supplier_member": "codex-resources/voice/licenses/LGPL-2.1.txt",
+     "source": "inside the supplier tree",
      "package_path": "codex/codex-resources/voice/licenses/LGPL-2.1.txt",
      "size_bytes": 26431,
      "sha256": "ad2eec519ebd4b5df86ea84dff24ae3bfa2edea846a703b58902dd221ae375db"
@@ -6583,6 +6596,7 @@
    "texts": [
     {
      "supplier_member": "codex-resources/voice/licenses/LGPL-2.1.txt",
+     "source": "inside the supplier tree",
      "package_path": "codex/codex-resources/voice/licenses/LGPL-2.1.txt",
      "size_bytes": 26431,
      "sha256": "ad2eec519ebd4b5df86ea84dff24ae3bfa2edea846a703b58902dd221ae375db"
@@ -6607,6 +6621,7 @@
    "texts": [
     {
      "supplier_member": "codex-resources/voice/licenses/proxy-libintl.txt",
+     "source": "inside the supplier tree",
      "package_path": "codex/codex-resources/voice/licenses/proxy-libintl.txt",
      "size_bytes": 25292,
      "sha256": "d245807f90032872d1438d741ed21e2490e1175dc8aa3afa5ddb6c8e529b58e5"
@@ -6631,6 +6646,7 @@
    "texts": [
     {
      "supplier_member": "codex-resources/voice/licenses/libffi.txt",
+     "source": "inside the supplier tree",
      "package_path": "codex/codex-resources/voice/licenses/libffi.txt",
      "size_bytes": 1132,
      "sha256": "17b64dc60f3b6897a60f971e288b973f655c2edcdf08b25f3c3dd5549857881c"
@@ -6655,12 +6671,14 @@
    "texts": [
     {
      "supplier_member": "codex-resources/voice/licenses/PCRE2.md",
+     "source": "inside the supplier tree",
      "package_path": "codex/codex-resources/voice/licenses/PCRE2.md",
      "size_bytes": 4011,
      "sha256": "197d8a73ffee0d6b09adba2f9c677b5f5aede24edf89258a68e48248d010d811"
     },
     {
      "supplier_member": "codex-resources/voice/licenses/sljit.txt",
+     "source": "inside the supplier tree",
      "package_path": "codex/codex-resources/voice/licenses/sljit.txt",
      "size_bytes": 1444,
      "sha256": "5f216505c0f6ea3273caec89e766eef93cdeb7bbb0c429f9360116d7c938feeb"
@@ -6685,6 +6703,7 @@
    "texts": [
     {
      "supplier_member": "codex-resources/voice/licenses/Opus.txt",
+     "source": "inside the supplier tree",
      "package_path": "codex/codex-resources/voice/licenses/Opus.txt",
      "size_bytes": 1945,
      "sha256": "01e1167d54a096d123cf6dfbbeb19587278845c6481d2d66d545669846079551"
@@ -6709,6 +6728,7 @@
    "texts": [
     {
      "supplier_member": "codex-resources/voice/licenses/zlib.txt",
+     "source": "inside the supplier tree",
      "package_path": "codex/codex-resources/voice/licenses/zlib.txt",
      "size_bytes": 1002,
      "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2"
@@ -7113,8 +7133,9 @@
  "limits": [
   "An account of what the package is built to carry, from committed inputs; it is not read from a built package.",
   "A notice text is the publisher's licence or notice text for the component at the named version or revision; whether it satisfies the licence is not decided here, except where an owner licence reading is recorded.",
-  "Supplier components inside an executable are as the supplier's build files and package records state; they are not read from the binaries. Texts in subdirectories of a component's repository are not included.",
-  "Each text is the root licence text of the repository and revision named; texts in subdirectories of those repositories are not included.",
-  "Which component is inside which member follows the supplier's build files and package records (Codex third_party/v8 dependencies.bzl and abseil_repository.bzl, the rg selector, the voice manifest and sources.json); it is the supplier's statement in its source, not read from the binaries."
+  "Supplier components inside an executable are as the supplier's build files and package records state; they are not read from the binaries. Below a repository's root, only the texts a row lists are included.",
+  "Each text is recorded with the repository and revision it comes from, or as a member of the supplier tree. Below a repository's root, only what a row lists is included (V8's third_party licences); each row's below_root says what was examined.",
+  "Which component is inside which member follows the supplier's build files and package records (Codex third_party/v8 build files, the rg selector, the voice manifest and sources.json); it is the supplier's statement in its source, not read from the binaries.",
+  "The executable rule (an execute bit, not .dylib or .json) fits this distribution record, checked against its Mach-O count; it is not a general proof that a file is a compiled program."
  ]
 }

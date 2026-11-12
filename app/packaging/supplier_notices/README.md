@@ -5,7 +5,10 @@ known inside each member, the committed text that is each component's notice
 (repository, revision, path, size and digests) and its standing. The tree itself is
 read from the declared pin's `CANONICAL_DISTRIBUTION.json` (the pin is
 `DECLARED_PIN` in `app/src-tauri/src/hosting.rs`); its executables are the files
-with an execute bit that are neither libraries nor data. `reviewed_for_pin` names
+with an execute bit that are neither libraries nor data, a rule that fits this record
+(checked against its Mach-O count), not a general proof. The table is a reviewed
+input: `../notices/coverage-review.json` binds its digest and lists each component's
+standing and exact texts, and its reviewer updates that record. `reviewed_for_pin` names
 the pin the table was reviewed against; when the declared pin differs,
 `../notices/coverage.py` lists the table as an open component rather than assume
 the old associations. Every committed text here is mapped into the package under

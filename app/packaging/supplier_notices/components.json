@@ -6,8 +6,9 @@
   "note": "Voice component versions and archive URLs are as the supplier's sources.json states; coverage.py --vendor rechecks them against the tree."
  },
  "limits": [
-  "Each text is the root licence text of the repository and revision named; texts in subdirectories of those repositories are not included.",
-  "Which component is inside which member follows the supplier's build files and package records (Codex third_party/v8 dependencies.bzl and abseil_repository.bzl, the rg selector, the voice manifest and sources.json); it is the supplier's statement in its source, not read from the binaries."
+  "Each text is recorded with the repository and revision it comes from, or as a member of the supplier tree. Below a repository's root, only what a row lists is included (V8's third_party licences); each row's below_root says what was examined.",
+  "Which component is inside which member follows the supplier's build files and package records (Codex third_party/v8 build files, the rg selector, the voice manifest and sources.json); it is the supplier's statement in its source, not read from the binaries.",
+  "The executable rule (an execute bit, not .dylib or .json) fits this distribution record, checked against its Mach-O count; it is not a general proof that a file is a compiled program."
  ],
  "texts": [
   {
@@ -620,7 +621,17 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "COPYING and UNLICENSE (equal to ripgrep's) and pcre2-sys/LICENSE-MIT; the complete listing of the crate directory has no other licence file."
+   "below_root": "COPYING and UNLICENSE (equal to ripgrep's) and pcre2-sys/LICENSE-MIT; the complete listing of the crate directory has no other licence file.",
+   "text_exceptions": [
+    {
+     "path": "app/packaging/supplier_notices/ripgrep-15.2.0/COPYING",
+     "reason": "Blob-equal to pcre2-sys/COPYING at the crate's revision (ripgrep_0167.py TERMS); the committed copy is kept once, under ripgrep."
+    },
+    {
+     "path": "app/packaging/supplier_notices/ripgrep-15.2.0/UNLICENSE",
+     "reason": "Blob-equal to pcre2-sys/UNLICENSE at the crate's revision (ripgrep_0167.py TERMS); the committed copy is kept once, under ripgrep."
+    }
+   ]
   },
   {
    "id": "pcre2-in-rg",
@@ -734,8 +745,9 @@
     "app/packaging/supplier_notices/icu-d578f2e8/LICENSE"
    ],
    "supplier_tree_texts": [],
-   "standing": "covered",
-   "below_root": "Root LICENSE, which carries ICU's third-party terms in its own section. The retained listing at d578f2e8 is the root only (license.html, 622 bytes, is not held); subdirectories were not listed. The root licence points to no further file."
+   "standing": "pending",
+   "below_root": "Root LICENSE, which carries ICU's third-party terms in its own sections, including notices for five named files (see reason). The retained listing at d578f2e8 is the root only (license.html, 622 bytes, is not held); subdirectories were not listed.",
+   "reason": "Pending the owner's licence reading. ICU's root LICENSE names five files with their own terms: vendor/json/upstream/single_include/nlohmann/json.hpp, aclocal.m4, config.guess and install-sh (each 'only for ICU4C') and sorttable.js ('only for ICU4J'). aclocal.m4 (GPL-2.0-or-later) and config.guess (GPL-3.0-or-later) carry GNU GPL notices, each with the Autoconf exception; both are Autoconf build-system files. The supplier's ICU build file (third_party/v8/icu.BUILD.bazel of openai/codex at 086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, blob 833c2f027a06d89fa322f5433358383d286682f5, read from a retained copy whose blob equals its tree entry) compiles source/common/**/*.h and *.cpp, source/i18n/**/*.h and *.cpp and source/stubdata/stubdata.cpp, and carries common/icudtl.dat as data; it names none of the five files. The GPL texts those notices refer to are not held. Whether the notices concern anything in the shipped library is a question of licence applicability, not decided here."
   },
   {
    "id": "libcxx",
