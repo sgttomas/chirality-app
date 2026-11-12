@@ -160,17 +160,25 @@
    "HOME",
    "LANG",
    "PATH",
-   "TMPDIR"
+   "TMPDIR",
+   "TZ"
   ],
+  "clock": "TZ=UTC is a capture control; the App starts Codex with the person's own environment",
+  "outside_configuration": {
+   "working_directory_ancestors": "5 checked, none holds .git or .codex",
+   "system_configuration_folder": "absent",
+   "managed_preferences": "absent",
+   "note": "presence checks before execution; controls on what the supplier is given, not a sandbox"
+  },
   "note": "scratch stand-ins, not a person's settings"
  },
  "socket_watch": {
-  "method": "lsof of the supplier process group at each start and every 0.25 s; a sample, not isolation",
-  "samples": 31,
+  "method": "lsof of the supplier process group at each start and every 0.25 s; a sample, not isolation. The watch was stopped and its last sample settled before these counts were read",
+  "samples": 27,
   "failed_samples": 0,
   "samples_by_generation": {
-   "1": 29,
-   "2": 2
+   "1": 26,
+   "2": 1
   },
   "loopback_peers": [
    "127.0.0.1"
@@ -204,18 +212,18 @@
  "events": [
   {
    "event": "begin",
-   "t_ms": 168.8,
+   "t_ms": 601.8,
    "scenario": "nv04",
    "pin": "0.167.0"
   },
   {
    "event": "spawn",
-   "t_ms": 280.3,
+   "t_ms": 1165.2,
    "generation": 1
   },
   {
    "event": "spawn-tool-parameters",
-   "t_ms": 908.7,
+   "t_ms": 1474.5,
    "parameters": [
     "fork_context",
     "items",
@@ -227,18 +235,18 @@
   },
   {
    "event": "parent-turn-completed",
-   "t_ms": 1064.3,
+   "t_ms": 1715.6,
    "observed": true
   },
   {
    "event": "history-reads",
-   "t_ms": 9059.4,
+   "t_ms": 9696.7,
    "generation": 1,
    "child_thread_known": true
   },
   {
    "event": "exit",
-   "t_ms": 9473.2,
+   "t_ms": 10179.9,
    "generation": 1,
    "how": "stdin",
    "returncode": 0,
@@ -246,18 +254,18 @@
   },
   {
    "event": "spawn",
-   "t_ms": 9580.4,
+   "t_ms": 10302.9,
    "generation": 2
   },
   {
    "event": "history-reads",
-   "t_ms": 9640.2,
+   "t_ms": 10390.0,
    "generation": 2,
    "child_thread_known": true
   },
   {
    "event": "exit",
-   "t_ms": 9984.4,
+   "t_ms": 10753.2,
    "generation": 2,
    "how": "stdin",
    "returncode": 0,
@@ -273,7 +281,7 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 1,
-   "t_ms": 338.3,
+   "t_ms": 1324.3,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -296,7 +304,7 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 1,
-   "t_ms": 706.0,
+   "t_ms": 1336.6,
    "redacted": true,
    "frame": {
     "id": 1,
@@ -312,7 +320,7 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 2,
-   "t_ms": 706.1,
+   "t_ms": 1336.7,
    "redacted": true,
    "frame": {
     "method": "remoteControl/status/changed",
@@ -322,14 +330,14 @@
      "installationId": "<REDACTED-INSTALLATION-ID>",
      "environmentId": null
     },
-    "emittedAtMs": 1794475811079
+    "emittedAtMs": 1794482749396
    }
   },
   {
    "generation": 1,
    "direction": "app->codex",
    "position": 2,
-   "t_ms": 706.2,
+   "t_ms": 1336.7,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -340,7 +348,7 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 3,
-   "t_ms": 706.2,
+   "t_ms": 1336.8,
    "redacted": true,
    "frame": {
     "jsonrpc": "2.0",
@@ -357,13 +365,13 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 3,
-   "t_ms": 733.4,
+   "t_ms": 1385.0,
    "redacted": true,
    "frame": {
     "id": 2,
     "result": {
      "thread": {
-      "id": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+      "id": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
       "environments": [
        {
         "environmentId": "local",
@@ -374,7 +382,7 @@
        }
       ],
       "extra": null,
-      "sessionId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+      "sessionId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "",
@@ -386,13 +394,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794475811,
-      "updatedAt": 1794475811,
-      "recencyAt": 1794475811,
+      "createdAt": 1794482749,
+      "updatedAt": 1794482749,
+      "recencyAt": 1794482749,
       "status": {
        "type": "idle"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-11-01a1cf17-e10a-7ae0-a9f6-456a6bd58d97.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T11-25-49-01a1cf81-bfd6-7e80-bfc1-8768c41b58c3.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.0",
       "originator": "chirality-st5-harness",
@@ -431,13 +439,13 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 4,
-   "t_ms": 733.5,
+   "t_ms": 1385.2,
    "redacted": true,
    "frame": {
     "method": "thread/started",
     "params": {
      "thread": {
-      "id": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+      "id": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
       "environments": [
        {
         "environmentId": "local",
@@ -448,7 +456,7 @@
        }
       ],
       "extra": null,
-      "sessionId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+      "sessionId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "",
@@ -460,13 +468,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794475811,
-      "updatedAt": 1794475811,
-      "recencyAt": 1794475811,
+      "createdAt": 1794482749,
+      "updatedAt": 1794482749,
+      "recencyAt": 1794482749,
       "status": {
        "type": "idle"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-11-01a1cf17-e10a-7ae0-a9f6-456a6bd58d97.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T11-25-49-01a1cf81-bfd6-7e80-bfc1-8768c41b58c3.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.0",
       "originator": "chirality-st5-harness",
@@ -481,21 +489,21 @@
       "turns": []
      }
     },
-    "emittedAtMs": 1794475811107
+    "emittedAtMs": 1794482749445
    }
   },
   {
    "generation": 1,
    "direction": "app->codex",
    "position": 4,
-   "t_ms": 733.5,
+   "t_ms": 1385.5,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 3,
     "method": "turn/start",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
      "input": [
       {
        "type": "text",
@@ -509,29 +517,29 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 5,
-   "t_ms": 737.6,
+   "t_ms": 1396.7,
    "redacted": false,
    "frame": {
     "method": "warning",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
      "message": "Model metadata for `st5-stub-model` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
     },
-    "emittedAtMs": 1794475811111
+    "emittedAtMs": 1794482749456
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 6,
-   "t_ms": 738.6,
+   "t_ms": 1398.0,
    "redacted": false,
    "frame": {
     "id": 3,
     "result": {
      "turn": {
-      "id": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
-      "rootTurnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+      "id": "01a1cf81-c007-7723-8722-0ff24b625200",
+      "rootTurnId": "01a1cf81-c007-7723-8722-0ff24b625200",
       "items": [],
       "itemsView": "notLoaded",
       "status": "inProgress",
@@ -547,57 +555,57 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 7,
-   "t_ms": 839.1,
+   "t_ms": 1431.5,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
      "status": {
       "type": "active",
       "activeFlags": []
      }
     },
-    "emittedAtMs": 1794475811213
+    "emittedAtMs": 1794482749491
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 8,
-   "t_ms": 839.2,
+   "t_ms": 1431.6,
    "redacted": false,
    "frame": {
     "method": "turn/started",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
      "turn": {
-      "id": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
-      "rootTurnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+      "id": "01a1cf81-c007-7723-8722-0ff24b625200",
+      "rootTurnId": "01a1cf81-c007-7723-8722-0ff24b625200",
       "items": [],
       "itemsView": "notLoaded",
       "status": "inProgress",
       "error": null,
-      "startedAt": 1794475811,
+      "startedAt": 1794482749,
       "completedAt": null,
       "durationMs": null
      }
     },
-    "emittedAtMs": 1794475811213
+    "emittedAtMs": 1794482749491
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 9,
-   "t_ms": 871.6,
+   "t_ms": 1445.2,
    "redacted": false,
    "frame": {
     "method": "item/started",
     "params": {
      "item": {
       "type": "userMessage",
-      "id": "01a1cf17-e1a7-7cf0-b82a-4ceb0fef9574",
+      "id": "01a1cf81-c03b-7b72-bd59-03a5fa5e4dcb",
       "clientId": null,
       "content": [
        {
@@ -606,28 +614,28 @@
         "text_elements": []
        }
       ],
-      "startedAtMs": 1794475811245,
+      "startedAtMs": 1794482749505,
       "completedAtMs": null
      },
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
-     "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
-     "startedAtMs": 1794475811245
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
+     "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
+     "startedAtMs": 1794482749505
     },
-    "emittedAtMs": 1794475811245
+    "emittedAtMs": 1794482749505
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 10,
-   "t_ms": 902.9,
+   "t_ms": 1469.2,
    "redacted": false,
    "frame": {
     "method": "item/completed",
     "params": {
      "item": {
       "type": "userMessage",
-      "id": "01a1cf17-e1a7-7cf0-b82a-4ceb0fef9574",
+      "id": "01a1cf81-c03b-7b72-bd59-03a5fa5e4dcb",
       "clientId": null,
       "content": [
        {
@@ -636,21 +644,21 @@
         "text_elements": []
        }
       ],
-      "startedAtMs": 1794475811245,
-      "completedAtMs": 1794475811245
+      "startedAtMs": 1794482749505,
+      "completedAtMs": 1794482749505
      },
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
-     "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
-     "completedAtMs": 1794475811245
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
+     "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
+     "completedAtMs": 1794482749505
     },
-    "emittedAtMs": 1794475811277
+    "emittedAtMs": 1794482749529
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 11,
-   "t_ms": 942.7,
+   "t_ms": 1493.6,
    "redacted": false,
    "frame": {
     "method": "item/started",
@@ -660,59 +668,59 @@
       "id": "call_spawn_1",
       "tool": "spawnAgent",
       "status": "inProgress",
-      "senderThreadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+      "senderThreadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
       "receiverThreadIds": [],
       "prompt": "st5-child-brief-marker: count the invented files.",
       "model": "",
       "reasoningEffort": "medium",
       "agentsStates": {},
-      "startedAtMs": 1794475811314,
+      "startedAtMs": 1794482749553,
       "completedAtMs": null
      },
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
-     "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
-     "startedAtMs": 1794475811314
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
+     "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
+     "startedAtMs": 1794482749553
     },
-    "emittedAtMs": 1794475811315
+    "emittedAtMs": 1794482749553
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 12,
-   "t_ms": 959.1,
+   "t_ms": 1557.7,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
+     "threadId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
      "status": {
       "type": "idle"
      }
     },
-    "emittedAtMs": 1794475811333
+    "emittedAtMs": 1794482749617
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 13,
-   "t_ms": 959.1,
+   "t_ms": 1557.8,
    "redacted": false,
    "frame": {
     "method": "warning",
     "params": {
-     "threadId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
+     "threadId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
      "message": "Model metadata for `st5-stub-model` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
     },
-    "emittedAtMs": 1794475811333
+    "emittedAtMs": 1794482749618
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 14,
-   "t_ms": 959.6,
+   "t_ms": 1569.7,
    "redacted": false,
    "frame": {
     "method": "item/completed",
@@ -722,83 +730,83 @@
       "id": "call_spawn_1",
       "tool": "spawnAgent",
       "status": "completed",
-      "senderThreadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+      "senderThreadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
       "receiverThreadIds": [
-       "01a1cf17-e1f2-7e13-a4e7-78d09523299b"
+       "01a1cf81-c071-73c2-a59a-f5f44d4235a1"
       ],
       "prompt": "st5-child-brief-marker: count the invented files.",
       "model": "st5-stub-model",
       "reasoningEffort": "medium",
       "agentsStates": {
-       "01a1cf17-e1f2-7e13-a4e7-78d09523299b": {
+       "01a1cf81-c071-73c2-a59a-f5f44d4235a1": {
         "status": "pendingInit",
         "message": null
        }
       },
-      "startedAtMs": 1794475811314,
-      "completedAtMs": 1794475811329
+      "startedAtMs": 1794482749553,
+      "completedAtMs": 1794482749606
      },
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
-     "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
-     "completedAtMs": 1794475811329
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
+     "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
+     "completedAtMs": 1794482749606
     },
-    "emittedAtMs": 1794475811333
+    "emittedAtMs": 1794482749629
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 15,
-   "t_ms": 970.2,
+   "t_ms": 1593.7,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
+     "threadId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
      "status": {
       "type": "active",
       "activeFlags": []
      }
     },
-    "emittedAtMs": 1794475811344
+    "emittedAtMs": 1794482749653
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 16,
-   "t_ms": 970.2,
+   "t_ms": 1593.7,
    "redacted": false,
    "frame": {
     "method": "turn/started",
     "params": {
-     "threadId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
+     "threadId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
      "turn": {
-      "id": "01a1cf17-e201-7571-9d3e-7902cb19c476",
-      "rootTurnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+      "id": "01a1cf81-c0a4-7c42-b88b-640b35c66b14",
+      "rootTurnId": "01a1cf81-c007-7723-8722-0ff24b625200",
       "items": [],
       "itemsView": "notLoaded",
       "status": "inProgress",
       "error": null,
-      "startedAt": 1794475811,
+      "startedAt": 1794482749,
       "completedAt": null,
       "durationMs": null
      }
     },
-    "emittedAtMs": 1794475811344
+    "emittedAtMs": 1794482749653
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 17,
-   "t_ms": 977.0,
+   "t_ms": 1605.8,
    "redacted": false,
    "frame": {
     "method": "thread/tokenUsage/updated",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
-     "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
+     "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
      "tokenUsage": {
       "total": {
        "totalTokens": 2,
@@ -819,14 +827,14 @@
       "modelContextWindow": 258400
      }
     },
-    "emittedAtMs": 1794475811351
+    "emittedAtMs": 1794482749666
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 18,
-   "t_ms": 977.1,
+   "t_ms": 1605.8,
    "redacted": false,
    "frame": {
     "method": "account/rateLimits/updated",
@@ -844,14 +852,14 @@
       "rateLimitReachedType": null
      }
     },
-    "emittedAtMs": 1794475811351
+    "emittedAtMs": 1794482749666
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 19,
-   "t_ms": 992.6,
+   "t_ms": 1622.2,
    "redacted": false,
    "frame": {
     "method": "item/started",
@@ -864,38 +872,38 @@
       "memoryCitation": null,
       "delivery": null,
       "questions": null,
-      "startedAtMs": 1794475811366,
+      "startedAtMs": 1794482749682,
       "completedAtMs": null
      },
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
-     "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
-     "startedAtMs": 1794475811366
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
+     "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
+     "startedAtMs": 1794482749682
     },
-    "emittedAtMs": 1794475811366
+    "emittedAtMs": 1794482749682
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 20,
-   "t_ms": 992.6,
+   "t_ms": 1622.3,
    "redacted": false,
    "frame": {
     "method": "item/agentMessage/delta",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
-     "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
+     "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
      "itemId": "msg_parent_done",
      "delta": "Parent turn done; child still working."
     },
-    "emittedAtMs": 1794475811366
+    "emittedAtMs": 1794482749682
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 21,
-   "t_ms": 1000.5,
+   "t_ms": 1626.1,
    "redacted": false,
    "frame": {
     "method": "item/completed",
@@ -908,28 +916,28 @@
       "memoryCitation": null,
       "delivery": null,
       "questions": null,
-      "startedAtMs": 1794475811366,
-      "completedAtMs": 1794475811366
+      "startedAtMs": 1794482749682,
+      "completedAtMs": 1794482749682
      },
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
-     "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
-     "completedAtMs": 1794475811366
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
+     "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
+     "completedAtMs": 1794482749682
     },
-    "emittedAtMs": 1794475811374
+    "emittedAtMs": 1794482749686
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 22,
-   "t_ms": 1008.2,
+   "t_ms": 1658.6,
    "redacted": false,
    "frame": {
     "method": "item/started",
     "params": {
      "item": {
       "type": "userMessage",
-      "id": "01a1cf17-e22f-7e63-8ec9-888f38b99a93",
+      "id": "01a1cf81-c107-7311-914b-d7ec4e9fc7aa",
       "clientId": null,
       "content": [
        {
@@ -938,28 +946,28 @@
         "text_elements": []
        }
       ],
-      "startedAtMs": 1794475811382,
+      "startedAtMs": 1794482749718,
       "completedAtMs": null
      },
-     "threadId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
-     "turnId": "01a1cf17-e201-7571-9d3e-7902cb19c476",
-     "startedAtMs": 1794475811382
+     "threadId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
+     "turnId": "01a1cf81-c0a4-7c42-b88b-640b35c66b14",
+     "startedAtMs": 1794482749718
     },
-    "emittedAtMs": 1794475811382
+    "emittedAtMs": 1794482749718
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 23,
-   "t_ms": 1018.9,
+   "t_ms": 1671.4,
    "redacted": false,
    "frame": {
     "method": "item/completed",
     "params": {
      "item": {
       "type": "userMessage",
-      "id": "01a1cf17-e22f-7e63-8ec9-888f38b99a93",
+      "id": "01a1cf81-c107-7311-914b-d7ec4e9fc7aa",
       "clientId": null,
       "content": [
        {
@@ -968,27 +976,27 @@
         "text_elements": []
        }
       ],
-      "startedAtMs": 1794475811382,
-      "completedAtMs": 1794475811382
+      "startedAtMs": 1794482749718,
+      "completedAtMs": 1794482749718
      },
-     "threadId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
-     "turnId": "01a1cf17-e201-7571-9d3e-7902cb19c476",
-     "completedAtMs": 1794475811382
+     "threadId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
+     "turnId": "01a1cf81-c0a4-7c42-b88b-640b35c66b14",
+     "completedAtMs": 1794482749718
     },
-    "emittedAtMs": 1794475811393
+    "emittedAtMs": 1794482749731
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 24,
-   "t_ms": 1043.0,
+   "t_ms": 1674.7,
    "redacted": false,
    "frame": {
     "method": "thread/tokenUsage/updated",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
-     "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
+     "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
      "tokenUsage": {
       "total": {
        "totalTokens": 4,
@@ -1009,14 +1017,14 @@
       "modelContextWindow": 258400
      }
     },
-    "emittedAtMs": 1794475811417
+    "emittedAtMs": 1794482749734
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 25,
-   "t_ms": 1043.1,
+   "t_ms": 1676.0,
    "redacted": false,
    "frame": {
     "method": "account/rateLimits/updated",
@@ -1034,60 +1042,60 @@
       "rateLimitReachedType": null
      }
     },
-    "emittedAtMs": 1794475811417
+    "emittedAtMs": 1794482749734
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 26,
-   "t_ms": 1064.3,
+   "t_ms": 1715.0,
    "redacted": false,
    "frame": {
     "method": "thread/readState/changed",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
      "readState": {
       "firstUnread": {
        "type": "turn",
-       "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3"
+       "turnId": "01a1cf81-c007-7723-8722-0ff24b625200"
       },
-      "revision": "34fd40e6-bce8-4861-8fdb-ad53526153ff"
+      "revision": "3a222b6b-111b-4516-88b2-5f61d906a263"
      }
     },
-    "emittedAtMs": 1794475811438
+    "emittedAtMs": 1794482749775
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 27,
-   "t_ms": 1064.3,
+   "t_ms": 1715.1,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
      "status": {
       "type": "idle"
      }
     },
-    "emittedAtMs": 1794475811438
+    "emittedAtMs": 1794482749775
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 28,
-   "t_ms": 1064.3,
+   "t_ms": 1715.1,
    "redacted": false,
    "frame": {
     "method": "turn/completed",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
      "turn": {
-      "id": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
-      "rootTurnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+      "id": "01a1cf81-c007-7723-8722-0ff24b625200",
+      "rootTurnId": "01a1cf81-c007-7723-8722-0ff24b625200",
       "items": [
        {
         "type": "agentMessage",
@@ -1097,26 +1105,26 @@
         "memoryCitation": null,
         "delivery": null,
         "questions": null,
-        "startedAtMs": 1794475811366,
-        "completedAtMs": 1794475811366
+        "startedAtMs": 1794482749682,
+        "completedAtMs": 1794482749682
        }
       ],
       "itemsView": "summary",
       "status": "completed",
       "error": null,
-      "startedAt": 1794475811,
-      "completedAt": 1794475811,
-      "durationMs": 306
+      "startedAt": 1794482749,
+      "completedAt": 1794482749,
+      "durationMs": 311
      }
     },
-    "emittedAtMs": 1794475811438
+    "emittedAtMs": 1794482749775
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 29,
-   "t_ms": 9025.3,
+   "t_ms": 9679.9,
    "redacted": false,
    "frame": {
     "method": "item/started",
@@ -1129,38 +1137,38 @@
       "memoryCitation": null,
       "delivery": null,
       "questions": null,
-      "startedAtMs": 1794475819399,
+      "startedAtMs": 1794482757740,
       "completedAtMs": null
      },
-     "threadId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
-     "turnId": "01a1cf17-e201-7571-9d3e-7902cb19c476",
-     "startedAtMs": 1794475819399
+     "threadId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
+     "turnId": "01a1cf81-c0a4-7c42-b88b-640b35c66b14",
+     "startedAtMs": 1794482757740
     },
-    "emittedAtMs": 1794475819399
+    "emittedAtMs": 1794482757740
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 30,
-   "t_ms": 9025.4,
+   "t_ms": 9680.0,
    "redacted": false,
    "frame": {
     "method": "item/agentMessage/delta",
     "params": {
-     "threadId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
-     "turnId": "01a1cf17-e201-7571-9d3e-7902cb19c476",
+     "threadId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
+     "turnId": "01a1cf81-c0a4-7c42-b88b-640b35c66b14",
      "itemId": "msg_child",
      "delta": "Child finished counting."
     },
-    "emittedAtMs": 1794475819399
+    "emittedAtMs": 1794482757740
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 31,
-   "t_ms": 9028.4,
+   "t_ms": 9684.9,
    "redacted": false,
    "frame": {
     "method": "item/completed",
@@ -1173,27 +1181,27 @@
       "memoryCitation": null,
       "delivery": null,
       "questions": null,
-      "startedAtMs": 1794475819399,
-      "completedAtMs": 1794475819399
+      "startedAtMs": 1794482757740,
+      "completedAtMs": 1794482757740
      },
-     "threadId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
-     "turnId": "01a1cf17-e201-7571-9d3e-7902cb19c476",
-     "completedAtMs": 1794475819399
+     "threadId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
+     "turnId": "01a1cf81-c0a4-7c42-b88b-640b35c66b14",
+     "completedAtMs": 1794482757740
     },
-    "emittedAtMs": 1794475819402
+    "emittedAtMs": 1794482757745
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 32,
-   "t_ms": 9050.6,
+   "t_ms": 9687.0,
    "redacted": false,
    "frame": {
     "method": "thread/tokenUsage/updated",
     "params": {
-     "threadId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
-     "turnId": "01a1cf17-e201-7571-9d3e-7902cb19c476",
+     "threadId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
+     "turnId": "01a1cf81-c0a4-7c42-b88b-640b35c66b14",
      "tokenUsage": {
       "total": {
        "totalTokens": 2,
@@ -1214,14 +1222,14 @@
       "modelContextWindow": 258400
      }
     },
-    "emittedAtMs": 1794475819424
+    "emittedAtMs": 1794482757747
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 33,
-   "t_ms": 9050.7,
+   "t_ms": 9687.0,
    "redacted": false,
    "frame": {
     "method": "account/rateLimits/updated",
@@ -1239,39 +1247,39 @@
       "rateLimitReachedType": null
      }
     },
-    "emittedAtMs": 1794475819424
+    "emittedAtMs": 1794482757747
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 34,
-   "t_ms": 9059.0,
+   "t_ms": 9696.3,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
+     "threadId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
      "status": {
       "type": "idle"
      }
     },
-    "emittedAtMs": 1794475819433
+    "emittedAtMs": 1794482757756
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 35,
-   "t_ms": 9059.1,
+   "t_ms": 9696.4,
    "redacted": false,
    "frame": {
     "method": "turn/completed",
     "params": {
-     "threadId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
+     "threadId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
      "turn": {
-      "id": "01a1cf17-e201-7571-9d3e-7902cb19c476",
-      "rootTurnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+      "id": "01a1cf81-c0a4-7c42-b88b-640b35c66b14",
+      "rootTurnId": "01a1cf81-c007-7723-8722-0ff24b625200",
       "items": [
        {
         "type": "agentMessage",
@@ -1281,26 +1289,26 @@
         "memoryCitation": null,
         "delivery": null,
         "questions": null,
-        "startedAtMs": 1794475819399,
-        "completedAtMs": 1794475819399
+        "startedAtMs": 1794482757740,
+        "completedAtMs": 1794482757740
        }
       ],
       "itemsView": "summary",
       "status": "completed",
       "error": null,
-      "startedAt": 1794475811,
-      "completedAt": 1794475819,
-      "durationMs": 8097
+      "startedAt": 1794482749,
+      "completedAt": 1794482757,
+      "durationMs": 8142
      }
     },
-    "emittedAtMs": 1794475819433
+    "emittedAtMs": 1794482757756
    }
   },
   {
    "generation": 1,
    "direction": "app->codex",
    "position": 5,
-   "t_ms": 9059.2,
+   "t_ms": 9696.5,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -1313,14 +1321,14 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 36,
-   "t_ms": 9059.4,
+   "t_ms": 9696.7,
    "redacted": false,
    "frame": {
     "id": 4,
     "result": {
      "data": [
-      "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
-      "01a1cf17-e1f2-7e13-a4e7-78d09523299b"
+      "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
+      "01a1cf81-c071-73c2-a59a-f5f44d4235a1"
      ],
      "nextCursor": null
     }
@@ -1330,14 +1338,14 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 6,
-   "t_ms": 9059.4,
+   "t_ms": 9700.1,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 5,
     "method": "thread/read",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
      "includeTurns": true
     }
    }
@@ -1346,7 +1354,7 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 37,
-   "t_ms": 9069.1,
+   "t_ms": 9705.3,
    "redacted": false,
    "frame": {
     "method": "deprecationNotice",
@@ -1354,20 +1362,20 @@
      "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
      "details": null
     },
-    "emittedAtMs": 1794475819443
+    "emittedAtMs": 1794482757765
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 38,
-   "t_ms": 9069.2,
+   "t_ms": 9705.4,
    "redacted": true,
    "frame": {
     "id": 5,
     "result": {
      "thread": {
-      "id": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+      "id": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
       "environments": [
        {
         "environmentId": "local",
@@ -1378,7 +1386,7 @@
        }
       ],
       "extra": null,
-      "sessionId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+      "sessionId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "Delegate the count.",
@@ -1390,13 +1398,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794475811,
-      "updatedAt": 1794475811,
-      "recencyAt": 1794475811,
+      "createdAt": 1794482749,
+      "updatedAt": 1794482749,
+      "recencyAt": 1794482749,
       "status": {
        "type": "idle"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-11-01a1cf17-e10a-7ae0-a9f6-456a6bd58d97.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T11-25-49-01a1cf81-bfd6-7e80-bfc1-8768c41b58c3.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.0",
       "originator": "chirality-st5-harness",
@@ -1410,12 +1418,12 @@
       "daybreakEnabled": null,
       "turns": [
        {
-        "id": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
-        "rootTurnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+        "id": "01a1cf81-c007-7723-8722-0ff24b625200",
+        "rootTurnId": "01a1cf81-c007-7723-8722-0ff24b625200",
         "items": [
          {
           "type": "userMessage",
-          "id": "01a1cf17-e1a7-7cf0-b82a-4ceb0fef9574",
+          "id": "01a1cf81-c03b-7b72-bd59-03a5fa5e4dcb",
           "clientId": null,
           "content": [
            {
@@ -1424,29 +1432,29 @@
             "text_elements": []
            }
           ],
-          "startedAtMs": 1794475811245,
-          "completedAtMs": 1794475811245
+          "startedAtMs": 1794482749505,
+          "completedAtMs": 1794482749505
          },
          {
           "type": "collabAgentToolCall",
           "id": "call_spawn_1",
           "tool": "spawnAgent",
           "status": "completed",
-          "senderThreadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+          "senderThreadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
           "receiverThreadIds": [
-           "01a1cf17-e1f2-7e13-a4e7-78d09523299b"
+           "01a1cf81-c071-73c2-a59a-f5f44d4235a1"
           ],
           "prompt": "st5-child-brief-marker: count the invented files.",
           "model": "st5-stub-model",
           "reasoningEffort": "medium",
           "agentsStates": {
-           "01a1cf17-e1f2-7e13-a4e7-78d09523299b": {
+           "01a1cf81-c071-73c2-a59a-f5f44d4235a1": {
             "status": "pendingInit",
             "message": null
            }
           },
-          "startedAtMs": 1794475811314,
-          "completedAtMs": 1794475811329
+          "startedAtMs": 1794482749553,
+          "completedAtMs": 1794482749606
          },
          {
           "type": "agentMessage",
@@ -1456,25 +1464,25 @@
           "memoryCitation": null,
           "delivery": null,
           "questions": null,
-          "startedAtMs": 1794475811366,
-          "completedAtMs": 1794475811366
+          "startedAtMs": 1794482749682,
+          "completedAtMs": 1794482749682
          }
         ],
         "itemsView": "full",
         "status": "completed",
         "error": null,
-        "startedAt": 1794475811,
-        "completedAt": 1794475811,
-        "durationMs": 306
+        "startedAt": 1794482749,
+        "completedAt": 1794482749,
+        "durationMs": 311
        }
       ]
      },
      "readState": {
       "firstUnread": {
        "type": "turn",
-       "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3"
+       "turnId": "01a1cf81-c007-7723-8722-0ff24b625200"
       },
-      "revision": "34fd40e6-bce8-4861-8fdb-ad53526153ff"
+      "revision": "3a222b6b-111b-4516-88b2-5f61d906a263"
      }
     }
    }
@@ -1483,14 +1491,14 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 7,
-   "t_ms": 9069.2,
+   "t_ms": 9705.4,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 6,
     "method": "thread/turns/list",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
      "itemsView": "full"
     }
    }
@@ -1499,19 +1507,19 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 39,
-   "t_ms": 9070.0,
+   "t_ms": 9706.4,
    "redacted": false,
    "frame": {
     "id": 6,
     "result": {
      "data": [
       {
-       "id": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
-       "rootTurnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+       "id": "01a1cf81-c007-7723-8722-0ff24b625200",
+       "rootTurnId": "01a1cf81-c007-7723-8722-0ff24b625200",
        "items": [
         {
          "type": "userMessage",
-         "id": "01a1cf17-e1a7-7cf0-b82a-4ceb0fef9574",
+         "id": "01a1cf81-c03b-7b72-bd59-03a5fa5e4dcb",
          "clientId": null,
          "content": [
           {
@@ -1520,29 +1528,29 @@
            "text_elements": []
           }
          ],
-         "startedAtMs": 1794475811245,
-         "completedAtMs": 1794475811245
+         "startedAtMs": 1794482749505,
+         "completedAtMs": 1794482749505
         },
         {
          "type": "collabAgentToolCall",
          "id": "call_spawn_1",
          "tool": "spawnAgent",
          "status": "completed",
-         "senderThreadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+         "senderThreadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
          "receiverThreadIds": [
-          "01a1cf17-e1f2-7e13-a4e7-78d09523299b"
+          "01a1cf81-c071-73c2-a59a-f5f44d4235a1"
          ],
          "prompt": "st5-child-brief-marker: count the invented files.",
          "model": "st5-stub-model",
          "reasoningEffort": "medium",
          "agentsStates": {
-          "01a1cf17-e1f2-7e13-a4e7-78d09523299b": {
+          "01a1cf81-c071-73c2-a59a-f5f44d4235a1": {
            "status": "pendingInit",
            "message": null
           }
          },
-         "startedAtMs": 1794475811314,
-         "completedAtMs": 1794475811329
+         "startedAtMs": 1794482749553,
+         "completedAtMs": 1794482749606
         },
         {
          "type": "agentMessage",
@@ -1552,20 +1560,20 @@
          "memoryCitation": null,
          "delivery": null,
          "questions": null,
-         "startedAtMs": 1794475811366,
-         "completedAtMs": 1794475811366
+         "startedAtMs": 1794482749682,
+         "completedAtMs": 1794482749682
         }
        ],
        "itemsView": "full",
        "status": "completed",
        "error": null,
-       "startedAt": 1794475811,
-       "completedAt": 1794475811,
-       "durationMs": 306
+       "startedAt": 1794482749,
+       "completedAt": 1794482749,
+       "durationMs": 311
       }
      ],
      "nextCursor": null,
-     "backwardsCursor": "{\"requestedThreadId\":\"01a1cf17-e10a-7ae0-a9f6-456a6bd58d97\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1cf81-bfd6-7e80-bfc1-8768c41b58c3\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
     }
    }
   },
@@ -1573,15 +1581,15 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 8,
-   "t_ms": 9070.1,
+   "t_ms": 9706.5,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 7,
     "method": "thread/items/list",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
-     "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3"
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
+     "turnId": "01a1cf81-c007-7723-8722-0ff24b625200"
     }
    }
   },
@@ -1589,17 +1597,17 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 40,
-   "t_ms": 9070.5,
+   "t_ms": 9706.9,
    "redacted": false,
    "frame": {
     "id": 7,
     "result": {
      "data": [
       {
-       "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+       "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
        "item": {
         "type": "userMessage",
-        "id": "01a1cf17-e1a7-7cf0-b82a-4ceb0fef9574",
+        "id": "01a1cf81-c03b-7b72-bd59-03a5fa5e4dcb",
         "clientId": null,
         "content": [
          {
@@ -1608,40 +1616,40 @@
           "text_elements": []
          }
         ],
-        "startedAtMs": 1794475811245,
-        "completedAtMs": 1794475811245
+        "startedAtMs": 1794482749505,
+        "completedAtMs": 1794482749505
        },
-       "startedAtMs": 1794475811245,
-       "completedAtMs": 1794475811245
+       "startedAtMs": 1794482749505,
+       "completedAtMs": 1794482749505
       },
       {
-       "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+       "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
        "item": {
         "type": "collabAgentToolCall",
         "id": "call_spawn_1",
         "tool": "spawnAgent",
         "status": "completed",
-        "senderThreadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+        "senderThreadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
         "receiverThreadIds": [
-         "01a1cf17-e1f2-7e13-a4e7-78d09523299b"
+         "01a1cf81-c071-73c2-a59a-f5f44d4235a1"
         ],
         "prompt": "st5-child-brief-marker: count the invented files.",
         "model": "st5-stub-model",
         "reasoningEffort": "medium",
         "agentsStates": {
-         "01a1cf17-e1f2-7e13-a4e7-78d09523299b": {
+         "01a1cf81-c071-73c2-a59a-f5f44d4235a1": {
           "status": "pendingInit",
           "message": null
          }
         },
-        "startedAtMs": 1794475811314,
-        "completedAtMs": 1794475811329
+        "startedAtMs": 1794482749553,
+        "completedAtMs": 1794482749606
        },
-       "startedAtMs": 1794475811314,
-       "completedAtMs": 1794475811329
+       "startedAtMs": 1794482749553,
+       "completedAtMs": 1794482749606
       },
       {
-       "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+       "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
        "item": {
         "type": "agentMessage",
         "id": "msg_parent_done",
@@ -1650,15 +1658,15 @@
         "memoryCitation": null,
         "delivery": null,
         "questions": null,
-        "startedAtMs": 1794475811366,
-        "completedAtMs": 1794475811366
+        "startedAtMs": 1794482749682,
+        "completedAtMs": 1794482749682
        },
-       "startedAtMs": 1794475811366,
-       "completedAtMs": 1794475811366
+       "startedAtMs": 1794482749682,
+       "completedAtMs": 1794482749682
       }
      ],
      "nextCursor": null,
-     "backwardsCursor": "{\"requestedThreadId\":\"01a1cf17-e10a-7ae0-a9f6-456a6bd58d97\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1cf81-bfd6-7e80-bfc1-8768c41b58c3\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
     }
    }
   },
@@ -1666,14 +1674,14 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 9,
-   "t_ms": 9070.6,
+   "t_ms": 9707.0,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 8,
     "method": "thread/read",
     "params": {
-     "threadId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
+     "threadId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
      "includeTurns": true
     }
    }
@@ -1682,7 +1690,7 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 41,
-   "t_ms": 9072.7,
+   "t_ms": 9708.9,
    "redacted": false,
    "frame": {
     "method": "deprecationNotice",
@@ -1690,20 +1698,20 @@
      "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
      "details": null
     },
-    "emittedAtMs": 1794475819446
+    "emittedAtMs": 1794482757769
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 42,
-   "t_ms": 9072.7,
+   "t_ms": 9708.9,
    "redacted": true,
    "frame": {
     "id": 8,
     "result": {
      "thread": {
-      "id": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
+      "id": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
       "environments": [
        {
         "environmentId": "local",
@@ -1714,9 +1722,9 @@
        }
       ],
       "extra": null,
-      "sessionId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+      "sessionId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
       "forkedFromId": null,
-      "parentThreadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+      "parentThreadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
       "preview": "st5-child-brief-marker: count the invented files.",
       "ephemeral": false,
       "section": null,
@@ -1726,42 +1734,42 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794475811,
-      "updatedAt": 1794475819,
-      "recencyAt": 1794475811,
+      "createdAt": 1794482749,
+      "updatedAt": 1794482757,
+      "recencyAt": 1794482749,
       "status": {
        "type": "idle"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-11-01a1cf17-e1f2-7e13-a4e7-78d09523299b.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T11-25-49-01a1cf81-c071-73c2-a59a-f5f44d4235a1.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.0",
       "originator": "chirality-st5-harness",
       "source": {
        "subAgent": {
         "thread_spawn": {
-         "parent_thread_id": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+         "parent_thread_id": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
          "depth": 1,
          "agent_path": null,
-         "agent_nickname": "Gibbs",
+         "agent_nickname": "Einstein",
          "agent_role": null
         }
        }
       },
       "canAcceptDirectInput": true,
       "threadSource": "subagent",
-      "agentNickname": "Gibbs",
+      "agentNickname": "Einstein",
       "agentRole": null,
       "gitInfo": null,
       "name": null,
       "daybreakEnabled": null,
       "turns": [
        {
-        "id": "01a1cf17-e201-7571-9d3e-7902cb19c476",
-        "rootTurnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+        "id": "01a1cf81-c0a4-7c42-b88b-640b35c66b14",
+        "rootTurnId": "01a1cf81-c007-7723-8722-0ff24b625200",
         "items": [
          {
           "type": "userMessage",
-          "id": "01a1cf17-e22f-7e63-8ec9-888f38b99a93",
+          "id": "01a1cf81-c107-7311-914b-d7ec4e9fc7aa",
           "clientId": null,
           "content": [
            {
@@ -1770,8 +1778,8 @@
             "text_elements": []
            }
           ],
-          "startedAtMs": 1794475811382,
-          "completedAtMs": 1794475811382
+          "startedAtMs": 1794482749718,
+          "completedAtMs": 1794482749718
          },
          {
           "type": "agentMessage",
@@ -1781,16 +1789,16 @@
           "memoryCitation": null,
           "delivery": null,
           "questions": null,
-          "startedAtMs": 1794475819399,
-          "completedAtMs": 1794475819399
+          "startedAtMs": 1794482757740,
+          "completedAtMs": 1794482757740
          }
         ],
         "itemsView": "full",
         "status": "completed",
         "error": null,
-        "startedAt": 1794475811,
-        "completedAt": 1794475819,
-        "durationMs": 8097
+        "startedAt": 1794482749,
+        "completedAt": 1794482757,
+        "durationMs": 8142
        }
       ]
      },
@@ -1802,7 +1810,7 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 1,
-   "t_ms": 9639.4,
+   "t_ms": 10388.8,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -1825,7 +1833,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 1,
-   "t_ms": 9640.0,
+   "t_ms": 10389.6,
    "redacted": true,
    "frame": {
     "id": 1,
@@ -1841,7 +1849,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 2,
-   "t_ms": 9640.1,
+   "t_ms": 10389.7,
    "redacted": true,
    "frame": {
     "method": "remoteControl/status/changed",
@@ -1851,14 +1859,14 @@
      "installationId": "<REDACTED-INSTALLATION-ID>",
      "environmentId": null
     },
-    "emittedAtMs": 1794475820014
+    "emittedAtMs": 1794482758449
    }
   },
   {
    "generation": 2,
    "direction": "app->codex",
    "position": 2,
-   "t_ms": 9640.2,
+   "t_ms": 10390.0,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -1869,14 +1877,14 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 3,
-   "t_ms": 9640.2,
+   "t_ms": 10392.8,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 2,
     "method": "thread/read",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
      "includeTurns": true
     }
    }
@@ -1885,7 +1893,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 3,
-   "t_ms": 9646.9,
+   "t_ms": 10403.4,
    "redacted": false,
    "frame": {
     "method": "deprecationNotice",
@@ -1893,23 +1901,23 @@
      "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
      "details": null
     },
-    "emittedAtMs": 1794475820020
+    "emittedAtMs": 1794482758463
    }
   },
   {
    "generation": 2,
    "direction": "codex->app",
    "position": 4,
-   "t_ms": 9646.9,
+   "t_ms": 10403.5,
    "redacted": true,
    "frame": {
     "id": 2,
     "result": {
      "thread": {
-      "id": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+      "id": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
       "environments": null,
       "extra": null,
-      "sessionId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+      "sessionId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "Delegate the count.",
@@ -1921,13 +1929,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794475811,
-      "updatedAt": 1794475819,
-      "recencyAt": 1794475811,
+      "createdAt": 1794482749,
+      "updatedAt": 1794482757,
+      "recencyAt": 1794482749,
       "status": {
        "type": "notLoaded"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-11-01a1cf17-e10a-7ae0-a9f6-456a6bd58d97.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T11-25-49-01a1cf81-bfd6-7e80-bfc1-8768c41b58c3.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.0",
       "originator": "chirality-st5-harness",
@@ -1941,12 +1949,12 @@
       "daybreakEnabled": null,
       "turns": [
        {
-        "id": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
-        "rootTurnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+        "id": "01a1cf81-c007-7723-8722-0ff24b625200",
+        "rootTurnId": "01a1cf81-c007-7723-8722-0ff24b625200",
         "items": [
          {
           "type": "userMessage",
-          "id": "01a1cf17-e1a7-7cf0-b82a-4ceb0fef9574",
+          "id": "01a1cf81-c03b-7b72-bd59-03a5fa5e4dcb",
           "clientId": null,
           "content": [
            {
@@ -1955,29 +1963,29 @@
             "text_elements": []
            }
           ],
-          "startedAtMs": 1794475811245,
-          "completedAtMs": 1794475811245
+          "startedAtMs": 1794482749505,
+          "completedAtMs": 1794482749505
          },
          {
           "type": "collabAgentToolCall",
           "id": "call_spawn_1",
           "tool": "spawnAgent",
           "status": "completed",
-          "senderThreadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+          "senderThreadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
           "receiverThreadIds": [
-           "01a1cf17-e1f2-7e13-a4e7-78d09523299b"
+           "01a1cf81-c071-73c2-a59a-f5f44d4235a1"
           ],
           "prompt": "st5-child-brief-marker: count the invented files.",
           "model": "st5-stub-model",
           "reasoningEffort": "medium",
           "agentsStates": {
-           "01a1cf17-e1f2-7e13-a4e7-78d09523299b": {
+           "01a1cf81-c071-73c2-a59a-f5f44d4235a1": {
             "status": "pendingInit",
             "message": null
            }
           },
-          "startedAtMs": 1794475811314,
-          "completedAtMs": 1794475811329
+          "startedAtMs": 1794482749553,
+          "completedAtMs": 1794482749606
          },
          {
           "type": "agentMessage",
@@ -1987,25 +1995,25 @@
           "memoryCitation": null,
           "delivery": null,
           "questions": null,
-          "startedAtMs": 1794475811366,
-          "completedAtMs": 1794475811366
+          "startedAtMs": 1794482749682,
+          "completedAtMs": 1794482749682
          }
         ],
         "itemsView": "full",
         "status": "completed",
         "error": null,
-        "startedAt": 1794475811,
-        "completedAt": 1794475811,
-        "durationMs": 306
+        "startedAt": 1794482749,
+        "completedAt": 1794482749,
+        "durationMs": 311
        }
       ]
      },
      "readState": {
       "firstUnread": {
        "type": "turn",
-       "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3"
+       "turnId": "01a1cf81-c007-7723-8722-0ff24b625200"
       },
-      "revision": "34fd40e6-bce8-4861-8fdb-ad53526153ff"
+      "revision": "3a222b6b-111b-4516-88b2-5f61d906a263"
      }
     }
    }
@@ -2014,14 +2022,14 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 4,
-   "t_ms": 9647.0,
+   "t_ms": 10403.5,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 3,
     "method": "thread/turns/list",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
      "itemsView": "full"
     }
    }
@@ -2030,19 +2038,19 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 5,
-   "t_ms": 9648.6,
+   "t_ms": 10404.8,
    "redacted": false,
    "frame": {
     "id": 3,
     "result": {
      "data": [
       {
-       "id": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
-       "rootTurnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+       "id": "01a1cf81-c007-7723-8722-0ff24b625200",
+       "rootTurnId": "01a1cf81-c007-7723-8722-0ff24b625200",
        "items": [
         {
          "type": "userMessage",
-         "id": "01a1cf17-e1a7-7cf0-b82a-4ceb0fef9574",
+         "id": "01a1cf81-c03b-7b72-bd59-03a5fa5e4dcb",
          "clientId": null,
          "content": [
           {
@@ -2051,29 +2059,29 @@
            "text_elements": []
           }
          ],
-         "startedAtMs": 1794475811245,
-         "completedAtMs": 1794475811245
+         "startedAtMs": 1794482749505,
+         "completedAtMs": 1794482749505
         },
         {
          "type": "collabAgentToolCall",
          "id": "call_spawn_1",
          "tool": "spawnAgent",
          "status": "completed",
-         "senderThreadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+         "senderThreadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
          "receiverThreadIds": [
-          "01a1cf17-e1f2-7e13-a4e7-78d09523299b"
+          "01a1cf81-c071-73c2-a59a-f5f44d4235a1"
          ],
          "prompt": "st5-child-brief-marker: count the invented files.",
          "model": "st5-stub-model",
          "reasoningEffort": "medium",
          "agentsStates": {
-          "01a1cf17-e1f2-7e13-a4e7-78d09523299b": {
+          "01a1cf81-c071-73c2-a59a-f5f44d4235a1": {
            "status": "pendingInit",
            "message": null
           }
          },
-         "startedAtMs": 1794475811314,
-         "completedAtMs": 1794475811329
+         "startedAtMs": 1794482749553,
+         "completedAtMs": 1794482749606
         },
         {
          "type": "agentMessage",
@@ -2083,20 +2091,20 @@
          "memoryCitation": null,
          "delivery": null,
          "questions": null,
-         "startedAtMs": 1794475811366,
-         "completedAtMs": 1794475811366
+         "startedAtMs": 1794482749682,
+         "completedAtMs": 1794482749682
         }
        ],
        "itemsView": "full",
        "status": "completed",
        "error": null,
-       "startedAt": 1794475811,
-       "completedAt": 1794475811,
-       "durationMs": 306
+       "startedAt": 1794482749,
+       "completedAt": 1794482749,
+       "durationMs": 311
       }
      ],
      "nextCursor": null,
-     "backwardsCursor": "{\"requestedThreadId\":\"01a1cf17-e10a-7ae0-a9f6-456a6bd58d97\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1cf81-bfd6-7e80-bfc1-8768c41b58c3\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
     }
    }
   },
@@ -2104,15 +2112,15 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 5,
-   "t_ms": 9648.7,
+   "t_ms": 10404.9,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 4,
     "method": "thread/items/list",
     "params": {
-     "threadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
-     "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3"
+     "threadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
+     "turnId": "01a1cf81-c007-7723-8722-0ff24b625200"
     }
    }
   },
@@ -2120,17 +2128,17 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 6,
-   "t_ms": 9649.5,
+   "t_ms": 10405.7,
    "redacted": false,
    "frame": {
     "id": 4,
     "result": {
      "data": [
       {
-       "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+       "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
        "item": {
         "type": "userMessage",
-        "id": "01a1cf17-e1a7-7cf0-b82a-4ceb0fef9574",
+        "id": "01a1cf81-c03b-7b72-bd59-03a5fa5e4dcb",
         "clientId": null,
         "content": [
          {
@@ -2139,40 +2147,40 @@
           "text_elements": []
          }
         ],
-        "startedAtMs": 1794475811245,
-        "completedAtMs": 1794475811245
+        "startedAtMs": 1794482749505,
+        "completedAtMs": 1794482749505
        },
-       "startedAtMs": 1794475811245,
-       "completedAtMs": 1794475811245
+       "startedAtMs": 1794482749505,
+       "completedAtMs": 1794482749505
       },
       {
-       "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+       "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
        "item": {
         "type": "collabAgentToolCall",
         "id": "call_spawn_1",
         "tool": "spawnAgent",
         "status": "completed",
-        "senderThreadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+        "senderThreadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
         "receiverThreadIds": [
-         "01a1cf17-e1f2-7e13-a4e7-78d09523299b"
+         "01a1cf81-c071-73c2-a59a-f5f44d4235a1"
         ],
         "prompt": "st5-child-brief-marker: count the invented files.",
         "model": "st5-stub-model",
         "reasoningEffort": "medium",
         "agentsStates": {
-         "01a1cf17-e1f2-7e13-a4e7-78d09523299b": {
+         "01a1cf81-c071-73c2-a59a-f5f44d4235a1": {
           "status": "pendingInit",
           "message": null
          }
         },
-        "startedAtMs": 1794475811314,
-        "completedAtMs": 1794475811329
+        "startedAtMs": 1794482749553,
+        "completedAtMs": 1794482749606
        },
-       "startedAtMs": 1794475811314,
-       "completedAtMs": 1794475811329
+       "startedAtMs": 1794482749553,
+       "completedAtMs": 1794482749606
       },
       {
-       "turnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+       "turnId": "01a1cf81-c007-7723-8722-0ff24b625200",
        "item": {
         "type": "agentMessage",
         "id": "msg_parent_done",
@@ -2181,15 +2189,15 @@
         "memoryCitation": null,
         "delivery": null,
         "questions": null,
-        "startedAtMs": 1794475811366,
-        "completedAtMs": 1794475811366
+        "startedAtMs": 1794482749682,
+        "completedAtMs": 1794482749682
        },
-       "startedAtMs": 1794475811366,
-       "completedAtMs": 1794475811366
+       "startedAtMs": 1794482749682,
+       "completedAtMs": 1794482749682
       }
      ],
      "nextCursor": null,
-     "backwardsCursor": "{\"requestedThreadId\":\"01a1cf17-e10a-7ae0-a9f6-456a6bd58d97\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1cf81-bfd6-7e80-bfc1-8768c41b58c3\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
     }
    }
   },
@@ -2197,14 +2205,14 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 6,
-   "t_ms": 9649.5,
+   "t_ms": 10405.7,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 5,
     "method": "thread/read",
     "params": {
-     "threadId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
+     "threadId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
      "includeTurns": true
     }
    }
@@ -2213,7 +2221,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 7,
-   "t_ms": 9651.0,
+   "t_ms": 10407.3,
    "redacted": false,
    "frame": {
     "method": "deprecationNotice",
@@ -2221,25 +2229,25 @@
      "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
      "details": null
     },
-    "emittedAtMs": 1794475820025
+    "emittedAtMs": 1794482758467
    }
   },
   {
    "generation": 2,
    "direction": "codex->app",
    "position": 8,
-   "t_ms": 9651.0,
+   "t_ms": 10407.3,
    "redacted": true,
    "frame": {
     "id": 5,
     "result": {
      "thread": {
-      "id": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
+      "id": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
       "environments": null,
       "extra": null,
-      "sessionId": "01a1cf17-e1f2-7e13-a4e7-78d09523299b",
+      "sessionId": "01a1cf81-c071-73c2-a59a-f5f44d4235a1",
       "forkedFromId": null,
-      "parentThreadId": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+      "parentThreadId": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
       "preview": "st5-child-brief-marker: count the invented files.",
       "ephemeral": false,
       "section": null,
@@ -2249,42 +2257,42 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794475811,
-      "updatedAt": 1794475819,
-      "recencyAt": 1794475811,
+      "createdAt": 1794482749,
+      "updatedAt": 1794482757,
+      "recencyAt": 1794482749,
       "status": {
        "type": "notLoaded"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-11-01a1cf17-e1f2-7e13-a4e7-78d09523299b.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T11-25-49-01a1cf81-c071-73c2-a59a-f5f44d4235a1.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.0",
       "originator": "chirality-st5-harness",
       "source": {
        "subAgent": {
         "thread_spawn": {
-         "parent_thread_id": "01a1cf17-e10a-7ae0-a9f6-456a6bd58d97",
+         "parent_thread_id": "01a1cf81-bfd6-7e80-bfc1-8768c41b58c3",
          "depth": 1,
          "agent_path": null,
-         "agent_nickname": "Gibbs",
+         "agent_nickname": "Einstein",
          "agent_role": null
         }
        }
       },
       "canAcceptDirectInput": null,
       "threadSource": "subagent",
-      "agentNickname": "Gibbs",
+      "agentNickname": "Einstein",
       "agentRole": null,
       "gitInfo": null,
       "name": null,
       "daybreakEnabled": null,
       "turns": [
        {
-        "id": "01a1cf17-e201-7571-9d3e-7902cb19c476",
-        "rootTurnId": "01a1cf17-e126-7900-9cb3-3b454d1f4ad3",
+        "id": "01a1cf81-c0a4-7c42-b88b-640b35c66b14",
+        "rootTurnId": "01a1cf81-c007-7723-8722-0ff24b625200",
         "items": [
          {
           "type": "userMessage",
-          "id": "01a1cf17-e22f-7e63-8ec9-888f38b99a93",
+          "id": "01a1cf81-c107-7311-914b-d7ec4e9fc7aa",
           "clientId": null,
           "content": [
            {
@@ -2293,8 +2301,8 @@
             "text_elements": []
            }
           ],
-          "startedAtMs": 1794475811382,
-          "completedAtMs": 1794475811382
+          "startedAtMs": 1794482749718,
+          "completedAtMs": 1794482749718
          },
          {
           "type": "agentMessage",
@@ -2304,16 +2312,16 @@
           "memoryCitation": null,
           "delivery": null,
           "questions": null,
-          "startedAtMs": 1794475819399,
-          "completedAtMs": 1794475819399
+          "startedAtMs": 1794482757740,
+          "completedAtMs": 1794482757740
          }
         ],
         "itemsView": "full",
         "status": "completed",
         "error": null,
-        "startedAt": 1794475811,
-        "completedAt": 1794475819,
-        "durationMs": 8097
+        "startedAt": 1794482749,
+        "completedAt": 1794482757,
+        "durationMs": 8142
        }
       ]
      },

@@ -11,11 +11,14 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import types
+import urllib.request
 import unittest
 from pathlib import Path
 
 import capture
+import stub_provider
 
 HERE = Path(__file__).resolve().parent
 PIN = "0.167.0"
@@ -98,21 +101,52 @@ class VendorVerification(unittest.TestCase):
         os.symlink(self.vendor / "bin/codex", self.vendor / "codex-package.json")
         self.assertEqual(self.differences(), ["type: codex-package.json"])
 
-    def test_refuses_without_executing_when_the_pin_has_no_record_or_the_tree_differs(self):
-        with self.assertRaisesRegex(capture.Refused, "no expected distribution"):
-            capture.verified_vendor(str(self.vendor), "0.0.1")
-        with self.assertRaisesRegex(capture.Refused, "differs from the expected 0.167.0 inventory"):
-            capture.verified_vendor(str(self.vendor), PIN)
-        resources = Path(self.root.name) / "records"
-        (resources / "9.9.9").mkdir(parents=True)
-        (resources / "9.9.9/CANONICAL_DISTRIBUTION.json").write_text(json.dumps(
-            {"pin": "9.9.8", "package_metadata": {"version": "9.9.9"}, "inventory": self.inventory}))
-        with self.assertRaisesRegex(capture.Refused, "does not name pin"):
-            capture.verified_vendor(str(self.vendor), "9.9.9", resources)
+    def test_a_pin_is_admitted_only_as_a_key_of_the_table(self):
+        for pin in ("../../escaped", "0.167.0/..", "/0.167.0", "0.167", "", "0.167.0\n", "9.9.9", None, 7):
+            with self.subTest(pin=pin):
+                with self.assertRaisesRegex(capture.Refused, "not a pin of the table"):
+                    capture.expected_distribution(pin)
+        self.assertEqual(capture.expected_distribution(PIN)["pin"], PIN)
+        # Every pin the repository keeps a distribution record for is in the table and is admitted.
+        kept = sorted(path.parent.name for path in capture.RESOURCES.glob("*/CANONICAL_DISTRIBUTION.json"))
+        self.assertIn(PIN, kept)
+        for pin in kept:
+            self.assertEqual(capture.expected_distribution(pin)["archive"]["sha256"], capture.PINS[pin]["sha256"])
 
-    def test_main_refuses_a_differing_tree_with_exit_two_and_writes_nothing(self):
+    def test_a_record_that_is_absent_or_names_another_archive_refuses(self):
+        committed = capture.expected_distribution(PIN)
+        original, capture.RESOURCES = capture.RESOURCES, Path(self.root.name) / "records"
+        try:
+            with self.assertRaisesRegex(capture.Refused, "no expected distribution"):
+                capture.expected_distribution(PIN)
+            (capture.RESOURCES / PIN).mkdir(parents=True)
+            for field, value in (("pin", "0.167.2"), ("source_commit", "0" * 40), ("archive", None),
+                                 ("archive", dict(committed["archive"], sha256="0" * 64)),
+                                 ("archive", dict(committed["archive"], size=1)),
+                                 ("package_metadata", {"version": "0.167.2"})):
+                with self.subTest(field=field, value=value):
+                    (capture.RESOURCES / PIN / "CANONICAL_DISTRIBUTION.json").write_text(
+                        json.dumps(dict(committed, **{field: value})))
+                    with self.assertRaisesRegex(capture.Refused, "does not name the table's pin and archive"):
+                        capture.expected_distribution(PIN)
+            (capture.RESOURCES / PIN / "CANONICAL_DISTRIBUTION.json").write_text("[]")
+            with self.assertRaisesRegex(capture.Refused, "does not name the table's pin and archive"):
+                capture.expected_distribution(PIN)
+        finally:
+            capture.RESOURCES = original
+
+    def test_a_differing_tree_refuses_without_executing_and_writes_nothing(self):
+        with self.assertRaisesRegex(capture.Refused, "differs from the expected 0.167.0 inventory"):
+            capture.verified_vendor(str(self.vendor), capture.expected_distribution(PIN))
         out = Path(self.root.name) / "out"
         self.assertEqual(capture.main(["--vendor", str(self.vendor), "--pin", PIN, "--out", str(out), "nv04"]), 2)
+        self.assertFalse(out.exists())
+        with self.assertRaises(SystemExit), open(os.devnull, "w") as quiet:
+            stderr, sys.stderr = sys.stderr, quiet
+            try:
+                capture.main(["--vendor", str(self.vendor), "--pin", "../../escaped", "--out", str(out), "nv04"])
+            finally:
+                sys.stderr = stderr
         self.assertFalse(out.exists())
 
 
@@ -180,14 +214,15 @@ class MetadataPaths(unittest.TestCase):
         with self.assertRaisesRegex(capture.Refused, "passes through a link"):
             capture.admitted_path(str(self.vendor), self.record, "entrypoint")
 
-    def test_the_supplier_environment_is_five_variables_and_its_path_names_only_the_admitted_directory(self):
+    def test_the_supplier_environment_is_six_variables_and_its_path_names_only_the_admitted_directory(self):
         homes = []
         for name in ("user-home", "home", "tmp"):
             (self.vendor.parent / name).mkdir()
             homes.append(str(self.vendor.parent / name))
         admitted = capture.admitted_path(str(self.vendor), self.record, "pathDir")
         environment = capture.supplier_environment(admitted, str(self.vendor), *homes)
-        self.assertEqual(sorted(environment), ["CODEX_HOME", "HOME", "LANG", "PATH", "TMPDIR"])
+        self.assertEqual(sorted(environment), ["CODEX_HOME", "HOME", "LANG", "PATH", "TMPDIR", "TZ"])
+        self.assertEqual(environment["TZ"], "UTC")
         self.assertEqual(environment["PATH"].split(os.pathsep), [admitted, "/usr/bin", "/bin", "/usr/sbin", "/sbin"])
         outside = str(self.vendor.parent / "not-in-inventory")
         for path_directory in (admitted + os.pathsep + outside, outside, str(self.vendor), "codex-path", ""):
@@ -202,6 +237,108 @@ class MetadataPaths(unittest.TestCase):
         with self.assertRaises(capture.Refused):
             capture.Harness(str(self.vendor), self.record, str(self.vendor.parent / "out"), 1.0)
         self.assertFalse((self.vendor.parent / "out").exists())
+
+
+class OutsideConfiguration(unittest.TestCase):
+    """No configuration from outside the fresh homes may reach the supplier; a check not made refuses."""
+
+    def setUp(self):
+        self.root = tempfile.TemporaryDirectory()
+        self.base = Path(os.path.realpath(self.root.name))
+        self.work = self.base / "project/deeper/scratch/workspace"
+        self.work.mkdir(parents=True)
+        self.absent = str(self.base / "no-system-folder")
+
+    def tearDown(self):
+        os.chmod(self.base / "project", 0o700)
+        self.root.cleanup()
+
+    def check(self, preference=lambda: False, system=None):
+        return capture.outside_configuration(str(self.work), preference, system or self.absent)
+
+    def test_a_clean_place_names_every_check_made(self):
+        checks = self.check()
+        self.assertEqual((checks["system_configuration_folder"], checks["managed_preferences"]), ("absent", "absent"))
+        self.assertRegex(checks["working_directory_ancestors"], r"^\d+ checked, none holds")
+
+    def test_a_project_or_codex_folder_in_any_ancestor_refuses(self):
+        for holder in ("project", "project/deeper", "project/deeper/scratch", "project/deeper/scratch/workspace"):
+            for name in (".git", ".codex"):
+                with self.subTest(holder=holder, name=name):
+                    marker = self.base / holder / name
+                    marker.mkdir()
+                    try:
+                        with self.assertRaisesRegex(capture.Refused, "holds a %s entry" % re.escape(name)):
+                            self.check()
+                    finally:
+                        marker.rmdir()
+        (self.base / "project/.git").write_text("gitdir: elsewhere\n")  # a worktree's file counts as well
+        with self.assertRaisesRegex(capture.Refused, "holds a .git entry"):
+            self.check()
+
+    def test_system_configuration_or_a_managed_preference_refuses(self):
+        (self.base / "system").mkdir()
+        with self.assertRaisesRegex(capture.Refused, "system configuration"):
+            self.check(system=str(self.base / "system"))
+        with self.assertRaisesRegex(capture.Refused, "managed preference"):
+            self.check(preference=lambda: True)
+
+    def test_a_check_that_cannot_be_made_refuses(self):
+        def failing():
+            raise OSError("invented")
+        with self.assertRaisesRegex(capture.Refused, "could not be checked"):
+            self.check(preference=failing)
+        with self.assertRaisesRegex(capture.Refused, "managed preference"):
+            self.check(preference=lambda: None)  # an answer that is not a plain no
+        if os.geteuid() != 0:
+            os.chmod(self.base / "project", 0o000)
+            with self.assertRaisesRegex(capture.Refused, "could not be checked"):
+                self.check()
+
+    @unittest.skipUnless(sys.platform == "darwin", "the supplier reads managed preferences on macOS only")
+    def test_the_managed_preference_reading_answers_yes_or_no(self):
+        self.assertIn(capture.managed_preference_present(), (True, False))
+
+
+class ObservationSettles(unittest.TestCase):
+    """Nothing observes after the health decision."""
+
+    def test_a_reader_still_running_refuses(self):
+        harness = capture.Harness.__new__(capture.Harness)
+        release = threading.Event()
+        thread = threading.Thread(target=release.wait, daemon=True)
+        thread.start()
+        harness.gens, harness.SETTLE_SECONDS = [types.SimpleNamespace(number=1, threads=[thread])], 0.05
+        try:
+            with self.assertRaisesRegex(capture.Refused, "still being read"):
+                harness.settle()
+        finally:
+            release.set()
+        thread.join()
+        harness.settle()
+
+    def test_the_stub_provider_reports_an_answer_still_in_progress_when_closed(self):
+        log = []
+        provider = stub_provider.Provider(lambda index, body: ([stub_provider.message("x", "m")], 1.5, "held"), log)
+        request = urllib.request.Request("http://127.0.0.1:%d/v1/responses" % provider.port, data=b"{}", method="POST")
+        reader = threading.Thread(target=lambda: urllib.request.urlopen(request, timeout=10).read(), daemon=True)
+        reader.start()
+        for _ in range(100):
+            if log:
+                break
+            time.sleep(0.02)
+        self.assertFalse(provider.close(timeout=0.1))
+        reader.join(10)
+        self.assertTrue(provider.close(timeout=5))
+
+    def test_a_rollout_name_in_another_zone_than_utc_is_named(self):
+        epoch = '"createdAt": 1794475811, "updatedAtMs": 1794475811123'
+        self.assertEqual(capture.clock_disclosures(epoch + ' "path": "s/rollout-2026-11-12T03-30-11-0193.jsonl"'),
+                         ["2026-11-12T03-30-11"])
+        self.assertEqual(capture.clock_disclosures(epoch + ' "path": "s/rollout-2026-11-12T09-30-12-0193.jsonl"'), [])
+        self.assertEqual(capture.clock_disclosures('"path": "s/rollout-2026-11-12T09-30-12-0193.jsonl"'),
+                         ["2026-11-12T09-30-12"])  # no epoch to compare with is not a pass
+        self.assertEqual(capture.clock_disclosures(epoch), [])
 
 
 class SocketWatch(unittest.TestCase):
@@ -283,7 +420,7 @@ import json, os, sys
 MODE = %(mode)r
 if sys.argv[1:] == ["--version"]:
     print("codex-cli 9.9.9")
-    sys.exit(0)
+    sys.exit(7 if MODE == "version-exit-7" else 0)
 P, C, X, T = "parent-thread-0001", "child-thread-0002", "other-thread-0003", "turn-0001"
 ITEM = {"type": "collabAgentToolCall", "id": "call_spawn_1", "tool": "spawnAgent", "senderThreadId": P,
         "prompt": "st5-child-brief-marker: count the invented files."}
@@ -332,11 +469,11 @@ class HarnessAgainstAStandInSupplier(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.TemporaryDirectory()
         self.base = Path(os.path.realpath(self.root.name))
-        self.originals = (capture.socket_peers, capture.group_members)
+        self.originals = (capture.socket_peers, capture.group_members, capture.scenario_nv04, tempfile.tempdir)
         capture.socket_peers = lambda group: []  # the stand-in opens no socket; lsof is not what is tested here
 
     def tearDown(self):
-        capture.socket_peers, capture.group_members = self.originals
+        capture.socket_peers, capture.group_members, capture.scenario_nv04, tempfile.tempdir = self.originals
         self.root.cleanup()
 
     def run_nv04(self, mode):
@@ -348,15 +485,18 @@ class HarnessAgainstAStandInSupplier(unittest.TestCase):
         (vendor / "codex-package.json").write_text(json.dumps(
             {"version": "9.9.9", "entrypoint": "bin/codex", "pathDir": "codex-path"}))
         import intake
-        record = intake.distribution_record(str(vendor), "9.9.9", {"url": "https://example.invalid/a", "size": 1,
-                                                                    "sha256": "0" * 64})
-        (self.base / "records/9.9.9").mkdir(parents=True)
-        (self.base / "records/9.9.9/CANONICAL_DISTRIBUTION.json").write_text(json.dumps(record))
-        code = capture.main(["--vendor", str(vendor), "--pin", "9.9.9", "--expected-root", str(self.base / "records"),
-                             "--out", str(self.base / "out"), "--child-hold", "0", "--step-timeout", "2", "nv04"])
+        record = intake.distribution_record(str(vendor), "9.9.9", {
+            "url": "https://example.invalid/a", "size": 1, "sha256": "0" * 64, "source_commit": "0" * 40})
+        try:
+            capture.record_scenario(str(vendor), record, str(self.base / "out"), "nv04", child_hold=0, step_timeout=2)
+            code = 0
+        except capture.Refused:
+            code = 2
+        self.assertEqual(sorted(path.name for path in (self.base / "out").glob("*")),
+                         ["nv04.recording.json"] if code == 0 else [])
         return code, self.base / "out/nv04.recording.json"
 
-    def test_a_complete_run_is_recorded_with_identities_withheld_and_a_five_variable_environment(self):
+    def test_a_complete_run_is_recorded_with_identities_withheld_and_a_six_variable_environment(self):
         for mode in ("complete", "identity-object"):
             with self.subTest(mode=mode):
                 self.tearDown()
@@ -373,13 +513,15 @@ class HarnessAgainstAStandInSupplier(unittest.TestCase):
                 self.assertEqual(initialize["installationId"], "<REDACTED-INSTALLATION-ID>")
                 # macOS adds __CF_USER_TEXT_ENCODING inside a process itself; nothing else may appear.
                 self.assertEqual(sorted(set(initialize["environment"]) - {"__CF_USER_TEXT_ENCODING"}),
-                                 ["CODEX_HOME", "HOME", "LANG", "PATH", "TMPDIR"])
+                                 ["CODEX_HOME", "HOME", "LANG", "PATH", "TMPDIR", "TZ"])
+                self.assertEqual(record["settings_in_effect"]["outside_configuration"]["system_configuration_folder"],
+                                 "absent")
                 self.assertEqual((record["socket_watch"]["failed_samples"], record["pin"]), (0, "9.9.9"))
                 self.assertGreater(record["socket_watch"]["samples"], 0)
 
     def test_an_observation_that_was_not_made_writes_no_recording(self):
         for mode in ("no-reply", "error-reply", "no-parent-completion", "no-child-completion",
-                     "unrelated-completion", "child-first", "no-receiver"):
+                     "unrelated-completion", "child-first", "no-receiver", "version-exit-7"):
             with self.subTest(mode=mode):
                 self.tearDown()
                 self.setUp()
@@ -396,6 +538,44 @@ class HarnessAgainstAStandInSupplier(unittest.TestCase):
                 code, path = self.run_nv04("complete")
                 self.assertEqual(code, 2)
                 self.assertFalse(path.exists())
+
+
+    def test_a_sample_in_flight_that_fails_after_the_script_ends_writes_no_recording(self):
+        # The watcher's sample of a live generation is held until after the script has ended, then
+        # fails. The decision must wait for it: no recording, however the timing falls.
+        release, entered, script = threading.Event(), threading.Event(), capture.scenario_nv04
+
+        def held(group):
+            if threading.current_thread() is threading.main_thread():
+                entered.wait(10)  # the script goes on only once the watcher's sample is in flight
+                return []
+            entered.set()
+            release.wait(10)
+            return None
+
+        def then_release(harness):
+            try:
+                return script(harness)
+            finally:
+                threading.Timer(0.3, release.set).start()
+        capture.socket_peers, capture.scenario_nv04 = held, then_release
+        code, path = self.run_nv04("complete")
+        self.assertTrue(entered.is_set() and release.is_set())
+        self.assertEqual(code, 2)
+        self.assertFalse(path.exists())
+
+    def test_scratch_beneath_a_project_refuses_before_the_supplier_runs(self):
+        for name in (".git", ".codex"):
+            with self.subTest(name=name):
+                self.tearDown()
+                self.setUp()
+                (self.base / "project" / name).mkdir(parents=True)
+                (self.base / "project/tmp").mkdir()
+                tempfile.tempdir = str(self.base / "project/tmp")
+                code, path = self.run_nv04("complete")
+                self.assertEqual(code, 2)
+                self.assertFalse(path.exists())
+                self.assertEqual(list((self.base / "project/tmp").iterdir()), [])
 
 
 class Redaction(unittest.TestCase):
@@ -480,6 +660,10 @@ class RecordingsAtThePin(unittest.TestCase):
                 self.assertEqual(sorted(record["socket_watch"]["samples_by_generation"]), ["1", "2"])
                 self.assertTrue(all(record["socket_watch"]["samples_by_generation"].values()))
                 self.assertEqual(record["socket_watch"]["non_loopback_peers"], [])
+                settings = record["settings_in_effect"]
+                self.assertEqual(settings["environment"], ["CODEX_HOME", "HOME", "LANG", "PATH", "TMPDIR", "TZ"])
+                self.assertEqual((settings["outside_configuration"]["system_configuration_folder"],
+                                  settings["outside_configuration"]["managed_preferences"]), ("absent", "absent"))
                 self.assertLessEqual(set(record["socket_watch"]["loopback_peers"]), {"127.0.0.1", "::1"})
 
     def test_frames_are_ordered_and_every_reply_answers_a_recorded_request(self):
@@ -504,6 +688,9 @@ class RecordingsAtThePin(unittest.TestCase):
             with self.subTest(scenario):
                 text = (RECORDINGS / (scenario + ".recording.json")).read_text()
                 self.assertIsNone(pattern.search(text))
+                # A rollout file name in another zone than UTC would state the host's offset.
+                self.assertIn("rollout-", text)
+                self.assertEqual(capture.clock_disclosures(text), [])
 
     def test_st5_answer_was_written_and_never_acknowledged_and_nothing_was_re_raised(self):
         for scenario in ("st5", "st5-race"):

@@ -7,6 +7,7 @@ with a short server-sent-event stream chosen by the capture's `plan(index, body)
 (invented content only). Every request is logged (path, header names, body) so a
 capture can state what Codex sent to the provider; header values are not kept.
 """
+import contextlib
 import json
 import socketserver
 import threading
@@ -50,7 +51,8 @@ class Provider:
     def __init__(self, plan, log):
         self.plan, self.log = plan, log
         self.lock = threading.Lock()
-        self.count = 0
+        self.idle = threading.Condition(self.lock)
+        self.count = self.active = 0
         provider = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -67,13 +69,21 @@ class Provider:
                 self.wfile.write(body)
 
             def do_GET(self):
+                with provider.answering():
+                    self.answer_get()
+
+            def do_POST(self):
+                with provider.answering():
+                    self.answer_post()
+
+            def answer_get(self):
                 with provider.lock:
                     provider.log.append({"index": None, "path": self.path, "body": None, "answered": "model list",
                                          "header_names": sorted(k.lower() for k in self.headers.keys())})
                 self.reply(200, "application/json", json.dumps(
                     {"object": "list", "data": [{"id": MODEL, "object": "model"}]}).encode("utf-8"))
 
-            def do_POST(self):
+            def answer_post(self):
                 raw = self.rfile.read(int(self.headers.get("Content-Length") or 0))
                 try:
                     body = json.loads(raw)
@@ -120,6 +130,20 @@ class Provider:
         self.port = self.server.server_address[1]
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
-    def close(self):
+    @contextlib.contextmanager
+    def answering(self):
+        with self.lock:
+            self.active += 1
+        try:
+            yield
+        finally:
+            with self.idle:
+                self.active -= 1
+                self.idle.notify_all()
+
+    def close(self, timeout=15.0):
+        """Stop listening and wait for answers in progress. False when one did not finish: the log may be incomplete."""
         self.server.shutdown()
         self.server.server_close()
+        with self.idle:
+            return self.idle.wait_for(lambda: self.active == 0, timeout)

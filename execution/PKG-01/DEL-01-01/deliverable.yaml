@@ -64,16 +64,13 @@ code_paths:
 # request. Here: the supplier selection and standing reported at start.
 - app/src-tauri/src/desktop_startup.rs
 - app/supplier_checks/recorded_replay.py
-# capture.py records exchanges from the stock supplier at a pin, with stub_provider.py as the
-# scripted loopback provider; recordings/<pin>/ holds what it recorded.
+# capture.py records exchanges from the stock supplier at a pin of its table, with
+# stub_provider.py as the scripted loopback provider; recordings/<pin>/ holds what it recorded.
 - app/supplier_checks/capture.py
 - app/supplier_checks/stub_provider.py
-# intake.py checks and inventories a supplier release archive and runs the supplier's generators.
+# intake.py checks and inventories a supplier release archive of a pin of that table and runs
+# the supplier's generators.
 - app/supplier_checks/intake.py
-# version_advance.py compares a pin's generated schema, supplement and recorded exchanges with
-# the prior pin's; version_advance/ holds each comparison's result and its authored dispositions.
-- app/supplier_checks/version_advance.py
-- app/supplier_checks/version_advance
 - app/supplier_checks/recordings
 checks:
 - app/src-tauri/src/hosting_0167_tests.rs
@@ -85,7 +82,6 @@ checks:
 - app/supplier_checks/test_recorded_replay.py
 - app/supplier_checks/test_capture.py
 - app/supplier_checks/test_intake.py
-- app/supplier_checks/test_version_advance.py
 - app/src-tauri/src/hosting_recorded_replay_tests.rs
 - app/src-tauri/src/hosting_process_group_custody_tests.rs
 - app/tests/process-group-custody.test.mjs

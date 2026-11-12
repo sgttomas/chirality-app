@@ -1,26 +1,24 @@
 #!/usr/bin/env python3
 """Take in a supplier release archive and generate its protocol schema (DEL-01-01 OUT-002, OUT-004).
 
-Two steps of a pin advance, each writing the files the repository keeps per pin under
-`src-tauri/resources/supplier/<pin>/`, into a new directory outside the repository:
+One run for one pin of capture.py's table `PINS`, writing into a new directory outside the
+repository the files the repository keeps for that pin under `src-tauri/resources/supplier/<pin>/`:
 
-  archive   Check the archive's size and SHA-256 against the values the supplier
-            publishes, before anything is read from it; extract it without following
-            or creating links (a member that is not a regular file or a directory, or
-            whose path leaves the tree, refuses); inventory the extracted tree; write
-            `supplier/<pin>/CANONICAL_DISTRIBUTION.json`. Nothing is executed.
-  generate  Compare the vendor tree with that record, then run the supplier's own
-            generator for the stable and the experimental variant, in the same
-            isolated environment capture.py uses, sampling its sockets; write
-            `supplier/<pin>/MANIFEST.sha256`, the two experimental bundles the App
-            compiles in, and `GENERATION.json`. A sample that shows a socket, or
-            cannot be taken, refuses; sampling is not isolation.
+  1. The archive's size and SHA-256 are compared with the table's, before anything is read from
+     it. It is extracted without following or creating links (a member that is not a regular file
+     or a directory, or whose path leaves the tree, refuses) into `vendor/`, the tree is
+     inventoried, and `CANONICAL_DISTRIBUTION.json` is written. Nothing is executed.
+  2. The tree is compared with that record, then the supplier's own generator is run for the
+     stable and the experimental variant in the environment capture.py gives the supplier, with
+     the same refusals for outside configuration and the same socket observer. `MANIFEST.sha256`,
+     the two experimental bundles the App compiles in and `GENERATION.json` are written. A sample
+     that shows a socket, or cannot be taken, refuses; sampling is not isolation.
+
+A refusal at either step removes the output directory.
 
 Usage, from `app/`:
-  python3 supplier_checks/intake.py archive --archive /absolute/file.tar.gz --url URL \
-      --size BYTES --sha256 HEX --pin 0.167.2 --out /absolute/new-directory
-  python3 supplier_checks/intake.py generate --vendor /absolute/new-directory/vendor \
-      --pin 0.167.2 --expected-root /absolute/new-directory/supplier --out /absolute/another-new-directory
+  python3 supplier_checks/intake.py --archive /absolute/file.tar.gz --pin 0.167.2 \
+      --out /absolute/new-directory
 
 Fetching an archive is not this tool's act: a download needs the owner's permission
 naming the file, its source and its size.
@@ -31,7 +29,6 @@ import json
 import os
 import re
 import shutil
-import signal
 import subprocess
 import sys
 import tarfile
@@ -90,7 +87,8 @@ def extract(archive, destination):
     return len(seen)
 
 
-def distribution_record(vendor, pin, archive_facts, source_commit=None):
+def distribution_record(vendor, pin, facts):
+    """The record of an extracted tree. `facts` is a row of capture.PINS; `pin` is only compared and recorded."""
     scanned = inventory.scan(vendor)
     if any(entry["kind"] not in ("file", "dir") for entry in scanned["entries"]):
         raise Refused("the extracted tree holds a link or special file")
@@ -106,11 +104,9 @@ def distribution_record(vendor, pin, archive_facts, source_commit=None):
         if entry["kind"] == "file":
             row.update(size=entry["size"], sha256=entry["sha256"])
         entries.append(row)
-    record = {"format": RECORD_FORMAT, "pin": pin}
-    if source_commit:
-        record["source_commit"] = source_commit
+    record = {"format": RECORD_FORMAT, "pin": pin, "source_commit": facts["source_commit"]}
     record.update({
-        "archive": archive_facts, "package_metadata": metadata,
+        "archive": {key: facts[key] for key in ("url", "size", "sha256")}, "package_metadata": metadata,
         "files": scanned["files"], "macho_files": scanned["macho_files"],
         "inventory": {"method": "codex-vendor-tree-v1", "algorithm": "sha-256",
                       "manifest_sha256": scanned["manifest_sha256"], "entries": entries},
@@ -123,31 +119,35 @@ def distribution_record(vendor, pin, archive_facts, source_commit=None):
     return record
 
 
-def take_archive(archive, url, size, digest, pin, out, source_commit=None):
-    if not re.fullmatch(r"[0-9a-f]{64}", digest):
+def remove_output(out, failure):
+    """Remove an output directory this run made. Extracted directories keep the archive's modes,
+    which may forbid removal, so they are made writable first."""
+    for folder, _, _ in os.walk(out):
+        os.chmod(folder, 0o700)
+    shutil.rmtree(out, ignore_errors=True)
+    if os.path.lexists(out):
+        raise Refused("%s; and the partial output could not be removed: %s" % (failure, out)) from None
+
+
+def take_archive(archive, facts, pin, out):
+    """Step 1. Writes `out/vendor` and `out/CANONICAL_DISTRIBUTION.json`; `out` must be new."""
+    if not re.fullmatch(r"[0-9a-f]{64}", facts["sha256"]):
         raise Refused("the expected SHA-256 is not 64 lowercase hexadecimal characters")
     actual_size = os.path.getsize(archive)
-    if actual_size != size:
-        raise Refused("the archive is %d bytes, not the published %d" % (actual_size, size))
+    if actual_size != facts["size"]:
+        raise Refused("the archive is %d bytes, not the published %d" % (actual_size, facts["size"]))
     actual_digest = capture.sha256_file(archive)
-    if actual_digest != digest:
+    if actual_digest != facts["sha256"]:
         raise Refused("the archive's SHA-256 is %s, not the published one" % actual_digest)
     os.makedirs(out)  # must be new
     try:
         vendor = os.path.join(out, "vendor")
         os.makedirs(vendor)
         extract(archive, vendor)
-        record = distribution_record(vendor, pin, {"url": url, "size": size, "sha256": digest}, source_commit)
-        os.makedirs(os.path.join(out, "supplier", pin))
-        write_json(os.path.join(out, "supplier", pin, "CANONICAL_DISTRIBUTION.json"), record)
+        record = distribution_record(vendor, pin, facts)
+        write_json(os.path.join(out, "CANONICAL_DISTRIBUTION.json"), record)
     except BaseException as failure:
-        # This call made `out`; a refused intake leaves no tree behind. Extracted directories keep
-        # the archive's modes, which may forbid removal, so they are made writable first.
-        for folder, _, _ in os.walk(out):
-            os.chmod(folder, 0o700)
-        shutil.rmtree(out, ignore_errors=True)
-        if os.path.lexists(out):
-            raise Refused("%s; and the partial output could not be removed: %s" % (failure, out)) from None
+        remove_output(out, failure)  # a refused intake leaves no tree behind
         raise
     return record
 
@@ -155,29 +155,27 @@ def take_archive(archive, url, size, digest, pin, out, source_commit=None):
 def run_generator(argv, environment, cwd):
     """Run one generator pass; a sample that shows a socket, or cannot be taken, refuses.
 
-    The process group's sockets are sampled every 0.1 s. A sample is not isolation: a connection
-    shorter than the interval can be missed.
+    The process group's sockets are sampled every 0.1 s with capture.py's own observer. A sample is
+    not isolation: a connection shorter than the interval can be missed.
     """
     process = subprocess.Popen(argv, cwd=cwd, env=environment, stdin=subprocess.DEVNULL,
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     group, samples, end = os.getpgid(process.pid), 0, time.monotonic() + GENERATOR_TIMEOUT
     try:
         while process.poll() is None:
-            listing = subprocess.run(["/usr/sbin/lsof", "-n", "-P", "-a", "-i", "-g", str(group)],
-                                     capture_output=True, text=True)
-            rows = listing.stdout.splitlines()[1:]
-            if rows:
-                raise Refused("the generator opened a socket")
-            if listing.stderr.strip() or listing.returncode not in (0, 1):
+            rows = capture.socket_rows(group)
+            if rows is None:
                 # Every sample that could not be taken refuses, also one that coincides with the exit.
                 raise Refused("the socket watch could not take a sample")
+            if rows:
+                raise Refused("the generator opened a socket")
             samples += 1
             if time.monotonic() > end:
                 raise Refused("the generator did not finish in %d seconds" % GENERATOR_TIMEOUT)
             time.sleep(0.1)
     finally:
         if process.poll() is None:
-            os.killpg(group, signal.SIGKILL)
+            capture.kill_group(group)
             process.wait()
     if process.returncode != 0:
         raise Refused("the generator exited with %d" % process.returncode)
@@ -186,11 +184,13 @@ def run_generator(argv, environment, cwd):
     return samples
 
 
-def generate(vendor, pin, expected_root, out):
-    record, binary, codex_path = capture.verified_vendor(vendor, pin, expected_root)
-    os.makedirs(out)  # must be new
+def generate(vendor, record, out):
+    """Step 2. Writes the generated basis of the tree the record describes into the existing `out`."""
+    pin = record["pin"]
+    _, codex_path = capture.verified_vendor(vendor, record)
     scratch = os.path.realpath(tempfile.mkdtemp(prefix="supplier-generate-"))
     try:
+        outside = capture.outside_configuration(scratch)  # the generator's working directory
         homes = [os.path.join(scratch, name) for name in ("user-home", "home", "tmp")]
         for folder in homes:
             os.makedirs(folder)
@@ -202,6 +202,7 @@ def generate(vendor, pin, expected_root, out):
             target = os.path.join(scratch, "generated", variant)
             # The entrypoint and path directory are admitted again immediately before each execution.
             capture.admitted_path(vendor, record, "pathDir")
+            capture.outside_configuration(scratch)
             argv = [capture.admitted_path(vendor, record, "entrypoint"), "app-server", "generate-json-schema"]
             samples = run_generator(argv + extra + ["--out", target], environment, scratch)
             files = sorted(str(path.relative_to(target)) for path in Path(target).rglob("*") if path.is_file())
@@ -220,8 +221,7 @@ def generate(vendor, pin, expected_root, out):
                 "bytes": sum(os.path.getsize(os.path.join(target, name)) for name in files),
                 "manifest_sha256": hashlib.sha256("".join(rows).encode("utf-8")).hexdigest(),
                 "socket_samples": samples, "failed_samples": 0, "sockets_seen": 0}
-        folder = os.path.join(out, "supplier", pin)
-        os.makedirs(folder)
+        folder = out
         manifest = "".join(lines).encode("utf-8")
         with open(os.path.join(folder, "MANIFEST.sha256"), "xb") as handle:
             handle.write(manifest)
@@ -239,6 +239,7 @@ def generate(vendor, pin, expected_root, out):
                          "verified": "complete vendor tree equal to the expected inventory before execution"},
             "environment": {"inherit_environment": False, "allowlist": sorted(environment),
                             "homes": "fresh private HOME, CODEX_HOME and TMPDIR; plugins and analytics off",
+                            "outside_configuration": outside,
                             "network": "the generator's sockets were sampled every 0.1 s and no sample showed "
                                        "one; a sample is not isolation"},
             "variants": variants, "compiled_experimental_bundles": bundles,
@@ -253,30 +254,31 @@ def generate(vendor, pin, expected_root, out):
         shutil.rmtree(scratch, ignore_errors=True)
 
 
+def take_in(archive, pin, out):
+    """Both steps for one pin of the table. Returns (record, generation); a refusal leaves no output."""
+    facts = capture.PINS.get(pin) if isinstance(pin, str) else None
+    if facts is None:
+        raise Refused("%r is not a pin of the table (%s)" % (pin, ", ".join(capture.PINS)))
+    record = take_archive(archive, facts, pin, out)
+    try:
+        return record, generate(os.path.join(out, "vendor"), record, out)
+    except BaseException as failure:
+        remove_output(out, failure)
+        raise
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    commands = parser.add_subparsers(dest="command", required=True)
-    archive = commands.add_parser("archive")
-    for name in ("--archive", "--url", "--sha256", "--pin", "--out"):
-        archive.add_argument(name, required=True)
-    archive.add_argument("--size", required=True, type=int)
-    archive.add_argument("--source-commit")
-    generator = commands.add_parser("generate")
-    for name in ("--vendor", "--pin", "--out"):
-        generator.add_argument(name, required=True)
-    generator.add_argument("--expected-root", help="directory holding <pin>/CANONICAL_DISTRIBUTION.json; "
-                                                   "the repository's supplier resources by default")
+    parser.add_argument("--archive", required=True)
+    parser.add_argument("--pin", required=True, choices=sorted(capture.PINS))
+    parser.add_argument("--out", required=True, help="a new directory outside the repository")
     args = parser.parse_args(argv)
     try:
-        if args.command == "archive":
-            record = take_archive(args.archive, args.url, args.size, args.sha256, args.pin, args.out,
-                                  args.source_commit)
-            print(json.dumps({"pin": args.pin, "files": record["files"], "macho_files": record["macho_files"],
-                              "manifest_sha256": record["inventory"]["manifest_sha256"]}))
-        else:
-            generation = generate(args.vendor, args.pin, args.expected_root, args.out)
-            print(json.dumps({"pin": args.pin, "manifest_sha256": generation["manifest_sha256"],
-                              "bundles": generation["compiled_experimental_bundles"]}))
+        record, generation = take_in(args.archive, args.pin, args.out)
+        print(json.dumps({"pin": args.pin, "files": record["files"], "macho_files": record["macho_files"],
+                          "inventory_manifest_sha256": record["inventory"]["manifest_sha256"],
+                          "generated_manifest_sha256": generation["manifest_sha256"],
+                          "bundles": generation["compiled_experimental_bundles"]}))
         return 0
     except FileExistsError:
         sys.stderr.write("refused: the output directory already exists\n")

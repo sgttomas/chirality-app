@@ -1161,49 +1161,62 @@ including unknown acknowledgment after process loss and a delegated child
 outliving its parent. This is development verification; the existing C1 EXP
 records remain capture-only and no candidate qualification is claimed.
 
-## Advancing the supplier pin
+## Supplier intake and recordings at a pin
 
-A pin advance is deliberate (DEL-01-01 REQ-006). Its steps are maintained tools
-under `supplier_checks/`, run from `app/`; none signs in, uses a model or reads a
-person's Codex home, and fetching a release archive is not among them (a
-download needs the owner's permission naming the file, source and size).
+A pin advance is deliberate (DEL-01-01 REQ-006). Two of its steps are maintained
+tools under `supplier_checks/`, run from `app/`. Neither signs in, uses a model
+or reads a person's Codex home, and fetching a release archive is not among
+their acts (a download needs the owner's permission naming the file, source and
+size).
 
-1. `intake.py archive` checks a release archive's size and SHA-256 against the
-   published values, extracts regular files and directories only, and writes the
-   distribution record (`CANONICAL_DISTRIBUTION.json`).
-2. `intake.py generate` compares the vendor tree with that record, then runs the
-   supplier's generators and writes the manifest and the two compiled bundles.
-3. `capture.py` records the `st5`, `st5-race` and `nv04` exchanges from the stock
-   App Server with a scripted loopback provider, after the same tree comparison,
-   and samples the supplier's sockets. The entrypoint and path directory the
-   package metadata names are admitted only as members of the verified
-   inventory, and again immediately before each execution. A socket sample that
-   cannot be taken, a reply that never comes, or a scenario step that is not
-   observed refuses, and no recording is written. A recording's socket sample
-   establishes only what was sampled; it is not network isolation. Redaction
-   replaces known local values and named identity fields and refuses when one
-   remains; it cannot show that nothing else specific to the machine is present,
-   so a recording is read by an independent reviewer before it is committed.
-   Recordings are kept under `supplier_checks/recordings/<pin>/` and are made
-   once, not regenerated.
-4. `version_advance.py compare --from <prior> --to <new>` is an inventory,
-   difference and evidence check. It derives what the App relies on from the
-   host source, and reports each relied-on definition, and each definition one
-   reaches by reference, as unchanged (identical content) or changed, with the
-   exact difference. It classifies nothing as compatible or breaking. Every
-   change is a finding that needs a disposition by a named decider, naming
-   exactly that change; a finding without one is `returned for decision`.
-   Evidence is not disposable: a missing or unusable input, a recording that
-   lacks a step of its script or whose socket observation is missing or failed,
-   a recorded supplier notification or server request that fails the new schema,
-   or a mechanism that was not observed prevents `passed` whatever is disposed.
-   Replies are compared by shape, not validated. A supplier surface the host
-   never names is outside the relied-on set and invisible to the comparison.
-   Results and their authored dispositions are in `supplier_checks/version_advance/`.
+A pin is a key of the table `PINS` in `capture.py`, which holds, for each pin
+that has a consumer today, the release archive's address, size, SHA-256 and
+source commit. Neither tool accepts another pin or builds a path from a
+caller's text; adding a pin is a reviewed change to that table.
 
-For a version that is not the pin, steps 1 to 3 write outside the repository and
-steps 2 to 4 take those locations as arguments. A passed comparison is not
-qualification of the pin (DEL-01-01 AC-011).
+1. `intake.py --archive <file> --pin <pin> --out <new directory>` checks the
+   archive's size and SHA-256 against the table, extracts regular files and
+   directories only, writes the distribution record
+   (`CANONICAL_DISTRIBUTION.json`), compares the tree with it, runs the
+   supplier's generators and writes the manifest, the two compiled bundles and
+   `GENERATION.json`. A refusal at any point removes the output directory.
+2. `capture.py --vendor <tree> --pin <pin> --out <directory> <scenario>` records
+   the `st5`, `st5-race` or `nv04` exchange from the stock App Server with a
+   scripted loopback provider. The pin's committed distribution record must name
+   the table's archive and the whole tree must equal its inventory. The
+   entrypoint and path directory the package metadata names are admitted only as
+   members of that inventory, and again immediately before each execution.
+
+What both tools give the supplier is six variables (HOME, CODEX_HOME and TMPDIR
+in a fresh scratch directory, PATH, LANG, and TZ=UTC so that a recording does
+not depend on its host's clock setting; the App starts Codex with the person's
+own environment). Before each execution they refuse when configuration from
+outside the fresh homes could reach the supplier: a `.git` or `.codex` entry in
+any ancestor of the scratch working directory, the system folder `/etc/codex`,
+or a managed preference the supplier reads. Each is checked by presence alone; a
+check that cannot be made refuses, and the recording and the generation record
+name the checks made. These are controls on what the supplier is given, not a
+sandbox: they do not stop supplier code opening a file by an absolute path.
+
+Observation ends before a recording is decided. The socket watch, the readers of
+the supplier's output and the stub provider are stopped and waited for; then a
+failed socket sample, a generation that was never sampled, a reply that never
+came, a scenario step that was not observed, a version command that did not exit
+0 with the pin's label, or a reader that did not stop means no recording is
+written. A recording's socket sample establishes only what was sampled; it is
+not network isolation. Redaction replaces known local values and named identity
+fields and refuses when one remains, or when a rollout file name is not in UTC;
+it cannot show that nothing else specific to the machine is present, so a
+recording is read by an independent reviewer before it is committed. Recordings
+are kept under `supplier_checks/recordings/<pin>/` and are made once, not
+regenerated.
+
+These are operator-run tools on stable inputs. They are built so that an
+observation that was not made, that failed or that is incomplete cannot come out
+as a recording or a generated basis, and so that drift and mistakes are caught.
+They are not built to withstand a writer changing the inputs during the run, nor
+someone with write access forging a record. Neither a recording nor a generated
+basis is qualification of the pin (DEL-01-01 AC-011).
 
 ## Group B offline examination support
 

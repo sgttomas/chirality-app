@@ -79,17 +79,25 @@
    "HOME",
    "LANG",
    "PATH",
-   "TMPDIR"
+   "TMPDIR",
+   "TZ"
   ],
+  "clock": "TZ=UTC is a capture control; the App starts Codex with the person's own environment",
+  "outside_configuration": {
+   "working_directory_ancestors": "5 checked, none holds .git or .codex",
+   "system_configuration_folder": "absent",
+   "managed_preferences": "absent",
+   "note": "presence checks before execution; controls on what the supplier is given, not a sandbox"
+  },
   "note": "scratch stand-ins, not a person's settings"
  },
  "socket_watch": {
-  "method": "lsof of the supplier process group at each start and every 0.25 s; a sample, not isolation",
-  "samples": 14,
+  "method": "lsof of the supplier process group at each start and every 0.25 s; a sample, not isolation. The watch was stopped and its last sample settled before these counts were read",
+  "samples": 16,
   "failed_samples": 0,
   "samples_by_generation": {
-   "1": 4,
-   "2": 10
+   "1": 5,
+   "2": 11
   },
   "loopback_peers": [],
   "non_loopback_peers": []
@@ -121,24 +129,24 @@
  "events": [
   {
    "event": "begin",
-   "t_ms": 142.0,
+   "t_ms": 147.5,
    "scenario": "st5-race",
    "pin": "0.167.0"
   },
   {
    "event": "spawn",
-   "t_ms": 259.0,
+   "t_ms": 262.7,
    "generation": 1
   },
   {
    "event": "server-request-received",
-   "t_ms": 847.7,
+   "t_ms": 1233.8,
    "generation": 1,
    "method": "item/commandExecution/requestApproval"
   },
   {
    "event": "answer-written",
-   "t_ms": 1053.7,
+   "t_ms": 1442.7,
    "generation": 1,
    "request_position": 0,
    "decision": "accept",
@@ -146,20 +154,20 @@
   },
   {
    "event": "client-request-written",
-   "t_ms": 1053.7,
+   "t_ms": 1443.0,
    "generation": 1,
    "method": "thread/turns/list",
    "note": "left un-responded by the process end"
   },
   {
    "event": "process-group-killed",
-   "t_ms": 1053.7,
+   "t_ms": 1443.3,
    "generation": 1,
    "signal": "SIGKILL"
   },
   {
    "event": "exit",
-   "t_ms": 1411.6,
+   "t_ms": 1791.2,
    "generation": 1,
    "how": "SIGKILL",
    "returncode": -9,
@@ -167,30 +175,30 @@
   },
   {
    "event": "acknowledgment-reading",
-   "t_ms": 1411.7,
+   "t_ms": 1791.4,
    "generation": 1,
-   "serverRequest_resolved_observed": false,
+   "serverRequest_resolved_observed": true,
    "turn_completed_observed": false
   },
   {
    "event": "workspace-reading",
-   "t_ms": 1411.7,
+   "t_ms": 1795.3,
    "marker_folder_exists": false
   },
   {
    "event": "spawn",
-   "t_ms": 1545.3,
+   "t_ms": 1907.9,
    "generation": 2
   },
   {
    "event": "re-raised-request-reading",
-   "t_ms": 4665.5,
+   "t_ms": 5003.8,
    "generation": 2,
    "server_requests_after_resume": 0
   },
   {
    "event": "exit",
-   "t_ms": 5004.5,
+   "t_ms": 5355.2,
    "generation": 2,
    "how": "stdin",
    "returncode": 0,
@@ -198,7 +206,7 @@
   },
   {
    "event": "workspace-reading-end",
-   "t_ms": 5343.3,
+   "t_ms": 5726.5,
    "marker_folder_exists": false
   }
  ],
@@ -211,7 +219,7 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 1,
-   "t_ms": 326.7,
+   "t_ms": 330.8,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -234,7 +242,7 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 1,
-   "t_ms": 718.3,
+   "t_ms": 1059.5,
    "redacted": true,
    "frame": {
     "id": 1,
@@ -250,7 +258,7 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 2,
-   "t_ms": 718.5,
+   "t_ms": 1059.6,
    "redacted": true,
    "frame": {
     "method": "remoteControl/status/changed",
@@ -260,14 +268,14 @@
      "installationId": "<REDACTED-INSTALLATION-ID>",
      "environmentId": null
     },
-    "emittedAtMs": 1794475845696
+    "emittedAtMs": 1794482328000
    }
   },
   {
    "generation": 1,
    "direction": "app->codex",
    "position": 2,
-   "t_ms": 718.6,
+   "t_ms": 1059.7,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -278,7 +286,7 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 3,
-   "t_ms": 718.6,
+   "t_ms": 1059.7,
    "redacted": true,
    "frame": {
     "jsonrpc": "2.0",
@@ -295,13 +303,13 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 3,
-   "t_ms": 733.3,
+   "t_ms": 1083.5,
    "redacted": true,
    "frame": {
     "id": 2,
     "result": {
      "thread": {
-      "id": "01a1cf18-6843-7f02-9f00-8c197697790a",
+      "id": "01a1cf7b-51c2-7402-87d5-066c337e7049",
       "environments": [
        {
         "environmentId": "local",
@@ -312,7 +320,7 @@
        }
       ],
       "extra": null,
-      "sessionId": "01a1cf18-6843-7f02-9f00-8c197697790a",
+      "sessionId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "",
@@ -324,13 +332,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794475845,
-      "updatedAt": 1794475845,
-      "recencyAt": 1794475845,
+      "createdAt": 1794482328,
+      "updatedAt": 1794482328,
+      "recencyAt": 1794482328,
       "status": {
        "type": "idle"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-45-01a1cf18-6843-7f02-9f00-8c197697790a.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T11-18-48-01a1cf7b-51c2-7402-87d5-066c337e7049.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.0",
       "originator": "chirality-st5-harness",
@@ -369,13 +377,13 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 4,
-   "t_ms": 733.4,
+   "t_ms": 1083.5,
    "redacted": true,
    "frame": {
     "method": "thread/started",
     "params": {
      "thread": {
-      "id": "01a1cf18-6843-7f02-9f00-8c197697790a",
+      "id": "01a1cf7b-51c2-7402-87d5-066c337e7049",
       "environments": [
        {
         "environmentId": "local",
@@ -386,7 +394,7 @@
        }
       ],
       "extra": null,
-      "sessionId": "01a1cf18-6843-7f02-9f00-8c197697790a",
+      "sessionId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "",
@@ -398,13 +406,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794475845,
-      "updatedAt": 1794475845,
-      "recencyAt": 1794475845,
+      "createdAt": 1794482328,
+      "updatedAt": 1794482328,
+      "recencyAt": 1794482328,
       "status": {
        "type": "idle"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-45-01a1cf18-6843-7f02-9f00-8c197697790a.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T11-18-48-01a1cf7b-51c2-7402-87d5-066c337e7049.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.0",
       "originator": "chirality-st5-harness",
@@ -419,21 +427,21 @@
       "turns": []
      }
     },
-    "emittedAtMs": 1794475845711
+    "emittedAtMs": 1794482328024
    }
   },
   {
    "generation": 1,
    "direction": "app->codex",
    "position": 4,
-   "t_ms": 733.5,
+   "t_ms": 1083.6,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 3,
     "method": "turn/start",
     "params": {
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a",
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
      "input": [
       {
        "type": "text",
@@ -447,29 +455,29 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 5,
-   "t_ms": 738.1,
+   "t_ms": 1086.7,
    "redacted": false,
    "frame": {
     "method": "warning",
     "params": {
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a",
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
      "message": "Model metadata for `st5-stub-model` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
     },
-    "emittedAtMs": 1794475845716
+    "emittedAtMs": 1794482328027
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 6,
-   "t_ms": 739.5,
+   "t_ms": 1087.4,
    "redacted": false,
    "frame": {
     "id": 3,
     "result": {
      "turn": {
-      "id": "01a1cf18-6853-7b21-a8bf-0d80d74113a8",
-      "rootTurnId": "01a1cf18-6853-7b21-a8bf-0d80d74113a8",
+      "id": "01a1cf7b-51da-7aa1-86ce-060a4ac4bb8f",
+      "rootTurnId": "01a1cf7b-51da-7aa1-86ce-060a4ac4bb8f",
       "items": [],
       "itemsView": "notLoaded",
       "status": "inProgress",
@@ -485,57 +493,57 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 7,
-   "t_ms": 780.9,
+   "t_ms": 1168.6,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a",
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
      "status": {
       "type": "active",
       "activeFlags": []
      }
     },
-    "emittedAtMs": 1794475845759
+    "emittedAtMs": 1794482328109
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 8,
-   "t_ms": 781.1,
+   "t_ms": 1168.6,
    "redacted": false,
    "frame": {
     "method": "turn/started",
     "params": {
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a",
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
      "turn": {
-      "id": "01a1cf18-6853-7b21-a8bf-0d80d74113a8",
-      "rootTurnId": "01a1cf18-6853-7b21-a8bf-0d80d74113a8",
+      "id": "01a1cf7b-51da-7aa1-86ce-060a4ac4bb8f",
+      "rootTurnId": "01a1cf7b-51da-7aa1-86ce-060a4ac4bb8f",
       "items": [],
       "itemsView": "notLoaded",
       "status": "inProgress",
       "error": null,
-      "startedAt": 1794475845,
+      "startedAt": 1794482328,
       "completedAt": null,
       "durationMs": null
      }
     },
-    "emittedAtMs": 1794475845759
+    "emittedAtMs": 1794482328109
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 9,
-   "t_ms": 807.4,
+   "t_ms": 1197.5,
    "redacted": false,
    "frame": {
     "method": "item/started",
     "params": {
      "item": {
       "type": "userMessage",
-      "id": "01a1cf18-6893-7e72-8366-d22ea70539a0",
+      "id": "01a1cf7b-5244-7293-b6df-d835f31d89a4",
       "clientId": null,
       "content": [
        {
@@ -544,28 +552,28 @@
         "text_elements": []
        }
       ],
-      "startedAtMs": 1794475845785,
+      "startedAtMs": 1794482328138,
       "completedAtMs": null
      },
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a",
-     "turnId": "01a1cf18-6853-7b21-a8bf-0d80d74113a8",
-     "startedAtMs": 1794475845785
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
+     "turnId": "01a1cf7b-51da-7aa1-86ce-060a4ac4bb8f",
+     "startedAtMs": 1794482328138
     },
-    "emittedAtMs": 1794475845786
+    "emittedAtMs": 1794482328138
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 10,
-   "t_ms": 815.3,
+   "t_ms": 1208.2,
    "redacted": false,
    "frame": {
     "method": "item/completed",
     "params": {
      "item": {
       "type": "userMessage",
-      "id": "01a1cf18-6893-7e72-8366-d22ea70539a0",
+      "id": "01a1cf7b-5244-7293-b6df-d835f31d89a4",
       "clientId": null,
       "content": [
        {
@@ -574,26 +582,26 @@
         "text_elements": []
        }
       ],
-      "startedAtMs": 1794475845785,
-      "completedAtMs": 1794475845786
+      "startedAtMs": 1794482328138,
+      "completedAtMs": 1794482328138
      },
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a",
-     "turnId": "01a1cf18-6853-7b21-a8bf-0d80d74113a8",
-     "completedAtMs": 1794475845786
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
+     "turnId": "01a1cf7b-51da-7aa1-86ce-060a4ac4bb8f",
+     "completedAtMs": 1794482328138
     },
-    "emittedAtMs": 1794475845793
+    "emittedAtMs": 1794482328148
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 11,
-   "t_ms": 847.6,
+   "t_ms": 1233.7,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a",
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
      "status": {
       "type": "active",
       "activeFlags": [
@@ -601,14 +609,14 @@
       ]
      }
     },
-    "emittedAtMs": 1794475845825
+    "emittedAtMs": 1794482328173
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 12,
-   "t_ms": 847.7,
+   "t_ms": 1233.7,
    "redacted": true,
    "frame": {
     "method": "item/started",
@@ -632,31 +640,31 @@
       "aggregatedOutput": null,
       "exitCode": null,
       "durationMs": null,
-      "startedAtMs": 1794475845825,
+      "startedAtMs": 1794482328173,
       "completedAtMs": null
      },
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a",
-     "turnId": "01a1cf18-6853-7b21-a8bf-0d80d74113a8",
-     "startedAtMs": 1794475845825
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
+     "turnId": "01a1cf7b-51da-7aa1-86ce-060a4ac4bb8f",
+     "startedAtMs": 1794482328173
     },
-    "emittedAtMs": 1794475845826
+    "emittedAtMs": 1794482328174
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 13,
-   "t_ms": 847.7,
+   "t_ms": 1233.7,
    "redacted": true,
    "frame": {
     "method": "item/commandExecution/requestApproval",
     "id": 0,
     "params": {
      "kind": "command",
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a",
-     "turnId": "01a1cf18-6853-7b21-a8bf-0d80d74113a8",
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
+     "turnId": "01a1cf7b-51da-7aa1-86ce-060a4ac4bb8f",
      "itemId": "call_st5_1",
-     "startedAtMs": 1794475845825,
+     "startedAtMs": 1794482328173,
      "environmentId": "local",
      "reason": "Create the invented marker folder.",
      "command": "/bin/zsh -lc 'mkdir st5-marker-pump-skid'",
@@ -690,7 +698,7 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 5,
-   "t_ms": 1053.6,
+   "t_ms": 1442.7,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -702,25 +710,58 @@
   },
   {
    "generation": 1,
+   "direction": "codex->app",
+   "position": 14,
+   "t_ms": 1443.0,
+   "redacted": false,
+   "frame": {
+    "method": "serverRequest/resolved",
+    "params": {
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
+     "requestId": 0
+    },
+    "emittedAtMs": 1794482328383
+   }
+  },
+  {
+   "generation": 1,
    "direction": "app->codex",
    "position": 6,
-   "t_ms": 1053.7,
+   "t_ms": 1443.0,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 4,
     "method": "thread/turns/list",
     "params": {
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a",
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
      "limit": 1
     }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 15,
+   "t_ms": 1443.1,
+   "redacted": false,
+   "frame": {
+    "method": "thread/status/changed",
+    "params": {
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
+     "status": {
+      "type": "active",
+      "activeFlags": []
+     }
+    },
+    "emittedAtMs": 1794482328383
    }
   },
   {
    "generation": 2,
    "direction": "app->codex",
    "position": 1,
-   "t_ms": 1617.2,
+   "t_ms": 1969.8,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -743,7 +784,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 1,
-   "t_ms": 1617.8,
+   "t_ms": 1970.3,
    "redacted": true,
    "frame": {
     "id": 1,
@@ -759,7 +800,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 2,
-   "t_ms": 1617.9,
+   "t_ms": 1970.4,
    "redacted": true,
    "frame": {
     "method": "remoteControl/status/changed",
@@ -769,14 +810,14 @@
      "installationId": "<REDACTED-INSTALLATION-ID>",
      "environmentId": null
     },
-    "emittedAtMs": 1794475846596
+    "emittedAtMs": 1794482328911
    }
   },
   {
    "generation": 2,
    "direction": "app->codex",
    "position": 2,
-   "t_ms": 1618.0,
+   "t_ms": 1970.4,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -787,14 +828,14 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 3,
-   "t_ms": 1618.0,
+   "t_ms": 1970.4,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 2,
     "method": "thread/read",
     "params": {
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a",
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
      "includeTurns": true
     }
    }
@@ -803,7 +844,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 3,
-   "t_ms": 1630.7,
+   "t_ms": 1975.3,
    "redacted": false,
    "frame": {
     "method": "deprecationNotice",
@@ -811,23 +852,23 @@
      "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
      "details": null
     },
-    "emittedAtMs": 1794475846609
+    "emittedAtMs": 1794482328916
    }
   },
   {
    "generation": 2,
    "direction": "codex->app",
    "position": 4,
-   "t_ms": 1630.7,
+   "t_ms": 1975.3,
    "redacted": true,
    "frame": {
     "id": 2,
     "result": {
      "thread": {
-      "id": "01a1cf18-6843-7f02-9f00-8c197697790a",
+      "id": "01a1cf7b-51c2-7402-87d5-066c337e7049",
       "environments": null,
       "extra": null,
-      "sessionId": "01a1cf18-6843-7f02-9f00-8c197697790a",
+      "sessionId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "Create the marker folder for the invented pump-skid example.",
@@ -839,13 +880,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794475845,
-      "updatedAt": 1794475845,
-      "recencyAt": 1794475845,
+      "createdAt": 1794482328,
+      "updatedAt": 1794482328,
+      "recencyAt": 1794482328,
       "status": {
        "type": "notLoaded"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-45-01a1cf18-6843-7f02-9f00-8c197697790a.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T11-18-48-01a1cf7b-51c2-7402-87d5-066c337e7049.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.0",
       "originator": "chirality-st5-harness",
@@ -859,12 +900,12 @@
       "daybreakEnabled": null,
       "turns": [
        {
-        "id": "01a1cf18-6853-7b21-a8bf-0d80d74113a8",
-        "rootTurnId": "01a1cf18-6853-7b21-a8bf-0d80d74113a8",
+        "id": "01a1cf7b-51da-7aa1-86ce-060a4ac4bb8f",
+        "rootTurnId": "01a1cf7b-51da-7aa1-86ce-060a4ac4bb8f",
         "items": [
          {
           "type": "userMessage",
-          "id": "01a1cf18-6893-7e72-8366-d22ea70539a0",
+          "id": "01a1cf7b-5244-7293-b6df-d835f31d89a4",
           "clientId": null,
           "content": [
            {
@@ -873,14 +914,14 @@
             "text_elements": []
            }
           ],
-          "startedAtMs": 1794475845785,
-          "completedAtMs": 1794475845786
+          "startedAtMs": 1794482328138,
+          "completedAtMs": 1794482328138
          }
         ],
         "itemsView": "full",
         "status": "interrupted",
         "error": null,
-        "startedAt": 1794475845,
+        "startedAt": 1794482328,
         "completedAt": null,
         "durationMs": null
        }
@@ -888,7 +929,7 @@
      },
      "readState": {
       "firstUnread": null,
-      "revision": "initial:01a1cf18-6843-7f02-9f00-8c197697790a"
+      "revision": "initial:01a1cf7b-51c2-7402-87d5-066c337e7049"
      }
     }
    }
@@ -897,14 +938,14 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 4,
-   "t_ms": 1630.8,
+   "t_ms": 1975.4,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 3,
     "method": "thread/turns/list",
     "params": {
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a",
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
      "itemsView": "full"
     }
    }
@@ -913,19 +954,19 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 5,
-   "t_ms": 1632.0,
+   "t_ms": 1976.7,
    "redacted": false,
    "frame": {
     "id": 3,
     "result": {
      "data": [
       {
-       "id": "01a1cf18-6853-7b21-a8bf-0d80d74113a8",
-       "rootTurnId": "01a1cf18-6853-7b21-a8bf-0d80d74113a8",
+       "id": "01a1cf7b-51da-7aa1-86ce-060a4ac4bb8f",
+       "rootTurnId": "01a1cf7b-51da-7aa1-86ce-060a4ac4bb8f",
        "items": [
         {
          "type": "userMessage",
-         "id": "01a1cf18-6893-7e72-8366-d22ea70539a0",
+         "id": "01a1cf7b-5244-7293-b6df-d835f31d89a4",
          "clientId": null,
          "content": [
           {
@@ -934,20 +975,20 @@
            "text_elements": []
           }
          ],
-         "startedAtMs": 1794475845785,
-         "completedAtMs": 1794475845786
+         "startedAtMs": 1794482328138,
+         "completedAtMs": 1794482328138
         }
        ],
        "itemsView": "full",
        "status": "interrupted",
        "error": null,
-       "startedAt": 1794475845,
+       "startedAt": 1794482328,
        "completedAt": null,
        "durationMs": null
       }
      ],
      "nextCursor": null,
-     "backwardsCursor": "{\"requestedThreadId\":\"01a1cf18-6843-7f02-9f00-8c197697790a\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1cf7b-51c2-7402-87d5-066c337e7049\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
     }
    }
   },
@@ -955,7 +996,7 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 5,
-   "t_ms": 1632.1,
+   "t_ms": 1976.8,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -968,7 +1009,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 6,
-   "t_ms": 1632.2,
+   "t_ms": 1976.9,
    "redacted": false,
    "frame": {
     "id": 4,
@@ -982,14 +1023,14 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 6,
-   "t_ms": 1632.2,
+   "t_ms": 1976.9,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 5,
     "method": "thread/resume",
     "params": {
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a"
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049"
     }
    }
   },
@@ -997,7 +1038,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 7,
-   "t_ms": 1633.9,
+   "t_ms": 1978.5,
    "redacted": false,
    "frame": {
     "method": "deprecationNotice",
@@ -1005,37 +1046,37 @@
      "summary": "Full-history hydration is deprecated for paginated threads; use `excludeTurns: true`, then page with `thread/turns/list` and `thread/items/list`.",
      "details": null
     },
-    "emittedAtMs": 1794475846612
+    "emittedAtMs": 1794482328919
    }
   },
   {
    "generation": 2,
    "direction": "codex->app",
    "position": 8,
-   "t_ms": 1660.5,
+   "t_ms": 1994.5,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a",
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
      "status": {
       "type": "idle"
      }
     },
-    "emittedAtMs": 1794475846639
+    "emittedAtMs": 1794482328935
    }
   },
   {
    "generation": 2,
    "direction": "codex->app",
    "position": 9,
-   "t_ms": 1661.5,
+   "t_ms": 1995.1,
    "redacted": true,
    "frame": {
     "id": 5,
     "result": {
      "thread": {
-      "id": "01a1cf18-6843-7f02-9f00-8c197697790a",
+      "id": "01a1cf7b-51c2-7402-87d5-066c337e7049",
       "environments": [
        {
         "environmentId": "local",
@@ -1046,7 +1087,7 @@
        }
       ],
       "extra": null,
-      "sessionId": "01a1cf18-6843-7f02-9f00-8c197697790a",
+      "sessionId": "01a1cf7b-51c2-7402-87d5-066c337e7049",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "Create the marker folder for the invented pump-skid example.",
@@ -1058,13 +1099,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794475845,
-      "updatedAt": 1794475845,
-      "recencyAt": 1794475845,
+      "createdAt": 1794482328,
+      "updatedAt": 1794482328,
+      "recencyAt": 1794482328,
       "status": {
        "type": "idle"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T03-30-45-01a1cf18-6843-7f02-9f00-8c197697790a.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T11-18-48-01a1cf7b-51c2-7402-87d5-066c337e7049.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.0",
       "originator": "chirality-st5-harness",
@@ -1078,12 +1119,12 @@
       "daybreakEnabled": null,
       "turns": [
        {
-        "id": "01a1cf18-6853-7b21-a8bf-0d80d74113a8",
-        "rootTurnId": "01a1cf18-6853-7b21-a8bf-0d80d74113a8",
+        "id": "01a1cf7b-51da-7aa1-86ce-060a4ac4bb8f",
+        "rootTurnId": "01a1cf7b-51da-7aa1-86ce-060a4ac4bb8f",
         "items": [
          {
           "type": "userMessage",
-          "id": "01a1cf18-6893-7e72-8366-d22ea70539a0",
+          "id": "01a1cf7b-5244-7293-b6df-d835f31d89a4",
           "clientId": null,
           "content": [
            {
@@ -1092,14 +1133,14 @@
             "text_elements": []
            }
           ],
-          "startedAtMs": 1794475845785,
-          "completedAtMs": 1794475845786
+          "startedAtMs": 1794482328138,
+          "completedAtMs": 1794482328138
          }
         ],
         "itemsView": "full",
         "status": "interrupted",
         "error": null,
-        "startedAt": 1794475845,
+        "startedAt": 1794482328,
         "completedAt": null,
         "durationMs": null
        }
@@ -1132,8 +1173,8 @@
      },
      "multiAgentMode": "explicitRequestOnly",
      "initialTurnsPage": null,
-     "turnsBackwardsCursor": "{\"requestedThreadId\":\"01a1cf18-6843-7f02-9f00-8c197697790a\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}",
-     "itemsBackwardsCursor": "{\"requestedThreadId\":\"01a1cf18-6843-7f02-9f00-8c197697790a\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
+     "turnsBackwardsCursor": "{\"requestedThreadId\":\"01a1cf7b-51c2-7402-87d5-066c337e7049\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}",
+     "itemsBackwardsCursor": "{\"requestedThreadId\":\"01a1cf7b-51c2-7402-87d5-066c337e7049\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
     }
    }
   },
@@ -1141,14 +1182,14 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 10,
-   "t_ms": 1661.6,
+   "t_ms": 1995.2,
    "redacted": false,
    "frame": {
     "method": "thread/goal/cleared",
     "params": {
-     "threadId": "01a1cf18-6843-7f02-9f00-8c197697790a"
+     "threadId": "01a1cf7b-51c2-7402-87d5-066c337e7049"
     },
-    "emittedAtMs": 1794475846640
+    "emittedAtMs": 1794482328936
    }
   }
  ]
