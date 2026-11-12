@@ -117,6 +117,7 @@ code_paths:
 - app/src/ConversationRoles.tsx
 - app/src/FileActPanel.tsx
 - app/src/exactText.ts
+- app/src/OrdinarySendRefusal.tsx
 # Shared with DEL-02-02; RunPanel.tsx also with DEL-02-03 and DEL-04-02. Here: the draft view,
 # the placement of texts in turns the person sends, and the placement of run offers and the
 # checkpoint and standing display. What the drafts, trial texts and run offers show is
@@ -151,6 +152,7 @@ checks:
 - app/tests/codex-controls.test.mjs
 - app/tests/conversation-roles.test.mjs
 - app/tests/conversation-panel.test.mjs
+- app/tests/ordinary-send-hold.test.mjs
 - app/tests/fork-admission.test.mjs
 - app/tests/history-continue-navigation.test.mjs
 - app/tests/run-panel.test.mjs

@@ -1754,26 +1754,47 @@ fn continuation_context_action(state: State<'_, AppState>, generation: Value, th
 fn conversation_send_text(
     state: State<'_, AppState>, generation: Value, thread_id: String,
     text: String, mode: Option<String>, model: Option<String>, effort: Option<String>,
-) -> Result<Value, String> {
-    let home = state.homes.lock().unwrap().for_generation(&generation)?;
-    ordinary_send_text_effort(&home, &state.workflows, &generation, &thread_id, &text, mode.as_deref(), model.as_deref(), effort.as_deref())
+) -> Result<Value, Value> {
+    // A definite outcome rejects with a structured value naming its class; an
+    // unknown outcome rejects with its message, as before.
+    let home = state.homes.lock().unwrap().for_generation(&generation).map_err(|e| hosting::TurnStartFailure::NotSent(e).window_value())?;
+    ordinary_send_text_classified(&home, &state.workflows, &generation, &thread_id, &text, mode.as_deref(), model.as_deref(), effort.as_deref()).map_err(hosting::TurnStartFailure::window_value)
 }
 /// Actual IPC consumer, also exercised with an invented native peer offline.
 fn ordinary_send_text(home: &runtime_session::HomeSession, workflows: &std::sync::Mutex<runtime_session::WorkflowRootSession>, generation: &Value, thread: &str, text: &str, mode: Option<&str>, model: Option<&str>) -> Result<Value, String> {
     ordinary_send_text_effort(home, workflows, generation, thread, text, mode, model, None)
 }
 fn ordinary_send_text_effort(home: &runtime_session::HomeSession, workflows: &std::sync::Mutex<runtime_session::WorkflowRootSession>, generation: &Value, thread: &str, text: &str, mode: Option<&str>, model: Option<&str>, effort: Option<&str>) -> Result<Value, String> {
+    ordinary_send_text_classified(home, workflows, generation, thread, text, mode, model, effort).map_err(hosting::TurnStartFailure::into_message)
+}
+/// The ordinary send with its failure class (`TurnStartFailure`); the same
+/// frames, records and messages as `ordinary_send_text_effort`.
+fn ordinary_send_text_classified(home: &runtime_session::HomeSession, workflows: &std::sync::Mutex<runtime_session::WorkflowRootSession>, generation: &Value, thread: &str, text: &str, mode: Option<&str>, model: Option<&str>, effort: Option<&str>) -> Result<Value, hosting::TurnStartFailure> {
+    use hosting::TurnStartFailure::{NotSent, Unknown};
     if home.class()==home_resources::HomeClass::LocalProvider {
-        if model.is_some_and(|m| m != native_local_provider::MODEL) { return Err(native_local_provider::LIMIT.into()); }
-        home.host.require_canonical_167(generation)?;
+        if model.is_some_and(|m| m != native_local_provider::MODEL) { return Err(NotSent(native_local_provider::LIMIT.into())); }
+        home.host.require_canonical_167(generation).map_err(NotSent)?;
     }
     let model=if home.class()==home_resources::HomeClass::LocalProvider { Some(native_local_provider::MODEL) } else { model };
     // TC-2: one original ordered notice/person frame, with the same mode/model.
     if let Some(sent) = runtime_session::send_with_pending_notice_effort_observed(workflows, generation, thread, text, mode, model, effort, &mut |_| {}) {
-        return sent.result;
+        // Definite only when no frame was attempted: no request was made, or
+        // the Host's record shows its write never began (the notice then stays
+        // pending). A written notice-carrying turn is settled as sent whatever
+        // Codex replied, so any failure after a write stays unknown here.
+        return sent.result.map_err(|e| match (&sent.written, &sent.source) {
+            (false, None) => NotSent(e),
+            (false, Some(source)) if source.write_attempt_observed() == Some(false) => NotSent(e),
+            _ => Unknown(e),
+        });
     }
+    // The closure is the only place a request can be made; an error returned
+    // without it running is the conversation check's refusal.
+    let mut failure = None;
     runtime_session::send_conversation_text(&home.host.snapshot(), generation, thread, text,
-        |generation, thread, text| home.host.turn_start_ordinary_text_effort(generation, thread, text, mode, model, effort))
+        |generation, thread, text| home.host.turn_start_ordinary_text_classified(generation, thread, text, mode, model, effort)
+            .map_err(|f| { let message = f.message().to_owned(); failure = Some(f); message }))
+        .map_err(|e| failure.take().unwrap_or(NotSent(e)))
 }
 
 /// DEL-01-05 model discovery for a new conversation, at the person's press:

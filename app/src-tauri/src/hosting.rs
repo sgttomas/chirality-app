@@ -420,6 +420,42 @@ impl PreparedNativeTurnStart<'_> {
     pub(crate) fn observed_status(&self)->&str {&self.observed_status}
 }
 
+/// What became of an ordinary text `turn/start` that did not return a result.
+/// Only two outcomes are definite and leave nothing started: the App refused
+/// before any byte was written to Codex (no request made, or the request
+/// record's write was never attempted), and Codex's own correlated reply to
+/// the written request, received in the same still-open generation, is a
+/// well-formed JSON-RPC error. Everything else, and anything that cannot be
+/// placed with certainty, is unknown. Each variant keeps the message the
+/// caller has always received; nothing recorded or sent depends on the class.
+#[derive(Debug)]
+pub(crate) enum TurnStartFailure {
+    /// Refused by the App before any byte was written to Codex.
+    NotSent(String),
+    /// Codex's correlated JSON-RPC error, carried unchanged in `error`.
+    Refused { message: String, error: Value },
+    /// The outcome is not known: the message may have been sent.
+    Unknown(String),
+}
+impl TurnStartFailure {
+    pub(crate) fn message(&self) -> &str {
+        match self { Self::NotSent(m) | Self::Unknown(m) | Self::Refused { message: m, .. } => m }
+    }
+    pub(crate) fn into_message(self) -> String {
+        match self { Self::NotSent(m) | Self::Unknown(m) | Self::Refused { message: m, .. } => m }
+    }
+    /// The window's form: definite outcomes as a structured value naming the
+    /// class (Codex's error object unchanged); an unknown outcome keeps its
+    /// present form, the plain message.
+    pub(crate) fn window_value(self) -> Value {
+        match self {
+            Self::NotSent(reason) => json!({"sendOutcome":"refused-before-write","reason":reason}),
+            Self::Refused { error, .. } => json!({"sendOutcome":"refused-by-codex","nativeError":error}),
+            Self::Unknown(message) => Value::String(message),
+        }
+    }
+}
+
 /// V9 F-1: Codex's definite refusal of one original prepared `turn/start`,
 /// issued only by `Host::prepared_turn_refusal`. No public constructor, Clone or Serde.
 pub(crate) struct NativeTurnRefusal { request_ref:String, thread:String, client_id:String, error:Value, response_position:u64 }
@@ -3670,15 +3706,21 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         self.turn_start_ordinary_text_effort(generation, thread_id, text, mode, model, None)
     }
     pub(crate) fn turn_start_ordinary_text_effort(&self, generation: &Value, thread_id: &str, text: &str, mode: Option<&str>, model: Option<&str>, effort: Option<&str>) -> Result<Value, String> {
+        self.turn_start_ordinary_text_classified(generation, thread_id, text, mode, model, effort).map_err(TurnStartFailure::into_message)
+    }
+    /// As `turn_start_ordinary_text_effort`, saying which outcome class a
+    /// failure belongs to (`TurnStartFailure`). Same frames, records and messages.
+    pub(crate) fn turn_start_ordinary_text_classified(&self, generation: &Value, thread_id: &str, text: &str, mode: Option<&str>, model: Option<&str>, effort: Option<&str>) -> Result<Value, TurnStartFailure> {
         let model = model.filter(|m| !m.is_empty());
-        let element = mode.map(|mode| self.collaboration_mode_element_with_effort(generation, thread_id, mode, model, effort)).transpose()?;
-        let mut params = Self::text_turn_params(thread_id, text)?;
-        Self::apply_ordinary_effort(&mut params, element.as_ref(), model, effort)?;
-        Self::validate_native_result("TurnStartParams", &params)?;
-        let response = self.conversation_operation_guarded("turn/start", generation, params, Duration::from_secs(20), Some((mode.is_some() && model.is_none(), mode.is_some() && effort.is_none())));
+        // No request is made until `conversation_operation_classified`.
+        let element = mode.map(|mode| self.collaboration_mode_element_with_effort(generation, thread_id, mode, model, effort)).transpose().map_err(TurnStartFailure::NotSent)?;
+        let mut params = Self::text_turn_params(thread_id, text).map_err(TurnStartFailure::NotSent)?;
+        Self::apply_ordinary_effort(&mut params, element.as_ref(), model, effort).map_err(TurnStartFailure::NotSent)?;
+        Self::validate_native_result("TurnStartParams", &params).map_err(TurnStartFailure::NotSent)?;
+        let response = self.conversation_operation_classified("turn/start", generation, params, Duration::from_secs(20), Some((mode.is_some() && model.is_none(), mode.is_some() && effort.is_none())));
         if let Some(element) = element {
-            if !response.as_ref().is_err_and(|e| e.contains("refused-not-sent") || e.contains("conversation-not-loaded")) {
-                self.record_requested_mode(generation, thread_id, &element, response.as_ref().map(|_| ()).map_err(Clone::clone));
+            if !response.as_ref().is_err_and(|e| e.message().contains("refused-not-sent") || e.message().contains("conversation-not-loaded")) {
+                self.record_requested_mode(generation, thread_id, &element, response.as_ref().map(|_| ()).map_err(|e| e.message().to_owned()));
             }
         }
         response
@@ -3751,31 +3793,84 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         self.conversation_operation_guarded(method, generation, params, wait, None)
     }
     fn conversation_operation_guarded(&self, method: &str, generation: &Value, params: Value, wait: Duration, ordinary: Option<(bool, bool)>) -> Result<Value, String> {
-        crate::recovery::generation_ref(generation)?;
+        self.conversation_operation_classified(method, generation, params, wait, ordinary).map_err(TurnStartFailure::into_message)
+    }
+    /// The class is established only on the ordinary `turn/start` path, from
+    /// the Host's own request record; every other failure here is unknown.
+    fn conversation_operation_classified(&self, method: &str, generation: &Value, params: Value, wait: Duration, ordinary: Option<(bool, bool)>) -> Result<Value, TurnStartFailure> {
+        use TurnStartFailure::{NotSent, Unknown};
+        crate::recovery::generation_ref(generation).map_err(NotSent)?;
         let steering_target = if method == "turn/steer" { Some(params.clone()) } else { None };
-        let response = match ordinary {
-            Some((inherited_mode, inherited_effort)) => { let source = self.request_begin_ordinary_effort(generation, params, inherited_mode, inherited_effort)?; self.wait_source_response(&source, wait)? },
-            None => self.request_inner_scoped(method, params, json!({"kind":"person-directed"}), wait, false, Some(generation))?,
+        let (response, source) = match ordinary {
+            Some((inherited_mode, inherited_effort)) => {
+                // Every refusal of the request factory precedes its write.
+                let source = self.request_begin_ordinary_effort(generation, params, inherited_mode, inherited_effort).map_err(NotSent)?;
+                match self.wait_source_response(&source, wait) {
+                    Ok(response) => (response, Some(source)),
+                    Err(e) => return Err(if self.source_write_never_attempted(&source) { NotSent(e) } else { Unknown(e) }),
+                }
+            }
+            None => (self.request_inner_scoped(method, params, json!({"kind":"person-directed"}), wait, false, Some(generation)).map_err(Unknown)?, None),
         };
         #[cfg(test)]
         if let Some(hook) = self.before_turn_result.lock().unwrap().take() { hook(); }
         let i = self.inner.0.lock().unwrap();
         if i.generation != *generation || i.server_requests.is_closed(generation) || i.state != "ready" {
-            return Err(format!("{method} response belongs to closed/replaced generation; native response retained in journal"));
+            return Err(Unknown(format!("{method} response belongs to closed/replaced generation; native response retained in journal")));
         }
-        if let Some(error) = response.get("error") { return Err(format!("{method} native error: {error}")); }
+        if let Some(error) = response.get("error") {
+            let message = format!("{method} native error: {error}");
+            return Err(match source.as_ref().filter(|_| method == "turn/start").and_then(|s| Self::correlated_turn_start_error(&i, s, &response)) {
+                Some(error) => TurnStartFailure::Refused { message, error },
+                None => Unknown(message),
+            });
+        }
         if let Some(target) = steering_target {
             if response.get("result").and_then(|r| r.get("turnId")) != target.get("expectedTurnId") {
-                return Err("turn/steer reported turn differs from expected target; native response retained, no rebind".into());
+                return Err(Unknown("turn/steer reported turn differs from expected target; native response retained, no rebind".into()));
             }
-            Self::check_conversation_request(&i, method, &target).map_err(|error| format!("turn/steer target changed before result consumption: {error}; native response retained"))?;
+            Self::check_conversation_request(&i, method, &target).map_err(|error| Unknown(format!("turn/steer target changed before result consumption: {error}; native response retained")))?;
         } else if method == "turn/start" {
-            let turn = response.get("result").and_then(|r| r.get("turn")).ok_or("turn/start has no native turn result")?;
-            if !Self::native_turn_shape(turn) { return Err("turn/start native turn result has invalid shape".into()); }
+            let turn = response.get("result").and_then(|r| r.get("turn")).ok_or_else(|| Unknown("turn/start has no native turn result".into()))?;
+            if !Self::native_turn_shape(turn) { return Err(Unknown("turn/start native turn result has invalid shape".into())); }
         } else if !response.get("result").map(Value::is_object).unwrap_or(false) {
-            return Err("turn/interrupt has no native acknowledgment object".into());
+            return Err(Unknown("turn/interrupt has no native acknowledgment object".into()));
         }
         Ok(response)
+    }
+    /// True only when the Host's record of this request shows that no write
+    /// was ever attempted. The write happens inside the request factory, so
+    /// once it has returned an unattempted write never begins later.
+    fn source_write_never_attempted(&self, source: &SourceRequest) -> bool {
+        let i = self.inner.0.lock().unwrap();
+        i.source_requests.get(&source.request_id().to_string()).is_some_and(|e| e.request.request_ref == source.request_ref
+            && e.request.frame == source.frame && e.attempt_position.is_none() && !e.write_attempt_in_progress && !e.written && e.write_error.is_none())
+    }
+    /// Codex's error object, unchanged, when the Host's own record shows a
+    /// definite refusal of this exact `turn/start`: its frame completely
+    /// written, Codex's reply correlated to it and settled in the register as
+    /// `response-observed-error` (an integer code and a string message), with
+    /// no result beside it. The caller has already checked that the generation
+    /// is still the request's own and open. Otherwise None: the outcome stays unknown.
+    fn correlated_turn_start_error(i: &Inner, source: &SourceRequest, response: &Value) -> Option<Value> {
+        let e = i.source_requests.get(&source.request_id().to_string())?;
+        if e.request.request_ref != source.request_ref || e.request.frame != source.frame || e.request.generation != source.generation
+            || e.request.generation != i.generation || source.frame["method"] != "turn/start"
+            || !e.written || e.write_attempt_in_progress || e.write_error.is_some() || e.source_limit.is_some()
+            || e.attempt_position.is_none() || e.response_position.is_none() || e.response.as_ref() != Some(response) {
+            return None;
+        }
+        if response.get("id") != Some(source.request_id()) || response.get("method").is_some() || response.get("result").is_some() {
+            return None;
+        }
+        let error = response.get("error")?;
+        if !error.is_object() || error["code"].as_i64().is_none() || !error["message"].is_string() { return None; }
+        let record = i.client_requests.get(e.index)?;
+        if record["writeResult"] != "written" || record["outcome"] != "response-observed-error" || record["requestIdentity"] != *source.request_id()
+            || record["error"]["code"] != error["code"] || record["error"]["message"] != error["message"] {
+            return None;
+        }
+        Some(error.clone())
     }
 
     fn native_turn_shape(turn: &Value) -> bool {
@@ -5158,6 +5253,60 @@ mod conversation_transport_tests {
     fn foreign_closed_unknown_thread_and_unknown_turn_are_not_registered_or_written() {
         let host=host();for foreign in [json!(1),json!({"appSession":"other","home":"conversation-home","spawnCounter":1}),json!({"appSession":"conversation-session","home":"other","spawnCounter":1}),json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":2})] {assert!(host.turn_start_text(&foreign,"thread","text").is_err());assert!(host.turn_start_ordinary_text(&foreign,"thread","text",None,Some("explicit-model")).is_err());}
         assert!(host.turn_start_text(&g(),"unknown","text").unwrap_err().contains("conversation-not-loaded"));assert!(host.turn_start_ordinary_text(&g(),"unknown","text",None,Some("explicit-model")).is_err());assert_eq!(host.turn_interrupt(&g(),"thread","unknown","H-acct",&crate::stop_records::person("")).unwrap_err(),"no-live-turn");assert_eq!(host.inner.0.lock().unwrap().send_position,0);assert!(host.client_requests().is_empty());Host::close_generation(&mut host.inner.0.lock().unwrap());assert!(host.turn_start_text(&g(),"thread","text").is_err());assert!(host.turn_start_ordinary_text(&g(),"thread","text",None,Some("explicit-model")).is_err());assert_eq!(host.inner.0.lock().unwrap().send_position,0);
+    }
+    /// One ordinary `turn/start` through the real Host, with its failure class.
+    fn ordinary_start(host:&Arc<Host>,reply:Option<Value>,wait:Duration)->(Result<Value,TurnStartFailure>,Value){
+        let mut class=None;
+        let (_,outbound)=exchange(host,reply,vec![],||{let r=host.conversation_operation_classified("turn/start",&g(),Host::text_turn_params("thread","text").unwrap(),wait,Some((false,false)));let shown=r.as_ref().map(Clone::clone).map_err(|e|e.message().to_owned());class=Some(r);shown});
+        (class.unwrap(),outbound)
+    }
+    // Definite and nothing started: a refusal before any write, and Codex's own
+    // correlated error reply in the same open generation (carried unchanged).
+    // Every other failure stays unknown. The register is the same either way.
+    #[test]
+    fn ordinary_turn_start_is_definite_only_before_a_write_or_on_codex_correlated_error() {
+        let host=host();
+        let native=json!({"code":-32600,"data":{"currentModelProvider":"skeleton_local","modelProvider":"second_stub","type":"modelProviderMismatch"},"message":"This chat uses second_stub, but your current provider is skeleton_local. Switch to second_stub to continue."});
+        let mut class=None;
+        let _=exchange(&host,Some(json!({"error":native})),vec![],||{let r=host.turn_start_ordinary_text_classified(&g(),"thread","text",None,None,None);let shown=r.as_ref().map(Clone::clone).map_err(|e|e.message().to_owned());class=Some(r);shown});
+        let refused=class.unwrap().unwrap_err();
+        assert!(matches!(&refused,TurnStartFailure::Refused{error,..} if *error==native),"{refused:?}");
+        assert_eq!(refused.message(),format!("turn/start native error: {native}"));
+        assert_eq!(refused.window_value(),json!({"sendOutcome":"refused-by-codex","nativeError":native}));
+        assert_eq!(host.client_requests()[0]["outcome"],"response-observed-error");assert_eq!(host.client_requests()[0]["writeResult"],"written");
+        assert_eq!(host.snapshot()["conversationTurns"],json!([]));
+        // Replies that are not a well-formed correlated error or result stay unknown.
+        for reply in [json!({"error":{"message":"no code"}}),json!({"error":{"code":-1,"message":"both"},"result":{"turn":turn("inProgress")}}),json!({"error":"text only"}),
+            json!({"result":{}}),json!({"result":{"turn":{"id":"","status":"inProgress","items":[]}}}),json!({"result":{"turn":{"id":"t","status":"unheard-of","items":[]}}})] {
+            let (result,_)=ordinary_start(&host,Some(reply.clone()),Duration::from_secs(5));
+            assert!(matches!(result,Err(TurnStartFailure::Unknown(_))),"{reply}: {result:?}");
+        }
+        // No reply within the wait: unknown, the request stays pending.
+        let (result,_)=ordinary_start(&host,None,Duration::from_millis(20));
+        assert!(matches!(result,Err(TurnStartFailure::Unknown(_))),"{result:?}");
+        assert_eq!(host.client_requests().last().unwrap()["outcome"],"pending");
+        // A correlated error consumed after its generation closed or was replaced: unknown.
+        let me=Arc::clone(&host);*host.before_turn_result.lock().unwrap()=Some(Box::new(move||{let mut i=me.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation=json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":2});i.state="ready".into();}));
+        let (result,_)=ordinary_start(&host,Some(json!({"error":native})),Duration::from_secs(5));
+        assert!(matches!(result,Err(TurnStartFailure::Unknown(_))),"{result:?}");
+        // A write attempted and failed: unknown.
+        let host=super::conversation_transport_tests::host();install_broken_test_input(&host);
+        let result=host.turn_start_ordinary_text_classified(&g(),"thread","text",None,None,None);
+        assert!(matches!(result,Err(TurnStartFailure::Unknown(_))),"{result:?}");assert_eq!(host.client_requests()[0]["writeResult"],"write-failed");
+        // Refused before any byte was written: not sent, and no write attempt is recorded.
+        let host=super::conversation_transport_tests::host();
+        let refusals=[host.turn_start_ordinary_text_classified(&g(),"no-such-conversation","text",None,None,None),
+            host.turn_start_ordinary_text_classified(&g(),"thread","",None,None,None),
+            host.turn_start_ordinary_text_classified(&g(),"thread","text",Some("plan"),None,None),
+            // Registered, but its pipe is closed before the write begins.
+            host.turn_start_ordinary_text_classified(&g(),"thread","text",None,None,None)];
+        for result in refusals { assert!(matches!(result,Err(TurnStartFailure::NotSent(_))),"{result:?}"); }
+        assert_eq!(host.inner.0.lock().unwrap().send_position,0,"no write was attempted");
+        host.inner.0.lock().unwrap().state="stopping".into();
+        let result=host.turn_start_ordinary_text_classified(&g(),"thread","text",None,None,None);
+        assert!(matches!(&result,Err(TurnStartFailure::NotSent(_))),"{result:?}");
+        assert_eq!(result.unwrap_err().window_value()["sendOutcome"],"refused-before-write");
+        assert_eq!(host.client_requests().last().unwrap()["outcome"],"refused-not-sent");
     }
     #[test]
     fn native_error_failed_write_and_wait_limit_keep_distinct_evidence_and_late_response() {

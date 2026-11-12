@@ -8692,6 +8692,35 @@ for line in sys.stdin:
         assert!(peer.fixture.rs_entries().iter().all(|e| e["formatVersion"].is_string()), "actual writer validated saved records");
     }
 
+    // The ordinary send's failure class reaches the window command from the
+    // Host's own record through the real IPC consumer: Codex's correlated
+    // refusal is definite and carries its error unchanged; a refusal before any
+    // write is not sent; a turn/start Codex never answers stays unknown.
+    #[test]
+    fn ordinary_send_failure_class_comes_from_the_host_record() {
+        use crate::hosting::TurnStartFailure;
+        let peer = Peer::new(); let workflows = Mutex::new(peer.registered());
+        peer.set_mode("turn-mode", "error");
+        let before = peer.turn_starts();
+        let refused = crate::ordinary_send_text_classified(&peer.home, &workflows, &peer.generation, "thread", "refused text", None, None, None).unwrap_err();
+        assert_eq!(peer.turn_starts(), before + 1, "written once, not resent");
+        let native = json!({"code":-32000,"message":"fixture refused turn/start"});
+        assert!(matches!(&refused, TurnStartFailure::Refused { error, .. } if *error == native), "{refused:?}");
+        assert_eq!(refused.message(), format!("turn/start native error: {native}"), "the message every other caller receives is unchanged");
+        assert_eq!(refused.window_value(), json!({"sendOutcome":"refused-by-codex","nativeError":native}));
+        let record = peer.home.host.client_requests().last().unwrap().clone();
+        assert_eq!((record["writeResult"].as_str(), record["outcome"].as_str()), (Some("written"), Some("response-observed-error")), "the register is unchanged");
+        let starts = peer.turn_starts();
+        let not_loaded = crate::ordinary_send_text_classified(&peer.home, &workflows, &peer.generation, "no-such-conversation", "x", None, None, None).unwrap_err();
+        assert!(matches!(not_loaded, TurnStartFailure::NotSent(_)), "{not_loaded:?}");
+        assert_eq!(not_loaded.window_value()["sendOutcome"], "refused-before-write");
+        assert_eq!(peer.turn_starts(), starts, "nothing written");
+        peer.set_mode("turn-mode", "exit");
+        let lost = crate::ordinary_send_text_classified(&peer.home, &workflows, &peer.generation, "thread", "lost text", None, None, None).unwrap_err();
+        assert!(matches!(lost, TurnStartFailure::Unknown(_)), "{lost:?}");
+        assert!(lost.window_value().is_string(), "an unknown outcome keeps its present form");
+    }
+
     struct NativeDeliveryRecordsStore(PathBuf);
     impl NativeDeliveryRecordsStore {
         fn new() -> Self {
@@ -10335,6 +10364,24 @@ for line in sys.stdin:
         assert!(send_with_pending_notice(&root,&peer.generation,"thread","hello").expect("still pending").is_ok());
         assert_eq!(notice_frames(&peer),1,"carried exactly once");
         assert_eq!(last_turn_start(&peer)["params"]["input"][1]["text"],"hello");
+    }
+    // The window's class for an ordinary send that carries an end notice: a
+    // refusal before any write is definite (the notice stays pending); once the
+    // notice frame is written it is settled as sent whatever Codex replies, so
+    // even Codex's own refusal stays unknown there and the hold applies.
+    #[test]
+    fn ordinary_notice_send_is_definite_only_before_its_write(){
+        use crate::hosting::TurnStartFailure;
+        let peer=Peer::new();let (root,a)=ended_run(&peer);
+        NOTICE_REFUSED_BEFORE_WRITE.with(|v|v.set(true));
+        let refused=crate::ordinary_send_text_classified(&peer.home,&root,&peer.generation,"thread","held back",None,None,None).unwrap_err();
+        assert!(matches!(refused,TurnStartFailure::NotSent(_)),"{refused:?}");
+        assert_eq!(notice_frames(&peer),0);assert!(notice_state(&root,&a).starts_with("pending"),"kept for the next turn");
+        peer.set_mode("turn-mode","error");
+        let written=crate::ordinary_send_text_classified(&peer.home,&root,&peer.generation,"thread","with notice",None,None,None).unwrap_err();
+        assert!(matches!(written,TurnStartFailure::Unknown(_)),"{written:?}");
+        assert!(written.window_value().is_string(),"an unknown outcome keeps its present form");
+        assert_eq!(notice_frames(&peer),1);assert_eq!(notice_state(&root,&a),"sent once with the next ordinary turn");
     }
     // Never twice: an attachment-bearing turn whose frame was written but whose turn Codex
     // refused has sent the notice; it is never resent, and the next turn carries none.

@@ -148,3 +148,68 @@ test('with nothing else changed, a Send captured before an unconfirmed attempt s
     assert.equal(ui.sends.length, 2);
   });
 });
+
+// A definite refusal started nothing (hosting.rs TurnStartFailure): the host
+// rejects with a structured value naming its class. Defect reproduced on stock
+// Codex 0.167.0: Codex answered turn/start with a JSON-RPC error and the App
+// showed it as an unconfirmed send and held the conversation.
+const codexRefusal = {sendOutcome:'refused-by-codex', nativeError:{code:-32600, data:{currentModelProvider:'invented_current', modelProvider:'invented_chat', type:'modelProviderMismatch'}, message:'This chat uses invented_chat, but your current provider is invented_current. Switch to invented_chat to continue.'}};
+const refusedNotice = ui => ui.c.querySelectorAll(node => node.getAttribute('aria-label') === 'Message refused by Codex')[0];
+
+test('Codex\'s definite refusal shows its own message and error data, keeps the text and model choice, adds no unconfirmed record and leaves Send usable', async () => {
+  await mounted((args, n) => { if (n === 1) throw codexRefusal; return {id:n, result:{turn:{id:'t'}}}; }, async ui => {
+    await ui.type('Please summarise the report');
+    const model = () => nodes(ui.c, 'input').find(node => props(node)['aria-describedby'] === 'ordinary-model-help');
+    await React.act(async () => { props(model()).onChange({target:{value:'invented-chosen-model'}}); });
+    await React.act(async () => { props(ui.send()).onClick(); }); await ui.settle();
+    assert.equal(ui.sends.length, 1);
+    assert.match(refusedNotice(ui).textContent, /Codex refused this message and started no turn\./);
+    assert.ok(refusedNotice(ui).textContent.includes(`Codex's message: ${codexRefusal.nativeError.message}`), 'Codex\'s message as received');
+    assert.ok(refusedNotice(ui).textContent.includes(JSON.stringify(codexRefusal.nativeError, null, 2)), 'Codex\'s error data as received');
+    assert.equal(ui.notices(), undefined, 'no unconfirmed record');
+    assert.doesNotMatch(ui.c.textContent, /may have been sent/);
+    assert.equal(props(ui.field()).value, 'Please summarise the report', 'the text is kept');
+    assert.equal(props(model()).value, 'invented-chosen-model', 'the model choice is kept');
+    assert.equal(props(ui.send()).disabled, false, 'Send is not held');
+    assert.match(ui.readiness(), /Ready to send text/);
+    await React.act(async () => { props(ui.send()).onClick(); }); await ui.settle();
+    assert.equal(ui.sends.length, 2, 'sending again is not held');
+    assert.equal(ui.sends[1][4], 'invented-chosen-model');
+    assert.equal(refusedNotice(ui), undefined, 'the acknowledged send replaces the refusal');
+  });
+});
+
+test('a refusal before anything was written shows the App\'s reason and holds nothing', async () => {
+  await mounted((args, n) => { if (n === 1) throw {sendOutcome:'refused-before-write', reason:'invented: conversation is not loaded in this home generation'}; return {id:n}; }, async ui => {
+    await ui.type('Kept text');
+    await React.act(async () => { props(ui.send()).onClick(); }); await ui.settle();
+    const notice = ui.c.querySelectorAll(node => node.getAttribute('aria-label') === 'Message not sent')[0];
+    assert.match(notice.textContent, /Not sent: the App refused this message before writing anything to Codex\..*The App's reason: invented: conversation is not loaded in this home generation/);
+    assert.equal(ui.notices(), undefined);
+    assert.equal(props(ui.field()).value, 'Kept text');
+    assert.equal(props(ui.send()).disabled, false);
+  });
+});
+
+test('anything other than the host\'s well-formed definite refusal is still an unknown outcome and holds the conversation', async () => {
+  const lookalikes = [
+    'turn/start native error: {"code":-32600,"message":"refused"}',
+    {sendOutcome:'refused-by-codex'},
+    {sendOutcome:'refused-by-codex', nativeError:{message:'no code'}},
+    {sendOutcome:'refused-by-codex', nativeError:{code:'1', message:'string code'}},
+    {sendOutcome:'refused-by-codex', nativeError:{code:1, message:'x'}, extra:true},
+    {sendOutcome:'refused-before-write', reason:''},
+    {sendOutcome:'not-a-class', reason:'x'},
+    new Error('invented: write failed'),
+  ];
+  for (const rejection of lookalikes) {
+    await mounted(() => { throw rejection; }, async ui => {
+      await ui.type('Draft that may have gone');
+      await React.act(async () => { props(ui.send()).onClick(); }); await ui.settle();
+      assert.match(ui.notices().textContent, /Your message to this conversation may have been sent\./, JSON.stringify(String(rejection)));
+      assert.equal(refusedNotice(ui), undefined);
+      assert.equal(props(ui.send()).disabled, true, 'held');
+      assert.equal(props(ui.field()).value, 'Draft that may have gone');
+    });
+  }
+});

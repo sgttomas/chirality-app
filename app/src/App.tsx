@@ -35,6 +35,7 @@ import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
+import { DefiniteSendRefusalNotice, definiteSendRefusal, type DefiniteSendRefusal } from "./OrdinarySendRefusal";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 import { AccessRouteChoice, AvailableModels, OfferedEffortChoice, modelMatch, validModelPacket } from "./ModelChoice";
 /** One App-composed message for the person to edit and send; never sent by the App. */
@@ -91,9 +92,9 @@ const admittedForkTarget = (response: Json, scope: ForkScope): Pick<ForkNavigati
 type AttachmentRequest = { generation: Json; threadId: string; expectedTurnId: string | null; text: string; ownerRef: string; listRevision: number; selectionRefs: string[] };
 type AttachmentOutcome = { request: AttachmentRequest; result: { acknowledged: true; nativeValue: Json } | { acknowledged: false; nativeError: unknown }; observationLimit?: string };
 type OrdinaryTextRequest = { generation: Json; threadId: string; text: string; mode?: "plan" | "default"; model?: string; effort?: string };
-type OrdinaryTextOutcome = { request: OrdinaryTextRequest; result: { acknowledged: true; nativeValue: Json } | { acknowledged: false; nativeError: unknown }; observationLimit?: string };
-/** An ordinary send without a native acknowledgement (any error, or a missing
- * result). It may have been sent, so the same conversation ID is held until the
+type OrdinaryTextOutcome = { request: OrdinaryTextRequest; result: { acknowledged: true; nativeValue: Json } | { acknowledged: false; nativeError: unknown; definite?: DefiniteSendRefusal }; observationLimit?: string };
+/** An ordinary send without a native acknowledgement whose outcome is unknown
+ * (any error but the host's definite refusal, or a missing result). It may have been sent, so the same conversation ID is held until the
  * person says they read it; it is kept for this window and never parsed. */
 type UnconfirmedSend = { id: number; request: OrdinaryTextRequest; reported: string; acknowledged: boolean };
 // Model choice has one local lifetime, keyed to the actual full conversation.
@@ -183,9 +184,11 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
           ? { ...current, value: "", effort: "", effortModel: "", revision: current.revision + 1 } : current);
       }
     } catch (nativeError) {
-      outcome = { request, result: { acknowledged: false, nativeError } };
+      // Only the host's structured definite refusal started nothing; it holds nothing.
+      const definite = definiteSendRefusal(nativeError);
+      outcome = { request, result: { acknowledged: false, nativeError, ...(definite ? { definite } : {}) } };
       const reported = nativeError instanceof Error ? nativeError.message : String(nativeError);
-      setUnconfirmed(rows => [...rows, { id: ++unconfirmedSequence.current, request: structuredClone(request), reported, acknowledged: false }]);
+      if (!definite) setUnconfirmed(rows => [...rows, { id: ++unconfirmedSequence.current, request: structuredClone(request), reported, acknowledged: false }]);
     }
     setOrdinaryOutcome(outcome);
     try { await observeOrdinaryView?.(request, isCurrent); }
@@ -453,6 +456,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
       <details><summary>Original message destination and choices</summary><p>Original ordinary text turn · conversation {ordinaryOutcome.request.threadId} · Home {ordinaryOutcome.request.generation.home} · App session {ordinaryOutcome.request.generation.appSession} · spawn {ordinaryOutcome.request.generation.spawnCounter} · {ordinaryOutcome.request.mode ?? "no mode override"} · requested model {ordinaryOutcome.request.model ?? "no override"} · requested effort {ordinaryOutcome.request.effort ?? "no override"}.</p></details>
       {ordinaryOutcome.result.acknowledged
         ? <p role="status">Native turn/start response received. Model adoption, execution and completion remain unestablished; reported model facts are separate.</p>
+        : ordinaryOutcome.result.definite ? <DefiniteSendRefusalNotice refusal={ordinaryOutcome.result.definite} />
         : <p role="alert">{String(ordinaryOutcome.result.nativeError)} Text and model choice retained unless superseded by a newer edit or conversation. No automatic retry or substitution.</p>}
       {ordinaryOutcome.observationLimit && <p role="alert">Ordinary text view refresh unavailable for this original request: {ordinaryOutcome.observationLimit}. The command outcome above is unchanged; no automatic resend.</p>}
     </div>}
