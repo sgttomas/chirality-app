@@ -143,21 +143,19 @@ An entry is added in the same pull request that makes the limitation standing.
   provider whatever default provider the person's Codex settings name. In the
   local model home, Codex's plugin traffic is always off, whatever the
   person's Codex plugin setting. Changing the local server's address removes
-  the saved key. After a change, a conversation already started continues
-  only if the model name is unchanged, and then with the server at the new
-  address; one started with another model name cannot be continued.
-- **Why:** the supplier's Codex at the selected version runs a conversation
-  only on the provider its own process was started with, so the App runs one
-  Codex for the ChatGPT account and another, sharing nothing with the
-  person's Codex settings, for the local model server. The server's address
-  is limited to the same machine because a key and the conversation's content
-  would otherwise travel off it without the protections that needs. The key
-  is removed with the address so that a key entered for one server is never
-  sent to another. The product requirements keep a credential required for a
-  local provider in this release.
+  the saved key. An existing conversation continues only when the model name
+  now set matches the model Codex recorded for it, and then uses the server
+  at the address now set; otherwise it cannot continue under the current
+  settings.
+- **Why:** at the selected supplier version, Codex runs conversations only on
+  the provider its process started with, so account and local access use
+  separate homes. The release requires a local credential, limits the server
+  to this machine to keep the key and conversation content from travelling
+  off it without the protections that requires, and removes the saved key
+  when the address changes so it cannot be sent to another server.
 - **What the person does instead:** set the local server's address and model
   name in the App's local model settings, run the model server on the same
   machine with a key, enter the key again after changing the address, and
-  start a new conversation after changing the model name.
+  start a new conversation to use a different model name.
 - **Basis:** DEL-01-05 (REQ-003, REQ-010, AC-003, AC-005, AC-008, AC-011);
   PRD V4-APP-02.

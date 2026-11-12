@@ -208,11 +208,13 @@ supplier direction as though it were unanswered.
   unless it is sandboxed, the host can only decide whether to start it and
   record what it declares. Allow lists locked by an organization and
   enforced sandboxing of outside processes belong to a later governance
-  phase. This property governs a host's embedded agent; the App's own Codex
-  keeps the person's Codex configuration, approval and sandbox choices,
-  apart from the settings DEL-01-05 names that the App applies to its own
-  Codex process and lists for the person: analytics off, and in the account
-  home the built-in provider.
+  phase. This property governs a host's embedded agent. In the account home, the
+  App's Codex keeps the person's Codex configuration, approval and sandbox
+  choices, except that analytics is off and the default provider is the
+  built-in OpenAI provider. The dedicated local home uses the App-owned
+  configuration specified by DEL-01-05, with analytics and plugin traffic
+  off. Every session setting the App applies is listed for the person with
+  its reason.
 - It does not block the host's interface: long parsing and model streaming
   run off the interface's main thread where the host needs it (T10 risk 4).
 - It treats truncated or malformed tool calls as failures to report, never
