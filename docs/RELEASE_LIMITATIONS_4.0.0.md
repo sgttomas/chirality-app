@@ -113,3 +113,51 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** use the App standalone, with the
   workflows it ships and those the person registers.
 - **Basis:** DEL-09-07 and DEL-09-11 (held outside 4.0.0); PRD §8.
+
+### LIM-007: Records packages and log checkpoints are unsigned
+
+- **Id:** LIM-007
+- **Exit criteria:** 15
+- **What is unavailable:** a signature on an exported records package, and a
+  signed checkpoint over a records log. A package verifies as internally
+  consistent with its own manifest and chain heads; it does not show which
+  installation produced it, and a package whose records and manifests were
+  replaced together still verifies. A records log shows a changed, removed or
+  reordered line only where later lines still carry their original links: a
+  change to the content of a log's last line that keeps its link, lines
+  removed from its end, and an edit by someone who recomputes the links after
+  it can go unshown.
+- **Why:** no key is chosen to sign log checkpoints and export manifests.
+- **What the person does instead:** verify a package with the verifier it
+  carries, and establish where it came from by other means.
+- **Basis:** DEL-04-03 (TBD-003; AC-009 and AC-011).
+
+### LIM-008: Library workflows ship as their method text, without the Library's tools
+
+- **Id:** LIM-008
+- **Exit criteria:** 1, 10
+- **What is unavailable:** the App includes every workflow of Chirality
+  Library 3.4.0 as its method text and gives a selected workflow to the agent
+  exactly as the Library wrote it. It does not include the rest of the
+  Library. Some workflows name the Library's tools, a skill or role files,
+  and the steps that use them cannot be done from the App alone. Reading
+  every file of each of the 71 packages for tool, skill and role paths that
+  exist in the Library release, 43 name a Library tool and a few name a role
+  file or a skill; a tool or skill named in words without its path is not
+  counted. These are counts of what the text names, not of what a run
+  requires: the Library does not state, for a workflow, which of the tools it
+  names are required and which are optional, conditional or historical. No
+  workflow declares its required tools in the App's form, so before a run
+  each one reads as "requirements not declared" and the App cannot say which
+  of its tools are available or missing.
+- **Why:** the owner's choice for 4.0.0 is that the workflows ship as written
+  and the Library's tools and skills do not ship. Library 3.4.0 does not
+  state a workflow's requirements in the App's portable form, and it has no
+  packaged or installable distribution of its tools.
+- **What the person does instead:** the tool steps of such a workflow need
+  the Library tools it names to be present at their original relative paths.
+  Obtain them from the Library edition the workflow names as its source
+  (Chirality Library 3.4.0, tag `library-v3.4.0`), keeping their paths, the
+  resources they need and their licence notices, and point the agent at them
+  in the conversation. The whole Library is not needed for this.
+- **Basis:** DEL-02-02 (AC-014, TBD-005); DEL-02-03 (the requirement check).

@@ -1,0 +1,639 @@
+# Worked example: design record for a NEW application (illustrative)
+#
+# Written against the design ontology 0.1 (formats/app-design.schema.json)
+# to test whether the design layer can take an app from intent to a schema-valid, fully
+# traced specification (gw-review.appspec.yaml). No owner asked for this app: the intent is
+# invented for the example and marked illustrative, so nothing here is owner direction.
+# Every ruling is proposed, so the design is NOT RULED by construction. The specification
+# was compiled from these proposed choices as a draft, to test expressibility; a candidate
+# for checkpoint B is compiled only from choices recorded as ruled.
+# Check from the package folder with:
+#   python3 -I tools/check_design.py --schemas formats --catalogue formats/patterns.yaml \
+#     examples/gw-review.design.yaml --spec examples/gw-review.appspec.yaml
+
+design_version: "0.1"
+ontology_version: app_design 0.1.0-draft
+id: gw_review_design
+app: gw_review
+title: Groundwater monitoring review
+mode: new
+owner: Owner of the illustrative example (no real owner)
+catalogue: {catalogue: app_patterns, version: 0.1.0-draft, path: formats/patterns.yaml}
+specification: {path: examples/gw-review.appspec.yaml, appspec_version: "0.1"}
+
+intent:
+  words: >-
+    Every year we review the groundwater monitoring at our remediation sites and
+    recommend changes to the sampling plan. I want an app where our consultants load
+    the year's lab results, see which wells are above the Tier 1 guidelines, whether
+    concentrations are going up or down, and where on the site that is happening, so
+    they can propose which wells to keep sampling, sample less often, sample more
+    often, or stop sampling. The regulator sees the report, so it has to show how each
+    number was worked out.
+  source: ref_example_intent
+  illustrative: true
+  interpretation: >-
+    A review workbench for one site at a time: an upload checked against a contract,
+    criterion screening, a trend test per well and parameter, a site map, a well
+    detail view, and a per-well screening against decision rules that the professional
+    of record adopts. The professional decides the plan; the app shows the evidence and,
+    once the rules are adopted, a candidate per well with the rule that produced it.
+
+# ======================================================================= ontology
+actors:
+  - id: consultant
+    name: Monitoring consultant
+    roles: [user, front_line_analyst]
+    expertise: practitioner
+    context_of_use: At a desk during the annual review, one site at a time.
+    frequency: Yearly per site; several sites a year.
+  - id: professional_of_record
+    name: Professional of record
+    roles: [user, decision_maker, accountable_professional, gatekeeper]
+    expertise: specialist
+    description: Reviews the consultant's work and authenticates what goes to the regulator.
+  - id: regulator
+    name: Regulator's reviewer
+    roles: [reviewer, affected_party]
+    description: Reads the annual report and the proposed sampling plan.
+  - id: site_owner
+    name: Site owner
+    roles: [affected_party, data_custodian]
+    description: Pays for monitoring; owns the laboratory data.
+  - id: receptors
+    name: People and environment near the site
+    roles: [affected_party]
+    description: Bear the consequence of a missed increase.
+
+subjects:
+  - id: monitoring_well
+    name: Monitoring well
+    kind: site
+    identity: Well identifier assigned by the site's monitoring programme.
+    geometry: point
+    represented_by: [monitoring_well_entity]
+  - id: groundwater
+    name: Groundwater at a well
+    kind: material
+    description: The sampled medium; concentrations are measured in groundwater samples.
+
+properties:
+  - id: concentration
+    name: Dissolved concentration of a monitored parameter
+    of_subjects: [monitoring_well]
+    value_semantics: censored
+    origin: observed
+    represented_by: [dissolved_concentration]
+
+data:
+  - id: lab_results
+    name: Laboratory results for the site
+    covers_subjects: [monitoring_well]
+    covers_properties: [concentration]
+    characteristics: [time_series, irregular_sampling, categorical_dimensions, multiple_properties, censored_values, user_supplied, criteria_available]
+    grain: One row per well, sample date and parameter; typically quarterly samples.
+    custodian: site_owner
+    access: private
+    availability: available
+    realized_by: [lab_results_upload]
+  - id: well_registry
+    name: Well registry with locations and site context
+    covers_subjects: [monitoring_well]
+    characteristics: [spatial_points, user_supplied]
+    grain: One row per well, with coordinates, CRS, land use, soil texture and exposure pathway.
+    custodian: site_owner
+    access: private
+    availability: available
+    realized_by: [well_registry_upload]
+  - id: current_plan
+    name: Current sampling frequency per well
+    covers_subjects: [monitoring_well]
+    characteristics: [user_supplied]
+    custodian: site_owner
+    access: private
+    availability: available
+    realized_by: [well_registry_upload]
+  - id: guideline_tables
+    name: Tier 1 groundwater guideline values
+    characteristics: [criteria_available]
+    availability: obtainable
+    quality_notes: To be extracted into a knowledge pack by domain-knowledge-intake and accepted by a domain reviewer.
+    realized_by: [tier1_groundwater]
+
+# ======================================================================= epistemology
+needs:
+  - id: n_data_usable
+    question: Which rows of this year's laboratory file cannot be used, and why?
+    basis: [{kind: inferred, statement: Derived by the author from the illustrative intent; no owner statement.}]
+    standing: ASSUMPTION
+    asked_by: [consultant]
+    task: {goal: discover_confirm, query: identify, target: value, cardinality: all, template: filter, local_task: verify_inputs}
+    interpretation: A row is unusable when it breaks an upload rule or its unit differs from its guideline's unit; analysis is blocked while errors remain.
+    about_subjects: [monitoring_well]
+    answer_form: table
+    priority: essential
+    for_activities: [a_annual_review]
+    answered_by: [issues_table, msg_upload_blocked]
+  - id: n_exceedances
+    question: Which wells exceeded the applicable Tier 1 guideline for each parameter in the review year?
+    basis: [{kind: inferred, statement: Derived by the author from the illustrative intent; no owner statement.}]
+    standing: ASSUMPTION
+    asked_by: [consultant, regulator]
+    task: {goal: discover_confirm, query: identify, target: value, cardinality: all, template: filter}
+    interpretation: A well exceeds for a parameter when any review-year sample is strictly greater than its guideline; a non-detect never exceeds.
+    about_subjects: [monitoring_well]
+    about_properties: [concentration]
+    scope: All wells and parameters with results in the review year.
+    answer_form: table
+    uncertainty: should_show
+    needs_knowledge: [k_guidelines, k_site_context, k_nondetects]
+    priority: essential
+    for_activities: [a_annual_review]
+    for_decisions: [d_sampling_plan]
+    answered_by: [well_summary_table, kpi_exceeding_wells]
+  - id: n_trends
+    question: Is each well's concentration of each parameter increasing, decreasing or showing no trend over its record?
+    basis: [{kind: inferred, statement: Derived by the author from the illustrative intent; no owner statement.}]
+    standing: ASSUMPTION
+    asked_by: [consultant, professional_of_record]
+    task: {goal: discover_confirm, query: identify, target: trend, cardinality: all, local_task: monitor}
+    interpretation: Increasing or decreasing when the adopted test is significant at the adopted level; the level and minimum record are open (g_trend_rule, g_min_record).
+    about_subjects: [monitoring_well]
+    about_properties: [concentration]
+    scope: The full record of each well and parameter.
+    answer_form: classification
+    uncertainty: must_show
+    needs_knowledge: [k_trend_method, k_nondetects, k_min_record]
+    priority: essential
+    for_activities: [a_annual_review]
+    for_decisions: [d_sampling_plan]
+    answered_by: [well_summary_table, kpi_increasing_wells]
+  - id: n_where
+    question: Where on the site are the exceedances and the increasing trends?
+    basis: [{kind: inferred, statement: Derived by the author from the illustrative intent; no owner statement.}]
+    standing: ASSUMPTION
+    asked_by: [consultant, regulator]
+    task: {search: locate, query: identify, target: distribution, cardinality: all}
+    about_subjects: [monitoring_well]
+    answer_form: map
+    priority: important
+    for_activities: [a_annual_review]
+    for_decisions: [d_sampling_plan]
+    answered_by: [site_map]
+  - id: n_well_record
+    question: What is the full record at one well, including non-detects, detection limits and the guideline?
+    basis: [{kind: inferred, statement: Derived by the author from the illustrative intent; no owner statement.}]
+    standing: ASSUMPTION
+    asked_by: [consultant, professional_of_record]
+    task: {search: lookup, query: identify, target: value, cardinality: single, template: retrieve_value}
+    about_subjects: [monitoring_well]
+    answer_form: time_series
+    priority: important
+    for_activities: [a_annual_review]
+    answered_by: [well_series_chart]
+  - id: n_candidate_plan
+    question: Under the adopted rules, what change to the sampling plan does each well's evidence point to?
+    basis: [{kind: inferred, statement: Derived by the author from the illustrative intent; no owner statement.}]
+    standing: ASSUMPTION
+    asked_by: [professional_of_record]
+    task: {query: identify, target: value, cardinality: all, decision_stage: choice}
+    about_subjects: [monitoring_well]
+    answer_form: table
+    needs_knowledge: [k_decision_rules]
+    priority: important
+    for_decisions: [d_sampling_plan]
+    answered_by: [plan_table, kpi_samples_candidate]
+
+knowledge_needs:
+  - id: k_guidelines
+    kind: criterion
+    statement: Groundwater guideline values by parameter, land use, soil texture and exposure pathway, with their edition.
+    source_candidates: [ref_at1_2019]
+    route: domain-knowledge-intake, accepted by a domain reviewer
+    satisfied_by: [tier1_groundwater]
+  - id: k_site_context
+    kind: reference_data
+    statement: Land use, soil texture and exposure pathway for each well, which select the applicable guideline.
+    route: Supplied by the site owner in the well registry
+    satisfied_by: [well_registry_upload]
+  - id: k_nondetects
+    kind: method
+    statement: How results below detection are compared with guidelines and treated in trend tests.
+    source_candidates: [ref_epa_ug_2009]
+    route: Ruling by the professional of record after domain review
+  - id: k_trend_method
+    kind: method
+    statement: The trend test, its significance level and the rule that classifies a trend.
+    source_candidates: [ref_epa_ug_2009]
+    route: analysis-binding, with the classification rule ruled by the professional of record
+    satisfied_by: [mann_kendall_method]
+  - id: k_min_record
+    kind: parameter_values
+    statement: The minimum number of results a trend test needs before a class is shown.
+    route: Expert judgment of the professional of record
+  - id: k_decision_rules
+    kind: decision_rule
+    statement: Rules that map a well's status, trend and record to a candidate sampling change.
+    route: Elicited from the professional of record (domain-knowledge-intake, expert judgment)
+
+# ======================================================================= praxeology
+activities:
+  - id: a_annual_review
+    kind: report
+    statement: Review the year's results for one site and prepare the monitoring section and proposed sampling plan of the annual report.
+    actors: [consultant, professional_of_record]
+    cadence: Yearly, after the last sampling event of the year
+    steps: [n_data_usable, n_exceedances, n_trends, n_where, n_well_record, n_candidate_plan]
+    produces: The monitoring tables and proposed sampling plan for the regulator.
+    supported_by: [review_export, about_results]
+
+decisions:
+  - id: d_sampling_plan
+    statement: For each well, continue the current sampling frequency, reduce it, increase it, or stop sampling.
+    decision_makers: [professional_of_record]
+    alternatives: [alt_continue, alt_reduce, alt_increase, alt_stop]
+    concerns: [c_detect_change, c_cost, c_defensible]
+    timing: Annually, in the report to the regulator.
+    reversibility: A reduced or stopped well can be resumed, but a missed increase is not recovered.
+    app_role: recommend
+    adopted_by: r_decision_rules
+    decision_disclosure: nu_not_decision
+    outside_the_app:
+      - Regulatory approval of the proposed plan.
+      - Site access, programme budget and contractual commitments.
+      - Changes in receptors or land use since the last review.
+      - Professional review of laboratory QA/QC.
+    consequences_shown_by: [plan_table, kpi_samples_current, kpi_samples_candidate]
+
+alternatives:
+  - id: alt_continue
+    label: Continue current frequency
+    status_quo: true
+    realized_by: [well_screen.candidate_action]
+  - id: alt_reduce
+    label: Reduce frequency
+    varies: Fewer sampling events per year at the well.
+    realized_by: [well_screen.candidate_action]
+  - id: alt_increase
+    label: Increase frequency
+    varies: More sampling events per year at the well.
+    realized_by: [well_screen.candidate_action]
+  - id: alt_stop
+    label: Stop sampling
+    varies: The well leaves the monitoring programme.
+    realized_by: [well_screen.candidate_action]
+
+# ======================================================================= axiology
+concerns:
+  - id: c_detect_change
+    statement: Detect new exceedances and increasing concentrations early.
+    held_by: [regulator, receptors, professional_of_record]
+    kind: fundamental
+    direction: avoid
+    measure: Wells exceeding a guideline and wells with an increasing trend.
+    measure_kind: quantitative
+    measure_type: proxy
+    measured_by: [m_exceeding_wells, m_increasing_wells]
+  - id: c_cost
+    statement: Avoid sampling that adds no information.
+    held_by: [site_owner]
+    kind: means
+    direction: minimise
+    measure: Sampling events per year under the current plan and under the candidates.
+    measure_kind: quantitative
+    measure_type: proxy
+    measured_by: [m_samples_current, m_samples_candidate]
+  - id: c_defensible
+    statement: Every number in the report can be traced to its data, guideline and method.
+    held_by: [professional_of_record, regulator]
+    kind: fundamental
+    direction: satisfy
+    measure_kind: qualitative
+    measure_type: constructed
+
+obligations:
+  - id: o_guideline_edition
+    kind: regulatory
+    statement: Use the guideline edition and site context the regulator requires for the site.
+    source: ref_at1_2019
+    addressed_by: [tier1_groundwater]
+  - id: o_authentication
+    kind: professional
+    statement: Work submitted to the regulator is authenticated by the professional of record; obligations depend on the jurisdiction.
+    source: ref_thesis_ch6
+    standing: ASSUMPTION
+    addressed_by: [cav_authentication]
+    met_by_act: true
+  - id: o_confidential
+    kind: contractual
+    statement: Laboratory data belong to the site owner and are not published.
+    addressed_by: [build_profile.access]
+
+preferences:
+  - id: p_workbook
+    statement: Consultants prefer a workbook they can paste into the report.
+    held_by: [consultant]
+
+consequences:
+  - id: e_missed_increase
+    failure: An increasing trend or a new exceedance is missed, for example through a wrong non-detect rule or a wrong guideline.
+    effect: Sampling is reduced or stopped at a well where contamination is increasing, delaying a response.
+    affects: [receptors, site_owner, regulator]
+    detectability: hard
+    related_needs: [n_exceedances, n_trends, n_candidate_plan]
+  - id: e_false_exceedance
+    failure: A result is flagged as exceeding because of a wrong guideline, context key or unit.
+    effect: Unnecessary sampling or remediation cost, and loss of the report's credibility.
+    affects: [site_owner, professional_of_record]
+    detectability: on_review
+    related_needs: [n_exceedances]
+  - id: e_superseded_edition
+    failure: A superseded guideline edition is applied.
+    effect: The regulator rejects the report.
+    affects: [professional_of_record, site_owner]
+    detectability: on_review
+    related_needs: [n_exceedances]
+
+tier:
+  tier: T3_professional_reliance
+  grounds: [e_missed_increase, e_false_exceedance, e_superseded_edition]
+  rationale: >-
+    The stated use is regulatory reporting: the regulator receives the report and the
+    professional of record authenticates it. The gates place regulatory reporting at T3
+    (workflows/data-app-spec/resources/gates.md). The worst error, a missed increase, is hard
+    to detect. A purely internal use would fit T2; the owner rules.
+  ruling: r_tier
+  standing: PROPOSAL
+
+non_uses:
+  - id: nu_not_risk_assessment
+    statement: Not a risk assessment and not a determination of compliance.
+    disclosed_by: [txt_non_uses]
+  - id: nu_not_decision
+    statement: The app does not decide the sampling plan; the professional of record does.
+    disclosed_by: [txt_non_uses]
+  - id: nu_not_drinking_water
+    statement: Not for drinking-water compliance.
+    disclosed_by: [txt_non_uses]
+  - id: nu_not_qaqc
+    statement: Does not review laboratory QA/QC.
+    disclosed_by: [txt_non_uses]
+
+# ======================================================================= design
+options:
+  - id: opt_upload
+    for_needs: [n_data_usable]
+    pattern: upload_contract
+    description: Two uploads (results and well registry) against templates, with an issue table that blocks analysis on errors.
+  - id: opt_exceedance
+    for_needs: [n_exceedances]
+    pattern: criterion_exceedance
+    description: Resolve the Tier 1 value per result by parameter and well context; flag exceedances per sample in the review year.
+  - id: opt_mann_kendall
+    for_needs: [n_trends]
+    pattern: trend_test_per_entity
+    description: Mann-Kendall test with Sen's slope per well and parameter over the full record.
+    strengths: [No distributional assumption, Widely used for groundwater trends]
+    weaknesses: [Needs a non-detect rule, Weak with short records]
+  - id: opt_log_regression
+    for_needs: [n_trends]
+    pattern: trend_test_per_entity
+    description: Linear regression of log concentration on time per well and parameter.
+    strengths: [Gives a rate with a confidence interval]
+    weaknesses: [Sensitive to non-detects and outliers]
+  - id: opt_site_map
+    for_needs: [n_where]
+    pattern: site_map_drilldown
+    description: Wells on a site map coloured by exceedance status and shaped by trend class; a click selects the well.
+  - id: opt_well_detail
+    for_needs: [n_well_record]
+    pattern: series_detail_with_reference
+    description: The selected well's results for the selected parameter, with non-detects marked and the guideline drawn.
+  - id: opt_screening
+    for_needs: [n_candidate_plan]
+    for_decisions: [d_sampling_plan]
+    pattern: rule_based_screening
+    description: A candidate sampling change per well from adopted rules, with the rule shown, next to the current plan.
+  - id: opt_evidence_only
+    for_decisions: [d_sampling_plan]
+    description: Show the evidence per well without any candidate, leaving the mapping to the professional.
+    strengths: [Needs no adopted rules]
+    weaknesses: [The plan is assembled by hand, with less consistency between wells]
+  - id: opt_review_export
+    for_activities: [a_annual_review]
+    pattern: report_export
+    description: A workbook of the well summary, exceedances and trends, with a provenance sheet.
+  - id: opt_about_results
+    for_activities: [a_annual_review]
+    pattern: result_provenance
+    description: An "About these results" panel with data vintage, guideline edition, methods and acceptance status.
+
+choices:
+  - id: ch_upload
+    selects: opt_upload
+    category: consequential
+    ruling: r_design
+    settled:
+      - {key: template_and_example, answer: "Two templates (results, well registry), each with a synthetic example file.", realized_by: [lab_results_upload, well_registry_upload], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: column_roles, answer: Fixed by the templates; no user role mapping., realized_by: [lab_results_upload], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - key: parse_rules
+        answer: ISO 8601 dates only; decimal point; a detect flag column with values detected or not_detected; the detection limit in its own column.
+        realized_by: [lab_results_upload]
+        basis: [{kind: inferred, statement: Proposed by the author.}]
+        standing: PROPOSAL
+      - {key: validation_messages, answer: One message per rule; the issue table lists row and rule., realized_by: [issues_table], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: gate, answer: Errors block analysis; warnings do not., realized_by: [msg_upload_blocked], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: units_declared, answer: Each row states its unit; a unit that differs from the guideline's blocks that row., realized_by: [lab_results_upload], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+  - id: ch_exceedance
+    selects: opt_exceedance
+    category: consequential
+    ruling: r_design
+    settled:
+      - {key: criterion_instrument, answer: Alberta Tier 1 groundwater guidelines in the edition the regulator requires; values come from an accepted knowledge pack., realized_by: [tier1_groundwater], authority: accountable_professional, basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: context_keys, gap: g_missing_key_rule}
+      - {key: averaging_and_statistic, answer: Each sample in the review year is compared individually; a well exceeds when any sample does., realized_by: [well_summary], authority: accountable_professional, basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: comparison_rule, answer: Exceeds when the reported value is strictly greater than the guideline value; no rounding before comparison., realized_by: [results_with_guideline], authority: accountable_professional, basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: censored_values, gap: g_nondetects}
+      - {key: unit_consistency, answer: Units must equal the guideline unit; there is no conversion., realized_by: [lab_results_upload], authority: accountable_professional, basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: no_criterion, answer: "Parameters without a guideline show 'no guideline' and are excluded from counts.", realized_by: [results_with_guideline], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+  - id: ch_trend
+    selects: opt_mann_kendall
+    rejected: [opt_log_regression]
+    category: consequential
+    reason: Non-parametric and common for groundwater trends; the regression option is kept as the alternative for the ruling.
+    ruling: r_design
+    settled:
+      - {key: test_method, answer: Two-sided Mann-Kendall test with Sen's slope; no seasonal blocking., realized_by: [mann_kendall_method, trend_component], authority: accountable_professional, basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: classification_rule, gap: g_trend_rule}
+      - {key: censored_values, gap: g_nondetects}
+      - {key: minimum_record, gap: g_min_record}
+      - {key: seasonality, answer: Not modelled; a caveat discloses it., realized_by: [cav_seasonality], authority: accountable_professional, basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: slope_units, answer: The result's unit per year., realized_by: [trend_analysis], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+  - id: ch_site_map
+    selects: opt_site_map
+    category: consequential
+    ruling: r_design
+    settled:
+      - {key: crs, answer: The well registry declares its CRS; wells are reprojected to EPSG:4326 for display., realized_by: [wells_wgs84], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: marker_encoding, answer: "Colour by review-year status for the selected parameter (exceeds, below, not assessable, no data); the trend class is shown in the popup.", realized_by: [site_map], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: no_selection_state, answer: "The detail chart shows 'Select a well on the map or in the table'.", realized_by: [well_series_chart], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: label_join, answer: Every join is on well_id., realized_by: [results_with_well], basis: [{kind: inferred, statement: "A join by row order can silently mislabel rows when the sources are ordered differently."}], standing: PROPOSAL}
+      - {key: shared_encodings, answer: "Status has one colour per class in every view: the map uses cs_status and the table marks exceeding rows in the same red.", realized_by: [site_map, well_summary_table], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+  - id: ch_well_detail
+    selects: opt_well_detail
+    category: presentation
+    delegation: del_presentation
+    settled:
+      - {key: censored_markers, answer: Non-detects drawn as open circles at the detection limit., realized_by: [well_series_chart], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: reference_values, answer: The applicable guideline is drawn as a rule labelled from the guideline table row., realized_by: [well_series_chart], authority: accountable_professional, basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: time_axis, answer: Calendar dates with irregular spacing., realized_by: [well_series_chart], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: units_shown, answer: The y axis title carries the unit., realized_by: [well_series_chart], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+  - id: ch_screening
+    selects: opt_screening
+    rejected: [opt_evidence_only]
+    category: consequential
+    reason: Consistency between wells; the evidence-only option remains if no rules are adopted.
+    ruling: r_design
+    settled:
+      - {key: rule_authority, gap: g_decision_rules}
+      - {key: rule_inputs, answer: "Review-year status, trend class and record length from this app's own results.", realized_by: [well_screen], authority: accountable_professional, basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: precedence, gap: g_decision_rules}
+      - {key: insufficient_evidence, answer: "'Insufficient record': no candidate is shown.", realized_by: [well_screen], authority: accountable_professional, basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: rule_shown, answer: The rule identifier appears next to each candidate., realized_by: [plan_table], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+  - id: ch_export
+    selects: opt_review_export
+    category: consequential
+    ruling: r_design
+    settled:
+      - {key: export_contents, answer: "Sheets: well summary, review-year exceedances, trend results, issues.", realized_by: [review_export], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: provenance_fields, answer: "App and specification identity, upload file names and hashes, guideline pack edition, component versions, export date.", realized_by: [review_export], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: format, answer: xlsx without branding., realized_by: [review_export], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: reproducibility, answer: The provenance sheet identifies every input; the same inputs reproduce the workbook., realized_by: [review_export], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+  - id: ch_provenance
+    selects: opt_about_results
+    category: consequential
+    ruling: r_design
+    settled:
+      - {key: data_vintage, answer: The uploaded files' sampling period and upload time., realized_by: [about_results], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: per_result_provenance, answer: On request for each well's status and trend., realized_by: [about_results], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+      - {key: acceptance_display, answer: "Shown as recorded, including its absence.", realized_by: [about_results], basis: [{kind: inferred, statement: Proposed by the author.}], standing: PROPOSAL}
+
+delegations:
+  - id: del_presentation
+    covers: [presentation, routine]
+    conditions: The author may settle appearance and routine pattern forms; any change to meaning, results or wording of disclosures goes back to the owner.
+    ruling: r_delegate_presentation
+
+supporting:
+  - {element: txt_home_view, reason: Home text stating the purpose and the review steps.}
+  - {element: txt_non_uses_view, reason: Discloses the non-uses.}
+  - {element: plan_caveat_view, reason: Shows the decision caveat next to the candidates.}
+  - {element: about_caveats_view, reason: Shows the method caveat on the About tab.}
+  - {element: export_caveat_view, reason: States the authentication condition next to the export.}
+
+exclusions:
+  - id: x_lims
+    statement: No connection to a laboratory information system; results arrive by file.
+    kind: deferred
+  - id: x_decision_record
+    statement: The professional's final decisions are not recorded in the app.
+    kind: out_of_family
+    reason: Multi-user write-back is outside the family (formats/ONTOLOGY.md §7); the decision is recorded in the report.
+
+references:
+  - id: ref_example_intent
+    kind: document
+    title: Illustrative intent written by the author for this worked example
+    locator: examples/gw-review.design.yaml intent.words
+    status_note: Not an owner statement.
+  - id: ref_at1_2019
+    kind: standard
+    title: Alberta Tier 1 Soil and Groundwater Remediation Guidelines
+    publisher: Alberta Environment and Parks
+    date: "2019"
+    status_note: Not retrieved for this example; URL TBD.
+  - id: ref_epa_ug_2009
+    kind: standard
+    title: "Statistical Analysis of Groundwater Monitoring Data at RCRA Facilities: Unified Guidance (EPA 530/R-09-007)"
+    publisher: US Environmental Protection Agency
+    date: "2009"
+    url: https://archive.epa.gov/epawaste/hazard/web/pdf/unified-guid.pdf
+    status_note: §17.3.2, Example 17-6 and Chapter 20 were read.
+  - id: ref_thesis_ch6
+    kind: document
+    title: Chirality thesis, Chapter 6, §6.9 Limitations of the regulatory mapping
+    locator: docs/thesis/06_professional_practice.md §6.9.2 (jurisdiction specificity)
+
+gaps:
+  - id: g_trend_rule
+    statement: The significance level and the rule that turns a test result into increasing, decreasing or no trend are not adopted.
+    affects: [ch_trend, k_trend_method]
+    blocking: [build, acceptance]
+    resolution_route: Ruling by the professional of record, informed by the method source.
+    status: open
+  - id: g_nondetects
+    statement: >-
+      How non-detects are compared with guidelines and treated in the trend test is not
+      adopted. For comparisons the author proposes that a non-detect never exceeds, and
+      that a detection limit above the guideline is shown as 'not assessable'.
+    affects: [ch_exceedance, ch_trend, k_nondetects]
+    blocking: [build, acceptance]
+    resolution_route: >-
+      Domain review, then a ruling by the professional of record. A candidate is the
+      Unified Guidance's rule of a common value below all detects, which it calls "an
+      imperfect remedy" (§17.3.2); a source informs the ruling but does not make it.
+    status: open
+  - id: g_missing_key_rule
+    statement: >-
+      What applies when a well's context key is missing is not established. The guideline
+      document has not been read; one option is 'undefined = most conservative'. The
+      author's draft blocks such wells with a message.
+    affects: [ch_exceedance, k_guidelines]
+    blocking: [build, acceptance]
+    resolution_route: Read the guideline document; domain review; a ruling by the professional of record.
+    status: open
+  - id: g_guideline_edition
+    statement: The guideline edition and site context the regulator requires are not confirmed, and the guideline document has not been read.
+    affects: [o_guideline_edition, k_guidelines]
+    blocking: [acceptance]
+    resolution_route: Ask the regulator through the owner; domain-knowledge-intake records the edition.
+    status: open
+  - id: g_min_record
+    statement: The minimum record length for a trend class is not adopted.
+    affects: [ch_trend, k_min_record]
+    blocking: [build]
+    resolution_route: Expert judgment of the professional of record.
+    status: open
+  - id: g_decision_rules
+    statement: No decision rules for sampling changes have been elicited or adopted.
+    affects: [ch_screening, k_decision_rules]
+    blocking: [build, acceptance]
+    resolution_route: Elicitation from the professional of record through domain-knowledge-intake; otherwise rule the evidence-only option.
+    status: open
+
+rulings:
+  - id: r_tier
+    decision: Assign consequence tier T3_professional_reliance for regulatory reporting.
+    status: proposed
+    authority: owner
+    scope: [tier]
+  - id: r_design
+    decision: Adopt the consequential design choices as proposed.
+    status: proposed
+    authority: owner
+    scope: [ch_upload, ch_exceedance, ch_trend, ch_site_map, ch_screening, ch_export, ch_provenance]
+  - id: r_professional_method
+    decision: Adopt the method answers proposed for the criterion source, units, comparison, averaging, the trend test, seasonality, the reference line and the screening inputs.
+    status: proposed
+    authority: accountable_professional
+    scope: [ch_exceedance.criterion_instrument, ch_exceedance.unit_consistency, ch_exceedance.comparison_rule, ch_exceedance.averaging_and_statistic, ch_trend.test_method, ch_trend.seasonality, ch_well_detail.reference_values, ch_screening.rule_inputs, ch_screening.insufficient_evidence]
+  - id: r_decision_rules
+    decision: Adopt the elicited decision rules for sampling changes, identified by the hash in k_decision_rules.adopted_content. Not to be made until the rules exist (g_decision_rules).
+    status: proposed
+    authority: accountable_professional
+    scope: [d_sampling_plan, k_decision_rules]
+  - id: r_delegate_presentation
+    decision: Delegate presentation and routine choices to the author, under the stated conditions.
+    status: proposed
+    authority: owner
+    scope: [del_presentation]

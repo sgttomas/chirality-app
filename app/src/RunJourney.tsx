@@ -2,6 +2,7 @@ import { conversationLabel, nativePathText } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
 import { chatWorkflow, workflowAssurance } from "./workflowSelection";
 import { ProjectFolderSummary, appProjectFolder } from "./WorkflowContext";
+import { IncludedWorkflows, RoleBesideWorkflow, includedEntryOf, librarySourceWords } from "./IncludedWorkflows";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 /** What each guide command did, in the person's words. */
@@ -140,13 +141,25 @@ export function runReading(run: Json, host: Json): RunReading {
     // Codex session keeps its lifecycle, but a same-ID thread or request now
     // is not its activity.
     if (!same(run?.generation, host?.generation) || run?.home !== host?.generation?.home)
-      return { tone: "idle", title: "Open in an earlier Codex session", detail: "This run was recorded open in a Codex session that isn't the current one, so the App can't see what it is doing now. Find its conversation in History." };
+      return { tone: "uncertain", title: "Open in an earlier Codex session", detail: "This run was recorded open in a Codex session that isn't the current one, so the App can't see what it is doing now. Find its conversation in History." };
     const waiting = hostRequests(host).filter((request: Json) => requestThread(request) === run.conversation && request.state === "outstanding" && (request.generation === undefined || same(request.generation, run.generation))).length;
     if (waiting > 0) return { tone: "waiting", title: "Waiting for your answer", detail: `Codex is asking ${waiting === 1 ? "a question or approval" : `${waiting} questions or approvals`} in the conversation. Nothing continues until you answer there.` };
     const thread = list(host?.threads).find((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation));
-    if (thread?.status?.type === "active") return { tone: "working", title: "Working", detail: "Codex is working on this run. Follow its progress in the conversation." };
+    // The status is Codex's own last report for this conversation, and each
+    // reading says that report and nothing that would follow from it: an
+    // idle conversation says nothing of agents it delegated to, a waiting
+    // flag is Codex's word before any request has reached the App, and the
+    // end of the App's observation is not a claim about Codex's process. A
+    // status never reported, or not one the App can read, says nothing.
+    if (host?.generationClosed === true || thread?.statusObservationEnded === true) return { tone: "uncertain", title: "Open — the App is no longer receiving from Codex", detail: "The App is no longer receiving from the Codex process this run was in, so what the run was doing is not known. Start Codex again under Connection & access, then continue the conversation or end the run." };
+    if (thread?.status?.type === "active") {
+      const flags = list(thread.status.activeFlags);
+      if (flags.includes("waitingOnApproval") || flags.includes("waitingOnUserInput")) return { tone: "waiting", title: "Codex reports it is waiting for an approval or an answer", detail: "Codex reports this conversation is waiting for an approval or for your answer. The request appears in the conversation once the App has received it." };
+      return { tone: "working", title: "Working", detail: "Codex is working on this run. Follow its progress in the conversation." };
+    }
     if (thread?.status?.type === "systemError") return { tone: "failed", title: "Codex reported an error", detail: "The conversation reported a system error. The run is still open; read the conversation, then continue or end the run." };
-    return { tone: "idle", title: "Open — Codex is not working right now", detail: "The run stays open until you end it. Reply in the conversation to continue, or end the run when you are done." };
+    if (thread?.status?.type === "idle") return { tone: "idle", title: "Open — Codex reports this conversation idle", detail: "Codex last reported this conversation as idle, which says nothing about agents it delegated work to. The run stays open until you end it. Reply in the conversation to continue, or end the run when you are done." };
+    return { tone: "uncertain", title: "Open — what Codex is doing is not known", detail: `The App cannot establish what Codex is doing in this conversation: ${thread?.statusSource?.limit ? text(thread.statusSource.limit) : thread?.status?.type === "notLoaded" ? "Codex reports the conversation as not loaded" : "it holds no status from Codex for it that it can read"}. The run stays open; read the conversation before deciding what to do.` };
   }
   if (run?.source) return { tone: "working", title: "Starting", detail: "The starting message was sent. The run opens when Codex begins it." };
   if (status.sent === false && status.limit) {
@@ -276,6 +289,12 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
   const newer = chosen?.newerRevision;
   // A current limit (changed store, approval no longer admitted) blocks the run
   // even while the selection's standing admits it (WR §4.6, SL-4).
+  // The Library release is named only for a selection that is a catalogue
+  // entry by its whole identity; any other is described by its own source.
+  const librarySource = librarySourceWords(data?.productionCatalog?.source);
+  const chosenSource = !chosen ? "" : includedEntryOf(data?.productionCatalog, chosen) ? `included with the App${librarySource ? `, from ${librarySource}` : ""}`
+    : chosen.identity?.origin === "bundled" ? `a bundled copy${chosen.identity?.source_root ? ` (source ${text(chosen.identity.source_root)})` : ""}`
+    : `${text(chosen.identity?.origin)} library`;
   const chosenReady = chosen?.runnable === true && !chosen?.currentLimit;
   const chosenLimit = chosen?.runnable === true ? chosen?.currentLimit : chosen?.runLimit;
   const step = !ready ? "Connect Codex first: open Connection & access and start Codex."
@@ -315,7 +334,8 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         <p><small>The workflow runs inside this conversation; you answer its questions there.</small></p>
       </li>
       <li aria-labelledby="run-workflow-heading"><h3 id="run-workflow-heading">Workflow</h3>
-        {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {text(chosen.identity?.origin)} library, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : ""}<code title={text(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosenReady ? "Ready to run." : `Can't run: ${text(chosenLimit)}`}</p>}
+        {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {chosenSource}, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : "revision "}<code title={text(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosenReady ? "Ready to run." : `Can't run: ${text(chosenLimit)}`}</p>}
+        {chosen && <RoleBesideWorkflow entry={includedEntryOf(data?.productionCatalog, chosen)} conversation={conversations.find((row: Json) => row.threadId === thread)}/>}
         {chosen && chosen.identity?.origin !== "bundled" && <p role="note" aria-label="Approval evidence">{workflowAssurance(chosen.assurance)}</p>}
         {chosen && newer && !(newer.limit && chosen.identity?.origin === "bundled") && (newer.limit ? <p role="note">Newer revisions of {text(chosen.identity?.name)} can't be checked: {text(newer.limit)}</p>
           : <p role="note" aria-label="Newer revision for this conversation">A newer revision of <strong>{text(chosen.identity?.name)}</strong> is registered ({text(newer.notice)}). This conversation keeps using the one shown above until you choose the newer one.{" "}
@@ -338,11 +358,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         {active && listing?.libraryRef === active.reference && listing?.state === "unavailable" && <p role="note">The App couldn't look in this library's folder for other workflows{list(listing.limits).length ? `: ${list(listing.limits).map(text).join("; ")}` : "."}</p>}
         {pendingReview && <p role="note">A review is open. <a href="#workflow-reviews">Read it and confirm</a> to approve the workflow for use.</p>}
         {active && <button disabled={!canAct} onClick={() => perform("workflow_library_entries_refresh", { libraryRef: active.reference })}>Look for other workflows in this library</button>}
-        {bundled.map((entry: Json) => entry.runnable === true
-          ? <p key={entry.name}>Included with the App: <strong>{text(entry.name)}</strong>{entry.revision ? <> (<code>{text(entry.revision).slice(0, 12)}…</code>)</> : ""}.{" "}
-            <button disabled={!canAct || !thread} onClick={() => perform("workflow_select_production_bundle", { name: entry.name })}>Use {text(entry.name)} (included with the App)</button></p>
-          : <div key={entry.name} role="note"><p>Included with the App: <strong>{text(entry.name)}</strong>. This build can't run it directly; you can inspect it in the workflow studio.</p>
-            <details><summary>Why</summary><p>{text(entry.runLimit) || text(data?.productionCatalog?.standing) || "The App reports it as not runnable."}</p></details></div>)}
+        <IncludedWorkflows catalog={data?.productionCatalog} chosen={chosen} disabled={!canAct} needsConversation={!thread} choose={name => perform("workflow_select_production_bundle", { name })}/>
       </li>
       <li aria-labelledby="run-inputs-heading"><h3 id="run-inputs-heading">Inputs</h3>
         {inputs.length > 0 ? <ul aria-label="What this workflow needs">{inputs.map((input: Json, index: number) => <li key={index}>
