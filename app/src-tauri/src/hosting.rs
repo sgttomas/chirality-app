@@ -2496,6 +2496,8 @@ impl Host {
         crate::recovery::generation_ref(query.generation())?;
         if query.generation()["home"]!=query.home() {return Err("history home and full generation differ".into());}
         if !matches!(query.method(),"thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/resume") {return Err("unsupported history factory method".into());}
+        // An account or key-home Continue rests on Codex reporting the built-in provider; nothing for a local home.
+        if query.method()=="thread/resume" {self.cloud_continuation_admission(query.generation(),access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME)?;}
         // A local saved-thread Continue gets the same effective provider-definition admission as a new start.
         if let Some(proof)=(query.method()=="thread/resume").then(||self.local_resume_admission(query.generation(),&query.params()["threadId"])).transpose()?.flatten() {
             // The wire packet names the classified cwd so Codex cannot load another history-derived cwd.
@@ -2677,6 +2679,8 @@ impl Host {
             self.inner.0.lock().unwrap().local_fork_configs.insert(request.request_ref().to_string(),proof.source().clone());
             return Ok(request);
         }
+        // An account or key-home fork rests on Codex reporting the built-in provider.
+        self.cloud_continuation_admission(generation,access_provider::BUILT_IN_PROVIDER_UNREPORTED_FORK)?;
         self.request_begin_scoped("thread/fork",params,json!({"kind":"person-directed"}),false,Some(generation))
     }
     /// Admits the forked conversation operationally from the correlated
@@ -4923,7 +4927,14 @@ mod conversation_transport_tests {
     use super::*;
     fn g()->Value {json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":1})}
     fn host()->Arc<Host> {
-        let host=Arc::new(Host::new());{let mut i=host.inner.0.lock().unwrap();i.state="ready".into();i.generation=g();i.journal.begin_generation(g());i.threads.push(json!({"generation":g(),"threadId":"thread","model":"selected","modelProvider":"selected-provider"}));}host
+        let host=Arc::new(Host::new());{let mut i=host.inner.0.lock().unwrap();i.state="ready".into();i.generation=g();i.journal.begin_generation(g());i.server_cwd=Some("/invented".into());i.threads.push(json!({"generation":g(),"threadId":"thread","model":"selected","modelProvider":"selected-provider"}));}
+        // An account Continue or fork first reads Codex's configuration; this home reports the built-in provider.
+        *host.before_provider_wait.lock().unwrap()=Some(Box::new(|host,source|{host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":{"config":{"model_provider":"openai"},"origins":{}}})).unwrap(),source.generation());}));
+        host
+    }
+    /// The next frame written to the stand-in that is not the configuration reading (answered by the hook).
+    fn next_operation_frame(reader:&mut BufReader<std::process::ChildStdout>)->Result<Value,String>{
+        loop{let mut line=String::new();reader.read_line(&mut line).map_err(|e|format!("peer read failed: {e}"))?;let frame:Value=serde_json::from_str(&line).map_err(|e|format!("peer frame unavailable: {e}"))?;if frame["method"]!="config/read"{return Ok(frame);}}
     }
     fn turn(status:&str)->Value {json!({"id":"turn","status":status,"items":[],"itemsView":"full","nativeExtra":{"unchanged":true}})}
     fn event(host:&Host,status:&str) {host.on_line(&serde_json::to_vec(&json!({"method":if status=="inProgress"{"turn/started"}else{"turn/completed"},"params":{"threadId":"thread","turn":turn(status)}})).unwrap(),&g());}
@@ -4931,7 +4942,7 @@ mod conversation_transport_tests {
         where F:FnOnce()->Result<Value,String> {
         let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();let me=Arc::clone(host);let(tx,rx)=channel();
         let worker=std::thread::spawn(move|| {
-            let mut line=String::new();BufReader::new(stdout).read_line(&mut line).unwrap();let outbound:Value=serde_json::from_str(&line).unwrap();tx.send(outbound.clone()).unwrap();
+            let outbound=next_operation_frame(&mut BufReader::new(stdout)).unwrap();tx.send(outbound.clone()).unwrap();
             for frame in before {me.on_line(&serde_json::to_vec(&frame).unwrap(),&g());}
             if let Some(mut frame)=response {frame["id"]=outbound["id"].clone();me.on_line(&serde_json::to_vec(&frame).unwrap(),&g());}
         });
@@ -5548,9 +5559,7 @@ mod conversation_transport_tests {
         let me = Arc::clone(host); let (done_tx, done_rx) = channel();
         let worker = std::thread::spawn(move || {
             let completed = (|| -> Result<Value, String> {
-                let mut line = String::new();
-                BufReader::new(stdout).read_line(&mut line).map_err(|e| format!("history peer read failed: {e}"))?;
-                let outbound: Value = serde_json::from_str(&line).map_err(|e| format!("history peer frame unavailable: {e}"))?;
+                let outbound = next_operation_frame(&mut BufReader::new(stdout))?;
                 if let Some(release) = peer_release {
                     release.recv_timeout(Duration::from_secs(3)).map_err(|e| format!("history peer response gate was not released: {e}"))?;
                 }

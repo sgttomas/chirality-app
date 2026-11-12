@@ -542,6 +542,10 @@ fn url_without_credentials(value: &Value) -> Result<(), String> {
 /// The refusal of a cloud entry whose home's Codex does not report the built-in provider. It
 /// does not assert the cause.
 pub(crate) const BUILT_IN_PROVIDER_UNREPORTED: &str = "Access entry unavailable: this home's Codex does not report the built-in OpenAI provider (a managed Codex requirement may name another); no thread/start sent";
+/// As BUILT_IN_PROVIDER_UNREPORTED, for a saved conversation continued from history.
+pub(crate) const BUILT_IN_PROVIDER_UNREPORTED_RESUME: &str = "Access entry unavailable: this home's Codex does not report the built-in OpenAI provider (a managed Codex requirement may name another); no thread/resume sent";
+/// As BUILT_IN_PROVIDER_UNREPORTED, for a fork of a conversation.
+pub(crate) const BUILT_IN_PROVIDER_UNREPORTED_FORK: &str = "Access entry unavailable: this home's Codex does not report the built-in OpenAI provider (a managed Codex requirement may name another); no thread/fork sent";
 fn classify(
     result: &Value,
     entry: &str,
@@ -1317,6 +1321,22 @@ impl Host {
         };
         use crate::native_local_provider::{ENTRY, PROVIDER};
         self.provider_admission_read(generation, &cwd, ENTRY, PROVIDER, &model).map(Some)
+    }
+    /// A host with no local binding (the account home, the separate key home): before a saved
+    /// conversation is resumed or forked, Codex's own configuration reading for this generation must
+    /// report the built-in provider, the fact the cloud entries' start admission rests on. Read at
+    /// the folder this Codex was started in: the provider is the session setting unless a managed
+    /// requirement names another, and managed requirements do not depend on the folder. A reading
+    /// that cannot be made refuses. The dedicated local home has its own admissions: nothing here.
+    pub(super) fn cloud_continuation_admission(&self, generation: &Value, refusal: &str) -> Result<(), String> {
+        let cwd = {
+            let i = self.inner.0.lock().map_err(|_| unavailable())?;
+            if i.local_provider.is_some() { return Ok(()); }
+            i.server_cwd.clone().filter(|cwd| !cwd.is_empty()).ok_or_else(unavailable)?
+        };
+        let reading = self.private_provider_config_read(generation, &cwd, Duration::from_secs(10), PrivateConfigPurpose::Admission)?;
+        if reading.config["config"]["model_provider"] != "openai" { return Err(refusal.into()); }
+        Ok(())
     }
     /// Operational admission of a local Continue or fork still requires its admitting reading to be current.
     pub(super) fn check_local_reading_current(&self, i: &Inner, source: Option<&SourceRequest>) -> Result<(), String> {
