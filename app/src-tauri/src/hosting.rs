@@ -1733,8 +1733,8 @@ impl Host {
         crate::dev_model_address::check_start(cfg)?;
         let records_activity=if cfg.records_project {crate::records_retention::activity(&cfg.cwd)?}else{None};
         *self.this.lock().unwrap() = Arc::downgrade(self);
-        // The dedicated local home: an earlier Codex there must be known ended before another
-        // starts. The exclusive, non-waiting lock is taken before the attempt is admitted, so a
+        // The dedicated local home: a start is refused while the lock taken for an earlier Codex
+        // of that home is still held. The exclusive, non-waiting lock is taken before the attempt is admitted, so a
         // refusal is an ordinary early refusal: nothing is recorded and the state is unchanged, and
         // Prepare or Start can be tried again. A state that admits no start refuses as admission
         // would, before the lock is tried. The App's copy is closed as soon as the child is spawned.
