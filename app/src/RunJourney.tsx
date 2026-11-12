@@ -93,7 +93,7 @@ export function runReading(run: Json, host: Json): RunReading {
     }
     if (thread?.status?.type === "systemError") return { tone: "failed", title: "Codex reported an error", detail: "The conversation reported a system error. The run is still open; read the conversation, then continue or end the run." };
     if (thread?.status?.type === "idle") return { tone: "idle", title: "Open — Codex reports this conversation idle", detail: "Codex last reported this conversation as idle, which says nothing about agents it delegated work to. The run stays open until you end it. Reply in the conversation to continue, or end the run when you are done." };
-    return { tone: "uncertain", title: "Open — what Codex is doing is not known", detail: `Codex has not reported a status for this conversation that the App can read${thread?.statusSource?.limit ? ` (${text(thread.statusSource.limit)})` : ""}. The run stays open; read the conversation before deciding what to do.` };
+    return { tone: "uncertain", title: "Open — what Codex is doing is not known", detail: `The App cannot establish what Codex is doing in this conversation: ${thread?.statusSource?.limit ? text(thread.statusSource.limit) : thread?.status?.type === "notLoaded" ? "Codex reports the conversation as not loaded" : "it holds no status from Codex for it that it can read"}. The run stays open; read the conversation before deciding what to do.` };
   }
   if (run?.source) return { tone: "working", title: "Starting", detail: "The starting message was sent. The run opens when Codex begins it." };
   if (status.sent === false && status.limit) return { tone: "failed", title: "Not started", detail: `${text(status.state)}: ${text(status.limit)}` };

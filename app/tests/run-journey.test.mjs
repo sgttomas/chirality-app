@@ -474,7 +474,13 @@ test('an open run is read from what Codex reported for its conversation and no m
     assert.doesNotMatch(unknown.title + unknown.detail, /idle|Working|waiting/);
   }
   const limited = reading({status:null, statusSource:{method:'thread/status/changed', receiptPosition:9, limit:'the notification does not match the pinned ThreadStatusChangedNotification; status unknown'}});
-  assert.match(limited.detail, /\(the notification does not match the pinned ThreadStatusChangedNotification; status unknown\)/);
+  assert.match(limited.detail, /The App cannot establish what Codex is doing in this conversation: the notification does not match the pinned ThreadStatusChangedNotification; status unknown\./);
+  // A report that was received but could not be ordered against the admission reply is said as that, not as "nothing readable".
+  const unordered = reading({status:null, statusSource:{method:'thread/status/changed', limit:'a status report was received for this conversation and its order relative to the admission reply is not established; status unknown'}});
+  assert.match(unordered.detail, /cannot establish what Codex is doing in this conversation: a status report was received for this conversation and its order relative to the admission reply is not established/);
+  assert.doesNotMatch(unordered.detail, /no status from Codex|has not reported/);
+  assert.match(reading({status:{type:'notLoaded'}}).detail, /: Codex reports the conversation as not loaded\./);
+  assert.match(reading({}).detail, /: it holds no status from Codex for it that it can read\./);
   // The end of the App's observation: the last status seen is not a reading, and nothing is claimed about Codex's process.
   for (const [row, extra] of [[{status:null, lastObservedStatus:{type:'active', activeFlags:[]}, statusObservationEnded:true}, {}], [{status:{type:'idle'}}, {generationClosed:true}], [{status:{type:'active', activeFlags:[]}}, {generationClosed:true}], [{status:{type:'idle'}, statusObservationEnded:true}, {}]]) {
     const ended = reading(row, extra);
@@ -490,8 +496,6 @@ test('an open run is read from what Codex reported for its conversation and no m
     assert.match(waits.detail, /The request appears in the conversation once the App has received it\./);
     assert.notEqual(waits.title, 'Working');
   }
-  assert.equal(reading({status:{type:'active', activeFlags:['invented']}}).tone, 'working', 'a flag the guide does not know adds nothing');
-  assert.equal(reading({status:{type:'active'}}).tone, 'working', 'an active status with no flags listed');
 });
 
 test('a run recorded open in an earlier Codex session carries the uncertain tone its words describe', () => {

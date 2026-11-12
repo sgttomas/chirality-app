@@ -2705,7 +2705,8 @@ impl Host {
                 row["status"] = observed["status"].clone();
                 row["statusSource"] = observed["statusSource"].clone();
             }
-            (Some(_), Some(_)) => {}
+            (Some(reported), Some(replied)) if reported < replied => {}
+            // Equal positions establish neither order.
             _ => {
                 row["status"] = Value::Null;
                 row["statusSource"] = json!({"method":"thread/status/changed","limit":"a status report was received for this conversation and its order relative to the admission reply is not established; status unknown"});
@@ -5755,6 +5756,13 @@ mod conversation_transport_tests {
         assert_eq!(admit(&reply)["status"],json!({"type":"active","activeFlags":[]}));
         observe(replied-1);
         assert_eq!(admit(&reply),built(),"a report received before the reply is older than it");
+        // Equal positions, and a report with no position, establish neither order.
+        observe(replied);
+        assert_eq!(admit(&reply)["status"],Value::Null,"equal positions are neither after nor older");
+        host.inner.0.lock().unwrap().thread_status_observations.insert("stored".into(),json!({"status":{"type":"active","activeFlags":[]},"statusSource":{"method":"thread/status/changed"}}));
+        assert_eq!(admit(&reply)["status"],Value::Null,"a report with no receipt position");
+        assert!(admit(&reply)["statusSource"]["limit"].as_str().unwrap().contains("order relative to the admission reply is not established"));
+        assert!(host.inner.0.lock().unwrap().thread_status_observations.contains_key("stored"),"the comparison discards nothing");
         // A reply that is not the one held for its request (a different body, or an unknown request) establishes no order.
         observe(replied+1);
         let mut altered=reply.clone();altered["result"]["thread"]["preview"]=json!("not the held reply");
