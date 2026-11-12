@@ -115,10 +115,10 @@ finished. The queries show what is declared, not whether an input is fit for
 your use: read the condition. A query that fails is not an empty answer: read
 the files and say the check was unavailable.
 
-Correct a scope's description when the thing being made has materially
+Correct a scope's description only when the thing being made has materially
 changed or the description is materially wrong, and correct a need the work
 showed to be wrong, missing or no longer applicable in the same pull request. A changed commitment or criterion
-is the owner's, unless a delegation covers it. If a criterion looks wrong, cannot be met or no longer serves its purpose,
+is the owner's, unless an explicit delegation covers it. If a criterion looks wrong, cannot be met or no longer serves its purpose,
 do not change it, weaken its check or build around it: say what you found and
 what you would change, and carry on with what it does not affect; the other
 criteria stay in force. Treat an
