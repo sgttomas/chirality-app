@@ -1693,7 +1693,7 @@ export function App() {
         || JSON.stringify(packet.scope?.projectContext) !== JSON.stringify(currentHost.current.currentAppProjectContext ?? null)
         || typeof packet.scope?.cwd !== "string" || typeof packet.scope?.readRevision !== "string") throw Error("Unavailable endpoint offer");
       const latest: Json = await invoke("host_status");
-      if (!current() || providerSource(latest) !== editor.source || latest.configuredProviderReadRevision !== packet.scope.readRevision) return;
+      if (!current() || providerSource(latest) !== editor.source || latest.providerOfferReadRevision !== packet.scope.readRevision) return;
       setHost(latest);
       updateEndpointEditor({ ...editor, offer: packet, message: "Review the exact endpoint change. Saving opens two separate native decisions." });
     } catch {
@@ -1746,7 +1746,7 @@ export function App() {
         || packet.wireApi !== "responses" || packet.requiresOpenaiAuth !== false || JSON.stringify(packet.scope?.generation) !== JSON.stringify(currentHost.current.generation)
         || JSON.stringify(packet.scope?.projectContext) !== JSON.stringify(currentHost.current.currentAppProjectContext ?? null) || typeof packet.scope?.cwd !== "string" || typeof packet.scope?.readRevision !== "string") throw Error("Add offer unavailable");
       const latest: Json = await invoke("host_status");
-      if (!current() || providerSource(latest) !== editor.source || latest.configuredProviderReadRevision !== packet.scope.readRevision) return;
+      if (!current() || providerSource(latest) !== editor.source || latest.providerOfferReadRevision !== packet.scope.readRevision) return;
       setHost(latest); updateEndpointEditor({ ...editor, offer: packet, message: "Review exactly this submitted definition. Adding opens two separate native decisions." });
     } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Provider Add unavailable; absence or safe review could not be established. Private values and diagnostics withheld." }); }
     finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
@@ -1812,10 +1812,11 @@ export function App() {
         || (currentHost.current?.configuredProviderReadRevision !== original.configuredProviderReadRevision
           && currentHost.current?.configuredProviderReadRevision !== packet.scope.readRevision)) return;
       setHost(latest);
-      // A row chosen from an earlier read in this home stays chosen when this
-      // read still lists it; otherwise it stays retired.
+      // A row chosen from an earlier read of this same source (home, Codex
+      // generation and project) stays chosen when this read still lists it;
+      // otherwise, and after a Codex restart, it stays retired.
       const chosen = providerRowChoice.current, choice = choiceRef.current;
-      if (chosen && chosen.epoch === epoch && choice.modelProvider === chosen.id && choice.entryId === "local-provider"
+      if (chosen && chosen.source === source && chosen.epoch === epoch && choice.modelProvider === chosen.id && choice.entryId === "local-provider"
         && packet.rows.some((row: Json) => row.id === chosen.id)) providerRowChoice.current = { id: chosen.id, source, epoch, sequence, revision: packet.scope.readRevision };
       setProviderObservation({ packet, source, epoch, sequence });
     } catch {
@@ -1840,9 +1841,11 @@ export function App() {
     || (homeClass === LOCAL_MODE && !!fixedLocal && model === fixedLocal.model && modelProvider === fixedLocal.providerId));
   // Why the provider row chosen earlier no longer counts, and what restores it.
   const rowChoiceNote = !rowChoiceStale ? "" : providerObservationCurrent
-    ? `Provider ${modelProvider} is not in the list just read. Choose a provider from the list, or enter one under “Advanced: enter IDs yourself”.`
+    ? (providerObservation.packet.rows.some((row: Json) => row.id === modelProvider)
+      ? `Provider ${modelProvider} was chosen before Codex or the connection changed. Choose it again from the list.`
+      : `Provider ${modelProvider} is not in the list just read. Choose a provider from the list, or enter one under “Advanced: enter IDs yourself”.`)
     : providerReading ? "Reading configured local providers…"
-    : `Provider ${modelProvider} was chosen from a provider list that is now out of date. Read configured local providers again: the choice is kept if ${modelProvider} is still listed.`;
+    : `Provider ${modelProvider} was chosen from a provider list that is now out of date. Read configured local providers again. The choice is kept if ${modelProvider} is still listed and Codex has not restarted since; otherwise choose it again from the list.`;
   // The first thing that keeps Start unavailable, in the order a person meets it.
   const startBlocked = host?.state !== "ready" ? "Codex is not connected. Start it under Connection and access."
     : startPending ? "Starting the conversation…"
