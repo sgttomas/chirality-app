@@ -181,6 +181,10 @@ def library(library_root):
         require(isinstance(index, dict) and index.get('schema') == INDEX_SCHEMA, 'unknown index schema')
         methods = index.get('methods')
         require(isinstance(methods, list), 'index has no methods list')
+        # No index entry is skipped: each must name its kind and name, and a workflow its resources.
+        require(all(isinstance(m, dict) and isinstance(m.get('kind'), str) and isinstance(m.get('name'), str)
+                    and (m['kind'] != 'workflow' or isinstance(m.get('resources'), list)) for m in methods),
+                'malformed index entry')
         names = [m.get('name') for m in methods if isinstance(m, dict) and m.get('kind') == 'workflow']
         require(all(isinstance(n, str) and n and '/' not in n and n not in ('.', '..') for n in names), 'invalid workflow name in index')
         require(len(names) == len(set(names)), 'duplicate workflow name in index')
@@ -196,7 +200,7 @@ def library(library_root):
         unchanged_since(workflows_fd, 'library workflows', top)
     finally:
         os.close(workflows_fd)
-    listed = {m['name']: sorted(m.get('resources') or []) for m in methods if isinstance(m, dict) and m.get('kind') == 'workflow'}
+    listed = {m['name']: sorted(m['resources']) for m in methods if m['kind'] == 'workflow'}
     resource_mismatch = {n: {'listed_only': sorted(set(listed[n]) - set(packages[n])),
                              'folder_only': sorted(set(packages[n]) - set(listed[n]))}
                          for n in packages if set(listed[n]) != set(packages[n])}

@@ -208,6 +208,16 @@ class LibrarySet(unittest.TestCase):
         (self.library / 'workflows/unindexed').mkdir()
         self.assertRefused()
 
+    def test_malformed_index_entry_is_refused_not_skipped(self):
+        index = self.library / 'workflows/index.json'
+        original = json.loads(index.read_bytes())
+        for label, extra in (('not an object', 'x'), ('no name', {'kind': 'workflow', 'resources': []}),
+                             ('workflow without resources', {'kind': 'workflow', 'name': 'gamma'})):
+            with self.subTest(case=label):
+                value = json.loads(json.dumps(original)); value['methods'].append(extra)
+                index.write_text(json.dumps(value))
+                self.assertRefused()
+
     def test_unknown_index_schema_is_refused(self):
         index = self.library / 'workflows/index.json'
         value = json.loads(index.read_bytes()); value['schema'] = 'chirality-method-index/v9'

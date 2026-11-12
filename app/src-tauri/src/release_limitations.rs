@@ -65,6 +65,11 @@ pub fn read_beneath(resource_root: &Path, relative: &str) -> Result<ReleaseLimit
     }
     let mut bytes = Vec::with_capacity(meta.len() as usize);
     dir.read_to_end(&mut bytes).map_err(|e| format!("release limitations resource unreadable: {e}"))?;
+    // A file that changed while read is no observation of the shipped bytes.
+    let after = dir.metadata().map_err(|e| format!("release limitations resource unreadable: {e}"))?;
+    if bytes.len() as u64 != meta.len() || after.len() != meta.len() || after.modified().ok() != meta.modified().ok() {
+        return Err("release limitations resource changed while read".into());
+    }
     let sha256 = sha256_hex(&bytes);
     Ok(ReleaseLimitations { bytes, sha256 })
 }
