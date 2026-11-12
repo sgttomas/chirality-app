@@ -35,10 +35,17 @@ The document metadata schema is unchanged and is retained here as well, so
 that the check that reads it has it beside the manifest. Tests export the
 selected inputs into scratch without a sibling checkout or network dependency.
 
-The earlier folders stay. `reference/library-v3.3.0/`, `library-v3.1.0/`,
-`library-v3.0.0/` and `library-v2.1.0/` each record the selection made at that
-edition and hold inputs that later manifests still point to and that tests
-read; none is the current selection.
+The earlier folders stay, and none is the current selection.
+`reference/library-v3.3.0/` and `library-v3.0.0/` hold inputs this manifest
+still points to. All four, with `library-v3.1.0/` and `library-v2.1.0/`,
+record the selection made at their edition and are read by the tests of those
+editions.
+
+The tests check that each retained file equals what the manifest records and
+that the selected roles and the comparison workflow resolve from an export
+built from the retained files. They do not establish that the manifest's
+digests are the release's: that was established once, by comparing each row
+with the extracted release, when this folder was made.
 
 The entry documents' `metadata.upstream` names this edition: `AGENTS.md` and
 `init-prompt.md` were compared with this edition's project-entry template and

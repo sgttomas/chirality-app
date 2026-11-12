@@ -268,6 +268,12 @@ def test_v3_4_delta_preserves_exact_sources_and_reuses_unchanged_inputs():
         assert hashlib.sha256(raw).hexdigest() == row["sha256"]
         assert hashlib.sha1(b"blob %d\0" % len(raw) + raw).hexdigest() == row["gitBlob"]
         assert bool(path.stat().st_mode & stat.S_IXUSR) == (row["gitMode"] == "100755")
+    # The selection relies on the same released inputs as the previous one: no
+    # input may drop out of the manifest unnoticed, and none is added here.
+    assert [row["path"] for row in SELECTED_MANIFEST["files"]] == [row["path"] for row in LATEST_MANIFEST["files"]]
+    assert ([row["path"] for row in SELECTED_MANIFEST["comparisonSources"]]
+            == [row["path"] for row in LATEST_MANIFEST["comparisonSources"]])
+    assert SELECTED_MANIFEST["documentMetadataSchema"]["sourcePath"] == LATEST_MANIFEST["documentMetadataSchema"]["sourcePath"]
     # An input whose released bytes did not change keeps the row, and so the
     # retained copy, it had under the previous selection.
     earlier = {row["path"]: row for row in [*LATEST_MANIFEST["files"], *LATEST_MANIFEST["comparisonSources"]]}
