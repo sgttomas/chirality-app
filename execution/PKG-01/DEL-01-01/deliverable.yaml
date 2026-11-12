@@ -72,6 +72,8 @@ code_paths:
 - app/supplier_checks/recordings
 checks:
 - app/src-tauri/src/hosting_0167_tests.rs
+# Shared with DEL-01-05: inherited variables removed by name from every supplier start.
+- app/src-tauri/src/hosting_child_environment_tests.rs
 - app/src-tauri/src/hosting_probe.rs
 - app/tests/check_git_checkout_bytes.py
 - app/src-tauri/src/hosting_native_delivery.rs
