@@ -8608,6 +8608,7 @@ for line in sys.stdin:
         let closed=crate::host_tick::receive_view(&peer.home);
         assert_eq!(view["observationEnded"],false);assert_eq!(closed["observationEnded"],true,"the turn last seen in progress is no longer a current reading");
         assert_eq!(closed["turns"].as_array().unwrap().iter().find(|t|t["id"]=="turn").unwrap()["status"],"inProgress","Codex sent no end, and none is invented");
+        assert_eq!(closed["turnErrors"].as_array().unwrap().len(),3,"the stop keeps every notice");
         assert!(closed["turnErrors"].as_array().unwrap().iter().all(|e|e["observationEnded"]==true),"{}",closed["turnErrors"]);
     }
     // RS R5 / HOSTING §8.3 through the owned peer, the host's record tick and the
