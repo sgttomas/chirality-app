@@ -1,8 +1,10 @@
 """The owner's signing procedure and the package identity record, on invented material.
 
 No signing, notarization, stapling, Gatekeeper or keychain tool runs: every
-Apple command goes to release_fixtures.FakeApple. No test opens the private
-folder or reads anything in it; tests may list it and check modes only.
+Apple command goes to owner_fixtures.FakeApple, whose outputs are the forms
+declared in app/packaging/release/observations.py. No test opens, lists, walks
+or stats anything in the private folder: the tools are given an in-memory
+writer, and the one test of the real writer takes the modes it reports.
 """
 import argparse
 import ast
@@ -21,9 +23,9 @@ import unittest
 from unittest.mock import patch
 
 HERE = Path(__file__).resolve().parent
-_spec = importlib.util.spec_from_file_location('release_fixtures', HERE / 'release_fixtures.py')
-fx = importlib.util.module_from_spec(_spec); sys.modules['release_fixtures'] = fx; _spec.loader.exec_module(fx)
-owner, record, common = fx.release('owner_sign'), fx.release('record'), fx.common
+_spec = importlib.util.spec_from_file_location('owner_fixtures', HERE / 'owner_fixtures.py')
+fx = importlib.util.module_from_spec(_spec); sys.modules['owner_fixtures'] = fx; _spec.loader.exec_module(fx)
+owner, record, obs, common = fx.release('owner_sign'), fx.release('record'), fx.release('observations'), fx.common
 Result = common.Result
 HOST = ('Darwin', 'arm64')
 ENV = {'HOME': '/invented-home', 'PATH': '/usr/bin'}
@@ -36,9 +38,18 @@ SECRETS = ['abcd-efgh-ijkl-mnop', 'MIIEinvented', 'someone@example.com', 'invent
            'other-notary-profile', 'ABCDEFGHIJ', 'invented-owner-alias', 'invented-owner@example.invalid', 'Apple ID']
 
 
-DISPLAY_TAIL = (b'Identifier=com.chirality.app\nCodeDirectory v=20500 size=1 flags=0x10000(runtime) hashes=1+1\nCDHash=' + b'd' * 40
-                + b'\nAuthority=Developer ID Application: Invented Publisher (8A7JL35U4S)\nTimestamp=Jan 1, 2026 at 00:00:00\n'
-                + b'TeamIdentifier=8A7JL35U4S\n')
+# A display of the declared forms only (observations.FORMS['signature']).
+DISPLAY = (b'Identifier=com.chirality.app\nFormat=app bundle with Mach-O thin (arm64)\n'
+           b'CodeDirectory v=20500 size=1 flags=0x10000(runtime) hashes=1+1 location=embedded\nHash type=sha256 size=32\n'
+           b'CDHash=' + b'd' * 40 + b'\nAuthority=Developer ID Application: Invented Publisher (8A7JL35U4S)\n'
+           b'Authority=Developer ID Certification Authority\nAuthority=Apple Root CA\nTimestamp=1 Jan 2026 at 00:00:00\n'
+           b'TeamIdentifier=8A7JL35U4S\n')
+ENTITLEMENTS_XML = plistlib.dumps({'com.apple.application-identifier': '8A7JL35U4S.com.chirality.app',
+                                   'com.apple.developer.team-identifier': '8A7JL35U4S'})
+SUBMIT = ('Successfully uploaded file.\n id: 00000001-89ab-cdef-0123-456789abcdef\n path: /invented/asked\n'
+          'createdDate: 2026-01-01T00:00:00.000Z\nid: 00000001-89ab-cdef-0123-456789abcdef\nname: asked\nstatus: Accepted\n')
+LOG = 'Successfully downloaded submission log\n id: 00000001-89ab-cdef-0123-456789abcdef\n location: /invented/asked\n'
+
 
 
 def is_app(argv):
@@ -81,6 +92,18 @@ class Base(unittest.TestCase):
                           environ=ENV, host=HOST, now=NOW, private=private)
         return code, stdout.getvalue(), stderr.getvalue()
 
+    def with_line(self, argv_filter, line, stream='stderr'):
+        """An override that keeps the stand-in's own answer and adds one line to a stream."""
+        def override(argv):
+            if not argv_filter(argv):
+                return None
+            real = self.fake.answer(argv)
+            add = line(argv) if callable(line) else line
+            if stream == 'stdout':
+                return Result(real.returncode, real.stdout + add, real.stderr)
+            return Result(real.returncode, real.stdout, real.stderr + add)
+        return override
+
     def log(self):
         return [json.loads(line) for line in (self.out / 'log.jsonl').read_text().splitlines()]
 
@@ -109,11 +132,12 @@ class Assessment(Base):
     def test_a_negative_assessment_with_return_code_zero_is_never_accepted(self):
         negative = lambda argv: Result(0, b'', f'{argv[-1]}: not accepted\nsource=Notarized Developer ID\n'.encode())
         for text in (b'/x: rejected\nsource=Notarized Developer ID\n', b'/x: accepted\nsource=Unnotarized Developer ID\n',
-                     b'/x: not accepted\nsource=Notarized Developer ID\n', b'/x: accepted\n', b'', b'accepted\nsource=Notarized Developer ID\n'):
-            with self.subTest(text=text), self.assertRaises(common.ObservationFailed):
-                common.observe('assessment', Result(0, b'', text), subject='/x')
-        common.observe('assessment', Result(0, b'', b'/x: accepted\nsource=Notarized Developer ID\norigin=Developer ID Application: Errorless (8A7JL35U4S)\n'),
-                       subject='/x')
+                     b'/x: not accepted\nsource=Notarized Developer ID\n', b'/x: accepted\n', b'', b'accepted\nsource=Notarized Developer ID\n',
+                     # an origin line no source shows is an undeclared form, so this is no observation either
+                     b'/x: accepted\nsource=Notarized Developer ID\norigin=Developer ID Application: Errorless (8A7JL35U4S)\n'):
+            with self.subTest(text=text), self.assertRaises(obs.ObservationFailed):
+                obs.observe('assessment', Result(0, b'', text), subject='/x')
+        obs.observe('assessment', Result(0, b'', b'/x: accepted\nsource=Notarized Developer ID\n'), subject='/x')
         self.failing(('-t', 'open'), negative, 'S12_OPEN')
         self.setUp()
         self.failing(('-t', 'exec'), negative, 'S12_EXEC')
@@ -133,22 +157,86 @@ class Binding(Base):
             'two assessment sources': ('assessment', Result(0, b'', b'/invented/asked: accepted\nsource=Notarized Developer ID\nsource=Developer ID\n')),
             'verify of another path': ('verify', Result(0, b'', b'/invented/other: valid on disk\n')),
             'requirement of another path': ('requirement', Result(0, b'', b'/invented/other: valid on disk\n/invented/other: explicit requirement satisfied\n')),
-            'staple of another path': ('staple', Result(0, b'Processing: /invented/other\nThe staple and validate action worked!\n')),
-            'validate of another path': ('validate', Result(0, b'Processing: /invented/other\nThe validate action worked!\n')),
-            'display of another executable': ('signature', Result(0, b'', b'Executable=/invented/other\n' + DISPLAY_TAIL)),
-            'display naming no executable': ('signature', Result(0, b'', DISPLAY_TAIL)),
-            'conflicting identifiers': ('signature', Result(0, b'', b'Executable=/invented/asked\n' + DISPLAY_TAIL + b'Identifier=other\n')),
-            'conflicting teams': ('signature', Result(0, b'', b'Executable=/invented/asked\n' + DISPLAY_TAIL + b'TeamIdentifier=OTHER00001\n')),
-            'entitlements of another executable': ('entitlements', Result(0, plistlib.dumps({}), b'Executable=/invented/other\n')),
-            'duplicate JSON status': ('submit', Result(0, b'{"id":"00000001-89ab-cdef-0123-456789abcdef","status":"Invalid","status":"Accepted"}')),
+            'conflicting identifiers': ('signature', Result(0, b'', DISPLAY + b'Identifier=other\n')),
+            'conflicting teams': ('signature', Result(0, b'', DISPLAY + b'TeamIdentifier=OTHER00001\n')),
+            'two submission identifiers': ('submit', Result(0, SUBMIT.replace('id: 00000001', 'id: 00000002', 1).encode())),
+            'submission of another file': ('submit', Result(0, SUBMIT.replace('path: /invented/asked', 'path: /invented/other').encode())),
+            'log written elsewhere': ('log', Result(0, LOG.replace('/invented/asked', '/invented/other').encode())),
             'no object asked about': ('verify', Result(0, b'', b'/invented/asked: valid on disk\n')),
         }
         for name, (kind, result) in refused.items():
-            with self.subTest(name), self.assertRaises(common.ObservationFailed):
-                common.observe(kind, result, subject=None if name == 'no object asked about' or kind == 'submit' else asked)
-        common.observe('signature', Result(0, b'', b'Executable=/invented/asked\n' + DISPLAY_TAIL + b'Identifier=com.chirality.app\n'), subject=asked)
-        common.observe('verify', Result(0, b'', b'--prepared:/invented/x.app/Contents/Resources/codex/bin/codex\n/invented/x.app: valid on disk\n'),
-                       subject='/invented/x.app')
+            with self.subTest(name), self.assertRaises(obs.ObservationFailed):
+                obs.observe(kind, result, subject=None if name == 'no object asked about' else asked)
+        self.assertEqual(obs.observe('signature', Result(0, b'', DISPLAY), subject=asked)['identifier'], 'com.chirality.app')
+        obs.observe('verify', Result(0, b'', b'/invented/x.app: valid on disk\n\n/invented/x.app: satisfies its Designated Requirement\n'),
+                    subject='/invented/x.app')
+        self.assertEqual(obs.observe('submit', Result(0, SUBMIT.encode()), subject=asked)['status'], 'Accepted')
+        obs.observe('log', Result(0, LOG.encode()), subject=asked)
+        self.assertEqual(obs.observe('entitlements', Result(0, ENTITLEMENTS_XML), subject=asked)['com.apple.developer.team-identifier'], fx.TEAM)
+
+    def test_round_4_an_output_is_an_observation_only_when_every_line_is_declared(self):
+        """Round 4 findings 1 and 2: failure text, another executable, a second leaf authority or a duplicate key
+        completed an observation because only wanted fields were read. Each is now no observation."""
+        asked = '/invented/asked'
+        duplicate = ENTITLEMENTS_XML.replace(b'<key>com.apple.developer.team-identifier</key>',
+                                             b'<key>com.apple.application-identifier</key><string>OTHER00001.com.example.other</string>'
+                                             b'<key>com.apple.developer.team-identifier</key>')
+        self.assertEqual(duplicate.count(b'com.apple.application-identifier'), 2)
+        refused = {
+            'entitlements with the App identifier key twice': ('entitlements', Result(0, duplicate)),
+            'entitlements with an error on standard error': ('entitlements', Result(0, ENTITLEMENTS_XML, b'failed to read entitlements\n')),
+            'entitlements naming another executable': ('entitlements', Result(0, ENTITLEMENTS_XML, b'Executable=/invented/other\n')),
+            'entitlements in binary form': ('entitlements', Result(0, plistlib.dumps({}, fmt=plistlib.FMT_BINARY))),
+            'entitlements that are not a dictionary': ('entitlements', Result(0, plistlib.dumps(['x']))),
+            'display naming another executable': ('signature', Result(0, b'', b'Executable=/invented/other\n' + DISPLAY)),
+            'display with failure text': ('signature', Result(0, b'', DISPLAY + b'/invented/asked: code object is not signed at all\n')),
+            'display on standard output': ('signature', Result(0, b'Identifier=com.chirality.app\n', DISPLAY)),
+            'a second leaf authority': ('signature', Result(0, b'', DISPLAY.replace(
+                b'Authority=Apple Root CA\n', b'Authority=Apple Root CA\nAuthority=Developer ID Application: Other (OTHER00001)\n'))),
+            'the leaf not first': ('signature', Result(0, b'', DISPLAY.replace(
+                b'Authority=Developer ID Application: Invented Publisher (8A7JL35U4S)\nAuthority=Developer ID Certification Authority\n',
+                b'Authority=Developer ID Certification Authority\nAuthority=Developer ID Application: Invented Publisher (8A7JL35U4S)\n'))),
+            'a chain authority twice': ('signature', Result(0, b'', DISPLAY + b'Authority=Apple Root CA\n')),
+            'signed time instead of a timestamp': ('signature', Result(0, b'', DISPLAY.replace(
+                b'Timestamp=1 Jan 2026 at 00:00:00', b'Signed Time=1 Jan 2026 at 00:00:00'))),
+            'a timestamp of another form': ('signature', Result(0, b'', DISPLAY.replace(b'Timestamp=1 Jan 2026', b'Timestamp=Jan 1, 2026'))),
+            'a code directory not embedded': ('signature', Result(0, b'', DISPLAY.replace(b' location=embedded', b''))),
+            'verify with failure text': ('verify', Result(0, b'', b'/invented/asked: valid on disk\n/invented/asked: a sealed resource is missing or invalid\n')),
+            'verify with a line naming a nested object': ('verify', Result(0, b'', b'--prepared:/invented/asked/Contents/x\n/invented/asked: valid on disk\n')),
+            'staple with a line no source shows': ('staple', Result(0, b'Processing: /invented/asked\nThe staple and validate action worked!\n')),
+            'validate with failure text': ('validate', Result(0, b'The validate action worked!\nCloudKit query failed\n')),
+            'submit with failure text': ('submit', Result(0, (SUBMIT + 'Error: failed to submit\n').encode())),
+            'submit with a progress line': ('submit', Result(0, ('Conducting pre-submission checks for asked\n' + SUBMIT).encode())),
+            'submit in JSON': ('submit', Result(0, b'{"id":"00000001-89ab-cdef-0123-456789abcdef","status":"Accepted"}')),
+            'a status line twice': ('submit', Result(0, (SUBMIT + 'status: Invalid\n').encode())),
+            'log with failure text': ('log', Result(0, (LOG + 'Error: failed to fetch log\n').encode())),
+            'assessment with failure text': ('assessment', Result(0, b'', b'/invented/asked: accepted\nsource=Notarized Developer ID\n'
+                                                                   b'/invented/asked: rejected\n')),
+        }
+        for name, (kind, result) in refused.items():
+            with self.subTest(name), self.assertRaises(obs.ObservationFailed):
+                obs.observe(kind, result, subject=asked)
+        with self.assertRaises(ValueError):
+            obs.load_xml_plist(duplicate)
+        log = {'jobId': '00000001-89AB-cdef-0123-456789abcdef', 'status': 'Accepted', 'issues': None, 'sha256': '0' * 64}
+        self.assertEqual(obs.observe_log_file(json.dumps(log).encode(), None, None)['job'], '00000001-89ab-cdef-0123-456789abcdef')
+        for raw in (json.dumps(log)[:-1] + ', "status": "Invalid"}', json.dumps(log | {'undeclared': 1}),
+                    json.dumps(log | {'issues': [{'severity': 'error', 'note': 'x'}]}), json.dumps({k: v for k, v in log.items() if k != 'sha256'})):
+            with self.subTest(raw=raw), self.assertRaises(obs.ObservationFailed):
+                obs.observe_log_file(raw.encode(), None, None)
+
+    def test_every_declared_form_names_its_source(self):
+        sources = {'TN3126', 'TN3127', 'TN3161', 'TN3125', 'NOTARY', 'WITNESS', 'ADVANCE', 'RUN1103'}
+        for name, spec in obs.FORMS.items():
+            forms = [f for key in ('either', 'stdout', 'stderr') if isinstance(spec.get(key), list) for f in spec[key]]
+            for form in forms:
+                with self.subTest(command=name, form=form[0]):
+                    self.assertIn(form[2], ('fact', 'known', 'noise'))
+                    self.assertTrue(any(source in form[4] for source in sources), form)
+            if spec.get('stdout') == 'xml-plist':
+                self.assertIn(spec['source'], sources)
+        for key, (_, source) in obs.LOG_KEYS.items():
+            self.assertIn(source, sources)
 
     def test_a_run_whose_tools_report_another_object_stops(self):
         """The reviewer's whole-run probe: every reported path replaced with another object's."""
@@ -171,7 +259,7 @@ class Binding(Base):
                 real = self.fake.codesign
                 def display(rest, target=target, real=real):
                     result = real(rest)
-                    if rest[:2] == ['-d', '--verbose=4'] and '/mount/' in rest[-1] and rest[-1].endswith(target):
+                    if rest[:2] == ['-d', '--verbose=3'] and '/mount/' in rest[-1] and rest[-1].endswith(target):
                         return Result(0, b'', result.stderr.replace(b'flags=0x10000(runtime)', b'flags=0x0(none)'))
                     return result
                 self.fake.codesign = display
@@ -251,7 +339,7 @@ class OwnerSign(Base):
 
     def test_raw_output_is_handed_to_the_private_writer_only(self):
         self.inject = 'invented-owner-account'
-        self.fake.submit_extra = {'developerAccount': self.inject}
+        self.fake.log_changes = {'statusSummary': 'note ' + self.inject}  # a declared free-text field of the log
         code, stdout, stderr = self.main()
         self.assertEqual(code, 0, stderr)
         handed = [raw for writer in self.private for _, raw in writer.handed]
@@ -260,13 +348,13 @@ class OwnerSign(Base):
             self.assertNotIn(self.inject, (self.out / name).read_text())
 
     def test_the_real_private_writer_uses_private_modes(self):
+        """The modes come from the writer's own descriptor and folder; the test stats, lists and reads nothing there."""
         out = self.root / 'writer-out'; out.mkdir()
         writer = common.PrivateWriter(out)
-        paths = [writer.write('first', b'invented raw'), writer.write('second', b'more')]
-        self.assertEqual(stat.S_IMODE(os.stat(writer.folder).st_mode), 0o700)
-        for path in paths:  # by the paths the writer returned: stat only, never a listing or a read
-            self.assertEqual(stat.S_IMODE(os.stat(path).st_mode), 0o600)
-        for path in paths:
+        written = [writer.write('first', b'invented raw'), writer.write('second', b'more')]
+        for path, file_mode, folder_mode in written:
+            self.assertEqual((file_mode, folder_mode), (0o600, 0o700))
+        for path, _, _ in written:  # clean-up by the returned names: removal, not a look inside
             os.unlink(path)
         os.rmdir(writer.folder)
 
@@ -281,6 +369,10 @@ class OwnerSign(Base):
             'profile digest': (dict(profile_sha256='0' * 64), 'REFUSED_PROFILE_BYTES'),
             'limitations differ': (dict(limitations=str(self.candidate / 'publisher/publisher-requirement.txt')), 'REFUSED_LIMITATIONS'),
         }
+        private = self.root / common.PRIVATE_FOLDER
+        for name in ('candidate', 'profile', 'limitations', 'out'):  # round 4 finding 3: refused by name, before anything is opened
+            cases[f'{name} inside the private folder'] = ({name: str(private / 'x')}, 'REFUSED_PRIVATE_INPUT')
+            cases[f'{name} inside the private folder, by bytes'] = ({name: os.fsencode(private / 'x')}, 'REFUSED_PRIVATE_INPUT')
         for name, (changes, code) in cases.items():
             with self.subTest(name), self.assertRaises(common.Failure) as raised:
                 self.sign(**changes)
@@ -325,35 +417,50 @@ class OwnerSign(Base):
             with self.subTest(path=path.name), self.assertRaises(ValueError):
                 common.write_returnable(path, {'result': 'complete'}, out, set(), append=True)
         self.assertEqual(outside.read_text(), 'before')
+        # an allowed argument pair is still bounded in length
+        long = 'x' * (common.MAX_LENGTH + 1)
+        with self.assertRaises(ValueError):
+            common.validate_returnable({'argv': ['-R', long]}, set(), argv_allowed={('-R', long)})
 
     def test_each_failing_step_stops_with_its_fixed_reason_and_no_later_command(self):
         dmg_only = lambda r: (lambda argv: r if argv[-1].endswith('.dmg') else None)
         after_staple = lambda r: (lambda argv: r if is_app(argv) and (Path(argv[-1]) / 'Contents/CodeResources').exists() else None)
-        no_line = lambda prefix: (lambda argv: Result(0, b'', b'\n'.join(l for l in self.fake.codesign(argv[1:]).stderr.splitlines()
+        no_line = lambda prefix: (lambda argv: Result(0, b'', b'\n'.join(l for l in self.fake.answer(argv).stderr.splitlines()
                                                                           if not l.startswith(prefix))) if is_app(argv) else None)
+        app_only, zip_only = (lambda argv: is_app(argv)), (lambda argv: argv[3].endswith('.zip'))
+        line = self.with_line
         cases = [
             (('--sign', '--entitlements'), Result(1), 'S4_SIGN', None),
             (('--verify', '--deep'), Result(1), 'S5_DEEP', None),
             (('--verify', '--deep'), Result(0, b'', b'x: invalid signature (code or signature have been modified)\n'), 'S5_DEEP', None),
             (('-R',), Result(3), 'S5_REQUIREMENT', None),
-            (('-d', '--verbose=4'), lambda argv: Result(1) if is_app(argv) else None, 'S5_DISPLAY', None),
-            (('-d', '--verbose=4'), no_line(b'Timestamp='), 'S5_DISPLAY', None),
-            (('-d', '--verbose=4'), no_line(b'CodeDirectory '), 'S5_DISPLAY', None),
+            (('--verify', '--deep'), line(app_only, lambda a: f'{a[-1]}: a sealed resource is missing or invalid\n'.encode()), 'S5_DEEP', None),
+            (('-R',), line(app_only, b'test-requirement: failed\n'), 'S5_REQUIREMENT', None),
+            (('-d', '--verbose=3'), lambda argv: Result(1) if is_app(argv) else None, 'S5_DISPLAY', None),
+            (('-d', '--verbose=3'), no_line(b'Timestamp='), 'S5_DISPLAY', None),
+            (('-d', '--verbose=3'), no_line(b'CodeDirectory '), 'S5_DISPLAY', None),
+            (('-d', '--verbose=3'), line(app_only, b'Executable=/invented/other/Contents/MacOS/other\n'), 'S5_DISPLAY', None),
+            (('-d', '--verbose=3'), line(app_only, b'Authority=Developer ID Application: Other (OTHER00001)\n'), 'S5_DISPLAY', None),
             (('-d', '--entitlements'), lambda argv: Result(0, b'') if is_app(argv) else None, 'S5_ENTITLEMENTS', None),
+            (('-d', '--entitlements'), line(app_only, b'failed to read entitlements\n'), 'S5_ENTITLEMENTS', None),
             ((owner.DITTO,), Result(1), 'S6_ARCHIVE', None),
             (('submit',), lambda argv: Result(1) if argv[3].endswith('.zip') else None, 'S6_SUBMIT', None),
             (('submit',), lambda argv: Result(0, b'invented unexpected text') if argv[3].endswith('.zip') else None, 'S6_SUBMIT', None),
+            (('submit',), line(zip_only, b'Error: failed to submit\n', 'stdout'), 'S6_SUBMIT', None),
             (('notarytool', 'log'), Result(0, b'[]'), 'S6_LOG', None),
+            (('notarytool', 'log'), line(lambda a: True, b'Error: failed to fetch log\n', 'stdout'), 'S6_LOG', None),
+            (('stapler', 'staple'), line(app_only, lambda a: f'Processing: {a[-1]}\n'.encode(), 'stdout'), 'S7_STAPLE', None),
             (('stapler', 'staple'), lambda argv: Result(1) if is_app(argv) else None, 'S7_STAPLE', None),
             (('stapler', 'validate'), lambda argv: Result(65) if is_app(argv) else None, 'S7_VALIDATE', None),
             (('--verify', '--deep'), after_staple(Result(1)), 'S8_DEEP', None),
             (('create',), Result(1), 'S9_CREATE', None),
-            (('--verify', '--strict', '--verbose=4'), dmg_only(Result(1)), 'S9_VERIFY', None),
-            (('-d', '--verbose=4'), dmg_only(Result(1)), 'S9_DISPLAY', None),
+            (('--verify', '--strict', '--verbose=1'), dmg_only(Result(1)), 'S9_VERIFY', None),
+            (('-d', '--verbose=3'), dmg_only(Result(1)), 'S9_DISPLAY', None),
             (('submit',), lambda argv: Result(1) if argv[3].endswith('.dmg') else None, 'S10_SUBMIT', None),
             (('stapler', 'staple'), dmg_only(Result(1)), 'S11_STAPLE', None),
             (('stapler', 'validate'), dmg_only(Result(65)), 'S11_VALIDATE', None),
             (('-t', 'open'), Result(3, b'', b'rejected\n'), 'S12_OPEN', None),
+            (('-t', 'open'), line(lambda a: True, b'origin=Developer ID Application: Invented Publisher (8A7JL35U4S)\n'), 'S12_OPEN', None),
             (('attach',), Result(1), 'S12_ATTACH', None),
             (('-t', 'exec'), Result(3, b'', b'rejected\n'), 'S12_EXEC', 'detach'),
             (('detach',), Result(16), 'S12_DETACH', None),
@@ -373,7 +480,9 @@ class OwnerSign(Base):
         in_record = lambda r: (lambda argv: r if '/mount/' in argv[-1] else None)
         for words, result, failed in ((('stapler', 'validate'), in_record(Result(65)), 'ticket validation'),
                                       (('-d', '--entitlements'), in_record(Result(1)), 'entitlements'),
-                                      (('-d', '--verbose=4'), in_record(Result(0, b'', b'Identifier=x\n')), 'signature')):
+                                      (('-d', '--verbose=3'), in_record(Result(0, b'', b'Identifier=x\n')), 'signature'),
+                                      (('-d', '--verbose=3'), lambda argv: Result(0, b'', b'Executable=/invented/other\n' + self.fake.answer(argv).stderr)
+                                       if '/mount/' in argv[-1] else None, 'signature')):
             with self.subTest(failed=failed):
                 self.setUp()
                 stopped, executed = self.failing(words, result, 'S13_OBSERVATION')
@@ -409,10 +518,15 @@ class OwnerSign(Base):
                 _, executed = self.failing(None, None, code, **fake)
                 self.assertFalse(any(a[0] == owner.XCRUN and a[1] == 'stapler' for a in executed))
         self.setUp()
-        second_log = lambda argv: Result(0, json.dumps({'jobId': argv[3], 'status': 'Accepted', 'sha256': '0' * 64, 'issues': None}).encode()) \
-            if len(self.fake.submissions) == 2 else None
+        # the disk image's log names another digest: the override changes the log the stand-in writes, then lets it answer
+        second_log = lambda argv: setattr(self.fake, 'log_changes', {'sha256': '0' * 64}) if len(self.fake.submissions) == 2 else None
         _, executed = self.failing(('notarytool', 'log'), second_log, 'S10_DIGEST')
         self.assertFalse(any(a[1:3] == ['stapler', 'staple'] and a[-1].endswith('.dmg') for a in executed))
+        # a log fetched with output that is no observation still leaves the output folder for the private writer
+        self.setUp()
+        self.failing(('notarytool', 'log'), self.with_line(lambda a: True, b'Error: failed to fetch log\n', 'stdout'), 'S6_LOG')
+        self.assertFalse(os.path.lexists(self.out / 'tmp' / 'app-notarization-log.json'))
+        self.assertTrue(any(label == 'step 6 notarization log' for writer in self.private for label, _ in writer.handed))
 
     def test_staple_may_add_only_the_ticket(self):
         def careless(argv):
@@ -420,7 +534,7 @@ class OwnerSign(Base):
             if app.suffix == '.app':
                 (app / 'Contents/CodeResources').write_bytes(b'ticket')
                 (app / 'Contents/Resources/codex/codex-resources/input.txt').write_bytes(b'changed by stapling')
-                return Result(0, f'Processing: {app}\nThe staple and validate action worked!\n'.encode())
+                return Result(0, b'The staple and validate action worked!\n')
         self.failing(('stapler', 'staple'), careless, 'S7_ONLY_TICKET')
 
     def test_archiving_for_submission_may_not_change_the_app(self):
@@ -490,7 +604,7 @@ class Reasons(unittest.TestCase):
             common.Failure('NOT_A_LISTED_REASON')
 
     def test_every_code_raised_in_the_tools_is_listed(self):
-        for name in ('owner_sign.py', 'build.py', 'common.py'):
+        for name in ('owner_sign.py', 'build.py', 'common.py', 'observations.py', 'record.py'):
             tree = ast.parse((RELEASE_DIR / name).read_text())
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call) and getattr(node.func, 'id', getattr(node.func, 'attr', None)) in ('Failure', 'check', 'act', 'observe'):
@@ -503,17 +617,35 @@ class Reasons(unittest.TestCase):
 
 
 class NoPrivateReader(unittest.TestCase):
-    """No code path reads the private folder: only PrivateWriter names it, it has no read method, and this
-    suite runs under a guard that refuses any listing, walk or read-open inside such a folder."""
+    """No code path reads the private folder: only PrivateWriter writes there, it has no read method, every
+    path the tools accept is refused by name when it lies inside such a folder, and this suite runs under a
+    guard, a convention of this test process with the limits its docstring states (release_fixtures)."""
 
-    def test_the_suite_guard_refuses_reading_or_listing_the_private_folder(self):
+    def test_the_suite_guard_refuses_the_ways_round_4_found(self):
+        import glob, subprocess
         with tempfile.TemporaryDirectory() as temp:
             folder = Path(temp) / common.PRIVATE_FOLDER
-            for attempt in (lambda: os.listdir(folder), lambda: os.scandir(folder), lambda: list(os.walk(folder)),
-                            lambda: open(folder / 'x', 'rb'), lambda: (folder / 'x').read_bytes(), lambda: list(folder.iterdir()),
-                            lambda: os.open(folder, os.O_RDONLY)):
-                with self.assertRaises(PermissionError):
+            os.mkdir(folder, 0o700)
+            created = os.open(folder / 'x', os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)  # a create-only write is the writer's way
+            os.close(created)
+            attempts = {
+                'listdir': lambda: os.listdir(folder), 'scandir': lambda: os.scandir(folder), 'walk': lambda: list(os.walk(folder)),
+                'open rb': lambda: open(folder / 'x', 'rb'), 'read_bytes': lambda: (folder / 'x').read_bytes(),
+                'iterdir': lambda: list(folder.iterdir()), 'os.open read': lambda: os.open(folder, os.O_RDONLY),
+                'open w+': lambda: open(folder / 'x', 'w+'), 'open r+b': lambda: open(folder / 'x', 'r+b'),
+                'open a+': lambda: open(folder / 'x', 'a+'), 'os.open O_RDWR': lambda: os.open(folder / 'x', os.O_RDWR),
+                'os.open O_WRONLY without O_EXCL': lambda: os.open(folder / 'x', os.O_WRONLY),
+                'bytes path': lambda: open(os.fsencode(folder / 'x'), 'rb'), 'bytes listdir': lambda: os.listdir(os.fsencode(folder)),
+                'glob': lambda: glob.glob(str(folder / '*')), 'pathlib glob': lambda: list(folder.glob('*')),
+                'subprocess': lambda: subprocess.run(['/bin/cat', str(folder / 'x')], capture_output=True),
+                'through a link': lambda: open(Path(temp) / 'alias', 'rb'),
+            }
+            os.symlink(folder / 'x', Path(temp) / 'alias')
+            for name, attempt in attempts.items():
+                with self.subTest(name), self.assertRaises(PermissionError):
                     attempt()
+            os.unlink(folder / 'x')
+            os.rmdir(folder)
 
     def test_only_the_writer_touches_the_private_folder(self):
         for path in sorted(RELEASE_DIR.glob('*.py')):
@@ -521,6 +653,7 @@ class NoPrivateReader(unittest.TestCase):
             uses = [line for line in text.splitlines() if 'PRIVATE_FOLDER' in line and not line.lstrip().startswith('#')]
             if path.name == 'common.py':
                 self.assertEqual(len([u for u in uses if 'self.folder' in u]), 1)
+                self.assertEqual(len([u for u in uses if 'in parts' in u]), 1)  # is_private_path: by name only
             else:
                 self.assertTrue(all("'private_folder': common.PRIVATE_FOLDER" in u for u in uses), (path.name, uses))
         writer = common.PrivateWriter
@@ -551,13 +684,13 @@ class Secrets(Base):
             self.assertNotIn(secret, text)
 
     def inject_everywhere(self):
-        self.fake.display_extra = 'Note=password=invented-secret someone@example.com QQQQ11111Q abcd-efgh-ijkl-mnop Apple ID\n'
-        self.fake.submit_extra = {'message': PEM, 'password': 'invented-secret', 'developerAccount': 'invented-owner-account',
-                                  'keychainProfile': 'other-notary-profile', 'teamId': 'ABCDEFGHIJ'}
-        self.fake.log_changes = {'password': 'invented-secret', 'developerAccount': 'invented-owner-account', 'teamId': 'ABCDEFGHIJ',
-                                 'keychainProfile': 'other-notary-profile', 'message': 'Apple ID: invented-owner-alias',
-                                 'statusSummary': 'note abcd-efgh-ijkl-mnop someone@example.com'}
-        self.fake.spctl_extra = ' someone@example.com QQQQ11111Q'
+        """Secret-looking values in every field a declared form leaves free: they reach the private writer only."""
+        self.fake.display_format = 'password=invented-secret someone@example.com QQQQ11111Q abcd-efgh-ijkl-mnop Apple ID'
+        self.fake.log_changes = {'ticketContents': [{'password': 'invented-secret', 'developerAccount': 'invented-owner-account',
+                                                     'teamId': 'ABCDEFGHIJ', 'keychainProfile': 'other-notary-profile',
+                                                     'message': 'Apple ID: invented-owner-alias ' + PEM}],
+                                 'statusSummary': 'note abcd-efgh-ijkl-mnop someone@example.com',
+                                 'archiveFilename': 'invented-owner@example.invalid.zip'}
         self.fake.supplier = {'codex': {'entitlements': {'account': 'invented-owner-account', 'password': 'invented-secret',
                                                          'keychainProfile': 'other-notary-profile',
                                                          'com.apple.security.cs.allow-jit': True}}}
@@ -573,10 +706,10 @@ class Secrets(Base):
         self.assertEqual(codex['unexpected_entitlements'], 3)
 
     def test_profile_name_that_is_a_substring_of_a_secret(self):
-        for profile, extra in (('abcd', {'message': 'abcd-efgh-ijkl-mnop'}), ('password', {'password': 'invented-secret'})):
+        for profile, summary in (('abcd', 'abcd-efgh-ijkl-mnop'), ('password', 'password invented-secret')):
             with self.subTest(profile=profile):
                 self.setUp()
-                self.fake.submit_extra = extra
+                self.fake.log_changes = {'statusSummary': summary}
                 code, stdout, stderr = self.main(notary_profile=profile)
                 self.assertEqual(code, 0, stderr)
                 text = self.returnable(stdout, stderr)
@@ -584,8 +717,14 @@ class Secrets(Base):
                 self.assertNotIn('invented-secret', text)
 
     def test_stop_text_exception_text_and_stopped_json(self):
-        cases = [dict(submit_extra={'status': 'password=invented-secret someone@example.com QQQQ11111Q'})]
+        # undeclared lines carrying secrets: no observation, and the stop names nothing from them
+        cases = [dict(submit_extra={'status': 'password=invented-secret someone@example.com QQQQ11111Q'}),
+                 dict(submit_extra={'message': PEM, 'password': 'invented-secret', 'developerAccount': 'invented-owner-account',
+                                    'keychainProfile': 'other-notary-profile', 'teamId': 'ABCDEFGHIJ'}),
+                 dict(spctl_extra='origin=Apple ID someone@example.com QQQQ11111Q\n'),
+                 dict(display_extra='Note=password=invented-secret someone@example.com QQQQ11111Q abcd-efgh-ijkl-mnop Apple ID\n')]
         for fake in cases:
+            self.setUp()
             self.inject_everywhere()
             for key, value in fake.items():
                 setattr(self.fake, key, value)
@@ -672,7 +811,7 @@ class RecordCheck(unittest.TestCase):
 
     def test_incomplete_display_and_negative_assessment_are_failures(self):
         fake = self.case.fake
-        fake.override[('-d', '--verbose=4')] = Result(0, b'', b'Identifier=com.chirality.app\nTeamIdentifier=8A7JL35U4S\n')
+        fake.override[('-d', '--verbose=3')] = Result(0, b'', b'Identifier=com.chirality.app\nTeamIdentifier=8A7JL35U4S\n')
         fake.override[('-t', 'open')] = lambda argv: Result(0, b'', f'{argv[-1]}: not accepted\nsource=Notarized Developer ID\n'.encode())
         self.assert_found('observed.gatekeeper', failed=('signature', 'gatekeeper'))
 
@@ -681,7 +820,7 @@ class RecordCheck(unittest.TestCase):
         fake = self.case.fake
         real = fake.codesign
         fake.codesign = lambda rest: Result(0, b'', real(rest).stderr.replace(b'flags=0x10000(runtime)', b'flags=0x0(none)')) \
-            if rest[:2] == ['-d', '--verbose=4'] else real(rest)
+            if rest[:2] == ['-d', '--verbose=3'] else real(rest)
         self.assert_found(failed=('hardened runtime',))
 
     def test_record_structure_is_required_and_the_archive_always_compared(self):
@@ -739,6 +878,31 @@ class RecordCheck(unittest.TestCase):
         self.assertNotIn('invented-owner', err.getvalue())
         self.assertNotIn('Traceback', err.getvalue())
         self.assertNotIn(str(self.case.root), err.getvalue())
+
+    def test_round_4_paths_inside_the_private_folder_are_refused_before_reading(self):
+        """Round 4 finding 3: a record path, a summary or a submitted file inside the private folder is never read."""
+        private = self.case.root / common.PRIVATE_FOLDER
+        real_read = Path.read_bytes
+        read = []
+        def spy(path):
+            read.append(str(path))
+            return real_read(path)
+        with patch.object(Path, 'read_bytes', spy):
+            for argv in (['check', str(private / 'PACKAGE_IDENTITY.json'), '--dmg', str(self.dmg), '--app', str(self.app)],
+                         ['check', str(self.out / 'PACKAGE_IDENTITY.json'), '--dmg', str(private / 'x.dmg'), '--app', str(self.app)],
+                         ['check', str(self.out / 'PACKAGE_IDENTITY.json'), '--dmg', str(self.dmg), '--app', str(self.app),
+                          '--candidate', str(private)]):
+                with self.subTest(argv=argv[1:3]):
+                    out, err = io.StringIO(), io.StringIO()
+                    self.assertEqual(record.main(argv, run=self.case.fake, stdout=out, stderr=err), 2)
+            entry = dict(self.identity['notarization']['app'])
+            for record_dir, changes in ((private, {}), (self.out, {'summary': common.PRIVATE_FOLDER + '/app-notarization.json'})):
+                with self.subTest(record_dir=record_dir.name, changes=changes):
+                    _, failures = record.notarization_facts(record_dir, entry | changes)
+                    self.assertEqual([f['observation'] for f in failures], ['notarization summary'])
+            _, failures = record.notarization_facts(self.out, entry | {'submitted': common.PRIVATE_FOLDER + '/Chirality-4.0.0-app.zip'})
+            self.assertEqual([f['observation'] for f in failures], ['submitted file'])
+        self.assertFalse([path for path in read if common.PRIVATE_FOLDER in path], read)
 
     def test_the_original_log_options_are_gone(self):
         err = io.StringIO()

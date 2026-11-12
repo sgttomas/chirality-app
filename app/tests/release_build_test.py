@@ -357,17 +357,36 @@ class ReleaseBuild(unittest.TestCase):
             (case.source / 'app/inside-link').symlink_to('src-tauri')
             empty = case.root / 'nothing-written-here'; empty.mkdir()
             return empty
+        def hard_link(where):
+            def make(case):
+                # The reviewer's input: an ordinary outside file, hard-linked into the input before the run.
+                outside = case.root / 'outside-hard'; outside.mkdir(exist_ok=True)
+                (outside / 'original').write_text('outside original')
+                root = {'export': case.source, 'cargo': case.cargo_cache, 'npm': case.npm_cache}[where]
+                os.link(outside / 'original', root / 'hard-linked-input')
+                return outside
+            return make
         for name, make in (('npm _logs link', npm_logs_link), ('cargo registry link', cargo_registry_link), ('export link', export_link),
                            ('absolute link inside the export', absolute_link_inside_export),
-                           ('relative link inside the export', relative_link_inside_export)):
+                           ('relative link inside the export', relative_link_inside_export),
+                           ('hard link in the export', hard_link('export')), ('hard link in the Cargo home', hard_link('cargo')),
+                           ('hard link in the npm cache', hard_link('npm'))):
             with self.subTest(name):
                 self.setUp()
                 outside = make(self)
                 with self.assertRaises(common.Failure) as raised:
                     self.run_build()
                 self.assertEqual(raised.exception.code, 'BUILD_LINK')
-                self.assertEqual(list(outside.iterdir()), [])
+                self.assertEqual(sorted(p.name for p in outside.iterdir()), [] if 'hard' not in name else ['original'])
                 self.assertFalse(self.candidate.exists())
+
+    def test_inputs_inside_a_private_folder_are_refused_by_name(self):
+        hidden = self.root / common.PRIVATE_FOLDER
+        for key in ('source_root', 'vendor', 'cargo_cache', 'npm_cache', 'out'):
+            with self.subTest(key), self.assertRaises(common.Failure) as raised:
+                self.run_build(**{key: hidden / 'input'})
+            self.assertEqual(raised.exception.code, 'BUILD_PRIVATE_INPUT')
+        self.assertFalse(hidden.exists())
 
     def walk_returnable(self, path):
         common.validate_returnable(json.loads(path.read_text()), {self.team, common.SUPPLIER_TEAM})

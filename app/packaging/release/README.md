@@ -52,10 +52,16 @@ Each run writes two kinds of file into its own output folder.
   holds the raw command output, the raw notarization logs and full error
   traces, for your own diagnosis. It **may contain account details**.
   - It stays on your machine and is not sent back.
-  - Agents do not open it. No tool of ours reads it back. Our tests give the
-    tools an in-memory writer instead, and run under a guard that refuses any
-    listing, walk or read of a folder with this name. That is a rule, not a
-    protection: agents run as your user on your machine.
+  - The rule: no tool, test or agent of ours opens, lists or walks it. Every
+    path the tools accept is refused by name if it lies inside a folder of this
+    name, before anything is opened.
+  - Our tests give the tools an in-memory writer instead. They also run under
+    a guard in the test process that refuses the usual ways of listing or
+    reading such a folder. The guard is a convention that helps us keep the
+    rule, not an enforcement: it does not cover every way a program can reach
+    a folder (its limits are written where it is defined, in
+    `app/tests/release_fixtures.py`), and agents run as your user on your
+    machine, so nothing technical stops them.
   - When the run is done, delete it or move it somewhere of your own.
 
 A failure prints one fixed reason, which names the step and the observation
@@ -90,8 +96,11 @@ python3 app/packaging/release/build.py \
 
 **Where the build writes.**
 - The source export and both caches are copied into `--out`.
-- It refuses any symbolic link in the caches, and any link in the export
-  that leads out of it.
+- Before copying, it refuses every link of every kind in the export and both
+  caches: a symbolic link, and a hard link (a regular file whose link count is
+  above one).
+- It refuses any input path inside a folder named as the private folder, by
+  name, before opening anything.
 - These all point inside `--out`: `HOME`, `TMPDIR`, `CARGO_HOME`,
   `CARGO_TARGET_DIR`, `CODEX_HOME`, `RUSTUP_HOME`, and npm's cache, logs,
   prefix and configuration.
@@ -112,8 +121,10 @@ ID team) from the compiled keychain selection in
 installs the npm dependencies offline, runs the recipe, and checks the
 result:
 
-- Apple's `dyld_info -validate_only` returns zero with no error text on every
-  Mach-O file.
+- Apple's `dyld_info -validate_only` returns zero and prints nothing at all,
+  on either stream, for every Mach-O file (its manual: "Display nothing if
+  binary is valid"). No output line of it is declared, so any line is a
+  failure.
 - The Info.plist states the release identity.
 - The vendor tree matches the input in bytes, modes and types.
 - Every mapped resource matches its source in bytes.
@@ -190,11 +201,26 @@ expectation, not a promise.
 
 **If the run is interrupted** (Control-C, a dropped network, a timeout):
 
-- It stops with the reason "interrupted" or "unexpected", writes
-  `STOPPED.json`, and runs nothing further.
+- It stops with the reason "interrupted" (Control-C) or "unexpected" (any
+  other error no check covers, such as a timeout), and writes `STOPPED.json`.
+- It starts no further step. The one command it may still run is
+  `hdiutil detach` of its own mount point, if the disk image was mounted at
+  that moment. Whether the detach worked is in the command log; if it did not,
+  run `hdiutil detach <the mount point>` yourself.
+- A command that was running when the interruption came may or may not have
+  finished. The output folder is then not a basis for anything: do not send
+  its disk image, and do not continue from it.
 - If a submission was already sent, Apple may still finish notarizing it.
   That publishes nothing, and nothing is stapled after an interruption.
-- Run again into a new `--out` folder; that submits again.
+- What is left in `--out` is yours to delete. `tmp/` there may hold
+  temporary files of the tools; a fetched notarization log never stays there,
+  because it is moved to the private folder as soon as the command returns.
+
+**Starting again.** There is no resuming part-way. Every run starts from the
+beginning, from the candidate folder, into a new `--out` folder, and submits
+to Apple again. The candidate folder is only read, so the same candidate is
+used again unless the run refuses it (`REFUSED_CANDIDATE`), in which case an
+agent builds a new one.
 
 This procedure installs nothing and launches nothing. Installing the
 package, which replaces an installed v3.0.1, is your act at the
@@ -225,9 +251,11 @@ unchanged code-directory hashes.
 
 ### If it stops
 
-It prints `STOP: <reason>`, writes `STOPPED.json`, runs nothing further and
-writes no `RESULT.json`. Each reason is one of a fixed list
-(`REASONS` in `common.py`). It begins with the step it comes from:
+It prints `STOP: <reason>`, writes `STOPPED.json`, starts no further step
+(apart from detaching its own mount, as above) and writes no `RESULT.json`.
+Each reason is one of a fixed list (`REASONS` in `common.py`, with the
+owner's steps added from `observations.py`). It begins with the step it
+comes from:
 
 - `refused`: nothing ran.
 - `step 0` to `step 13`: that step's observation failed.
@@ -241,6 +269,42 @@ no record is written.
 
 If a STOP comes while the disk image is mounted, the run tries to detach it.
 The command log shows whether that worked; if not, use `hdiutil detach`.
+
+### A first run may stop on a line nobody declared
+
+The tools read Apple's tools by one rule (`observations.py`). An output counts
+only when every line of it is of a form declared for that command, and no key
+appears twice in a property list or JSON it parses. Nothing is picked out of
+other text, and nothing is concluded from the absence of an error message.
+Each declared form names its source: Apple's published technical notes and
+notarization documentation, and real outputs kept in this repository. No form
+was taken from running the tools, and none was invented.
+
+Those sources do not show every line the real tools print. For example, no
+source shows the line of `codesign -d` that names the executable. So **a
+first real run may stop on a line of output nobody declared**. The reason
+then says the output was "not an observation", and names the step.
+
+It stops safely. The step that met the line was an observation, which comes
+before anything that depends on it, so nothing further is signed, submitted
+or stapled, and no record is written. The raw output is kept in the private
+folder, as for every command.
+
+The one correction:
+
+1. You tell us the step and its fixed reason, from the `STOP:` line or
+   `STOPPED.json`. Nothing from the private folder is needed or wanted.
+2. An agent finds the form of that line in the tool's documentation, never
+   in your private output, and adds it to `observations.py` with its source.
+   If no published documentation shows the line, the agent says so, adds
+   nothing, and the project decides what follows.
+3. You run again from the beginning, with the corrected tools, the same
+   candidate and a new `--out`, as under "Starting again" above. A correction
+   to the declared forms changes the signing tools, not the candidate, so a
+   new candidate is needed only if the run refuses the old one.
+
+Each correction may let the run get further and meet the next undeclared
+line, so this may repeat. Every repeat submits to Apple again.
 
 ### Send back
 
@@ -272,14 +336,15 @@ record.
 Mount the disk image read-only, then:
 
 ```sh
-hdiutil attach -readonly -nobrowse -mountpoint /path/mnt Chirality-4.0.0.dmg
+hdiutil attach -readonly -nobrowse -mountpoint /path/mnt /path/release-folder/Chirality-4.0.0.dmg
 python3 app/packaging/release/record.py check /path/release-folder/PACKAGE_IDENTITY.json \
-  --dmg Chirality-4.0.0.dmg --app /path/mnt/Chirality.app \
+  --dmg /path/release-folder/Chirality-4.0.0.dmg --app /path/mnt/Chirality.app \
   [--candidate /path/to/candidate]
 hdiutil detach /path/mnt
 ```
 
-It first refuses a record that lacks a required field. It then compares the
+Give absolute paths. It refuses any path inside the private folder, by name,
+before reading anything. It first refuses a record that lacks a required field. It then compares the
 recorded facts with a new reading of the package:
 
 - the App as signed, and the App as signed and stapled

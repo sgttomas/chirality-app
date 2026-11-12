@@ -5,7 +5,7 @@ profile are names of items already in the owner's keychain; no credential is
 an argument or an environment variable.
 
 Each step is verified before the next. Every observation goes through the one
-rule in common.observe. Any failure prints `STOP: <fixed reason>` (a reason
+rule in observations.observe, whose output forms are declared as data. Any failure prints `STOP: <fixed reason>` (a reason
 from common.REASONS, naming the step and the observation), writes STOPPED.json,
 runs no later command and writes no success result. Nothing is installed.
 
@@ -52,9 +52,9 @@ def sibling(name):
     return sys.modules[key]
 
 
-common, record = sibling('common'), sibling('record')
+common, obs, record = sibling('common'), sibling('observations'), sibling('record')
 prepare, inventory, sha = common.prepare, common.inventory, common.sha
-Failure, check, observe, ObservationFailed = common.Failure, common.check, common.observe, common.ObservationFailed
+Failure, check, observe, ObservationFailed = common.Failure, common.check, obs.observe, obs.ObservationFailed
 
 CODESIGN, XCRUN, HDIUTIL, SPCTL, DITTO = '/usr/bin/codesign', '/usr/bin/xcrun', '/usr/bin/hdiutil', '/usr/sbin/spctl', '/usr/bin/ditto'
 IDENTITY = re.compile(r'Developer ID Application: (?P<name>[^/\\\x00-\x1f]{1,200}) \((?P<team>[A-Z0-9]{10})\)')
@@ -71,7 +71,7 @@ ARGUMENT_CREDENTIAL = [re.compile(p) for p in (
 # the only inventory change is that file, and the App is then verified again (step 8).
 SIGNED_EXTRA = {'Contents/_CodeSignature', 'Contents/_CodeSignature/CodeResources', 'Contents/embedded.provisionprofile'}
 STAPLED_EXTRA = SIGNED_EXTRA | {record.STAPLED_TICKET}
-common.VOCABULARY.update({'-R', '-c', '-k', '--sequesterRsrc', '--keepParent', '--deep', '--strict', '--verify', '-vv'})
+common.VOCABULARY.update({'-R', '-c', '-k', '--sequesterRsrc', '--keepParent', '--deep', '--strict', '--verify', '-v'})
 
 
 def looks_like_credential(value):
@@ -90,6 +90,8 @@ def refusals(args, environ, host):
     profile = args.notary_profile
     check(PROFILE_NAME.fullmatch(profile) and not looks_like_credential(profile) and not LONG_TOKEN.fullmatch(profile), 'REFUSED_NOTARY_PROFILE')
     check(re.fullmatch('[0-9a-f]{64}', args.profile_sha256) is not None, 'REFUSED_PROFILE_DIGEST_FORM')
+    for name in ('candidate', 'profile', 'limitations', 'out'):
+        check(not common.is_private_path(getattr(args, name)), 'REFUSED_PRIVATE_INPUT')
     for name in ('candidate', 'profile', 'limitations', 'out'):
         value = getattr(args, name)
         check(not (looks_like_credential(value) or value.lower().endswith(KEY_FILES)), 'REFUSED_ARGUMENT_CREDENTIAL')
@@ -157,9 +159,10 @@ class Session:
         common.write_returnable(self.out / 'log.jsonl', entry, self.out, self.public_teams, argv_allowed=self.argv_allowed, append=True)
         return result
 
-    def observe(self, step, name, argv, code):
-        """Run one command and apply the one observation rule about its last argument; a failure stops with `code`."""
-        subject = None if name in ('submit', 'notary_log') else Path(str(argv[-1]))
+    def observe(self, step, name, argv, code, subject=None):
+        """Run one command and apply the one observation rule about `subject` (by default its last argument);
+        anything that is not an observation stops with `code`."""
+        subject = Path(str(argv[-1])) if subject is None else subject
         try:
             return observe(name, self.run(step, argv), subject=subject)
         except ObservationFailed:
@@ -184,11 +187,11 @@ def archive_argv(app, archive):
 
 
 def submit_argv(path, profile):
-    return [XCRUN, 'notarytool', 'submit', str(path), '--keychain-profile', profile, '--wait', '--output-format', 'json']
+    return [XCRUN, 'notarytool', 'submit', str(path), '--keychain-profile', profile, '--wait']
 
 
-def log_argv(submission, profile):
-    return [XCRUN, 'notarytool', 'log', submission, '--keychain-profile', profile]
+def log_argv(submission, profile, destination):
+    return [XCRUN, 'notarytool', 'log', submission, '--keychain-profile', profile, str(destination)]
 
 
 def attach_argv(dmg, mount):
@@ -196,22 +199,22 @@ def attach_argv(dmg, mount):
 
 
 def open_argv(dmg):
-    return [SPCTL, '-a', '-t', 'open', '--context', 'context:primary-signature', '-vv', str(dmg)]
+    return [SPCTL, '-a', '-t', 'open', '--context', 'context:primary-signature', '-v', str(dmg)]
 
 
 def exec_argv(app):
-    return [SPCTL, '-a', '-t', 'exec', '-vv', str(app)]
+    return [SPCTL, '-a', '-t', 'exec', '-v', str(app)]
 
 
 def verify_app_argvs(app, requirement, vendor_paths):
-    return ([[CODESIGN, '--verify', '--deep', '--strict', '--verbose=4', str(app)],
-             [CODESIGN, '--verify', '--strict', '--verbose=4', '-R', '=' + requirement, str(app)],
-             common.display_argv(app), common.entitlements_argv(app)]
-            + [common.display_argv(app / common.VENDOR_DESTINATION / r) for r in vendor_paths])
+    return ([[CODESIGN, '--verify', '--deep', '--strict', '--verbose=1', str(app)],
+             [CODESIGN, '--verify', '--strict', '--verbose=1', '-R', '=' + requirement, str(app)],
+             obs.display_argv(app), obs.entitlements_argv(app)]
+            + [obs.display_argv(app / common.VENDOR_DESTINATION / r) for r in vendor_paths])
 
 
-def notarize_argvs(submitted, profile, placeholder):
-    return [submit_argv(submitted, profile), log_argv(placeholder, profile)]
+def notarize_argvs(submitted, profile, placeholder, log_file):
+    return [submit_argv(submitted, profile), log_argv(placeholder, profile, log_file)]
 
 
 def staple_argvs(target):
@@ -219,10 +222,10 @@ def staple_argvs(target):
 
 
 def record_argvs(app, dmg, vendor_paths):
-    argvs = [common.display_argv(app), common.entitlements_argv(app)]
+    argvs = [obs.display_argv(app), obs.entitlements_argv(app)]
     for relative in vendor_paths:
         path = app / common.VENDOR_DESTINATION / relative
-        argvs += [common.display_argv(path), common.entitlements_argv(path)]
+        argvs += [obs.display_argv(path), obs.entitlements_argv(path)]
     return argvs + [[XCRUN, 'stapler', 'validate', str(app)], [XCRUN, 'stapler', 'validate', str(dmg)], open_argv(dmg), exec_argv(app)]
 
 
@@ -233,16 +236,16 @@ def plan(identity, profile, paths, candidate_app, vendor_paths, requirement):
     steps = []
     for relative in vendor_paths:
         path = candidate_app / common.VENDOR_DESTINATION / relative
-        steps += [(0, common.display_argv(path)), (0, common.entitlements_argv(path))]
+        steps += [(0, obs.display_argv(path)), (0, obs.entitlements_argv(path))]
     steps.append((4, sign_app_argv(identity, paths['entitlements'], app)))
     steps += [(5, a) for a in verify_app_argvs(app, requirement, vendor_paths)]
     steps.append((6, archive_argv(app, paths['archive'])))
-    steps += [(6, a) for a in notarize_argvs(paths['archive'], profile, '<app-submission-id>')]
+    steps += [(6, a) for a in notarize_argvs(paths['archive'], profile, '<app-submission-id>', paths['tmp'] / 'app-notarization-log.json')]
     steps += [(7, a) for a in staple_argvs(app)]
     steps += [(8, a) for a in verify_app_argvs(app, requirement, vendor_paths)]
-    steps += [(9, [HDIUTIL, 'create', '-volname', common.VOLUME_NAME, '-srcfolder', str(paths['staging']), '-format', 'UDZO', str(dmg)]),
-              (9, sign_dmg_argv(identity, dmg)), (9, [CODESIGN, '--verify', '--strict', '--verbose=4', str(dmg)]), (9, common.display_argv(dmg))]
-    steps += [(10, a) for a in notarize_argvs(dmg, profile, '<disk-image-submission-id>')]
+    steps += [(9, [HDIUTIL, 'create', '-volname', record.VOLUME_NAME, '-srcfolder', str(paths['staging']), '-format', 'UDZO', str(dmg)]),
+              (9, sign_dmg_argv(identity, dmg)), (9, [CODESIGN, '--verify', '--strict', '--verbose=1', str(dmg)]), (9, obs.display_argv(dmg))]
+    steps += [(10, a) for a in notarize_argvs(dmg, profile, '<disk-image-submission-id>', paths['tmp'] / 'disk-image-notarization-log.json')]
     steps += [(11, a) for a in staple_argvs(dmg)]
     steps += [(12, open_argv(dmg)), (12, attach_argv(dmg, mount)), (12, exec_argv(mounted)), (12, [HDIUTIL, 'detach', str(mount)]),
               (13, attach_argv(dmg, mount))]
@@ -275,7 +278,7 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     public_teams = {team, common.SUPPLIER_TEAM}
     paths = {'staging': out / 'staging', 'app': out / 'staging' / common.APP_NAME,
              'dmg': out / f'{common.PRODUCT_NAME}-{common.RELEASE["version"]}.dmg', 'mount': out / 'mount',
-             'entitlements': out / 'entitlements.plist', 'notary': out / 'notary',
+             'entitlements': out / 'entitlements.plist', 'notary': out / 'notary', 'tmp': out / 'tmp',
              'archive': out / 'notary' / f'{common.PRODUCT_NAME}-{common.RELEASE["version"]}-app.zip'}
     argv_allowed = {('--sign', args.identity), ('--keychain-profile', args.notary_profile), ('-R', '=' + requirement)}
     vendor_paths = common.macho_paths(candidate['vendor']['inventory'])
@@ -350,31 +353,47 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
 
     def verify_app(n, allowed_extra):
         progress['step'] = n
-        session.observe(n, 'verify', [CODESIGN, '--verify', '--deep', '--strict', '--verbose=4', app], f'S{n}_DEEP')
-        session.observe(n, 'requirement', [CODESIGN, '--verify', '--strict', '--verbose=4', '-R', '=' + requirement, app],
+        session.observe(n, 'verify', [CODESIGN, '--verify', '--deep', '--strict', '--verbose=1', app], f'S{n}_DEEP')
+        session.observe(n, 'requirement', [CODESIGN, '--verify', '--strict', '--verbose=1', '-R', '=' + requirement, app],
                         f'S{n}_REQUIREMENT')
-        fields = session.observe(n, 'signature', common.display_argv(app), f'S{n}_DISPLAY')
+        fields = session.observe(n, 'signature', obs.display_argv(app), f'S{n}_DISPLAY')
         check(fields['runtime'] and not fields['adhoc'] and fields['team'] == team and fields['signer_team'] == team
               and fields['identifier'] == binding['production_bundle_identifier'] and fields['leaf_authority'] == args.identity, f'S{n}_SIGNER')
-        signed_entitlements = session.observe(n, 'entitlements', common.entitlements_argv(app), f'S{n}_ENTITLEMENTS')
+        signed_entitlements = session.observe(n, 'entitlements', obs.entitlements_argv(app), f'S{n}_ENTITLEMENTS')
         check(signed_entitlements == entitlements, f'S{n}_ENTITLEMENTS')
         compared = inventory.compare(inventory.scan(app), candidate['bundle']['inventory'])
         check(compared['differing'] == ['Contents/MacOS/' + common.MAIN_EXECUTABLE] and not compared['missing']
               and set(compared['extra']) == allowed_extra and compared['root_mode_equal'], f'S{n}_INVENTORY')
         check(inventory.compare(inventory.scan(app / common.VENDOR_DESTINATION), candidate['vendor']['inventory'])['equal'], f'S{n}_VENDOR')
         for relative in vendor_paths:
-            shown_fields = session.observe(n, 'signature', common.display_argv(app / common.VENDOR_DESTINATION / relative), f'S{n}_CDHASH')
+            shown_fields = session.observe(n, 'signature', obs.display_argv(app / common.VENDOR_DESTINATION / relative), f'S{n}_CDHASH')
             check(shown_fields['cdhash'] == supplier[relative]['cdhash'], f'S{n}_CDHASH')
 
     def notarize(n, submitted, kind):
         """Submit, wait, fetch the log; require Accepted, an explicit issues list that is empty and this exact digest."""
         progress['step'] = n
         submitted_sha256 = sha(submitted.read_bytes())
-        result = session.observe(n, 'submit', submit_argv(submitted, args.notary_profile), f'S{n}_SUBMIT')
+        result = session.observe(n, 'submit', submit_argv(submitted, args.notary_profile), f'S{n}_SUBMIT', subject=submitted)
         check(result['status'] == 'Accepted', f'S{n}_STATUS')
-        fetched = session.run(n, log_argv(result['id'], args.notary_profile))
+        # notarytool writes the log to a file the run owns (not the private folder); it is read once here,
+        # its raw bytes go to the private writer, and the file is removed.
+        log_file = out / 'tmp' / f'{kind}-notarization-log.json'
+        common.require_inside(log_file, out, 'the fetched log')
+        fetched, raw_log = None, None
         try:
-            log = observe('notary_log', fetched)
+            fetched = session.observe(n, 'log', log_argv(result['id'], args.notary_profile, log_file), f'S{n}_LOG')
+        finally:
+            # Whether or not the command's output was an observation, a fetched raw log leaves the output
+            # folder for the private writer, so that no raw log stays beside the returnable files.
+            if log_file.is_file() and not log_file.is_symlink():
+                raw_log = log_file.read_bytes()
+                os.unlink(log_file)
+                session.private.write(f'step {n} notarization log', raw_log)
+            elif os.path.lexists(log_file):
+                os.unlink(log_file)
+        check(fetched['id'] == result['id'] and raw_log is not None, f'S{n}_LOG')
+        try:
+            log = obs.observe_log_file(raw_log, result['id'], submitted_sha256)
         except ObservationFailed:
             raise Failure(f'S{n}_LOG')
         check(log['status'] == 'Accepted', f'S{n}_LOG_STATUS')
@@ -384,7 +403,7 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
         # The raw log went to the private folder with the command's output; the returnable summary
         # holds only selected, validated fields, and the raw log's digest computed in memory.
         summary = {'job': log['job'], 'status': log['status'], 'sha256': log['sha256'], 'issue_count': log['issue_count'],
-                   'original_log_sha256': sha(fetched.stdout)}
+                   'original_log_sha256': sha(raw_log)}
         name = f'notary/{kind}-notarization.json'
         common.write_returnable(out / name, summary, out, public_teams)
         entry = {'summary': name, 'submitted_sha256': submitted_sha256}
@@ -426,13 +445,13 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
 
     # 9. The disk image: the stapled App and the limitations, signed with a timestamp.
     progress['step'] = 9
-    write_bytes(paths['staging'] / common.LIMITATIONS_IN_IMAGE, limitations)
+    write_bytes(paths['staging'] / record.LIMITATIONS_IN_IMAGE, limitations)
     common.require_inside(dmg, out, 'the disk image')
-    session.act(9, [HDIUTIL, 'create', '-volname', common.VOLUME_NAME, '-srcfolder', paths['staging'], '-format', 'UDZO', dmg], 'S9_CREATE')
+    session.act(9, [HDIUTIL, 'create', '-volname', record.VOLUME_NAME, '-srcfolder', paths['staging'], '-format', 'UDZO', dmg], 'S9_CREATE')
     check(dmg.is_file() and not dmg.is_symlink(), 'S9_CREATE')
     session.act(9, sign_dmg_argv(args.identity, dmg), 'S9_SIGN')
-    session.observe(9, 'verify', [CODESIGN, '--verify', '--strict', '--verbose=4', dmg], 'S9_VERIFY')
-    image = session.observe(9, 'signature', common.display_argv(dmg), 'S9_DISPLAY')
+    session.observe(9, 'verify', [CODESIGN, '--verify', '--strict', '--verbose=1', dmg], 'S9_VERIFY')
+    image = session.observe(9, 'signature', obs.display_argv(dmg), 'S9_DISPLAY')
     check(image['team'] == team and image['signer_team'] == team and image['leaf_authority'] == args.identity, 'S9_DISPLAY')
     check(inventory.compare(inventory.scan(app), stapled_tree)['equal'], 'S9_APP_CHANGED')
 
@@ -449,7 +468,7 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     try:
         mounted = mount / common.APP_NAME
         check(inventory.compare(inventory.scan(mounted), stapled_tree)['equal'], 'S12_MOUNTED')
-        check((mount / common.LIMITATIONS_IN_IMAGE).read_bytes() == limitations, 'S12_LIMITATIONS')
+        check((mount / record.LIMITATIONS_IN_IMAGE).read_bytes() == limitations, 'S12_LIMITATIONS')
         session.observe(12, 'assessment', exec_argv(mounted), 'S12_EXEC')
     except BaseException:
         run(12, [HDIUTIL, 'detach', mount])  # clean-up while already stopping; its output is in the command log

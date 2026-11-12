@@ -174,8 +174,9 @@ inventory method can still supply raw inventory for the actual PKG identity.
 `app/packaging/release/` holds the runnable procedure:
 [`build.py`](../release/build.py) builds the unsigned candidate from this
 plan, [`owner_sign.py`](../release/owner_sign.py) is the owner's signing,
-notarization and stapling run, and [`record.py`](../release/record.py) writes
-and checks the package identity record. The owner's page is
+notarization and stapling run, which writes the package identity record, and
+[`record.py`](../release/record.py) builds that record's content and checks a
+package against it. The owner's page is
 [`release/README.md`](../release/README.md).
 
 ## Optional upstream notice supplement

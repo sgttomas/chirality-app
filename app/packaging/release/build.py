@@ -114,16 +114,26 @@ def placeholder(value, out):
 
 
 def refuse_links(tree):
-    """No link of any kind in a copied input (the source export, the Cargo home, the npm cache)."""
+    """No link of any kind in a copied input (the source export, the Cargo home, the npm cache):
+    no symbolic link, and no regular file whose link count is above one (a hard link)."""
     check(not any(entry['kind'] == 'symlink' for entry in tree['entries']), 'BUILD_LINK')
+    root = Path(tree['root'])
+    for entry in tree['entries']:
+        if entry['kind'] == 'file':
+            check(os.lstat(root / entry['path']).st_nlink == 1, 'BUILD_LINK')
 
 
 def observe_scope(runner, env, private):
     def one(argv, shape):
         result = runner(argv, env=env)
         private.write('scope ' + Path(argv[0]).name, result.stdout + result.stderr)
-        value = result.stdout.decode('utf-8', 'replace').strip()
-        check(result.returncode == 0 and common.is_shape(value, shape), 'BUILD_SCOPE')
+        # Declared form: exactly one line on standard output, of the expected shape; nothing on standard error.
+        # Sources: uname(1) -m "Write the type of the current hardware platform to standard output";
+        # sw_vers(1) ProductVersion "for example, 11.3 or 12.0"; xcrun(1) --show-sdk-version
+        # "Print the version number of the selected SDK".
+        lines = result.stdout.decode('utf-8', 'replace').splitlines()
+        value = lines[0].strip() if len(lines) == 1 else ''
+        check(result.returncode == 0 and not result.stderr.strip() and common.is_shape(value, shape), 'BUILD_SCOPE')
         return value
     check(one(['/usr/bin/uname', '-m'], 'identifier') == 'arm64', 'BUILD_SCOPE')
     triple = 'aarch64-apple-darwin'
@@ -151,11 +161,11 @@ def bundle_errors(app, plan, vendor, source_root, runner, env, private):
     for relative in sorted(set(['Contents/MacOS/' + common.MAIN_EXECUTABLE] + common.macho_paths(tree))):
         result = runner(['/usr/bin/dyld_info', '-validate_only', str(app / relative)], env=env)
         private.write('dyld_info ' + relative, result.stdout + result.stderr)
-        try:
-            common.observe('dyld_validate', result, subject=app / relative)
-            validated.append({'path': relative, 'valid': True})
-        except common.ObservationFailed:
-            validated.append({'path': relative, 'valid': False})
+        # dyld_info(1): "-validate_only  Display nothing if binary is valid". No output line is declared:
+        # it counts only on return code zero with no output at all; any line fails the check.
+        valid = result.returncode == 0 and not result.stdout.strip() and not result.stderr.strip()
+        validated.append({'path': relative, 'valid': valid})
+        if not valid:
             error('dyld_validate', relative)
     facts['dyld_validate'] = validated
     # The App's own code carries only the linker's ad hoc signature.
@@ -245,6 +255,9 @@ def _build(*, source_root, revision, vendor, expected_manifest, pin, out, enviro
     stage = {} if stage is None else stage
     host = host or (platform.system(), platform.machine())
     check(host == ('Darwin', 'arm64'), 'BUILD_HOST')
+    for value in (source_root, vendor, out, cargo_cache, npm_cache, publisher_input):
+        if value is not None:
+            check(not common.is_private_path(value), 'BUILD_PRIVATE_INPUT')
     try:
         export, vendor, cargo_cache, npm_cache = map(inventory.anchored, (source_root, vendor, cargo_cache, npm_cache))
         common.refuse_installed_location(out, 'output')

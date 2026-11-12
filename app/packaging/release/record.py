@@ -1,7 +1,7 @@
 """Package identity record (DEL-01-06 OUT-002): build it from a package, or check a package against it.
 
 `build_record` reads the package and the operating system's reports through
-the one observation rule (common.observe) and selects every value it records:
+the one observation rule (observations.observe, with every output form declared) and selects every value it records:
 digests, shaped identifiers, public team identifiers, known entitlements, fixed
 words. No free text from a tool is recorded. A fact the scope requires is
 recorded only as read positive: the App's own code must show the publisher
@@ -29,6 +29,7 @@ that drift and mistakes are caught. They are not a filesystem snapshot and are n
 a writer changing the inputs during the run, nor someone with write access forging a record: a
 completion marker or a recorded digest is not authentication.
 """
+import datetime
 import importlib.util
 import json
 import os
@@ -45,11 +46,13 @@ def sibling(name):
     return sys.modules[key]
 
 
-common = sibling('common')
+common, obs = sibling('common'), sibling('observations')
 prepare, inventory, require, sha = common.prepare, common.inventory, common.require, common.sha
 
 FORMAT = 'chirality-package-identity/4'
 STAPLED_TICKET = 'Contents/CodeResources'
+VOLUME_NAME = 'Chirality'  # the disk image's volume name
+LIMITATIONS_IN_IMAGE = 'Release Limitations.md'  # the limitations file at the disk image's top level
 NOTARIZED = ('app', 'disk_image')
 NOT_OBSERVED = [
     'install-and-launch witness: not part of this record (DEL-01-06 REQ-003, VER-003)',
@@ -122,15 +125,15 @@ def as_signed(stapled):
 def read_signature(run, path, public_teams):
     """(facts, failure name or None): one signed executable's display and entitlements, through the one observation rule."""
     try:
-        fields = common.observe('signature', run(common.display_argv(path)), subject=path)
-    except common.ObservationFailed:
+        fields = obs.observe('signature', run(obs.display_argv(path)), subject=path)
+    except obs.ObservationFailed:
         return None, 'signature'
-    facts = common.signature_facts(fields, public_teams)
+    facts = obs.signature_facts(fields, public_teams)
     try:
-        raw = common.observe('entitlements', run(common.entitlements_argv(path)), subject=path)
-    except common.ObservationFailed:
+        raw = obs.observe('entitlements', run(obs.entitlements_argv(path)), subject=path)
+    except obs.ObservationFailed:
         return facts, 'entitlements'
-    chosen, unexpected = common.select_entitlements(raw, public_teams)
+    chosen, unexpected = obs.select_entitlements(raw, public_teams)
     facts['entitlements'] = chosen
     facts['unexpected_entitlements'] = unexpected
     return facts, None
@@ -182,12 +185,12 @@ def profile_facts(app, public_teams, failures):
     except (ValueError, plistlib.InvalidFileException):
         failures.append(failure('provisioning profile'))
         return {'sha256': sha(raw), 'decoded': False}
-    chosen, unexpected = common.select_entitlements(value.get('Entitlements'), public_teams)
-    teams = [common.select_team(t, public_teams) for t in value.get('TeamIdentifier') or []]
+    chosen, unexpected = obs.select_entitlements(value.get('Entitlements'), public_teams)
+    teams = [obs.select_team(t, public_teams) for t in value.get('TeamIdentifier') or []]
     facts = {'sha256': sha(raw), 'mode': oct(os.stat(path).st_mode & 0o777), 'decoded': True,
              'uuid': common.selected(value.get('UUID'), 'profile_uuid'), 'team': teams,
              'app_id': (chosen or {}).get(common.APP_ID_KEY), 'allowed_entitlements': chosen,
-             'unexpected_entitlements': unexpected, 'expiration': common.plain_datetime(value.get('ExpirationDate'))}
+             'unexpected_entitlements': unexpected, 'expiration': plain_datetime(value.get('ExpirationDate'))}
     if facts['uuid'] is None or facts['app_id'] is None or not teams or 'other' in teams or facts['expiration'] is None:
         failures.append(failure('provisioning profile'))
     return facts
@@ -260,20 +263,20 @@ def observe_package(dmg, app, run, public_teams, publisher_team, limitations_sou
     tickets = {}
     for key, target in (('app', app), ('disk_image', dmg)):
         try:
-            common.observe('validate', run(['/usr/bin/xcrun', 'stapler', 'validate', str(target)]), subject=target)
+            obs.observe('validate', run(['/usr/bin/xcrun', 'stapler', 'validate', str(target)]), subject=target)
             tickets[key] = {'validated': True}
-        except common.ObservationFailed:
+        except obs.ObservationFailed:
             tickets[key] = {'validated': False}
             failures.append(failure('ticket validation', key))
     ticket = app / STAPLED_TICKET
     tickets['app']['ticket_sha256'] = sha(ticket.read_bytes()) if ticket.is_file() else 'not observed'
     gatekeeper = {}
-    for key, argv, target in (('disk_image', ['/usr/sbin/spctl', '-a', '-t', 'open', '--context', 'context:primary-signature', '-vv', str(dmg)], dmg),
-                              ('app', ['/usr/sbin/spctl', '-a', '-t', 'exec', '-vv', str(app)], app)):
+    for key, argv, target in (('disk_image', ['/usr/sbin/spctl', '-a', '-t', 'open', '--context', 'context:primary-signature', '-v', str(dmg)], dmg),
+                              ('app', ['/usr/sbin/spctl', '-a', '-t', 'exec', '-v', str(app)], app)):
         try:
-            common.observe('assessment', run(argv), subject=target)
+            obs.observe('assessment', run(argv), subject=target)
             gatekeeper[key] = {'accepted': True, 'source': 'Notarized Developer ID'}
-        except common.ObservationFailed:
+        except obs.ObservationFailed:
             gatekeeper[key] = {'accepted': False}
             failures.append(failure('gatekeeper', key))
     facts = {
@@ -286,7 +289,7 @@ def observe_package(dmg, app, run, public_teams, publisher_team, limitations_sou
         'workflows': workflows,
         'roles_sha256': sha((resources / 'instructions/roles.json').read_bytes()) if (resources / 'instructions/roles.json').is_file() else 'not observed',
         'limitations': {'bundle': limitation_copy(app / common.LIMITATIONS_IN_BUNDLE, limitations_source_sha256),
-                        'disk_image': limitation_copy(app.parent / common.LIMITATIONS_IN_IMAGE, limitations_source_sha256)},
+                        'disk_image': limitation_copy(app.parent / LIMITATIONS_IN_IMAGE, limitations_source_sha256)},
         'signatures': signatures,
         'provisioning_profile': profile_facts(app, public_teams, failures),
         'stapled_tickets': tickets,
@@ -303,7 +306,8 @@ def notarization_facts(record_dir, entry):
     failures = []
     try:
         path = Path(record_dir) / prepare.files.relative(entry.get('summary', 'missing'))
-        summary = json.loads(path.read_bytes(), object_pairs_hook=common._unique_json)
+        common.refuse_private(path, 'a notarization summary')
+        summary = json.loads(path.read_bytes(), object_pairs_hook=obs.unique_pairs)
         require(isinstance(summary, dict) and set(summary) == set(SUMMARY_FIELDS), 'summary shape')
     except (OSError, ValueError):
         failures.append(failure('notarization summary'))
@@ -320,7 +324,7 @@ def notarization_facts(record_dir, entry):
     if 'submitted' in entry:
         facts['submitted'] = entry['submitted']
         submitted = Path(record_dir) / prepare.files.relative(entry['submitted'])
-        if not submitted.is_file() or sha(submitted.read_bytes()) != summary['sha256']:
+        if common.is_private_path(submitted) or not submitted.is_file() or sha(submitted.read_bytes()) != summary['sha256']:
             failures.append(failure('submitted file'))
     return facts, failures
 
@@ -439,7 +443,8 @@ def check(record, *, dmg, app, run, record_dir, candidate_dir=None):
         found += differences(record['notarization'][key], observed, ('notarization', key))
     not_checked = [NOT_CHECKED_LOGS]
     if candidate_dir is not None:
-        description = json.loads((Path(candidate_dir) / common.CANDIDATE_FILE).read_bytes())
+        common.refuse_private(candidate_dir, 'the candidate')
+        description = json.loads((Path(candidate_dir) / common.CANDIDATE_FILE).read_bytes(), object_pairs_hook=obs.unique_pairs)
         provenance = {'source_revision': description['source_revision'], 'pin': description['pin'],
                       'expected_manifest': description['expected_manifest'], 'build_environment_sha256': description['build']['environment_sha256'],
                       'unsigned_executable_sha256': description['bundle']['executable_sha256'],
@@ -458,6 +463,12 @@ def check(record, *, dmg, app, run, record_dir, candidate_dir=None):
             'failed_observations': dict(sorted(observations.items())), 'not_checked': not_checked}
 
 
+def plain_datetime(value):
+    if isinstance(value, datetime.datetime):
+        return value.replace(microsecond=0).isoformat() + ('' if value.tzinfo else 'Z')
+    return None
+
+
 def system_run(argv):
     env = {'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'HOME': os.environ.get('HOME', '/'), 'LANG': 'en_US.UTF-8'}
     return common.system_runner(argv, env=env, timeout=600)
@@ -474,7 +485,12 @@ def main(argv=None, *, run=None, stdout=None, stderr=None):
     c.add_argument('--candidate', help='the build output folder holding CANDIDATE.json, to check provenance')
     args = parser.parse_args(argv)
     try:
-        record = json.loads(Path(args.record).read_bytes(), object_pairs_hook=common._unique_json)
+        for value in (args.record, args.dmg, args.app, args.candidate):
+            if value is not None:
+                common.refuse_private(value, 'an input')
+        # Relative inputs are made absolute, so that a tool reporting the path it was given names this object.
+        args.dmg, args.app = os.path.abspath(args.dmg), os.path.abspath(args.app)
+        record = json.loads(Path(args.record).read_bytes(), object_pairs_hook=obs.unique_pairs)
         result = check(record, dmg=args.dmg, app=args.app, run=run or system_run, record_dir=Path(args.record).resolve().parent,
                        candidate_dir=args.candidate)
     except Exception:  # a fixed message: no traceback, no path, no tool text
