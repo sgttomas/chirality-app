@@ -40,9 +40,12 @@
 //! once. (Someone outside the App can write such a line by hand: the writer
 //! then names it and it is set aside, its bytes kept and never read. That is
 //! the one thing the mark lets an outside party cause.) A complete line that
-//! cannot be read and does not end in the mark is never named: the file is
-//! "not read whole", reading continues from its other lines, the limit is
-//! returned, and the appender refuses to append to that file.
+//! cannot be read and does not end in the mark is never named, and a naming
+//! line written for one by anyone sets nothing aside: the file is "not read
+//! whole", reading continues from its other lines, the limit is returned,
+//! and the appender refuses to append to that file. A naming line in any
+//! form but the one the App writes names nothing and leaves the file not
+//! read whole too.
 use crate::util::{now_rfc3339, sha256_hex};
 use serde_json::{json, Value};
 use std::path::Path;
@@ -79,6 +82,43 @@ pub(crate) fn naming_line(number: usize, line: &[u8]) -> Result<Vec<u8>, String>
     let mut bytes = serde_json::to_vec(&value).map_err(|e| e.to_string())?;
     bytes.push(b'\n');
     Ok(bytes)
+}
+
+/// Whether `value` is a naming line in the one form the App writes: this
+/// format and version, with exactly the members `naming_line` gives it.
+fn is_naming_line(value: &Value) -> bool {
+    let Some(members) = value.as_object() else { return false };
+    members.len() == 7
+        && value["format"] == UNREAD_FORMAT
+        && value["formatVersion"] == VERSION
+        && value["line"].as_u64().is_some_and(|n| n >= 1)
+        && value["length"].is_u64()
+        && value["sha256"].as_str().is_some_and(|s| s.len() == 64 && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)))
+        && value["at"].is_string()
+        && value["by"] == "writer"
+}
+
+/// Review round 1, finding 3: the reviewer's two inputs, as bytes to put
+/// after the complete lines `existing`. First, a complete line that cannot
+/// be read and does not carry the mark, with an exact naming line for it.
+/// Second, a closed fragment with an exact naming line of another version.
+#[cfg(test)]
+pub(crate) fn naming_inputs_that_set_nothing_aside(existing: &[u8]) -> [Vec<u8>; 2] {
+    let line = existing.iter().filter(|b| **b == b'\n').count() + 1;
+    let damaged = b"{\"damaged from outside".to_vec();
+    let mut unmarked = damaged.clone();
+    unmarked.push(b'\n');
+    unmarked.extend(naming_line(line, &damaged).unwrap());
+    let mut closed = b"{\"cut".to_vec();
+    closed.push(MARK);
+    let named = naming_line(line, &closed).unwrap();
+    let mut naming: Value = serde_json::from_slice(&named[..named.len() - 1]).unwrap();
+    naming["formatVersion"] = json!("999.0");
+    let mut other_version = closed.clone();
+    other_version.push(b'\n');
+    other_version.extend(serde_json::to_vec(&naming).unwrap());
+    other_version.push(b'\n');
+    [unmarked, other_version]
 }
 
 /// A store line file as read.
@@ -163,11 +203,18 @@ pub(crate) fn read(bytes: &[u8], path: &Path) -> Read {
     out.complete_lines = lines.len();
     let parsed: Vec<Option<Value>> = lines.iter().map(|l| serde_json::from_slice::<Value>(l).ok()).collect();
     // Each naming line sets aside the earlier line it names exactly, when that
-    // line cannot be read; otherwise it sets nothing aside and is a limit.
+    // line is a closed fragment: it ends in the mark, so it can never be
+    // read. Otherwise it sets nothing aside and is a limit. Only the one form
+    // of naming line the App writes names anything.
     let mut named = std::collections::BTreeSet::new();
     for (i, value) in parsed.iter().enumerate() {
         let Some(value) = value.as_ref().filter(|v| v["format"] == UNREAD_FORMAT) else { continue };
         let own = i + 1;
+        if !is_naming_line(value) {
+            out.whole = false;
+            out.limits.push(format!("{name}: line {own} is a naming line in a form this App does not write; it sets nothing aside"));
+            continue;
+        }
         let target = value["line"].as_u64().map(|n| n as usize).filter(|n| *n >= 1 && *n < own);
         let exact = target.filter(|n| {
             let line = lines[n - 1];
@@ -175,6 +222,7 @@ pub(crate) fn read(bytes: &[u8], path: &Path) -> Read {
         });
         match exact {
             Some(n) if parsed[n - 1].is_some() => out.limits.push(format!("{name}: line {own} names line {n}, which can be read; it sets nothing aside")),
+            Some(n) if !is_closed(lines[n - 1]) => out.limits.push(format!("{name}: line {own} names line {n}, which does not end in the closure mark; it sets nothing aside")),
             Some(n) if !named.insert(n) => out.limits.push(format!("{name}: line {own} names line {n} again; it was already set aside")),
             Some(_) => {}
             None => out.limits.push(format!("{name}: line {own} names bytes that are not an earlier line of this file; it sets nothing aside")),

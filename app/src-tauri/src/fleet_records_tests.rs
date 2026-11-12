@@ -624,6 +624,24 @@ fn fleet_reader_registry_with_a_closed_and_named_fragment_reads_the_association_
     assert_eq!(after["project"],before["project"],"the same association, nothing invented");
 }
 
+/// Review round 1, finding 3, on this reader directly: it returns no row it
+/// refused before for any reason but a closed fragment named exactly once.
+/// The reviewer's two inputs (an exact naming line for a complete unreadable
+/// line without the mark; a naming line of another version for a closed
+/// fragment) each still refuse.
+#[test]
+fn fleet_reader_registry_a_naming_line_for_an_unmarked_line_or_of_another_version_still_refuses() {
+    for which in 0..2 {
+        let f=Fixture::new();f.pair(&[f.row("fl:registry","fixture")]);
+        assert_eq!(observations(&f.read()).len(),1,"read while the registry is whole");
+        let roots=f.store.root.join("roots.jsonl");
+        let whole=std::fs::read(&roots).unwrap();
+        let mut bytes=whole.clone();bytes.extend(&records_store::lines::naming_inputs_that_set_nothing_aside(&whole)[which]);f.put(&roots,&bytes);
+        let view=f.read();assert!(observations(&view).is_empty(),"input {which}: no row is returned");
+        assert!(has_limit(&view,"protected root registry"),"{:?}",view["limits"]);
+    }
+}
+
 /// The shared reading has not widened what the registry reader accepts: a line
 /// of an unknown format, a naming line that names nothing, an unnamed closed
 /// line and an empty line each still refuse.

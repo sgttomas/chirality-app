@@ -680,6 +680,35 @@ fn native_links_registry_and_import_account_with_a_closed_and_named_fragment_rea
     assert!(p.store_done && p.project_done);
 }
 
+/// Review round 1, finding 3, on this reader directly: it returns no row it
+/// refused before for any reason but a closed fragment named exactly once.
+/// The reviewer's two inputs (an exact naming line for a complete unreadable
+/// line without the mark; a naming line of another version for a closed
+/// fragment) each still refuse, in the registry and in an import account.
+#[test]
+fn native_links_a_naming_line_for_an_unmarked_line_or_of_another_version_still_refuses() {
+    for which in 0..2 {
+        let f = Fixture::new();
+        let roots = f.scope.store.path.join("roots.jsonl");
+        let imports = f.scope.dir.path.join("imports.jsonl");
+        f.put(&imports, b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"started\",\"importId\":\"import:invented\",\"census\":[],\"storeHeld\":false}\n");
+        for (path, format) in [(&roots, "chirality.records-store.root"), (&imports, "chirality.records-store.import")] {
+            let whole = std::fs::read(path).unwrap();
+            assert!(!administrative_lines(path, format).unwrap().is_empty(), "{format}: read while whole");
+            let mut bytes = whole.clone();
+            bytes.extend(&crate::records_store::lines::naming_inputs_that_set_nothing_aside(&whole)[which]);
+            f.put(path, &bytes);
+            assert!(administrative_lines(path, format).is_err(), "{format}, input {which}: no row is returned");
+            f.put(path, &whole);
+        }
+        let whole = std::fs::read(&roots).unwrap();
+        let mut bytes = whole.clone();
+        bytes.extend(&crate::records_store::lines::naming_inputs_that_set_nothing_aside(&whole)[which]);
+        f.put(&roots, &bytes);
+        assert!(Scope::capture(&f.scope.project.path).is_err(), "input {which}: no association is taken from such a registry");
+    }
+}
+
 /// The shared reading has not widened what these readers accept: a line of an
 /// unknown format, a naming line that names nothing, an unnamed closed line
 /// and an empty line each still refuse.

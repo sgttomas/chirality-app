@@ -374,6 +374,56 @@ fn a_complete_unreadable_line_without_the_mark_refuses_appends_changes_nothing_a
     }
 }
 
+/// Review round 1, finding 3. Only a line that ends in the mark is ever set
+/// aside, and only by a naming line in the one form the App writes. A naming
+/// line written for a complete unreadable line WITHOUT the mark sets nothing
+/// aside: the file is not read whole, as if the naming line were not there.
+/// A naming line of another version, or with other members, names nothing.
+#[test]
+fn a_naming_line_for_a_line_without_the_mark_or_in_another_form_sets_nothing_aside() {
+    for kind in KINDS {
+        let c = Case::new(kind);
+        let original = c.bytes();
+        let first = c.read().values;
+        let [unmarked, other_version] = store_lines::naming_inputs_that_set_nothing_aside(&original);
+        // A naming line with a member the App does not write, for a closed fragment.
+        let line = original.iter().filter(|b| **b == b'\n').count() + 1;
+        let mut closed = b"{\"cut".to_vec();
+        closed.push(store_lines::MARK);
+        let named = store_lines::naming_line(line, &closed).unwrap();
+        let mut naming: Value = serde_json::from_slice(&named[..named.len() - 1]).unwrap();
+        naming["extra"] = json!(true);
+        let mut extra_member = closed.clone();
+        extra_member.push(b'\n');
+        extra_member.extend(serialized(&naming));
+        extra_member.push(b'\n');
+        for (case, input, limit, awaiting) in [
+            ("unmarked", unmarked, "does not end in the closure mark", 0),
+            ("another version", other_version, "in a form this App does not write", 1),
+            ("another member", extra_member, "in a form this App does not write", 1),
+        ] {
+            let mut bytes = original.clone();
+            bytes.extend(&input);
+            c.put(&bytes);
+            let read = c.read();
+            assert!(!read.whole, "{kind:?} {case}: not read whole");
+            assert!(read.set_aside.is_empty(), "{kind:?} {case}: nothing is set aside");
+            assert_eq!(read.values, first, "{kind:?} {case}: reading continues from the other lines");
+            assert!(read.limits.iter().any(|l| l.contains(limit)), "{kind:?} {case}: {:?}", read.limits);
+            assert_eq!(read.unnamed_closures.len(), awaiting, "{kind:?} {case}");
+            if case == "unmarked" {
+                assert!(read.limits.iter().any(|l| l.contains("cannot be read and is not named")), "{:?}", read.limits);
+            }
+            assert!(read.require_settled(&bytes, &c.path).is_err(), "{kind:?} {case}: a strict reader refuses");
+            let refused = c.append(9).unwrap_err();
+            assert!(refused.contains("not read whole") && refused.contains("nothing in it changed"), "{kind:?} {case}: {refused}");
+            let left = recover_at_startup().unwrap();
+            assert!(left.iter().any(|l| l.contains("not read whole")), "{kind:?} {case}: {left:?}");
+            assert_eq!(c.bytes(), bytes, "{kind:?} {case}: nothing written, at an append or at startup");
+        }
+    }
+}
+
 #[test]
 fn a_naming_line_that_names_a_readable_line_or_other_bytes_sets_nothing_aside() {
     for kind in KINDS {
