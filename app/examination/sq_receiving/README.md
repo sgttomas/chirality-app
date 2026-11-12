@@ -50,8 +50,10 @@ evidence. The dossier rules call it as SQ-R18; both workers call it again with
 the step's result record and then refuse a stated pass and, on a step with
 planned parts, a pass that EXP-R1 yields from those parts. SQ-R18 retired SQ-R14
 to SQ-R17, whose numbers are not reused. Stated outcomes and journey bases are
-reported only when the selection is admitted; a failed selection's report
-carries neither.
+reported, in the fields `reported_outcomes` and `reported_journey_basis`, only
+when the selection is admitted; a refused selection's report has neither field.
+Its error messages may quote the rejected record, as they do for every record;
+text quoted inside an error that says it was rejected is not a reported outcome.
 
 A step is given planned parts only when those parts are together the whole of the step: everything done and observed in carrying out the step is done and observed in carrying out one of its parts. A gap met while carrying out such a step was therefore met in carrying out one of its parts, and that part is not passed. A step whose parts would not be exhaustive must not be declared with planned parts.
 

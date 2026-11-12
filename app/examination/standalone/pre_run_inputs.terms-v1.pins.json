@@ -5,7 +5,7 @@
     "app/examination/admission/admission_rules.py": "b6cb783561cade47855431f0be33190d8fe287a9f5ff05a2da5bbc7953e694a5",
     "app/examination/admission/sources.json": "d4aa53492349915110941f42a09271c1bd0999831efa540cdcf948a5b706ede0",
     "app/examination/check.py": "3c1a6d2e6d65724478b597c8d0f1ade0d06231b398a14267c91f30e28985f79a",
-    "app/examination/native_forms/native_form.py": "2004be8568fb698d38356fdbbab71633bbe64c44c35f60fee70196cd6f5710a0",
+    "app/examination/native_forms/native_form.py": "1cfec115bf9da111d0a1db1acc76297a799e7b8985ede3ba1844dc070ca820e9",
     "app/examination/native_forms/sources.terms-v1.json": "809dcbb89e00a298f957cd353f579b5f08373bdd8358dfda1644bf6b84f6c76e",
     "app/examination/rules.py": "ceba713f1c1439855eecd60ef02dc1dd6e68e373916281e5e1ca5d8cb10b0cfc",
     "app/examination/sources.json": "ee430815e87c3b2759bdd5511dd18cb2ef14ed4d2ef14f1b084e972dcc7a6bf7",

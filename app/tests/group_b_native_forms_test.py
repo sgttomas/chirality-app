@@ -56,7 +56,10 @@ class NativeForms(unittest.TestCase):
         self.assertIn('| J2-7 part allow-disk-records |', j2)
         self.assertIn('| J2-7 part require-verified-approval |', j2)
         self.assertIn('| J1-4 part changed-file-held |', forms.generate(self.plan, 'J1'))
-        self.assertIn('records inconclusive', j2)
+        # The form says what forbids a pass and chooses no outcome among the others (SQ-R18's boundary).
+        self.assertIn('either one forbids a pass', j2)
+        self.assertIn('neither decides which other outcome is recorded', j2)
+        self.assertNotIn('fails the step', j2)
 
     def test_wrong_source(self):
         self.plan['sources'][0]['sha256'] = 'sha256:' + '0'*64
