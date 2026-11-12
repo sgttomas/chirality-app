@@ -248,13 +248,16 @@ test('the refusal notice claims nothing about sending now: another conversation\
     await React.act(async () => { props(ui.send()).onClick(); }); await ui.settle();
     assert.match(refusedNotice(ui).textContent, /Codex refused this message and started no turn\./);
     assert.equal(props(ui.send()).disabled, false, 'A is not held by its definite refusal');
-    // Back in B: the notice may remain, B stays held, and nothing on the page says B can be sent to.
+    // Back in B: the notice remains, B stays held, and nothing on the page says B can be sent to.
+    const attempt = /Codex refused this message and started no turn\. This attempt added no hold on sending and cleared neither your text nor your model choice\./;
     await ui.render({threadKey:JSON.stringify([g, 'thread-b'])});
+    assert.match(refusedNotice(ui).textContent, attempt, 'the notice stays, saying only what the attempt did');
     assert.equal(props(ui.send()).disabled, true, 'B is still held');
     assert.doesNotMatch(ui.c.textContent, /you can send again|Nothing is held/);
     assert.match(ui.readiness(), /wasn't confirmed and may have been sent/);
     // Codex stops: the notice still says only what the attempt did.
     await ui.render({host:{...hostFor(), state:'exited-unexpectedly', generationClosed:true}, threadKey:JSON.stringify([g, 'thread-a'])});
+    assert.match(refusedNotice(ui).textContent, attempt, 'and stays so when Codex stops');
     assert.equal(props(ui.send()).disabled, true, 'nothing can be sent to a stopped Codex');
     assert.doesNotMatch(ui.c.textContent, /you can send again|Nothing is held/);
   });

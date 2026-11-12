@@ -11,8 +11,10 @@ export type DefiniteSendRefusal =
   /** The App refused before writing anything to Codex; `reason` is the host's. */
   | { kind: "before-write"; reason: string }
   /** Codex's own correlated JSON-RPC error. `nativeErrorText` is the error as
-   * the host serialized it, for display: rebuilding it here from the decoded
-   * value could round a large integer. `carriedEndNotice`: the refused
+   * the host serialized it from its parsed response, for display: rebuilding
+   * it here from the decoded value could round a large integer further. It is
+   * not the original bytes (the host's parse sorts keys and can approximate a
+   * number beyond 64 bits). `carriedEndNotice`: the refused
    * message also carried a workflow run's end notice. */
   | { kind: "codex"; nativeError: Json; nativeErrorText: string; carriedEndNotice: boolean };
 
@@ -44,14 +46,14 @@ export function definiteSendRefusal(rejection: unknown): DefiniteSendRefusal | n
 // composer's to say, not this notice's.
 const THIS_ATTEMPT = "This attempt added no hold on sending and cleared neither your text nor your model choice.";
 
-/** What was refused and why: Codex's message and its error as the App received it, or the host's reason. */
+/** What was refused and why: Codex's message and its error formatted from the host's parsed response, or the host's reason. */
 export function DefiniteSendRefusalNotice({ refusal }: { refusal: DefiniteSendRefusal }) {
   if (refusal.kind === "codex") {
     return <div role="alert" aria-label="Message refused by Codex">
       <p><strong>Codex refused this message and started no turn.</strong> {THIS_ATTEMPT}</p>
       {refusal.carriedEndNotice && <p>This message also carried a workflow run's end notice, which Codex refused with it. The App does not send that notice again.</p>}
       <p>Codex's message: <span style={{ whiteSpace: "pre-wrap" }}>{refusal.nativeError.message}</span></p>
-      <details><summary>Codex's error, as the App received it</summary><pre style={{ whiteSpace: "pre-wrap" }}>{refusal.nativeErrorText}</pre></details>
+      <details><summary>Codex's error, formatted from the App's parsed response</summary><pre style={{ whiteSpace: "pre-wrap" }}>{refusal.nativeErrorText}</pre></details>
     </div>;
   }
   return <div role="alert" aria-label="Message not sent">

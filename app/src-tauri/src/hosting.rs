@@ -456,9 +456,10 @@ impl TurnStartFailure {
     pub(crate) fn window_value(self) -> Value {
         match self {
             Self::NotSent(reason) => json!({"sendOutcome":"refused-before-write","reason":reason}),
-            // `nativeErrorText` is the error serialized here, for display: a
-            // window that rebuilt it from the decoded value could round a
-            // large integer Codex sent.
+            // `nativeErrorText` is the parsed error serialized here, for
+            // display: a window that rebuilt it from the decoded value could
+            // round a 64-bit integer Codex sent. It is the Host's parsed
+            // value formatted, not the original bytes.
             Self::Refused { error, carried_end_notice, .. } => json!({"sendOutcome":"refused-by-codex","nativeErrorText":serde_json::to_string_pretty(&error).unwrap_or_else(|_| error.to_string()),"nativeError":error,"carriedEndNotice":carried_end_notice}),
             Self::Unknown(message) => Value::String(message),
         }

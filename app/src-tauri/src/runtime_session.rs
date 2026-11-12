@@ -8710,7 +8710,7 @@ for line in sys.stdin:
         assert_eq!(refused.message(), format!("turn/start native error: {native}"), "the message every other caller receives is unchanged");
         assert_eq!(refused.window_value(), json!({"sendOutcome":"refused-by-codex","nativeError":native,"nativeErrorText":serde_json::to_string_pretty(&native).unwrap(),"carriedEndNotice":false}));
         let record = peer.home.host.client_requests().last().unwrap().clone();
-        assert_eq!((record["writeResult"].as_str(), record["outcome"].as_str()), (Some("written"), Some("response-observed-error")), "the register is unchanged");
+        assert_eq!((record["writeResult"].as_str(), record["outcome"].as_str()), (Some("written"), Some("response-observed-error")), "the register still records the write and Codex's error reply");
         let starts = peer.turn_starts();
         let not_loaded = crate::ordinary_send_text_classified(&peer.home, &workflows, &peer.generation, "no-such-conversation", "x", None, None, None).unwrap_err();
         assert!(matches!(not_loaded, TurnStartFailure::NotSent(_)), "{not_loaded:?}");
@@ -10367,11 +10367,12 @@ for line in sys.stdin:
         assert_eq!(last_turn_start(&peer)["params"]["input"][1]["text"],"hello");
     }
     // The window's class for an ordinary send that carries an end notice: a
-    // refusal before any write is definite (the notice stays pending); once the
-    // notice frame is written it is settled as sent whatever Codex replies, so
-    // even Codex's own refusal stays unknown there and the hold applies.
+    // refusal before any write is not sent (the notice stays pending); a
+    // written frame Codex answered with its own correlated error is Codex's
+    // refusal that carried the notice. The notice is consumed by the write
+    // attempt either way and never resent.
     #[test]
-    fn ordinary_notice_send_is_definite_only_before_its_write(){
+    fn ordinary_notice_send_is_not_sent_before_its_write_and_refused_on_codexs_correlated_error(){
         use crate::hosting::TurnStartFailure;
         let peer=Peer::new();let (root,a)=ended_run(&peer);
         NOTICE_REFUSED_BEFORE_WRITE.with(|v|v.set(true));
