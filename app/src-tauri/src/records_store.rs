@@ -97,14 +97,30 @@ pub struct Store {
 }
 
 static STORE: RwLock<Option<Result<Store, String>>> = RwLock::new(None);
-/// The opened store: its canonical root and identity.
-static OPENED: Mutex<Option<(PathBuf, PathBuf, String)>> = Mutex::new(None);
+/// The store this process opened, bound to the physical folder it found: the
+/// configured path, the canonical root, the identity, and the device and
+/// inode of the store's folder and of its `store.json`. A folder or identity
+/// file put in their place afterwards is not this store.
+#[derive(Clone, Debug)]
+struct Bound {
+    configured: PathBuf,
+    root: PathBuf,
+    id: String,
+    folder: (u64, u64),
+    identity: (u64, u64),
+}
+static OPENED: Mutex<Option<Bound>> = Mutex::new(None);
 /// Existing process custody only; no store open, identity write or cache change.
 /// Read-only consumers preserve an already opened store's identity/alias binding.
 pub(crate) fn known_identity_for_read(configured: &Path, physical: &Path) -> Option<(PathBuf,String)> {
     OPENED.lock().unwrap_or_else(|p|p.into_inner()).as_ref()
-        .filter(|(at,root,_)| at == configured || root == physical)
-        .map(|(_,root,id)|(root.clone(),id.clone()))
+        .filter(|b| b.configured == configured || b.root == physical)
+        .map(|b|(b.root.clone(),b.id.clone()))
+}
+/// The device and inode of `path` itself (a link is not followed).
+fn node(path: &Path) -> std::io::Result<(u64, u64)> {
+    use std::os::unix::fs::MetadataExt;
+    std::fs::symlink_metadata(path).map(|m| (m.dev(), m.ino()))
 }
 /// Store project folder -> the project root it was attached from in this process.
 static DIRS: Mutex<Vec<(PathBuf, PathBuf)>> = Mutex::new(Vec::new());
@@ -367,14 +383,8 @@ fn open(create: bool) -> Result<(PathBuf, String), String> {
     let store = current()?;
     {
         let cached = OPENED.lock().unwrap_or_else(|p| p.into_inner());
-        if let Some((configured, root, id)) = cached.as_ref() {
-            if *configured == store.root {
-                if !root.is_dir(){return Err("the opened records store folder disappeared; no replacement store or project identity minted".into());}
-                let bytes=crate::records_retention::read_plain(&root.join("store.json")).map_err(|e|format!("opened store identity unavailable; no replacement identity minted: {e}"))?;
-                let identity:Value=serde_json::from_slice(&bytes).map_err(|e|format!("opened store identity unreadable: {e}"))?;
-                if identity["format"]!=STORE_FORMAT || identity["storeId"]!=*id{return Err("opened records store identity changed; no silent reassociation".into());}
-                return Ok((root.clone(), id.clone()));
-            }
+        if let Some(bound) = cached.as_ref().filter(|b| b.configured == store.root) {
+            return still_bound(bound);
         }
     }
     if !store.root.exists() {
@@ -405,6 +415,7 @@ fn open(create: bool) -> Result<(PathBuf, String), String> {
             Err(e) => Err(format!("records store unreadable: store.json: {e}")),
         }
     };
+    let folder = node(&root).map_err(|e| format!("records store unavailable: {}: {e}", root.display()))?;
     let (id, _bootstrap) = match read(&identity) {
         // Preserve the existing strict read-only cold path. A valid single-link
         // identity needs no writable bootstrap control and may be read before
@@ -436,8 +447,54 @@ fn open(create: bool) -> Result<(PathBuf, String), String> {
             (id, Some(bootstrap))
         }
     };
-    *OPENED.lock().unwrap_or_else(|p| p.into_inner()) = Some((store.root.clone(), root.clone(), id.clone()));
+    // Bound to the folder and identity file as found: the folder's node read
+    // before the identity, and again after it, must agree.
+    let identity_node = node(&identity).map_err(|e| format!("records store unreadable: store.json: {e}"))?;
+    if node(&root).ok() != Some(folder) {
+        return Err(format!("records store folder {} changed while it was opened; nothing read or written there", root.display()));
+    }
+    *OPENED.lock().unwrap_or_else(|p| p.into_inner()) = Some(Bound { configured: store.root.clone(), root: root.clone(), id: id.clone(), folder, identity: identity_node });
+    #[cfg(test)]
+    after_bind();
     Ok((root, id))
+}
+/// The opened store, checked again: the same physical folder (device and
+/// inode) holding the same `store.json` file with the same identity. A folder
+/// put at the store's path in its place, even holding a copy of its identity
+/// file, is refused; nothing is read, written, created or minted there.
+fn still_bound(bound: &Bound) -> Result<(PathBuf, String), String> {
+    match node(&bound.root) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Err("the opened records store folder disappeared; no replacement store or project identity minted".into()),
+        Err(e) => return Err(format!("the opened records store folder is unavailable: {}: {e}", bound.root.display())),
+        Ok(at) if at != bound.folder || !bound.root.is_dir() => return Err(format!("the opened records store folder {} was replaced by another folder; it is not the store this App opened, so nothing is read or written there and no replacement store or project identity is minted", bound.root.display())),
+        Ok(_) => {}
+    }
+    let file = bound.root.join("store.json");
+    match node(&file) {
+        Ok(at) if at == bound.identity => {}
+        Ok(_) => return Err("the opened records store identity file was replaced; no silent reassociation, and nothing is read or written there".into()),
+        Err(e) => return Err(format!("opened store identity unavailable; no replacement identity minted: {e}")),
+    }
+    let bytes = crate::records_retention::read_plain(&file).map_err(|e| format!("opened store identity unavailable; no replacement identity minted: {e}"))?;
+    let identity: Value = serde_json::from_slice(&bytes).map_err(|e| format!("opened store identity unreadable: {e}"))?;
+    if identity["format"] != STORE_FORMAT || identity["storeId"] != bound.id.as_str() {
+        return Err("opened records store identity changed; no silent reassociation".into());
+    }
+    #[cfg(test)]
+    after_bind();
+    Ok((bound.root.clone(), bound.id.clone()))
+}
+// A test seam inside one read: runs once, right after the next opening binds
+// or checks the store (so between that step of a read and the next).
+#[cfg(test)]
+thread_local! { static AFTER_OPEN: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) }; }
+#[cfg(test)]
+fn after_bind() {
+    if let Some(hook) = AFTER_OPEN.with(|h| h.borrow_mut().take()) { hook(); }
+}
+#[cfg(test)]
+pub(crate) fn after_open_for_test(hook: Option<Box<dyn FnOnce()>>) {
+    AFTER_OPEN.with(|h| *h.borrow_mut() = hook);
 }
 
 /// The store's canonical root, when it is open and readable.
@@ -451,14 +508,18 @@ pub(crate) fn configured_project_dir(path: &Path) -> Option<PathBuf> {
     // A queued writer may already hold a source path when store configuration
     // becomes unavailable. Its known admission boundary must not disappear.
     if let Some(dir)=DIRS.lock().unwrap_or_else(|p|p.into_inner()).iter().rev().find(|(d,_)|path.starts_with(d)).map(|(d,_)|d.clone()){return Some(dir);}
-    let configured = current().ok()?.root;
-    let store = std::fs::canonicalize(&configured).unwrap_or(configured);
-    let projects = store.join("projects");
-    let rest = path.strip_prefix(&projects).ok()?;
-    let key = rest.components().next()?;
-    let key_text = key.as_os_str().to_str()?;
-    if key_text.len()!=64 || !key_text.bytes().all(|b|b.is_ascii_hexdigit()) {return None;}
-    Some(projects.join(key))
+    // The store this process bound (its physical folder, whatever the
+    // configured path names now), then the configured store.
+    let bound = OPENED.lock().unwrap_or_else(|p|p.into_inner()).as_ref().map(|b| b.root.clone());
+    let configured = current().ok().map(|s| std::fs::canonicalize(&s.root).unwrap_or(s.root));
+    bound.into_iter().chain(configured).find_map(|store| {
+        let projects = store.join("projects");
+        let rest = path.strip_prefix(&projects).ok()?;
+        let key = rest.components().next()?;
+        let key_text = key.as_os_str().to_str()?;
+        if key_text.len()!=64 || !key_text.bytes().all(|b|b.is_ascii_hexdigit()) {return None;}
+        Some(projects.join(key))
+    })
 }
 
 /// The store project folder holding `path` (`<store>/projects/<key>`), if any.
