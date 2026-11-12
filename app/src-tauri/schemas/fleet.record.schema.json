@@ -553,7 +553,7 @@
       }
     },
     "need": {
-      "description": "A prerequisite: another item's integrated result, a decision on a package (an RS act_request, R23-8) or an identified input. A connector need (kind 'connector'; RF-5a, R23-39; RV2 FV10-R1) names a connector receiving record and the connector it is from; it is read from the record's standing, never by presence.",
+      "description": "A prerequisite: another item's integrated result, a decision on a package (an RS act_request, R23-8) or an identified input. A decision need's ref names either the act_request's record identity or the contained project-relative path of the decision package file it cites (for example project/decisions/order.json); a path names the one package for that file. A connector need (kind 'connector'; RF-5a, R23-39; RV2 FV10-R1) names a connector receiving record and the connector it is from; it is read from the record's standing, never by presence.",
       "type": "object",
       "required": [
         "kind",
