@@ -119,10 +119,13 @@ An entry is added in the same pull request that makes the limitation standing.
 - **Id:** LIM-007
 - **Exit criteria:** 15
 - **What is unavailable:** a signature on an exported records package, and a
-  signed checkpoint over a records log. A package verifies as unaltered
-  against its own manifest and chain heads; it does not show which
-  installation produced it. A log shows an edit only where the links after
-  the edited line were not recomputed.
+  signed checkpoint over a records log. A package verifies as internally
+  consistent with its own manifest and chain heads; it does not show which
+  installation produced it, and a package whose records and manifests were
+  replaced together still verifies. A records log shows a changed, removed or
+  reordered line only where later lines still carry their original links: a
+  change to the last line of a log, lines removed from its end, and an edit
+  by someone who recomputes the links after it are not shown.
 - **Why:** no key is chosen to sign log checkpoints and export manifests.
 - **What the person does instead:** verify a package with the verifier it
   carries, and establish where it came from by other means.
