@@ -4927,12 +4927,18 @@ mod conversation_transport_tests {
     use super::*;
     fn g()->Value {json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":1})}
     fn host()->Arc<Host> {
-        let host=Arc::new(Host::new());{let mut i=host.inner.0.lock().unwrap();i.state="ready".into();i.generation=g();i.journal.begin_generation(g());i.server_cwd=Some("/invented".into());i.threads.push(json!({"generation":g(),"threadId":"thread","model":"selected","modelProvider":"selected-provider"}));}
-        // An account Continue or fork first reads Codex's configuration; this home reports the built-in provider.
-        *host.before_provider_wait.lock().unwrap()=Some(Box::new(|host,source|{host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":{"config":{"model_provider":"openai"},"origins":{}}})).unwrap(),source.generation());}));
+        let host=Arc::new(Host::new());{let mut i=host.inner.0.lock().unwrap();i.state="ready".into();i.generation=g();i.journal.begin_generation(g());i.threads.push(json!({"generation":g(),"threadId":"thread","model":"selected","modelProvider":"selected-provider"}));}
         host
     }
     /// The next frame written to the stand-in that is not the configuration reading (answered by the hook).
+    /// An account Continue or fork first reads Codex's configuration at the folder Codex was started in:
+    /// set that folder as a spawn does, and unless the test answers readings itself, report the
+    /// built-in provider as this home's Codex does.
+    fn started_in_folder(host:&Host){
+        {let mut i=host.inner.0.lock().unwrap();if i.server_cwd.is_none(){i.server_cwd=Some("/invented".into());}}
+        let mut hook=host.before_provider_wait.lock().unwrap();
+        if hook.is_none(){*hook=Some(Box::new(|host,source|{host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":{"config":{"model_provider":"openai"},"origins":{}}})).unwrap(),source.generation());}));}
+    }
     fn next_operation_frame(reader:&mut BufReader<std::process::ChildStdout>)->Result<Value,String>{
         loop{let mut line=String::new();reader.read_line(&mut line).map_err(|e|format!("peer read failed: {e}"))?;let frame:Value=serde_json::from_str(&line).map_err(|e|format!("peer frame unavailable: {e}"))?;if frame["method"]!="config/read"{return Ok(frame);}}
     }
@@ -4940,6 +4946,7 @@ mod conversation_transport_tests {
     fn event(host:&Host,status:&str) {host.on_line(&serde_json::to_vec(&json!({"method":if status=="inProgress"{"turn/started"}else{"turn/completed"},"params":{"threadId":"thread","turn":turn(status)}})).unwrap(),&g());}
     fn exchange<F>(host:&Arc<Host>,response:Option<Value>,before:Vec<Value>,operation:F)->(Result<Value,String>,Value)
         where F:FnOnce()->Result<Value,String> {
+        started_in_folder(host);
         let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();let me=Arc::clone(host);let(tx,rx)=channel();
         let worker=std::thread::spawn(move|| {
             let outbound=next_operation_frame(&mut BufReader::new(stdout)).unwrap();tx.send(outbound.clone()).unwrap();
@@ -5553,6 +5560,7 @@ mod conversation_transport_tests {
     /// forever. No supplier or product wait bound is changed by this fixture.
     fn history_exchange_observed<F: FnOnce(&Value)>(host: &Arc<Host>, query: &HistoryQuery, response: Option<Value>,
         peer_release: Option<Receiver<()>>, after_wait: F) -> (HistoryDispatch, Value, Value) {
+        started_in_folder(host);
         let mut child = Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
         *host.stdin.lock().unwrap() = child.stdin.take(); let stdout = child.stdout.take().unwrap();
         let scripted_reply = response.is_some();
@@ -6658,11 +6666,11 @@ mod conversation_transport_tests {
     struct NativePagePipe { host:Arc<Host>, child:Child, reader:BufReader<std::process::ChildStdout> }
     impl NativePagePipe {
         fn new()->Self {
-            let host=host();let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
+            let host=host();started_in_folder(&host);let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
             *host.stdin.lock().unwrap()=child.stdin.take();let reader=BufReader::new(child.stdout.take().unwrap());Self{host,child,reader}
         }
         fn reply(&mut self,dispatch:&HistoryDispatch,result:&Value){
-            let mut line=String::new();self.reader.read_line(&mut line).unwrap();let actual:Value=serde_json::from_str(&line).unwrap();
+            let actual=next_operation_frame(&mut self.reader).unwrap();
             assert_eq!(actual["id"],*dispatch.source().request_id());assert_eq!(actual["method"],dispatch.query().method());assert_eq!(actual["params"],*dispatch.query().params());
             self.host.on_line(&serde_json::to_vec(&json!({"id":actual["id"],"result":result})).unwrap(),&g());
         }
