@@ -88,8 +88,14 @@ canonical distribution record and extracts it for the overlay, builds with a
 fresh `dev.chirality.app-v4.candidate.<tag>` identifier and a private HOME,
 CARGO_HOME and npm cache inside the output root (the caller's prepared caches
 are copied in, read only), writes the build
-facts and prints the identification command to run next. It refuses the
-release identifier `com.chirality.app` and the product name `Chirality`.
+facts and prints the identification command to run next, only after
+validating the built bundle against its plan. It refuses the release
+identifier `com.chirality.app` and the product name `Chirality`. Its location
+checks exist so that a build cannot land in the wrong place by mistake, alias
+or a leftover link; they are not a filesystem snapshot or a hostile
+concurrent-writer isolation service, do not confine npm, cargo or the Tauri
+command, and do not cover system tools that ignore HOME and TMPDIR. Run it
+only in a location the caller controls.
 
 Identify this complete-content development bundle using DEL-09-01's
 candidate v3 profile (`app/examination/candidate_identity/candidate-identification.v3.schema.json`):

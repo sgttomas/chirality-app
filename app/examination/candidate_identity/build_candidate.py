@@ -8,15 +8,29 @@ route in app/packaging/unsigned/README.md with a fresh development identifier;
 and writes the build facts that identify.py record consumes. It does not run the
 identification, launch, sign or download anything, and never executes the supplier.
 
-It writes only inside the caller's new output root, and every place it creates
-or writes is checked to lie inside that root by device and inode ancestry, with
-no symlink on the way. The build runs with a private HOME (npm's cache, logs
-and configuration inside it, update notifier off), a private CARGO_HOME, TMPDIR,
+Its own writes go inside the caller's new output root: the root is created
+through a held descriptor of its checked parent and held open for the run, and
+each place the script writes is re-checked against it by device and inode, with
+no symlink on the way, immediately before it is written and at each step
+boundary. The build runs with a private HOME (npm's cache, logs and
+configuration inside it, update notifier off), a private CARGO_HOME, TMPDIR,
 CODEX_HOME and target. The caller's prepared offline caches (an npm cache and a
 cargo home) are read-only inputs copied into the root; the toolchain is reached
-through the node and Rust toolchain bin folders, never rustup's shims. Nothing
-is written under the repository, /Applications, /Library, /System or the user's
-Library or Applications folders.
+through the node and Rust toolchain bin folders, never rustup's shims. The
+output root may not be, by identity, under the repository, /Applications,
+/Library, /System or the user's Library or Applications folders.
+
+The purpose of these checks is that a build cannot land in the wrong place by
+mistake, alias or a leftover link. They are not a filesystem snapshot or a
+hostile concurrent-writer isolation service: they do not confine npm, cargo or
+the Tauri command, a process that replaces a path while one of them runs can
+still redirect that tool's writes, and system tools that ignore HOME and TMPDIR
+are not covered. No operating-system write restriction is applied. Run it only
+in a location the caller controls.
+
+The finished build is accepted only after the bundle is validated against the
+plan (identifier, names, executable, packaged resources and the supplier
+entrypoint); otherwise no build facts are written and nothing is printed.
 
 The 4.0.0 package installs as Chirality.app with identifier com.chirality.app
 in place of the owner's v3.0.1, so a development build may only carry an
@@ -30,6 +44,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import plistlib
 import pwd
 import re
 import secrets
@@ -53,6 +68,9 @@ PASSED = ('LANG', 'LC_ALL', 'USER', 'LOGNAME')  # never signing variables, never
 SYSTEM_PATH = '/usr/bin:/bin:/usr/sbin:/sbin'
 FORBIDDEN = ('/Applications', '/Library', '/System')
 INPUTS = ('node_bin', 'rust_bin', 'npm_cache', 'cargo_home')
+WRITABLE_FILES = ('NPM_CONFIG_USERCONFIG', 'NPM_CONFIG_GLOBALCONFIG')
+WRITABLE = ('HOME', 'TMPDIR', 'XDG_CACHE_HOME', 'XDG_CONFIG_HOME', 'CARGO_HOME', 'CARGO_TARGET_DIR', 'CODEX_HOME',
+            'NPM_CONFIG_CACHE', 'NPM_CONFIG_PREFIX', 'NPM_CONFIG_LOGS_DIR') + WRITABLE_FILES
 TAG = re.compile(r'[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*')  # no dots, spaces or parentheses
 PREFIX = 'dev.chirality.app-v4.candidate.'
 RELEASED = ('com.chirality.app', 'Chirality')  # the 4.0.0 package's identifier and product name
@@ -116,8 +134,9 @@ def output_root(out, repo_top):
 def contained(root, root_id, path):
     """path lies inside the output root by device and inode ancestry, with no symlink or shared file on the way."""
     root, path = Path(root), Path(os.path.abspath(path))
-    if _ident(root) != root_id:
-        raise ValueError('output root replaced')
+    info = os.lstat(root)
+    if not stat.S_ISDIR(info.st_mode) or (info.st_dev, info.st_ino) != tuple(root_id):
+        raise ValueError('output root replaced or not the held directory: ' + str(root))
     try:
         parts = path.relative_to(root).parts
     except ValueError:
@@ -147,25 +166,36 @@ def _which(name, search):
     return found
 
 
-def default_inputs(environ):
-    """The caller's toolchain folders and standard offline caches, found without running anything."""
-    home = environ.get('HOME') or os.path.expanduser('~')
-    search = environ.get('PATH', '')
-    node = _which('node', search)
+def _default_node(environ, home):
+    node = _which('node', environ.get('PATH', ''))
     if not os.path.basename(os.path.realpath(node)).startswith('node'):
         raise ValueError('node on PATH is a shim; pass --node-bin')
-    cargo = _which('cargo', search)
-    if os.path.basename(os.path.realpath(cargo)).startswith('rustup'):
-        rustup_home = environ.get('RUSTUP_HOME') or os.path.join(home, '.rustup')
-        toolchain = tomllib.loads(Path(rustup_home, 'settings.toml').read_text()).get('default_toolchain')
-        if not isinstance(toolchain, str) or not TAG.fullmatch(toolchain.replace('.', '-')):
-            raise ValueError('no usable rustup default toolchain; pass --rust-bin')
-        rust_bin = os.path.join(rustup_home, 'toolchains', toolchain, 'bin')
-    else:
-        rust_bin = os.path.dirname(cargo)
-    return {'node_bin': os.path.dirname(node), 'rust_bin': rust_bin,
-            'npm_cache': environ.get('NPM_CONFIG_CACHE') or environ.get('npm_config_cache') or os.path.join(home, '.npm'),
-            'cargo_home': environ.get('CARGO_HOME') or os.path.join(home, '.cargo')}
+    return os.path.dirname(node)
+
+
+def _default_rust(environ, home):
+    cargo = _which('cargo', environ.get('PATH', ''))
+    if not os.path.basename(os.path.realpath(cargo)).startswith('rustup'):
+        return os.path.dirname(cargo)
+    rustup_home = environ.get('RUSTUP_HOME') or os.path.join(home, '.rustup')
+    toolchain = tomllib.loads(Path(rustup_home, 'settings.toml').read_text()).get('default_toolchain')
+    if not isinstance(toolchain, str) or not TAG.fullmatch(toolchain.replace('.', '-')):
+        raise ValueError('no usable rustup default toolchain; pass --rust-bin')
+    return os.path.join(rustup_home, 'toolchains', toolchain, 'bin')
+
+
+DEFAULTS = {
+    'node_bin': _default_node,
+    'rust_bin': _default_rust,
+    'npm_cache': lambda environ, home: environ.get('NPM_CONFIG_CACHE') or environ.get('npm_config_cache') or os.path.join(home, '.npm'),
+    'cargo_home': lambda environ, home: environ.get('CARGO_HOME') or os.path.join(home, '.cargo'),
+}
+
+
+def default_inputs(environ, keys=INPUTS):
+    """Defaults for the named inputs only: toolchain folders and standard offline caches, found without running anything."""
+    home = environ.get('HOME') or os.path.expanduser('~')
+    return {key: DEFAULTS[key](environ, home) for key in keys}
 
 
 def _check_inputs(inputs):
@@ -188,8 +218,7 @@ def plan(repo, revision, out, supplier_archive=None, supplier_record=None, tag=N
         raise ValueError('a supplier needs both its archive and its canonical distribution record')
     environ = os.environ if environ is None else environ
     given = {k: v for k, v in (inputs or {}).items() if v}
-    if set(INPUTS) - set(given):
-        given = {**default_inputs(environ), **given}
+    given.update(default_inputs(environ, [k for k in INPUTS if k not in given]))
     inputs = _check_inputs(given)
     repo = Path(os.path.abspath(repo))
     top = identify.git(repo, 'rev-parse', '--show-toplevel').decode().strip()
@@ -220,7 +249,8 @@ def plan(repo, revision, out, supplier_archive=None, supplier_record=None, tag=N
     build = ['node', 'node_modules/@tauri-apps/cli/tauri.js', 'build', '--debug', '--no-sign', '--bundles', 'app',
              '--features', 'custom-protocol', '--config', DEV_OVERLAY, '--config', str(overlay_path),
              '--', '--offline', '--locked']
-    return {'repo': str(repo), 'commit': commit, 'root': str(root), 'source': str(root / 'source'),
+    return {'repo': str(repo), 'commit': commit, 'root': str(root), 'parent_id': list(_ident(root.parent)),
+            'repo_top': top, 'source': str(root / 'source'),
             'tag': tag, 'identifier': identifier, 'product': product, 'supplier': supplier, 'inputs': inputs,
             'overlay': overlay, 'overlay_bytes': json.dumps(overlay, indent=2).encode() + b'\n',
             'overlay_path': str(overlay_path), 'env': env, 'install': INSTALL, 'build': build,
@@ -274,31 +304,79 @@ def copy_input(source, target, root, root_id):
 
 
 def create_root(p):
+    """Create the root through a held descriptor of the checked parent; return the held root descriptor and identity."""
     root = Path(p['root'])
-    os.mkdir(root, 0o700)
-    os.chmod(root, 0o700)
-    return _ident(root)
+    parent = os.open(root.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        info = os.fstat(parent)
+        if [info.st_dev, info.st_ino] != list(p['parent_id']):
+            raise ValueError('output root parent replaced since planning: ' + str(root.parent))
+        forbidden = _forbidden(p['repo_top'])
+        current = os.dup(parent)
+        try:
+            while True:  # the held parent's real ancestry, walked by '..' from the descriptor
+                here = os.fstat(current)
+                if (here.st_dev, here.st_ino) in forbidden:
+                    raise ValueError('output root parent is inside ' + forbidden[(here.st_dev, here.st_ino)])
+                up = os.open('..', os.O_RDONLY | os.O_DIRECTORY, dir_fd=current)
+                above = os.fstat(up)
+                os.close(current)
+                current = up
+                if (above.st_dev, above.st_ino) == (here.st_dev, here.st_ino):
+                    break
+        finally:
+            os.close(current)
+        os.mkdir(root.name, 0o700, dir_fd=parent)
+        fd = os.open(root.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+    finally:
+        os.close(parent)
+    os.fchmod(fd, 0o700)
+    held = os.fstat(fd)
+    return fd, (held.st_dev, held.st_ino)
+
+
+def create_file(root, root_id, path, data):
+    """Exclusive, no-follow creation of a file re-checked inside the held root immediately before opening."""
+    contained(root, root_id, path)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644)
+    with os.fdopen(fd, 'wb') as stream:
+        stream.write(data)
+
+
+def make_dir(root, root_id, path, mode=0o700):
+    contained(root, root_id, path)
+    os.mkdir(path, mode)
+
+
+def revalidate(p, root_id, required):
+    """At a step boundary: every writable place exists as a real directory (or file) inside the held root."""
+    root, env = Path(p['root']), p['env']
+    for key in WRITABLE:
+        path = contained(root, root_id, env[key])
+        kind = os.lstat(path).st_mode
+        if not (stat.S_ISREG(kind) if key in WRITABLE_FILES else stat.S_ISDIR(kind)):
+            raise ValueError(f'{key} is not the expected {"file" if key in WRITABLE_FILES else "directory"}: {path}')
+    for path in required:
+        path = contained(root, root_id, path)
+        if not stat.S_ISDIR(os.lstat(path).st_mode):
+            raise ValueError('not a directory inside the output root: ' + str(path))
 
 
 def prepare_environment(p, root_id):
     """The private home, temporary folder, Codex home, npm cache and cargo home, all inside the root."""
-    root, home, inputs = Path(p['root']), Path(p['env']['HOME']), p['inputs']
-    for folder in (home, root / 'tmp', root / 'codex-home', root / 'npm-cache', root / 'cargo-home'):
-        contained(root, root_id, folder)
-        os.mkdir(folder, 0o700)
-    for name in ('.npmrc', 'npmrc-global'):
-        contained(root, root_id, home / name)
-        with open(home / name, 'xb'):
-            pass
+    root, env, inputs = Path(p['root']), p['env'], p['inputs']
+    for key in ('HOME', 'TMPDIR', 'XDG_CACHE_HOME', 'XDG_CONFIG_HOME', 'CODEX_HOME', 'NPM_CONFIG_CACHE',
+                'NPM_CONFIG_PREFIX', 'NPM_CONFIG_LOGS_DIR', 'CARGO_HOME', 'CARGO_TARGET_DIR'):
+        make_dir(root, root_id, env[key])
+    for key in WRITABLE_FILES:
+        create_file(root, root_id, env[key], b'')
     copy_input(Path(inputs['npm_cache'], '_cacache'), root / 'npm-cache/_cacache', root, root_id)
     copied = []
     for name in ('registry', 'git'):
         if Path(inputs['cargo_home'], name).is_dir():
             copy_input(Path(inputs['cargo_home'], name), root / 'cargo-home' / name, root, root_id)
             copied.append(name)
-    contained(root, root_id, root / 'cargo-home/config.toml')
-    with open(root / 'cargo-home/config.toml', 'xb') as config:
-        config.write(b'[net]\noffline = true\n')
+    create_file(root, root_id, root / 'cargo-home/config.toml', b'[net]\noffline = true\n')
     return {'node_bin': inputs['node_bin'], 'rust_bin': inputs['rust_bin'],
             'npm_cache_input': os.path.join(inputs['npm_cache'], '_cacache') + ' (read only; copied into the output root)',
             'cargo_home_input': f"{inputs['cargo_home']}: {', '.join(copied)} (read only; copied into the output root)"}
@@ -398,53 +476,96 @@ def _run(command, env, cwd, log):
         raise ValueError(f'{command[0]} failed (exit {result.returncode}); see build.log')
 
 
+def _part(root, root_id, path, what):
+    path = contained(root, root_id, path)
+    if not os.path.lexists(path):
+        raise ValueError(f'bundle {what} missing: {path}')
+    return path, os.lstat(path)
+
+
+def validate_bundle(p, root_id):
+    """The bundle the build produced, checked against the plan before anything reports it."""
+    root, bundle = Path(p['root']), Path(p['bundle'])
+    plist_path, _ = _part(root, root_id, bundle / 'Contents/Info.plist', 'Info.plist')
+    with _regular(plist_path) as stream:
+        plist = plistlib.loads(stream.read(1 << 20))
+    if not isinstance(plist, dict):
+        raise ValueError('bundle Info.plist is not a dictionary')
+    identifier, name, display = (plist.get(k) for k in ('CFBundleIdentifier', 'CFBundleName', 'CFBundleDisplayName'))
+    if not all(isinstance(v, str) for v in (identifier, name, display)):
+        raise ValueError('bundle identifier or names missing')
+    check_names(identifier, name)
+    check_names(identifier, display)
+    if (identifier, name, display) != (p['identifier'], p['product'], p['product']):
+        raise ValueError('bundle identifier or names differ from the plan: ' + identifier)
+    executable = plist.get('CFBundleExecutable')
+    if not isinstance(executable, str) or not executable or '/' in executable or executable in ('.', '..'):
+        raise ValueError('bundle executable name invalid')
+    _, info = _part(root, root_id, bundle / 'Contents/MacOS' / executable, 'executable')
+    if not stat.S_ISREG(info.st_mode) or info.st_size == 0 or not info.st_mode & 0o111:
+        raise ValueError('bundle executable missing, empty or not executable: ' + executable)
+    for name in ('instructions', 'workflows'):
+        folder, _ = _part(root, root_id, bundle / 'Contents/Resources' / name, 'resources ' + name)
+        if not stat.S_ISDIR(os.lstat(folder).st_mode) or not os.listdir(folder):
+            raise ValueError('bundle resources missing or empty: ' + name)
+    if p['supplier']:
+        _, info = _part(root, root_id, bundle / 'Contents/Resources/codex/bin/codex', 'supplier entrypoint')
+        if not stat.S_ISREG(info.st_mode) or not info.st_mode & 0o111:
+            raise ValueError('bundled supplier entrypoint missing or not executable')
+    return {'identifier': identifier, 'name': name, 'executable': executable}
+
+
 def run(p):
-    """Build facts are written only after both steps exit 0, the lockfiles are unchanged and the bundle exists."""
+    """Build facts are written only after both steps exit 0, the lockfiles are unchanged and the bundle is validated."""
     root, source = Path(p['root']), Path(p['source'])
     check_names(p['overlay']['identifier'], p['overlay']['productName'])
     if json.loads(p['overlay_bytes']) != p['overlay']:
         raise ValueError('overlay bytes differ from the planned overlay')
     started, phases = now(), {}
-    root_id = create_root(p)
-    toolchain = prepare_environment(p, root_id)
-    phases['environment'] = f'{started}/{now()}'
-    mark = now()
-    contained(root, root_id, source)
-    exported = export(p['repo'], p['commit'], source)
-    phases['export'] = f"{mark}/{now()}: {exported['tracked_files_verified']} tracked files verified"
-    if p['supplier']:
+    fd, root_id = create_root(p)
+    try:
+        toolchain = prepare_environment(p, root_id)
+        phases['environment'] = f'{started}/{now()}'
         mark = now()
-        contained(root, root_id, p['supplier']['tree'])
-        prepare_supplier(p['supplier']['archive'], p['supplier']['record'], p['supplier']['tree'])
-        phases['supplier'] = f'{mark}/{now()}'
-    contained(root, root_id, p['overlay_path'])
-    with open(p['overlay_path'], 'xb') as overlay:
-        overlay.write(p['overlay_bytes'])
-    app = source / 'app'
-    lockfiles = {name: sha((source / name).read_bytes()) for name in LOCKFILES}
-    env = p['env']
-    for tool in ('node', 'npm', 'cargo', 'rustc'):
-        toolchain[tool] = _version([tool, '--version'], env, app / 'src-tauri')
-    contained(root, root_id, root / 'target')
-    contained(root, root_id, root / 'build.log')
-    with open(root / 'build.log', 'xb') as log:
-        mark = now()
-        _run(p['install'], env, app, log)
-        phases['npm_install'] = f'{mark}/{now()}'
-        toolchain['tauri_cli'] = json.loads((app / 'node_modules/@tauri-apps/cli/package.json').read_bytes())['version']
-        mark = now()
-        _run(p['build'], env, app, log)
-        phases['tauri_build'] = f'{mark}/{now()}'
-    if {name: sha((source / name).read_bytes()) for name in LOCKFILES} != lockfiles:
-        raise ValueError('a lockfile changed during the build')
-    if not os.path.isdir(p['bundle']):
-        raise ValueError('expected bundle not produced: ' + p['bundle'])
-    contained(root, root_id, p['bundle'])
-    result = facts(p, sha((app / DEV_OVERLAY).read_bytes()), toolchain, lockfiles, started, now(), phases)
-    contained(root, root_id, root / 'build-facts.json')
-    with open(root / 'build-facts.json', 'xb') as out:
-        out.write(json.dumps(result, indent=2, ensure_ascii=False).encode() + b'\n')
-    return result
+        contained(root, root_id, source)
+        exported = export(p['repo'], p['commit'], source)
+        phases['export'] = f"{mark}/{now()}: {exported['tracked_files_verified']} tracked files verified"
+        if p['supplier']:
+            mark = now()
+            contained(root, root_id, p['supplier']['tree'])
+            prepare_supplier(p['supplier']['archive'], p['supplier']['record'], p['supplier']['tree'])
+            phases['supplier'] = f'{mark}/{now()}'
+        create_file(root, root_id, p['overlay_path'], p['overlay_bytes'])
+        app = source / 'app'
+        lockfiles = {name: sha((source / name).read_bytes()) for name in LOCKFILES}
+        env = p['env']
+        for tool in ('node', 'npm', 'cargo', 'rustc'):
+            toolchain[tool] = _version([tool, '--version'], env, app / 'src-tauri')
+        contained(root, root_id, root / 'build.log')
+        log_fd = os.open(root / 'build.log', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644)
+        with os.fdopen(log_fd, 'wb') as log:
+            revalidate(p, root_id, [source, app])
+            mark = now()
+            _run(p['install'], env, app, log)
+            phases['npm_install'] = f'{mark}/{now()}'
+            revalidate(p, root_id, [source, app, app / 'node_modules'])
+            bundle = Path(p['bundle'])
+            for path in (bundle.parent, bundle):
+                if os.path.lexists(contained(root, root_id, path)):
+                    raise ValueError('bundle path exists before the build step: ' + str(path))
+            toolchain['tauri_cli'] = json.loads((app / 'node_modules/@tauri-apps/cli/package.json').read_bytes())['version']
+            mark = now()
+            _run(p['build'], env, app, log)
+            phases['tauri_build'] = f'{mark}/{now()}'
+            revalidate(p, root_id, [source, app, app / 'node_modules'])
+        if {name: sha((source / name).read_bytes()) for name in LOCKFILES} != lockfiles:
+            raise ValueError('a lockfile changed during the build')
+        validate_bundle(p, root_id)
+        result = facts(p, sha((app / DEV_OVERLAY).read_bytes()), toolchain, lockfiles, started, now(), phases)
+        create_file(root, root_id, root / 'build-facts.json', json.dumps(result, indent=2, ensure_ascii=False).encode() + b'\n')
+        return result
+    finally:
+        os.close(fd)
 
 
 def next_command(p):
@@ -474,7 +595,7 @@ def main(argv=None):
         p = plan(args.repo, args.revision, args.out, args.supplier_archive, args.supplier_record, args.tag,
                  inputs={k: getattr(args, k) for k in INPUTS})
         run(p)
-    except (ValueError, KeyError, OSError, subprocess.CalledProcessError, tarfile.TarError) as error:
+    except (ValueError, KeyError, OSError, subprocess.CalledProcessError, tarfile.TarError, plistlib.InvalidFileException) as error:
         print(json.dumps({'error': f'{type(error).__name__}: {error}'}), file=sys.stderr)
         return 2
     print(json.dumps({'root': p['root'], 'commit': p['commit'], 'identifier': p['identifier'], 'bundle': p['bundle']}, indent=2))

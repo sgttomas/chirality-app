@@ -31,7 +31,7 @@ import bundled_supplier  # noqa: E402
 import identify  # noqa: E402
 
 MAC = sys.platform == 'darwin'
-IDENTIFIER = 'dev.example.test-candidate'
+IDENTIFIER = 'dev.chirality.app-v4.test-candidate'  # the record route accepts development identifiers only
 WHEN = '2000-01-01T00:00:00Z'  # invented fixture, never a run-date dependency
 
 
@@ -631,6 +631,17 @@ class CandidateRecord(GitScratch):
         code, out, _ = self.check(); self.assertEqual(code, 1)
         self.assertIn('Contents/Resources/instructions/AGENTS.md', json.loads(out)['changed'])
 
+    def test_record_route_refuses_identifiers_outside_development(self):
+        # The release package's identifier can never be identified as an unpackaged development build.
+        for identifier in ('com.chirality.app', 'dev.example.other', 'DEV.CHIRALITY.APP-V4.x', 'dev.chirality.app-v4x.y'):
+            with self.subTest(identifier=identifier):
+                shutil.rmtree(self.app)
+                self.app = write_bundle(self.tmp / 'build', identifier=identifier)
+                code, out, err = self.record()
+                self.assertEqual(code, 2, out + err); self.assertIn('development builds only', err)
+                self.assertFalse((self.tmp / 'rec').exists())
+        self.assertTrue(any('identifies unpackaged development builds only' in s for s in identify.LIMITS))
+
     def test_each_derived_record_field_tamper_is_detected_independently(self):
         self.assert_each_derived_record_field_tamper()
 
@@ -652,7 +663,7 @@ class CandidateRecord(GitScratch):
             'executable path': lambda r: r['bundle']['executable'].update(path='Contents/MacOS/other'),
             'plist digest': lambda r: r['bundle'].update(info_plist_sha256='0' * 64),
             'manifest digest': lambda r: r['bundle'].update(file_manifest_sha256='0' * 64),
-            'identifier': lambda r: r['bundle'].update(identifier='dev.example.other'),
+            'identifier': lambda r: r['bundle'].update(identifier='dev.chirality.app-v4.other'),
             'name': lambda r: r['bundle'].update(name='Other.app'),
             'version': lambda r: r['bundle'].update(version='1.0'),
             'app directory': lambda r: r['app_data'].update(directory='~/forged'),
@@ -667,8 +678,8 @@ class CandidateRecord(GitScratch):
                 key, value + 1 if type(value) is int else (
                     [] if isinstance(value, list) else ({} if value else {'com.apple.provenance': 1})))
         def coherent_identifier(record):
-            record['bundle']['identifier'] = 'dev.example.other'
-            record['app_data'] = identify.app_data_declaration('dev.example.other')
+            record['bundle']['identifier'] = 'dev.chirality.app-v4.other'
+            record['app_data'] = identify.app_data_declaration('dev.chirality.app-v4.other')
         mutations['coherent identifier'] = coherent_identifier
         owner = original['bundle']['metadata_state']['owners'][0]
         mutations['metadata owner values'] = lambda r: r['bundle']['metadata_state'].update(
@@ -1191,7 +1202,7 @@ class CandidateBuild(Scratch):
         before = snapshot(self.caller)
         p = self.plan(inputs=inputs)
         root = Path(p['root'])
-        root_id = build_candidate.create_root(p)
+        fd, root_id = build_candidate.create_root(p); self.addCleanup(os.close, fd)
         build_candidate.prepare_environment(p, root_id)
         project = root / 'source/app'; project.mkdir(parents=True)
         (project / 'package.json').write_text('{"name": "invented", "version": "0.0.0", "private": true}\n')
@@ -1275,7 +1286,7 @@ class CandidateBuild(Scratch):
     def test_a_path_inside_the_root_pointing_outside_refuses(self):
         p = self.plan()
         root = Path(p['root'])
-        root_id = build_candidate.create_root(p)
+        fd, root_id = build_candidate.create_root(p); self.addCleanup(os.close, fd)
         outside = self.tmp / 'outside'; outside.mkdir()
         (outside / 'file').write_bytes(b'outside')
         (root / 'source').symlink_to(outside)
@@ -1364,7 +1375,28 @@ class CandidateBuild(Scratch):
                     build_candidate.prepare_supplier(self.archive, self.record, tree)
                 self.assertFalse(tree.exists(), name)
 
-    def fake_steps(self, p, build_ok=True, bundle=True):
+    def write_built_bundle(self, p, identifier=None, name=None, executable=True, empty=False):
+        bundle = Path(p['bundle'])
+        bundle.mkdir(parents=True)
+        if empty:
+            return
+        name = name or p['product']
+        (bundle / 'Contents/MacOS').mkdir(parents=True)
+        (bundle / 'Contents/Info.plist').write_bytes(plistlib.dumps({
+            'CFBundleIdentifier': identifier or p['identifier'], 'CFBundleName': name, 'CFBundleDisplayName': name,
+            'CFBundleExecutable': 'chirality-app-v4'}))
+        if executable:
+            (bundle / 'Contents/MacOS/chirality-app-v4').write_bytes(b'invented executable, never run')
+            (bundle / 'Contents/MacOS/chirality-app-v4').chmod(0o755)
+        for folder in ('instructions', 'workflows'):
+            (bundle / 'Contents/Resources' / folder).mkdir(parents=True)
+            (bundle / 'Contents/Resources' / folder / 'invented.md').write_text('invented\n')
+        if p['supplier']:
+            (bundle / 'Contents/Resources/codex/bin').mkdir(parents=True)
+            (bundle / 'Contents/Resources/codex/bin/codex').write_bytes(b'invented supplier, never run')
+            (bundle / 'Contents/Resources/codex/bin/codex').chmod(0o755)
+
+    def fake_steps(self, p, build_ok=True, bundle=True, after_install=None, **built):
         calls = []
 
         def fake_run(command, env, cwd, log):
@@ -1372,12 +1404,90 @@ class CandidateBuild(Scratch):
             if command[0] == 'npm':
                 cli = Path(cwd) / 'node_modules/@tauri-apps/cli'; cli.mkdir(parents=True)
                 (cli / 'package.json').write_text('{"version": "0.0.0-invented"}')
+                if after_install:
+                    after_install()
             elif not build_ok:
                 raise ValueError('node failed (exit 1); see build.log')
             elif bundle:
-                Path(p['bundle']).mkdir(parents=True)
+                self.write_built_bundle(p, **built)
         return calls, mock.patch.object(build_candidate, '_run', fake_run), \
             mock.patch.object(build_candidate, '_version', lambda command, env, cwd: 'invented ' + command[0])
+
+    def run_main(self, p, **steps):
+        calls, run_patch, version_patch = self.fake_steps(p, **steps)
+        out, err = io.StringIO(), io.StringIO()
+        with run_patch, version_patch, mock.patch.object(build_candidate, 'plan', lambda *a, **k: p), \
+                contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = build_candidate.main(['--repo', str(self.repo), '--revision', 'HEAD', '--out', p['root']])
+        return code, out.getvalue(), err.getvalue(), calls
+
+    def test_bundle_is_validated_against_the_plan_before_anything_reports_it(self):
+        cases = {
+            'empty bundle': ({'empty': True}, 'Info.plist'),
+            'production identifier': ({'identifier': 'com.chirality.app'}, 'development identifier'),
+            'production name': ({'name': 'Chirality'}, 'development product name'),
+            'other development identifier': ({'identifier': 'dev.chirality.app-v4.candidate.other',
+                                              'name': 'Chirality App v4 (development other)'}, 'differ from the plan'),
+            'missing executable': ({'executable': False}, 'executable missing'),
+            'bundle path before the build': ({'after_install': 'stale'}, 'exists before the build step'),
+        }
+        for index, (name, (steps, reason)) in enumerate(cases.items()):
+            with self.subTest(name=name):
+                p = self.plan(out=f'case{index}', supplier_archive=self.archive, supplier_record=self.record)
+                if steps.get('after_install') == 'stale':
+                    steps = {'after_install': lambda p=p: (Path(p['bundle']).mkdir(parents=True),
+                                                         (Path(p['bundle']) / 'Contents').mkdir())}
+                code, out, err, calls = self.run_main(p, **steps)
+                self.assertEqual(code, 2, err); self.assertEqual(out, '')
+                self.assertIn(reason, err)
+                self.assertFalse((Path(p['root']) / 'build-facts.json').exists())
+                if name == 'bundle path before the build':
+                    self.assertEqual([c[0][0] for c in calls], ['npm'])  # the build step never ran
+
+    def test_parent_replaced_between_plan_and_creation_refuses(self):
+        parent = self.tmp / 'parent'; parent.mkdir()
+        for name, replace in (('symlink to the repository', lambda: parent.symlink_to(self.repo)),
+                              ('different directory', lambda: parent.mkdir())):
+            with self.subTest(name=name):
+                p = self.plan(out='parent/out')
+                parent.rename(self.tmp / ('moved-' + name.replace(' ', '-')))
+                replace()
+                with self.assertRaises((ValueError, OSError)):
+                    build_candidate.create_root(p)
+                self.assertFalse((self.repo / 'out').exists())
+                if parent.is_symlink():
+                    parent.unlink()
+                else:
+                    parent.rmdir()
+                parent.mkdir()
+
+    def test_root_replaced_by_a_symlink_to_its_moved_original_refuses(self):
+        p = self.plan()
+        root = Path(p['root'])
+        fd, root_id = build_candidate.create_root(p); self.addCleanup(os.close, fd)
+        root.rename(self.tmp / 'moved-root')
+        root.symlink_to(self.tmp / 'moved-root')
+        with self.assertRaisesRegex(ValueError, 'not the held directory'):
+            build_candidate.contained(root, root_id, root / 'build.log')
+
+    def test_target_link_planted_during_install_refuses_before_the_build_step(self):
+        p = self.plan()
+        outside = self.tmp / 'outside'; outside.mkdir()
+
+        def plant():
+            target = Path(p['root']) / 'target'
+            target.rmdir(); target.symlink_to(outside)
+        code, out, err, calls = self.run_main(p, after_install=plant)
+        self.assertEqual(code, 2); self.assertEqual(out, '')
+        self.assertIn('symlink inside the output root', err)
+        self.assertEqual([c[0][0] for c in calls], ['npm'])
+        self.assertEqual(list(outside.iterdir()), [])
+
+    def test_only_missing_inputs_take_defaults(self):
+        given = {'node_bin': self.inputs['node_bin'], 'rust_bin': self.inputs['rust_bin']}
+        p = build_candidate.plan(self.repo, 'HEAD', self.tmp / 'out', inputs=given,
+                                 environ={'HOME': str(self.caller), 'PATH': ''})
+        self.assertEqual(p['inputs'], {**given, 'npm_cache': str(self.caller / '.npm'), 'cargo_home': str(self.caller / '.cargo')})
 
     def test_run_exports_verifies_and_writes_facts_with_build_steps_substituted(self):
         p = self.plan(supplier_archive=self.archive, supplier_record=self.record)
@@ -1404,14 +1514,10 @@ class CandidateBuild(Scratch):
         for name, kw in (('build exits non-zero', {'build_ok': False}), ('no bundle produced', {'bundle': False})):
             with self.subTest(name=name):
                 p = self.plan(out=name.replace(' ', '-'))
-                _, run_patch, version_patch = self.fake_steps(p, **kw)
-                out, err = io.StringIO(), io.StringIO()
-                with run_patch, version_patch, mock.patch.object(build_candidate, 'plan', lambda *a, **k: p), \
-                        contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-                    code = build_candidate.main(['--repo', str(self.repo), '--revision', 'HEAD', '--out', p['root']])
+                code, out, err, _ = self.run_main(p, **kw)
                 self.assertEqual(code, 2)
-                self.assertEqual(out.getvalue(), '')
-                self.assertIn('error', json.loads(err.getvalue()))
+                self.assertEqual(out, '')
+                self.assertIn('error', json.loads(err))
                 self.assertFalse((Path(p['root']) / 'build-facts.json').exists())
 
     def test_default_inputs_read_rustup_settings_without_running_a_shim(self):

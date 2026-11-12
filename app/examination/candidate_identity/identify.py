@@ -26,6 +26,7 @@ METHOD = 'chirality.app.bundle-tree.sha256/v2'
 FORMAT = 'chirality.app-v4.candidate-identification/v2'
 BUNDLED_FORMAT = 'chirality.app-v4.candidate-identification/v3'
 INVENTORY_FORMAT = 'chirality.app-v4.bundle-inventory/v2'
+DEVELOPMENT_PREFIX = 'dev.chirality.app-v4.'  # never the release identifier com.chirality.app
 XATTR_ALLOWLIST = ('com.apple.provenance',)
 KINDS = ('dir', 'file', 'symlink')
 MAX_LINK_HOPS = 32
@@ -34,7 +35,7 @@ TIMESTAMP = re.compile(r'[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:[0-9]{2}:[0-5][0
                        r'(?:\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])')
 LIMITS = [
     'Identifies the exact bundle bytes, structure, modes, ownership and allowlisted extended attributes read at identification; reproducible rebuilding is not claimed.',
-    'Unpackaged development build (route native_development): no signing, notarisation, package record or packaged witness.',
+    'Unpackaged development build (route native_development): this route identifies unpackaged development builds only, with a bundle identifier under dev.chirality.app-v4.; a signed or installed package is identified by a separate route. No signing, notarisation, package record or packaged witness.',
     'File times and location are outside the identity: examine this copy in a controlled location without relying on timestamps, launch-registration caches or timestamp-based resource selection; record the actual examination environment separately.',
     'ACLs, non-zero file flags, set-id bits, extended attributes outside the allowlist, absolute or escaping links and special files are refused, not omitted.',
     'Descriptor-relative no-follow reads with two equal passes detect ordinary change during reading; they do not establish custody against a concurrent hostile writer.',
@@ -689,6 +690,9 @@ def validate_record(record):
         raise ValueError('candidate key does not derive from revision and build identity')
     if record['source']['revision'] != record['app_candidate']['revision']:
         raise ValueError('source and candidate revisions differ')
+    if not record['bundle']['identifier'].startswith(DEVELOPMENT_PREFIX):
+        raise ValueError('route native_development identifies unpackaged development builds only; bundle identifier '
+                         'must be under ' + DEVELOPMENT_PREFIX + ': ' + record['bundle']['identifier'])
     if record['app_data']['present_at_identification']:
         raise ValueError('App data already present; the candidate would not start fresh: ' + ', '.join(record['app_data']['present_at_identification']))
     if record['app_data'] != app_data_declaration(record['bundle']['identifier']):
