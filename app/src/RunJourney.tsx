@@ -163,7 +163,7 @@ export function runReading(run: Json, host: Json): RunReading {
     return { tone: "uncertain", title: "Open — what Codex is doing is not known", detail: `The App cannot establish what Codex is doing in this conversation: ${thread?.statusSource?.limit ? text(thread.statusSource.limit) : thread?.status?.type === "notLoaded" ? "Codex reports the conversation as not loaded" : "it holds no status from Codex for it that it can read"}. The run stays open; read the conversation before deciding what to do.` };
   }
   // A source means the App issued the starting message; whether Codex received it is not established until its reply.
-  if (run?.source) return { tone: "working", title: "Starting", detail: "The App has issued the starting message and is waiting for Codex's reply. The run opens when that reply is observed." };
+  if (run?.source) return { tone: "working", title: "Starting", detail: "The App has issued the starting message and is waiting for Codex's reply. The run opens when Codex confirms the starting turn." };
   if (status.sent === false && status.limit) {
     const what = NOT_SENT[text(status.state)];
     return { tone: "failed", title: "Not started", detail: `${what ? `Nothing was sent. ${what}` : "The App reports that this run was not sent."}${typeof status.retry === "string" && status.retry ? ` What the App says to do: ${status.retry}.` : ""} The App reported: ${text(status.state)}: ${text(status.limit)}` };
@@ -173,28 +173,50 @@ export function runReading(run: Json, host: Json): RunReading {
 
 /**
  * The latest error notice the App holds from Codex for an open run's
- * conversation, while nothing naming its turn has followed it. It is Codex's
- * own notice (the supplier's `error` notification), as the conversation's
- * activity shows it whole; here it is said beside the run's state, because a
- * conversation Codex reports active can be one that cannot reach its model.
- * It says what Codex reported and what it said of retrying, and nothing of
- * whether the turn failed, recovered or is still trying. Null for a run that
- * is not open in the exact current source, and once a later event naming
- * that turn has reached the App.
+ * conversation: Codex's own notice (the supplier's `error` notification), as
+ * the conversation's activity shows it whole. It is said beside the run's
+ * state because a conversation Codex reports active can be one that cannot
+ * reach its model; it must not be said beside a run that has moved on. So it
+ * is placed from what the host already reports, and from nothing else:
+ *
+ * - hidden, when the App holds that the notice's turn ended (its turn record
+ *   has a status other than inProgress, as a live frame or a history read
+ *   reported), when a later frame naming that turn was received, when a live
+ *   frame for another turn of the conversation was received after the notice
+ *   on the same stream, or when the App's receiving has ended;
+ * - "current", when the App holds the notice's turn as in progress and none
+ *   of the above: the latest error notice for the run;
+ * - "unplaced", when the App holds no record of that turn at all, so cannot
+ *   tell whether it is the current one: said as a notice it holds, with its
+ *   turn, and never as the run's present trouble.
+ *
+ * Order is never taken from when a history read happened to arrive: only a
+ * row the host marks live-observed counts as received after the notice.
+ * `count` is the number of notices the host accepted for that one turn; the
+ * host keeps the latest of them only. Null for a run that is not open in the
+ * exact current source.
  */
-export function runTurnError(run: Json, host: Json): { words: string; retry: string; count: number } | null {
+export function runTurnError(run: Json, host: Json): { words: string; retry: string; count: number; turnId: string; placed: "current" | "unplaced" } | null {
   if (!starts(text(run?.lifecycle?.state), "open") || !same(run?.generation, host?.generation) || run?.home !== host?.generation?.home) return null;
   if (host?.generationClosed === true) return null;
-  const mine = list(host?.nativeView?.turnErrors).filter((entry: Json) => entry?.threadId === run.conversation && typeof entry?.turnId === "string" && entry.turnId
-    && (entry.generation === undefined || same(entry.generation, run.generation)));
+  const view = host?.nativeView;
+  const mine = list(view?.turnErrors).filter((entry: Json) => entry?.threadId === run.conversation && typeof entry?.turnId === "string" && entry.turnId
+    && same(entry.generation, run.generation));
   if (mine.length === 0) return null;
   const order = (entry: Json, key: string) => (typeof entry?.[key] === "number" ? entry[key] : -1);
-  // The latest turn that has a notice, then that turn's latest notice, by the host's own observed order.
+  // The latest turn that has a notice, then that turn's latest notice, by the host's own receiving order.
   const latest = mine.reduce((best: Json, entry: Json) => order(entry, "turnFirstObservedOrder") > order(best, "turnFirstObservedOrder")
     || (order(entry, "turnFirstObservedOrder") === order(best, "turnFirstObservedOrder") && order(entry, "observedOrder") >= order(best, "observedOrder")) ? entry : best);
   if (latest.laterFrameForTurn === true || latest.observationEnded === true) return null;
+  // A live frame for another turn of this conversation, received after the notice on the same stream.
+  const noticed = order(latest, "observedOrder");
+  if (noticed >= 0 && list(view?.items).some((row: Json) => row?.threadId === run.conversation && row?.standing === "live-observed" && typeof row?.turnId === "string" && row.turnId !== latest.turnId
+    && order(row, "observedOrder") > noticed)) return null;
+  const recorded = list(view?.turnRecords).some((record: Json) => record?.threadId === run.conversation && record?.turnId === latest.turnId);
+  const turn = recorded ? list(view?.turns).find((entry: Json) => entry?.id === latest.turnId) : undefined;
+  if (turn && turn.status !== "inProgress") return null;
   const count = typeof latest.ordinalInTurn === "number" ? latest.ordinalInTurn : mine.filter((entry: Json) => entry.turnId === latest.turnId).length;
-  return { words: errorWords(latest.error), count,
+  return { words: errorWords(latest.error), count, turnId: latest.turnId, placed: turn ? "current" : "unplaced",
     retry: latest.willRetry === true ? "Codex said it will retry." : latest.willRetry === false ? "Codex said it will not retry." : "Codex did not say whether it will retry." };
 }
 
@@ -410,8 +432,11 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
       <li aria-labelledby="run-progress-heading"><h3 id="run-progress-heading">Progress</h3>
         {reading ? <div ref={progressNode} tabIndex={-1} className={`run-journey-state run-journey-${reading.tone}`} aria-label="Run progress">
           <p role="status"><strong>{reading.title}.</strong> {reading.detail}</p>
-          {turnError && <p role={turnError.retry === "Codex said it will not retry." ? "alert" : "status"} aria-label="Error Codex reported in this conversation">
-            Codex reported an error in this conversation{turnError.count > 1 ? ` ${turnError.count} times; the latest` : ""}: <q>{turnError.words}</q> {turnError.retry} No later event naming that turn has reached the App. The conversation's activity shows each notice whole.</p>}
+          {turnError && (turnError.placed === "current"
+            ? <p role={turnError.retry === "Codex said it will not retry." ? "alert" : "status"} aria-label="Error Codex reported in this conversation">
+              The latest error notice Codex sent for this conversation, in the turn the App holds as in progress{turnError.count > 1 ? `, the latest of ${turnError.count} for that turn` : ""}: <q>{turnError.words}</q> {turnError.retry} The conversation's activity shows each notice the App has kept.</p>
+            : <p role="status" aria-label="Error notice the App holds for this conversation">
+              The App holds an error notice from Codex for this conversation, for a turn it holds no other record of (<code>{turnError.turnId}</code>), so it cannot tell whether that turn is the current one{turnError.count > 1 ? `; it is the latest of ${turnError.count} for that turn` : ""}: <q>{turnError.words}</q> {turnError.retry} The conversation's activity shows each notice the App has kept, with its turn.</p>)}
           {(starts(latest.lifecycle?.state, "open") || reading.tone === "uncertain") && <p>{showConversation
             ? <button onClick={() => showConversation(latest.conversation, reading.tone === "waiting" ? "conversation-requests" : "conversation")}>{reading.tone === "waiting" ? "Answer in the conversation" : "Show the conversation"}</button>
             : <a href="#conversation">Go to the conversation</a>}</p>}

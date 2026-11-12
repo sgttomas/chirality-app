@@ -661,42 +661,83 @@ test('the waiting, active and starting readings claim no more than was reported'
   assert.deepEqual([active.tone, active.title, active.detail], ['working', 'Open — Codex reports this conversation active', 'Codex last reported this conversation as active. Follow its progress in the conversation.']);
   assert.doesNotMatch(`${active.title} ${active.detail}`, /is working on this run|^Working/, 'a last report of active is not a claim that work is being done on the run');
   const starting = runReading({conversation:'T1', source:'sent', lifecycle:{state:PREPARED}}, host());
-  assert.equal(starting.detail, "The App has issued the starting message and is waiting for Codex's reply. The run opens when that reply is observed.");
+  assert.equal(starting.detail, "The App has issued the starting message and is waiting for Codex's reply. The run opens when Codex confirms the starting turn.");
+  assert.doesNotMatch(starting.detail, /when that reply is observed/, 'a refusal is also a reply, and it does not open the run');
   assert.doesNotMatch(starting.detail, /was sent/, 'a source is the App issuing the message; Codex receiving it is not established until its reply');
 });
 
-test('an open run says the latest error notice Codex sent for its conversation, only while nothing naming that turn has followed', async () => {
+test('an open run places Codex\'s latest error notice from what the host reports: hidden, current, or held without its turn', async () => {
   const run = {reference:'run-1', conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}, workflow:{name:'resolve-spacing', origin:'project', revision:'r'}, status:{}};
   // The case observed against an unreachable model: a conversation Codex reports active whose only news is its retry notice.
   const notice = (turnId, observedOrder, turnFirstObservedOrder, extra = {}) => ({threadId:'T1', turnId, generation:g, error:{message:'Reconnecting... waiting for network', additionalDetails:'Connection failed: error sending request'},
     willRetry:true, receiptPosition:observedOrder, ordinalInTurn:1, observedOrder, turnFirstObservedOrder, laterFrameForTurn:false, standing:'live-observed', ...extra});
-  const activeHost = (turnErrors, over = {}) => host({threads:[{threadId:'T1', generation:g, status:{type:'active', activeFlags:[]}}], nativeView:{turnErrors}, ...over});
-  assert.equal(runTurnError(run, activeHost([])), null);
-  assert.equal(runTurnError(run, host()), null, 'no native view, no notice');
-  assert.deepEqual(runTurnError(run, activeHost([notice('turn-3', 40, 30), notice('turn-3', 41, 30, {ordinalInTurn:2})])),
-    {words:'Reconnecting... waiting for network — Connection failed: error sending request', retry:'Codex said it will retry.', count:2});
-  // The latest turn that has a notice, and that turn's latest notice, by the host's own order whatever the list's order.
+  // The host's view: the notices, the turns it holds with the status last reported, and the item rows it received.
+  const held = (id, status) => ({record:{threadId:'T1', turnId:id}, turn:{id, status}});
+  const view = (turnErrors, turns = [], items = []) => ({turnErrors, turnRecords:turns.map(t => t.record), turns:turns.map(t => t.turn), items});
+  const activeHost = (nativeView, over = {}) => host({threads:[{threadId:'T1', generation:g, status:{type:'active', activeFlags:[]}}], nativeView, ...over});
+  const said = (nativeView, over) => runTurnError(run, activeHost(nativeView, over));
+  const WORDS = 'Reconnecting... waiting for network — Connection failed: error sending request';
+  assert.equal(said(view([])), null); assert.equal(runTurnError(run, host()), null, 'no native view, no notice');
+
+  // CURRENT: the App holds the notice's turn as in progress and nothing has followed it.
+  assert.deepEqual(said(view([notice('turn-3', 40, 30), notice('turn-3', 41, 30, {ordinalInTurn:2})], [held('turn-3', 'inProgress')])),
+    {words:WORDS, retry:'Codex said it will retry.', count:2, turnId:'turn-3', placed:'current'});
+  // The latest turn that has a notice, and that turn's latest notice, by the host's own receiving order whatever the list's order.
   const later = notice('turn-5', 60, 55, {willRetry:false, error:{message:'stream disconnected before completion'}});
-  assert.deepEqual(runTurnError(run, activeHost([later, notice('turn-3', 41, 30)])), {words:'stream disconnected before completion', retry:'Codex said it will not retry.', count:1});
-  assert.equal(runTurnError(run, activeHost([notice('turn-3', 40, 30, {willRetry:undefined})])).retry, 'Codex did not say whether it will retry.');
-  // Something naming that turn has since reached the App, or the App stopped receiving: the notice is no longer said here.
-  assert.equal(runTurnError(run, activeHost([notice('turn-3', 40, 30, {laterFrameForTurn:true})])), null);
-  assert.equal(runTurnError(run, activeHost([notice('turn-3', 40, 30), notice('turn-5', 60, 55, {laterFrameForTurn:true})])), null, 'an older turn\'s notice is not revived when the latest turn has moved on');
-  assert.equal(runTurnError(run, activeHost([notice('turn-3', 40, 30, {observationEnded:true})])), null);
-  assert.equal(runTurnError(run, activeHost([notice('turn-3', 40, 30)], {generationClosed:true})), null);
-  // Never another conversation's notice, another Codex generation's, or for a run that is not open in the current source.
+  assert.deepEqual(said(view([later, notice('turn-3', 41, 30)], [held('turn-3', 'completed'), held('turn-5', 'inProgress')])),
+    {words:'stream disconnected before completion', retry:'Codex said it will not retry.', count:1, turnId:'turn-5', placed:'current'});
+  assert.equal(said(view([notice('turn-3', 40, 30, {willRetry:undefined})], [held('turn-3', 'inProgress')])).retry, 'Codex did not say whether it will retry.');
+  // The count is what the host accepted for that turn, which can exceed what it keeps (the latest 32).
+  assert.equal(said(view([notice('turn-3', 90, 30, {ordinalInTurn:33})], [held('turn-3', 'inProgress')])).count, 33);
+
+  // HIDDEN: the App holds that the turn ended, however it learned it (a history read does not mark the notice).
+  for (const status of ['completed', 'failed', 'interrupted'])
+    assert.equal(said(view([notice('turn-3', 40, 30)], [held('turn-3', status)])), null, `the notice's turn is held as ${status}`);
+  // HIDDEN: a later frame naming that turn, or the App's receiving ended.
+  assert.equal(said(view([notice('turn-3', 40, 30, {laterFrameForTurn:true})], [held('turn-3', 'inProgress')])), null);
+  assert.equal(said(view([notice('turn-3', 40, 30, {observationEnded:true})], [held('turn-3', 'inProgress')])), null);
+  assert.equal(said(view([notice('turn-3', 40, 30)], [held('turn-3', 'inProgress')]), {generationClosed:true}), null);
+  // HIDDEN: a live frame for another turn of this conversation, received after the notice on the same stream.
+  const item = (turnId, observedOrder, extra = {}) => ({threadId:'T1', turnId, native:{id:`m-${observedOrder}`, type:'agentMessage'}, standing:'live-observed', observedOrder, ...extra});
+  assert.equal(said(view([notice('turn-3', 40, 30)], [held('turn-3', 'inProgress')], [item('turn-4', 45)])), null, 'a later turn has begun');
+  assert.equal(said(view([notice('turn-3', 40, 30)], [], [item('turn-4', 45)])), null, 'and that holds whether or not the App holds the notice\'s turn');
+  assert.equal(said(view([notice('turn-3', 40, 30), notice('turn-5', 60, 55, {laterFrameForTurn:true})], [held('turn-3', 'inProgress')])), null, 'an older turn\'s notice is not revived when the latest noticed turn has moved on');
+  // Not a later turn's beginning: an earlier frame, a frame of the same turn, another conversation's frame, and a
+  // row recovered by a history read, whose order is only when the read arrived.
+  for (const [row, why] of [[item('turn-2', 35), 'received before the notice'], [item('turn-3', 45), 'the same turn'], [{...item('turn-4', 45), threadId:'T2'}, 'another conversation'],
+    [item('turn-4', 45, {standing:'recovered-from-supplier'}), 'a history read arriving later establishes no order of turns']])
+    assert.equal(said(view([notice('turn-3', 40, 30)], [held('turn-3', 'inProgress')], [row]))?.placed, 'current', why);
+
+  // UNPLACED: the App holds no record of the notice's turn, so it cannot tell whether it is the current one.
+  assert.deepEqual(said(view([notice('turn-3', 40, 30)])), {words:WORDS, retry:'Codex said it will retry.', count:1, turnId:'turn-3', placed:'unplaced'});
+  assert.equal(said(view([notice('turn-3', 40, 30)], [held('turn-9', 'inProgress')]))?.placed, 'unplaced', 'another turn held says nothing of this one, and no order between them is established');
+  assert.equal(said(view([notice('turn-3', 40, 30)], [{record:{threadId:'T2', turnId:'turn-3'}, turn:{id:'turn-3', status:'completed'}}]))?.placed, 'unplaced', 'another conversation\'s turn record is not this turn');
+
+  // Never another conversation's notice, another Codex session's, one naming no session, or for a run not open in the current source.
   const g2 = {...g, spawnCounter:2};
-  assert.equal(runTurnError(run, activeHost([{...notice('turn-3', 40, 30), threadId:'T2'}])), null);
-  assert.equal(runTurnError(run, activeHost([{...notice('turn-3', 40, 30), generation:g2}])), null);
-  assert.equal(runTurnError({...run, generation:g2}, activeHost([notice('turn-3', 40, 30)])), null, 'a run of an earlier Codex session');
-  assert.equal(runTurnError({...run, lifecycle:{state:PREPARED}}, activeHost([notice('turn-3', 40, 30)])), null);
-  // In the guide: beside the run's state, in Codex's words, pointing to the activity for the notice whole.
-  const ui = await mount({host:activeHost([notice('turn-3', 40, 30), notice('turn-3', 41, 30, {ordinalInTurn:2})]), data:data({selections:selected(), runs:[run]}), thread:'T1'});
-  const said = region(ui.c, 'Error Codex reported in this conversation');
-  assert.equal(said.textContent, "Codex reported an error in this conversation 2 times; the latest: Reconnecting... waiting for network — Connection failed: error sending request Codex said it will retry. No later event naming that turn has reached the App. The conversation's activity shows each notice whole.");
+  assert.equal(said(view([{...notice('turn-3', 40, 30), threadId:'T2'}])), null);
+  assert.equal(said(view([{...notice('turn-3', 40, 30), generation:g2}])), null);
+  assert.equal(said(view([{...notice('turn-3', 40, 30), generation:undefined}])), null);
+  assert.equal(runTurnError({...run, generation:g2}, activeHost(view([notice('turn-3', 40, 30)]))), null, 'a run of an earlier Codex session');
+  assert.equal(runTurnError({...run, lifecycle:{state:PREPARED}}, activeHost(view([notice('turn-3', 40, 30)]))), null);
+
+  // In the guide, each case asserts what is shown.
+  const ui = await mount({host:activeHost(view([notice('turn-3', 40, 30), notice('turn-3', 41, 30, {ordinalInTurn:2})], [held('turn-3', 'inProgress')])), data:data({selections:selected(), runs:[run]}), thread:'T1'});
+  const current = () => region(ui.c, 'Error Codex reported in this conversation'), unplaced = () => region(ui.c, 'Error notice the App holds for this conversation');
+  assert.equal(current().textContent, `The latest error notice Codex sent for this conversation, in the turn the App holds as in progress, the latest of 2 for that turn: ${WORDS} Codex said it will retry. The conversation's activity shows each notice the App has kept.`);
+  assert.equal(unplaced(), undefined);
   assert.match(region(ui.c, 'Run progress').textContent, /^Open — Codex reports this conversation active\./, 'the state Codex reported stays as reported; the notice is beside it');
-  assert.doesNotMatch(all(region(ui.c, 'Run progress'), 'p')[0].textContent + said.textContent.split('Codex said')[1], /failed|can't reach|stopped|recovered|still trying/i, 'the App\'s own words conclude nothing from the notice');
-  await ui.rerender({host:activeHost([notice('turn-3', 41, 30, {laterFrameForTurn:true})])});
-  assert.equal(region(ui.c, 'Error Codex reported in this conversation'), undefined);
+  assert.doesNotMatch(all(region(ui.c, 'Run progress'), 'p')[0].textContent + current().textContent.split('Codex said')[1], /failed|can't reach|stopped|recovered|still trying|No later event|times|each notice whole|may be from an earlier/i, 'the App\'s own words conclude nothing and claim no absence');
+  // The turn is held as ended, or a later turn has begun: nothing about that notice is shown beside the run.
+  for (const nativeView of [view([notice('turn-3', 41, 30)], [held('turn-3', 'completed')]), view([notice('turn-3', 41, 30)], [held('turn-3', 'inProgress')], [item('turn-4', 45)])]) {
+    await ui.rerender({host:activeHost(nativeView)});
+    assert.equal(current(), undefined); assert.equal(unplaced(), undefined);
+    assert.doesNotMatch(region(ui.c, 'Run progress').textContent, /error notice|Reconnecting/);
+  }
+  // The App holds no record of the turn: said as a notice it holds, with the turn, and never as an alert.
+  await ui.rerender({host:activeHost(view([notice('turn-3', 41, 30, {willRetry:false})]))});
+  assert.equal(current(), undefined);
+  assert.equal(unplaced().textContent, `The App holds an error notice from Codex for this conversation, for a turn it holds no other record of (turn-3), so it cannot tell whether that turn is the current one: ${WORDS} Codex said it will not retry. The conversation's activity shows each notice the App has kept, with its turn.`);
+  assert.equal(props(unplaced()).role, 'status', 'not presented as the run\'s present trouble');
   await ui.close?.();
 });
