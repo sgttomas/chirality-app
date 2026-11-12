@@ -19,8 +19,13 @@ const PERSON_WORDING: &str = "identity not verified";
 /// Row states. The two incomplete states are never a decision or a pending
 /// request: an act log that could bear on the row was not fully read.
 pub(crate) const PENDING: &str = "pending — awaiting the person's decision";
+/// Every row read while an act log was not fully read begins with this.
+pub(crate) const INCOMPLETE_PREFIX: &str = "act records incomplete; ";
 pub(crate) const DECIDED_INCOMPLETE: &str = "act records incomplete; a deciding act was read";
 pub(crate) const PENDING_INCOMPLETE: &str = "act records incomplete; no deciding act was read";
+/// An act whose bound content is not the package identity its request claims.
+pub(crate) const BINDING_UNRESOLVED: &str =
+    "unresolved — an act's bound content is not its request's package identity";
 
 pub fn person_label(p: &Value) -> String {
     let names: Vec<&str> = ["displayName", "osAccount", "codexAccount", "hostActor"]
@@ -32,8 +37,10 @@ pub fn person_label(p: &Value) -> String {
     } else {
         names.join(" / ")
     };
+    // This reader verifies no identity, so it never shows one as verified; a
+    // record that says otherwise is reported as saying so.
     if p.get("identityVerified") == Some(&json!(true)) {
-        who
+        format!("{who} ({PERSON_WORDING}; the record claims it verified, a claim this reader does not verify)")
     } else {
         format!("{who} ({PERSON_WORDING})")
     }
@@ -251,10 +258,33 @@ fn names_recorder(act: &Value) -> bool {
     else {
         return false;
     };
+    // Unicode case folding by the standard library's lowercase, after trimming.
+    // No normalization form is applied: composed and decomposed spellings of
+    // one name compare as different.
+    let fold = |s: &str| s.trim().to_lowercase();
+    let recorder = fold(recorder);
     ["displayName", "osAccount", "codexAccount", "hostActor"]
         .iter()
         .filter_map(|k| act["body"]["decisionActor"][*k].as_str())
-        .any(|name| name.trim().eq_ignore_ascii_case(recorder))
+        .any(|name| fold(name) == recorder)
+}
+/// The one check of a record's authority to change standing in any way: to
+/// decide, to correct or supersede another record, or to observe a lapse. It
+/// must be read from this installation's store outside every imported part
+/// (`origin_decides`) and must not name its recorder as the decision actor.
+/// A record that fails is listed as a claim and changes nothing, in either
+/// direction.
+fn may_alter(origin: Origin, record: &Value) -> Result<(), String> {
+    if !origin_decides(origin) {
+        return Err(origin.label().to_owned());
+    }
+    if names_recorder(record) {
+        return Err(format!(
+            "the record names its recorder {} as the decision actor (nonconformant)",
+            record["recorder"]["identity"].as_str().unwrap_or("?")
+        ));
+    }
+    Ok(())
 }
 
 /// One act log as the caller read it, once.
@@ -276,12 +306,22 @@ pub(crate) struct RecordSet {
 /// The copies the explicit legacy import named, by store-relative path, each
 /// with the length and SHA-256 of the bytes it copied.
 fn legacy_copies(bytes: &[u8]) -> Result<HashMap<String, Vec<(u64, String)>>, String> {
+    // Present but empty, torn, or not readable whole: what was imported is not
+    // established, so no origin in the project is.
+    if bytes.iter().all(u8::is_ascii_whitespace) {
+        return Err("the project's import record is present but empty".into());
+    }
+    if !bytes.ends_with(b"\n") {
+        return Err("the project's import record ends in a torn line".into());
+    }
     let mut lines = Vec::new();
     for line in bytes.split(|b| *b == b'\n').filter(|l| !l.is_empty()) {
-        lines.push(
-            serde_json::from_slice::<Value>(line)
-                .map_err(|_| "the project's import record is unreadable".to_string())?,
-        );
+        let line = serde_json::from_slice::<Value>(line)
+            .map_err(|_| "the project's import record is unreadable".to_string())?;
+        if !line["event"].is_string() {
+            return Err("the project's import record holds a line that is not an import event".into());
+        }
+        lines.push(line);
     }
     let done: HashSet<&str> = lines
         .iter()
@@ -615,6 +655,11 @@ pub(crate) fn derive_from(
             .find(|o| !origin_decides(*o))
             .unwrap_or(if found.is_empty() { Origin::Unknown } else { Origin::Store })
     };
+    // Records that may not change standing, with why; listed as claims.
+    let authority = |record: &Value| -> Result<(), String> {
+        may_alter(origin_of(record["recordId"].as_str().unwrap_or("")), record)
+    };
+    let mut unauthorized: Vec<Value> = Vec::new();
     let record_corrections = record_relations::project_from_read_claims(&source_claims, &complete_logs);
     let mut grouped: HashMap<String, Vec<&Value>> = HashMap::new();
     for e in &entries {
@@ -651,6 +696,11 @@ pub(crate) fn derive_from(
             continue;
         };
         let id = e["recordId"].as_str().unwrap_or("");
+        if let Err(why) = authority(e) {
+            limits.push(format!("{id}: claims to correct {target}, but {why}; listed as a claim and changes nothing"));
+            unauthorized.push(json!({"recordId":id,"kind":e["kind"],"claimedToCorrect":target,"origin":origin_of(id).label(),"reason":why}));
+            continue;
+        }
         let reason = e["correctionReason"]
             .as_str()
             .is_some_and(|v| !v.is_empty());
@@ -738,7 +788,7 @@ pub(crate) fn derive_from(
             reported_native_observation(e)
                 && e.get("corrects").is_none()
                 && !duplicates.contains(id)
-                && origin_decides(origin_of(id))
+                && authority(e).is_ok()
         })
         .collect();
     for a in &native {
@@ -783,8 +833,8 @@ pub(crate) fn derive_from(
                 && e["body"]["actKind"] == t["body"]["actKind"]
                 && e["body"]["relations"]["requestRef"] == t["body"]["relations"]["requestRef"]
                 && !same_capture(e, t)
-                && origin_decides(origin_of(id))
-                && origin_decides(origin_of(target))
+                && authority(e).is_ok()
+                && authority(t).is_ok()
             {
                 edges
                     .entry(id.to_owned())
@@ -793,7 +843,10 @@ pub(crate) fn derive_from(
                 continue;
             }
         }
-        limits.push(format!("{id}: supersession target {target} unresolvable/ambiguous, not a distinct compatible capture, or not a record of this installation's store; not applied"));
+        if let Err(why) = authority(e) {
+            unauthorized.push(json!({"recordId":id,"kind":e["kind"],"claimedToSupersede":target,"origin":origin_of(id).label(),"reason":why}));
+        }
+        limits.push(format!("{id}: supersession target {target} unresolvable/ambiguous, not a distinct compatible capture, or not a record that may change standing; not applied"));
     }
     // Contradictory precedence cannot erase either contender.
     let cyclic: HashSet<String> = edges
@@ -823,6 +876,19 @@ pub(crate) fn derive_from(
     // DEL-06-02 Several decisions: a correction stands in place of the entry it
     // corrects, before any request or act is judged; both stay listed.
     let corrected_away = |id: &str| corrected.contains_key(id);
+    // Lapse observations obey the same rule: one that may not change standing,
+    // or that a correction stands in place of, is no lapse history.
+    let mut not_history: HashSet<String> = unresolved_observations.clone();
+    for e in entries.iter().filter(|e| e["kind"] == "act_lapsed") {
+        let id = e["recordId"].as_str().unwrap_or("");
+        if corrected_away(id) {
+            not_history.insert(id.to_owned());
+        } else if let Err(why) = authority(e) {
+            not_history.insert(id.to_owned());
+            limits.push(format!("{id}: lapse observation {why}; listed as a claim and changes nothing"));
+            unauthorized.push(json!({"recordId":id,"kind":e["kind"],"claimedToObserve":e["body"]["act"]["recordId"],"origin":origin_of(id).label(),"reason":why}));
+        }
+    }
     // DV-1: a row per package. Requests are reconciled by the package they cite
     // (file path and content identity) before anything is decided.
     let mut seen_packages = HashSet::new();
@@ -956,6 +1022,7 @@ pub(crate) fn derive_from(
         let mut seen_acts = HashSet::new();
         let mut claims = Vec::new();
         let mut origin_unresolved = false;
+        let mut binding_unresolved = false;
         for a in acts.iter().copied().filter(|a| {
             let r = &a["body"]["relations"]["requestRef"];
             request_ids.iter().any(|id| r == id) || corrected_requests.iter().any(|id| r == id)
@@ -972,17 +1039,13 @@ pub(crate) fn derive_from(
                 row_limits.push(format!("{rid}: act not counted: chosen alternative {chosen:?} is not one the package names"));
                 continue;
             }
-            if names_recorder(a) {
-                row_limits.push(format!("{rid}: not an act: the record names its recorder {} as the decision actor (nonconformant)",
-                    a["recorder"]["identity"].as_str().unwrap_or("?")));
-                continue;
-            }
             let origin = origin_of(rid);
-            if !origin_decides(origin) {
+            if let Err(why) = may_alter(origin, a) {
                 origin_unresolved |= origin == Origin::Unknown;
-                row_limits.push(format!("{rid}: {}; listed as a claim and decides nothing", origin.label()));
-                claims.push(json!({"act":rid,"origin":origin.label(),"alternativeChosen":chosen,
-                    "recordedBy":a["recorder"],"recordSources":sources.get(rid),"decides":false}));
+                row_limits.push(format!("{rid}: {why}; listed as a claim and decides nothing"));
+                claims.push(json!({"recordId":rid,"act":rid,"origin":origin.label(),"reason":why,
+                    "recordedBy":a["recorder"],"actor":person_label(&ab["decisionActor"]),
+                    "alternativeChosen":chosen,"recordSources":sources.get(rid),"decides":false}));
                 continue;
             }
             let cited = ab["relations"]["requestRef"].as_str().unwrap_or("");
@@ -990,8 +1053,67 @@ pub(crate) fn derive_from(
                 row_limits.push(format!("{rid}: cites request {cited}, which a correction stands in place of; it decides nothing"));
                 continue;
             }
+            // An act decides a request only where its bound content is the
+            // package identity that request claims, by method and value.
+            if !corrected_away(rid) {
+                let cited_request = group.iter().find(|r| r["recordId"] == cited);
+                let claimed = cited_request.map(|r| &r["body"]["evidence"]);
+                let bound_content = ab["boundContent"].as_array();
+                let comparable = |m: &Value, v: &Value| m.as_str().is_some_and(|x| !x.is_empty()) && v.as_str().is_some_and(|x| !x.is_empty());
+                let matches = claimed.zip(bound_content).is_some_and(|(c, bc)| {
+                    bc.len() == 1
+                        && comparable(&bc[0]["method"], &bc[0]["value"])
+                        && comparable(&c["method"], &c["claimedIdentity"])
+                        && bc[0]["method"] == c["method"]
+                        && bc[0]["value"] == c["claimedIdentity"]
+                });
+                if !matches {
+                    binding_unresolved = true;
+                    row_limits.push(format!(
+                        "{rid}: bound content {} is not, or cannot be compared with, request {cited}'s package identity {}; the row is unresolved",
+                        serde_json::to_string(&ab["boundContent"]).unwrap_or_default(),
+                        claimed.map(|c| json!({"method":c["method"],"value":c["claimedIdentity"]}).to_string()).unwrap_or_else(|| "not found".into())
+                    ));
+                }
+            }
             if duplicates.contains(rid) || seen_acts.insert(rid.to_owned()) {
                 decided.push(a);
+            }
+        }
+        // Records that claimed to correct, supersede or observe a lapse on what
+        // this row reads, but may not change standing: listed, deciding nothing.
+        let mut bearing: HashSet<String> = request_ids.iter().map(|s| s.to_string()).collect();
+        bearing.extend(corrected_requests.iter().cloned());
+        let citing: Vec<String> = acts
+            .iter()
+            .filter(|a| a["body"]["relations"]["requestRef"].as_str().is_some_and(|r| bearing.contains(r)))
+            .map(|a| a["recordId"].as_str().unwrap_or("").to_owned())
+            .collect();
+        bearing.extend(citing);
+        let observing: Vec<String> = entries
+            .iter()
+            .filter(|e| e["kind"] == "act_lapsed" && e["body"]["act"]["recordId"].as_str().is_some_and(|a| bearing.contains(a)))
+            .map(|e| e["recordId"].as_str().unwrap_or("").to_owned())
+            .collect();
+        bearing.extend(observing);
+        for u in &unauthorized {
+            let id = u["recordId"].as_str().unwrap_or("");
+            let target = ["claimedToCorrect", "claimedToSupersede", "claimedToObserve"]
+                .iter()
+                .find_map(|k| u[*k].as_str());
+            let bears = bearing.contains(id) || target.is_some_and(|t| bearing.contains(t));
+            if bears && !claims.iter().any(|c| c["recordId"] == id) {
+                let record = entries.iter().find(|e| e["recordId"] == id);
+                let mut claim = u.clone();
+                claim["recordedBy"] = record.map(|r| r["recorder"].clone()).unwrap_or(Value::Null);
+                claim["actor"] = record
+                    .filter(|r| r["body"]["decisionActor"].is_object())
+                    .map(|r| json!(person_label(&r["body"]["decisionActor"])))
+                    .unwrap_or(Value::Null);
+                claim["alternativeChosen"] = record.map(|r| r["body"]["relations"]["alternativeChosen"].clone()).unwrap_or(Value::Null);
+                claim["recordSources"] = json!(sources.get(id));
+                claim["decides"] = json!(false);
+                claims.push(claim);
             }
         }
         let mut row = json!({
@@ -1052,7 +1174,7 @@ pub(crate) fn derive_from(
                         id,
                         &expected_subject,
                         &bound,
-                        &unresolved_observations,
+                        &not_history,
                     )
                 })
                 .collect();
@@ -1347,22 +1469,43 @@ pub(crate) fn derive_from(
             }).collect::<Vec<_>>());
             row["decision"] = projection;
         }
-        // An unread line may be a correction of the act or a later opposing
-        // decision; it is used for nothing (DEL-04-03 REQ-012), and the row draws
-        // no conclusion it could overturn.
-        if !record_set_complete {
-            let plain = row["state"].as_str().unwrap_or("").to_owned();
-            if plain == "decided" {
-                row["state"] = json!(DECIDED_INCOMPLETE);
-            } else if plain == PENDING {
-                row["state"] = json!(PENDING_INCOMPLETE);
-            }
-            row_limits.push(format!("act records not fully read: {}", unread_sources.join(" | ")));
+        if binding_unresolved {
+            row["state"] = json!(BINDING_UNRESOLVED);
+            row["decision"] = Value::Null;
         }
         if request_ids.iter().any(|id| duplicates.contains(*id)) || conflicting_requests {
             row["state"] = json!("unresolvable request identity");
             row["decision"] = Value::Null;
             row_limits.push("request record identity has conflicting facts; no unique package/offer binding resolved".into());
+        }
+        // An unread line may be a correction of the act or a later opposing
+        // decision; it is used for nothing (DEL-04-03 REQ-012), and the row draws
+        // no conclusion it could overturn. Every state then begins with the
+        // incompleteness, and no lapse is established; the comparison of the
+        // current bytes is kept beside it as an observation.
+        if !record_set_complete {
+            let plain = row["state"].as_str().unwrap_or("").to_owned();
+            row["state"] = json!(if plain == "decided" {
+                DECIDED_INCOMPLETE.to_owned()
+            } else if plain == PENDING {
+                PENDING_INCOMPLETE.to_owned()
+            } else {
+                format!("{INCOMPLETE_PREFIX}{plain}")
+            });
+            row_limits.push(format!("act records not fully read: {}", unread_sources.join(" | ")));
+            let unestablished = |p: &mut Value| {
+                if p.is_object() {
+                    p["currentBytesObservation"] = json!(format!(
+                        "an observation, not a lapse state: the package file's current bytes, compared with the bound content: {}",
+                        p["currentContentComparison"].as_str().unwrap_or("not compared")
+                    ));
+                    p["lapse"] = json!("not established while act records are incomplete");
+                }
+            };
+            unestablished(&mut row["decision"]);
+            for p in projections.iter_mut() {
+                unestablished(p);
+            }
         }
         row["currentCandidates"] = json!(maxima
             .iter()

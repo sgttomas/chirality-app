@@ -321,3 +321,225 @@ fn decision_view_row_with_a_torn_act_log_is_not_plainly_pending() {
     assert!(state != "decided" && state != PENDING, "{row}");
     assert!(row["limits"].to_string().contains("10-torn.jsonl"), "{row}");
 }
+
+// Review of #247. Expected states come from the rule App Agent 0 decided:
+// only an act record held in this installation's records store, outside every
+// imported part, can decide; a record naming its recorder as the decision
+// actor decides nothing; a record that cannot decide changes no standing in
+// either direction; while any act log is not fully read, no row is decided or
+// pending. States are written here as the reader's words, not its constants.
+
+/// A record brought into the store by the explicit legacy import.
+fn legacy(f: &Fixture, name: &str, entries: &[Value]) {
+    let place = f.project.join(".chirality/records/acts");
+    f.write(&place, name, entries);
+    records_store::import(&f.project).unwrap();
+    assert!(f.store().join(format!("acts/{name}.jsonl")).exists());
+}
+fn self_recorded(mut record: Value, recorder: &str, actor: &str) -> Value {
+    record["recorder"]["identity"] = json!(recorder);
+    record["body"]["decisionActor"] = json!({"displayName":actor,"identityVerified":false});
+    record
+}
+fn lapse_record(id: &str, act: &Value, state: &str, c1: Value) -> Value {
+    json!({"format":"chirality.rs.record","formatVersion":"0.1","recordId":id,"kind":"act_lapsed",
+        "recorder":{"role":"App writer","identity":"writer:lapse"},"context":{"surface":"App"},"seq":1,"writtenAt":"invented",
+        "body":{"act":{"recordId":act["recordId"],"actKind":"A16","capturedAt":act["body"]["captureTime"],"capturingSurface":"app_act_control"},
+            "state":state,"referents":act["body"]["boundSubject"],"c0":act["body"]["boundContent"][0],"c1":c1,"time":"invented"}})
+}
+fn not_decided(row: &Value) -> bool {
+    row["state"] != "decided" && row["decision"].is_null()
+}
+
+#[test]
+fn decision_view_a_correction_that_may_not_decide_changes_no_standing() {
+    // Two unordered store acts leave the row unresolved. A correction of one
+    // of them that is a legacy-imported copy, or that names its recorder as
+    // the decision actor, must not remove it and leave the other deciding.
+    for case in ["legacy-imported", "recorder-as-actor"] {
+        let f = Fixture::new();
+        f.in_store("00-request", &[request("rec:r1", "decisions/PKG-1.json", PACKAGE)]);
+        f.in_store("10-a", &[act("rec:a1", "rec:r1", "ALT-1", PACKAGE)]);
+        f.in_store("11-b", &[act("rec:a2", "rec:r1", "ALT-2", PACKAGE)]);
+        assert_eq!(f.row("rec:r1")["state"], "ambiguous current standing");
+        let mut fix = correcting(act("rec:a2", "rec:r1", "ALT-9", PACKAGE), "rec:a2-fix", "rec:a2");
+        fix["body"]["captureEvidence"][0]["ref"] = json!("cap:a2-fix");
+        if case == "legacy-imported" {
+            legacy(&f, "20-fix", &[fix]);
+        } else {
+            f.in_store("20-fix", &[self_recorded(fix, "agent:invented-manager", "agent:invented-manager")]);
+        }
+        let row = f.row("rec:r1");
+        assert_eq!(row["state"], "ambiguous current standing", "{case}: {row}");
+        let claim = row["claims"].as_array().unwrap().iter().find(|c| c["recordId"] == "rec:a2-fix");
+        assert!(claim.is_some(), "{case}: the correction is listed as a claim: {row}");
+    }
+}
+
+#[test]
+fn decision_view_a_correction_of_a_correction_obeys_the_same_rule() {
+    // A store act; a legacy-imported correction of it, which changes nothing;
+    // a store correction of that imported correction. Two store acts remain,
+    // unordered: never decided by either.
+    let f = Fixture::new();
+    f.in_store("00-request", &[request("rec:r1", "decisions/PKG-1.json", PACKAGE)]);
+    f.in_store("10-a", &[act("rec:a1", "rec:r1", "ALT-2", PACKAGE)]);
+    let mut imported = correcting(act("rec:a1", "rec:r1", "ALT-9", PACKAGE), "rec:a1-fix", "rec:a1");
+    imported["body"]["captureEvidence"][0]["ref"] = json!("cap:a1-fix");
+    legacy(&f, "20-imported-fix", &[imported]);
+    let mut local = correcting(act("rec:a1-fix", "rec:r1", "ALT-1", PACKAGE), "rec:a1-fix2", "rec:a1-fix");
+    local["body"]["captureEvidence"][0]["ref"] = json!("cap:a1-fix2");
+    f.in_store("30-local-fix", &[local]);
+    let row = f.row("rec:r1");
+    assert!(not_decided(&row), "{row}");
+}
+
+#[test]
+fn decision_view_a_request_correction_that_may_not_decide_leaves_the_request_standing() {
+    let f = Fixture::new();
+    let r1 = request("rec:r1", "decisions/PKG-1.json", PACKAGE);
+    f.in_store("00-request", &[r1.clone()]);
+    f.in_store("10-a", &[act("rec:a1", "rec:r1", "ALT-2", PACKAGE)]);
+    legacy(&f, "20-imported-request-fix", &[correcting(r1, "rec:r1-fix", "rec:r1")]);
+    let row = f.row("rec:r1");
+    assert_eq!(row["correctedRequests"], json!([]), "{row}");
+    assert_eq!(row["state"], "decided", "{row}");
+    assert_eq!(row["decision"]["act"], "rec:a1");
+}
+
+#[test]
+fn decision_view_a_corrected_lapse_observation_is_no_lapse_history() {
+    // A store lapse observation, then a store correction of it to "unknown
+    // (unavailable)": the corrected observation decides the lapse state no more.
+    let f = Fixture::new();
+    f.in_store("00-request", &[request("rec:r1", "decisions/PKG-1.json", PACKAGE)]);
+    let a = act("rec:a1", "rec:r1", "ALT-2", PACKAGE);
+    f.in_store("10-a", &[a.clone()]);
+    let observed = lapse_record("rec:lapse", &a, "lapsed", json!({"method":util::FILE_IDENTITY_METHOD,"value":"changed-invented"}));
+    f.in_store("20-lapse", &[observed.clone()]);
+    assert_eq!(f.row("rec:r1")["decision"]["lapse"], "matches c0 again after observed lapse");
+    let mut fix = correcting(observed.clone(), "rec:lapse-fix", "rec:lapse");
+    fix["body"]["state"] = json!("unknown (unavailable)");
+    fix["body"]["c1"] = a["body"]["boundContent"][0].clone();
+    f.in_store("30-lapse-fix", &[fix.clone()]);
+    assert_eq!(f.row("rec:r1")["decision"]["lapse"], "not lapsed");
+    // A lapse observation, or a correction of one, that may not change
+    // standing changes nothing.
+    let g = Fixture::new();
+    g.in_store("00-request", &[request("rec:r1", "decisions/PKG-1.json", PACKAGE)]);
+    g.in_store("10-a", &[a.clone()]);
+    g.in_store("20-lapse", &[observed]);
+    legacy(&g, "30-imported-lapse-fix", &[fix]);
+    assert_eq!(g.row("rec:r1")["decision"]["lapse"], "matches c0 again after observed lapse");
+    let h = Fixture::new();
+    h.in_store("00-request", &[request("rec:r1", "decisions/PKG-1.json", PACKAGE)]);
+    h.in_store("10-a", &[a.clone()]);
+    legacy(&h, "20-imported-lapse", &[lapse_record("rec:lapse", &a, "lapsed", json!({"method":util::FILE_IDENTITY_METHOD,"value":"changed-invented"}))]);
+    let row = h.row("rec:r1");
+    assert_eq!(row["decision"]["lapse"], "not lapsed", "{row}");
+    assert!(row["claims"].to_string().contains("rec:lapse"), "{row}");
+}
+
+#[test]
+fn decision_view_an_act_decides_only_the_package_identity_its_request_claims() {
+    // The request claims other content than the act was bound to, by value
+    // and by method: the row is unresolved, never decided.
+    for case in ["value", "method"] {
+        let f = Fixture::new();
+        let mut r1 = request("rec:r1", "decisions/PKG-1.json", PACKAGE);
+        if case == "value" {
+            r1["body"]["evidence"]["claimedIdentity"] = json!("invented-other-content");
+        } else {
+            r1["body"]["evidence"]["method"] = json!("invented method");
+        }
+        f.in_store("00-request", &[r1]);
+        f.in_store("10-a", &[act("rec:a1", "rec:r1", "ALT-2", PACKAGE)]);
+        let row = f.row("rec:r1");
+        assert!(not_decided(&row), "{case}: {row}");
+        assert!(row["state"].as_str().unwrap().starts_with("unresolved"), "{case}: {row}");
+        assert!(row["limits"].to_string().contains("package identity"), "{case}: {row}");
+    }
+    // Two requests for one file differing only in content identity: one act
+    // cannot make both read decided.
+    let f = Fixture::new();
+    let mut r2 = request("rec:r2", "decisions/PKG-1.json", PACKAGE);
+    r2["body"]["evidence"]["claimedIdentity"] = json!("invented-other-content");
+    f.in_store("00-request", &[request("rec:r1", "decisions/PKG-1.json", PACKAGE), r2]);
+    f.in_store("10-a", &[act("rec:a1", "rec:r1", "ALT-2", PACKAGE)]);
+    f.in_store("11-b", &[act("rec:a2", "rec:r2", "ALT-2", PACKAGE)]);
+    let view = f.view();
+    let decided = view["rows"].as_array().unwrap().iter().filter(|r| r["state"] == "decided").count();
+    assert!(decided <= 1, "{view}");
+    assert!(not_decided(&f.row("rec:r2")));
+}
+
+#[test]
+fn decision_view_a_record_naming_its_recorder_as_actor_is_listed_as_a_claim() {
+    let f = Fixture::new();
+    f.in_store("00-request", &[request("rec:r1", "decisions/PKG-1.json", PACKAGE)]);
+    f.in_store("10-a", &[self_recorded(act("rec:a1", "rec:r1", "ALT-2", PACKAGE), "agent:invented-manager", "agent:invented-manager")]);
+    let row = f.row("rec:r1");
+    let claim = row["claims"].as_array().unwrap().iter().find(|c| c["recordId"] == "rec:a1").cloned();
+    let claim = claim.unwrap_or_else(|| panic!("listed as a claim: {row}"));
+    assert!(claim["reason"].as_str().unwrap().contains("names its recorder"), "{claim}");
+    assert_eq!(claim["alternativeChosen"], "ALT-2");
+    assert_eq!(claim["recordedBy"]["identity"], "agent:invented-manager");
+    assert!(claim["actor"].as_str().unwrap().contains("agent:invented-manager"));
+}
+
+#[test]
+fn decision_view_incomplete_act_records_lead_every_row_and_establish_no_lapse() {
+    let f = Fixture::new();
+    f.in_store("00-request", &[request("rec:r1", "decisions/PKG-1.json", PACKAGE)]);
+    f.in_store("10-a", &[act("rec:a1", "rec:r1", "ALT-2", PACKAGE)]);
+    std::fs::write(f.store().join("acts/90-unreadable.jsonl"), b"garbage\n").unwrap();
+    let row = f.row("rec:r1");
+    assert!(row["state"].as_str().unwrap().starts_with("act records incomplete; "), "{row}");
+    assert_ne!(row["decision"]["lapse"], "not lapsed", "no lapse state while incomplete: {row}");
+    assert!(row["decision"]["lapse"].as_str().unwrap().contains("not established"), "{row}");
+    assert!(row["decision"]["currentBytesObservation"].as_str().unwrap().contains("observation"), "{row}");
+    // Unordered acts with an unread line: the heading leads with the incompleteness.
+    f.in_store("11-b", &[act("rec:a2", "rec:r1", "ALT-1", PACKAGE)]);
+    let row = f.row("rec:r1");
+    let state = row["state"].as_str().unwrap();
+    assert!(state.starts_with("act records incomplete; ") && state.contains("ambiguous"), "{row}");
+}
+
+#[test]
+fn decision_view_recorder_as_actor_is_compared_with_unicode_case_folding() {
+    let f = Fixture::new();
+    f.in_store("00-request", &[request("rec:r1", "decisions/PKG-1.json", PACKAGE)]);
+    f.in_store("10-a", &[self_recorded(act("rec:a1", "rec:r1", "ALT-2", PACKAGE), "AGENT:ÉQUIPE", "agent:équipe")]);
+    let row = f.row("rec:r1");
+    assert!(not_decided(&row), "{row}");
+}
+
+#[test]
+fn decision_view_never_shows_an_identity_as_verified() {
+    let f = Fixture::new();
+    f.in_store("00-request", &[request("rec:r1", "decisions/PKG-1.json", PACKAGE)]);
+    let mut a = act("rec:a1", "rec:r1", "ALT-2", PACKAGE);
+    a["body"]["decisionActor"]["identityVerified"] = json!(true);
+    f.in_store("10-a", &[a]);
+    let by = f.row("rec:r1")["decision"]["decidedBy"].as_str().unwrap().to_owned();
+    assert!(by.contains("identity not verified"), "{by}");
+    assert!(by.contains("claims"), "the record's own claim is reported as a claim: {by}");
+}
+
+#[test]
+fn decision_view_an_import_record_that_is_present_but_not_readable_whole_establishes_no_origin() {
+    for case in ["empty", "torn", "not-an-event"] {
+        let f = Fixture::new();
+        f.in_store("00-request", &[request("rec:r1", "decisions/PKG-1.json", PACKAGE)]);
+        legacy(&f, "10-act", &[act("rec:a1", "rec:r1", "ALT-2", PACKAGE)]);
+        let imports = f.store().join("imports.jsonl");
+        let original = std::fs::read(&imports).unwrap();
+        match case {
+            "empty" => std::fs::write(&imports, b"").unwrap(),
+            "torn" => std::fs::write(&imports, &original[..original.len() - 1]).unwrap(),
+            _ => std::fs::write(&imports, [&original[..], b"{}\n"].concat()).unwrap(),
+        }
+        let row = f.row("rec:r1");
+        assert!(not_decided(&row), "{case}: {row}");
+    }
+}

@@ -398,7 +398,7 @@ fn decision_need(
             "{corrected}several decisions on {request} whose order the records do not establish, or an act whose origin is not established ({}){noted}",
             array(&row["currentCandidates"]).iter().map(text).collect::<Vec<_>>().join(", ")
         )),
-        s if s == crate::decision_view::DECIDED_INCOMPLETE || s == crate::decision_view::PENDING_INCOMPLETE => unknown(format!(
+        s if s.starts_with(crate::decision_view::INCOMPLETE_PREFIX) => unknown(format!(
             "{corrected}{request} reads as {s}{noted}")),
         s if s == crate::decision_view::PENDING => json!({"state":"outstanding","why":format!(
             "{corrected}no recorded act of the person of kind {} in this installation's records store cites {request} and chooses an alternative the package names{noted}",

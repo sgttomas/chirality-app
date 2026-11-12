@@ -1042,3 +1042,19 @@ fn fleet_views_decision_reads_create_nothing_at_a_redirected_store_alias() {
         restore(&alias);
     }
 }
+
+#[test]
+fn fleet_views_decision_need_is_unknown_when_the_act_is_bound_to_other_content_than_its_request() {
+    // The request claims other package content than the act was bound to: the
+    // need cannot be settled by that act and reads unknown, naming both.
+    let f = Fixture::new();
+    let d = decision_fixture(&f);
+    let mut request: Value = serde_json::from_slice(&std::fs::read(d.dir.join("acts/00-request.jsonl")).unwrap()).unwrap();
+    request["body"]["evidence"]["claimedIdentity"] = json!("invented-other-content");
+    act_log(&d.dir, "00-request", &request);
+    act_log(&d.dir, "10-act", &act(&d, "act", "ALT-2"));
+    let (category, need) = decision_need(&f.read());
+    assert_eq!((category.as_str(), need["state"].as_str()), ("unknown", Some("unknown")), "{need}");
+    let why = need["why"].as_str().unwrap();
+    assert!(why.contains("invented-other-content") && why.contains("package identity"), "{why}");
+}
