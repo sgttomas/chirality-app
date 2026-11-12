@@ -38,7 +38,7 @@ Scenarios
             2, same home, repeats those four reads after a restart.
 
 Usage, from `app/`:
-  python3 supplier_checks/capture.py --vendor /absolute/vendor --pin 0.167.0 \
+  python3 supplier_checks/capture.py --vendor /absolute/vendor --pin 0.167.2 \
       --out /absolute/new-scratch SCENARIO
 
 `--out` receives the raw local frames and the redacted `<scenario>.recording.json`.

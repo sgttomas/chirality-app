@@ -24,7 +24,7 @@ It is the BACKEND_FEATURE_SLICE `DEL-01-01` of PKG-01 in the accepted decomposit
 
 Terms:
 
-- **Pin.** The one Codex version a candidate is built against. The current pin is Codex 0.167.0 (supplier tag `rust-v0.167.0`); it changes only by a pin advance under REQ-006.
+- **Pin.** The one Codex version a candidate is built against. The current pin is Codex 0.167.2 (supplier tag `rust-v0.167.2`); it changes only by a pin advance under REQ-006.
 - **App-owned Codex home.** A Codex home directory the App creates for its own use, named by a stable App-owned identity that is neither a credential nor a filesystem path. One child runs per home; nothing of one home's child settles, answers or is attributed to another's.
 - **Generation.** One spawn of a child, identified by {App session, home, spawn counter}. Every frame, request and register entry carries its generation, and nothing from one generation settles or answers anything in another.
 - **Distribution identity.** The complete inventory of the supplier's published vendor tree: every file's path, type, mode, size and content digest, and every directory's mode. A manifest digest of the files alone is not the identity.
@@ -83,7 +83,7 @@ Seams are tested against exchanges recorded once from the stock supplier and rep
 - **VER-008** — Executable check (observes reported outcomes against the writes actually made): end a generation with a request unanswered, with a reply queued and with a reply admitted but unobserved, and withhold a response to a client request.
 - **VER-009** — Comparison with the frames written to the supplier: for one turn, compare the handed-over guidance identities with digests of the recorded written frames, the reported model and destination with the recorded supplier frames, and each settlement's origin with the answer the examiner gave through the interface, the App rule configured for the case, or a request Codex resolved itself.
 - **VER-010** — Comparison with the pin's generated output: enumerate its item kinds, server requests and client methods and check each against the account.
-- **VER-011** — Comparison with the supplier's published release list: compare the candidate's pin with the supplier's releases at the candidate's build date and with the version-advance check result of each newer release, and read the results of VER-001 through VER-010 for that candidate and pin.
+- **VER-011** — Comparison with the supplier's published release list: compare the candidate's pin with the supplier's stable releases at the candidate's build date; read the version-advance check result of the pin and of each newer stable release that has one, and name each newer stable release that has none as not checked; and read the results of VER-001 through VER-010 for that candidate and pin.
 
 ## Governing Values and Decisions — Axiology
 
@@ -105,4 +105,4 @@ Seams are tested against exchanges recorded once from the stock supplier and rep
 | OUT-001 | OBJ-001, OBJ-002 | REQ-009 | AC-008 | VER-008 | The outcomes the boundary reports at generation close and for a withheld response, compared with the writes the test peer actually received and with the endings REQ-009 defines; PRD V4-EXE-03 states that an unobserved outcome is unknown. |
 | OUT-003 | OBJ-001, OBJ-004 | REQ-010 | AC-009 | VER-009 | Outside source: the frames as written to and received from the supplier, recorded at the pipe, and the answers the examiner gave. |
 | OUT-003 | OBJ-001, OBJ-004 | REQ-011 | AC-010 | VER-010 | Outside source: the supplier's generated output at the pin. |
-| OUT-004 | OBJ-001, OBJ-002, OBJ-004 | REQ-006, CLM-003 | AC-011 | VER-011 | The supplier's published release list at the candidate's build date and the version-advance check result of each release newer than the candidate's pin, compared with the pin CLM-003 selects; and the VER-001 to VER-010 results for that candidate and pin. |
+| OUT-004 | OBJ-001, OBJ-002, OBJ-004 | REQ-006, CLM-003 | AC-011 | VER-011 | The supplier's published list of stable releases at the candidate's build date, with the version-advance check result of each stable release newer than the candidate's pin or the statement that it was not checked, compared with the pin CLM-003 selects; and the VER-001 to VER-010 results for that candidate and pin. |

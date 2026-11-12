@@ -103,11 +103,11 @@ class PackagingPreparation(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'executable Mach-O'): self.run_prepare()
         self.assertFalse(self.output.exists())
 
-    def test_0167_exec_server_is_required_and_staged_verbatim(self):
-        self.metadata.update(version='0.167.0', execServer='bin/codex-exec-server')
+    def test_declared_pin_exec_server_is_required_and_staged_verbatim(self):
+        self.metadata.update(version='0.167.2', execServer='bin/codex-exec-server')
         (self.vendor/'codex-package.json').write_text(json.dumps(self.metadata))
         with self.assertRaisesRegex(ValueError, 'codex-exec-server'):
-            inventory.validate_package_layout(self.metadata, inventory.scan(self.vendor), '0.167.0')
+            inventory.validate_package_layout(self.metadata, inventory.scan(self.vendor), '0.167.2')
         helper = self.vendor/'bin/codex-exec-server'
         helper.write_bytes(bytes.fromhex('cffaedfe') + b'INVENTED exec server; never run')
         helper.chmod(0o755)
@@ -115,13 +115,17 @@ class PackagingPreparation(unittest.TestCase):
             helper.chmod(mode)
             if mode == 0o644:
                 with self.assertRaisesRegex(ValueError, 'executable Mach-O'):
-                    inventory.validate_package_layout(self.metadata, inventory.scan(self.vendor), '0.167.0')
+                    inventory.validate_package_layout(self.metadata, inventory.scan(self.vendor), '0.167.2')
             else:
-                inventory.validate_package_layout(self.metadata, inventory.scan(self.vendor), '0.167.0')
+                inventory.validate_package_layout(self.metadata, inventory.scan(self.vendor), '0.167.2')
         wrong = dict(self.metadata, execServer='bin/other')
         with self.assertRaisesRegex(ValueError, 'metadata'):
-            inventory.validate_package_layout(wrong, inventory.scan(self.vendor), '0.167.0')
-        result = self.run_prepare(pin='0.167.0')
+            inventory.validate_package_layout(wrong, inventory.scan(self.vendor), '0.167.2')
+        # The layout is the declared pin's committed record; the prior pin's label refuses.
+        self.assertEqual(inventory.expected_package_metadata('0.167.2'), self.metadata)
+        with self.assertRaisesRegex(ValueError, 'metadata'):
+            inventory.validate_package_layout(dict(self.metadata, version='0.167.0'), inventory.scan(self.vendor), '0.167.2')
+        result = self.run_prepare(pin='0.167.2')
         self.assertTrue((self.output/'bundle/Contents/Resources/codex/bin/codex-exec-server').is_file())
         self.assertEqual((self.output/'bundle/Contents/Resources/codex/bin/codex-exec-server').read_bytes(), helper.read_bytes())
         self.assertFalse(result['package_complete'])

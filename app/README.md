@@ -1,7 +1,7 @@
 # Chirality App v4 — runtime contract development
 
 Run `APP-V4-GROUP-A-20261004` repairs and extends the walking skeleton from
-`APP-V4-GRAPH-CLOSURE-20261004`. The current development integration targets stock Codex 0.167.0,
+`APP-V4-GRAPH-CLOSURE-20261004`. The current development integration targets stock Codex 0.167.2,
 supplies reviewed v4 common/role guidance, receives native requests and activity,
 loads external observations, records decision packages, and supplies native controls
 for A16 decisions, A15 workflow registration, and A4/A6/A7 App-file acts. Separate
@@ -9,9 +9,10 @@ readers retain decision and file-act evidence limits. App v4 development resumed
 by owner direction on 2026-10-28; packaging, supplier qualification and the owner's
 stage gate remain separate work.
 
-The 0.167 upgrade uses the exact canonical 42-file package and its
-generated-schema subject under an unqualified development admission. The installed npm 41-file tree shares its
-main but is not that acting distribution. The historical 0.160 supplier checks
+The declared pin uses the exact canonical 42-file package from the supplier's
+official release archive and its generated-schema subject under an unqualified
+development admission; both are recorded in
+`src-tauri/resources/supplier/<pin>/`. The historical 0.160 supplier checks
 and examples below retain their own pin/input requirements; they are not 0.167
 runtime qualification. Production still refuses the old compiled reference.
 

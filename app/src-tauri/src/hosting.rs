@@ -108,17 +108,63 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Condvar, Mutex, Weak};
 use std::time::Duration;
 
-/// The pin the App candidate declares (HOSTING §7.1, D4).
-pub const DECLARED_PIN: &str = "0.167.0";
-/// Exact installed npm main used for offline schema generation; development assertion only.
-pub(crate) const ASSESSMENT_SUPPLIER_SHA256: &str = "030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc";
-/// Generated-output identity: the pin and generator the protocol types came from
-/// (HOSTING §7.0; maintained JSON schemas record their exact installed npm generator separately).
-pub const GENERATED_OUTPUT_IDENTITY: &str =
-    "codex 0.167.0 installed npm main 030316ec; stable+experimental JSON-schema generation (manifest sha256 353ab01c4d92b18c8939c985ea1a8529e70a8d8ee58c8f9818545a13ed5dcc51; experimental root sha256 486c7c8daa5dc7f3ab2a1fb56de5316804caf7a4210fda1dc28d3f0f4e90cfe1; v2 sha256 b1e5d17224b9d9732b5976012438ba78e2cf7e418b67f8f8a5f5cffe301b875d); unqualified distribution";
+/// The pin the App candidate declares (HOSTING §7.1, D4). A pin move changes this
+/// and the folder in the five resource paths below; the digests and identities the
+/// host compares are read from that folder's committed records (DEL-01-01 AX-001).
+pub const DECLARED_PIN: &str = "0.167.2";
 
-/// Static .167 intake, separate from the archived .160 qualification reference.
-const ASSESSMENT_DISTRIBUTION: &[u8] = include_bytes!("../resources/supplier/0.167.0/CANONICAL_DISTRIBUTION.json");
+/// The declared pin's distribution record from its official release archive
+/// (DEL-01-01 OUT-002), separate from the archived .160 qualification reference.
+const ASSESSMENT_DISTRIBUTION: &[u8] = include_bytes!("../resources/supplier/0.167.2/CANONICAL_DISTRIBUTION.json");
+const ASSESSMENT_DISTRIBUTION_SHA256: &str = "d040fab157ebd1fa76867cca35150a340192c5101456d394008f287c2745b031";
+/// The declared pin's generation record and the generated outputs compiled into this App (HOSTING §7.0).
+const GENERATION_RECORD: &[u8] = include_bytes!("../resources/supplier/0.167.2/GENERATION.json");
+const GENERATION_RECORD_SHA256: &str = "4b3f5cc88972c3626344e00d2071406c4c87e4215ba971a1955111b0433c8a68";
+const GENERATED_MANIFEST: &[u8] = include_bytes!("../resources/supplier/0.167.2/MANIFEST.sha256");
+/// The declared pin's experimental generated protocol schema (root bundle).
+pub(crate) const GENERATED_SCHEMA: &str = include_str!("../resources/supplier/0.167.2/codex_app_server_protocol.schemas.json");
+const GENERATED_V2_SCHEMA: &[u8] = include_bytes!("../resources/supplier/0.167.2/codex_app_server_protocol.v2.schemas.json");
+
+fn compiled_record(cell: &'static std::sync::OnceLock<Value>, bytes: &[u8]) -> &'static Value {
+    cell.get_or_init(|| serde_json::from_slice(bytes).unwrap_or(Value::Null))
+}
+fn assessment_basis() -> &'static Value {
+    static BASIS: std::sync::OnceLock<Value> = std::sync::OnceLock::new();
+    compiled_record(&BASIS, ASSESSMENT_DISTRIBUTION)
+}
+fn generation_record() -> &'static Value {
+    static GENERATION: std::sync::OnceLock<Value> = std::sync::OnceLock::new();
+    compiled_record(&GENERATION, GENERATION_RECORD)
+}
+/// Main-binary development assertion: `bin/codex` of the declared pin's distribution
+/// record. A match cannot qualify the full executed distribution.
+pub(crate) fn assessment_supplier_sha256() -> &'static str {
+    assessment_basis()["inventory"]["entries"].as_array()
+        .and_then(|entries| entries.iter().find(|entry| entry["path"] == "bin/codex"))
+        .and_then(|entry| entry["sha256"].as_str()).unwrap_or("")
+}
+/// The declared pin's full distribution manifest (`inventory.manifest_sha256`).
+pub(crate) fn assessment_manifest_sha256() -> &'static str {
+    assessment_basis()["inventory"]["manifest_sha256"].as_str().unwrap_or("")
+}
+/// The per-file content identities `verify` reports for the declared pin's complete tree.
+pub(crate) fn assessment_identity_rows() -> Vec<Value> {
+    assessment_basis()["inventory"]["entries"].as_array().map(|entries| entries.iter()
+        .filter(|entry| entry["kind"] == "file")
+        .map(|entry| json!({"path":entry["path"],"identity":{"algorithm":"sha-256","value":entry["sha256"]}})).collect())
+        .unwrap_or_default()
+}
+/// Generated-output identity: the pin and generation the protocol types came from,
+/// as the declared pin's GENERATION.json records it (HOSTING §7.0).
+pub fn generated_output_identity() -> String {
+    let g = generation_record();
+    let text = |value: &Value| value.as_str().unwrap_or("absent").to_owned();
+    format!("codex {} from {} (archive sha256 {}; main sha256 {}; tree manifest sha256 {}; {}); stable+experimental JSON-schema generation (manifest sha256 {}; experimental root sha256 {}; v2 sha256 {}); unqualified distribution",
+        text(&g["pin"]), text(&g["supplier"]["source"]), text(&g["supplier"]["archive_sha256"]), text(&g["supplier"]["main_sha256"]),
+        text(&g["supplier"]["tree_manifest_sha256"]), text(&g["supplier"]["verified"]), text(&g["manifest_sha256"]),
+        text(&g["compiled_experimental_bundles"]["codex_app_server_protocol.schemas.json"]),
+        text(&g["compiled_experimental_bundles"]["codex_app_server_protocol.v2.schemas.json"]))
+}
 
 fn assessment_members_match(expected: &crate::distribution_preflight::Inventory, actual: &crate::distribution_preflight::Inventory) -> bool {
     // tar.gz has no root member. Its 50 declared members (42 files) retain exact
@@ -129,14 +175,18 @@ fn assessment_members_match(expected: &crate::distribution_preflight::Inventory,
 }
 
 fn assessment_preflight(cfg: &HostConfig) -> Result<Option<crate::distribution_preflight::Inventory>, String> {
-    if DECLARED_PIN != "0.167.0" || !cfg.expected_sha256.as_deref()
-        .is_some_and(|hash| hash.eq_ignore_ascii_case(ASSESSMENT_SUPPLIER_SHA256)) {
+    let supplier = assessment_supplier_sha256();
+    if supplier.is_empty() || !cfg.expected_sha256.as_deref()
+        .is_some_and(|hash| hash.eq_ignore_ascii_case(supplier)) {
         return Ok(None);
     }
-    if sha256_hex(ASSESSMENT_DISTRIBUTION) != "e6b0cd48c3d77728c44f2b79a2eb319686615b4521abb8585e9267694d380f61" {
+    if sha256_hex(ASSESSMENT_DISTRIBUTION) != ASSESSMENT_DISTRIBUTION_SHA256 {
         return Err("canonical .167 assessment identity changed".into());
     }
-    let basis: Value = serde_json::from_slice(ASSESSMENT_DISTRIBUTION).map_err(|e|e.to_string())?;
+    let basis = assessment_basis();
+    if basis["pin"] != DECLARED_PIN || basis["package_metadata"]["version"] != DECLARED_PIN {
+        return Err(format!("canonical .167 assessment record is not for the declared pin {DECLARED_PIN}"));
+    }
     let expected: crate::distribution_preflight::Inventory = serde_json::from_value(basis["inventory"].clone()).map_err(|e|e.to_string())?;
     let bin = cfg.codex_bin.parent().ok_or("canonical .167 bin directory absent")?;
     if cfg.codex_bin.file_name().is_none_or(|name|name != "codex") || bin.file_name().is_none_or(|name|name != "bin") {
@@ -1533,7 +1583,7 @@ impl Host {
         }
         match &cfg.expected_sha256 {
             Some(exp) if exp.eq_ignore_ascii_case(&content) => (
-                json!({"result": "unverifiable", "reason": if assessment.is_some() {"canonical .167 42-file assessment matches manifest 158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b; signatures, S3/S4 and qualification absent"} else {"main binary matches development assertion; qualified full distribution identity absent"}}), Some(label), dist),
+                json!({"result": "unverifiable", "reason": if assessment.is_some() {format!("canonical .167 {}-file assessment matches manifest {}; signatures, S3/S4 and qualification absent", dist.len(), assessment_manifest_sha256())} else {"main binary matches development assertion; qualified full distribution identity absent".to_owned()}}), Some(label), dist),
             Some(_) => (json!({"result": "mismatch", "element": "distribution content identity"}), Some(label), dist),
             None => (
                 json!({"result": "unverifiable", "reason": "no expected distribution content identity recorded (pin not qualified)"}),
@@ -1684,8 +1734,8 @@ impl Host {
                 "launcherRecord": {"launcher": "vendor-binary", "addedEnvironment": if prepared.is_some() { vec!["PATH"] } else { vec![] }},
                 "handshakeReportedIdentity": {},
                 "handshakeConsistency": "no-version-found",
-                "generatedOutputIdentity": GENERATED_OUTPUT_IDENTITY,
-                "supplementIdentity": "empty at 0.167.0",
+                "generatedOutputIdentity": generated_output_identity(),
+                "supplementIdentity": format!("empty at {DECLARED_PIN}"),
             }));
         }
         // Step 3: spawn.
@@ -2535,9 +2585,9 @@ impl Host {
     /// ROLE §3.3 F-1 / NIR CA-4: a same-role copy. `thread/fork` carries the
     /// thread id and no instructions, model or settings (ROLE §5.2; B-16), so
     /// the fork keeps the source's guidance and the source is unchanged. It also
-    /// sets `deferGoalContinuation` (0.167.0 ThreadForkParams): a source with an
+    /// sets `deferGoalContinuation` (the declared pin's ThreadForkParams): a source with an
     /// active goal would otherwise start an automatic continuation turn in the
-    /// fork that the person did not start, per the 0.167.0 generated schema
+    /// fork that the person did not start, per the declared pin's generated schema
     /// description; not observed. This suppresses that turn only; it is not
     /// guidance.
     pub fn thread_fork_dispatch(&self, generation: &Value, source_thread: &str) -> Result<SourceRequest,String> {
@@ -2675,7 +2725,7 @@ impl Host {
         result
     }
     fn validate_native_result(target: &str, result: &Value) -> Result<(),String> {
-        let mut schema:Value=serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).map_err(|e|e.to_string())?;schema["$ref"]=json!(format!("#/definitions/v2/{target}"));
+        let mut schema:Value=serde_json::from_str(GENERATED_SCHEMA).map_err(|e|e.to_string())?;schema["$ref"]=json!(format!("#/definitions/v2/{target}"));
         jsonschema::options().offline().build(&schema).map_err(|e|e.to_string())?.validate(result).map_err(|e|format!("native {target} schema: {e}"))
     }
 
@@ -4465,15 +4515,24 @@ fn network_disclosure() -> Value {
     })
 }
 
-/// SHA-256 of the maintained 0.167.0 JSON-only generated-output MANIFEST compiled into this App.
+/// SHA-256 of the maintained JSON-only generated-output MANIFEST compiled into this App.
 pub(crate) const GENERATED_MANIFEST_SHA256: &str = "353ab01c4d92b18c8939c985ea1a8529e70a8d8ee58c8f9818545a13ed5dcc51";
+/// The compiled generation record is the declared pin's, and the compiled MANIFEST and
+/// bundles are the ones it records.
 fn generated_outputs_match() -> bool {
-    [
-        (include_bytes!("../resources/supplier/0.167.0/GENERATION.json").as_slice(), "09c339f148d90034f1dba511c7a5b8e18545291e96a1fc96be744d2f17f24026"),
-        (include_bytes!("../resources/supplier/0.167.0/MANIFEST.sha256").as_slice(), GENERATED_MANIFEST_SHA256),
-        (include_bytes!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json").as_slice(), "486c7c8daa5dc7f3ab2a1fb56de5316804caf7a4210fda1dc28d3f0f4e90cfe1"),
-        (include_bytes!("../resources/supplier/0.167.0/codex_app_server_protocol.v2.schemas.json").as_slice(), "b1e5d17224b9d9732b5976012438ba78e2cf7e418b67f8f8a5f5cffe301b875d"),
-    ].iter().all(|(bytes, expected)| sha256_hex(bytes) == *expected)
+    generated_outputs_match_record(GENERATION_RECORD, GENERATED_MANIFEST, GENERATED_SCHEMA.as_bytes(), GENERATED_V2_SCHEMA)
+}
+fn generated_outputs_match_record(record: &[u8], manifest: &[u8], schema: &[u8], v2: &[u8]) -> bool {
+    let Ok(g) = serde_json::from_slice::<Value>(record) else { return false; };
+    let bundles = &g["compiled_experimental_bundles"];
+    sha256_hex(record) == GENERATION_RECORD_SHA256
+        && g["pin"] == DECLARED_PIN
+        && g["manifest_sha256"] == GENERATED_MANIFEST_SHA256
+        && [
+            (manifest, &g["manifest_sha256"]),
+            (schema, &bundles["codex_app_server_protocol.schemas.json"]),
+            (v2, &bundles["codex_app_server_protocol.v2.schemas.json"]),
+        ].iter().all(|(bytes, expected)| expected.as_str().is_some_and(|e| sha256_hex(bytes) == e))
 }
 
 /// Returns the replaced input, so a caller with a live child can keep the
@@ -4617,7 +4676,7 @@ mod additive_guidance_transport_tests {
         let text="Common guidance\n\nTASK role: é / 家\n";
         let params=Host::thread_start_params("/invented/work","explicit-model","explicit-provider",Some(text)).unwrap();
         assert_eq!(params,json!({"cwd":"/invented/work","model":"explicit-model","modelProvider":"explicit-provider","developerInstructions":text}));
-        let mut schema:Value=serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).unwrap();schema["$ref"]=json!("#/definitions/v2/ThreadStartParams");jsonschema::options().offline().build(&schema).unwrap().validate(&params).unwrap();
+        let mut schema:Value=serde_json::from_str(GENERATED_SCHEMA).unwrap();schema["$ref"]=json!("#/definitions/v2/ThreadStartParams");jsonschema::options().offline().build(&schema).unwrap().validate(&params).unwrap();
         assert_eq!(Host::thread_start_params("/invented/work","m","p",None).unwrap(),json!({"cwd":"/invented/work","model":"m","modelProvider":"p"}));
         assert!(Host::thread_start_params("/invented/work"," ","p",Some(text)).is_err());assert!(Host::thread_start_params("/invented/work","m","",Some(text)).is_err());
     }
@@ -4901,7 +4960,7 @@ mod conversation_transport_tests {
     #[test]
     fn required_native_text_and_interrupt_params_match_generated_schema_without_overrides() {
         let text="Exact\n\né / 家\n{\"approvalPolicy\":\"never\"}";let params=Host::text_turn_params("thread",text).unwrap();assert_eq!(params,json!({"threadId":"thread","input":[{"type":"text","text":text,"text_elements":[]}]}));
-        let source:Value=serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).unwrap();for (target,params) in [("TurnStartParams",params),("TurnInterruptParams",json!({"threadId":"thread","turnId":"turn"}))] {let mut schema=source.clone();schema["$ref"]=json!(format!("#/definitions/v2/{target}"));jsonschema::options().offline().build(&schema).unwrap().validate(&params).unwrap();}
+        let source:Value=serde_json::from_str(GENERATED_SCHEMA).unwrap();for (target,params) in [("TurnStartParams",params),("TurnInterruptParams",json!({"threadId":"thread","turnId":"turn"}))] {let mut schema=source.clone();schema["$ref"]=json!(format!("#/definitions/v2/{target}"));jsonschema::options().offline().build(&schema).unwrap().validate(&params).unwrap();}
         assert!(Host::text_turn_params("",text).is_err());assert!(Host::text_turn_params("thread","").is_err());
     }
     #[test]
@@ -5185,7 +5244,7 @@ mod conversation_transport_tests {
     fn steering_exact_native_body_schema_and_ack_keep_live_target_without_overrides() {
         let host=host();event(&host,"inProgress");let text="Exact steering\n\né / 家\n{\"model\":\"not an override\"}";
         let params=Host::steer_text_params("thread","turn",text).unwrap();assert_eq!(params,json!({"threadId":"thread","expectedTurnId":"turn","input":[{"type":"text","text":text,"text_elements":[]}]}));
-        let source:Value=serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).unwrap();for(target,value)in [("TurnSteerParams",params.clone()),("TurnSteerResponse",json!({"turnId":"turn"}))] {let mut schema=source.clone();schema["$ref"]=json!(format!("#/definitions/v2/{target}"));jsonschema::options().offline().build(&schema).unwrap().validate(&value).unwrap();}
+        let source:Value=serde_json::from_str(GENERATED_SCHEMA).unwrap();for(target,value)in [("TurnSteerParams",params.clone()),("TurnSteerResponse",json!({"turnId":"turn"}))] {let mut schema=source.clone();schema["$ref"]=json!(format!("#/definitions/v2/{target}"));jsonschema::options().offline().build(&schema).unwrap().validate(&value).unwrap();}
         let before=host.snapshot()["conversationTurns"].clone();let(result,outbound)=exchange(&host,Some(json!({"result":{"turnId":"turn","nativeExtra":"kept"}})),vec![],||host.turn_steer_text(&g(),"thread","turn",text));assert_eq!(outbound["method"],"turn/steer");assert_eq!(outbound["params"],params);assert_eq!(result.unwrap()["result"]["nativeExtra"],"kept");assert_eq!(host.snapshot()["conversationTurns"],before);assert_eq!(host.client_requests()[0]["outcome"],"response-observed-result");assert_eq!(host.snapshot()["threads"][0]["model"],"selected");
         assert!(Host::steer_text_params("thread","",text).is_err());assert!(Host::steer_text_params("thread","turn","").is_err());
     }
@@ -5219,13 +5278,13 @@ mod conversation_transport_tests {
         event(&host,"completed");let mut fresh=turn("inProgress");fresh["id"]=json!("fresh");let(result,_)=exchange(&host,Some(json!({"result":{"turn":fresh}})),vec![],||host.turn_start_text(&g(),"thread","new"));assert!(result.is_ok());let(result,_)=exchange(&host,Some(json!({"result":{"turnId":"fresh"}})),vec![],||host.turn_steer_text(&g(),"thread","fresh","text"));assert!(result.is_ok());
     }
 
-    fn history_thread(status:&str)->Value {json!({"id":"stored","cliVersion":"0.167.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":status},"turns":[],"agentRole":"TASK","nativeExtra":{"kept":true}})}
+    fn history_thread(status:&str)->Value {json!({"id":"stored","cliVersion":"0.167.2","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":status},"turns":[],"agentRole":"TASK","nativeExtra":{"kept":true}})}
     fn history_resume(status:&str,direct:bool)->Value {let mut native=history_thread(status);native["canAcceptDirectInput"]=json!(direct);json!({"thread":native,"model":"reported","modelProvider":"configured","cwd":"/invented","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly"},"instructionSources":["/native/instructions"],"nativeExtra":true})}
     fn bind_local_history(host:&Host) {
         let mut i=host.inner.0.lock().unwrap();
         i.local_provider=Some(access_provider::LocalProviderBinding::for_test("conversation-home","/invented"));
-        i.version_identity=Some(json!({"declaredPin":"0.167.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc"}}]}));
-        i.successor_status=Some(json!({"verificationGeneration":g(),"inventory":{"manifest_sha256":"158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"}}));
+        i.version_identity=Some(json!({"declaredPin":DECLARED_PIN,"distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":assessment_supplier_sha256()}}]}));
+        i.successor_status=Some(json!({"verificationGeneration":g(),"inventory":{"manifest_sha256":assessment_manifest_sha256()}}));
     }
     #[test]
     fn local_provider_same_role_fork_dispatches_and_admits_local_result() {
@@ -6276,7 +6335,7 @@ mod conversation_transport_tests {
     impl Drop for NativePagePipe {fn drop(&mut self){*self.host.stdin.lock().unwrap()=None;assert!(self.child.wait().unwrap().success());}}
     fn native_page_selected()->NativeHistory {
         use crate::native_history::Direction;let mut h=NativeHistory::new("conversation-home",g()).unwrap();let q=h.list_threads(None,Direction::Desc).unwrap();
-        let t=|id:&str|json!({"id":id,"cliVersion":"0.167.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"synthetic","projectId":null,"sessionId":"session","source":"appServer","status":{"type":"notLoaded"},"turns":[]});
+        let t=|id:&str|json!({"id":id,"cliVersion":"0.167.2","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"synthetic","projectId":null,"sessionId":"session","source":"appServer","status":{"type":"notLoaded"},"turns":[]});
         h.receive(&q,"conversation-home",&g(),&json!({"data":[t("thread"),t("other")],"nextCursor":null})).unwrap();h.select("thread").unwrap();
         let q=h.turns_page(None,Direction::Desc).unwrap();h.receive(&q,"conversation-home",&g(),&json!({"data":[{"id":"turn","status":"completed","items":[],"itemsView":"summary","error":null}],"nextCursor":null})).unwrap();h
     }

@@ -9,8 +9,9 @@ citing a recorded decision and no input was missing; otherwise "returned for dec
 its arguments.
 
 Usage, from `app/`:
-  python3 supplier_checks/version_advance.py compare --from 0.160.0 --to 0.167.0 \
-      --out supplier_checks/version_advance/0.160.0-to-0.167.0.json
+  python3 supplier_checks/version_advance.py compare --from 0.167.0 --to 0.167.2 \
+      --out supplier_checks/version_advance/0.167.0-to-0.167.2.json
+(each committed result under supplier_checks/version_advance/ is regenerated the same way)
 
 Every input location is an argument with a repository default:
   --resources DIR         folder holding <pin>/ with the generated bundles and MANIFEST.sha256

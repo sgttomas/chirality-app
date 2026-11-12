@@ -2768,10 +2768,10 @@ fn native_child_guidance_private_receipt_queue_survives_journal_burst_and_close(
 fn canonical_167_peer(peer: &Peer) {
     let mut i = peer.host.inner.0.lock().unwrap();
     i.version_identity = Some(
-        json!({"declaredPin":"0.167.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc"}}]}),
+        json!({"declaredPin":crate::hosting::DECLARED_PIN,"distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":crate::hosting::assessment_supplier_sha256()}}]}),
     );
     i.successor_status = Some(
-        json!({"verificationGeneration":peer.g,"inventory":{"manifest_sha256":"158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"}}),
+        json!({"verificationGeneration":peer.g,"inventory":{"manifest_sha256":crate::hosting::assessment_manifest_sha256()}}),
     );
 }
 pub(crate) fn local_167_config() -> Value {
@@ -3306,16 +3306,20 @@ fn native_local_provider_central_guard_rechecks_original_thread_after_writer_wai
 
 #[test]
 fn native_local_provider_canonical_legacy_receiving_requires_all42_original_native_rows() {
-    let rows: Value = serde_json::from_str(include_str!(
+    let rows = Value::Array(crate::hosting::assessment_identity_rows());
+    assert_eq!(rows.as_array().unwrap().len(), 42);
+    // The prior pin 0.167.0's complete rows, as its legacy receiving path retained them.
+    let prior: Value = serde_json::from_str(include_str!(
         "../../tests/fixtures/local-provider/canonical-167-file-identities.json"
     ))
     .unwrap();
     assert_eq!(
-        sha256_hex(&serde_json::to_vec(&rows).unwrap()),
+        sha256_hex(&serde_json::to_vec(&prior).unwrap()),
         "a4a5a0ab4e6f0572db715dd356e4afee9db1e8a3cef8e7e8a4a4da6a74009df9"
     );
     for case in [
         "positive",
+        "prior-pin-rows",
         "npm41",
         "duplicate",
         "extra",
@@ -3355,6 +3359,7 @@ fn native_local_provider_canonical_legacy_receiving_requires_all42_original_nati
                         .unwrap()
                         .retain(|r| r["path"] != "bin/codex");
                 }
+                "prior-pin-rows" => pin["distributionContentIdentity"] = prior.clone(),
                 "wrong-pin" => pin["declaredPin"] = json!("0.160.0"),
                 "foreign-generation" => i.generation["spawnCounter"] = json!(2),
                 _ => {}

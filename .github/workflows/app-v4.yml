@@ -16,7 +16,7 @@ env:
   RUST_TEST_THREADS: '1'
   CARGO_INCREMENTAL: '0'
   CARGO_BUILD_JOBS: '2'
-  CHIRALITY_CODEX_EXPECTED_SHA256: 030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc
+  CHIRALITY_CODEX_EXPECTED_SHA256: 97bc82fd46f117cf10efb95e6ff0c81dc4784f5797bcdc2cb75093ba09e4def0
 
 defaults:
   run:
@@ -259,18 +259,18 @@ jobs:
           /usr/bin/git --no-lazy-fetch --version
           mkdir -p "$SUPPLIER_ROOT" "$CHIRALITY_CODEX_HOME"
           curl --fail --location --retry 2 \
-            https://github.com/openai/codex/releases/download/rust-v0.167.0/codex-package-aarch64-apple-darwin.tar.gz \
+            https://github.com/openai/codex/releases/download/rust-v0.167.2/codex-package-aarch64-apple-darwin.tar.gz \
             --output "$SUPPLIER_ROOT/supplier.tgz"
           python - <<'PY'
           import hashlib, os, tarfile
           from pathlib import Path, PurePosixPath
           root = Path(os.environ['SUPPLIER_ROOT'])
           archive = root / 'supplier.tgz'
-          if archive.stat().st_size != 166340155:
+          if archive.stat().st_size != 166599161:
               raise SystemExit('supplier archive size mismatch')
           with archive.open('rb') as stream:
               digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-          if digest != 'af45ed45d940d7998809622c1c0296d3098ed7d7fad695284422c228bd454517':
+          if digest != 'e791290651bce41938fb160b5de2bd9ff8bcf3401ca3e236c73f485fca4be1bb':
               raise SystemExit('supplier archive integrity mismatch')
           with tarfile.open(archive, 'r:gz') as package:
               members = package.getmembers()

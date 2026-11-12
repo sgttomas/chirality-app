@@ -1384,7 +1384,7 @@ fn a_loss_reads_the_native_views_streamed_message_text() {
     let root = std::path::PathBuf::from("/project/root");
     let decides = |deltas: &[&str]| {
         let mut native = crate::native_items::NativeView::new("native-home".into()).unwrap();
-        native.ready(g(1), json!("codex 0.167.0"), json!("unverified-development")).unwrap();
+        native.ready(g(1), json!("codex 0.167.2"), json!("unverified-development")).unwrap();
         let frames = [json!({"method":"turn/started","params":{"threadId":"thread","turn":{"id":"turn-1","status":"inProgress","items":[],"error":null,"itemsView":"summary"}}}),
             json!({"method":"item/started","params":{"threadId":"thread","turnId":"turn-1","item":{"id":"m1","type":"agentMessage","text":""}}})];
         let deltas = deltas.iter().map(|d| json!({"method":"item/agentMessage/delta","params":{"threadId":"thread","turnId":"turn-1","itemId":"m1","delta":d}}));

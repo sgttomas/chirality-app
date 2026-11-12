@@ -664,7 +664,7 @@ mod tests {
         let mut v = NativeView::new("h".into()).unwrap();
         v.ready(
             g(1),
-            json!("codex 0.167.0"),
+            json!("codex 0.167.2"),
             json!("unverified-development"),
         )
         .unwrap();

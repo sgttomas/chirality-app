@@ -434,7 +434,7 @@ fn records_retention_canonical_supplier_stop_releases_activity_while_host_stays_
     std::fs::write(&peer,r#"#!/usr/bin/python3
 import json,sys
 if '--version' in sys.argv:
- print('codex-cli 0.167.0');sys.exit(0)
+ print('codex-cli 0.167.2');sys.exit(0)
 for line in sys.stdin:
  frame=json.loads(line)
  if frame.get('method')=='initialize':

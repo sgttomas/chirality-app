@@ -3721,7 +3721,7 @@ mod oauth_root_tests {
             std::fs::write(&peer,r#"#!/usr/bin/python3
 import sys,json,threading,time,os
 if '--version' in sys.argv:
- print('codex-cli 0.167.0');sys.exit(0)
+ print('codex-cli 0.167.2');sys.exit(0)
 lock=threading.Lock()
 private='OWNED_ROOT_OAUTH_PRIVATE_CANARY'
 def emit(value):
@@ -8051,10 +8051,10 @@ mod workflow_root_tests {
             std::fs::write(&script,r#"#!/usr/bin/python3
 import sys,json,os
 if '--version' in sys.argv:
- print('codex-cli 0.167.0');sys.exit(0)
+ print('codex-cli 0.167.2');sys.exit(0)
 def emit(v):print(json.dumps(v),flush=True)
 starts=[0]
-def thread(tid='thread'):return {'id':tid,'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'own native-shaped fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[],'agentRole':'TASK'}
+def thread(tid='thread'):return {'id':tid,'cliVersion':'0.167.2','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'own native-shaped fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[],'agentRole':'TASK'}
 def turn():return {'id':(mode('turn-id') or 'turn'),'status':'failed','items':[],'error':None,'itemsView':'summary'}
 text='';client='';inputs=[]
 def mode(name):
@@ -9629,7 +9629,7 @@ for line in sys.stdin:
     // B-1 (#1250 review): model/list answers for the provider the app-server
     // resolves for itself; a conversation whose project folder or start chose
     // another provider is never read as present or missing from it, in either
-    // direction. At 0.167.0 modelProvider/capabilities/read carries no
+    // direction. At the declared pin modelProvider/capabilities/read carries no
     // delegation signal (openai/codex PR 50447), so only model/list is gated.
     #[test]
     fn the_parameterless_reads_count_only_for_the_app_servers_own_provider(){
@@ -9732,7 +9732,7 @@ for line in sys.stdin:
         let limits=s["limits"].to_string();
         assert!(limits.contains("no response to")&&limits.contains("model/list"),"{limits}");
         assert!(limits.contains("config/read not sent: an earlier read of this reading got no response"),"{limits}");
-        // The capabilities read is not sent either; at 0.167.0 that is a note, not a limit.
+        // The capabilities read is not sent either; at the declared pin that is a note, not a limit.
         assert!(s["notes"].to_string().contains("modelProvider/capabilities/read not sent"),"{s}");
         assert!(peer.home.host.client_requests().iter().all(|r|r["method"]!="config/read"&&r["method"]!="modelProvider/capabilities/read"),"nothing sent after the silence");
     }
@@ -10492,7 +10492,7 @@ for line in sys.stdin:
     }
     #[test]
     fn ordinary_model_ipc_consumer_carries_plain_plan_default_and_pending_notice() {
-        let schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).unwrap();
+        let schema: Value = serde_json::from_str(crate::hosting::GENERATED_SCHEMA).unwrap();
         let mut turn_schema = schema.clone();
         turn_schema["$ref"] = json!("#/definitions/v2/TurnStartParams");
         let validator = jsonschema::options().offline().build(&turn_schema).unwrap();
