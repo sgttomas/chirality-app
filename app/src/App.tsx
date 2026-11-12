@@ -1030,7 +1030,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
       : "Waiting for the workflow operation and its current view…");
     let request:Record<string,unknown>;
     try{request=workflowArguments(command,args,data,host,thread);}
-    catch(error){setOutcome({relation:{command,source:structuredClone(data?.context??null),request:structuredClone(args)},message:String(error),limits:[]});pendingAction.current=false;setBusy(false);setProgress("");return undefined;}
+    catch(error){setOutcome({relation:{command,source:structuredClone(data?.context??null),request:structuredClone(args)},message:String(error),limits:[],failed:true,settled:true});pendingAction.current=false;setBusy(false);setProgress("");return undefined;}
     const relation={command,source:structuredClone(data?.context??null),request:structuredClone(request)};
     setOutcome({relation,message:"",limits:[]});
     const limit=(message:string)=>setOutcome(old=>old?.relation===relation?{...old,limits:[...old.limits,message]}:old);

@@ -17,25 +17,46 @@ const ACTION_WORDS: Record<string, [string, string]> = {
   workflow_end_run: ["Ending requested; see Progress", "end the run"],
   workflow_observe_drafts: ["Looked for drafts in this library", "look for drafts"],
   workflow_review_draft: ["Opened the review", "open the review"],
-  workflow_trial_prepare: ["Prepared the trial message; nothing has been sent", "prepare the trial"],
-  workflow_trial_bring_back: ["Prepared the trial's results as a message; nothing has been sent", "bring the trial back"],
+  workflow_trial_prepare: ["Asked for the trial message; it is listed below when it is ready to read and send. Nothing has been sent", "prepare the trial"],
+  workflow_trial_bring_back: ["Asked for the trial's results as a message; it is listed below when it is ready to read and send. Nothing has been sent", "bring the trial back"],
 };
-/** Refusals a person can meet from a guide's button, in their words. The host's exact reply stays under details. */
-const REFUSAL_WORDS: [RegExp, string][] = [
-  [/history context is busy/i, "the App was busy reading conversation history, so nothing was changed. Press the button again."],
-  [/(generation|history selection|home source|App source) changed|refresh the displayed/i, "this view was out of date, so nothing was changed. Press the button again."],
-  [/not durably recorded; nothing sent|pre-send publication failed/i, "the App couldn't save the run's record, so nothing was sent."],
+/**
+ * Refusals a person can meet from a guide's button, in their words. Each is
+ * one exact host or App message, said only for the commands it can come from
+ * before anything was done, so "nothing was done" is what was established.
+ * Any other refusal is shown in the App's own words.
+ */
+const CHECKED_FIRST = ["workflow_open_project_library", "workflow_library_entries_refresh", "workflow_review_library_entries", "workflow_select_listed",
+  "workflow_select_production_bundle", "workflow_follow_newer_revision", "workflow_prepare_run", "workflow_observe_drafts"];
+const OUT_OF_DATE = "this view was out of date, so nothing was done. Press the button again.";
+const REFUSAL_WORDS: { exact: string; commands: string[]; words: string }[] = [
+  { exact: "Native history context is busy; refresh the workflow choice", commands: CHECKED_FIRST, words: "the App was busy reading conversation history, so nothing was done. Press the button again." },
+  { exact: "Workflow App home source changed; refresh the displayed choice", commands: CHECKED_FIRST, words: OUT_OF_DATE },
+  { exact: "Workflow native generation changed; refresh the displayed choice", commands: CHECKED_FIRST, words: OUT_OF_DATE },
+  { exact: "Native history selection changed; refresh the displayed workflow choice", commands: CHECKED_FIRST, words: OUT_OF_DATE },
+  // The App's own check before any host command is issued (workflowArguments).
+  { exact: "Workflow source or chat changed; refresh the displayed choice before acting", commands: CHECKED_FIRST, words: "the conversation chosen here is no longer open in this view, so nothing was done. Choose the conversation again, then press the button again." },
 ];
-const refusalWords = (reply: string): string | undefined => REFUSAL_WORDS.find(([pattern]) => pattern.test(reply))?.[1];
+const refusalWords = (command: string, reply: string): string | undefined => REFUSAL_WORDS.find(row => row.exact === reply && row.commands.includes(command))?.words;
+/** The host's states for a prepared run it did not send, with what a person does next. Each state itself says nothing was sent. */
+const NOT_SENT: Record<string, string> = {
+  "WR pre-send publication failed; nothing sent": "The App couldn't save the run's record. Start the run again; if it fails the same way, the reason is in the App's report below.",
+  "generated supporting files changed or unavailable; nothing sent": "The workflow's supporting files changed or can't be read since you prepared the run. Prepare the run again.",
+  "selected revision source changed or unavailable; nothing sent": "The chosen workflow's stored files changed or can't be read since you prepared the run. Choose the workflow again, then prepare the run again.",
+  "workflow approval changed since preparation; nothing sent": "Your workflow approval setting changed since you prepared the run. Prepare the run again.",
+};
 export type GuideOutcome = { command: string; message: string; failed?: boolean; settled?: boolean };
 /** The last guide action's result without raw host JSON; the exact reply stays under details. */
 export function guideResultWords(outcome: GuideOutcome): { words: string; detail: string; failed: boolean } | null {
-  if (!outcome?.settled) return null;
-  const [done, verb] = ACTION_WORDS[outcome.command] ?? ["Done", "do that"];
+  // Only a settled result of a command the guides name: an unknown command's reply is never called done.
+  if (!outcome?.settled || !Object.hasOwn(ACTION_WORDS, outcome.command)) return null;
+  const [done, verb] = ACTION_WORDS[outcome.command];
   if (outcome.failed) {
     const reply = outcome.message.replace(/^Error: /, "");
-    const plain = refusalWords(reply);
-    return plain ? { words: `Couldn't ${verb}: ${plain}`, detail: reply, failed: true } : { words: `Couldn't ${verb}: ${reply}`, detail: "", failed: true };
+    const plain = refusalWords(outcome.command, reply);
+    if (plain) return { words: `Couldn't ${verb}: ${plain}`, detail: reply, failed: true };
+    // A start that failed leaves the run in a state Progress reads; what to do next is said there.
+    return { words: `Couldn't ${verb}: ${reply}${outcome.command === "workflow_send_run" ? " — see Progress for what the App knows and what to do next." : ""}`, detail: "", failed: true };
   }
   return { words: `${done}.`, detail: outcome.message, failed: false };
 }
@@ -103,24 +124,33 @@ export function runReading(run: Json, host: Json): RunReading {
     const waiting = hostRequests(host).filter((request: Json) => requestThread(request) === run.conversation && request.state === "outstanding" && (request.generation === undefined || same(request.generation, run.generation))).length;
     if (waiting > 0) return { tone: "waiting", title: "Waiting for your answer", detail: `Codex is asking ${waiting === 1 ? "a question or approval" : `${waiting} questions or approvals`} in the conversation. Nothing continues until you answer there.` };
     const thread = list(host?.threads).find((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation));
-    // The conversation's own turns, as the host observed them. A turn in
-    // progress is Codex working, whatever status the conversation row keeps.
+    // Working is read only from what the host established as this
+    // conversation's current live turn (the target it would steer), or from a
+    // conversation status Codex sent. A retained turn that still looks in
+    // progress is not enough: it may be an earlier turn.
+    if (!Array.isArray(host?.conversationTurns)) return { tone: "uncertain", title: "Can't tell whether Codex is still working", detail: "The App has no reading of this conversation's steps right now, so it can't say whether Codex is working. Read the conversation before you reply or end the run." };
     const turns = list(host?.conversationTurns).filter((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation));
-    const live = turns.some((row: Json) => row.nativeTurn?.status === "inProgress" && row.terminalEventObserved !== true && row.observationEnded !== true);
-    if (thread?.status?.type === "active" || live) return { tone: "working", title: "Working", detail: "Codex is working on this run. Follow its progress in the conversation." };
-    // A turn last seen in progress whose observation ended: the App cannot say it stopped.
-    if (turns.some((row: Json) => row.nativeTurn?.status === "inProgress" && row.terminalEventObserved !== true && row.observationEnded === true))
-      return { tone: "uncertain", title: "Can't tell whether Codex is still working", detail: "The App stopped receiving this run's current step before it ended, so it may still be working. Read the conversation before you reply or end the run." };
-    const lastTurn = turns.filter((row: Json) => Number.isFinite(row.receiptPosition)).sort((a: Json, b: Json) => b.receiptPosition - a.receiptPosition)[0];
-    if (lastTurn?.nativeTurn?.status === "failed") return { tone: "failed", title: "Codex's last step failed", detail: `${lastTurn.nativeTurn.error?.message ? `Codex reported: ${text(lastTurn.nativeTurn.error.message)}. ` : ""}The run is still open; read the conversation, then reply there to continue or end the run.` };
+    const current = list(host?.steeringTargets).find((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation))?.target;
+    const currentTurn = current && current.threadId === run.conversation && same(current.generation, host?.generation) ? current : null;
+    if (thread?.status?.type === "active" || currentTurn) return { tone: "working", title: "Working", detail: "Codex is working on this run. Follow its progress in the conversation." };
+    const latest = turns.filter((row: Json) => Number.isFinite(row.receiptPosition)).sort((a: Json, b: Json) => b.receiptPosition - a.receiptPosition)[0];
+    const ended = latest?.terminalEventObserved === true;
+    if (ended && latest.nativeTurn?.status === "failed") return { tone: "failed", title: "Codex's last step failed", detail: `${latest.nativeTurn.error?.message ? `Codex reported: ${text(latest.nativeTurn.error.message)}. ` : ""}The run is still open; read the conversation, then reply there to continue or end the run.` };
+    if (ended && latest.nativeTurn?.status === "interrupted") return { tone: "idle", title: "Open — Codex's last step was interrupted", detail: "Codex's last step was stopped before it finished. The run is still open; reply in the conversation to continue, or end the run." };
+    // Any turn last seen in progress with no current turn established (its
+    // observation ended, or the host cannot tell which turn is current): the
+    // App did not see it stop.
+    if (turns.some((row: Json) => row.nativeTurn?.status === "inProgress" && row.terminalEventObserved !== true))
+      return { tone: "uncertain", title: "Can't tell whether Codex is still working", detail: "The App didn't see this run's current step end and can't establish that it is still running, so it may still be working. Read the conversation before you reply or end the run." };
     if (thread?.status?.type === "systemError") return { tone: "failed", title: "Codex reported an error", detail: "The conversation reported a system error. The run is still open; read the conversation, then continue or end the run." };
     return { tone: "idle", title: "Open — Codex is not working right now", detail: "The run stays open until you end it. Reply in the conversation to continue, or end the run when you are done." };
   }
+  // Only a prepared run is read as starting, not started or ready; any other state is not one this guide knows.
+  if (!starts(lifecycle, "prepared")) return { tone: "uncertain", title: "Can't tell this run's state", detail: `The App reported a run state this view doesn't know${lifecycle ? ` (${lifecycle})` : ""}. Read the conversation before deciding what to do.` };
   if (run?.source) return { tone: "working", title: "Starting", detail: "The starting message was sent. The run opens when Codex begins it." };
   if (status.sent === false && status.limit) {
-    const reported = `${text(status.state)}: ${text(status.limit)}`;
-    const plain = refusalWords(reported);
-    return { tone: "failed", title: "Not started", detail: `Nothing was sent${plain ? `: ${plain}` : "."} You can start it again. The App reported: ${reported}` };
+    const next = NOT_SENT[text(status.state)];
+    return { tone: "failed", title: "Not started", detail: `${next ? `Nothing was sent. ${next}` : "The App reports that this run was not sent."} The App reported: ${text(status.state)}: ${text(status.limit)}` };
   }
   return { tone: "idle", title: "Ready to start", detail: "The run is prepared and has not been sent. Start it when your inputs are ready." };
 }
@@ -239,11 +269,11 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
       : "Read the conversation: a start here has an unknown outcome and may have run; the App can't tell which run is latest.")
     : orderUnknown && inProgress ? "A run in this conversation is still open, and the App can't tell which run is latest; follow or end it from Results or the workflow studio before preparing another."
     : !latest || starts(latest.lifecycle?.state, "ended") || starts(latest.lifecycle?.state, "start not confirmed") ? "Describe what the workflow should work on, then prepare the run."
-    : prepared ? prepared.status?.sent === false && prepared.status?.limit ? "The run didn't start and nothing was sent. See why under Progress, then start it again." : "Check your inputs, then start the run." : orderUnknown ? "This conversation has several runs whose order the App can't tell; see each under Results." : reading?.title ?? "";
+    : prepared ? prepared.status?.sent === false && prepared.status?.limit ? "The run didn't start. Progress says why and what to do." : "Check your inputs, then start the run." : orderUnknown ? "This conversation has several runs whose order the App can't tell; see each under Results." : reading?.title ?? "";
   return <section id="run-workflow" className="workflow-stage run-journey" aria-label="Run a workflow" aria-busy={busy}>
     <h2>Run a workflow</h2>
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {step}</p>
-    <GuideResult label="Run a workflow — last result" outcome={outcome}/>
+    <GuideResult label="Run a workflow — last result" outcome={outcome} only={["workflow_open_project_library", "workflow_library_entries_refresh", "workflow_review_library_entries", "workflow_select_listed", "workflow_select_production_bundle", "workflow_follow_newer_revision", "workflow_prepare_run", "workflow_send_run", "workflow_end_run"]}/>
     <ol className="run-journey-steps">
       <li aria-labelledby="run-project-heading"><h3 id="run-project-heading">Project</h3>
         <ProjectFolderSummary host={host} libraryAvailable={projectAvailable}/>
@@ -302,7 +332,8 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
           <button className="setup-primary" disabled={!canAct || !ready || !thread || !chosenReady || inProgress || (unresolvedStart && checkedRun !== holdKey)}
           onClick={() => { if (!unresolvedStart || checkedRun === holdKey) performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start"); }}>Prepare this run</button></>
           : <><p>Prepared {text(prepared.workflow?.name)} with your text. Nothing has been sent yet.</p>
-            <button ref={startButton} className="setup-primary" disabled={!canAct || !ready} onClick={() => performThen("workflow_send_run", { runRef: prepared.reference }, "progress")}>Start the run</button></>}
+            <button ref={startButton} className="setup-primary" disabled={!canAct || !ready} onClick={() => performThen("workflow_send_run", { runRef: prepared.reference }, "progress")}>Start the run</button>
+            {prepared.status?.sent === false && prepared.status?.limit && <>{" "}<button disabled={!canAct || !ready || !thread || !chosenReady} onClick={() => performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start")}>Prepare this run again</button></>}</>}
         <p><small>Preparing composes the starting message from the chosen revision; nothing is sent. Starting records the run and sends that message once — if recording fails, nothing is sent.</small></p>
       </li>
       <li aria-labelledby="run-progress-heading"><h3 id="run-progress-heading">Progress</h3>
